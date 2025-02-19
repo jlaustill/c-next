@@ -1,0 +1,11 @@
+class Math {
+    static int32 PI <- 314;
+    
+    public int32 add(int32 a, int32 b) {
+        return a + b;
+    }
+
+    public int32 divide(int32 a, int32 b) {
+        return a / b;
+    }
+}
