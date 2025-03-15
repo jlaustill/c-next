@@ -1,5 +1,5 @@
 class Math {
-    static int32 PI <- 314;
+    static float32 PI <- 3.14;
     
     public int32 add(int32 a, int32 b) {
         return a + b;

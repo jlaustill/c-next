@@ -1,124 +1,152 @@
 grammar cNext;
 
-// Lexer rules
-PUBLIC: 'public';
-STATIC: 'static';
-CLASS: 'class';
-TYPE_INT8: 'int8';
-TYPE_INT16: 'int16';
-TYPE_INT32: 'int32';
-TYPE_INT64: 'int64';
-TYPE_STRING: 'String';
-ASSIGN: '<-';
-SEMI: ';';
-LBRACE: '{';
-RBRACE: '}';
-LPAREN: '(';
-RPAREN: ')';
-COMMA: ',';
-RETURN: 'return';
-PLUS: '+';
-MINUS: '-';
-MULT: '*';
-DIV: '/';
+                // Lexer rules
+                IMPORT: 'import';
+                INCLUDE: '#include';
+                PUBLIC: 'public';
+                STATIC: 'static';
+                CLASS: 'class';
+                TYPE_INT8: 'int8';
+                TYPE_INT16: 'int16';
+                TYPE_INT32: 'int32';
+                TYPE_INT64: 'int64';
+                TYPE_STRING: 'String';
+                ASSIGN: '<-';
+                SEMI: ';';
+                LBRACE: '{';
+                RBRACE: '}';
+                LPAREN: '(';
+                RPAREN: ')';
+                COMMA: ',';
+                RETURN: 'return';
+                PLUS: '+';
+                MINUS: '-';
+                MULT: '*';
+                DIV: '/';
 
-ID: [a-zA-Z][a-zA-Z0-9]*;
-NUMBER: [0-9]+;
-STRING: '`' .*? '`';
-WS: [ \t\r\n]+ -> skip;
+                ID: [a-zA-Z][a-zA-Z0-9]*;
+                NUMBER: [0-9]+;
+                STRING: '`' .*? '`';       // String literals in backticks
+                FILENAME: '"' .*? '"';     // String literals in quotes for file names
+                WS: [ \t\r\n]+ -> skip;
 
-// Parser rules
-sourceFile          // .cn files
-    : classDeclaration EOF
-    ;
+                // Parser rules
+                sourceFile          // .cn files
+                    : fileDirective*
+                      classDeclaration EOF
+                    ;
 
-mainSourceFile      // .cnm files
-    : (functionDeclaration+ | classDeclaration) EOF
-    ;
+                mainSourceFile      // .cnm files
+                    : fileDirective*
+                      (functionDeclaration+ | classDeclaration) EOF
+                    ;
 
-classDeclaration
-    : STATIC? CLASS ID 
-      '{' 
-         classMembers
-      '}'
-    ;
+                fileDirective
+                    : importDirective
+                    | includeDirective
+                    ;
 
-classMembers
-    : (staticMember | regularMember)*
-    ;
+                importDirective
+                    : IMPORT FILENAME ';' {
+                        // Ensure the file ends with `.cn`
+                        if (!$FILENAME.text.endsWith(".cn")) {
+                            throw new IllegalArgumentException("Only .cn files are allowed in import directives.");
+                        }
+                    }
+                    ;
 
-staticMember
-    : STATIC declaration  // Static variables
-    ;
+                includeDirective
+                    : INCLUDE FILENAME ';' {
+                        // Ensure the file ends with `.h` or `.hpp`
+                        if (!$FILENAME.text.endsWith(".h") && !$FILENAME.text.endsWith(".hpp")) {
+                            throw new IllegalArgumentException("Only .h and .hpp files are allowed in #include directives.");
+                        }
+                    }
+                    ;
 
-regularMember   // Only allowed in non-static classes
-    : declaration        // Regular variables
-    | classFunction      // All functions are implicitly static
-    ;
+                classDeclaration
+                    : STATIC? CLASS ID
+                      LBRACE
+                         classMembers
+                      RBRACE
+                    ;
 
-classFunction
-    : PUBLIC? returnType ID
-      '(' parameterList? ')'
-      '{' 
-         statement*
-      '}'
-    ;
+                classMembers
+                    : (staticMember | regularMember)*
+                    ;
 
-// Global functions (only in .cnm)
-functionDeclaration
-    : returnType ID
-      '(' parameterList? ')'
-      '{' 
-         statement*
-      '}'
-    ;
+                staticMember
+                    : STATIC declaration  // Static variables
+                    ;
 
-parameterList
-    : parameter (',' parameter)*
-    ;
+                regularMember   // Only allowed in non-static classes
+                    : declaration        // Regular variables
+                    | classFunction      // All functions are implicitly static
+                    ;
 
-parameter
-    : type_specifier ID
-    ;
+                classFunction
+                    : PUBLIC? returnType ID
+                      LPAREN parameterList? RPAREN
+                      LBRACE
+                         statement*
+                      RBRACE
+                    ;
 
-returnType
-    : type_specifier
-    | 'void'
-    ;
+                // Global functions (only in .cnm)
+                functionDeclaration
+                    : returnType ID
+                      LPAREN parameterList? RPAREN
+                      LBRACE
+                         statement*
+                      RBRACE
+                    ;
 
-declaration
-    : type_specifier 
-      ID 
-      '<-' 
-      value 
-      ';'
-    ;
+                parameterList
+                    : parameter (COMMA parameter)*
+                    ;
 
-statement
-    : declaration
-    | expression ';'
-    | RETURN expression? ';'
-    ;
+                parameter
+                    : type_specifier ID
+                    ;
 
-type_specifier
-    : TYPE_INT8
-    | TYPE_INT16
-    | TYPE_INT32
-    | TYPE_INT64
-    | TYPE_STRING
-    ;
+                returnType
+                    : type_specifier
+                    | 'void'
+                    ;
 
-value
-    : NUMBER
-    | STRING
-    | ID
-    ;
+                declaration
+                    : type_specifier
+                      ID
+                      ASSIGN
+                      value
+                      SEMI
+                    ;
 
-expression
-    : value                           # ValueExpr
-    | expression PLUS expression      # AddExpr
-    | expression MINUS expression     # SubExpr
-    | expression MULT expression      # MultExpr
-    | expression DIV expression       # DivExpr
-    | '(' expression ')'             # ParenExpr
-    ;
+                statement
+                    : declaration
+                    | expression SEMI
+                    | RETURN expression? SEMI
+                    ;
+
+                type_specifier
+                    : TYPE_INT8
+                    | TYPE_INT16
+                    | TYPE_INT32
+                    | TYPE_INT64
+                    | TYPE_STRING
+                    ;
+
+                value
+                    : NUMBER
+                    | STRING
+                    | ID
+                    ;
+
+                expression
+                    : value                           # ValueExpr
+                    | expression PLUS expression      # AddExpr
+                    | expression MINUS expression     # SubExpr
+                    | expression MULT expression      # MultExpr
+                    | expression DIV expression       # DivExpr
+                    | LPAREN expression RPAREN        # ParenExpr
+                    ;
