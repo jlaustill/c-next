@@ -154,9 +154,14 @@ String fullMessage <- `Welcome, ` +<- name +<- `!`;
 ```
 
 ### Importing Modules
+Modules written in the `c-next` language can be imported using the `import` directive. Only files with the `.cn` extension are allowed.
+
 ```c-next
-import `..Arduino.o`;
+import `MyModule.cn`; // Valid
 ```
+
+#### Rules:
+- File names must have the `.cn` extension.
 
 ## Example Program
 ```c-next
