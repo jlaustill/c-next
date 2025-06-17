@@ -67,3 +67,22 @@ Key c-next language characteristics to understand when working with the codebase
 - **Memory management**: Stack allocation by default, explicit heap allocation with interfaces
 - **Class structure**: Private members by default, explicit `public` keyword required
 - **Pure functions**: All functions are pure with pass-by-value semantics
+- **C/C++ Integration**: `#include` headers are parsed for symbol extraction and IntelliSense
+
+## Development Guidelines
+
+### ANTLR Grammar Development
+- **Grammar actions**: Remove embedded code actions (JavaScript/Java) from grammar files - they cause TypeScript compilation errors
+- **Type safety**: Always check for undefined/null when accessing parser context methods that return optional values
+- **Token definitions**: Update both lexer rules AND parser rules when adding new language features
+
+### Code Generation
+- **TypeScript compliance**: Generated parser code must compile without errors - avoid mixing JavaScript syntax
+- **Method calls**: Parser context methods may return arrays or single values - handle both cases properly
+- **Symbol resolution**: Use the SymbolTable to validate function calls and provide type checking
+
+### Testing Arduino Integration
+- **Include paths**: Test headers are found in `test-files/` directory structure
+- **Symbol extraction**: Verify the CHeaderParser correctly maps C types to c-next types
+- **Function calls**: Ensure Arduino constants (LED_BUILTIN) and function calls (pinMode) parse correctly
+- **Object instantiation**: Test that `.cnm` files can instantiate classes from `.cn` files
