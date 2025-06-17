@@ -10,7 +10,15 @@ grammar cNext;
                 TYPE_INT16: 'int16';
                 TYPE_INT32: 'int32';
                 TYPE_INT64: 'int64';
+                TYPE_UINT8: 'uint8';
+                TYPE_UINT16: 'uint16';
+                TYPE_UINT32: 'uint32';
+                TYPE_UINT64: 'uint64';
+                TYPE_FLOAT32: 'float32';
+                TYPE_FLOAT64: 'float64';
+                TYPE_FLOAT96: 'float96';
                 TYPE_STRING: 'String';
+                TYPE_BOOLEAN: 'boolean';
                 ASSIGN: '<-';
                 SEMI: ';';
                 LBRACE: '{';
@@ -23,11 +31,12 @@ grammar cNext;
                 MINUS: '-';
                 MULT: '*';
                 DIV: '/';
+                DOT: '.';
 
-                ID: [a-zA-Z][a-zA-Z0-9]*;
-                NUMBER: [0-9]+;
-                STRING: '`' .*? '`';       // String literals in backticks
-                FILENAME: '"' .*? '"';     // String literals in quotes for file names
+                ID: [a-zA-Z_][a-zA-Z0-9_]*;
+                NUMBER: [0-9]+('.'[0-9]+)?;  // Support decimal numbers
+                STRING: '`' .*? '`';         // String literals in backticks
+                FILENAME: '"' .*? '"';       // String literals in quotes for file names
                 WS: [ \t\r\n]+ -> skip;
 
                 // Parser rules
@@ -38,7 +47,11 @@ grammar cNext;
 
                 mainSourceFile      // .cnm files
                     : fileDirective*
-                      (functionDeclaration+ | classDeclaration) EOF
+                      (globalDeclaration | functionDeclaration | classDeclaration)* EOF
+                    ;
+                    
+                globalDeclaration
+                    : ID ID SEMI  // Object instantiation like "Blink blinker;"
                     ;
 
                 fileDirective
@@ -47,21 +60,11 @@ grammar cNext;
                     ;
 
                 importDirective
-                    : IMPORT FILENAME ';' {
-                        // Ensure the file ends with `.cn`
-                        if (!$FILENAME.text.endsWith(".cn")) {
-                            throw new IllegalArgumentException("Only .cn files are allowed in import directives.");
-                        }
-                    }
+                    : IMPORT FILENAME ';'
                     ;
 
                 includeDirective
-                    : INCLUDE FILENAME ';' {
-                        // Ensure the file ends with `.h` or `.hpp`
-                        if (!$FILENAME.text.endsWith(".h") && !$FILENAME.text.endsWith(".hpp")) {
-                            throw new IllegalArgumentException("Only .h and .hpp files are allowed in #include directives.");
-                        }
-                    }
+                    : INCLUDE FILENAME ';'
                     ;
 
                 classDeclaration
@@ -125,6 +128,8 @@ grammar cNext;
                 statement
                     : declaration
                     | expression SEMI
+                    | functionCall SEMI
+                    | methodCall SEMI
                     | RETURN expression? SEMI
                     ;
 
@@ -133,13 +138,33 @@ grammar cNext;
                     | TYPE_INT16
                     | TYPE_INT32
                     | TYPE_INT64
+                    | TYPE_UINT8
+                    | TYPE_UINT16
+                    | TYPE_UINT32
+                    | TYPE_UINT64
+                    | TYPE_FLOAT32
+                    | TYPE_FLOAT64
+                    | TYPE_FLOAT96
                     | TYPE_STRING
+                    | TYPE_BOOLEAN
                     ;
 
                 value
                     : NUMBER
                     | STRING
                     | ID
+                    ;
+
+                functionCall
+                    : ID LPAREN argumentList? RPAREN
+                    ;
+                    
+                methodCall
+                    : ID DOT ID LPAREN argumentList? RPAREN
+                    ;
+                    
+                argumentList
+                    : expression (COMMA expression)*
                     ;
 
                 expression

@@ -11,6 +11,10 @@ import { DivExprContext } from "./cNextParser";
 import { ParenExprContext } from "./cNextParser";
 import { SourceFileContext } from "./cNextParser";
 import { MainSourceFileContext } from "./cNextParser";
+import { GlobalDeclarationContext } from "./cNextParser";
+import { FileDirectiveContext } from "./cNextParser";
+import { ImportDirectiveContext } from "./cNextParser";
+import { IncludeDirectiveContext } from "./cNextParser";
 import { ClassDeclarationContext } from "./cNextParser";
 import { ClassMembersContext } from "./cNextParser";
 import { StaticMemberContext } from "./cNextParser";
@@ -24,6 +28,9 @@ import { DeclarationContext } from "./cNextParser";
 import { StatementContext } from "./cNextParser";
 import { Type_specifierContext } from "./cNextParser";
 import { ValueContext } from "./cNextParser";
+import { FunctionCallContext } from "./cNextParser";
+import { MethodCallContext } from "./cNextParser";
+import { ArgumentListContext } from "./cNextParser";
 import { ExpressionContext } from "./cNextParser";
 
 
@@ -96,6 +103,34 @@ export interface cNextVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitMainSourceFile?: (ctx: MainSourceFileContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.globalDeclaration`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitGlobalDeclaration?: (ctx: GlobalDeclarationContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.fileDirective`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFileDirective?: (ctx: FileDirectiveContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.importDirective`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitImportDirective?: (ctx: ImportDirectiveContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.includeDirective`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitIncludeDirective?: (ctx: IncludeDirectiveContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `cNextParser.classDeclaration`.
@@ -187,6 +222,27 @@ export interface cNextVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitValue?: (ctx: ValueContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.functionCall`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFunctionCall?: (ctx: FunctionCallContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.methodCall`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitMethodCall?: (ctx: MethodCallContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `cNextParser.argumentList`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitArgumentList?: (ctx: ArgumentListContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `cNextParser.expression`.

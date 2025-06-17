@@ -38,18 +38,72 @@ const AbstractParseTreeVisitor_1 = require("antlr4ts/tree/AbstractParseTreeVisit
 const cNextParser_1 = require("../parser/cNextParser");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+const CHeaderParser_1 = require("../parsers/CHeaderParser");
+const SymbolTable_1 = require("../SymbolTable");
 class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVisitor {
-    constructor(outputDir) {
+    constructor(outputDir, includePaths) {
         super();
         this.outputDir = outputDir;
+        this.symbolTable = new SymbolTable_1.SymbolTable();
+        this.headerParser = new CHeaderParser_1.CHeaderParser();
+        this.includePaths = ['/usr/include', '/usr/local/include'];
+        if (includePaths) {
+            this.includePaths = [...this.includePaths, ...includePaths];
+        }
+    }
+    visitSourceFile(ctx) {
+        // Process includes first
+        ctx.fileDirective().forEach(directive => this.visit(directive));
+        // Then process class declaration
+        this.visit(ctx.classDeclaration());
+        return null;
+    }
+    visitMainSourceFile(ctx) {
+        // Process includes first
+        ctx.fileDirective().forEach(directive => this.visit(directive));
+        // Process all global declarations, function declarations, and class declarations
+        if (ctx.globalDeclaration) {
+            ctx.globalDeclaration().forEach(decl => this.visit(decl));
+        }
+        if (ctx.functionDeclaration) {
+            ctx.functionDeclaration().forEach(func => this.visit(func));
+        }
+        if (ctx.classDeclaration) {
+            ctx.classDeclaration().forEach(classDecl => this.visit(classDecl));
+        }
+        return null;
+    }
+    visitIncludeDirective(ctx) {
+        const filename = ctx.FILENAME().text.slice(1, -1); // Remove quotes
+        if (!this.currentClass) {
+            this.currentClass = {
+                name: 'temp',
+                isStatic: false,
+                functions: [],
+                variables: [],
+                includes: []
+            };
+        }
+        this.currentClass.includes.push(filename);
+        // Parse the header file for symbols
+        this.parseHeaderFile(filename);
+        return null;
     }
     visitClassDeclaration(ctx) {
-        this.currentClass = {
-            name: ctx.ID().text,
-            isStatic: ctx.STATIC() !== undefined,
-            functions: [],
-            variables: []
-        };
+        if (!this.currentClass) {
+            this.currentClass = {
+                name: ctx.ID().text,
+                isStatic: ctx.STATIC() !== undefined,
+                functions: [],
+                variables: [],
+                includes: []
+            };
+        }
+        else {
+            // Update existing class with declaration info
+            this.currentClass.name = ctx.ID().text;
+            this.currentClass.isStatic = ctx.STATIC() !== undefined;
+        }
         this.visitChildren(ctx);
         this.generateCCode(this.currentClass);
         return this.currentClass;
@@ -127,11 +181,44 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         }
         return ctx.text;
     }
+    parseHeaderFile(filename) {
+        // Try to find the header file in include paths
+        let headerPath = null;
+        for (const includePath of this.includePaths) {
+            const fullPath = path.join(includePath, filename);
+            if (fs.existsSync(fullPath)) {
+                headerPath = fullPath;
+                break;
+            }
+        }
+        // Also try relative to current directory
+        if (!headerPath && fs.existsSync(filename)) {
+            headerPath = filename;
+        }
+        if (headerPath) {
+            try {
+                const parsedHeader = this.headerParser.parse(headerPath);
+                this.symbolTable.addHeaderSymbols(headerPath, parsedHeader);
+                console.log(`Parsed header: ${filename} (${parsedHeader.functions.length} functions, ${parsedHeader.variables.length} variables, ${parsedHeader.types.length} types)`);
+            }
+            catch (error) {
+                console.warn(`Failed to parse header ${filename}:`, error);
+            }
+        }
+        else {
+            console.warn(`Header file not found: ${filename}`);
+        }
+    }
     generateCCode(classData) {
         // Generate header file (.h)
         let header = `#ifndef ${classData.name.toUpperCase()}_H\n`;
         header += `#define ${classData.name.toUpperCase()}_H\n\n`;
-        header += '#include <stdint.h>\n\n'; // For int types
+        header += '#include <stdint.h>\n'; // For int types
+        // Add includes from parsed headers
+        classData.includes.forEach(include => {
+            header += `#include "${include}"\n`;
+        });
+        header += '\n';
         // Add variables
         classData.variables.forEach(v => {
             if (v.isStatic) {
@@ -149,7 +236,12 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         });
         header += '\n#endif\n';
         // Generate implementation file (.c)
-        let impl = `#include "${classData.name.toLowerCase()}.h"\n\n`;
+        let impl = `#include "${classData.name.toLowerCase()}.h"\n`;
+        // Add includes from parsed headers to implementation as well
+        classData.includes.forEach(include => {
+            impl += `#include "${include}"\n`;
+        });
+        impl += '\n';
         // Add function implementations
         classData.functions.forEach(f => {
             if (f.isPublic) {
@@ -184,6 +276,18 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         }
         fs.writeFileSync(filePath, content);
         console.log(`Generated: ${filePath}`);
+    }
+    // Public method to get symbol table for intellisense/validation
+    getSymbolTable() {
+        return this.symbolTable;
+    }
+    // Method to validate function calls in c-next code
+    validateFunctionCall(functionName, args) {
+        return this.symbolTable.validateFunctionCall(functionName, args);
+    }
+    // Method to get completion suggestions
+    getCompletionSuggestions(prefix = '') {
+        return this.symbolTable.getCompletionSuggestions(prefix);
     }
     defaultResult() {
         return null;

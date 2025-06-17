@@ -1,0 +1,12 @@
+#include "Arduino.h";
+import "Blink.cn";
+
+Blink blinker;
+
+void setup() {
+    blinker.setup();
+}
+
+void loop() {
+    blinker.loop();
+}

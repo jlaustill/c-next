@@ -11,6 +11,10 @@ import { DivExprContext } from "./cNextParser";
 import { ParenExprContext } from "./cNextParser";
 import { SourceFileContext } from "./cNextParser";
 import { MainSourceFileContext } from "./cNextParser";
+import { GlobalDeclarationContext } from "./cNextParser";
+import { FileDirectiveContext } from "./cNextParser";
+import { ImportDirectiveContext } from "./cNextParser";
+import { IncludeDirectiveContext } from "./cNextParser";
 import { ClassDeclarationContext } from "./cNextParser";
 import { ClassMembersContext } from "./cNextParser";
 import { StaticMemberContext } from "./cNextParser";
@@ -24,6 +28,9 @@ import { DeclarationContext } from "./cNextParser";
 import { StatementContext } from "./cNextParser";
 import { Type_specifierContext } from "./cNextParser";
 import { ValueContext } from "./cNextParser";
+import { FunctionCallContext } from "./cNextParser";
+import { MethodCallContext } from "./cNextParser";
+import { ArgumentListContext } from "./cNextParser";
 import { ExpressionContext } from "./cNextParser";
 
 
@@ -131,6 +138,50 @@ export interface cNextListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitMainSourceFile?: (ctx: MainSourceFileContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.globalDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	enterGlobalDeclaration?: (ctx: GlobalDeclarationContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.globalDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	exitGlobalDeclaration?: (ctx: GlobalDeclarationContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.fileDirective`.
+	 * @param ctx the parse tree
+	 */
+	enterFileDirective?: (ctx: FileDirectiveContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.fileDirective`.
+	 * @param ctx the parse tree
+	 */
+	exitFileDirective?: (ctx: FileDirectiveContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.importDirective`.
+	 * @param ctx the parse tree
+	 */
+	enterImportDirective?: (ctx: ImportDirectiveContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.importDirective`.
+	 * @param ctx the parse tree
+	 */
+	exitImportDirective?: (ctx: ImportDirectiveContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.includeDirective`.
+	 * @param ctx the parse tree
+	 */
+	enterIncludeDirective?: (ctx: IncludeDirectiveContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.includeDirective`.
+	 * @param ctx the parse tree
+	 */
+	exitIncludeDirective?: (ctx: IncludeDirectiveContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `cNextParser.classDeclaration`.
@@ -274,6 +325,39 @@ export interface cNextListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitValue?: (ctx: ValueContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.functionCall`.
+	 * @param ctx the parse tree
+	 */
+	enterFunctionCall?: (ctx: FunctionCallContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.functionCall`.
+	 * @param ctx the parse tree
+	 */
+	exitFunctionCall?: (ctx: FunctionCallContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.methodCall`.
+	 * @param ctx the parse tree
+	 */
+	enterMethodCall?: (ctx: MethodCallContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.methodCall`.
+	 * @param ctx the parse tree
+	 */
+	exitMethodCall?: (ctx: MethodCallContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `cNextParser.argumentList`.
+	 * @param ctx the parse tree
+	 */
+	enterArgumentList?: (ctx: ArgumentListContext) => void;
+	/**
+	 * Exit a parse tree produced by `cNextParser.argumentList`.
+	 * @param ctx the parse tree
+	 */
+	exitArgumentList?: (ctx: ArgumentListContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `cNextParser.expression`.

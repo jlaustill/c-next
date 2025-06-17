@@ -1,0 +1,13 @@
+#include "stdio_test.h";
+
+class MathWithIncludes {
+    static float32 PI <- 3.14;
+    
+    public int32 add(int32 a, int32 b) {
+        return a + b;
+    }
+
+    public int32 printResult(int32 result) {
+        return result;
+    }
+}

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-static const int32_t PI = 314;
+static const float32 PI = 3.14;
 int32_t Math_add(int32_t a, int32_t b);
 int32_t Math_divide(int32_t a, int32_t b);
 

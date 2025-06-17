@@ -71,9 +71,19 @@ class Compiler {
         const parser = new cNextParser_1.cNextParser(tokenStream);
         // Get the appropriate root rule based on file type
         const tree = isMainFile ? parser.mainSourceFile() : parser.sourceFile();
-        // Create and run visitor
-        const visitor = new CGenerationVisitor_1.CGenerationVisitor(this.options.outputDir);
+        // Create and run visitor with include paths
+        const includePaths = [path.dirname(filePath)]; // Add source file directory to include paths
+        const visitor = new CGenerationVisitor_1.CGenerationVisitor(this.options.outputDir, includePaths);
         visitor.visit(tree);
+        // Log symbol table information for debugging
+        const symbolTable = visitor.getSymbolTable();
+        const allSymbols = symbolTable.getAllSymbols();
+        if (allSymbols.length > 0) {
+            console.log(`Loaded ${allSymbols.length} symbols from included headers:`);
+            console.log(`  Functions: ${symbolTable.getSymbolsByType('function').length}`);
+            console.log(`  Variables: ${symbolTable.getSymbolsByType('variable').length}`);
+            console.log(`  Types: ${symbolTable.getSymbolsByType('type').length}`);
+        }
     }
 }
 // CLI entry point

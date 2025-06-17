@@ -41,7 +41,7 @@ const CGenerationVisitor_1 = require("./visitors/CGenerationVisitor");
 const fs = __importStar(require("fs"));
 function testParser() {
     // Read our test file
-    const input = fs.readFileSync('./test-files/Math.cn', 'utf8');
+    const input = fs.readFileSync('../test-files/Math.cn', 'utf8');
     console.log('Input file contents:');
     console.log(input);
     console.log('-------------------');
