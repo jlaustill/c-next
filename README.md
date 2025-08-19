@@ -12,14 +12,14 @@ c-next is a low-level, memory-safe programming language designed to be simple, f
 
 ```c-next
 uint16 speed <- 60;
-String message <- `Hello, world!`;
+string message <- `Hello, world!`;
 uint8[] nums <- [1,2,3,4];
 ```
 
 ### Type System
 - Types follow a strict `(u)(type)(bits)` format.
 - No implicit type coercion; all casts must be explicit.
-- String is a first class citizen influenced by Arduino
+- string is a first class citizen influenced by Arduino
 
 ```c-next
 uint16 speedMph <- 60;
@@ -43,7 +43,7 @@ The basic types are meant to be simplified, this is how they would map to c++ ty
 | float64| double             |
 | float96| long double        |
 |        |                    |
-| String | Arduino String     |
+| string | Arduino String     |
 | boolean| boolean            |
 
 ### Control Flow
@@ -94,18 +94,18 @@ Classes are meant to be clean, simple, and organized. All class members are priv
 ```c-next
 class Greeter {
     uint8 age; // private by default
-    public String name; // using the public keyword to make something public 
+    public string name; // using the public keyword to make something public 
 
-    public Greeter(String Name) { // Method parameters must start with a capital letter
+    public Greeter(string Name) { // Method parameters must start with a capital letter
         name <- Name;
     }
 
-    public Greeter(String name, uint8 Age) { // Function overrides must have a unique signature, and call contructors return a new instance of the class so there is no need to annotate it
+    public Greeter(string Name, uint8 Age) { // Function overrides must have a unique signature, and call contructors return a new instance of the class so there is no need to annotate it
         age <- Age;
         name <- Name;
     }
 
-    String getGreeting() {
+    string getGreeting() {
         return `Hello, ${name}!`; // all class members are in scope for lower scopes
     }
 }
@@ -116,11 +116,11 @@ Interfaces start with a capital I, and have their own files
 ```c-next
 // IAddress.cn
 interface IAddress {
-    String street1;
-    String street2;
-    String city;
-    String county;
-    String state;
+    string street1;
+    string street2;
+    string city;
+    string county;
+    string state;
     uint8 zipcode;
     uint8 zip4;
 }
@@ -128,9 +128,9 @@ interface IAddress {
 ```c-next
 // IPerson.cn
 interface IPerson {
-  String firstName,
-  String lastName,
-  uint8 age
+  string firstName;
+  string lastName;
+  uint8 age;
 }
 ```
 
@@ -143,14 +143,14 @@ Serial.println(`Name: ${Alice.firstName} ${Alice.lastName}, Age: ${Alice.age}`);
 ## Special Features
 ### String Interpolation
 ```c-next
-String greet() {
+string greet() {
   return `Hello, ${message}!`;
 }
 ```
 
 ### Concatenation
 ```c-next
-String fullMessage <- `Welcome, ` +<- name +<- `!`;
+string fullMessage <- `Welcome, ` +<- name +<- `!`;
 ```
 
 ### Importing Modules
@@ -167,16 +167,16 @@ import `MyModule.cn`; // Valid
 ```c-next
 // IVehicle.cn
 interface IVehicle {
-  String model,
-  uint16 speed
+  string model;
+  uint16 spee;
 }
 ```
 
 
 ```c-next
 // main.cnm
-#include <Arduino.h>;
-import `IVehicle.cn`;
+#include <Arduino.h>
+import "IVehicle.cn";
 
 // The entry file is the ONLY file where things can be defined globally outside of a class
 
@@ -191,6 +191,12 @@ void loop() {
 ```
 
 ## Next Steps
+- Fix grammar/implementation inconsistency: Update grammar to use lowercase `string` instead of `String` to match README examples
+- Implement missing language features documented in README:
+  - String interpolation syntax (`\`Hello, ${name}!\``)
+  - Control flow statements (`if/else`, `for` loops)
+  - Interface parsing rules in grammar
+  - Complete type mapping for all documented types (uint8, uint16, float32, boolean, etc.)
 - get blink program working for arduino
 
 ---
