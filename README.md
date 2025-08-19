@@ -1,7 +1,7 @@
 # Learn c-next in Y Minutes
 
 ## Introduction
-c-next is a low-level, memory-safe programming language designed to be simple, foolproof, and transpile directly to C++. It enforces strict type safety, eliminates implicit type coercion, and provides automatic memory management while maintaining high performance. The goal is to make systems programming easier and safer without sacrificing efficiency.
+c-next is a low-level, memory-safe programming language designed to be simple, foolproof, and transpile directly to C. It enforces strict type safety, eliminates implicit type coercion, and provides automatic memory management while maintaining high performance. The goal is to make systems programming easier and safer without sacrificing efficiency.
 
 ## Syntax Basics
 
@@ -74,7 +74,7 @@ uint16 Add(uint16 a, uint16 b) {
 - Heap allocation requires an **interface**, and memory is managed automatically by the transpiler.
 
 ```c-next
-IPerson Bob <- heap(IPerson);
+heap(IPerson) Bob;
 Bob.firstName <- `Bob`;
 Bob.age <- 54;
 ```
@@ -82,15 +82,15 @@ Bob.age <- 54;
 or with initialization:
 
 ```c-next
-IPerson Bob <- heap(IPerson({ firstName: `Bob`, lastName: `Smith`, age: 54 }));
+heap(IPerson) Bob <- { firstName: `Bob`, lastName: `Smith`, age: 54 };
 ```
 
 ## Objects & Interfaces
 
-All objects must be defined in their own file, and only one object may be defined per file, anything else will generate a compile error. The object defined MUST match the filename, or a compile error will be generated. Files in with a .cn suffix. The main object types in c-next are interfaces and classes. no variables can be defined outside of a class. 
+All objects must be defined in their own file, and only one object may be defined per file, anything else will generate a compile error. The object defined MUST match the filename, or a compile error will be generated. Files end with a .cn suffix. The main object types in c-next are interfaces and classes. no variables can be defined outside of a class. There is also no inheritance.
 
 ### Defining classes
-Classes are meant to be clean, simple, and organized. All class members are private by default and must be explicitly marked as public. Class members must start with a lowercase letter, and method parameters must start with a capital letter. The contructor is the method named the same as the class, and class names must start with a capital letter. This will make the contructors stand out as the only methods with capital letters.
+Classes are meant to be clean, simple, and organized. All class members are private by default and must be explicitly marked as public. Class members must start with a lowercase letter, and method parameters must start with a capital letter. The constructor is the method named the same as the class, and class names must start with a capital letter. This will make the constructors stand out as the only methods with capital letters.
 ```c-next
 class Greeter {
     uint8 age; // private by default
@@ -143,7 +143,7 @@ Serial.println(`Name: ${Alice.firstName} ${Alice.lastName}, Age: ${Alice.age}`);
 ## Special Features
 ### String Interpolation
 ```c-next
-String Greet() {
+String greet() {
   return `Hello, ${message}!`;
 }
 ```
@@ -174,8 +174,8 @@ interface IVehicle {
 
 
 ```c-next
-// main.cn
-import `../Arduino.o`;
+// main.cnm
+#include <Arduino.h>;
 import `IVehicle.cn`;
 
 // The entry file is the ONLY file where things can be defined globally outside of a class
@@ -191,9 +191,7 @@ void loop() {
 ```
 
 ## Next Steps
-- Implement the transpiler to convert `c-next` to C++.
-- Define a standard library.
-- Consider additional features like concurrency models.
+- get blink program working for arduino
 
 ---
 
