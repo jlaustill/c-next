@@ -1,0 +1,22 @@
+{
+  "name": "blink-cnext-example",
+  "version": "1.0.0",
+  "description": "Blink example using c-next with PlatformIO and Teensy",
+  "scripts": {
+    "build": "pio run",
+    "upload": "pio run --target upload",
+    "monitor": "pio device monitor",
+    "clean": "pio run --target clean"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "glob": "^10.3.0"
+  },
+  "dependencies": {
+    "glob": "^10.3.0"
+  },
+  "keywords": ["c-next", "teensy", "arduino", "blink", "example"],
+  "author": "jlaustill",
+  "license": "MIT"
+}

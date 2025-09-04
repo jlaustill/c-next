@@ -1,0 +1,17 @@
+{
+  "name": "cnext-platformio-integration",
+  "version": "1.0.0",
+  "description": "c-next build integration for PlatformIO projects",
+  "scripts": {
+    "build": "tsc cnext-build.ts --outDir dist --target es2020 --module commonjs --strict --esModuleInterop",
+    "prebuild": "npx tsc cnext-build.ts --outDir dist --target es2020 --module commonjs --strict --esModuleInterop"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "glob": "^10.0.0"
+  },
+  "dependencies": {
+    "glob": "^10.0.0"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "c-next",
   "version": "0.0.1",
-  "description": "A thought experiment around a better c language",
+  "description": "A memory-safe programming language that transpiles to C",
   "main": "src/index.ts",
   "directories": {
     "test": "test"
@@ -17,7 +17,8 @@
   },
   "keywords": [
     "c",
-    "c++",
+    "transpiler",
+    "memory-safe",
     "c-next",
     "cNext"
   ],

@@ -1,0 +1,41 @@
+{
+  "name": "cnext-syntax",
+  "displayName": "c-next Language Support",
+  "description": "Syntax highlighting for c-next programming language",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "cnext",
+        "aliases": [
+          "c-next",
+          "cnext"
+        ],
+        "extensions": [
+          ".cn",
+          ".cnm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cnext",
+        "scopeName": "source.cnext",
+        "path": "./syntaxes/cnext.tmLanguage.json"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jlaustill/c-next.git"
+  },
+  "publisher": "jlaustill",
+  "license": "MIT"
+}

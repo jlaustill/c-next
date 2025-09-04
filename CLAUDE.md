@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-c-next is a transpiler for a new low-level, memory-safe programming language that compiles to C/C++. The language enforces strict type safety, eliminates implicit type coercion, and provides automatic memory management while maintaining high performance for systems programming.
+c-next is a transpiler for a new low-level, memory-safe programming language that compiles to C. The language enforces strict type safety, eliminates implicit type coercion, and provides automatic memory management while maintaining high performance for systems programming.
 
 ## Build System & Commands
 
@@ -67,7 +67,7 @@ Key c-next language characteristics to understand when working with the codebase
 - **Memory management**: Stack allocation by default, explicit heap allocation with interfaces
 - **Class structure**: Private members by default, explicit `public` keyword required
 - **Pure functions**: All functions are pure with pass-by-value semantics
-- **C/C++ Integration**: `#include` headers are parsed for symbol extraction and IntelliSense
+- **C Integration**: `#include` headers are parsed for symbol extraction and IntelliSense
 
 ## Development Guidelines
 

@@ -1,7 +1,7 @@
 # Learn c-next in Y Minutes
 
 ## Introduction
-c-next is a low-level, memory-safe programming language designed to be simple, foolproof, and transpile directly to C++. It enforces strict type safety, eliminates implicit type coercion, and provides automatic memory management while maintaining high performance. The goal is to make systems programming easier and safer without sacrificing efficiency.
+c-next is a low-level, memory-safe programming language designed to be simple, foolproof, and transpile directly to C. It enforces strict type safety, eliminates implicit type coercion, and provides automatic memory management while maintaining high performance. The goal is to make systems programming easier and safer without sacrificing efficiency.
 
 ## Syntax Basics
 
@@ -26,9 +26,9 @@ uint16 speedMph <- 60;
 float32 speedKph <- (float32)speedMph * 1.609;
 ```
 
-The basic types are meant to be simplified, this is how they would map to c++ types
+The basic types are meant to be simplified, this is how they would map to C types
 
-| c-next | C++                |
+| c-next | C                  |
 | ------ | ------------------ |
 | int8   | char               |
 | int16  | short int          |
@@ -191,7 +191,7 @@ void loop() {
 ```
 
 ## Next Steps
-- Implement the transpiler to convert `c-next` to C++.
+- Implement the transpiler to convert `c-next` to C.
 - Define a standard library.
 - Consider additional features like concurrency models.
 
