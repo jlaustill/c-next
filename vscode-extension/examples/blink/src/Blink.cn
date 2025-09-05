@@ -1,7 +1,7 @@
 #include "Arduino.h";
 
 class Blink {
-    static uint16 delayMs <- 1000;
+    static uint16 delayMs <- 10000;
     
     public void setup() {
         pinMode(LED_BUILTIN, OUTPUT);

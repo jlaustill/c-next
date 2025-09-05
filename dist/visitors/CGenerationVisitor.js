@@ -45,6 +45,7 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         super();
         this.outputDir = outputDir;
         this.symbolTable = new SymbolTable_1.SymbolTable();
+        this.instanceToClassMap = new Map();
         this.headerParser = new CHeaderParser_1.CHeaderParser();
         this.includePaths = ['/usr/include', '/usr/local/include'];
         if (includePaths) {
@@ -59,6 +60,12 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         return null;
     }
     visitMainSourceFile(ctx) {
+        // Initialize main file data structure
+        this.currentMainFile = {
+            functions: [],
+            globalVariables: [],
+            includes: []
+        };
         // Process includes first
         ctx.fileDirective().forEach(directive => this.visit(directive));
         // Process all global declarations, function declarations, and class declarations
@@ -71,11 +78,21 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         if (ctx.classDeclaration) {
             ctx.classDeclaration().forEach(classDecl => this.visit(classDecl));
         }
+        // Generate main.c file
+        this.generateMainCCode(this.currentMainFile);
         return null;
     }
     visitIncludeDirective(ctx) {
         const filename = ctx.FILENAME().text.slice(1, -1); // Remove quotes
-        if (!this.currentClass) {
+        // Add include to current context (either class or main file)
+        if (this.currentMainFile) {
+            this.currentMainFile.includes.push(filename);
+        }
+        else if (this.currentClass) {
+            this.currentClass.includes.push(filename);
+        }
+        else {
+            // Create temporary class for include processing
             this.currentClass = {
                 name: 'temp',
                 isStatic: false,
@@ -83,10 +100,77 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
                 variables: [],
                 includes: []
             };
+            this.currentClass.includes.push(filename);
         }
-        this.currentClass.includes.push(filename);
         // Parse the header file for symbols
         this.parseHeaderFile(filename);
+        return null;
+    }
+    visitImportDirective(ctx) {
+        const filename = ctx.FILENAME().text.slice(1, -1); // Remove quotes
+        // Convert .cn files to .h includes
+        let includeFile = filename;
+        if (filename.endsWith('.cn')) {
+            // Extract class name, convert to lowercase, and add .h extension
+            const className = filename.replace('.cn', '');
+            includeFile = className.toLowerCase() + '.h';
+        }
+        // Add include to current context (either class or main file)
+        if (this.currentMainFile) {
+            this.currentMainFile.includes.push(includeFile);
+        }
+        else if (this.currentClass) {
+            this.currentClass.includes.push(includeFile);
+        }
+        else {
+            // Create temporary class for include processing
+            this.currentClass = {
+                name: 'temp',
+                isStatic: false,
+                functions: [],
+                variables: [],
+                includes: []
+            };
+            this.currentClass.includes.push(includeFile);
+        }
+        return null;
+    }
+    visitGlobalDeclaration(ctx) {
+        if (!this.currentMainFile)
+            return;
+        const type = ctx.ID(0).text; // First ID is the type (class name)
+        const name = ctx.ID(1).text; // Second ID is the variable name
+        // Store the mapping from instance name to class name
+        // e.g., "blinker" -> "Blink"
+        this.instanceToClassMap.set(name, type);
+        // Skip global object declarations for C compilation
+        // Object instantiations like "Blink blinker;" are not needed
+        // since we're calling functions directly like Blink_setup()
+        // Don't add to globalVariables - we don't need object instances in C
+        return null;
+    }
+    visitFunctionDeclaration(ctx) {
+        if (!this.currentMainFile)
+            return;
+        const returnType = ctx.returnType().text;
+        const name = ctx.ID().text;
+        const parameters = [];
+        if (ctx.parameterList()) {
+            ctx.parameterList().parameter().forEach(param => {
+                parameters.push({
+                    type: param.type_specifier().text,
+                    name: param.ID().text
+                });
+            });
+        }
+        const body = this.getFunctionDeclarationBody(ctx);
+        this.currentMainFile.functions.push({
+            returnType,
+            name,
+            parameters,
+            body,
+            isPublic: true // Global functions are always public
+        });
         return null;
     }
     visitClassDeclaration(ctx) {
@@ -159,7 +243,62 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         let body = '';
         ctx.statement().forEach((stmt) => {
             if (stmt.RETURN()) {
-                body += '    return ' + this.getExpressionText(stmt.expression()) + ';\n';
+                // Handle return statements
+                const expr = stmt.expression();
+                if (expr) {
+                    body += '    return ' + this.getExpressionText(expr) + ';\n';
+                }
+                else {
+                    body += '    return;\n';
+                }
+            }
+            else if (stmt.functionCall()) {
+                // Handle function calls like pinMode(LED_BUILTIN, OUTPUT);
+                body += '    ' + this.getFunctionCallText(stmt.functionCall()) + ';\n';
+            }
+            else if (stmt.methodCall()) {
+                // Handle method calls like Serial.begin(115200);
+                body += '    ' + this.getMethodCallText(stmt.methodCall()) + ';\n';
+            }
+            else if (stmt.declaration()) {
+                // Handle variable declarations
+                body += '    ' + this.getDeclarationText(stmt.declaration()) + ';\n';
+            }
+            else if (stmt.expression()) {
+                // Handle general expressions
+                body += '    ' + this.getExpressionText(stmt.expression()) + ';\n';
+            }
+        });
+        return body;
+    }
+    getFunctionDeclarationBody(ctx) {
+        let body = '';
+        ctx.statement().forEach((stmt) => {
+            if (stmt.RETURN()) {
+                // Handle return statements
+                const expr = stmt.expression();
+                if (expr) {
+                    body += '    return ' + this.getExpressionText(expr) + ';\n';
+                }
+                else {
+                    body += '    return;\n';
+                }
+            }
+            else if (stmt.functionCall()) {
+                // Handle function calls like pinMode(LED_BUILTIN, OUTPUT);
+                body += '    ' + this.getFunctionCallText(stmt.functionCall()) + ';\n';
+            }
+            else if (stmt.methodCall()) {
+                // Handle method calls like Serial.begin(115200);
+                body += '    ' + this.getMethodCallText(stmt.methodCall()) + ';\n';
+            }
+            else if (stmt.declaration()) {
+                // Handle variable declarations
+                body += '    ' + this.getDeclarationText(stmt.declaration()) + ';\n';
+            }
+            else if (stmt.expression()) {
+                // Handle general expressions
+                body += '    ' + this.getExpressionText(stmt.expression()) + ';\n';
             }
         });
         return body;
@@ -180,6 +319,61 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
             return `(${this.getExpressionText(ctx.expression())})`;
         }
         return ctx.text;
+    }
+    getFunctionCallText(ctx) {
+        if (!ctx)
+            return '';
+        // Get function name
+        const functionName = ctx.ID().text;
+        // Get arguments
+        let args = '';
+        const argList = ctx.argumentList();
+        if (argList) {
+            const expressions = argList.expression();
+            args = expressions.map((expr) => this.getExpressionText(expr)).join(', ');
+        }
+        return `${functionName}(${args})`;
+    }
+    getMethodCallText(ctx) {
+        if (!ctx)
+            return '';
+        // Get object and method names
+        const ids = ctx.ID();
+        if (ids.length >= 2) {
+            const objectName = ids[0].text;
+            const methodName = ids[1].text;
+            // Get arguments
+            let args = '';
+            const argList = ctx.argumentList();
+            if (argList) {
+                const expressions = argList.expression();
+                args = expressions.map((expr) => this.getExpressionText(expr)).join(', ');
+            }
+            // Keep Arduino/system objects as C++ method calls
+            // Convert only c-next object instances to C function calls
+            const systemObjects = ['Serial', 'Wire', 'SPI'];
+            if (systemObjects.includes(objectName)) {
+                return `${objectName}.${methodName}(${args})`;
+            }
+            // Convert c-next object method calls to C-style function calls
+            // e.g., blinker.setup() -> Blink_setup()
+            // Use the mapping from instance name to class name
+            const className = this.instanceToClassMap.get(objectName) || this.capitalizeFirst(objectName);
+            return `${className}_${methodName}(${args})`;
+        }
+        return ctx.text;
+    }
+    capitalizeFirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    getDeclarationText(ctx) {
+        if (!ctx)
+            return '';
+        // Get type, name, and value
+        const type = this.mapTypeToC(ctx.type_specifier().text);
+        const name = ctx.ID().text;
+        const value = ctx.value().text;
+        return `${type} ${name} = ${value}`;
     }
     parseHeaderFile(filename) {
         // Try to find the header file in include paths
@@ -255,7 +449,34 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
         });
         // Write files
         this.writeToFile(`${classData.name.toLowerCase()}.h`, header);
-        this.writeToFile(`${classData.name.toLowerCase()}.c`, impl);
+        this.writeToFile(`${classData.name.toLowerCase()}.cpp`, impl);
+    }
+    generateMainCCode(mainData) {
+        // Generate main.c file
+        let impl = '';
+        // Add includes
+        mainData.includes.forEach(include => {
+            impl += `#include "${include}"\n`;
+        });
+        if (mainData.includes.length > 0) {
+            impl += '\n';
+        }
+        // Add global variable declarations
+        mainData.globalVariables.forEach(v => {
+            impl += `${v.type} ${v.name};\n`;
+        });
+        if (mainData.globalVariables.length > 0) {
+            impl += '\n';
+        }
+        // Add function implementations
+        mainData.functions.forEach(f => {
+            const params = f.parameters.map(p => `${this.mapTypeToC(p.type)} ${p.name}`).join(', ');
+            impl += `${this.mapTypeToC(f.returnType)} ${f.name}(${params}) {\n`;
+            impl += f.body;
+            impl += '}\n\n';
+        });
+        // Write main.cpp file
+        this.writeToFile('main.cpp', impl);
     }
     mapTypeToC(type) {
         const typeMap = {
@@ -263,7 +484,15 @@ class CGenerationVisitor extends AbstractParseTreeVisitor_1.AbstractParseTreeVis
             'int16': 'int16_t',
             'int32': 'int32_t',
             'int64': 'int64_t',
+            'uint8': 'uint8_t',
+            'uint16': 'uint16_t',
+            'uint32': 'uint32_t',
+            'uint64': 'uint64_t',
+            'float32': 'float',
+            'float64': 'double',
+            'float96': 'long double',
             'String': 'char*',
+            'boolean': 'bool',
             'void': 'void'
         };
         return typeMap[type] || type;
