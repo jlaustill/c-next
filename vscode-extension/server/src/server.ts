@@ -12,7 +12,10 @@ import {
   type DocumentDiagnosticReport,
   DocumentSymbolParams,
   DocumentSymbol,
-  SymbolKind
+  SymbolKind,
+  DefinitionParams,
+  Definition,
+  Location
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -20,7 +23,7 @@ import { CNextParser } from './parser/CNextParser';
 import { CNextDiagnosticProvider } from './diagnostics/DiagnosticProvider';
 import { CNextCompletionProvider } from './completion/CompletionProvider';
 import { SymbolTable } from './semantic/SymbolTable';
-import { CNextSymbolKind } from './types';
+import { CNextSymbolKind, CNextSymbol } from './types';
 
 // Create connection and text document manager
 const connection = createConnection(ProposedFeatures.all);
@@ -256,6 +259,65 @@ connection.languages.diagnostics.on(async (params: any) => {
   } satisfies DocumentDiagnosticReport;
 });
 
+// Go-to-definition handler
+connection.onDefinition(async (params: DefinitionParams): Promise<Definition | null> => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return null;
+  }
+
+  try {
+    // Get the word at the cursor position
+    const text = document.getText();
+    const lines = text.split('\n');
+    const line = lines[params.position.line];
+    const position = params.position.character;
+    
+    // Extract the symbol at the cursor position
+    const symbolInfo = extractSymbolAtPosition(line, position);
+    if (!symbolInfo) {
+      return null;
+    }
+
+    console.log(`Go-to-definition request for: ${symbolInfo.fullSymbol} (type: ${symbolInfo.type})`);
+
+    // Handle method calls like "blinker.setup" or "Serial.begin"
+    if (symbolInfo.type === 'method' && symbolInfo.objectName && symbolInfo.methodName) {
+      const methodSymbol = symbolTable.findObjectMethod(symbolInfo.objectName, symbolInfo.methodName);
+      if (methodSymbol && methodSymbol.range) {
+        // Find the document URI that contains this symbol
+        const definitionUri = findSymbolDefinitionUri(methodSymbol);
+        if (definitionUri) {
+          return {
+            uri: definitionUri,
+            range: methodSymbol.range
+          } as Location;
+        }
+      }
+    }
+    
+    // Handle variable/class references
+    else if (symbolInfo.type === 'identifier') {
+      const symbol = symbolTable.findSymbol(symbolInfo.fullSymbol, document.uri);
+      if (symbol && symbol.range) {
+        // For imported symbols, find their original definition
+        const definitionUri = findSymbolDefinitionUri(symbol);
+        if (definitionUri) {
+          return {
+            uri: definitionUri,  
+            range: symbol.range
+          } as Location;
+        }
+      }
+    }
+
+    return null;
+  } catch (error) {
+    connection.console.error(`Error in go-to-definition: ${error}`);
+    return null;
+  }
+});
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -284,6 +346,58 @@ function mapSymbolKind(cnextKind: CNextSymbolKind): SymbolKind {
     default:
       return SymbolKind.Variable;
   }
+}
+
+// Helper function to extract symbol information at cursor position
+function extractSymbolAtPosition(line: string, position: number): {
+  fullSymbol: string;
+  type: 'method' | 'identifier';
+  objectName?: string;
+  methodName?: string;
+} | null {
+  // Find word boundaries around the cursor position
+  let start = position;
+  let end = position;
+  
+  // Expand backwards
+  while (start > 0 && /[\w.]/.test(line[start - 1])) {
+    start--;
+  }
+  
+  // Expand forwards  
+  while (end < line.length && /[\w.]/.test(line[end])) {
+    end++;
+  }
+  
+  const fullSymbol = line.substring(start, end);
+  if (!fullSymbol) {
+    return null;
+  }
+  
+  // Check if it's a method call (contains a dot)
+  if (fullSymbol.includes('.')) {
+    const parts = fullSymbol.split('.');
+    if (parts.length === 2) {
+      return {
+        fullSymbol,
+        type: 'method',
+        objectName: parts[0],
+        methodName: parts[1]
+      };
+    }
+  }
+  
+  // It's a regular identifier
+  return {
+    fullSymbol,
+    type: 'identifier'
+  };
+}
+
+// Helper function to find the URI where a symbol is defined
+function findSymbolDefinitionUri(symbol: CNextSymbol): string | null {
+  // Use the SymbolTable's method to find where the symbol is defined
+  return symbolTable.findSymbolOriginUri(symbol);
 }
 
 // Listen on the connection

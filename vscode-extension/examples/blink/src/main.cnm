@@ -6,7 +6,6 @@ Blink blinker;
 void setup() {
     Serial.begin(115200);
     blinker.setup();
-    blinker.
 }
 
 void loop() {

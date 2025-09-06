@@ -174,6 +174,20 @@ export class SymbolTable {
     return Array.from(this.types.keys());
   }
 
+  findSymbolOriginUri(targetSymbol: CNextSymbol): string | null {
+    // Search through all document symbols to find where this symbol was originally defined
+    for (const [uri, docSymbols] of this.documentSymbols) {
+      for (const [name, symbol] of docSymbols) {
+        if (symbol.name === targetSymbol.name && 
+            symbol.kind === targetSymbol.kind && 
+            symbol.containerName === targetSymbol.containerName) {
+          return uri;
+        }
+      }
+    }
+    return null;
+  }
+
   parseHeaderFile(headerPath: string): void {
     if (this.parsedHeaders.has(headerPath)) {
       return; // Already parsed
