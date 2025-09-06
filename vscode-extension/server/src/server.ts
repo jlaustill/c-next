@@ -1,18 +1,18 @@
 import {
   createConnection,
   TextDocuments,
-  Diagnostic,
-  DiagnosticSeverity,
   ProposedFeatures,
   InitializeParams,
   DidChangeConfigurationNotification,
   CompletionItem,
-  CompletionItemKind,
   TextDocumentPositionParams,
   TextDocumentSyncKind,
   InitializeResult,
   DocumentDiagnosticReportKind,
-  type DocumentDiagnosticReport
+  type DocumentDiagnosticReport,
+  DocumentSymbolParams,
+  DocumentSymbol,
+  SymbolKind
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -20,6 +20,7 @@ import { CNextParser } from './parser/CNextParser';
 import { CNextDiagnosticProvider } from './diagnostics/DiagnosticProvider';
 import { CNextCompletionProvider } from './completion/CompletionProvider';
 import { SymbolTable } from './semantic/SymbolTable';
+import { CNextSymbolKind } from './types';
 
 // Create connection and text document manager
 const connection = createConnection(ProposedFeatures.all);
@@ -28,7 +29,6 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 // Configuration and capabilities
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
-let hasDiagnosticRelatedInformationCapability = false;
 
 // Language service components
 const parser = new CNextParser();
@@ -45,11 +45,6 @@ connection.onInitialize((params: InitializeParams) => {
   );
   hasWorkspaceFolderCapability = !!(
     capabilities.workspace && !!capabilities.workspace.workspaceFolders
-  );
-  hasDiagnosticRelatedInformationCapability = !!(
-    capabilities.textDocument &&
-    capabilities.textDocument.publishDiagnostics &&
-    capabilities.textDocument.publishDiagnostics.relatedInformation
   );
 
   const result: InitializeResult = {
@@ -86,12 +81,14 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onInitialized(() => {
+  connection.console.log('c-next Language Server started successfully');
+  
   if (hasConfigurationCapability) {
     // Register for all configuration changes
     connection.client.register(DidChangeConfigurationNotification.type, undefined);
   }
   if (hasWorkspaceFolderCapability) {
-    connection.workspace.onDidChangeWorkspaceFolders(_event => {
+    connection.workspace.onDidChangeWorkspaceFolders((_event: any) => {
       connection.console.log('Workspace folder change event received.');
     });
   }
@@ -112,9 +109,9 @@ const defaultSettings: CNextSettings = {
 let globalSettings: CNextSettings = defaultSettings;
 
 // Cache settings per document
-const documentSettings: Map<string, Thenable<CNextSettings>> = new Map();
+const documentSettings: Map<string, Promise<CNextSettings>> = new Map();
 
-connection.onDidChangeConfiguration(change => {
+connection.onDidChangeConfiguration((change: any) => {
   if (hasConfigurationCapability) {
     // Reset all cached document settings
     documentSettings.clear();
@@ -128,7 +125,7 @@ connection.onDidChangeConfiguration(change => {
   documents.all().forEach(validateTextDocument);
 });
 
-function getDocumentSettings(resource: string): Thenable<CNextSettings> {
+function getDocumentSettings(resource: string): Promise<CNextSettings> {
   if (!hasConfigurationCapability) {
     return Promise.resolve(globalSettings);
   }
@@ -139,17 +136,18 @@ function getDocumentSettings(resource: string): Thenable<CNextSettings> {
       section: 'cnextLanguageServer'
     });
     documentSettings.set(resource, result);
+    return result;
   }
   return result;
 }
 
 // Only keep settings for open documents
-documents.onDidClose(e => {
+documents.onDidClose((e: any) => {
   documentSettings.delete(e.document.uri);
 });
 
 // Document change handler
-documents.onDidChangeContent(change => {
+documents.onDidChangeContent((change: any) => {
   validateTextDocument(change.document);
 });
 
@@ -203,7 +201,7 @@ connection.onCompletionResolve(
 );
 
 // Hover handler
-connection.onHover(async (params) => {
+connection.onHover(async (params: any) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return null;
@@ -218,8 +216,31 @@ connection.onHover(async (params) => {
   }
 });
 
+// Document symbol handler
+connection.onDocumentSymbol(async (params: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  try {
+    const symbols = await parser.parseDocument(document, symbolTable);
+    return symbols.map(symbol => ({
+      name: symbol.name,
+      detail: symbol.detail || symbol.type || '',
+      kind: mapSymbolKind(symbol.kind),
+      range: symbol.range,
+      selectionRange: symbol.range,
+      children: []
+    }));
+  } catch (error) {
+    connection.console.error(`Error providing document symbols: ${error}`);
+    return [];
+  }
+});
+
 // Document diagnostic handler
-connection.languages.diagnostics.on(async (params) => {
+connection.languages.diagnostics.on(async (params: any) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return {
@@ -239,15 +260,32 @@ connection.languages.diagnostics.on(async (params) => {
 // for open, change and close text document events
 documents.listen(connection);
 
+// Helper function to map c-next symbol kinds to LSP symbol kinds
+function mapSymbolKind(cnextKind: CNextSymbolKind): SymbolKind {
+  switch (cnextKind) {
+    case CNextSymbolKind.Class:
+      return SymbolKind.Class;
+    case CNextSymbolKind.Function:
+      return SymbolKind.Function;
+    case CNextSymbolKind.Method:
+      return SymbolKind.Method;
+    case CNextSymbolKind.Variable:
+      return SymbolKind.Variable;
+    case CNextSymbolKind.Constant:
+      return SymbolKind.Constant;
+    case CNextSymbolKind.Property:
+      return SymbolKind.Property;
+    case CNextSymbolKind.Parameter:
+      return SymbolKind.Variable;
+    case CNextSymbolKind.Include:
+      return SymbolKind.Module;
+    case CNextSymbolKind.Import:
+      return SymbolKind.Module;
+    default:
+      return SymbolKind.Variable;
+  }
+}
+
 // Listen on the connection
 connection.listen();
 
-// Log server start
-connection.onInitialize(() => {
-  connection.console.log('c-next Language Server started');
-  return {
-    capabilities: {
-      textDocumentSync: TextDocumentSyncKind.Incremental
-    }
-  };
-});

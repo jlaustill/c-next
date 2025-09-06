@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "Arduino.h"
 
-static const uint16_t delayMs = 10000;
+static const uint16_t delayMs = 100;
 void Blink_setup();
 void Blink_loop();
 

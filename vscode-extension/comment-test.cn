@@ -1,0 +1,32 @@
+// This is a comment with = assignment that should NOT show an error
+// Also testing "quoted strings" in comments - should be ignored
+
+class CommentTest {
+    /* This is a multi-line comment
+       with = assignment operator and "quotes"
+       that should not trigger any diagnostics */
+    
+    int16 correctVar <- 42; // Inline comment with = should be ignored
+    
+    // This line should show an error (not in comment)
+    int32 errorVar = 100;
+    
+    public void testMethod() {
+        digitalWrite(LED_BUILTIN, HIGH); // This = should not error
+        
+        /* Another block comment
+           someUndefinedFunction() should not trigger error here
+           String msg = "this should not error" */
+           
+        // Real error below (not in comment):
+        someUndefinedFunction();
+        
+        String message <- `Correct syntax`;
+    }
+}
+
+/* Final block comment with various syntax that should be ignored:
+   int32 fakeVar = 123;
+   badFunction();
+   String bad = "quotes";
+*/

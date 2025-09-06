@@ -1,17 +1,9 @@
 #include "Arduino.h";
 
 class Blink {
-    static uint16 delayMs <- 10000;
+    static uint16 delayMs <- 100;
     
-    public void setup() {
-        pinMode(LED_BUILTIN, OUTPUT);
-        Serial.begin(115200);
-    }
+    public void setup() {pinMode(LED_BUILTIN, OUTPUT);Serial.begin(115200);}
 
-    public void loop() {
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(delayMs);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(delayMs);
-    }
+    public void loop() {digitalWrite(LED_BUILTIN, HIGH);delay(delayMs);digitalWrite(LED_BUILTIN, LOW);delay(delayMs);}
 }
