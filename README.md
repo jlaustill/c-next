@@ -12,14 +12,14 @@ c-next is a low-level, memory-safe programming language designed to be simple, f
 
 ```c-next
 uint16 speed <- 60;
-String message <- `Hello, world!`;
+string message <- `Hello, world!`;
 uint8[] nums <- [1,2,3,4];
 ```
 
 ### Type System
 - Types follow a strict `(u)(type)(bits)` format.
 - No implicit type coercion; all casts must be explicit.
-- String is a first class citizen influenced by Arduino
+- string is a first class citizen influenced by Arduino
 
 ```c-next
 uint16 speedMph <- 60;
@@ -43,7 +43,7 @@ The basic types are meant to be simplified, this is how they would map to C type
 | float64| double             |
 | float96| long double        |
 |        |                    |
-| String | Arduino String     |
+| string | Arduino String     |
 | boolean| boolean            |
 
 ### Control Flow
@@ -74,7 +74,7 @@ uint16 Add(uint16 a, uint16 b) {
 - Heap allocation requires an **interface**, and memory is managed automatically by the transpiler.
 
 ```c-next
-IPerson Bob <- heap(IPerson);
+heap(IPerson) Bob;
 Bob.firstName <- `Bob`;
 Bob.age <- 54;
 ```
@@ -82,30 +82,30 @@ Bob.age <- 54;
 or with initialization:
 
 ```c-next
-IPerson Bob <- heap(IPerson({ firstName: `Bob`, lastName: `Smith`, age: 54 }));
+heap(IPerson) Bob <- { firstName: `Bob`, lastName: `Smith`, age: 54 };
 ```
 
 ## Objects & Interfaces
 
-All objects must be defined in their own file, and only one object may be defined per file, anything else will generate a compile error. The object defined MUST match the filename, or a compile error will be generated. Files in with a .cn suffix. The main object types in c-next are interfaces and classes. no variables can be defined outside of a class. 
+All objects must be defined in their own file, and only one object may be defined per file, anything else will generate a compile error. The object defined MUST match the filename, or a compile error will be generated. Files end with a .cn suffix. The main object types in c-next are interfaces and classes. no variables can be defined outside of a class. There is also no inheritance.
 
 ### Defining classes
-Classes are meant to be clean, simple, and organized. All class members are private by default and must be explicitly marked as public. Class members must start with a lowercase letter, and method parameters must start with a capital letter. The contructor is the method named the same as the class, and class names must start with a capital letter. This will make the contructors stand out as the only methods with capital letters.
+Classes are meant to be clean, simple, and organized. All class members are private by default and must be explicitly marked as public. Class members must start with a lowercase letter, and method parameters must start with a capital letter. The constructor is the method named the same as the class, and class names must start with a capital letter. This will make the constructors stand out as the only methods with capital letters.
 ```c-next
 class Greeter {
     uint8 age; // private by default
-    public String name; // using the public keyword to make something public 
+    public string name; // using the public keyword to make something public 
 
-    public Greeter(String Name) { // Method parameters must start with a capital letter
+    public Greeter(string Name) { // Method parameters must start with a capital letter
         name <- Name;
     }
 
-    public Greeter(String name, uint8 Age) { // Function overrides must have a unique signature, and call contructors return a new instance of the class so there is no need to annotate it
+    public Greeter(string Name, uint8 Age) { // Function overrides must have a unique signature, and call contructors return a new instance of the class so there is no need to annotate it
         age <- Age;
         name <- Name;
     }
 
-    String getGreeting() {
+    string getGreeting() {
         return `Hello, ${name}!`; // all class members are in scope for lower scopes
     }
 }
@@ -116,11 +116,11 @@ Interfaces start with a capital I, and have their own files
 ```c-next
 // IAddress.cn
 interface IAddress {
-    String street1;
-    String street2;
-    String city;
-    String county;
-    String state;
+    string street1;
+    string street2;
+    string city;
+    string county;
+    string state;
     uint8 zipcode;
     uint8 zip4;
 }
@@ -128,9 +128,9 @@ interface IAddress {
 ```c-next
 // IPerson.cn
 interface IPerson {
-  String firstName,
-  String lastName,
-  uint8 age
+  string firstName;
+  string lastName;
+  uint8 age;
 }
 ```
 
@@ -143,14 +143,14 @@ Serial.println(`Name: ${Alice.firstName} ${Alice.lastName}, Age: ${Alice.age}`);
 ## Special Features
 ### String Interpolation
 ```c-next
-String Greet() {
+string greet() {
   return `Hello, ${message}!`;
 }
 ```
 
 ### Concatenation
 ```c-next
-String fullMessage <- `Welcome, ` +<- name +<- `!`;
+string fullMessage <- `Welcome, ` +<- name +<- `!`;
 ```
 
 ### Importing Modules
@@ -167,16 +167,16 @@ import `MyModule.cn`; // Valid
 ```c-next
 // IVehicle.cn
 interface IVehicle {
-  String model,
-  uint16 speed
+  string model;
+  uint16 spee;
 }
 ```
 
 
 ```c-next
-// main.cn
-import `../Arduino.o`;
-import `IVehicle.cn`;
+// main.cnm
+#include <Arduino.h>
+import "IVehicle.cn";
 
 // The entry file is the ONLY file where things can be defined globally outside of a class
 
@@ -191,9 +191,13 @@ void loop() {
 ```
 
 ## Next Steps
-- Implement the transpiler to convert `c-next` to C.
-- Define a standard library.
-- Consider additional features like concurrency models.
+- Fix grammar/implementation inconsistency: Update grammar to use lowercase `string` instead of `String` to match README examples
+- Implement missing language features documented in README:
+  - String interpolation syntax (`\`Hello, ${name}!\``)
+  - Control flow statements (`if/else`, `for` loops)
+  - Interface parsing rules in grammar
+  - Complete type mapping for all documented types (uint8, uint16, float32, boolean, etc.)
+- get blink program working for arduino
 
 ---
 
