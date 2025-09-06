@@ -9,6 +9,7 @@ export interface CNextSymbol {
   containerName?: string;
   detail?: string;
   documentation?: string;
+  visibility?: 'public' | 'private';
 }
 
 export enum CNextSymbolKind {

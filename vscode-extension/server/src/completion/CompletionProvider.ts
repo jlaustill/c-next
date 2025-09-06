@@ -15,9 +15,38 @@ export class CNextCompletionProvider {
     const lines = text.split('\n');
     const currentLine = lines[position.line];
     const linePrefix = currentLine.substring(0, position.character);
+    
+    console.log(`[COMPLETION] ==========================================`);
+    console.log(`[COMPLETION] getCompletions called for line: "${currentLine}"`);
+    console.log(`[COMPLETION] Line prefix: "${linePrefix}"`);
+    console.log(`[COMPLETION] Position: line ${position.line}, char ${position.character}`);
 
     // Determine completion context
     const completions: CompletionItem[] = [];
+
+    // Check if we're completing object methods (e.g., "blinker.")
+    const objectMethodMatch = linePrefix.match(/(\w+)\.$/);
+    if (objectMethodMatch) {
+      const objectName = objectMethodMatch[1];
+      console.log(`[COMPLETION] Object method completion for: "${objectName}" from line prefix: "${linePrefix}"`);
+      const objectCompletions = this.getObjectMethodCompletions(objectName);
+      console.log(`[COMPLETION] Found ${objectCompletions.length} completions for ${objectName}`);
+      
+      // If we found any completions, return them
+      if (objectCompletions.length > 0) {
+        completions.push(...objectCompletions);
+        return completions;
+      }
+      
+      // If no completions found, add a debug completion to show we detected the pattern
+      completions.push({
+        label: `DEBUG: No completions for ${objectName}`,
+        kind: CompletionItemKind.Text,
+        detail: `Object completion was triggered for ${objectName} but no methods found`,
+        insertText: `/* DEBUG: ${objectName} not found */`
+      });
+      return completions; // Only show object methods, not global symbols
+    }
 
     // Add type completions
     if (this.isTypeContext(linePrefix)) {
@@ -36,6 +65,8 @@ export class CNextCompletionProvider {
     // Add Arduino-specific completions
     completions.push(...this.getArduinoCompletions());
 
+    console.log(`[COMPLETION] Returning ${completions.length} total completions`);
+    console.log(`[COMPLETION] ==========================================`);
     return completions;
   }
 
@@ -168,6 +199,81 @@ export class CNextCompletionProvider {
     });
 
     return snippets;
+  }
+
+  private getObjectMethodCompletions(objectName: string): CompletionItem[] {
+    const completions: CompletionItem[] = [];
+    console.log(`[COMPLETION] Looking up completions for object: ${objectName}`);
+
+    // First check if it's a direct object (like Serial)
+    const objectMethods = this.symbolTable.getObjectMethods(objectName);
+    console.log(`[COMPLETION] Direct object methods for ${objectName}:`, objectMethods.length);
+    if (objectMethods && objectMethods.length > 0) {
+      console.log(`[COMPLETION] Using direct object methods for ${objectName}`);
+      return objectMethods.map(method => ({
+        label: method.name,
+        kind: CompletionItemKind.Method,
+        detail: method.type ? `${method.type} ${objectName}.${method.name}()` : `${objectName}.${method.name}()`,
+        documentation: method.documentation || method.detail,
+        insertText: `${method.name}(\${1})`,
+        insertTextFormat: InsertTextFormat.Snippet
+      }));
+    }
+
+    // Then check if it's a class instance
+    const className = this.symbolTable.getObjectInstanceType(objectName);
+    console.log(`[COMPLETION] Object ${objectName} instance type:`, className);
+    if (className) {
+      const classMembers = this.symbolTable.getClassMembers(className);
+      console.log(`[COMPLETION] Class ${className} has ${classMembers?.length || 0} members`);
+      if (classMembers && classMembers.length > 0) {
+        // Separate public and private members
+        const publicMembers: CompletionItem[] = [];
+        const privateMembers: CompletionItem[] = [];
+
+        classMembers.forEach(member => {
+          const isPublic = this.isPublicMember(member);
+          const isMethod = member.kind === 'method';
+          const completionItem: CompletionItem = {
+            label: member.name,
+            kind: isMethod ? CompletionItemKind.Method : 
+                  (member.kind === 'constant' ? CompletionItemKind.Constant : CompletionItemKind.Property),
+            detail: member.type ? (isMethod ? `${member.type} ${member.name}()` : `${member.type} ${member.name}`) : member.name,
+            documentation: member.documentation || member.detail,
+            insertText: isMethod ? `${member.name}(\${1})` : member.name,
+            insertTextFormat: isMethod ? InsertTextFormat.Snippet : InsertTextFormat.PlainText
+          };
+
+          if (isPublic) {
+            publicMembers.push({
+              ...completionItem,
+              sortText: `0_${member.name}` // Sort public members first (0_ prefix)
+            });
+          } else {
+            // Gray out private members and add (private) indicator
+            privateMembers.push({
+              ...completionItem,
+              label: `${member.name} (private)`,
+              detail: `(private) ${completionItem.detail}`,
+              tags: [1], // CompletionItemTag.Deprecated - makes it grayed out
+              sortText: `1_${member.name}` // Sort private members last (1_ prefix)
+            });
+          }
+        });
+
+        // Return public members first, then private members
+        console.log(`[COMPLETION] Returning ${publicMembers.length} public + ${privateMembers.length} private members`);
+        return [...publicMembers, ...privateMembers];
+      }
+    }
+
+    console.log(`[COMPLETION] No completions found for ${objectName}`);
+    return completions;
+  }
+
+  private isPublicMember(member: any): boolean {
+    // Check if member has explicit visibility information
+    return member.visibility === 'public';
   }
 
   private getArduinoCompletions(): CompletionItem[] {

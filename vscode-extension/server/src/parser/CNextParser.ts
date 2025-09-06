@@ -112,17 +112,40 @@ export class CNextParser {
         }
       }
 
-      // Extract variable definitions (including class instantiations)
-      const variableMatch = trimmedLine.match(/^(?:public\s+)?(\w+)\s+(\w+)\s*(?:(<-|=)|;)/);
+      // Extract variable definitions (including class instantiations) with visibility
+      const variableMatch = trimmedLine.match(/^(public\s+)?(static\s+)?(\w+)\s+(\w+)\s*(?:(<-|=)|;)/);
       if (variableMatch) {
-        symbols.push({
-          name: variableMatch[2],
-          kind: CNextSymbolKind.Variable,
-          type: variableMatch[1],
-          range: {
-            start: { line: lineIndex, character: line.indexOf(variableMatch[2]) },
-            end: { line: lineIndex, character: line.indexOf(variableMatch[2]) + variableMatch[2].length }
+        const hasPublic = !!variableMatch[1];
+        const isStatic = !!variableMatch[2];
+        const type = variableMatch[3];
+        const name = variableMatch[4];
+        const visibility = hasPublic ? 'public' : 'private'; // c-next is private by default
+        
+        // Determine container name if this variable is inside a class
+        let containerName: string | undefined = undefined;
+        const containingClass = classRegions.find(region => 
+          lineIndex > region.start && lineIndex < region.end
+        );
+        if (containingClass) {
+          // Find the class name for this region
+          const classLine = lines[containingClass.start];
+          const classMatch = classLine.match(/class\s+(\w+)/);
+          if (classMatch) {
+            containerName = classMatch[1];
           }
+        }
+        
+        symbols.push({
+          name: name,
+          kind: isStatic ? CNextSymbolKind.Constant : CNextSymbolKind.Variable,
+          type: type,
+          visibility: visibility,
+          containerName: containerName,
+          range: {
+            start: { line: lineIndex, character: line.indexOf(name) },
+            end: { line: lineIndex, character: line.indexOf(name) + name.length }
+          },
+          detail: `${visibility}${isStatic ? ' static' : ''} ${type} ${name}`
         });
       }
 
@@ -213,24 +236,27 @@ export class CNextParser {
       if (!line) continue;
       const trimmedLine = line.trim();
       
-      // Look for method definitions
-      const methodMatch = trimmedLine.match(/^(?:public\s+)?(\w+)\s+(\w+)\s*\(/);
-      if (methodMatch && methodMatch[2] !== containerName) { // Exclude constructor
-        const methodName = methodMatch[2];
-        const returnType = methodMatch[1];
+      // Look for method definitions with visibility
+      const methodMatch = trimmedLine.match(/^(public\s+)?(\w+)\s+(\w+)\s*\(/);
+      if (methodMatch && methodMatch[3] !== containerName) { // Exclude constructor
+        const hasPublic = !!methodMatch[1];
+        const returnType = methodMatch[2];
+        const methodName = methodMatch[3];
+        const visibility = hasPublic ? 'public' : 'private'; // c-next is private by default
         
-        console.log(`  ${'  '.repeat(nesting)}Found method: ${methodName} (${returnType}) at line ${i}`);
+        console.log(`  ${'  '.repeat(nesting)}Found ${visibility} method: ${methodName} (${returnType}) at line ${i}`);
         
         methods.push({
           name: methodName,
           kind: CNextSymbolKind.Method,
           type: returnType,
           containerName: containerName,
+          visibility: visibility,
           range: {
             start: { line: i, character: line.indexOf(methodName) },
             end: { line: i, character: line.indexOf(methodName) + methodName.length }
           },
-          detail: `${returnType} ${containerName}.${methodName}()`
+          detail: `${visibility} ${returnType} ${containerName}.${methodName}()`
         });
 
         // Find the method body and recursively extract nested methods

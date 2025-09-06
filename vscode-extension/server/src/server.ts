@@ -181,13 +181,18 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 // Completion handler
 connection.onCompletion(
   async (textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> => {
+    connection.console.log(`[SERVER] Completion requested for URI: ${textDocumentPosition.textDocument.uri} at position ${textDocumentPosition.position.line}:${textDocumentPosition.position.character}`);
+    
     const document = documents.get(textDocumentPosition.textDocument.uri);
     if (!document) {
+      connection.console.log('[SERVER] Document not found in documents cache');
       return [];
     }
 
     try {
-      return await completionProvider.getCompletions(document, textDocumentPosition.position);
+      const completions = await completionProvider.getCompletions(document, textDocumentPosition.position);
+      connection.console.log(`[SERVER] Returning ${completions.length} completions`);
+      return completions;
     } catch (error) {
       connection.console.error(`Error providing completions: ${error}`);
       return [];

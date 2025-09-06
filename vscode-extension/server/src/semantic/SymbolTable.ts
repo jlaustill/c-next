@@ -32,6 +32,7 @@ export class SymbolTable {
       
       // Handle class definitions
       if (symbol.kind === CNextSymbolKind.Class) {
+        console.log(`[SYMBOL_TABLE] Adding class type: ${symbol.name}`);
         this.types.set(symbol.name, {
           name: symbol.name,
           kind: 'class',
@@ -186,6 +187,62 @@ export class SymbolTable {
       }
     }
     return null;
+  }
+
+  getObjectMethods(objectName: string): CNextSymbol[] {
+    const objectMethods = this.objectMethods.get(objectName);
+    console.log(`[SYMBOL_TABLE] getObjectMethods(${objectName}) found ${objectMethods?.size || 0} methods`);
+    console.log(`[SYMBOL_TABLE] Available direct objects:`, Array.from(this.objectMethods.keys()));
+    if (objectMethods) {
+      return Array.from(objectMethods.values());
+    }
+    return [];
+  }
+
+  getClassMethods(className: string): CNextSymbol[] {
+    const classMethods = this.classMethods.get(className);
+    if (classMethods) {
+      return Array.from(classMethods.values());
+    }
+    return [];
+  }
+
+  getObjectInstanceType(objectName: string): string | undefined {
+    const result = this.objectInstances.get(objectName);
+    console.log(`[SYMBOL_TABLE] getObjectInstanceType(${objectName}) = ${result}`);
+    console.log(`[SYMBOL_TABLE] Available object instances:`, Array.from(this.objectInstances.entries()));
+    return result;
+  }
+
+  getClassMembers(className: string): CNextSymbol[] {
+    const members: CNextSymbol[] = [];
+    console.log(`[SYMBOL_TABLE] getClassMembers(${className})`);
+    
+    // Get methods from the class
+    const classMethods = this.classMethods.get(className);
+    console.log(`[SYMBOL_TABLE] Found ${classMethods?.size || 0} class methods for ${className}`);
+    if (classMethods) {
+      members.push(...Array.from(classMethods.values()));
+    }
+    
+    // Get properties/variables from the class by looking through all document symbols
+    let variableCount = 0;
+    for (const [, docSymbols] of this.documentSymbols) {
+      for (const symbol of docSymbols.values()) {
+        // Check if this symbol belongs to the class
+        if (symbol.containerName === className && 
+            (symbol.kind === CNextSymbolKind.Variable || 
+             symbol.kind === CNextSymbolKind.Constant ||
+             symbol.kind === CNextSymbolKind.Property)) {
+          members.push(symbol);
+          variableCount++;
+        }
+      }
+    }
+    console.log(`[SYMBOL_TABLE] Found ${variableCount} variables for ${className}`);
+    console.log(`[SYMBOL_TABLE] Total members for ${className}: ${members.length}`);
+    
+    return members;
   }
 
   parseHeaderFile(headerPath: string): void {
