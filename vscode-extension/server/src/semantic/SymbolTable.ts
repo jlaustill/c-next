@@ -199,6 +199,10 @@ export class SymbolTable {
     return [];
   }
 
+  getObjectType(objectName: string): string | undefined {
+    return this.objectInstances.get(objectName);
+  }
+
   getClassMethods(className: string): CNextSymbol[] {
     const classMethods = this.classMethods.get(className);
     if (classMethods) {
@@ -319,17 +323,62 @@ export class SymbolTable {
       });
     }
 
-    // Add Arduino functions
+    // Add Arduino functions with documentation
     const arduinoFunctions = [
-      { name: 'pinMode', type: 'void', params: ['uint8', 'uint8'] },
-      { name: 'digitalWrite', type: 'void', params: ['uint8', 'uint8'] },
-      { name: 'digitalRead', type: 'uint8', params: ['uint8'] },
-      { name: 'delay', type: 'void', params: ['uint32'] },
-      { name: 'delayMicroseconds', type: 'void', params: ['uint32'] },
-      { name: 'millis', type: 'uint32', params: [] },
-      { name: 'micros', type: 'uint32', params: [] },
-      { name: 'analogRead', type: 'int32', params: ['uint8'] },
-      { name: 'analogWrite', type: 'void', params: ['uint8', 'int32'] }
+      { 
+        name: 'pinMode', 
+        type: 'void', 
+        params: ['uint8', 'uint8'],
+        documentation: 'Configure a digital pin. The mode can be INPUT, INPUT_PULLUP, INPUT_PULLDOWN, OUTPUT, OUTPUT_OPENDRAIN or INPUT_DISABLE. Use INPUT_DISABLE to minimize power consumption for unused pins and pins with analog voltages.'
+      },
+      { 
+        name: 'digitalWrite', 
+        type: 'void', 
+        params: ['uint8', 'uint8'],
+        documentation: 'Write a HIGH or LOW value to a digital pin. If the pin has been configured as OUTPUT, its voltage will be set to the corresponding value: 5V (or 3.3V on 3.3V boards) for HIGH, 0V for LOW.'
+      },
+      { 
+        name: 'digitalRead', 
+        type: 'uint8', 
+        params: ['uint8'],
+        documentation: 'Reads the value from a specified digital pin, either HIGH or LOW.'
+      },
+      { 
+        name: 'delay', 
+        type: 'void', 
+        params: ['uint32'],
+        documentation: 'Pauses the program for the amount of time (in milliseconds) specified as parameter. There are 1000 milliseconds in a second.'
+      },
+      { 
+        name: 'delayMicroseconds', 
+        type: 'void', 
+        params: ['uint32'],
+        documentation: 'Pauses the program for the amount of time (in microseconds) specified as parameter. There are a thousand microseconds in a millisecond, and a million microseconds in a second.'
+      },
+      { 
+        name: 'millis', 
+        type: 'uint32', 
+        params: [],
+        documentation: 'Returns the number of milliseconds passed since the Arduino board began running the current program. This number will overflow (go back to zero), after approximately 50 days.'
+      },
+      { 
+        name: 'micros', 
+        type: 'uint32', 
+        params: [],
+        documentation: 'Returns the number of microseconds since the Arduino board began running the current program. This number will overflow (go back to zero), after approximately 70 minutes.'
+      },
+      { 
+        name: 'analogRead', 
+        type: 'int32', 
+        params: ['uint8'],
+        documentation: 'Reads the value from the specified analog pin. Arduino boards contain a multichannel, 10-bit analog to digital converter. This means that it will map input voltages between 0 and the operating voltage (5V or 3.3V) into integer values between 0 and 1023.'
+      },
+      { 
+        name: 'analogWrite', 
+        type: 'void', 
+        params: ['uint8', 'int32'],
+        documentation: 'Writes an analog value (PWM wave) to a pin. Can be used to light a LED at varying brightnesses or drive a motor at various speeds. After a call to analogWrite(), the pin will generate a steady rectangular wave of the specified duty cycle until the next call to analogWrite() (or a call to digitalRead() or digitalWrite()) on the same pin.'
+      }
     ];
 
     for (const func of arduinoFunctions) {
@@ -338,7 +387,8 @@ export class SymbolTable {
         kind: CNextSymbolKind.Function,
         type: func.type,
         range: { start: { line: 0, character: 0 }, end: { line: 0, character: func.name.length } },
-        detail: `Arduino function: ${func.type} ${func.name}(${func.params.join(', ')})`
+        detail: `Arduino function: ${func.type} ${func.name}(${func.params.join(', ')})`,
+        documentation: func.documentation
       });
     }
 
@@ -351,14 +401,39 @@ export class SymbolTable {
       detail: 'Arduino Serial communication object'
     });
 
-    // Add Serial methods
+    // Add Serial methods with documentation
     const serialMethods = new Map<string, CNextSymbol>();
     const serialMethodDefs = [
-      { name: 'begin', type: 'void', params: ['uint32'] },
-      { name: 'print', type: 'void', params: ['String'] },
-      { name: 'println', type: 'void', params: ['String'] },
-      { name: 'available', type: 'int32', params: [] },
-      { name: 'read', type: 'int32', params: [] }
+      { 
+        name: 'begin', 
+        type: 'void', 
+        params: ['uint32'],
+        documentation: 'Sets the data rate in bits per second (baud) for serial data transmission. For communicating with the computer, use one of these rates: 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, or 115200.'
+      },
+      { 
+        name: 'print', 
+        type: 'void', 
+        params: ['String'],
+        documentation: 'Prints data to the serial port as human-readable ASCII text. This command can take many forms. Numbers are printed using an ASCII character for each digit. Floats are similarly printed as ASCII digits, defaulting to two decimal places.'
+      },
+      { 
+        name: 'println', 
+        type: 'void', 
+        params: ['String'],
+        documentation: 'Prints data to the serial port as human-readable ASCII text followed by a carriage return character (ASCII 13, or "\\r") and a newline character (ASCII 10, or "\\n"). This command takes the same forms as Serial.print().'
+      },
+      { 
+        name: 'available', 
+        type: 'int32', 
+        params: [],
+        documentation: 'Returns the number of bytes available for reading from the serial port. This is data that\'s already arrived and stored in the serial receive buffer (which holds 64 bytes).'
+      },
+      { 
+        name: 'read', 
+        type: 'int32', 
+        params: [],
+        documentation: 'Reads incoming serial data. Returns the first byte of incoming serial data available (or -1 if no data is available). Data type: int.'
+      }
     ];
 
     for (const method of serialMethodDefs) {
@@ -367,7 +442,8 @@ export class SymbolTable {
         kind: CNextSymbolKind.Method,
         type: method.type,
         range: { start: { line: 0, character: 0 }, end: { line: 0, character: method.name.length } },
-        detail: `Serial method: ${method.type} ${method.name}(${method.params.join(', ')})`
+        detail: `Serial method: ${method.type} ${method.name}(${method.params.join(', ')})`,
+        documentation: method.documentation
       });
     }
 

@@ -1,9 +1,22 @@
-#include "Arduino.h";
+#include `Arduino.h`;
 
+/// The Blink class is very simple, it takes in a delay and blinks the 
+/// built in LED using LED_BUILTIN
 class Blink {
-    static uint16 delayMs <- 100;
+    static uint16 delayMs;
     
-    public void setup() {pinMode(LED_BUILTIN, OUTPUT);Serial.begin(115200);}
+    /// The setup must be called before the loop, it sets the LED_BUILTIN pin as an OUTPUT
+    /// uint16 delayInMs - The time the LED remains on/off each blink
+    public void setup(uint16 delayInMs) {
+        delayMs <- delayInMs;
+        pinMode(LED_BUILTIN, OUTPUT);
+    }
 
-    public void loop() {digitalWrite(LED_BUILTIN, HIGH);delay(delayMs);digitalWrite(LED_BUILTIN, LOW);delay(delayMs);}
+    /// The loop method blinks the built in LED once, it must be called repeatadly to keep the light blinking
+    public void loop() {
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(delayMs);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(delayMs);
+    }
 }

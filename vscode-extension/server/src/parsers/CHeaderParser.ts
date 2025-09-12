@@ -7,6 +7,7 @@ export interface CFunction {
   parameters: Array<{ type: string; name: string }>;
   isStatic?: boolean;
   isInline?: boolean;
+  documentation?: string;
 }
 
 export interface CVariable {
@@ -15,6 +16,7 @@ export interface CVariable {
   isConst?: boolean;
   isStatic?: boolean;
   isExtern?: boolean;
+  documentation?: string;
 }
 
 export interface CType {
@@ -54,11 +56,16 @@ export class CHeaderParser {
 
   parse(headerPath: string): ParsedHeader {
     const content = fs.readFileSync(headerPath, 'utf8');
+    
+    // Parse with documentation first, then clean for other parsing
+    const functions = this.extractFunctionsWithDocs(content);
+    const variables = this.extractVariablesWithDocs(content);
+    
     const cleanContent = this.preprocessContent(content);
     
     return {
-      functions: this.extractFunctions(cleanContent),
-      variables: this.extractVariables(cleanContent),
+      functions,
+      variables,
       types: this.extractTypes(cleanContent),
       includes: this.extractIncludes(cleanContent)
     };
@@ -234,6 +241,167 @@ export class CHeaderParser {
     }
     
     return members;
+  }
+
+  private extractFunctionsWithDocs(content: string): CFunction[] {
+    const functions: CFunction[] = [];
+    const lines = content.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+      const trimmedLine = line.trim();
+      
+      // Look for function declarations/definitions
+      const functionMatch = trimmedLine.match(/(?:(static|inline|extern)\s+)?(\w+(?:\s*\*)*)\s+(\w+)\s*\([^)]*\)\s*(?:[{;])/);
+      if (functionMatch) {
+        const [, modifiers, returnType, name] = functionMatch;
+        
+        // Skip if it looks like a macro or struct member
+        if (name.startsWith('_') && name.toUpperCase() === name) continue;
+        
+        // Extract documentation comment above this function
+        const documentation = this.extractDocumentationCommentForC(lines, i);
+        
+        // Extract parameters more carefully from the full line
+        const paramMatch = trimmedLine.match(/\(([^)]*)\)/);
+        const paramStr = paramMatch ? paramMatch[1] : '';
+        const parameters = this.parseParameters(paramStr);
+        
+        functions.push({
+          name,
+          returnType: this.mapCTypeToCNext(returnType.trim()),
+          parameters: parameters.map(p => ({
+            type: this.mapCTypeToCNext(p.type),
+            name: p.name
+          })),
+          isStatic: modifiers?.includes('static'),
+          isInline: modifiers?.includes('inline'),
+          documentation: documentation
+        });
+      }
+    }
+    
+    return functions;
+  }
+
+  private extractVariablesWithDocs(content: string): CVariable[] {
+    const variables: CVariable[] = [];
+    const lines = content.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+      const trimmedLine = line.trim();
+      
+      // Look for variable declarations
+      const variableMatch = trimmedLine.match(/(?:(static|extern|const)\s+)*(\w+(?:\s*\*)*)\s+(\w+)(?:\s*=\s*[^;]+)?\s*;/);
+      if (variableMatch) {
+        const [, modifiers, type, name] = variableMatch;
+        
+        // Skip function declarations and other complex types
+        if (trimmedLine.includes('(')) continue;
+        
+        // Extract documentation comment above this variable
+        const documentation = this.extractDocumentationCommentForC(lines, i);
+        
+        variables.push({
+          name,
+          type: this.mapCTypeToCNext(type.trim()),
+          isConst: modifiers?.includes('const'),
+          isStatic: modifiers?.includes('static'),
+          isExtern: modifiers?.includes('extern'),
+          documentation: documentation
+        });
+      }
+    }
+    
+    return variables;
+  }
+
+  /**
+   * Extract documentation comments from C/C++ files (similar to c-next but handles C-style)
+   */
+  private extractDocumentationCommentForC(lines: string[], lineIndex: number): string | undefined {
+    if (lineIndex === 0) return undefined;
+    
+    let currentLine = lineIndex - 1;
+    
+    // Skip empty lines
+    while (currentLine >= 0 && lines[currentLine].trim() === '') {
+      currentLine--;
+    }
+    
+    if (currentLine < 0) return undefined;
+    
+    const line = lines[currentLine].trim();
+    
+    // Check for Doxygen block comment ending with */
+    if (line.endsWith('*/')) {
+      const blockLines: string[] = [];
+      
+      // If it's a single line comment like /** comment */
+      if (line.startsWith('/**') || line.startsWith('/*!')) {
+        const content = line.replace(/^\/\*\*?!?\s*/, '').replace(/\s*\*\/$/, '');
+        return content.trim() || undefined;
+      }
+      
+      // Multi-line block comment - collect lines backwards
+      while (currentLine >= 0) {
+        const blockLine = lines[currentLine].trim();
+        blockLines.unshift(blockLine);
+        
+        if (blockLine.startsWith('/**') || blockLine.startsWith('/*!') || blockLine.startsWith('/*')) {
+          break;
+        }
+        
+        currentLine--;
+      }
+      
+      if (blockLines.length > 0 && (blockLines[0].startsWith('/**') || blockLines[0].startsWith('/*!') || blockLines[0].startsWith('/*'))) {
+        // Process the block comment
+        const processed = blockLines
+          .map((line, index) => {
+            if (index === 0) {
+              // First line: remove /** or /*! or /*
+              return line.replace(/^\/\*\*?!?\s*/, '');
+            } else if (index === blockLines.length - 1) {
+              // Last line: remove */
+              return line.replace(/\s*\*\/$/, '');
+            } else {
+              // Middle lines: remove leading * and whitespace
+              return line.replace(/^\s*\*\s?/, '');
+            }
+          })
+          .filter(line => line.trim() !== '')
+          .join('\n')
+          .trim();
+          
+        return processed || undefined;
+      }
+    }
+    
+    // Check for triple-slash comments (less common in C but still valid)
+    if (line.startsWith('///')) {
+      const tripleSlashLines: string[] = [];
+      
+      while (currentLine >= 0) {
+        const slashLine = lines[currentLine].trim();
+        if (slashLine.startsWith('///')) {
+          const content = slashLine.replace(/^\/\/\/\s?/, '');
+          tripleSlashLines.unshift(content);
+          currentLine--;
+        } else if (slashLine === '') {
+          currentLine--;
+        } else {
+          break;
+        }
+      }
+      
+      return tripleSlashLines.join('\n').trim() || undefined;
+    }
+    
+    return undefined;
   }
 
   private mapCTypeToCNext(cType: string): string {

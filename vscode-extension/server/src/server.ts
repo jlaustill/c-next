@@ -15,13 +15,16 @@ import {
   SymbolKind,
   DefinitionParams,
   Definition,
-  Location
+  Location,
+  HoverParams,
+  Hover
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CNextParser } from './parser/CNextParser';
 import { CNextDiagnosticProvider } from './diagnostics/DiagnosticProvider';
 import { CNextCompletionProvider } from './completion/CompletionProvider';
+import { CNextHoverProvider } from './hover/HoverProvider';
 import { SymbolTable } from './semantic/SymbolTable';
 import { CNextSymbolKind, CNextSymbol } from './types';
 
@@ -38,6 +41,7 @@ const parser = new CNextParser();
 const symbolTable = new SymbolTable();
 const diagnosticProvider = new CNextDiagnosticProvider(parser, symbolTable);
 const completionProvider = new CNextCompletionProvider(parser, symbolTable);
+const hoverProvider = new CNextHoverProvider(parser, symbolTable);
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -209,15 +213,19 @@ connection.onCompletionResolve(
 );
 
 // Hover handler
-connection.onHover(async (params: any) => {
+connection.onHover(async (params: HoverParams): Promise<Hover | null> => {
+  connection.console.log(`[SERVER] Hover requested for URI: ${params.textDocument.uri} at position ${params.position.line}:${params.position.character}`);
+  
   const document = documents.get(params.textDocument.uri);
   if (!document) {
+    connection.console.log('[SERVER] Document not found in documents cache');
     return null;
   }
 
   try {
-    // TODO: Implement hover provider
-    return null;
+    const hover = await hoverProvider.provideHover(document, params.position);
+    connection.console.log(`[SERVER] Hover result: ${hover ? 'found' : 'not found'}`);
+    return hover;
   } catch (error) {
     connection.console.error(`Error providing hover: ${error}`);
     return null;

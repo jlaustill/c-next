@@ -68,6 +68,9 @@ export class CNextParser {
       if (!line) continue;
       const trimmedLine = line.trim();
 
+      // Extract documentation comment above current line
+      const documentation = this.extractDocumentationComment(lines, lineIndex);
+
       // Extract class definitions and their methods
       const classMatch = trimmedLine.match(/^class\s+(\w+)/);
       if (classMatch) {
@@ -78,7 +81,8 @@ export class CNextParser {
           range: {
             start: { line: lineIndex, character: line.indexOf('class') },
             end: { line: lineIndex, character: line.indexOf('class') + classMatch[0].length }
-          }
+          },
+          documentation: documentation
         });
 
         // Extract methods from this class
@@ -104,7 +108,8 @@ export class CNextParser {
             range: {
               start: { line: lineIndex, character: line.indexOf(functionMatch[2]) },
               end: { line: lineIndex, character: line.indexOf(functionMatch[2]) + functionMatch[2].length }
-            }
+            },
+            documentation: documentation
           });
           console.log(`Added as standalone function: ${functionMatch[2]}`);
         } else {
@@ -145,7 +150,8 @@ export class CNextParser {
             start: { line: lineIndex, character: line.indexOf(name) },
             end: { line: lineIndex, character: line.indexOf(name) + name.length }
           },
-          detail: `${visibility}${isStatic ? ' static' : ''} ${type} ${name}`
+          detail: `${visibility}${isStatic ? ' static' : ''} ${type} ${name}`,
+          documentation: documentation
         });
       }
 
@@ -244,6 +250,9 @@ export class CNextParser {
         const methodName = methodMatch[3];
         const visibility = hasPublic ? 'public' : 'private'; // c-next is private by default
         
+        // Extract documentation comment for this method
+        const documentation = this.extractDocumentationComment(lines, i);
+        
         console.log(`  ${'  '.repeat(nesting)}Found ${visibility} method: ${methodName} (${returnType}) at line ${i}`);
         
         methods.push({
@@ -256,7 +265,8 @@ export class CNextParser {
             start: { line: i, character: line.indexOf(methodName) },
             end: { line: i, character: line.indexOf(methodName) + methodName.length }
           },
-          detail: `${visibility} ${returnType} ${containerName}.${methodName}()`
+          detail: `${visibility} ${returnType} ${containerName}.${methodName}()`,
+          documentation: documentation
         });
 
         // Find the method body and recursively extract nested methods
@@ -494,6 +504,136 @@ export class CNextParser {
     }
     
     return null;
+  }
+
+  /**
+   * Extract documentation comments from the lines above the current line.
+   * Supports Doxygen-style, triple-slash, and block comments
+   */
+  private extractDocumentationComment(lines: string[], lineIndex: number): string | undefined {
+    if (lineIndex === 0) return undefined;
+    
+    let docLines: string[] = [];
+    let currentLine = lineIndex - 1;
+    
+    // Skip empty lines
+    while (currentLine >= 0 && lines[currentLine].trim() === '') {
+      currentLine--;
+    }
+    
+    if (currentLine < 0) return undefined;
+    
+    const line = lines[currentLine].trim();
+    
+    // Check for Doxygen block comment ending with */
+    if (line.endsWith('*/')) {
+      const blockLines: string[] = [];
+      let blockEnd = currentLine;
+      
+      // If it's a single line comment like /** comment */
+      if (line.startsWith('/**') || line.startsWith('/*!')) {
+        const content = line.replace(/^\/\*\*?!?\s*/, '').replace(/\s*\*\/$/, '');
+        return content.trim() || undefined;
+      }
+      
+      // Multi-line block comment - collect lines backwards
+      while (currentLine >= 0) {
+        const blockLine = lines[currentLine].trim();
+        blockLines.unshift(blockLine);
+        
+        if (blockLine.startsWith('/**') || blockLine.startsWith('/*!')) {
+          break;
+        }
+        
+        currentLine--;
+      }
+      
+      if (blockLines.length > 0 && (blockLines[0].startsWith('/**') || blockLines[0].startsWith('/*!'))) {
+        // Process the block comment
+        const processed = blockLines
+          .map((line, index) => {
+            if (index === 0) {
+              // First line: remove /** or /*!
+              return line.replace(/^\/\*\*?!?\s*/, '');
+            } else if (index === blockLines.length - 1) {
+              // Last line: remove */
+              return line.replace(/\s*\*\/$/, '');
+            } else {
+              // Middle lines: remove leading * and whitespace
+              return line.replace(/^\s*\*\s?/, '');
+            }
+          })
+          .filter(line => line.trim() !== '')
+          .join('\n')
+          .trim();
+          
+        return processed || undefined;
+      }
+    }
+    
+    // Check for triple-slash comments
+    if (line.startsWith('///')) {
+      const tripleSlashLines: string[] = [];
+      
+      while (currentLine >= 0) {
+        const slashLine = lines[currentLine].trim();
+        if (slashLine.startsWith('///')) {
+          const content = slashLine.replace(/^\/\/\/\s?/, '');
+          tripleSlashLines.unshift(content);
+          currentLine--;
+        } else if (slashLine === '') {
+          // Allow empty lines in the middle
+          currentLine--;
+        } else {
+          break;
+        }
+      }
+      
+      return tripleSlashLines.join('\n').trim() || undefined;
+    }
+    
+    // Check for regular block comments /* ... */
+    if (line.endsWith('*/') && !line.startsWith('//')) {
+      const blockLines: string[] = [];
+      
+      // Single line comment
+      if (line.startsWith('/*')) {
+        const content = line.replace(/^\/\*\s*/, '').replace(/\s*\*\/$/, '');
+        return content.trim() || undefined;
+      }
+      
+      // Multi-line block comment
+      while (currentLine >= 0) {
+        const blockLine = lines[currentLine].trim();
+        blockLines.unshift(blockLine);
+        
+        if (blockLine.startsWith('/*')) {
+          break;
+        }
+        
+        currentLine--;
+      }
+      
+      if (blockLines.length > 0 && blockLines[0].startsWith('/*')) {
+        const processed = blockLines
+          .map((line, index) => {
+            if (index === 0) {
+              return line.replace(/^\/\*\s*/, '');
+            } else if (index === blockLines.length - 1) {
+              return line.replace(/\s*\*\/$/, '');
+            } else {
+              return line.replace(/^\s*\*?\s?/, '');
+            }
+          })
+          .filter(line => line.trim() !== '')
+          .join('\n')
+          .trim();
+          
+        return processed || undefined;
+      }
+    }
+    
+    return undefined;
   }
 }
 

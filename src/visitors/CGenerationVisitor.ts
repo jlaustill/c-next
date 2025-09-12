@@ -33,7 +33,7 @@ interface CFunction {
 interface CVariable {
   type: string;
   name: string;
-  value: string;
+  value?: string;
   isStatic: boolean;
 }
 
@@ -106,7 +106,7 @@ export class CGenerationVisitor
   }
 
   visitIncludeDirective(ctx: IncludeDirectiveContext) {
-    const filename = ctx.FILENAME().text.slice(1, -1); // Remove quotes
+    const filename = ctx.STRING().text.slice(1, -1); // Remove backticks
     
     // Add include to current context (either class or main file)
     if (this.currentMainFile) {
@@ -132,7 +132,7 @@ export class CGenerationVisitor
   }
 
   visitImportDirective(ctx: ImportDirectiveContext) {
-    const filename = ctx.FILENAME().text.slice(1, -1); // Remove quotes
+    const filename = ctx.STRING().text.slice(1, -1); // Remove backticks
     
     // Convert .cn files to .h includes
     let includeFile = filename;
@@ -245,7 +245,7 @@ export class CGenerationVisitor
     const variable: CVariable = {
       type: ctx.type_specifier().text,
       name: ctx.ID().text,
-      value: ctx.value().text,
+      value: ctx.value() ? ctx.value()!.text : undefined,
       isStatic: isStaticContext
     };
 
@@ -306,6 +306,15 @@ export class CGenerationVisitor
       } else if (stmt.declaration()) {
         // Handle variable declarations
         body += '    ' + this.getDeclarationText(stmt.declaration()) + ';\n';
+      } else if (stmt.ID() && stmt.ASSIGN()) {
+        // Handle assignment statements: ID ASSIGN value SEMI
+        const idNode = stmt.ID();
+        const valueNode = stmt.value();
+        if (idNode && valueNode) {
+          const varName = idNode.text;
+          const value = valueNode.text;
+          body += `    ${varName} = ${value};\n`;
+        }
       } else if (stmt.expression()) {
         // Handle general expressions
         body += '    ' + this.getExpressionText(stmt.expression()) + ';\n';
@@ -336,6 +345,15 @@ export class CGenerationVisitor
       } else if (stmt.declaration()) {
         // Handle variable declarations
         body += '    ' + this.getDeclarationText(stmt.declaration()) + ';\n';
+      } else if (stmt.ID() && stmt.ASSIGN()) {
+        // Handle assignment statements: ID ASSIGN value SEMI
+        const idNode = stmt.ID();
+        const valueNode = stmt.value();
+        if (idNode && valueNode) {
+          const varName = idNode.text;
+          const value = valueNode.text;
+          body += `    ${varName} = ${value};\n`;
+        }
       } else if (stmt.expression()) {
         // Handle general expressions
         body += '    ' + this.getExpressionText(stmt.expression()) + ';\n';
@@ -350,7 +368,12 @@ export class CGenerationVisitor
     
     // Check which type of expression we're dealing with
     if (ctx instanceof ValueExprContext) {
-        return ctx.value().text;
+        const valueText = ctx.value().text;
+        // Handle c-next template strings with backticks
+        if (valueText.startsWith('`') && valueText.endsWith('`')) {
+          return this.convertTemplateString(valueText);
+        }
+        return valueText;
     }
     
     if (ctx instanceof AddExprContext) {
@@ -364,6 +387,53 @@ export class CGenerationVisitor
     }
     
     return ctx.text;
+  }
+
+  private convertTemplateString(templateStr: string): string {
+    // Remove backticks
+    let content = templateStr.slice(1, -1);
+    
+    // Convert template expressions ${...} to C++ string concatenation
+    // e.g., `Hello ${name}!` becomes "Hello " + String(name) + "!"
+    
+    let result = '';
+    let lastIndex = 0;
+    const templateRegex = /\$\{([^}]+)\}/g;
+    let match;
+    
+    const parts: string[] = [];
+    
+    while ((match = templateRegex.exec(content)) !== null) {
+      // Add the text before the template expression
+      if (match.index > lastIndex) {
+        const textPart = content.substring(lastIndex, match.index);
+        if (textPart) {
+          parts.push(`"${textPart}"`);
+        }
+      }
+      
+      // Add the template expression as a String() conversion
+      const expr = match[1];
+      parts.push(`String(${expr})`);
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add any remaining text
+    if (lastIndex < content.length) {
+      const remainingText = content.substring(lastIndex);
+      if (remainingText) {
+        parts.push(`"${remainingText}"`);
+      }
+    }
+    
+    // If no template expressions found, just return as a regular string
+    if (parts.length === 0) {
+      return `"${content}"`;
+    }
+    
+    // Join with + operators
+    return parts.join(' + ');
   }
 
   private getFunctionCallText(ctx: any): string {
@@ -474,10 +544,13 @@ export class CGenerationVisitor
     });
     header += '\n';
     
-    // Add variables
+    // Add variables (only initialized ones in header)
     classData.variables.forEach(v => {
-      if (v.isStatic) {
+      if (v.isStatic && v.value !== undefined) {
         header += `static const ${this.mapTypeToC(v.type)} ${v.name} = ${v.value};\n`;
+      } else if (v.isStatic) {
+        // Declare uninitialized static variables as extern in header
+        header += `extern ${this.mapTypeToC(v.type)} ${v.name};\n`;
       }
     });
 
@@ -501,6 +574,17 @@ export class CGenerationVisitor
       impl += `#include "${include}"\n`;
     });
     impl += '\n';
+    
+    // Add uninitialized static variable definitions
+    classData.variables.forEach(v => {
+      if (v.isStatic && v.value === undefined) {
+        impl += `${this.mapTypeToC(v.type)} ${v.name};\n`;
+      }
+    });
+    
+    if (classData.variables.some(v => v.isStatic && v.value === undefined)) {
+      impl += '\n';
+    }
     
     // Add function implementations
     classData.functions.forEach(f => {

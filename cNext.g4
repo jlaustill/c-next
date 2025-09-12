@@ -37,6 +37,9 @@ grammar cNext;
                 NUMBER: [0-9]+('.'[0-9]+)?;  // Support decimal numbers
                 STRING: '`' .*? '`';         // String literals in backticks
                 FILENAME: '"' .*? '"';       // String literals in quotes for file names
+                LINE_COMMENT: '//' ~[\r\n]* -> skip;     // Skip regular line comments
+                DOC_COMMENT: '///' ~[\r\n]*;             // Documentation comments
+                BLOCK_COMMENT: '/*' .*? '*/' -> skip;    // Skip block comments
                 WS: [ \t\r\n]+ -> skip;
 
                 // Parser rules
@@ -60,15 +63,15 @@ grammar cNext;
                     ;
 
                 importDirective
-                    : IMPORT FILENAME ';'
+                    : IMPORT STRING ';'
                     ;
 
                 includeDirective
-                    : INCLUDE FILENAME ';'
+                    : INCLUDE STRING ';'
                     ;
 
                 classDeclaration
-                    : STATIC? CLASS ID
+                    : DOC_COMMENT* STATIC? CLASS ID
                       LBRACE
                          classMembers
                       RBRACE
@@ -79,12 +82,12 @@ grammar cNext;
                     ;
 
                 staticMember
-                    : STATIC declaration  // Static variables
+                    : DOC_COMMENT* STATIC declaration  // Static variables
                     ;
 
                 regularMember   // Only allowed in non-static classes
-                    : declaration        // Regular variables
-                    | classFunction      // All functions are implicitly static
+                    : DOC_COMMENT* declaration        // Regular variables
+                    | DOC_COMMENT* classFunction      // All functions are implicitly static
                     ;
 
                 classFunction
@@ -97,7 +100,7 @@ grammar cNext;
 
                 // Global functions (only in .cnm)
                 functionDeclaration
-                    : returnType ID
+                    : DOC_COMMENT* returnType ID
                       LPAREN parameterList? RPAREN
                       LBRACE
                          statement*
@@ -120,8 +123,7 @@ grammar cNext;
                 declaration
                     : type_specifier
                       ID
-                      ASSIGN
-                      value
+                      (ASSIGN value)?
                       SEMI
                     ;
 
@@ -130,6 +132,7 @@ grammar cNext;
                     | expression SEMI
                     | functionCall SEMI
                     | methodCall SEMI
+                    | ID ASSIGN value SEMI     // Assignment statement
                     | RETURN expression? SEMI
                     ;
 

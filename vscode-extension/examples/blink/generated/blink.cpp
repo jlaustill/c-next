@@ -1,9 +1,11 @@
 #include "blink.h"
 #include "Arduino.h"
 
-void Blink_setup() {
+uint16_t delayMs;
+
+void Blink_setup(uint16_t delayInMs) {
+    delayMs = delayInMs;
     pinMode(LED_BUILTIN, OUTPUT);
-    Serial.begin(115200);
 }
 
 void Blink_loop() {
