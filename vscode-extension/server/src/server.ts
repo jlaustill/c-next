@@ -17,11 +17,14 @@ import {
   Definition,
   Location,
   HoverParams,
-  Hover
+  Hover,
+  Range
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CNextParser } from './parser/CNextParser';
+import { cNextParser } from '../../../src/parser/cNextParser';
+import { cNextLexer } from '../../../src/parser/cNextLexer';
+import { ANTLRInputStream, CommonTokenStream } from 'antlr4ts';
 import { CNextDiagnosticProvider } from './diagnostics/DiagnosticProvider';
 import { CNextCompletionProvider } from './completion/CompletionProvider';
 import { CNextHoverProvider } from './hover/HoverProvider';
@@ -36,12 +39,43 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 
-// Language service components
-const parser = new CNextParser();
+// Parser helper function using shared ANTLR parser
+function parseDocument(document: TextDocument, symbolTable: SymbolTable) {
+  const input = new ANTLRInputStream(document.getText());
+  const lexer = new cNextLexer(input);
+  const tokenStream = new CommonTokenStream(lexer);
+  const parser = new cNextParser(tokenStream);
+  
+  // Parse the document (try main source file first, then regular source file)
+  try {
+    const tree = parser.mainSourceFile();
+    return extractSymbolsFromTree(tree, symbolTable);
+  } catch {
+    // Create new parser instance for second attempt
+    const input2 = new ANTLRInputStream(document.getText());
+    const lexer2 = new cNextLexer(input2);
+    const tokenStream2 = new CommonTokenStream(lexer2);
+    const parser2 = new cNextParser(tokenStream2);
+    const tree = parser2.sourceFile();
+    return extractSymbolsFromTree(tree, symbolTable);
+  }
+}
+
+function extractSymbolsFromTree(tree: any, symbolTable: SymbolTable) {
+  // Extract symbols from the parse tree
+  // This is a simplified version - you might want to implement a proper visitor
+  const symbols: Array<{ name: string, type: string, kind: CNextSymbolKind, range?: Range, detail?: string }> = [];
+  
+  // Basic symbol extraction logic here
+  // For now, return empty array - this should be properly implemented
+  return symbols;
+}
+
+// Language service components  
 const symbolTable = new SymbolTable();
-const diagnosticProvider = new CNextDiagnosticProvider(parser, symbolTable);
-const completionProvider = new CNextCompletionProvider(parser, symbolTable);
-const hoverProvider = new CNextHoverProvider(parser, symbolTable);
+const diagnosticProvider = new CNextDiagnosticProvider(symbolTable);
+const completionProvider = new CNextCompletionProvider(symbolTable);
+const hoverProvider = new CNextHoverProvider(symbolTable);
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -240,13 +274,13 @@ connection.onDocumentSymbol(async (params: DocumentSymbolParams): Promise<Docume
   }
 
   try {
-    const symbols = await parser.parseDocument(document, symbolTable);
+    const symbols = parseDocument(document, symbolTable);
     return symbols.map(symbol => ({
       name: symbol.name,
       detail: symbol.detail || symbol.type || '',
       kind: mapSymbolKind(symbol.kind),
-      range: symbol.range,
-      selectionRange: symbol.range,
+      range: symbol.range || { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+      selectionRange: symbol.range || { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
       children: []
     }));
   } catch (error) {

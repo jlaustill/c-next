@@ -1,11 +1,11 @@
 #include `Arduino.h`;
-import `Blink.cn`;
+import "Blink.cn";
 
 Blink blinker;
 
 void setup() {
     Serial.begin(115200);
-    blinker.setup(1000);
+    blinker.setup(10000);
 }
 
 void loop() {

@@ -1,11 +1,9 @@
 import { TextDocument, Position, Hover, MarkupKind, Range } from 'vscode-languageserver/node';
-import { CNextParser } from '../parser/CNextParser';
 import { SymbolTable } from '../semantic/SymbolTable';
 import { CNextSymbol, CNextSymbolKind } from '../types';
 
 export class CNextHoverProvider {
   constructor(
-    private parser: CNextParser,
     private symbolTable: SymbolTable
   ) {}
 

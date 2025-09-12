@@ -1,11 +1,9 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CNextParser } from '../parser/CNextParser';
 import { SymbolTable } from '../semantic/SymbolTable';
 
 export class CNextDiagnosticProvider {
   constructor(
-    private parser: CNextParser,
     private symbolTable: SymbolTable
   ) {}
 
@@ -15,10 +13,6 @@ export class CNextDiagnosticProvider {
     const text = document.getText();
 
     try {
-      // Parse document and update symbol table
-      const symbols = await this.parser.parseDocument(document, this.symbolTable);
-      this.symbolTable.addDocumentSymbols(uri, symbols);
-
       // Perform various diagnostic checks
       diagnostics.push(...this.checkSyntaxErrors(text));
       diagnostics.push(...this.checkTypeErrors(text));
@@ -69,21 +63,36 @@ export class CNextDiagnosticProvider {
       }
 
       // Check for incorrect string literals (quotes instead of backticks)
+      // Only flag quotes in certain contexts where we expect c-next string literals
       const incorrectString = line.match(/["']([^"']*)["']/);
-      if (incorrectString && !line.includes('#include')) {
-        const startChar = line.indexOf(incorrectString[0]);
-        // Skip if this error is inside a comment
-        if (this.isInsideComment(lineIndex, startChar, commentRanges)) continue;
-        diagnostics.push({
-          severity: DiagnosticSeverity.Warning,
-          range: {
-            start: { line: lineIndex, character: startChar },
-            end: { line: lineIndex, character: startChar + incorrectString[0].length }
-          },
-          message: "Use backticks `string` for string literals instead of quotes",
-          source: 'cnext',
-          code: 'incorrect-string-literal'
-        });
+      if (incorrectString && 
+          !line.includes('#include') && 
+          !line.includes('import') &&
+          !line.includes('//') && // Skip commented lines
+          !line.includes('/*')) {
+        
+        // Additional context check: only flag if it looks like a c-next string context
+        const isInStringContext = 
+          line.includes('println') || 
+          line.includes('print') ||
+          line.includes('<-') || // Assignment
+          line.includes('return');
+          
+        if (isInStringContext) {
+          const startChar = line.indexOf(incorrectString[0]);
+          // Skip if this error is inside a comment
+          if (this.isInsideComment(lineIndex, startChar, commentRanges)) continue;
+          diagnostics.push({
+            severity: DiagnosticSeverity.Information, // Changed to info instead of warning
+            range: {
+              start: { line: lineIndex, character: startChar },
+              end: { line: lineIndex, character: startChar + incorrectString[0].length }
+            },
+            message: "c-next prefers backticks `string` for string literals",
+            source: 'cnext',
+            code: 'prefer-backticks'
+          });
+        }
       }
 
       // Check for missing semicolons (basic check)

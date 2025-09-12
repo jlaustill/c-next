@@ -17,13 +17,19 @@ class Compiler {
   compile() {
     // Find all .cn and .cnm files in input directory
     const files = this.findSourceFiles();
+    let hasErrors = false;
     
     for (const file of files) {
       try {
         this.compileFile(file);
       } catch (error) {
         console.error(`Error compiling ${file}:`, error);
+        hasErrors = true;
       }
+    }
+    
+    if (hasErrors) {
+      process.exit(1);
     }
   }
 

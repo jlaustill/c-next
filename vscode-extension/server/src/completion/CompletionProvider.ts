@@ -1,12 +1,10 @@
 import { CompletionItem, CompletionItemKind, Position, InsertTextFormat } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CNextParser } from '../parser/CNextParser';
 import { SymbolTable } from '../semantic/SymbolTable';
 import { CNextSymbolKind } from '../types';
 
 export class CNextCompletionProvider {
   constructor(
-    private _parser: CNextParser,
     private symbolTable: SymbolTable
   ) {}
 
