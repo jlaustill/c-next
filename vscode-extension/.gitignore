@@ -1,7 +1,0 @@
-node_modules/
-*.vsix
-out/
-dist/
-*.log
-.DS_Store
-.vscode/settings.json
