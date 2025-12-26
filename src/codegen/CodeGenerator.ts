@@ -62,6 +62,7 @@ export default class CodeGenerator {
     private knownNamespaces: Set<string> = new Set();
     private knownClasses: Set<string> = new Set();
     private knownStructs: Set<string> = new Set();
+    private knownRegisters: Set<string> = new Set();
 
     /**
      * Generate C code from a C-Next program
@@ -80,6 +81,7 @@ export default class CodeGenerator {
         this.knownNamespaces = new Set();
         this.knownClasses = new Set();
         this.knownStructs = new Set();
+        this.knownRegisters = new Set();
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -149,6 +151,11 @@ export default class CodeGenerator {
             if (decl.structDeclaration()) {
                 const name = decl.structDeclaration()!.IDENTIFIER().getText();
                 this.knownStructs.add(name);
+            }
+
+            if (decl.registerDeclaration()) {
+                const name = decl.registerDeclaration()!.IDENTIFIER().getText();
+                this.knownRegisters.add(name);
             }
         }
     }
@@ -500,30 +507,30 @@ export default class CodeGenerator {
 
     private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
         const name = ctx.IDENTIFIER().getText();
-        const address = this.generateExpression(ctx.expression());
+        const baseAddress = this.generateExpression(ctx.expression());
 
         const lines: string[] = [];
-        lines.push(`/* Register: ${name} @ ${address} */`);
-        lines.push(`typedef struct {`);
+        lines.push(`/* Register: ${name} @ ${baseAddress} */`);
 
+        // Generate individual #define for each register member with its offset
+        // This handles non-contiguous register layouts correctly (like i.MX RT1062)
         for (const member of ctx.registerMember()) {
             const regName = member.IDENTIFIER().getText();
             const regType = this.generateType(member.type());
             const access = member.accessModifier().getText();
+            const offset = this.generateExpression(member.expression());
 
-            let qualifiers = 'volatile ';
+            // Determine qualifiers based on access mode
+            let cast = `volatile ${regType}*`;
             if (access === 'ro') {
-                qualifiers += 'const ';
+                cast = `volatile ${regType} const *`;
             }
 
-            lines.push(`    ${qualifiers}${regType} ${regName};`);
+            // Generate: #define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+            lines.push(`#define ${name}_${regName} (*(${cast})(${baseAddress} + ${offset}))`);
         }
 
-        lines.push(`} ${name}_TypeDef;`);
         lines.push('');
-        lines.push(`#define ${name} (*(volatile ${name}_TypeDef*)${address})`);
-        lines.push('');
-
         return lines.join('\n');
     }
 
@@ -944,6 +951,11 @@ export default class CodeGenerator {
                     // Transform Namespace.member to Namespace_member
                     result = `${result}_${memberName}`;
                 }
+                // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
+                else if (this.knownRegisters.has(result)) {
+                    // Transform Register.member to Register_member (matching #define)
+                    result = `${result}_${memberName}`;
+                }
                 // Check if this is a class member access on 'self'
                 else if (result === 'self' && this.context.currentClass) {
                     result = `self->${memberName}`;
@@ -1033,8 +1045,19 @@ export default class CodeGenerator {
             return `${firstPart}[${index}]`;
         }
 
-        // ADR-006: Check if the first part is a struct parameter
         const firstPart = parts[0];
+
+        // Check if it's a register member access: GPIO7.DR -> GPIO7_DR
+        if (this.knownRegisters.has(firstPart)) {
+            return parts.join('_');
+        }
+
+        // Check if it's a namespace member access: Timing.tickCount -> Timing_tickCount
+        if (this.knownNamespaces.has(firstPart)) {
+            return parts.join('_');
+        }
+
+        // ADR-006: Check if the first part is a struct parameter
         const paramInfo = this.context.currentParameters.get(firstPart);
         if (paramInfo && paramInfo.isStruct) {
             // Use -> for struct parameter member access

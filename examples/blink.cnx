@@ -1,13 +1,40 @@
-// blink.cnx - Classic Arduino blink example in C-Next
-// Demonstrates: namespace, register bindings, basic control flow
+// blink.cnx - LED Blink for Teensy 4.x
+// Target: Teensy 4.x (NXP i.MX RT1062)
+// Built-in LED is on GPIO7, bit 3 (Arduino pin 13)
+//
+// This example demonstrates:
+// - Register bindings with atomic set/clear/toggle
+// - Namespaces as singleton services
+// - No magic numbers (configuration via named variables)
 
-// Register binding for GPIO (simplified)
-register GPIOB @ 0x40020400 {
-    MODER:  u32 rw @ 0x00,    // Mode register
-    ODR:    u32 rw @ 0x14,    // Output data register
+// =============================================================================
+// Hardware Configuration
+// =============================================================================
+
+// GPIO7 register block (i.MX RT1062)
+// The i.MX RT has atomic set/clear/toggle registers - no read-modify-write needed!
+register GPIO7 @ 0x42004000 {
+    DR:         u32 rw @ 0x00,    // Data Register
+    GDIR:       u32 rw @ 0x04,    // Direction Register (1=output, 0=input)
+    DR_SET:     u32 wo @ 0x84,    // Set bits in DR (atomic)
+    DR_CLEAR:   u32 wo @ 0x88,    // Clear bits in DR (atomic)
+    DR_TOGGLE:  u32 wo @ 0x8C,    // Toggle bits in DR (atomic)
 }
 
-// Timing namespace (singleton service)
+// =============================================================================
+// Configuration - No magic numbers!
+// =============================================================================
+
+// LED pin configuration (GPIO7, bit 3 = Teensy pin 13)
+u32 LED_BIT <- 3;
+
+// Timing configuration
+u32 BLINK_DELAY_MS <- 500;
+
+// =============================================================================
+// Timing Service
+// =============================================================================
+
 namespace Timing {
     private u32 tickCount;
 
@@ -18,45 +45,55 @@ namespace Timing {
     void delay(u32 ms) {
         u32 start <- tickCount;
         while (tickCount - start < ms) {
-            // busy wait
+            // busy wait - in real code, use SysTick interrupt
         }
     }
 
+    // Called from SysTick interrupt handler (1ms tick)
     void tick() {
         tickCount <- tickCount + 1;
     }
 }
 
-// LED control namespace
+// =============================================================================
+// LED Control
+// =============================================================================
+
 namespace LED {
     private u32 pin;
 
     void init(u32 ledPin) {
         pin <- ledPin;
-        // Set pin as output (simplified)
-        GPIOB.MODER <- GPIOB.MODER | (1 << (pin * 2));
+        // Set GPIO pin as output
+        GPIO7.GDIR <- GPIO7.GDIR | (1 << pin);
     }
 
     void on() {
-        GPIOB.ODR <- GPIOB.ODR | (1 << pin);
+        // Atomic set - no read-modify-write race conditions!
+        GPIO7.DR_SET <- (1 << pin);
     }
 
     void off() {
-        GPIOB.ODR <- GPIOB.ODR & ~(1 << pin);
+        // Atomic clear
+        GPIO7.DR_CLEAR <- (1 << pin);
     }
 
     void toggle() {
-        GPIOB.ODR <- GPIOB.ODR ^ (1 << pin);
+        // Atomic toggle - perfect for blinking!
+        GPIO7.DR_TOGGLE <- (1 << pin);
     }
 }
 
-// Arduino-style entry points
+// =============================================================================
+// Arduino-style Entry Points
+// =============================================================================
+
 void setup() {
     Timing.init();
-    LED.init(13);
+    LED.init(LED_BIT);    // Named variable, not magic number!
 }
 
 void loop() {
     LED.toggle();
-    Timing.delay(500);
+    Timing.delay(BLINK_DELAY_MS);    // Named variable, not magic number!
 }
