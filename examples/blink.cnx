@@ -1,0 +1,62 @@
+// blink.cnx - Classic Arduino blink example in C-Next
+// Demonstrates: namespace, register bindings, basic control flow
+
+// Register binding for GPIO (simplified)
+register GPIOB @ 0x40020400 {
+    MODER:  u32 rw @ 0x00,    // Mode register
+    ODR:    u32 rw @ 0x14,    // Output data register
+}
+
+// Timing namespace (singleton service)
+namespace Timing {
+    private u32 tickCount;
+
+    void init() {
+        tickCount <- 0;
+    }
+
+    void delay(u32 ms) {
+        u32 start <- tickCount;
+        while (tickCount - start < ms) {
+            // busy wait
+        }
+    }
+
+    void tick() {
+        tickCount <- tickCount + 1;
+    }
+}
+
+// LED control namespace
+namespace LED {
+    private u32 pin;
+
+    void init(u32 ledPin) {
+        pin <- ledPin;
+        // Set pin as output (simplified)
+        GPIOB.MODER <- GPIOB.MODER | (1 << (pin * 2));
+    }
+
+    void on() {
+        GPIOB.ODR <- GPIOB.ODR | (1 << pin);
+    }
+
+    void off() {
+        GPIOB.ODR <- GPIOB.ODR & ~(1 << pin);
+    }
+
+    void toggle() {
+        GPIOB.ODR <- GPIOB.ODR ^ (1 << pin);
+    }
+}
+
+// Arduino-style entry points
+void setup() {
+    Timing.init();
+    LED.init(13);
+}
+
+void loop() {
+    LED.toggle();
+    Timing.delay(500);
+}

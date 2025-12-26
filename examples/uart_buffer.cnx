@@ -1,0 +1,109 @@
+// uart_buffer.cnx - UART with ring buffer
+// Demonstrates: class (multiple instances), generics, arrays
+
+// Generic ring buffer class
+class RingBuffer<T, N> {
+    private T buffer[N];
+    private u16 head;
+    private u16 tail;
+    private u16 count;
+
+    RingBuffer() {
+        head <- 0;
+        tail <- 0;
+        count <- 0;
+    }
+
+    bool push(T value) {
+        if (count = N) {
+            return false;  // Buffer full
+        }
+        buffer[head] <- value;
+        head <- (head + 1) % N;
+        count <- count + 1;
+        return true;
+    }
+
+    bool pop(T result) {
+        if (count = 0) {
+            return false;  // Buffer empty
+        }
+        result <- buffer[tail];
+        tail <- (tail + 1) % N;
+        count <- count - 1;
+        return true;
+    }
+
+    u16 size() {
+        return count;
+    }
+
+    bool isEmpty() {
+        return count = 0;
+    }
+
+    bool isFull() {
+        return count = N;
+    }
+}
+
+// UART class (multiple instances for UART1, UART2, etc.)
+class UART {
+    private u32 baseAddress;
+    private RingBuffer<u8, 256> rxBuffer;
+    private RingBuffer<u8, 256> txBuffer;
+    private u32 baudRate;
+
+    UART(u32 base) {
+        baseAddress <- base;
+        baudRate <- 115200;
+    }
+
+    void begin(u32 baud) {
+        baudRate <- baud;
+        // Configure hardware registers...
+    }
+
+    void write(u8 data) {
+        txBuffer.push(data);
+        // Trigger TX interrupt...
+    }
+
+    bool available() {
+        return !rxBuffer.isEmpty();
+    }
+
+    u8 read() {
+        u8 data;
+        rxBuffer.pop(data);
+        return data;
+    }
+
+    void print(const char msg[]) {
+        u32 i <- 0;
+        while (msg[i] != 0) {
+            write(msg[i]);
+            i <- i + 1;
+        }
+    }
+}
+
+// Global UART instances (static allocation)
+UART Serial1;
+UART Serial2;
+
+void setup() {
+    Serial1 <- UART(0x40011000);  // USART1 base address
+    Serial2 <- UART(0x40004400);  // USART2 base address
+
+    Serial1.begin(115200);
+    Serial2.begin(9600);
+}
+
+void loop() {
+    // Echo from Serial1 to Serial2
+    if (Serial1.available()) {
+        u8 byte <- Serial1.read();
+        Serial2.write(byte);
+    }
+}

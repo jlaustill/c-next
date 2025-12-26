@@ -1,0 +1,35 @@
+{
+  "name": "c-next",
+  "version": "0.1.0",
+  "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser grammar/CNext.g4",
+    "build": "npm run antlr && tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "clean": "rm -rf dist src/parser"
+  },
+  "keywords": [
+    "c",
+    "embedded",
+    "transpiler",
+    "safety",
+    "misra"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "antlr4ng-cli": "^2.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "antlr4ng": "^3.0.0"
+  }
+}
