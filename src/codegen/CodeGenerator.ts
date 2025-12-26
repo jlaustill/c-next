@@ -24,6 +24,15 @@ const TYPE_MAP: Record<string, string> = {
 };
 
 /**
+ * Parameter info for ADR-006 pointer semantics
+ */
+interface ParameterInfo {
+    name: string;
+    isArray: boolean;
+    isStruct: boolean;  // User-defined type (struct/class)
+}
+
+/**
  * Context for tracking current scope during code generation
  */
 interface GeneratorContext {
@@ -32,6 +41,8 @@ interface GeneratorContext {
     indentLevel: number;
     namespaceMembers: Map<string, Set<string>>; // namespace -> member names
     classMembers: Map<string, Set<string>>;     // class -> member names
+    currentParameters: Map<string, ParameterInfo>; // ADR-006: track params for pointer semantics
+    localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
 }
 
 /**
@@ -44,10 +55,13 @@ export default class CodeGenerator {
         indentLevel: 0,
         namespaceMembers: new Map(),
         classMembers: new Map(),
+        currentParameters: new Map(),
+        localArrays: new Set(),
     };
 
     private knownNamespaces: Set<string> = new Set();
     private knownClasses: Set<string> = new Set();
+    private knownStructs: Set<string> = new Set();
 
     /**
      * Generate C code from a C-Next program
@@ -60,9 +74,12 @@ export default class CodeGenerator {
             indentLevel: 0,
             namespaceMembers: new Map(),
             classMembers: new Map(),
+            currentParameters: new Map(),
+            localArrays: new Set(),
         };
         this.knownNamespaces = new Set();
         this.knownClasses = new Set();
+        this.knownStructs = new Set();
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -128,7 +145,150 @@ export default class CodeGenerator {
                 }
                 this.context.classMembers.set(name, members);
             }
+
+            if (decl.structDeclaration()) {
+                const name = decl.structDeclaration()!.IDENTIFIER().getText();
+                this.knownStructs.add(name);
+            }
         }
+    }
+
+    /**
+     * Check if a type name is a user-defined struct/class
+     */
+    private isStructType(typeName: string): boolean {
+        return this.knownStructs.has(typeName) || this.knownClasses.has(typeName);
+    }
+
+    /**
+     * Set up parameter tracking for a function
+     */
+    private setParameters(params: Parser.ParameterListContext | null): void {
+        this.context.currentParameters.clear();
+
+        if (!params) return;
+
+        for (const param of params.parameter()) {
+            const name = param.IDENTIFIER().getText();
+            const isArray = param.arrayDimension() !== null;
+            const typeCtx = param.type();
+
+            // Determine if it's a struct type
+            let isStruct = false;
+            if (typeCtx.userType()) {
+                const typeName = typeCtx.userType()!.getText();
+                isStruct = this.isStructType(typeName);
+            }
+
+            this.context.currentParameters.set(name, { name, isArray, isStruct });
+        }
+    }
+
+    /**
+     * Clear parameter tracking when leaving a function
+     */
+    private clearParameters(): void {
+        this.context.currentParameters.clear();
+        this.context.localArrays.clear();
+    }
+
+    /**
+     * Extract a simple identifier from an expression, if it is one.
+     * Returns null for complex expressions.
+     */
+    private getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+        // Navigate: expression -> orExpression -> andExpression -> equalityExpression
+        // -> relationalExpression -> bitwiseOrExpression -> bitwiseXorExpression
+        // -> bitwiseAndExpression -> shiftExpression -> additiveExpression
+        // -> multiplicativeExpression -> unaryExpression -> postfixExpression
+        // -> primaryExpression
+        const or = ctx.orExpression();
+        if (or.andExpression().length !== 1) return null;
+
+        const and = or.andExpression()[0];
+        if (and.equalityExpression().length !== 1) return null;
+
+        const eq = and.equalityExpression()[0];
+        if (eq.relationalExpression().length !== 1) return null;
+
+        const rel = eq.relationalExpression()[0];
+        if (rel.bitwiseOrExpression().length !== 1) return null;
+
+        const bor = rel.bitwiseOrExpression()[0];
+        if (bor.bitwiseXorExpression().length !== 1) return null;
+
+        const bxor = bor.bitwiseXorExpression()[0];
+        if (bxor.bitwiseAndExpression().length !== 1) return null;
+
+        const band = bxor.bitwiseAndExpression()[0];
+        if (band.shiftExpression().length !== 1) return null;
+
+        const shift = band.shiftExpression()[0];
+        if (shift.additiveExpression().length !== 1) return null;
+
+        const add = shift.additiveExpression()[0];
+        if (add.multiplicativeExpression().length !== 1) return null;
+
+        const mult = add.multiplicativeExpression()[0];
+        if (mult.unaryExpression().length !== 1) return null;
+
+        const unary = mult.unaryExpression()[0];
+        if (!unary.postfixExpression()) return null;
+
+        const postfix = unary.postfixExpression()!;
+        if (postfix.postfixOp().length !== 0) return null; // Has operators like . or []
+
+        const primary = postfix.primaryExpression();
+        if (!primary.IDENTIFIER()) return null;
+
+        return primary.IDENTIFIER()!.getText();
+    }
+
+    /**
+     * Generate a function argument with proper ADR-006 semantics.
+     * - Local variables get & (address-of)
+     * - Parameters are passed as-is (already pointers)
+     * - Arrays are passed as-is (naturally decay to pointers)
+     * - Literals and complex expressions are passed as-is
+     */
+    private generateFunctionArg(ctx: Parser.ExpressionContext): string {
+        const id = this.getSimpleIdentifier(ctx);
+
+        if (id) {
+            // Check if it's a parameter (already a pointer)
+            const paramInfo = this.context.currentParameters.get(id);
+            if (paramInfo) {
+                // Arrays are passed as-is, non-arrays are already pointers
+                return id;
+            }
+
+            // Check if it's a local array (passed as-is, naturally decays to pointer)
+            if (this.context.localArrays.has(id)) {
+                return id;
+            }
+
+            // Check if it's a namespace member
+            if (this.context.currentNamespace) {
+                const members = this.context.namespaceMembers.get(this.context.currentNamespace);
+                if (members && members.has(id)) {
+                    return `&${this.context.currentNamespace}_${id}`;
+                }
+            }
+
+            // Check if it's a class field
+            if (this.context.currentClass) {
+                const members = this.context.classMembers.get(this.context.currentClass);
+                if (members && members.has(id)) {
+                    return `&self->${id}`;
+                }
+            }
+
+            // Local variable - add &
+            return `&${id}`;
+        }
+
+        // Complex expression or literal - generate normally
+        return this.generateExpression(ctx);
     }
 
     // ========================================================================
@@ -196,11 +356,16 @@ export default class CodeGenerator {
                 const fullName = `${name}_${funcName}`;
                 const prefix = isPrivate ? 'static ' : '';
 
+                // Track parameters for ADR-006 pointer semantics
+                this.setParameters(funcDecl.parameterList() ?? null);
+
                 const params = funcDecl.parameterList()
                     ? this.generateParameterList(funcDecl.parameterList()!)
                     : 'void';
 
                 const body = this.generateBlock(funcDecl.block());
+                this.clearParameters();
+
                 lines.push('');
                 lines.push(`${prefix}${returnType} ${fullName}(${params}) ${body}`);
             }
@@ -248,12 +413,17 @@ export default class CodeGenerator {
                 const methodName = method.IDENTIFIER().getText();
                 const fullName = `${name}_${methodName}`;
 
+                // Track parameters for ADR-006 pointer semantics
+                this.setParameters(method.parameterList() ?? null);
+
                 let params = `${name}* self`;
                 if (method.parameterList()) {
                     params += ', ' + this.generateParameterList(method.parameterList()!);
                 }
 
                 const body = this.generateBlock(method.block());
+                this.clearParameters();
+
                 lines.push(`${returnType} ${fullName}(${params}) ${body}`);
                 lines.push('');
             }
@@ -262,12 +432,17 @@ export default class CodeGenerator {
                 const ctor = member.constructorDeclaration()!;
                 const fullName = `${name}_init`;
 
+                // Track parameters for ADR-006 pointer semantics
+                this.setParameters(ctor.parameterList() ?? null);
+
                 let params = `${name}* self`;
                 if (ctor.parameterList()) {
                     params += ', ' + this.generateParameterList(ctor.parameterList()!);
                 }
 
                 const body = this.generateBlock(ctor.block());
+                this.clearParameters();
+
                 lines.push(`void ${fullName}(${params}) ${body}`);
                 lines.push('');
             }
@@ -340,10 +515,16 @@ export default class CodeGenerator {
     private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
         const returnType = this.generateType(ctx.type());
         const name = ctx.IDENTIFIER().getText();
+
+        // Track parameters for ADR-006 pointer semantics
+        this.setParameters(ctx.parameterList() ?? null);
+
         const params = ctx.parameterList()
             ? this.generateParameterList(ctx.parameterList()!)
             : 'void';
         const body = this.generateBlock(ctx.block());
+
+        this.clearParameters();
 
         return `${returnType} ${name}(${params}) ${body}\n`;
     }
@@ -387,6 +568,8 @@ export default class CodeGenerator {
 
         if (ctx.arrayDimension()) {
             decl += this.generateArrayDimension(ctx.arrayDimension()!);
+            // ADR-006: Track local arrays (they don't need & when passed to functions)
+            this.context.localArrays.add(name);
         }
 
         if (ctx.expression()) {
@@ -476,6 +659,13 @@ export default class CodeGenerator {
             if (members && members.has(id)) {
                 return `self->${id}`;
             }
+        }
+
+        // ADR-006: Dereference parameter when writing to it
+        // (non-array parameters are passed as pointers)
+        const paramInfo = this.context.currentParameters.get(id);
+        if (paramInfo && !paramInfo.isArray) {
+            return `(*${id})`;
         }
 
         return id;
@@ -690,8 +880,15 @@ export default class CodeGenerator {
     }
 
     private generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
-        let result = this.generatePrimaryExpr(ctx.primaryExpression());
+        const primary = ctx.primaryExpression();
         const ops = ctx.postfixOp();
+
+        // Check if this is a struct parameter - we may need to handle -> access
+        const primaryId = primary.IDENTIFIER()?.getText();
+        const paramInfo = primaryId ? this.context.currentParameters.get(primaryId) : null;
+        const isStructParam = paramInfo?.isStruct ?? false;
+
+        let result = this.generatePrimaryExpr(primary);
 
         for (let i = 0; i < ops.length; i++) {
             const op = ops[i];
@@ -709,6 +906,10 @@ export default class CodeGenerator {
                 else if (result === 'self' && this.context.currentClass) {
                     result = `self->${memberName}`;
                 }
+                // ADR-006: Struct parameter uses -> for member access
+                else if (isStructParam && result === primaryId) {
+                    result = `${result}->${memberName}`;
+                }
                 else {
                     result = `${result}.${memberName}`;
                 }
@@ -717,10 +918,10 @@ export default class CodeGenerator {
             else if (op.expression()) {
                 result = `${result}[${this.generateExpression(op.expression()!)}]`;
             }
-            // Function call
+            // Function call - ADR-006: add & for local variable arguments
             else if (op.argumentList()) {
                 const args = op.argumentList()!.expression()
-                    .map(e => this.generateExpression(e))
+                    .map(e => this.generateFunctionArg(e))
                     .join(', ');
                 result = `${result}(${args})`;
             }
@@ -753,6 +954,19 @@ export default class CodeGenerator {
                 }
             }
 
+            // ADR-006: Dereference parameter when reading its value
+            // (non-array parameters are passed as pointers)
+            // Note: Struct parameters use -> for member access, handled in generatePostfixExpr
+            const paramInfo = this.context.currentParameters.get(id);
+            if (paramInfo && !paramInfo.isArray && !paramInfo.isStruct) {
+                return `(*${id})`;
+            }
+            // For struct parameters, return as-is here (will use -> in member access)
+            // or dereference if used as a whole value
+            if (paramInfo && paramInfo.isStruct) {
+                return id; // Will be handled by postfix context
+            }
+
             return id;
         }
         if (ctx.literal()) {
@@ -775,6 +989,17 @@ export default class CodeGenerator {
                 return `${firstPart}[${index}].${parts.slice(1).join('.')}`;
             }
             return `${firstPart}[${index}]`;
+        }
+
+        // ADR-006: Check if the first part is a struct parameter
+        const firstPart = parts[0];
+        const paramInfo = this.context.currentParameters.get(firstPart);
+        if (paramInfo && paramInfo.isStruct) {
+            // Use -> for struct parameter member access
+            if (parts.length === 1) {
+                return firstPart;
+            }
+            return `${firstPart}->${parts.slice(1).join('.')}`;
         }
 
         return parts.join('.');
