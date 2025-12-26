@@ -193,15 +193,10 @@ export default class CodeGenerator {
     }
 
     /**
-     * Extract a simple identifier from an expression, if it is one.
-     * Returns null for complex expressions.
+     * Navigate through expression layers to get to the postfix expression.
+     * Returns null if the expression has multiple terms at any level.
      */
-    private getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-        // Navigate: expression -> orExpression -> andExpression -> equalityExpression
-        // -> relationalExpression -> bitwiseOrExpression -> bitwiseXorExpression
-        // -> bitwiseAndExpression -> shiftExpression -> additiveExpression
-        // -> multiplicativeExpression -> unaryExpression -> postfixExpression
-        // -> primaryExpression
+    private getPostfixExpression(ctx: Parser.ExpressionContext): Parser.PostfixExpressionContext | null {
         const or = ctx.orExpression();
         if (or.andExpression().length !== 1) return null;
 
@@ -235,7 +230,17 @@ export default class CodeGenerator {
         const unary = mult.unaryExpression()[0];
         if (!unary.postfixExpression()) return null;
 
-        const postfix = unary.postfixExpression()!;
+        return unary.postfixExpression()!;
+    }
+
+    /**
+     * Extract a simple identifier from an expression, if it is one.
+     * Returns null for complex expressions.
+     */
+    private getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+        const postfix = this.getPostfixExpression(ctx);
+        if (!postfix) return null;
+
         if (postfix.postfixOp().length !== 0) return null; // Has operators like . or []
 
         const primary = postfix.primaryExpression();
@@ -245,8 +250,38 @@ export default class CodeGenerator {
     }
 
     /**
+     * Check if an expression is an lvalue that needs & when passed to functions.
+     * This includes member access (cursor.x) and array access (arr[i]).
+     * Returns the type of lvalue or null if not an lvalue.
+     */
+    private getLvalueType(ctx: Parser.ExpressionContext): 'member' | 'array' | null {
+        const postfix = this.getPostfixExpression(ctx);
+        if (!postfix) return null;
+
+        const ops = postfix.postfixOp();
+        if (ops.length === 0) return null;
+
+        // Check the last operator to determine lvalue type
+        const lastOp = ops[ops.length - 1];
+
+        // Member access: .identifier
+        if (lastOp.IDENTIFIER()) {
+            return 'member';
+        }
+
+        // Array access: [expression]
+        if (lastOp.expression()) {
+            return 'array';
+        }
+
+        return null;
+    }
+
+    /**
      * Generate a function argument with proper ADR-006 semantics.
      * - Local variables get & (address-of)
+     * - Member access (cursor.x) gets & (address-of)
+     * - Array access (arr[i]) gets & (address-of)
      * - Parameters are passed as-is (already pointers)
      * - Arrays are passed as-is (naturally decay to pointers)
      * - Literals and complex expressions are passed as-is
@@ -285,6 +320,13 @@ export default class CodeGenerator {
 
             // Local variable - add &
             return `&${id}`;
+        }
+
+        // Check if it's a member access or array access (lvalue) - needs &
+        const lvalueType = this.getLvalueType(ctx);
+        if (lvalueType) {
+            // Generate the expression and wrap with &
+            return `&${this.generateExpression(ctx)}`;
         }
 
         // Complex expression or literal - generate normally
