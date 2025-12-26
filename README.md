@@ -19,36 +19,44 @@ The goal is not to replace C, but to make it harder to shoot yourself in the foo
 The single most common source of C bugs — `if (x = 5)` instead of `if (x == 5)` — is eliminated by design.
 
 ```
-x <- 5          // assignment: value flows INTO x
+x <- 5;         // assignment: value flows INTO x
 if (x = 5)      // comparison: single equals, just like math
 ```
 
 This isn't arbitrary. R has supported both `<-` and `->` for decades. The community organically chose `x <- 1` because developers prefer seeing the target on the left when scanning code. And the entire point of c-next is to research common patterns that have proven to work naturally vs ones that have proven to be painful
 
-### Namespaces (Not Classes)
+### Namespaces and Classes
 
-Most embedded code is naturally singleton — one CAN bus, one UART, one ADC. Namespaces make this explicit:
+C-Next distinguishes between **namespaces** (singleton services) and **classes** (multiple instances):
+
+- **Namespaces** — For application services: one Console, one Logger, one Math library
+- **Classes** — For hardware peripherals: 8 UARTs, 3 CAN buses, multiple ring buffers
 
 ```
-namespace CanBus {
-    static Buffer txBuffer[8];
-    static i32 baudRate;
-    
-    void init(i32 baud) { ... }
-    void send(Message msg) { ... }
+namespace Console {
+    private UART* uart;
+    private LogLevel logLevel;
+
+    void init(UART* u) { ... }
+    void print(const char* msg) { ... }
+}
+
+namespace Math {
+    f32 sin(f32 x) { ... }
+    f32 clamp(f32 val, f32 min, f32 max) { ... }
 }
 ```
 
 Transpiles to:
 ```c
-static Buffer CanBus_txBuffer[8];
-static int32_t CanBus_baudRate;
+static UART* Console_uart;           // private -> static
+static LogLevel Console_logLevel;
 
-void CanBus_init(int32_t baud) { ... }
-void CanBus_send(Message msg) { ... }
+void Console_init(UART* u) { ... }   // public -> external linkage
+void Console_print(const char* msg) { ... }
 ```
 
-Use structs/classes only when you actually need multiple instances.
+Classes are first-class citizens (without inheritance) for when you need multiple instances.
 
 ### Register Bindings
 
@@ -161,10 +169,16 @@ This project is exploring what a "better C for embedded" could look like, inform
 
 Key decisions are documented in `/docs/decisions/`:
 
+### Accepted
 - [ADR-001: Assignment Operator](docs/decisions/adr-001-assignment-operator.md) — Why `<-` for assignment and `=` for comparison
-- [ADR-002: Namespaces Over Classes](docs/decisions/adr-002-namespaces.md) — Why namespaces are the default organizational unit
-- [ADR-003: Static Allocation Only](docs/decisions/adr-003-static-allocation.md) — Why dynamic allocation is prohibited
-- [ADR-004: Register Binding Syntax](docs/decisions/adr-004-register-bindings.md) — 
+
+### Proposed
+- [ADR-002: Namespaces](docs/decisions/adr-002-namespaces.md) — Namespaces as singleton scoping mechanism
+
+### Future
+- ADR-003: Static Allocation Only — Why dynamic allocation is prohibited
+- ADR-004: Register Binding Syntax — Hardware register memory mapping
+- ADR-005: Classes Without Inheritance — Multiple instances without OOP complexity 
 
 ## Contributing
 
