@@ -63,6 +63,7 @@ export default class CodeGenerator {
     private knownClasses: Set<string> = new Set();
     private knownStructs: Set<string> = new Set();
     private knownRegisters: Set<string> = new Set();
+    private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
 
     /**
      * Generate C code from a C-Next program
@@ -82,6 +83,7 @@ export default class CodeGenerator {
         this.knownClasses = new Set();
         this.knownStructs = new Set();
         this.knownRegisters = new Set();
+        this.knownFunctions = new Set();
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -94,6 +96,7 @@ export default class CodeGenerator {
         output.push(' * A safer C for embedded systems');
         output.push(' */');
         output.push('');
+        output.push('#include <Arduino.h>');
         output.push('#include <stdint.h>');
         output.push('#include <stdbool.h>');
         output.push('');
@@ -125,7 +128,10 @@ export default class CodeGenerator {
                         members.add(member.variableDeclaration()!.IDENTIFIER().getText());
                     }
                     if (member.functionDeclaration()) {
-                        members.add(member.functionDeclaration()!.IDENTIFIER().getText());
+                        const funcName = member.functionDeclaration()!.IDENTIFIER().getText();
+                        members.add(funcName);
+                        // Track fully qualified function name: Namespace_function
+                        this.knownFunctions.add(`${name}_${funcName}`);
                     }
                 }
                 this.context.namespaceMembers.set(name, members);
@@ -142,7 +148,14 @@ export default class CodeGenerator {
                         members.add(member.fieldDeclaration()!.IDENTIFIER().getText());
                     }
                     if (member.methodDeclaration()) {
-                        members.add(member.methodDeclaration()!.IDENTIFIER().getText());
+                        const methodName = member.methodDeclaration()!.IDENTIFIER().getText();
+                        members.add(methodName);
+                        // Track fully qualified method name: Class_method
+                        this.knownFunctions.add(`${name}_${methodName}`);
+                    }
+                    if (member.constructorDeclaration()) {
+                        // Track constructor: Class_init
+                        this.knownFunctions.add(`${name}_init`);
                     }
                 }
                 this.context.classMembers.set(name, members);
@@ -156,6 +169,12 @@ export default class CodeGenerator {
             if (decl.registerDeclaration()) {
                 const name = decl.registerDeclaration()!.IDENTIFIER().getText();
                 this.knownRegisters.add(name);
+            }
+
+            // Track top-level functions
+            if (decl.functionDeclaration()) {
+                const name = decl.functionDeclaration()!.IDENTIFIER().getText();
+                this.knownFunctions.add(name);
             }
         }
     }
@@ -972,10 +991,14 @@ export default class CodeGenerator {
             else if (op.expression()) {
                 result = `${result}[${this.generateExpression(op.expression()!)}]`;
             }
-            // Function call - ADR-006: add & for local variable arguments
+            // Function call
             else if (op.argumentList()) {
+                // Check if this is a known C-Next function (uses pass-by-reference)
+                // External functions (like Arduino's pinMode, delay) use pass-by-value
+                const isKnownFunction = this.knownFunctions.has(result);
+
                 const args = op.argumentList()!.expression()
-                    .map(e => this.generateFunctionArg(e))
+                    .map(e => isKnownFunction ? this.generateFunctionArg(e) : this.generateExpression(e))
                     .join(', ');
                 result = `${result}(${args})`;
             }

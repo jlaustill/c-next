@@ -2,10 +2,14 @@
 // Target: Teensy 4.x (NXP i.MX RT1062)
 // Built-in LED is on GPIO7, bit 3 (Arduino pin 13)
 //
+// Compile: cnx blink.cnx -o blink.c
+// Then use with Arduino/PlatformIO - Arduino.h provides startup, clocks, delay()
+//
 // This example demonstrates:
 // - Register bindings with atomic set/clear/toggle
 // - Namespaces as singleton services
 // - No magic numbers (configuration via named variables)
+// - Integration with Arduino ecosystem
 
 // =============================================================================
 // Hardware Configuration
@@ -25,75 +29,45 @@ register GPIO7 @ 0x42004000 {
 // Configuration - No magic numbers!
 // =============================================================================
 
-// LED pin configuration (GPIO7, bit 3 = Teensy pin 13)
-u32 LED_BIT <- 3;
+// LED pin configuration
+u32 LED_PIN <- 13;        // Arduino pin number (for pinMode)
+u32 LED_BIT <- 3;         // GPIO7 bit number (for direct register access)
 
 // Timing configuration
 u32 BLINK_DELAY_MS <- 500;
 
 // =============================================================================
-// Timing Service
-// =============================================================================
-
-namespace Timing {
-    private u32 tickCount;
-
-    void init() {
-        tickCount <- 0;
-    }
-
-    void delay(u32 ms) {
-        u32 start <- tickCount;
-        while (tickCount - start < ms) {
-            // busy wait - in real code, use SysTick interrupt
-        }
-    }
-
-    // Called from SysTick interrupt handler (1ms tick)
-    void tick() {
-        tickCount <- tickCount + 1;
-    }
-}
-
-// =============================================================================
-// LED Control
+// LED Control - Direct register access for speed!
 // =============================================================================
 
 namespace LED {
-    private u32 pin;
-
-    void init(u32 ledPin) {
-        pin <- ledPin;
-        // Set GPIO pin as output
-        GPIO7.GDIR <- GPIO7.GDIR | (1 << pin);
-    }
-
     void on() {
         // Atomic set - no read-modify-write race conditions!
-        GPIO7.DR_SET <- (1 << pin);
+        GPIO7.DR_SET <- (1 << LED_BIT);
     }
 
     void off() {
         // Atomic clear
-        GPIO7.DR_CLEAR <- (1 << pin);
+        GPIO7.DR_CLEAR <- (1 << LED_BIT);
     }
 
     void toggle() {
         // Atomic toggle - perfect for blinking!
-        GPIO7.DR_TOGGLE <- (1 << pin);
+        GPIO7.DR_TOGGLE <- (1 << LED_BIT);
     }
 }
 
 // =============================================================================
-// Arduino-style Entry Points
+// Arduino Entry Points
 // =============================================================================
 
 void setup() {
-    Timing.init();
-    LED.init(LED_BIT);    // Named variable, not magic number!
+    // Use Arduino's pinMode to configure pin mux and direction
+    // This handles the IOMUXC configuration for us
+    pinMode(LED_PIN, OUTPUT);
 }
 
 void loop() {
     LED.toggle();
-    Timing.delay(BLINK_DELAY_MS);    // Named variable, not magic number!
+    delay(BLINK_DELAY_MS);    // Arduino's delay() - uses SysTick
 }
