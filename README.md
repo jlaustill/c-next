@@ -178,9 +178,7 @@ Key decisions are documented in `/docs/decisions/`:
 ### Draft (Research Phase)
 - [ADR-003: Static Allocation](docs/decisions/adr-003-static-allocation.md) — No dynamic memory allocation after init
 - [ADR-004: Register Bindings](docs/decisions/adr-004-register-bindings.md) — Type-safe hardware register access
-
-### Future
-- ADR-005: Classes Without Inheritance — Multiple instances without OOP complexity 
+- [ADR-005: Classes Without Inheritance](docs/decisions/adr-005-classes-without-inheritance.md) — Multiple instances without OOP complexity 
 
 ## Contributing
 
