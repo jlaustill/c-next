@@ -175,8 +175,10 @@ Key decisions are documented in `/docs/decisions/`:
 ### Proposed
 - [ADR-002: Namespaces](docs/decisions/adr-002-namespaces.md) — Namespaces as singleton scoping mechanism
 
+### Draft (Research Phase)
+- [ADR-003: Static Allocation](docs/decisions/adr-003-static-allocation.md) — No dynamic memory allocation after init
+
 ### Future
-- ADR-003: Static Allocation Only — Why dynamic allocation is prohibited
 - ADR-004: Register Binding Syntax — Hardware register memory mapping
 - ADR-005: Classes Without Inheritance — Multiple instances without OOP complexity 
 
