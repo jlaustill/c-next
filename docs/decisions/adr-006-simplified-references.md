@@ -332,6 +332,94 @@ If the compiler can prove the original isn't read after the call, it can optimiz
 
 ---
 
+## Design Consequence: No Magic Numbers
+
+### The Constraint
+
+Because all function parameters are passed by reference, **you cannot pass literals directly to functions**:
+
+```
+LED_init(13);        // ERROR: Cannot take address of literal
+Timing_delay(500);   // ERROR: Cannot take address of literal
+```
+
+This is not a limitation — it's an **intentional enforcement of best practices**.
+
+### Why Magic Numbers Are Harmful
+
+Passing raw literals (magic numbers) is a well-documented anti-pattern:
+
+- **MISRA C** discourages magic numbers in code
+- **BARR-C Embedded Style Guide** explicitly prohibits them
+- **Maintainability**: If the LED pin changes in hardware rev B, you must search the entire codebase for every `13` that refers to that pin
+
+```c
+// Bad: What if hardware rev B uses pin 7?
+LED_init(13);
+UART_init(9600);
+Timer_set(1000);
+
+// Good: Single source of truth, self-documenting
+const uint32_t LED_PIN = 13;
+const uint32_t BAUD_RATE = 9600;
+const uint32_t TICK_MS = 1000;
+
+LED_init(&LED_PIN);
+```
+
+### The C-Next Way
+
+C-Next forces the "good" pattern by making the "bad" pattern impossible:
+
+```
+// Configuration values as const variables
+const u32 LED_PIN <- 13;
+const u32 BAUD_RATE <- 9600;
+
+// Usage - clean and maintainable
+LED_init(LED_PIN);
+UART_init(BAUD_RATE);
+```
+
+### `#define` vs Variables: Clear Separation
+
+| Mechanism | Purpose | Passed to functions? |
+|-----------|---------|---------------------|
+| `#define` | Text replacement (compile-time) | **No** — not a value |
+| `const var` | Immutable value | **Yes** |
+| `var` | Mutable value | **Yes** |
+
+**Guideline:**
+
+```
+// #define for compile-time constants NOT passed to functions:
+#define GPIOB_BASE 0x40020400      // Register addresses
+#define BIT(n) (1 << (n))          // Bit manipulation macros
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
+
+// const variables for values passed to functions:
+const u32 LED_PIN <- 13;
+const u32 BAUD_RATE <- 9600;
+const u32 DEBOUNCE_MS <- 50;
+
+// Usage
+LED_init(LED_PIN);           // Works: variable has address
+register GPIOB @ GPIOB_BASE; // Works: #define for address literal
+```
+
+### Rationale
+
+`#define` is **text replacement** — it's not a value, it's a macro. Treating it as a value conflates two different concepts. The "icky" feeling of `LED_init(13)` (after macro expansion of `LED_init(LED_PIN)`) reflects this conceptual mismatch.
+
+By enforcing that all function arguments must be addressable values, C-Next creates a **"pit of success"** where the easy path is the correct path:
+
+1. **Configuration is centralized** — all hardware constants in one place
+2. **Code is self-documenting** — `LED_init(LED_PIN)` explains intent
+3. **Maintenance is easier** — change one definition, not 50 call sites
+4. **Reviews are simpler** — magic numbers in function calls become obvious errors
+
+---
+
 ## Open Questions
 
 ### Q1: What about read-only parameters?
