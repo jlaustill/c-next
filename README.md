@@ -12,6 +12,23 @@ C-Next follows the TypeScript model for adoption:
 
 The goal is not to replace C, but to make it harder to shoot yourself in the foot while keeping everything familiar.
 
+### The Simplicity Constraint
+
+Linus Torvalds famously values C because it's simple — you can look at code and understand what the machine will do. Rust adds safety, but also cognitive overhead: lifetimes, borrow checkers, `Box<dyn Trait>`.
+
+C-Next takes a different path:
+
+| Rust's Path | C-Next's Path |
+|-------------|---------------|
+| Add concepts to catch errors | Remove the ability to make errors |
+| Borrow checker complexity | No heap = no ownership tracking needed |
+| Lifetime annotations | Static allocation = predictable lifetimes |
+| `unsafe` escape hatch | Clean C is the escape hatch |
+
+**Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship. Safety through removal, not addition.
+
+The test: **Can a senior C developer read C-Next code cold and understand it in 30 seconds?** If not, the feature is too clever.
+
 ## Core Language Features
 
 ### Assignment Operator: `<-`
