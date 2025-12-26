@@ -1,0 +1,532 @@
+# ADR-006: Simplified Reference Model
+
+**Status:** Draft (Research Phase)
+**Date:** 2025-12-26
+**Decision Makers:** C-Next Language Design Team
+
+## Context
+
+C's pointer system is powerful but notoriously confusing. The distinction between `*ptr`, `ptr`, `&var`, `**ptr`, and when to use each is a major source of bugs and developer frustration.
+
+### The Problem in C
+
+```c
+void increment(int x) {
+    x = x + 1;  // Oops! Modified local copy, not original
+}
+
+void incrementPtr(int* x) {
+    *x = *x + 1;  // Works, but easy to forget the *
+}
+
+int main() {
+    int value = 5;
+    increment(value);      // value is still 5!
+    incrementPtr(&value);  // Now value is 6 (don't forget &!)
+}
+```
+
+**Common confusions:**
+1. Forgetting `&` when calling a function that needs a pointer
+2. Forgetting `*` when dereferencing inside the function
+3. `*` means different things in declarations vs expressions
+4. Pointer reassignment vs value modification (`ptr = x` vs `*ptr = x`)
+5. Double pointers `**ptr` for output parameters
+
+### Real-World Bug Frequency
+
+> "Pointers are the single most confusing aspect of C for beginners and remain a source of subtle bugs for experienced programmers."
+> — Brian Kernighan
+
+> "In a study of over 850 security vulnerabilities, 65% were related to memory safety issues, many involving pointer misuse."
+> — Microsoft Security Response Center, 2019
+
+---
+
+## Research: How Other Languages Handle This
+
+### Fortran: Pass by Reference by Default
+
+Fortran has always passed arguments by reference:
+
+```fortran
+subroutine increment(x)
+    integer, intent(inout) :: x
+    x = x + 1
+end subroutine
+
+program main
+    integer :: value = 5
+    call increment(value)  ! value is now 6, no special syntax needed
+end program
+```
+
+**Key insight:** Fortran programmers don't think about pointers for most code. The common case (modifying a variable) is the default.
+
+### C++ References: Syntax Sugar
+
+C++ added references to hide pointer syntax:
+
+```cpp
+void increment(int& x) {  // & in declaration means "reference"
+    x = x + 1;            // No * needed, looks like normal variable
+}
+
+int main() {
+    int value = 5;
+    increment(value);     // No & needed at call site
+}
+```
+
+**Problems with C++ references:**
+- `&` means different things in different contexts (reference type vs address-of operator)
+- References can still dangle
+- Can't tell at the call site whether a function modifies its argument
+
+### Rust: Explicit Borrowing
+
+Rust makes borrowing explicit but verbose:
+
+```rust
+fn increment(x: &mut i32) {
+    *x = *x + 1;  // Still need * to dereference
+}
+
+fn main() {
+    let mut value = 5;
+    increment(&mut value);  // Explicit borrow at call site
+}
+```
+
+**Trade-off:** More explicit, but adds cognitive overhead with `&`, `&mut`, `*`, and borrow checker rules.
+
+### Go: Pointers Without Arithmetic
+
+Go keeps pointers but removes pointer arithmetic:
+
+```go
+func increment(x *int) {
+    *x = *x + 1
+}
+
+func main() {
+    value := 5
+    increment(&value)  // Still need & and *
+}
+```
+
+**Simplification:** No pointer arithmetic, but still has `*` and `&` confusion.
+
+### Swift/Kotlin: inout Parameters
+
+Swift uses `inout` for pass-by-reference:
+
+```swift
+func increment(_ x: inout Int) {
+    x = x + 1  // No * needed
+}
+
+var value = 5
+increment(&value)  // & at call site signals modification
+```
+
+**Trade-off:** Cleaner inside function, but still need `&` at call site.
+
+---
+
+## Research: Why Pointer Reassignment Causes Bugs
+
+In C, pointers can be reassigned to point to different memory:
+
+```c
+void dangerous(int* ptr) {
+    int local = 42;
+    ptr = &local;  // Reassigned! Now points to stack variable
+    *ptr = 100;    // Writing to stack
+}  // local goes out of scope, ptr now dangles
+```
+
+**Common bugs from pointer reassignment:**
+1. **Dangling pointers** — Reassign to stack variable that goes out of scope
+2. **Lost references** — Reassign and lose track of original memory (leak)
+3. **Aliasing confusion** — Multiple pointers to same memory, reassign one
+4. **Output parameter bugs** — `ptr = result` instead of `*ptr = result`
+
+### MISRA C Rules on Pointers
+
+MISRA C has extensive rules limiting pointer operations:
+
+- **Rule 18.1** — A pointer must not point past the end of an array
+- **Rule 18.2** — Subtraction between pointers shall only apply to pointers that address elements of the same array
+- **Rule 18.3** — Relational operators shall not be applied to pointer types except where they point to the same object
+- **Rule 18.4** — Pointer arithmetic shall not be performed (Advisory)
+
+> "The use of pointer arithmetic is inadvisable. Array indexing is preferred because it is clearer and hence less error-prone."
+> — MISRA C:2012 Rationale
+
+---
+
+## Research: Static Allocation Enables Simplification
+
+Because C-Next uses static allocation (ADR-003), we have a unique opportunity:
+
+**In traditional C:**
+- Pointers must be reassignable because memory addresses change at runtime
+- `malloc()` returns different addresses each time
+- Pointers are passed around to track dynamically allocated memory
+
+**In C-Next:**
+- All memory is allocated at compile time or startup
+- Memory addresses are fixed for the program's lifetime
+- No need to "pass ownership" via pointer reassignment
+
+This means **pointer reassignment serves no purpose** in C-Next. If you can't reallocate memory, why would you need to change what address a variable refers to?
+
+---
+
+## Proposed Design: Simplified Reference Model
+
+### The Rules
+
+1. **All variables have an address and a value**
+2. **Function parameters receive the address** (pass-by-reference)
+3. **Assignment (`<-`) updates the value** at that address
+4. **Addresses cannot be reassigned** after initialization
+5. **`&` operator reads the address** (for debugging, hardware registers)
+
+### Syntax Examples
+
+```
+// Declaration: creates variable with address and value
+i8 myVar <- 1;
+
+// Function call: passes ADDRESS (no * or & needed)
+i8 result <- doSomething(myVar);
+
+// Inside function: x refers to original variable's address
+void doSomething(i8 x) {
+    x <- x + 1;   // Updates VALUE at that address
+    return x;     // Returns the VALUE
+}
+
+// After call: myVar is now 2
+Console.print(myVar);   // Prints "2" (the value)
+Console.print(&myVar);  // Prints "0x20001234" (the address)
+```
+
+### What This Eliminates
+
+| C Problem | C-Next Solution |
+|-----------|-----------------|
+| Forget `&` when calling | Always pass by reference, no `&` needed |
+| Forget `*` when dereferencing | No `*` needed, assignment works directly |
+| `*` in declaration vs expression | No `*` in the language |
+| Pointer reassignment bugs | Cannot reassign addresses |
+| Dangling pointers | Addresses are fixed, no reassignment |
+| Output parameter confusion | All parameters can be "output" |
+
+### Transpilation to C
+
+C-Next:
+```
+i8 myVar <- 1;
+
+void increment(i8 x) {
+    x <- x + 1;
+}
+
+increment(myVar);
+```
+
+Generated C:
+```c
+int8_t myVar = 1;
+
+void increment(int8_t* x) {
+    *x = *x + 1;
+}
+
+increment(&myVar);  // Compiler adds & automatically
+```
+
+The C output uses standard pointer patterns — C-Next just hides the syntactic complexity.
+
+---
+
+## Design Details
+
+### Return Values
+
+Return statements return the **value**, not the address:
+
+```
+i32 calculate(i32 a, i32 b) {
+    i32 result <- a + b;
+    return result;  // Returns the VALUE (copies to caller)
+}
+
+i32 x <- calculate(5, 3);  // x gets value 8
+```
+
+### Arrays
+
+Arrays pass by reference naturally (pointer to first element):
+
+```
+void processBuffer(u8 buffer[256]) {
+    buffer[0] <- 0xFF;  // Modifies original array
+}
+
+u8 myBuffer[256];
+processBuffer(myBuffer);  // Pass array, modifies in place
+```
+
+### Structs and Classes
+
+Same rules apply — structs pass by reference:
+
+```
+class Point {
+    i32 x;
+    i32 y;
+}
+
+void moveRight(Point p) {
+    p.x <- p.x + 1;  // Modifies original Point
+}
+
+Point cursor;
+cursor.x <- 0;
+cursor.y <- 0;
+moveRight(cursor);  // cursor.x is now 1
+```
+
+### The `&` Operator
+
+`&` is only for **reading** the address, not creating a pointer:
+
+```
+i32 value <- 42;
+
+// Print the address (for debugging)
+Console.printHex(&value);  // "0x20001000"
+
+// Hardware register access
+u32 registerAddr <- &GPIOA.DR;  // Get address of register
+
+// You CANNOT do:
+// &value <- 0x30000000;  // ERROR: Cannot reassign addresses
+```
+
+### Small Types: Optimization Opportunity
+
+For small types (`u8`, `i8`, `bool`), the compiler MAY pass by value for efficiency while maintaining the same semantics:
+
+```
+void setBit(bool flag) {
+    flag <- true;  // Semantically modifies original
+}
+```
+
+If the compiler can prove the original isn't read after the call, it can optimize to pass-by-value. But the **semantics** are always pass-by-reference.
+
+---
+
+## Open Questions
+
+### Q1: What about read-only parameters?
+
+Should there be a `const` equivalent?
+
+```
+// Option A: const keyword
+void printValue(const i32 x) {
+    Console.print(x);
+    // x <- 5;  // ERROR: x is const
+}
+
+// Option B: Separate syntax
+void printValue(in i32 x) { ... }      // Read-only
+void modifyValue(out i32 x) { ... }    // Write-only
+void useValue(inout i32 x) { ... }     // Read-write (default)
+```
+
+### Q2: How to handle optional/nullable references?
+
+In C, `NULL` pointers are common for "no value". Without pointer reassignment, how do we handle optional values?
+
+```
+// Option A: Explicit Option type
+Option<i32> maybeValue;
+
+// Option B: Nullable types with ?
+i32? maybeValue <- null;
+
+// Option C: Sentinel values (not recommended but matches embedded practice)
+i32 value <- -1;  // -1 means "invalid"
+```
+
+### Q3: What about returning multiple values?
+
+Without output pointers, how do functions return multiple values?
+
+```
+// Option A: Struct return
+struct DivResult { i32 quotient; i32 remainder; }
+DivResult divide(i32 a, i32 b) { ... }
+
+// Option B: Tuple-like syntax
+(i32, i32) divide(i32 a, i32 b) {
+    return (a / b, a % b);
+}
+
+// Option C: Named return values (Go-style)
+void divide(i32 a, i32 b, i32 quotient, i32 remainder) {
+    quotient <- a / b;
+    remainder <- a % b;
+}  // All parameters are modified in place anyway!
+```
+
+### Q4: Performance implications?
+
+Pass-by-reference for large structs is efficient. But for small types, pass-by-value is faster (no indirection). Should the compiler:
+
+- a) Always generate pass-by-reference (consistent but potentially slower)
+- b) Optimize small types to pass-by-value (faster but subtle semantics)
+- c) Let developer annotate (`byval` keyword)
+
+### Q5: How does this interact with register bindings?
+
+Hardware registers need actual addresses:
+
+```
+// Register at fixed address
+register GPIOA @ 0x40020000 {
+    DR: u32 rw @ 0x00
+}
+
+// Can we get the address?
+u32 addr <- &GPIOA.DR;  // Should this work?
+```
+
+---
+
+## Impact on Existing C Patterns
+
+### Pattern: Output Parameters
+
+**C:**
+```c
+bool parse(const char* input, int* result) {
+    *result = atoi(input);
+    return true;
+}
+
+int value;
+if (parse("42", &value)) { ... }
+```
+
+**C-Next:**
+```
+bool parse(const char input[], i32 result) {
+    result <- atoi(input);
+    return true;
+}
+
+i32 value;
+if (parse("42", value)) { ... }  // Cleaner!
+```
+
+### Pattern: Swap
+
+**C:**
+```c
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+swap(&x, &y);
+```
+
+**C-Next:**
+```
+void swap(i32 a, i32 b) {
+    i32 temp <- a;
+    a <- b;
+    b <- temp;
+}
+swap(x, y);  // Just works!
+```
+
+### Pattern: Linked Lists / Dynamic Structures
+
+**This is intentionally unsupported.** C-Next targets static allocation. Dynamic data structures that require pointer reassignment (linked lists, trees with rebalancing) are not idiomatic C-Next.
+
+For collections, use statically-allocated alternatives:
+- Arrays with indices instead of pointers
+- Ring buffers with head/tail indices
+- Pool allocators with handles
+
+---
+
+## Simplicity Check
+
+> **Can a senior C developer read C-Next code cold and understand it in 30 seconds?**
+
+Test case:
+```
+void processReading(i32 value, i32 calibration) {
+    value <- value + calibration;
+}
+
+i32 sensor <- readADC();
+processReading(sensor, 42);
+Console.print(sensor);  // What prints?
+```
+
+A C developer might initially assume pass-by-value (like C defaults). But the rule "functions receive the address, assignment updates the value" is simple enough to learn in one sentence.
+
+The key insight: **If it looks like it modifies the variable, it does.** No hidden copies.
+
+---
+
+## Summary
+
+| Feature | C | C++ | Rust | C-Next |
+|---------|---|-----|------|--------|
+| Pass by value | Default | Default | Default | Never |
+| Pass by reference | `*` + `&` | `&` in signature | `&`/`&mut` | Default |
+| Pointer reassignment | Allowed | Allowed | Allowed | **Forbidden** |
+| Dereference syntax | `*ptr` | `*ptr` or automatic | `*ptr` | Automatic |
+| Address-of operator | `&var` | `&var` | `&var` | `&var` (read-only) |
+
+**C-Next's model:** Everything is a reference. Assignment updates values. Addresses are fixed. Simple.
+
+---
+
+## Next Steps
+
+1. **Prototype transpiler** — Implement the reference model transformation
+2. **Test with real code** — Convert Arduino examples to C-Next
+3. **Performance benchmarks** — Measure pass-by-reference overhead for small types
+4. **Survey developers** — Is this model intuitive or surprising?
+5. **Edge cases** — Document all interactions with other features
+
+---
+
+## References
+
+### Pointer Safety Research
+- [Microsoft Security: Memory Safety](https://msrc-blog.microsoft.com/2019/07/16/a-proactive-approach-to-more-secure-code/) — 70% of CVEs are memory safety issues
+- [MISRA C:2012 Guidelines](https://www.misra.org.uk/) — Rules 18.1-18.4 on pointer use
+
+### Language Design
+- [Fortran Parameter Passing](https://pages.mtu.edu/~shene/COURSES/cs201/NOTES/chap07/pass.html)
+- [C++ References](https://isocpp.org/wiki/faq/references)
+- [Rust Book: References and Borrowing](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html)
+- [Swift inout Parameters](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/functions/#In-Out-Parameters)
+- [Go Pointers](https://go.dev/tour/moretypes/1)
+
+### Static Allocation Benefits
+- [ADR-003: Static Memory Allocation](adr-003-static-allocation.md) — Why static allocation enables this simplification

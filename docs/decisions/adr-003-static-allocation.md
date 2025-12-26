@@ -396,7 +396,66 @@ void main() {
 }
 ```
 
-### Q6: Memory pools — language feature or library?
+### Q6: Arduino Integration — How does setup()/loop() map?
+
+Arduino's model maps naturally to the MISRA static allocation pattern:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  COMPILE TIME: Memory reserved (global declarations) │
+└─────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│  setup(): Configure pre-allocated resources          │
+│  - Assign pointers, set baud rates, init peripherals │
+│  - No new memory allocated, just configured          │
+└─────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│  loop(): Runtime - zero allocation                   │
+│  - Use what was configured in setup()                │
+└─────────────────────────────────────────────────────┘
+```
+
+**Key insight:** `setup()` isn't where allocation happens — it's where *configuration* happens. The memory is already reserved at compile time via global declarations.
+
+Example in C-Next:
+
+```
+// Memory reserved at compile time (global scope)
+RingBuffer<u8, 256> serialRxBuffer;
+RingBuffer<u8, 256> serialTxBuffer;
+
+namespace Console {
+    private UART* uart;
+
+    void init(UART* u) {
+        uart <- u;  // Just pointer assignment, no allocation
+    }
+
+    void print(const char* msg) { ... }
+}
+
+// Arduino entry points
+void setup() {
+    Serial.begin(115200);
+    Console.init(&Serial);
+}
+
+void loop() {
+    // All memory already exists - just use it
+    Console.print("Hello");
+    serialRxBuffer.push(Serial.read());
+}
+```
+
+This is how well-written embedded C already works. Arduino's `String` class is the footgun — it heap-allocates in `loop()`. C-Next simply wouldn't have that option.
+
+**Transpilation note:** Even scoped variables like `Console.uart` become globals in the generated C (`Console_uart`). C-Next enforces the `private` visibility at compile time, but the generated C uses `static` for file-level privacy. The safety is enforced by C-Next's compiler, not the C output.
+
+### Q7: Memory pools — language feature or library?
 
 Should C-Next provide built-in pool types?
 ```
