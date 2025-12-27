@@ -33,6 +33,28 @@ interface ParameterInfo {
 }
 
 /**
+ * Type info for bit manipulation and .length support
+ */
+interface TypeInfo {
+    baseType: string;      // 'u8', 'u32', 'i16', etc.
+    bitWidth: number;      // 8, 16, 32, 64
+    isArray: boolean;
+    arrayLength?: number;  // For arrays only
+}
+
+/**
+ * Maps primitive types to their bit widths
+ */
+const TYPE_WIDTH: Record<string, number> = {
+    'u8': 8, 'i8': 8,
+    'u16': 16, 'i16': 16,
+    'u32': 32, 'i32': 32,
+    'u64': 64, 'i64': 64,
+    'f32': 32, 'f64': 64,
+    'bool': 1,
+};
+
+/**
  * Context for tracking current scope during code generation
  */
 interface GeneratorContext {
@@ -43,6 +65,7 @@ interface GeneratorContext {
     classMembers: Map<string, Set<string>>;     // class -> member names
     currentParameters: Map<string, ParameterInfo>; // ADR-006: track params for pointer semantics
     localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
+    typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
 }
 
 /**
@@ -57,6 +80,7 @@ export default class CodeGenerator {
         classMembers: new Map(),
         currentParameters: new Map(),
         localArrays: new Set(),
+        typeRegistry: new Map(),
     };
 
     private knownNamespaces: Set<string> = new Set();
@@ -64,6 +88,7 @@ export default class CodeGenerator {
     private knownStructs: Set<string> = new Set();
     private knownRegisters: Set<string> = new Set();
     private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
+    private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
 
     /**
      * Generate C code from a C-Next program
@@ -78,12 +103,14 @@ export default class CodeGenerator {
             classMembers: new Map(),
             currentParameters: new Map(),
             localArrays: new Set(),
+            typeRegistry: new Map(),
         };
         this.knownNamespaces = new Set();
         this.knownClasses = new Set();
         this.knownStructs = new Set();
         this.knownRegisters = new Set();
         this.knownFunctions = new Set();
+        this.registerMemberAccess = new Map();
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -167,8 +194,17 @@ export default class CodeGenerator {
             }
 
             if (decl.registerDeclaration()) {
-                const name = decl.registerDeclaration()!.IDENTIFIER().getText();
-                this.knownRegisters.add(name);
+                const regDecl = decl.registerDeclaration()!;
+                const regName = regDecl.IDENTIFIER().getText();
+                this.knownRegisters.add(regName);
+
+                // Track access modifiers for each register member
+                for (const member of regDecl.registerMember()) {
+                    const memberName = member.IDENTIFIER().getText();
+                    const accessMod = member.accessModifier().getText(); // rw, ro, wo, w1c, w1s
+                    const fullName = `${regName}_${memberName}`;
+                    this.registerMemberAccess.set(fullName, accessMod);
+                }
             }
 
             // Track top-level functions
@@ -176,6 +212,69 @@ export default class CodeGenerator {
                 const name = decl.functionDeclaration()!.IDENTIFIER().getText();
                 this.knownFunctions.add(name);
             }
+
+            // Track top-level variable types
+            if (decl.variableDeclaration()) {
+                const varDecl = decl.variableDeclaration()!;
+                this.trackVariableType(varDecl);
+            }
+        }
+    }
+
+    /**
+     * Extract type info from a variable declaration and register it
+     */
+    private trackVariableType(varDecl: Parser.VariableDeclarationContext): void {
+        const name = varDecl.IDENTIFIER().getText();
+        const typeCtx = varDecl.type();
+        const arrayDim = varDecl.arrayDimension();
+
+        let baseType = '';
+        let bitWidth = 0;
+        let isArray = false;
+        let arrayLength: number | undefined;
+
+        if (typeCtx.primitiveType()) {
+            baseType = typeCtx.primitiveType()!.getText();
+            bitWidth = TYPE_WIDTH[baseType] || 0;
+        } else if (typeCtx.arrayType()) {
+            isArray = true;
+            const arrayTypeCtx = typeCtx.arrayType()!;
+            if (arrayTypeCtx.primitiveType()) {
+                baseType = arrayTypeCtx.primitiveType()!.getText();
+                bitWidth = TYPE_WIDTH[baseType] || 0;
+            }
+            // Try to get array length from type
+            const sizeExpr = arrayTypeCtx.expression();
+            if (sizeExpr) {
+                const sizeText = sizeExpr.getText();
+                const size = parseInt(sizeText, 10);
+                if (!isNaN(size)) {
+                    arrayLength = size;
+                }
+            }
+        }
+
+        // Check for array dimension like: u8 buffer[16]
+        if (arrayDim) {
+            isArray = true;
+            const sizeExpr = arrayDim.expression();
+            if (sizeExpr) {
+                const sizeText = sizeExpr.getText();
+                const size = parseInt(sizeText, 10);
+                if (!isNaN(size)) {
+                    arrayLength = size;
+                }
+            }
+        }
+
+        if (baseType) {
+            this.context.typeRegistry.set(name, {
+                baseType,
+                bitWidth,
+                isArray,
+                arrayLength,
+            });
         }
     }
 
@@ -632,6 +731,9 @@ export default class CodeGenerator {
         const type = this.generateType(ctx.type());
         const name = ctx.IDENTIFIER().getText();
 
+        // Track type for bit access and .length support
+        this.trackVariableType(ctx);
+
         let decl = `${type} ${name}`;
 
         if (ctx.arrayDimension()) {
@@ -698,8 +800,72 @@ export default class CodeGenerator {
 
     // ADR-001: <- becomes = in C
     private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
-        const target = this.generateAssignmentTarget(ctx.assignmentTarget());
+        const targetCtx = ctx.assignmentTarget();
         const value = this.generateExpression(ctx.expression());
+
+        // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT])
+        const memberAccessCtx = targetCtx.memberAccess();
+        if (memberAccessCtx) {
+            const exprs = memberAccessCtx.expression();
+            if (exprs.length > 0) {
+                // This is GPIO7.DR_SET[bit] or GPIO7.DR[start, width]
+                const identifiers = memberAccessCtx.IDENTIFIER();
+                const regName = identifiers[0].getText();
+                const memberName = identifiers[1].getText();
+                const fullName = `${regName}_${memberName}`;
+
+                // Check if this is a write-only register
+                const accessMod = this.registerMemberAccess.get(fullName);
+                const isWriteOnly = accessMod === 'wo' || accessMod === 'w1s' || accessMod === 'w1c';
+
+                if (exprs.length === 1) {
+                    const bitIndex = this.generateExpression(exprs[0]);
+                    if (isWriteOnly) {
+                        // Write-only: just write the mask, no read-modify-write needed
+                        // GPIO7.DR_SET[LED_BIT] <- true  =>  GPIO7_DR_SET = (1 << LED_BIT)
+                        return `${fullName} = (1 << ${bitIndex});`;
+                    } else {
+                        // Read-write: need read-modify-write
+                        return `${fullName} = (${fullName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+                    }
+                } else if (exprs.length === 2) {
+                    const start = this.generateExpression(exprs[0]);
+                    const width = this.generateExpression(exprs[1]);
+                    const mask = `((1 << ${width}) - 1)`;
+                    if (isWriteOnly) {
+                        // Write-only: just write the value shifted to position
+                        return `${fullName} = ((${value} & ${mask}) << ${start});`;
+                    } else {
+                        // Read-write: need read-modify-write
+                        return `${fullName} = (${fullName} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
+                    }
+                }
+            }
+        }
+
+        // Check if this is a simple array/bit access assignment (e.g., flags[3])
+        const arrayAccessCtx = targetCtx.arrayAccess();
+        if (arrayAccessCtx) {
+            const name = arrayAccessCtx.IDENTIFIER().getText();
+            const exprs = arrayAccessCtx.expression();
+
+            if (exprs.length === 1) {
+                // Single bit assignment: flags[3] <- true
+                const bitIndex = this.generateExpression(exprs[0]);
+                // Generate: name = (name & ~(1 << index)) | ((value ? 1 : 0) << index)
+                return `${name} = (${name} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+            } else if (exprs.length === 2) {
+                // Bit range assignment: flags[0, 3] <- 5
+                const start = this.generateExpression(exprs[0]);
+                const width = this.generateExpression(exprs[1]);
+                // Generate: name = (name & ~(mask << start)) | ((value & mask) << start)
+                const mask = `((1 << ${width}) - 1)`;
+                return `${name} = (${name} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
+            }
+        }
+
+        // Normal assignment
+        const target = this.generateAssignmentTarget(targetCtx);
         return `${target} = ${value};`;
     }
 
@@ -965,8 +1131,26 @@ export default class CodeGenerator {
             if (op.IDENTIFIER()) {
                 const memberName = op.IDENTIFIER()!.getText();
 
+                // Handle .length property for arrays and integers
+                if (memberName === 'length') {
+                    const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
+                    if (typeInfo) {
+                        if (typeInfo.isArray && typeInfo.arrayLength !== undefined) {
+                            // Array length - return the compile-time constant
+                            result = String(typeInfo.arrayLength);
+                        } else if (!typeInfo.isArray) {
+                            // Integer bit width - return the compile-time constant
+                            result = String(typeInfo.bitWidth);
+                        } else {
+                            // Unknown length, generate error placeholder
+                            result = `/* .length unknown for ${primaryId} */0`;
+                        }
+                    } else {
+                        result = `/* .length: unknown type for ${result} */0`;
+                    }
+                }
                 // Check if this is a namespace member access: Namespace.member
-                if (this.knownNamespaces.has(result)) {
+                else if (this.knownNamespaces.has(result)) {
                     // Transform Namespace.member to Namespace_member
                     result = `${result}_${memberName}`;
                 }
@@ -987,9 +1171,33 @@ export default class CodeGenerator {
                     result = `${result}.${memberName}`;
                 }
             }
-            // Array subscript
-            else if (op.expression()) {
-                result = `${result}[${this.generateExpression(op.expression()!)}]`;
+            // Array subscript / bit access
+            else if (op.expression().length > 0) {
+                const exprs = op.expression();
+                if (exprs.length === 1) {
+                    // Single index: could be array[i] or bit access flags[3]
+                    const index = this.generateExpression(exprs[0]);
+
+                    // Check type registry to determine if this is bit access or array access
+                    const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
+
+                    // Registers are always integers, so treat subscript as bit access
+                    const isRegisterAccess = primaryId ? this.knownRegisters.has(primaryId) : false;
+
+                    if ((typeInfo && !typeInfo.isArray) || isRegisterAccess) {
+                        // Integer type or register - use bit access: ((value >> index) & 1)
+                        result = `((${result} >> ${index}) & 1)`;
+                    } else {
+                        // Array or unknown - use array access
+                        result = `${result}[${index}]`;
+                    }
+                } else if (exprs.length === 2) {
+                    // Bit range: flags[start, width]
+                    const start = this.generateExpression(exprs[0]);
+                    const width = this.generateExpression(exprs[1]);
+                    // Generate bit range read: ((value >> start) & ((1 << width) - 1))
+                    result = `((${result} >> ${start}) & ((1 << ${width}) - 1))`;
+                }
             }
             // Function call
             else if (op.argumentList()) {
@@ -1095,8 +1303,21 @@ export default class CodeGenerator {
 
     private generateArrayAccess(ctx: Parser.ArrayAccessContext): string {
         const name = ctx.IDENTIFIER().getText();
-        const index = this.generateExpression(ctx.expression());
-        return `${name}[${index}]`;
+        const exprs = ctx.expression();
+
+        if (exprs.length === 1) {
+            // Single index: array[i] or bit access flags[3]
+            const index = this.generateExpression(exprs[0]);
+            return `${name}[${index}]`;
+        } else if (exprs.length === 2) {
+            // Bit range: flags[start, width]
+            const start = this.generateExpression(exprs[0]);
+            const width = this.generateExpression(exprs[1]);
+            // Generate bit range read: ((value >> start) & ((1 << width) - 1))
+            return `((${name} >> ${start}) & ((1 << ${width}) - 1))`;
+        }
+
+        return `${name}[/* error */]`;
     }
 
     // ========================================================================

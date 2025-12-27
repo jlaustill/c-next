@@ -186,9 +186,9 @@ assignmentStatement
     ;
 
 assignmentTarget
-    : IDENTIFIER
+    : arrayAccess                          // Must be before memberAccess (both can match arr[i])
     | memberAccess
-    | arrayAccess
+    | IDENTIFIER
     ;
 
 expressionStatement
@@ -281,9 +281,10 @@ postfixExpression
     ;
 
 postfixOp
-    : '.' IDENTIFIER               // Member access
-    | '[' expression ']'           // Array subscript
-    | '(' argumentList? ')'        // Function call
+    : '.' IDENTIFIER                           // Member access
+    | '[' expression ']'                       // Array subscript / single bit
+    | '[' expression ',' expression ']'        // Bit range [start, width]
+    | '(' argumentList? ')'                    // Function call
     ;
 
 primaryExpression
@@ -293,12 +294,15 @@ primaryExpression
     ;
 
 memberAccess
-    : IDENTIFIER ('.' IDENTIFIER)+
-    | IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)?
+    : IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'              // GPIO7.DR_SET[bit]
+    | IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']' // GPIO7.DR[start, width]
+    | IDENTIFIER ('.' IDENTIFIER)+                                  // GPIO7.DR_SET
+    | IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)?           // arr[i].field
     ;
 
 arrayAccess
-    : IDENTIFIER '[' expression ']'
+    : IDENTIFIER '[' expression ']'                       // Single element/bit
+    | IDENTIFIER '[' expression ',' expression ']'        // Bit range [start, width]
     ;
 
 argumentList

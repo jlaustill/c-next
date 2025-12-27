@@ -3,6 +3,9 @@ node_modules/
 dist/
 *.log
 
+# Test builds
+test-teensy/
+
 # Generated parser files (regenerated from grammar)
 src/parser/
 

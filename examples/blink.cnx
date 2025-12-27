@@ -7,7 +7,8 @@
 //
 // This example demonstrates:
 // - Register bindings with atomic set/clear/toggle
-// - Namespaces as singleton services
+// - Type-aware bit indexing (integers as bit arrays)
+// - .length property for compile-time type info
 // - No magic numbers (configuration via named variables)
 // - Integration with Arduino ecosystem
 
@@ -34,26 +35,33 @@ u32 LED_PIN <- 13;        // Arduino pin number (for pinMode)
 u32 LED_BIT <- 3;         // GPIO7 bit number (for direct register access)
 
 // Timing configuration
-u32 BLINK_DELAY_MS <- 500;
+u32 BLINK_DELAY_MS <- 1000;
 
 // =============================================================================
-// LED Control - Direct register access for speed!
+// LED Control - Using type-aware bit indexing!
 // =============================================================================
 
 namespace LED {
     void on() {
-        // Atomic set - no read-modify-write race conditions!
-        GPIO7.DR_SET <- (1 << LED_BIT);
+        // Direct bit access on write-only atomic register!
+        // Generates: GPIO7_DR_SET = (1 << LED_BIT);
+        GPIO7.DR_SET[LED_BIT] <- true;
     }
 
     void off() {
-        // Atomic clear
-        GPIO7.DR_CLEAR <- (1 << LED_BIT);
+        // Atomic clear - no read-modify-write needed
+        GPIO7.DR_CLEAR[LED_BIT] <- true;
     }
 
     void toggle() {
         // Atomic toggle - perfect for blinking!
-        GPIO7.DR_TOGGLE <- (1 << LED_BIT);
+        GPIO7.DR_TOGGLE[LED_BIT] <- true;
+    }
+
+    bool isOn() {
+        // Read bit directly from DR register
+        // Generates: ((GPIO7_DR >> LED_BIT) & 1)
+        return GPIO7.DR[LED_BIT];
     }
 }
 
