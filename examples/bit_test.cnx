@@ -1,5 +1,8 @@
 // bit_test.cnx - Test bit access and .length syntax
 
+#include <stdint.h>
+#include <stdbool.h>
+
 u8 flags <- 0;
 u8 buffer[16];
 u32 counter <- 0;

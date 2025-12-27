@@ -3,7 +3,7 @@
 // Built-in LED is on GPIO7, bit 3 (Arduino pin 13)
 //
 // Compile: cnx blink.cnx -o blink.c
-// Then use with Arduino/PlatformIO - Arduino.h provides startup, clocks, delay()
+// Then use with Arduino/PlatformIO
 //
 // This example demonstrates:
 // - Register bindings with atomic set/clear/toggle
@@ -11,6 +11,13 @@
 // - .length property for compile-time type info
 // - No magic numbers (configuration via named variables)
 // - Integration with Arduino ecosystem
+
+// =============================================================================
+// Includes - C-Next passes these through to generated C
+// =============================================================================
+#include <Arduino.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 // =============================================================================
 // Hardware Configuration

@@ -6,7 +6,12 @@
   "type": "module",
   "scripts": {
     "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser grammar/CNext.g4",
-    "build": "npm run antlr && tsc",
+    "antlr:c": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser/c grammar/C.g4",
+    "antlr:cpp:lexer": "antlr4ng -Dlanguage=TypeScript -o src/parser/cpp grammar/CPP14Lexer.g4",
+    "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser/cpp -lib src/parser/cpp/grammar grammar/CPP14Parser.g4",
+    "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
+    "antlr:all": "npm run antlr && npm run antlr:c && npm run antlr:cpp",
+    "build": "npm run antlr:all && tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",

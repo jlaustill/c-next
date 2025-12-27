@@ -21,7 +21,13 @@ grammar CNext;
 
 // Entry point
 program
-    : declaration* EOF
+    : includeDirective* declaration* EOF
+    ;
+
+// Include directives (passed through to generated C)
+// Uses same syntax as C: #include <header.h> or #include "header.h"
+includeDirective
+    : INCLUDE_DIRECTIVE
     ;
 
 // Top-level declarations
@@ -363,6 +369,12 @@ literal
 // ============================================================================
 // Lexer Rules
 // ============================================================================
+
+// Preprocessor directives (passed through to C)
+// Matches: #include <header.h> or #include "header.h"
+INCLUDE_DIRECTIVE
+    : '#' [ \t]* 'include' [ \t]* ('<' ~[>\r\n]* '>' | '"' ~["\r\n]* '"')
+    ;
 
 // Keywords
 NAMESPACE   : 'namespace';

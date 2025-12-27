@@ -62,6 +62,37 @@ C-Next follows the TypeScript model for adoption:
 2. **Clean escape hatch** — Generated C is idiomatic and maintainable
 3. **Helpful, not burdensome** — If you know C, you can read C-Next immediately
 
+### No Hardcoded Libraries
+
+**C-Next never hardcodes any libraries.** All includes must be explicit in source files:
+
+```cnx
+#include <stdint.h>
+#include <stdbool.h>
+#include <Arduino.h>     // Only if using Arduino
+```
+
+This principle ensures:
+- STM32 projects work without Arduino dependencies
+- Bare-metal projects have full control
+- Generated code contains only what you specify
+
+### C Preprocessor Compatibility
+
+C-Next uses the standard C preprocessor — no custom module system. This means:
+- `#include` directives pass through to generated C
+- MISRA preprocessor guidelines apply
+- Full compatibility with existing toolchains (PlatformIO, arm-gcc, etc.)
+- Conditional compilation (`#ifdef`) works as expected
+
+Generated headers automatically include guards:
+```c
+#ifndef MYFILE_H
+#define MYFILE_H
+// ...
+#endif /* MYFILE_H */
+```
+
 ### The Simplicity Constraint
 
 | Rust's Path | C-Next's Path |

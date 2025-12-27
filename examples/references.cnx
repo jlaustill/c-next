@@ -1,6 +1,9 @@
 // references.cnx - Demonstrates simplified reference model (ADR-006)
 // All parameters pass by reference, assignment updates values
 
+#include <stdint.h>
+#include <stdbool.h>
+
 namespace Console {
     void printInt(i32 value) {
         // Print implementation...

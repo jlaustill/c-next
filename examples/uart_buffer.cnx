@@ -1,6 +1,10 @@
 // uart_buffer.cnx - UART with ring buffer
 // Demonstrates: class (multiple instances), generics, arrays
 
+#include <Arduino.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 // Generic ring buffer class
 class RingBuffer<T, N> {
     private T buffer[N];
