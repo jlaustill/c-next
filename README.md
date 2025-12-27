@@ -2,206 +2,222 @@
 
 A safer C for embedded systems development. Transpiles to clean, readable C.
 
+**Status: Working Transpiler** — Verified on Teensy MicroMod hardware.
+
+## Quick Example
+
+```cnx
+// Register binding with type-safe access
+register GPIO7 @ 0x42004000 {
+    DR:         u32 rw @ 0x00,
+    DR_SET:     u32 wo @ 0x84,
+    DR_TOGGLE:  u32 wo @ 0x8C,
+}
+
+u32 LED_BIT <- 3;
+
+namespace LED {
+    void toggle() {
+        // Type-aware bit indexing on write-only register
+        GPIO7.DR_TOGGLE[LED_BIT] <- true;
+    }
+}
+```
+
+Generates clean C:
+```c
+#define GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
+
+uint32_t LED_BIT = 3;
+
+void LED_toggle(void) {
+    GPIO7_DR_TOGGLE = (1 << LED_BIT);
+}
+```
+
+## Installation
+
+```bash
+git clone https://github.com/jlaustill/c-next.git
+cd c-next
+npm install
+npm run build
+```
+
+## Usage
+
+```bash
+# Transpile to C
+node dist/index.js examples/blink.cnx -o blink.c
+
+# Parse only (syntax check)
+node dist/index.js examples/blink.cnx --parse
+```
+
 ## Philosophy
 
 C-Next follows the TypeScript model for adoption:
 
-1. **Not all-or-nothing** — Drop a single `.cnx` file into an existing C project. The rest stays untouched.
-2. **Clean escape hatch** — The generated C is idiomatic and maintainable. If C-Next disappeared tomorrow, you keep working.
-3. **Helpful, not burdensome** — If you know C, you can read C-Next immediately and write it within an hour.
-
-The goal is not to replace C, but to make it harder to shoot yourself in the foot while keeping everything familiar.
+1. **Not all-or-nothing** — Drop a single `.cnx` file into an existing C project
+2. **Clean escape hatch** — Generated C is idiomatic and maintainable
+3. **Helpful, not burdensome** — If you know C, you can read C-Next immediately
 
 ### The Simplicity Constraint
-
-Linus Torvalds famously values C because it's simple — you can look at code and understand what the machine will do. Rust adds safety, but also cognitive overhead: lifetimes, borrow checkers, `Box<dyn Trait>`.
-
-C-Next takes a different path:
 
 | Rust's Path | C-Next's Path |
 |-------------|---------------|
 | Add concepts to catch errors | Remove the ability to make errors |
-| Borrow checker complexity | No heap = no ownership tracking needed |
+| Borrow checker complexity | No heap = no ownership tracking |
 | Lifetime annotations | Static allocation = predictable lifetimes |
 | `unsafe` escape hatch | Clean C is the escape hatch |
 
-**Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship. Safety through removal, not addition.
+**Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship.
 
-The test: **Can a senior C developer read C-Next code cold and understand it in 30 seconds?** If not, the feature is too clever.
+## Core Features
 
-## Core Language Features
+### Assignment: `<-` vs Equality: `=`
 
-### Assignment Operator: `<-`
+Eliminates the `if (x = 5)` bug by design:
 
-The single most common source of C bugs — `if (x = 5)` instead of `if (x == 5)` — is eliminated by design.
-
-```
+```cnx
 x <- 5;         // assignment: value flows INTO x
 if (x = 5)      // comparison: single equals, just like math
 ```
 
-This isn't arbitrary. R has supported both `<-` and `->` for decades. The community organically chose `x <- 1` because developers prefer seeing the target on the left when scanning code. And the entire point of c-next is to research common patterns that have proven to work naturally vs ones that have proven to be painful
+### Fixed-Width Types
 
-### Namespaces and Classes
-
-C-Next distinguishes between **namespaces** (singleton services) and **classes** (multiple instances):
-
-- **Namespaces** — For application services: one Console, one Logger, one Math library
-- **Classes** — For hardware peripherals: 8 UARTs, 3 CAN buses, multiple ring buffers
-
-```
-namespace Console {
-    private UART* uart;
-    private LogLevel logLevel;
-
-    void init(UART* u) { ... }
-    void print(const char* msg) { ... }
-}
-
-namespace Math {
-    f32 sin(f32 x) { ... }
-    f32 clamp(f32 val, f32 min, f32 max) { ... }
-}
-```
-
-Transpiles to:
-```c
-static UART* Console_uart;           // private -> static
-static LogLevel Console_logLevel;
-
-void Console_init(UART* u) { ... }   // public -> external linkage
-void Console_print(const char* msg) { ... }
-```
-
-Classes are first-class citizens (without inheritance) for when you need multiple instances.
-
-### Register Bindings
-
-Define hardware register layouts once, bind to addresses:
-
-```
-struct USARTRegisters {
-    volatile u32 CR;    // Control register
-    volatile u32 SR;    // Status register (read-only)
-    volatile u32 DR;    // Data register
-} 0x40000000; // default starting memory address if one isn't provided upon usage, see below
-
-USARTRegisters USART1 0x40011000; // 3rd option is the starting memory address
-USARTRegisters USART2; // uses default memory address, one and ONLY one usage may do so!
-```
-
-Usage is clean and statically typed:
-```
-USART1.CR <- 0x000C;
-value <- USART1.DR;
-```
-
-Transpiles to standard C struct pointer patterns — exactly what experienced embedded developers already write.
-
-### Static Allocation Only
-
-Inspired by MISRA C and DO-178C (avionics software standards): **no dynamic memory allocation after initialization**.
-
-This single rule eliminates:
-- Memory leaks
-- Fragmentation  
-- Allocation failures at runtime
-- Use-after-free
-- Double-free
-
-The transpiler enforces this. `malloc` and friends simply don't exist in the language.
-
-### Sane Types
-
-No more `uint8_t` vs `unsigned char` vs `u8` inconsistency:
-
-```
+```cnx
 u8, u16, u32, u64      // unsigned integers
 i8, i16, i32, i64      // signed integers
 f32, f64               // floating point
 bool                   // boolean
 ```
 
-Transpiles to `<stdint.h>` types.
+### Register Bindings
 
-## Design Goals
+Type-safe hardware access with access modifiers:
 
-### Target: Safety-Critical Embedded Systems
-
-C-Next aims to make MISRA C and DO-178C compliance easier by making violations impossible to express:
-
-| Safety Concern | C-Next Solution |
-|----------------|-----------------|
-| Dynamic allocation bugs | No heap allocation primitives |
-| Assignment/comparison confusion | `<-` vs `=` |
-| Uninitialized variables | Mandatory initialization |
-| Namespace collisions | Explicit namespaces |
-| Type confusion | Fixed-width types only, no implicit conversions |
-
-### Non-Goals
-
-- Replacing C++ for application development
-- Garbage collection
-- Runtime overhead
-- Clever syntax that's hard to read
-
-## Tooling
-
-C-Next is a single executable that runs as a pre-compile step:
-
-```makefile
-%.c: %.cnx
-    cnx $< -o $@
+```cnx
+register GPIO7 @ 0x42004000 {
+    DR:         u32 rw @ 0x00,    // Read-Write
+    PSR:        u32 ro @ 0x08,    // Read-Only
+    DR_SET:     u32 wo @ 0x84,    // Write-Only (atomic set)
+    DR_CLEAR:   u32 wo @ 0x88,    // Write-Only (atomic clear)
+    DR_TOGGLE:  u32 wo @ 0x8C,    // Write-Only (atomic toggle)
+}
 ```
 
-Works with Make, CMake, or any build system. No IDE plugins required(for compilation), no dependencies, no runtime.
+### Type-Aware Bit Indexing
 
-## Project Status
+Integers are indexable as bit arrays:
 
-**Current: Research & Design Phase**
+```cnx
+u8 flags <- 0;
+flags[3] <- true;           // Set bit 3
+flags[0, 3] <- 5;           // Set 3 bits starting at bit 0
+bool isSet <- flags[3];     // Read bit 3
 
-This project is exploring what a "better C for embedded" could look like, informed by:
-- 30 years of embedded development experience
-- MISRA C:2012 guidelines (143 rules analyzed)
-- DO-178C avionics certification requirements
-- CERT C secure coding standards
-- The TypeScript adoption model
-- R's natural experiment with `<-` vs `->` assignment
+// .length property
+u8 buffer[16];
+buffer.length;              // 16 (array element count)
+flags.length;               // 8 (bit width of u8)
+```
 
-## Repository Structure
+Write-only registers generate optimized code:
+```cnx
+GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
+```
+
+### Namespaces
+
+Singleton services with automatic name prefixing:
+
+```cnx
+namespace LED {
+    void on() { GPIO7.DR_SET[LED_BIT] <- true; }
+    void off() { GPIO7.DR_CLEAR[LED_BIT] <- true; }
+}
+
+// Call as:
+LED.on();
+LED.off();
+```
+
+Transpiles to:
+```c
+void LED_on(void) { GPIO7_DR_SET = (1 << LED_BIT); }
+void LED_off(void) { GPIO7_DR_CLEAR = (1 << LED_BIT); }
+```
+
+### Static Allocation Only
+
+No `malloc`, no heap, no memory leaks. Inspired by MISRA C and DO-178C avionics standards.
+
+## Hardware Testing
+
+Verified on **Teensy MicroMod** (NXP i.MX RT1062):
+
+```bash
+# Build and flash with PlatformIO
+cd test-teensy
+pio run -t upload
+```
+
+See `examples/blink.cnx` for the complete LED blink example.
+
+## Project Structure
 
 ```
-/docs
-  /research          # Analysis of standards, other languages
-  /design            # Feature specifications
-  /decisions         # Architecture Decision Records (ADRs)
-/grammar
-  cnext.g4           # ANTLR grammar definition
-/src                 # Transpiler implementation (TypeScript?)
-/examples            # Example C-Next code
-/tests               # Test cases
+c-next/
+├── grammar/CNext.g4           # ANTLR4 grammar definition
+├── src/
+│   ├── codegen/CodeGenerator.ts   # Transpiler core
+│   ├── parser/                    # Generated ANTLR parser
+│   └── index.ts                   # CLI entry point
+├── examples/
+│   ├── blink.cnx                  # LED blink (Teensy verified)
+│   └── bit_test.cnx               # Bit manipulation tests
+├── test-teensy/                   # PlatformIO test project
+└── docs/decisions/               # Architecture Decision Records
 ```
 
 ## Architecture Decision Records
 
-Key decisions are documented in `/docs/decisions/`:
+Decisions are documented in `/docs/decisions/`:
 
-### Accepted
-- [ADR-001: Assignment Operator](docs/decisions/adr-001-assignment-operator.md) — Why `<-` for assignment and `=` for comparison
+### Implemented
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-001](docs/decisions/adr-001-assignment-operator.md) | Assignment Operator | `<-` for assignment, `=` for comparison |
+| [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Singleton scoping with name prefixing |
+| [ADR-003](docs/decisions/adr-003-static-allocation.md) | Static Allocation | No dynamic memory after init |
+| [ADR-004](docs/decisions/adr-004-register-bindings.md) | Register Bindings | Type-safe hardware access |
+| [ADR-006](docs/decisions/adr-006-simplified-references.md) | Simplified References | Pass by reference, no pointer syntax |
+| [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md) | Type-Aware Bit Indexing | Integers as bit arrays, `.length` property |
 
-### Proposed
-- [ADR-002: Namespaces](docs/decisions/adr-002-namespaces.md) — Namespaces as singleton scoping mechanism
+### Planned
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes Without Inheritance | Multiple instances without OOP complexity |
 
-### Draft (Research Phase)
-- [ADR-003: Static Allocation](docs/decisions/adr-003-static-allocation.md) — No dynamic memory allocation after init
-- [ADR-004: Register Bindings](docs/decisions/adr-004-register-bindings.md) — Type-safe hardware register access
-- [ADR-005: Classes Without Inheritance](docs/decisions/adr-005-classes-without-inheritance.md) — Multiple instances without OOP complexity
-- [ADR-006: Simplified References](docs/decisions/adr-006-simplified-references.md) — Pass by reference, no pointer syntax
-- [ADR-008: Language-Level Bug Prevention](docs/decisions/adr-008-language-bug-prevention.md) — Top 15 embedded bugs and how C-Next prevents them 
+### Research Phase
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
+| [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
+| [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C/C++ Interoperability | Unified ANTLR parser architecture |
+
+## Build Commands
+
+```bash
+npm run build      # Full build: ANTLR + TypeScript
+npm run antlr      # Regenerate parser from grammar
+npx tsc            # TypeScript only
+```
 
 ## Contributing
 
-This is currently a personal research project. Ideas and feedback welcome via issues.
+Ideas and feedback welcome via issues.
 
 ## License
 
@@ -210,5 +226,6 @@ MIT
 ## Acknowledgments
 
 - The R community for proving `<-` works in practice
-- MISRA C consortium for codifying decades of embedded safety wisdom
+- MISRA C consortium for codifying embedded safety wisdom
 - The TypeScript team for demonstrating gradual adoption works
+- ANTLR for the parser infrastructure
