@@ -79,6 +79,32 @@ Key features:
 
 Learn more: [github.com/jlaustill/c-next](https://github.com/jlaustill/c-next)
 
+## Troubleshooting
+
+### "Unknown type 'register'" error
+
+If you see an error like `Unknown type 'register' cnext(unknown-type)`, this is NOT from the C-Next extension. It may be caused by the C/C++ extension applying IntelliSense to `.cnx` files.
+
+**Solution:** Add this to your VS Code settings (`settings.json`):
+
+```json
+{
+    "C_Cpp.files.exclude": {
+        "**/*.cnx": true
+    }
+}
+```
+
+To verify which extension is producing an error:
+1. Hover over the error squiggle
+2. Click "Quick Fix" or look at the source in the Problems panel
+3. C-Next errors show source as "C-Next" (not "cnext")
+
+### Other issues
+
+- **Reload Window**: Try `Ctrl+Shift+P` → "Developer: Reload Window"
+- **Check Output**: `Ctrl+Shift+P` → "Output: Focus on Output View" → Select "C-Next" from dropdown
+
 ## License
 
 MIT

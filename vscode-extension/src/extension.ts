@@ -88,6 +88,9 @@ function validateDocument(document: vscode.TextDocument): void {
     const source = document.getText();
     const result = transpile(source, { parseOnly: true });
 
+    // Clear diagnostics for this specific document
+    diagnosticCollection.delete(document.uri);
+
     const diagnostics: vscode.Diagnostic[] = result.errors.map(error => {
         // Try to find the end of the error token for better highlighting
         const line = document.lineAt(Math.max(0, error.line - 1));
@@ -118,6 +121,7 @@ function validateDocument(document: vscode.TextDocument): void {
                 : vscode.DiagnosticSeverity.Warning
         );
         diagnostic.source = 'C-Next';
+        diagnostic.code = 'parse-error';
         return diagnostic;
     });
 
