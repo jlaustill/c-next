@@ -27,6 +27,23 @@ const TYPE_MAP: Record<string, string> = {
 };
 
 /**
+ * Maps C-Next assignment operators to C assignment operators
+ */
+const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
+    '<-': '=',
+    '+<-': '+=',
+    '-<-': '-=',
+    '*<-': '*=',
+    '/<-': '/=',
+    '%<-': '%=',
+    '&<-': '&=',
+    '|<-': '|=',
+    '^<-': '^=',
+    '<<<-': '<<=',
+    '>><-': '>>=',
+};
+
+/**
  * Parameter info for ADR-006 pointer semantics
  */
 interface ParameterInfo {
@@ -861,16 +878,27 @@ export default class CodeGenerator {
         return '';
     }
 
-    // ADR-001: <- becomes = in C
+    // ADR-001: <- becomes = in C, with compound assignment operators
     private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
         const targetCtx = ctx.assignmentTarget();
         const value = this.generateExpression(ctx.expression());
+
+        // Get the assignment operator and map to C equivalent
+        const operatorCtx = ctx.assignmentOperator();
+        const cnextOp = operatorCtx.getText();
+        const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || '=';
+        const isCompound = cOp !== '=';
 
         // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT])
         const memberAccessCtx = targetCtx.memberAccess();
         if (memberAccessCtx) {
             const exprs = memberAccessCtx.expression();
             if (exprs.length > 0) {
+                // Compound operators not supported for bit field access
+                if (isCompound) {
+                    throw new Error(`Compound assignment operators not supported for bit field access: ${cnextOp}`);
+                }
+
                 // This is GPIO7.DR_SET[bit] or GPIO7.DR[start, width]
                 const identifiers = memberAccessCtx.IDENTIFIER();
                 const regName = identifiers[0].getText();
@@ -909,6 +937,11 @@ export default class CodeGenerator {
         // Check if this is a simple array/bit access assignment (e.g., flags[3])
         const arrayAccessCtx = targetCtx.arrayAccess();
         if (arrayAccessCtx) {
+            // Compound operators not supported for bit field access
+            if (isCompound) {
+                throw new Error(`Compound assignment operators not supported for bit field access: ${cnextOp}`);
+            }
+
             const name = arrayAccessCtx.IDENTIFIER().getText();
             const exprs = arrayAccessCtx.expression();
 
@@ -927,9 +960,9 @@ export default class CodeGenerator {
             }
         }
 
-        // Normal assignment
+        // Normal assignment (simple or compound)
         const target = this.generateAssignmentTarget(targetCtx);
-        return `${target} = ${value};`;
+        return `${target} ${cOp} ${value};`;
     }
 
     private generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
@@ -993,13 +1026,12 @@ export default class CodeGenerator {
         let init = '';
         const forInit = ctx.forInit();
         if (forInit) {
-            if (forInit.variableDeclaration()) {
-                // Remove trailing semicolon since for loop adds it
-                init = this.generateVariableDecl(forInit.variableDeclaration()!);
-                init = init.slice(0, -1); // Remove semicolon
-            } else if (forInit.assignmentStatement()) {
-                init = this.generateAssignment(forInit.assignmentStatement()!);
-                init = init.slice(0, -1); // Remove semicolon
+            if (forInit.forVarDecl()) {
+                // Generate variable declaration for for loop init
+                init = this.generateForVarDecl(forInit.forVarDecl()!);
+            } else if (forInit.forAssignment()) {
+                // Generate assignment for for loop init
+                init = this.generateForAssignment(forInit.forAssignment()!);
             }
         }
 
@@ -1011,14 +1043,51 @@ export default class CodeGenerator {
         let update = '';
         const forUpdate = ctx.forUpdate();
         if (forUpdate) {
+            // forUpdate has same structure as forAssignment
             const target = this.generateAssignmentTarget(forUpdate.assignmentTarget());
             const value = this.generateExpression(forUpdate.expression());
-            update = `${target} = ${value}`;
+            const operatorCtx = forUpdate.assignmentOperator();
+            const cnextOp = operatorCtx.getText();
+            const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || '=';
+            update = `${target} ${cOp} ${value}`;
         }
 
         const body = this.generateStatement(ctx.statement());
 
         return `for (${init}; ${condition}; ${update}) ${body}`;
+    }
+
+    // Generate variable declaration for for loop init (no trailing semicolon)
+    private generateForVarDecl(ctx: Parser.ForVarDeclContext): string {
+        const typeName = this.generateType(ctx.type());
+        const name = ctx.IDENTIFIER().getText();
+
+        let result = `${typeName} ${name}`;
+
+        // Handle array dimension
+        const arrayDim = ctx.arrayDimension();
+        if (arrayDim && arrayDim.expression()) {
+            const size = this.generateExpression(arrayDim.expression()!);
+            result = `${typeName} ${name}[${size}]`;
+        }
+
+        // Handle initialization
+        if (ctx.expression()) {
+            const value = this.generateExpression(ctx.expression()!);
+            result += ` = ${value}`;
+        }
+
+        return result;
+    }
+
+    // Generate assignment for for loop init/update (no trailing semicolon)
+    private generateForAssignment(ctx: Parser.ForAssignmentContext): string {
+        const target = this.generateAssignmentTarget(ctx.assignmentTarget());
+        const value = this.generateExpression(ctx.expression());
+        const operatorCtx = ctx.assignmentOperator();
+        const cnextOp = operatorCtx.getText();
+        const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || '=';
+        return `${target} ${cOp} ${value}`;
     }
 
     private generateReturn(ctx: Parser.ReturnStatementContext): string {

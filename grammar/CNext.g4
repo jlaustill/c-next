@@ -186,9 +186,23 @@ statement
     | block
     ;
 
-// ADR-001: <- for assignment
+// ADR-001: <- for assignment, with compound assignment operators
 assignmentStatement
-    : assignmentTarget '<-' expression ';'
+    : assignmentTarget assignmentOperator expression ';'
+    ;
+
+assignmentOperator
+    : '<-'      // Simple assignment
+    | '+<-'     // Addition assignment
+    | '-<-'     // Subtraction assignment
+    | '*<-'     // Multiplication assignment
+    | '/<-'     // Division assignment
+    | '%<-'     // Modulo assignment
+    | '&<-'     // Bitwise AND assignment
+    | '|<-'     // Bitwise OR assignment
+    | '^<-'     // Bitwise XOR assignment
+    | '<<<-'    // Left shift assignment
+    | '>><-'    // Right shift assignment
     ;
 
 assignmentTarget
@@ -213,13 +227,24 @@ forStatement
     : 'for' '(' forInit? ';' expression? ';' forUpdate? ')' statement
     ;
 
+// For loop init - uses versions without trailing semicolons
 forInit
-    : variableDeclaration
-    | assignmentStatement
+    : forVarDecl
+    | forAssignment
+    ;
+
+// Variable declaration without trailing semicolon (for use in for loops)
+forVarDecl
+    : type IDENTIFIER arrayDimension? ('<-' expression)?
+    ;
+
+// Assignment without trailing semicolon (for use in for loops)
+forAssignment
+    : assignmentTarget assignmentOperator expression
     ;
 
 forUpdate
-    : assignmentTarget '<-' expression
+    : assignmentTarget assignmentOperator expression
     ;
 
 returnStatement
@@ -417,6 +442,19 @@ F64         : 'f64';
 BOOL        : 'bool';
 
 // Operators
+// Compound assignment operators (must be before simple operators for correct matching)
+LSHIFT_ASSIGN   : '<<<-';   // Left shift assignment
+RSHIFT_ASSIGN   : '>><-';   // Right shift assignment
+PLUS_ASSIGN     : '+<-';    // Addition assignment
+MINUS_ASSIGN    : '-<-';    // Subtraction assignment
+STAR_ASSIGN     : '*<-';    // Multiplication assignment
+SLASH_ASSIGN    : '/<-';    // Division assignment
+PERCENT_ASSIGN  : '%<-';    // Modulo assignment
+BITAND_ASSIGN   : '&<-';    // Bitwise AND assignment
+BITOR_ASSIGN    : '|<-';    // Bitwise OR assignment
+BITXOR_ASSIGN   : '^<-';    // Bitwise XOR assignment
+
+// Simple operators
 ASSIGN      : '<-';
 EQ          : '=';
 NEQ         : '!=';
