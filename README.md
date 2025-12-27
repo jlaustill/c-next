@@ -62,20 +62,16 @@ C-Next follows the TypeScript model for adoption:
 2. **Clean escape hatch** — Generated C is idiomatic and maintainable
 3. **Helpful, not burdensome** — If you know C, you can read C-Next immediately
 
-### No Hardcoded Libraries
+### Core Principles
 
-**C-Next never hardcodes any libraries.** All includes must be explicit in source files:
+**KISS (Keep It Simple, Stupid)**
+Every feature must pass the simplicity test: "Can a senior C developer read this cold and understand it in 30 seconds?" If not, it's too clever.
 
-```cnx
-#include <stdint.h>
-#include <stdbool.h>
-#include <Arduino.h>     // Only if using Arduino
-```
+**DRY (Don't Repeat Yourself)**
+Configuration belongs in one place. No magic numbers scattered through code. Named constants and register bindings enforce single sources of truth.
 
-This principle ensures:
-- STM32 projects work without Arduino dependencies
-- Bare-metal projects have full control
-- Generated code contains only what you specify
+**Pragmatic, Not Dogmatic**
+C-Next makes the right thing easy and the wrong thing hard, but doesn't prevent escape hatches. Generated C is always readable and maintainable.
 
 ### C Preprocessor Compatibility
 
@@ -98,11 +94,11 @@ Generated headers automatically include guards:
 | Rust's Path | C-Next's Path |
 |-------------|---------------|
 | Add concepts to catch errors | Remove the ability to make errors |
-| Borrow checker complexity | No heap = no ownership tracking |
-| Lifetime annotations | Static allocation = predictable lifetimes |
+| Borrow checker complexity | Startup allocation = predictable memory |
+| Lifetime annotations | Fixed runtime layout = clear lifetimes |
 | `unsafe` escape hatch | Clean C is the escape hatch |
 
-**Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship.
+**Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship. Safety through removal, not addition.
 
 ## Core Features
 
@@ -180,9 +176,9 @@ void LED_on(void) { GPIO7_DR_SET = (1 << LED_BIT); }
 void LED_off(void) { GPIO7_DR_CLEAR = (1 << LED_BIT); }
 ```
 
-### Static Allocation Only
+### Startup Allocation
 
-No `malloc`, no heap, no memory leaks. Inspired by MISRA C and DO-178C avionics standards.
+Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memory is allocated during initialization, then forbidden. No runtime allocation means no fragmentation, no OOM, no leaks.
 
 ## Hardware Testing
 
