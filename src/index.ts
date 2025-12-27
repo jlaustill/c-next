@@ -1,14 +1,14 @@
 /**
- * C-Next Transpiler
+ * C-Next Transpiler CLI
  * A safer C for embedded systems development
  */
 
-import { CharStream, CommonTokenStream } from 'antlr4ng';
-import { CNextLexer } from './parser/grammar/CNextLexer.js';
-import { CNextParser } from './parser/grammar/CNextParser.js';
-import CodeGenerator from './codegen/CodeGenerator.js';
+import { transpile, ITranspileResult, ITranspileError } from './lib/transpiler.js';
 import Project from './project/Project.js';
 import { readFileSync, writeFileSync } from 'fs';
+
+// Re-export library for backwards compatibility
+export { transpile, ITranspileResult, ITranspileError };
 
 const VERSION = '0.2.0';
 
@@ -113,17 +113,19 @@ async function main(): Promise<void> {
 function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boolean): void {
     try {
         const input = readFileSync(inputFile, 'utf-8');
-        const result = compile(input, parseOnly);
+        const result = transpile(input, { parseOnly });
 
-        if (result.errors.length > 0) {
+        if (!result.success) {
             console.error('Errors:');
-            result.errors.forEach(err => console.error(`  ${err}`));
+            result.errors.forEach(err =>
+                console.error(`  Line ${err.line}:${err.column} - ${err.message}`)
+            );
             process.exit(1);
         }
 
         if (parseOnly) {
             console.log('Parse successful!');
-            console.log(`Found ${result.declarations} top-level declarations`);
+            console.log(`Found ${result.declarationCount} top-level declarations`);
         } else {
             if (outputFile) {
                 writeFileSync(outputFile, result.code);
@@ -232,6 +234,10 @@ function printProjectResult(result: { success: boolean; filesProcessed: number; 
     }
 }
 
+/**
+ * Legacy compile function for backwards compatibility
+ * @deprecated Use transpile() from './lib/transpiler' instead
+ */
 interface CompileResult {
     errors: string[];
     declarations: number;
@@ -239,44 +245,11 @@ interface CompileResult {
 }
 
 function compile(input: string, parseOnly: boolean = false): CompileResult {
-    const errors: string[] = [];
-
-    // Create the lexer and parser
-    const charStream = CharStream.fromString(input);
-    const lexer = new CNextLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
-
-    // Custom error listener
-    parser.removeErrorListeners();
-    parser.addErrorListener({
-        syntaxError(_recognizer, _offendingSymbol, line, charPositionInLine, msg, _e) {
-            errors.push(`Line ${line}:${charPositionInLine} - ${msg}`);
-        },
-        reportAmbiguity() {},
-        reportAttemptingFullContext() {},
-        reportContextSensitivity() {}
-    });
-
-    // Parse the input
-    const tree = parser.program();
-
-    if (errors.length > 0 || parseOnly) {
-        return {
-            errors,
-            declarations: tree.declaration().length,
-            code: ''
-        };
-    }
-
-    // Generate C code
-    const generator = new CodeGenerator();
-    const code = generator.generate(tree);
-
+    const result = transpile(input, { parseOnly });
     return {
-        errors,
-        declarations: tree.declaration().length,
-        code
+        errors: result.errors.map(e => `Line ${e.line}:${e.column} - ${e.message}`),
+        declarations: result.declarationCount,
+        code: result.code
     };
 }
 

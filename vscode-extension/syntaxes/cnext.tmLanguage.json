@@ -1,0 +1,144 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "C-Next",
+  "scopeName": "source.cnext",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#preprocessor" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#registers" },
+    { "include": "#operators" },
+    { "include": "#literals" },
+    { "include": "#strings" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.cnext",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.cnext",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "preprocessor": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.cnext",
+          "match": "^\\s*#\\s*(include|define|ifdef|ifndef|endif|else|elif|pragma|error|warning)\\b.*$"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.cnext",
+          "match": "\\b(if|else|for|while|do|switch|case|default|break|continue|return)\\b"
+        },
+        {
+          "name": "keyword.other.cnext",
+          "match": "\\b(register|namespace|class|struct|enum|typedef|const|volatile|static|extern|inline)\\b"
+        },
+        {
+          "name": "storage.modifier.cnext",
+          "match": "\\b(rw|ro|wo|w1c|w1s)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.cnext",
+          "match": "\\b(u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|void)\\b"
+        }
+      ]
+    },
+    "registers": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.register.cnext",
+          "match": "\\b(register)\\b(?=\\s+\\w+\\s*@)"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.assignment.cnext",
+          "match": "<-"
+        },
+        {
+          "name": "keyword.operator.address.cnext",
+          "match": "@"
+        },
+        {
+          "name": "keyword.operator.comparison.cnext",
+          "match": "(=|!=|<=|>=|<|>)"
+        },
+        {
+          "name": "keyword.operator.logical.cnext",
+          "match": "(&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.bitwise.cnext",
+          "match": "(&|\\||\\^|~|<<|>>)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.cnext",
+          "match": "(\\+|-|\\*|/|%)"
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.cnext",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.numeric.hex.cnext",
+          "match": "\\b0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.cnext",
+          "match": "\\b0[bB][01]+\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.cnext",
+          "match": "\\b[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.cnext",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.cnext",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.cnext",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.cnext",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

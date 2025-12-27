@@ -225,6 +225,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-004](docs/decisions/adr-004-register-bindings.md) | Register Bindings | Type-safe hardware access |
 | [ADR-006](docs/decisions/adr-006-simplified-references.md) | Simplified References | Pass by reference, no pointer syntax |
 | [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md) | Type-Aware Bit Indexing | Integers as bit arrays, `.length` property |
+| [ADR-011](docs/decisions/adr-011-vscode-extension.md) | VS Code Extension | Live C preview with syntax highlighting |
 
 ### Planned
 | ADR | Title | Description |
