@@ -912,6 +912,13 @@ export default class CodeGenerator {
                 if (exprs.length === 1) {
                     const bitIndex = this.generateExpression(exprs[0]);
                     if (isWriteOnly) {
+                        // Write-only: assigning false/0 is semantically meaningless
+                        if (value === 'false' || value === '0') {
+                            throw new Error(
+                                `Cannot assign false to write-only register bit ${fullName}[${bitIndex}]. ` +
+                                `Use the corresponding CLEAR register to clear bits.`
+                            );
+                        }
                         // Write-only: just write the mask, no read-modify-write needed
                         // GPIO7.DR_SET[LED_BIT] <- true  =>  GPIO7_DR_SET = (1 << LED_BIT)
                         return `${fullName} = (1 << ${bitIndex});`;
@@ -924,6 +931,13 @@ export default class CodeGenerator {
                     const width = this.generateExpression(exprs[1]);
                     const mask = `((1 << ${width}) - 1)`;
                     if (isWriteOnly) {
+                        // Write-only: assigning 0 is semantically meaningless
+                        if (value === '0') {
+                            throw new Error(
+                                `Cannot assign 0 to write-only register bits ${fullName}[${start}, ${width}]. ` +
+                                `Use the corresponding CLEAR register to clear bits.`
+                            );
+                        }
                         // Write-only: just write the value shifted to position
                         return `${fullName} = ((${value} & ${mask}) << ${start});`;
                     } else {
