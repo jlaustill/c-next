@@ -2,182 +2,157 @@
 
 **Goal:** Syntax highlighting + live C preview for `.cnx` files
 **Reference:** [ADR-011](../decisions/adr-011-vscode-extension.md)
+**Status:** Complete (v0.3.0)
 
 ---
 
 ## Phase 1: Project Setup
 
 ### 1.1 Create Extension Scaffold
-- [ ] Create `vscode-extension/` directory
-- [ ] Initialize with `yo code` or manual setup
-- [ ] Configure `package.json` with:
+- [x] Create `vscode-extension/` directory
+- [x] Initialize with manual setup
+- [x] Configure `package.json` with:
   - Extension name: `c-next`
   - Display name: `C-Next`
-  - Publisher (can use personal)
+  - Publisher: `jlaustill`
   - Activation events: `onLanguage:cnext`
   - File associations: `.cnx` → `cnext`
-- [ ] Set up TypeScript configuration
-- [ ] Add `.vscodeignore` for clean packaging
+- [x] Set up TypeScript configuration
+- [x] Add `.vscodeignore` for clean packaging
 
 ### 1.2 Build Configuration
-- [ ] Configure esbuild/webpack for bundling
-- [ ] Set up npm scripts:
+- [x] Configure esbuild for bundling
+- [x] Set up npm scripts:
   - `npm run compile` — Build extension
   - `npm run watch` — Watch mode for development
   - `npm run package` — Create `.vsix` file
-- [ ] Test extension loads in VS Code Extension Host
+- [x] Test extension loads in VS Code Extension Host
 
 ---
 
 ## Phase 2: Syntax Highlighting
 
 ### 2.1 TextMate Grammar
-- [ ] Create `syntaxes/cnext.tmLanguage.json`
-- [ ] Define language scopes:
-
-```json
-{
-  "scopeName": "source.cnext",
-  "patterns": [
-    { "include": "#comments" },
-    { "include": "#keywords" },
-    { "include": "#types" },
-    { "include": "#operators" },
-    { "include": "#literals" },
-    { "include": "#registers" }
-  ],
-  "repository": {
-    "keywords": {
-      "match": "\\b(register|namespace|void|if|else|for|while|return|true|false)\\b",
-      "name": "keyword.control.cnext"
-    },
-    "types": {
-      "match": "\\b(u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool)\\b",
-      "name": "storage.type.cnext"
-    },
-    "operators": {
-      "match": "<-|@",
-      "name": "keyword.operator.cnext"
-    }
-  }
-}
-```
+- [x] Create `syntaxes/cnext.tmLanguage.json`
+- [x] Define language scopes for:
+  - Comments (line and block)
+  - Preprocessor directives
+  - Keywords (control flow, declarations)
+  - Types (u8, u16, u32, etc.)
+  - Operators (`<-`, `@`, comparison, logical, bitwise)
+  - Literals (boolean, hex, binary, decimal)
+  - Strings
+  - Register access modifiers (rw, ro, wo, w1c, w1s)
 
 ### 2.2 Language Configuration
-- [ ] Create `language-configuration.json`
-- [ ] Configure:
+- [x] Create `language-configuration.json`
+- [x] Configure:
   - Comment tokens (`//`, `/* */`)
   - Bracket pairs
   - Auto-closing pairs
   - Folding regions
 
 ### 2.3 Register Language
-- [ ] Add `contributes.languages` to `package.json`
-- [ ] Add `contributes.grammars` to `package.json`
-- [ ] Test: Open `.cnx` file, verify highlighting works
+- [x] Add `contributes.languages` to `package.json`
+- [x] Add `contributes.grammars` to `package.json`
+- [x] Test: Open `.cnx` file, verify highlighting works
 
 ---
 
 ## Phase 3: Transpiler Library Refactor
 
 ### 3.1 Extract Core API
-- [ ] Create `src/lib/transpiler.ts`
-- [ ] Define interfaces:
+- [x] Create `src/lib/transpiler.ts`
+- [x] Define interfaces:
   ```typescript
-  export interface TranspileResult {
+  export interface ITranspileResult {
       success: boolean;
-      code?: string;
-      errors?: TranspileError[];
+      code: string;
+      errors: ITranspileError[];
   }
 
-  export interface TranspileError {
+  export interface ITranspileError {
       line: number;
       column: number;
       message: string;
+      severity: 'error' | 'warning';
   }
 
-  export function transpile(source: string): TranspileResult;
+  export function transpile(source: string, options?: ITranspileOptions): ITranspileResult;
   ```
-- [ ] Move parsing logic from `index.ts` to library
-- [ ] Move code generation logic to library
-- [ ] Add error recovery (catch parse errors, return partial results)
+- [x] Move parsing logic from `index.ts` to library
+- [x] Move code generation logic to library
+- [x] Add error recovery (catch parse errors, return partial results)
 
 ### 3.2 Update CLI
-- [ ] Refactor `src/index.ts` to use library
-- [ ] Verify CLI still works: `node dist/index.js examples/blink.cnx`
-- [ ] Ensure no breaking changes to CLI behavior
+- [x] Refactor `src/index.ts` to use library
+- [x] Verify CLI still works: `node dist/index.js examples/blink.cnx`
+- [x] Ensure no breaking changes to CLI behavior
 
 ### 3.3 Export for Extension
-- [ ] Ensure library exports are accessible
-- [ ] Test importing library from another TypeScript file
-- [ ] Verify ANTLR runtime works when bundled
+- [x] Ensure library exports are accessible
+- [x] Test importing library from another TypeScript file
+- [x] Verify ANTLR runtime works when bundled
 
 ---
 
 ## Phase 4: Preview Provider
 
 ### 4.1 Webview Panel
-- [ ] Create `src/previewProvider.ts`
-- [ ] Implement `CNextPreviewProvider` class:
-  ```typescript
-  class CNextPreviewProvider implements vscode.WebviewPanelSerializer {
-      public static readonly viewType = 'cnext.preview';
-
-      public createPreview(document: vscode.TextDocument): void;
-      public updatePreview(document: vscode.TextDocument): void;
-      private getWebviewContent(cCode: string): string;
-  }
-  ```
-- [ ] Create HTML template for preview
-- [ ] Add C syntax highlighting in preview (basic CSS or Prism.js)
-- [ ] Handle VS Code theming (light/dark mode)
+- [x] Create `src/previewProvider.ts`
+- [x] Implement `PreviewProvider` class (singleton pattern)
+- [x] Create HTML template for preview
+- [x] Add C syntax highlighting in preview (custom CSS-based)
+- [x] Handle VS Code theming (light/dark/high-contrast auto-detected)
 
 ### 4.2 Register Commands
-- [ ] Add `contributes.commands` to `package.json`:
+- [x] Add `contributes.commands` to `package.json`:
   - `cnext.openPreview` — Open preview in current column
   - `cnext.openPreviewToSide` — Open preview beside editor
-- [ ] Implement command handlers in `extension.ts`
-- [ ] Add keybindings:
+- [x] Implement command handlers in `extension.ts`
+- [x] Add keybindings:
   - `Ctrl+Shift+V` → `cnext.openPreview`
   - `Ctrl+K V` → `cnext.openPreviewToSide`
+- [x] Add editor title menu button for `.cnx` files
 
 ### 4.3 Link Preview to Editor
-- [ ] Track active `.cnx` editor
-- [ ] Update preview when active editor changes
-- [ ] Handle editor close (close or keep preview?)
+- [x] Track active `.cnx` editor
+- [x] Update preview when active editor changes
+- [x] Handle editor close (preview persists, can track new `.cnx` file)
 
 ---
 
 ## Phase 5: Live Updates
 
 ### 5.1 Document Change Listener
-- [ ] Subscribe to `vscode.workspace.onDidChangeTextDocument`
-- [ ] Filter for `.cnx` files only
-- [ ] Implement debounce (300ms default)
-- [ ] Re-transpile on change
-- [ ] Update webview with new content
+- [x] Subscribe to `vscode.workspace.onDidChangeTextDocument`
+- [x] Filter for `.cnx` files only
+- [x] Implement debounce (300ms default, configurable)
+- [x] Re-transpile on change
+- [x] Update webview with new content
 
 ### 5.2 Error Display
-- [ ] Create `DiagnosticCollection` for C-Next errors
-- [ ] Map `TranspileError` to `vscode.Diagnostic`
-- [ ] Show errors in Problems panel
-- [ ] Show inline squiggles in editor
+- [x] Create `DiagnosticCollection` for C-Next errors
+- [x] Map `ITranspileError` to `vscode.Diagnostic`
+- [x] Show errors in Problems panel
+- [x] Show inline squiggles in editor
+- [x] Highlight error token (word boundary detection)
 
 ### 5.3 Preview Error State
-- [ ] When transpile fails:
+- [x] When transpile fails:
   - Show error banner in preview header
   - Keep last successful output in preview body
-- [ ] When transpile succeeds:
+- [x] When transpile succeeds:
   - Remove error banner
   - Update preview content
-- [ ] Clear errors when they're fixed
+- [x] Clear errors when they're fixed
 
 ---
 
 ## Phase 6: Polish & Packaging
 
 ### 6.1 User Settings
-- [ ] Add `contributes.configuration` to `package.json`:
+- [x] Add `contributes.configuration` to `package.json`:
   ```json
   {
     "cnext.preview.updateDelay": {
@@ -191,25 +166,62 @@
     }
   }
   ```
-- [ ] Read settings in preview provider
+- [x] Read settings in preview provider
 
 ### 6.2 Status Bar
-- [ ] Add status bar item showing transpile status
-- [ ] "C-Next: Ready" when successful
-- [ ] "C-Next: Error" when parse fails (clickable → Problems)
+- [x] Add status bar item showing transpile status
+- [x] `$(check) C-Next` when successful
+- [x] `$(error) C-Next: N errors` when parse fails (clickable → Problems)
 
 ### 6.3 Testing
-- [ ] Test on Linux (primary)
+- [x] Test on Linux (primary)
 - [ ] Test on macOS if available
 - [ ] Test on Windows if available
-- [ ] Test with various `.cnx` examples
-- [ ] Test error recovery with intentionally broken code
+- [x] Test with various `.cnx` examples
+- [x] Test error recovery with intentionally broken code
 
 ### 6.4 Package Extension
-- [ ] Run `vsce package` to create `.vsix`
-- [ ] Install locally: `code --install-extension c-next-0.1.0.vsix`
-- [ ] Verify all features work in installed extension
-- [ ] Document installation in README
+- [x] Run `vsce package` to create `.vsix`
+- [x] Install locally: `code --install-extension c-next-0.3.0.vsix`
+- [x] Verify all features work in installed extension
+- [x] Document installation in README
+
+---
+
+## Phase 7: IntelliSense Features (v0.3.0)
+
+### 7.1 Symbol API
+- [x] Add `ISymbolInfo` interface to transpiler types
+- [x] Add `parseWithSymbols()` function to transpiler
+- [x] Use existing `CNextSymbolCollector` for symbol extraction
+- [x] Transform symbols to simplified format for extension use
+
+### 7.2 Autocomplete Provider
+- [x] Create `src/completionProvider.ts`
+- [x] Implement context detection:
+  - After `.` for member access (namespace, register, class members)
+  - Type contexts (after `:` in register member)
+  - Global scope (keywords, types, top-level symbols)
+- [x] Register provider with `.` as trigger character
+- [x] Include C-Next keywords and primitive types
+- [x] Show symbol kind icons and type info
+
+### 7.3 Hover Provider
+- [x] Create `src/hoverProvider.ts`
+- [x] Show type info for symbols:
+  - Functions: signature and parent namespace/class
+  - Variables: type and size
+  - Register members: type and access modifier (rw/ro/wo)
+- [x] Show info for primitive types and keywords
+- [x] Display line number and location
+
+### 7.4 Scroll Sync
+- [x] Add `scrollToLine()` method to PreviewProvider
+- [x] Add `data-line` attributes to generated HTML lines
+- [x] Add JavaScript message handler in webview
+- [x] Listen to `onDidChangeTextEditorSelection` events
+- [x] Highlight current line in preview
+- [x] Smooth scroll behavior
 
 ---
 
@@ -219,45 +231,58 @@
 c-next/
 ├── src/
 │   ├── lib/
-│   │   └── transpiler.ts       # Core transpilation API
-│   ├── cli/
-│   │   └── index.ts            # CLI entry point
+│   │   ├── transpiler.ts           # Core transpilation API
+│   │   └── types/
+│   │       └── ITranspileResult.ts # Includes ISymbolInfo
+│   ├── symbols/
+│   │   └── CNextSymbolCollector.ts # Symbol extraction
+│   ├── index.ts                    # CLI entry point
 │   ├── codegen/
-│   │   └── CodeGenerator.ts    # Existing code generator
-│   └── parser/                  # Generated ANTLR parser
+│   │   └── CodeGenerator.ts        # Code generator
+│   └── parser/                     # Generated ANTLR parser
 │
 ├── vscode-extension/
-│   ├── package.json             # Extension manifest
+│   ├── package.json                # Extension manifest (v0.3.0)
 │   ├── tsconfig.json
-│   ├── esbuild.js               # Bundle configuration
 │   ├── syntaxes/
 │   │   └── cnext.tmLanguage.json
 │   ├── language-configuration.json
 │   ├── src/
-│   │   ├── extension.ts         # Extension entry
-│   │   └── previewProvider.ts   # Webview logic
-│   └── media/
-│       └── preview.css          # Preview styling
+│   │   ├── extension.ts            # Extension entry
+│   │   ├── previewProvider.ts      # Webview logic + scroll sync
+│   │   ├── completionProvider.ts   # Autocomplete (v0.3.0)
+│   │   └── hoverProvider.ts        # Hover info (v0.3.0)
+│   └── c-next-0.3.0.vsix           # Current package
 │
 └── docs/
     ├── decisions/
     │   └── adr-011-vscode-extension.md
     └── plans/
-        └── vscode-extension-mvp.md   # This file
+        └── vscode-extension-mvp.md # This file
 ```
 
 ---
 
 ## Success Checklist
 
-- [ ] `.cnx` files have syntax highlighting
-- [ ] `Ctrl+K V` opens C preview to the side
-- [ ] Preview updates within 500ms of typing
-- [ ] Parse errors show in Problems panel
-- [ ] Parse errors show as squiggles in editor
-- [ ] Preview shows last good output on error
-- [ ] Extension installs from `.vsix` file
-- [ ] Works on Linux
+### MVP (v0.2.0)
+- [x] `.cnx` files have syntax highlighting
+- [x] `Ctrl+K V` opens C preview to the side
+- [x] Preview updates within 500ms of typing
+- [x] Parse errors show in Problems panel
+- [x] Parse errors show as squiggles in editor
+- [x] Preview shows last good output on error
+- [x] Extension installs from `.vsix` file
+- [x] Works on Linux
+
+### IntelliSense (v0.3.0)
+- [x] Type `LED.` → shows `on`, `off`, `toggle`, `isOn` only
+- [x] Type `GPIO7.` → shows register members only
+- [x] Type `u` → shows `u8`, `u16`, `u32`, `u64` types
+- [x] Hover over `toggle` in `LED.toggle()` → shows function info
+- [x] Hover over `DR_SET` → shows register member with access mode
+- [x] Click in source → preview scrolls to corresponding C code
+- [x] Works with incomplete/errored code (mid-typing)
 
 ---
 
@@ -267,6 +292,7 @@ c-next/
 - `@types/vscode` — VS Code API types
 - `esbuild` — Bundler
 - `@vscode/vsce` — Extension packaging
+- `typescript` — TypeScript compiler
 
 **Runtime (bundled):**
 - `antlr4ng` — Parser runtime (from main project)
@@ -276,7 +302,8 @@ c-next/
 
 ## Notes
 
-- Start simple, iterate
-- Assembly view is documented as future enhancement in ADR-011
+- MVP complete as of 2025-12-27
+- IntelliSense features (v0.3.0) complete as of 2025-12-28
+- Assembly view documented as future enhancement in ADR-011
 - PlatformIO integration for architecture selection is future scope
-- LSP support is a separate future project
+- Full LSP server is a separate future project (current features use VS Code providers directly)

@@ -126,6 +126,20 @@ export default class PreviewProvider implements vscode.Disposable {
     }
 
     /**
+     * Scroll preview to show line corresponding to source line
+     * Uses a simple 1:1 mapping (source line → generated line)
+     */
+    public scrollToLine(sourceLine: number): void {
+        if (!this.panel) {
+            return;
+        }
+        this.panel.webview.postMessage({
+            type: 'scrollToLine',
+            line: sourceLine
+        });
+    }
+
+    /**
      * Update the preview panel content
      */
     private updatePreview(): void {
@@ -236,16 +250,19 @@ export default class PreviewProvider implements vscode.Disposable {
         // Apply syntax highlighting
         const highlightedCode = this.highlightC(code);
 
-        // Add line numbers if enabled
+        // Add line numbers and data-line attributes for scroll sync
         let codeHtml: string;
-        if (showLineNumbers && code) {
+        if (code) {
             const lines = highlightedCode.split('\n');
             codeHtml = lines
                 .map((line, i) => {
-                    const lineNum = String(i + 1).padStart(4, ' ');
-                    return `<span class="line-number">${lineNum}</span>${line}`;
+                    const lineNum = i + 1;
+                    const lineNumStr = showLineNumbers
+                        ? `<span class="line-number">${String(lineNum).padStart(4, ' ')}</span>`
+                        : '';
+                    return `<div class="code-line" data-line="${lineNum}">${lineNumStr}${line}</div>`;
                 })
-                .join('\n');
+                .join('');
         } else {
             codeHtml = highlightedCode;
         }
@@ -263,7 +280,7 @@ export default class PreviewProvider implements vscode.Disposable {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
     <title>C-Next Preview</title>
     <style>
         * {
@@ -337,6 +354,7 @@ export default class PreviewProvider implements vscode.Disposable {
         code {
             font-family: inherit;
             color: #d4d4d4;
+            display: block;
         }
         body.vscode-light code {
             color: #000000;
@@ -344,6 +362,16 @@ export default class PreviewProvider implements vscode.Disposable {
         /* Default span color inherits from code */
         code span {
             color: inherit;
+        }
+        .code-line {
+            min-height: 1.5em;
+            white-space: pre;
+        }
+        .code-line.highlight {
+            background-color: rgba(255, 255, 0, 0.1);
+        }
+        body.vscode-light .code-line.highlight {
+            background-color: rgba(255, 255, 0, 0.2);
         }
         .line-number {
             color: #858585;
@@ -378,6 +406,25 @@ export default class PreviewProvider implements vscode.Disposable {
     <div class="code-container">
         <pre><code>${codeHtml}</code></pre>
     </div>
+    <script>
+        // Handle scroll sync messages from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.type === 'scrollToLine') {
+                const line = message.line;
+                // Remove previous highlight
+                document.querySelectorAll('.code-line.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                // Find and scroll to line
+                const lineElement = document.querySelector('.code-line[data-line="' + line + '"]');
+                if (lineElement) {
+                    lineElement.classList.add('highlight');
+                    lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+    </script>
 </body>
 </html>`;
     }

@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { transpile, ITranspileResult, ITranspileError } from '../../dist/lib/transpiler.js';
 import PreviewProvider from './previewProvider.js';
+import CNextCompletionProvider from './completionProvider.js';
+import CNextHoverProvider from './hoverProvider.js';
 
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
@@ -40,6 +42,21 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.subscriptions.push(openPreview, openPreviewToSide);
 
+    // Register completion provider
+    const completionProvider = vscode.languages.registerCompletionItemProvider(
+        'cnext',
+        new CNextCompletionProvider(),
+        '.'  // Trigger on dot for member access
+    );
+    context.subscriptions.push(completionProvider);
+
+    // Register hover provider
+    const hoverProvider = vscode.languages.registerHoverProvider(
+        'cnext',
+        new CNextHoverProvider()
+    );
+    context.subscriptions.push(hoverProvider);
+
     // Validate on document open
     if (vscode.window.activeTextEditor) {
         validateDocument(vscode.window.activeTextEditor.document);
@@ -73,6 +90,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
         vscode.workspace.onDidCloseTextDocument(doc => {
             diagnosticCollection.delete(doc.uri);
+        }),
+
+        // Scroll sync: update preview when cursor moves
+        vscode.window.onDidChangeTextEditorSelection(event => {
+            if (event.textEditor.document.languageId === 'cnext') {
+                const line = event.selections[0].active.line + 1; // Convert to 1-based
+                previewProvider.scrollToLine(line);
+            }
         })
     );
 }
