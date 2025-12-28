@@ -165,7 +165,7 @@ arrayDimension
 // Variables (ADR-003: Static allocation)
 // ----------------------------------------------------------------------------
 variableDeclaration
-    : type IDENTIFIER arrayDimension? ('<-' expression)? ';'
+    : constModifier? type IDENTIFIER arrayDimension? ('<-' expression)? ';'
     ;
 
 // ----------------------------------------------------------------------------

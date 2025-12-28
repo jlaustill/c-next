@@ -44,22 +44,33 @@ const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
 };
 
 /**
- * Parameter info for ADR-006 pointer semantics
+ * Parameter info for ADR-006 pointer semantics and ADR-013 const enforcement
  */
 interface ParameterInfo {
     name: string;
     isArray: boolean;
     isStruct: boolean;  // User-defined type (struct/class)
+    isConst: boolean;   // ADR-013: Track const modifier for immutability enforcement
 }
 
 /**
- * Type info for bit manipulation and .length support
+ * Type info for bit manipulation, .length support, and ADR-013 const enforcement
  */
 interface TypeInfo {
     baseType: string;      // 'u8', 'u32', 'i16', etc.
     bitWidth: number;      // 8, 16, 32, 64
     isArray: boolean;
     arrayLength?: number;  // For arrays only
+    isConst: boolean;      // ADR-013: Track const modifier for immutability enforcement
+}
+
+/**
+ * ADR-013: Function signature for const parameter tracking
+ * Used to validate const-to-non-const errors at call sites
+ */
+interface FunctionSignature {
+    name: string;
+    parameters: Array<{ name: string; isConst: boolean; isArray: boolean }>;
 }
 
 /**
@@ -108,6 +119,7 @@ export default class CodeGenerator {
     private knownStructs: Set<string> = new Set();
     private knownRegisters: Set<string> = new Set();
     private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
+    private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
 
     /** External symbol table for cross-language interop */
@@ -183,6 +195,7 @@ export default class CodeGenerator {
         this.knownStructs = new Set();
         this.knownRegisters = new Set();
         this.knownFunctions = new Set();
+        this.functionSignatures = new Map();
         this.registerMemberAccess = new Map();
 
         // First pass: collect namespace and class members
@@ -235,10 +248,15 @@ export default class CodeGenerator {
                         members.add(member.variableDeclaration()!.IDENTIFIER().getText());
                     }
                     if (member.functionDeclaration()) {
-                        const funcName = member.functionDeclaration()!.IDENTIFIER().getText();
+                        const funcDecl = member.functionDeclaration()!;
+                        const funcName = funcDecl.IDENTIFIER().getText();
                         members.add(funcName);
                         // Track fully qualified function name: Namespace_function
-                        this.knownFunctions.add(`${name}_${funcName}`);
+                        const fullName = `${name}_${funcName}`;
+                        this.knownFunctions.add(fullName);
+                        // ADR-013: Track function signature for const checking
+                        const sig = this.extractFunctionSignature(fullName, funcDecl.parameterList() ?? null);
+                        this.functionSignatures.set(fullName, sig);
                     }
                 }
                 this.context.namespaceMembers.set(name, members);
@@ -255,14 +273,24 @@ export default class CodeGenerator {
                         members.add(member.fieldDeclaration()!.IDENTIFIER().getText());
                     }
                     if (member.methodDeclaration()) {
-                        const methodName = member.methodDeclaration()!.IDENTIFIER().getText();
+                        const methodDecl = member.methodDeclaration()!;
+                        const methodName = methodDecl.IDENTIFIER().getText();
                         members.add(methodName);
                         // Track fully qualified method name: Class_method
-                        this.knownFunctions.add(`${name}_${methodName}`);
+                        const fullName = `${name}_${methodName}`;
+                        this.knownFunctions.add(fullName);
+                        // ADR-013: Track method signature for const checking
+                        const sig = this.extractFunctionSignature(fullName, methodDecl.parameterList() ?? null);
+                        this.functionSignatures.set(fullName, sig);
                     }
                     if (member.constructorDeclaration()) {
+                        const ctorDecl = member.constructorDeclaration()!;
                         // Track constructor: Class_init
-                        this.knownFunctions.add(`${name}_init`);
+                        const fullName = `${name}_init`;
+                        this.knownFunctions.add(fullName);
+                        // ADR-013: Track constructor signature for const checking
+                        const sig = this.extractFunctionSignature(fullName, ctorDecl.parameterList() ?? null);
+                        this.functionSignatures.set(fullName, sig);
                     }
                 }
                 this.context.classMembers.set(name, members);
@@ -289,8 +317,12 @@ export default class CodeGenerator {
 
             // Track top-level functions
             if (decl.functionDeclaration()) {
-                const name = decl.functionDeclaration()!.IDENTIFIER().getText();
+                const funcDecl = decl.functionDeclaration()!;
+                const name = funcDecl.IDENTIFIER().getText();
                 this.knownFunctions.add(name);
+                // ADR-013: Track function signature for const checking
+                const sig = this.extractFunctionSignature(name, funcDecl.parameterList() ?? null);
+                this.functionSignatures.set(name, sig);
             }
 
             // Track top-level variable types
@@ -308,6 +340,7 @@ export default class CodeGenerator {
         const name = varDecl.IDENTIFIER().getText();
         const typeCtx = varDecl.type();
         const arrayDim = varDecl.arrayDimension();
+        const isConst = varDecl.constModifier() !== null;  // ADR-013: Track const modifier
 
         let baseType = '';
         let bitWidth = 0;
@@ -354,6 +387,7 @@ export default class CodeGenerator {
                 bitWidth,
                 isArray,
                 arrayLength,
+                isConst,  // ADR-013: Store const status
             });
         }
     }
@@ -376,6 +410,7 @@ export default class CodeGenerator {
         for (const param of params.parameter()) {
             const name = param.IDENTIFIER().getText();
             const isArray = param.arrayDimension() !== null;
+            const isConst = param.constModifier() !== null;  // ADR-013: Track const modifier
             const typeCtx = param.type();
 
             // Determine if it's a struct type
@@ -385,7 +420,7 @@ export default class CodeGenerator {
                 isStruct = this.isStructType(typeName);
             }
 
-            this.context.currentParameters.set(name, { name, isArray, isStruct });
+            this.context.currentParameters.set(name, { name, isArray, isStruct, isConst });
         }
     }
 
@@ -395,6 +430,63 @@ export default class CodeGenerator {
     private clearParameters(): void {
         this.context.currentParameters.clear();
         this.context.localArrays.clear();
+    }
+
+    /**
+     * ADR-013: Extract function signature from parameter list
+     */
+    private extractFunctionSignature(name: string, params: Parser.ParameterListContext | null): FunctionSignature {
+        const parameters: Array<{ name: string; isConst: boolean; isArray: boolean }> = [];
+
+        if (params) {
+            for (const param of params.parameter()) {
+                const paramName = param.IDENTIFIER().getText();
+                const isConst = param.constModifier() !== null;
+                const isArray = param.arrayDimension() !== null;
+                parameters.push({ name: paramName, isConst, isArray });
+            }
+        }
+
+        return { name, parameters };
+    }
+
+    /**
+     * ADR-013: Check if an argument is const (variable or parameter)
+     */
+    private isConstValue(identifier: string): boolean {
+        // Check if it's a const parameter
+        const paramInfo = this.context.currentParameters.get(identifier);
+        if (paramInfo?.isConst) {
+            return true;
+        }
+
+        // Check if it's a const variable
+        const typeInfo = this.context.typeRegistry.get(identifier);
+        if (typeInfo?.isConst) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * ADR-013: Check if assigning to an identifier would violate const rules.
+     * Returns error message if const, null if mutable.
+     */
+    private checkConstAssignment(identifier: string): string | null {
+        // Check if it's a const parameter
+        const paramInfo = this.context.currentParameters.get(identifier);
+        if (paramInfo?.isConst) {
+            return `cannot assign to const parameter '${identifier}'`;
+        }
+
+        // Check if it's a const variable
+        const typeInfo = this.context.typeRegistry.get(identifier);
+        if (typeInfo?.isConst) {
+            return `cannot assign to const variable '${identifier}'`;
+        }
+
+        return null;  // Mutable, assignment OK
     }
 
     /**
@@ -808,13 +900,14 @@ export default class CodeGenerator {
     // ========================================================================
 
     private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
+        const constMod = ctx.constModifier() ? 'const ' : '';
         const type = this.generateType(ctx.type());
         const name = ctx.IDENTIFIER().getText();
 
         // Track type for bit access and .length support
         this.trackVariableType(ctx);
 
-        let decl = `${type} ${name}`;
+        let decl = `${constMod}${type} ${name}`;
 
         if (ctx.arrayDimension()) {
             decl += this.generateArrayDimension(ctx.arrayDimension()!);
@@ -888,6 +981,50 @@ export default class CodeGenerator {
         const cnextOp = operatorCtx.getText();
         const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || '=';
         const isCompound = cOp !== '=';
+
+        // ADR-013: Validate const before generating assignment
+        // Check simple identifier assignment
+        if (targetCtx.IDENTIFIER() && !targetCtx.memberAccess() && !targetCtx.arrayAccess()) {
+            const id = targetCtx.IDENTIFIER()!.getText();
+            const constError = this.checkConstAssignment(id);
+            if (constError) {
+                throw new Error(constError);
+            }
+        }
+
+        // Check array element assignment - validate the array is not const
+        if (targetCtx.arrayAccess()) {
+            const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
+            const constError = this.checkConstAssignment(arrayName);
+            if (constError) {
+                throw new Error(`${constError} (array element)`);
+            }
+        }
+
+        // Check member access on const struct - validate the root is not const
+        if (targetCtx.memberAccess()) {
+            const identifiers = targetCtx.memberAccess()!.IDENTIFIER();
+            if (identifiers.length > 0) {
+                const rootName = identifiers[0].getText();
+                const constError = this.checkConstAssignment(rootName);
+                if (constError) {
+                    throw new Error(`${constError} (member access)`);
+                }
+
+                // ADR-013: Check for read-only register members (ro = implicitly const)
+                if (identifiers.length >= 2) {
+                    const memberName = identifiers[1].getText();
+                    const fullName = `${rootName}_${memberName}`;
+                    const accessMod = this.registerMemberAccess.get(fullName);
+                    if (accessMod === 'ro') {
+                        throw new Error(
+                            `cannot assign to read-only register member '${memberName}' ` +
+                            `(${rootName}.${memberName} has 'ro' access modifier)`
+                        );
+                    }
+                }
+            }
+        }
 
         // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT])
         const memberAccessCtx = targetCtx.memberAccess();
@@ -1352,7 +1489,28 @@ export default class CodeGenerator {
                 // Uses both internal tracking and symbol table for cross-language interop
                 const isCNextFunc = this.isCNextFunction(result);
 
-                const args = op.argumentList()!.expression()
+                const argExprs = op.argumentList()!.expression();
+
+                // ADR-013: Check const-to-non-const before generating arguments
+                if (isCNextFunc) {
+                    const sig = this.functionSignatures.get(result);
+                    if (sig) {
+                        for (let i = 0; i < argExprs.length && i < sig.parameters.length; i++) {
+                            const argId = this.getSimpleIdentifier(argExprs[i]);
+                            if (argId && this.isConstValue(argId)) {
+                                const param = sig.parameters[i];
+                                if (!param.isConst) {
+                                    throw new Error(
+                                        `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
+                                        `of function '${result}'`
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const args = argExprs
                     .map(e => isCNextFunc ? this.generateFunctionArg(e) : this.generateExpression(e))
                     .join(', ');
                 result = `${result}(${args})`;

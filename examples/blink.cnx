@@ -35,14 +35,15 @@ register GPIO7 @ 0x42004000 {
 
 // =============================================================================
 // Configuration - No magic numbers!
+// ADR-013: Use const for configuration values that should never change
 // =============================================================================
 
 // LED pin configuration
-u32 LED_PIN <- 13;        // Arduino pin number (for pinMode)
-u32 LED_BIT <- 3;         // GPIO7 bit number (for direct register access)
+const u32 LED_PIN <- 13;        // Arduino pin number (for pinMode)
+const u32 LED_BIT <- 3;         // GPIO7 bit number (for direct register access)
 
 // Timing configuration
-u32 BLINK_DELAY_MS <- 1000;
+const u32 BLINK_DELAY_MS <- 1000;
 
 // =============================================================================
 // LED Control - Using type-aware bit indexing!
