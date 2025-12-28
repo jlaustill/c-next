@@ -15,6 +15,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "analyze": "./scripts/static-analysis.sh",
     "clean": "rm -rf dist src/parser"
   },
   "keywords": [

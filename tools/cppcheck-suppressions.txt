@@ -1,0 +1,9 @@
+# cppcheck suppressions for C-Next generated code
+# Format: error-id:filename:line or just error-id
+# See: https://cppcheck.sourceforge.io/manual.html#suppressions
+
+# Suppress missing system include warnings (we don't have headers during analysis)
+missingIncludeSystem
+
+# Suppress unused function warnings for library code (functions are called externally)
+unusedFunction
