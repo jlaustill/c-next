@@ -1,8 +1,10 @@
 # ADR-005: Classes Without Inheritance
 
-**Status:** Draft (Research Phase)
+**Status:** Approved (Pending Implementation)
 **Date:** 2025-12-26
+**Updated:** 2025-12-28
 **Decision Makers:** C-Next Language Design Team
+**Prerequisites:** ADR-014 (Structs), ADR-015 (Null State)
 
 ## Context
 
@@ -219,41 +221,52 @@ C-Next classes will have a **narrow, focused purpose**: bundling data and method
 3. **Abstract classes**: Use namespaces with function pointers if needed
 4. **Multiple inheritance**: Doesn't exist, can't cause diamond problem
 
-### Proposed Syntax
+### Final Syntax
 
-```
+```cnx
 class UART {
-    private u32 baseAddress;
-    private CircularBuffer<u8, 256> rxBuffer;
-    private CircularBuffer<u8, 256> txBuffer;
-    private u32 baudRate;
+    // Private by default (no keyword needed)
+    u32 baseAddress;
+    CircularBuffer<u8, 256> rxBuffer;
+    CircularBuffer<u8, 256> txBuffer;
+    u32 baudRate;
 
-    // Constructor
-    UART(u32 base) {
+    // Constructor with default parameter
+    public UART(u32 base, u32 baud <- 115200) {
         baseAddress <- base;
-        baudRate <- 115200;
+        baudRate <- baud;
     }
 
-    void setBaudRate(u32 baud) {
+    public void setBaudRate(u32 baud) {
         baudRate <- baud;
         // Configure hardware...
     }
 
-    void send(u8* data, u32 len) {
+    public void send(u8* data, u32 len) {
         // Implementation...
     }
 
-    u32 receive(u8* buffer, u32 maxLen) {
+    public u32 receive(u8* buffer, u32 maxLen) {
         // Implementation...
     }
 }
 
-// Usage in init()
+// Hardware configuration (no magic numbers per ADR-006)
+const u32 UART1_BASE <- 0x40011000;
+const u32 UART2_BASE <- 0x40011400;
+const u32 UART3_BASE <- 0x40011800;
+const u32 SLOW_BAUD <- 9600;
+
+// Global declarations (zero-initialized per ADR-015)
+UART uart1;
+UART uart2;
+UART uart3;
+
+// Initialization in init()
 void init() {
-    uart1 <- UART(0x40011000);
-    uart2 <- UART(0x40011400);
-    uart3 <- UART(0x40011800);
-    // ... up to uart8
+    uart1 <- UART(UART1_BASE);              // Uses default baud 115200
+    uart2 <- UART(UART2_BASE, SLOW_BAUD);   // Override baud to 9600
+    uart3 <- UART(UART3_BASE);              // Uses default baud 115200
 }
 ```
 
@@ -300,9 +313,10 @@ typedef struct {
     uint32_t baudRate;
 } UART;
 
-void UART_init(UART* self, uint32_t base) {
+// Constructor (default parameter handled at call site)
+void UART_init(UART* self, uint32_t base, uint32_t baud) {
     self->baseAddress = base;
-    self->baudRate = 115200;
+    self->baudRate = baud;
 }
 
 void UART_setBaudRate(UART* self, uint32_t baud) {
@@ -314,67 +328,144 @@ void UART_send(UART* self, uint8_t* data, uint32_t len) {
     // Implementation...
 }
 
-// Usage
-UART uart1, uart2, uart3;
-UART_init(&uart1, 0x40011000);
-UART_init(&uart2, 0x40011400);
-UART_init(&uart3, 0x40011800);
+uint32_t UART_receive(UART* self, uint8_t* buffer, uint32_t maxLen) {
+    // Implementation...
+}
+
+// Hardware configuration
+const uint32_t UART1_BASE = 0x40011000;
+const uint32_t UART2_BASE = 0x40011400;
+const uint32_t UART3_BASE = 0x40011800;
+const uint32_t SLOW_BAUD = 9600;
+
+// Global declarations (zero-initialized)
+UART uart1 = {0};
+UART uart2 = {0};
+UART uart3 = {0};
+
+// In init()
+void init(void) {
+    UART_init(&uart1, UART1_BASE, 115200);  // Default applied at call
+    UART_init(&uart2, UART2_BASE, SLOW_BAUD);
+    UART_init(&uart3, UART3_BASE, 115200);
+}
 ```
 
 No vtables. No inheritance overhead. Just clean, predictable C structs with associated functions.
 
 ---
 
-## Open Questions (Research Needed)
+## Design Decisions (Finalized 2025-12-28)
 
-### Q1: Should classes support interfaces/traits?
+### Q1: No Interfaces/Traits
 
-Go and Rust use interfaces/traits for polymorphism without inheritance:
-- a) No interfaces — keep it simple
-- b) Implicit interfaces (Go style) — any class with matching methods satisfies the interface
-- c) Explicit traits (Rust style) — declare what traits a class implements
+**Decision:** No interfaces or traits.
 
-### Q2: How to handle class initialization in init()?
+**Rationale:** Classes in C-Next serve ONE purpose: keeping code DRY by allowing multiple instances of the same thing. No polymorphism, no inheritance, no slippery slope into OOP complexity.
 
-Should class instances be:
-- a) Declared globally, initialized in init()
-- b) Declared and initialized together in init()
-- c) Allow both patterns
+If polymorphism is ever needed, it can be added later. For now, simplicity wins.
 
-### Q3: Should classes be allowed outside init()?
+### Q2: Global Declaration, Initialize in init()
 
-For embedded, probably not. But for desktop applications:
-- a) Strict: All class instances must be created in init()
-- b) Relaxed: Allow local class instances with stack allocation
-- c) Profile-based: Different rules for embedded vs desktop
+**Decision:** Pattern A — declare globally, initialize in `init()`.
 
-### Q4: Method visibility — public/private only, or also protected?
+```cnx
+// Hardware configuration (no magic numbers per ADR-006)
+const u32 UART1_BASE <- 0x40011000;
+const u32 UART2_BASE <- 0x40011400;
+const u32 SLOW_BAUD <- 9600;
 
-Without inheritance, `protected` has no meaning:
-- a) Only public/private (simpler)
-- b) Add `internal` for package-level visibility
+UART uart1;  // Global declaration (zero-initialized per ADR-015)
+UART uart2;
 
-### Q5: Static methods on classes?
-
-Should classes have static methods, or should those be namespaces?
-- a) No static methods — use namespaces instead
-- b) Allow static methods for factory patterns
-
-### Q6: Getters/setters — language feature or convention?
-
-Some languages have property syntax:
-- a) Just use methods: `uart.getBaudRate()`, `uart.setBaudRate(9600)`
-- b) Property syntax: `uart.baudRate` that calls getter/setter
-
-### Q7: Default values for fields?
-
-```
-class UART {
-    private u32 baudRate = 115200;  // Default value?
+void init() {
+    uart1 <- UART(UART1_BASE);
+    uart2 <- UART(UART2_BASE, SLOW_BAUD);
 }
 ```
-- a) Allow defaults (convenient)
-- b) Require explicit initialization (safer, more explicit)
+
+**Rationale:** This pattern:
+- Works with startup allocation (ADR-003)
+- Ties into null state semantics (ADR-015)
+- Matches how embedded code typically structures initialization
+
+### Q3: Strict — init() Only
+
+**Decision:** All class instances must be created in `init()`.
+
+**Rationale:** This is the surface area for a LOT of bugs without being strict. Runtime allocation leads to:
+- Memory fragmentation
+- Unpredictable memory usage
+- OOM conditions in long-running systems
+
+Desktop applications can use C++ if they need runtime allocation.
+
+### Q4: Private by Default
+
+**Decision:** All members are private by default. Only `public` keyword needed.
+
+```cnx
+class UART {
+    u32 baseAddress;           // private (default)
+    u32 baudRate;              // private (default)
+
+    public UART(u32 base) { ... }
+    public void send(u8* data, u32 len) { ... }
+}
+```
+
+**Rationale:** Follows the principle of least privilege. Explicit `public` makes the API surface obvious.
+
+### Q5: No Static Methods
+
+**Decision:** No static methods on classes. Use namespaces instead.
+
+```cnx
+// Instead of UART.defaultBaudRate(), use:
+namespace UARTConfig {
+    u32 defaultBaudRate <- 115200;
+}
+```
+
+**Rationale:** Namespaces already provide singleton/static functionality (ADR-002). No need to duplicate.
+
+### Q6: No Getter/Setter Syntax
+
+**Decision:** No special property syntax. Use methods or public fields.
+
+**Rationale:** Getters/setters are just methods. Nothing stops developers from writing `getBaudRate()` and `setBaudRate()` if they want them. No language-level opinion beyond "use methods if you need validation/side-effects, public fields if you don't."
+
+### Q7: Constructor Default Parameters Only
+
+**Decision:** No field defaults. All defaults in constructor parameters using `<-` syntax.
+
+```cnx
+class UART {
+    u32 baseAddress;
+    u32 baudRate;
+
+    public UART(u32 base, u32 baudRate <- 115200) {
+        baseAddress <- base;
+        this.baudRate <- baudRate;
+    }
+}
+
+// Hardware configuration (no magic numbers per ADR-006)
+const u32 UART1_BASE <- 0x40011000;
+const u32 UART2_BASE <- 0x40011400;
+const u32 SLOW_BAUD <- 9600;
+
+// Usage:
+UART uart1 <- UART(UART1_BASE);              // baudRate = 115200
+UART uart2 <- UART(UART2_BASE, SLOW_BAUD);   // baudRate = 9600
+```
+
+**Rationale:** Single source of truth for defaults. Research shows field defaults cause confusion:
+- C++/Java: Constructor can override field default — two places to look
+- Order of initialization is non-obvious
+- Scattered initialization logic
+
+Rust and Go require explicit initialization. C-Next follows this philosophy with the ergonomic addition of default parameters in constructors.
 
 ---
 

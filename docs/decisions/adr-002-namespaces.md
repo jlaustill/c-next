@@ -1,7 +1,8 @@
 # ADR-002: Namespaces Over Static Classes
 
-**Status:** Proposed
+**Status:** Approved
 **Date:** 2025-12-25
+**Updated:** 2025-12-28
 **Decision Makers:** C-Next Language Design Team
 
 ## Context
@@ -87,23 +88,27 @@ For application services like `Console`, `Logger`, or `Math`, there genuinely is
 
 ## Decision
 
-C-Next provides **namespaces** as a first-class scoping mechanism for organizing singleton services:
+C-Next provides **namespaces** as a first-class scoping mechanism for organizing singleton services.
 
-```
+### Visibility: Private by Default
+
+Like classes (ADR-005), namespace members are **private by default**. Only members marked `public` are accessible outside the namespace:
+
+```cnx
 namespace Console {
-    private UART* uart;
-    private LogLevel logLevel;
+    UART* uart;              // private (default) - internal state
+    LogLevel logLevel;       // private (default) - internal state
 
-    void init(UART* u) {
+    public void init(UART* u) {
         uart <- u;
         logLevel <- LogLevel.Info;
     }
 
-    void print(const char* msg) {
+    public void print(const char* msg) {
         uart.send(msg);
     }
 
-    void setLogLevel(LogLevel level) {
+    public void setLogLevel(LogLevel level) {
         logLevel <- level;
     }
 }
@@ -111,14 +116,18 @@ namespace Console {
 
 Another classic example — utility functions with no state:
 
-```
+```cnx
 namespace Math {
-    f32 sin(f32 x) { ... }
-    f32 cos(f32 x) { ... }
-    f32 sqrt(f32 x) { ... }
-    f32 clamp(f32 value, f32 min, f32 max) { ... }
+    public f32 sin(f32 x) { ... }
+    public f32 cos(f32 x) { ... }
+    public f32 sqrt(f32 x) { ... }
+    public f32 clamp(f32 value, f32 min, f32 max) { ... }
+
+    f32 taylorTerm(f32 x, u8 n) { ... }  // private helper
 }
 ```
+
+This ensures consistency with classes: one rule to remember — **everything is private unless marked `public`**.
 
 ### Transpilation
 
@@ -126,7 +135,7 @@ Namespaces transpile to C's established prefix convention:
 
 ```c
 // Generated C
-// private members transpile to static (file-scope only)
+// private members (default) transpile to static (file-scope only)
 static UART* Console_uart;
 static LogLevel Console_logLevel;
 
@@ -167,7 +176,7 @@ Console_setLogLevel(LogLevel_Debug);
 
 1. **Namespaces are not types** — You cannot instantiate a namespace
 2. **Namespaces are singletons** — There is exactly one `Console`, one `Math`
-3. **Namespaces provide scoping** — `private` members are inaccessible outside the namespace
+3. **Private by default** — Members are private unless marked `public` (consistent with classes)
 4. **All members are implicitly static** — They belong to the namespace, not an instance
 
 ## Alternatives Considered
