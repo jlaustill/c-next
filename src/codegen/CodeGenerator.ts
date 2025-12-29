@@ -97,6 +97,7 @@ interface GeneratorContext {
     currentParameters: Map<string, ParameterInfo>; // ADR-006: track params for pointer semantics
     localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
     typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
+    expectedType: string | null; // For inferred struct initializers
 }
 
 /**
@@ -112,11 +113,13 @@ export default class CodeGenerator {
         currentParameters: new Map(),
         localArrays: new Set(),
         typeRegistry: new Map(),
+        expectedType: null,
     };
 
     private knownNamespaces: Set<string> = new Set();
     private knownClasses: Set<string> = new Set();
     private knownStructs: Set<string> = new Set();
+    private structFields: Map<string, Map<string, string>> = new Map(); // struct -> (field -> type)
     private knownRegisters: Set<string> = new Set();
     private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
     private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
@@ -189,10 +192,12 @@ export default class CodeGenerator {
             currentParameters: new Map(),
             localArrays: new Set(),
             typeRegistry: new Map(),
+            expectedType: null,
         };
         this.knownNamespaces = new Set();
         this.knownClasses = new Set();
         this.knownStructs = new Set();
+        this.structFields = new Map();
         this.knownRegisters = new Set();
         this.knownFunctions = new Set();
         this.functionSignatures = new Map();
@@ -297,8 +302,18 @@ export default class CodeGenerator {
             }
 
             if (decl.structDeclaration()) {
-                const name = decl.structDeclaration()!.IDENTIFIER().getText();
+                const structDecl = decl.structDeclaration()!;
+                const name = structDecl.IDENTIFIER().getText();
                 this.knownStructs.add(name);
+
+                // Track field types for inferred struct initializers
+                const fields = new Map<string, string>();
+                for (const member of structDecl.structMember()) {
+                    const fieldName = member.IDENTIFIER().getText();
+                    const fieldType = this.getTypeName(member.type());
+                    fields.set(fieldName, fieldType);
+                }
+                this.structFields.set(name, fields);
             }
 
             if (decl.registerDeclaration()) {
@@ -350,6 +365,10 @@ export default class CodeGenerator {
         if (typeCtx.primitiveType()) {
             baseType = typeCtx.primitiveType()!.getText();
             bitWidth = TYPE_WIDTH[baseType] || 0;
+        } else if (typeCtx.userType()) {
+            // Track struct/class types for inferred struct initializers
+            baseType = typeCtx.userType()!.getText();
+            bitWidth = 0; // User types don't have fixed bit width
         } else if (typeCtx.arrayType()) {
             isArray = true;
             const arrayTypeCtx = typeCtx.arrayType()!;
@@ -835,16 +854,62 @@ export default class CodeGenerator {
         lines.push(`typedef struct {`);
 
         for (const member of ctx.structMember()) {
-            const volatile = member.volatileModifier() ? 'volatile ' : '';
             const type = this.generateType(member.type());
             const fieldName = member.IDENTIFIER().getText();
-            lines.push(`    ${volatile}${type} ${fieldName};`);
+            lines.push(`    ${type} ${fieldName};`);
         }
 
         lines.push(`} ${name};`);
         lines.push('');
 
         return lines.join('\n');
+    }
+
+    /**
+     * ADR-014: Generate struct initializer
+     * Point { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 }
+     * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (inferred from context)
+     */
+    private generateStructInitializer(ctx: Parser.StructInitializerContext): string {
+        // Get type name - either explicit or inferred from context
+        let typeName: string;
+        if (ctx.IDENTIFIER()) {
+            typeName = ctx.IDENTIFIER()!.getText();
+        } else if (this.context.expectedType) {
+            typeName = this.context.expectedType;
+        } else {
+            // This should not happen in valid code
+            throw new Error('Cannot infer struct type - no explicit type and no context');
+        }
+
+        const fieldList = ctx.fieldInitializerList();
+
+        if (!fieldList) {
+            // Empty initializer: Point {} -> (Point){ 0 }
+            return `(${typeName}){ 0 }`;
+        }
+
+        // Get field type info for nested initializers
+        const structFieldTypes = this.structFields.get(typeName);
+
+        const fields = fieldList.fieldInitializer().map(field => {
+            const fieldName = field.IDENTIFIER().getText();
+
+            // Set expected type for nested initializers
+            const savedExpectedType = this.context.expectedType;
+            if (structFieldTypes && structFieldTypes.has(fieldName)) {
+                this.context.expectedType = structFieldTypes.get(fieldName)!;
+            }
+
+            const value = this.generateExpression(field.expression());
+
+            // Restore expected type
+            this.context.expectedType = savedExpectedType;
+
+            return `.${fieldName} = ${value}`;
+        });
+
+        return `(${typeName}){ ${fields.join(', ')} }`;
     }
 
     // ========================================================================
@@ -903,23 +968,76 @@ export default class CodeGenerator {
         const constMod = ctx.constModifier() ? 'const ' : '';
         const type = this.generateType(ctx.type());
         const name = ctx.IDENTIFIER().getText();
+        const typeCtx = ctx.type();
 
         // Track type for bit access and .length support
         this.trackVariableType(ctx);
 
         let decl = `${constMod}${type} ${name}`;
+        const isArray = ctx.arrayDimension() !== null;
 
-        if (ctx.arrayDimension()) {
+        if (isArray) {
             decl += this.generateArrayDimension(ctx.arrayDimension()!);
             // ADR-006: Track local arrays (they don't need & when passed to functions)
             this.context.localArrays.add(name);
         }
 
         if (ctx.expression()) {
+            // Explicit initializer provided
+            // Set expected type for inferred struct initializers
+            const typeName = this.getTypeName(typeCtx);
+            const savedExpectedType = this.context.expectedType;
+            this.context.expectedType = typeName;
+
             decl += ` = ${this.generateExpression(ctx.expression()!)}`;
+
+            // Restore expected type
+            this.context.expectedType = savedExpectedType;
+        } else {
+            // ADR-015: Zero initialization for uninitialized variables
+            decl += ` = ${this.getZeroInitializer(typeCtx, isArray)}`;
         }
 
         return decl + ';';
+    }
+
+    /**
+     * ADR-015: Get the appropriate zero initializer for a type
+     */
+    private getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string {
+        // Arrays and structs/classes use {0}
+        if (isArray) {
+            return '{0}';
+        }
+
+        // Check for user-defined types (structs/classes)
+        if (typeCtx.userType()) {
+            return '{0}';
+        }
+
+        // Check for generic types (like RingBuffer<u8, 256>)
+        if (typeCtx.genericType()) {
+            return '{0}';
+        }
+
+        // Primitive types
+        if (typeCtx.primitiveType()) {
+            const primType = typeCtx.primitiveType()!.getText();
+            if (primType === 'bool') {
+                return 'false';
+            }
+            if (primType === 'f32') {
+                return '0.0f';
+            }
+            if (primType === 'f64') {
+                return '0.0';
+            }
+            // All integer types
+            return '0';
+        }
+
+        // Default fallback
+        return '0';
     }
 
     // ========================================================================
@@ -974,7 +1092,21 @@ export default class CodeGenerator {
     // ADR-001: <- becomes = in C, with compound assignment operators
     private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
         const targetCtx = ctx.assignmentTarget();
+
+        // Set expected type for inferred struct initializers
+        const savedExpectedType = this.context.expectedType;
+        if (targetCtx.IDENTIFIER() && !targetCtx.memberAccess() && !targetCtx.arrayAccess()) {
+            const id = targetCtx.IDENTIFIER()!.getText();
+            const typeInfo = this.context.typeRegistry.get(id);
+            if (typeInfo) {
+                this.context.expectedType = typeInfo.baseType;
+            }
+        }
+
         const value = this.generateExpression(ctx.expression());
+
+        // Restore expected type
+        this.context.expectedType = savedExpectedType;
 
         // Get the assignment operator and map to C equivalent
         const operatorCtx = ctx.assignmentOperator();
@@ -1525,6 +1657,10 @@ export default class CodeGenerator {
     }
 
     private generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+        // ADR-014: Struct initializer - Point { x: 10, y: 20 }
+        if (ctx.structInitializer()) {
+            return this.generateStructInitializer(ctx.structInitializer()!);
+        }
         if (ctx.IDENTIFIER()) {
             const id = ctx.IDENTIFIER()!.getText();
 
@@ -1628,6 +1764,22 @@ export default class CodeGenerator {
     // ========================================================================
     // Types
     // ========================================================================
+
+    /**
+     * Get the C-Next type name (for tracking purposes, not C translation)
+     */
+    private getTypeName(ctx: Parser.TypeContext): string {
+        if (ctx.userType()) {
+            return ctx.userType()!.getText();
+        }
+        if (ctx.primitiveType()) {
+            return ctx.primitiveType()!.getText();
+        }
+        if (ctx.genericType()) {
+            return ctx.genericType()!.IDENTIFIER().getText();
+        }
+        return ctx.getText();
+    }
 
     private generateType(ctx: Parser.TypeContext): string {
         if (ctx.primitiveType()) {

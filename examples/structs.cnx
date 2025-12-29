@@ -1,0 +1,239 @@
+// structs.cnx - Demonstrates struct features (ADR-014)
+// Structs are pure data containers without methods
+
+#include <stdint.h>
+#include <stdbool.h>
+
+// ============================================================================
+// Simple Structs
+// ============================================================================
+
+// Basic 2D point
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+// 3D vector with floating point
+struct Vector3 {
+    f32 x;
+    f32 y;
+    f32 z;
+}
+
+// Color with alpha channel
+struct Color {
+    u8 r;
+    u8 g;
+    u8 b;
+    u8 a;
+}
+
+// ============================================================================
+// Configuration Structs
+// ============================================================================
+
+// UART configuration
+struct UARTConfig {
+    u32 baudRate;
+    u8 dataBits;
+    u8 stopBits;
+    u8 parity;
+}
+
+// SPI configuration
+struct SPIConfig {
+    u32 clockSpeed;
+    u8 mode;
+    u8 bitOrder;
+}
+
+// I2C configuration
+struct I2CConfig {
+    u32 clockSpeed;
+    u8 address;
+}
+
+// ============================================================================
+// Composed Structs
+// ============================================================================
+
+// Rectangle defined by two points
+struct Rectangle {
+    Point topLeft;
+    Point bottomRight;
+}
+
+// Circle defined by center and radius
+struct Circle {
+    Point center;
+    u32 radius;
+}
+
+// ============================================================================
+// Console namespace for output
+// ============================================================================
+
+namespace Console {
+    public void printInt(i32 value) {
+        // Print implementation...
+    }
+
+    public void printFloat(f32 value) {
+        // Print float implementation...
+    }
+
+    public void printHex(u32 value) {
+        // Print hex implementation...
+    }
+}
+
+// ============================================================================
+// Functions operating on structs (ADR-006: pass by reference)
+// ============================================================================
+
+// Move a point by delta values
+// Input parameters are const (not modified), output parameter is not
+void movePoint(Point p, const i32 dx, const i32 dy) {
+    p.x <- p.x + dx;
+    p.y <- p.y + dy;
+}
+
+// Scale a point from origin
+void scalePoint(Point p, const i32 factor) {
+    p.x <- p.x * factor;
+    p.y <- p.y * factor;
+}
+
+// Calculate distance squared between two points (no sqrt for embedded)
+void distanceSquared(const Point a, const Point b, i32 result) {
+    i32 dx <- b.x - a.x;
+    i32 dy <- b.y - a.y;
+    result <- dx * dx + dy * dy;
+}
+
+// Normalize a vector (approximate for embedded - no floating point division)
+void normalizeVector(Vector3 v) {
+    // Simplified - in real code you'd use fixed-point math
+    f32 len <- v.x * v.x + v.y * v.y + v.z * v.z;
+    // ... normalize implementation
+}
+
+// Check if a point is inside a rectangle
+void isPointInRect(const Point p, const Rectangle rect, bool result) {
+    result <- p.x >= rect.topLeft.x && p.x <= rect.bottomRight.x &&
+              p.y >= rect.topLeft.y && p.y <= rect.bottomRight.y;
+}
+
+// ============================================================================
+// Configuration constants (ADR-006: no magic numbers)
+// ============================================================================
+
+const i32 MOVE_DX <- 5;
+const i32 MOVE_DY <- 10;
+const i32 SCALE_FACTOR <- 2;
+
+const u32 DEFAULT_BAUD <- 115200;
+const u8 DEFAULT_DATA_BITS <- 8;
+const u8 DEFAULT_STOP_BITS <- 1;
+const u8 DEFAULT_PARITY <- 0;
+
+const u32 SPI_CLOCK <- 1000000;
+const u8 SPI_MODE <- 0;
+const u8 SPI_BIT_ORDER <- 0;
+
+// ============================================================================
+// Main demonstration
+// ============================================================================
+
+void main() {
+    // -----------------------------------------
+    // Zero initialization (ADR-015)
+    // -----------------------------------------
+
+    // Uninitialized structs are zero-initialized
+    Point origin;                    // origin.x = 0, origin.y = 0
+    Vector3 direction;               // direction.x = 0, direction.y = 0, direction.z = 0
+    UARTConfig uart;                 // All fields zero
+
+    // -----------------------------------------
+    // Struct initializer syntax (inferred types)
+    // -----------------------------------------
+
+    // Type is inferred from declaration - no need to repeat
+    Point cursor <- { x: 100, y: 200 };
+
+    // Partial initialization (other fields zero)
+    Color red <- { r: 255 };         // g=0, b=0, a=0
+
+    // All fields specified
+    Color blue <- { r: 0, g: 0, b: 255, a: 255 };
+
+    // Configuration struct
+    UARTConfig serialConfig <- {
+        baudRate: DEFAULT_BAUD,
+        dataBits: DEFAULT_DATA_BITS,
+        stopBits: DEFAULT_STOP_BITS,
+        parity: DEFAULT_PARITY
+    };
+
+    // -----------------------------------------
+    // Nested struct initialization (all types inferred)
+    // -----------------------------------------
+
+    Rectangle rect <- {
+        topLeft: { x: 0, y: 0 },
+        bottomRight: { x: 640, y: 480 }
+    };
+
+    Circle circle <- {
+        center: { x: 320, y: 240 },
+        radius: 100
+    };
+
+    // -----------------------------------------
+    // Member access
+    // -----------------------------------------
+
+    // Read member values
+    i32 cursorX <- cursor.x;
+    i32 cursorY <- cursor.y;
+    Console.printInt(cursorX);       // 100
+    Console.printInt(cursorY);       // 200
+
+    // Modify member values
+    cursor.x <- 150;
+    cursor.y <- 250;
+
+    // Access nested struct members
+    i32 rectWidth <- rect.bottomRight.x - rect.topLeft.x;
+    i32 rectHeight <- rect.bottomRight.y - rect.topLeft.y;
+    Console.printInt(rectWidth);     // 640
+    Console.printInt(rectHeight);    // 480
+
+    // -----------------------------------------
+    // Functions with struct parameters
+    // -----------------------------------------
+
+    // Structs pass by reference (ADR-006)
+    Point player <- { x: 10, y: 20 };
+    movePoint(player, MOVE_DX, MOVE_DY);
+    Console.printInt(player.x);      // 15
+    Console.printInt(player.y);      // 30
+
+    // Scale the player position
+    scalePoint(player, SCALE_FACTOR);
+    Console.printInt(player.x);      // 30
+    Console.printInt(player.y);      // 60
+
+    // Calculate distance
+    Point target <- { x: 100, y: 100 };
+    i32 dist;
+    distanceSquared(player, target, dist);
+    Console.printInt(dist);
+
+    // Check if point is in rectangle
+    bool inside;
+    isPointInRect(player, rect, inside);
+    // inside is true or false
+}

@@ -120,22 +120,14 @@ bitfieldMember
     ;
 
 // ----------------------------------------------------------------------------
-// Struct (traditional C-like struct)
+// Struct (ADR-014: Data containers without methods)
 // ----------------------------------------------------------------------------
 structDeclaration
-    : 'struct' IDENTIFIER '{' structMember* '}' defaultAddress? ';'
+    : 'struct' IDENTIFIER '{' structMember* '}'
     ;
 
 structMember
-    : volatileModifier? type IDENTIFIER ';'
-    ;
-
-volatileModifier
-    : 'volatile'
-    ;
-
-defaultAddress
-    : expression
+    : type IDENTIFIER ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -319,9 +311,24 @@ postfixOp
     ;
 
 primaryExpression
-    : IDENTIFIER
+    : structInitializer
+    | IDENTIFIER
     | literal
     | '(' expression ')'
+    ;
+
+// Struct initializer: Point { x: 10, y: 20 } or inferred { x: 10, y: 20 }
+structInitializer
+    : IDENTIFIER '{' fieldInitializerList? '}'    // Explicit type: Point { x: 10 }
+    | '{' fieldInitializerList '}'                // Inferred type: { x: 10 } (requires context)
+    ;
+
+fieldInitializerList
+    : fieldInitializer (',' fieldInitializer)* ','?
+    ;
+
+fieldInitializer
+    : IDENTIFIER ':' expression
     ;
 
 memberAccess
