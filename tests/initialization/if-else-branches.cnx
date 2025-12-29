@@ -1,0 +1,20 @@
+// Test: If/else branch analysis
+
+void testBothBranches() {
+    u32 x;
+    if (true) {
+        x <- 10;
+    } else {
+        x <- 20;
+    }
+    u32 y <- x + 1;     // OK: x is initialized on ALL paths
+}
+
+void testOnlyIfBranch() {
+    u32 x;
+    if (true) {
+        x <- 10;
+    }
+    // ERROR expected: x may not be initialized (no else branch)
+    u32 y <- x + 1;
+}

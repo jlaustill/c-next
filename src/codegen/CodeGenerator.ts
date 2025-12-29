@@ -412,6 +412,66 @@ export default class CodeGenerator {
     }
 
     /**
+     * Track variable type with a specific name (for namespace/class members)
+     * This allows tracking with mangled names for proper scope resolution
+     */
+    private trackVariableTypeWithName(varDecl: Parser.VariableDeclarationContext, registryName: string): void {
+        const typeCtx = varDecl.type();
+        const arrayDim = varDecl.arrayDimension();
+        const isConst = varDecl.constModifier() !== null;
+
+        let baseType = '';
+        let bitWidth = 0;
+        let isArray = false;
+        let arrayLength: number | undefined;
+
+        if (typeCtx.primitiveType()) {
+            baseType = typeCtx.primitiveType()!.getText();
+            bitWidth = TYPE_WIDTH[baseType] || 0;
+        } else if (typeCtx.userType()) {
+            baseType = typeCtx.userType()!.getText();
+            bitWidth = 0;
+        } else if (typeCtx.arrayType()) {
+            isArray = true;
+            const arrayTypeCtx = typeCtx.arrayType()!;
+            if (arrayTypeCtx.primitiveType()) {
+                baseType = arrayTypeCtx.primitiveType()!.getText();
+                bitWidth = TYPE_WIDTH[baseType] || 0;
+            }
+            const sizeExpr = arrayTypeCtx.expression();
+            if (sizeExpr) {
+                const sizeText = sizeExpr.getText();
+                const size = parseInt(sizeText, 10);
+                if (!isNaN(size)) {
+                    arrayLength = size;
+                }
+            }
+        }
+
+        if (arrayDim) {
+            isArray = true;
+            const sizeExpr = arrayDim.expression();
+            if (sizeExpr) {
+                const sizeText = sizeExpr.getText();
+                const size = parseInt(sizeText, 10);
+                if (!isNaN(size)) {
+                    arrayLength = size;
+                }
+            }
+        }
+
+        if (baseType) {
+            this.context.typeRegistry.set(registryName, {
+                baseType,
+                bitWidth,
+                isArray,
+                arrayLength,
+                isConst,
+            });
+        }
+    }
+
+    /**
      * Check if a type name is a user-defined struct/class
      */
     private isStructType(typeName: string): boolean {
@@ -489,6 +549,33 @@ export default class CodeGenerator {
     }
 
     /**
+     * Resolve an identifier to its scoped name.
+     * Inside a namespace, checks if the identifier is a namespace member first.
+     * Inside a class, checks if the identifier is a class member first.
+     * Otherwise returns the identifier unchanged (global scope).
+     */
+    private resolveIdentifier(identifier: string): string {
+        // Check current namespace first (inner scope shadows outer)
+        if (this.context.currentNamespace) {
+            const members = this.context.namespaceMembers.get(this.context.currentNamespace);
+            if (members && members.has(identifier)) {
+                return `${this.context.currentNamespace}_${identifier}`;
+            }
+        }
+
+        // Check current class
+        if (this.context.currentClass) {
+            const members = this.context.classMembers.get(this.context.currentClass);
+            if (members && members.has(identifier)) {
+                return `${this.context.currentClass}_${identifier}`;
+            }
+        }
+
+        // Fall back to global scope
+        return identifier;
+    }
+
+    /**
      * ADR-013: Check if assigning to an identifier would violate const rules.
      * Returns error message if const, null if mutable.
      */
@@ -499,8 +586,11 @@ export default class CodeGenerator {
             return `cannot assign to const parameter '${identifier}'`;
         }
 
+        // Resolve identifier to scoped name for proper lookup
+        const scopedName = this.resolveIdentifier(identifier);
+
         // Check if it's a const variable
-        const typeInfo = this.context.typeRegistry.get(identifier);
+        const typeInfo = this.context.typeRegistry.get(scopedName);
         if (typeInfo?.isConst) {
             return `cannot assign to const variable '${identifier}'`;
         }
@@ -697,12 +787,19 @@ export default class CodeGenerator {
                 const fullName = `${name}_${varName}`;
                 const prefix = isPrivate ? 'static ' : '';
 
+                // Track variable type with mangled name for scope-aware const checking
+                this.trackVariableTypeWithName(varDecl, fullName);
+
+                const isArray = varDecl.arrayDimension() !== null;
                 let decl = `${prefix}${type} ${fullName}`;
-                if (varDecl.arrayDimension()) {
+                if (isArray) {
                     decl += this.generateArrayDimension(varDecl.arrayDimension()!);
                 }
                 if (varDecl.expression()) {
                     decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
+                } else {
+                    // ADR-015: Zero initialization for uninitialized namespace variables
+                    decl += ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
                 }
                 lines.push(decl + ';');
             }

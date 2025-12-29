@@ -9,6 +9,7 @@ import { CNextParser } from '../parser/grammar/CNextParser.js';
 import CodeGenerator from '../codegen/CodeGenerator.js';
 import CNextSymbolCollector from '../symbols/CNextSymbolCollector.js';
 import ESymbolKind from '../types/ESymbolKind.js';
+import InitializationAnalyzer from '../analysis/InitializationAnalyzer.js';
 import {
     ITranspileResult,
     ITranspileError,
@@ -122,6 +123,30 @@ export function transpile(source: string, options: ITranspileOptions = {}): ITra
             success: true,
             code: '',
             errors: [],
+            declarationCount
+        };
+    }
+
+    // Run initialization analysis (Rust-style use-before-init detection)
+    const initAnalyzer = new InitializationAnalyzer();
+    const initErrors = initAnalyzer.analyze(tree);
+
+    // Convert initialization errors to transpile errors
+    for (const initError of initErrors) {
+        errors.push({
+            line: initError.line,
+            column: initError.column,
+            message: `error[${initError.code}]: ${initError.message}`,
+            severity: 'error'
+        });
+    }
+
+    // If there are initialization errors, fail compilation
+    if (errors.length > 0) {
+        return {
+            success: false,
+            code: '',
+            errors,
             declarationCount
         };
     }

@@ -1,0 +1,18 @@
+// DEMO: Scoping bug - namespace vars not tracked
+
+u8 count <- 0;        // Global - tracked in typeRegistry
+const u8 limit <- 10; // Global const - tracked in typeRegistry
+
+namespace Counter {
+    u8 count <- 0;    // NOT tracked! Should shadow global 'count'
+
+    void increment() {
+        count <- count + 1;  // Should reference Counter.count
+        // But checkConstAssignment looks up "count" and might find global
+        // Initialization analyzer has same problem
+    }
+}
+
+void main() {
+    Counter.increment();
+}

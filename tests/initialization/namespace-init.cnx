@@ -1,0 +1,21 @@
+// Test: Initialization tracking with namespaces
+
+u8 globalCount;  // Global - uninitialized
+
+namespace Counter {
+    u8 count;    // Namespace member - uninitialized
+
+    void init() {
+        count <- 0;  // Initialize namespace member
+    }
+
+    void increment() {
+        // Should reference Counter.count (initialized by init())
+        count <- count + 1;
+    }
+}
+
+void main() {
+    Counter.init();
+    Counter.increment();
+}

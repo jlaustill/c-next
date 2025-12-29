@@ -1,0 +1,7 @@
+// Test: Use before initialization should be an error
+// This file intentionally has initialization errors
+
+void main() {
+    u32 x;              // Declared but not initialized
+    u32 y <- x + 1;     // ERROR: use of uninitialized variable 'x'
+}

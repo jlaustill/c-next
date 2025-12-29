@@ -1,0 +1,16 @@
+// Test: Scope shadowing between global and namespace
+
+const u8 flags <- 0;  // Global
+
+namespace Control {
+    u8 flags <- 0b11111111;  // Namespace member - same name!
+
+    void setFlag() {
+        // Which 'flags' does this reference?
+        flags <- 0b10101010;
+    }
+}
+
+void main() {
+    Control.setFlag();
+}
