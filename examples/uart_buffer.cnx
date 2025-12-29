@@ -1,113 +1,155 @@
 // uart_buffer.cnx - UART with ring buffer
-// Demonstrates: class (multiple instances), generics, arrays
+// Demonstrates: structs + free functions (C-style, ADR-016)
+// This example shows the C-Next approach: data in structs, behavior in functions
 
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-// Generic ring buffer class
-class RingBuffer<T, N> {
-    private T buffer[N];
-    private u16 head;
-    private u16 tail;
-    private u16 count;
+// ============================================================================
+// Ring Buffer - Data container (ADR-014 struct)
+// ============================================================================
+// Note: Generic/parameterized structs are a research topic in ADR-016
+// For now, we use a concrete type (u8 buffer with size 256)
 
-    RingBuffer() {
-        head <- 0;
-        tail <- 0;
-        count <- 0;
+struct RingBuffer {
+    u8 buffer[256];
+    u16 head;
+    u16 tail;
+    u16 count;
+}
+
+// Ring buffer size constant
+const u16 RING_BUFFER_SIZE <- 256;
+
+// Initialize a ring buffer
+void RingBuffer_init(RingBuffer self) {
+    self.head <- 0;
+    self.tail <- 0;
+    self.count <- 0;
+}
+
+// Push a value to the buffer, returns true on success
+bool RingBuffer_push(RingBuffer self, const u8 value) {
+    if (self.count = RING_BUFFER_SIZE) {
+        return false;  // Buffer full
     }
+    self.buffer[self.head] <- value;
+    self.head <- (self.head + 1) % RING_BUFFER_SIZE;
+    self.count <- self.count + 1;
+    return true;
+}
 
-    bool push(T value) {
-        if (count = N) {
-            return false;  // Buffer full
-        }
-        buffer[head] <- value;
-        head <- (head + 1) % N;
-        count <- count + 1;
-        return true;
+// Pop a value from the buffer, returns true on success
+bool RingBuffer_pop(RingBuffer self, u8 result) {
+    if (self.count = 0) {
+        return false;  // Buffer empty
     }
+    result <- self.buffer[self.tail];
+    self.tail <- (self.tail + 1) % RING_BUFFER_SIZE;
+    self.count <- self.count - 1;
+    return true;
+}
 
-    bool pop(T result) {
-        if (count = 0) {
-            return false;  // Buffer empty
-        }
-        result <- buffer[tail];
-        tail <- (tail + 1) % N;
-        count <- count - 1;
-        return true;
-    }
+// Get current buffer size
+u16 RingBuffer_size(const RingBuffer self) {
+    return self.count;
+}
 
-    u16 size() {
-        return count;
-    }
+// Check if buffer is empty
+bool RingBuffer_isEmpty(const RingBuffer self) {
+    return self.count = 0;
+}
 
-    bool isEmpty() {
-        return count = 0;
-    }
+// Check if buffer is full
+bool RingBuffer_isFull(const RingBuffer self) {
+    return self.count = RING_BUFFER_SIZE;
+}
 
-    bool isFull() {
-        return count = N;
+// ============================================================================
+// UART - Data container (ADR-014 struct)
+// ============================================================================
+
+struct UART {
+    u32 baseAddress;
+    RingBuffer rxBuffer;
+    RingBuffer txBuffer;
+    u32 baudRate;
+}
+
+// Initialize a UART with base address
+void UART_init(UART self, const u32 base) {
+    self.baseAddress <- base;
+    self.baudRate <- 115200;
+    RingBuffer_init(self.rxBuffer);
+    RingBuffer_init(self.txBuffer);
+}
+
+// Configure baud rate
+void UART_begin(UART self, const u32 baud) {
+    self.baudRate <- baud;
+    // Configure hardware registers...
+}
+
+// Write a byte to TX buffer
+void UART_write(UART self, const u8 data) {
+    RingBuffer_push(self.txBuffer, data);
+    // Trigger TX interrupt...
+}
+
+// Check if data is available
+bool UART_available(const UART self) {
+    return !RingBuffer_isEmpty(self.rxBuffer);
+}
+
+// Read a byte from RX buffer
+u8 UART_read(UART self) {
+    u8 data;
+    RingBuffer_pop(self.rxBuffer, data);
+    return data;
+}
+
+// Print a string
+void UART_print(UART self, const char msg[]) {
+    u32 i <- 0;
+    while (msg[i] != 0) {
+        UART_write(self, msg[i]);
+        i <- i + 1;
     }
 }
 
-// UART class (multiple instances for UART1, UART2, etc.)
-class UART {
-    private u32 baseAddress;
-    private RingBuffer<u8, 256> rxBuffer;
-    private RingBuffer<u8, 256> txBuffer;
-    private u32 baudRate;
+// ============================================================================
+// Hardware base addresses
+// ============================================================================
+const u32 USART1_BASE <- 0x40011000;
+const u32 USART2_BASE <- 0x40004400;
+const u32 DEFAULT_BAUD <- 115200;
+const u32 SLOW_BAUD <- 9600;
 
-    UART(u32 base) {
-        baseAddress <- base;
-        baudRate <- 115200;
-    }
-
-    void begin(u32 baud) {
-        baudRate <- baud;
-        // Configure hardware registers...
-    }
-
-    void write(u8 data) {
-        txBuffer.push(data);
-        // Trigger TX interrupt...
-    }
-
-    bool available() {
-        return !rxBuffer.isEmpty();
-    }
-
-    u8 read() {
-        u8 data;
-        rxBuffer.pop(data);
-        return data;
-    }
-
-    void print(const char msg[]) {
-        u32 i <- 0;
-        while (msg[i] != 0) {
-            write(msg[i]);
-            i <- i + 1;
-        }
-    }
-}
-
-// Global UART instances (static allocation)
-UART Serial1;
+// ============================================================================
+// Global UART instances (static allocation, ADR-003)
+// ============================================================================
+UART Serial1;  // Zero-initialized by default (ADR-015)
 UART Serial2;
 
-void setup() {
-    Serial1 <- UART(0x40011000);  // USART1 base address
-    Serial2 <- UART(0x40004400);  // USART2 base address
+// ============================================================================
+// Arduino entry points
+// ============================================================================
 
-    Serial1.begin(115200);
-    Serial2.begin(9600);
+void setup() {
+    // Initialize UART instances
+    UART_init(Serial1, USART1_BASE);
+    UART_init(Serial2, USART2_BASE);
+
+    // Configure baud rates
+    UART_begin(Serial1, DEFAULT_BAUD);
+    UART_begin(Serial2, SLOW_BAUD);
 }
 
 void loop() {
     // Echo from Serial1 to Serial2
-    if (Serial1.available()) {
-        u8 byte <- Serial1.read();
-        Serial2.write(byte);
+    if (UART_available(Serial1)) {
+        u8 byte <- UART_read(Serial1);
+        UART_write(Serial2, byte);
     }
 }

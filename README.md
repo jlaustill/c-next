@@ -16,7 +16,7 @@ register GPIO7 @ 0x42004000 {
 
 u32 LED_BIT <- 3;
 
-namespace LED {
+scope LED {
     void toggle() {
         // Type-aware bit indexing on write-only register
         GPIO7.DR_TOGGLE[LED_BIT] <- true;
@@ -155,12 +155,12 @@ Write-only registers generate optimized code:
 GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 ```
 
-### Namespaces
+### Scopes (ADR-016)
 
-Singleton services with automatic name prefixing:
+Organize code with automatic name prefixing:
 
 ```cnx
-namespace LED {
+scope LED {
     void on() { GPIO7.DR_SET[LED_BIT] <- true; }
     void off() { GPIO7.DR_CLEAR[LED_BIT] <- true; }
 }
@@ -216,7 +216,6 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-001](docs/decisions/adr-001-assignment-operator.md) | Assignment Operator | `<-` for assignment, `=` for comparison |
-| [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Singleton scoping with name prefixing |
 | [ADR-003](docs/decisions/adr-003-static-allocation.md) | Static Allocation | No dynamic memory after init |
 | [ADR-004](docs/decisions/adr-004-register-bindings.md) | Register Bindings | Type-safe hardware access |
 | [ADR-006](docs/decisions/adr-006-simplified-references.md) | Simplified References | Pass by reference, no pointer syntax |
@@ -227,17 +226,19 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
 
-### Approved
-| ADR | Title | Description |
-|-----|-------|-------------|
-| [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes Without Inheritance | DRY code reuse, no polymorphism |
-
 ### Research
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
 | [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C/C++ Interoperability | Unified ANTLR parser architecture |
+| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | How to handle scope in C-Next |
+
+### Rejected
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Replaced by `scope` keyword (ADR-016) |
+| [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes | Use structs + free functions instead (ADR-016) |
 
 ## Build Commands
 

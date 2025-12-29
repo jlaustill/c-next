@@ -1,9 +1,9 @@
-// Test: Scope shadowing between global and namespace
+// Test: Scope shadowing between global and scope (ADR-016)
 
 const u8 flags <- 0;  // Global
 
-namespace Control {
-    u8 flags <- 0b11111111;  // Namespace member - same name!
+scope Control {
+    u8 flags <- 0b11111111;  // Scope member - same name!
 
     void setFlag() {
         // Which 'flags' does this reference?

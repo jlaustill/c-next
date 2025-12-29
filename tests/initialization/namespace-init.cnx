@@ -1,12 +1,12 @@
-// Test: Initialization tracking with namespaces
+// Test: Initialization tracking with scopes (ADR-016)
 
 u8 globalCount;  // Global - uninitialized
 
-namespace Counter {
-    u8 count;    // Namespace member - uninitialized
+scope Counter {
+    u8 count;    // Scope member - uninitialized
 
     void init() {
-        count <- 0;  // Initialize namespace member
+        count <- 0;  // Initialize scope member
     }
 
     void increment() {

@@ -33,12 +33,9 @@ class CNextSymbolCollector {
     }
 
     private collectDeclaration(decl: Parser.DeclarationContext): void {
-        if (decl.namespaceDeclaration()) {
-            this.collectNamespace(decl.namespaceDeclaration()!);
-        }
-
-        if (decl.classDeclaration()) {
-            this.collectClass(decl.classDeclaration()!);
+        // ADR-016: Handle scope declarations (renamed from namespace)
+        if (decl.scopeDeclaration()) {
+            this.collectScope(decl.scopeDeclaration()!);
         }
 
         if (decl.structDeclaration()) {
@@ -58,93 +55,27 @@ class CNextSymbolCollector {
         }
     }
 
-    private collectNamespace(ns: Parser.NamespaceDeclarationContext): void {
-        const name = ns.IDENTIFIER().getText();
-        const line = ns.start?.line ?? 0;
+    // ADR-016: Collect scope declarations (renamed from namespace)
+    private collectScope(scopeDecl: Parser.ScopeDeclarationContext): void {
+        const name = scopeDecl.IDENTIFIER().getText();
+        const line = scopeDecl.start?.line ?? 0;
 
         this.symbols.push({
             name,
-            kind: ESymbolKind.Namespace,
+            kind: ESymbolKind.Namespace,  // Keep as Namespace kind for backwards compat
             sourceFile: this.sourceFile,
             sourceLine: line,
             sourceLanguage: ESourceLanguage.CNext,
             isExported: true,
         });
 
-        // Collect namespace members
-        for (const member of ns.namespaceMember()) {
+        // Collect scope members
+        for (const member of scopeDecl.scopeMember()) {
             if (member.variableDeclaration()) {
                 this.collectVariable(member.variableDeclaration()!, name);
             }
             if (member.functionDeclaration()) {
                 this.collectFunction(member.functionDeclaration()!, name);
-            }
-        }
-    }
-
-    private collectClass(cls: Parser.ClassDeclarationContext): void {
-        const name = cls.IDENTIFIER().getText();
-        const line = cls.start?.line ?? 0;
-
-        this.symbols.push({
-            name,
-            kind: ESymbolKind.Class,
-            sourceFile: this.sourceFile,
-            sourceLine: line,
-            sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
-        });
-
-        // Collect class members
-        for (const member of cls.classMember()) {
-            if (member.fieldDeclaration()) {
-                const fieldName = member.fieldDeclaration()!.IDENTIFIER().getText();
-                const fieldLine = member.start?.line ?? 0;
-                const typeCtx = member.fieldDeclaration()!.type();
-                const fieldType = typeCtx ? typeCtx.getText() : 'unknown';
-
-                this.symbols.push({
-                    name: fieldName,
-                    kind: ESymbolKind.Variable,
-                    type: fieldType,
-                    sourceFile: this.sourceFile,
-                    sourceLine: fieldLine,
-                    sourceLanguage: ESourceLanguage.CNext,
-                    isExported: true,
-                    parent: name,
-                });
-            }
-
-            if (member.methodDeclaration()) {
-                const methodName = member.methodDeclaration()!.IDENTIFIER().getText();
-                const methodLine = member.start?.line ?? 0;
-                const returnType = member.methodDeclaration()!.type()?.getText() ?? 'void';
-
-                this.symbols.push({
-                    name: `${name}_${methodName}`,
-                    kind: ESymbolKind.Function,
-                    type: returnType,
-                    sourceFile: this.sourceFile,
-                    sourceLine: methodLine,
-                    sourceLanguage: ESourceLanguage.CNext,
-                    isExported: true,
-                    parent: name,
-                });
-            }
-
-            if (member.constructorDeclaration()) {
-                const ctorLine = member.start?.line ?? 0;
-
-                this.symbols.push({
-                    name: `${name}_init`,
-                    kind: ESymbolKind.Function,
-                    type: 'void',
-                    sourceFile: this.sourceFile,
-                    sourceLine: ctorLine,
-                    sourceLanguage: ESourceLanguage.CNext,
-                    isExported: true,
-                    parent: name,
-                });
             }
         }
     }

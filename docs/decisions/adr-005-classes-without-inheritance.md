@@ -1,12 +1,33 @@
 # ADR-005: Classes Without Inheritance
 
-**Status:** Approved (Pending Implementation)
+**Status:** Rejected
 **Date:** 2025-12-26
-**Updated:** 2025-12-28
+**Updated:** 2025-12-29
 **Decision Makers:** C-Next Language Design Team
 **Prerequisites:** ADR-014 (Structs), ADR-015 (Null State)
+**Superseded By:** ADR-016 (How to Handle Scope in C-Next?)
 
-## Context
+## Rejection Rationale
+
+This ADR is rejected because the term "class" inherently implies C++ OOP patterns that conflict with C-Next's philosophy:
+
+- **Instances with bound methods** — The `obj.method()` syntax implies methods belong to objects
+- **Constructors** — Implies object creation semantics and lifecycle management
+- **Data + behavior bundling** — Encourages OOP thinking over C-style thinking
+- **Hidden `this`/`self`** — Obscures what's actually happening in generated code
+
+**The underlying problem remains valid** — multiple instances of hardware (8 UARTs, 3 ADCs) need DRY code reuse. However, C-Next will solve this the C way:
+
+1. **Define data with ADR-014 structs** — Pure data containers
+2. **Define behavior with free functions** — Explicit struct pointer parameter
+
+This approach aligns with C-Next's "readable generated C" principle — what you write maps obviously to what you get.
+
+See ADR-016 for the C-style instance model using structs + free functions.
+
+---
+
+## Original Context (Historical)
 
 In embedded systems, you often have multiple instances of the same hardware:
 

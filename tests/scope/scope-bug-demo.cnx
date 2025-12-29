@@ -1,9 +1,9 @@
-// DEMO: Scoping bug - namespace vars not tracked
+// DEMO: Scoping bug - scope vars not tracked (ADR-016)
 
 u8 count <- 0;        // Global - tracked in typeRegistry
 const u8 limit <- 10; // Global const - tracked in typeRegistry
 
-namespace Counter {
+scope Counter {
     u8 count <- 0;    // NOT tracked! Should shadow global 'count'
 
     void increment() {

@@ -89,11 +89,9 @@ const TYPE_WIDTH: Record<string, number> = {
  * Context for tracking current scope during code generation
  */
 interface GeneratorContext {
-    currentNamespace: string | null;
-    currentClass: string | null;
+    currentScope: string | null;  // ADR-016: renamed from currentNamespace
     indentLevel: number;
-    namespaceMembers: Map<string, Set<string>>; // namespace -> member names
-    classMembers: Map<string, Set<string>>;     // class -> member names
+    scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
     currentParameters: Map<string, ParameterInfo>; // ADR-006: track params for pointer semantics
     localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
     typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
@@ -105,19 +103,16 @@ interface GeneratorContext {
  */
 export default class CodeGenerator {
     private context: GeneratorContext = {
-        currentNamespace: null,
-        currentClass: null,
+        currentScope: null,  // ADR-016: renamed from currentNamespace
         indentLevel: 0,
-        namespaceMembers: new Map(),
-        classMembers: new Map(),
+        scopeMembers: new Map(),  // ADR-016: renamed from namespaceMembers
         currentParameters: new Map(),
         localArrays: new Set(),
         typeRegistry: new Map(),
         expectedType: null,
     };
 
-    private knownNamespaces: Set<string> = new Set();
-    private knownClasses: Set<string> = new Set();
+    private knownScopes: Set<string> = new Set();  // ADR-016: renamed from knownNamespaces
     private knownStructs: Set<string> = new Set();
     private structFields: Map<string, Map<string, string>> = new Map(); // struct -> (field -> type)
     private knownRegisters: Set<string> = new Set();
@@ -184,18 +179,15 @@ export default class CodeGenerator {
 
         // Reset state
         this.context = {
-            currentNamespace: null,
-            currentClass: null,
+            currentScope: null,  // ADR-016
             indentLevel: 0,
-            namespaceMembers: new Map(),
-            classMembers: new Map(),
+            scopeMembers: new Map(),  // ADR-016
             currentParameters: new Map(),
             localArrays: new Set(),
             typeRegistry: new Map(),
             expectedType: null,
         };
-        this.knownNamespaces = new Set();
-        this.knownClasses = new Set();
+        this.knownScopes = new Set();  // ADR-016
         this.knownStructs = new Set();
         this.structFields = new Map();
         this.knownRegisters = new Set();
@@ -238,17 +230,18 @@ export default class CodeGenerator {
     }
 
     /**
-     * First pass: collect all namespace and class member names
+     * First pass: collect all scope member names (ADR-016)
      */
     private collectSymbols(tree: Parser.ProgramContext): void {
         for (const decl of tree.declaration()) {
-            if (decl.namespaceDeclaration()) {
-                const ns = decl.namespaceDeclaration()!;
-                const name = ns.IDENTIFIER().getText();
-                this.knownNamespaces.add(name);
+            // ADR-016: Handle scope declarations (renamed from namespace)
+            if (decl.scopeDeclaration()) {
+                const scopeDecl = decl.scopeDeclaration()!;
+                const name = scopeDecl.IDENTIFIER().getText();
+                this.knownScopes.add(name);
 
                 const members = new Set<string>();
-                for (const member of ns.namespaceMember()) {
+                for (const member of scopeDecl.scopeMember()) {
                     if (member.variableDeclaration()) {
                         members.add(member.variableDeclaration()!.IDENTIFIER().getText());
                     }
@@ -256,7 +249,7 @@ export default class CodeGenerator {
                         const funcDecl = member.functionDeclaration()!;
                         const funcName = funcDecl.IDENTIFIER().getText();
                         members.add(funcName);
-                        // Track fully qualified function name: Namespace_function
+                        // Track fully qualified function name: Scope_function
                         const fullName = `${name}_${funcName}`;
                         this.knownFunctions.add(fullName);
                         // ADR-013: Track function signature for const checking
@@ -264,41 +257,7 @@ export default class CodeGenerator {
                         this.functionSignatures.set(fullName, sig);
                     }
                 }
-                this.context.namespaceMembers.set(name, members);
-            }
-
-            if (decl.classDeclaration()) {
-                const cls = decl.classDeclaration()!;
-                const name = cls.IDENTIFIER().getText();
-                this.knownClasses.add(name);
-
-                const members = new Set<string>();
-                for (const member of cls.classMember()) {
-                    if (member.fieldDeclaration()) {
-                        members.add(member.fieldDeclaration()!.IDENTIFIER().getText());
-                    }
-                    if (member.methodDeclaration()) {
-                        const methodDecl = member.methodDeclaration()!;
-                        const methodName = methodDecl.IDENTIFIER().getText();
-                        members.add(methodName);
-                        // Track fully qualified method name: Class_method
-                        const fullName = `${name}_${methodName}`;
-                        this.knownFunctions.add(fullName);
-                        // ADR-013: Track method signature for const checking
-                        const sig = this.extractFunctionSignature(fullName, methodDecl.parameterList() ?? null);
-                        this.functionSignatures.set(fullName, sig);
-                    }
-                    if (member.constructorDeclaration()) {
-                        const ctorDecl = member.constructorDeclaration()!;
-                        // Track constructor: Class_init
-                        const fullName = `${name}_init`;
-                        this.knownFunctions.add(fullName);
-                        // ADR-013: Track constructor signature for const checking
-                        const sig = this.extractFunctionSignature(fullName, ctorDecl.parameterList() ?? null);
-                        this.functionSignatures.set(fullName, sig);
-                    }
-                }
-                this.context.classMembers.set(name, members);
+                this.context.scopeMembers.set(name, members);
             }
 
             if (decl.structDeclaration()) {
@@ -472,10 +431,10 @@ export default class CodeGenerator {
     }
 
     /**
-     * Check if a type name is a user-defined struct/class
+     * Check if a type name is a user-defined struct
      */
     private isStructType(typeName: string): boolean {
-        return this.knownStructs.has(typeName) || this.knownClasses.has(typeName);
+        return this.knownStructs.has(typeName);
     }
 
     /**
@@ -550,24 +509,16 @@ export default class CodeGenerator {
 
     /**
      * Resolve an identifier to its scoped name.
-     * Inside a namespace, checks if the identifier is a namespace member first.
-     * Inside a class, checks if the identifier is a class member first.
+     * Inside a scope, checks if the identifier is a scope member first.
      * Otherwise returns the identifier unchanged (global scope).
+     * ADR-016: Renamed from namespace-based resolution
      */
     private resolveIdentifier(identifier: string): string {
-        // Check current namespace first (inner scope shadows outer)
-        if (this.context.currentNamespace) {
-            const members = this.context.namespaceMembers.get(this.context.currentNamespace);
+        // Check current scope first (inner scope shadows outer)
+        if (this.context.currentScope) {
+            const members = this.context.scopeMembers.get(this.context.currentScope);
             if (members && members.has(identifier)) {
-                return `${this.context.currentNamespace}_${identifier}`;
-            }
-        }
-
-        // Check current class
-        if (this.context.currentClass) {
-            const members = this.context.classMembers.get(this.context.currentClass);
-            if (members && members.has(identifier)) {
-                return `${this.context.currentClass}_${identifier}`;
+                return `${this.context.currentScope}_${identifier}`;
             }
         }
 
@@ -708,19 +659,11 @@ export default class CodeGenerator {
                 return id;
             }
 
-            // Check if it's a namespace member
-            if (this.context.currentNamespace) {
-                const members = this.context.namespaceMembers.get(this.context.currentNamespace);
+            // Check if it's a scope member (ADR-016)
+            if (this.context.currentScope) {
+                const members = this.context.scopeMembers.get(this.context.currentScope);
                 if (members && members.has(id)) {
-                    return `&${this.context.currentNamespace}_${id}`;
-                }
-            }
-
-            // Check if it's a class field
-            if (this.context.currentClass) {
-                const members = this.context.classMembers.get(this.context.currentClass);
-                if (members && members.has(id)) {
-                    return `&self->${id}`;
+                    return `&${this.context.currentScope}_${id}`;
                 }
             }
 
@@ -744,11 +687,9 @@ export default class CodeGenerator {
     // ========================================================================
 
     private generateDeclaration(ctx: Parser.DeclarationContext): string {
-        if (ctx.namespaceDeclaration()) {
-            return this.generateNamespace(ctx.namespaceDeclaration()!);
-        }
-        if (ctx.classDeclaration()) {
-            return this.generateClass(ctx.classDeclaration()!);
+        // ADR-016: Handle scope declarations (renamed from namespace)
+        if (ctx.scopeDeclaration()) {
+            return this.generateScope(ctx.scopeDeclaration()!);
         }
         if (ctx.registerDeclaration()) {
             return this.generateRegister(ctx.registerDeclaration()!);
@@ -766,17 +707,17 @@ export default class CodeGenerator {
     }
 
     // ========================================================================
-    // Namespace (ADR-002: Singleton services)
+    // Scope (ADR-016: Organization with visibility control)
     // ========================================================================
 
-    private generateNamespace(ctx: Parser.NamespaceDeclarationContext): string {
+    private generateScope(ctx: Parser.ScopeDeclarationContext): string {
         const name = ctx.IDENTIFIER().getText();
-        this.context.currentNamespace = name;
+        this.context.currentScope = name;
 
         const lines: string[] = [];
-        lines.push(`/* Namespace: ${name} */`);
+        lines.push(`/* Scope: ${name} */`);
 
-        for (const member of ctx.namespaceMember()) {
+        for (const member of ctx.scopeMember()) {
             const visibility = member.visibilityModifier()?.getText() || 'public';
             const isPrivate = visibility === 'private';
 
@@ -798,7 +739,7 @@ export default class CodeGenerator {
                 if (varDecl.expression()) {
                     decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
                 } else {
-                    // ADR-015: Zero initialization for uninitialized namespace variables
+                    // ADR-015: Zero initialization for uninitialized scope variables
                     decl += ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
                 }
                 lines.push(decl + ';');
@@ -827,83 +768,7 @@ export default class CodeGenerator {
         }
 
         lines.push('');
-        this.context.currentNamespace = null;
-        return lines.join('\n');
-    }
-
-    // ========================================================================
-    // Class (ADR-005: Multiple instances, no inheritance)
-    // ========================================================================
-
-    private generateClass(ctx: Parser.ClassDeclarationContext): string {
-        const name = ctx.IDENTIFIER().getText();
-        this.context.currentClass = name;
-
-        const lines: string[] = [];
-        lines.push(`/* Class: ${name} */`);
-        lines.push(`typedef struct {`);
-
-        // Generate struct fields
-        for (const member of ctx.classMember()) {
-            if (member.fieldDeclaration()) {
-                const field = member.fieldDeclaration()!;
-                const type = this.generateType(field.type());
-                const fieldName = field.IDENTIFIER().getText();
-                let decl = `    ${type} ${fieldName}`;
-                if (field.arrayDimension()) {
-                    decl += this.generateArrayDimension(field.arrayDimension()!);
-                }
-                lines.push(decl + ';');
-            }
-        }
-
-        lines.push(`} ${name};`);
-        lines.push('');
-
-        // Generate methods as functions with self pointer
-        for (const member of ctx.classMember()) {
-            if (member.methodDeclaration()) {
-                const method = member.methodDeclaration()!;
-                const returnType = this.generateType(method.type());
-                const methodName = method.IDENTIFIER().getText();
-                const fullName = `${name}_${methodName}`;
-
-                // Track parameters for ADR-006 pointer semantics
-                this.setParameters(method.parameterList() ?? null);
-
-                let params = `${name}* self`;
-                if (method.parameterList()) {
-                    params += ', ' + this.generateParameterList(method.parameterList()!);
-                }
-
-                const body = this.generateBlock(method.block());
-                this.clearParameters();
-
-                lines.push(`${returnType} ${fullName}(${params}) ${body}`);
-                lines.push('');
-            }
-
-            if (member.constructorDeclaration()) {
-                const ctor = member.constructorDeclaration()!;
-                const fullName = `${name}_init`;
-
-                // Track parameters for ADR-006 pointer semantics
-                this.setParameters(ctor.parameterList() ?? null);
-
-                let params = `${name}* self`;
-                if (ctor.parameterList()) {
-                    params += ', ' + this.generateParameterList(ctor.parameterList()!);
-                }
-
-                const body = this.generateBlock(ctor.block());
-                this.clearParameters();
-
-                lines.push(`void ${fullName}(${params}) ${body}`);
-                lines.push('');
-            }
-        }
-
-        this.context.currentClass = null;
+        this.context.currentScope = null;
         return lines.join('\n');
     }
 
@@ -953,7 +818,14 @@ export default class CodeGenerator {
         for (const member of ctx.structMember()) {
             const type = this.generateType(member.type());
             const fieldName = member.IDENTIFIER().getText();
-            lines.push(`    ${type} ${fieldName};`);
+            // Handle array dimensions in struct fields
+            const arrayDim = member.arrayDimension();
+            if (arrayDim) {
+                const dim = this.generateArrayDimension(arrayDim);
+                lines.push(`    ${type} ${fieldName}${dim};`);
+            } else {
+                lines.push(`    ${type} ${fieldName};`);
+            }
         }
 
         lines.push(`} ${name};`);
@@ -1355,19 +1227,11 @@ export default class CodeGenerator {
 
         const id = ctx.IDENTIFIER()!.getText();
 
-        // If inside a namespace, check if this identifier is a namespace member
-        if (this.context.currentNamespace) {
-            const members = this.context.namespaceMembers.get(this.context.currentNamespace);
+        // If inside a scope, check if this identifier is a scope member (ADR-016)
+        if (this.context.currentScope) {
+            const members = this.context.scopeMembers.get(this.context.currentScope);
             if (members && members.has(id)) {
-                return `${this.context.currentNamespace}_${id}`;
-            }
-        }
-
-        // If inside a class, check if this identifier is a class field
-        if (this.context.currentClass) {
-            const members = this.context.classMembers.get(this.context.currentClass);
-            if (members && members.has(id)) {
-                return `self->${id}`;
+                return `${this.context.currentScope}_${id}`;
             }
         }
 
@@ -1661,19 +1525,15 @@ export default class CodeGenerator {
                         result = `/* .length: unknown type for ${result} */0`;
                     }
                 }
-                // Check if this is a namespace member access: Namespace.member
-                else if (this.knownNamespaces.has(result)) {
-                    // Transform Namespace.member to Namespace_member
+                // Check if this is a scope member access: Scope.member (ADR-016)
+                else if (this.knownScopes.has(result)) {
+                    // Transform Scope.member to Scope_member
                     result = `${result}_${memberName}`;
                 }
                 // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
                 else if (this.knownRegisters.has(result)) {
                     // Transform Register.member to Register_member (matching #define)
                     result = `${result}_${memberName}`;
-                }
-                // Check if this is a class member access on 'self'
-                else if (result === 'self' && this.context.currentClass) {
-                    result = `self->${memberName}`;
                 }
                 // ADR-006: Struct parameter uses -> for member access
                 else if (isStructParam && result === primaryId) {
@@ -1761,19 +1621,11 @@ export default class CodeGenerator {
         if (ctx.IDENTIFIER()) {
             const id = ctx.IDENTIFIER()!.getText();
 
-            // If inside a namespace, check if this identifier is a namespace member
-            if (this.context.currentNamespace) {
-                const members = this.context.namespaceMembers.get(this.context.currentNamespace);
+            // If inside a scope, check if this identifier is a scope member (ADR-016)
+            if (this.context.currentScope) {
+                const members = this.context.scopeMembers.get(this.context.currentScope);
                 if (members && members.has(id)) {
-                    return `${this.context.currentNamespace}_${id}`;
-                }
-            }
-
-            // If inside a class, check if this identifier is a class field
-            if (this.context.currentClass) {
-                const members = this.context.classMembers.get(this.context.currentClass);
-                if (members && members.has(id)) {
-                    return `self->${id}`;
+                    return `${this.context.currentScope}_${id}`;
                 }
             }
 
@@ -1821,8 +1673,8 @@ export default class CodeGenerator {
             return parts.join('_');
         }
 
-        // Check if it's a namespace member access: Timing.tickCount -> Timing_tickCount
-        if (this.knownNamespaces.has(firstPart)) {
+        // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
+        if (this.knownScopes.has(firstPart)) {
             return parts.join('_');
         }
 

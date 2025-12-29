@@ -1,11 +1,26 @@
 # ADR-002: Namespaces Over Static Classes
 
-**Status:** Implemented
+**Status:** Rejected
 **Date:** 2025-12-25
-**Updated:** 2025-12-28
+**Updated:** 2025-12-29
 **Decision Makers:** C-Next Language Design Team
+**Superseded By:** ADR-016 (How to Handle Scope in C-Next?)
 
-## Context
+## Rejection Rationale
+
+This ADR is rejected due to terminology concerns, not behavioral concerns. The term "namespace" carries significant C++ baggage and expectations that C-Next explicitly wants to avoid:
+
+- Developers expect C++ namespace semantics (nested namespaces, `using namespace`, ADL)
+- The terminology implies module system complexity we don't want
+- Questions arise about features C-Next will never implement
+
+**The behavior described in this ADR remains valid** — singleton services with private-by-default visibility and name prefixing. However, the `namespace` keyword has been renamed to `scope` to avoid misleading expectations.
+
+See ADR-016 for the replacement approach using the `scope` keyword.
+
+---
+
+## Original Context (Historical)
 
 Embedded systems code includes both **hardware peripherals** (often multiple instances) and **application-level services** (true singletons). It's important to distinguish these:
 

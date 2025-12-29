@@ -8,8 +8,8 @@
  * - No pointer syntax (* for dereference)
  * - & is read-only (get address, cannot reassign)
  * - Fixed-width types: u8, i32, f64, etc.
- * - namespace for singletons
- * - class without inheritance
+ * - scope for organization (ADR-016)
+ * - struct for data containers (ADR-014)
  * - register bindings for hardware
  */
 
@@ -32,8 +32,7 @@ includeDirective
 
 // Top-level declarations
 declaration
-    : namespaceDeclaration
-    | classDeclaration
+    : scopeDeclaration
     | registerDeclaration
     | structDeclaration
     | functionDeclaration
@@ -41,13 +40,13 @@ declaration
     ;
 
 // ----------------------------------------------------------------------------
-// Namespace (ADR-002: Singleton services)
+// Scope (ADR-016: Organization with visibility control)
 // ----------------------------------------------------------------------------
-namespaceDeclaration
-    : 'namespace' IDENTIFIER '{' namespaceMember* '}'
+scopeDeclaration
+    : 'scope' IDENTIFIER '{' scopeMember* '}'
     ;
 
-namespaceMember
+scopeMember
     : visibilityModifier? variableDeclaration
     | visibilityModifier? functionDeclaration
     ;
@@ -55,41 +54,6 @@ namespaceMember
 visibilityModifier
     : 'private'
     | 'public'
-    ;
-
-// ----------------------------------------------------------------------------
-// Class (ADR-005: Multiple instances, no inheritance)
-// ----------------------------------------------------------------------------
-classDeclaration
-    : 'class' IDENTIFIER typeParameters? '{' classMember* '}'
-    ;
-
-classMember
-    : visibilityModifier? fieldDeclaration
-    | visibilityModifier? methodDeclaration
-    | constructorDeclaration
-    ;
-
-fieldDeclaration
-    : type IDENTIFIER arrayDimension? ';'
-    ;
-
-methodDeclaration
-    : type IDENTIFIER '(' parameterList? ')' block
-    ;
-
-constructorDeclaration
-    : IDENTIFIER '(' parameterList? ')' block
-    ;
-
-// Type parameters for generic classes: RingBuffer<u8, 256>
-typeParameters
-    : '<' typeParameter (',' typeParameter)* '>'
-    ;
-
-typeParameter
-    : IDENTIFIER
-    | INTEGER_LITERAL
     ;
 
 // ----------------------------------------------------------------------------
@@ -127,7 +91,7 @@ structDeclaration
     ;
 
 structMember
-    : type IDENTIFIER ';'
+    : type IDENTIFIER arrayDimension? ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -409,8 +373,7 @@ INCLUDE_DIRECTIVE
     ;
 
 // Keywords
-NAMESPACE   : 'namespace';
-CLASS       : 'class';
+SCOPE       : 'scope';
 STRUCT      : 'struct';
 REGISTER    : 'register';
 PRIVATE     : 'private';

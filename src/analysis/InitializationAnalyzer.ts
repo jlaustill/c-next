@@ -104,15 +104,15 @@ export class InitializationAnalyzer {
                 this.declareVariable(name, line, column, true, typeName);
             }
 
-            // Namespace member variables
-            const nsDecl = decl.namespaceDeclaration();
-            if (nsDecl) {
-                const nsName = nsDecl.IDENTIFIER().getText();
-                for (const member of nsDecl.namespaceMember()) {
+            // Scope member variables (ADR-016: renamed from namespace)
+            const scopeDecl = decl.scopeDeclaration();
+            if (scopeDecl) {
+                const scopeName = scopeDecl.IDENTIFIER().getText();
+                for (const member of scopeDecl.scopeMember()) {
                     const memberVar = member.variableDeclaration();
                     if (memberVar) {
                         const varName = memberVar.IDENTIFIER().getText();
-                        const fullName = `${nsName}_${varName}`;  // Mangled name
+                        const fullName = `${scopeName}_${varName}`;  // Mangled name
                         const line = memberVar.start?.line ?? 0;
                         const column = memberVar.start?.column ?? 0;
 
@@ -147,23 +147,6 @@ export class InitializationAnalyzer {
                 }
 
                 this.structFields.set(structName, fields);
-            }
-
-            // Also collect class definitions (they're similar to structs for our purposes)
-            const classDecl = decl.classDeclaration();
-            if (classDecl) {
-                const className = classDecl.IDENTIFIER().getText();
-                const fields = new Set<string>();
-
-                for (const member of classDecl.classMember()) {
-                    const fieldDecl = member.fieldDeclaration();
-                    if (fieldDecl) {
-                        const fieldName = fieldDecl.IDENTIFIER().getText();
-                        fields.add(fieldName);
-                    }
-                }
-
-                this.structFields.set(className, fields);
             }
         }
     }
@@ -465,62 +448,6 @@ class InitializationListener extends CNextListener {
     };
 
     override exitFunctionDeclaration = (_ctx: Parser.FunctionDeclarationContext): void => {
-        this.analyzer.exitScope();
-        this.functionDepth--;
-    };
-
-    override enterMethodDeclaration = (ctx: Parser.MethodDeclarationContext): void => {
-        this.functionDepth++;
-        this.analyzer.enterScope();
-
-        // Declare parameters as initialized
-        const paramList = ctx.parameterList();
-        if (paramList) {
-            for (const param of paramList.parameter()) {
-                const name = param.IDENTIFIER().getText();
-                const line = param.start?.line ?? 0;
-                const column = param.start?.column ?? 0;
-
-                const typeCtx = param.type();
-                let typeName: string | null = null;
-                if (typeCtx.userType()) {
-                    typeName = typeCtx.userType()!.IDENTIFIER().getText();
-                }
-
-                this.analyzer.declareParameter(name, line, column, typeName);
-            }
-        }
-    };
-
-    override exitMethodDeclaration = (_ctx: Parser.MethodDeclarationContext): void => {
-        this.analyzer.exitScope();
-        this.functionDepth--;
-    };
-
-    override enterConstructorDeclaration = (ctx: Parser.ConstructorDeclarationContext): void => {
-        this.functionDepth++;
-        this.analyzer.enterScope();
-
-        // Declare parameters as initialized
-        const paramList = ctx.parameterList();
-        if (paramList) {
-            for (const param of paramList.parameter()) {
-                const name = param.IDENTIFIER().getText();
-                const line = param.start?.line ?? 0;
-                const column = param.start?.column ?? 0;
-
-                const typeCtx = param.type();
-                let typeName: string | null = null;
-                if (typeCtx.userType()) {
-                    typeName = typeCtx.userType()!.IDENTIFIER().getText();
-                }
-
-                this.analyzer.declareParameter(name, line, column, typeName);
-            }
-        }
-    };
-
-    override exitConstructorDeclaration = (_ctx: Parser.ConstructorDeclarationContext): void => {
         this.analyzer.exitScope();
         this.functionDepth--;
     };

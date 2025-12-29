@@ -71,10 +71,10 @@ struct Circle {
 }
 
 // ============================================================================
-// Console namespace for output
+// Console scope for output (ADR-016)
 // ============================================================================
 
-namespace Console {
+scope Console {
     public void printInt(i32 value) {
         // Print implementation...
     }
