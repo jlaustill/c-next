@@ -1,6 +1,6 @@
 # ADR-006: Simplified Reference Model
 
-**Status:** Draft (Research Phase)
+**Status:** Implemented
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
 

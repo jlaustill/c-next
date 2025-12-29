@@ -1,6 +1,6 @@
 # ADR-015: Null State and Zero Initialization
 
-**Status:** Draft (Under Research)
+**Status:** Implemented
 **Date:** 2025-12-28
 **Decision Makers:** C-Next Language Design Team
 

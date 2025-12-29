@@ -1,6 +1,6 @@
 # ADR-001: Assignment Operator
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2025-12-25
 **Decision Makers:** C-Next Language Design Team
 

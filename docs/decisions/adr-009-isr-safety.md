@@ -1,6 +1,6 @@
 # ADR-009: Safe Interrupt Service Routines (ISRs)
 
-**Status:** Research Phase
+**Status:** Research
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
 

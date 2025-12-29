@@ -1,6 +1,6 @@
 # ADR-004: Type-Safe Register Bindings
 
-**Status:** Draft (Research Phase)
+**Status:** Implemented
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
 

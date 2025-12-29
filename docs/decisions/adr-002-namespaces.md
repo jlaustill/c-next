@@ -1,6 +1,6 @@
 # ADR-002: Namespaces Over Static Classes
 
-**Status:** Approved
+**Status:** Implemented
 **Date:** 2025-12-25
 **Updated:** 2025-12-28
 **Decision Makers:** C-Next Language Design Team

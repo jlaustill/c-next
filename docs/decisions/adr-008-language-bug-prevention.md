@@ -1,6 +1,6 @@
 # ADR-008: Language-Level Bug Prevention
 
-**Status:** Draft (Research Phase)
+**Status:** Research
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
 
