@@ -175,9 +175,32 @@ assignmentOperator
     ;
 
 assignmentTarget
-    : arrayAccess                          // Must be before memberAccess (both can match arr[i])
+    : globalArrayAccess                    // ADR-016: global.GPIO7.DR_SET[idx] (most specific first)
+    | globalMemberAccess                   // ADR-016: global.GPIO7.DR_SET
+    | globalAccess                         // ADR-016: global.value
+    | thisAccess                           // ADR-016: this.member access (must be before memberAccess)
+    | arrayAccess                          // Must be before memberAccess (both can match arr[i])
     | memberAccess
     | IDENTIFIER
+    ;
+
+// ADR-016: this.member for scope-local access in assignment targets
+thisAccess
+    : 'this' '.' IDENTIFIER
+    ;
+
+// ADR-016: global.member for global access in assignment targets
+globalAccess
+    : 'global' '.' IDENTIFIER
+    ;
+
+globalMemberAccess
+    : 'global' '.' IDENTIFIER ('.' IDENTIFIER)+
+    ;
+
+globalArrayAccess
+    : 'global' '.' IDENTIFIER '[' expression ']'                           // global.arr[i]
+    | 'global' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'         // global.GPIO7.DR_SET[i]
     ;
 
 expressionStatement
@@ -290,6 +313,8 @@ postfixOp
 primaryExpression
     : castExpression
     | structInitializer
+    | 'this'                                          // ADR-016: scope-local reference
+    | 'global'                                        // ADR-016: global reference
     | IDENTIFIER
     | literal
     | '(' expression ')'
@@ -335,10 +360,22 @@ argumentList
 // ----------------------------------------------------------------------------
 type
     : primitiveType
+    | scopedType                              // ADR-016: this.Type for scoped types
+    | qualifiedType                           // ADR-016: Scope.Type from outside scope
     | userType
     | arrayType
     | genericType
     | 'void'
+    ;
+
+// ADR-016: Scoped type reference (this.State -> Motor_State)
+scopedType
+    : 'this' '.' IDENTIFIER
+    ;
+
+// ADR-016: Qualified type from outside scope (Motor.State -> Motor_State)
+qualifiedType
+    : IDENTIFIER '.' IDENTIFIER
     ;
 
 primitiveType
@@ -395,6 +432,8 @@ INCLUDE_DIRECTIVE
 SCOPE       : 'scope';
 STRUCT      : 'struct';
 ENUM        : 'enum';
+THIS        : 'this';      // ADR-016: scope-local reference
+GLOBAL      : 'global';    // ADR-016: global reference
 REGISTER    : 'register';
 PRIVATE     : 'private';
 PUBLIC      : 'public';

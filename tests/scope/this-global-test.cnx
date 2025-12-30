@@ -1,0 +1,32 @@
+// Test: ADR-016 this. and global. keywords for explicit scope qualification
+
+const u8 globalValue <- 10;
+
+scope Motor {
+    const u8 localValue <- 5;
+    u8 state <- 0;
+
+    // Test this. for scope member access
+    u8 getLocalValue() {
+        return this.localValue;
+    }
+
+    // Test global. for global access
+    u8 getGlobalValue() {
+        return global.globalValue;
+    }
+
+    // Test both in same function
+    u8 getSum() {
+        return this.localValue + global.globalValue;
+    }
+
+    // Test this. in assignment
+    void setState(u8 val) {
+        this.state <- val;
+    }
+}
+
+void main() {
+    Motor.setState(42);
+}

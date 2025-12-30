@@ -96,6 +96,8 @@ interface GeneratorContext {
     scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
     currentParameters: Map<string, ParameterInfo>; // ADR-006: track params for pointer semantics
     localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
+    localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
+    inFunctionBody: boolean; // ADR-016: track if we're inside a function body
     typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
     expectedType: string | null; // For inferred struct initializers
 }
@@ -110,6 +112,8 @@ export default class CodeGenerator {
         scopeMembers: new Map(),  // ADR-016: renamed from namespaceMembers
         currentParameters: new Map(),
         localArrays: new Set(),
+        localVariables: new Set(),  // ADR-016: track local variables
+        inFunctionBody: false,  // ADR-016: track if inside function body
         typeRegistry: new Map(),
         expectedType: null,
     };
@@ -188,6 +192,8 @@ export default class CodeGenerator {
             scopeMembers: new Map(),  // ADR-016
             currentParameters: new Map(),
             localArrays: new Set(),
+            localVariables: new Set(),  // ADR-016
+            inFunctionBody: false,  // ADR-016
             typeRegistry: new Map(),
             expectedType: null,
         };
@@ -261,6 +267,14 @@ export default class CodeGenerator {
                         // ADR-013: Track function signature for const checking
                         const sig = this.extractFunctionSignature(fullName, funcDecl.parameterList() ?? null);
                         this.functionSignatures.set(fullName, sig);
+                    }
+                    // ADR-017: Collect enums declared inside scopes
+                    if (member.enumDeclaration()) {
+                        const enumDecl = member.enumDeclaration()!;
+                        const enumName = enumDecl.IDENTIFIER().getText();
+                        members.add(enumName);
+                        // Collect enum with scope prefix (e.g., Motor_State)
+                        this.collectEnum(enumDecl, name);
                     }
                 }
                 this.context.scopeMembers.set(name, members);
@@ -389,6 +403,48 @@ export default class CodeGenerator {
         if (typeCtx.primitiveType()) {
             baseType = typeCtx.primitiveType()!.getText();
             bitWidth = TYPE_WIDTH[baseType] || 0;
+        } else if (typeCtx.scopedType()) {
+            // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+            const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+            if (this.context.currentScope) {
+                baseType = `${this.context.currentScope}_${typeName}`;
+            } else {
+                baseType = typeName;
+            }
+            bitWidth = 0;
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(baseType)) {
+                this.context.typeRegistry.set(name, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isEnum: true,
+                    enumTypeName: baseType,
+                });
+                return; // Early return, we've handled this case
+            }
+        } else if (typeCtx.qualifiedType()) {
+            // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+            const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
+            const scopeName = identifiers[0].getText();
+            const typeName = identifiers[1].getText();
+            baseType = `${scopeName}_${typeName}`;
+            bitWidth = 0;
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(baseType)) {
+                this.context.typeRegistry.set(name, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isEnum: true,
+                    enumTypeName: baseType,
+                });
+                return; // Early return, we've handled this case
+            }
         } else if (typeCtx.userType()) {
             // Track struct/class/enum types for inferred struct initializers and enum type safety
             baseType = typeCtx.userType()!.getText();
@@ -465,6 +521,48 @@ export default class CodeGenerator {
         if (typeCtx.primitiveType()) {
             baseType = typeCtx.primitiveType()!.getText();
             bitWidth = TYPE_WIDTH[baseType] || 0;
+        } else if (typeCtx.scopedType()) {
+            // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+            const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+            if (this.context.currentScope) {
+                baseType = `${this.context.currentScope}_${typeName}`;
+            } else {
+                baseType = typeName;
+            }
+            bitWidth = 0;
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(baseType)) {
+                this.context.typeRegistry.set(registryName, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isEnum: true,
+                    enumTypeName: baseType,
+                });
+                return; // Early return, we've handled this case
+            }
+        } else if (typeCtx.qualifiedType()) {
+            // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+            const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
+            const scopeName = identifiers[0].getText();
+            const typeName = identifiers[1].getText();
+            baseType = `${scopeName}_${typeName}`;
+            bitWidth = 0;
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(baseType)) {
+                this.context.typeRegistry.set(registryName, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isEnum: true,
+                    enumTypeName: baseType,
+                });
+                return; // Early return, we've handled this case
+            }
         } else if (typeCtx.userType()) {
             baseType = typeCtx.userType()!.getText();
             bitWidth = 0;
@@ -599,6 +697,67 @@ export default class CodeGenerator {
     }
 
     /**
+     * ADR-016: Validate that bare identifiers inside scopes are only used for local variables.
+     * Throws an error if a bare identifier references a scope member or global.
+     *
+     * @param identifier The bare identifier to validate
+     * @param isLocalVariable Whether this identifier is a known local variable/parameter
+     */
+    private validateBareIdentifierInScope(identifier: string, isLocalVariable: boolean): void {
+        // Only enforce inside scopes
+        if (!this.context.currentScope) {
+            return;
+        }
+
+        // Local variables and parameters are allowed as bare identifiers
+        if (isLocalVariable) {
+            return;
+        }
+
+        // Check if this identifier is a scope member
+        const scopeMembers = this.context.scopeMembers.get(this.context.currentScope);
+        if (scopeMembers && scopeMembers.has(identifier)) {
+            throw new Error(
+                `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${this.context.currentScope}'`
+            );
+        }
+
+        // Check if this is a known global (register, function, enum, struct)
+        if (this.knownRegisters.has(identifier)) {
+            throw new Error(
+                `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${this.context.currentScope}'`
+            );
+        }
+
+        if (this.knownFunctions.has(identifier) && !identifier.startsWith(this.context.currentScope + '_')) {
+            throw new Error(
+                `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${this.context.currentScope}'`
+            );
+        }
+
+        if (this.knownEnums.has(identifier)) {
+            throw new Error(
+                `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${this.context.currentScope}'`
+            );
+        }
+
+        if (this.knownStructs.has(identifier)) {
+            throw new Error(
+                `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${this.context.currentScope}'`
+            );
+        }
+
+        // Check if this identifier exists as a global variable in the type registry
+        // (but not a scoped variable - those would have Scope_ prefix)
+        const typeInfo = this.context.typeRegistry.get(identifier);
+        if (typeInfo && !identifier.includes('_')) {
+            throw new Error(
+                `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${this.context.currentScope}'`
+            );
+        }
+    }
+
+    /**
      * ADR-017: Extract enum type from an expression.
      * Returns the enum type name if the expression is an enum value, null otherwise.
      *
@@ -606,6 +765,8 @@ export default class CodeGenerator {
      * - Variable of enum type: `currentState` -> 'State'
      * - Enum member access: `State.IDLE` -> 'State'
      * - Scoped enum member: `Motor.State.IDLE` -> 'Motor_State'
+     * - ADR-016: this.State.IDLE -> 'CurrentScope_State'
+     * - ADR-016: this.variable -> enum type if variable is of enum type
      */
     private getExpressionEnumType(ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext): string | null {
         // Get the text representation to analyze
@@ -623,6 +784,25 @@ export default class CodeGenerator {
         const parts = text.split('.');
 
         if (parts.length >= 2) {
+            // ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
+            if (parts[0] === 'this' && this.context.currentScope && parts.length >= 3) {
+                const enumName = parts[1];
+                const scopedEnumName = `${this.context.currentScope}_${enumName}`;
+                if (this.knownEnums.has(scopedEnumName)) {
+                    return scopedEnumName;
+                }
+            }
+
+            // ADR-016: Check this.variable pattern (this.varName where varName is enum type)
+            if (parts[0] === 'this' && this.context.currentScope && parts.length === 2) {
+                const varName = parts[1];
+                const scopedVarName = `${this.context.currentScope}_${varName}`;
+                const typeInfo = this.context.typeRegistry.get(scopedVarName);
+                if (typeInfo?.isEnum && typeInfo.enumTypeName) {
+                    return typeInfo.enumTypeName;
+                }
+            }
+
             // Check simple enum: State.IDLE
             const possibleEnum = parts[0];
             if (this.knownEnums.has(possibleEnum)) {
@@ -918,11 +1098,19 @@ export default class CodeGenerator {
                 // Track parameters for ADR-006 pointer semantics
                 this.setParameters(funcDecl.parameterList() ?? null);
 
+                // ADR-016: Clear local variables and mark that we're in a function body
+                this.context.localVariables.clear();
+                this.context.inFunctionBody = true;
+
                 const params = funcDecl.parameterList()
                     ? this.generateParameterList(funcDecl.parameterList()!)
                     : 'void';
 
                 const body = this.generateBlock(funcDecl.block());
+
+                // ADR-016: Clear local variables and mark that we're no longer in a function body
+                this.context.inFunctionBody = false;
+                this.context.localVariables.clear();
                 this.clearParameters();
 
                 lines.push('');
@@ -1102,11 +1290,18 @@ export default class CodeGenerator {
         // Track parameters for ADR-006 pointer semantics
         this.setParameters(ctx.parameterList() ?? null);
 
+        // ADR-016: Clear local variables and mark that we're in a function body
+        this.context.localVariables.clear();
+        this.context.inFunctionBody = true;
+
         const params = ctx.parameterList()
             ? this.generateParameterList(ctx.parameterList()!)
             : 'void';
         const body = this.generateBlock(ctx.block());
 
+        // ADR-016: Clear local variables and mark that we're no longer in a function body
+        this.context.inFunctionBody = false;
+        this.context.localVariables.clear();
         this.clearParameters();
 
         return `${returnType} ${name}(${params}) ${body}\n`;
@@ -1152,6 +1347,13 @@ export default class CodeGenerator {
         // Track type for bit access and .length support
         this.trackVariableType(ctx);
 
+        // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
+        // Only track as local if we're inside a function body
+        // Global and scope-level variables should NOT be tracked as local
+        if (this.context.inFunctionBody) {
+            this.context.localVariables.add(name);
+        }
+
         let decl = `${constMod}${type} ${name}`;
         const isArray = ctx.arrayDimension() !== null;
 
@@ -1189,10 +1391,22 @@ export default class CodeGenerator {
                 // Check if assigning a non-enum, non-integer expression
                 if (!valueEnumType) {
                     const exprText = ctx.expression()!.getText();
+                    const parts = exprText.split('.');
+
+                    // ADR-016: Handle this.State.MEMBER pattern
+                    if (parts[0] === 'this' && this.context.currentScope && parts.length >= 3) {
+                        const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
+                        if (scopedEnumName === typeName) {
+                            // Valid this.Enum.Member access
+                        } else {
+                            throw new Error(
+                                `Error: Cannot assign non-enum value to ${typeName} enum`
+                            );
+                        }
+                    }
                     // Allow if it's an enum member access of the correct type
-                    if (!exprText.startsWith(typeName + '.')) {
+                    else if (!exprText.startsWith(typeName + '.')) {
                         // Check for scoped enum
-                        const parts = exprText.split('.');
                         if (parts.length >= 3) {
                             const scopedEnumName = `${parts[0]}_${parts[1]}`;
                             if (scopedEnumName !== typeName) {
@@ -1391,10 +1605,20 @@ export default class CodeGenerator {
                 // (must be same enum type or a valid enum member access)
                 if (!valueEnumType) {
                     const exprText = ctx.expression().getText();
+                    const parts = exprText.split('.');
+
+                    // ADR-016: Handle this.State.MEMBER pattern
+                    if (parts[0] === 'this' && this.context.currentScope && parts.length >= 3) {
+                        const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
+                        if (scopedEnumName !== targetEnumType) {
+                            throw new Error(
+                                `Error: Cannot assign non-enum value to ${targetEnumType} enum`
+                            );
+                        }
+                    }
                     // Allow if it's an enum member access of the correct type
-                    if (!exprText.startsWith(targetEnumType + '.')) {
+                    else if (!exprText.startsWith(targetEnumType + '.')) {
                         // Not a direct enum member access - check if it's scoped enum
-                        const parts = exprText.split('.');
                         if (parts.length >= 3) {
                             // Could be Scope.Enum.Member
                             const scopedEnumName = `${parts[0]}_${parts[1]}`;
@@ -1509,6 +1733,50 @@ export default class CodeGenerator {
             }
         }
 
+        // ADR-016: Check if this is a global array access (e.g., global.GPIO7.DR_SET[LED_BIT])
+        const globalArrayAccessCtx = targetCtx.globalArrayAccess();
+        if (globalArrayAccessCtx) {
+            // Compound operators not supported for bit field access
+            if (isCompound) {
+                throw new Error(`Compound assignment operators not supported for bit field access: ${cnextOp}`);
+            }
+
+            const identifiers = globalArrayAccessCtx.IDENTIFIER();
+            const parts = identifiers.map(id => id.getText());
+            const expr = globalArrayAccessCtx.expression();
+            const bitIndex = this.generateExpression(expr);
+            const firstId = parts[0];
+
+            if (this.knownRegisters.has(firstId)) {
+                // This is a register access: global.GPIO7.DR_SET[LED_BIT]
+                const regName = parts.join('_');
+
+                // Check if this is a write-only register
+                const accessMod = this.registerMemberAccess.get(regName);
+                const isWriteOnly = accessMod === 'wo' || accessMod === 'w1s' || accessMod === 'w1c';
+
+                if (isWriteOnly) {
+                    // Write-only: assigning false/0 is semantically meaningless
+                    if (value === 'false' || value === '0') {
+                        throw new Error(
+                            `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
+                            `Use the corresponding CLEAR register to clear bits.`
+                        );
+                    }
+                    // Write-only: just write the mask, no read-modify-write needed
+                    // global.GPIO7.DR_SET[LED_BIT] <- true  =>  GPIO7_DR_SET = (1 << LED_BIT)
+                    return `${regName} = (1 << ${bitIndex});`;
+                } else {
+                    // Read-write: need read-modify-write
+                    return `${regName} = (${regName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+                }
+            } else {
+                // Non-register global array access
+                const baseName = parts.join('.');
+                return `${baseName} = (${baseName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+            }
+        }
+
         // Check if this is a simple array/bit access assignment (e.g., flags[3])
         const arrayAccessCtx = targetCtx.arrayAccess();
         if (arrayAccessCtx) {
@@ -1541,6 +1809,29 @@ export default class CodeGenerator {
     }
 
     private generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
+        // ADR-016: Handle global.arr[i] or global.GPIO7.DR_SET[i] access
+        if (ctx.globalArrayAccess()) {
+            return this.generateGlobalArrayAccess(ctx.globalArrayAccess()!);
+        }
+
+        // ADR-016: Handle global.GPIO7.DR_SET access (member chain)
+        if (ctx.globalMemberAccess()) {
+            return this.generateGlobalMemberAccess(ctx.globalMemberAccess()!);
+        }
+
+        // ADR-016: Handle global.value access (simple)
+        if (ctx.globalAccess()) {
+            return ctx.globalAccess()!.IDENTIFIER().getText();
+        }
+
+        // ADR-016: Handle this.member access for scope-local assignment
+        if (ctx.thisAccess()) {
+            const memberName = ctx.thisAccess()!.IDENTIFIER().getText();
+            if (!this.context.currentScope) {
+                throw new Error("Error: 'this' can only be used inside a scope");
+            }
+            return `${this.context.currentScope}_${memberName}`;
+        }
         if (ctx.memberAccess()) {
             return this.generateMemberAccess(ctx.memberAccess()!);
         }
@@ -1550,22 +1841,57 @@ export default class CodeGenerator {
 
         const id = ctx.IDENTIFIER()!.getText();
 
-        // If inside a scope, check if this identifier is a scope member (ADR-016)
-        if (this.context.currentScope) {
-            const members = this.context.scopeMembers.get(this.context.currentScope);
-            if (members && members.has(id)) {
-                return `${this.context.currentScope}_${id}`;
+        // ADR-006: Check if it's a function parameter
+        const paramInfo = this.context.currentParameters.get(id);
+        if (paramInfo) {
+            // Parameter - allowed as bare identifier
+            if (!paramInfo.isArray) {
+                return `(*${id})`;
             }
+            return id;
         }
 
-        // ADR-006: Dereference parameter when writing to it
-        // (non-array parameters are passed as pointers)
-        const paramInfo = this.context.currentParameters.get(id);
-        if (paramInfo && !paramInfo.isArray) {
-            return `(*${id})`;
-        }
+        // Check if it's a local variable
+        const isLocalVariable = this.context.localVariables.has(id);
+
+        // ADR-016: Enforce explicit qualification inside scopes
+        // Bare identifiers are ONLY allowed for local variables and parameters
+        this.validateBareIdentifierInScope(id, isLocalVariable);
 
         return id;
+    }
+
+    // ADR-016: Generate global member access for assignment targets
+    private generateGlobalMemberAccess(ctx: Parser.GlobalMemberAccessContext): string {
+        const identifiers = ctx.IDENTIFIER();
+        const parts = identifiers.map(id => id.getText());
+        // Check if first identifier is a register
+        const firstId = parts[0];
+        if (this.knownRegisters.has(firstId)) {
+            // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
+            return parts.join('_');
+        }
+        // Non-register member access: obj.field
+        return parts.join('.');
+    }
+
+    // ADR-016: Generate global array access for assignment targets
+    private generateGlobalArrayAccess(ctx: Parser.GlobalArrayAccessContext): string {
+        const identifiers = ctx.IDENTIFIER();
+        const parts = identifiers.map(id => id.getText());
+        const expr = this.generateExpression(ctx.expression());
+        const firstId = parts[0];
+
+        if (this.knownRegisters.has(firstId)) {
+            // Register bit access: GPIO7.DR_SET[idx] -> GPIO7_DR_SET |= (1 << idx) (handled elsewhere)
+            // For assignment target, just generate the left-hand side representation
+            const regName = parts.join('_');
+            return `${regName}[${expr}]`;
+        }
+
+        // Non-register array access
+        const baseName = parts.join('.');
+        return `${baseName}[${expr}]`;
     }
 
     private generateIf(ctx: Parser.IfStatementContext): string {
@@ -1628,6 +1954,9 @@ export default class CodeGenerator {
     private generateForVarDecl(ctx: Parser.ForVarDeclContext): string {
         const typeName = this.generateType(ctx.type());
         const name = ctx.IDENTIFIER().getText();
+
+        // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
+        this.context.localVariables.add(name);
 
         let result = `${typeName} ${name}`;
 
@@ -1849,12 +2178,25 @@ export default class CodeGenerator {
 
         let result = this.generatePrimaryExpr(primary);
 
+        // ADR-016: Track if we've encountered a register in the access chain
+        let isRegisterChain = primaryId ? this.knownRegisters.has(primaryId) : false;
+
         for (let i = 0; i < ops.length; i++) {
             const op = ops[i];
 
             // Member access
             if (op.IDENTIFIER()) {
                 const memberName = op.IDENTIFIER()!.getText();
+
+                // ADR-016: Handle global. prefix - first member becomes the identifier
+                if (result === '__GLOBAL_PREFIX__') {
+                    result = memberName;
+                    // Check if this first identifier is a register
+                    if (this.knownRegisters.has(memberName)) {
+                        isRegisterChain = true;
+                    }
+                    continue;  // Skip further processing, this just sets the base identifier
+                }
 
                 // Handle .length property for arrays and integers
                 if (memberName === 'length') {
@@ -1888,6 +2230,7 @@ export default class CodeGenerator {
                 else if (this.knownRegisters.has(result)) {
                     // Transform Register.member to Register_member (matching #define)
                     result = `${result}_${memberName}`;
+                    isRegisterChain = true;  // ADR-016: Track register chain for subscript handling
                 }
                 // ADR-006: Struct parameter uses -> for member access
                 else if (isStructParam && result === primaryId) {
@@ -1907,8 +2250,8 @@ export default class CodeGenerator {
                     // Check type registry to determine if this is bit access or array access
                     const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
 
-                    // Registers are always integers, so treat subscript as bit access
-                    const isRegisterAccess = primaryId ? this.knownRegisters.has(primaryId) : false;
+                    // ADR-016: Use isRegisterChain to detect register access via global. prefix
+                    const isRegisterAccess = isRegisterChain || (primaryId ? this.knownRegisters.has(primaryId) : false);
 
                     if ((typeInfo && !typeInfo.isArray) || isRegisterAccess) {
                         // Integer type or register - use bit access: ((value >> index) & 1)
@@ -1976,29 +2319,46 @@ export default class CodeGenerator {
         if (ctx.structInitializer()) {
             return this.generateStructInitializer(ctx.structInitializer()!);
         }
+
+        // ADR-016: Handle 'this' keyword for scope-local reference
+        // 'this' returns the current scope name so that postfixOps transform this.member to Scope_member
+        const text = ctx.getText();
+        if (text === 'this') {
+            if (!this.context.currentScope) {
+                throw new Error("Error: 'this' can only be used inside a scope");
+            }
+            // Return the scope name - postfixOps will use knownScopes check to append _member
+            return this.context.currentScope;
+        }
+
+        // ADR-016: Handle 'global' keyword for global reference
+        // 'global' strips the prefix so global.X becomes just X
+        if (text === 'global') {
+            // Return special marker - first postfixOp will become the identifier
+            return '__GLOBAL_PREFIX__';
+        }
+
         if (ctx.IDENTIFIER()) {
             const id = ctx.IDENTIFIER()!.getText();
 
-            // If inside a scope, check if this identifier is a scope member (ADR-016)
-            if (this.context.currentScope) {
-                const members = this.context.scopeMembers.get(this.context.currentScope);
-                if (members && members.has(id)) {
-                    return `${this.context.currentScope}_${id}`;
+            // ADR-006: Check if it's a function parameter
+            const paramInfo = this.context.currentParameters.get(id);
+            if (paramInfo) {
+                // Parameter - allowed as bare identifier
+                if (!paramInfo.isArray && !paramInfo.isStruct) {
+                    return `(*${id})`;
                 }
+                // For struct parameters, return as-is here (will use -> in member access)
+                return id;
             }
 
-            // ADR-006: Dereference parameter when reading its value
-            // (non-array parameters are passed as pointers)
-            // Note: Struct parameters use -> for member access, handled in generatePostfixExpr
-            const paramInfo = this.context.currentParameters.get(id);
-            if (paramInfo && !paramInfo.isArray && !paramInfo.isStruct) {
-                return `(*${id})`;
-            }
-            // For struct parameters, return as-is here (will use -> in member access)
-            // or dereference if used as a whole value
-            if (paramInfo && paramInfo.isStruct) {
-                return id; // Will be handled by postfix context
-            }
+            // Check if it's a local variable (tracked in type registry with no underscore prefix)
+            // Local variables are those that were declared inside the current function
+            const isLocalVariable = this.context.localVariables.has(id);
+
+            // ADR-016: Enforce explicit qualification inside scopes
+            // Bare identifiers are ONLY allowed for local variables and parameters
+            this.validateBareIdentifierInScope(id, isLocalVariable);
 
             return id;
         }
@@ -2098,6 +2458,21 @@ export default class CodeGenerator {
      * Get the C-Next type name (for tracking purposes, not C translation)
      */
     private getTypeName(ctx: Parser.TypeContext): string {
+        // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+        if (ctx.scopedType()) {
+            const typeName = ctx.scopedType()!.IDENTIFIER().getText();
+            if (this.context.currentScope) {
+                return `${this.context.currentScope}_${typeName}`;
+            }
+            return typeName;
+        }
+        // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+        if (ctx.qualifiedType()) {
+            const identifiers = ctx.qualifiedType()!.IDENTIFIER();
+            const scopeName = identifiers[0].getText();
+            const typeName = identifiers[1].getText();
+            return `${scopeName}_${typeName}`;
+        }
         if (ctx.userType()) {
             return ctx.userType()!.getText();
         }
@@ -2114,6 +2489,21 @@ export default class CodeGenerator {
         if (ctx.primitiveType()) {
             const type = ctx.primitiveType()!.getText();
             return TYPE_MAP[type] || type;
+        }
+        // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+        if (ctx.scopedType()) {
+            const typeName = ctx.scopedType()!.IDENTIFIER().getText();
+            if (!this.context.currentScope) {
+                throw new Error("Error: 'this.Type' can only be used inside a scope");
+            }
+            return `${this.context.currentScope}_${typeName}`;
+        }
+        // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+        if (ctx.qualifiedType()) {
+            const identifiers = ctx.qualifiedType()!.IDENTIFIER();
+            const scopeName = identifiers[0].getText();
+            const typeName = identifiers[1].getText();
+            return `${scopeName}_${typeName}`;
         }
         if (ctx.userType()) {
             return ctx.userType()!.getText();

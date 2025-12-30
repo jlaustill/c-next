@@ -1,6 +1,6 @@
 # ADR-016: How to Handle Scope in C-Next?
 
-**Status:** Research Needed
+**Status:** Proposed
 **Date:** 2025-12-29
 **Decision Makers:** C-Next Language Design Team
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
@@ -47,15 +47,15 @@ scope LED {
     u32 brightness;              // private by default
 
     public void on() {
-        GPIO7.DR_SET[LED_BIT] <- true;
+        global.GPIO7.DR_SET[global.LED_BIT] <- true;
     }
 
     public void off() {
-        GPIO7.DR_CLEAR[LED_BIT] <- true;
+        global.GPIO7.DR_CLEAR[this.brightness] <- true;
     }
 }
 
-// Usage:
+// Usage from outside:
 LED.on();
 LED.off();
 ```
@@ -69,7 +69,7 @@ void LED_on(void) {
 }
 
 void LED_off(void) {
-    GPIO7_DR_CLEAR = (1 << LED_BIT);
+    GPIO7_DR_CLEAR = (1 << LED_brightness);
 }
 ```
 
@@ -144,95 +144,122 @@ void main_loop() {
 
 The following questions remain open and require further exploration:
 
-### CRITICAL: Name Shadowing and Resolution
+### DECIDED: Name Resolution with `this.` and `global.`
 
-This is the most important scoping question to resolve. Consider this example:
+C-Next requires **explicit qualification** for all non-local references inside a scope. This eliminates ambiguity entirely and aligns with C-Next's safety-first philosophy.
+
+#### The Rule
+
+Inside a scope, you MUST use:
+- **`this.X`** — for ANY scope member (variables, functions, types, enums)
+- **`global.X`** — for ANY global (variables, functions, registers, types)
+- **Bare `X`** — ONLY for function-local variables and parameters
+
+#### Example
 
 ```cnx
+const u8 defaultValue <- 3;           // Global
+
 register GPIO7 @ 0x42004000 {
     DR_SET: u32 wo @ 0x84,
 }
 
-scope LED {
-    const bool GPIO7 <- true;   // Scope member, shadows register!
+scope Motor {
+    public enum State {
+        IDLE,
+        RUNNING,
+        STALLED
+    }
 
-    void on() {
-        u32 GPIO7 <- 0;         // Local variable, shadows scope member!
-        GPIO7.DR_SET[LED_BIT] <- true;  // WHICH GPIO7???
+    const u8 defaultValue <- 1;       // Scope member (shadows global)
+
+    this.State current <- this.State.IDLE;
+
+    u8 start() {
+        u8 localVar <- 5;             // Local - bare identifier OK
+
+        this.current <- this.State.RUNNING;
+
+        return localVar               // Local - bare
+             + this.defaultValue      // Scope member - MUST use this.
+             + global.defaultValue;   // Global - MUST use global.
+    }
+
+    void setPin() {
+        global.GPIO7.DR_SET[3] <- true;  // Global register - MUST use global.
     }
 }
 ```
 
-**The Ambiguity:** When the compiler sees `GPIO7.DR_SET[LED_BIT]`, which `GPIO7` does it refer to?
+#### Transpiles to:
 
-| Candidate | Type | Has `.DR_SET`? |
-|-----------|------|----------------|
-| Local `GPIO7` | `u32` | No (would be type error) |
-| Scope `LED_GPIO7` | `const bool` | No (would be type error) |
-| Register `GPIO7` | Register | Yes |
+```c
+const uint8_t defaultValue = 3;
 
-**Traditional Lexical Scoping** says "innermost scope wins" — so the local `u32 GPIO7` would be selected, causing a type error because `u32` has no `.DR_SET` member.
+#define GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
 
-**But this is confusing!** The developer clearly meant to access the register, not the shadowing variable.
+typedef enum {
+    Motor_State_IDLE = 0,
+    Motor_State_RUNNING = 1,
+    Motor_State_STALLED = 2
+} Motor_State;
 
-#### Options to Research
+static const uint8_t Motor_defaultValue = 1;
 
-**Option A: Strict Shadowing Ban**
-- Disallow shadowing of registers, globals, and scope members
-- Compile-time error if a local variable has the same name as an outer scope identifier
-- **Pro:** Eliminates ambiguity entirely
-- **Con:** May be overly restrictive for large codebases
+Motor_State Motor_current = Motor_State_IDLE;
 
-**Option B: Explicit Qualification Required**
-- If shadowing occurs, require explicit qualification to access outer scopes
-- Syntax options: `::GPIO7` (C++ style), `global.GPIO7`, `register.GPIO7`
-- **Pro:** Allows shadowing when intentional
-- **Con:** Adds syntax complexity
+uint8_t Motor_start(void) {
+    uint8_t localVar = 5;
+    Motor_current = Motor_State_RUNNING;
+    return localVar + Motor_defaultValue + defaultValue;
+}
 
-**Option C: Type-Aware Resolution**
-- If the innermost candidate doesn't type-check, try outer scopes
-- `GPIO7.DR_SET` fails on `u32`, so try scope member, then register
-- **Pro:** "Does what you mean"
-- **Con:** Surprising behavior, hard to reason about
+void Motor_setPin(void) {
+    GPIO7_DR_SET = (1 << 3);
+}
+```
 
-**Option D: Separate Namespaces**
-- Registers, scopes, and locals are in separate "namespaces" (not `scope` keyword)
-- `GPIO7` (local), `LED.GPIO7` (scope), `GPIO7` (register) are all distinct
-- Member access (`.DR_SET`) only applies to registers/structs, so `GPIO7.DR_SET` unambiguously means the register
-- **Pro:** Clear resolution rules
-- **Con:** What if a struct is named `GPIO7`?
+#### `this.` for Types
 
-**Option E: Warning + Innermost Wins**
-- Traditional lexical scoping (innermost wins)
-- Compiler emits warning when shadowing occurs
-- Developer must rename or explicitly qualify
-- **Pro:** Familiar behavior, explicit about the problem
-- **Con:** Warning fatigue if common
+The `this.` prefix also works in type position for scoped types:
 
-#### Current Behavior (BUGGY)
+```cnx
+scope Motor {
+    public enum State { IDLE, RUNNING }
 
-The current implementation has inconsistent behavior:
-- `resolveIdentifier()` checks scope members first
-- But member access (`GPIO7.DR_SET`) may bypass this check
-- This leads to unpredictable results depending on context
+    void example() {
+        const this.State currentState <- this.State.IDLE;  // Type is Motor_State
+    }
+}
+```
 
-**This MUST be resolved before the language is stable.**
+#### Compile-Time Errors
 
-#### Recommended Research Approach
+Bare identifiers referencing scope members or globals inside a scope produce compile errors:
 
-1. Survey other languages:
-   - How does Rust handle shadowing with modules?
-   - How does Zig handle this?
-   - What does C do with file-scope vs block-scope?
+```cnx
+scope Motor {
+    const u8 value <- 1;
 
-2. Create test cases covering:
-   - Local shadows scope member
-   - Scope member shadows global
-   - Scope member shadows register
-   - All three levels of shadowing
+    void bad() {
+        value;           // ERROR: use 'this.value' for scope member
+        GPIO7.DR;        // ERROR: use 'global.GPIO7.DR' for global register
+        defaultValue;    // ERROR: ambiguous - use 'this.' or 'global.'
+    }
+}
+```
 
-3. Implement strict shadowing detection as a starting point
-   - Fail fast, then relax rules if too restrictive
+#### Why This Design?
+
+| Aspect | `this.`/`global.` Required | Implicit Resolution |
+|--------|---------------------------|---------------------|
+| Ambiguity | **Zero** — always explicit | Shadowing causes confusion |
+| Safety | **Maximum** — no accidents | Easy to reference wrong thing |
+| Readability | **Self-documenting** | Must trace scope manually |
+| Refactoring | **Safe** — rename scope once | Must update all references |
+| Compiler | **Simple** — just parse prefix | Complex resolution rules |
+
+This approach embodies C-Next's philosophy: **safety through explicitness, not clever inference**.
 
 ---
 
@@ -245,20 +272,19 @@ Options to research:
 
 ### 2. Should scopes nest?
 
+**DECIDED: No nested scopes for v1.**
+
+Nested scopes add complexity without significant benefit for embedded use cases. Keep it simple:
+
 ```cnx
-// Is this desirable?
+// NOT supported in v1:
 scope Hardware {
-    scope GPIO {
-        public void init() { ... }
-    }
-    scope UART {
-        public void init() { ... }
-    }
+    scope GPIO { ... }  // ERROR: nested scopes not allowed
 }
 
-// Calls become:
-Hardware.GPIO.init();
-Hardware.UART.init();
+// Instead, use flat scopes with naming conventions:
+scope Hardware_GPIO { ... }
+scope Hardware_UART { ... }
 ```
 
 ### 3. Syntax for "methods" on structs?
@@ -293,10 +319,15 @@ struct RingBuffer<T, N> {
 
 ---
 
+## What This ADR Decides
+
+- **Name resolution:** `this.` and `global.` are REQUIRED inside scopes (no implicit resolution)
+- **Nested scopes:** Not supported in v1
+- **`this.` in type position:** Supported for scoped types (e.g., `this.State`)
+
 ## What This ADR Does NOT Decide
 
-This ADR is in "Research Needed" status. It does NOT conclude:
-- The final semantics of `scope`
+The following questions remain open:
 - Whether UFCS or method syntax will be added
 - How generic types will work
 - The complete visibility model
@@ -315,6 +346,12 @@ The `scope` keyword replaces `namespace` in the current implementation:
 - Grammar updated: `namespace` → `scope`
 - Code generator updated
 - All examples and tests converted
+
+**Pending implementation:**
+- `this.` keyword for scope-local references
+- `global.` keyword for global references
+- Compile-time enforcement of explicit qualification
+- `this.Type` in type position for scoped types
 
 The class implementation has been removed pending further research.
 

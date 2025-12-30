@@ -53,23 +53,23 @@ scope LED {
     void on() {
         // Direct bit access on write-only atomic register!
         // Generates: GPIO7_DR_SET = (1 << LED_BIT);
-        GPIO7.DR_SET[LED_BIT] <- true;
+        global.GPIO7.DR_SET[global.LED_BIT] <- true;
     }
 
     void off() {
         // Atomic clear - no read-modify-write needed
-        GPIO7.DR_CLEAR[LED_BIT] <- true;
+        global.GPIO7.DR_CLEAR[global.LED_BIT] <- true;
     }
 
     void toggle() {
         // Atomic toggle - perfect for blinking!
-        GPIO7.DR_TOGGLE[LED_BIT] <- true;
+        global.GPIO7.DR_TOGGLE[global.LED_BIT] <- true;
     }
 
     bool isOn() {
         // Read bit directly from DR register
         // Generates: ((GPIO7_DR >> LED_BIT) & 1)
-        return GPIO7.DR[LED_BIT];
+        return global.GPIO7.DR[global.LED_BIT];
     }
 }
 
