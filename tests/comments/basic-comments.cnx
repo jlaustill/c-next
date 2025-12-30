@@ -1,0 +1,18 @@
+// Basic Comments Test (ADR-043)
+// Tests that line comments are preserved in output
+
+#include <stdint.h>
+
+// Global variable with comment
+u32 counter <- 0;
+
+/* Block comment
+ * spanning multiple lines
+ * should be preserved
+ */
+u32 maxValue <- 100;
+
+// Function with inline comment
+u32 increment(u32 value) {
+    return value + 1;  // Add one
+}

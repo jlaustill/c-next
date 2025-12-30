@@ -240,6 +240,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
 | [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
+| [ADR-043](docs/decisions/adr-043-comments.md) | Comments | Comment preservation with MISRA compliance |
 
 ### Proposed
 | ADR | Title | Description |

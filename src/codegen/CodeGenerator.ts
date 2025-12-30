@@ -3,10 +3,14 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
+import { CommonTokenStream } from 'antlr4ng';
 import * as Parser from '../parser/grammar/CNextParser.js';
 import SymbolTable from '../symbols/SymbolTable.js';
 import ESourceLanguage from '../types/ESourceLanguage.js';
 import ESymbolKind from '../types/ESymbolKind.js';
+import CommentExtractor from './CommentExtractor.js';
+import CommentFormatter from './CommentFormatter.js';
+import IComment from './types/IComment.js';
 
 /**
  * Maps C-Next types to C types
@@ -131,6 +135,11 @@ export default class CodeGenerator {
     /** External symbol table for cross-language interop */
     private symbolTable: SymbolTable | null = null;
 
+    /** Token stream for comment extraction (ADR-043) */
+    private tokenStream: CommonTokenStream | null = null;
+    private commentExtractor: CommentExtractor | null = null;
+    private commentFormatter: CommentFormatter = new CommentFormatter();
+
     /**
      * Check if a function is a C-Next function (uses pass-by-reference semantics).
      * Checks both internal tracking and external symbol table.
@@ -180,10 +189,19 @@ export default class CodeGenerator {
      * Generate C code from a C-Next program
      * @param tree The parsed C-Next program
      * @param symbolTable Optional symbol table for cross-language interop
+     * @param tokenStream Optional token stream for comment preservation (ADR-043)
      */
-    generate(tree: Parser.ProgramContext, symbolTable?: SymbolTable): string {
+    generate(tree: Parser.ProgramContext, symbolTable?: SymbolTable, tokenStream?: CommonTokenStream): string {
         // Store symbol table for function lookup
         this.symbolTable = symbolTable ?? null;
+
+        // Initialize comment extraction (ADR-043)
+        this.tokenStream = tokenStream ?? null;
+        if (this.tokenStream) {
+            this.commentExtractor = new CommentExtractor(this.tokenStream);
+        } else {
+            this.commentExtractor = null;
+        }
 
         // Reset state
         this.context = {
@@ -221,7 +239,10 @@ export default class CodeGenerator {
 
         // Pass through #include directives from source
         // C-Next does NOT hardcode any libraries - all includes must be explicit
+        // ADR-043: Comments before first include become file-level comments
         for (const includeDir of tree.includeDirective()) {
+            const leadingComments = this.getLeadingComments(includeDir);
+            output.push(...this.formatLeadingComments(leadingComments));
             output.push(includeDir.getText());
         }
 
@@ -232,6 +253,10 @@ export default class CodeGenerator {
 
         // Visit all declarations
         for (const decl of tree.declaration()) {
+            // ADR-043: Get comments before this declaration
+            const leadingComments = this.getLeadingComments(decl);
+            output.push(...this.formatLeadingComments(leadingComments));
+
             const code = this.generateDeclaration(decl);
             if (code) {
                 output.push(code);
@@ -2535,5 +2560,43 @@ export default class CodeGenerator {
     private indent(text: string): string {
         const spaces = '    '.repeat(this.context.indentLevel);
         return text.split('\n').map(line => spaces + line).join('\n');
+    }
+
+    // ========================================================================
+    // Comment Handling (ADR-043)
+    // ========================================================================
+
+    /**
+     * Get comments that appear before a parse tree node
+     */
+    private getLeadingComments(ctx: { start?: { tokenIndex: number } | null }): IComment[] {
+        if (!this.commentExtractor || !ctx.start) return [];
+        return this.commentExtractor.getCommentsBefore(ctx.start.tokenIndex);
+    }
+
+    /**
+     * Get inline comments that appear after a parse tree node (same line)
+     */
+    private getTrailingComments(ctx: { stop?: { tokenIndex: number } | null }): IComment[] {
+        if (!this.commentExtractor || !ctx.stop) return [];
+        return this.commentExtractor.getCommentsAfter(ctx.stop.tokenIndex);
+    }
+
+    /**
+     * Format leading comments with current indentation
+     */
+    private formatLeadingComments(comments: IComment[]): string[] {
+        if (comments.length === 0) return [];
+        const indent = '    '.repeat(this.context.indentLevel);
+        return this.commentFormatter.formatLeadingComments(comments, indent);
+    }
+
+    /**
+     * Format a trailing/inline comment
+     */
+    private formatTrailingComment(comments: IComment[]): string {
+        if (comments.length === 0) return '';
+        // Only use the first comment for inline
+        return this.commentFormatter.formatTrailingComment(comments[0]);
     }
 }

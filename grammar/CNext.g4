@@ -552,17 +552,18 @@ IDENTIFIER
     : [a-zA-Z_] [a-zA-Z0-9_]*
     ;
 
-// Comments
+// Comments - preserved on HIDDEN channel for output (ADR-043)
+// DOC_COMMENT must be before LINE_COMMENT (ANTLR matches first rule that fits)
+DOC_COMMENT
+    : '///' ~[\r\n]* -> channel(HIDDEN)
+    ;
+
 LINE_COMMENT
-    : '//' ~[\r\n]* -> skip
+    : '//' ~[\r\n]* -> channel(HIDDEN)
     ;
 
 BLOCK_COMMENT
-    : '/*' .*? '*/' -> skip
-    ;
-
-DOC_COMMENT
-    : '///' ~[\r\n]* -> channel(HIDDEN)
+    : '/*' .*? '*/' -> channel(HIDDEN)
     ;
 
 // Whitespace

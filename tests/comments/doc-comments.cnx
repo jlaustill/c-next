@@ -1,0 +1,14 @@
+// Doc Comments Test (ADR-043)
+// Tests that triple-slash converts to Doxygen format
+
+#include <stdint.h>
+
+/// Doubles the input value
+/// @param value The input to double
+/// @return The doubled value
+u32 doubleValue(u32 value) {
+    return value * 2;
+}
+
+/// Maximum buffer size constant
+const u32 MAX_BUFFER <- 256;

@@ -7,6 +7,7 @@ import { CharStream, CommonTokenStream } from 'antlr4ng';
 import { CNextLexer } from '../parser/grammar/CNextLexer.js';
 import { CNextParser } from '../parser/grammar/CNextParser.js';
 import CodeGenerator from '../codegen/CodeGenerator.js';
+import CommentExtractor from '../codegen/CommentExtractor.js';
 import CNextSymbolCollector from '../symbols/CNextSymbolCollector.js';
 import ESymbolKind from '../types/ESymbolKind.js';
 import InitializationAnalyzer from '../analysis/InitializationAnalyzer.js';
@@ -151,10 +152,33 @@ export function transpile(source: string, options: ITranspileOptions = {}): ITra
         };
     }
 
+    // Validate comments (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+    const commentExtractor = new CommentExtractor(tokenStream);
+    const commentErrors = commentExtractor.validate();
+
+    for (const commentError of commentErrors) {
+        errors.push({
+            line: commentError.line,
+            column: commentError.column,
+            message: `error[MISRA-${commentError.rule}]: ${commentError.message}`,
+            severity: 'error'
+        });
+    }
+
+    // If there are comment validation errors, fail compilation
+    if (errors.length > 0) {
+        return {
+            success: false,
+            code: '',
+            errors,
+            declarationCount
+        };
+    }
+
     // Generate C code
     try {
         const generator = new CodeGenerator();
-        const code = generator.generate(tree);
+        const code = generator.generate(tree, undefined, tokenStream);
 
         return {
             success: true,

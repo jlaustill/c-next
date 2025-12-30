@@ -5,14 +5,77 @@ C-Next is a safer C for embedded systems. It transpiles to clean, readable C cod
 **Status Legend:**
 - `[DONE]` - Implemented and working
 - `[TODO]` - Planned for v1
-- `[v2]` - Planned for v2+
+
+## Comments [DONE]
 
 ```cnx
-// Single-line comment [DONE]
-/* Multi-line
-   comment */ [DONE]
+// Single-line comment (C99+ style, preserved in output)
 
-/// Doc comment [TODO: generate docs]
+/* Multi-line block comment
+   spanning multiple lines */
+
+/// Documentation comment - converts to Doxygen format
+/// @param value The input parameter
+/// @return The result
+
+// Comments are preserved in generated C output!
+```
+
+### Doxygen Conversion
+
+Triple-slash comments (`///`) are converted to Doxygen format:
+
+```cnx
+/// Calculate the square of a number
+/// @param x The input value
+/// @return x squared
+u32 square(u32 x) {
+    return x * x;
+}
+```
+
+Generates:
+
+```c
+/**
+ * Calculate the square of a number
+ * @param x The input value
+ * @return x squared
+ */
+uint32_t square(uint32_t* x) {
+    return (*x) * (*x);
+}
+```
+
+### MISRA C:2012 Compliance
+
+C-Next enforces comment rules at transpile time:
+
+```cnx
+// ERROR: Nested comment markers (Rule 3.1)
+// This has /* nested block */ markers    // Compile error!
+
+// OK: URLs are allowed (Amendment 4 exception)
+// See https://example.com/docs           // No error
+
+// ERROR: Line-splice causes undefined behavior (Rule 3.2)
+// Comment ending with backslash \        // Compile error!
+```
+
+## Enums [DONE]
+
+```cnx
+enum State {
+    IDLE,           // 0
+    RUNNING,        // 1
+    ERROR <- 255    // Explicit value
+}
+
+State current <- State.IDLE;
+
+if (current = State.RUNNING) {
+    // ...
+}
 ```
 
 ## Includes
@@ -298,23 +361,6 @@ struct TCPHeader {
     u16 srcPort;
     u16 dstPort;
     u32 seqNum;
-}
-```
-
-## Enums
-
-```cnx
-// [TODO: ADR-017] Enums
-enum State {
-    IDLE,           // 0
-    RUNNING,        // 1
-    ERROR <- 255    // Explicit value
-}
-
-State current <- State.IDLE;
-
-if (current = State.RUNNING) {
-    // ...
 }
 ```
 
