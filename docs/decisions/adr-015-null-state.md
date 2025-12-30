@@ -1,4 +1,4 @@
-# ADR-015: Null State and Zero Initialization
+# ADR-015: Null State and Variable Initialization
 
 **Status:** Implemented
 **Date:** 2025-12-28
@@ -42,11 +42,27 @@ This is a source of countless bugs:
 - Intermittent failures (works on my machine!)
 - Security vulnerabilities (information leaks)
 
-## Proposed Approach: Explicit Zero Initialization
+## Decision: Hybrid Approach
 
-> **Note:** This is a draft proposal. The final decision is pending further research and discussion.
+C-Next uses a **hybrid approach** that combines the best of Go-style and Rust-style:
 
-**Option A (Go-style):** All C-Next variables are zero-initialized by default.
+| Scope | Behavior | Rationale |
+|-------|----------|-----------|
+| **Global variables** | Zero-initialized | Embedded pattern: declare globally, initialize in `init()` |
+| **Scope/namespace variables** | Zero-initialized | Same as globals |
+| **Local variables** | **Error on use before initialization** | Catches bugs at compile time |
+
+This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Uninitialized Variables.
+
+### Why This Hybrid?
+
+1. **Globals need zero-init**: The embedded `global + init()` pattern requires globals to have a known state before `init()` runs
+2. **Locals should error**: Reading an uninitialized local variable is almost always a bug
+3. **Best of both worlds**: Safe defaults for embedded patterns, strict checking for function-local code
+
+## Implementation
+
+### Global Variables (Zero-Initialized)
 
 | Type | Zero Value |
 |------|------------|
@@ -58,9 +74,10 @@ This is a source of countless bugs:
 | Structs | All fields zero |
 | Class instances | All fields zero |
 
-### C-Next Code
+#### C-Next Code (Global Scope)
 
 ```cnx
+// Global variables - zero initialized
 u32 count;           // count = 0
 bool flag;           // flag = false
 u8 buffer[256];      // All bytes = 0
@@ -68,7 +85,7 @@ Point origin;        // origin.x = 0, origin.y = 0
 UART uart1;          // All fields = 0
 ```
 
-### Generated C
+#### Generated C
 
 ```c
 uint32_t count = 0;
@@ -78,40 +95,85 @@ Point origin = {0};
 UART uart1 = {0};
 ```
 
-## Rationale
+### Local Variables (Error on Use Before Init)
 
-### Why Zero?
+Local variables inside functions follow Rust-style checking:
 
-1. **Predictable**: Every variable has a known initial state
-2. **Safe**: No garbage values, no undefined behavior
-3. **Go-style**: Go uses zero values successfully ("the zero value is useful")
-4. **C-compatible**: `= {0}` is valid C and widely understood
-5. **No runtime cost**: Global zero-init happens in .bss, no code needed
+```cnx
+void example() {
+    i32 value;              // Declared but not initialized
 
-### Why Not Require Explicit Initialization?
+    Console.print(value);   // ERROR E0381: use of uninitialized variable 'value'
 
-Rust requires explicit initialization:
-```rust
-let x: i32;  // Error: use of uninitialized variable
+    value <- 42;            // Now initialized
+    Console.print(value);   // OK
+}
 ```
 
-C-Next chooses zero-init instead because:
+#### Control Flow Analysis
+
+The compiler tracks initialization through all code paths:
+
+```cnx
+void example(bool condition) {
+    i32 result;
+
+    if (condition) {
+        result <- 10;
+    }
+    // ERROR: result not initialized on all paths
+    Console.print(result);
+
+    // Must cover all cases:
+    if (condition) {
+        result <- 10;
+    } else {
+        result <- 0;
+    }
+    Console.print(result);  // OK: initialized on all paths
+}
+```
+
+#### Error Code
+
+Use-before-initialization errors use Rust's error code **E0381**:
+
+```
+error[E0381]: use of uninitialized variable 'value'
+ --> src/main.cnx:5:18
+  |
+3 |     i32 value;
+  |         ----- variable declared here
+5 |     Console.print(value);
+  |                   ^^^^^ use of uninitialized variable
+```
+
+## Rationale
+
+### Why Zero-Init for Globals?
 
 1. **Embedded reality**: Many variables are legitimately initialized later in `init()`
-2. **Reduced boilerplate**: No need for `= 0` on every declaration
-3. **Safe default**: Zero is rarely worse than compiler error, often useful
-4. **C interop**: Matches C static initialization semantics
+2. **Predictable**: Every global has a known initial state
+3. **No runtime cost**: Global zero-init happens in .bss, no code needed
+4. **C-compatible**: `= {0}` is valid C and widely understood
 
-### Go's Philosophy
+### Why Errors for Locals?
+
+1. **Catches bugs**: Reading an uninitialized local is almost always a bug
+2. **Explicit intent**: Forces developer to think about initial state
+3. **No false positives**: Simple flow analysis without Rust's complexity
+4. **Aligns with ADR-008**: Language-level bug prevention
+
+### Go's Philosophy (Applied to Globals)
 
 > "When memory is allocated to store a value, either through a declaration or make or new, and no explicit initialization is provided, the memory is given a zero value."
 > — The Go Programming Language Specification
 
-C-Next adopts this philosophy.
+C-Next adopts this philosophy **for global variables**.
 
-## Zero Values Are Useful
+## Zero Values Are Useful (for Globals)
 
-Go demonstrates that zero values are often the right default:
+Go demonstrates that zero values are often the right default for global state:
 
 ```go
 var count int        // 0 - ready for counting
@@ -119,7 +181,7 @@ var buffer []byte    // nil - ready for append
 var wg sync.WaitGroup // ready to use
 ```
 
-In C-Next:
+In C-Next globals:
 
 ```cnx
 u32 count;           // 0 - ready for incrementing
@@ -361,40 +423,35 @@ The learning curve is real: ["Senior engineers may struggle for weeks/months or 
 4. **Proven safety**: Microsoft's 70% CVE reduction data is compelling
 5. **Optional middle ground**: Could be a warning instead of error
 
-## Summary: Options Under Consideration
+## Summary: Final Decision
 
 | Approach | Pros | Cons |
 |----------|------|------|
 | **C (undefined)** | Fast | Bugs, CVEs, undefined behavior |
 | **Rust (compile error)** | Safest | Learning curve, false positives, friction |
 | **Go (zero value)** | Simple, safe for value types | Panics on reference types |
+| **C-Next (hybrid)** | Best of both worlds | Slightly more complex rules |
 
-### Possible C-Next Approaches
+### C-Next's Hybrid Approach
 
-| Option | Description | Tradeoff |
-|--------|-------------|----------|
-| **A: Go-style** | Zero-init all variables | Simple, but hides "forgot to init" bugs |
-| **B: Rust-style** | Compile error on use before init | Safe, but friction and false positives |
-| **C: Hybrid warning** | Zero-init + warn on use before init | Best of both? Or worst of both? |
-| **D: Opt-in strictness** | Zero-init default, `--strict` flag for errors | Flexibility, but inconsistent codebases |
+| Scope | Behavior | Why |
+|-------|----------|-----|
+| **Globals** | Zero-initialized (Go-style) | Embedded `init()` pattern requires it |
+| **Scope members** | Zero-initialized (Go-style) | Same as globals |
+| **Locals** | Error on use before init (Rust-style) | Catches bugs at compile time |
 
-### Open Questions
+### Why This Works
 
-1. **Is zero always safe?** What about `divisor <- 0` then dividing by it?
-2. **Does the global + init() pattern require zero-init?** Or could we detect it?
-3. **Would Rust-style checking be simpler for C-Next?** We have no lifetimes/borrowing.
-4. **What do embedded developers actually want?** Need user research.
-
-### Key Insight
-
-C-Next avoids Go's reference type problems (nil map panic, nil pointer crash) because
-C-Next is **all value types**. This makes zero-init safer than in Go, but doesn't
-necessarily make it the *right* choice.
+1. **No reference type problems**: C-Next is all value types, so zero-init is always safe for globals
+2. **Catches local bugs**: Uninitialized local reads are almost always bugs
+3. **Supports embedded patterns**: The `global + init()` pattern works naturally
+4. **Simple mental model**: Globals are zero, locals must be initialized
 
 ## References
 
 - ADR-003: Static Allocation (startup allocation context)
 - ADR-005: Classes Without Inheritance (global + init pattern)
+- ADR-008: Language-Level Bug Prevention (Section 6: Uninitialized Variables)
 - ADR-014: Structs (struct zero initialization)
 - [Go Language Specification: Zero Value](https://go.dev/ref/spec#The_zero_value)
 - [Go Zero Values Make Sense, Actually](https://yoric.github.io/post/go-nil-values/)
