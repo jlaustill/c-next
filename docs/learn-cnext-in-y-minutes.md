@@ -1,4 +1,4 @@
-# Learn C-Next in Y Minutes
+# Learn C-Next in Y Minutesx
 
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C code.
 
