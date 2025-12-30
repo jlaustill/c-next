@@ -240,6 +240,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
 | [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
+| [ADR-037](docs/decisions/adr-037-preprocessor.md) | Preprocessor | Flag-only defines, const for values |
 | [ADR-043](docs/decisions/adr-043-comments.md) | Comments | Comment preservation with MISRA compliance |
 
 ### Proposed
@@ -266,7 +267,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type and value size queries |
 | [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Composition patterns |
 | [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Hardware register layouts |
-| [ADR-037](docs/decisions/adr-037-preprocessor.md) | Preprocessor | `#define`, `#ifdef` handling |
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
 
 #### Medium Priority

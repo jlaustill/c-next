@@ -1,4 +1,4 @@
-# Learn C-Next in Y Minutesx
+# Learn C-Next in Y Minutes
 
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C code.
 
@@ -62,9 +62,86 @@ C-Next enforces comment rules at transpile time:
 // Comment ending with backslash \        // Compile error!
 ```
 
-## Enums [DONE]
+## Preprocessor [DONE]
+
+C-Next takes a safety-first approach to the preprocessor (ADR-037).
 
 ```cnx
+// [DONE] Include directives - pass through to C
+#include <stdint.h>
+#include <stdbool.h>
+#include "myheader.h"
+
+// [DONE] Flag-only defines - for conditional compilation
+#define ARDUINO
+#define DEBUG
+
+// ERROR: Value defines are forbidden - use const instead!
+// #define BUFFER_SIZE 256   // E0502: Use const u32 BUFFER_SIZE <- 256;
+
+// ERROR: Function macros are forbidden - use inline functions!
+// #define MAX(a, b) ...     // E0501: Use inline functions
+
+// [DONE] Conditional compilation
+#ifdef ARDUINO
+#endif
+
+#ifndef DEBUG
+#else
+#endif
+```
+
+### Why No `#define` with Values?
+
+`#define` macros cause 5 of the 7 classic C preprocessor bugs:
+- No type checking
+- Operator precedence errors
+- Multiple evaluation problems
+- No scope (global namespace pollution)
+- Debugger-invisible values
+
+C-Next requires `const` for type-safe, scoped, debuggable constants.
+
+### Bug Prevention Analysis
+
+| Bug | Solved? | How |
+|-----|---------|-----|
+| 1. Operator Precedence | ✅ | No value macros allowed |
+| 2. Multiple Evaluation | ✅ | No function macros allowed |
+| 3. No Type Checking | ✅ | `const` is type-checked |
+| 4. **No Scope** | ❌ | `#define FLAG` still global |
+| 5. Swallowing the Semicolon | ✅ | No statement macros |
+| 6. Control Flow Distortion | ✅ | No macro code blocks |
+| 7. **Debugger Invisible** | ❌ | Flags can't be inspected |
+
+**Why 2 bugs remain and why that's OK:**
+
+- **No Scope (#4):** Flag-only defines like `#define ARDUINO` are meant for conditional compilation—a global concern. Platform flags *should* be visible everywhere. Use `const` inside a scope for scoped constants.
+
+- **Debugger Invisible (#7):** Flags control which code compiles, not runtime values. They don't need runtime inspection. Use `const` for values you want to debug.
+
+## Constants [DONE]
+
+Constants in C-Next use `const` and `enum` - not `#define`.
+
+### Const Variables (ADR-013)
+
+```cnx
+// Type-safe constants - preferred over #define
+const u32 BUFFER_SIZE <- 256;
+const u8 VERSION[] <- "1.0.0";
+const f32 PI <- 3.14159;
+
+// Const in function parameters
+void process(const u8 data[], u32 length) {
+    // data is read-only
+}
+```
+
+### Enumeration Constants (ADR-017)
+
+```cnx
+// Enums provide named integer constants
 enum State {
     IDLE,           // 0
     RUNNING,        // 1
@@ -76,21 +153,10 @@ State current <- State.IDLE;
 if (current = State.RUNNING) {
     // ...
 }
-```
 
-## Includes
-
-```cnx
-// [DONE] Pass-through to C
-#include <stdint.h>
-#include <stdbool.h>
-#include "myheader.h"
-
-// [TODO: ADR-037] Preprocessor directives
-#define BUFFER_SIZE 256
-#ifdef DEBUG
-    // debug code
-#endif
+// Enums are type-safe - can't accidentally mix types
+// u8 val <- State.IDLE;  // Error without explicit cast
+u8 val <- (u8)State.IDLE;  // OK with cast
 ```
 
 ## Types
@@ -119,7 +185,7 @@ usize length;   // size_t (platform-dependent)
 isize offset;   // ptrdiff_t
 ```
 
-## Variables and Constants
+## Variables
 
 ```cnx
 // [DONE] Variables are zero-initialized by default (ADR-015)
@@ -127,9 +193,6 @@ u32 counter;    // counter = 0, not garbage!
 
 // [DONE] Assignment uses <- (ADR-001)
 counter <- 42;
-
-// [DONE] Constants
-const u32 MAX_SIZE <- 1024;
 
 // [TODO: ADR-038] Static and extern
 static u32 filePrivate <- 0;

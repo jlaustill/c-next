@@ -1,0 +1,17 @@
+// ADR-037: Valid flag-only defines
+// These should pass through to C unchanged
+// Note: Preprocessor directives must appear at top level before declarations
+
+#include <stdint.h>
+
+#define ARDUINO
+#define STM32F4
+#define DEBUG
+
+// Const values (the safe way to define constants)
+const u32 LED_PIN <- 13;
+const u32 ALT_PIN <- 10;
+
+void setup() {
+    // Using const instead of #define for values
+}

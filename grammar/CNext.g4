@@ -21,13 +21,36 @@ grammar CNext;
 
 // Entry point
 program
-    : includeDirective* declaration* EOF
+    : (includeDirective | preprocessorDirective)* declaration* EOF
     ;
 
 // Include directives (passed through to generated C)
 // Uses same syntax as C: #include <header.h> or #include "header.h"
 includeDirective
     : INCLUDE_DIRECTIVE
+    ;
+
+// Preprocessor directives (ADR-037)
+// C-Next takes a safety-first approach:
+// - #define FLAG (no value) - allowed for conditional compilation
+// - #define FLAG value - ERROR, must use const
+// - #define NAME(args) - ERROR, function macros forbidden
+preprocessorDirective
+    : defineDirective
+    | conditionalDirective
+    ;
+
+defineDirective
+    : DEFINE_FLAG          // Flag-only: #define PLATFORM
+    | DEFINE_WITH_VALUE    // Error: #define SIZE 256
+    | DEFINE_FUNCTION      // Error: #define MAX(a,b) ...
+    ;
+
+conditionalDirective
+    : IFDEF_DIRECTIVE
+    | IFNDEF_DIRECTIVE
+    | ELSE_DIRECTIVE
+    | ENDIF_DIRECTIVE
     ;
 
 // Top-level declarations
@@ -426,6 +449,44 @@ literal
 // Matches: #include <header.h> or #include "header.h"
 INCLUDE_DIRECTIVE
     : '#' [ \t]* 'include' [ \t]* ('<' ~[>\r\n]* '>' | '"' ~["\r\n]* '"')
+    ;
+
+// ADR-037: Preprocessor directive tokens
+// Order matters: more specific patterns must come first
+
+// Function-like macro (ERROR): #define NAME(
+// Must check for '(' before value pattern
+DEFINE_FUNCTION
+    : '#' [ \t]* 'define' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_]* [ \t]* '(' ~[\r\n]*
+    ;
+
+// Define with value (ERROR): #define NAME value
+// Has content after the identifier
+DEFINE_WITH_VALUE
+    : '#' [ \t]* 'define' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_]* [ \t]+ ~[\r\n]+
+    ;
+
+// Flag-only define (OK): #define NAME
+// Just the identifier, nothing after (except whitespace/newline)
+DEFINE_FLAG
+    : '#' [ \t]* 'define' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_]* [ \t]*
+    ;
+
+// Conditional compilation directives (pass through)
+IFDEF_DIRECTIVE
+    : '#' [ \t]* 'ifdef' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_]* [ \t]*
+    ;
+
+IFNDEF_DIRECTIVE
+    : '#' [ \t]* 'ifndef' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_]* [ \t]*
+    ;
+
+ELSE_DIRECTIVE
+    : '#' [ \t]* 'else' [ \t]*
+    ;
+
+ENDIF_DIRECTIVE
+    : '#' [ \t]* 'endif' [ \t]*
     ;
 
 // Keywords

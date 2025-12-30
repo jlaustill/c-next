@@ -1,0 +1,11 @@
+// ADR-037: Value defines should produce E0502 error
+// This file should FAIL to transpile
+
+#include <stdint.h>
+
+// ERROR: #define with value - use const instead
+#define BUFFER_SIZE 256
+
+void test() {
+    // This should not be reached - transpile should fail
+}

@@ -1,0 +1,11 @@
+// ADR-037: Function-like macros should produce E0501 error
+// This file should FAIL to transpile
+
+#include <stdint.h>
+
+// ERROR: Function-like macro - use inline functions instead
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+void test() {
+    // This should not be reached - transpile should fail
+}

@@ -251,6 +251,21 @@ export default class CodeGenerator {
             output.push('');
         }
 
+        // ADR-037: Process preprocessor directives (defines and conditionals)
+        for (const ppDir of tree.preprocessorDirective()) {
+            const leadingComments = this.getLeadingComments(ppDir);
+            output.push(...this.formatLeadingComments(leadingComments));
+            const result = this.processPreprocessorDirective(ppDir);
+            if (result) {
+                output.push(result);
+            }
+        }
+
+        // Add blank line after preprocessor directives if there were any
+        if (tree.preprocessorDirective().length > 0) {
+            output.push('');
+        }
+
         // Visit all declarations
         for (const decl of tree.declaration()) {
             // ADR-043: Get comments before this declaration
@@ -2560,6 +2575,78 @@ export default class CodeGenerator {
     private indent(text: string): string {
         const spaces = '    '.repeat(this.context.indentLevel);
         return text.split('\n').map(line => spaces + line).join('\n');
+    }
+
+    // ========================================================================
+    // Preprocessor Directive Handling (ADR-037)
+    // ========================================================================
+
+    /**
+     * Process a preprocessor directive
+     * - Flag-only defines (#define FLAG): pass through
+     * - Value defines (#define FLAG value): ERROR E0502
+     * - Function macros (#define NAME(args)): ERROR E0501
+     * - Conditional directives: pass through
+     */
+    private processPreprocessorDirective(ctx: Parser.PreprocessorDirectiveContext): string | null {
+        if (ctx.defineDirective()) {
+            return this.processDefineDirective(ctx.defineDirective()!);
+        }
+        if (ctx.conditionalDirective()) {
+            return this.processConditionalDirective(ctx.conditionalDirective()!);
+        }
+        return null;
+    }
+
+    /**
+     * Process a #define directive
+     * Only flag-only defines are allowed; value and function macros produce errors
+     */
+    private processDefineDirective(ctx: Parser.DefineDirectiveContext): string | null {
+        const text = ctx.getText();
+
+        // Check for function-like macro: #define NAME(
+        if (ctx.DEFINE_FUNCTION()) {
+            const name = this.extractDefineName(text);
+            const line = ctx.start?.line ?? 0;
+            throw new Error(
+                `E0501: Function-like macro '${name}' is not allowed. ` +
+                `Use inline functions instead. Line ${line}`
+            );
+        }
+
+        // Check for value define: #define NAME value
+        if (ctx.DEFINE_WITH_VALUE()) {
+            const name = this.extractDefineName(text);
+            const line = ctx.start?.line ?? 0;
+            throw new Error(
+                `E0502: #define with value '${name}' is not allowed. ` +
+                `Use 'const' instead: const u32 ${name} <- value; Line ${line}`
+            );
+        }
+
+        // Flag-only define: pass through
+        if (ctx.DEFINE_FLAG()) {
+            return text.trim();
+        }
+
+        return null;
+    }
+
+    /**
+     * Process a conditional compilation directive (#ifdef, #ifndef, #else, #endif)
+     * These are passed through unchanged
+     */
+    private processConditionalDirective(ctx: Parser.ConditionalDirectiveContext): string {
+        return ctx.getText().trim();
+    }
+
+    /**
+     * Extract the macro name from a #define directive
+     */
+    private extractDefineName(text: string): string {
+        const match = text.match(/#\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+        return match ? match[1] : 'unknown';
     }
 
     // ========================================================================
