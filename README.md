@@ -157,12 +157,20 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 
 ### Scopes (ADR-016)
 
-Organize code with automatic name prefixing:
+Organize code with automatic name prefixing. Inside scopes, explicit qualification is required:
+- `this.X` for scope-local members
+- `global.X` for global variables, functions, and registers
 
 ```cnx
+const u8 LED_BIT <- 3;
+
 scope LED {
-    void on() { GPIO7.DR_SET[LED_BIT] <- true; }
-    void off() { GPIO7.DR_CLEAR[LED_BIT] <- true; }
+    u8 brightness <- 100;
+
+    void on() { global.GPIO7.DR_SET[global.LED_BIT] <- true; }
+    void off() { global.GPIO7.DR_CLEAR[global.LED_BIT] <- true; }
+
+    u8 getBrightness() { return this.brightness; }
 }
 
 // Call as:
@@ -172,8 +180,14 @@ LED.off();
 
 Transpiles to:
 ```c
+const uint8_t LED_BIT = 3;
+
+static uint8_t LED_brightness = 100;
+
 void LED_on(void) { GPIO7_DR_SET = (1 << LED_BIT); }
 void LED_off(void) { GPIO7_DR_CLEAR = (1 << LED_BIT); }
+
+uint8_t LED_getBrightness(void) { return LED_brightness; }
 ```
 
 ### Startup Allocation
@@ -227,6 +241,11 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
 | [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
 
+### Proposed
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | `this.`/`global.` explicit qualification |
+
 ### Research (v1 Roadmap)
 
 #### Critical Priority
@@ -276,7 +295,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
 | [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C/C++ Interoperability | Unified ANTLR parser architecture |
-| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | Scope semantics and name resolution |
 
 ### Rejected
 | ADR | Title | Description |
