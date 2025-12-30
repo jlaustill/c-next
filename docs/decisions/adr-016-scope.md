@@ -1,6 +1,6 @@
 # ADR-016: How to Handle Scope in C-Next?
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2025-12-29
 **Decision Makers:** C-Next Language Design Team
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)

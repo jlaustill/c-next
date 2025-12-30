@@ -1,6 +1,6 @@
 # ADR-010: C/C++ Interoperability via Unified ANTLR Parsing
 
-**Status:** Research
+**Status:** Implemented
 **Date:** 2025-12-27
 **Decision Makers:** C-Next Language Design Team
 
