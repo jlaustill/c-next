@@ -68,9 +68,9 @@ C-Next takes a safety-first approach to the preprocessor (ADR-037).
 
 ```cnx
 // [DONE] Include directives - pass through to C
-#include <stdint.h>
-#include <stdbool.h>
-#include "myheader.h"
+#include <stdint.h>      // Search system headers first (standard library)
+#include <stdbool.h>     // Angle brackets for system/library headers
+#include "myheader.h"    // Quotes search local directory first, then system
 
 // [DONE] Flag-only defines - for conditional compilation
 #define ARDUINO
@@ -133,8 +133,8 @@ const u8 VERSION[] <- "1.0.0";
 const f32 PI <- 3.14159;
 
 // Const in function parameters
-void process(const u8 data[], u32 length) {
-    // data is read-only
+void process(const u8 data[]) {
+    // data is read-only, use data.length for size
 }
 ```
 
@@ -146,7 +146,7 @@ enum State {
     IDLE,           // 0
     RUNNING,        // 1
     ERROR <- 255    // Explicit value
-}
+};
 
 State current <- State.IDLE;
 
@@ -320,8 +320,8 @@ u32 add(u32 a, u32 b) {
 }
 
 // [DONE] Parameters with const
-void process(const u8 data[], usize length) {
-    // data is read-only
+void process(const u8 data[]) {
+    // data is read-only, use data.length for size
 }
 
 // [DONE] Pass by reference (ADR-006) - structs passed by reference automatically
