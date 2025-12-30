@@ -226,12 +226,16 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
 
+### Accepted (Ready for Implementation)
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
+
 ### Research (v1 Roadmap)
 
 #### Critical Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Named constants and state values |
 | [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Register overlays, type punning |
 | [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | `as` keyword for type conversion |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | State machine dispatch |
