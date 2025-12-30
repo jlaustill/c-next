@@ -166,7 +166,7 @@ u8 val <- (u8)State.IDLE;  // OK with cast
 void doNothing() {
 }
 
-u32 add(u32 a, u32 b) {
+u32 add(const u32 a, const u32 b) {
     return a + b;
 }
 
@@ -176,20 +176,9 @@ void process(const u8 data[]) {
 }
 
 // [DONE] Pass by reference (ADR-006) - structs passed by reference automatically
-void updatePoint(Point p) {
+void updatePointXToTen(Point p) {
     p.x <- 10;  // Modifies original!
 }
-
-// [TODO: ADR-031] Inline functions
-inline u32 square(u32 x) {
-    return x * x;
-}
-
-// [TODO: ADR-029] Function pointers
-type Callback <- void(u32 event);
-
-Callback handler <- myHandler;
-handler(42);
 ```
 
 ### Define-Before-Use [DONE]
@@ -220,7 +209,7 @@ void main() {
 - Eliminates declaration/definition mismatch bugs
 - No developer confusion about when to use forward declarations
 
-**C Compatibility:** The transpiler generates `.h` files with prototypes for all functions, so the generated C code compiles correctly. This complexity is hidden from C-Next developers.
+**C Compatibility:** The transpiler generates `.h` files with prototypes for all functions, so the generated C code compiles correctly. This complexity is hidden from CNX developers.
 
 ### Parameters Are Always Named [DONE]
 
