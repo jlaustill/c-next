@@ -14,7 +14,8 @@
     "build": "npm run antlr:all && tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "node scripts/test.js",
+    "test:update": "node scripts/test.js --update",
     "analyze": "./scripts/static-analysis.sh",
     "clean": "rm -rf dist src/parser"
   },

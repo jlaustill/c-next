@@ -1,0 +1,4 @@
+// Test: main function with no arguments (embedded style)
+i32 main() {
+    return 0;
+}

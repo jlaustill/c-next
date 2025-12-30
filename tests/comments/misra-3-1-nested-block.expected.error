@@ -1,0 +1,1 @@
+6:20 error[MISRA-3.1]: Nested comment marker '/*' found inside comment (MISRA C:2012 Rule 3.1)

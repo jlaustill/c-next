@@ -1,0 +1,4 @@
+// Test: 2D array parameter syntax
+i32 main(u8 args[][]) {
+    return 0;
+}

@@ -159,6 +159,128 @@ if (current = State.RUNNING) {
 u8 val <- (u8)State.IDLE;  // OK with cast
 ```
 
+## Functions
+
+```cnx
+// [DONE] Function declaration
+void doNothing() {
+}
+
+u32 add(u32 a, u32 b) {
+    return a + b;
+}
+
+// [DONE] Parameters with const
+void process(const u8 data[]) {
+    // data is read-only, use data.length for size
+}
+
+// [DONE] Pass by reference (ADR-006) - structs passed by reference automatically
+void updatePoint(Point p) {
+    p.x <- 10;  // Modifies original!
+}
+
+// [TODO: ADR-031] Inline functions
+inline u32 square(u32 x) {
+    return x * x;
+}
+
+// [TODO: ADR-029] Function pointers
+type Callback <- void(u32 event);
+
+Callback handler <- myHandler;
+handler(42);
+```
+
+### Define-Before-Use [DONE]
+
+C-Next enforces define-before-use with zero exceptions (ADR-030):
+
+```cnx
+// ERROR: Can't call function before it's defined
+void first() {
+    second();  // error[E0422]: function 'second' called before definition
+}
+
+void second() { }
+
+// OK: Define helper functions first
+void helper() {
+    // do something
+}
+
+void main() {
+    helper();  // OK - helper is defined above
+}
+```
+
+**Why no forward declarations?**
+- Catches errors at C-Next compile time, not C compile or runtime
+- Forces logical code organization (dependencies first)
+- Eliminates declaration/definition mismatch bugs
+- No developer confusion about when to use forward declarations
+
+**C Compatibility:** The transpiler generates `.h` files with prototypes for all functions, so the generated C code compiles correctly. This complexity is hidden from C-Next developers.
+
+### Parameters Are Always Named [DONE]
+
+Per MISRA C:2012 Rule 8.2, all function parameters must have names:
+
+```cnx
+// OK: All parameters named
+void process(u8 data[], u32 flags) {
+    // use data.length for array size
+}
+
+// ERROR: Unnamed parameters not allowed
+// void process(u8[], u32) { }  // Compile error
+```
+
+### Program Entry Point [DONE]
+
+C-Next supports standard C entry points with a cleaner syntax:
+
+```cnx
+// Embedded style (no command line args)
+i32 main() {
+    return 0;
+}
+
+// CLI style with command line arguments
+#include <stdio.h>
+
+i32 main(u8 args[][]) {
+    printf("Program: %s\n", args[0]);
+    printf("Arg count: %d\n", args.length);
+    return 0;
+}
+```
+
+The `args` parameter provides:
+- `args[n]` - Access the nth argument string
+- `args.length` - Get the argument count (like argc)
+
+Transpiles to standard C:
+```c
+int main(int argc, char *argv[]) {
+    printf("Program: %s\n", argv[0]);
+    printf("Arg count: %d\n", argc);
+    return 0;
+}
+```
+
+For Arduino/embedded frameworks, use `setup()` and `loop()` as usual:
+```cnx
+void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    LED.toggle();
+    delay(1000);
+}
+```
+
 ## Types
 
 ```cnx
@@ -306,42 +428,6 @@ while (true) {
     if (skip) { continue; }
     process();
 }
-```
-
-## Functions
-
-```cnx
-// [DONE] Function declaration
-void doNothing() {
-}
-
-u32 add(u32 a, u32 b) {
-    return a + b;
-}
-
-// [DONE] Parameters with const
-void process(const u8 data[]) {
-    // data is read-only, use data.length for size
-}
-
-// [DONE] Pass by reference (ADR-006) - structs passed by reference automatically
-void updatePoint(Point p) {
-    p.x <- 10;  // Modifies original!
-}
-
-// [TODO: ADR-030] Forward declarations
-void laterFunction(u32 param);
-
-// [TODO: ADR-031] Inline functions
-inline u32 square(u32 x) {
-    return x * x;
-}
-
-// [TODO: ADR-029] Function pointers
-type Callback <- void(u32 event);
-
-Callback handler <- myHandler;
-handler(42);
 ```
 
 ## Arrays
@@ -630,6 +716,7 @@ void loop(void) {
 | `*ptr` | Implicit | Simplified references |
 | Manual init | Zero by default | No uninitialized variables |
 | `namespace {}` | `scope {}` | Organization with prefixing |
+| Forward decl | Define first | Errors caught early (E0422) |
 
 ## Further Reading
 

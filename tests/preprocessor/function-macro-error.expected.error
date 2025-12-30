@@ -1,0 +1,1 @@
+1:0 Code generation failed: E0501: Function-like macro 'MAX' is not allowed. Use inline functions instead. Line 7

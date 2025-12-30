@@ -142,7 +142,7 @@ parameterList
     ;
 
 parameter
-    : constModifier? type IDENTIFIER arrayDimension?
+    : constModifier? type IDENTIFIER arrayDimension*
     ;
 
 constModifier

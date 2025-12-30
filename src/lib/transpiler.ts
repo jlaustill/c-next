@@ -11,6 +11,7 @@ import CommentExtractor from '../codegen/CommentExtractor.js';
 import CNextSymbolCollector from '../symbols/CNextSymbolCollector.js';
 import ESymbolKind from '../types/ESymbolKind.js';
 import InitializationAnalyzer from '../analysis/InitializationAnalyzer.js';
+import FunctionCallAnalyzer from '../analysis/FunctionCallAnalyzer.js';
 import {
     ITranspileResult,
     ITranspileError,
@@ -143,6 +144,30 @@ export function transpile(source: string, options: ITranspileOptions = {}): ITra
     }
 
     // If there are initialization errors, fail compilation
+    if (errors.length > 0) {
+        return {
+            success: false,
+            code: '',
+            errors,
+            declarationCount
+        };
+    }
+
+    // Run function call analysis (ADR-030: define-before-use)
+    const funcAnalyzer = new FunctionCallAnalyzer();
+    const funcErrors = funcAnalyzer.analyze(tree);
+
+    // Convert function call errors to transpile errors
+    for (const funcError of funcErrors) {
+        errors.push({
+            line: funcError.line,
+            column: funcError.column,
+            message: `error[${funcError.code}]: ${funcError.message}`,
+            severity: 'error'
+        });
+    }
+
+    // If there are function call errors, fail compilation
     if (errors.length > 0) {
         return {
             success: false,

@@ -104,6 +104,7 @@ interface GeneratorContext {
     inFunctionBody: boolean; // ADR-016: track if we're inside a function body
     typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
     expectedType: string | null; // For inferred struct initializers
+    mainArgsName: string | null; // Track the args parameter name for main() translation
 }
 
 /**
@@ -120,6 +121,7 @@ export default class CodeGenerator {
         inFunctionBody: false,  // ADR-016: track if inside function body
         typeRegistry: new Map(),
         expectedType: null,
+        mainArgsName: null,  // Track the args parameter name for main() translation
     };
 
     private knownScopes: Set<string> = new Set();  // ADR-016: renamed from knownNamespaces
@@ -214,6 +216,7 @@ export default class CodeGenerator {
             inFunctionBody: false,  // ADR-016
             typeRegistry: new Map(),
             expectedType: null,
+            mainArgsName: null,  // Track the args parameter name for main() translation
         };
         this.knownScopes = new Set();  // ADR-016
         this.knownStructs = new Set();
@@ -1334,17 +1337,57 @@ export default class CodeGenerator {
         this.context.localVariables.clear();
         this.context.inFunctionBody = true;
 
-        const params = ctx.parameterList()
-            ? this.generateParameterList(ctx.parameterList()!)
-            : 'void';
+        // Check for main function with args parameter (u8 args[][])
+        const isMainWithArgs = this.isMainFunctionWithArgs(name, ctx.parameterList());
+
+        let params: string;
+        let actualReturnType: string;
+
+        if (isMainWithArgs) {
+            // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
+            actualReturnType = 'int';
+            params = 'int argc, char *argv[]';
+            // Store the args parameter name for translation in the body
+            // We know there's exactly one parameter from isMainFunctionWithArgs check
+            const argsParam = ctx.parameterList()!.parameter()[0];
+            this.context.mainArgsName = argsParam.IDENTIFIER().getText();
+        } else {
+            actualReturnType = returnType;
+            params = ctx.parameterList()
+                ? this.generateParameterList(ctx.parameterList()!)
+                : 'void';
+        }
+
         const body = this.generateBlock(ctx.block());
 
         // ADR-016: Clear local variables and mark that we're no longer in a function body
         this.context.inFunctionBody = false;
         this.context.localVariables.clear();
+        this.context.mainArgsName = null;
         this.clearParameters();
 
-        return `${returnType} ${name}(${params}) ${body}\n`;
+        return `${actualReturnType} ${name}(${params}) ${body}\n`;
+    }
+
+    /**
+     * Check if this is the main function with a u8 args[][] parameter
+     */
+    private isMainFunctionWithArgs(name: string, paramList: Parser.ParameterListContext | null): boolean {
+        if (name !== 'main' || !paramList) {
+            return false;
+        }
+
+        const params = paramList.parameter();
+        if (params.length !== 1) {
+            return false;
+        }
+
+        const param = params[0];
+        const type = param.type().getText();
+        const dims = param.arrayDimension();
+
+        // Check for u8 (or i8 for signed char) with exactly 2 array dimensions
+        return (type === 'u8' || type === 'i8') && dims.length === 2;
     }
 
     private generateParameterList(ctx: Parser.ParameterListContext): string {
@@ -1355,11 +1398,12 @@ export default class CodeGenerator {
         const constMod = ctx.constModifier() ? 'const ' : '';
         const type = this.generateType(ctx.type());
         const name = ctx.IDENTIFIER().getText();
+        const dims = ctx.arrayDimension();
 
         // Arrays pass naturally as pointers
-        if (ctx.arrayDimension()) {
-            const dim = this.generateArrayDimension(ctx.arrayDimension()!);
-            return `${constMod}${type} ${name}${dim}`;
+        if (dims.length > 0) {
+            const dimStr = dims.map(d => this.generateArrayDimension(d)).join('');
+            return `${constMod}${type} ${name}${dimStr}`;
         }
 
         // ADR-006: Pass by reference for non-array types
@@ -2240,20 +2284,25 @@ export default class CodeGenerator {
 
                 // Handle .length property for arrays and integers
                 if (memberName === 'length') {
-                    const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
-                    if (typeInfo) {
-                        if (typeInfo.isArray && typeInfo.arrayLength !== undefined) {
-                            // Array length - return the compile-time constant
-                            result = String(typeInfo.arrayLength);
-                        } else if (!typeInfo.isArray) {
-                            // Integer bit width - return the compile-time constant
-                            result = String(typeInfo.bitWidth);
-                        } else {
-                            // Unknown length, generate error placeholder
-                            result = `/* .length unknown for ${primaryId} */0`;
-                        }
+                    // Special case: main function's args.length -> argc
+                    if (this.context.mainArgsName && primaryId === this.context.mainArgsName) {
+                        result = 'argc';
                     } else {
-                        result = `/* .length: unknown type for ${result} */0`;
+                        const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
+                        if (typeInfo) {
+                            if (typeInfo.isArray && typeInfo.arrayLength !== undefined) {
+                                // Array length - return the compile-time constant
+                                result = String(typeInfo.arrayLength);
+                            } else if (!typeInfo.isArray) {
+                                // Integer bit width - return the compile-time constant
+                                result = String(typeInfo.bitWidth);
+                            } else {
+                                // Unknown length, generate error placeholder
+                                result = `/* .length unknown for ${primaryId} */0`;
+                            }
+                        } else {
+                            result = `/* .length: unknown type for ${result} */0`;
+                        }
                     }
                 }
                 // Check if this is a scope member access: Scope.member (ADR-016)
@@ -2380,6 +2429,11 @@ export default class CodeGenerator {
 
         if (ctx.IDENTIFIER()) {
             const id = ctx.IDENTIFIER()!.getText();
+
+            // Special case: main function's args parameter -> argv
+            if (this.context.mainArgsName && id === this.context.mainArgsName) {
+                return 'argv';
+            }
 
             // ADR-006: Check if it's a function parameter
             const paramInfo = this.context.currentParameters.get(id);

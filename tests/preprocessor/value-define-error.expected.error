@@ -1,0 +1,1 @@
+1:0 Code generation failed: E0502: #define with value 'BUFFER_SIZE' is not allowed. Use 'const' instead: const u32 BUFFER_SIZE <- value; Line 7

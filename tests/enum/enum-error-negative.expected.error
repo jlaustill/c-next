@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Negative values not allowed in enum (found -1 in BadEnum.BAD)
