@@ -35,6 +35,7 @@ declaration
     : scopeDeclaration
     | registerDeclaration
     | structDeclaration
+    | enumDeclaration
     | functionDeclaration
     | variableDeclaration
     ;
@@ -49,6 +50,7 @@ scopeDeclaration
 scopeMember
     : visibilityModifier? variableDeclaration
     | visibilityModifier? functionDeclaration
+    | visibilityModifier? enumDeclaration
     ;
 
 visibilityModifier
@@ -92,6 +94,17 @@ structDeclaration
 
 structMember
     : type IDENTIFIER arrayDimension? ';'
+    ;
+
+// ----------------------------------------------------------------------------
+// Enum (ADR-017: Type-safe enums)
+// ----------------------------------------------------------------------------
+enumDeclaration
+    : 'enum' IDENTIFIER '{' enumMember (',' enumMember)* ','? '}'
+    ;
+
+enumMember
+    : IDENTIFIER ('<-' expression)?
     ;
 
 // ----------------------------------------------------------------------------
@@ -275,10 +288,16 @@ postfixOp
     ;
 
 primaryExpression
-    : structInitializer
+    : castExpression
+    | structInitializer
     | IDENTIFIER
     | literal
     | '(' expression ')'
+    ;
+
+// ADR-017: Cast expression for enum to integer conversion
+castExpression
+    : '(' type ')' unaryExpression
     ;
 
 // Struct initializer: Point { x: 10, y: 20 } or inferred { x: 10, y: 20 }
@@ -375,6 +394,7 @@ INCLUDE_DIRECTIVE
 // Keywords
 SCOPE       : 'scope';
 STRUCT      : 'struct';
+ENUM        : 'enum';
 REGISTER    : 'register';
 PRIVATE     : 'private';
 PUBLIC      : 'public';

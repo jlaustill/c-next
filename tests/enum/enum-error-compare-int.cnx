@@ -1,0 +1,13 @@
+// ADR-017: Type safety test - should fail
+// Error: Cannot compare enum to integer
+
+enum State { IDLE, RUNNING }
+
+void main() {
+    State s <- State.IDLE;
+
+    // This should produce an error
+    if (s = 0) {
+        // Comparing enum to integer!
+    }
+}

@@ -1,7 +1,7 @@
 # ADR-017: Enums
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 

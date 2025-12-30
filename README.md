@@ -225,10 +225,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-013](docs/decisions/adr-013-const-qualifier.md) | Const Qualifier | Compile-time const enforcement |
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
-
-### Accepted (Ready for Implementation)
-| ADR | Title | Description |
-|-----|-------|-------------|
 | [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
 
 ### Research (v1 Roadmap)

@@ -1,0 +1,49 @@
+// ADR-017: Basic Enum Test
+// Tests basic enum declaration, usage, and code generation
+
+// Simple enum with auto-incrementing values
+enum State {
+    IDLE,
+    RUNNING,
+    PAUSED,
+    ERROR
+}
+
+// Enum with explicit values
+enum Command {
+    READ  <- 0x01,
+    WRITE <- 0x02,
+    ERASE <- 0x04,
+    RESET <- 0xFF
+}
+
+// Enum with bit flag pattern
+enum Flags {
+    NONE       <- 0,
+    READABLE   <- 1,
+    WRITABLE   <- 2,
+    EXECUTABLE <- 4
+}
+
+// Usage examples
+State currentState <- State.IDLE;
+Command lastCmd <- Command.READ;
+
+void main() {
+    // Assignment
+    currentState <- State.RUNNING;
+
+    // Comparison
+    if (currentState = State.RUNNING) {
+        currentState <- State.PAUSED;
+    }
+
+    // Another comparison
+    if (currentState != State.ERROR) {
+        lastCmd <- Command.WRITE;
+    }
+
+    // Casting enum to integer for hardware access
+    u8 cmdValue <- (u8)Command.ERASE;
+    u32 flagValue <- (u32)Flags.READABLE;
+}

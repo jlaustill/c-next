@@ -1,0 +1,38 @@
+// ADR-017: Scoped Enum Test
+// Tests enums declared inside scopes with proper prefixing
+
+scope Motor {
+    public enum State {
+        IDLE,
+        RUNNING,
+        STALLED
+    }
+
+    Motor_State current <- Motor.State.IDLE;
+
+    void start() {
+        current <- Motor.State.RUNNING;
+    }
+
+    void stop() {
+        current <- Motor.State.IDLE;
+    }
+
+    bool isRunning() {
+        if (current = Motor.State.RUNNING) {
+            return true;
+        }
+        return false;
+    }
+}
+
+// Usage from outside the scope
+Motor_State externalState <- Motor.State.IDLE;
+
+void main() {
+    Motor.start();
+
+    if (Motor.current = Motor.State.RUNNING) {
+        externalState <- Motor.State.STALLED;
+    }
+}

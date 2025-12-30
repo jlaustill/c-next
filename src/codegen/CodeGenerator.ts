@@ -57,11 +57,13 @@ interface ParameterInfo {
  * Type info for bit manipulation, .length support, and ADR-013 const enforcement
  */
 interface TypeInfo {
-    baseType: string;      // 'u8', 'u32', 'i16', etc.
-    bitWidth: number;      // 8, 16, 32, 64
+    baseType: string;      // 'u8', 'u32', 'i16', 'State' (enum), etc.
+    bitWidth: number;      // 8, 16, 32, 64 (0 for enums)
     isArray: boolean;
     arrayLength?: number;  // For arrays only
     isConst: boolean;      // ADR-013: Track const modifier for immutability enforcement
+    isEnum?: boolean;      // ADR-017: Track if this is an enum type
+    enumTypeName?: string; // ADR-017: The enum type name (e.g., 'State')
 }
 
 /**
@@ -119,6 +121,8 @@ export default class CodeGenerator {
     private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
     private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
+    private knownEnums: Set<string> = new Set(); // ADR-017: Track enum types
+    private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
 
     /** External symbol table for cross-language interop */
     private symbolTable: SymbolTable | null = null;
@@ -194,6 +198,8 @@ export default class CodeGenerator {
         this.knownFunctions = new Set();
         this.functionSignatures = new Map();
         this.registerMemberAccess = new Map();
+        this.knownEnums = new Set();
+        this.enumMembers = new Map();
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -275,6 +281,11 @@ export default class CodeGenerator {
                 this.structFields.set(name, fields);
             }
 
+            // ADR-017: Handle enum declarations
+            if (decl.enumDeclaration()) {
+                this.collectEnum(decl.enumDeclaration()!);
+            }
+
             if (decl.registerDeclaration()) {
                 const regDecl = decl.registerDeclaration()!;
                 const regName = regDecl.IDENTIFIER().getText();
@@ -308,6 +319,60 @@ export default class CodeGenerator {
     }
 
     /**
+     * ADR-017: Collect enum declaration and track members
+     */
+    private collectEnum(enumDecl: Parser.EnumDeclarationContext, scopeName?: string): void {
+        const name = enumDecl.IDENTIFIER().getText();
+        const fullName = scopeName ? `${scopeName}_${name}` : name;
+        this.knownEnums.add(fullName);
+
+        // Collect member values
+        const members = new Map<string, number>();
+        let currentValue = 0;
+
+        for (const member of enumDecl.enumMember()) {
+            const memberName = member.IDENTIFIER().getText();
+
+            if (member.expression()) {
+                // Explicit value with <-
+                const valueText = member.expression()!.getText();
+                const value = this.evaluateConstantExpression(valueText);
+                if (value < 0) {
+                    throw new Error(
+                        `Error: Negative values not allowed in enum (found ${value} in ${fullName}.${memberName})`
+                    );
+                }
+                currentValue = value;
+            }
+
+            members.set(memberName, currentValue);
+            currentValue++;
+        }
+
+        this.enumMembers.set(fullName, members);
+    }
+
+    /**
+     * ADR-017: Evaluate constant expression for enum values
+     */
+    private evaluateConstantExpression(expr: string): number {
+        // Handle hex literals
+        if (expr.startsWith('0x') || expr.startsWith('0X')) {
+            return parseInt(expr, 16);
+        }
+        // Handle binary literals
+        if (expr.startsWith('0b') || expr.startsWith('0B')) {
+            return parseInt(expr.substring(2), 2);
+        }
+        // Handle decimal
+        const value = parseInt(expr, 10);
+        if (isNaN(value)) {
+            throw new Error(`Error: Invalid constant expression in enum: ${expr}`);
+        }
+        return value;
+    }
+
+    /**
      * Extract type info from a variable declaration and register it
      */
     private trackVariableType(varDecl: Parser.VariableDeclarationContext): void {
@@ -325,9 +390,22 @@ export default class CodeGenerator {
             baseType = typeCtx.primitiveType()!.getText();
             bitWidth = TYPE_WIDTH[baseType] || 0;
         } else if (typeCtx.userType()) {
-            // Track struct/class types for inferred struct initializers
+            // Track struct/class/enum types for inferred struct initializers and enum type safety
             baseType = typeCtx.userType()!.getText();
             bitWidth = 0; // User types don't have fixed bit width
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(baseType)) {
+                this.context.typeRegistry.set(name, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isEnum: true,
+                    enumTypeName: baseType,
+                });
+                return; // Early return, we've handled this case
+            }
         } else if (typeCtx.arrayType()) {
             isArray = true;
             const arrayTypeCtx = typeCtx.arrayType()!;
@@ -390,6 +468,19 @@ export default class CodeGenerator {
         } else if (typeCtx.userType()) {
             baseType = typeCtx.userType()!.getText();
             bitWidth = 0;
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(baseType)) {
+                this.context.typeRegistry.set(registryName, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isEnum: true,
+                    enumTypeName: baseType,
+                });
+                return; // Early return, we've handled this case
+            }
         } else if (typeCtx.arrayType()) {
             isArray = true;
             const arrayTypeCtx = typeCtx.arrayType()!;
@@ -502,6 +593,74 @@ export default class CodeGenerator {
         const typeInfo = this.context.typeRegistry.get(identifier);
         if (typeInfo?.isConst) {
             return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * ADR-017: Extract enum type from an expression.
+     * Returns the enum type name if the expression is an enum value, null otherwise.
+     *
+     * Handles:
+     * - Variable of enum type: `currentState` -> 'State'
+     * - Enum member access: `State.IDLE` -> 'State'
+     * - Scoped enum member: `Motor.State.IDLE` -> 'Motor_State'
+     */
+    private getExpressionEnumType(ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext): string | null {
+        // Get the text representation to analyze
+        const text = ctx.getText();
+
+        // Check if it's a simple identifier that's an enum variable
+        if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+            const typeInfo = this.context.typeRegistry.get(text);
+            if (typeInfo?.isEnum && typeInfo.enumTypeName) {
+                return typeInfo.enumTypeName;
+            }
+        }
+
+        // Check if it's an enum member access: EnumType.MEMBER or Scope.EnumType.MEMBER
+        const parts = text.split('.');
+
+        if (parts.length >= 2) {
+            // Check simple enum: State.IDLE
+            const possibleEnum = parts[0];
+            if (this.knownEnums.has(possibleEnum)) {
+                return possibleEnum;
+            }
+
+            // Check scoped enum: Motor.State.IDLE -> Motor_State
+            if (parts.length >= 3) {
+                const scopeName = parts[0];
+                const enumName = parts[1];
+                const scopedEnumName = `${scopeName}_${enumName}`;
+                if (this.knownEnums.has(scopedEnumName)) {
+                    return scopedEnumName;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * ADR-017: Check if an expression represents an integer literal or numeric type.
+     * Used to detect comparisons between enums and integers.
+     */
+    private isIntegerExpression(ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext): boolean {
+        const text = ctx.getText();
+
+        // Check for integer literals
+        if (text.match(/^-?\d+$/) || text.match(/^0[xX][0-9a-fA-F]+$/) || text.match(/^0[bB][01]+$/)) {
+            return true;
+        }
+
+        // Check if it's a variable of primitive integer type
+        if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+            const typeInfo = this.context.typeRegistry.get(text);
+            if (typeInfo && !typeInfo.isEnum && ['u8', 'u16', 'u32', 'u64', 'i8', 'i16', 'i32', 'i64'].includes(typeInfo.baseType)) {
+                return true;
+            }
         }
 
         return false;
@@ -697,6 +856,10 @@ export default class CodeGenerator {
         if (ctx.structDeclaration()) {
             return this.generateStruct(ctx.structDeclaration()!);
         }
+        // ADR-017: Handle enum declarations
+        if (ctx.enumDeclaration()) {
+            return this.generateEnum(ctx.enumDeclaration()!);
+        }
         if (ctx.functionDeclaration()) {
             return this.generateFunction(ctx.functionDeclaration()!);
         }
@@ -765,6 +928,16 @@ export default class CodeGenerator {
                 lines.push('');
                 lines.push(`${prefix}${returnType} ${fullName}(${params}) ${body}`);
             }
+
+            // ADR-017: Handle enum declarations inside scopes
+            if (member.enumDeclaration()) {
+                const enumDecl = member.enumDeclaration()!;
+                // Collect the scoped enum (if not already collected)
+                this.collectEnum(enumDecl, name);
+                const enumCode = this.generateEnum(enumDecl);
+                lines.push('');
+                lines.push(enumCode);
+            }
         }
 
         lines.push('');
@@ -829,6 +1002,43 @@ export default class CodeGenerator {
         }
 
         lines.push(`} ${name};`);
+        lines.push('');
+
+        return lines.join('\n');
+    }
+
+    // ========================================================================
+    // Enum (ADR-017: Type-safe enums)
+    // ========================================================================
+
+    /**
+     * ADR-017: Generate enum declaration
+     * enum State { IDLE, RUNNING, ERROR <- 255 }
+     * -> typedef enum { State_IDLE = 0, State_RUNNING = 1, State_ERROR = 255 } State;
+     */
+    private generateEnum(ctx: Parser.EnumDeclarationContext): string {
+        const name = ctx.IDENTIFIER().getText();
+        const prefix = this.context.currentScope ? `${this.context.currentScope}_` : '';
+        const fullName = `${prefix}${name}`;
+
+        const lines: string[] = [];
+        lines.push(`typedef enum {`);
+
+        const members = this.enumMembers.get(fullName);
+        if (!members) {
+            throw new Error(`Error: Enum ${fullName} not found in registry`);
+        }
+
+        const memberEntries = Array.from(members.entries());
+
+        for (let i = 0; i < memberEntries.length; i++) {
+            const [memberName, value] = memberEntries[i];
+            const fullMemberName = `${fullName}_${memberName}`;
+            const comma = i < memberEntries.length - 1 ? ',' : '';
+            lines.push(`    ${fullMemberName} = ${value}${comma}`);
+        }
+
+        lines.push(`} ${fullName};`);
         lines.push('');
 
         return lines.join('\n');
@@ -958,6 +1168,47 @@ export default class CodeGenerator {
             const savedExpectedType = this.context.expectedType;
             this.context.expectedType = typeName;
 
+            // ADR-017: Validate enum type for initialization
+            if (this.knownEnums.has(typeName)) {
+                const valueEnumType = this.getExpressionEnumType(ctx.expression()!);
+
+                // Check if assigning from a different enum type
+                if (valueEnumType && valueEnumType !== typeName) {
+                    throw new Error(
+                        `Error: Cannot assign ${valueEnumType} enum to ${typeName} enum`
+                    );
+                }
+
+                // Check if assigning integer to enum
+                if (this.isIntegerExpression(ctx.expression()!)) {
+                    throw new Error(
+                        `Error: Cannot assign integer to ${typeName} enum`
+                    );
+                }
+
+                // Check if assigning a non-enum, non-integer expression
+                if (!valueEnumType) {
+                    const exprText = ctx.expression()!.getText();
+                    // Allow if it's an enum member access of the correct type
+                    if (!exprText.startsWith(typeName + '.')) {
+                        // Check for scoped enum
+                        const parts = exprText.split('.');
+                        if (parts.length >= 3) {
+                            const scopedEnumName = `${parts[0]}_${parts[1]}`;
+                            if (scopedEnumName !== typeName) {
+                                throw new Error(
+                                    `Error: Cannot assign non-enum value to ${typeName} enum`
+                                );
+                            }
+                        } else if (parts.length === 2 && parts[0] !== typeName) {
+                            throw new Error(
+                                `Error: Cannot assign non-enum value to ${typeName} enum`
+                            );
+                        }
+                    }
+                }
+            }
+
             decl += ` = ${this.generateExpression(ctx.expression()!)}`;
 
             // Restore expected type
@@ -972,6 +1223,7 @@ export default class CodeGenerator {
 
     /**
      * ADR-015: Get the appropriate zero initializer for a type
+     * ADR-017: Handle enum types by initializing to first member
      */
     private getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string {
         // Arrays and structs/classes use {0}
@@ -979,8 +1231,31 @@ export default class CodeGenerator {
             return '{0}';
         }
 
-        // Check for user-defined types (structs/classes)
+        // Check for user-defined types (structs/classes/enums)
         if (typeCtx.userType()) {
+            const typeName = typeCtx.userType()!.getText();
+
+            // ADR-017: Check if this is an enum type
+            if (this.knownEnums.has(typeName)) {
+                // Return the first member of the enum (which has value 0)
+                const members = this.enumMembers.get(typeName);
+                if (members) {
+                    // Find the member with value 0
+                    for (const [memberName, value] of members.entries()) {
+                        if (value === 0) {
+                            return `${typeName}_${memberName}`;
+                        }
+                    }
+                    // If no member has value 0, use the first member
+                    const firstMember = members.keys().next().value;
+                    if (firstMember) {
+                        return `${typeName}_${firstMember}`;
+                    }
+                }
+                // Fallback to casting 0 to the enum type
+                return `(${typeName})0`;
+            }
+
             return '{0}';
         }
 
@@ -1090,6 +1365,54 @@ export default class CodeGenerator {
             const constError = this.checkConstAssignment(id);
             if (constError) {
                 throw new Error(constError);
+            }
+
+            // ADR-017: Validate enum type assignment
+            const targetTypeInfo = this.context.typeRegistry.get(id);
+            if (targetTypeInfo?.isEnum && targetTypeInfo.enumTypeName) {
+                const targetEnumType = targetTypeInfo.enumTypeName;
+                const valueEnumType = this.getExpressionEnumType(ctx.expression());
+
+                // Check if assigning from a different enum type
+                if (valueEnumType && valueEnumType !== targetEnumType) {
+                    throw new Error(
+                        `Error: Cannot assign ${valueEnumType} enum to ${targetEnumType} enum`
+                    );
+                }
+
+                // Check if assigning integer to enum
+                if (this.isIntegerExpression(ctx.expression())) {
+                    throw new Error(
+                        `Error: Cannot assign integer to ${targetEnumType} enum`
+                    );
+                }
+
+                // Check if assigning a non-enum, non-integer expression to enum
+                // (must be same enum type or a valid enum member access)
+                if (!valueEnumType) {
+                    const exprText = ctx.expression().getText();
+                    // Allow if it's an enum member access of the correct type
+                    if (!exprText.startsWith(targetEnumType + '.')) {
+                        // Not a direct enum member access - check if it's scoped enum
+                        const parts = exprText.split('.');
+                        if (parts.length >= 3) {
+                            // Could be Scope.Enum.Member
+                            const scopedEnumName = `${parts[0]}_${parts[1]}`;
+                            if (scopedEnumName !== targetEnumType) {
+                                throw new Error(
+                                    `Error: Cannot assign non-enum value to ${targetEnumType} enum`
+                                );
+                            }
+                        } else if (parts.length === 2) {
+                            // Could be Enum.Member or variable.field
+                            if (parts[0] !== targetEnumType && !this.knownEnums.has(parts[0])) {
+                                throw new Error(
+                                    `Error: Cannot assign non-enum value to ${targetEnumType} enum`
+                                );
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1360,10 +1683,36 @@ export default class CodeGenerator {
     }
 
     // ADR-001: = becomes == in C
+    // ADR-017: Enum type safety validation
     private generateEqualityExpr(ctx: Parser.EqualityExpressionContext): string {
         const exprs = ctx.relationalExpression();
         if (exprs.length === 1) {
             return this.generateRelationalExpr(exprs[0]);
+        }
+
+        // ADR-017: Validate enum type safety for comparisons
+        if (exprs.length >= 2) {
+            const leftEnumType = this.getExpressionEnumType(exprs[0]);
+            const rightEnumType = this.getExpressionEnumType(exprs[1]);
+
+            // Check if comparing different enum types
+            if (leftEnumType && rightEnumType && leftEnumType !== rightEnumType) {
+                throw new Error(
+                    `Error: Cannot compare ${leftEnumType} enum to ${rightEnumType} enum`
+                );
+            }
+
+            // Check if comparing enum to integer
+            if (leftEnumType && this.isIntegerExpression(exprs[1])) {
+                throw new Error(
+                    `Error: Cannot compare ${leftEnumType} enum to integer`
+                );
+            }
+            if (rightEnumType && this.isIntegerExpression(exprs[0])) {
+                throw new Error(
+                    `Error: Cannot compare integer to ${rightEnumType} enum`
+                );
+            }
         }
 
         // Build the expression, transforming = to ==
@@ -1530,6 +1879,11 @@ export default class CodeGenerator {
                     // Transform Scope.member to Scope_member
                     result = `${result}_${memberName}`;
                 }
+                // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
+                else if (this.knownEnums.has(result)) {
+                    // Transform Enum.member to Enum_member
+                    result = `${result}_${memberName}`;
+                }
                 // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
                 else if (this.knownRegisters.has(result)) {
                     // Transform Register.member to Register_member (matching #define)
@@ -1614,6 +1968,10 @@ export default class CodeGenerator {
     }
 
     private generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+        // ADR-017: Cast expression - (u8)State.IDLE
+        if (ctx.castExpression()) {
+            return this.generateCastExpression(ctx.castExpression()!);
+        }
         // ADR-014: Struct initializer - Point { x: 10, y: 20 }
         if (ctx.structInitializer()) {
             return this.generateStructInitializer(ctx.structInitializer()!);
@@ -1651,6 +2009,28 @@ export default class CodeGenerator {
             return `(${this.generateExpression(ctx.expression()!)})`;
         }
         return '';
+    }
+
+    /**
+     * ADR-017: Generate cast expression
+     * (u8)State.IDLE -> (uint8_t)State_IDLE
+     */
+    private generateCastExpression(ctx: Parser.CastExpressionContext): string {
+        const targetType = this.generateType(ctx.type());
+        const expr = this.generateUnaryExpr(ctx.unaryExpression());
+
+        // Validate enum casts are only to unsigned types
+        const targetTypeName = ctx.type().getText();
+        const allowedCastTypes = ['u8', 'u16', 'u32', 'u64'];
+
+        // Check if we're casting an enum (for validation)
+        // We allow casts from any expression, but could add validation here
+        if (!allowedCastTypes.includes(targetTypeName) &&
+            !['i8', 'i16', 'i32', 'i64', 'f32', 'f64', 'bool'].includes(targetTypeName)) {
+            // It's a user type cast - allow for now (could be struct pointer, etc.)
+        }
+
+        return `(${targetType})${expr}`;
     }
 
     private generateMemberAccess(ctx: Parser.MemberAccessContext): string {
