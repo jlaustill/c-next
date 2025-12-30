@@ -226,13 +226,57 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
 
-### Research
+### Research (v1 Roadmap)
+
+#### Critical Priority
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Named constants and state values |
+| [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Register overlays, type punning |
+| [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | `as` keyword for type conversion |
+| [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | State machine dispatch |
+| [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Loop and switch control |
+| [ADR-029](docs/decisions/adr-029-function-pointers.md) | Function Pointers | Callbacks, ISR tables |
+| [ADR-030](docs/decisions/adr-030-forward-declarations.md) | Forward Declarations | Multi-file projects |
+
+#### High Priority
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-022](docs/decisions/adr-022-ternary-operator.md) | Ternary Operator | Inline conditionals `? :` |
+| [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type and value size queries |
+| [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Composition patterns |
+| [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Hardware register layouts |
+| [ADR-037](docs/decisions/adr-037-preprocessor.md) | Preprocessor | `#define`, `#ifdef` handling |
+| [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
+
+#### Medium Priority
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | `type Byte <- u8;` |
+| [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | `usize` and `isize` |
+| [ADR-021](docs/decisions/adr-021-increment-decrement.md) | Increment/Decrement | `++` and `--` operators |
+| [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` loops |
+| [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
+| [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
+| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
+
+#### Low Priority (v2+)
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Rejected for v1; consider defer |
+| [ADR-034](docs/decisions/adr-034-bit-fields.md) | C-Style Bit Fields | Use ADR-007 instead |
+| [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Optional types |
+| [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Declaration | Interrupt handler syntax |
+| [ADR-041](docs/decisions/adr-041-inline-assembly.md) | Inline Assembly | Platform-specific asm |
+| [ADR-042](docs/decisions/adr-042-error-handling.md) | Error Handling | Result types |
+
+### Foundational Research
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
 | [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C/C++ Interoperability | Unified ANTLR parser architecture |
-| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | How to handle scope in C-Next |
+| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | Scope semantics and name resolution |
 
 ### Rejected
 | ADR | Title | Description |

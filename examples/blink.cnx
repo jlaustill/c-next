@@ -50,10 +50,7 @@ const u32 BLINK_DELAY_MS <- 1000;
 // =============================================================================
 
 scope LED {
-    const bool GPIO7 <- true;
-
     void on() {
-        u32 GPIO7 <- 0;
         // Direct bit access on write-only atomic register!
         // Generates: GPIO7_DR_SET = (1 << LED_BIT);
         GPIO7.DR_SET[LED_BIT] <- true;
