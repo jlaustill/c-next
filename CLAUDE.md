@@ -7,8 +7,9 @@
 - `README.md` — Must reflect any new features, syntax, or ADR status changes
 - `docs/decisions/adr-*.md` — Relevant ADR must be created/updated
 - `docs/learn-cnext-in-y-minutes.md` — Must include examples of new syntax/features
+- memory is updated
 
-If implementing a feature, all three documents must be current before the task is done.
+If implementing a feature, all three documents must be current and memory must be updated before the task is done.
 
 ## ADR Status Rules
 
