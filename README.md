@@ -251,6 +251,7 @@ Decisions are documented in `/docs/decisions/`:
 ### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
+| [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | If/else (done), ternary with MISRA constraints |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
 
@@ -266,7 +267,6 @@ Decisions are documented in `/docs/decisions/`:
 #### High Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-022](docs/decisions/adr-022-ternary-operator.md) | Ternary Operator | Inline conditionals `? :` |
 | [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type and value size queries |
 | [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Composition patterns |
 | [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Hardware register layouts |
