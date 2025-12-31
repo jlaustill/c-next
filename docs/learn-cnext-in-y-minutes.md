@@ -428,8 +428,11 @@ x >><- 1;           // x = x >> 1
 i++;                // Statement only, not in expressions
 i--;
 
-// [TODO: ADR-022] Ternary
-u32 max <- (a > b) ? a : b;
+// [TODO: ADR-022] Ternary - parentheses required, boolean condition, no nesting
+u32 max <- (a > b) ? a : b;           // OK: parentheses, boolean condition
+u32 abs <- (x < 0) ? -x : x;          // OK: simple, readable
+// u32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;  // ERROR: nested ternary
+// u32 y <- x ? 1 : 0;                          // ERROR: x is not boolean
 
 // [TODO: ADR-023] Sizeof
 usize size <- sizeof(u32);
@@ -453,7 +456,7 @@ u32 bits <- signed_val[0, 32];    // OK: explicit bit reinterpret
 ## Control Flow
 
 ```cnx
-// [DONE] If/else
+// [DONE: ADR-022] If/else
 if (x > 0) {
     doSomething();
 } else if (x < 0) {
@@ -582,15 +585,12 @@ struct Point {
 // [DONE] Zero-initialized by default (ADR-015)
 Point origin;  // x=0, y=0
 
-// [DONE] Designated initializer
-Point p <- Point { x: 10, y: 20 };
+// [DONE] Inferred initializer
+Point p <- { x: 10, y: 20 };
 
 // [DONE] Member access
 p.x <- 100;
 i32 y <- p.y;
-
-// [DONE] Inferred initializer
-Point q <- { x: 5, y: 10 };
 
 // [DONE] Struct with array member
 struct Buffer {
