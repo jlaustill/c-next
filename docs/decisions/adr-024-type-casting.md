@@ -1,7 +1,7 @@
 # ADR-024: Type Casting
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 
