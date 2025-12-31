@@ -286,14 +286,10 @@ i64 sqword;     // int64_t
 
 // [DONE] Floating point
 f32 single;     // float
-f64 double_;    // double
+f64 double;    // double
 
 // [DONE] Boolean
 bool flag;      // bool (from stdbool.h)
-
-// [TODO: ADR-020] Size types
-usize length;   // size_t (platform-dependent)
-isize offset;   // ptrdiff_t
 ```
 
 ## Variables

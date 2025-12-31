@@ -234,19 +234,24 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-004](docs/decisions/adr-004-register-bindings.md) | Register Bindings | Type-safe hardware access |
 | [ADR-006](docs/decisions/adr-006-simplified-references.md) | Simplified References | Pass by reference, no pointer syntax |
 | [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md) | Type-Aware Bit Indexing | Integers as bit arrays, `.length` property |
+| [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C Interoperability | Unified ANTLR parser architecture |
 | [ADR-011](docs/decisions/adr-011-vscode-extension.md) | VS Code Extension | Live C preview with syntax highlighting |
 | [ADR-012](docs/decisions/adr-012-static-analysis.md) | Static Analysis | cppcheck integration for generated C |
 | [ADR-013](docs/decisions/adr-013-const-qualifier.md) | Const Qualifier | Compile-time const enforcement |
 | [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
 | [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
+| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | `this.`/`global.` explicit qualification |
 | [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
+| [ADR-030](docs/decisions/adr-030-forward-declarations.md) | Define-Before-Use | Functions must be defined before called |
 | [ADR-037](docs/decisions/adr-037-preprocessor.md) | Preprocessor | Flag-only defines, const for values |
 | [ADR-043](docs/decisions/adr-043-comments.md) | Comments | Comment preservation with MISRA compliance |
 
-### Proposed
+### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | `this.`/`global.` explicit qualification |
+| [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | Widening implicit, narrowing uses bit indexing |
+| [ADR-044](docs/decisions/adr-044-primitive-types.md) | Primitive Types | Fixed-width types with `clamp`/`wrap` overflow |
+| [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
 
 ### Research (v1 Roadmap)
 
@@ -254,11 +259,10 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Register overlays, type punning |
-| [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | `as` keyword for type conversion |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | State machine dispatch |
 | [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Loop and switch control |
 | [ADR-029](docs/decisions/adr-029-function-pointers.md) | Function Pointers | Callbacks, ISR tables |
-| [ADR-030](docs/decisions/adr-030-forward-declarations.md) | Forward Declarations | Multi-file projects |
+| [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
 
 #### High Priority
 | ADR | Title | Description |
@@ -276,7 +280,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | `usize` and `isize` |
 | [ADR-021](docs/decisions/adr-021-increment-decrement.md) | Increment/Decrement | `++` and `--` operators |
 | [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` loops |
-| [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
 
@@ -295,7 +298,6 @@ Decisions are documented in `/docs/decisions/`:
 |-----|-------|-------------|
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
-| [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C/C++ Interoperability | Unified ANTLR parser architecture |
 
 ### Rejected
 | ADR | Title | Description |
