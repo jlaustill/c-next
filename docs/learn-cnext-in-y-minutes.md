@@ -586,21 +586,6 @@ struct TCPHeader {
 }
 ```
 
-## Unions
-
-```cnx
-// [TODO: ADR-018] Unions
-union Converter {
-    u32 asU32;
-    f32 asFloat;
-    u8 bytes[4];
-}
-
-Converter c;
-c.asFloat <- 3.14;
-u32 bits <- c.asU32;  // Type punning
-```
-
 ## Register Bindings
 
 ```cnx
