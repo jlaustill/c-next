@@ -133,6 +133,18 @@ uint32_t cap = 5;             // Compile-time constant (character capacity)
 
 ## Detailed Design
 
+### Capacity Rules Summary
+
+All string operations are checked at **compile time** against capacity:
+
+| Operation | Rule | Example |
+|-----------|------|---------|
+| Literal assignment | literal.length ≤ dest.capacity | `string<5> s <- "Hello"` ✓ |
+| Variable assignment | src.capacity ≤ dest.capacity | `string<64> big <- small` ✓ |
+| Concatenation | src1.capacity + src2.capacity ≤ dest.capacity | `string<64> r <- a + b` |
+| Substring | start + length ≤ src.capacity | `string<10> s <- src[0,10]` |
+| Literal in expression | Tight capacity (literal.length) | `"Hello"` is `string<5>` |
+
 ### Declaration and Initialization
 
 ```cnx
@@ -190,6 +202,21 @@ string<32> second <- " World";
 string<64> result <- first + second;  // OK: 64 >= 32 + 32
 ```
 
+### String Literal Capacity
+
+String literals have **tight capacity** - their capacity equals their character length:
+
+```cnx
+// "Hello" is string<5>, " World" is string<6>
+string<11> result <- "Hello" + " World";  // OK: 11 >= 5 + 6
+
+// Mixed literals and variables
+string<32> greeting <- "Hello";
+string<38> message <- greeting + " World";  // OK: 38 >= 32 + 6
+```
+
+This allows efficient concatenation with literals without over-allocating the destination.
+
 ### Capacity-Based Safety
 
 The destination must have capacity >= sum of source capacities:
@@ -232,6 +259,34 @@ string<5> hello <- source[0, 5];     // "Hello" - 5 chars starting at index 0
 string<6> world <- source[7, 6];     // "World!" - 6 chars starting at index 7
 ```
 
+### Single Character Access
+
+Single-index access is syntactic sugar for a 1-character substring:
+
+```cnx
+string<64> source <- "Hello";
+string<1> ch <- source[0];    // Sugar for source[0, 1] -> "H"
+```
+
+**`s[0]` is equivalent to `s[0, 1]`** - both return a `string<1>` containing the character at that position.
+
+### Bounds Checking (Capacity-Based)
+
+Substring bounds are checked against the **source capacity**, not the current content length. This ensures:
+- Compile-time verification (capacity is always known)
+- Zero runtime overhead
+- Memory safety (never reads past allocated memory)
+
+```cnx
+string<64> source <- "Hello";  // Capacity: 64, content: 5 chars
+
+string<10> sub1 <- source[0, 10];   // OK: 0 + 10 ≤ 64 (capacity)
+string<10> sub2 <- source[60, 10];  // ERROR: 60 + 10 > 64 (exceeds capacity)
+string<5> sub3 <- source[64, 5];    // ERROR: 64 + 5 > 64 (start beyond capacity)
+```
+
+**Note:** Reading within capacity but beyond actual content may return null bytes (ASCII zero from initialization). This is memory-safe but semantically the developer's responsibility.
+
 ### Substring Concatenation
 
 ```cnx
@@ -269,6 +324,8 @@ CNX enforces strict compile-time safety. These are **errors**, not warnings:
 | Literal too long | `ERROR: String literal "Hello" (5 chars) exceeds string<4> capacity` |
 | Concatenation overflow | `ERROR: Concatenation requires capacity 64, but string<50> only has 50` |
 | Assignment from larger | `ERROR: Cannot assign string<64> to string<32> (potential truncation)` |
+| Substring out of bounds | `ERROR: Substring [60,10] exceeds source capacity 64` |
+| In-place concatenation | `ERROR: Self-referential concat: 64 < 64 + 6` |
 
 ```cnx
 string<4> s <- "Hello";           // ERROR: 5 > 4
@@ -276,6 +333,8 @@ string<32> a;
 string<64> b;
 a <- b;                           // ERROR: potential truncation (64 > 32)
 string<50> c <- a + b;            // ERROR: 32 + 64 = 96 > 50
+string<10> d <- b[60, 10];        // ERROR: 60 + 10 > 64
+b <- b + "!";                     // ERROR: 64 < 64 + 1
 ```
 
 ### No Silent Truncation
@@ -288,6 +347,35 @@ To explicitly truncate, use substring:
 string<64> long_string <- "This is a very long string";
 string<8> short <- long_string[0, 8];  // Explicit: take first 8 chars
 ```
+
+### Small-to-Large Assignment
+
+Assigning a smaller-capacity string to a larger-capacity destination is allowed:
+
+```cnx
+string<32> small <- "Hello";
+string<64> big <- small;  // OK: 64 >= 32, copies content, null-fills remaining bytes
+```
+
+The destination's remaining bytes are initialized to ASCII zero (null bytes) for safety. This ensures `strlen()` returns the correct content length.
+
+### In-Place Concatenation
+
+Self-referential concatenation is a **compile error** because capacity math fails:
+
+```cnx
+string<64> message <- "Hello";
+message <- message + " World";  // ERROR: 64 < 64 + 6 (capacity check fails)
+```
+
+To append to a string, use explicit substring to manage bounds:
+
+```cnx
+string<64> message <- "Hello";
+message <- message[0, 58] + " World";  // OK: 64 >= 58 + 6
+```
+
+This forces the developer to consciously manage string bounds rather than risk silent overflow.
 
 ---
 
