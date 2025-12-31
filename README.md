@@ -260,7 +260,6 @@ Decisions are documented in `/docs/decisions/`:
 #### Critical Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Loop and switch control |
 | [ADR-029](docs/decisions/adr-029-function-pointers.md) | Function Pointers | Callbacks, ISR tables |
 | [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
 
@@ -304,6 +303,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Replaced by `scope` keyword (ADR-016) |
 | [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes | Use structs + free functions instead (ADR-016) |
 | [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Use ADR-004 register bindings or explicit byte manipulation |
+| [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Use structured loop conditions instead |
 
 ## Build Commands
 

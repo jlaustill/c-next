@@ -525,11 +525,19 @@ switch (state) {
     // All 3 cases covered - no default required
 }
 
-// [TODO: ADR-026] Break and continue
-while (true) {
-    if (done) { break; }
-    if (skip) { continue; }
+// [REJECTED: ADR-026] No break/continue - use structured loop conditions
+// Instead of: while (true) { if (done) break; process(); }
+// Use:
+while (!done) {
     process();
+}
+
+// Instead of: if (skip) continue; process();
+// Use:
+while (!done) {
+    if (!skip) {
+        process();
+    }
 }
 ```
 
@@ -800,13 +808,14 @@ void loop(void) {
 | `ptr->field` | `ptr.field` | No arrow operator |
 | `*ptr` | Implicit | Simplified references |
 | Manual init | Zero by default | No uninitialized variables |
-| `namespace {}` | `scope {}` | Organization with prefixing |
+| Manual prefixes | `scope {}` | Organization with auto-prefixing |
 | Forward decl | Define first | Errors caught early (E0422) |
 | `(u8)bigVal` | `bigVal[0, 8]` | Explicit bit extraction for narrowing |
 | Silent overflow | `clamp`/`wrap` | Explicit overflow behavior |
 | `case X: break;` | `case X { }` | Braces replace break, no fallthrough |
 | `case A: case B:` | `case A \|\| B { }` | OR syntax for multiple cases |
 | `default:` | `default(n) { }` | Counted default catches enum growth |
+| `break`/`continue` | Loop conditions | Structured loops, no hidden exits |
 
 ## Further Reading
 

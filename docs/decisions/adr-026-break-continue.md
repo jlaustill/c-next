@@ -1,7 +1,7 @@
 # ADR-026: Break and Continue
 
 ## Status
-**Research**
+**Rejected**
 
 ## Context
 
