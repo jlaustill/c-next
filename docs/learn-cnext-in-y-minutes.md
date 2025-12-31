@@ -292,6 +292,42 @@ f64 double;    // double
 bool flag;      // bool (from stdbool.h)
 ```
 
+### Type Casting [DONE]
+
+C-Next takes a safety-first approach to type conversions (ADR-024):
+
+```cnx
+// Literal range validation - values must fit in target type
+u8 ok <- 255;      // OK: 255 fits in u8 (0-255)
+// u8 bad <- 256;  // ERROR: 256 exceeds u8 range
+
+// Widening conversions (implicit, always safe)
+u8 small <- 42;
+u16 medium <- small;  // u8 → u16: safe
+u32 large <- medium;  // u16 → u32: safe
+u64 huge <- large;    // u32 → u64: safe
+
+// Narrowing conversions (FORBIDDEN - use bit indexing)
+u32 bigValue <- 0xDEADBEEF;
+// u8 byte <- bigValue;        // ERROR: narrowing forbidden
+u8 lowByte <- bigValue[0, 8];  // OK: explicit bit extraction
+
+// Sign conversions (FORBIDDEN - use bit indexing)
+i32 signedVal <- -100;
+// u32 unsigned <- signedVal;    // ERROR: sign change forbidden
+u32 asBits <- signedVal[0, 32];  // OK: explicit reinterpret
+
+// Cast expressions follow same rules
+// u8 x <- (u8)bigValue;   // ERROR: narrowing cast forbidden
+// u32 y <- (u32)signedVal; // ERROR: sign-changing cast forbidden
+```
+
+**Why this design?**
+- **Widening is safe**: u8 always fits in u32
+- **Narrowing loses data**: 0x1234 truncated to u8 = 0x34 (silent bug)
+- **Sign change is reinterpretation**: -1 as u32 = 4294967295 (often unexpected)
+- **Bit indexing is explicit**: `val[0, 8]` clearly says "give me 8 bits"
+
 ### Overflow Behavior [DONE]
 
 C-Next provides explicit control over integer overflow behavior (ADR-044):
@@ -398,8 +434,20 @@ u32 max <- (a > b) ? a : b;
 // [TODO: ADR-023] Sizeof
 usize size <- sizeof(u32);
 
-// [TODO: ADR-024] Type casting
-u8 byte <- value as u8;
+// [DONE] Type casting (ADR-024)
+// Widening (small → large): Implicit, always safe
+u8 byte <- 42;
+u32 large <- byte;  // OK: u8 → u32 is widening
+
+// Narrowing (large → small): ERROR! Use bit indexing
+u32 big <- 1000;
+// u8 small <- big;       // ERROR: narrowing forbidden
+u8 low_byte <- big[0, 8]; // OK: explicit bit extraction
+
+// Sign change: ERROR! Use bit indexing
+i32 signed_val <- -5;
+// u32 unsigned <- signed_val;    // ERROR: sign change
+u32 bits <- signed_val[0, 32];    // OK: explicit bit reinterpret
 ```
 
 ## Control Flow
@@ -742,6 +790,8 @@ void loop(void) {
 | Manual init | Zero by default | No uninitialized variables |
 | `namespace {}` | `scope {}` | Organization with prefixing |
 | Forward decl | Define first | Errors caught early (E0422) |
+| `(u8)bigVal` | `bigVal[0, 8]` | Explicit bit extraction for narrowing |
+| Silent overflow | `clamp`/`wrap` | Explicit overflow behavior |
 
 ## Further Reading
 

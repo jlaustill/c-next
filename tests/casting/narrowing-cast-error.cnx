@@ -1,0 +1,7 @@
+// ADR-024: Test that narrowing cast produces error
+// (u8)u32_value should produce a compiler error
+
+void main() {
+    u32 large <- 1000;
+    u8 small <- (u8)large;  // ERROR: casting u32 to u8 is narrowing
+}

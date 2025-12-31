@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Cannot cast u32 to u8 (narrowing). Use bit indexing: expr[0, 8]

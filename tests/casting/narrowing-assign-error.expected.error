@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Cannot assign u32 to u8 (narrowing). Use bit indexing: value[0, 8]

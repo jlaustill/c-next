@@ -1,0 +1,7 @@
+// ADR-024: Test that narrowing assignment produces error
+// Assigning u32 to u8 should produce a compiler error
+
+void main() {
+    u32 large <- 1000;
+    u8 small <- large;  // ERROR: u32 to u8 is narrowing
+}

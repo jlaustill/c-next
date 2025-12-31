@@ -1107,6 +1107,192 @@ export default class CodeGenerator {
     }
 
     /**
+     * ADR-024: Get the type of an expression for type checking.
+     * Returns the inferred type or null if type cannot be determined.
+     */
+    private getExpressionType(ctx: Parser.ExpressionContext): string | null {
+        // Navigate through expression tree to get the actual value
+        const postfix = this.getPostfixExpression(ctx);
+        if (postfix) {
+            return this.getPostfixExpressionType(postfix);
+        }
+
+        // For more complex expressions (binary ops, etc.), try to infer type
+        const or = ctx.orExpression();
+        if (or.andExpression().length > 1) {
+            return 'bool'; // Logical OR returns bool
+        }
+
+        const and = or.andExpression()[0];
+        if (and.equalityExpression().length > 1) {
+            return 'bool'; // Logical AND returns bool
+        }
+
+        const eq = and.equalityExpression()[0];
+        if (eq.relationalExpression().length > 1) {
+            return 'bool'; // Equality comparison returns bool
+        }
+
+        const rel = eq.relationalExpression()[0];
+        if (rel.bitwiseOrExpression().length > 1) {
+            return 'bool'; // Relational comparison returns bool
+        }
+
+        // For arithmetic expressions, we'd need to track operand types
+        // For now, return null for complex expressions
+        return null;
+    }
+
+    /**
+     * ADR-024: Get the type of a postfix expression.
+     */
+    private getPostfixExpressionType(ctx: Parser.PostfixExpressionContext): string | null {
+        const primary = ctx.primaryExpression();
+        if (!primary) return null;
+
+        // Get base type from primary expression
+        let baseType = this.getPrimaryExpressionType(primary);
+
+        // Check for postfix operations like bit indexing
+        const suffixes = ctx.children?.slice(1) || [];
+        for (const suffix of suffixes) {
+            const text = suffix.getText();
+            // Bit indexing: [start, width] or [index]
+            if (text.startsWith('[') && text.endsWith(']')) {
+                const inner = text.slice(1, -1);
+                if (inner.includes(',')) {
+                    // Range indexing: [start, width]
+                    // ADR-024: Return null for bit indexing to skip type conversion validation
+                    // Bit indexing is the explicit escape hatch for narrowing/sign conversions
+                    return null;
+                } else {
+                    // Single bit indexing: [index] - returns bool
+                    return 'bool';
+                }
+            }
+        }
+
+        return baseType;
+    }
+
+    /**
+     * ADR-024: Get the type of a primary expression.
+     */
+    private getPrimaryExpressionType(ctx: Parser.PrimaryExpressionContext): string | null {
+        // Check for identifier
+        const id = ctx.IDENTIFIER();
+        if (id) {
+            const name = id.getText();
+            const scopedName = this.resolveIdentifier(name);
+            const typeInfo = this.context.typeRegistry.get(scopedName);
+            if (typeInfo) {
+                return typeInfo.baseType;
+            }
+            return null;
+        }
+
+        // Check for literal
+        const literal = ctx.literal();
+        if (literal) {
+            return this.getLiteralType(literal);
+        }
+
+        // Check for parenthesized expression
+        const expr = ctx.expression();
+        if (expr) {
+            return this.getExpressionType(expr);
+        }
+
+        // Check for cast expression
+        const cast = ctx.castExpression();
+        if (cast) {
+            return cast.type().getText();
+        }
+
+        return null;
+    }
+
+    /**
+     * ADR-024: Get the type of a unary expression (for cast validation).
+     */
+    private getUnaryExpressionType(ctx: Parser.UnaryExpressionContext): string | null {
+        // Check for unary operators - type doesn't change for !, ~, -, +
+        const postfix = ctx.postfixExpression();
+        if (postfix) {
+            return this.getPostfixExpressionType(postfix);
+        }
+
+        // Check for recursive unary expression
+        const unary = ctx.unaryExpression();
+        if (unary) {
+            return this.getUnaryExpressionType(unary);
+        }
+
+        return null;
+    }
+
+    /**
+     * ADR-024: Get the type from a literal (suffixed or unsuffixed).
+     * Returns the explicit suffix type, or null for unsuffixed literals.
+     */
+    private getLiteralType(ctx: Parser.LiteralContext): string | null {
+        const text = ctx.getText();
+
+        // Boolean literals
+        if (text === 'true' || text === 'false') return 'bool';
+
+        // Check for type suffix on numeric literals
+        const suffixMatch = text.match(/([uUiI])(8|16|32|64)$/);
+        if (suffixMatch) {
+            const signChar = suffixMatch[1].toLowerCase();
+            const width = suffixMatch[2];
+            return (signChar === 'u' ? 'u' : 'i') + width;
+        }
+
+        // Float suffix
+        const floatMatch = text.match(/[fF](32|64)$/);
+        if (floatMatch) {
+            return 'f' + floatMatch[1];
+        }
+
+        // Unsuffixed literal - type depends on context (handled by caller)
+        return null;
+    }
+
+    /**
+     * ADR-024: Validate that a type conversion is allowed.
+     * Throws error for narrowing or sign-changing conversions.
+     */
+    private validateTypeConversion(targetType: string, sourceType: string | null): void {
+        // If we can't determine source type, skip validation
+        if (!sourceType) return;
+
+        // Skip if types are the same
+        if (sourceType === targetType) return;
+
+        // Only validate integer-to-integer conversions
+        if (!this.isIntegerType(sourceType) || !this.isIntegerType(targetType)) return;
+
+        // Check for narrowing conversion
+        if (this.isNarrowingConversion(sourceType, targetType)) {
+            const targetWidth = TYPE_WIDTH[targetType] || 0;
+            throw new Error(
+                `Error: Cannot assign ${sourceType} to ${targetType} (narrowing). ` +
+                `Use bit indexing: value[0, ${targetWidth}]`
+            );
+        }
+
+        // Check for sign conversion
+        if (this.isSignConversion(sourceType, targetType)) {
+            const targetWidth = TYPE_WIDTH[targetType] || 0;
+            throw new Error(
+                `Error: Cannot assign ${sourceType} to ${targetType} (sign change). ` +
+                `Use bit indexing: value[0, ${targetWidth}]`
+            );
+        }
+    }
+
+    /**
      * Resolve an identifier to its scoped name.
      * Inside a scope, checks if the identifier is a scope member first.
      * Otherwise returns the identifier unchanged (global scope).
@@ -1733,6 +1919,10 @@ export default class CodeGenerator {
                     exprText.match(/^0[xX][0-9a-fA-F]+$/) ||
                     exprText.match(/^0[bB][01]+$/)) {
                     this.validateLiteralFitsType(exprText, typeName);
+                } else {
+                    // Not a literal - check for narrowing/sign conversions
+                    const sourceType = this.getExpressionType(ctx.expression()!);
+                    this.validateTypeConversion(typeName, sourceType);
                 }
             }
 
@@ -1959,6 +2149,23 @@ export default class CodeGenerator {
                             }
                         }
                     }
+                }
+            }
+
+            // ADR-024: Validate integer type conversions for simple assignments only
+            // Skip validation for compound assignments (+<-, -<-, etc.) since the
+            // operand doesn't need to fit directly in the target type
+            if (!isCompound && targetTypeInfo && this.isIntegerType(targetTypeInfo.baseType)) {
+                const exprText = ctx.expression().getText().trim();
+                // Check if it's a direct literal
+                if (exprText.match(/^-?\d+$/) ||
+                    exprText.match(/^0[xX][0-9a-fA-F]+$/) ||
+                    exprText.match(/^0[bB][01]+$/)) {
+                    this.validateLiteralFitsType(exprText, targetTypeInfo.baseType);
+                } else {
+                    // Not a literal - check for narrowing/sign conversions
+                    const sourceType = this.getExpressionType(ctx.expression());
+                    this.validateTypeConversion(targetTypeInfo.baseType, sourceType);
                 }
             }
         }
@@ -2733,10 +2940,32 @@ export default class CodeGenerator {
      */
     private generateCastExpression(ctx: Parser.CastExpressionContext): string {
         const targetType = this.generateType(ctx.type());
+        const targetTypeName = ctx.type().getText();
+
+        // ADR-024: Validate integer casts for narrowing and sign conversion
+        if (this.isIntegerType(targetTypeName)) {
+            const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
+            if (sourceType && this.isIntegerType(sourceType)) {
+                if (this.isNarrowingConversion(sourceType, targetTypeName)) {
+                    const targetWidth = TYPE_WIDTH[targetTypeName] || 0;
+                    throw new Error(
+                        `Error: Cannot cast ${sourceType} to ${targetTypeName} (narrowing). ` +
+                        `Use bit indexing: expr[0, ${targetWidth}]`
+                    );
+                }
+                if (this.isSignConversion(sourceType, targetTypeName)) {
+                    const targetWidth = TYPE_WIDTH[targetTypeName] || 0;
+                    throw new Error(
+                        `Error: Cannot cast ${sourceType} to ${targetTypeName} (sign change). ` +
+                        `Use bit indexing: expr[0, ${targetWidth}]`
+                    );
+                }
+            }
+        }
+
         const expr = this.generateUnaryExpr(ctx.unaryExpression());
 
         // Validate enum casts are only to unsigned types
-        const targetTypeName = ctx.type().getText();
         const allowedCastTypes = ['u8', 'u16', 'u32', 'u64'];
 
         // Check if we're casting an enum (for validation)

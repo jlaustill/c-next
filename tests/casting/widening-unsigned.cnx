@@ -1,0 +1,12 @@
+// ADR-024: Test that widening conversions are implicit and safe
+// u8 -> u16 -> u32 -> u64 should all work without explicit casts
+
+void main() {
+    u8 byte <- 255;
+    u16 word <- byte;      // u8 -> u16: widening, safe
+    u32 dword <- word;     // u16 -> u32: widening, safe
+    u64 qword <- dword;    // u32 -> u64: widening, safe
+
+    // Direct widening from smallest to largest
+    u64 direct <- byte;    // u8 -> u64: widening, safe
+}
