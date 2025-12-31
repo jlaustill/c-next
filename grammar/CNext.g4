@@ -433,13 +433,17 @@ typeArgument
     ;
 
 // ----------------------------------------------------------------------------
-// Literals
+// Literals (ADR-024: Type suffixes OPTIONAL, validated against target type)
 // ----------------------------------------------------------------------------
 literal
-    : INTEGER_LITERAL
-    | HEX_LITERAL
-    | BINARY_LITERAL
-    | FLOAT_LITERAL
+    : SUFFIXED_DECIMAL      // 42u8, 1000i32 (explicit type)
+    | SUFFIXED_HEX          // 0xFFu16 (explicit type)
+    | SUFFIXED_BINARY       // 0b1010u8 (explicit type)
+    | SUFFIXED_FLOAT        // 3.14f32 (explicit type)
+    | INTEGER_LITERAL       // 42 (type inferred from context, validated to fit)
+    | HEX_LITERAL           // 0xFF (type inferred from context)
+    | BINARY_LITERAL        // 0b1010 (type inferred from context)
+    | FLOAT_LITERAL         // 3.14 (type inferred from context)
     | STRING_LITERAL
     | CHAR_LITERAL
     | 'true'
@@ -527,6 +531,30 @@ BITS        : 'bits';
 // Overflow behavior keywords (ADR-044)
 CLAMP       : 'clamp';
 WRAP        : 'wrap';
+
+// ADR-024: Type-suffixed numeric literals (REQUIRED)
+// These MUST come before unsuffixed literals so ANTLR matches them first
+// Suffixes: u8, u16, u32, u64, i8, i16, i32, i64, f32, f64
+
+// Float with suffix: 3.14f32, 2.718f64, 1e10f64
+SUFFIXED_FLOAT
+    : ([0-9]+ '.' [0-9]+ ([eE] [+-]? [0-9]+)? | [0-9]+ [eE] [+-]? [0-9]+) [fF] ('32' | '64')
+    ;
+
+// Hex with suffix: 0xFFu8, 0xDEADBEEFu32
+SUFFIXED_HEX
+    : '0' [xX] [0-9a-fA-F]+ ([uUiI] ('8' | '16' | '32' | '64'))
+    ;
+
+// Binary with suffix: 0b1010u8, 0b11110000u8
+SUFFIXED_BINARY
+    : '0' [bB] [01]+ ([uUiI] ('8' | '16' | '32' | '64'))
+    ;
+
+// Decimal integer with suffix: 42u8, 1000i32, 255u8
+SUFFIXED_DECIMAL
+    : [0-9]+ ([uUiI] ('8' | '16' | '32' | '64'))
+    ;
 
 // Primitive types
 U8          : 'u8';

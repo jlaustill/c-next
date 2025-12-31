@@ -98,6 +98,29 @@ const TYPE_WIDTH: Record<string, number> = {
 };
 
 /**
+ * ADR-024: Type classification for safe casting
+ */
+const UNSIGNED_TYPES = ['u8', 'u16', 'u32', 'u64'] as const;
+const SIGNED_TYPES = ['i8', 'i16', 'i32', 'i64'] as const;
+const INTEGER_TYPES = [...UNSIGNED_TYPES, ...SIGNED_TYPES] as const;
+const FLOAT_TYPES = ['f32', 'f64'] as const;
+
+/**
+ * ADR-024: Type ranges for literal validation
+ * Maps type name to [min, max] inclusive range
+ */
+const TYPE_RANGES: Record<string, [bigint, bigint]> = {
+    'u8': [0n, 255n],
+    'u16': [0n, 65535n],
+    'u32': [0n, 4294967295n],
+    'u64': [0n, 18446744073709551615n],
+    'i8': [-128n, 127n],
+    'i16': [-32768n, 32767n],
+    'i32': [-2147483648n, 2147483647n],
+    'i64': [-9223372036854775808n, 9223372036854775807n],
+};
+
+/**
  * ADR-044: Assignment context for overflow behavior tracking
  */
 interface AssignmentContext {
@@ -971,6 +994,118 @@ export default class CodeGenerator {
         return false;
     }
 
+    // ========================================================================
+    // ADR-024: Type Classification and Validation Helpers
+    // ========================================================================
+
+    /**
+     * ADR-024: Check if a type is an unsigned integer
+     */
+    private isUnsignedType(typeName: string): boolean {
+        return (UNSIGNED_TYPES as readonly string[]).includes(typeName);
+    }
+
+    /**
+     * ADR-024: Check if a type is a signed integer
+     */
+    private isSignedType(typeName: string): boolean {
+        return (SIGNED_TYPES as readonly string[]).includes(typeName);
+    }
+
+    /**
+     * ADR-024: Check if a type is any integer (signed or unsigned)
+     */
+    private isIntegerType(typeName: string): boolean {
+        return (INTEGER_TYPES as readonly string[]).includes(typeName);
+    }
+
+    /**
+     * ADR-024: Check if a type is a floating point type
+     */
+    private isFloatType(typeName: string): boolean {
+        return (FLOAT_TYPES as readonly string[]).includes(typeName);
+    }
+
+    /**
+     * ADR-024: Check if conversion from sourceType to targetType is narrowing
+     * Narrowing occurs when target type has fewer bits than source type
+     */
+    private isNarrowingConversion(sourceType: string, targetType: string): boolean {
+        const sourceWidth = TYPE_WIDTH[sourceType] || 0;
+        const targetWidth = TYPE_WIDTH[targetType] || 0;
+
+        if (sourceWidth === 0 || targetWidth === 0) {
+            return false; // Can't determine for unknown types
+        }
+
+        return targetWidth < sourceWidth;
+    }
+
+    /**
+     * ADR-024: Check if conversion involves a sign change
+     * Sign change occurs when converting between signed and unsigned types
+     */
+    private isSignConversion(sourceType: string, targetType: string): boolean {
+        const sourceIsSigned = this.isSignedType(sourceType);
+        const sourceIsUnsigned = this.isUnsignedType(sourceType);
+        const targetIsSigned = this.isSignedType(targetType);
+        const targetIsUnsigned = this.isUnsignedType(targetType);
+
+        return (sourceIsSigned && targetIsUnsigned) ||
+               (sourceIsUnsigned && targetIsSigned);
+    }
+
+    /**
+     * ADR-024: Validate that a literal value fits within the target type's range.
+     * Throws an error if the value doesn't fit.
+     * @param literalText The literal text (e.g., "256", "-1", "0xFF")
+     * @param targetType The target type (e.g., "u8", "i32")
+     */
+    private validateLiteralFitsType(literalText: string, targetType: string): void {
+        const range = TYPE_RANGES[targetType];
+        if (!range) {
+            return; // No validation for unknown types (floats, bools, etc.)
+        }
+
+        // Parse the literal value
+        let value: bigint;
+        try {
+            const cleanText = literalText.trim();
+
+            if (cleanText.match(/^-?\d+$/)) {
+                // Decimal integer
+                value = BigInt(cleanText);
+            } else if (cleanText.match(/^0[xX][0-9a-fA-F]+$/)) {
+                // Hex literal
+                value = BigInt(cleanText);
+            } else if (cleanText.match(/^0[bB][01]+$/)) {
+                // Binary literal
+                value = BigInt(cleanText);
+            } else {
+                // Not an integer literal we can validate
+                return;
+            }
+        } catch {
+            return; // Can't parse, skip validation
+        }
+
+        const [min, max] = range;
+
+        // Check if value is negative for unsigned type
+        if (this.isUnsignedType(targetType) && value < 0n) {
+            throw new Error(
+                `Error: Negative value ${literalText} cannot be assigned to unsigned type ${targetType}`
+            );
+        }
+
+        // Check if value is out of range
+        if (value < min || value > max) {
+            throw new Error(
+                `Error: Value ${literalText} exceeds ${targetType} range (${min} to ${max})`
+            );
+        }
+    }
+
     /**
      * Resolve an identifier to its scoped name.
      * Inside a scope, checks if the identifier is a scope member first.
@@ -1586,6 +1721,18 @@ export default class CodeGenerator {
                             );
                         }
                     }
+                }
+            }
+
+            // ADR-024: Validate literal values fit in target type
+            // Only validate for integer types and literal expressions
+            if (this.isIntegerType(typeName)) {
+                const exprText = ctx.expression()!.getText().trim();
+                // Check if it's a direct literal (not a variable or expression)
+                if (exprText.match(/^-?\d+$/) ||
+                    exprText.match(/^0[xX][0-9a-fA-F]+$/) ||
+                    exprText.match(/^0[bB][01]+$/)) {
+                    this.validateLiteralFitsType(exprText, typeName);
                 }
             }
 

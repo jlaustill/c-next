@@ -1,0 +1,14 @@
+// ADR-024: Test that valid literal values work correctly
+// This should compile successfully
+
+void main() {
+    // All valid - values fit in their types
+    u8 byte <- 255;
+    u8 zero <- 0;
+    u16 word <- 65535;
+    u32 dword <- 4294967295;
+    i8 sbyte <- -128;
+    i8 sbyte_max <- 127;
+    i16 sword <- -32768;
+    i32 sdword <- -2147483648;
+}

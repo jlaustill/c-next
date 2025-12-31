@@ -1,0 +1,6 @@
+// ADR-024: Test that literal overflow is caught
+// This should produce a compiler error
+
+void main() {
+    u8 overflow <- 256;  // ERROR: 256 exceeds u8 range (0-255)
+}
