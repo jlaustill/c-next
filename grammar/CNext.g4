@@ -149,15 +149,21 @@ constModifier
     : 'const'
     ;
 
+// ADR-044: Overflow behavior modifier
+overflowModifier
+    : 'clamp'    // Saturating arithmetic (safe default)
+    | 'wrap'     // Two's complement wrap (opt-in)
+    ;
+
 arrayDimension
     : '[' expression? ']'
     ;
 
 // ----------------------------------------------------------------------------
-// Variables (ADR-003: Static allocation)
+// Variables (ADR-003: Static allocation, ADR-044: Overflow behavior)
 // ----------------------------------------------------------------------------
 variableDeclaration
-    : constModifier? type IDENTIFIER arrayDimension? ('<-' expression)? ';'
+    : constModifier? overflowModifier? type IDENTIFIER arrayDimension? ('<-' expression)? ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -250,7 +256,7 @@ forInit
 
 // Variable declaration without trailing semicolon (for use in for loops)
 forVarDecl
-    : type IDENTIFIER arrayDimension? ('<-' expression)?
+    : overflowModifier? type IDENTIFIER arrayDimension? ('<-' expression)?
     ;
 
 // Assignment without trailing semicolon (for use in for loops)
@@ -517,6 +523,10 @@ WO          : 'wo';
 W1C         : 'w1c';
 W1S         : 'w1s';
 BITS        : 'bits';
+
+// Overflow behavior keywords (ADR-044)
+CLAMP       : 'clamp';
+WRAP        : 'wrap';
 
 // Primitive types
 U8          : 'u8';

@@ -58,6 +58,11 @@ interface ParameterInfo {
 }
 
 /**
+ * ADR-044: Overflow behavior for integer types
+ */
+type TOverflowBehavior = 'clamp' | 'wrap';
+
+/**
  * Type info for bit manipulation, .length support, and ADR-013 const enforcement
  */
 interface TypeInfo {
@@ -68,6 +73,7 @@ interface TypeInfo {
     isConst: boolean;      // ADR-013: Track const modifier for immutability enforcement
     isEnum?: boolean;      // ADR-017: Track if this is an enum type
     enumTypeName?: string; // ADR-017: The enum type name (e.g., 'State')
+    overflowBehavior?: TOverflowBehavior; // ADR-044: clamp (default) or wrap
 }
 
 /**
@@ -92,6 +98,15 @@ const TYPE_WIDTH: Record<string, number> = {
 };
 
 /**
+ * ADR-044: Assignment context for overflow behavior tracking
+ */
+interface AssignmentContext {
+    targetName: string | null;
+    targetType: string | null;
+    overflowBehavior: TOverflowBehavior;
+}
+
+/**
  * Context for tracking current scope during code generation
  */
 interface GeneratorContext {
@@ -105,12 +120,24 @@ interface GeneratorContext {
     typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
     expectedType: string | null; // For inferred struct initializers
     mainArgsName: string | null; // Track the args parameter name for main() translation
+    assignmentContext: AssignmentContext; // ADR-044: Track current assignment for overflow
+}
+
+/**
+ * Options for the code generator
+ */
+export interface ICodeGeneratorOptions {
+    /** ADR-044: When true, generate panic helpers instead of clamp helpers */
+    debugMode?: boolean;
 }
 
 /**
  * Code Generator - Transpiles C-Next to C
  */
 export default class CodeGenerator {
+    /** ADR-044: Debug mode generates panic-on-overflow helpers */
+    private debugMode: boolean = false;
+
     private context: GeneratorContext = {
         currentScope: null,  // ADR-016: renamed from currentNamespace
         indentLevel: 0,
@@ -122,6 +149,7 @@ export default class CodeGenerator {
         typeRegistry: new Map(),
         expectedType: null,
         mainArgsName: null,  // Track the args parameter name for main() translation
+        assignmentContext: { targetName: null, targetType: null, overflowBehavior: 'clamp' }, // ADR-044
     };
 
     private knownScopes: Set<string> = new Set();  // ADR-016: renamed from knownNamespaces
@@ -133,6 +161,13 @@ export default class CodeGenerator {
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
     private knownEnums: Set<string> = new Set(); // ADR-017: Track enum types
     private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
+
+    // ADR-044: Track which overflow helper types and operations are needed
+    private usedClampOps: Set<string> = new Set(); // Format: "add_u8", "sub_u16", "mul_u32"
+
+    // Track required standard library includes
+    private needsStdint: boolean = false;   // For u8, u16, u32, u64, i8, i16, i32, i64
+    private needsStdbool: boolean = false;  // For bool type
 
     /** External symbol table for cross-language interop */
     private symbolTable: SymbolTable | null = null;
@@ -192,10 +227,14 @@ export default class CodeGenerator {
      * @param tree The parsed C-Next program
      * @param symbolTable Optional symbol table for cross-language interop
      * @param tokenStream Optional token stream for comment preservation (ADR-043)
+     * @param options Optional code generator options (e.g., debugMode)
      */
-    generate(tree: Parser.ProgramContext, symbolTable?: SymbolTable, tokenStream?: CommonTokenStream): string {
+    generate(tree: Parser.ProgramContext, symbolTable?: SymbolTable, tokenStream?: CommonTokenStream, options?: ICodeGeneratorOptions): string {
         // Store symbol table for function lookup
         this.symbolTable = symbolTable ?? null;
+
+        // ADR-044: Store debug mode for panic helper generation
+        this.debugMode = options?.debugMode ?? false;
 
         // Initialize comment extraction (ADR-043)
         this.tokenStream = tokenStream ?? null;
@@ -217,6 +256,7 @@ export default class CodeGenerator {
             typeRegistry: new Map(),
             expectedType: null,
             mainArgsName: null,  // Track the args parameter name for main() translation
+            assignmentContext: { targetName: null, targetType: null, overflowBehavior: 'clamp' }, // ADR-044
         };
         this.knownScopes = new Set();  // ADR-016
         this.knownStructs = new Set();
@@ -227,6 +267,9 @@ export default class CodeGenerator {
         this.registerMemberAccess = new Map();
         this.knownEnums = new Set();
         this.enumMembers = new Map();
+        this.usedClampOps = new Set();  // ADR-044: Reset overflow helpers
+        this.needsStdint = false;
+        this.needsStdbool = false;
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -269,17 +312,40 @@ export default class CodeGenerator {
             output.push('');
         }
 
-        // Visit all declarations
+        // Visit all declarations (first generate to collect helper usage)
+        const declarations: string[] = [];
         for (const decl of tree.declaration()) {
             // ADR-043: Get comments before this declaration
             const leadingComments = this.getLeadingComments(decl);
-            output.push(...this.formatLeadingComments(leadingComments));
+            declarations.push(...this.formatLeadingComments(leadingComments));
 
             const code = this.generateDeclaration(decl);
             if (code) {
-                output.push(code);
+                declarations.push(code);
             }
         }
+
+        // Add required standard library includes (after user includes, before helpers)
+        const autoIncludes: string[] = [];
+        if (this.needsStdint) {
+            autoIncludes.push('#include <stdint.h>');
+        }
+        if (this.needsStdbool) {
+            autoIncludes.push('#include <stdbool.h>');
+        }
+        if (autoIncludes.length > 0) {
+            output.push(...autoIncludes);
+            output.push('');
+        }
+
+        // ADR-044: Insert overflow helpers before declarations (if any are needed)
+        const helpers = this.generateOverflowHelpers();
+        if (helpers.length > 0) {
+            output.push(...helpers);
+        }
+
+        // Add the declarations
+        output.push(...declarations);
 
         return output.join('\n');
     }
@@ -438,6 +504,10 @@ export default class CodeGenerator {
         const arrayDim = varDecl.arrayDimension();
         const isConst = varDecl.constModifier() !== null;  // ADR-013: Track const modifier
 
+        // ADR-044: Extract overflow modifier (clamp is default)
+        const overflowMod = varDecl.overflowModifier();
+        const overflowBehavior: TOverflowBehavior = overflowMod?.getText() === 'wrap' ? 'wrap' : 'clamp';
+
         let baseType = '';
         let bitWidth = 0;
         let isArray = false;
@@ -465,6 +535,7 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
             }
@@ -485,6 +556,7 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
             }
@@ -502,6 +574,7 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
             }
@@ -543,6 +616,7 @@ export default class CodeGenerator {
                 isArray,
                 arrayLength,
                 isConst,  // ADR-013: Store const status
+                overflowBehavior,  // ADR-044: Store overflow behavior
             });
         }
     }
@@ -555,6 +629,10 @@ export default class CodeGenerator {
         const typeCtx = varDecl.type();
         const arrayDim = varDecl.arrayDimension();
         const isConst = varDecl.constModifier() !== null;
+
+        // ADR-044: Extract overflow modifier (clamp is default)
+        const overflowMod = varDecl.overflowModifier();
+        const overflowBehavior: TOverflowBehavior = overflowMod?.getText() === 'wrap' ? 'wrap' : 'clamp';
 
         let baseType = '';
         let bitWidth = 0;
@@ -583,6 +661,7 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
             }
@@ -603,6 +682,7 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
             }
@@ -619,6 +699,7 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
             }
@@ -658,6 +739,7 @@ export default class CodeGenerator {
                 isArray,
                 arrayLength,
                 isConst,
+                overflowBehavior,  // ADR-044: Store overflow behavior
             });
         }
     }
@@ -1637,18 +1719,28 @@ export default class CodeGenerator {
 
         // Set expected type for inferred struct initializers
         const savedExpectedType = this.context.expectedType;
+        // ADR-044: Save and set assignment context for overflow behavior
+        const savedAssignmentContext = { ...this.context.assignmentContext };
+
         if (targetCtx.IDENTIFIER() && !targetCtx.memberAccess() && !targetCtx.arrayAccess()) {
             const id = targetCtx.IDENTIFIER()!.getText();
             const typeInfo = this.context.typeRegistry.get(id);
             if (typeInfo) {
                 this.context.expectedType = typeInfo.baseType;
+                // ADR-044: Set overflow context for expression generation
+                this.context.assignmentContext = {
+                    targetName: id,
+                    targetType: typeInfo.baseType,
+                    overflowBehavior: typeInfo.overflowBehavior || 'clamp',
+                };
             }
         }
 
         const value = this.generateExpression(ctx.expression());
 
-        // Restore expected type
+        // Restore expected type and assignment context
         this.context.expectedType = savedExpectedType;
+        this.context.assignmentContext = savedAssignmentContext;
 
         // Get the assignment operator and map to C equivalent
         const operatorCtx = ctx.assignmentOperator();
@@ -1889,6 +1981,29 @@ export default class CodeGenerator {
 
         // Normal assignment (simple or compound)
         const target = this.generateAssignmentTarget(targetCtx);
+
+        // ADR-044: Handle compound assignments with overflow behavior
+        if (isCompound && targetCtx.IDENTIFIER()) {
+            const id = targetCtx.IDENTIFIER()!.getText();
+            const typeInfo = this.context.typeRegistry.get(id);
+
+            if (typeInfo && typeInfo.overflowBehavior === 'clamp' && TYPE_WIDTH[typeInfo.baseType]) {
+                // Clamp behavior: use helper function
+                const opMap: Record<string, string> = {
+                    '+=': 'add',
+                    '-=': 'sub',
+                    '*=': 'mul',
+                };
+                const helperOp = opMap[cOp];
+
+                if (helperOp) {
+                    this.markClampOpUsed(helperOp, typeInfo.baseType);
+                    return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
+                }
+            }
+            // Wrap behavior or non-integer: use natural C arithmetic (fall through)
+        }
+
         return `${target} ${cOp} ${value};`;
     }
 
@@ -2582,6 +2697,12 @@ export default class CodeGenerator {
     private generateType(ctx: Parser.TypeContext): string {
         if (ctx.primitiveType()) {
             const type = ctx.primitiveType()!.getText();
+            // Track required includes based on type usage
+            if (type === 'bool') {
+                this.needsStdbool = true;
+            } else if (type in TYPE_MAP && type !== 'void') {
+                this.needsStdint = true;
+            }
             return TYPE_MAP[type] || type;
         }
         // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
@@ -2629,6 +2750,240 @@ export default class CodeGenerator {
     private indent(text: string): string {
         const spaces = '    '.repeat(this.context.indentLevel);
         return text.split('\n').map(line => spaces + line).join('\n');
+    }
+
+    // ========================================================================
+    // ADR-044: Overflow Helper Functions
+    // ========================================================================
+
+    /**
+     * Maps C-Next types to C max value macros from limits.h
+     */
+    private static readonly TYPE_MAX: Record<string, string> = {
+        'u8': 'UINT8_MAX',
+        'u16': 'UINT16_MAX',
+        'u32': 'UINT32_MAX',
+        'u64': 'UINT64_MAX',
+        'i8': 'INT8_MAX',
+        'i16': 'INT16_MAX',
+        'i32': 'INT32_MAX',
+        'i64': 'INT64_MAX',
+    };
+
+    /**
+     * Maps C-Next types to C min value macros from limits.h
+     */
+    private static readonly TYPE_MIN: Record<string, string> = {
+        'u8': '0',
+        'u16': '0',
+        'u32': '0',
+        'u64': '0',
+        'i8': 'INT8_MIN',
+        'i16': 'INT16_MIN',
+        'i32': 'INT32_MIN',
+        'i64': 'INT64_MIN',
+    };
+
+    /**
+     * Generate all needed overflow helper functions
+     */
+    private generateOverflowHelpers(): string[] {
+        if (this.usedClampOps.size === 0) {
+            return [];
+        }
+
+        const lines: string[] = [];
+
+        if (this.debugMode) {
+            lines.push('// ADR-044: Debug overflow helper functions (panic on overflow)');
+            lines.push('#include <limits.h>');
+            lines.push('#include <stdio.h>');
+            lines.push('#include <stdlib.h>');
+        } else {
+            lines.push('// ADR-044: Overflow helper functions');
+            lines.push('#include <limits.h>');
+        }
+        lines.push('');
+
+        // Sort for deterministic output
+        const sortedOps = Array.from(this.usedClampOps).sort();
+
+        for (const op of sortedOps) {
+            const [operation, cnxType] = op.split('_');
+            const helper = this.debugMode
+                ? this.generateDebugHelper(operation, cnxType)
+                : this.generateSingleHelper(operation, cnxType);
+            if (helper) {
+                lines.push(helper);
+                lines.push('');
+            }
+        }
+
+        return lines;
+    }
+
+    /**
+     * Generate a single overflow helper function
+     */
+    private generateSingleHelper(operation: string, cnxType: string): string | null {
+        const cType = TYPE_MAP[cnxType];
+        const maxValue = CodeGenerator.TYPE_MAX[cnxType];
+        const minValue = CodeGenerator.TYPE_MIN[cnxType];
+
+        if (!cType || !maxValue) {
+            return null;
+        }
+
+        const isUnsigned = cnxType.startsWith('u');
+
+        switch (operation) {
+            case 'add':
+                if (isUnsigned) {
+                    // Unsigned addition: check if result would wrap
+                    return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
+    if (a > ${maxValue} - b) return ${maxValue};
+    return a + b;
+}`;
+                } else {
+                    // Signed addition: check both overflow and underflow
+                    return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
+    if (b > 0 && a > ${maxValue} - b) return ${maxValue};
+    if (b < 0 && a < ${minValue} - b) return ${minValue};
+    return a + b;
+}`;
+                }
+
+            case 'sub':
+                if (isUnsigned) {
+                    // Unsigned subtraction: check if result would underflow
+                    return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
+    if (a < b) return 0;
+    return a - b;
+}`;
+                } else {
+                    // Signed subtraction: check both overflow and underflow
+                    return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
+    if (b < 0 && a > ${maxValue} + b) return ${maxValue};
+    if (b > 0 && a < ${minValue} + b) return ${minValue};
+    return a - b;
+}`;
+                }
+
+            case 'mul':
+                if (isUnsigned) {
+                    // Unsigned multiplication
+                    return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+    if (b != 0 && a > ${maxValue} / b) return ${maxValue};
+    return a * b;
+}`;
+                } else {
+                    // Signed multiplication: handle negative cases
+                    return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+    if (a == 0 || b == 0) return 0;
+    if (a > 0 && b > 0 && a > ${maxValue} / b) return ${maxValue};
+    if (a < 0 && b < 0 && a < ${maxValue} / b) return ${maxValue};
+    if (a > 0 && b < 0 && b < ${minValue} / a) return ${minValue};
+    if (a < 0 && b > 0 && a < ${minValue} / b) return ${minValue};
+    return a * b;
+}`;
+                }
+
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Generate a single debug helper function (panics on overflow)
+     */
+    private generateDebugHelper(operation: string, cnxType: string): string | null {
+        const cType = TYPE_MAP[cnxType];
+        const maxValue = CodeGenerator.TYPE_MAX[cnxType];
+        const minValue = CodeGenerator.TYPE_MIN[cnxType];
+
+        if (!cType || !maxValue) {
+            return null;
+        }
+
+        const isUnsigned = cnxType.startsWith('u');
+        const opName = operation === 'add' ? 'addition' : operation === 'sub' ? 'subtraction' : 'multiplication';
+
+        switch (operation) {
+            case 'add':
+                if (isUnsigned) {
+                    return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
+    if (a > ${maxValue} - b) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return a + b;
+}`;
+                } else {
+                    return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
+    if ((b > 0 && a > ${maxValue} - b) || (b < 0 && a < ${minValue} - b)) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return a + b;
+}`;
+                }
+
+            case 'sub':
+                if (isUnsigned) {
+                    return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
+    if (a < b) {
+        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return a - b;
+}`;
+                } else {
+                    return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
+    if ((b < 0 && a > ${maxValue} + b) || (b > 0 && a < ${minValue} + b)) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return a - b;
+}`;
+                }
+
+            case 'mul':
+                if (isUnsigned) {
+                    return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+    if (b != 0 && a > ${maxValue} / b) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return a * b;
+}`;
+                } else {
+                    return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+    if (a != 0 && b != 0) {
+        if ((a > 0 && b > 0 && a > ${maxValue} / b) ||
+            (a < 0 && b < 0 && a < ${maxValue} / b) ||
+            (a > 0 && b < 0 && b < ${minValue} / a) ||
+            (a < 0 && b > 0 && a < ${minValue} / b)) {
+            fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+            abort();
+        }
+    }
+    return a * b;
+}`;
+                }
+
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Mark a clamp operation as used (will trigger helper generation)
+     */
+    private markClampOpUsed(operation: string, cnxType: string): void {
+        // Only generate helpers for integer types (not float/bool)
+        if (TYPE_WIDTH[cnxType] && !cnxType.startsWith('f') && cnxType !== 'bool') {
+            this.usedClampOps.add(`${operation}_${cnxType}`);
+        }
     }
 
     // ========================================================================

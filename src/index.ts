@@ -25,6 +25,7 @@ function showHelp(): void {
     console.log('  --project <dir>    Compile all .cnx files in directory');
     console.log('  --include <dir>    Additional include directory (can repeat)');
     console.log('  --parse            Parse only, don\'t generate code');
+    console.log('  --debug            Generate panic-on-overflow helpers (ADR-044)');
     console.log('  --no-headers       Don\'t generate header files');
     console.log('  --no-preprocess    Don\'t run C preprocessor on headers');
     console.log('  -D<name>[=value]   Define preprocessor macro');
@@ -59,6 +60,7 @@ async function main(): Promise<void> {
     const includeDirs: string[] = [];
     const defines: Record<string, string | boolean> = {};
     let parseOnly = false;
+    let debugMode = false;  // ADR-044: Debug mode generates panic-on-overflow helpers
     let generateHeaders = true;
     let preprocess = true;
 
@@ -73,6 +75,8 @@ async function main(): Promise<void> {
             includeDirs.push(args[++i]);
         } else if (arg === '--parse') {
             parseOnly = true;
+        } else if (arg === '--debug') {
+            debugMode = true;
         } else if (arg === '--no-headers') {
             generateHeaders = false;
         } else if (arg === '--no-preprocess') {
@@ -99,7 +103,7 @@ async function main(): Promise<void> {
         await runMultiFileMode(inputFiles, outputPath, includeDirs, defines, generateHeaders, preprocess);
     } else if (inputFiles.length === 1) {
         // Single file mode
-        runSingleFileMode(inputFiles[0], outputPath, parseOnly);
+        runSingleFileMode(inputFiles[0], outputPath, parseOnly, debugMode);
     } else {
         console.error('Error: No input files specified');
         showHelp();
@@ -110,10 +114,10 @@ async function main(): Promise<void> {
 /**
  * Single file compilation (original mode)
  */
-function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boolean): void {
+function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boolean, debugMode: boolean = false): void {
     try {
         const input = readFileSync(inputFile, 'utf-8');
-        const result = transpile(input, { parseOnly });
+        const result = transpile(input, { parseOnly, debugMode });
 
         if (!result.success) {
             console.error('Errors:');

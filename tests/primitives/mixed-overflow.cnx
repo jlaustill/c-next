@@ -1,0 +1,20 @@
+// Test: Mixed overflow behaviors in same file
+// clamp variables use saturating arithmetic, wrap uses natural C arithmetic
+
+clamp u16 safe_counter <- 0;
+wrap u16 fast_counter <- 0;
+u16 default_counter <- 0;  // Default is clamp
+
+void increment_all() {
+    safe_counter +<- 1;    // Uses cnx_clamp_add_u16
+    fast_counter +<- 1;    // Uses natural += (wraps)
+    default_counter +<- 1; // Uses cnx_clamp_add_u16 (default is clamp)
+}
+
+void multiply_test() {
+    clamp u32 safe_value <- 1000;
+    wrap u32 wrap_value <- 1000;
+
+    safe_value *<- 1000;   // Uses cnx_clamp_mul_u32
+    wrap_value *<- 1000;   // Uses natural *= (wraps)
+}

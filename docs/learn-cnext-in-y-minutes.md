@@ -292,6 +292,46 @@ f64 double;    // double
 bool flag;      // bool (from stdbool.h)
 ```
 
+### Overflow Behavior [DONE]
+
+C-Next provides explicit control over integer overflow behavior (ADR-044):
+
+```cnx
+// [DONE] clamp - Saturating arithmetic (safe default)
+clamp u8 brightness <- 200;
+brightness +<- 100;  // Clamps to 255, not 44!
+
+// [DONE] wrap - Two's complement wrapping (opt-in for counters)
+wrap u32 counter <- 0;
+counter +<- 1;       // Wraps naturally at UINT32_MAX
+
+// No modifier = clamp (safe default)
+u16 temperature <- 0;
+temperature -<- 100; // Clamps to 0, not 65436!
+```
+
+**Why per-variable?** Different use cases need different behavior:
+- **Sensors/PWM**: Clamping prevents wraparound glitches
+- **Counters/Timers**: Wrapping is the intended behavior
+- **Default safe**: Unmarked variables use saturating arithmetic
+
+Generated C uses inline helper functions:
+```c
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
+    if (a > UINT8_MAX - b) return UINT8_MAX;
+    return a + b;
+}
+
+brightness = cnx_clamp_add_u8(brightness, 100);  // clamp variable
+counter += 1;                                      // wrap variable
+```
+
+**Debug mode:** Compile with `--debug` to generate panic-on-overflow helpers:
+```bash
+cnx --debug myfile.cnx -o myfile.c
+```
+This replaces clamp helpers with abort() calls for catching overflow during development.
+
 ## Variables
 
 ```cnx

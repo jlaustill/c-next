@@ -1,0 +1,11 @@
+// Test: Signed integer overflow handling
+// Signed types need to check both overflow and underflow
+
+clamp i8 small_signed <- 100;
+clamp i32 large_signed <- 2000000000;
+
+void test_signed_ops() {
+    small_signed +<- 50;   // Could overflow to > 127
+    small_signed -<- 200;  // Could underflow to < -128
+    large_signed *<- 2;    // Could overflow
+}

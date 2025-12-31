@@ -28,6 +28,8 @@ export { ITranspileResult, ITranspileError, ISymbolInfo, IParseWithSymbolsResult
 export interface ITranspileOptions {
     /** Parse only, don't generate code */
     parseOnly?: boolean;
+    /** ADR-044: When true, generate panic-on-overflow helpers instead of clamp helpers */
+    debugMode?: boolean;
 }
 
 /**
@@ -50,7 +52,7 @@ export interface ITranspileOptions {
  * ```
  */
 export function transpile(source: string, options: ITranspileOptions = {}): ITranspileResult {
-    const { parseOnly = false } = options;
+    const { parseOnly = false, debugMode = false } = options;
     const errors: ITranspileError[] = [];
 
     // Create the lexer and parser
@@ -203,7 +205,7 @@ export function transpile(source: string, options: ITranspileOptions = {}): ITra
     // Generate C code
     try {
         const generator = new CodeGenerator();
-        const code = generator.generate(tree, undefined, tokenStream);
+        const code = generator.generate(tree, undefined, tokenStream, { debugMode });
 
         return {
             success: true,
