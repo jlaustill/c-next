@@ -477,22 +477,49 @@ do {
     byte <- readByte();
 } while (byte != END_MARKER);
 
-// [TODO: ADR-025] Switch (implicit break!)
+// [TODO: ADR-025] Switch - braces replace break, no fallthrough, no colons!
 switch (state) {
-    case State.IDLE: {
+    case State.IDLE {
         startMotor();
-    }   // Implicit break - no fall-through by default!
-    case State.RUNNING: {
+    }
+    case State.RUNNING {
         checkSensors();
     }
-    case State.STOPPING:
-    fallthrough;        // Explicit fall-through
-    case State.STOPPED: {
+    case State.STOPPED {
         cleanup();
     }
-    default: {
+    default {
         handleError();
     }
+}
+
+// Multiple cases with || syntax
+switch (cmd) {
+    case Command.READ || Command.PEEK {
+        readData();
+    }
+    case Command.WRITE {
+        writeData();
+    }
+    default(3) {    // Counted default: 2 explicit + 3 = 5 enum variants
+        handleOther();
+    }
+}
+
+// Exhaustive enum matching (no default needed)
+enum EState { IDLE, RUNNING, STOPPED }
+
+switch (state) {
+    case EState.IDLE {
+        start();
+    }
+    case EState.RUNNING {
+        process();
+    }
+    case EState.STOPPED {
+        cleanup();
+    }
+    // All 3 cases covered - no default required
 }
 
 // [TODO: ADR-026] Break and continue
@@ -777,6 +804,9 @@ void loop(void) {
 | Forward decl | Define first | Errors caught early (E0422) |
 | `(u8)bigVal` | `bigVal[0, 8]` | Explicit bit extraction for narrowing |
 | Silent overflow | `clamp`/`wrap` | Explicit overflow behavior |
+| `case X: break;` | `case X { }` | Braces replace break, no fallthrough |
+| `case A: case B:` | `case A \|\| B { }` | OR syntax for multiple cases |
+| `default:` | `default(n) { }` | Counted default catches enum growth |
 
 ## Further Reading
 

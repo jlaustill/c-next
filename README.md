@@ -251,6 +251,7 @@ Decisions are documented in `/docs/decisions/`:
 ### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
+| [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
 
 ### Research (v1 Roadmap)
@@ -258,7 +259,6 @@ Decisions are documented in `/docs/decisions/`:
 #### Critical Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | State machine dispatch |
 | [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Loop and switch control |
 | [ADR-029](docs/decisions/adr-029-function-pointers.md) | Function Pointers | Callbacks, ISR tables |
 | [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
