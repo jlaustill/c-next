@@ -1,7 +1,7 @@
 # ADR-019: Type Aliases
 
 ## Status
-**Research**
+**Rejected**
 
 ## Context
 
@@ -11,6 +11,10 @@ Type aliases improve code readability and maintainability:
 - `Callback` instead of complex function pointer syntax
 
 C uses `typedef`, C-Next should have a cleaner syntax.
+
+## Decision
+
+**Rejected.** C-Next's fixed-width primitive types (`u8`, `i32`, `f64`, etc.) already solve the primary safety motivation for typedef in C. Type aliases would add complexity without a compelling use case. If a need arises in the future, this decision can be revisited.
 
 ## Decision Drivers
 
@@ -56,62 +60,38 @@ alias Address <- u32;
 **Pros:** Clear intent
 **Cons:** New keyword
 
-## Recommended Decision
-
-**Option A: `type` with `<-`** - Maintains consistency with rest of language.
-
-## Syntax
-
-### Basic Alias
-```cnx
-type Byte <- u8;
-type Word <- u16;
-type DWord <- u32;
-```
-
-### Pointer/Reference Alias
-```cnx
-type BytePtr <- u8*;  // If we had pointers
-// But with ADR-006, references are implicit
-```
-
-### Array Alias
-```cnx
-type Buffer <- u8[64];
-type Matrix4x4 <- f32[16];
-```
-
-### Struct Alias
-```cnx
-struct Point { i32 x; i32 y; }
-type Vector2D <- Point;
-```
-
-### Function Pointer Alias (depends on ADR-029)
-```cnx
-type Callback <- void(u32);
-type Comparator <- i32(const void, const void);
-```
-
-## Implementation Notes
-
-### Grammar Changes
-```antlr
-typeAliasDeclaration
-    : 'type' IDENTIFIER '<-' type ';'
-    ;
-```
 
 ### Priority
 **Low** - Nice to have, not critical for v1.
 
-## Open Questions
+## Research Findings
 
-1. Should aliases be interchangeable with original type?
-2. Generic type aliases? `type List<T> <- T[100];`
+### MISRA Perspective
+
+MISRA **Directive 4.6** (Advisory) states: "Typedefs that indicate size and signedness should be used in place of the basic numerical types." This encourages using `uint8_t` instead of `unsigned char`, etc.
+
+However, this guidance exists because C's basic types (`int`, `char`, `long`) have platform-dependent sizes. **C-Next already solves this problem** by using fixed-width primitives (`u8`, `i32`, `f64`) as the default types.
+
+Additional MISRA rules on typedef:
+- **Rule 5.6** (Required): Typedef names must be unique across all namespaces
+- **Rule 2.3** (Advisory): Unused typedefs are non-compliant
+
+### Conclusion
+
+The primary MISRA motivation for typedef is already satisfied by C-Next's type system. Type aliases would be a convenience feature, not a safety requirement.
+
+## Resolved Questions
+
+1. **Should aliases be interchangeable?** — Moot; feature rejected.
+2. **Generic type aliases?** — Moot; feature rejected.
+3. **Does C-Next need type aliases?** — No. Fixed-width primitives solve the core problem.
+4. **Requirements that can't be met without them?** — None identified.
+5. **What does MISRA say?** — Encourages typedef for size/signedness clarity, but C-Next's primitives already provide this.
 
 ## References
 
+- [MISRA C:2023 Directive 4.6](https://www.mathworks.com/help/bugfinder/ref/misrac2023dir4.6.html)
+- [MISRA Rule 5.6 - Typedef Uniqueness](https://pvs-studio.com/en/docs/warnings/v2619/)
 - C typedef
 - Rust type aliases
 - Go type definitions
