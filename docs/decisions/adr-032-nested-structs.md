@@ -1,7 +1,7 @@
 # ADR-032: Nested Structs
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 

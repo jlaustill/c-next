@@ -1,0 +1,42 @@
+// ADR-032: Nested Structs with Function Parameters
+// Tests: passing and accessing nested struct members via function params
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Rectangle {
+    Point topLeft;
+    Point bottomRight;
+}
+
+// Access nested members from struct parameter (ADR-006: pass by reference)
+i32 getWidth(Rectangle rect) {
+    return rect.bottomRight.x - rect.topLeft.x;
+}
+
+i32 getHeight(Rectangle rect) {
+    return rect.bottomRight.y - rect.topLeft.y;
+}
+
+// Calculate area using nested access
+i32 getArea(Rectangle rect) {
+    i32 w <- rect.bottomRight.x - rect.topLeft.x;
+    i32 h <- rect.bottomRight.y - rect.topLeft.y;
+    return w * h;
+}
+
+// Modify nested members through parameter
+void moveRect(Rectangle rect, i32 dx, i32 dy) {
+    rect.topLeft.x +<- dx;
+    rect.topLeft.y +<- dy;
+    rect.bottomRight.x +<- dx;
+    rect.bottomRight.y +<- dy;
+}
+
+// Test instance
+Rectangle bounds <- {
+    topLeft: Point { x: 10, y: 20 },
+    bottomRight: Point { x: 60, y: 70 }
+};

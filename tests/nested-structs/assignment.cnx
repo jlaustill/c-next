@@ -1,0 +1,29 @@
+// ADR-032: Nested Struct Assignment Test
+// Tests: assignment to nested struct members
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Line {
+    Point start;
+    Point end;
+}
+
+// Initialize
+Line segment <- {
+    start: Point { x: 0, y: 0 },
+    end: Point { x: 100, y: 100 }
+};
+
+void moveEndPoint() {
+    // Assign to nested members
+    segment.end.x <- 200;
+    segment.end.y <- 200;
+}
+
+void setStartPoint(i32 newX, i32 newY) {
+    segment.start.x <- newX;
+    segment.start.y <- newY;
+}

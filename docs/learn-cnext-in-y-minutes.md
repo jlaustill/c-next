@@ -734,11 +734,38 @@ struct Buffer {
     u32 length;
 }
 
-// [ACCEPTED: ADR-032] Named nested structs (no anonymous)
+// [DONE: ADR-032] Named nested structs (no anonymous)
 struct Rectangle {
     Point topLeft;
     Point bottomRight;
 }
+
+// Nested struct initialization
+Rectangle bounds <- {
+    topLeft: Point { x: 10, y: 20 },
+    bottomRight: Point { x: 110, y: 120 }
+};
+
+// Chained member access (read)
+i32 width <- bounds.bottomRight.x - bounds.topLeft.x;
+
+// Chained member access (write)
+bounds.topLeft.x <- 0;
+
+// Deep nesting (3+ levels)
+struct Color { u8 r; u8 g; u8 b; }
+struct Material { Color ambient; Color diffuse; }
+struct Mesh { Material mat; u32 vertexCount; }
+
+Mesh cube <- {
+    mat: Material {
+        ambient: Color { r: 50, g: 50, b: 50 },
+        diffuse: Color { r: 200, g: 100, b: 50 }
+    },
+    vertexCount: 36
+};
+
+u8 red <- cube.mat.ambient.r;  // 3-level deep read
 
 // Alternative to anonymous structs - always use named types:
 struct PacketHeader {
