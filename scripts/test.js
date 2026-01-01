@@ -2,18 +2,20 @@
 /**
  * C-Next Integration Test Runner
  *
- * Snapshot testing for transpiler output:
+ * Comprehensive testing for transpiler output:
  * - Finds all .cnx test files
  * - Transpiles each file
  * - Compares output to .expected.c file (if exists)
  * - For error tests, compares to .expected.error file
- * - Validates generated C compiles without errors (--validate)
- * - Runs static analysis on generated C (--validate)
+ * - ALWAYS validates generated C:
+ *   1. GCC compilation check
+ *   2. Cppcheck static analysis
+ *   3. Clang-tidy analysis
+ *   4. MISRA C compliance check
  *
  * Usage:
- *   npm test                    # Run all tests
+ *   npm test                    # Run all tests with full validation
  *   npm test -- --update        # Update snapshots
- *   npm test -- --validate      # Validate C compiles and passes static analysis
  *   npm test -- tests/enum      # Run specific directory
  */
 
@@ -103,12 +105,10 @@ function validateCompilation(cFile) {
 }
 
 /**
- * Validate that a C file passes static analysis
- * Uses cppcheck for comprehensive checking
+ * Validate that a C file passes cppcheck static analysis
  */
-function validateStaticAnalysis(cFile) {
+function validateCppcheck(cFile) {
     try {
-        // Run cppcheck with error-only output
         execFileSync('cppcheck', [
             '--error-exitcode=1',
             '--enable=warning,performance',
@@ -128,7 +128,69 @@ function validateStaticAnalysis(cFile) {
             .join('\n');
         return {
             valid: false,
-            message: issues || 'Static analysis failed',
+            message: issues || 'Cppcheck failed',
+        };
+    }
+}
+
+/**
+ * Validate that a C file passes clang-tidy analysis
+ */
+function validateClangTidy(cFile) {
+    try {
+        // Run clang-tidy with safety and readability checks
+        execFileSync('clang-tidy', [
+            cFile,
+            '--',
+            '-std=c99',
+            '-Wno-unused-variable',
+        ], { encoding: 'utf-8', timeout: 30000, stdio: 'pipe' });
+        return { valid: true };
+    } catch (error) {
+        const output = error.stderr || error.stdout || error.message;
+        // Filter for actual warnings/errors (not notes)
+        const issues = output
+            .split('\n')
+            .filter(line => line.includes('warning:') || line.includes('error:'))
+            .slice(0, 5)
+            .join('\n');
+        // clang-tidy returns non-zero even for warnings, only fail on errors
+        if (issues.includes('error:')) {
+            return {
+                valid: false,
+                message: issues || 'Clang-tidy failed',
+            };
+        }
+        return { valid: true };
+    }
+}
+
+/**
+ * Validate that a C file passes MISRA C compliance check
+ * Uses cppcheck's MISRA addon
+ */
+function validateMisra(cFile) {
+    try {
+        // Run cppcheck with MISRA addon
+        execFileSync('cppcheck', [
+            '--addon=misra',
+            '--error-exitcode=1',
+            '--suppress=missingIncludeSystem',
+            '--suppress=unusedFunction',
+            '--quiet',
+            cFile
+        ], { encoding: 'utf-8', timeout: 60000, stdio: 'pipe' });
+        return { valid: true };
+    } catch (error) {
+        const output = error.stderr || error.stdout || error.message;
+        const issues = output
+            .split('\n')
+            .filter(line => line.includes('misra') || line.includes('MISRA'))
+            .slice(0, 5)
+            .join('\n');
+        return {
+            valid: false,
+            message: issues || 'MISRA check failed',
         };
     }
 }
@@ -137,7 +199,7 @@ function validateStaticAnalysis(cFile) {
  * Check if validation tools are available
  */
 function checkValidationTools() {
-    const tools = { gcc: false, cppcheck: false };
+    const tools = { gcc: false, cppcheck: false, clangTidy: false, misra: false };
 
     try {
         execFileSync('gcc', ['--version'], { encoding: 'utf-8', stdio: 'pipe' });
@@ -147,6 +209,13 @@ function checkValidationTools() {
     try {
         execFileSync('cppcheck', ['--version'], { encoding: 'utf-8', stdio: 'pipe' });
         tools.cppcheck = true;
+        // MISRA addon requires cppcheck
+        tools.misra = true;
+    } catch {}
+
+    try {
+        execFileSync('clang-tidy', ['--version'], { encoding: 'utf-8', stdio: 'pipe' });
+        tools.clangTidy = true;
     } catch {}
 
     return tools;
@@ -154,8 +223,9 @@ function checkValidationTools() {
 
 /**
  * Run a single test
+ * Always validates: transpile -> snapshot match -> gcc -> cppcheck -> clang-tidy -> MISRA
  */
-function runTest(cnxFile, updateMode, validateMode, tools) {
+function runTest(cnxFile, updateMode, tools) {
     const source = readFileSync(cnxFile, 'utf-8');
     const basePath = cnxFile.replace(/\.cnx$/, '');
     const expectedCFile = basePath + '.expected.c';
@@ -163,7 +233,7 @@ function runTest(cnxFile, updateMode, validateMode, tools) {
 
     const result = transpile(source);
 
-    // Check if this is an error test
+    // Check if this is an error test (no validation needed for error tests)
     if (existsSync(expectedErrorFile)) {
         const expectedErrors = readFileSync(expectedErrorFile, 'utf-8').trim();
 
@@ -217,32 +287,56 @@ function runTest(cnxFile, updateMode, validateMode, tools) {
         }
 
         if (normalize(result.code) === normalize(expectedC)) {
-            // Snapshot matches - now validate if requested
-            if (validateMode) {
-                // Check compilation
-                if (tools.gcc) {
-                    const compileResult = validateCompilation(expectedCFile);
-                    if (!compileResult.valid) {
-                        return {
-                            passed: false,
-                            message: 'C compilation failed',
-                            actual: compileResult.message,
-                        };
-                    }
-                }
+            // Snapshot matches - now run all validation steps
 
-                // Check static analysis
-                if (tools.cppcheck) {
-                    const analysisResult = validateStaticAnalysis(expectedCFile);
-                    if (!analysisResult.valid) {
-                        return {
-                            passed: false,
-                            message: 'Static analysis failed',
-                            actual: analysisResult.message,
-                        };
-                    }
+            // Step 1: GCC compilation
+            if (tools.gcc) {
+                const compileResult = validateCompilation(expectedCFile);
+                if (!compileResult.valid) {
+                    return {
+                        passed: false,
+                        message: 'GCC compilation failed',
+                        actual: compileResult.message,
+                    };
                 }
             }
+
+            // Step 2: Cppcheck static analysis
+            if (tools.cppcheck) {
+                const cppcheckResult = validateCppcheck(expectedCFile);
+                if (!cppcheckResult.valid) {
+                    return {
+                        passed: false,
+                        message: 'Cppcheck failed',
+                        actual: cppcheckResult.message,
+                    };
+                }
+            }
+
+            // Step 3: Clang-tidy analysis
+            if (tools.clangTidy) {
+                const clangTidyResult = validateClangTidy(expectedCFile);
+                if (!clangTidyResult.valid) {
+                    return {
+                        passed: false,
+                        message: 'Clang-tidy failed',
+                        actual: clangTidyResult.message,
+                    };
+                }
+            }
+
+            // Step 4: MISRA compliance check
+            if (tools.misra) {
+                const misraResult = validateMisra(expectedCFile);
+                if (!misraResult.valid) {
+                    return {
+                        passed: false,
+                        message: 'MISRA check failed',
+                        actual: misraResult.message,
+                    };
+                }
+            }
+
             return { passed: true };
         }
 
@@ -280,7 +374,6 @@ function runTest(cnxFile, updateMode, validateMode, tools) {
 function main() {
     const args = process.argv.slice(2);
     const updateMode = args.includes('--update') || args.includes('-u');
-    const validateMode = args.includes('--validate') || args.includes('-v');
     const filterPath = args.find(arg => !arg.startsWith('-'));
 
     // Determine test directory
@@ -294,14 +387,13 @@ function main() {
         process.exit(1);
     }
 
-    // Check for validation tools if validate mode is enabled
-    let tools = { gcc: false, cppcheck: false };
-    if (validateMode) {
-        tools = checkValidationTools();
-        if (!tools.gcc && !tools.cppcheck) {
-            console.error(`${colors.red}Error: --validate requires gcc or cppcheck${colors.reset}`);
-            process.exit(1);
-        }
+    // Always check for validation tools (validation is mandatory)
+    const tools = checkValidationTools();
+
+    // Require at least GCC for compilation check
+    if (!tools.gcc) {
+        console.error(`${colors.red}Error: gcc is required for C compilation validation${colors.reset}`);
+        process.exit(1);
     }
 
     console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
@@ -309,12 +401,14 @@ function main() {
     if (updateMode) {
         console.log(`${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`);
     }
-    if (validateMode) {
-        const toolList = [];
-        if (tools.gcc) toolList.push('gcc');
-        if (tools.cppcheck) toolList.push('cppcheck');
-        console.log(`${colors.cyan}Validate mode: checking with ${toolList.join(', ')}${colors.reset}`);
-    }
+
+    // Show available validation tools
+    const toolList = [];
+    if (tools.gcc) toolList.push('gcc');
+    if (tools.cppcheck) toolList.push('cppcheck');
+    if (tools.clangTidy) toolList.push('clang-tidy');
+    if (tools.misra) toolList.push('MISRA');
+    console.log(`${colors.cyan}Validation: ${toolList.join(' → ')}${colors.reset}`);
     console.log();
 
     const cnxFiles = findCnxFiles(testDir);
@@ -331,7 +425,7 @@ function main() {
 
     for (const cnxFile of cnxFiles) {
         const relativePath = cnxFile.replace(rootDir + '/', '');
-        const result = runTest(cnxFile, updateMode, validateMode, tools);
+        const result = runTest(cnxFile, updateMode, tools);
 
         if (result.passed) {
             if (result.updated) {
