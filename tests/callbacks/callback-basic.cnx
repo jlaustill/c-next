@@ -1,0 +1,12 @@
+// ADR-029: Basic callback type test
+struct Message {
+    u32 id;
+}
+
+void onReceive(const Message msg) {
+    // default: no-op
+}
+
+struct Controller {
+    onReceive _handler;
+}

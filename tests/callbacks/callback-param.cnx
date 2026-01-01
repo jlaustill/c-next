@@ -1,0 +1,16 @@
+// ADR-029: Test callback as function parameter
+struct Message {
+    u32 id;
+}
+
+void onReceive(const Message msg) {
+    // default: no-op
+}
+
+struct Controller {
+    onReceive _handler;
+}
+
+void setHandler(Controller c, onReceive handler) {
+    c._handler <- handler;
+}

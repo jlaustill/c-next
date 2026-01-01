@@ -1,7 +1,7 @@
 # ADR-029: Callbacks (Function-as-Type Pattern)
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 

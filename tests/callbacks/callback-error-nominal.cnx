@@ -1,0 +1,24 @@
+// ADR-029: Test nominal typing error
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+void onMouseDown(const Point p) {
+    // default for mouse down
+}
+
+void onMouseUp(const Point p) {
+    // default for mouse up
+}
+
+struct Handler {
+    onMouseDown down;
+    onMouseUp up;
+}
+
+void test() {
+    Handler h;
+    // ERROR: Cannot assign onMouseUp to onMouseDown field (nominal typing)
+    h.down <- onMouseUp;
+}

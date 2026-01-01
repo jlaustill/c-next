@@ -55,6 +55,7 @@ interface ParameterInfo {
     isArray: boolean;
     isStruct: boolean;  // User-defined type (struct/class)
     isConst: boolean;   // ADR-013: Track const modifier for immutability enforcement
+    isCallback: boolean; // ADR-029: Track callback type parameters
 }
 
 /**
@@ -85,6 +86,24 @@ interface TypeInfo {
 interface FunctionSignature {
     name: string;
     parameters: Array<{ name: string; isConst: boolean; isArray: boolean }>;
+}
+
+/**
+ * ADR-029: Callback type info for Function-as-Type pattern
+ * Each function definition creates both a callable function AND a type
+ */
+interface CallbackTypeInfo {
+    functionName: string;      // The original function name (also the type name)
+    returnType: string;        // Return type for typedef (C type)
+    parameters: Array<{        // Parameter info for typedef
+        name: string;
+        type: string;          // C type
+        isConst: boolean;
+        isPointer: boolean;    // ADR-006: Non-array params become pointers
+        isArray: boolean;      // Array parameters pass naturally as pointers
+        arrayDims: string;     // Array dimensions if applicable
+    }>;
+    typedefName: string;       // e.g., "onReceive_fp"
 }
 
 /**
@@ -186,6 +205,10 @@ export default class CodeGenerator {
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
     private knownEnums: Set<string> = new Set(); // ADR-017: Track enum types
     private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
+
+    // ADR-029: Callback types registry
+    private callbackTypes: Map<string, CallbackTypeInfo> = new Map(); // funcName -> CallbackTypeInfo
+    private callbackFieldTypes: Map<string, string> = new Map(); // "Struct.field" -> callbackTypeName
 
     // ADR-044: Track which overflow helper types and operations are needed
     private usedClampOps: Set<string> = new Set(); // Format: "add_u8", "sub_u16", "mul_u32"
@@ -293,6 +316,8 @@ export default class CodeGenerator {
         this.registerMemberAccess = new Map();
         this.knownEnums = new Set();
         this.enumMembers = new Map();
+        this.callbackTypes = new Map();  // ADR-029: Reset callback types
+        this.callbackFieldTypes = new Map();  // ADR-029: Reset callback field tracking
         this.usedClampOps = new Set();  // ADR-044: Reset overflow helpers
         this.needsStdint = false;
         this.needsStdbool = false;
@@ -406,6 +431,8 @@ export default class CodeGenerator {
                         // ADR-013: Track function signature for const checking
                         const sig = this.extractFunctionSignature(fullName, funcDecl.parameterList() ?? null);
                         this.functionSignatures.set(fullName, sig);
+                        // ADR-029: Register scoped function as callback type
+                        this.registerCallbackType(fullName, funcDecl);
                     }
                     // ADR-017: Collect enums declared inside scopes
                     if (member.enumDeclaration()) {
@@ -430,6 +457,12 @@ export default class CodeGenerator {
                     const fieldName = member.IDENTIFIER().getText();
                     const fieldType = this.getTypeName(member.type());
                     fields.set(fieldName, fieldType);
+
+                    // ADR-029: Track callback field types during symbol collection
+                    // (needed to know which functions need typedefs before generation)
+                    if (this.callbackTypes.has(fieldType)) {
+                        this.callbackFieldTypes.set(`${name}.${fieldName}`, fieldType);
+                    }
                 }
                 this.structFields.set(name, fields);
             }
@@ -461,6 +494,8 @@ export default class CodeGenerator {
                 // ADR-013: Track function signature for const checking
                 const sig = this.extractFunctionSignature(name, funcDecl.parameterList() ?? null);
                 this.functionSignatures.set(name, sig);
+                // ADR-029: Register function as callback type
+                this.registerCallbackType(name, funcDecl);
             }
 
             // Track top-level variable types
@@ -821,18 +856,21 @@ export default class CodeGenerator {
             const isConst = param.constModifier() !== null;  // ADR-013: Track const modifier
             const typeCtx = param.type();
 
-            // Determine if it's a struct type
+            // Determine if it's a struct type or callback type
             let isStruct = false;
+            let isCallback = false;
             let typeName = typeCtx.getText();
             if (typeCtx.userType()) {
                 typeName = typeCtx.userType()!.getText();
                 isStruct = this.isStructType(typeName);
+                // ADR-029: Check if this is a callback type
+                isCallback = this.callbackTypes.has(typeName);
             } else if (typeCtx.qualifiedType()) {
                 // ADR-016: Handle qualified enum types like Scope.EnumType
                 typeName = typeCtx.qualifiedType()!.IDENTIFIER().map((id) => id.getText()).join('_');
             }
 
-            this.context.currentParameters.set(name, { name, isArray, isStruct, isConst });
+            this.context.currentParameters.set(name, { name, isArray, isStruct, isConst, isCallback });
 
             // ADR-025: Register parameter type for switch exhaustiveness checking
             const isEnum = this.knownEnums.has(typeName);
@@ -876,6 +914,150 @@ export default class CodeGenerator {
         }
 
         return { name, parameters };
+    }
+
+    /**
+     * ADR-029: Register a function as a callback type
+     * The function name becomes both a callable function and a type for callback fields
+     */
+    private registerCallbackType(
+        name: string,
+        funcDecl: Parser.FunctionDeclarationContext
+    ): void {
+        const returnType = this.generateType(funcDecl.type());
+        const parameters: Array<{
+            name: string;
+            type: string;
+            isConst: boolean;
+            isPointer: boolean;
+            isArray: boolean;
+            arrayDims: string;
+        }> = [];
+
+        if (funcDecl.parameterList()) {
+            for (const param of funcDecl.parameterList()!.parameter()) {
+                const paramName = param.IDENTIFIER().getText();
+                const typeName = this.getTypeName(param.type());
+                const isConst = param.constModifier() !== null;
+                const dims = param.arrayDimension();
+                const isArray = dims.length > 0;
+
+                // ADR-029: Check if parameter type is itself a callback type
+                const isCallbackParam = this.callbackTypes.has(typeName);
+
+                let paramType: string;
+                let isPointer: boolean;
+
+                if (isCallbackParam) {
+                    // Use the callback typedef name
+                    const cbInfo = this.callbackTypes.get(typeName)!;
+                    paramType = cbInfo.typedefName;
+                    isPointer = false;  // Function pointers are already pointers
+                } else {
+                    paramType = this.generateType(param.type());
+                    // ADR-006: Non-array parameters become pointers
+                    isPointer = !isArray;
+                }
+
+                const arrayDims = isArray
+                    ? dims.map(d => this.generateArrayDimension(d)).join('')
+                    : '';
+                parameters.push({
+                    name: paramName,
+                    type: paramType,
+                    isConst,
+                    isPointer,
+                    isArray,
+                    arrayDims,
+                });
+            }
+        }
+
+        this.callbackTypes.set(name, {
+            functionName: name,
+            returnType,
+            parameters,
+            typedefName: `${name}_fp`,
+        });
+    }
+
+    /**
+     * ADR-029: Check if a function is used as a callback type (field type in a struct)
+     */
+    private isCallbackTypeUsedAsFieldType(funcName: string): boolean {
+        // A function is a "callback type definer" if it's used as a field type somewhere
+        for (const callbackType of this.callbackFieldTypes.values()) {
+            if (callbackType === funcName) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * ADR-029: Validate callback assignment with nominal typing
+     * - If value IS a callback type used as a field type: must match exactly (nominal typing)
+     * - If value is just a function (not used as a type): signature must match
+     */
+    private validateCallbackAssignment(
+        expectedType: string,
+        valueExpr: Parser.ExpressionContext,
+        fieldName: string
+    ): void {
+        const valueText = valueExpr.getText();
+
+        // Check if the value is a known function
+        if (!this.knownFunctions.has(valueText)) {
+            // Not a function name - could be a variable holding a callback
+            // Skip validation for now (C compiler will catch type mismatches)
+            return;
+        }
+
+        const expectedInfo = this.callbackTypes.get(expectedType);
+        const valueInfo = this.callbackTypes.get(valueText);
+
+        if (!expectedInfo || !valueInfo) {
+            // Shouldn't happen, but guard against it
+            return;
+        }
+
+        // First check if signatures match
+        if (!this.callbackSignaturesMatch(expectedInfo, valueInfo)) {
+            throw new Error(
+                `Error: Function '${valueText}' signature does not match callback type '${expectedType}'`
+            );
+        }
+
+        // Nominal typing: if the value function is used as a field type somewhere,
+        // it can only be assigned to fields of that same type
+        if (this.isCallbackTypeUsedAsFieldType(valueText) && valueText !== expectedType) {
+            throw new Error(
+                `Error: Cannot assign '${valueText}' to callback field '${fieldName}' ` +
+                `(expected ${expectedType} type, got ${valueText} type - nominal typing)`
+            );
+        }
+    }
+
+    /**
+     * ADR-029: Check if two callback signatures match
+     */
+    private callbackSignaturesMatch(
+        a: CallbackTypeInfo,
+        b: CallbackTypeInfo
+    ): boolean {
+        if (a.returnType !== b.returnType) return false;
+        if (a.parameters.length !== b.parameters.length) return false;
+
+        for (let i = 0; i < a.parameters.length; i++) {
+            const pa = a.parameters[i];
+            const pb = b.parameters[i];
+            if (pa.type !== pb.type) return false;
+            if (pa.isConst !== pb.isConst) return false;
+            if (pa.isPointer !== pb.isPointer) return false;
+            if (pa.isArray !== pb.isArray) return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1846,6 +2028,14 @@ export default class CodeGenerator {
 
                 lines.push('');
                 lines.push(`${prefix}${returnType} ${fullName}(${params}) ${body}`);
+
+                // ADR-029: Generate callback typedef only if used as a type
+                if (this.isCallbackTypeUsedAsFieldType(fullName)) {
+                    const typedef = this.generateCallbackTypedef(fullName);
+                    if (typedef) {
+                        lines.push(typedef);
+                    }
+                }
             }
 
             // ADR-017: Handle enum declarations inside scopes
@@ -1903,24 +2093,73 @@ export default class CodeGenerator {
 
     private generateStruct(ctx: Parser.StructDeclarationContext): string {
         const name = ctx.IDENTIFIER().getText();
+        const callbackFields: Array<{ fieldName: string; callbackType: string }> = [];
 
         const lines: string[] = [];
         lines.push(`typedef struct {`);
 
         for (const member of ctx.structMember()) {
-            const type = this.generateType(member.type());
             const fieldName = member.IDENTIFIER().getText();
-            // Handle array dimensions in struct fields
+            const typeName = this.getTypeName(member.type());
             const arrayDim = member.arrayDimension();
-            if (arrayDim) {
-                const dim = this.generateArrayDimension(arrayDim);
-                lines.push(`    ${type} ${fieldName}${dim};`);
+
+            // ADR-029: Check if this is a callback type field
+            if (this.callbackTypes.has(typeName)) {
+                const callbackInfo = this.callbackTypes.get(typeName)!;
+                callbackFields.push({ fieldName, callbackType: typeName });
+
+                // Track callback field for assignment validation
+                this.callbackFieldTypes.set(`${name}.${fieldName}`, typeName);
+
+                if (arrayDim) {
+                    const dim = this.generateArrayDimension(arrayDim);
+                    lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dim};`);
+                } else {
+                    lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
+                }
             } else {
-                lines.push(`    ${type} ${fieldName};`);
+                // Regular field handling
+                const type = this.generateType(member.type());
+                if (arrayDim) {
+                    const dim = this.generateArrayDimension(arrayDim);
+                    lines.push(`    ${type} ${fieldName}${dim};`);
+                } else {
+                    lines.push(`    ${type} ${fieldName};`);
+                }
             }
         }
 
         lines.push(`} ${name};`);
+        lines.push('');
+
+        // ADR-029: Generate init function if struct has callback fields
+        if (callbackFields.length > 0) {
+            lines.push(this.generateStructInitFunction(name, callbackFields));
+        }
+
+        return lines.join('\n');
+    }
+
+    /**
+     * ADR-029: Generate init function for structs with callback fields
+     * Sets all callback fields to their default functions
+     */
+    private generateStructInitFunction(
+        structName: string,
+        callbackFields: Array<{ fieldName: string; callbackType: string }>
+    ): string {
+        const lines: string[] = [];
+        lines.push(`${structName} ${structName}_init(void) {`);
+        lines.push(`    return (${structName}){`);
+
+        for (let i = 0; i < callbackFields.length; i++) {
+            const field = callbackFields[i];
+            const comma = i < callbackFields.length - 1 ? ',' : '';
+            lines.push(`        .${field.fieldName} = ${field.callbackType}${comma}`);
+        }
+
+        lines.push(`    };`);
+        lines.push(`}`);
         lines.push('');
 
         return lines.join('\n');
@@ -2054,7 +2293,45 @@ export default class CodeGenerator {
         this.context.mainArgsName = null;
         this.clearParameters();
 
-        return `${actualReturnType} ${name}(${params}) ${body}\n`;
+        const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
+
+        // ADR-029: Generate callback typedef only if this function is used as a type
+        if (name !== 'main' && this.isCallbackTypeUsedAsFieldType(name)) {
+            const typedef = this.generateCallbackTypedef(name);
+            if (typedef) {
+                return functionCode + typedef;
+            }
+        }
+
+        return functionCode;
+    }
+
+    /**
+     * ADR-029: Generate typedef for callback type
+     */
+    private generateCallbackTypedef(funcName: string): string | null {
+        const callbackInfo = this.callbackTypes.get(funcName);
+        if (!callbackInfo) {
+            return null;
+        }
+
+        const paramList = callbackInfo.parameters.length > 0
+            ? callbackInfo.parameters.map(p => {
+                const constMod = p.isConst ? 'const ' : '';
+                if (p.isArray) {
+                    // Array parameters: type name[]
+                    return `${constMod}${p.type} ${p.name}${p.arrayDims}`;
+                } else if (p.isPointer) {
+                    // ADR-006: Non-array, non-callback parameters become pointers
+                    return `${constMod}${p.type}*`;
+                } else {
+                    // ADR-029: Callback parameters are already function pointers
+                    return `${p.type}`;
+                }
+            }).join(', ')
+            : 'void';
+
+        return `\ntypedef ${callbackInfo.returnType} (*${callbackInfo.typedefName})(${paramList});\n`;
     }
 
     /**
@@ -2084,9 +2361,18 @@ export default class CodeGenerator {
 
     private generateParameter(ctx: Parser.ParameterContext): string {
         const constMod = ctx.constModifier() ? 'const ' : '';
-        const type = this.generateType(ctx.type());
+        const typeName = this.getTypeName(ctx.type());
         const name = ctx.IDENTIFIER().getText();
         const dims = ctx.arrayDimension();
+
+        // ADR-029: Check if this is a callback type parameter
+        if (this.callbackTypes.has(typeName)) {
+            const callbackInfo = this.callbackTypes.get(typeName)!;
+            // Callback types are already function pointers, no additional pointer needed
+            return `${callbackInfo.typedefName} ${name}`;
+        }
+
+        const type = this.generateType(ctx.type());
 
         // Arrays pass naturally as pointers
         if (dims.length > 0) {
@@ -2659,6 +2945,22 @@ export default class CodeGenerator {
                             `(${rootName}.${memberName} has 'ro' access modifier)`
                         );
                     }
+
+                    // ADR-029: Validate callback field assignments with nominal typing
+                    const rootTypeInfo = this.context.typeRegistry.get(rootName);
+                    if (rootTypeInfo && this.knownStructs.has(rootTypeInfo.baseType)) {
+                        const structType = rootTypeInfo.baseType;
+                        const callbackFieldKey = `${structType}.${memberName}`;
+                        const expectedCallbackType = this.callbackFieldTypes.get(callbackFieldKey);
+
+                        if (expectedCallbackType) {
+                            this.validateCallbackAssignment(
+                                expectedCallbackType,
+                                ctx.expression(),
+                                memberName
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -2856,7 +3158,11 @@ export default class CodeGenerator {
         // ADR-006: Check if it's a function parameter
         const paramInfo = this.context.currentParameters.get(id);
         if (paramInfo) {
-            // Parameter - allowed as bare identifier
+            // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
+            if (paramInfo.isCallback) {
+                return id;
+            }
+            // Parameter - allowed as bare identifier, but needs dereference
             if (!paramInfo.isArray) {
                 return `(*${id})`;
             }
@@ -3759,6 +4065,10 @@ export default class CodeGenerator {
             // ADR-006: Check if it's a function parameter
             const paramInfo = this.context.currentParameters.get(id);
             if (paramInfo) {
+                // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
+                if (paramInfo.isCallback) {
+                    return id;
+                }
                 // Parameter - allowed as bare identifier
                 if (!paramInfo.isArray && !paramInfo.isStruct) {
                     return `(*${id})`;
