@@ -4,6 +4,7 @@ C-Next is a safer C for embedded systems. It transpiles to clean, readable C cod
 
 **Status Legend:**
 - `[DONE]` - Implemented and working
+- `[ACCEPTED]` - Design accepted, ready for implementation
 - `[TODO]` - Planned for v1
 
 ## Comments [DONE]
@@ -436,8 +437,26 @@ u32 clampedPositive <- (x > 0 && x < 100) ? x : 0;  // OK: logical condition
 // u32 y <- x ? 1 : 0;                          // ERROR: x is not boolean
 // u32 z <- x > 0 ? 1 : 0;                      // ERROR: missing parentheses
 
-// [TODO: ADR-023] Sizeof
-usize size <- sizeof(u32);
+// [ACCEPTED: ADR-023] Sizeof - with safety checks
+usize intSize <- sizeof(u32);          // 4
+usize structSize <- sizeof(Point);     // Includes padding
+
+// Local arrays - sizeof works normally
+u8 localBuffer[256];
+usize bufBytes <- sizeof(localBuffer); // 256 - OK
+
+// Array parameters - sizeof is FORBIDDEN (returns pointer size in C!)
+void process(u8 data[]) {
+    // usize bad <- sizeof(data);              // ERROR E0601: use .length
+    usize count <- data.length;                // Element count
+    usize bytes <- sizeof(u8) * data.length;   // Byte count (safe pattern)
+}
+
+// Side effects in sizeof - FORBIDDEN (MISRA C:2012 Rule 13.6)
+// usize s <- sizeof(x++);   // ERROR E0602: side effect never executes
+
+// Variable-length arrays - FORBIDDEN (ADR-003: static allocation)
+// u8 buffer[n];             // ERROR E0603: array size must be constant
 
 // [DONE] Type casting (ADR-024)
 // Widening (small → large): Implicit, always safe
