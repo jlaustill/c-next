@@ -1,7 +1,7 @@
 # ADR-038: Static and Extern Keywords
 
 ## Status
-**Research**
+**Rejected**
 
 ## Context
 
@@ -10,135 +10,123 @@ C's storage class specifiers:
 - `static` at file scope: internal linkage (private to file)
 - `extern`: external linkage (defined elsewhere)
 
-Essential for multi-file projects.
+## Decision
 
-## Decision Drivers
+**Rejected for v1.** C-Next will not support the `static` keyword.
 
-1. **Multi-File Projects** - Share/hide symbols across files
-2. **State Persistence** - Static locals keep values
-3. **C Compatibility** - Same semantics as C
-4. **Visibility Control** - Ties into scope (ADR-016)
+Visibility control is handled by `scope` (ADR-016) instead:
+- Scope members are **private by default** (generates `static` in C)
+- `public` keyword exposes members (no `static` in C)
 
-## Recommended Decision
+This approach is simpler and more aligned with C-Next's philosophy.
 
-**Support `static` and `extern`** with C semantics.
+## Rationale
 
-## Syntax
+### Why No `static` Keyword?
 
-### Static Local Variable
+#### 1. Redundant with `scope`
+
+ADR-016's scope system already handles visibility:
+
 ```cnx
-void counter() {
-    static u32 count <- 0;  // Persists across calls
-    count +<- 1;
-    return count;
-}
-
-counter();  // Returns 1
-counter();  // Returns 2
-counter();  // Returns 3
-```
-
-### Static Function (File-Private)
-```cnx
-// Only visible in this file
-static void helperFunction() {
-    // implementation
-}
-
-// Public function
-void publicAPI() {
-    helperFunction();
+scope Motor {
+    void helper() { }        // Private - generates: static void Motor_helper(void)
+    public void start() { }  // Public  - generates: void Motor_start(void)
 }
 ```
 
-### Static Global (File-Private)
+Adding `static` would be redundant:
 ```cnx
-// Only visible in this file
-static u32 moduleState <- 0;
-
-void updateState(u32 value) {
-    moduleState <- value;
+scope Motor {
+    static void helper() { }  // Redundant - private is already default
 }
 ```
 
-### Extern Declaration
-```cnx
-// Declare variable defined elsewhere
-extern u32 globalCounter;
+#### 2. Static Locals Create Hidden State
 
-// Declare function defined elsewhere
-extern void externalFunction(u32 param);
+Static local variables (persistence across calls) are a source of bugs:
 
-void useExternals() {
-    externalFunction(globalCounter);
-}
-```
-
-### Extern in Header
-```cnx
-// config.h
-extern const u32 SYSTEM_CLOCK;
-extern void systemInit();
-
-// config.cnx
-const u32 SYSTEM_CLOCK <- 48000000;
-void systemInit() { ... }
-```
-
-## Implementation Notes
-
-### Grammar Changes
-```antlr
-storageClassSpecifier
-    : 'static'
-    | 'extern'
-    ;
-
-variableDeclaration
-    : storageClassSpecifier? constModifier? type IDENTIFIER ...
-    ;
-
-functionDeclaration
-    : storageClassSpecifier? type IDENTIFIER ...
-    ;
-```
-
-### Scope Integration
-With ADR-016 scope:
-```cnx
-scope Internal {
-    // Private by default - generates static
-    void helper() { }
-
-    // Public - no static
-    public void api() { }
-}
-```
-
-Could generate:
+**Thread Safety Issues:**
 ```c
-static void Internal_helper(void) { }
-void Internal_api(void) { }
+// C code - NOT thread safe
+char* strtok(char* str, const char* delim) {
+    static char* buffer;  // All threads share this!
+}
 ```
+The `strtok()` function caused [JVM crashes](https://bugs.openjdk.org/browse/JDK-8214773) due to its static buffer.
 
-### CodeGenerator
-Direct mapping to C:
+**Reentrancy Problems:**
 ```c
-static uint32_t count = 0;
-extern uint32_t globalCounter;
-static void helperFunction(void) { }
+// C code - NOT safe in ISR
+void send_data(char* data) {
+    static char buffer[10];  // Corrupted if ISR preempts
+}
+```
+These bugs are [notoriously sporadic](https://interrupt.memfault.com/blog/arm-cortex-m-exceptions-and-nvic) in embedded systems.
+
+**Testing Difficulties:**
+```c
+// C code - hard to test
+int counter() {
+    static int count = 0;  // Can't reset between tests!
+    return ++count;
+}
+```
+Per [Google Testing Blog](https://testing.googleblog.com/2008/12/static-methods-are-death-to-testability.html): "Static methods are death to testability."
+
+**Hidden Dependencies:**
+Static locals violate C-Next's "explicit over implicit" philosophy — function behavior depends on invisible state.
+
+#### 3. Simpler Language
+
+One less keyword to learn. Visibility is consistently handled through `scope` and `public`.
+
+### The C-Next Alternative
+
+Instead of `static`, use explicit state at scope level:
+
+```cnx
+scope Counter {
+    u32 count <- 0;  // Private, visible at scope level
+
+    public u32 next() {
+        count +<- 1;
+        return count;
+    }
+}
 ```
 
-### Priority
-**High** - Required for real multi-file projects.
+Generates:
+```c
+static uint32_t Counter_count = 0;
 
-## Open Questions
+uint32_t Counter_next(void) {
+    Counter_count += 1;
+    return Counter_count;
+}
+```
 
-1. Integration with scope visibility?
-2. Header generation for extern?
-3. Warn on extern without definition?
+Benefits:
+- State is visible at scope level (not hidden inside function)
+- Obvious target for thread-safety review
+- Easy to reset in tests
+- No hidden surprises
+
+## What About `extern`?
+
+The `extern` keyword for multi-file projects is a separate concern. Options:
+
+1. **Support `extern` separately** — May still be needed for C interop
+2. **Defer to a module system** — Future ADR for imports/exports
+3. **Header file convention** — Use C-style headers for now
+
+This decision is deferred to a future ADR on multi-file projects and C interoperability.
 
 ## References
 
-- C storage classes
-- Linkage in C
+- [ADR-016: Scope](./adr-016-scope.md) — Visibility control via `scope` and `public`
+- [SEI CERT CON33-C: Avoid race conditions when using library functions](https://wiki.sei.cmu.edu/confluence/display/c/CON33-C.+Avoid+race+conditions+when+using+library+functions)
+- [OpenJDK Bug: Thread-unsafe strtok](https://bugs.openjdk.org/browse/JDK-8214773)
+- [Memfault: ARM Cortex-M Exceptions and NVIC](https://interrupt.memfault.com/blog/arm-cortex-m-exceptions-and-nvic)
+- [Google Testing Blog: Static Methods are Death to Testability](https://testing.googleblog.com/2008/12/static-methods-are-death-to-testability.html)
+- [MISRA C:2012 Rule 8.9](https://it.mathworks.com/help/bugfinder/ref/misrac2012rule8.9.html)

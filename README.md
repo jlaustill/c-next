@@ -389,12 +389,11 @@ Decisions are documented in `/docs/decisions/`:
 |-----|-------|-------------|
 | [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Named nested structs only (no anonymous) |
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `[1, 2, 3]` syntax with `[0*]` fill-all |
+| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` with compile-time bounds enforcement |
 
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
-| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | C-Style Bit Fields | Use ADR-007 instead |
 | [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Optional types |
@@ -417,6 +416,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Replaced by `scope` keyword (ADR-016) |
 | [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes | Use structs + free functions instead (ADR-016) |
 | [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Use ADR-004 register bindings or explicit byte manipulation |
+| [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Use `scope` for visibility; no `static` keyword in v1 |
 | [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Use structured loop conditions instead |
 | [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Permanently rejected; use structured alternatives |
 | [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Trust compiler; `inline` is just a hint anyway |
