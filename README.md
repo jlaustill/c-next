@@ -386,6 +386,7 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type/value size queries with safety checks |
+| [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` with boolean condition |
 
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
@@ -395,7 +396,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
 | [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | `type Byte <- u8;` |
 | [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | `usize` and `isize` |
-| [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` loops |
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |

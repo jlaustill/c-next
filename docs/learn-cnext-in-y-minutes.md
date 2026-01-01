@@ -496,10 +496,14 @@ for (u32 i <- 0; i < 10; i +<- 1) {
     buffer[i] <- 0;
 }
 
-// [TODO: ADR-027] Do-while
+// [ACCEPTED: ADR-027] Do-while - condition must be boolean (MISRA Rule 14.4)
+u8 byte;
 do {
     byte <- readByte();
-} while (byte != END_MARKER);
+} while (byte != END_MARKER);  // OK: comparison is boolean
+
+// do { } while (count);       // ERROR E0701: must be boolean
+// do { } while (count > 0);   // OK: explicit comparison
 
 // [DONE: ADR-025] Switch - braces replace break, no fallthrough, no colons!
 switch (state) {
