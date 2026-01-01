@@ -317,7 +317,7 @@ Decisions are documented in `/docs/decisions/`:
 #### Critical Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-029](docs/decisions/adr-029-function-pointers.md) | Function Pointers | Callbacks, ISR tables |
+| [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
 | [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
 
 #### High Priority
@@ -341,7 +341,6 @@ Decisions are documented in `/docs/decisions/`:
 #### Low Priority (v2+)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Rejected for v1; consider defer |
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | C-Style Bit Fields | Use ADR-007 instead |
 | [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Optional types |
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Declaration | Interrupt handler syntax |
@@ -361,6 +360,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes | Use structs + free functions instead (ADR-016) |
 | [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Use ADR-004 register bindings or explicit byte manipulation |
 | [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Use structured loop conditions instead |
+| [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Permanently rejected; use structured alternatives |
 
 ## Build Commands
 
