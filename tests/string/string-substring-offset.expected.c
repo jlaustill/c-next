@@ -6,11 +6,9 @@
 #include <string.h>
 
 // ADR-045: Test substring with offset
-char source[65] = "Hello, World!";
-
-char world[7] = "";
-strncpy(world, source + 7, 6);
-world[6] = '\0';
-
 void test(void) {
+    char source[65] = "Hello, World!";
+    char world[7] = "";
+        strncpy(world, source + 7, 6);
+        world[6] = '\0';
 }

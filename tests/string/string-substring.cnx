@@ -1,7 +1,5 @@
 // ADR-045: Test substring extraction
-string<64> source <- "Hello, World!";
-string<5> greeting <- source[0, 5];
-
 void test() {
-    // Extract first 5 characters
+    string<64> source <- "Hello, World!";
+    string<5> greeting <- source[0, 5];
 }

@@ -6,14 +6,11 @@
 #include <string.h>
 
 // ADR-045: Test basic string concatenation
-char first[33] = "Hello";
-
-char second[33] = " World";
-
-char result[65] = "";
-strncpy(result, first, 64);
-strncat(result, second, 64 - strlen(result));
-result[64] = '\0';
-
 void test(void) {
+    char first[33] = "Hello";
+    char second[33] = " World";
+    char result[65] = "";
+        strncpy(result, first, 64);
+        strncat(result, second, 64 - strlen(result));
+        result[64] = '\0';
 }

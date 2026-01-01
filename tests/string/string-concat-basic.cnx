@@ -1,8 +1,6 @@
 // ADR-045: Test basic string concatenation
-string<32> first <- "Hello";
-string<32> second <- " World";
-string<64> result <- first + second;
-
 void test() {
-    // Concatenation at declaration
+    string<32> first <- "Hello";
+    string<32> second <- " World";
+    string<64> result <- first + second;
 }

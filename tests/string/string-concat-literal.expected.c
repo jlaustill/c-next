@@ -6,12 +6,10 @@
 #include <string.h>
 
 // ADR-045: Test string concatenation with literal
-char greeting[33] = "Hello";
-
-char result[65] = "";
-strncpy(result, greeting, 64);
-strncat(result, " World", 64 - strlen(result));
-result[64] = '\0';
-
 void test(void) {
+    char greeting[33] = "Hello";
+    char result[65] = "";
+        strncpy(result, greeting, 64);
+        strncat(result, " World", 64 - strlen(result));
+        result[64] = '\0';
 }

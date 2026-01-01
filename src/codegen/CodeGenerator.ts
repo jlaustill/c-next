@@ -2140,6 +2140,15 @@ export default class CodeGenerator {
                     // ADR-045: Check for string concatenation
                     const concatOps = this.getStringConcatOperands(ctx.expression()!);
                     if (concatOps) {
+                        // String concatenation requires runtime function calls (strncpy, strncat)
+                        // which cannot exist at global scope in C
+                        if (!this.context.inFunctionBody) {
+                            throw new Error(
+                                `Error: String concatenation cannot be used at global scope. ` +
+                                `Move the declaration inside a function.`
+                            );
+                        }
+
                         // Validate capacity: dest >= left + right
                         const requiredCapacity = concatOps.leftCapacity + concatOps.rightCapacity;
                         if (requiredCapacity > capacity) {
@@ -2161,6 +2170,15 @@ export default class CodeGenerator {
                     // ADR-045: Check for substring extraction
                     const substringOps = this.getSubstringOperands(ctx.expression()!);
                     if (substringOps) {
+                        // Substring extraction requires runtime function calls (strncpy)
+                        // which cannot exist at global scope in C
+                        if (!this.context.inFunctionBody) {
+                            throw new Error(
+                                `Error: Substring extraction cannot be used at global scope. ` +
+                                `Move the declaration inside a function.`
+                            );
+                        }
+
                         // For compile-time validation, we need numeric literals
                         const startNum = parseInt(substringOps.start, 10);
                         const lengthNum = parseInt(substringOps.length, 10);

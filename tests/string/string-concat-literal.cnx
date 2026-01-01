@@ -1,7 +1,5 @@
 // ADR-045: Test string concatenation with literal
-string<32> greeting <- "Hello";
-string<64> result <- greeting + " World";
-
 void test() {
-    // Concatenation with string literal
+    string<32> greeting <- "Hello";
+    string<64> result <- greeting + " World";
 }

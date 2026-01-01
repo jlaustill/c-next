@@ -6,11 +6,9 @@
 #include <string.h>
 
 // ADR-045: Test substring extraction
-char source[65] = "Hello, World!";
-
-char greeting[6] = "";
-strncpy(greeting, source + 0, 5);
-greeting[5] = '\0';
-
 void test(void) {
+    char source[65] = "Hello, World!";
+    char greeting[6] = "";
+        strncpy(greeting, source + 0, 5);
+        greeting[5] = '\0';
 }
