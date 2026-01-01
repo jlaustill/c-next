@@ -1,26 +1,68 @@
 # ADR-033: Packed and Aligned Structs
 
 ## Status
-**Research**
+**Rejected**
 
 ## Context
 
-Packed and aligned structs are critical for embedded:
+Packed and aligned structs are sometimes requested for embedded:
 - Hardware register layouts (no padding)
 - Network protocol packets (wire format)
 - Binary file formats
 - Memory-mapped I/O
 
-C uses compiler-specific pragmas or attributes.
+C uses compiler-specific pragmas or attributes (`__attribute__((packed))`).
 
-## Decision Drivers
+## Decision
 
-1. **Hardware Mapping** - Registers must match exact layout
-2. **Protocols** - Binary formats can't have padding
-3. **Portability** - Hide compiler-specific syntax
-4. **Alignment** - Some hardware requires specific alignment
+**Rejected.** C-Next does not provide packed struct syntax.
 
-## Options Considered
+### Rationale
+
+1. **No genuine requirement** — All use cases have safer alternatives
+2. **ADR-004 covers hardware** — Register bindings handle memory-mapped I/O with explicit offsets
+3. **Serialization is safer** — Network protocols should use explicit encode/decode functions
+4. **Safety hazards** — ARM Cortex-M0 crashes on unaligned access; MISRA requires formal deviations
+5. **Field reordering works** — Memory savings achievable without alignment penalties
+
+### Alternatives for Each Use Case
+
+| Use Case | C-Next Solution |
+|----------|-----------------|
+| Hardware registers | `register` keyword (ADR-004) |
+| Network protocols | Explicit serialization functions |
+| Binary file formats | Explicit marshalling |
+| Memory constraints | Reorder struct fields largest-to-smallest |
+
+## Research Findings
+
+### Expert Consensus
+
+> "I have very rarely seen 'packed' used in a way that is actually useful. Often when people think they need to pack a struct, they can get better results with more careful re-arrangement of the fields."
+> — Eric S. Raymond, [The Lost Art of Structure Packing](http://www.catb.org/esr/structure-packing/)
+
+### Safety Standards
+
+- **MISRA C**: Using packed structs requires formal deviations from multiple rules (11.4, 17.4, 18.1/18.2)
+- **CERT C**: DCL39-C warns about padding bytes leaking sensitive information; EXP03-C warns against assuming struct size
+
+### Platform Issues
+
+- **ARM Cortex-M0**: Does NOT support unaligned access — packed structs cause SIGBUS crashes
+- **Atomicity**: Unaligned access breaks concurrent operations (lwarx/stwcx on PowerPC, cmpxchg16b)
+- **Portability**: Compiler-specific behavior; layout differs between GCC, MSVC, and optimization levels
+- **Performance**: Multi-byte loads for misaligned fields; code bloat from unaligned access handling
+
+### Why Serialization is Better for Protocols
+
+| Packed Structs (Bad) | Serialization (Good) |
+|---------------------|---------------------|
+| Architecture-dependent encoding | Platform-neutral encoding |
+| No endianness standardization | Explicit byte order handling |
+| No bounds checking | Built-in validation |
+| Compiler-specific behavior | Portable across toolchains |
+
+## Options Considered (Historical)
 
 ### Option A: Attributes
 ```cnx
@@ -29,19 +71,12 @@ struct TCPHeader {
     u16 srcPort;
     u16 dstPort;
     u32 seqNum;
-    u32 ackNum;
-}
-
-@align(16)
-struct DMABuffer {
-    u8 data[256];
 }
 ```
 
 ### Option B: Keywords
 ```cnx
 packed struct TCPHeader { ... }
-aligned(16) struct DMABuffer { ... }
 ```
 
 ### Option C: Pragma Pass-through
@@ -51,97 +86,13 @@ struct TCPHeader { ... }
 #pragma pack(pop)
 ```
 
-## Recommended Decision
-
-**Option A: Attributes** - Clean, portable, clear intent.
-
-## Syntax
-
-### Packed Struct
-```cnx
-@packed
-struct EthernetFrame {
-    u8 destMAC[6];
-    u8 srcMAC[6];
-    u16 etherType;
-    u8 payload[1500];
-    u32 fcs;
-}
-```
-
-Generates:
-```c
-typedef struct __attribute__((packed)) {
-    uint8_t destMAC[6];
-    uint8_t srcMAC[6];
-    uint16_t etherType;
-    uint8_t payload[1500];
-    uint32_t fcs;
-} EthernetFrame;
-```
-
-### Aligned Struct
-```cnx
-@align(4)
-struct SensorReading {
-    u32 timestamp;
-    i16 x;
-    i16 y;
-    i16 z;
-}
-```
-
-Generates:
-```c
-typedef struct __attribute__((aligned(4))) {
-    uint32_t timestamp;
-    int16_t x;
-    int16_t y;
-    int16_t z;
-} SensorReading;
-```
-
-### Combined
-```cnx
-@packed
-@align(4)
-struct DMADescriptor {
-    u32 address;
-    u16 length;
-    u16 flags;
-}
-```
-
-## Implementation Notes
-
-### Grammar Changes
-```antlr
-structAttribute
-    : '@packed'
-    | '@align' '(' INTEGER_LITERAL ')'
-    ;
-
-structDeclaration
-    : structAttribute* 'struct' IDENTIFIER '{' structMember* '}'
-    ;
-```
-
-### CodeGenerator
-Generate appropriate compiler attributes:
-- GCC/Clang: `__attribute__((packed))`, `__attribute__((aligned(N)))`
-- MSVC: `#pragma pack` (if needed)
-
-### Priority
-**High** - Critical for hardware interfaces.
-
-## Open Questions
-
-1. Per-member alignment? `@align(4) u32 field;`
-2. Cross-compiler compatibility (GCC vs MSVC)?
-3. Warn about performance impact of packed access?
+### Option D: Don't implement
+**Selected.** The use cases are covered by existing features or better patterns.
 
 ## References
 
-- GCC packed attribute
-- ARM alignment requirements
-- Protocol buffer layouts
+- [The Lost Art of Structure Packing](http://www.catb.org/esr/structure-packing/) — Eric S. Raymond
+- [SEI CERT C DCL39-C](https://wiki.sei.cmu.edu/confluence/display/c/DCL39-C) — Avoid information leakage
+- [MISRA C Forum Discussion](https://forum.misra.org.uk/) — Packed struct deviations
+- [Feabhas: Peripheral Register Access](https://blog.feabhas.com/2019/01/peripheral-register-access-using-c-structs-part-1/) — Why struct overlays are problematic
+- [Serialization for Embedded Systems](https://blog.mbedded.ninja/programming/serialization-formats/serialization-for-embedded-systems/) — Better alternatives

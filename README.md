@@ -392,7 +392,6 @@ Decisions are documented in `/docs/decisions/`:
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Hardware register layouts |
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
 | [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | `type Byte <- u8;` |
 | [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | `usize` and `isize` |
@@ -421,6 +420,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Use structured loop conditions instead |
 | [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Permanently rejected; use structured alternatives |
 | [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Trust compiler; `inline` is just a hint anyway |
+| [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Use ADR-004 register bindings or explicit serialization |
 
 ## Build Commands
 
