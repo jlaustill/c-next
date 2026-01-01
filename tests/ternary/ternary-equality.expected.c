@@ -9,11 +9,11 @@
 // ADR-022: Ternary with equality comparison
 // Uses = for comparison (C-Next syntax)
 uint32_t getValue(uint32_t* x) {
-    return (x == 0) ? 100 : x;
+    return ((*x) == 0) ? 100 : (*x);
 }
 
 bool isZero(int32_t* n) {
-    return (n == 0) ? true : false;
+    return ((*n) == 0) ? true : false;
 }
 
 void test(void) {

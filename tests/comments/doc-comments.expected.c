@@ -15,7 +15,7 @@
  * @return The doubled value
  */
 uint32_t doubleValue(uint32_t* value) {
-    return value * 2;
+    return (*value) * 2;
 }
 
 /** Maximum buffer size constant */

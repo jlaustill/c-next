@@ -21,7 +21,7 @@ void onStopped(void) {
 }
 
 void handleState(EState* state) {
-    switch (state) {
+    switch ((*state)) {
         case EState_IDLE: {
             onIdle();
             break;

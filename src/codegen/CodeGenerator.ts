@@ -816,7 +816,8 @@ export default class CodeGenerator {
 
         for (const param of params.parameter()) {
             const name = param.IDENTIFIER().getText();
-            const isArray = param.arrayDimension() !== null;
+            // arrayDimension() returns an array (due to grammar's *), so check length
+            const isArray = param.arrayDimension().length > 0;
             const isConst = param.constModifier() !== null;  // ADR-013: Track const modifier
             const typeCtx = param.type();
 
@@ -868,7 +869,8 @@ export default class CodeGenerator {
             for (const param of params.parameter()) {
                 const paramName = param.IDENTIFIER().getText();
                 const isConst = param.constModifier() !== null;
-                const isArray = param.arrayDimension() !== null;
+                // arrayDimension() returns an array (due to grammar's *), so check length
+                const isArray = param.arrayDimension().length > 0;
                 parameters.push({ name: paramName, isConst, isArray });
             }
         }

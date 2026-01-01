@@ -17,7 +17,7 @@ void handleUnknown(void) {
 }
 
 void handleCommand(uint32_t* cmd) {
-    switch (cmd) {
+    switch ((*cmd)) {
         case 0: {
             handleReset();
             break;

@@ -25,7 +25,7 @@ uint8_t Motor_getSum(void) {
 }
 
 void Motor_setState(uint8_t* val) {
-    Motor_state = val;
+    Motor_state = (*val);
 }
 
 void main(void) {
