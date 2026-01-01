@@ -7,16 +7,20 @@
  * - Transpiles each file
  * - Compares output to .expected.c file (if exists)
  * - For error tests, compares to .expected.error file
+ * - Validates generated C compiles without errors (--validate)
+ * - Runs static analysis on generated C (--validate)
  *
  * Usage:
  *   npm test                    # Run all tests
  *   npm test -- --update        # Update snapshots
+ *   npm test -- --validate      # Validate C compiles and passes static analysis
  *   npm test -- tests/enum      # Run specific directory
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
+import { execFileSync } from 'child_process';
 import { transpile } from '../dist/lib/transpiler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,9 +70,92 @@ function normalize(str) {
 }
 
 /**
+ * Validate that a C file compiles without errors
+ * Uses gcc with -fsyntax-only for fast syntax checking
+ */
+function validateCompilation(cFile) {
+    try {
+        // Use gcc to check syntax only (no object file generated)
+        // -std=c99 for C99 features, -fsyntax-only for fast check
+        // Suppress warnings about unused variables and void main (common in tests)
+        execFileSync('gcc', [
+            '-fsyntax-only',
+            '-std=c99',
+            '-Wno-unused-variable',
+            '-Wno-main',
+            cFile
+        ], { encoding: 'utf-8', timeout: 10000, stdio: 'pipe' });
+        return { valid: true };
+    } catch (error) {
+        // Extract just the error messages
+        const output = error.stderr || error.stdout || error.message;
+        const errors = output
+            .split('\n')
+            .filter(line => line.includes('error:'))
+            .map(line => line.replace(cFile + ':', ''))
+            .slice(0, 5)
+            .join('\n');
+        return {
+            valid: false,
+            message: errors || 'Compilation failed',
+        };
+    }
+}
+
+/**
+ * Validate that a C file passes static analysis
+ * Uses cppcheck for comprehensive checking
+ */
+function validateStaticAnalysis(cFile) {
+    try {
+        // Run cppcheck with error-only output
+        execFileSync('cppcheck', [
+            '--error-exitcode=1',
+            '--enable=warning,performance',
+            '--suppress=unusedFunction',
+            '--suppress=missingIncludeSystem',
+            '--suppress=unusedVariable',
+            '--quiet',
+            cFile
+        ], { encoding: 'utf-8', timeout: 30000, stdio: 'pipe' });
+        return { valid: true };
+    } catch (error) {
+        const output = error.stderr || error.stdout || error.message;
+        const issues = output
+            .split('\n')
+            .filter(line => line.trim().length > 0)
+            .slice(0, 5)
+            .join('\n');
+        return {
+            valid: false,
+            message: issues || 'Static analysis failed',
+        };
+    }
+}
+
+/**
+ * Check if validation tools are available
+ */
+function checkValidationTools() {
+    const tools = { gcc: false, cppcheck: false };
+
+    try {
+        execFileSync('gcc', ['--version'], { encoding: 'utf-8', stdio: 'pipe' });
+        tools.gcc = true;
+    } catch {}
+
+    try {
+        execFileSync('cppcheck', ['--version'], { encoding: 'utf-8', stdio: 'pipe' });
+        tools.cppcheck = true;
+    } catch {}
+
+    return tools;
+}
+
+/**
  * Run a single test
  */
-function runTest(cnxFile, updateMode) {
+function runTest(cnxFile, updateMode, validateMode, tools) {
     const source = readFileSync(cnxFile, 'utf-8');
     const basePath = cnxFile.replace(/\.cnx$/, '');
     const expectedCFile = basePath + '.expected.c';
@@ -130,6 +217,32 @@ function runTest(cnxFile, updateMode) {
         }
 
         if (normalize(result.code) === normalize(expectedC)) {
+            // Snapshot matches - now validate if requested
+            if (validateMode) {
+                // Check compilation
+                if (tools.gcc) {
+                    const compileResult = validateCompilation(expectedCFile);
+                    if (!compileResult.valid) {
+                        return {
+                            passed: false,
+                            message: 'C compilation failed',
+                            actual: compileResult.message,
+                        };
+                    }
+                }
+
+                // Check static analysis
+                if (tools.cppcheck) {
+                    const analysisResult = validateStaticAnalysis(expectedCFile);
+                    if (!analysisResult.valid) {
+                        return {
+                            passed: false,
+                            message: 'Static analysis failed',
+                            actual: analysisResult.message,
+                        };
+                    }
+                }
+            }
             return { passed: true };
         }
 
@@ -167,6 +280,7 @@ function runTest(cnxFile, updateMode) {
 function main() {
     const args = process.argv.slice(2);
     const updateMode = args.includes('--update') || args.includes('-u');
+    const validateMode = args.includes('--validate') || args.includes('-v');
     const filterPath = args.find(arg => !arg.startsWith('-'));
 
     // Determine test directory
@@ -180,10 +294,26 @@ function main() {
         process.exit(1);
     }
 
+    // Check for validation tools if validate mode is enabled
+    let tools = { gcc: false, cppcheck: false };
+    if (validateMode) {
+        tools = checkValidationTools();
+        if (!tools.gcc && !tools.cppcheck) {
+            console.error(`${colors.red}Error: --validate requires gcc or cppcheck${colors.reset}`);
+            process.exit(1);
+        }
+    }
+
     console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
     console.log(`${colors.dim}Test directory: ${testDir}${colors.reset}`);
     if (updateMode) {
         console.log(`${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`);
+    }
+    if (validateMode) {
+        const toolList = [];
+        if (tools.gcc) toolList.push('gcc');
+        if (tools.cppcheck) toolList.push('cppcheck');
+        console.log(`${colors.cyan}Validate mode: checking with ${toolList.join(', ')}${colors.reset}`);
     }
     console.log();
 
@@ -201,7 +331,7 @@ function main() {
 
     for (const cnxFile of cnxFiles) {
         const relativePath = cnxFile.replace(rootDir + '/', '');
-        const result = runTest(cnxFile, updateMode);
+        const result = runTest(cnxFile, updateMode, validateMode, tools);
 
         if (result.passed) {
             if (result.updated) {
@@ -222,6 +352,9 @@ function main() {
                     console.log(`        ${colors.dim}Expected:${colors.reset}`);
                     console.log(`        ${result.expected.split('\n').slice(0, 5).join('\n        ')}`);
                     console.log(`        ${colors.dim}Actual:${colors.reset}`);
+                    console.log(`        ${result.actual.split('\n').slice(0, 5).join('\n        ')}`);
+                } else if (result.actual) {
+                    // Just actual (no expected) - for compilation/analysis errors
                     console.log(`        ${result.actual.split('\n').slice(0, 5).join('\n        ')}`);
                 }
             }
