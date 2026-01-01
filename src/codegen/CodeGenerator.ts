@@ -1068,6 +1068,99 @@ export default class CodeGenerator {
         return false;
     }
 
+    /**
+     * ADR-045: Check if an expression is a string concatenation (contains + with string operands).
+     * Returns the operand expressions if it is, null otherwise.
+     */
+    private getStringConcatOperands(ctx: Parser.ExpressionContext): { left: string; right: string; leftCapacity: number; rightCapacity: number } | null {
+        // Navigate to the additive expression level
+        const ternary = ctx.ternaryExpression();
+        if (!ternary) return null;
+
+        const orExprs = ternary.orExpression();
+        if (orExprs.length !== 1) return null;
+
+        const or = orExprs[0];
+        if (or.andExpression().length !== 1) return null;
+
+        const and = or.andExpression()[0];
+        if (and.equalityExpression().length !== 1) return null;
+
+        const eq = and.equalityExpression()[0];
+        if (eq.relationalExpression().length !== 1) return null;
+
+        const rel = eq.relationalExpression()[0];
+        if (rel.bitwiseOrExpression().length !== 1) return null;
+
+        const bor = rel.bitwiseOrExpression()[0];
+        if (bor.bitwiseXorExpression().length !== 1) return null;
+
+        const bxor = bor.bitwiseXorExpression()[0];
+        if (bxor.bitwiseAndExpression().length !== 1) return null;
+
+        const band = bxor.bitwiseAndExpression()[0];
+        if (band.shiftExpression().length !== 1) return null;
+
+        const shift = band.shiftExpression()[0];
+        if (shift.additiveExpression().length !== 1) return null;
+
+        const add = shift.additiveExpression()[0];
+        const multExprs = add.multiplicativeExpression();
+
+        // Need exactly 2 operands for simple concatenation
+        if (multExprs.length !== 2) return null;
+
+        // Check if this is addition (not subtraction)
+        const text = add.getText();
+        if (text.includes('-')) return null;
+
+        // Get the operand texts
+        const leftText = multExprs[0].getText();
+        const rightText = multExprs[1].getText();
+
+        // Check if at least one operand is a string
+        const leftCapacity = this.getStringExprCapacity(leftText);
+        const rightCapacity = this.getStringExprCapacity(rightText);
+
+        if (leftCapacity === null && rightCapacity === null) {
+            return null; // Neither is a string
+        }
+
+        // If one is null, it's not a valid string concatenation
+        if (leftCapacity === null || rightCapacity === null) {
+            return null;
+        }
+
+        return {
+            left: leftText,
+            right: rightText,
+            leftCapacity,
+            rightCapacity
+        };
+    }
+
+    /**
+     * ADR-045: Get the capacity of a string expression.
+     * For string literals, capacity is the literal length.
+     * For string variables, capacity is from the type registry.
+     */
+    private getStringExprCapacity(expr: string): number | null {
+        // String literal - capacity equals content length
+        if (expr.startsWith('"') && expr.endsWith('"')) {
+            return this.getStringLiteralLength(expr);
+        }
+
+        // Variable - check type registry
+        if (expr.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+            const typeInfo = this.context.typeRegistry.get(expr);
+            if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+                return typeInfo.stringCapacity;
+            }
+        }
+
+        return null;
+    }
+
     // ========================================================================
     // ADR-024: Type Classification and Validation Helpers
     // ========================================================================
@@ -1955,10 +2048,30 @@ export default class CodeGenerator {
 
             if (intLiteral) {
                 const capacity = parseInt(intLiteral.getText(), 10);
-                let stringDecl = `${constMod}char ${name}[${capacity + 1}]`;
 
                 if (ctx.expression()) {
                     const exprText = ctx.expression()!.getText();
+
+                    // ADR-045: Check for string concatenation
+                    const concatOps = this.getStringConcatOperands(ctx.expression()!);
+                    if (concatOps) {
+                        // Validate capacity: dest >= left + right
+                        const requiredCapacity = concatOps.leftCapacity + concatOps.rightCapacity;
+                        if (requiredCapacity > capacity) {
+                            throw new Error(
+                                `Error: String concatenation requires capacity ${requiredCapacity}, but string<${capacity}> only has ${capacity}`
+                            );
+                        }
+
+                        // Generate safe concatenation code
+                        const indent = this.context.inFunctionBody ? '    '.repeat(this.context.indentLevel) : '';
+                        const lines: string[] = [];
+                        lines.push(`${constMod}char ${name}[${capacity + 1}] = "";`);
+                        lines.push(`${indent}strncpy(${name}, ${concatOps.left}, ${capacity});`);
+                        lines.push(`${indent}strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`);
+                        lines.push(`${indent}${name}[${capacity}] = '\\0';`);
+                        return lines.join('\n');
+                    }
 
                     // Validate string literal fits capacity
                     if (exprText.startsWith('"') && exprText.endsWith('"')) {
@@ -1971,13 +2084,19 @@ export default class CodeGenerator {
                         }
                     }
 
-                    stringDecl += ` = ${this.generateExpression(ctx.expression()!)}`;
+                    // Check for string variable assignment
+                    const srcCapacity = this.getStringExprCapacity(exprText);
+                    if (srcCapacity !== null && srcCapacity > capacity) {
+                        throw new Error(
+                            `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`
+                        );
+                    }
+
+                    return `${constMod}char ${name}[${capacity + 1}] = ${this.generateExpression(ctx.expression()!)};`;
                 } else {
                     // Empty string initialization
-                    stringDecl += ' = ""';
+                    return `${constMod}char ${name}[${capacity + 1}] = "";`;
                 }
-
-                return stringDecl + ';';
             } else {
                 // ADR-045: Unsized string - requires const and string literal for inference
                 const isConst = ctx.constModifier() !== null;
