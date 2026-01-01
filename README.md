@@ -388,11 +388,6 @@ Decisions are documented in `/docs/decisions/`:
 
 ### Research (v1 Roadmap)
 
-#### Critical Priority
-| ADR | Title | Description |
-|-----|-------|-------------|
-| [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
-
 #### High Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
@@ -435,6 +430,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Use ADR-004 register bindings or explicit byte manipulation |
 | [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Use structured loop conditions instead |
 | [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Permanently rejected; use structured alternatives |
+| [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Trust compiler; `inline` is just a hint anyway |
 
 ## Build Commands
 

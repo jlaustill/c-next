@@ -1,109 +1,109 @@
 # ADR-031: Inline Functions
 
 ## Status
-**Research**
+**Rejected**
 
 ## Context
 
 Inline functions suggest the compiler embed function body at call site:
 - Eliminates function call overhead
 - Common for small accessor functions
-- Critical for performance-sensitive embedded code
+- C99 added `inline` keyword with complex semantics
 
-C99 added `inline` keyword with complex semantics.
+## Decision
 
-## Decision Drivers
+**Do not implement `inline` keyword in C-Next.** Trust the compiler to make inlining decisions.
 
-1. **Performance** - Avoid call overhead
-2. **Small Functions** - Getters, setters, bit operations
-3. **Simplicity** - Don't need full C99 inline semantics
-4. **Header Functions** - Inline often defined in headers
+## Rationale
 
-## Options Considered
+### 1. MISRA C Rule 8.10 Forces Our Hand
 
-### Option A: C-Style `inline`
+MISRA C:2012/2023 Rule 8.10 (Required):
+> "An inline function shall be declared with the static storage class."
+
+Without `static`, inline functions cause:
+- **Undefined behavior** if declared but not defined in a translation unit
+- **Unspecified behavior** — compiler may inline OR call externally, affecting timing
+
+This means C-Next would be **forced to always generate `static inline`** anyway, providing no flexibility to the developer.
+
+### 2. Compilers Ignore the Keyword
+
+Modern compilers treat `inline` as a hint they frequently ignore:
+
+> "Compilers can (and usually do) ignore presence or absence of the inline specifier for the purpose of optimization."
+
+At `-O2` and above, GCC automatically enables:
+- `-finline-small-functions`
+- `-findirect-inlining`
+- `-finline-functions`
+
+The compiler inlines functions it deems beneficial **regardless of the keyword**.
+
+### 3. Analogous to `register`
+
+The C standard explicitly compares `inline` to `register`:
+
+> "In this respect, it is analogous to the `register` storage class specifier, which similarly provides an optimization hint."
+
+C-Next doesn't support `register` because compilers do better register allocation than humans. The same logic applies to inlining.
+
+### 4. Common Bugs and Edge Cases
+
+| Issue | Description |
+|-------|-------------|
+| **ODR Violations** | Without `static`, multiple translation units can have conflicting definitions |
+| **Static variables in inline** | Each translation unit gets its own copy — subtle bugs |
+| **Code bloat** | Excessive inlining increases binary size, hurts cache performance |
+| **Debug vs Release** | Code behaves differently: debug builds don't inline, release builds do |
+| **Timing changes** | Inlining affects execution timing — breaks real-time assumptions |
+
+### 5. Philosophy Alignment
+
+C-Next's guiding principle: **"Safety through removal, not addition."**
+
+Adding `inline` provides:
+- No guaranteed behavior (compiler can ignore it)
+- Potential for misuse (code bloat, ODR violations)
+- False sense of control
+
+## Alternatives for Performance-Critical Code
+
+If a developer truly needs forced inlining:
+
+1. **Trust the compiler** — Modern optimizers inline small functions automatically
+2. **Use generated C** — Add `__attribute__((always_inline))` to the generated `.c` file
+3. **Profile first** — Premature optimization is the root of all evil
+
+## Options Considered (Historical)
+
+### Option A: C-Style `inline` (Rejected)
 ```cnx
 inline u32 getFlag(u32 reg, u32 bit) {
     return (reg >> bit) & 1;
 }
 ```
+**Rejected:** Complex C99 semantics, MISRA forces `static inline` anyway.
 
-**Pros:** Familiar
-**Cons:** Complex C99 semantics
-
-### Option B: `@inline` Attribute
+### Option B: `@inline` Attribute (Rejected)
 ```cnx
 @inline
 u32 getFlag(u32 reg, u32 bit) {
     return (reg >> bit) & 1;
 }
 ```
+**Rejected:** Still just a hint the compiler ignores.
 
-**Pros:** Clear it's a hint
-**Cons:** New syntax
+### Option C: Compiler Decides (Accepted)
+No inline keyword — trust the compiler.
 
-### Option C: Compiler Decides
-No inline keyword - trust the compiler.
-
-**Pros:** Simple
-**Cons:** Less control
-
-## Recommended Decision
-
-**Option A: C-Style `inline`** - Familiar, generates `static inline`.
-
-## Syntax
-
-### Basic Inline
-```cnx
-inline bool getBit(u32 value, u32 bit) {
-    return (value >> bit) & 1;
-}
-
-inline void setBit(u32 value, u32 bit) {
-    value |<- (1 << bit);
-}
-```
-
-### Force Inline (if needed)
-```cnx
-forceinline u32 fastAbs(i32 x) {
-    return (x < 0) ? -x : x;
-}
-```
-
-## Implementation Notes
-
-### Grammar Changes
-```antlr
-functionDeclaration
-    : inlineModifier? type IDENTIFIER '(' parameterList? ')' block
-    ;
-
-inlineModifier
-    : 'inline'
-    | 'forceinline'
-    ;
-```
-
-### CodeGenerator
-```c
-// C-Next: inline bool getBit(...)
-// C:      static inline bool getBit(...)
-```
-
-Using `static inline` ensures one definition rule compliance.
-
-### Priority
-**Medium** - Performance optimization, not critical for correctness.
-
-## Open Questions
-
-1. `forceinline` or just `inline`?
-2. Always use `static inline` in generated C?
+**Accepted:** Simple, aligns with C-Next philosophy, no false promises.
 
 ## References
 
-- C99 inline semantics
-- GCC always_inline attribute
-- When to use inline in embedded
+- [MISRA C:2012 Rule 8.10](https://kr.mathworks.com/help/bugfinder/ref/misrac2012rule8.10.html) — Inline functions must be static
+- [Inline Function - Wikipedia](https://en.wikipedia.org/wiki/Inline_function) — Compilers ignore the keyword
+- [GCC Inline Documentation](https://gcc.gnu.org/onlinedocs/gcc/Inline.html) — Automatic inlining at -O2
+- [Inline Code in C and C++ - Embedded.com](https://www.embedded.com/inline-code-in-c-and-c/) — Code bloat warnings
+- [cppreference - inline](http://en.cppreference.com/w/c/language/inline.html) — Analogy to `register`
+- [SEI CERT ODR Rule](https://wiki.sei.cmu.edu/confluence/display/cplusplus/DCL60-CPP.+Obey+the+one-definition+rule) — ODR violation examples
