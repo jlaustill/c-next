@@ -387,18 +387,12 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
 
 ### Research (v1 Roadmap)
-
-#### High Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type and value size queries |
 | [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Composition patterns |
 | [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Hardware register layouts |
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
-
-#### Medium Priority
-| ADR | Title | Description |
-|-----|-------|-------------|
 | [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | `type Byte <- u8;` |
 | [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | `usize` and `isize` |
 | [ADR-021](docs/decisions/adr-021-increment-decrement.md) | Increment/Decrement | `++` and `--` operators |
@@ -406,10 +400,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
-
-#### Low Priority (v2+)
-| ADR | Title | Description |
-|-----|-------|-------------|
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | C-Style Bit Fields | Use ADR-007 instead |
 | [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Optional types |
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Declaration | Interrupt handler syntax |
