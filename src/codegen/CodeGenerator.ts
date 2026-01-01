@@ -1137,7 +1137,13 @@ export default class CodeGenerator {
         }
 
         // For more complex expressions (binary ops, etc.), try to infer type
-        const or = ctx.orExpression();
+        const ternary = ctx.ternaryExpression();
+        const orExprs = ternary.orExpression();
+        // If it's a ternary, we can't easily determine the type
+        if (orExprs.length > 1) {
+            return null;
+        }
+        const or = orExprs[0];
         if (or.andExpression().length > 1) {
             return 'bool'; // Logical OR returns bool
         }
@@ -1358,7 +1364,12 @@ export default class CodeGenerator {
      * Returns null if the expression has multiple terms at any level.
      */
     private getPostfixExpression(ctx: Parser.ExpressionContext): Parser.PostfixExpressionContext | null {
-        const or = ctx.orExpression();
+        const ternary = ctx.ternaryExpression();
+        const orExprs = ternary.orExpression();
+        // If it's a ternary (3 orExpressions), we can't get a single postfix
+        if (orExprs.length !== 1) return null;
+
+        const or = orExprs[0];
         if (or.andExpression().length !== 1) return null;
 
         const and = or.andExpression()[0];
@@ -2828,11 +2839,112 @@ export default class CodeGenerator {
     }
 
     // ========================================================================
+    // Ternary Validation (ADR-022)
+    // ========================================================================
+
+    /**
+     * ADR-022: Validate that ternary condition is a boolean expression
+     * Must be a comparison or logical operation, not just a value
+     */
+    private validateTernaryCondition(ctx: Parser.OrExpressionContext): void {
+        // Check if the condition contains a comparison or logical operator
+        // A valid boolean expression must have one of: =, !=, <, >, <=, >=, &&, ||
+        const text = ctx.getText();
+
+        // If it has && or ||, it's a logical expression (valid)
+        if (ctx.andExpression().length > 1) {
+            return; // Has || operator - valid
+        }
+
+        const andExpr = ctx.andExpression(0);
+        if (!andExpr) {
+            throw new Error(
+                `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`
+            );
+        }
+
+        if (andExpr.equalityExpression().length > 1) {
+            return; // Has && operator - valid
+        }
+
+        const equalityExpr = andExpr.equalityExpression(0);
+        if (!equalityExpr) {
+            throw new Error(
+                `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`
+            );
+        }
+
+        if (equalityExpr.relationalExpression().length > 1) {
+            return; // Has = or != operator - valid
+        }
+
+        const relationalExpr = equalityExpr.relationalExpression(0);
+        if (!relationalExpr) {
+            throw new Error(
+                `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`
+            );
+        }
+
+        if (relationalExpr.bitwiseOrExpression().length > 1) {
+            return; // Has <, >, <=, >= operator - valid
+        }
+
+        // No comparison or logical operators found - just a value
+        throw new Error(
+            `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`
+        );
+    }
+
+    /**
+     * ADR-022: Validate that expression does not contain a nested ternary
+     */
+    private validateNoNestedTernary(
+        ctx: Parser.OrExpressionContext,
+        branchName: string
+    ): void {
+        const text = ctx.getText();
+        // Check for ternary pattern: something ? something : something
+        // This is a simple heuristic - the grammar would catch malformed ternaries
+        if (text.includes('?') && text.includes(':')) {
+            throw new Error(
+                `Error: Nested ternary not allowed in ${branchName}. Use if/else instead.`
+            );
+        }
+    }
+
+    // ========================================================================
     // Expressions
     // ========================================================================
 
     private generateExpression(ctx: Parser.ExpressionContext): string {
-        return this.generateOrExpr(ctx.orExpression());
+        return this.generateTernaryExpr(ctx.ternaryExpression());
+    }
+
+    // ADR-022: Ternary operator with safety constraints
+    private generateTernaryExpr(ctx: Parser.TernaryExpressionContext): string {
+        const orExprs = ctx.orExpression();
+
+        // Non-ternary path: just one orExpression
+        if (orExprs.length === 1) {
+            return this.generateOrExpr(orExprs[0]);
+        }
+
+        // Ternary path: 3 orExpressions (condition, true branch, false branch)
+        const condition = orExprs[0];
+        const trueExpr = orExprs[1];
+        const falseExpr = orExprs[2];
+
+        // ADR-022: Validate ternary constraints
+        this.validateTernaryCondition(condition);
+        this.validateNoNestedTernary(trueExpr, 'true branch');
+        this.validateNoNestedTernary(falseExpr, 'false branch');
+
+        // Generate C output - parentheses already present from grammar
+        const condCode = this.generateOrExpr(condition);
+        const trueCode = this.generateOrExpr(trueExpr);
+        const falseCode = this.generateOrExpr(falseExpr);
+
+        return `(${condCode}) ? ${trueCode} : ${falseCode}`;
     }
 
     private generateOrExpr(ctx: Parser.OrExpressionContext): string {

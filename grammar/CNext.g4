@@ -303,7 +303,13 @@ defaultCase
 // Expressions
 // ----------------------------------------------------------------------------
 expression
-    : orExpression
+    : ternaryExpression
+    ;
+
+// ADR-022: Ternary with required parentheses, no nesting (semantic check)
+ternaryExpression
+    : '(' orExpression ')' '?' orExpression ':' orExpression  // Ternary with required parens
+    | orExpression                                             // Non-ternary path
     ;
 
 orExpression

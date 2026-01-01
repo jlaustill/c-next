@@ -544,7 +544,11 @@ class InitializationListener extends CNextListener {
      */
     private markArgumentsAsInitialized(expr: Parser.ExpressionContext): void {
         // Navigate through expression layers to find primary expression
-        const or = expr.orExpression();
+        const ternary = expr.ternaryExpression();
+        if (!ternary) return;
+        const orExprs = ternary.orExpression();
+        if (orExprs.length === 0) return;
+        const or = orExprs[0];
         if (!or) return;
         const and = or.andExpression(0);
         if (!and) return;

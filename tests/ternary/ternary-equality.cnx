@@ -1,0 +1,15 @@
+// ADR-022: Ternary with equality comparison
+// Uses = for comparison (C-Next syntax)
+
+u32 getValue(u32 x) {
+    return (x = 0) ? 100 : x;
+}
+
+bool isZero(i32 n) {
+    return (n = 0) ? true : false;
+}
+
+void test() {
+    u32 flag <- 1;
+    u32 result <- (flag != 0) ? 42 : 0;
+}

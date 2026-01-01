@@ -1,0 +1,16 @@
+// ADR-022: Ternary with logical operators
+// && and || in condition
+
+void test() {
+    u32 a <- 5;
+    u32 b <- 10;
+
+    // Logical AND condition
+    u32 both <- (a > 0 && b > 0) ? 1 : 0;
+
+    // Logical OR condition
+    u32 either <- (a = 0 || b = 0) ? 1 : 0;
+
+    // Complex logical condition
+    u32 complex <- (a > 0 && b > 0 || a < 0) ? a : b;
+}

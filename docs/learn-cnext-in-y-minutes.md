@@ -428,11 +428,13 @@ x >><- 1;           // x = x >> 1
 i++;                // Statement only, not in expressions
 i--;
 
-// [TODO: ADR-022] Ternary - parentheses required, boolean condition, no nesting
+// [DONE: ADR-022] Ternary - parentheses required, boolean condition, no nesting
 u32 max <- (a > b) ? a : b;           // OK: parentheses, boolean condition
 u32 abs <- (x < 0) ? -x : x;          // OK: simple, readable
+u32 clampedPositive <- (x > 0 && x < 100) ? x : 0;  // OK: logical condition
 // u32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;  // ERROR: nested ternary
 // u32 y <- x ? 1 : 0;                          // ERROR: x is not boolean
+// u32 z <- x > 0 ? 1 : 0;                      // ERROR: missing parentheses
 
 // [TODO: ADR-023] Sizeof
 usize size <- sizeof(u32);

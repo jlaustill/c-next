@@ -228,6 +228,25 @@ switch (state) {
 }
 ```
 
+### Ternary Operator (ADR-022)
+
+Safe conditional expressions with MISRA compliance:
+- Parentheses required around condition
+- Condition must be boolean (comparison or logical)
+- No nesting allowed (use if/else instead)
+
+```cnx
+u32 max <- (a > b) ? a : b;
+u32 abs <- (x < 0) ? -x : x;
+u32 result <- (a > 0 && b > 0) ? a : b;
+
+// ERROR: Condition must be boolean
+// u32 bad <- (x) ? 1 : 0;
+
+// ERROR: Nested ternary not allowed
+// i32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
+```
+
 ### Startup Allocation
 
 Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memory is allocated during initialization, then forbidden. No runtime allocation means no fragmentation, no OOM, no leaks.
@@ -285,12 +304,12 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-043](docs/decisions/adr-043-comments.md) | Comments | Comment preservation with MISRA compliance |
 | [ADR-044](docs/decisions/adr-044-primitive-types.md) | Primitive Types | Fixed-width types with `clamp`/`wrap` overflow |
 | [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | Widening implicit, narrowing uses bit indexing |
+| [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | Ternary with required parens, boolean condition, no nesting |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 
 ### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | If/else (done), ternary with MISRA constraints |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
 
 ### Research (v1 Roadmap)

@@ -1,7 +1,7 @@
 # ADR-022: Conditional Expressions (If/Else and Ternary)
 
 ## Status
-**Partially Implemented** (if/else: Implemented, ternary: Accepted)
+**Implemented**
 
 ## Context
 

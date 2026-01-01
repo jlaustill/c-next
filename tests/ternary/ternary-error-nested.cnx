@@ -1,0 +1,7 @@
+// ADR-022: Error - nested ternary not allowed
+// Should error: no nesting permitted
+
+void test() {
+    i32 x <- 5;
+    i32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
+}

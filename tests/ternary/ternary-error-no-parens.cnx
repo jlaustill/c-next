@@ -1,0 +1,7 @@
+// ADR-022: Error - missing parentheses around condition
+// Should error: parentheses are required
+
+void test() {
+    u32 x <- 5;
+    u32 result <- x > 0 ? 1 : 0;
+}

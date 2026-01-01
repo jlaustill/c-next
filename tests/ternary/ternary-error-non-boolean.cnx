@@ -1,0 +1,7 @@
+// ADR-022: Error - condition is not boolean expression
+// Should error: condition must be comparison or logical
+
+void test() {
+    u32 x <- 5;
+    u32 result <- (x) ? 1 : 0;
+}
