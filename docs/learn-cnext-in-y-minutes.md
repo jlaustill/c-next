@@ -565,6 +565,99 @@ u8 matrix[4][4];
 matrix[0][0] <- 1;
 ```
 
+## Strings [DONE]
+
+C-Next provides bounded strings with compile-time safety (ADR-045):
+
+```cnx
+// [DONE] Basic declaration - N is character capacity
+string<64> name <- "Hello";           // 64 chars max, transpiles to char[65]
+string<128> buffer;                    // Empty string, initialized to ""
+
+// [DONE] Const inference - capacity auto-calculated
+const string VERSION <- "1.0.0";       // Inferred as string<5>
+const string APP_NAME <- "MyApp";      // Inferred as string<5>
+
+// [DONE] Properties
+u32 len <- name.length;                // Runtime: strlen(name) = 5
+u32 cap <- name.capacity;              // Compile-time constant: 64
+
+// [DONE] Comparison - uses strcmp internally
+string<32> a <- "Hello";
+string<64> b <- "Hello";
+
+if (a = b) {                           // strcmp(a, b) == 0
+    // Equal content (different capacities OK)
+}
+
+if (a != b) {                          // strcmp(a, b) != 0
+    // Different content
+}
+
+// [DONE] Concatenation with capacity validation
+string<32> first <- "Hello";
+string<32> second <- " World";
+string<64> result <- first + second;   // OK: 64 >= 32 + 32
+
+// With literals (tight capacity)
+string<11> greeting <- "Hello" + " World";  // OK: 11 >= 5 + 6
+
+// [DONE] Substring extraction
+string<64> source <- "Hello, World!";
+string<5> hello <- source[0, 5];       // "Hello" - first 5 chars
+string<6> world <- source[7, 6];       // "World!" - 6 chars at position 7
+```
+
+### Compile-Time Safety
+
+All string operations are validated at compile time:
+
+```cnx
+// ERROR: Literal exceeds capacity
+// string<4> s <- "Hello";   // ERROR: 5 > 4
+
+// ERROR: Potential truncation
+string<64> big <- "Hello";
+// string<32> small <- big;  // ERROR: 64 > 32
+
+// ERROR: Concatenation overflow
+string<32> a <- "Hi";
+string<32> b <- "There";
+// string<50> c <- a + b;    // ERROR: 32 + 32 = 64 > 50
+
+// ERROR: Substring out of bounds
+string<64> src <- "Hello";
+// string<10> bad <- src[60, 10];  // ERROR: 60 + 10 > 64
+
+// OK: Explicit substring for truncation
+string<8> short <- big[0, 8];  // Take first 8 chars explicitly
+```
+
+### Generated C
+
+```cnx
+string<64> name <- "Hello";
+string<64> result <- first + second;
+string<5> sub <- source[0, 5];
+```
+
+Transpiles to:
+
+```c
+#include <string.h>
+
+char name[65] = "Hello";
+
+char result[65] = "";
+strncpy(result, first, 64);
+strncat(result, second, 64 - strlen(result));
+result[64] = '\0';
+
+char sub[6] = "";
+strncpy(sub, source + 0, 5);
+sub[5] = '\0';
+```
+
 ## Bit Manipulation
 
 ```cnx
@@ -818,6 +911,9 @@ void loop(void) {
 | `case A: case B:` | `case A \|\| B { }` | OR syntax for multiple cases |
 | `default:` | `default(n) { }` | Counted default catches enum growth |
 | `break`/`continue` | Loop conditions | Structured loops, no hidden exits |
+| `char buf[64]` | `string<64> buf` | Bounded strings with safety |
+| `strcmp(a,b)==0` | `a = b` | String comparison via = |
+| `strcpy`/`strcat` | `a + b` | Safe concatenation with validation |
 
 ## Further Reading
 

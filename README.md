@@ -247,6 +247,37 @@ u32 result <- (a > 0 && b > 0) ? a : b;
 // i32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
 ```
 
+### Bounded Strings (ADR-045)
+
+Safe, statically-allocated strings with compile-time capacity checking:
+
+```cnx
+string<64> name <- "Hello";           // 64-char capacity, transpiles to char[65]
+string<128> message;                   // Empty string, initialized to ""
+const string VERSION <- "1.0.0";       // Auto-sized to string<5>
+
+// Properties
+u32 len <- name.length;                // Runtime: strlen(name)
+u32 cap <- name.capacity;              // Compile-time: 64
+
+// Comparison - uses strcmp
+if (name = "Hello") { }                // strcmp(name, "Hello") == 0
+
+// Concatenation with capacity validation
+string<32> first <- "Hello";
+string<32> second <- " World";
+string<64> result <- first + second;   // OK: 64 >= 32 + 32
+
+// Substring extraction with bounds checking
+string<5> greeting <- name[0, 5];      // First 5 chars
+```
+
+All operations are validated at compile time:
+- Literal overflow → compile error
+- Truncation on assignment → compile error
+- Concatenation capacity mismatch → compile error
+- Substring out of bounds → compile error
+
 ### Startup Allocation
 
 Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memory is allocated during initialization, then forbidden. No runtime allocation means no fragmentation, no OOM, no leaks.
@@ -306,10 +337,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | Widening implicit, narrowing uses bit indexing |
 | [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | Ternary with required parens, boolean condition, no nesting |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
-
-### Accepted (Ready for Implementation)
-| ADR | Title | Description |
-|-----|-------|-------------|
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
 
 ### Research (v1 Roadmap)
