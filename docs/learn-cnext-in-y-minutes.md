@@ -591,9 +591,11 @@ u8 explicit[5] <- [1, 2, 3, 0, 0]; // OK: all elements explicit
 // Size mismatch is a compile error
 // u8 overflow[3] <- [1, 2, 3, 4]; // ERROR: 4 elements for size-3 array
 
-// [TODO: ADR-036] Multi-dimensional arrays
+// [ACCEPTED: ADR-036] Multi-dimensional arrays
 u8 matrix[4][4];
 matrix[0][0] <- 1;
+matrix.length;      // 4 (outer dimension, compile-time const)
+matrix[0].length;   // 4 (inner dimension, compile-time const)
 ```
 
 ## Strings [DONE]
