@@ -9,8 +9,8 @@ test-teensy/
 # Generated parser files (regenerated from grammar)
 src/parser/
 
-# Generated C files (transpiler output)
-*.c
+# Generated C files (transpiler output) - tracked for test snapshots
+# *.c
 
 # Static analysis temp files
 .analysis-temp/
