@@ -2429,6 +2429,34 @@ export default class CodeGenerator {
         return '0';
     }
 
+    /**
+     * Generate a safe bit mask expression.
+     * Avoids undefined behavior when width >= 32 for 32-bit integers.
+     * @param width The width expression (may be a literal or expression)
+     */
+    private generateBitMask(width: string): string {
+        // Check if width is a compile-time constant
+        const widthNum = parseInt(width, 10);
+        if (!isNaN(widthNum)) {
+            // Use explicit hex masks for common widths to avoid UB
+            if (widthNum === 32) {
+                return '0xFFFFFFFFU';
+            }
+            if (widthNum === 64) {
+                return '0xFFFFFFFFFFFFFFFFULL';
+            }
+            if (widthNum === 16) {
+                return '0xFFFFU';
+            }
+            if (widthNum === 8) {
+                return '0xFFU';
+            }
+        }
+        // For non-constant or other widths, use the shift expression
+        // (safe as long as width < 32 for 32-bit operations)
+        return `((1U << ${width}) - 1)`;
+    }
+
     // ========================================================================
     // Statements
     // ========================================================================
@@ -2675,7 +2703,7 @@ export default class CodeGenerator {
                 } else if (exprs.length === 2) {
                     const start = this.generateExpression(exprs[0]);
                     const width = this.generateExpression(exprs[1]);
-                    const mask = `((1 << ${width}) - 1)`;
+                    const mask = this.generateBitMask(width);
                     if (isWriteOnly) {
                         // Write-only: assigning 0 is semantically meaningless
                         if (value === '0') {
@@ -2759,7 +2787,7 @@ export default class CodeGenerator {
                 const start = this.generateExpression(exprs[0]);
                 const width = this.generateExpression(exprs[1]);
                 // Generate: name = (name & ~(mask << start)) | ((value & mask) << start)
-                const mask = `((1 << ${width}) - 1)`;
+                const mask = this.generateBitMask(width);
                 return `${name} = (${name} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
             }
         }
@@ -3640,8 +3668,14 @@ export default class CodeGenerator {
                     // Bit range: flags[start, width]
                     const start = this.generateExpression(exprs[0]);
                     const width = this.generateExpression(exprs[1]);
-                    // Generate bit range read: ((value >> start) & ((1 << width) - 1))
-                    result = `((${result} >> ${start}) & ((1 << ${width}) - 1))`;
+                    const mask = this.generateBitMask(width);
+                    // Optimize: skip shift when start is 0
+                    if (start === '0') {
+                        result = `((${result}) & ${mask})`;
+                    } else {
+                        // Generate bit range read: ((value >> start) & mask)
+                        result = `((${result} >> ${start}) & ${mask})`;
+                    }
                 }
             }
             // Function call
@@ -3846,8 +3880,13 @@ export default class CodeGenerator {
             // Bit range: flags[start, width]
             const start = this.generateExpression(exprs[0]);
             const width = this.generateExpression(exprs[1]);
-            // Generate bit range read: ((value >> start) & ((1 << width) - 1))
-            return `((${name} >> ${start}) & ((1 << ${width}) - 1))`;
+            const mask = this.generateBitMask(width);
+            // Optimize: skip shift when start is 0
+            if (start === '0') {
+                return `((${name}) & ${mask})`;
+            }
+            // Generate bit range read: ((value >> start) & mask)
+            return `((${name} >> ${start}) & ${mask})`;
         }
 
         return `${name}[/* error */]`;

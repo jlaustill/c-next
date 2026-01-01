@@ -1,1 +1,1 @@
-1:0 Code generation failed: Error: String concatenation requires capacity 64, but string<50> only has 50
+1:0 Code generation failed: Error: String concatenation cannot be used at global scope. Move the declaration inside a function.

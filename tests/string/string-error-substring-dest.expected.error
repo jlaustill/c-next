@@ -1,1 +1,1 @@
-1:0 Code generation failed: Error: Substring length 10 exceeds destination string<5> capacity
+1:0 Code generation failed: Error: Substring extraction cannot be used at global scope. Move the declaration inside a function.

@@ -9,7 +9,7 @@
 // Using [start, width] syntax to explicitly extract and reinterpret bits
 void main(void) {
     int32_t signed_val = -5;
-    uint32_t as_unsigned = ((signed_val >> 0) & ((1 << 32) - 1));
+    uint32_t as_unsigned = ((signed_val) & 0xFFFFFFFFU);
     uint32_t unsigned_val = 0xFFFFFFFF;
-    int32_t as_signed = ((unsigned_val >> 0) & ((1 << 32) - 1));
+    int32_t as_signed = ((unsigned_val) & 0xFFFFFFFFU);
 }
