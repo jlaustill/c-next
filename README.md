@@ -393,7 +393,6 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
-| [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | `usize` and `isize` |
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
@@ -412,6 +411,7 @@ Decisions are documented in `/docs/decisions/`:
 ### Rejected
 | ADR | Title | Description |
 |-----|-------|-------------|
+| [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | Fixed-width types are more predictable than platform-sized |
 | [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | Fixed-width primitives already solve the problem |
 | [ADR-021](docs/decisions/adr-021-increment-decrement.md) | Increment/Decrement | Use `+<- 1` instead; separation of concerns |
 | [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Replaced by `scope` keyword (ADR-016) |
