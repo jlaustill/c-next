@@ -179,6 +179,7 @@ statement
     | expressionStatement
     | ifStatement
     | whileStatement
+    | doWhileStatement
     | forStatement
     | switchStatement
     | returnStatement
@@ -243,6 +244,11 @@ ifStatement
 
 whileStatement
     : 'while' '(' expression ')' statement
+    ;
+
+// ADR-027: Do-while with MISRA-compliant boolean condition (E0701)
+doWhileStatement
+    : 'do' block 'while' '(' expression ')' ';'
     ;
 
 forStatement
@@ -562,6 +568,7 @@ VOID        : 'void';
 IF          : 'if';
 ELSE        : 'else';
 WHILE       : 'while';
+DO          : 'do';       // ADR-027: Do-while loops
 FOR         : 'for';
 SWITCH      : 'switch';   // ADR-025: Switch statements
 CASE        : 'case';

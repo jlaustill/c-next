@@ -496,7 +496,7 @@ for (u32 i <- 0; i < 10; i +<- 1) {
     buffer[i] <- 0;
 }
 
-// [ACCEPTED: ADR-027] Do-while - condition must be boolean (MISRA Rule 14.4)
+// [DONE: ADR-027] Do-while - condition must be boolean (MISRA Rule 14.4)
 u8 byte;
 do {
     byte <- readByte();

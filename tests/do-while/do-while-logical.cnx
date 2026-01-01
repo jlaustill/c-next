@@ -1,0 +1,12 @@
+// ADR-027: Do-while with logical operators
+
+const u32 MAX_RETRIES <- 5;
+
+void retryLoop() {
+    u32 attempts <- 0;
+    bool success <- false;
+    do {
+        attempts +<- 1;
+        success <- true;  // Simulated result
+    } while (!success && attempts < MAX_RETRIES);
+}

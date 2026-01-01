@@ -40,3 +40,8 @@ If implementing a feature, all documents must be current and memory must be upda
 - Always ask before changing status, no exceptions
 - **DO** update ADRs with research, context, links, and findings
 - **DO NOT** change Status or Decision sections without explicit approval
+
+**Documentation Sync Order:**
+- When moving an ADR to "Implemented", update the ADR file FIRST, then update README.md
+- Never move an ADR to "Implemented" in README.md before updating the ADR file itself
+- This prevents README and ADR files from getting out of sync

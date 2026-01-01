@@ -1,0 +1,9 @@
+// ADR-027: Error - condition must be boolean expression (E0701)
+// Should error: integer used as condition
+
+void test() {
+    u32 count <- 5;
+    do {
+        count -<- 1;
+    } while (count);
+}

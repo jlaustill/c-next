@@ -2780,6 +2780,9 @@ export default class CodeGenerator {
         if (ctx.whileStatement()) {
             return this.generateWhile(ctx.whileStatement()!);
         }
+        if (ctx.doWhileStatement()) {
+            return this.generateDoWhile(ctx.doWhileStatement()!);
+        }
         if (ctx.forStatement()) {
             return this.generateFor(ctx.forStatement()!);
         }
@@ -3233,6 +3236,16 @@ export default class CodeGenerator {
         return `while (${condition}) ${body}`;
     }
 
+    // ADR-027: Do-while loops with MISRA-compliant boolean condition
+    private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
+        // Validate the condition is a boolean expression (E0701)
+        this.validateDoWhileCondition(ctx.expression());
+
+        const body = this.generateBlock(ctx.block());
+        const condition = this.generateExpression(ctx.expression());
+        return `do ${body} while (${condition});`;
+    }
+
     private generateFor(ctx: Parser.ForStatementContext): string {
         let init = '';
         const forInit = ctx.forInit();
@@ -3642,6 +3655,110 @@ export default class CodeGenerator {
                 `Error: Nested ternary not allowed in ${branchName}. Use if/else instead.`
             );
         }
+    }
+
+    // ========================================================================
+    // Do-While Validation (ADR-027)
+    // ========================================================================
+
+    /**
+     * ADR-027: Validate that do-while condition is a boolean expression (E0701)
+     * Must be a comparison, logical operation, or boolean variable - not just a value.
+     * This enforces MISRA C:2012 Rule 14.4.
+     */
+    private validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
+        // Unwrap: ExpressionContext -> TernaryExpressionContext -> OrExpressionContext
+        const ternaryExpr = ctx.ternaryExpression();
+        const orExprs = ternaryExpr.orExpression();
+
+        // For do-while, we expect a non-ternary expression (single orExpression)
+        if (orExprs.length !== 1) {
+            throw new Error(
+                `Error E0701: do-while condition must be a boolean expression, not a ternary (MISRA C:2012 Rule 14.4)`
+            );
+        }
+
+        const orExpr = orExprs[0];
+        const text = orExpr.getText();
+
+        // If it has || operator, it's valid (logical expression)
+        if (orExpr.andExpression().length > 1) {
+            return;
+        }
+
+        const andExpr = orExpr.andExpression(0);
+        if (!andExpr) {
+            throw new Error(
+                `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`
+            );
+        }
+
+        // If it has && operator, it's valid
+        if (andExpr.equalityExpression().length > 1) {
+            return;
+        }
+
+        const equalityExpr = andExpr.equalityExpression(0);
+        if (!equalityExpr) {
+            throw new Error(
+                `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`
+            );
+        }
+
+        // If it has = or != operator, it's valid
+        if (equalityExpr.relationalExpression().length > 1) {
+            return;
+        }
+
+        const relationalExpr = equalityExpr.relationalExpression(0);
+        if (!relationalExpr) {
+            throw new Error(
+                `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`
+            );
+        }
+
+        // If it has <, >, <=, >= operator, it's valid
+        if (relationalExpr.bitwiseOrExpression().length > 1) {
+            return;
+        }
+
+        // Check if it's a unary ! (negation) expression - that's valid on booleans
+        // Need to drill down to check for unary not operator
+        const bitwiseOrExpr = relationalExpr.bitwiseOrExpression(0);
+        if (bitwiseOrExpr && this.isBooleanExpression(bitwiseOrExpr)) {
+            return;
+        }
+
+        // No comparison or logical operators found - just a value
+        throw new Error(
+            `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: use explicit comparison: ${text} > 0 or ${text} != 0`
+        );
+    }
+
+    /**
+     * Check if an expression resolves to a boolean type.
+     * This includes: boolean literals, boolean variables, negation of booleans, function calls returning bool.
+     */
+    private isBooleanExpression(ctx: Parser.BitwiseOrExpressionContext): boolean {
+        const text = ctx.getText();
+
+        // Check for boolean literals
+        if (text === 'true' || text === 'false') {
+            return true;
+        }
+
+        // Check for negation (! operator) - valid for boolean expressions
+        if (text.startsWith('!')) {
+            return true;
+        }
+
+        // Check if it's a known boolean variable
+        const typeInfo = this.context.typeRegistry.get(text);
+        if (typeInfo && typeInfo.baseType === 'bool') {
+            return true;
+        }
+
+        return false;
     }
 
     // ========================================================================

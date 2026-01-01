@@ -1,0 +1,8 @@
+// ADR-027: Basic do-while loop with comparison condition
+
+void test() {
+    u32 count <- 0;
+    do {
+        count +<- 1;
+    } while (count < 10);
+}

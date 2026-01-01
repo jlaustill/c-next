@@ -1,7 +1,7 @@
 # ADR-027: Do-While Loops
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 
