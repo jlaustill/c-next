@@ -1,7 +1,7 @@
 # ADR-023: Sizeof Mechanism
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 

@@ -1,0 +1,9 @@
+// ADR-023: E0602 - sizeof with side effects is error
+
+u32 getValue() {
+    return 42;
+}
+
+void main() {
+    u32 bad <- sizeof(getValue());  // ERROR: function call is side effect
+}

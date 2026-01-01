@@ -373,13 +373,20 @@ postfixOp
     ;
 
 primaryExpression
-    : castExpression
+    : sizeofExpression                                // ADR-023: sizeof operator
+    | castExpression
     | structInitializer
     | 'this'                                          // ADR-016: scope-local reference
     | 'global'                                        // ADR-016: global reference
     | IDENTIFIER
     | literal
     | '(' expression ')'
+    ;
+
+// ADR-023: Sizeof expression
+// sizeof(type) or sizeof(expression)
+sizeofExpression
+    : 'sizeof' '(' (type | expression) ')'
     ;
 
 // ADR-017: Cast expression for enum to integer conversion
@@ -564,6 +571,7 @@ TRUE        : 'true';
 FALSE       : 'false';
 NULL        : 'null';
 STRING      : 'string';   // ADR-045: Bounded string type
+SIZEOF      : 'sizeof';   // ADR-023: Sizeof operator
 
 // Access modifiers for registers
 RW          : 'rw';

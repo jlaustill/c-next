@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error[E0602]: sizeof() operand must not have side effects (MISRA C:2012 Rule 13.6)

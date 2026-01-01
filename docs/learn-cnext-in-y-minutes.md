@@ -437,7 +437,7 @@ u32 clampedPositive <- (x > 0 && x < 100) ? x : 0;  // OK: logical condition
 // u32 y <- x ? 1 : 0;                          // ERROR: x is not boolean
 // u32 z <- x > 0 ? 1 : 0;                      // ERROR: missing parentheses
 
-// [ACCEPTED: ADR-023] Sizeof - with safety checks
+// [DONE: ADR-023] Sizeof - with safety checks
 usize intSize <- sizeof(u32);          // 4
 usize structSize <- sizeof(Point);     // Includes padding
 

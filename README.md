@@ -381,11 +381,11 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
+| [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type/value size queries with safety checks |
 
 ### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type/value size queries with safety checks |
 | [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` with boolean condition |
 
 ### Research (v1 Roadmap)

@@ -1,0 +1,9 @@
+// ADR-023: sizeof on local variables
+
+void main() {
+    u32 counter <- 0;
+    u8 buffer[256];
+
+    u32 counterSize <- sizeof(counter);
+    u32 bufferSize <- sizeof(buffer);
+}

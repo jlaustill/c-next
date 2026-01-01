@@ -4027,6 +4027,10 @@ export default class CodeGenerator {
     }
 
     private generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+        // ADR-023: sizeof expression - sizeof(u32) or sizeof(variable)
+        if (ctx.sizeofExpression()) {
+            return this.generateSizeofExpr(ctx.sizeofExpression()!);
+        }
         // ADR-017: Cast expression - (u8)State.IDLE
         if (ctx.castExpression()) {
             return this.generateCastExpression(ctx.castExpression()!);
@@ -4138,6 +4142,225 @@ export default class CodeGenerator {
         }
 
         return `(${targetType})${expr}`;
+    }
+
+    /**
+     * ADR-023: Generate sizeof expression
+     * sizeof(type) -> sizeof(c_type)
+     * sizeof(variable) -> sizeof(variable)
+     * With safety checks:
+     * - E0601: sizeof on array parameter is error
+     * - E0602: Side effects in sizeof are error
+     */
+    private generateSizeofExpr(ctx: Parser.SizeofExpressionContext): string {
+        // Check if it's sizeof(type) or sizeof(expression)
+        // Note: Due to grammar ambiguity, sizeof(variable) may parse as sizeof(type)
+        // when the variable name matches userType (just an identifier)
+        if (ctx.type()) {
+            const typeCtx = ctx.type()!;
+            const typeText = typeCtx.getText();
+
+            // Check if this "type" is actually a variable or parameter
+            // userType is just IDENTIFIER, which could be a variable reference
+            if (typeCtx.userType()) {
+                const varName = typeText;
+
+                // Check if it's a known parameter
+                const paramInfo = this.context.currentParameters.get(varName);
+                if (paramInfo) {
+                    // E0601: Check if it's an array parameter
+                    if (paramInfo.isArray) {
+                        throw new Error(
+                            `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
+                            `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`
+                        );
+                    }
+                    // It's a non-array parameter - generate sizeof for it
+                    // For pass-by-reference parameters (non-array, non-callback), use pointer dereference
+                    if (!paramInfo.isCallback && !paramInfo.isStruct) {
+                        return `sizeof(*${varName})`;
+                    }
+                    return `sizeof(${varName})`;
+                }
+
+                // Check if it's a known local variable
+                if (this.context.localVariables.has(varName)) {
+                    return `sizeof(${varName})`;
+                }
+
+                // Check if it's a known struct (actual type)
+                if (this.knownStructs.has(varName)) {
+                    return `sizeof(${varName})`;
+                }
+
+                // Check if it's a known enum (actual type)
+                if (this.knownEnums.has(varName)) {
+                    return `sizeof(${varName})`;
+                }
+
+                // Unknown identifier - treat as variable for safety
+                return `sizeof(${varName})`;
+            }
+
+            // It's a primitive or other type - generate normally
+            const cType = this.generateType(typeCtx);
+            return `sizeof(${cType})`;
+        }
+
+        // It's sizeof(expression)
+        const expr = ctx.expression()!;
+
+        // E0601: Check if expression is an array parameter
+        const varName = this.getSingleIdentifierFromExpr(expr);
+        if (varName) {
+            const paramInfo = this.context.currentParameters.get(varName);
+            if (paramInfo?.isArray) {
+                throw new Error(
+                    `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
+                    `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`
+                );
+            }
+        }
+
+        // E0602: Check for side effects
+        if (this.hasSideEffects(expr)) {
+            throw new Error(
+                `Error[E0602]: sizeof() operand must not have side effects (MISRA C:2012 Rule 13.6)`
+            );
+        }
+
+        const exprCode = this.generateExpression(expr);
+        return `sizeof(${exprCode})`;
+    }
+
+    /**
+     * ADR-023: Extract simple identifier from expression for parameter checking
+     * Returns the identifier name if expression is a simple variable reference, null otherwise
+     */
+    private getSingleIdentifierFromExpr(expr: Parser.ExpressionContext): string | null {
+        // Navigate through expression tree to find simple identifier
+        const ternary = expr.ternaryExpression();
+        if (!ternary) return null;
+
+        const orExprs = ternary.orExpression();
+        if (orExprs.length !== 1) return null;
+
+        const or = orExprs[0];
+        if (or.andExpression().length !== 1) return null;
+
+        const and = or.andExpression()[0];
+        if (and.equalityExpression().length !== 1) return null;
+
+        const eq = and.equalityExpression()[0];
+        if (eq.relationalExpression().length !== 1) return null;
+
+        const rel = eq.relationalExpression()[0];
+        if (rel.bitwiseOrExpression().length !== 1) return null;
+
+        const bor = rel.bitwiseOrExpression()[0];
+        if (bor.bitwiseXorExpression().length !== 1) return null;
+
+        const bxor = bor.bitwiseXorExpression()[0];
+        if (bxor.bitwiseAndExpression().length !== 1) return null;
+
+        const band = bxor.bitwiseAndExpression()[0];
+        if (band.shiftExpression().length !== 1) return null;
+
+        const shift = band.shiftExpression()[0];
+        if (shift.additiveExpression().length !== 1) return null;
+
+        const add = shift.additiveExpression()[0];
+        if (add.multiplicativeExpression().length !== 1) return null;
+
+        const mult = add.multiplicativeExpression()[0];
+        if (mult.unaryExpression().length !== 1) return null;
+
+        const unary = mult.unaryExpression()[0];
+        const postfix = unary.postfixExpression();
+        if (!postfix) return null;
+
+        const primary = postfix.primaryExpression();
+        const ops = postfix.postfixOp();
+
+        // Must have no postfix operations (no member access, no indexing)
+        if (ops.length !== 0) return null;
+
+        // Must be a simple identifier
+        const id = primary.IDENTIFIER();
+        return id ? id.getText() : null;
+    }
+
+    /**
+     * ADR-023: Check if expression has side effects (E0602)
+     * Side effects include: assignments, function calls
+     */
+    private hasSideEffects(expr: Parser.ExpressionContext): boolean {
+        const text = expr.getText();
+
+        // Check for assignment operators
+        if (text.includes('<-')) return true;
+        if (text.includes('+<-')) return true;
+        if (text.includes('-<-')) return true;
+        if (text.includes('*<-')) return true;
+        if (text.includes('/<-')) return true;
+        if (text.includes('%<-')) return true;
+        if (text.includes('&<-')) return true;
+        if (text.includes('|<-')) return true;
+        if (text.includes('^<-')) return true;
+        if (text.includes('<<<-')) return true;
+        if (text.includes('>><-')) return true;
+
+        // Check for function calls by looking for identifier followed by (
+        // This is a heuristic - looking for "name(" pattern that's not a cast
+        if (/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/.test(text)) {
+            // Could be a function call - walk the tree to confirm
+            return this.hasPostfixFunctionCall(expr);
+        }
+
+        return false;
+    }
+
+    /**
+     * ADR-023: Check if expression contains a function call (postfix with argumentList)
+     */
+    private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
+        // Navigate through expression tree to find function calls
+        const ternary = expr.ternaryExpression();
+        if (!ternary) return false;
+
+        // Check all branches for function calls
+        for (const or of ternary.orExpression()) {
+            for (const and of or.andExpression()) {
+                for (const eq of and.equalityExpression()) {
+                    for (const rel of eq.relationalExpression()) {
+                        for (const bor of rel.bitwiseOrExpression()) {
+                            for (const bxor of bor.bitwiseXorExpression()) {
+                                for (const band of bxor.bitwiseAndExpression()) {
+                                    for (const shift of band.shiftExpression()) {
+                                        for (const add of shift.additiveExpression()) {
+                                            for (const mult of add.multiplicativeExpression()) {
+                                                for (const unary of mult.unaryExpression()) {
+                                                    const postfix = unary.postfixExpression();
+                                                    if (postfix) {
+                                                        for (const op of postfix.postfixOp()) {
+                                                            // Check if this is a function call
+                                                            if (op.argumentList() || op.getText().startsWith('(')) {
+                                                                return true;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private generateMemberAccess(ctx: Parser.MemberAccessContext): string {

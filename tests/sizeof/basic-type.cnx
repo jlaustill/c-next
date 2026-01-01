@@ -1,0 +1,10 @@
+// ADR-023: sizeof on primitive types
+
+void main() {
+    u32 intSize <- sizeof(u32);
+    u32 ptrSize <- sizeof(u64);
+    u32 byteSize <- sizeof(u8);
+    u32 floatSize <- sizeof(f32);
+    u32 doubleSize <- sizeof(f64);
+    u32 boolSize <- sizeof(bool);
+}
