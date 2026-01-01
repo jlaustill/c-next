@@ -45,3 +45,12 @@ If implementing a feature, all documents must be current and memory must be upda
 - When moving an ADR to "Implemented", update the ADR file FIRST, then update README.md
 - Never move an ADR to "Implemented" in README.md before updating the ADR file itself
 - This prevents README and ADR files from getting out of sync
+
+## ADR Reference Rules
+
+**Only use Implemented or Accepted ADRs as examples of C-Next syntax/patterns.**
+
+- **Research** ADRs are proposals under investigation — NOT established syntax
+- **Rejected** ADRs document decisions NOT to implement something
+- Never cite Research ADRs as examples of "how C-Next does X"
+- When exploring syntax patterns, check the ADR status first
