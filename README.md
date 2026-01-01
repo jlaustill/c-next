@@ -395,10 +395,8 @@ Decisions are documented in `/docs/decisions/`:
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Optional types |
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Declaration | Interrupt handler syntax |
 | [ADR-041](docs/decisions/adr-041-inline-assembly.md) | Inline Assembly | Platform-specific asm |
-| [ADR-042](docs/decisions/adr-042-error-handling.md) | Error Handling | Result types |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 
 ### Foundational Research
@@ -410,6 +408,8 @@ Decisions are documented in `/docs/decisions/`:
 ### Rejected
 | ADR | Title | Description |
 |-----|-------|-------------|
+| [ADR-042](docs/decisions/adr-042-error-handling.md) | Error Handling | Works with existing features (enums, pass-by-reference, struct returns) |
+| [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
 | [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | Fixed-width types are more predictable than platform-sized |
 | [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | Fixed-width primitives already solve the problem |
 | [ADR-021](docs/decisions/adr-021-increment-decrement.md) | Increment/Decrement | Use `+<- 1` instead; separation of concerns |

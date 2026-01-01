@@ -1,9 +1,51 @@
 # ADR-042: Error Handling
 
 ## Status
-**Research**
+**Rejected**
 
-## Context
+## Decision
+
+**No dedicated error handling syntax needed.** Error handling patterns work naturally with existing C-Next features.
+
+## Rationale
+
+C-Next's existing features provide all necessary error handling capabilities:
+
+| Pattern | How It Works in C-Next |
+|---------|------------------------|
+| Return codes | Use enums (ADR-017) as return types |
+| Out parameters | Pass-by-reference (ADR-006) allows modifying caller's variables |
+| Rich results | Return structs containing both value and status |
+
+### Example Patterns (All Work Today)
+
+**Pattern 1: Return code + out parameter**
+```cnx
+Status readSensor(u32 value) {
+    if (timeout) { return Status.TIMEOUT; }
+    value <- sensorValue;  // Modified via pass-by-reference
+    return Status.OK;
+}
+```
+
+**Pattern 2: Struct return**
+```cnx
+struct SensorResult {
+    u32 value;
+    Status status;
+}
+
+SensorResult readSensor() {
+    SensorResult result;
+    result.value <- sensorValue;
+    result.status <- Status.OK;
+    return result;
+}
+```
+
+Adding Result<T, E> types or special syntax would add complexity without meaningful improvement over these patterns.
+
+## Original Context
 
 Error handling in embedded C:
 - Return codes (0 = success, non-zero = error)
@@ -12,13 +54,6 @@ Error handling in embedded C:
 - Panic/assert for unrecoverable errors
 
 Modern languages use Result types (Rust) or multiple returns (Go).
-
-## Decision Drivers
-
-1. **Embedded Reality** - No exceptions, minimal overhead
-2. **C Compatibility** - Work with existing C patterns
-3. **Simplicity** - Don't overcomplicate
-4. **Reliability** - Handle errors explicitly
 
 ## Options Considered
 
@@ -83,83 +118,19 @@ if (!readSensor(value)) { handleError(); }
 **Pros:** C-style, explicit
 **Cons:** Awkward for complex errors
 
-## Recommended Decision
+## Why All Options Were Rejected
 
-**Option A: C-Style Return Codes** for v1.
+1. **Option A** (return codes) already works with enums (ADR-017) — no new feature needed
+2. **Option B** (Result types) adds complexity; struct returns achieve the same goal
+3. **Option C** (multiple returns) adds syntax for something structs already handle
+4. **Option D** (out parameters) already works naturally with pass-by-reference (ADR-006)
 
-Use enums (ADR-017) for error codes. Keep it simple.
-
-## Syntax
-
-### Error Enum
-```cnx
-enum Status {
-    OK <- 0,
-    ERROR_TIMEOUT,
-    ERROR_INVALID,
-    ERROR_BUSY,
-    ERROR_OVERFLOW
-}
-```
-
-### Function Returns Error
-```cnx
-Status initUART(u32 baudRate) {
-    if (baudRate = 0) {
-        return Status.ERROR_INVALID;
-    }
-    // ... init code
-    return Status.OK;
-}
-```
-
-### Check and Handle
-```cnx
-Status result <- initUART(115200);
-if (result != Status.OK) {
-    logError(result);
-    return result;  // Propagate
-}
-```
-
-### Assert for Unrecoverable
-```cnx
-void assert(bool condition) {
-    if (!condition) {
-        // Platform-specific: halt, reset, log
-        while (true) { }
-    }
-}
-
-void process(u8 buffer[]) {
-    assert(buffer != null);
-    // ...
-}
-```
-
-## Future Consideration (v2)
-
-If demand exists, add Result type:
-```cnx
-Result<u32, Status> readSensor() {
-    // ...
-}
-```
-
-With pattern matching (depends on ADR-025 switch evolution).
-
-### Priority
-**Low** - C-style return codes work. Enums (ADR-017) are prerequisite.
-
-## Open Questions
-
-1. Built-in assert macro/function?
-2. Panic handler for hard errors?
-3. Result type for v2?
+The original "recommended decision" was Option A, which is just "use existing features" — confirming no new language feature is required.
 
 ## References
 
 - C error handling patterns
 - Rust Result type
 - Go error handling
-- MISRA C error handling
+- ADR-006 Simplified References (pass-by-reference)
+- ADR-017 Enums

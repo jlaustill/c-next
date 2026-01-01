@@ -1,9 +1,32 @@
 # ADR-039: Null Safety
 
 ## Status
-**Research**
+**Rejected**
 
-## Context
+## Decision
+
+**No dedicated null safety feature needed.** Null safety is an emergent property of C-Next's foundational design decisions.
+
+## Rationale
+
+Null pointer bugs in C arise from specific sources. C-Next's existing ADRs eliminate all of them:
+
+| Null Source in C | C-Next Prevention | ADR |
+|------------------|-------------------|-----|
+| `malloc()` returns NULL | No dynamic allocation | ADR-003 |
+| Uninitialized pointer | Zero-init globals, error for locals | ADR-015 |
+| Dangling pointer after `free()` | No `free()` exists | ADR-003 |
+| Pointer arithmetic gone wrong | No pointer arithmetic | ADR-006 |
+| Pointer reassignment to invalid address | Addresses cannot be reassigned | ADR-006 |
+
+The only remaining case is **intentionally unset callbacks**, which:
+1. Are zero-initialized (predictably null, not garbage)
+2. Require standard null checks before invocation (universal embedded practice)
+3. Are too narrow a use case to justify language complexity
+
+Adding Option types or nullable annotations would add complexity without meaningful safety improvement over what ADR-003 + ADR-006 + ADR-015 already provide.
+
+## Original Context
 
 Null pointer dereference is a major bug source:
 - Crashes
@@ -11,13 +34,6 @@ Null pointer dereference is a major bug source:
 - Hard to debug
 
 Rust uses `Option<T>`, modern languages have null safety.
-
-## Decision Drivers
-
-1. **Safety** - Prevent null dereference bugs
-2. **C Compatibility** - C uses null extensively
-3. **Simplicity** - Don't overcomplicate
-4. **Embedded Reality** - Sometimes null is valid
 
 ## Options Considered
 
@@ -62,43 +78,19 @@ Trust the developer. Focus on ADR-015 zero initialization.
 **Pros:** Simple
 **Cons:** No safety improvement
 
-## Recommended Decision
+## Why All Options Were Rejected
 
-**Option D: No Null Safety for v1**
+1. **Options A & B** (Option types, nullable annotations) add syntax complexity for a problem that doesn't exist in C-Next's memory model
+2. **Option C** (warnings) is redundant — ADR-015 already enforces init-before-use for locals
+3. **Option D** (do nothing) was the original recommendation, which led to this rejection
 
-Rationale:
-- ADR-006 removes most pointer syntax
-- ADR-015 zero-initializes everything
-- Embedded often uses fixed structures, not dynamic allocation
-- ADR-003 forbids dynamic allocation anyway
+## Callback Pattern (The One Remaining Case)
 
-Consider Option C warnings for v2.
+For function pointers that may be unset:
 
-## Current State with ADR-015
-
-With zero initialization, most null issues are avoided:
-```cnx
-struct Config {
-    u32 baudRate;
-    u8 mode;
-}
-
-Config cfg;  // Zero-initialized, not "null"
-
-// Always safe to access
-cfg.baudRate <- 115200;
-```
-
-## Where Null Still Matters
-
-### Callback Pointers
 ```cnx
 type Callback <- void(u32);
-Callback handler <- null;  // No handler yet
-
-void setHandler(Callback cb) {
-    handler <- cb;
-}
+Callback handler;  // Zero-initialized (null)
 
 void fire(u32 event) {
     if (handler != null) {
@@ -107,36 +99,7 @@ void fire(u32 event) {
 }
 ```
 
-### Optional Data
-```cnx
-// Could use sentinel values instead
-const u32 NO_VALUE <- 0xFFFFFFFF;
-
-u32 maybeData <- NO_VALUE;
-if (maybeData != NO_VALUE) {
-    process(maybeData);
-}
-```
-
-## Future Consideration (v2)
-
-If needed, add Optional type:
-```cnx
-Optional<Callback> handler <- None;
-
-match (handler) {
-    Some(cb): cb(event);
-    None: { }
-}
-```
-
-### Priority
-**Low** - ADR-003, ADR-006, and ADR-015 address most concerns.
-
-## Open Questions
-
-1. Static analysis for null check patterns?
-2. Optional type for v2?
+This is standard embedded practice and doesn't require language-level null safety.
 
 ## References
 
