@@ -387,11 +387,11 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` with boolean condition |
+| [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Named nested structs only (no anonymous) |
 
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Composition patterns |
 | [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Hardware register layouts |
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
 | [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | `type Byte <- u8;` |

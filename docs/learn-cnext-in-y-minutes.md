@@ -724,11 +724,25 @@ struct Buffer {
     u32 length;
 }
 
-// [TODO: ADR-032] Nested structs
+// [ACCEPTED: ADR-032] Named nested structs (no anonymous)
 struct Rectangle {
     Point topLeft;
     Point bottomRight;
 }
+
+// Alternative to anonymous structs - always use named types:
+struct PacketHeader {
+    u16 sequence;
+    u16 length;
+}
+
+struct Packet {
+    u8 type;
+    PacketHeader header;    // Named, not anonymous
+    u8 payload[256];
+}
+
+// Access: packet.header.sequence <- 1;
 
 // [TODO: ADR-033] Packed struct
 @packed
