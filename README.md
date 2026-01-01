@@ -278,6 +278,48 @@ All operations are validated at compile time:
 - Concatenation capacity mismatch → compile error
 - Substring out of bounds → compile error
 
+### Callbacks (ADR-029)
+
+Type-safe function pointers with the Function-as-Type pattern:
+- A function definition creates both a callable function AND a type
+- Nominal typing: type identity is the function name, not just signature
+- Never null: callbacks are always initialized to their default function
+
+```cnx
+// Define callback type with default behavior
+void onReceive(const CAN_Message_T msg) {
+    // default: no-op
+}
+
+struct Controller {
+    onReceive _handler;    // Type is onReceive, initialized to default
+}
+
+// User implementation must match signature
+void myHandler(const CAN_Message_T msg) {
+    Serial.println(msg.id);
+}
+
+controller._handler <- myHandler;  // OK: signature matches
+controller._handler(msg);          // Always safe - never null
+```
+
+Transpiles to:
+```c
+void onReceive(const CAN_Message_T msg) { }
+
+typedef void (*onReceive_fp)(const CAN_Message_T);
+
+struct Controller {
+    onReceive_fp _handler;
+};
+
+// Initialization always sets to default
+struct Controller Controller_init(void) {
+    return (struct Controller){ ._handler = onReceive };
+}
+```
+
 ### Startup Allocation
 
 Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memory is allocated during initialization, then forbidden. No runtime allocation means no fragmentation, no OOM, no leaks.
@@ -338,13 +380,13 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | Ternary with required parens, boolean condition, no nesting |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
+| [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
 
 ### Research (v1 Roadmap)
 
 #### Critical Priority
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
 | [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Performance optimization |
 
 #### High Priority

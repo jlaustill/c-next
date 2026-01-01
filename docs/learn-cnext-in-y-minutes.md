@@ -716,6 +716,154 @@ struct TCPHeader {
 }
 ```
 
+## Callbacks (Function-as-Type Pattern) [ACCEPTED]
+
+C-Next provides type-safe callbacks using the Function-as-Type pattern (ADR-029):
+
+```cnx
+// A function definition creates both a callable function AND a type
+void onReceive(const CAN_Message_T msg) {
+    // default: no-op - this is what happens if no callback set
+}
+
+// Use the function name as a type in structs
+struct Controller {
+    onReceive _handler;    // Type is onReceive, initialized to default
+    bool _handlerSet;
+}
+
+// User implementation - must match signature exactly
+void myHandler(const CAN_Message_T msg) {
+    Serial.println(msg.id);
+}
+
+// Assign compatible function
+controller._handler <- myHandler;
+
+// Always safe to call - never null
+controller._handler(msg);
+```
+
+### Nominal Typing
+
+Type identity is the **function name**, not just the signature:
+
+```cnx
+void onMouseDown(const Point p) { }
+void onMouseUp(const Point p) { }
+
+struct Handler {
+    onMouseDown down;
+    onMouseUp up;
+}
+
+Handler h;
+h.down <- onMouseUp;  // COMPILE ERROR - type mismatch!
+                       // Even though signatures match
+```
+
+This prevents accidentally swapping handlers that happen to have the same signature.
+
+### Never Null
+
+Callback fields are always initialized to their default function:
+
+```cnx
+struct Controller {
+    onReceive _handler;  // Initialized to onReceive (the default)
+}
+
+Controller c;
+c._handler(msg);  // Always safe - worst case is no-op
+```
+
+### Explicit "Is Set" Tracking
+
+If you need to know whether a callback was explicitly set:
+
+```cnx
+void onReceive(const CAN_Message_T msg) { /* NO-OP */ }
+
+struct Controller {
+    onReceive _handler;
+    bool _handlerIsSet;
+}
+
+void Controller_setHandler(Controller self, onReceive handler) {
+    self._handler <- handler;
+    self._handlerIsSet <- true;
+}
+
+void Controller_process(Controller self, CAN_Message_T msg) {
+    if (self._handlerIsSet) {
+        self._handler(msg);
+    }
+}
+```
+
+### Generated C
+
+```cnx
+void defaultHandler(const CAN_Message_T msg) { }
+
+struct Controller {
+    defaultHandler _handler;
+}
+```
+
+Transpiles to:
+
+```c
+void defaultHandler(const CAN_Message_T msg) { }
+
+typedef void (*defaultHandler_fp)(const CAN_Message_T);
+
+struct Controller {
+    defaultHandler_fp _handler;
+};
+
+struct Controller Controller_init(void) {
+    return (struct Controller){
+        ._handler = defaultHandler
+    };
+}
+```
+
+### State Machines: Use Enum + Switch Instead
+
+For state machines, prefer enums over callback swapping:
+
+```cnx
+enum RobotMood {
+    Sleepy,
+    Happy,
+    Grumpy
+}
+
+struct Robot {
+    RobotMood currentMood;
+}
+
+void Robot_poke(Robot self) {
+    switch (self.currentMood) {
+        case RobotMood.Sleepy {
+            yawn();
+        }
+        case RobotMood.Happy {
+            giggle();
+        }
+        case RobotMood.Grumpy {
+            growl();
+        }
+    }
+}
+```
+
+**Why enum + switch is better:**
+- No function pointers = no null dereference risk
+- Exhaustive switch = compiler catches missing states
+- Direct calls = easier static analysis and debugging
+
 ## Register Bindings
 
 ```cnx
@@ -914,6 +1062,7 @@ void loop(void) {
 | `char buf[64]` | `string<64> buf` | Bounded strings with safety |
 | `strcmp(a,b)==0` | `a = b` | String comparison via = |
 | `strcpy`/`strcat` | `a + b` | Safe concatenation with validation |
+| `void (*fp)(int)` | `funcName type` | Function-as-Type pattern, never null |
 
 ## Further Reading
 

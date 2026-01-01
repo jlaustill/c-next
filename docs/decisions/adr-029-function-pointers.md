@@ -1,7 +1,7 @@
 # ADR-029: Callbacks (Function-as-Type Pattern)
 
 ## Status
-**Research**
+**Accepted**
 
 ## Context
 
@@ -73,7 +73,7 @@ controller._handler(msg);
 If you need to know whether a callback was explicitly set (vs using the default), use a boolean flag - this is user code, not compiler magic:
 
 ```cnx
-void onReceive(const CAN_Message_T msg) { }
+void onReceive(const CAN_Message_T msg) { /* NO-OP */ }
 
 struct Controller {
     onReceive _handler;
@@ -158,9 +158,15 @@ struct Robot {
 
 void Robot_poke(Robot self) {
     switch (self.currentMood) {
-        case Sleepy: yawn();
-        case Happy:  giggle();
-        case Grumpy: growl();
+        case RobotMood.Sleepy {
+            yawn();
+        }
+        case RobotMood.Happy {
+            giggle();
+        }
+        case RobotMood.Grumpy {
+            growl();
+        }
     }
 }
 
@@ -199,9 +205,15 @@ struct MoodOverride {
 
 void Robot_loadPlugin(Robot self, MoodOverride override) {
     switch (override.mood) {
-        case Sleepy: self._yawnHandler <- override.sleepyHandler;
-        case Happy:  self._giggleHandler <- override.happyHandler;
-        case Grumpy: self._growlHandler <- override.grumpyHandler;
+        case RobotMood.Sleepy {
+            self._yawnHandler <- override.sleepyHandler;
+        }
+        case RobotMood.Happy {
+            self._giggleHandler <- override.happyHandler;
+        }
+        case RobotMood.Grumpy {
+            self._growlHandler <- override.grumpyHandler;
+        }
     }
 }
 ```
