@@ -380,6 +380,10 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | Ternary with required parens, boolean condition, no nesting |
 | [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
+
+### Accepted (Awaiting Implementation)
+| ADR | Title | Description |
+|-----|-------|-------------|
 | [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
 
 ### Research (v1 Roadmap)
@@ -406,6 +410,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` loops |
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
+| [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 
 #### Low Priority (v2+)
 | ADR | Title | Description |

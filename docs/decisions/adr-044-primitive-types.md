@@ -1,6 +1,6 @@
 # ADR-044: Primitive Types
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2025-12-30
 **Decision Makers:** C-Next Language Design Team
 

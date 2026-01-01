@@ -1,7 +1,7 @@
 # ADR-037: Preprocessor Directive Handling
 
 ## Status
-**Accepted** — Flag-only defines implemented; value defines and function macros produce errors.
+**Implemented** — Flag-only defines pass through; value defines and function macros produce errors (E0501, E0502).
 
 ## Context
 

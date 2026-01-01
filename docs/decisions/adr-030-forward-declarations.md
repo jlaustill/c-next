@@ -1,7 +1,7 @@
 # ADR-030: Forward Declarations
 
 ## Status
-**Research**
+**Implemented**
 
 ## Context
 
