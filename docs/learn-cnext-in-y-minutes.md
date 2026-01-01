@@ -579,9 +579,17 @@ u8 first <- buffer[0];
 // [DONE] .length property (ADR-007)
 usize len <- buffer.length;  // 256
 
-// [TODO: ADR-035] Array initialization
-u8 data[] <- {1, 2, 3, 4, 5};
-u8 zeros[100] <- {0};
+// [ACCEPTED: ADR-035] Array initialization - uses [] not {}
+u8 data[] <- [1, 2, 3, 4, 5];     // Size inferred as 5
+u8 zeros[100] <- [0*];            // All 100 elements = 0 (fill-all syntax)
+u8 ones[50] <- [1*];              // All 50 elements = 1
+
+// Partial initialization is NOT allowed (MISRA 9.3)
+// u8 bad[5] <- [1, 2, 3];        // ERROR: 3 elements for size-5 array
+u8 explicit[5] <- [1, 2, 3, 0, 0]; // OK: all elements explicit
+
+// Size mismatch is a compile error
+// u8 overflow[3] <- [1, 2, 3, 4]; // ERROR: 4 elements for size-3 array
 
 // [TODO: ADR-036] Multi-dimensional arrays
 u8 matrix[4][4];
@@ -1100,6 +1108,8 @@ void loop(void) {
 | `strcmp(a,b)==0` | `a = b` | String comparison via = |
 | `strcpy`/`strcat` | `a + b` | Safe concatenation with validation |
 | `void (*fp)(int)` | `funcName type` | Function-as-Type pattern, never null |
+| `int a[] = {1,2,3}` | `u8 a[] <- [1,2,3]` | `[]` for arrays, `{}` for structs |
+| `int z[100] = {0}` | `u8 z[100] <- [0*]` | Explicit fill-all syntax |
 
 ## Further Reading
 

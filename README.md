@@ -388,12 +388,12 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Named nested structs only (no anonymous) |
+| [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `[1, 2, 3]` syntax with `[0*]` fill-all |
 
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Storage class specifiers |
-| [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `{1, 2, 3}` syntax |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` matrices |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | C-Style Bit Fields | Use ADR-007 instead |
