@@ -1,0 +1,7 @@
+// ADR-045: Test substring with offset
+string<64> source <- "Hello, World!";
+string<6> world <- source[7, 6];
+
+void test() {
+    // Extract "World!" starting at position 7
+}

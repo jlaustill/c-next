@@ -1,0 +1,4 @@
+// ADR-045: Test substring bounds error
+// ERROR: Substring bounds [60, 10] exceed source string<64> capacity
+string<64> source <- "Hello, World!";
+string<10> invalid <- source[60, 10];

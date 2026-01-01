@@ -1161,6 +1161,89 @@ export default class CodeGenerator {
         return null;
     }
 
+    /**
+     * ADR-045: Check if an expression is a substring extraction (string[start, length]).
+     * Returns the source string, start, length, and source capacity if it is.
+     */
+    private getSubstringOperands(ctx: Parser.ExpressionContext): {
+        source: string;
+        start: string;
+        length: string;
+        sourceCapacity: number;
+    } | null {
+        // Navigate to the postfix expression level
+        const ternary = ctx.ternaryExpression();
+        if (!ternary) return null;
+
+        const orExprs = ternary.orExpression();
+        if (orExprs.length !== 1) return null;
+
+        const or = orExprs[0];
+        if (or.andExpression().length !== 1) return null;
+
+        const and = or.andExpression()[0];
+        if (and.equalityExpression().length !== 1) return null;
+
+        const eq = and.equalityExpression()[0];
+        if (eq.relationalExpression().length !== 1) return null;
+
+        const rel = eq.relationalExpression()[0];
+        if (rel.bitwiseOrExpression().length !== 1) return null;
+
+        const bor = rel.bitwiseOrExpression()[0];
+        if (bor.bitwiseXorExpression().length !== 1) return null;
+
+        const bxor = bor.bitwiseXorExpression()[0];
+        if (bxor.bitwiseAndExpression().length !== 1) return null;
+
+        const band = bxor.bitwiseAndExpression()[0];
+        if (band.shiftExpression().length !== 1) return null;
+
+        const shift = band.shiftExpression()[0];
+        if (shift.additiveExpression().length !== 1) return null;
+
+        const add = shift.additiveExpression()[0];
+        if (add.multiplicativeExpression().length !== 1) return null;
+
+        const mult = add.multiplicativeExpression()[0];
+        if (mult.unaryExpression().length !== 1) return null;
+
+        const unary = mult.unaryExpression()[0];
+        const postfix = unary.postfixExpression();
+        if (!postfix) return null;
+
+        const primary = postfix.primaryExpression();
+        const ops = postfix.postfixOp();
+
+        // Need exactly one postfix operation (the [start, length])
+        if (ops.length !== 1) return null;
+
+        const op = ops[0];
+        const exprs = op.expression();
+
+        // Check for [start, length] pattern (exactly 2 expressions)
+        if (exprs.length !== 2) return null;
+
+        // Get the source variable name
+        const sourceId = primary.IDENTIFIER();
+        if (!sourceId) return null;
+
+        const sourceName = sourceId.getText();
+
+        // Check if source is a string type
+        const typeInfo = this.context.typeRegistry.get(sourceName);
+        if (!typeInfo?.isString || typeInfo.stringCapacity === undefined) {
+            return null;
+        }
+
+        return {
+            source: sourceName,
+            start: this.generateExpression(exprs[0]),
+            length: this.generateExpression(exprs[1]),
+            sourceCapacity: typeInfo.stringCapacity
+        };
+    }
+
     // ========================================================================
     // ADR-024: Type Classification and Validation Helpers
     // ========================================================================
@@ -2070,6 +2153,39 @@ export default class CodeGenerator {
                         lines.push(`${indent}strncpy(${name}, ${concatOps.left}, ${capacity});`);
                         lines.push(`${indent}strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`);
                         lines.push(`${indent}${name}[${capacity}] = '\\0';`);
+                        return lines.join('\n');
+                    }
+
+                    // ADR-045: Check for substring extraction
+                    const substringOps = this.getSubstringOperands(ctx.expression()!);
+                    if (substringOps) {
+                        // For compile-time validation, we need numeric literals
+                        const startNum = parseInt(substringOps.start, 10);
+                        const lengthNum = parseInt(substringOps.length, 10);
+
+                        // Only validate bounds if both start and length are compile-time constants
+                        if (!isNaN(startNum) && !isNaN(lengthNum)) {
+                            // Bounds check: start + length <= sourceCapacity
+                            if (startNum + lengthNum > substringOps.sourceCapacity) {
+                                throw new Error(
+                                    `Error: Substring bounds [${startNum}, ${lengthNum}] exceed source string<${substringOps.sourceCapacity}> capacity`
+                                );
+                            }
+                        }
+
+                        // Validate destination capacity can hold the substring
+                        if (!isNaN(lengthNum) && lengthNum > capacity) {
+                            throw new Error(
+                                `Error: Substring length ${lengthNum} exceeds destination string<${capacity}> capacity`
+                            );
+                        }
+
+                        // Generate safe substring extraction code
+                        const indent = this.context.inFunctionBody ? '    '.repeat(this.context.indentLevel) : '';
+                        const lines: string[] = [];
+                        lines.push(`${constMod}char ${name}[${capacity + 1}] = "";`);
+                        lines.push(`${indent}strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`);
+                        lines.push(`${indent}${name}[${substringOps.length}] = '\\0';`);
                         return lines.join('\n');
                     }
 
