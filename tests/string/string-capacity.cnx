@@ -1,0 +1,6 @@
+// ADR-045: Test string .capacity property (compile-time constant)
+string<64> message <- "Hello";
+
+void test() {
+    u32 cap <- message.capacity;
+}

@@ -422,6 +422,7 @@ argumentList
 // ----------------------------------------------------------------------------
 type
     : primitiveType
+    | stringType                              // ADR-045: Bounded strings
     | scopedType                              // ADR-016: this.Type for scoped types
     | qualifiedType                           // ADR-016: Scope.Type from outside scope
     | userType
@@ -449,6 +450,13 @@ primitiveType
 
 userType
     : IDENTIFIER
+    ;
+
+// ADR-045: Bounded string type
+// string<N> where N is character capacity (not including null terminator)
+stringType
+    : 'string' '<' INTEGER_LITERAL '>'    // Sized: string<64>
+    | 'string'                             // Unsized: for const inference
     ;
 
 arrayType
@@ -555,6 +563,7 @@ RETURN      : 'return';
 TRUE        : 'true';
 FALSE       : 'false';
 NULL        : 'null';
+STRING      : 'string';   // ADR-045: Bounded string type
 
 // Access modifiers for registers
 RW          : 'rw';

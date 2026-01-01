@@ -1,0 +1,6 @@
+// ADR-045: Test string .length property (runtime strlen)
+string<64> message <- "Hello";
+
+void test() {
+    u32 len <- message.length;
+}

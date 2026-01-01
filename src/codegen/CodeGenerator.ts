@@ -74,6 +74,8 @@ interface TypeInfo {
     isEnum?: boolean;      // ADR-017: Track if this is an enum type
     enumTypeName?: string; // ADR-017: The enum type name (e.g., 'State')
     overflowBehavior?: TOverflowBehavior; // ADR-044: clamp (default) or wrap
+    isString?: boolean;         // ADR-045: Track if this is a bounded string type
+    stringCapacity?: number;    // ADR-045: The N in string<N> (character capacity)
 }
 
 /**
@@ -191,6 +193,7 @@ export default class CodeGenerator {
     // Track required standard library includes
     private needsStdint: boolean = false;   // For u8, u16, u32, u64, i8, i16, i32, i64
     private needsStdbool: boolean = false;  // For bool type
+    private needsString: boolean = false;   // ADR-045: For strlen, strncpy, etc.
 
     /** External symbol table for cross-language interop */
     private symbolTable: SymbolTable | null = null;
@@ -293,6 +296,7 @@ export default class CodeGenerator {
         this.usedClampOps = new Set();  // ADR-044: Reset overflow helpers
         this.needsStdint = false;
         this.needsStdbool = false;
+        this.needsString = false;  // ADR-045: Reset string header tracking
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -355,6 +359,9 @@ export default class CodeGenerator {
         }
         if (this.needsStdbool) {
             autoIncludes.push('#include <stdbool.h>');
+        }
+        if (this.needsString) {
+            autoIncludes.push('#include <string.h>');  // ADR-045: For strlen, strncpy, etc.
         }
         if (autoIncludes.length > 0) {
             output.push(...autoIncludes);
@@ -539,6 +546,31 @@ export default class CodeGenerator {
         if (typeCtx.primitiveType()) {
             baseType = typeCtx.primitiveType()!.getText();
             bitWidth = TYPE_WIDTH[baseType] || 0;
+        } else if (typeCtx.stringType()) {
+            // ADR-045: Handle bounded string type
+            const stringCtx = typeCtx.stringType()!;
+            const intLiteral = stringCtx.INTEGER_LITERAL();
+
+            if (intLiteral) {
+                const capacity = parseInt(intLiteral.getText(), 10);
+                this.needsString = true;
+
+                this.context.typeRegistry.set(name, {
+                    baseType: 'char',
+                    bitWidth: 8,
+                    isArray: true,
+                    arrayLength: capacity + 1,  // +1 for null terminator
+                    isConst,
+                    isString: true,
+                    stringCapacity: capacity,
+                    overflowBehavior,
+                });
+                return; // Early return, we've handled this case
+            } else {
+                // Unsized string - for const inference (handled in generateVariableDecl)
+                baseType = 'string';
+                bitWidth = 0;
+            }
         } else if (typeCtx.scopedType()) {
             // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
             const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
@@ -1422,6 +1454,28 @@ export default class CodeGenerator {
     }
 
     /**
+     * ADR-045: Get the actual character length of a string literal,
+     * accounting for escape sequences like \n, \t, \\, etc.
+     */
+    private getStringLiteralLength(literal: string): number {
+        // Remove surrounding quotes
+        const content = literal.slice(1, -1);
+
+        let length = 0;
+        let i = 0;
+        while (i < content.length) {
+            if (content[i] === '\\' && i + 1 < content.length) {
+                // Escape sequence counts as 1 character
+                i += 2;
+            } else {
+                i += 1;
+            }
+            length += 1;
+        }
+        return length;
+    }
+
+    /**
      * Check if an expression is an lvalue that needs & when passed to functions.
      * This includes member access (cursor.x) and array access (arr[i]).
      * Returns the type of lvalue or null if not an lvalue.
@@ -1869,6 +1923,72 @@ export default class CodeGenerator {
         // Global and scope-level variables should NOT be tracked as local
         if (this.context.inFunctionBody) {
             this.context.localVariables.add(name);
+        }
+
+        // ADR-045: Handle bounded string type specially
+        if (typeCtx.stringType()) {
+            const stringCtx = typeCtx.stringType()!;
+            const intLiteral = stringCtx.INTEGER_LITERAL();
+
+            if (intLiteral) {
+                const capacity = parseInt(intLiteral.getText(), 10);
+                let stringDecl = `${constMod}char ${name}[${capacity + 1}]`;
+
+                if (ctx.expression()) {
+                    const exprText = ctx.expression()!.getText();
+
+                    // Validate string literal fits capacity
+                    if (exprText.startsWith('"') && exprText.endsWith('"')) {
+                        // Extract content without quotes, accounting for escape sequences
+                        const content = this.getStringLiteralLength(exprText);
+                        if (content > capacity) {
+                            throw new Error(
+                                `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`
+                            );
+                        }
+                    }
+
+                    stringDecl += ` = ${this.generateExpression(ctx.expression()!)}`;
+                } else {
+                    // Empty string initialization
+                    stringDecl += ' = ""';
+                }
+
+                return stringDecl + ';';
+            } else {
+                // ADR-045: Unsized string - requires const and string literal for inference
+                const isConst = ctx.constModifier() !== null;
+
+                if (!isConst) {
+                    throw new Error('Error: Non-const string requires explicit capacity, e.g., string<64>');
+                }
+
+                if (!ctx.expression()) {
+                    throw new Error('Error: const string requires initializer for capacity inference');
+                }
+
+                const exprText = ctx.expression()!.getText();
+                if (!exprText.startsWith('"') || !exprText.endsWith('"')) {
+                    throw new Error('Error: const string requires string literal for capacity inference');
+                }
+
+                // Infer capacity from literal length
+                const inferredCapacity = this.getStringLiteralLength(exprText);
+                this.needsString = true;
+
+                // Register in type registry with inferred capacity
+                this.context.typeRegistry.set(name, {
+                    baseType: 'char',
+                    bitWidth: 8,
+                    isArray: true,
+                    arrayLength: inferredCapacity + 1,
+                    isConst: true,
+                    isString: true,
+                    stringCapacity: inferredCapacity,
+                });
+
+                return `const char ${name}[${inferredCapacity + 1}] = ${exprText};`;
+            }
         }
 
         let decl = `${constMod}${type} ${name}`;
@@ -3144,7 +3264,7 @@ export default class CodeGenerator {
                     continue;  // Skip further processing, this just sets the base identifier
                 }
 
-                // Handle .length property for arrays and integers
+                // Handle .length property for arrays, strings, and integers
                 if (memberName === 'length') {
                     // Special case: main function's args.length -> argc
                     if (this.context.mainArgsName && primaryId === this.context.mainArgsName) {
@@ -3152,7 +3272,10 @@ export default class CodeGenerator {
                     } else {
                         const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
                         if (typeInfo) {
-                            if (typeInfo.isArray && typeInfo.arrayLength !== undefined) {
+                            // ADR-045: String length is runtime strlen()
+                            if (typeInfo.isString) {
+                                result = `strlen(${primaryId})`;
+                            } else if (typeInfo.isArray && typeInfo.arrayLength !== undefined) {
                                 // Array length - return the compile-time constant
                                 result = String(typeInfo.arrayLength);
                             } else if (!typeInfo.isArray) {
@@ -3165,6 +3288,16 @@ export default class CodeGenerator {
                         } else {
                             result = `/* .length: unknown type for ${result} */0`;
                         }
+                    }
+                }
+                // ADR-045: Handle .capacity property for strings
+                else if (memberName === 'capacity') {
+                    const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
+                    if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+                        // Return compile-time constant capacity
+                        result = String(typeInfo.stringCapacity);
+                    } else {
+                        throw new Error(`Error: .capacity is only available on string types`);
                     }
                 }
                 // Check if this is a scope member access: Scope.member (ADR-016)
@@ -3473,6 +3606,11 @@ export default class CodeGenerator {
                 this.needsStdint = true;
             }
             return TYPE_MAP[type] || type;
+        }
+        // ADR-045: Handle bounded string type
+        if (ctx.stringType()) {
+            this.needsString = true;
+            return 'char';  // String declarations handle the array dimension separately
         }
         // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
         if (ctx.scopedType()) {

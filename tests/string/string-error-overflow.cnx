@@ -1,0 +1,3 @@
+// ADR-045: Test string literal overflow error
+// "Hello" is 5 chars, but capacity is only 4
+string<4> tooSmall <- "Hello";
