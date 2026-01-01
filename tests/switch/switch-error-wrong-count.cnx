@@ -1,0 +1,15 @@
+// ADR-025: Error Test - Wrong Default Count
+// Should error: default(n) count doesn't match remaining variants
+
+enum EState { IDLE, RUNNING, STOPPED, ERROR }
+
+void handleState(EState state) {
+    switch (state) {
+        case EState.IDLE {
+        }
+        case EState.RUNNING {
+        }
+        default(1) {
+        }
+    }
+}

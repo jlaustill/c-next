@@ -1,0 +1,22 @@
+// ADR-025: Counted Default Test
+// Tests default(n) syntax for large enums
+
+enum EHttpStatus { OK, CREATED, BAD_REQUEST, UNAUTHORIZED, NOT_FOUND }
+
+void handleSuccess() {}
+void handleCreated() {}
+void handleOther() {}
+
+void handleStatus(EHttpStatus status) {
+    switch (status) {
+        case EHttpStatus.OK {
+            handleSuccess();
+        }
+        case EHttpStatus.CREATED {
+            handleCreated();
+        }
+        default(3) {
+            handleOther();
+        }
+    }
+}

@@ -1,0 +1,22 @@
+// ADR-025: Exhaustive Enum Switch Test
+// Tests switch with all enum variants covered
+
+enum EState { IDLE, RUNNING, STOPPED }
+
+void onIdle() {}
+void onActive() {}
+void onStopped() {}
+
+void handleState(EState state) {
+    switch (state) {
+        case EState.IDLE {
+            onIdle();
+        }
+        case EState.RUNNING {
+            onActive();
+        }
+        case EState.STOPPED {
+            onStopped();
+        }
+    }
+}

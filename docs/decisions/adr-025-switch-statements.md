@@ -1,7 +1,7 @@
 # ADR-025: Switch Statements
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 

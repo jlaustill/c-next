@@ -1,0 +1,14 @@
+// ADR-025: Error Test - Duplicate Case
+// Should error: duplicate case values not allowed
+
+void test() {
+    u32 cmd <- 0;
+    switch (cmd) {
+        case 0 {
+        }
+        case 1 {
+        }
+        case 0 {
+        }
+    }
+}

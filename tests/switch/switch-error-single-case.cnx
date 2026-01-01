@@ -1,0 +1,10 @@
+// ADR-025: Error Test - Single Case
+// Should error: MISRA 16.6 requires at least 2 clauses
+
+void test() {
+    u32 cmd <- 0;
+    switch (cmd) {
+        case 0 {
+        }
+    }
+}

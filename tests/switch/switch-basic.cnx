@@ -1,0 +1,20 @@
+// ADR-025: Basic Switch Test
+// Tests basic switch statement with integer type
+
+void handleReset() {}
+void handleStart() {}
+void handleUnknown() {}
+
+void handleCommand(u32 cmd) {
+    switch (cmd) {
+        case 0 {
+            handleReset();
+        }
+        case 1 {
+            handleStart();
+        }
+        default {
+            handleUnknown();
+        }
+    }
+}

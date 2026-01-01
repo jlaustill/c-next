@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Switch requires at least 2 clauses (MISRA 16.6). Use if statement for single case.

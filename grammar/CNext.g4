@@ -180,6 +180,7 @@ statement
     | ifStatement
     | whileStatement
     | forStatement
+    | switchStatement
     | returnStatement
     | block
     ;
@@ -270,6 +271,32 @@ forUpdate
 
 returnStatement
     : 'return' expression? ';'
+    ;
+
+// ----------------------------------------------------------------------------
+// Switch Statement (ADR-025: Safe switch with MISRA compliance)
+// ----------------------------------------------------------------------------
+switchStatement
+    : 'switch' '(' expression ')' '{' switchCase+ defaultCase? '}'
+    ;
+
+switchCase
+    : 'case' caseLabel ('||' caseLabel)* block
+    ;
+
+// Case labels must be constant expressions (like C)
+// No || ambiguity: logical OR isn't valid in constant context
+caseLabel
+    : qualifiedType      // Enum value: EState.IDLE
+    | IDENTIFIER         // Const or enum member
+    | INTEGER_LITERAL
+    | HEX_LITERAL
+    | BINARY_LITERAL
+    | CHAR_LITERAL
+    ;
+
+defaultCase
+    : 'default' ('(' INTEGER_LITERAL ')')? block
     ;
 
 // ----------------------------------------------------------------------------
@@ -515,6 +542,9 @@ IF          : 'if';
 ELSE        : 'else';
 WHILE       : 'while';
 FOR         : 'for';
+SWITCH      : 'switch';   // ADR-025: Switch statements
+CASE        : 'case';
+DEFAULT     : 'default';
 RETURN      : 'return';
 TRUE        : 'true';
 FALSE       : 'false';

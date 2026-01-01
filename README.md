@@ -190,6 +190,44 @@ void LED_off(void) { GPIO7_DR_CLEAR = (1 << LED_BIT); }
 uint8_t LED_getBrightness(void) { return LED_brightness; }
 ```
 
+### Switch Statements (ADR-025)
+
+Safe switch with MISRA compliance:
+- Braces replace break (no colons needed)
+- No fallthrough allowed
+- Multiple cases with `||` syntax
+- Counted `default(n)` for enum exhaustiveness
+
+```cnx
+enum EState { IDLE, RUNNING, STOPPED }
+
+void handleState(EState state) {
+    switch (state) {
+        case EState.IDLE {
+            startMotor();
+        }
+        case EState.RUNNING || EState.STOPPED {
+            checkSensors();
+        }
+    }
+}
+```
+
+Transpiles to:
+```c
+switch (state) {
+    case EState_IDLE: {
+        startMotor();
+        break;
+    }
+    case EState_RUNNING:
+    case EState_STOPPED: {
+        checkSensors();
+        break;
+    }
+}
+```
+
 ### Startup Allocation
 
 Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memory is allocated during initialization, then forbidden. No runtime allocation means no fragmentation, no OOM, no leaks.
@@ -247,12 +285,12 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-043](docs/decisions/adr-043-comments.md) | Comments | Comment preservation with MISRA compliance |
 | [ADR-044](docs/decisions/adr-044-primitive-types.md) | Primitive Types | Fixed-width types with `clamp`/`wrap` overflow |
 | [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | Widening implicit, narrowing uses bit indexing |
+| [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 
 ### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | If/else (done), ternary with MISRA constraints |
-| [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
 
 ### Research (v1 Roadmap)

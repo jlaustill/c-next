@@ -790,12 +790,27 @@ export default class CodeGenerator {
 
             // Determine if it's a struct type
             let isStruct = false;
+            let typeName = typeCtx.getText();
             if (typeCtx.userType()) {
-                const typeName = typeCtx.userType()!.getText();
+                typeName = typeCtx.userType()!.getText();
                 isStruct = this.isStructType(typeName);
+            } else if (typeCtx.qualifiedType()) {
+                // ADR-016: Handle qualified enum types like Scope.EnumType
+                typeName = typeCtx.qualifiedType()!.IDENTIFIER().map((id) => id.getText()).join('_');
             }
 
             this.context.currentParameters.set(name, { name, isArray, isStruct, isConst });
+
+            // ADR-025: Register parameter type for switch exhaustiveness checking
+            const isEnum = this.knownEnums.has(typeName);
+            this.context.typeRegistry.set(name, {
+                baseType: typeName,
+                bitWidth: 0,
+                isArray: isArray,
+                isConst: isConst,
+                isEnum: isEnum,
+                enumTypeName: isEnum ? typeName : undefined,
+            });
         }
     }
 
@@ -803,6 +818,10 @@ export default class CodeGenerator {
      * Clear parameter tracking when leaving a function
      */
     private clearParameters(): void {
+        // ADR-025: Remove parameter types from typeRegistry
+        for (const name of this.context.currentParameters.keys()) {
+            this.context.typeRegistry.delete(name);
+        }
         this.context.currentParameters.clear();
         this.context.localArrays.clear();
     }
@@ -2041,6 +2060,9 @@ export default class CodeGenerator {
         if (ctx.forStatement()) {
             return this.generateFor(ctx.forStatement()!);
         }
+        if (ctx.switchStatement()) {
+            return this.generateSwitch(ctx.switchStatement()!);
+        }
         if (ctx.returnStatement()) {
             return this.generateReturn(ctx.returnStatement()!);
         }
@@ -2544,6 +2566,265 @@ export default class CodeGenerator {
             return `return ${this.generateExpression(ctx.expression()!)};`;
         }
         return 'return;';
+    }
+
+    // ========================================================================
+    // Switch Statements (ADR-025)
+    // ========================================================================
+
+    private generateSwitch(ctx: Parser.SwitchStatementContext): string {
+        const switchExpr = ctx.expression();
+        const exprCode = this.generateExpression(switchExpr);
+
+        // ADR-025: Semantic validation
+        this.validateSwitchStatement(ctx, switchExpr);
+
+        // Build the switch statement
+        const lines: string[] = [`switch (${exprCode}) {`];
+
+        // Generate cases
+        for (const caseCtx of ctx.switchCase()) {
+            lines.push(this.generateSwitchCase(caseCtx));
+        }
+
+        // Generate default if present
+        const defaultCtx = ctx.defaultCase();
+        if (defaultCtx) {
+            lines.push(this.generateDefaultCase(defaultCtx));
+        }
+
+        lines.push('}');
+
+        return lines.join('\n');
+    }
+
+    private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
+        const labels = ctx.caseLabel();
+        const block = ctx.block();
+        const lines: string[] = [];
+
+        // Generate case labels - expand || to multiple C case labels
+        for (let i = 0; i < labels.length; i++) {
+            const labelCode = this.generateCaseLabel(labels[i]);
+            if (i < labels.length - 1) {
+                // Multiple labels: just the label without body
+                lines.push(this.indent(`case ${labelCode}:`));
+            } else {
+                // Last label: attach the block
+                lines.push(this.indent(`case ${labelCode}: {`));
+            }
+        }
+
+        // Generate block contents (without the outer braces - we added them above)
+        const statements = block.statement();
+        for (const stmt of statements) {
+            const stmtCode = this.generateStatement(stmt);
+            if (stmtCode) {
+                lines.push(this.indent(this.indent(stmtCode)));
+            }
+        }
+
+        // Add break and close block
+        lines.push(this.indent(this.indent('break;')));
+        lines.push(this.indent('}'));
+
+        return lines.join('\n');
+    }
+
+    private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
+        // qualifiedType - for enum values like EState.IDLE
+        if (ctx.qualifiedType()) {
+            const qt = ctx.qualifiedType()!;
+            // Convert EState.IDLE to EState_IDLE for C
+            const parts = qt.IDENTIFIER();
+            return parts.map((id) => id.getText()).join('_');
+        }
+
+        // IDENTIFIER - const variable or plain enum member
+        if (ctx.IDENTIFIER()) {
+            return ctx.IDENTIFIER()!.getText();
+        }
+
+        // Numeric literals
+        if (ctx.INTEGER_LITERAL()) {
+            return ctx.INTEGER_LITERAL()!.getText();
+        }
+
+        if (ctx.HEX_LITERAL()) {
+            return ctx.HEX_LITERAL()!.getText();
+        }
+
+        if (ctx.BINARY_LITERAL()) {
+            // Convert binary to hex for cleaner C output
+            const binText = ctx.BINARY_LITERAL()!.getText();
+            const value = parseInt(binText.replace(/0[bB]/, ''), 2);
+            return `0x${value.toString(16).toUpperCase()}`;
+        }
+
+        if (ctx.CHAR_LITERAL()) {
+            return ctx.CHAR_LITERAL()!.getText();
+        }
+
+        return '';
+    }
+
+    private generateDefaultCase(ctx: Parser.DefaultCaseContext): string {
+        const block = ctx.block();
+        const lines: string[] = [];
+
+        // Note: default(n) count is for compile-time validation only,
+        // not included in generated C
+        lines.push(this.indent('default: {'));
+
+        // Generate block contents
+        const statements = block.statement();
+        for (const stmt of statements) {
+            const stmtCode = this.generateStatement(stmt);
+            if (stmtCode) {
+                lines.push(this.indent(this.indent(stmtCode)));
+            }
+        }
+
+        // Add break and close block
+        lines.push(this.indent(this.indent('break;')));
+        lines.push(this.indent('}'));
+
+        return lines.join('\n');
+    }
+
+    /**
+     * ADR-025: Validate switch statement for MISRA compliance
+     */
+    private validateSwitchStatement(
+        ctx: Parser.SwitchStatementContext,
+        switchExpr: Parser.ExpressionContext
+    ): void {
+        const cases = ctx.switchCase();
+        const defaultCase = ctx.defaultCase();
+        const totalClauses = cases.length + (defaultCase ? 1 : 0);
+
+        // MISRA 16.7: No boolean switches (use if/else instead)
+        const exprType = this.getExpressionType(switchExpr);
+        if (exprType === 'bool') {
+            throw new Error(
+                'Error: Cannot switch on boolean type (MISRA 16.7). Use if/else instead.'
+            );
+        }
+
+        // MISRA 16.6: Minimum 2 clauses required
+        if (totalClauses < 2) {
+            throw new Error(
+                'Error: Switch requires at least 2 clauses (MISRA 16.6). Use if statement for single case.'
+            );
+        }
+
+        // MISRA 16.5: Default must be last clause (checked by grammar order, but verify)
+        // Grammar ensures default comes after cases, so this is always satisfied
+
+        // Check for duplicate case values
+        const seenValues = new Set<string>();
+        for (const caseCtx of cases) {
+            for (const labelCtx of caseCtx.caseLabel()) {
+                const labelValue = this.getCaseLabelValue(labelCtx);
+                if (seenValues.has(labelValue)) {
+                    throw new Error(`Error: Duplicate case value '${labelValue}' in switch statement.`);
+                }
+                seenValues.add(labelValue);
+            }
+        }
+
+        // ADR-025: Enum exhaustiveness checking
+        if (exprType && this.knownEnums.has(exprType)) {
+            this.validateEnumExhaustiveness(ctx, exprType, cases, defaultCase);
+        }
+    }
+
+    /**
+     * ADR-025: Validate enum switch exhaustiveness with default(n) counting
+     */
+    private validateEnumExhaustiveness(
+        ctx: Parser.SwitchStatementContext,
+        enumTypeName: string,
+        cases: Parser.SwitchCaseContext[],
+        defaultCase: Parser.DefaultCaseContext | null
+    ): void {
+        const enumVariants = this.enumMembers.get(enumTypeName);
+        if (!enumVariants) return; // Shouldn't happen if knownEnums has it
+
+        const totalVariants = enumVariants.size;
+
+        // Count explicit cases (each || alternative counts as 1)
+        let explicitCaseCount = 0;
+        for (const caseCtx of cases) {
+            explicitCaseCount += caseCtx.caseLabel().length;
+        }
+
+        if (defaultCase) {
+            // Check for default(n) syntax
+            const defaultCount = this.getDefaultCount(defaultCase);
+
+            if (defaultCount !== null) {
+                // default(n) mode: explicit + n must equal total variants
+                const covered = explicitCaseCount + defaultCount;
+                if (covered !== totalVariants) {
+                    throw new Error(
+                        `Error: switch covers ${covered} of ${totalVariants} ${enumTypeName} variants ` +
+                            `(${explicitCaseCount} explicit + default(${defaultCount})). ` +
+                            `Expected ${totalVariants}.`
+                    );
+                }
+            }
+            // Plain default: no exhaustiveness check needed
+        } else {
+            // No default: must cover all variants explicitly
+            if (explicitCaseCount !== totalVariants) {
+                const missing = totalVariants - explicitCaseCount;
+                throw new Error(
+                    `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`
+                );
+            }
+        }
+    }
+
+    /**
+     * Get the count from default(n) syntax, or null for plain default
+     */
+    private getDefaultCount(ctx: Parser.DefaultCaseContext): number | null {
+        const intLiteral = ctx.INTEGER_LITERAL();
+        if (intLiteral) {
+            return parseInt(intLiteral.getText(), 10);
+        }
+        return null;
+    }
+
+    /**
+     * Get the string representation of a case label for duplicate checking
+     */
+    private getCaseLabelValue(ctx: Parser.CaseLabelContext): string {
+        if (ctx.qualifiedType()) {
+            const qt = ctx.qualifiedType()!;
+            return qt.IDENTIFIER().map((id) => id.getText()).join('.');
+        }
+        if (ctx.IDENTIFIER()) {
+            return ctx.IDENTIFIER()!.getText();
+        }
+        if (ctx.INTEGER_LITERAL()) {
+            return ctx.INTEGER_LITERAL()!.getText();
+        }
+        if (ctx.HEX_LITERAL()) {
+            // Normalize hex to decimal for comparison
+            const hex = ctx.HEX_LITERAL()!.getText();
+            return String(parseInt(hex, 16));
+        }
+        if (ctx.BINARY_LITERAL()) {
+            // Normalize binary to decimal for comparison
+            const bin = ctx.BINARY_LITERAL()!.getText();
+            return String(parseInt(bin.replace(/0[bB]/, ''), 2));
+        }
+        if (ctx.CHAR_LITERAL()) {
+            return ctx.CHAR_LITERAL()!.getText();
+        }
+        return '';
     }
 
     // ========================================================================

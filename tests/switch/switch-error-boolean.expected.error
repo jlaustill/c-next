@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Cannot switch on boolean type (MISRA 16.7). Use if/else instead.

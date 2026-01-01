@@ -480,7 +480,7 @@ do {
     byte <- readByte();
 } while (byte != END_MARKER);
 
-// [TODO: ADR-025] Switch - braces replace break, no fallthrough, no colons!
+// [DONE: ADR-025] Switch - braces replace break, no fallthrough, no colons!
 switch (state) {
     case State.IDLE {
         startMotor();

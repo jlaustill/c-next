@@ -1,0 +1,22 @@
+// ADR-025: Multiple Cases Test
+// Tests case A || B syntax
+
+enum ECommand { READ, WRITE, PEEK, POKE, ERASE }
+
+void doRead() {}
+void doWrite() {}
+void doOther() {}
+
+void handleCommand(ECommand cmd) {
+    switch (cmd) {
+        case ECommand.READ || ECommand.PEEK {
+            doRead();
+        }
+        case ECommand.WRITE || ECommand.POKE {
+            doWrite();
+        }
+        default {
+            doOther();
+        }
+    }
+}
