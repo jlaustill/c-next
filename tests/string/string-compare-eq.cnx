@@ -1,0 +1,9 @@
+// ADR-045: Test string equality comparison
+string<64> name <- "Alice";
+string<64> other <- "Bob";
+
+void test() {
+    if (name = other) {
+        // Equal
+    }
+}

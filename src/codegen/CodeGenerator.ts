@@ -1045,6 +1045,29 @@ export default class CodeGenerator {
         return false;
     }
 
+    /**
+     * ADR-045: Check if an expression represents a string type.
+     * Used to detect string comparisons and generate strcmp().
+     */
+    private isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
+        const text = ctx.getText();
+
+        // Check for string literals
+        if (text.startsWith('"') && text.endsWith('"')) {
+            return true;
+        }
+
+        // Check if it's a variable of string type
+        if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+            const typeInfo = this.context.typeRegistry.get(text);
+            if (typeInfo?.isString) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // ========================================================================
     // ADR-024: Type Classification and Validation Helpers
     // ========================================================================
@@ -3107,6 +3130,20 @@ export default class CodeGenerator {
                 throw new Error(
                     `Error: Cannot compare integer to ${rightEnumType} enum`
                 );
+            }
+
+            // ADR-045: Check for string comparison
+            const leftIsString = this.isStringExpression(exprs[0]);
+            const rightIsString = this.isStringExpression(exprs[1]);
+
+            if (leftIsString || rightIsString) {
+                // Generate strcmp for string comparison
+                const leftCode = this.generateRelationalExpr(exprs[0]);
+                const rightCode = this.generateRelationalExpr(exprs[1]);
+                const fullText = ctx.getText();
+                const isNotEqual = fullText.includes('!=');
+                const cmpOp = isNotEqual ? '!= 0' : '== 0';
+                return `strcmp(${leftCode}, ${rightCode}) ${cmpOp}`;
             }
         }
 

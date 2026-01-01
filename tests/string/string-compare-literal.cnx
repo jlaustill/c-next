@@ -1,0 +1,8 @@
+// ADR-045: Test string comparison with literal
+string<64> name <- "Alice";
+
+void test() {
+    if (name = "Alice") {
+        // Match
+    }
+}
