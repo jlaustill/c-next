@@ -396,7 +396,6 @@ Decisions are documented in `/docs/decisions/`:
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Declaration | Interrupt handler syntax |
-| [ADR-041](docs/decisions/adr-041-inline-assembly.md) | Inline Assembly | Platform-specific asm |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 
 ### Foundational Research
@@ -408,6 +407,7 @@ Decisions are documented in `/docs/decisions/`:
 ### Rejected
 | ADR | Title | Description |
 |-----|-------|-------------|
+| [ADR-041](docs/decisions/adr-041-inline-assembly.md) | Inline Assembly | Write assembly in C files; C-Next transpiles to C anyway |
 | [ADR-042](docs/decisions/adr-042-error-handling.md) | Error Handling | Works with existing features (enums, pass-by-reference, struct returns) |
 | [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
 | [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | Fixed-width types are more predictable than platform-sized |

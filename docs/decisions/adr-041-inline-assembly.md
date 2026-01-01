@@ -1,22 +1,66 @@
 # ADR-041: Inline Assembly
 
 ## Status
-**Research**
+**Rejected**
 
-## Context
+## Decision
+
+**No inline assembly in C-Next for v1.** When assembly is needed, write it in C.
+
+## Rationale
+
+C-Next transpiles to C, so inline assembly can be handled at the C level:
+
+1. **Write assembly in C files** — Create a `.c` file with inline asm, link with C-Next output
+2. **Use existing C intrinsics** — CMSIS, compiler builtins already exist and work
+3. **Keep C-Next simple** — Assembly is rare, platform-specific, and bypasses all safety guarantees
+
+### Example Workflow
+
+```c
+// platform_asm.c (pure C file)
+#include <stdint.h>
+
+void __wfi(void) {
+    __asm volatile("wfi");
+}
+
+void __disable_irq(void) {
+    __asm volatile("cpsid i");
+}
+
+uint32_t read_cycle_count(void) {
+    uint32_t cycles;
+    __asm volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(cycles));
+    return cycles;
+}
+```
+
+```cnx
+// main.cnx - declare external functions
+extern void __wfi();
+extern void __disable_irq();
+extern u32 read_cycle_count();
+
+void idle() {
+    __disable_irq();
+    __wfi();
+}
+```
+
+This approach:
+- Uses battle-tested GCC/Clang inline asm syntax
+- Keeps platform-specific code isolated
+- Requires no new C-Next grammar or codegen
+- Works today with extern declarations
+
+## Original Context
 
 Inline assembly is sometimes unavoidable:
 - CPU-specific instructions (WFI, DSB, ISB)
 - Performance-critical inner loops
 - Hardware access not expressible in C
 - Startup code
-
-## Decision Drivers
-
-1. **Hardware Access** - Sometimes only asm works
-2. **Safety** - Asm bypasses all safety
-3. **Portability** - Asm is architecture-specific
-4. **Rarity** - Should be very uncommon
 
 ## Options Considered
 
@@ -59,80 +103,14 @@ Call out to .s files for any assembly.
 **Pros:** Clear separation
 **Cons:** More files, harder for simple cases
 
-## Recommended Decision
+## Why All Options Were Rejected
 
-**Option A: Pass-Through GCC Syntax** for v1 - Don't reinvent.
+1. **Option A** (pass-through GCC syntax) — Adds complexity; just write asm in C files
+2. **Option B** (block syntax) — New syntax for something C already handles well
+3. **Option C** (intrinsics only) — Can't cover all cases; C intrinsics already exist
+4. **Option D** (no inline asm, use .s files) — This is essentially what we chose, but with C files instead
 
-Pair with library of common intrinsics.
-
-## Syntax
-
-### Simple Assembly
-```cnx
-// Wait for interrupt
-asm volatile("wfi");
-
-// Data synchronization barrier
-asm volatile("dsb");
-asm volatile("isb");
-```
-
-### With Inputs/Outputs
-```cnx
-u32 readCycleCount() {
-    u32 cycles;
-    asm volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(cycles));
-    return cycles;
-}
-```
-
-### Memory Clobber
-```cnx
-void memoryBarrier() {
-    asm volatile("" ::: "memory");
-}
-```
-
-### Common Intrinsics (Library)
-```cnx
-// Provided by platform library
-inline void __wfi() {
-    asm volatile("wfi");
-}
-
-inline void __disable_irq() {
-    asm volatile("cpsid i");
-}
-
-inline void __enable_irq() {
-    asm volatile("cpsie i");
-}
-```
-
-## Implementation Notes
-
-### Grammar Changes
-```antlr
-asmStatement
-    : 'asm' 'volatile'? '(' STRING_LITERAL asmOperands? ')' ';'
-    ;
-
-asmOperands
-    : ':' asmOutputs? ':' asmInputs? ':' asmClobbers?
-    ;
-```
-
-### CodeGenerator
-Direct pass-through to C.
-
-### Priority
-**Low** - Rare use case, workarounds exist.
-
-## Open Questions
-
-1. Platform intrinsic library?
-2. Validate asm syntax at all?
-3. Warn about asm usage?
+The key insight: C-Next transpiles to C, so there's no need to reinvent inline assembly syntax. Developers who need assembly can write it in C and link it.
 
 ## References
 
