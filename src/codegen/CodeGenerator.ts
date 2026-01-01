@@ -165,6 +165,8 @@ interface GeneratorContext {
     expectedType: string | null; // For inferred struct initializers
     mainArgsName: string | null; // Track the args parameter name for main() translation
     assignmentContext: AssignmentContext; // ADR-044: Track current assignment for overflow
+    lastArrayInitCount: number; // ADR-035: Track element count for size inference
+    lastArrayFillValue: string | undefined; // ADR-035: Track fill-all value
 }
 
 /**
@@ -194,6 +196,8 @@ export default class CodeGenerator {
         expectedType: null,
         mainArgsName: null,  // Track the args parameter name for main() translation
         assignmentContext: { targetName: null, targetType: null, overflowBehavior: 'clamp' }, // ADR-044
+        lastArrayInitCount: 0,  // ADR-035: Track element count for size inference
+        lastArrayFillValue: undefined,  // ADR-035: Track fill-all value
     };
 
     private knownScopes: Set<string> = new Set();  // ADR-016: renamed from knownNamespaces
@@ -306,6 +310,8 @@ export default class CodeGenerator {
             expectedType: null,
             mainArgsName: null,  // Track the args parameter name for main() translation
             assignmentContext: { targetName: null, targetType: null, overflowBehavior: 'clamp' }, // ADR-044
+            lastArrayInitCount: 0,  // ADR-035: Track element count for size inference
+            lastArrayFillValue: undefined as string | undefined,  // ADR-035: Track fill-all value
         };
         this.knownScopes = new Set();  // ADR-016
         this.knownStructs = new Set();
@@ -2249,6 +2255,45 @@ export default class CodeGenerator {
         return `(${typeName}){ ${fields.join(', ')} }`;
     }
 
+    /**
+     * ADR-035: Generate array initializer
+     * [1, 2, 3] -> {1, 2, 3}
+     * [0*] -> {0} (fill-all syntax)
+     * Returns: { elements: string, count: number } for size inference
+     */
+    private generateArrayInitializer(ctx: Parser.ArrayInitializerContext): string {
+        // Check for fill-all syntax: [value*]
+        if (ctx.expression() && ctx.getChild(2)?.getText() === '*') {
+            // Fill-all: [0*] -> {0}
+            const fillValue = this.generateExpression(ctx.expression()!);
+            // Store element count as 0 to signal fill-all (size comes from declaration)
+            this.context.lastArrayInitCount = 0;
+            this.context.lastArrayFillValue = fillValue;
+            return `{${fillValue}}`;
+        }
+
+        // Regular list: [1, 2, 3] -> {1, 2, 3}
+        const elements = ctx.arrayInitializerElement();
+        const generatedElements: string[] = [];
+
+        for (const elem of elements) {
+            if (elem.expression()) {
+                generatedElements.push(this.generateExpression(elem.expression()!));
+            } else if (elem.structInitializer()) {
+                generatedElements.push(this.generateStructInitializer(elem.structInitializer()!));
+            } else if (elem.arrayInitializer()) {
+                // Nested array for multi-dimensional
+                generatedElements.push(this.generateArrayInitializer(elem.arrayInitializer()!));
+            }
+        }
+
+        // Store element count for size inference
+        this.context.lastArrayInitCount = generatedElements.length;
+        this.context.lastArrayFillValue = undefined;
+
+        return `{${generatedElements.join(', ')}}`;
+    }
+
     // ========================================================================
     // Functions
     // ========================================================================
@@ -2557,6 +2602,62 @@ export default class CodeGenerator {
 
         let decl = `${constMod}${type} ${name}`;
         const isArray = ctx.arrayDimension() !== null;
+        const arrayDimCtx = ctx.arrayDimension();
+        const hasEmptyArrayDim = isArray && !arrayDimCtx!.expression();
+        let declaredSize: number | null = null;
+
+        if (isArray && arrayDimCtx!.expression()) {
+            // Get declared size for validation
+            const sizeText = arrayDimCtx!.expression()!.getText();
+            if (sizeText.match(/^\d+$/)) {
+                declaredSize = parseInt(sizeText, 10);
+            }
+        }
+
+        // ADR-035: Handle array initializers with size inference
+        if (isArray && ctx.expression()) {
+            // Reset array init tracking
+            this.context.lastArrayInitCount = 0;
+            this.context.lastArrayFillValue = undefined;
+
+            // Generate the initializer expression (may be array initializer)
+            const typeName = this.getTypeName(typeCtx);
+            const savedExpectedType = this.context.expectedType;
+            this.context.expectedType = typeName;
+
+            const initValue = this.generateExpression(ctx.expression()!);
+
+            this.context.expectedType = savedExpectedType;
+
+            // Check if it was an array initializer
+            if (this.context.lastArrayInitCount > 0 || this.context.lastArrayFillValue !== undefined) {
+                // ADR-006: Track local arrays
+                this.context.localArrays.add(name);
+
+                if (hasEmptyArrayDim) {
+                    // Size inference: u8 data[] <- [1, 2, 3]
+                    if (this.context.lastArrayFillValue !== undefined) {
+                        throw new Error(
+                            `Error: Fill-all syntax [${this.context.lastArrayFillValue}*] requires explicit array size`
+                        );
+                    }
+                    decl += `[${this.context.lastArrayInitCount}]`;
+                } else {
+                    // Explicit size: validate element count
+                    decl += this.generateArrayDimension(arrayDimCtx!);
+
+                    if (declaredSize !== null && this.context.lastArrayFillValue === undefined) {
+                        if (this.context.lastArrayInitCount !== declaredSize) {
+                            throw new Error(
+                                `Error: Array size mismatch - declared [${declaredSize}] but got ${this.context.lastArrayInitCount} elements`
+                            );
+                        }
+                    }
+                }
+
+                return `${decl} = ${initValue};`;
+            }
+        }
 
         if (isArray) {
             decl += this.generateArrayDimension(ctx.arrayDimension()!);
@@ -4155,6 +4256,10 @@ export default class CodeGenerator {
         // ADR-014: Struct initializer - Point { x: 10, y: 20 }
         if (ctx.structInitializer()) {
             return this.generateStructInitializer(ctx.structInitializer()!);
+        }
+        // ADR-035: Array initializer - [1, 2, 3] or [0*]
+        if (ctx.arrayInitializer()) {
+            return this.generateArrayInitializer(ctx.arrayInitializer()!);
         }
 
         // ADR-016: Handle 'this' keyword for scope-local reference

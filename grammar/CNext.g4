@@ -382,6 +382,7 @@ primaryExpression
     : sizeofExpression                                // ADR-023: sizeof operator
     | castExpression
     | structInitializer
+    | arrayInitializer                                // ADR-035: array initializers
     | 'this'                                          // ADR-016: scope-local reference
     | 'global'                                        // ADR-016: global reference
     | IDENTIFIER
@@ -412,6 +413,19 @@ fieldInitializerList
 
 fieldInitializer
     : IDENTIFIER ':' expression
+    ;
+
+// ADR-035: Array initializers with square brackets
+// [1, 2, 3] for explicit values, [0*] for fill-all
+arrayInitializer
+    : '[' arrayInitializerElement (',' arrayInitializerElement)* ','? ']'  // List: [1, 2, 3]
+    | '[' expression '*' ']'                                                // Fill-all: [0*]
+    ;
+
+arrayInitializerElement
+    : expression
+    | structInitializer                              // For struct arrays: [{ x: 1 }, { x: 2 }]
+    | arrayInitializer                               // For nested arrays: [[1,2], [3,4]]
     ;
 
 memberAccess

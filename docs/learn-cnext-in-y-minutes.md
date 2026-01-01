@@ -579,7 +579,7 @@ u8 first <- buffer[0];
 // [DONE] .length property (ADR-007)
 usize len <- buffer.length;  // 256
 
-// [ACCEPTED: ADR-035] Array initialization - uses [] not {}
+// [DONE: ADR-035] Array initialization - uses [] not {}
 u8 data[] <- [1, 2, 3, 4, 5];     // Size inferred as 5
 u8 zeros[100] <- [0*];            // All 100 elements = 0 (fill-all syntax)
 u8 ones[50] <- [1*];              // All 50 elements = 1

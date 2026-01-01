@@ -1,0 +1,10 @@
+// ADR-035: Fill-All Syntax Test
+// Tests: [0*] fills all elements
+
+// Zero fill
+u8 buffer[100] <- [0*];
+
+// Fill with other values
+u8 ones[50] <- [1*];
+u16 magic[10] <- [0xDEAD*];
+i32 negatives[5] <- [-1*];

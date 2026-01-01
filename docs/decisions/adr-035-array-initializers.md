@@ -1,7 +1,7 @@
 # ADR-035: Array Initializers
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 
