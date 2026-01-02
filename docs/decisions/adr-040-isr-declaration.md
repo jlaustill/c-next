@@ -1,7 +1,7 @@
 # ADR-040: ISR Declaration
 
 ## Status
-**Research**
+**Implemented**
 
 ## Context
 
@@ -10,130 +10,141 @@ Interrupt Service Routines (ISRs) are critical for embedded:
 - Exception handlers (HardFault, NMI)
 - System tick handlers
 
-C uses platform-specific syntax and attributes.
+C uses platform-specific syntax and attributes. C-Next needs a simple, portable way to declare and pass ISRs.
 
 ## Decision Drivers
 
-1. **Hardware Interrupts** - Essential for embedded
-2. **Platform Variety** - Different MCUs, different syntax
-3. **Safety** - ISRs have special constraints
-4. **ADR-009** - Research on ISR safety already exists
+1. **Simplicity** - ISRs are just `void(void)` functions
+2. **Type Safety** - Ensure only valid ISRs are passed where expected
+3. **No New Syntax** - Leverage existing function declaration
+4. **Platform Agnostic** - Vector table setup is platform-specific (linker/startup)
 
-## Options Considered
+## Decision
 
-### Option A: Attribute-Based
-```cnx
-@isr(IRQ_TIMER0)
-void timer0Handler() {
-    clearInterrupt();
-    count +<- 1;
-}
-```
+**Built-in `ISR` type** - A primitive type representing `void(void)` function pointers.
 
-### Option B: Keyword-Based
-```cnx
-isr timer0Handler for IRQ_TIMER0 {
-    clearInterrupt();
-    count +<- 1;
-}
-```
+### Key Points
 
-### Option C: Platform-Specific Pass-through
-```cnx
-void TIMER0_IRQHandler() __attribute__((interrupt)) {
-    // ...
-}
-```
-
-### Option D: Register in Vector Table
-```cnx
-type ISR <- void();
-
-@section(".isr_vector")
-const ISR vectorTable[] <- {
-    resetHandler,
-    nmiHandler,
-    hardFaultHandler,
-    timer0Handler,
-    // ...
-};
-
-void timer0Handler() {
-    // Normal function, registered in vector
-}
-```
-
-## Recommended Decision
-
-**Option D: Vector Table Registration** for v1 - Keep ISRs as normal functions.
-
-Platform-specific vector table setup is explicit.
+1. ISRs are defined as regular `void()` functions
+2. `ISR` is a built-in type (like `u8`, `i32`) for `void(void)` function pointers
+3. Any `void()` function is compatible with `ISR` (structural typing)
+4. Vector table setup is handled by platform startup code, not C-Next syntax
 
 ## Syntax
 
-### ISR as Normal Function
+### Defining an ISR
 ```cnx
-void SysTick_Handler() {
-    tickCount +<- 1;
+// ISRs are just regular void() functions
+void timerHandler() {
+    clearInterrupt();
+    count +<- 1;
 }
 
-void UART0_IRQHandler() {
+void uartHandler() {
     u8 data <- readRegister();
     buffer[idx] <- data;
     idx +<- 1;
 }
 ```
 
-### Vector Table (Cortex-M example)
+### Using the ISR Type
 ```cnx
-type ISRHandler <- void();
+// Accept any void() function as an ISR
+void registerHandler(ISR handler) {
+    _handler <- handler;
+}
 
-// Vector table in flash
-@section(".isr_vector")
-const ISRHandler vectors[] <- {
-    null,              // Initial SP (set by linker)
-    Reset_Handler,     // Reset
-    NMI_Handler,       // NMI
-    HardFault_Handler, // Hard Fault
-    // ... more handlers
-    SysTick_Handler,   // SysTick
-    // ... peripheral interrupts
-    UART0_IRQHandler,
-};
+// Store ISRs
+struct InterruptController {
+    ISR timerCallback;
+    ISR uartCallback;
+}
+
+// Pass any void() function
+registerHandler(timerHandler);  // OK
+registerHandler(uartHandler);   // OK
 ```
 
-### ISR Constraints (enforced by ADR-009 research)
+### ISR Arrays (Vector Tables)
+```cnx
+// Array of ISRs
+ISR handlers[4];
+
+// Initialize
+handlers[0] <- timerHandler;
+handlers[1] <- uartHandler;
+```
+
+## Transpilation
+
+```cnx
+void timerHandler() {
+    count +<- 1;
+}
+
+void registerHandler(ISR handler) {
+    _handler <- handler;
+}
+
+registerHandler(timerHandler);
+```
+
+Generates:
+```c
+typedef void (*ISR)(void);
+
+void timerHandler(void) {
+    count += 1;
+}
+
+void registerHandler(ISR handler) {
+    _handler = handler;
+}
+
+registerHandler(timerHandler);
+```
+
+## Comparison with ADR-029 Callbacks
+
+| Feature | ADR-029 Callbacks | ISR Type |
+|---------|-------------------|----------|
+| Typing | Nominal (function name is type) | Structural (signature match) |
+| Null safety | Never null (has default) | Can be null |
+| Use case | Event handlers, plugins | Interrupt vectors |
+| Signature | Any signature | Always `void(void)` |
+
+## Platform Notes
+
+Vector table placement is handled by:
+- Linker scripts (`.isr_vector` section)
+- Platform startup code (weak handlers)
+- Vendor HALs
+
+C-Next does not provide `@section` attributes in v1. The `ISR` type enables passing handlers to platform setup code.
+
+## ISR Constraints
+
+ISRs have special runtime constraints (see ADR-009 for safety research):
 - No blocking calls
 - Minimal execution time
 - Volatile access for shared data
 - No dynamic allocation
 
+These are not enforced by the type system but are documented best practices.
+
 ## Implementation Notes
 
 ### Priority
-**Medium** - Function pointers (ADR-029) needed first.
+**Low** - Simple addition of a built-in typedef.
 
-### Ties to ADR-009
-ADR-009 researches ISR safety patterns. This ADR focuses on syntax.
-
-### Platform Specifics
-Generated C will use platform conventions:
-```c
-// Cortex-M: weak default handlers
-void __attribute__((weak)) SysTick_Handler(void) { }
-
-// AVR: ISR macro
-ISR(TIMER0_OVF_vect) { }
-```
-
-## Open Questions
-
-1. Abstract over platform differences?
-2. ISR priority/preemption attributes?
-3. Critical section macros?
+### Implementation
+1. Add `ISR` to the list of primitive types
+2. Generate `typedef void (*ISR)(void);` in C output
+3. Allow any `void()` function to be assigned to `ISR`
 
 ## References
 
-- Cortex-M vector table
+- ADR-009: ISR Safety (shared state patterns)
+- ADR-029: Callbacks (nominal typing for event handlers)
+- Cortex-M vector table conventions
 - AVR interrupt handling
-- ADR-009 ISR Safety

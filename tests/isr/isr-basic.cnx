@@ -1,0 +1,21 @@
+// ADR-040: Basic ISR type test
+
+// ISR is a built-in type for void(void) function pointers
+void timerHandler() {
+    // Timer interrupt handler
+}
+
+void uartHandler() {
+    // UART interrupt handler
+}
+
+// Use ISR as parameter type
+void registerHandler(ISR handler) {
+    // Register the handler
+}
+
+// Use ISR as struct field
+struct InterruptController {
+    ISR timerCallback;
+    ISR uartCallback;
+}

@@ -1,0 +1,22 @@
+// ADR-040: ISR array test (for vector tables)
+
+void resetHandler() {
+    // Reset handler
+}
+
+void nmiHandler() {
+    // NMI handler
+}
+
+void hardFaultHandler() {
+    // Hard fault handler
+}
+
+// Array of ISR pointers
+ISR vectorTable[3];
+
+void initVectors() {
+    vectorTable[0] <- resetHandler;
+    vectorTable[1] <- nmiHandler;
+    vectorTable[2] <- hardFaultHandler;
+}
