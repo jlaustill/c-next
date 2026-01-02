@@ -17,6 +17,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
 void test(void) {
     uint32_t count = 0;
     do {
-            count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1);
     } while (count < 10);
 }
+

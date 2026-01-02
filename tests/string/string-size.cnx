@@ -1,0 +1,11 @@
+// ADR-045: Test string .size property (buffer size = capacity + 1)
+// Use .size with C functions like fgets that need buffer size, not max length
+string<50> buffer <- "test";
+
+void test() {
+    // .size returns capacity + 1 (includes null terminator space)
+    u32 bufferSize <- buffer.size;
+
+    // .capacity returns max string length (50)
+    u32 maxLength <- buffer.capacity;
+}

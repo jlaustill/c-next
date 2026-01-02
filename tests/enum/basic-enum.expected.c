@@ -39,11 +39,12 @@ Command lastCmd = Command_READ;
 void main(void) {
     currentState = State_RUNNING;
     if (currentState == State_RUNNING) {
-            currentState = State_PAUSED;
+        currentState = State_PAUSED;
     }
     if (currentState != State_ERROR) {
-            lastCmd = Command_WRITE;
+        lastCmd = Command_WRITE;
     }
     uint8_t cmdValue = (uint8_t)Command_ERASE;
     uint32_t flagValue = (uint32_t)Flags_READABLE;
 }
+

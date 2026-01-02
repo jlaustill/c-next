@@ -9,6 +9,7 @@
 void menuLoop(void) {
     bool running = true;
     do {
-            running = false;
+        running = false;
     } while (running);
 }
+

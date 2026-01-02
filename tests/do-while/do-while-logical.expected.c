@@ -21,7 +21,8 @@ void retryLoop(void) {
     uint32_t attempts = 0;
     bool success = false;
     do {
-            attempts = cnx_clamp_add_u32(attempts, 1);
-            success = true;
+        attempts = cnx_clamp_add_u32(attempts, 1);
+        success = true;
     } while (!success && attempts < MAX_RETRIES);
 }
+

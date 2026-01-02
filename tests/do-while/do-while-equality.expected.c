@@ -11,6 +11,7 @@ const uint8_t END_MARKER = 0xFF;
 void readUntilEnd(void) {
     uint8_t byte = 0;
     do {
-            byte = 0x42;
+        byte = 0x42;
     } while (byte != END_MARKER);
 }
+

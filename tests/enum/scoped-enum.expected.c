@@ -34,7 +34,7 @@ uint8_t Motor_stop(void) {
 bool Motor_isRunning(void) {
     const Motor_State currentState = Motor_current;
     if (currentState == Motor_State_RUNNING) {
-            return true;
+        return true;
     }
     return false;
 }
@@ -45,6 +45,7 @@ Motor_State externalState = Motor_State_IDLE;
 void main(void) {
     Motor_start();
     if (Motor_current == Motor_State_RUNNING) {
-            externalState = Motor_State_STALLED;
+        externalState = Motor_State_STALLED;
     }
 }
+

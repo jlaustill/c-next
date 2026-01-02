@@ -2950,17 +2950,22 @@ export default class CodeGenerator {
     // ========================================================================
 
     private generateBlock(ctx: Parser.BlockContext): string {
-        this.context.indentLevel++;
         const lines: string[] = ['{'];
+        const innerIndent = '    ';  // One level of relative indentation
 
         for (const stmt of ctx.statement()) {
+            // Temporarily increment for any nested context that needs absolute level
+            this.context.indentLevel++;
             const stmtCode = this.generateStatement(stmt);
+            this.context.indentLevel--;
+
             if (stmtCode) {
-                lines.push(this.indent(stmtCode));
+                // Add one level of indent to each line (relative indentation)
+                const indentedLines = stmtCode.split('\n').map(line => innerIndent + line);
+                lines.push(indentedLines.join('\n'));
             }
         }
 
-        this.context.indentLevel--;
         lines.push('}');
 
         return lines.join('\n');
@@ -4284,10 +4289,21 @@ export default class CodeGenerator {
                 else if (memberName === 'capacity') {
                     const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
                     if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-                        // Return compile-time constant capacity
+                        // Return compile-time constant capacity (max string length)
                         result = String(typeInfo.stringCapacity);
                     } else {
                         throw new Error(`Error: .capacity is only available on string types`);
+                    }
+                }
+                // ADR-045: Handle .size property for strings (buffer size = capacity + 1)
+                // Use .size with functions like fgets that need buffer size, not max length
+                else if (memberName === 'size') {
+                    const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
+                    if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+                        // Return buffer size (capacity + 1 for null terminator)
+                        result = String(typeInfo.stringCapacity + 1);
+                    } else {
+                        throw new Error(`Error: .size is only available on string types`);
                     }
                 }
                 // Check if this is a scope member access: Scope.member (ADR-016)

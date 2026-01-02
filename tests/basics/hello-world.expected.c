@@ -8,8 +8,15 @@
 #include <stdint.h>
 #include <string.h>
 
+char userName[51] = "";
+
 int main(int argc, char *argv[]) {
-    printf("Hello World! From %s", argv[0]);
+    printf("What is your name in 50 characters or less? ");
+    fgets(userName, 51, stdin);
+    if (strlen(userName) > 0 && userName[strlen(userName) - 1] == '\n') {
+        userName[strlen(userName) - 1] = '\0';
+    }
+    printf("Hello from %s %s!\n", argv[0], userName);
     return 0;
 }
 

@@ -1,0 +1,14 @@
+// ADR-045: Test repeated .length usage
+// TODO: Future optimization - cache strlen() when .length is used multiple times
+// Current behavior: each .length generates a separate strlen() call
+// Optimized behavior: generate a temp variable to cache the length
+
+string<64> text <- "Hello World";
+
+void test() {
+    // Multiple uses of .length in same scope
+    // Currently generates 3 strlen() calls - could be optimized to 1
+    if (text.length > 0 && text[text.length - 1] = 'd') {
+        text[text.length - 1] <- 'D';
+    }
+}
