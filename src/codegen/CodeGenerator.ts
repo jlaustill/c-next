@@ -28,6 +28,7 @@ const TYPE_MAP: Record<string, string> = {
     'f64': 'double',
     'bool': 'bool',
     'void': 'void',
+    'ISR': 'ISR',  // ADR-040: Interrupt Service Routine function pointer
 };
 
 /**
@@ -70,7 +71,7 @@ interface TypeInfo {
     baseType: string;      // 'u8', 'u32', 'i16', 'State' (enum), etc.
     bitWidth: number;      // 8, 16, 32, 64 (0 for enums)
     isArray: boolean;
-    arrayLength?: number;  // For arrays only
+    arrayDimensions?: number[];  // ADR-036: All dimensions, e.g., [4, 8] for u8[4][8]
     isConst: boolean;      // ADR-013: Track const modifier for immutability enforcement
     isEnum?: boolean;      // ADR-017: Track if this is an enum type
     enumTypeName?: string; // ADR-017: The enum type name (e.g., 'State')
@@ -221,6 +222,7 @@ export default class CodeGenerator {
     private needsStdint: boolean = false;   // For u8, u16, u32, u64, i8, i16, i32, i64
     private needsStdbool: boolean = false;  // For bool type
     private needsString: boolean = false;   // ADR-045: For strlen, strncpy, etc.
+    private needsISR: boolean = false;      // ADR-040: For ISR function pointer type
 
     /** External symbol table for cross-language interop */
     private symbolTable: SymbolTable | null = null;
@@ -328,6 +330,7 @@ export default class CodeGenerator {
         this.needsStdint = false;
         this.needsStdbool = false;
         this.needsString = false;  // ADR-045: Reset string header tracking
+        this.needsISR = false;     // ADR-040: Reset ISR typedef tracking
 
         // First pass: collect namespace and class members
         this.collectSymbols(tree);
@@ -396,6 +399,13 @@ export default class CodeGenerator {
         }
         if (autoIncludes.length > 0) {
             output.push(...autoIncludes);
+            output.push('');
+        }
+
+        // ADR-040: Add ISR typedef if needed
+        if (this.needsISR) {
+            output.push('/* ADR-040: ISR function pointer type */');
+            output.push('typedef void (*ISR)(void);');
             output.push('');
         }
 
@@ -567,6 +577,57 @@ export default class CodeGenerator {
     }
 
     /**
+     * ADR-036: Try to evaluate an expression as a compile-time constant.
+     * Returns the numeric value if constant, undefined if not evaluable.
+     */
+    private tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
+        // Get the expression text and try to parse it as a simple integer literal
+        const text = ctx.getText().trim();
+
+        // Check if it's a simple integer literal
+        if (/^-?\d+$/.test(text)) {
+            return parseInt(text, 10);
+        }
+        // Check if it's a hex literal
+        if (/^0[xX][0-9a-fA-F]+$/.test(text)) {
+            return parseInt(text, 16);
+        }
+        // Check if it's a binary literal
+        if (/^0[bB][01]+$/.test(text)) {
+            return parseInt(text.substring(2), 2);
+        }
+
+        // For more complex expressions, we can't evaluate at compile time
+        return undefined;
+    }
+
+    /**
+     * ADR-036: Check array bounds at compile time for constant indices.
+     * Throws an error if the constant index is out of bounds.
+     */
+    private checkArrayBounds(
+        arrayName: string,
+        dimensions: number[],
+        indexExprs: Parser.ExpressionContext[],
+        line: number
+    ): void {
+        for (let i = 0; i < indexExprs.length && i < dimensions.length; i++) {
+            const constValue = this.tryEvaluateConstant(indexExprs[i]);
+            if (constValue !== undefined) {
+                if (constValue < 0) {
+                    throw new Error(
+                        `Array index out of bounds: ${constValue} is negative for '${arrayName}' dimension ${i + 1} (line ${line})`
+                    );
+                } else if (constValue >= dimensions[i]) {
+                    throw new Error(
+                        `Array index out of bounds: ${constValue} >= ${dimensions[i]} for '${arrayName}' dimension ${i + 1} (line ${line})`
+                    );
+                }
+            }
+        }
+    }
+
+    /**
      * Extract type info from a variable declaration and register it
      */
     private trackVariableType(varDecl: Parser.VariableDeclarationContext): void {
@@ -582,7 +643,7 @@ export default class CodeGenerator {
         let baseType = '';
         let bitWidth = 0;
         let isArray = false;
-        let arrayLength: number | undefined;
+        let arrayDimensions: number[] = [];  // ADR-036: Track all dimensions
 
         if (typeCtx.primitiveType()) {
             baseType = typeCtx.primitiveType()!.getText();
@@ -600,7 +661,7 @@ export default class CodeGenerator {
                     baseType: 'char',
                     bitWidth: 8,
                     isArray: true,
-                    arrayLength: capacity + 1,  // +1 for null terminator
+                    arrayDimensions: [capacity + 1],  // +1 for null terminator
                     isConst,
                     isString: true,
                     stringCapacity: capacity,
@@ -687,20 +748,23 @@ export default class CodeGenerator {
                 const sizeText = sizeExpr.getText();
                 const size = parseInt(sizeText, 10);
                 if (!isNaN(size)) {
-                    arrayLength = size;
+                    arrayDimensions.push(size);
                 }
             }
         }
 
-        // Check for array dimension like: u8 buffer[16]
-        if (arrayDim) {
+        // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
+        // arrayDim is now an array of ArrayDimensionContext
+        if (arrayDim && arrayDim.length > 0) {
             isArray = true;
-            const sizeExpr = arrayDim.expression();
-            if (sizeExpr) {
-                const sizeText = sizeExpr.getText();
-                const size = parseInt(sizeText, 10);
-                if (!isNaN(size)) {
-                    arrayLength = size;
+            for (const dim of arrayDim) {
+                const sizeExpr = dim.expression();
+                if (sizeExpr) {
+                    const sizeText = sizeExpr.getText();
+                    const size = parseInt(sizeText, 10);
+                    if (!isNaN(size)) {
+                        arrayDimensions.push(size);
+                    }
                 }
             }
         }
@@ -710,7 +774,7 @@ export default class CodeGenerator {
                 baseType,
                 bitWidth,
                 isArray,
-                arrayLength,
+                arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
                 isConst,  // ADR-013: Store const status
                 overflowBehavior,  // ADR-044: Store overflow behavior
             });
@@ -733,7 +797,7 @@ export default class CodeGenerator {
         let baseType = '';
         let bitWidth = 0;
         let isArray = false;
-        let arrayLength: number | undefined;
+        let arrayDimensions: number[] = [];  // ADR-036: Track all dimensions
 
         if (typeCtx.primitiveType()) {
             baseType = typeCtx.primitiveType()!.getText();
@@ -811,19 +875,23 @@ export default class CodeGenerator {
                 const sizeText = sizeExpr.getText();
                 const size = parseInt(sizeText, 10);
                 if (!isNaN(size)) {
-                    arrayLength = size;
+                    arrayDimensions.push(size);
                 }
             }
         }
 
-        if (arrayDim) {
+        // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
+        // arrayDim is now an array of ArrayDimensionContext
+        if (arrayDim && arrayDim.length > 0) {
             isArray = true;
-            const sizeExpr = arrayDim.expression();
-            if (sizeExpr) {
-                const sizeText = sizeExpr.getText();
-                const size = parseInt(sizeText, 10);
-                if (!isNaN(size)) {
-                    arrayLength = size;
+            for (const dim of arrayDim) {
+                const sizeExpr = dim.expression();
+                if (sizeExpr) {
+                    const sizeText = sizeExpr.getText();
+                    const size = parseInt(sizeText, 10);
+                    if (!isNaN(size)) {
+                        arrayDimensions.push(size);
+                    }
                 }
             }
         }
@@ -833,7 +901,7 @@ export default class CodeGenerator {
                 baseType,
                 bitWidth,
                 isArray,
-                arrayLength,
+                arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
                 isConst,
                 overflowBehavior,  // ADR-044: Store overflow behavior
             });
@@ -1993,10 +2061,12 @@ export default class CodeGenerator {
                 // Track variable type with mangled name for scope-aware const checking
                 this.trackVariableTypeWithName(varDecl, fullName);
 
-                const isArray = varDecl.arrayDimension() !== null;
+                // ADR-036: arrayDimension() now returns an array
+                const arrayDims = varDecl.arrayDimension();
+                const isArray = arrayDims.length > 0;
                 let decl = `${prefix}${type} ${fullName}`;
                 if (isArray) {
-                    decl += this.generateArrayDimension(varDecl.arrayDimension()!);
+                    decl += this.generateArrayDimensions(arrayDims);
                 }
                 if (varDecl.expression()) {
                     decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
@@ -2107,7 +2177,9 @@ export default class CodeGenerator {
         for (const member of ctx.structMember()) {
             const fieldName = member.IDENTIFIER().getText();
             const typeName = this.getTypeName(member.type());
-            const arrayDim = member.arrayDimension();
+            // ADR-036: arrayDimension() now returns an array for multi-dimensional support
+            const arrayDims = member.arrayDimension();
+            const isArray = arrayDims.length > 0;
 
             // ADR-029: Check if this is a callback type field
             if (this.callbackTypes.has(typeName)) {
@@ -2117,18 +2189,18 @@ export default class CodeGenerator {
                 // Track callback field for assignment validation
                 this.callbackFieldTypes.set(`${name}.${fieldName}`, typeName);
 
-                if (arrayDim) {
-                    const dim = this.generateArrayDimension(arrayDim);
-                    lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dim};`);
+                if (isArray) {
+                    const dims = this.generateArrayDimensions(arrayDims);
+                    lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dims};`);
                 } else {
                     lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
                 }
             } else {
                 // Regular field handling
                 const type = this.generateType(member.type());
-                if (arrayDim) {
-                    const dim = this.generateArrayDimension(arrayDim);
-                    lines.push(`    ${type} ${fieldName}${dim};`);
+                if (isArray) {
+                    const dims = this.generateArrayDimensions(arrayDims);
+                    lines.push(`    ${type} ${fieldName}${dims};`);
                 } else {
                     lines.push(`    ${type} ${fieldName};`);
                 }
@@ -2425,6 +2497,11 @@ export default class CodeGenerator {
             return `${constMod}${type} ${name}${dimStr}`;
         }
 
+        // ADR-040: ISR is already a function pointer typedef, no additional pointer needed
+        if (typeName === 'ISR') {
+            return `${constMod}${type} ${name}`;
+        }
+
         // ADR-006: Pass by reference for non-array types
         // Add pointer for primitive types to enable pass-by-reference semantics
         return `${constMod}${type}* ${name}`;
@@ -2435,6 +2512,14 @@ export default class CodeGenerator {
             return `[${this.generateExpression(ctx.expression()!)}]`;
         }
         return '[]';
+    }
+
+    /**
+     * ADR-036: Generate all array dimensions for multi-dimensional arrays
+     * Converts array of ArrayDimensionContext to string like "[4][8]"
+     */
+    private generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
+        return dims.map(d => this.generateArrayDimension(d)).join('');
     }
 
     // ========================================================================
@@ -2590,7 +2675,7 @@ export default class CodeGenerator {
                     baseType: 'char',
                     bitWidth: 8,
                     isArray: true,
-                    arrayLength: inferredCapacity + 1,
+                    arrayDimensions: [inferredCapacity + 1],
                     isConst: true,
                     isString: true,
                     stringCapacity: inferredCapacity,
@@ -2601,14 +2686,15 @@ export default class CodeGenerator {
         }
 
         let decl = `${constMod}${type} ${name}`;
-        const isArray = ctx.arrayDimension() !== null;
-        const arrayDimCtx = ctx.arrayDimension();
-        const hasEmptyArrayDim = isArray && !arrayDimCtx!.expression();
+        // ADR-036: arrayDimension() now returns an array for multi-dimensional support
+        const arrayDims = ctx.arrayDimension();
+        const isArray = arrayDims.length > 0;
+        const hasEmptyArrayDim = isArray && arrayDims.some(dim => !dim.expression());
         let declaredSize: number | null = null;
 
-        if (isArray && arrayDimCtx!.expression()) {
-            // Get declared size for validation
-            const sizeText = arrayDimCtx!.expression()!.getText();
+        // Get first dimension size for simple validation (multi-dim validation is more complex)
+        if (isArray && arrayDims[0].expression()) {
+            const sizeText = arrayDims[0].expression()!.getText();
             if (sizeText.match(/^\d+$/)) {
                 declaredSize = parseInt(sizeText, 10);
             }
@@ -2643,8 +2729,8 @@ export default class CodeGenerator {
                     }
                     decl += `[${this.context.lastArrayInitCount}]`;
                 } else {
-                    // Explicit size: validate element count
-                    decl += this.generateArrayDimension(arrayDimCtx!);
+                    // ADR-036: Generate all explicit dimensions
+                    decl += this.generateArrayDimensions(arrayDims);
 
                     if (declaredSize !== null && this.context.lastArrayFillValue === undefined) {
                         if (this.context.lastArrayInitCount !== declaredSize) {
@@ -2660,7 +2746,8 @@ export default class CodeGenerator {
         }
 
         if (isArray) {
-            decl += this.generateArrayDimension(ctx.arrayDimension()!);
+            // ADR-036: Generate all dimensions
+            decl += this.generateArrayDimensions(arrayDims);
             // ADR-006: Track local arrays (they don't need & when passed to functions)
             this.context.localArrays.add(name);
         }
@@ -3069,18 +3156,49 @@ export default class CodeGenerator {
             }
         }
 
-        // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT])
+        // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT] or matrix[0][0])
         const memberAccessCtx = targetCtx.memberAccess();
         if (memberAccessCtx) {
             const exprs = memberAccessCtx.expression();
-            if (exprs.length > 0) {
+            const identifiers = memberAccessCtx.IDENTIFIER();
+
+            // ADR-036: Multi-dimensional array access (e.g., matrix[0][0])
+            // Has one identifier and multiple subscript expressions
+            if (identifiers.length === 1 && exprs.length > 0) {
+                const arrayName = identifiers[0].getText();
+
+                // ADR-036: Compile-time bounds checking for constant indices
+                const typeInfo = this.context.typeRegistry.get(arrayName);
+                if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+                    this.checkArrayBounds(arrayName, typeInfo.arrayDimensions, exprs, ctx.start?.line ?? 0);
+                }
+
+                // Generate all subscript indices
+                const indices = exprs.map(e => this.generateExpression(e)).join('][');
+                return `${arrayName}[${indices}] = ${value};`;
+            }
+
+            // ADR-036: Struct member multi-dimensional array access (e.g., screen.pixels[0][0])
+            // Has 2+ identifiers (struct.field), subscripts, and first identifier is NOT a register
+            const firstId = identifiers[0].getText();
+            if (identifiers.length >= 2 && exprs.length > 0 && !this.knownRegisters.has(firstId)) {
+                // Build the struct.field chain
+                const memberChain = identifiers.map(id => id.getText()).join('.');
+                // TODO: Add bounds checking for struct member arrays
+
+                // Generate all subscript indices
+                const indices = exprs.map(e => this.generateExpression(e)).join('][');
+                return `${memberChain}[${indices}] = ${value};`;
+            }
+
+            // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT])
+            if (identifiers.length >= 2 && exprs.length > 0) {
                 // Compound operators not supported for bit field access
                 if (isCompound) {
                     throw new Error(`Compound assignment operators not supported for bit field access: ${cnextOp}`);
                 }
 
                 // This is GPIO7.DR_SET[bit] or GPIO7.DR[start, width]
-                const identifiers = memberAccessCtx.IDENTIFIER();
                 const regName = identifiers[0].getText();
                 const memberName = identifiers[1].getText();
                 const fullName = `${regName}_${memberName}`;
@@ -3175,13 +3293,26 @@ export default class CodeGenerator {
         // Check if this is a simple array/bit access assignment (e.g., flags[3])
         const arrayAccessCtx = targetCtx.arrayAccess();
         if (arrayAccessCtx) {
+            const name = arrayAccessCtx.IDENTIFIER().getText();
+            const exprs = arrayAccessCtx.expression();
+            const typeInfo = this.context.typeRegistry.get(name);
+
+            // ADR-040: ISR arrays use normal array indexing, not bit manipulation
+            // Also handle any array type that isn't an integer scalar
+            const isActualArray = typeInfo?.isArray && typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 0;
+            const isISRType = typeInfo?.baseType === 'ISR';
+
+            if (isActualArray || isISRType) {
+                // Normal array element assignment
+                const index = this.generateExpression(exprs[0]);
+                return `${name}[${index}] ${cOp} ${value};`;
+            }
+
+            // Bit manipulation for scalar integer types
             // Compound operators not supported for bit field access
             if (isCompound) {
                 throw new Error(`Compound assignment operators not supported for bit field access: ${cnextOp}`);
             }
-
-            const name = arrayAccessCtx.IDENTIFIER().getText();
-            const exprs = arrayAccessCtx.expression();
 
             if (exprs.length === 1) {
                 // Single bit assignment: flags[3] <- true
@@ -3392,11 +3523,10 @@ export default class CodeGenerator {
 
         let result = `${typeName} ${name}`;
 
-        // Handle array dimension
-        const arrayDim = ctx.arrayDimension();
-        if (arrayDim && arrayDim.expression()) {
-            const size = this.generateExpression(arrayDim.expression()!);
-            result = `${typeName} ${name}[${size}]`;
+        // ADR-036: Handle array dimensions (now returns array for multi-dim support)
+        const arrayDims = ctx.arrayDimension();
+        if (arrayDims.length > 0) {
+            result = `${typeName} ${name}${this.generateArrayDimensions(arrayDims)}`;
         }
 
         // Handle initialization
@@ -4119,9 +4249,11 @@ export default class CodeGenerator {
                             // ADR-045: String length is runtime strlen()
                             if (typeInfo.isString) {
                                 result = `strlen(${primaryId})`;
-                            } else if (typeInfo.isArray && typeInfo.arrayLength !== undefined) {
-                                // Array length - return the compile-time constant
-                                result = String(typeInfo.arrayLength);
+                            } else if (typeInfo.isArray && typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 0) {
+                                // ADR-036: Array length - return the first dimension
+                                // For matrix.length -> first dimension
+                                // TODO: For matrix[0].length -> second dimension (needs subscript depth tracking)
+                                result = String(typeInfo.arrayDimensions[0]);
                             } else if (!typeInfo.isArray) {
                                 // Integer bit width - return the compile-time constant
                                 result = String(typeInfo.bitWidth);
@@ -4591,11 +4723,44 @@ export default class CodeGenerator {
 
         if (expressions.length > 0) {
             const firstPart = parts[0];
-            const index = this.generateExpression(expressions[0]);
-            if (parts.length > 1) {
-                return `${firstPart}[${index}].${parts.slice(1).join('.')}`;
+
+            // ADR-036: Check if first identifier is a register for bit access
+            // Register bit access: GPIO7.DR[bit] or GPIO7.DR[start, width]
+            if (parts.length > 1 && this.knownRegisters.has(firstPart)) {
+                // This is register member bit access (handled elsewhere for assignment)
+                // For read: generate bit extraction
+                const registerName = parts.join('_');
+                if (expressions.length === 1) {
+                    const bitIndex = this.generateExpression(expressions[0]);
+                    return `((${registerName} >> ${bitIndex}) & 1)`;
+                } else if (expressions.length === 2) {
+                    const start = this.generateExpression(expressions[0]);
+                    const width = this.generateExpression(expressions[1]);
+                    const mask = this.generateBitMask(width);
+                    if (start === '0') {
+                        return `((${registerName}) & ${mask})`;
+                    }
+                    return `((${registerName} >> ${start}) & ${mask})`;
+                }
             }
-            return `${firstPart}[${index}]`;
+
+            // ADR-036: Multi-dimensional array access (e.g., matrix[0][1] or screen.pixels[0][0])
+            // Compile-time bounds checking for constant indices
+            if (parts.length === 1) {
+                // Simple array access: matrix[i][j]
+                const typeInfo = this.context.typeRegistry.get(firstPart);
+                if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+                    this.checkArrayBounds(firstPart, typeInfo.arrayDimensions, expressions, ctx.start?.line ?? 0);
+                }
+            }
+            // TODO: Add bounds checking for struct.field[i][j] patterns
+
+            const indices = expressions.map(e => this.generateExpression(e)).join('][');
+            if (parts.length > 1) {
+                // struct.field[i][j] pattern
+                return `${parts.join('.')}[${indices}]`;
+            }
+            return `${firstPart}[${indices}]`;
         }
 
         const firstPart = parts[0];
@@ -4629,6 +4794,12 @@ export default class CodeGenerator {
 
         if (exprs.length === 1) {
             // Single index: array[i] or bit access flags[3]
+            // ADR-036: Compile-time bounds checking for constant indices
+            const typeInfo = this.context.typeRegistry.get(name);
+            if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+                this.checkArrayBounds(name, typeInfo.arrayDimensions, exprs, ctx.start?.line ?? 0);
+            }
+
             const index = this.generateExpression(exprs[0]);
             return `${name}[${index}]`;
         } else if (exprs.length === 2) {
@@ -4688,6 +4859,8 @@ export default class CodeGenerator {
             // Track required includes based on type usage
             if (type === 'bool') {
                 this.needsStdbool = true;
+            } else if (type === 'ISR') {
+                this.needsISR = true;  // ADR-040: ISR function pointer typedef
             } else if (type in TYPE_MAP && type !== 'void') {
                 this.needsStdint = true;
             }

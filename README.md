@@ -385,17 +385,17 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` with boolean condition (E0701) |
 | [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Named nested structs only (no anonymous) |
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `[1, 2, 3]` syntax with `[0*]` fill-all |
+| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` with compile-time bounds enforcement |
+| [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Type | Built-in `ISR` type for `void(void)` function pointers |
 
 ### Accepted (Ready for Implementation)
 | ADR | Title | Description |
 |-----|-------|-------------|
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | Bitmap Types | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
-| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` with compile-time bounds enforcement |
 
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Declaration | Interrupt handler syntax |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 
 ### Foundational Research

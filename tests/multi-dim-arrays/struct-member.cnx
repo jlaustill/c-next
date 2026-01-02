@@ -1,0 +1,16 @@
+// ADR-036: Multi-dimensional arrays in structs
+struct Image {
+    u32 width;
+    u32 height;
+    u8 pixels[240][320];
+}
+
+Image screen;
+
+i32 main() {
+    screen.width <- 320;
+    screen.height <- 240;
+    screen.pixels[0][0] <- 0;
+    screen.pixels[239][319] <- 255;
+    return 0;
+}

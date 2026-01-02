@@ -27,12 +27,16 @@ Rectangle bounds <- {
     bottomRight: Point { x: 110, y: 120 }
 };
 
-// Read nested members
-i32 startX <- segment.start.x;
-i32 startY <- segment.start.y;
-i32 endX <- segment.end.x;
-i32 endY <- segment.end.y;
+i32 main() {
+    // Read nested members
+    i32 startX <- segment.start.x;
+    i32 startY <- segment.start.y;
+    i32 endX <- segment.end.x;
+    i32 endY <- segment.end.y;
 
-// Calculate width using nested access
-i32 width <- bounds.bottomRight.x - bounds.topLeft.x;
-i32 height <- bounds.bottomRight.y - bounds.topLeft.y;
+    // Calculate width using nested access
+    i32 width <- bounds.bottomRight.x - bounds.topLeft.x;
+    i32 height <- bounds.bottomRight.y - bounds.topLeft.y;
+
+    return 0;
+}

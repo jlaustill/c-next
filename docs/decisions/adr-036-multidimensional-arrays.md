@@ -1,7 +1,7 @@
 # ADR-036: Multi-dimensional Arrays
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 

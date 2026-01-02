@@ -116,7 +116,7 @@ structDeclaration
     ;
 
 structMember
-    : type IDENTIFIER arrayDimension? ';'
+    : type IDENTIFIER arrayDimension* ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -163,7 +163,7 @@ arrayDimension
 // Variables (ADR-003: Static allocation, ADR-044: Overflow behavior)
 // ----------------------------------------------------------------------------
 variableDeclaration
-    : constModifier? overflowModifier? type IDENTIFIER arrayDimension? ('<-' expression)? ';'
+    : constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -263,7 +263,7 @@ forInit
 
 // Variable declaration without trailing semicolon (for use in for loops)
 forVarDecl
-    : overflowModifier? type IDENTIFIER arrayDimension? ('<-' expression)?
+    : overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
     ;
 
 // Assignment without trailing semicolon (for use in for loops)
@@ -429,7 +429,7 @@ arrayInitializerElement
     ;
 
 memberAccess
-    : IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'              // GPIO7.DR_SET[bit]
+    : IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+           // ADR-036: screen.pixels[0][0]
     | IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']' // GPIO7.DR[start, width]
     | IDENTIFIER ('.' IDENTIFIER)+                                  // GPIO7.DR_SET
     | IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)?           // arr[i].field
@@ -473,6 +473,7 @@ primitiveType
     | 'i8' | 'i16' | 'i32' | 'i64'     // Signed integers
     | 'f32' | 'f64'                     // Floating point
     | 'bool'                            // Boolean
+    | 'ISR'                             // ADR-040: Interrupt Service Routine function pointer
     ;
 
 userType
@@ -642,6 +643,7 @@ I64         : 'i64';
 F32         : 'f32';
 F64         : 'f64';
 BOOL        : 'bool';
+ISR_TYPE    : 'ISR';        // ADR-040: Interrupt Service Routine type
 
 // Operators
 // Compound assignment operators (must be before simple operators for correct matching)

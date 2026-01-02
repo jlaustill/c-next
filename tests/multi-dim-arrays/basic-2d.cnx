@@ -1,0 +1,12 @@
+// ADR-036: Basic 2D array declaration and access
+u8 matrix[4][8];
+
+void init() {
+    matrix[0][0] <- 1;
+    matrix[3][7] <- 255;
+}
+
+i32 main() {
+    init();
+    return 0;
+}

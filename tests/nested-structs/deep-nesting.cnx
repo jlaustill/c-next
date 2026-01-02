@@ -30,8 +30,12 @@ Mesh cube <- {
     vertexCount: 36
 };
 
-// 3-level deep read access
-u8 ambientRed <- cube.material.ambient.r;
-u8 diffuseGreen <- cube.material.diffuse.g;
-u8 specularBlue <- cube.material.specular.b;
-f32 shine <- cube.material.shininess;
+i32 main() {
+    // 3-level deep read access
+    u8 ambientRed <- cube.material.ambient.r;
+    u8 diffuseGreen <- cube.material.diffuse.g;
+    u8 specularBlue <- cube.material.specular.b;
+    f32 shine <- cube.material.shininess;
+
+    return 0;
+}

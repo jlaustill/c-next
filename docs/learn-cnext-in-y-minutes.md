@@ -591,11 +591,40 @@ u8 explicit[5] <- [1, 2, 3, 0, 0]; // OK: all elements explicit
 // Size mismatch is a compile error
 // u8 overflow[3] <- [1, 2, 3, 4]; // ERROR: 4 elements for size-3 array
 
-// [ACCEPTED: ADR-036] Multi-dimensional arrays
-u8 matrix[4][4];
+// [DONE: ADR-036] Multi-dimensional arrays
+u8 matrix[4][8];
 matrix[0][0] <- 1;
-matrix.length;      // 4 (outer dimension, compile-time const)
-matrix[0].length;   // 4 (inner dimension, compile-time const)
+matrix[3][7] <- 255;
+
+// .length on each dimension (compile-time constants)
+u32 rows <- matrix.length;      // 4 (first dimension)
+u32 cols <- matrix[0].length;   // 8 (second dimension)
+
+// 3D arrays also supported
+u8 cube[2][3][4];
+cube[0][0][0] <- 1;
+cube[1][2][3] <- 99;
+
+// Multi-dimensional arrays in structs
+struct Image {
+    u32 width;
+    u32 height;
+    u8 pixels[240][320];  // 320x240 display
+}
+
+Image screen;
+screen.pixels[0][0] <- 0;
+screen.pixels[239][319] <- 255;
+
+// Nested initializers
+u8 data[2][3] <- [
+    [1, 2, 3],
+    [4, 5, 6]
+];
+
+// Compile-time bounds checking for constant indices
+// u8 bad[4][8];
+// bad[5][0] <- 1;  // ERROR: index 5 >= dimension 4
 ```
 
 ## Strings [DONE]
@@ -937,6 +966,47 @@ void Robot_poke(Robot self) {
 - No function pointers = no null dereference risk
 - Exhaustive switch = compiler catches missing states
 - Direct calls = easier static analysis and debugging
+
+## ISR Type (Interrupt Service Routines) [IMPLEMENTED]
+
+C-Next provides a built-in `ISR` type for interrupt handlers (ADR-040):
+
+```cnx
+// ISRs are defined as normal void() functions
+void timerHandler() {
+    // Timer interrupt code
+}
+
+void uartHandler() {
+    // UART interrupt code
+}
+
+// ISR is a built-in type for void(void) function pointers
+void registerHandler(ISR handler) {
+    _handler <- handler;
+}
+
+// Store ISRs in structs
+struct InterruptController {
+    ISR timerCallback;
+    ISR uartCallback;
+}
+
+// ISR arrays for vector tables
+ISR vectorTable[4];
+
+void initVectors() {
+    vectorTable[0] <- resetHandler;
+    vectorTable[1] <- nmiHandler;
+    vectorTable[2] <- hardFaultHandler;
+    vectorTable[3] <- timerHandler;
+}
+```
+
+**Key differences from ADR-029 Callbacks:**
+- **Structural typing**: Any `void()` function matches `ISR` (callbacks use nominal typing)
+- **Can be null**: ISR fields don't have automatic defaults (callbacks always have a default)
+- **Use case**: Interrupt vectors (callbacks are for event handlers and plugins)
 
 ## Register Bindings
 

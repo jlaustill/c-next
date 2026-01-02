@@ -165,11 +165,12 @@ class CNextSymbolCollector {
         const varType = typeCtx ? typeCtx.getText() : 'unknown';
         const fullName = parent ? `${parent}_${name}` : name;
 
-        // Check for array
-        const arrayDim = varDecl.arrayDimension();
+        // Check for array (ADR-036: arrayDimension() now returns array for multi-dim)
+        const arrayDims = varDecl.arrayDimension();
         let size: number | undefined;
-        if (arrayDim) {
-            const dimText = arrayDim.getText();
+        if (arrayDims.length > 0) {
+            // Get first dimension size for symbol tracking
+            const dimText = arrayDims[0].getText();
             const match = dimText.match(/\[(\d+)\]/);
             if (match) {
                 size = parseInt(match[1], 10);
