@@ -2452,7 +2452,8 @@ export default class CodeGenerator {
     }
 
     /**
-     * Check if this is the main function with a u8 args[][] parameter
+     * Check if this is the main function with command-line args parameter
+     * Supports: u8 args[][] (legacy) or string args[] (preferred)
      */
     private isMainFunctionWithArgs(name: string, paramList: Parser.ParameterListContext | null): boolean {
         if (name !== 'main' || !paramList) {
@@ -2465,10 +2466,16 @@ export default class CodeGenerator {
         }
 
         const param = params[0];
-        const type = param.type().getText();
+        const typeCtx = param.type();
         const dims = param.arrayDimension();
 
-        // Check for u8 (or i8 for signed char) with exactly 2 array dimensions
+        // Check for string args[] (preferred - array of strings)
+        if (typeCtx.stringType() && dims.length === 1) {
+            return true;
+        }
+
+        // Check for u8 args[][] (legacy - 2D array of bytes)
+        const type = typeCtx.getText();
         return (type === 'u8' || type === 'i8') && dims.length === 2;
     }
 
@@ -2490,6 +2497,13 @@ export default class CodeGenerator {
         }
 
         const type = this.generateType(ctx.type());
+
+        // Handle string[] - an array of strings should become char* name[]
+        // (string becomes char, but string[] means array of string pointers)
+        if (ctx.type().stringType() && dims.length > 0) {
+            const dimStr = dims.map(d => this.generateArrayDimension(d)).join('');
+            return `${constMod}char* ${name}${dimStr}`;
+        }
 
         // Arrays pass naturally as pointers
         if (dims.length > 0) {

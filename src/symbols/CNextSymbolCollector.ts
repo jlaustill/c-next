@@ -153,6 +153,27 @@ class CNextSymbolCollector {
             parent,
             signature,
         });
+
+        // Collect function parameters as symbols for hover support
+        for (const param of params) {
+            const paramName = param.IDENTIFIER().getText();
+            const paramLine = param.start?.line ?? line;
+            const paramType = param.type()?.getText() ?? 'unknown';
+            const arrayDims = param.arrayDimension();
+            const isArray = arrayDims.length > 0;
+            const displayType = isArray ? `${paramType}[]` : paramType;
+
+            this.symbols.push({
+                name: paramName,
+                kind: ESymbolKind.Variable,
+                type: displayType,
+                sourceFile: this.sourceFile,
+                sourceLine: paramLine,
+                sourceLanguage: ESourceLanguage.CNext,
+                isExported: false,
+                parent: fullName,  // Parent is the function
+            });
+        }
     }
 
     private collectVariable(
