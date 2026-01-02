@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import {
     parseWithSymbols,
     ISymbolInfo
@@ -184,6 +185,7 @@ function buildSymbolHover(symbol: ISymbolWithFile, sourceFile?: string): vscode.
  * C-Next Hover Provider
  * Provides hover information for C-Next source files
  * Supports cross-file symbol lookup via WorkspaceIndex
+ * Falls back to C/C++ extension for stdlib functions via generated .c files
  */
 export default class CNextHoverProvider implements vscode.HoverProvider {
     constructor(private workspaceIndex?: WorkspaceIndex) {}
@@ -191,11 +193,11 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     /**
      * Provide hover information for the given position
      */
-    provideHover(
+    async provideHover(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken
-    ): vscode.Hover | null {
+    ): Promise<vscode.Hover | null> {
         // Get the word at the cursor position
         const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_][a-zA-Z0-9_]*/);
         if (!wordRange) {
@@ -268,6 +270,80 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
             const workspaceSymbol = this.workspaceIndex.findDefinition(word, document.uri) as ISymbolWithFile;
             if (workspaceSymbol) {
                 return new vscode.Hover(buildSymbolHover(workspaceSymbol), wordRange);
+            }
+        }
+
+        // FALLBACK: Query C/C++ extension via the generated .c file
+        const cHover = await this.queryCExtensionHover(document, word, wordRange);
+        if (cHover) {
+            return cHover;
+        }
+
+        return null;
+    }
+
+    /**
+     * Query the C/C++ extension for hover info by looking up the symbol
+     * in the generated .c file
+     */
+    private async queryCExtensionHover(
+        document: vscode.TextDocument,
+        word: string,
+        wordRange: vscode.Range
+    ): Promise<vscode.Hover | null> {
+        // Find the corresponding .c file
+        const cnxPath = document.uri.fsPath;
+        const cPath = cnxPath.replace(/\.cnx$/, '.c');
+
+        // Check if .c file exists
+        if (!fs.existsSync(cPath)) {
+            return null;
+        }
+
+        try {
+            // Read the .c file and find the word
+            const cSource = fs.readFileSync(cPath, 'utf-8');
+            const cPosition = this.findWordInSource(cSource, word);
+
+            if (!cPosition) {
+                return null;
+            }
+
+            // Query the C/C++ extension's hover provider
+            const cUri = vscode.Uri.file(cPath);
+            const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+                'vscode.executeHoverProvider',
+                cUri,
+                cPosition
+            );
+
+            if (hovers && hovers.length > 0) {
+                // Return the first hover, but use our word range
+                const hover = hovers[0];
+                return new vscode.Hover(hover.contents, wordRange);
+            }
+        } catch (err) {
+            // Silently fail - C/C++ extension might not be installed
+            console.error('C-Next: Failed to query C/C++ hover:', err);
+        }
+
+        return null;
+    }
+
+    /**
+     * Find a word in source code and return its position
+     */
+    private findWordInSource(source: string, word: string): vscode.Position | null {
+        const lines = source.split('\n');
+
+        for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+            const line = lines[lineNum];
+            // Use word boundary regex to find exact word matches
+            const regex = new RegExp(`\\b${word}\\b`);
+            const match = regex.exec(line);
+
+            if (match) {
+                return new vscode.Position(lineNum, match.index);
             }
         }
 

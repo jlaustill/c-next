@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { transpile, ITranspileResult, ITranspileError } from '../../dist/lib/transpiler.js';
 import PreviewProvider from './previewProvider.js';
 import CNextCompletionProvider from './completionProvider.js';
@@ -12,6 +14,12 @@ export { transpile, ITranspileResult, ITranspileError };
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
 let workspaceIndex: WorkspaceIndex;
+
+// Track last successful transpilation per file (to avoid writing bad code)
+const lastGoodTranspile: Map<string, string> = new Map();
+
+// Debounce timers for .c file generation
+const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
 
 export function activate(context: vscode.ExtensionContext): void {
     console.log('C-Next extension activated');
@@ -94,9 +102,11 @@ export function activate(context: vscode.ExtensionContext): void {
     );
     context.subscriptions.push(definitionProvider);
 
-    // Validate on document open
+    // Validate and transpile on document open
     if (vscode.window.activeTextEditor) {
-        validateDocument(vscode.window.activeTextEditor.document);
+        const doc = vscode.window.activeTextEditor.document;
+        validateDocument(doc);
+        transpileToFile(doc);  // Immediate transpile on open
     }
 
     // Document change handler with debouncing for diagnostics
@@ -107,6 +117,7 @@ export function activate(context: vscode.ExtensionContext): void {
             if (editor && editor.document.languageId === 'cnext') {
                 validateDocument(editor.document);
                 previewProvider.onActiveEditorChange(editor);
+                transpileToFile(editor.document);  // Ensure .c file exists
             }
         }),
 
@@ -122,6 +133,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
                 // Update preview (has its own debouncing)
                 previewProvider.onDocumentChange(event.document);
+
+                // Generate .c file (debounced)
+                scheduleTranspileToFile(event.document);
             }
         }),
 
@@ -188,6 +202,72 @@ function validateDocument(document: vscode.TextDocument): void {
     });
 
     diagnosticCollection.set(document.uri, diagnostics);
+}
+
+/**
+ * Transpile a C-Next document and write the .c file alongside it
+ * Only writes if transpilation succeeds (preserves last good .c file)
+ */
+function transpileToFile(document: vscode.TextDocument): void {
+    if (document.languageId !== 'cnext') {
+        return;
+    }
+
+    // Check if feature is enabled
+    const config = vscode.workspace.getConfiguration('cnext');
+    if (!config.get<boolean>('transpile.generateCFile', true)) {
+        return;
+    }
+
+    // Don't transpile untitled documents
+    if (document.isUntitled) {
+        return;
+    }
+
+    const source = document.getText();
+    const result = transpile(source);
+
+    if (result.success) {
+        // Store as last good transpilation
+        lastGoodTranspile.set(document.uri.toString(), result.code);
+
+        // Write to .c file
+        const cnxPath = document.uri.fsPath;
+        const cPath = cnxPath.replace(/\.cnx$/, '.c');
+
+        try {
+            fs.writeFileSync(cPath, result.code, 'utf-8');
+        } catch (err) {
+            // Silently fail - don't interrupt the user's workflow
+            console.error('C-Next: Failed to write .c file:', err);
+        }
+    }
+    // If transpilation fails, we keep the last good .c file
+}
+
+/**
+ * Schedule a debounced transpile-to-file operation
+ */
+function scheduleTranspileToFile(document: vscode.TextDocument): void {
+    const uri = document.uri.toString();
+
+    // Clear existing timer
+    const existingTimer = transpileTimers.get(uri);
+    if (existingTimer) {
+        clearTimeout(existingTimer);
+    }
+
+    // Get debounce delay from settings
+    const config = vscode.workspace.getConfiguration('cnext');
+    const delay = config.get<number>('transpile.updateDelay', 500);
+
+    // Schedule new transpile
+    const timer = setTimeout(() => {
+        transpileToFile(document);
+        transpileTimers.delete(uri);
+    }, delay);
+
+    transpileTimers.set(uri, timer);
 }
 
 export function deactivate(): void {

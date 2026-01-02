@@ -116,6 +116,16 @@
           "items": { "type": "string" },
           "default": ["**/node_modules/**", "**/build/**", "**/dist/**"],
           "description": "Glob patterns for files/folders to exclude from workspace indexing"
+        },
+        "cnext.transpile.generateCFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically generate .c file alongside .cnx file (enables C/C++ IntelliSense for stdlib functions)"
+        },
+        "cnext.transpile.updateDelay": {
+          "type": "number",
+          "default": 500,
+          "description": "Delay in milliseconds before updating the .c file after typing"
         }
       }
     }
