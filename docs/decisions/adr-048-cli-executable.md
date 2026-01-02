@@ -15,14 +15,14 @@ node dist/index.js tests/basics/hello-world.cnx -o hello-world.c
 This is cumbersome. We want:
 
 ```bash
-cnx tests/basics/hello-world.cnx
+cnext tests/basics/hello-world.cnx
 ```
 
 With the `.c` file automatically output alongside the `.cnx` file (same directory, same base name).
 
 ### Goals
 
-1. **Simple invocation** - `cnx file.cnx` instead of `node dist/index.js file.cnx`
+1. **Simple invocation** - `cnext file.cnx` instead of `node dist/index.js file.cnx`
 2. **Smart defaults** - Output `.c` file next to `.cnx` file by default
 3. **Optional override** - `-o` flag when you want different output location
 4. **Global installation** - `npm install -g` or similar for system-wide access
@@ -38,7 +38,7 @@ Add a `bin` field to `package.json`:
 ```json
 {
   "bin": {
-    "cnx": "./dist/index.js"
+    "cnext": "./dist/index.js"
   }
 }
 ```
@@ -77,18 +77,26 @@ Produces a standalone binary with Node.js bundled.
 **Pros:**
 - No Node.js dependency for end users
 - Single file distribution
+- Native Node.js feature (no third-party tools)
 
 **Cons:**
 - Large binary size (~50MB+)
-- Experimental feature
+- Still experimental (as of 2025)
 - Complex build process
+- **CommonJS only** — ESM must be bundled first (e.g., with esbuild)
+
+**Note:** C-Next uses `"type": "module"` (ESM). For SEA, would need:
+```bash
+npx esbuild dist/index.js --bundle --platform=node --outfile=bundle.cjs
+# Then use bundle.cjs in sea-config.json
+```
 
 ### Option C: Bun Compile
 
 If using Bun instead of Node:
 
 ```bash
-bun build ./dist/index.js --compile --outfile cnx
+bun build ./dist/index.js --compile --outfile cnext
 ```
 
 **Pros:**
@@ -105,7 +113,7 @@ bun build ./dist/index.js --compile --outfile cnx
 The `pkg` npm package (now deprecated):
 
 ```bash
-npx pkg dist/index.js -o cnx
+npx pkg dist/index.js -o cnext
 ```
 
 **Pros:**
@@ -114,6 +122,54 @@ npx pkg dist/index.js -o cnx
 **Cons:**
 - Deprecated, no longer maintained
 - Known issues with ESM modules
+
+### Option E: nexe
+
+Still-maintained alternative to pkg (13.5k GitHub stars):
+
+```bash
+npx nexe dist/index.js -o cnext
+```
+
+**Pros:**
+- Actively maintained
+- Cross-platform support
+- Resource embedding support
+
+**Cons:**
+- Native modules must be shipped separately
+- Requires Python 3 and build tools for source compilation
+- Larger binary size
+
+---
+
+## npm Package Naming
+
+Package and binary name availability (checked 2026-01-02):
+
+| Name | npm Package | Binary Name | Status |
+|------|-------------|-------------|--------|
+| `cnx` | — | ❌ Taken | Existing package: "work context management utility" |
+| `cnext` | ✅ Available | ✅ Available | Clean, memorable |
+| `c-next` | ✅ Available | ✅ Available | Matches repo/project name |
+
+**Recommendation:** Use `c-next` as package name (consistency with repo), `cnext` as binary name (shorter to type):
+
+```json
+{
+  "name": "c-next",
+  "bin": {
+    "cnext": "./dist/index.js"
+  }
+}
+```
+
+This allows:
+```bash
+npm install -g c-next    # Package name
+cnext file.cnx           # Binary name
+npx c-next file.cnx      # npx uses package name
+```
 
 ---
 
@@ -126,9 +182,9 @@ node dist/index.js input.cnx -o output.c
 
 Proposed behavior:
 ```bash
-cnx input.cnx           # Outputs input.c in same directory
-cnx input.cnx -o out.c  # Outputs to specified path
-cnx src/*.cnx           # Outputs .c files alongside each .cnx
+cnext input.cnx           # Outputs input.c in same directory
+cnext input.cnx -o out.c  # Outputs to specified path
+cnext src/*.cnx           # Outputs .c files alongside each .cnx
 ```
 
 ### Implementation
@@ -145,12 +201,15 @@ if (!outputPath && inputFiles.length === 1) {
 ## Recommendation
 
 **Phase 1: npm bin (Option A)**
+- Package name: `c-next` (matches repo)
+- Binary name: `cnext` (shorter to type)
 - Add `bin` field to package.json
 - Update CLI to default output alongside input
-- Publish to npm as `c-next` or `cnext`
+- Publish to npm registry
 
 **Phase 2 (Future): Consider native binary**
-- Evaluate Node SEA when it stabilizes
+- Evaluate Node SEA when it stabilizes (requires ESM→CJS bundling)
+- Or consider nexe for cross-platform binaries
 - Or consider Bun if ecosystem matures
 
 ---
@@ -163,10 +222,16 @@ if (!outputPath && inputFiles.length === 1) {
 
 ## Implementation Checklist
 
-- [ ] Add shebang to dist/index.js
-- [ ] Add `bin` field to package.json
-- [ ] Update CLI to default output path (same dir as input)
+### Phase 1: npm bin
+- [ ] Add shebang (`#!/usr/bin/env node`) to src/index.ts
+- [ ] Add `bin` field to package.json: `"bin": { "cnext": "./dist/index.js" }`
+- [ ] Update CLI to default output path (same dir as input, `.cnx` → `.c`)
+- [ ] Add `--version` / `-v` flag (read from package.json)
+- [ ] Add `--help` / `-h` flag
+- [ ] Define exit codes (0 = success, 1 = error)
+- [ ] Test cross-platform path handling (Windows backslashes)
 - [ ] Test `npm link` for local development
+- [ ] Test `npx c-next file.cnx` usage
 - [ ] Publish to npm registry
 - [ ] Update README with installation instructions
 
@@ -176,4 +241,7 @@ if (!outputPath && inputFiles.length === 1) {
 
 - [npm bin documentation](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#bin)
 - [Node.js Single Executable Applications](https://nodejs.org/api/single-executable-applications.html)
+- [Node.js SEA GitHub Discussion](https://github.com/nodejs/single-executable/discussions/113)
+- [nexe - Create single executables](https://github.com/nexe/nexe)
 - [Bun compile](https://bun.sh/docs/bundler/executables)
+- [Node.js CLI Best Practices](https://github.com/lirantal/nodejs-cli-apps-best-practices)
