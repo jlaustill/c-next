@@ -53,6 +53,11 @@ class CNextSymbolCollector {
         if (decl.variableDeclaration()) {
             this.collectVariable(decl.variableDeclaration()!, undefined);
         }
+
+        // ADR-034: Handle bitmap declarations
+        if (decl.bitmapDeclaration()) {
+            this.collectBitmap(decl.bitmapDeclaration()!, undefined);
+        }
     }
 
     // ADR-016: Collect scope declarations (renamed from namespace)
@@ -76,6 +81,10 @@ class CNextSymbolCollector {
             }
             if (member.functionDeclaration()) {
                 this.collectFunction(member.functionDeclaration()!, name);
+            }
+            // ADR-034: Handle bitmap declarations in scopes
+            if (member.bitmapDeclaration()) {
+                this.collectBitmap(member.bitmapDeclaration()!, name);
             }
         }
     }
@@ -125,6 +134,63 @@ class CNextSymbolCollector {
                 parent: name,
                 accessModifier: accessMod,
             });
+        }
+    }
+
+    // ADR-034: Collect bitmap declarations
+    private collectBitmap(
+        bitmap: Parser.BitmapDeclarationContext,
+        parent: string | undefined
+    ): void {
+        const name = bitmap.IDENTIFIER().getText();
+        const line = bitmap.start?.line ?? 0;
+        const bitmapType = bitmap.bitmapType().getText();
+        const fullName = parent ? `${parent}_${name}` : name;
+
+        // Add the bitmap type symbol
+        this.symbols.push({
+            name: fullName,
+            kind: ESymbolKind.Bitmap,
+            type: bitmapType,
+            sourceFile: this.sourceFile,
+            sourceLine: line,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+            parent,
+        });
+
+        // Collect bitmap fields
+        let bitOffset = 0;
+        for (const member of bitmap.bitmapMember()) {
+            const fieldName = member.IDENTIFIER().getText();
+            const fieldLine = member.start?.line ?? line;
+
+            // Get field width: default 1 bit, or explicit [N]
+            let width = 1;
+            const intLiteral = member.INTEGER_LITERAL();
+            if (intLiteral) {
+                width = parseInt(intLiteral.getText(), 10);
+            }
+
+            // Calculate bit range for display
+            const bitEnd = bitOffset + width - 1;
+            const bitRange = width === 1
+                ? `bit ${bitOffset}`
+                : `bits ${bitOffset}-${bitEnd}`;
+
+            this.symbols.push({
+                name: `${fullName}_${fieldName}`,
+                kind: ESymbolKind.BitmapField,
+                type: width === 1 ? 'bool' : `u${width <= 8 ? 8 : width <= 16 ? 16 : 32}`,
+                sourceFile: this.sourceFile,
+                sourceLine: fieldLine,
+                sourceLanguage: ESourceLanguage.CNext,
+                isExported: true,
+                parent: fullName,
+                signature: `${bitRange} (${width} bit${width > 1 ? 's' : ''})`,
+            });
+
+            bitOffset += width;
         }
     }
 
