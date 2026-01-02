@@ -168,6 +168,7 @@ interface GeneratorContext {
     assignmentContext: AssignmentContext; // ADR-044: Track current assignment for overflow
     lastArrayInitCount: number; // ADR-035: Track element count for size inference
     lastArrayFillValue: string | undefined; // ADR-035: Track fill-all value
+    lengthCache: Map<string, string> | null; // Cache: variable name -> temp variable name for strlen optimization
 }
 
 /**
@@ -199,6 +200,7 @@ export default class CodeGenerator {
         assignmentContext: { targetName: null, targetType: null, overflowBehavior: 'clamp' }, // ADR-044
         lastArrayInitCount: 0,  // ADR-035: Track element count for size inference
         lastArrayFillValue: undefined,  // ADR-035: Track fill-all value
+        lengthCache: null,  // strlen optimization: variable -> temp var name
     };
 
     private knownScopes: Set<string> = new Set();  // ADR-016: renamed from knownNamespaces
@@ -314,6 +316,7 @@ export default class CodeGenerator {
             assignmentContext: { targetName: null, targetType: null, overflowBehavior: 'clamp' }, // ADR-044
             lastArrayInitCount: 0,  // ADR-035: Track element count for size inference
             lastArrayFillValue: undefined as string | undefined,  // ADR-035: Track fill-all value
+            lengthCache: null,  // strlen optimization: variable -> temp var name
         };
         this.knownScopes = new Set();  // ADR-016
         this.knownStructs = new Set();
@@ -3467,15 +3470,37 @@ export default class CodeGenerator {
     }
 
     private generateIf(ctx: Parser.IfStatementContext): string {
-        const condition = this.generateExpression(ctx.expression());
         const statements = ctx.statement();
-        const thenBranch = this.generateStatement(statements[0]);
+
+        // Analyze condition and body for repeated .length accesses (strlen optimization)
+        const lengthCounts = this.countStringLengthAccesses(ctx.expression());
+
+        // Also count in the then branch if it's a block
+        const thenStmt = statements[0];
+        if (thenStmt.block()) {
+            this.countBlockLengthAccesses(thenStmt.block()!, lengthCounts);
+        }
+
+        // Set up cache and generate declarations
+        const cacheDecls = this.setupLengthCache(lengthCounts);
+
+        // Generate with cache enabled
+        const condition = this.generateExpression(ctx.expression());
+        const thenBranch = this.generateStatement(thenStmt);
 
         let result = `if (${condition}) ${thenBranch}`;
 
         if (statements.length > 1) {
             const elseBranch = this.generateStatement(statements[1]);
             result += ` else ${elseBranch}`;
+        }
+
+        // Clear cache after generating
+        this.clearLengthCache();
+
+        // Prepend cache declarations if any
+        if (cacheDecls) {
+            return cacheDecls + result;
         }
 
         return result;
@@ -4266,8 +4291,13 @@ export default class CodeGenerator {
                         const typeInfo = primaryId ? this.context.typeRegistry.get(primaryId) : undefined;
                         if (typeInfo) {
                             // ADR-045: String length is runtime strlen()
-                            if (typeInfo.isString) {
-                                result = `strlen(${primaryId})`;
+                            if (typeInfo.isString && primaryId) {
+                                // Check length cache for optimization
+                                if (this.context.lengthCache?.has(primaryId)) {
+                                    result = this.context.lengthCache.get(primaryId)!;
+                                } else {
+                                    result = `strlen(${primaryId})`;
+                                }
                             } else if (typeInfo.isArray && typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 0) {
                                 // ADR-036: Array length - return the first dimension
                                 // For matrix.length -> first dimension
@@ -4946,6 +4976,213 @@ export default class CodeGenerator {
     private indent(text: string): string {
         const spaces = '    '.repeat(this.context.indentLevel);
         return text.split('\n').map(line => spaces + line).join('\n');
+    }
+
+    // ========================================================================
+    // strlen Optimization - Cache repeated .length accesses
+    // ========================================================================
+
+    /**
+     * Analyze an expression tree and count .length accesses per string variable.
+     * Returns a map of variable name -> access count.
+     */
+    private countStringLengthAccesses(ctx: Parser.ExpressionContext): Map<string, number> {
+        const counts = new Map<string, number>();
+        this.walkExpressionForLength(ctx, counts);
+        return counts;
+    }
+
+    /**
+     * Recursively walk an expression tree looking for .length accesses on string variables.
+     */
+    private walkExpressionForLength(ctx: Parser.ExpressionContext, counts: Map<string, number>): void {
+        // Get the ternary expression (top level of expression)
+        const ternary = ctx.ternaryExpression();
+        if (ternary) {
+            this.walkTernaryForLength(ternary, counts);
+        }
+    }
+
+    private walkTernaryForLength(ctx: Parser.TernaryExpressionContext, counts: Map<string, number>): void {
+        for (const orExpr of ctx.orExpression()) {
+            this.walkOrExprForLength(orExpr, counts);
+        }
+    }
+
+    private walkOrExprForLength(ctx: Parser.OrExpressionContext, counts: Map<string, number>): void {
+        for (const andExpr of ctx.andExpression()) {
+            this.walkAndExprForLength(andExpr, counts);
+        }
+    }
+
+    private walkAndExprForLength(ctx: Parser.AndExpressionContext, counts: Map<string, number>): void {
+        for (const eqExpr of ctx.equalityExpression()) {
+            this.walkEqualityForLength(eqExpr, counts);
+        }
+    }
+
+    private walkEqualityForLength(ctx: Parser.EqualityExpressionContext, counts: Map<string, number>): void {
+        for (const relExpr of ctx.relationalExpression()) {
+            this.walkRelationalForLength(relExpr, counts);
+        }
+    }
+
+    private walkRelationalForLength(ctx: Parser.RelationalExpressionContext, counts: Map<string, number>): void {
+        for (const borExpr of ctx.bitwiseOrExpression()) {
+            this.walkBitwiseOrForLength(borExpr, counts);
+        }
+    }
+
+    private walkBitwiseOrForLength(ctx: Parser.BitwiseOrExpressionContext, counts: Map<string, number>): void {
+        for (const bxorExpr of ctx.bitwiseXorExpression()) {
+            this.walkBitwiseXorForLength(bxorExpr, counts);
+        }
+    }
+
+    private walkBitwiseXorForLength(ctx: Parser.BitwiseXorExpressionContext, counts: Map<string, number>): void {
+        for (const bandExpr of ctx.bitwiseAndExpression()) {
+            this.walkBitwiseAndForLength(bandExpr, counts);
+        }
+    }
+
+    private walkBitwiseAndForLength(ctx: Parser.BitwiseAndExpressionContext, counts: Map<string, number>): void {
+        for (const shiftExpr of ctx.shiftExpression()) {
+            this.walkShiftForLength(shiftExpr, counts);
+        }
+    }
+
+    private walkShiftForLength(ctx: Parser.ShiftExpressionContext, counts: Map<string, number>): void {
+        for (const addExpr of ctx.additiveExpression()) {
+            this.walkAdditiveForLength(addExpr, counts);
+        }
+    }
+
+    private walkAdditiveForLength(ctx: Parser.AdditiveExpressionContext, counts: Map<string, number>): void {
+        for (const multExpr of ctx.multiplicativeExpression()) {
+            this.walkMultiplicativeForLength(multExpr, counts);
+        }
+    }
+
+    private walkMultiplicativeForLength(ctx: Parser.MultiplicativeExpressionContext, counts: Map<string, number>): void {
+        for (const unaryExpr of ctx.unaryExpression()) {
+            this.walkUnaryForLength(unaryExpr, counts);
+        }
+    }
+
+    private walkUnaryForLength(ctx: Parser.UnaryExpressionContext, counts: Map<string, number>): void {
+        const postfix = ctx.postfixExpression();
+        if (postfix) {
+            this.walkPostfixForLength(postfix, counts);
+        }
+        // Also check nested unary expressions
+        const nestedUnary = ctx.unaryExpression();
+        if (nestedUnary) {
+            this.walkUnaryForLength(nestedUnary, counts);
+        }
+    }
+
+    private walkPostfixForLength(ctx: Parser.PostfixExpressionContext, counts: Map<string, number>): void {
+        const primary = ctx.primaryExpression();
+        const primaryId = primary.IDENTIFIER()?.getText();
+        const ops = ctx.postfixOp();
+
+        // Check for pattern: identifier.length where identifier is a string
+        if (primaryId && ops.length > 0) {
+            for (const op of ops) {
+                const memberName = op.IDENTIFIER()?.getText();
+                if (memberName === 'length') {
+                    // Check if this is a string type
+                    const typeInfo = this.context.typeRegistry.get(primaryId);
+                    if (typeInfo?.isString) {
+                        const currentCount = counts.get(primaryId) || 0;
+                        counts.set(primaryId, currentCount + 1);
+                    }
+                }
+                // Walk any nested expressions in array accesses or function calls
+                for (const expr of op.expression()) {
+                    this.walkExpressionForLength(expr, counts);
+                }
+            }
+        }
+
+        // Walk nested expression in primary if present
+        if (primary.expression()) {
+            this.walkExpressionForLength(primary.expression()!, counts);
+        }
+    }
+
+    /**
+     * Count .length accesses in a block's statements.
+     */
+    private countBlockLengthAccesses(ctx: Parser.BlockContext, counts: Map<string, number>): void {
+        for (const stmt of ctx.statement()) {
+            this.countStatementLengthAccesses(stmt, counts);
+        }
+    }
+
+    /**
+     * Count .length accesses in a statement.
+     */
+    private countStatementLengthAccesses(ctx: Parser.StatementContext, counts: Map<string, number>): void {
+        // Assignment statement
+        if (ctx.assignmentStatement()) {
+            const assign = ctx.assignmentStatement()!;
+            // Count in target (array index expressions)
+            const target = assign.assignmentTarget();
+            if (target.arrayAccess()) {
+                for (const expr of target.arrayAccess()!.expression()) {
+                    this.walkExpressionForLength(expr, counts);
+                }
+            }
+            // Count in value expression
+            this.walkExpressionForLength(assign.expression(), counts);
+        }
+        // Expression statement
+        if (ctx.expressionStatement()) {
+            this.walkExpressionForLength(ctx.expressionStatement()!.expression(), counts);
+        }
+        // Variable declaration
+        if (ctx.variableDeclaration()) {
+            const varDecl = ctx.variableDeclaration()!;
+            if (varDecl.expression()) {
+                this.walkExpressionForLength(varDecl.expression()!, counts);
+            }
+        }
+        // Nested if/while/for would need recursion, but for now keep it simple
+        if (ctx.block()) {
+            this.countBlockLengthAccesses(ctx.block()!, counts);
+        }
+    }
+
+    /**
+     * Generate temp variable declarations for string lengths that are accessed 2+ times.
+     * Returns the declarations as a string and populates the lengthCache.
+     */
+    private setupLengthCache(counts: Map<string, number>): string {
+        const declarations: string[] = [];
+        const cache = new Map<string, string>();
+
+        for (const [varName, count] of counts) {
+            if (count >= 2) {
+                const tempVar = `_${varName}_len`;
+                cache.set(varName, tempVar);
+                declarations.push(`size_t ${tempVar} = strlen(${varName});`);
+            }
+        }
+
+        if (declarations.length > 0) {
+            this.context.lengthCache = cache;
+            return declarations.join('\n') + '\n';
+        }
+
+        return '';
+    }
+
+    /**
+     * Clear the length cache after generating a statement.
+     */
+    private clearLengthCache(): void {
+        this.context.lengthCache = null;
     }
 
     // ========================================================================
