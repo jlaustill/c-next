@@ -11,6 +11,49 @@ import WorkspaceIndex from './workspace/WorkspaceIndex.js';
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
 
+/**
+ * C-Next configuration file options
+ */
+interface ICNextConfig {
+    outputExtension?: '.c' | '.cpp';
+    generateHeaders?: boolean;
+    debugMode?: boolean;
+}
+
+/**
+ * Config file names in priority order (highest first)
+ */
+const CONFIG_FILES = [
+    'cnext.config.json',
+    '.cnext.json',
+    '.cnextrc'
+];
+
+/**
+ * Load config from project directory, searching up the directory tree
+ */
+function loadConfig(startDir: string): ICNextConfig {
+    let dir = path.resolve(startDir);
+
+    while (dir !== path.dirname(dir)) {  // Stop at filesystem root
+        for (const configFile of CONFIG_FILES) {
+            const configPath = path.join(dir, configFile);
+            if (fs.existsSync(configPath)) {
+                try {
+                    const content = fs.readFileSync(configPath, 'utf-8');
+                    return JSON.parse(content) as ICNextConfig;
+                } catch (err) {
+                    console.error(`C-Next: Failed to parse ${configPath}`);
+                    return {};
+                }
+            }
+        }
+        dir = path.dirname(dir);
+    }
+
+    return {};  // No config found
+}
+
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
 let workspaceIndex: WorkspaceIndex;
@@ -231,15 +274,17 @@ function transpileToFile(document: vscode.TextDocument): void {
         // Store as last good transpilation
         lastGoodTranspile.set(document.uri.toString(), result.code);
 
-        // Write to .c file
+        // Load config to determine output extension
         const cnxPath = document.uri.fsPath;
-        const cPath = cnxPath.replace(/\.cnx$/, '.c');
+        const projectConfig = loadConfig(path.dirname(cnxPath));
+        const outputExt = projectConfig.outputExtension || '.c';
+        const outputPath = cnxPath.replace(/\.cnx$/, outputExt);
 
         try {
-            fs.writeFileSync(cPath, result.code, 'utf-8');
+            fs.writeFileSync(outputPath, result.code, 'utf-8');
         } catch (err) {
             // Silently fail - don't interrupt the user's workflow
-            console.error('C-Next: Failed to write .c file:', err);
+            console.error('C-Next: Failed to write output file:', err);
         }
     }
     // If transpilation fails, we keep the last good .c file

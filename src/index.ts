@@ -6,7 +6,51 @@
 
 import { transpile, ITranspileResult, ITranspileError } from './lib/transpiler.js';
 import Project from './project/Project.js';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { dirname, resolve } from 'path';
+
+/**
+ * C-Next configuration file options
+ */
+interface ICNextConfig {
+    outputExtension?: '.c' | '.cpp';
+    generateHeaders?: boolean;
+    debugMode?: boolean;
+}
+
+/**
+ * Config file names in priority order (highest first)
+ */
+const CONFIG_FILES = [
+    'cnext.config.json',
+    '.cnext.json',
+    '.cnextrc'
+];
+
+/**
+ * Load config from project directory, searching up the directory tree
+ */
+function loadConfig(startDir: string): ICNextConfig {
+    let dir = resolve(startDir);
+
+    while (dir !== dirname(dir)) {  // Stop at filesystem root
+        for (const configFile of CONFIG_FILES) {
+            const configPath = resolve(dir, configFile);
+            if (existsSync(configPath)) {
+                try {
+                    const content = readFileSync(configPath, 'utf-8');
+                    return JSON.parse(content) as ICNextConfig;
+                } catch (err) {
+                    console.error(`Warning: Failed to parse ${configPath}`);
+                    return {};
+                }
+            }
+        }
+        dir = dirname(dir);
+    }
+
+    return {};  // No config found
+}
 
 // Re-export library for backwards compatibility
 export { transpile, ITranspileResult, ITranspileError };
@@ -24,6 +68,7 @@ function showHelp(): void {
     console.log('');
     console.log('Options:');
     console.log('  -o <file|dir>      Output file or directory (default: same dir as input)');
+    console.log('  --cpp              Output .cpp instead of .c (for C++ features like Serial)');
     console.log('  --project <dir>    Compile all .cnx files in directory');
     console.log('  --include <dir>    Additional include directory (can repeat)');
     console.log('  --parse            Parse only, don\'t generate code');
@@ -39,6 +84,12 @@ function showHelp(): void {
     console.log('  cnext main.cnx -o build/main.c            # Explicit output path');
     console.log('  cnext src/*.cnx -o build/                 # Multiple files to directory');
     console.log('  cnext --project ./src -o ./build          # Project mode');
+    console.log('');
+    console.log('Config files (searched in order, JSON format):');
+    console.log('  cnext.config.json, .cnext.json, .cnextrc');
+    console.log('');
+    console.log('Config example:');
+    console.log('  { "outputExtension": ".cpp" }');
     console.log('');
     console.log('A safer C for embedded systems development.');
 }
@@ -56,16 +107,17 @@ async function main(): Promise<void> {
         process.exit(0);
     }
 
-    // Parse arguments
+    // Parse arguments (first pass to get input files for config lookup)
     const inputFiles: string[] = [];
     let outputPath = '';
     let projectDir = '';
     const includeDirs: string[] = [];
     const defines: Record<string, string | boolean> = {};
     let parseOnly = false;
-    let debugMode = false;  // ADR-044: Debug mode generates panic-on-overflow helpers
-    let generateHeaders = true;
+    let cliDebugMode: boolean | undefined;
+    let cliGenerateHeaders: boolean | undefined;
     let preprocess = true;
+    let cliCppOutput: boolean | undefined;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -79,9 +131,11 @@ async function main(): Promise<void> {
         } else if (arg === '--parse') {
             parseOnly = true;
         } else if (arg === '--debug') {
-            debugMode = true;
+            cliDebugMode = true;
+        } else if (arg === '--cpp') {
+            cliCppOutput = true;
         } else if (arg === '--no-headers') {
-            generateHeaders = false;
+            cliGenerateHeaders = false;
         } else if (arg === '--no-preprocess') {
             preprocess = false;
         } else if (arg.startsWith('-D')) {
@@ -97,6 +151,15 @@ async function main(): Promise<void> {
         }
     }
 
+    // Load config file (searches up from input file or project directory)
+    const configDir = projectDir || (inputFiles.length > 0 ? dirname(resolve(inputFiles[0])) : process.cwd());
+    const config = loadConfig(configDir);
+
+    // Apply config defaults, CLI flags take precedence
+    const cppOutput = cliCppOutput ?? (config.outputExtension === '.cpp');
+    const debugMode = cliDebugMode ?? config.debugMode ?? false;
+    const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
+
     // Determine mode
     if (projectDir) {
         // Project mode
@@ -106,7 +169,7 @@ async function main(): Promise<void> {
         await runMultiFileMode(inputFiles, outputPath, includeDirs, defines, generateHeaders, preprocess);
     } else if (inputFiles.length === 1) {
         // Single file mode
-        runSingleFileMode(inputFiles[0], outputPath, parseOnly, debugMode);
+        runSingleFileMode(inputFiles[0], outputPath, parseOnly, debugMode, cppOutput);
     } else {
         console.error('Error: No input files specified');
         showHelp();
@@ -115,18 +178,19 @@ async function main(): Promise<void> {
 }
 
 /**
- * Derive output path from input path (.cnx → .c in same directory)
+ * Derive output path from input path (.cnx → .c or .cpp in same directory)
  */
-function deriveOutputPath(inputFile: string): string {
-    return inputFile.replace(/\.cnx$/, '.c');
+function deriveOutputPath(inputFile: string, cppOutput: boolean = false): string {
+    const ext = cppOutput ? '.cpp' : '.c';
+    return inputFile.replace(/\.cnx$/, ext);
 }
 
 /**
  * Single file compilation (original mode)
  */
-function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boolean, debugMode: boolean = false): void {
-    // Default output: same directory, .cnx → .c
-    const effectiveOutput = outputFile || deriveOutputPath(inputFile);
+function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boolean, debugMode: boolean = false, cppOutput: boolean = false): void {
+    // Default output: same directory, .cnx → .c (or .cpp with --cpp flag)
+    const effectiveOutput = outputFile || deriveOutputPath(inputFile, cppOutput);
 
     try {
         const input = readFileSync(inputFile, 'utf-8');
