@@ -396,13 +396,15 @@ Decisions are documented in `/docs/decisions/`:
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
 |-----|-------|-------------|
-| [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
-
-### Foundational Research
-| ADR | Title | Description |
-|-----|-------|-------------|
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
+| [ADR-047](docs/decisions/adr-047-nullable-types.md) | Nullable Types | `?` suffix for safe C library interop |
+| [ADR-048](docs/decisions/adr-048-cli-executable.md) | CLI Executable | npm/standalone binary distribution |
+
+### Research (v2 Roadmap)
+| ADR | Title | Description |
+|-----|-------|-------------|
+| [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 
 ### Rejected
 | ADR | Title | Description |
