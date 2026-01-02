@@ -42,11 +42,23 @@
         },
         {
           "name": "keyword.other.cnext",
-          "match": "\\b(register|namespace|class|struct|enum|typedef|const|volatile|static|extern|inline)\\b"
+          "match": "\\b(register|scope|class|struct|enum|typedef|const|volatile|static|extern|inline|sizeof)\\b"
+        },
+        {
+          "name": "storage.modifier.visibility.cnext",
+          "match": "\\b(public|private)\\b"
+        },
+        {
+          "name": "storage.modifier.overflow.cnext",
+          "match": "\\b(clamp|wrap)\\b"
         },
         {
           "name": "storage.modifier.cnext",
           "match": "\\b(rw|ro|wo|w1c|w1s)\\b"
+        },
+        {
+          "name": "variable.language.cnext",
+          "match": "\\b(this|global)\\b"
         }
       ]
     },
@@ -54,7 +66,11 @@
       "patterns": [
         {
           "name": "storage.type.cnext",
-          "match": "\\b(u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|void)\\b"
+          "match": "\\b(u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|void|string|ISR)\\b"
+        },
+        {
+          "name": "storage.type.bounded-string.cnext",
+          "match": "\\bstring<[0-9]+>"
         }
       ]
     },
@@ -68,6 +84,10 @@
     },
     "operators": {
       "patterns": [
+        {
+          "name": "keyword.operator.assignment.compound.cnext",
+          "match": "(\\+<-|-<-|\\*<-|/<-|%<-|&<-|\\|<-|\\^<-|<<-|>><-)"
+        },
         {
           "name": "keyword.operator.assignment.cnext",
           "match": "<-"
@@ -91,6 +111,10 @@
         {
           "name": "keyword.operator.arithmetic.cnext",
           "match": "(\\+|-|\\*|/|%)"
+        },
+        {
+          "name": "keyword.operator.member.cnext",
+          "match": "\\."
         }
       ]
     },

@@ -2,7 +2,7 @@
   "name": "c-next",
   "displayName": "C-Next",
   "description": "Syntax highlighting and live C preview for C-Next, a safer C for embedded systems",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "publisher": "jlaustill",
   "license": "MIT",
   "repository": {
@@ -98,6 +98,24 @@
           "type": "boolean",
           "default": true,
           "description": "Show line numbers in the C preview"
+        },
+        "cnext.includePaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Additional include paths for resolving local #include \"header.h\" directives"
+        },
+        "cnext.sdkIncludePaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "SDK include paths for resolving headers (e.g., Teensy, STM32 SDK paths)"
+        },
+        "cnext.indexing.excludePatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["**/node_modules/**", "**/build/**", "**/dist/**"],
+          "description": "Glob patterns for files/folders to exclude from workspace indexing"
         }
       }
     }

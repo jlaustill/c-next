@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import {
     parseWithSymbols,
     ISymbolInfo,
     TSymbolKind
 } from '../../dist/lib/transpiler.js';
+import WorkspaceIndex from './workspace/WorkspaceIndex.js';
 
 /**
  * C-Next keywords for autocomplete
@@ -105,8 +107,11 @@ function getAccessDescription(access: string): string {
 /**
  * C-Next Completion Provider
  * Provides context-aware autocomplete for C-Next source files
+ * Will use WorkspaceIndex for cross-file completions in Phase 2
  */
 export default class CNextCompletionProvider implements vscode.CompletionItemProvider {
+    constructor(private workspaceIndex?: WorkspaceIndex) {}
+
     /**
      * Provide completion items for the given position
      */
@@ -141,8 +146,8 @@ export default class CNextCompletionProvider implements vscode.CompletionItemPro
             return this.getTypeCompletions();
         }
 
-        // Default: return all top-level symbols + keywords + types
-        return this.getGlobalCompletions(symbols);
+        // Default: return all top-level symbols + keywords + types + header symbols
+        return this.getGlobalCompletions(symbols, document.uri);
     }
 
     /**
@@ -190,9 +195,9 @@ export default class CNextCompletionProvider implements vscode.CompletionItemPro
     }
 
     /**
-     * Get global completions (keywords, types, top-level symbols)
+     * Get global completions (keywords, types, top-level symbols, header symbols)
      */
-    private getGlobalCompletions(symbols: ISymbolInfo[]): vscode.CompletionItem[] {
+    private getGlobalCompletions(symbols: ISymbolInfo[], documentUri?: vscode.Uri): vscode.CompletionItem[] {
         const items: vscode.CompletionItem[] = [];
 
         // Add keywords
@@ -220,6 +225,19 @@ export default class CNextCompletionProvider implements vscode.CompletionItemPro
         const topLevel = symbols.filter(s => !s.parent);
         for (const sym of topLevel) {
             items.push(createSymbolCompletion(sym));
+        }
+
+        // Add symbols from included headers
+        if (this.workspaceIndex && documentUri) {
+            const headerSymbols = this.workspaceIndex.getIncludedSymbols(documentUri);
+            for (const sym of headerSymbols) {
+                const item = createSymbolCompletion(sym);
+                // Mark as coming from a header
+                if (sym.sourceFile) {
+                    item.detail = `${item.detail || ''} (${path.basename(sym.sourceFile)})`;
+                }
+                items.push(item);
+            }
         }
 
         return items;

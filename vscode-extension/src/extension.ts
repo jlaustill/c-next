@@ -3,12 +3,15 @@ import { transpile, ITranspileResult, ITranspileError } from '../../dist/lib/tra
 import PreviewProvider from './previewProvider.js';
 import CNextCompletionProvider from './completionProvider.js';
 import CNextHoverProvider from './hoverProvider.js';
+import CNextDefinitionProvider from './definitionProvider.js';
+import WorkspaceIndex from './workspace/WorkspaceIndex.js';
 
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
+let workspaceIndex: WorkspaceIndex;
 
 export function activate(context: vscode.ExtensionContext): void {
     console.log('C-Next extension activated');
@@ -20,6 +23,33 @@ export function activate(context: vscode.ExtensionContext): void {
     // Create preview provider
     previewProvider = PreviewProvider.getInstance();
     context.subscriptions.push(previewProvider);
+
+    // Initialize workspace-wide symbol index
+    workspaceIndex = WorkspaceIndex.getInstance();
+
+    // Create status bar item for index status
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.text = '$(database) C-Next';
+    statusBarItem.tooltip = 'C-Next Workspace Index';
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
+    workspaceIndex.setStatusBarItem(statusBarItem);
+
+    // Initialize the workspace index with workspace folders
+    workspaceIndex.initialize(vscode.workspace.workspaceFolders || []);
+
+    // File watcher for .cnx files (cross-file symbol updates)
+    const cnxWatcher = vscode.workspace.createFileSystemWatcher('**/*.cnx');
+    cnxWatcher.onDidChange(uri => workspaceIndex.onFileChanged(uri));
+    cnxWatcher.onDidCreate(uri => workspaceIndex.onFileCreated(uri));
+    cnxWatcher.onDidDelete(uri => workspaceIndex.onFileDeleted(uri));
+    context.subscriptions.push(cnxWatcher);
+
+    // File watcher for header files (.h, .c) - for re-indexing when headers change
+    const headerWatcher = vscode.workspace.createFileSystemWatcher('**/*.{h,c}');
+    headerWatcher.onDidChange(uri => workspaceIndex.onFileChanged(uri));
+    headerWatcher.onDidDelete(uri => workspaceIndex.onFileDeleted(uri));
+    context.subscriptions.push(headerWatcher);
 
     // Register preview commands
     const openPreview = vscode.commands.registerCommand('cnext.openPreview', () => {
@@ -45,7 +75,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Register completion provider
     const completionProvider = vscode.languages.registerCompletionItemProvider(
         'cnext',
-        new CNextCompletionProvider(),
+        new CNextCompletionProvider(workspaceIndex),
         '.'  // Trigger on dot for member access
     );
     context.subscriptions.push(completionProvider);
@@ -53,9 +83,16 @@ export function activate(context: vscode.ExtensionContext): void {
     // Register hover provider
     const hoverProvider = vscode.languages.registerHoverProvider(
         'cnext',
-        new CNextHoverProvider()
+        new CNextHoverProvider(workspaceIndex)
     );
     context.subscriptions.push(hoverProvider);
+
+    // Register definition provider (Ctrl+Click / F12)
+    const definitionProvider = vscode.languages.registerDefinitionProvider(
+        'cnext',
+        new CNextDefinitionProvider(workspaceIndex)
+    );
+    context.subscriptions.push(definitionProvider);
 
     // Validate on document open
     if (vscode.window.activeTextEditor) {
@@ -157,5 +194,8 @@ export function deactivate(): void {
     console.log('C-Next extension deactivated');
     if (diagnosticCollection) {
         diagnosticCollection.dispose();
+    }
+    if (workspaceIndex) {
+        workspaceIndex.dispose();
     }
 }
