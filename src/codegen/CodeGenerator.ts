@@ -75,6 +75,8 @@ interface TypeInfo {
     isConst: boolean;      // ADR-013: Track const modifier for immutability enforcement
     isEnum?: boolean;      // ADR-017: Track if this is an enum type
     enumTypeName?: string; // ADR-017: The enum type name (e.g., 'State')
+    isBitmap?: boolean;         // ADR-034: Track if this is a bitmap type
+    bitmapTypeName?: string;    // ADR-034: The bitmap type name (e.g., 'MotorFlags')
     overflowBehavior?: TOverflowBehavior; // ADR-044: clamp (default) or wrap
     isString?: boolean;         // ADR-045: Track if this is a bounded string type
     stringCapacity?: number;    // ADR-045: The N in string<N> (character capacity)
@@ -117,6 +119,26 @@ const TYPE_WIDTH: Record<string, number> = {
     'u64': 64, 'i64': 64,
     'f32': 32, 'f64': 64,
     'bool': 1,
+};
+
+/**
+ * ADR-034: Bitmap type sizes (total bits)
+ */
+const BITMAP_SIZE: Record<string, number> = {
+    'bitmap8': 8,
+    'bitmap16': 16,
+    'bitmap24': 24,
+    'bitmap32': 32,
+};
+
+/**
+ * ADR-034: Bitmap backing types for C output
+ */
+const BITMAP_BACKING_TYPE: Record<string, string> = {
+    'bitmap8': 'uint8_t',
+    'bitmap16': 'uint16_t',
+    'bitmap24': 'uint32_t',  // 24-bit uses 32-bit backing for simplicity
+    'bitmap32': 'uint32_t',
 };
 
 /**
@@ -212,6 +234,11 @@ export default class CodeGenerator {
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
     private knownEnums: Set<string> = new Set(); // ADR-017: Track enum types
     private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
+
+    // ADR-034: Bitmap types registry
+    private knownBitmaps: Set<string> = new Set(); // Track bitmap type names
+    private bitmapFields: Map<string, Map<string, { offset: number; width: number }>> = new Map(); // bitmapName -> (fieldName -> info)
+    private bitmapBackingType: Map<string, string> = new Map(); // bitmapName -> C backing type
 
     // ADR-029: Callback types registry
     private callbackTypes: Map<string, CallbackTypeInfo> = new Map(); // funcName -> CallbackTypeInfo
@@ -327,6 +354,9 @@ export default class CodeGenerator {
         this.registerMemberAccess = new Map();
         this.knownEnums = new Set();
         this.enumMembers = new Map();
+        this.knownBitmaps = new Set();      // ADR-034: Reset bitmap types
+        this.bitmapFields = new Map();       // ADR-034: Reset bitmap fields
+        this.bitmapBackingType = new Map();  // ADR-034: Reset bitmap backing types
         this.callbackTypes = new Map();  // ADR-029: Reset callback types
         this.callbackFieldTypes = new Map();  // ADR-029: Reset callback field tracking
         this.usedClampOps = new Set();  // ADR-044: Reset overflow helpers
@@ -491,6 +521,11 @@ export default class CodeGenerator {
                 this.collectEnum(decl.enumDeclaration()!);
             }
 
+            // ADR-034: Handle bitmap declarations
+            if (decl.bitmapDeclaration()) {
+                this.collectBitmap(decl.bitmapDeclaration()!);
+            }
+
             if (decl.registerDeclaration()) {
                 const regDecl = decl.registerDeclaration()!;
                 const regName = regDecl.IDENTIFIER().getText();
@@ -557,6 +592,66 @@ export default class CodeGenerator {
         }
 
         this.enumMembers.set(fullName, members);
+    }
+
+    /**
+     * ADR-034: Collect bitmap declaration and validate total bits
+     */
+    private collectBitmap(bitmapDecl: Parser.BitmapDeclarationContext, scopeName?: string): void {
+        const name = bitmapDecl.IDENTIFIER().getText();
+        const fullName = scopeName ? `${scopeName}_${name}` : name;
+        const bitmapType = bitmapDecl.bitmapType().getText();
+        const expectedBits = BITMAP_SIZE[bitmapType];
+
+        this.knownBitmaps.add(fullName);
+        this.bitmapBackingType.set(fullName, BITMAP_BACKING_TYPE[bitmapType]);
+
+        // Collect fields and validate total bits
+        const fields = new Map<string, { offset: number; width: number }>();
+        let totalBits = 0;
+
+        for (const member of bitmapDecl.bitmapMember()) {
+            const fieldName = member.IDENTIFIER().getText();
+            const widthLiteral = member.INTEGER_LITERAL();
+            const width = widthLiteral ? parseInt(widthLiteral.getText(), 10) : 1;
+
+            fields.set(fieldName, { offset: totalBits, width });
+            totalBits += width;
+        }
+
+        // Validate total bits equals bitmap size
+        if (totalBits !== expectedBits) {
+            throw new Error(
+                `Error: Bitmap '${fullName}' has ${totalBits} bits but ${bitmapType} requires exactly ${expectedBits} bits`
+            );
+        }
+
+        this.bitmapFields.set(fullName, fields);
+    }
+
+    /**
+     * ADR-034: Validate that a literal value fits in a bitmap field
+     */
+    private validateBitmapFieldLiteral(expr: Parser.ExpressionContext, width: number, fieldName: string): void {
+        const text = expr.getText().trim();
+        const maxValue = (1 << width) - 1;
+
+        // Check for integer literals
+        let value: number | null = null;
+
+        if (text.match(/^\d+$/)) {
+            value = parseInt(text, 10);
+        } else if (text.match(/^0[xX][0-9a-fA-F]+$/)) {
+            value = parseInt(text, 16);
+        } else if (text.match(/^0[bB][01]+$/)) {
+            value = parseInt(text.substring(2), 2);
+        }
+
+        if (value !== null && value > maxValue) {
+            throw new Error(
+                `Error: Value ${value} exceeds ${width}-bit field '${fieldName}' maximum of ${maxValue}`
+            );
+        }
     }
 
     /**
@@ -699,6 +794,20 @@ export default class CodeGenerator {
                 });
                 return; // Early return, we've handled this case
             }
+
+            // ADR-034: Check if this is a bitmap type
+            if (this.knownBitmaps.has(baseType)) {
+                this.context.typeRegistry.set(name, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isBitmap: true,
+                    bitmapTypeName: baseType,
+                    overflowBehavior, // ADR-044
+                });
+                return; // Early return, we've handled this case
+            }
         } else if (typeCtx.qualifiedType()) {
             // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
             const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
@@ -720,8 +829,22 @@ export default class CodeGenerator {
                 });
                 return; // Early return, we've handled this case
             }
+
+            // ADR-034: Check if this is a bitmap type
+            if (this.knownBitmaps.has(baseType)) {
+                this.context.typeRegistry.set(name, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isBitmap: true,
+                    bitmapTypeName: baseType,
+                    overflowBehavior, // ADR-044
+                });
+                return; // Early return, we've handled this case
+            }
         } else if (typeCtx.userType()) {
-            // Track struct/class/enum types for inferred struct initializers and enum type safety
+            // Track struct/class/enum/bitmap types for inferred struct initializers and type safety
             baseType = typeCtx.userType()!.getText();
             bitWidth = 0; // User types don't have fixed bit width
 
@@ -734,6 +857,20 @@ export default class CodeGenerator {
                     isConst,
                     isEnum: true,
                     enumTypeName: baseType,
+                    overflowBehavior, // ADR-044
+                });
+                return; // Early return, we've handled this case
+            }
+
+            // ADR-034: Check if this is a bitmap type
+            if (this.knownBitmaps.has(baseType)) {
+                this.context.typeRegistry.set(name, {
+                    baseType,
+                    bitWidth: 0,
+                    isArray: false,
+                    isConst,
+                    isBitmap: true,
+                    bitmapTypeName: baseType,
                     overflowBehavior, // ADR-044
                 });
                 return; // Early return, we've handled this case
@@ -2030,6 +2167,10 @@ export default class CodeGenerator {
         if (ctx.enumDeclaration()) {
             return this.generateEnum(ctx.enumDeclaration()!);
         }
+        // ADR-034: Handle bitmap declarations
+        if (ctx.bitmapDeclaration()) {
+            return this.generateBitmap(ctx.bitmapDeclaration()!);
+        }
         if (ctx.functionDeclaration()) {
             return this.generateFunction(ctx.functionDeclaration()!);
         }
@@ -2125,6 +2266,16 @@ export default class CodeGenerator {
                 const enumCode = this.generateEnum(enumDecl);
                 lines.push('');
                 lines.push(enumCode);
+            }
+
+            // ADR-034: Handle bitmap declarations inside scopes
+            if (member.bitmapDeclaration()) {
+                const bitmapDecl = member.bitmapDeclaration()!;
+                // Collect the scoped bitmap (if not already collected)
+                this.collectBitmap(bitmapDecl, name);
+                const bitmapCode = this.generateBitmap(bitmapDecl);
+                lines.push('');
+                lines.push(bitmapCode);
             }
         }
 
@@ -2278,6 +2429,45 @@ export default class CodeGenerator {
         }
 
         lines.push(`} ${fullName};`);
+        lines.push('');
+
+        return lines.join('\n');
+    }
+
+    /**
+     * ADR-034: Generate bitmap declaration
+     * bitmap8 MotorFlags { Running, Direction, Mode[3], Reserved[2] }
+     * -> typedef uint8_t MotorFlags; (with field layout comment)
+     */
+    private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
+        const name = ctx.IDENTIFIER().getText();
+        const prefix = this.context.currentScope ? `${this.context.currentScope}_` : '';
+        const fullName = `${prefix}${name}`;
+
+        const backingType = this.bitmapBackingType.get(fullName);
+        if (!backingType) {
+            throw new Error(`Error: Bitmap ${fullName} not found in registry`);
+        }
+
+        this.needsStdint = true;
+
+        const lines: string[] = [];
+
+        // Generate comment with field layout
+        lines.push(`/* Bitmap: ${fullName} */`);
+
+        const fields = this.bitmapFields.get(fullName);
+        if (fields) {
+            lines.push('/* Fields:');
+            for (const [fieldName, info] of fields.entries()) {
+                const endBit = info.offset + info.width - 1;
+                const bitRange = info.width === 1 ? `bit ${info.offset}` : `bits ${info.offset}-${endBit}`;
+                lines.push(` *   ${fieldName}: ${bitRange} (${info.width} bit${info.width > 1 ? 's' : ''})`);
+            }
+            lines.push(' */');
+        }
+
+        lines.push(`typedef ${backingType} ${fullName};`);
         lines.push('');
 
         return lines.join('\n');
@@ -3173,6 +3363,49 @@ export default class CodeGenerator {
                                 memberName
                             );
                         }
+                    }
+                }
+            }
+        }
+
+        // ADR-034: Check if this is a bitmap field write (e.g., flags.Running <- true)
+        if (targetCtx.memberAccess()) {
+            const memberAccessCtx = targetCtx.memberAccess()!;
+            const identifiers = memberAccessCtx.IDENTIFIER();
+            const exprs = memberAccessCtx.expression();
+
+            // Simple member access: var.field (2 identifiers, no subscripts)
+            if (identifiers.length === 2 && exprs.length === 0) {
+                const varName = identifiers[0].getText();
+                const fieldName = identifiers[1].getText();
+
+                const typeInfo = this.context.typeRegistry.get(varName);
+                if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
+                    // Compound operators not supported for bitmap field access
+                    if (isCompound) {
+                        throw new Error(`Compound assignment operators not supported for bitmap field access: ${cnextOp}`);
+                    }
+
+                    const bitmapType = typeInfo.bitmapTypeName;
+                    const fields = this.bitmapFields.get(bitmapType);
+                    if (fields && fields.has(fieldName)) {
+                        const fieldInfo = fields.get(fieldName)!;
+
+                        // Validate compile-time literal overflow
+                        this.validateBitmapFieldLiteral(ctx.expression(), fieldInfo.width, fieldName);
+
+                        const mask = (1 << fieldInfo.width) - 1;
+                        const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+
+                        if (fieldInfo.width === 1) {
+                            // Single bit write: var = (var & ~(1 << offset)) | ((value ? 1 : 0) << offset)
+                            return `${varName} = (${varName} & ~(1 << ${fieldInfo.offset})) | ((${value} ? 1 : 0) << ${fieldInfo.offset});`;
+                        } else {
+                            // Multi-bit write: var = (var & ~(mask << offset)) | ((value & mask) << offset)
+                            return `${varName} = (${varName} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                        }
+                    } else {
+                        throw new Error(`Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`);
                     }
                 }
             }
@@ -4336,25 +4569,63 @@ export default class CodeGenerator {
                         throw new Error(`Error: .size is only available on string types`);
                     }
                 }
-                // Check if this is a scope member access: Scope.member (ADR-016)
+                // ADR-034: Handle bitmap field read access: flags.Running -> ((flags >> 0) & 1)
+                else if (primaryId) {
+                    const typeInfo = this.context.typeRegistry.get(primaryId);
+                    if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
+                        const bitmapType = typeInfo.bitmapTypeName;
+                        const fields = this.bitmapFields.get(bitmapType);
+                        if (fields && fields.has(memberName)) {
+                            const fieldInfo = fields.get(memberName)!;
+                            if (fieldInfo.width === 1) {
+                                // Single bit: ((value >> offset) & 1)
+                                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
+                            } else {
+                                // Multi-bit: ((value >> offset) & mask)
+                                const mask = (1 << fieldInfo.width) - 1;
+                                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
+                            }
+                        } else {
+                            throw new Error(`Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`);
+                        }
+                    }
+                    // Check if this is a scope member access: Scope.member (ADR-016)
+                    else if (this.knownScopes.has(result)) {
+                        // Transform Scope.member to Scope_member
+                        result = `${result}_${memberName}`;
+                    }
+                    // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
+                    else if (this.knownEnums.has(result)) {
+                        // Transform Enum.member to Enum_member
+                        result = `${result}_${memberName}`;
+                    }
+                    // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
+                    else if (this.knownRegisters.has(result)) {
+                        // Transform Register.member to Register_member (matching #define)
+                        result = `${result}_${memberName}`;
+                        isRegisterChain = true;  // ADR-016: Track register chain for subscript handling
+                    }
+                    // ADR-006: Struct parameter uses -> for member access
+                    else if (isStructParam && result === primaryId) {
+                        result = `${result}->${memberName}`;
+                    }
+                    else {
+                        result = `${result}.${memberName}`;
+                    }
+                }
+                // No primaryId - check type access patterns: Scope.member, Enum.member, Register.member
                 else if (this.knownScopes.has(result)) {
                     // Transform Scope.member to Scope_member
                     result = `${result}_${memberName}`;
                 }
-                // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
                 else if (this.knownEnums.has(result)) {
                     // Transform Enum.member to Enum_member
                     result = `${result}_${memberName}`;
                 }
-                // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
                 else if (this.knownRegisters.has(result)) {
                     // Transform Register.member to Register_member (matching #define)
                     result = `${result}_${memberName}`;
-                    isRegisterChain = true;  // ADR-016: Track register chain for subscript handling
-                }
-                // ADR-006: Struct parameter uses -> for member access
-                else if (isStructParam && result === primaryId) {
-                    result = `${result}->${memberName}`;
+                    isRegisterChain = true;
                 }
                 else {
                     result = `${result}.${memberName}`;

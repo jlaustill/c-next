@@ -387,10 +387,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `[1, 2, 3]` syntax with `[0*]` fill-all |
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` with compile-time bounds enforcement |
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Type | Built-in `ISR` type for `void(void)` function pointers |
-
-### Accepted (Ready for Implementation)
-| ADR | Title | Description |
-|-----|-------|-------------|
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | Bitmap Types | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
 
 ### Research (v1 Roadmap)

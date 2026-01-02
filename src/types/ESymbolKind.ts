@@ -11,6 +11,8 @@ enum ESymbolKind {
     Struct = 'struct',
     Enum = 'enum',
     EnumMember = 'enum_member',
+    Bitmap = 'bitmap',
+    BitmapField = 'bitmap_field',
     Register = 'register',
     RegisterMember = 'register_member',
 }

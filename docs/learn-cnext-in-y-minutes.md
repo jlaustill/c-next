@@ -738,6 +738,52 @@ u8 width8 <- flags.length;  // 8
 u32 width32 <- counter.length;  // 32
 ```
 
+## Bitmap Types
+
+```cnx
+// [DONE] Portable bit-packed data types (ADR-034)
+// Unlike C bit fields, bitmaps guarantee LSB-first ordering
+
+// 8-bit bitmap with named fields
+bitmap8 MotorFlags {
+    Running,       // bit 0 (1 bit, default width)
+    Direction,     // bit 1 (1 bit)
+    Fault,         // bit 2 (1 bit)
+    Mode[3],       // bits 3-5 (3 bits, explicit width)
+    Reserved[2]    // bits 6-7 (2 bits)
+}
+// Total: 1+1+1+3+2 = 8 bits (must match bitmap8)
+
+// Declare a bitmap variable
+MotorFlags flags <- 0;
+
+// Write to fields using dot notation
+flags.Running <- true;       // Set single bit
+flags.Mode <- 5;             // Set multi-bit field (0-7 valid)
+
+// Read fields
+bool isRunning <- flags.Running;  // Returns bool for 1-bit
+u8 mode <- flags.Mode;            // Returns u8 for multi-bit
+
+// Compile-time validation
+// flags.Mode <- 10;  // ERROR: 10 exceeds 3-bit max (7)
+
+// 16-bit bitmap for larger structures
+bitmap16 CANStatus {
+    Ready,              // bit 0
+    Error,              // bit 1
+    TxEmpty,            // bit 2
+    RxFull,             // bit 3
+    BusOff,             // bit 4
+    ErrorPassive,       // bit 5
+    Warning,            // bit 6
+    Overrun,            // bit 7
+    MessageCounter[8]   // bits 8-15 (full byte)
+}
+
+// Also available: bitmap24, bitmap32
+```
+
 ## Structs
 
 ```cnx

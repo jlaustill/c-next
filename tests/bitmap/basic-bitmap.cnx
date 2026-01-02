@@ -1,0 +1,39 @@
+// ADR-034: Basic Bitmap Test
+// Tests bitmap declaration, field access, and code generation
+
+// 8-bit bitmap with various field widths
+bitmap8 MotorFlags {
+    Running,       // bit 0 (1 bit)
+    Direction,     // bit 1 (1 bit)
+    Fault,         // bit 2 (1 bit)
+    Mode[3],       // bits 3-5 (3 bits)
+    Reserved[2]    // bits 6-7 (2 bits)
+}
+
+// Variable declaration
+MotorFlags flags <- 0;
+
+void main() {
+    // Write single-bit fields
+    flags.Running <- true;
+    flags.Direction <- false;
+    flags.Fault <- true;
+
+    // Write multi-bit field
+    flags.Mode <- 5;
+
+    // Read single-bit field
+    bool isRunning <- flags.Running;
+    bool hasFault <- flags.Fault;
+
+    // Read multi-bit field
+    u8 mode <- flags.Mode;
+
+    // Conditional based on bitmap field
+    if (flags.Running = true) {
+        flags.Mode <- 3;
+    }
+
+    // Use bitmap field in expression
+    u8 doubleMode <- flags.Mode * 2;
+}

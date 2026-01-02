@@ -59,6 +59,7 @@ declaration
     | registerDeclaration
     | structDeclaration
     | enumDeclaration
+    | bitmapDeclaration
     | functionDeclaration
     | variableDeclaration
     ;
@@ -74,6 +75,7 @@ scopeMember
     : visibilityModifier? variableDeclaration
     | visibilityModifier? functionDeclaration
     | visibilityModifier? enumDeclaration
+    | visibilityModifier? bitmapDeclaration
     ;
 
 visibilityModifier
@@ -128,6 +130,24 @@ enumDeclaration
 
 enumMember
     : IDENTIFIER ('<-' expression)?
+    ;
+
+// ----------------------------------------------------------------------------
+// Bitmap (ADR-034: Portable bit-packed data types)
+// ----------------------------------------------------------------------------
+bitmapDeclaration
+    : bitmapType IDENTIFIER '{' bitmapMember (',' bitmapMember)* ','? '}'
+    ;
+
+bitmapType
+    : 'bitmap8'     // 8 bits, backed by u8
+    | 'bitmap16'    // 16 bits, backed by u16
+    | 'bitmap24'    // 24 bits, backed by u32 (3 bytes)
+    | 'bitmap32'    // 32 bits, backed by u32
+    ;
+
+bitmapMember
+    : IDENTIFIER ('[' INTEGER_LITERAL ']')?  // FieldName or FieldName[N]
     ;
 
 // ----------------------------------------------------------------------------
@@ -594,6 +614,12 @@ FALSE       : 'false';
 NULL        : 'null';
 STRING      : 'string';   // ADR-045: Bounded string type
 SIZEOF      : 'sizeof';   // ADR-023: Sizeof operator
+
+// ADR-034: Bitmap type keywords
+BITMAP8     : 'bitmap8';
+BITMAP16    : 'bitmap16';
+BITMAP24    : 'bitmap24';
+BITMAP32    : 'bitmap32';
 
 // Access modifiers for registers
 RW          : 'rw';

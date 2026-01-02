@@ -1,7 +1,7 @@
 # ADR-034: Bitmap Types for Bit-Packed Data
 
 ## Status
-**Accepted**
+**Implemented**
 
 ## Context
 
