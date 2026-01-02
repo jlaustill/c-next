@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "main": "dist/index.js",
+  "bin": {
+    "cnext": "./dist/index.js"
+  },
   "type": "module",
   "scripts": {
     "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser grammar/CNext.g4",

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * C-Next Transpiler CLI
  * A safer C for embedded systems development
@@ -16,12 +17,13 @@ function showHelp(): void {
     console.log(`C-Next Transpiler v${VERSION}`);
     console.log('');
     console.log('Usage:');
-    console.log('  cnx <file.cnx> [-o output.c]              Single file mode');
-    console.log('  cnx <files...> -o <dir>                   Multi-file mode');
-    console.log('  cnx --project <dir> [-o <outdir>]         Project mode');
+    console.log('  cnext <file.cnx>                          Single file (outputs file.c)');
+    console.log('  cnext <file.cnx> -o <output.c>            Single file with explicit output');
+    console.log('  cnext <files...> -o <dir>                 Multi-file mode');
+    console.log('  cnext --project <dir> [-o <outdir>]       Project mode');
     console.log('');
     console.log('Options:');
-    console.log('  -o <file|dir>      Output file or directory');
+    console.log('  -o <file|dir>      Output file or directory (default: same dir as input)');
     console.log('  --project <dir>    Compile all .cnx files in directory');
     console.log('  --include <dir>    Additional include directory (can repeat)');
     console.log('  --parse            Parse only, don\'t generate code');
@@ -29,13 +31,14 @@ function showHelp(): void {
     console.log('  --no-headers       Don\'t generate header files');
     console.log('  --no-preprocess    Don\'t run C preprocessor on headers');
     console.log('  -D<name>[=value]   Define preprocessor macro');
-    console.log('  --version          Show version');
-    console.log('  --help             Show this help');
+    console.log('  --version, -v      Show version');
+    console.log('  --help, -h         Show this help');
     console.log('');
     console.log('Examples:');
-    console.log('  cnx main.cnx -o main.c');
-    console.log('  cnx src/*.cnx -o build/');
-    console.log('  cnx --project ./src -o ./build --include ./lib');
+    console.log('  cnext main.cnx                            # Outputs main.c');
+    console.log('  cnext main.cnx -o build/main.c            # Explicit output path');
+    console.log('  cnext src/*.cnx -o build/                 # Multiple files to directory');
+    console.log('  cnext --project ./src -o ./build          # Project mode');
     console.log('');
     console.log('A safer C for embedded systems development.');
 }
@@ -43,13 +46,13 @@ function showHelp(): void {
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
 
-    if (args.length === 0 || args.includes('--help')) {
+    if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
         showHelp();
         process.exit(0);
     }
 
-    if (args.includes('--version')) {
-        console.log(`c-next v${VERSION}`);
+    if (args.includes('--version') || args.includes('-v')) {
+        console.log(`cnext v${VERSION}`);
         process.exit(0);
     }
 
@@ -112,9 +115,19 @@ async function main(): Promise<void> {
 }
 
 /**
+ * Derive output path from input path (.cnx → .c in same directory)
+ */
+function deriveOutputPath(inputFile: string): string {
+    return inputFile.replace(/\.cnx$/, '.c');
+}
+
+/**
  * Single file compilation (original mode)
  */
 function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boolean, debugMode: boolean = false): void {
+    // Default output: same directory, .cnx → .c
+    const effectiveOutput = outputFile || deriveOutputPath(inputFile);
+
     try {
         const input = readFileSync(inputFile, 'utf-8');
         const result = transpile(input, { parseOnly, debugMode });
@@ -131,12 +144,8 @@ function runSingleFileMode(inputFile: string, outputFile: string, parseOnly: boo
             console.log('Parse successful!');
             console.log(`Found ${result.declarationCount} top-level declarations`);
         } else {
-            if (outputFile) {
-                writeFileSync(outputFile, result.code);
-                console.log(`Generated: ${outputFile}`);
-            } else {
-                console.log(result.code);
-            }
+            writeFileSync(effectiveOutput, result.code);
+            console.log(`Generated: ${effectiveOutput}`);
         }
 
     } catch (err) {
