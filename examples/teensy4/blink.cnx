@@ -1,16 +1,25 @@
-// blink.cnx - LED Blink for Teensy 4.x (Enhanced with Bitmap Types)
+// blink.cnx - LED Blink for Teensy 4.x (Scoped Register Demo)
 // Target: Teensy 4.x (NXP i.MX RT1062)
 // Built-in LED is on GPIO7, bit 3 (Arduino pin 13)
 //
 // Compile: cnx blink.cnx -o blink.c
 // Then use with Arduino/PlatformIO
 //
-// This example demonstrates the "Million Dollar Feature":
-// - Bitmap types inside register definitions
-// - Named GPIO pin access: GPIO7.DR.LED_BUILTIN instead of magic bit numbers
-// - Multi-bit fields for interrupt configuration (2 bits per pin!)
-// - Complete GPIO7 register coverage with type-safe access
-// - Read-only register enforcement (PSR)
+// This example demonstrates SCOPED REGISTERS (ADR-016) with separation of concerns:
+//
+// Architecture:
+//   scope Teensy4 { ... }  - Platform layer: registers, bitmaps, enums, constants
+//   scope LED { ... }      - Application layer: high-level LED control functions
+//   global                 - Sketch config: BLINK_DELAY_MS, setup(), loop()
+//
+// Cross-scope access:
+//   LED.toggle()                              - Call application function
+//   Teensy4.GPIO7.DR_SET[Teensy4.LED_BIT]     - Access platform register from LED scope
+//
+// Why scoped registers?
+// - Avoids conflicts with HAL headers (Teensy's imxrt.h defines GPIO7_DR)
+// - Groups platform-specific types, registers, constants together
+// - Enables multi-platform codebases with clear organization
 //
 // See docs/README.md for GPIO7 pin mapping and register documentation.
 
@@ -22,212 +31,175 @@
 #include <stdbool.h>
 
 // =============================================================================
-// GPIO7 Bitmap Types
+// Teensy 4.x Platform Scope
 // =============================================================================
-// These bitmaps map GPIO7 bits to Arduino pin names.
-// See docs/README.md for the complete pin mapping table.
+// All platform-specific definitions are scoped to avoid HAL conflicts.
+// Generates: Teensy4_GPIO7_DR, Teensy4_GPIO7Pins, Teensy4_InterruptType, etc.
 
-/// GPIO7 Pin Bitmap - Named access to all 32 GPIO pins
-/// Bits are named by their Arduino pin number where mapped,
-/// or as Reserved_N for unmapped bits.
-bitmap32 GPIO7Pins {
-    D10,            // bit 0  - Arduino Pin 10
-    D12,            // bit 1  - Arduino Pin 12
-    D11,            // bit 2  - Arduino Pin 11
-    LED_BUILTIN,    // bit 3  - Arduino Pin 13 (Built-in LED!)
-    Reserved_4,     // bit 4
-    Reserved_5,     // bit 5
-    Reserved_6,     // bit 6
-    Reserved_7,     // bit 7
-    Reserved_8,     // bit 8
-    Reserved_9,     // bit 9
-    D6,             // bit 10 - Arduino Pin 6
-    D9,             // bit 11 - Arduino Pin 9
-    D32,            // bit 12 - Arduino Pin 32 (Teensy 4.1 only)
-    Reserved_13,    // bit 13
-    Reserved_14,    // bit 14
-    Reserved_15,    // bit 15
-    D8,             // bit 16 - Arduino Pin 8
-    D7,             // bit 17 - Arduino Pin 7
-    D36,            // bit 18 - Arduino Pin 36 (Teensy 4.1 only)
-    D37,            // bit 19 - Arduino Pin 37 (Teensy 4.1 only)
-    Reserved_20,    // bit 20
-    Reserved_21,    // bit 21
-    Reserved_22,    // bit 22
-    Reserved_23,    // bit 23
-    Reserved_24,    // bit 24
-    Reserved_25,    // bit 25
-    Reserved_26,    // bit 26
-    Reserved_27,    // bit 27
-    D35,            // bit 28 - Arduino Pin 35 (Teensy 4.1 only)
-    D34,            // bit 29 - Arduino Pin 34 (Teensy 4.1 only)
-    Reserved_30,    // bit 30
-    Reserved_31     // bit 31
-}
+scope Teensy4 {
+    // =========================================================================
+    // GPIO7 Bitmap Types
+    // =========================================================================
 
-/// ICR1 Interrupt Configuration Bitmap
-/// 2 bits per pin configure interrupt type for GPIO pins 0-15:
-///   0b00 = Low level sensitive
-///   0b01 = High level sensitive
-///   0b10 = Rising edge triggered
-///   0b11 = Falling edge triggered
-bitmap32 ICR1Config {
-    D10[2],         // bits 0-1   - Pin 10 interrupt config
-    D12[2],         // bits 2-3   - Pin 12 interrupt config
-    D11[2],         // bits 4-5   - Pin 11 interrupt config
-    LED_BUILTIN[2], // bits 6-7   - Pin 13 interrupt config
-    Res4[2],        // bits 8-9
-    Res5[2],        // bits 10-11
-    Res6[2],        // bits 12-13
-    Res7[2],        // bits 14-15
-    Res8[2],        // bits 16-17
-    Res9[2],        // bits 18-19
-    D6[2],          // bits 20-21 - Pin 6 interrupt config
-    D9[2],          // bits 22-23 - Pin 9 interrupt config
-    D32[2],         // bits 24-25 - Pin 32 interrupt config
-    Res13[2],       // bits 26-27
-    Res14[2],       // bits 28-29
-    Res15[2]        // bits 30-31
-}
+    /// GPIO7 Pin Bitmap - Named access to all 32 GPIO pins
+    bitmap32 GPIO7Pins {
+        D10,            // bit 0  - Arduino Pin 10
+        D12,            // bit 1  - Arduino Pin 12
+        D11,            // bit 2  - Arduino Pin 11
+        LED_BUILTIN,    // bit 3  - Arduino Pin 13 (Built-in LED!)
+        Reserved_4,     // bit 4
+        Reserved_5,     // bit 5
+        Reserved_6,     // bit 6
+        Reserved_7,     // bit 7
+        Reserved_8,     // bit 8
+        Reserved_9,     // bit 9
+        D6,             // bit 10 - Arduino Pin 6
+        D9,             // bit 11 - Arduino Pin 9
+        D32,            // bit 12 - Arduino Pin 32 (Teensy 4.1 only)
+        Reserved_13,    // bit 13
+        Reserved_14,    // bit 14
+        Reserved_15,    // bit 15
+        D8,             // bit 16 - Arduino Pin 8
+        D7,             // bit 17 - Arduino Pin 7
+        D36,            // bit 18 - Arduino Pin 36 (Teensy 4.1 only)
+        D37,            // bit 19 - Arduino Pin 37 (Teensy 4.1 only)
+        Reserved_20,    // bit 20
+        Reserved_21,    // bit 21
+        Reserved_22,    // bit 22
+        Reserved_23,    // bit 23
+        Reserved_24,    // bit 24
+        Reserved_25,    // bit 25
+        Reserved_26,    // bit 26
+        Reserved_27,    // bit 27
+        D35,            // bit 28 - Arduino Pin 35 (Teensy 4.1 only)
+        D34,            // bit 29 - Arduino Pin 34 (Teensy 4.1 only)
+        Reserved_30,    // bit 30
+        Reserved_31     // bit 31
+    }
 
-/// ICR2 Interrupt Configuration Bitmap (pins 16-31)
-bitmap32 ICR2Config {
-    D8[2],          // bits 0-1   - Pin 8 (GPIO7 bit 16)
-    D7[2],          // bits 2-3   - Pin 7 (GPIO7 bit 17)
-    D36[2],         // bits 4-5   - Pin 36 (GPIO7 bit 18)
-    D37[2],         // bits 6-7   - Pin 37 (GPIO7 bit 19)
-    Res20[2],       // bits 8-9
-    Res21[2],       // bits 10-11
-    Res22[2],       // bits 12-13
-    Res23[2],       // bits 14-15
-    Res24[2],       // bits 16-17
-    Res25[2],       // bits 18-19
-    Res26[2],       // bits 20-21
-    Res27[2],       // bits 22-23
-    D35[2],         // bits 24-25 - Pin 35 (GPIO7 bit 28)
-    D34[2],         // bits 26-27 - Pin 34 (GPIO7 bit 29)
-    Res30[2],       // bits 28-29
-    Res31[2]        // bits 30-31
-}
+    /// ICR1 Interrupt Configuration - 2 bits per pin (pins 0-15)
+    bitmap32 ICR1Config {
+        D10[2],         // bits 0-1   - Pin 10 interrupt config
+        D12[2],         // bits 2-3   - Pin 12 interrupt config
+        D11[2],         // bits 4-5   - Pin 11 interrupt config
+        LED_BUILTIN[2], // bits 6-7   - Pin 13 interrupt config
+        Res4[2],        // bits 8-9
+        Res5[2],        // bits 10-11
+        Res6[2],        // bits 12-13
+        Res7[2],        // bits 14-15
+        Res8[2],        // bits 16-17
+        Res9[2],        // bits 18-19
+        D6[2],          // bits 20-21 - Pin 6 interrupt config
+        D9[2],          // bits 22-23 - Pin 9 interrupt config
+        D32[2],         // bits 24-25 - Pin 32 interrupt config
+        Res13[2],       // bits 26-27
+        Res14[2],       // bits 28-29
+        Res15[2]        // bits 30-31
+    }
 
-// =============================================================================
-// Interrupt Configuration Constants
-// =============================================================================
+    // =========================================================================
+    // Interrupt Configuration Enum
+    // =========================================================================
 
-const u8 INT_LOW_LEVEL <- 0b00;     // Interrupt on low level
-const u8 INT_HIGH_LEVEL <- 0b01;    // Interrupt on high level
-const u8 INT_RISING_EDGE <- 0b10;   // Interrupt on rising edge
-const u8 INT_FALLING_EDGE <- 0b11;  // Interrupt on falling edge
+    /// Interrupt trigger types for GPIO pins
+    enum InterruptType {
+        LOW_LEVEL <- 0b00,      // Interrupt on low level
+        HIGH_LEVEL <- 0b01,     // Interrupt on high level
+        RISING_EDGE <- 0b10,    // Interrupt on rising edge
+        FALLING_EDGE <- 0b11    // Interrupt on falling edge
+    }
 
-// =============================================================================
-// GPIO7 Register Block (i.MX RT1062)
-// =============================================================================
-// Complete GPIO7 register definition with bitmap types for named access.
-// The i.MX RT has atomic set/clear/toggle registers - no read-modify-write needed!
-//
-// Register reference: i.MX RT1060 Reference Manual, Chapter 26
+    // =========================================================================
+    // GPIO7 Register Block (i.MX RT1062)
+    // =========================================================================
+    // Scoped register generates: Teensy4_GPIO7_DR, Teensy4_GPIO7_DR_SET, etc.
+    // This avoids conflicts with Teensy's imxrt.h which defines GPIO7_DR.
 
-register GPIO7 @ 0x42004000 {
-    /// Data Register - Read/write current pin output values
-    DR:         GPIO7Pins rw @ 0x00,
+    register GPIO7 @ 0x42004000 {
+        /// Data Register - Current pin output values
+        DR:         GPIO7Pins rw @ 0x00,
 
-    /// Direction Register - 1=output, 0=input
-    GDIR:       GPIO7Pins rw @ 0x04,
+        /// Direction Register - 1=output, 0=input
+        GDIR:       GPIO7Pins rw @ 0x04,
 
-    /// Pad Status Register - Read actual pin voltage levels (read-only!)
-    PSR:        GPIO7Pins ro @ 0x08,
+        /// Pad Status Register - Actual pin voltage (read-only)
+        PSR:        GPIO7Pins ro @ 0x08,
 
-    /// Interrupt Configuration Register 1 - Pins 0-15 (2 bits per pin)
-    ICR1:       ICR1Config rw @ 0x0C,
+        /// Interrupt Configuration Register 1 - Pins 0-15
+        ICR1:       ICR1Config rw @ 0x0C,
 
-    /// Interrupt Configuration Register 2 - Pins 16-31 (2 bits per pin)
-    ICR2:       ICR2Config rw @ 0x10,
+        /// Interrupt Mask Register - Enable/disable per pin
+        IMR:        GPIO7Pins rw @ 0x14,
 
-    /// Interrupt Mask Register - Enable/disable interrupts per pin
-    IMR:        GPIO7Pins rw @ 0x14,
+        /// Interrupt Status - Pending flags (write-1-to-clear)
+        INT_STATUS: GPIO7Pins rw @ 0x18,
 
-    /// Interrupt Status Register - Pending interrupt flags (write-1-to-clear)
-    INT_STATUS: GPIO7Pins rw @ 0x18,
+        /// Atomic Set - Write 1 to set DR bits (no RMW!)
+        DR_SET:     GPIO7Pins wo @ 0x84,
 
-    /// Edge Select Register - Override ICR to both edges
-    EDGE_SEL:   GPIO7Pins rw @ 0x1C,
+        /// Atomic Clear - Write 1 to clear DR bits
+        DR_CLEAR:   GPIO7Pins wo @ 0x88,
 
-    /// Atomic Set - Write 1 to set bits in DR (write-only, no read-modify-write!)
-    DR_SET:     u32 wo @ 0x84,
-
-    /// Atomic Clear - Write 1 to clear bits in DR (write-only)
-    DR_CLEAR:   u32 wo @ 0x88,
-
-    /// Atomic Toggle - Write 1 to toggle bits in DR (write-only)
-    DR_TOGGLE:  u32 wo @ 0x8C,
+        /// Atomic Toggle - Write 1 to toggle DR bits
+        DR_TOGGLE:  GPIO7Pins wo @ 0x8C,
+    }
 }
 
 // =============================================================================
-// Configuration
+// LED Control (Application-level, not platform-specific)
+// =============================================================================
+// LED functions use the Teensy4 platform scope for hardware access.
+
+scope LED {
+    /// Turn LED on using atomic set register
+    public void on() {
+        Teensy4.GPIO7.DR_SET.LED_BUILTIN <- true;
+    }
+
+    /// Turn LED off using atomic clear register
+    public void off() {
+        Teensy4.GPIO7.DR_CLEAR.LED_BUILTIN <- true;
+    }
+
+    /// Toggle LED using atomic toggle register
+    public void toggle() {
+        Teensy4.GPIO7.DR_TOGGLE.LED_BUILTIN <- true;
+    }
+
+    /// Check if LED is on by reading pad status
+    public bool isOn() {
+        return Teensy4.GPIO7.PSR.LED_BUILTIN;
+    }
+
+    /// Configure LED pin for interrupt on rising edge
+    public void configureInterrupt() {
+        Teensy4.GPIO7.ICR1.LED_BUILTIN <- (u8)Teensy4.InterruptType.RISING_EDGE;
+        Teensy4.GPIO7.IMR.LED_BUILTIN <- true;
+    }
+
+    /// Clear pending interrupt flag
+    public void clearInterrupt() {
+        Teensy4.GPIO7.INT_STATUS.LED_BUILTIN <- true;
+    }
+}
+
+// =============================================================================
+// Sketch Configuration (user-level, not platform-specific)
 // =============================================================================
 
-const u32 LED_PIN <- 13;            // Arduino pin number (for pinMode)
-const u32 LED_BIT <- 3;             // GPIO7 bit number (for atomic ops)
 const u32 BLINK_DELAY_MS <- 1000;
-
-// =============================================================================
-// LED Control - Using Bitmap Field Access!
-// =============================================================================
-
-/// Turn LED on using named bitmap field
-void LED_on() {
-    // Named field access! Much clearer than GPIO7.DR[3]
-    GPIO7.DR.LED_BUILTIN <- true;
-}
-
-/// Turn LED off
-void LED_off() {
-    GPIO7.DR.LED_BUILTIN <- false;
-}
-
-/// Toggle LED using atomic register (for efficiency)
-void LED_toggle() {
-    // Atomic toggle - use bit index for write-only registers
-    // (Bitmap access would require read-modify-write, defeating atomic purpose)
-    GPIO7.DR_TOGGLE[LED_BIT] <- true;
-}
-
-/// Check if LED is on by reading the actual pad status
-bool LED_isOn() {
-    // Read from PSR (Pad Status Register) - the actual pin state
-    // PSR is read-only, so this is safe
-    return GPIO7.PSR.LED_BUILTIN;
-}
-
-/// Configure LED pin for interrupt on rising edge
-void LED_configureInterrupt() {
-    // Set interrupt type using 2-bit field in ICR1
-    GPIO7.ICR1.LED_BUILTIN <- INT_RISING_EDGE;
-
-    // Enable interrupt for LED pin
-    GPIO7.IMR.LED_BUILTIN <- true;
-}
-
-/// Clear pending interrupt flag
-void LED_clearInterrupt() {
-    // Write 1 to clear (W1C) the interrupt status
-    GPIO7.INT_STATUS.LED_BUILTIN <- true;
-}
 
 // =============================================================================
 // Arduino Entry Points
 // =============================================================================
 
 void setup() {
-    // Use Arduino's pinMode to configure pin mux and direction
-    // This handles the IOMUXC configuration for us
-    pinMode(LED_PIN, OUTPUT);
-
-    // Alternative: Set direction directly using bitmap access
-    // GPIO7.GDIR.LED_BUILTIN <- true;  (1 = output)
+    // Use Arduino's pinMode for IOMUXC configuration
+    pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
-    LED_toggle();
+    // Call LED scope function - generates LED_toggle()
+    LED.toggle();
     delay(BLINK_DELAY_MS);
 }

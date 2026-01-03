@@ -230,6 +230,8 @@ assignmentTarget
     : globalArrayAccess                    // ADR-016: global.GPIO7.DR_SET[idx] (most specific first)
     | globalMemberAccess                   // ADR-016: global.GPIO7.DR_SET
     | globalAccess                         // ADR-016: global.value
+    | thisArrayAccess                      // ADR-016: this.GPIO7.DR_SET[idx] (most specific first)
+    | thisMemberAccess                     // ADR-016: this.GPIO7.DR_SET
     | thisAccess                           // ADR-016: this.member access (must be before memberAccess)
     | arrayAccess                          // Must be before memberAccess (both can match arr[i])
     | memberAccess
@@ -239,6 +241,19 @@ assignmentTarget
 // ADR-016: this.member for scope-local access in assignment targets
 thisAccess
     : 'this' '.' IDENTIFIER
+    ;
+
+// ADR-016: this.member.member for chained scope-local access
+thisMemberAccess
+    : 'this' '.' IDENTIFIER ('.' IDENTIFIER)+
+    ;
+
+// ADR-016: this.member[idx] or this.member.member[idx] for scope-local array/bit access
+thisArrayAccess
+    : 'this' '.' IDENTIFIER '[' expression ']'                           // this.arr[i]
+    | 'this' '.' IDENTIFIER '[' expression ',' expression ']'            // this.reg[offset, width]
+    | 'this' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'         // this.GPIO7.DR_SET[i]
+    | 'this' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']'  // this.GPIO7.ICR1[6, 2]
     ;
 
 // ADR-016: global.member for global access in assignment targets
