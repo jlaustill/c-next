@@ -18,8 +18,8 @@
 //   global                 - Sketch config: BLINK_DELAY_MS, setup(), loop()
 //
 // Cross-scope access:
-//   LED.toggle()                              - Call application function
-//   Teensy4.GPIO7.DR_SET[Teensy4.LED_BIT]     - Access platform register from LED scope
+//   LED.toggle()                                        - Call application function
+//   Teensy4.GPIO7.DataRegister_Set.LED_BUILTIN <- true  - Access platform register
 //
 // Why scoped registers?
 // - Avoids conflicts with HAL headers (Teensy's imxrt.h defines GPIO7_DR)
@@ -113,15 +113,15 @@ typedef enum {
 
 
 /* Register: Teensy4_GPIO7 @ 0x42004000 */
-#define Teensy4_GPIO7_DR (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x00))
-#define Teensy4_GPIO7_GDIR (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x04))
-#define Teensy4_GPIO7_PSR (*(volatile Teensy4_GPIO7Pins const *)(0x42004000 + 0x08))
-#define Teensy4_GPIO7_ICR1 (*(volatile Teensy4_ICR1Config*)(0x42004000 + 0x0C))
-#define Teensy4_GPIO7_IMR (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x14))
-#define Teensy4_GPIO7_INT_STATUS (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x18))
-#define Teensy4_GPIO7_DR_SET (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x84))
-#define Teensy4_GPIO7_DR_CLEAR (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x88))
-#define Teensy4_GPIO7_DR_TOGGLE (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x8C))
+#define Teensy4_GPIO7_DataRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x00))
+#define Teensy4_GPIO7_DirectionRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x04))
+#define Teensy4_GPIO7_PadStatusRegister (*(volatile Teensy4_GPIO7Pins const *)(0x42004000 + 0x08))
+#define Teensy4_GPIO7_InterruptConfig1 (*(volatile Teensy4_ICR1Config*)(0x42004000 + 0x0C))
+#define Teensy4_GPIO7_InterruptMaskRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x14))
+#define Teensy4_GPIO7_InterruptStatus (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x18))
+#define Teensy4_GPIO7_DataRegister_Set (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x84))
+#define Teensy4_GPIO7_DataRegister_Clear (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x88))
+#define Teensy4_GPIO7_DataRegister_Toggle (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x8C))
 
 
 // =============================================================================
@@ -131,28 +131,28 @@ typedef enum {
 /* Scope: LED */
 
 void LED_on(void) {
-    Teensy4_GPIO7_DR_SET = ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_DataRegister_Set = ((true ? 1 : 0) << 3);
 }
 
 void LED_off(void) {
-    Teensy4_GPIO7_DR_CLEAR = ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_DataRegister_Clear = ((true ? 1 : 0) << 3);
 }
 
 void LED_toggle(void) {
-    Teensy4_GPIO7_DR_TOGGLE = ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_DataRegister_Toggle = ((true ? 1 : 0) << 3);
 }
 
 bool LED_isOn(void) {
-    return ((Teensy4_GPIO7_PSR >> 3) & 1);
+    return ((Teensy4_GPIO7_PadStatusRegister >> 3) & 1);
 }
 
 void LED_configureInterrupt(void) {
-    Teensy4_GPIO7_ICR1 = (Teensy4_GPIO7_ICR1 & ~(0x3 << 6)) | (((uint8_t)Teensy4_InterruptType_RISING_EDGE & 0x3) << 6);
-    Teensy4_GPIO7_IMR = (Teensy4_GPIO7_IMR & ~(1 << 3)) | ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_InterruptConfig1 = (Teensy4_GPIO7_InterruptConfig1 & ~(0x3 << 6)) | (((uint8_t)Teensy4_InterruptType_RISING_EDGE & 0x3) << 6);
+    Teensy4_GPIO7_InterruptMaskRegister = (Teensy4_GPIO7_InterruptMaskRegister & ~(1 << 3)) | ((true ? 1 : 0) << 3);
 }
 
 void LED_clearInterrupt(void) {
-    Teensy4_GPIO7_INT_STATUS = (Teensy4_GPIO7_INT_STATUS & ~(1 << 3)) | ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_InterruptStatus = (Teensy4_GPIO7_InterruptStatus & ~(1 << 3)) | ((true ? 1 : 0) << 3);
 }
 
 // =============================================================================

@@ -13,8 +13,8 @@
 //   global                 - Sketch config: BLINK_DELAY_MS, setup(), loop()
 //
 // Cross-scope access:
-//   LED.toggle()                              - Call application function
-//   Teensy4.GPIO7.DR_SET[Teensy4.LED_BIT]     - Access platform register from LED scope
+//   LED.toggle()                                        - Call application function
+//   Teensy4.GPIO7.DataRegister_Set.LED_BUILTIN <- true  - Access platform register
 //
 // Why scoped registers?
 // - Avoids conflicts with HAL headers (Teensy's imxrt.h defines GPIO7_DR)
@@ -112,36 +112,36 @@ scope Teensy4 {
     // =========================================================================
     // GPIO7 Register Block (i.MX RT1062)
     // =========================================================================
-    // Scoped register generates: Teensy4_GPIO7_DR, Teensy4_GPIO7_DR_SET, etc.
+    // Scoped register generates: Teensy4_GPIO7_DataRegister, Teensy4_GPIO7_DataRegister_Set, etc.
     // This avoids conflicts with Teensy's imxrt.h which defines GPIO7_DR.
 
     register GPIO7 @ 0x42004000 {
         /// Data Register - Current pin output values
-        DR:         GPIO7Pins rw @ 0x00,
+        DataRegister:           GPIO7Pins rw @ 0x00,
 
         /// Direction Register - 1=output, 0=input
-        GDIR:       GPIO7Pins rw @ 0x04,
+        DirectionRegister:      GPIO7Pins rw @ 0x04,
 
         /// Pad Status Register - Actual pin voltage (read-only)
-        PSR:        GPIO7Pins ro @ 0x08,
+        PadStatusRegister:      GPIO7Pins ro @ 0x08,
 
         /// Interrupt Configuration Register 1 - Pins 0-15
-        ICR1:       ICR1Config rw @ 0x0C,
+        InterruptConfig1:       ICR1Config rw @ 0x0C,
 
         /// Interrupt Mask Register - Enable/disable per pin
-        IMR:        GPIO7Pins rw @ 0x14,
+        InterruptMaskRegister:  GPIO7Pins rw @ 0x14,
 
         /// Interrupt Status - Pending flags (write-1-to-clear)
-        INT_STATUS: GPIO7Pins rw @ 0x18,
+        InterruptStatus:        GPIO7Pins rw @ 0x18,
 
-        /// Atomic Set - Write 1 to set DR bits (no RMW!)
-        DR_SET:     GPIO7Pins wo @ 0x84,
+        /// Atomic Set - Write 1 to set DataRegister bits (no RMW!)
+        DataRegister_Set:       GPIO7Pins wo @ 0x84,
 
-        /// Atomic Clear - Write 1 to clear DR bits
-        DR_CLEAR:   GPIO7Pins wo @ 0x88,
+        /// Atomic Clear - Write 1 to clear DataRegister bits
+        DataRegister_Clear:     GPIO7Pins wo @ 0x88,
 
-        /// Atomic Toggle - Write 1 to toggle DR bits
-        DR_TOGGLE:  GPIO7Pins wo @ 0x8C,
+        /// Atomic Toggle - Write 1 to toggle DataRegister bits
+        DataRegister_Toggle:    GPIO7Pins wo @ 0x8C,
     }
 }
 
@@ -153,33 +153,33 @@ scope Teensy4 {
 scope LED {
     /// Turn LED on using atomic set register
     public void on() {
-        Teensy4.GPIO7.DR_SET.LED_BUILTIN <- true;
+        Teensy4.GPIO7.DataRegister_Set.LED_BUILTIN <- true;
     }
 
     /// Turn LED off using atomic clear register
     public void off() {
-        Teensy4.GPIO7.DR_CLEAR.LED_BUILTIN <- true;
+        Teensy4.GPIO7.DataRegister_Clear.LED_BUILTIN <- true;
     }
 
     /// Toggle LED using atomic toggle register
     public void toggle() {
-        Teensy4.GPIO7.DR_TOGGLE.LED_BUILTIN <- true;
+        Teensy4.GPIO7.DataRegister_Toggle.LED_BUILTIN <- true;
     }
 
     /// Check if LED is on by reading pad status
     public bool isOn() {
-        return Teensy4.GPIO7.PSR.LED_BUILTIN;
+        return Teensy4.GPIO7.PadStatusRegister.LED_BUILTIN;
     }
 
     /// Configure LED pin for interrupt on rising edge
     public void configureInterrupt() {
-        Teensy4.GPIO7.ICR1.LED_BUILTIN <- (u8)Teensy4.InterruptType.RISING_EDGE;
-        Teensy4.GPIO7.IMR.LED_BUILTIN <- true;
+        Teensy4.GPIO7.InterruptConfig1.LED_BUILTIN <- (u8)Teensy4.InterruptType.RISING_EDGE;
+        Teensy4.GPIO7.InterruptMaskRegister.LED_BUILTIN <- true;
     }
 
     /// Clear pending interrupt flag
     public void clearInterrupt() {
-        Teensy4.GPIO7.INT_STATUS.LED_BUILTIN <- true;
+        Teensy4.GPIO7.InterruptStatus.LED_BUILTIN <- true;
     }
 }
 
