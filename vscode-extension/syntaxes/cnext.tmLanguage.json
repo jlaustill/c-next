@@ -5,9 +5,11 @@
   "patterns": [
     { "include": "#comments" },
     { "include": "#preprocessor" },
+    { "include": "#registers" },
+    { "include": "#bitmaps" },
+    { "include": "#scope-access" },
     { "include": "#keywords" },
     { "include": "#types" },
-    { "include": "#registers" },
     { "include": "#operators" },
     { "include": "#literals" },
     { "include": "#strings" }
@@ -69,6 +71,10 @@
           "match": "\\b(u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|void|string|ISR)\\b"
         },
         {
+          "name": "storage.type.bitmap.cnext",
+          "match": "\\b(bitmap8|bitmap16|bitmap24|bitmap32)\\b"
+        },
+        {
           "name": "storage.type.bounded-string.cnext",
           "match": "\\bstring<[0-9]+>"
         }
@@ -77,8 +83,102 @@
     "registers": {
       "patterns": [
         {
-          "name": "keyword.declaration.register.cnext",
-          "match": "\\b(register)\\b(?=\\s+\\w+\\s*@)"
+          "name": "meta.register.declaration.cnext",
+          "begin": "\\b(register)\\s+(\\w+)\\s*(@)\\s*(0x[0-9a-fA-F]+|\\d+)\\s*(\\{)",
+          "beginCaptures": {
+            "1": { "name": "keyword.declaration.register.cnext" },
+            "2": { "name": "entity.name.type.register.cnext" },
+            "3": { "name": "keyword.operator.address.cnext" },
+            "4": { "name": "constant.numeric.cnext" },
+            "5": { "name": "punctuation.definition.block.begin.cnext" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.end.cnext" }
+          },
+          "patterns": [
+            { "include": "#register-field" },
+            { "include": "#comments" }
+          ]
+        }
+      ]
+    },
+    "register-field": {
+      "patterns": [
+        {
+          "match": "(\\w+)\\s*(:)\\s*(\\w+)\\s+(rw|ro|wo|w1c|w1s)\\s*(@)\\s*(0x[0-9a-fA-F]+|\\d+)",
+          "captures": {
+            "1": { "name": "entity.name.field.register.cnext" },
+            "2": { "name": "punctuation.separator.colon.cnext" },
+            "3": { "name": "storage.type.cnext" },
+            "4": { "name": "storage.modifier.cnext" },
+            "5": { "name": "keyword.operator.address.cnext" },
+            "6": { "name": "constant.numeric.cnext" }
+          }
+        }
+      ]
+    },
+    "bitmaps": {
+      "patterns": [
+        {
+          "name": "meta.bitmap.declaration.cnext",
+          "begin": "\\b(bitmap(?:8|16|24|32))\\s+(\\w+)\\s*(\\{)",
+          "beginCaptures": {
+            "1": { "name": "storage.type.bitmap.cnext" },
+            "2": { "name": "entity.name.type.bitmap.cnext" },
+            "3": { "name": "punctuation.definition.block.begin.cnext" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.end.cnext" }
+          },
+          "patterns": [
+            { "include": "#bitmap-field" },
+            { "include": "#comments" }
+          ]
+        }
+      ]
+    },
+    "bitmap-field": {
+      "patterns": [
+        {
+          "comment": "Multi-bit field: Mode[3]",
+          "match": "(\\w+)\\s*(\\[)(\\d+)(\\])",
+          "captures": {
+            "1": { "name": "entity.name.field.bitmap.cnext" },
+            "2": { "name": "punctuation.definition.bracket.begin.cnext" },
+            "3": { "name": "constant.numeric.bitwidth.cnext" },
+            "4": { "name": "punctuation.definition.bracket.end.cnext" }
+          }
+        },
+        {
+          "comment": "Single-bit field: Running",
+          "match": "(\\w+)(?=\\s*,|\\s*$|\\s*//)",
+          "captures": {
+            "1": { "name": "entity.name.field.bitmap.cnext" }
+          }
+        }
+      ]
+    },
+    "scope-access": {
+      "patterns": [
+        {
+          "comment": "this.member or global.member access",
+          "match": "\\b(this|global)\\s*(\\.)\\s*(\\w+)",
+          "captures": {
+            "1": { "name": "variable.language.cnext" },
+            "2": { "name": "punctuation.accessor.cnext" },
+            "3": { "name": "variable.other.member.cnext" }
+          }
+        },
+        {
+          "comment": "Scope.Member qualified access (e.g., Teensy4.GPIO7)",
+          "match": "\\b([A-Z]\\w*)\\s*(\\.)\\s*(\\w+)",
+          "captures": {
+            "1": { "name": "entity.name.namespace.cnext" },
+            "2": { "name": "punctuation.accessor.cnext" },
+            "3": { "name": "variable.other.member.cnext" }
+          }
         }
       ]
     },
