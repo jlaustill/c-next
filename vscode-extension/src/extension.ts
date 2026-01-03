@@ -61,6 +61,10 @@ let workspaceIndex: WorkspaceIndex;
 // Track last successful transpilation per file (to avoid writing bad code)
 const lastGoodTranspile: Map<string, string> = new Map();
 
+// Track last-good output file paths for completion/hover queries
+// This allows completions to work even when current code has parse errors
+export const lastGoodOutputPath: Map<string, string> = new Map();
+
 // Debounce timers for .c file generation
 const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
 
@@ -282,12 +286,16 @@ function transpileToFile(document: vscode.TextDocument): void {
 
         try {
             fs.writeFileSync(outputPath, result.code, 'utf-8');
+            // Cache the output path for completion/hover queries
+            // This allows completions to work even when current code has parse errors
+            lastGoodOutputPath.set(document.uri.toString(), outputPath);
         } catch (err) {
             // Silently fail - don't interrupt the user's workflow
             console.error('C-Next: Failed to write output file:', err);
         }
     }
-    // If transpilation fails, we keep the last good .c file
+    // If transpilation fails, we keep the last good .c/.cpp file
+    // and the lastGoodOutputPath cache remains valid for completions
 }
 
 /**

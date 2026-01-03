@@ -232,6 +232,7 @@ export default class CodeGenerator {
     private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
     private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
+    private registerMemberTypes: Map<string, string> = new Map(); // "MOTOR_CTRL" -> "MotorControl" (for bitmap types)
     private knownEnums: Set<string> = new Set(); // ADR-017: Track enum types
     private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
 
@@ -352,6 +353,7 @@ export default class CodeGenerator {
         this.knownFunctions = new Set();
         this.functionSignatures = new Map();
         this.registerMemberAccess = new Map();
+        this.registerMemberTypes = new Map();  // ADR-034: Reset register member types (for bitmap in register)
         this.knownEnums = new Set();
         this.enumMembers = new Map();
         this.knownBitmaps = new Set();      // ADR-034: Reset bitmap types
@@ -531,12 +533,18 @@ export default class CodeGenerator {
                 const regName = regDecl.IDENTIFIER().getText();
                 this.knownRegisters.add(regName);
 
-                // Track access modifiers for each register member
+                // Track access modifiers and types for each register member
                 for (const member of regDecl.registerMember()) {
                     const memberName = member.IDENTIFIER().getText();
                     const accessMod = member.accessModifier().getText(); // rw, ro, wo, w1c, w1s
                     const fullName = `${regName}_${memberName}`;
                     this.registerMemberAccess.set(fullName, accessMod);
+
+                    // ADR-034: Track register member type (especially for bitmap types)
+                    const typeName = this.getTypeName(member.type());
+                    if (this.knownBitmaps.has(typeName)) {
+                        this.registerMemberTypes.set(fullName, typeName);
+                    }
                 }
             }
 
@@ -3409,6 +3417,48 @@ export default class CodeGenerator {
                     }
                 }
             }
+
+            // ADR-034: Register member bitmap field write: MOTOR.CTRL.Running <- true
+            // 3 identifiers: [register, member, bitmapField], no subscripts
+            if (identifiers.length === 3 && exprs.length === 0) {
+                const regName = identifiers[0].getText();
+                const memberName = identifiers[1].getText();
+                const fieldName = identifiers[2].getText();
+
+                // Check if first identifier is a register and second is a bitmap-typed member
+                if (this.knownRegisters.has(regName)) {
+                    const fullRegMember = `${regName}_${memberName}`;
+                    const bitmapType = this.registerMemberTypes.get(fullRegMember);
+
+                    if (bitmapType) {
+                        // This is a bitmap field access on a register member
+                        if (isCompound) {
+                            throw new Error(`Compound assignment operators not supported for bitmap field access: ${cnextOp}`);
+                        }
+
+                        const fields = this.bitmapFields.get(bitmapType);
+                        if (fields && fields.has(fieldName)) {
+                            const fieldInfo = fields.get(fieldName)!;
+
+                            // Validate compile-time literal overflow
+                            this.validateBitmapFieldLiteral(ctx.expression(), fieldInfo.width, fieldName);
+
+                            const mask = (1 << fieldInfo.width) - 1;
+                            const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+
+                            if (fieldInfo.width === 1) {
+                                // Single bit write on register: REG_MEMBER = (REG_MEMBER & ~(1 << offset)) | ((value ? 1 : 0) << offset)
+                                return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | ((${value} ? 1 : 0) << ${fieldInfo.offset});`;
+                            } else {
+                                // Multi-bit write on register
+                                return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                            }
+                        } else {
+                            throw new Error(`Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`);
+                        }
+                    }
+                }
+            }
         }
 
         // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT] or matrix[0][0])
@@ -4605,6 +4655,25 @@ export default class CodeGenerator {
                         result = `${result}_${memberName}`;
                         isRegisterChain = true;  // ADR-016: Track register chain for subscript handling
                     }
+                    // ADR-034: Check if result is a register member with bitmap type
+                    // Handle: MOTOR_CTRL.Running where MOTOR_CTRL has bitmap type MotorControl
+                    else if (this.registerMemberTypes.has(result)) {
+                        const bitmapType = this.registerMemberTypes.get(result)!;
+                        const fields = this.bitmapFields.get(bitmapType);
+                        if (fields && fields.has(memberName)) {
+                            const fieldInfo = fields.get(memberName)!;
+                            if (fieldInfo.width === 1) {
+                                // Single bit: ((value >> offset) & 1)
+                                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
+                            } else {
+                                // Multi-bit: ((value >> offset) & mask)
+                                const mask = (1 << fieldInfo.width) - 1;
+                                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
+                            }
+                        } else {
+                            throw new Error(`Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`);
+                        }
+                    }
                     // ADR-006: Struct parameter uses -> for member access
                     else if (isStructParam && result === primaryId) {
                         result = `${result}->${memberName}`;
@@ -4626,6 +4695,22 @@ export default class CodeGenerator {
                     // Transform Register.member to Register_member (matching #define)
                     result = `${result}_${memberName}`;
                     isRegisterChain = true;
+                }
+                // ADR-034: Check if result is a register member with bitmap type (no primaryId case)
+                else if (this.registerMemberTypes.has(result)) {
+                    const bitmapType = this.registerMemberTypes.get(result)!;
+                    const fields = this.bitmapFields.get(bitmapType);
+                    if (fields && fields.has(memberName)) {
+                        const fieldInfo = fields.get(memberName)!;
+                        if (fieldInfo.width === 1) {
+                            result = `((${result} >> ${fieldInfo.offset}) & 1)`;
+                        } else {
+                            const mask = (1 << fieldInfo.width) - 1;
+                            result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
+                        }
+                    } else {
+                        throw new Error(`Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`);
+                    }
                 }
                 else {
                     result = `${result}.${memberName}`;

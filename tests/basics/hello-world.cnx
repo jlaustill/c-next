@@ -11,7 +11,9 @@ u32 main(string args[]) {
         userName[userName.length - 1] <- '\0';
     }
 
-    printf("Hello from %s %s!\n", args[0], userName);
+    u8 whoAmIByte <- args[0][0];
+
+    printf("Hello from %s %s! Your special character is %c\n", args[0], userName, whoAmIByte);
 
     return 0;
 }

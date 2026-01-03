@@ -6,6 +6,7 @@ import {
     ISymbolInfo
 } from '../../dist/lib/transpiler.js';
 import WorkspaceIndex from './workspace/WorkspaceIndex.js';
+import { lastGoodOutputPath } from './extension.js';
 
 /**
  * Extended symbol info that includes source file path
@@ -283,38 +284,63 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     }
 
     /**
+     * Find the output file path (.c or .cpp) for a .cnx document
+     * Uses cache if current files don't exist (allows hover during parse errors)
+     */
+    private findOutputPath(document: vscode.TextDocument): string | null {
+        const cnxPath = document.uri.fsPath;
+
+        // Check for .cpp first (PlatformIO/Arduino projects often use .cpp)
+        const cppPath = cnxPath.replace(/\.cnx$/, '.cpp');
+        if (fs.existsSync(cppPath)) {
+            return cppPath;
+        }
+
+        // Check for .c
+        const cPath = cnxPath.replace(/\.cnx$/, '.c');
+        if (fs.existsSync(cPath)) {
+            return cPath;
+        }
+
+        // Neither exists - check the cache for last-known-good path
+        const cachedPath = lastGoodOutputPath.get(document.uri.toString());
+        if (cachedPath && fs.existsSync(cachedPath)) {
+            return cachedPath;
+        }
+
+        return null;
+    }
+
+    /**
      * Query the C/C++ extension for hover info by looking up the symbol
-     * in the generated .c file
+     * in the generated .c/.cpp file
      */
     private async queryCExtensionHover(
         document: vscode.TextDocument,
         word: string,
         wordRange: vscode.Range
     ): Promise<vscode.Hover | null> {
-        // Find the corresponding .c file
-        const cnxPath = document.uri.fsPath;
-        const cPath = cnxPath.replace(/\.cnx$/, '.c');
-
-        // Check if .c file exists
-        if (!fs.existsSync(cPath)) {
+        // Find the output file (uses cache if current file has parse errors)
+        const outputPath = this.findOutputPath(document);
+        if (!outputPath) {
             return null;
         }
 
         try {
-            // Read the .c file and find the word
-            const cSource = fs.readFileSync(cPath, 'utf-8');
-            const cPosition = this.findWordInSource(cSource, word);
+            // Read the output file and find the word
+            const outputSource = fs.readFileSync(outputPath, 'utf-8');
+            const wordPosition = this.findWordInSource(outputSource, word);
 
-            if (!cPosition) {
+            if (!wordPosition) {
                 return null;
             }
 
             // Query the C/C++ extension's hover provider
-            const cUri = vscode.Uri.file(cPath);
+            const outputUri = vscode.Uri.file(outputPath);
             const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
                 'vscode.executeHoverProvider',
-                cUri,
-                cPosition
+                outputUri,
+                wordPosition
             );
 
             if (hovers && hovers.length > 0) {
