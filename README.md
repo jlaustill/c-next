@@ -44,14 +44,32 @@ npm install
 npm run build
 ```
 
+### Global Installation (optional)
+
+```bash
+npm link                    # For local development
+# or
+npm install -g c-next       # When published to npm
+cnext --version
+```
+
 ## Usage
 
 ```bash
-# Transpile to C
-node dist/index.js examples/blink.cnx -o blink.c
+# Transpile to C (output alongside input file)
+cnext examples/blink.cnx
+
+# Explicit output path
+cnext examples/blink.cnx -o blink.c
 
 # Parse only (syntax check)
-node dist/index.js examples/blink.cnx --parse
+cnext examples/blink.cnx --parse
+
+# Output as C++ (.cpp)
+cnext examples/blink.cnx --cpp
+
+# Show all options
+cnext --help
 ```
 
 ## Philosophy
@@ -388,6 +406,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` with compile-time bounds enforcement |
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Type | Built-in `ISR` type for `void(void)` function pointers |
 | [ADR-034](docs/decisions/adr-034-bit-fields.md) | Bitmap Types | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
+| [ADR-048](docs/decisions/adr-048-cli-executable.md) | CLI Executable | `cnext` command with smart defaults |
 
 ### Research (v1 Roadmap)
 | ADR | Title | Description |
@@ -395,7 +414,6 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
 | [ADR-047](docs/decisions/adr-047-nullable-types.md) | Nullable Types | `?` suffix for safe C library interop |
-| [ADR-048](docs/decisions/adr-048-cli-executable.md) | CLI Executable | npm/standalone binary distribution |
 
 ### Research (v2 Roadmap)
 | ADR | Title | Description |

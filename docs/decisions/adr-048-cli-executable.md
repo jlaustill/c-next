@@ -1,7 +1,8 @@
 # ADR-048: CLI Executable Distribution
 
-**Status:** Research
+**Status:** Implemented
 **Date:** 2026-01-01
+**Date Implemented:** 2026-01-03
 **Decision Makers:** C-Next Language Design Team
 
 ## Context
@@ -216,24 +217,27 @@ if (!outputPath && inputFiles.length === 1) {
 
 ## Decision
 
-**Status: Research** - Awaiting implementation of Phase 1.
+**Implemented Phase 1: npm bin (Option A)**
+
+The `cnext` CLI command is available via npm's bin mechanism. Use `npm link` for local development or `npm install -g c-next` when published.
 
 ---
 
 ## Implementation Checklist
 
 ### Phase 1: npm bin
-- [ ] Add shebang (`#!/usr/bin/env node`) to src/index.ts
-- [ ] Add `bin` field to package.json: `"bin": { "cnext": "./dist/index.js" }`
-- [ ] Update CLI to default output path (same dir as input, `.cnx` → `.c`)
-- [ ] Add `--version` / `-v` flag (read from package.json)
-- [ ] Add `--help` / `-h` flag
-- [ ] Define exit codes (0 = success, 1 = error)
+- [x] Add shebang (`#!/usr/bin/env node`) to src/index.ts
+- [x] Add `bin` field to package.json: `"bin": { "cnext": "./dist/index.js" }`
+- [x] Update CLI to default output path (same dir as input, `.cnx` → `.c`)
+- [x] Add `--version` / `-v` flag (read from package.json)
+- [x] Add `--help` / `-h` flag
+- [x] Define exit codes (0 = success, 1 = error)
+- [x] Add CLI integration tests (`npm run test:cli`)
 - [ ] Test cross-platform path handling (Windows backslashes)
-- [ ] Test `npm link` for local development
+- [x] Test `npm link` for local development
 - [ ] Test `npx c-next file.cnx` usage
 - [ ] Publish to npm registry
-- [ ] Update README with installation instructions
+- [x] Update README with installation instructions
 
 ---
 

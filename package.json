@@ -18,6 +18,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "node scripts/test.js",
+    "test:cli": "node scripts/test-cli.js",
     "test:update": "node scripts/test.js --update",
     "analyze": "./scripts/static-analysis.sh",
     "clean": "rm -rf dist src/parser"
