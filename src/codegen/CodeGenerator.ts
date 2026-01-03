@@ -229,6 +229,7 @@ export default class CodeGenerator {
     private knownStructs: Set<string> = new Set();
     private structFields: Map<string, Map<string, string>> = new Map(); // struct -> (field -> type)
     private knownRegisters: Set<string> = new Set();
+    private scopedRegisters: Map<string, string> = new Map(); // fullRegName -> scopeName (for scoped registers)
     private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
     private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
     private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
@@ -350,6 +351,7 @@ export default class CodeGenerator {
         this.knownStructs = new Set();
         this.structFields = new Map();
         this.knownRegisters = new Set();
+        this.scopedRegisters = new Map();  // Scoped register tracking
         this.knownFunctions = new Set();
         this.functionSignatures = new Map();
         this.registerMemberAccess = new Map();
@@ -492,6 +494,31 @@ export default class CodeGenerator {
                         members.add(enumName);
                         // Collect enum with scope prefix (e.g., Motor_State)
                         this.collectEnum(enumDecl, name);
+                    }
+                    // Handle registers declared inside scopes
+                    if (member.registerDeclaration()) {
+                        const regDecl = member.registerDeclaration()!;
+                        const regName = regDecl.IDENTIFIER().getText();
+                        const fullRegName = `${name}_${regName}`; // Scope_RegisterName
+                        members.add(regName);
+
+                        // Track the prefixed register name
+                        this.knownRegisters.add(fullRegName);
+                        this.scopedRegisters.set(fullRegName, name);
+
+                        // Track access modifiers and types for each register member
+                        for (const regMember of regDecl.registerMember()) {
+                            const memberName = regMember.IDENTIFIER().getText();
+                            const accessMod = regMember.accessModifier().getText();
+                            const fullMemberName = `${fullRegName}_${memberName}`; // Scope_Register_Member
+                            this.registerMemberAccess.set(fullMemberName, accessMod);
+
+                            // Track register member type (especially for bitmap types)
+                            const typeName = this.getTypeName(regMember.type());
+                            if (this.knownBitmaps.has(typeName)) {
+                                this.registerMemberTypes.set(fullMemberName, typeName);
+                            }
+                        }
                     }
                 }
                 this.context.scopeMembers.set(name, members);
@@ -2285,6 +2312,14 @@ export default class CodeGenerator {
                 lines.push('');
                 lines.push(bitmapCode);
             }
+
+            // Handle register declarations inside scopes
+            if (member.registerDeclaration()) {
+                const regDecl = member.registerDeclaration()!;
+                const regCode = this.generateScopedRegister(regDecl, name);
+                lines.push('');
+                lines.push(regCode);
+            }
         }
 
         lines.push('');
@@ -2319,6 +2354,39 @@ export default class CodeGenerator {
 
             // Generate: #define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
             lines.push(`#define ${name}_${regName} (*(${cast})(${baseAddress} + ${offset}))`);
+        }
+
+        lines.push('');
+        return lines.join('\n');
+    }
+
+    /**
+     * Generate register macros with scope prefix
+     * scope Teensy4 { register GPIO7 @ ... } generates Teensy4_GPIO7_* macros
+     */
+    private generateScopedRegister(ctx: Parser.RegisterDeclarationContext, scopeName: string): string {
+        const name = ctx.IDENTIFIER().getText();
+        const fullName = `${scopeName}_${name}`; // Teensy4_GPIO7
+        const baseAddress = this.generateExpression(ctx.expression());
+
+        const lines: string[] = [];
+        lines.push(`/* Register: ${fullName} @ ${baseAddress} */`);
+
+        // Generate individual #define for each register member with its offset
+        for (const member of ctx.registerMember()) {
+            const regName = member.IDENTIFIER().getText();
+            const regType = this.generateType(member.type());
+            const access = member.accessModifier().getText();
+            const offset = this.generateExpression(member.expression());
+
+            // Determine qualifiers based on access mode
+            let cast = `volatile ${regType}*`;
+            if (access === 'ro') {
+                cast = `volatile ${regType} const *`;
+            }
+
+            // Generate: #define Teensy4_GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+            lines.push(`#define ${fullName}_${regName} (*(${cast})(${baseAddress} + ${offset}))`);
         }
 
         lines.push('');
@@ -3484,9 +3552,15 @@ export default class CodeGenerator {
             }
 
             // ADR-036: Struct member multi-dimensional array access (e.g., screen.pixels[0][0])
-            // Has 2+ identifiers (struct.field), subscripts, and first identifier is NOT a register
+            // Has 2+ identifiers (struct.field), subscripts, and first identifier is NOT a register or scope
             const firstId = identifiers[0].getText();
-            if (identifiers.length >= 2 && exprs.length > 0 && !this.knownRegisters.has(firstId)) {
+            // Check if this is a scoped register: Scope.Register.Member[bit]
+            const scopedRegName = identifiers.length >= 3 && this.knownScopes.has(firstId)
+                ? `${firstId}_${identifiers[1].getText()}`
+                : null;
+            const isScopedRegister = scopedRegName && this.knownRegisters.has(scopedRegName);
+
+            if (identifiers.length >= 2 && exprs.length > 0 && !this.knownRegisters.has(firstId) && !isScopedRegister) {
                 // Build the struct.field chain
                 const memberChain = identifiers.map(id => id.getText()).join('.');
                 // TODO: Add bounds checking for struct member arrays
@@ -3496,17 +3570,30 @@ export default class CodeGenerator {
                 return `${memberChain}[${indices}] = ${value};`;
             }
 
-            // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT])
+            // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT] or Scope.GPIO7.DR_SET[LED_BIT])
             if (identifiers.length >= 2 && exprs.length > 0) {
                 // Compound operators not supported for bit field access
                 if (isCompound) {
                     throw new Error(`Compound assignment operators not supported for bit field access: ${cnextOp}`);
                 }
 
-                // This is GPIO7.DR_SET[bit] or GPIO7.DR[start, width]
-                const regName = identifiers[0].getText();
-                const memberName = identifiers[1].getText();
-                const fullName = `${regName}_${memberName}`;
+                // Determine if this is a scoped register access
+                // Pattern 1: GPIO7.DR_SET[bit] - 2 identifiers, first is register
+                // Pattern 2: Scope.GPIO7.DR_SET[bit] - 3 identifiers, first is scope
+                let fullName: string;
+                const firstId = identifiers[0].getText();
+                if (this.knownScopes.has(firstId) && identifiers.length >= 3) {
+                    // Scoped register: Scope.Register.Member
+                    const scopeName = firstId;
+                    const regName = identifiers[1].getText();
+                    const memberName = identifiers[2].getText();
+                    fullName = `${scopeName}_${regName}_${memberName}`;
+                } else {
+                    // Non-scoped register: Register.Member
+                    const regName = firstId;
+                    const memberName = identifiers[1].getText();
+                    fullName = `${regName}_${memberName}`;
+                }
 
                 // Check if this is a write-only register
                 const accessMod = this.registerMemberAccess.get(fullName);
@@ -4862,7 +4949,12 @@ export default class CodeGenerator {
             return id;
         }
         if (ctx.literal()) {
-            return ctx.literal()!.getText();
+            const literalText = ctx.literal()!.getText();
+            // Track boolean literal usage to include stdbool.h
+            if (literalText === 'true' || literalText === 'false') {
+                this.needsStdbool = true;
+            }
+            return literalText;
         }
         if (ctx.expression()) {
             return `(${this.generateExpression(ctx.expression()!)})`;
@@ -5142,7 +5234,14 @@ export default class CodeGenerator {
 
             // ADR-036: Check if first identifier is a register for bit access
             // Register bit access: GPIO7.DR[bit] or GPIO7.DR[start, width]
-            if (parts.length > 1 && this.knownRegisters.has(firstPart)) {
+            // Also handle scoped registers: Board.GPIO.DR[bit]
+            const isDirectRegister = parts.length > 1 && this.knownRegisters.has(firstPart);
+            const scopedRegisterName = parts.length > 2 && this.knownScopes.has(firstPart)
+                ? `${parts[0]}_${parts[1]}`
+                : null;
+            const isScopedRegister = scopedRegisterName && this.knownRegisters.has(scopedRegisterName);
+
+            if (isDirectRegister || isScopedRegister) {
                 // This is register member bit access (handled elsewhere for assignment)
                 // For read: generate bit extraction
                 const registerName = parts.join('_');

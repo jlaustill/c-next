@@ -76,6 +76,7 @@ scopeMember
     | visibilityModifier? functionDeclaration
     | visibilityModifier? enumDeclaration
     | visibilityModifier? bitmapDeclaration
+    | visibilityModifier? registerDeclaration
     ;
 
 visibilityModifier

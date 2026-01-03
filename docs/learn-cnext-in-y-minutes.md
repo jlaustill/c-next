@@ -1111,6 +1111,29 @@ LED.toggle();
 // void LED_on(void) { GPIO7_DR_SET = (1 << 3); }
 // void LED_off(void) { GPIO7_DR_CLEAR = (1 << 3); }
 // void LED_toggle(void) { GPIO7_DR_TOGGLE = (1 << 3); }
+
+// [DONE] Scoped registers for platform namespacing
+scope Teensy4 {
+    register GPIO7 @ 0x42004000 {
+        DR:         u32 rw @ 0x00,
+        DR_SET:     u32 wo @ 0x84,
+        DR_TOGGLE:  u32 wo @ 0x8C,
+    }
+
+    const u32 LED_BIT <- 3;
+
+    void blinkLed() {
+        this.GPIO7.DR_TOGGLE[this.LED_BIT] <- true;
+    }
+}
+
+// Usage: Teensy4.GPIO7.DR_SET[3] <- true;
+// Generates: Teensy4_GPIO7_DR_SET = (1 << 3);
+
+// Why scoped registers?
+// - Avoid conflicts with HAL headers (e.g., Teensy's imxrt.h defines GPIO7_DR)
+// - Group platform-specific registers, constants, and functions
+// - Support multiple platform configurations in same codebase
 ```
 
 ## Instance Pattern (C-Style OOP)

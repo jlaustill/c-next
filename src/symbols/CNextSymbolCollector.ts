@@ -86,6 +86,47 @@ class CNextSymbolCollector {
             if (member.bitmapDeclaration()) {
                 this.collectBitmap(member.bitmapDeclaration()!, name);
             }
+            // Handle register declarations in scopes
+            if (member.registerDeclaration()) {
+                this.collectScopedRegister(member.registerDeclaration()!, name);
+            }
+        }
+    }
+
+    // Collect scoped register declarations (e.g., scope.register -> Scope_Register)
+    private collectScopedRegister(reg: Parser.RegisterDeclarationContext, scopeName: string): void {
+        const regName = reg.IDENTIFIER().getText();
+        const fullName = `${scopeName}_${regName}`;
+        const line = reg.start?.line ?? 0;
+
+        this.symbols.push({
+            name: fullName,
+            kind: ESymbolKind.Register,
+            sourceFile: this.sourceFile,
+            sourceLine: line,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+            parent: scopeName,
+        });
+
+        // Collect register members with full scoped prefix
+        for (const member of reg.registerMember()) {
+            const memberName = member.IDENTIFIER().getText();
+            const memberLine = member.start?.line ?? 0;
+            const accessMod = member.accessModifier().getText();
+            const memberType = member.type()?.getText() ?? 'u32';
+
+            this.symbols.push({
+                name: `${fullName}_${memberName}`,
+                kind: ESymbolKind.RegisterMember,
+                type: memberType,
+                sourceFile: this.sourceFile,
+                sourceLine: memberLine,
+                sourceLanguage: ESourceLanguage.CNext,
+                isExported: true,
+                parent: fullName,
+                accessModifier: accessMod,
+            });
         }
     }
 

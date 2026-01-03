@@ -80,6 +80,52 @@ void LED_off(void) {
 - **Not a type** — Cannot create instances of a scope
 - **Minimal expectations** — No baggage from C++ namespaces or classes
 
+### Scoped Registers
+
+Scopes can contain register declarations for platform-specific hardware:
+
+```cnx
+scope Teensy4 {
+    register GPIO7 @ 0x42004000 {
+        DR:         u32 rw @ 0x00,
+        DR_SET:     u32 wo @ 0x84,
+        DR_CLEAR:   u32 wo @ 0x88,
+        DR_TOGGLE:  u32 wo @ 0x8C,
+    }
+
+    const u32 LED_BIT <- 3;
+
+    public void blinkLed() {
+        this.GPIO7.DR_TOGGLE[this.LED_BIT] <- true;
+    }
+}
+
+// Usage from outside:
+Teensy4.blinkLed();
+Teensy4.GPIO7.DR_SET[3] <- true;
+```
+
+Transpiles to:
+
+```c
+/* Register: Teensy4_GPIO7 @ 0x42004000 */
+#define Teensy4_GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+#define Teensy4_GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
+#define Teensy4_GPIO7_DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
+#define Teensy4_GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
+
+static const uint32_t Teensy4_LED_BIT = 3;
+
+void Teensy4_blinkLed(void) {
+    Teensy4_GPIO7_DR_TOGGLE = (1 << Teensy4_LED_BIT);
+}
+```
+
+This pattern is useful for:
+- **Platform namespacing** — Avoid conflicts with HAL headers (e.g., Teensy's imxrt.h defines GPIO7_DR)
+- **Organization** — Group platform-specific registers, constants, and functions together
+- **Multiple platforms** — Support different hardware configurations in the same codebase
+
 ---
 
 ## Instance Model: C-Style with ADR-014 Structs

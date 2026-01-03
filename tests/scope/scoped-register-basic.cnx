@@ -1,0 +1,14 @@
+// Test: Basic scoped register declaration and access
+
+scope Teensy4 {
+    register GPIO7 @ 0x42004000 {
+        DR:         u32 rw @ 0x00,
+        DR_SET:     u32 wo @ 0x84,
+        DR_TOGGLE:  u32 wo @ 0x8C,
+    }
+}
+
+void main() {
+    // Access scoped register
+    Teensy4.GPIO7.DR_SET <- 8;
+}
