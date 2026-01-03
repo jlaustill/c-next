@@ -58,6 +58,9 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
 let workspaceIndex: WorkspaceIndex;
 
+// Debug output channel - exported for use by other modules
+export let outputChannel: vscode.OutputChannel;
+
 // Track last successful transpilation per file (to avoid writing bad code)
 const lastGoodTranspile: Map<string, string> = new Map();
 
@@ -70,6 +73,11 @@ const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
 
 export function activate(context: vscode.ExtensionContext): void {
     console.log('C-Next extension activated');
+
+    // Create output channel for debug logging
+    outputChannel = vscode.window.createOutputChannel('C-Next');
+    context.subscriptions.push(outputChannel);
+    outputChannel.appendLine('C-Next extension activated');
 
     // Create diagnostic collection for errors
     diagnosticCollection = vscode.languages.createDiagnosticCollection('cnext');
