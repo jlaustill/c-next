@@ -143,6 +143,13 @@ scope Teensy4 {
         /// Atomic Toggle - Write 1 to toggle DataRegister bits
         DataRegister_Toggle:    GPIO7Pins wo @ 0x8C,
     }
+
+    u8 doSomething() {
+        u8 someByte <- 123;
+
+        u8 nextByte <- someByte;
+        
+    }
 }
 
 // =============================================================================
