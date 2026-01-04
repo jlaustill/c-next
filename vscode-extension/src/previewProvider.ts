@@ -1,281 +1,310 @@
-import * as vscode from 'vscode';
-import { transpile, ITranspileResult } from '../../dist/lib/transpiler.js';
+import * as vscode from "vscode";
+import { transpile, ITranspileResult } from "../../dist/lib/transpiler.js";
 
 /**
  * Manages C-Next preview panels with live updates
  */
 export default class PreviewProvider implements vscode.Disposable {
-    private static instance: PreviewProvider | null = null;
+  private static instance: PreviewProvider | null = null;
 
-    private panel: vscode.WebviewPanel | null = null;
-    private currentDocument: vscode.TextDocument | null = null;
-    private lastGoodCode: string = '';
-    private lastError: string | null = null;
-    private updateTimeout: NodeJS.Timeout | null = null;
-    private disposables: vscode.Disposable[] = [];
-    private statusBarItem: vscode.StatusBarItem;
+  private panel: vscode.WebviewPanel | null = null;
+  private currentDocument: vscode.TextDocument | null = null;
+  private lastGoodCode: string = "";
+  private lastError: string | null = null;
+  private updateTimeout: NodeJS.Timeout | null = null;
+  private disposables: vscode.Disposable[] = [];
+  private statusBarItem: vscode.StatusBarItem;
 
-    private constructor() {
-        // Create status bar item
-        this.statusBarItem = vscode.window.createStatusBarItem(
-            vscode.StatusBarAlignment.Right,
-            100
-        );
-        this.statusBarItem.command = 'workbench.actions.view.problems';
-        this.updateStatusBar(true, 0);
+  private constructor() {
+    // Create status bar item
+    this.statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Right,
+      100,
+    );
+    this.statusBarItem.command = "workbench.actions.view.problems";
+    this.updateStatusBar(true, 0);
+  }
+
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(): PreviewProvider {
+    if (!PreviewProvider.instance) {
+      PreviewProvider.instance = new PreviewProvider();
+    }
+    return PreviewProvider.instance;
+  }
+
+  /**
+   * Show preview for a document
+   */
+  public show(document: vscode.TextDocument, column: vscode.ViewColumn): void {
+    this.currentDocument = document;
+
+    if (this.panel) {
+      // Reveal existing panel
+      this.panel.reveal(column);
+    } else {
+      // Create new panel
+      this.panel = vscode.window.createWebviewPanel(
+        "cnextPreview",
+        "C-Next Preview",
+        column,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+        },
+      );
+
+      // Handle panel disposal
+      this.panel.onDidDispose(
+        () => {
+          this.panel = null;
+          this.statusBarItem.hide();
+        },
+        null,
+        this.disposables,
+      );
+
+      // Handle visibility changes
+      this.panel.onDidChangeViewState(
+        (e) => {
+          if (e.webviewPanel.visible) {
+            this.statusBarItem.show();
+          } else {
+            this.statusBarItem.hide();
+          }
+        },
+        null,
+        this.disposables,
+      );
     }
 
-    /**
-     * Get singleton instance
-     */
-    public static getInstance(): PreviewProvider {
-        if (!PreviewProvider.instance) {
-            PreviewProvider.instance = new PreviewProvider();
-        }
-        return PreviewProvider.instance;
+    // Update title
+    this.updateTitle();
+
+    // Show status bar
+    this.statusBarItem.show();
+
+    // Initial render
+    this.updatePreview();
+  }
+
+  /**
+   * Handle document change with debouncing
+   */
+  public onDocumentChange(document: vscode.TextDocument): void {
+    if (!this.panel || !this.currentDocument) {
+      return;
     }
 
-    /**
-     * Show preview for a document
-     */
-    public show(document: vscode.TextDocument, column: vscode.ViewColumn): void {
-        this.currentDocument = document;
-
-        if (this.panel) {
-            // Reveal existing panel
-            this.panel.reveal(column);
-        } else {
-            // Create new panel
-            this.panel = vscode.window.createWebviewPanel(
-                'cnextPreview',
-                'C-Next Preview',
-                column,
-                {
-                    enableScripts: true,
-                    retainContextWhenHidden: true
-                }
-            );
-
-            // Handle panel disposal
-            this.panel.onDidDispose(() => {
-                this.panel = null;
-                this.statusBarItem.hide();
-            }, null, this.disposables);
-
-            // Handle visibility changes
-            this.panel.onDidChangeViewState(e => {
-                if (e.webviewPanel.visible) {
-                    this.statusBarItem.show();
-                } else {
-                    this.statusBarItem.hide();
-                }
-            }, null, this.disposables);
-        }
-
-        // Update title
-        this.updateTitle();
-
-        // Show status bar
-        this.statusBarItem.show();
-
-        // Initial render
-        this.updatePreview();
+    // Only update if this is the document we're previewing
+    if (document.uri.toString() !== this.currentDocument.uri.toString()) {
+      return;
     }
 
-    /**
-     * Handle document change with debouncing
-     */
-    public onDocumentChange(document: vscode.TextDocument): void {
-        if (!this.panel || !this.currentDocument) {
-            return;
-        }
+    // Get debounce delay from settings
+    const config = vscode.workspace.getConfiguration("cnext");
+    const delay = config.get<number>("preview.updateDelay", 300);
 
-        // Only update if this is the document we're previewing
-        if (document.uri.toString() !== this.currentDocument.uri.toString()) {
-            return;
-        }
-
-        // Get debounce delay from settings
-        const config = vscode.workspace.getConfiguration('cnext');
-        const delay = config.get<number>('preview.updateDelay', 300);
-
-        // Clear existing timeout
-        if (this.updateTimeout) {
-            clearTimeout(this.updateTimeout);
-        }
-
-        // Schedule update
-        this.updateTimeout = setTimeout(() => {
-            this.updatePreview();
-        }, delay);
+    // Clear existing timeout
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
     }
 
-    /**
-     * Handle active editor change
-     */
-    public onActiveEditorChange(editor: vscode.TextEditor | undefined): void {
-        if (!this.panel) {
-            return;
-        }
+    // Schedule update
+    this.updateTimeout = setTimeout(() => {
+      this.updatePreview();
+    }, delay);
+  }
 
-        if (editor && editor.document.languageId === 'cnext') {
-            this.currentDocument = editor.document;
-            this.updateTitle();
-            this.updatePreview();
-        }
+  /**
+   * Handle active editor change
+   */
+  public onActiveEditorChange(editor: vscode.TextEditor | undefined): void {
+    if (!this.panel) {
+      return;
     }
 
-    /**
-     * Scroll preview to show line corresponding to source line
-     * Uses a simple 1:1 mapping (source line → generated line)
-     */
-    public scrollToLine(sourceLine: number): void {
-        if (!this.panel) {
-            return;
-        }
-        this.panel.webview.postMessage({
-            type: 'scrollToLine',
-            line: sourceLine
-        });
+    if (editor && editor.document.languageId === "cnext") {
+      this.currentDocument = editor.document;
+      this.updateTitle();
+      this.updatePreview();
+    }
+  }
+
+  /**
+   * Scroll preview to show line corresponding to source line
+   * Uses a simple 1:1 mapping (source line → generated line)
+   */
+  public scrollToLine(sourceLine: number): void {
+    if (!this.panel) {
+      return;
+    }
+    this.panel.webview.postMessage({
+      type: "scrollToLine",
+      line: sourceLine,
+    });
+  }
+
+  /**
+   * Update the preview panel content
+   */
+  private updatePreview(): void {
+    if (!this.panel || !this.currentDocument) {
+      return;
     }
 
-    /**
-     * Update the preview panel content
-     */
-    private updatePreview(): void {
-        if (!this.panel || !this.currentDocument) {
-            return;
-        }
+    const source = this.currentDocument.getText();
+    const result = transpile(source);
 
-        const source = this.currentDocument.getText();
-        const result = transpile(source);
-
-        if (result.success) {
-            this.lastGoodCode = result.code;
-            this.lastError = null;
-            this.updateStatusBar(true, 0);
-        } else {
-            this.lastError = result.errors
-                .map(e => `Line ${e.line}:${e.column} - ${e.message}`)
-                .join('\n');
-            this.updateStatusBar(false, result.errors.length);
-        }
-
-        // Always show content (last good or current)
-        this.panel.webview.html = this.getHtml(
-            this.lastGoodCode,
-            this.lastError
-        );
+    if (result.success) {
+      this.lastGoodCode = result.code;
+      this.lastError = null;
+      this.updateStatusBar(true, 0);
+    } else {
+      this.lastError = result.errors
+        .map((e) => `Line ${e.line}:${e.column} - ${e.message}`)
+        .join("\n");
+      this.updateStatusBar(false, result.errors.length);
     }
 
-    /**
-     * Update panel title with current file name
-     */
-    private updateTitle(): void {
-        if (!this.panel || !this.currentDocument) {
-            return;
-        }
-        const fileName = this.currentDocument.fileName.split('/').pop() || 'Preview';
-        this.panel.title = `C Preview: ${fileName}`;
+    // Always show content (last good or current)
+    this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
+  }
+
+  /**
+   * Update panel title with current file name
+   */
+  private updateTitle(): void {
+    if (!this.panel || !this.currentDocument) {
+      return;
+    }
+    const fileName =
+      this.currentDocument.fileName.split("/").pop() || "Preview";
+    this.panel.title = `C Preview: ${fileName}`;
+  }
+
+  /**
+   * Update status bar item
+   */
+  private updateStatusBar(success: boolean, errorCount: number): void {
+    if (success) {
+      this.statusBarItem.text = "$(check) C-Next";
+      this.statusBarItem.tooltip = "C-Next: No errors";
+      this.statusBarItem.backgroundColor = undefined;
+    } else {
+      this.statusBarItem.text = `$(error) C-Next: ${errorCount} error${errorCount !== 1 ? "s" : ""}`;
+      this.statusBarItem.tooltip = "C-Next: Click to view errors";
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+        "statusBarItem.errorBackground",
+      );
+    }
+  }
+
+  /**
+   * Apply simple C syntax highlighting
+   */
+  private highlightC(code: string): string {
+    // Escape HTML first
+    let html = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // Order matters - do strings/comments first to avoid highlighting inside them
+
+    // Block comments /* */
+    html = html.replace(
+      /(\/\*[\s\S]*?\*\/)/g,
+      '<span class="comment">$1</span>',
+    );
+
+    // Line comments //
+    html = html.replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>');
+
+    // Strings
+    html = html.replace(
+      /("(?:[^"\\]|\\.)*")/g,
+      '<span class="string">$1</span>',
+    );
+
+    // Character literals
+    html = html.replace(
+      /('(?:[^'\\]|\\.)*')/g,
+      '<span class="string">$1</span>',
+    );
+
+    // Preprocessor directives
+    html = html.replace(
+      /^(\s*#\s*\w+)/gm,
+      '<span class="preprocessor">$1</span>',
+    );
+
+    // Keywords
+    const keywords =
+      /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto|sizeof|typedef|struct|union|enum|const|volatile|static|extern|inline|void|register)\b/g;
+    html = html.replace(keywords, '<span class="keyword">$1</span>');
+
+    // Types
+    const types =
+      /\b(int|char|short|long|float|double|signed|unsigned|bool|uint8_t|uint16_t|uint32_t|uint64_t|int8_t|int16_t|int32_t|int64_t|size_t)\b/g;
+    html = html.replace(types, '<span class="type">$1</span>');
+
+    // Numbers (hex, binary, decimal, float)
+    html = html.replace(
+      /\b(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+\.?\d*[fF]?|\d+[uUlL]*)\b/g,
+      '<span class="number">$1</span>',
+    );
+
+    // Function calls (word followed by parenthesis)
+    html = html.replace(
+      /\b([a-zA-Z_]\w*)\s*(?=\()/g,
+      '<span class="function">$1</span>',
+    );
+
+    return html;
+  }
+
+  /**
+   * Generate HTML for the webview
+   */
+  private getHtml(code: string, error: string | null): string {
+    const config = vscode.workspace.getConfiguration("cnext");
+    const showLineNumbers = config.get<boolean>(
+      "preview.showLineNumbers",
+      true,
+    );
+
+    // Apply syntax highlighting
+    const highlightedCode = this.highlightC(code);
+
+    // Add line numbers and data-line attributes for scroll sync
+    let codeHtml: string;
+    if (code) {
+      const lines = highlightedCode.split("\n");
+      codeHtml = lines
+        .map((line, i) => {
+          const lineNum = i + 1;
+          const lineNumStr = showLineNumbers
+            ? `<span class="line-number">${String(lineNum).padStart(4, " ")}</span>`
+            : "";
+          return `<div class="code-line" data-line="${lineNum}">${lineNumStr}${line}</div>`;
+        })
+        .join("");
+    } else {
+      codeHtml = highlightedCode;
     }
 
-    /**
-     * Update status bar item
-     */
-    private updateStatusBar(success: boolean, errorCount: number): void {
-        if (success) {
-            this.statusBarItem.text = '$(check) C-Next';
-            this.statusBarItem.tooltip = 'C-Next: No errors';
-            this.statusBarItem.backgroundColor = undefined;
-        } else {
-            this.statusBarItem.text = `$(error) C-Next: ${errorCount} error${errorCount !== 1 ? 's' : ''}`;
-            this.statusBarItem.tooltip = 'C-Next: Click to view errors';
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-                'statusBarItem.errorBackground'
-            );
-        }
-    }
-
-    /**
-     * Apply simple C syntax highlighting
-     */
-    private highlightC(code: string): string {
-        // Escape HTML first
-        let html = code
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-
-        // Order matters - do strings/comments first to avoid highlighting inside them
-
-        // Block comments /* */
-        html = html.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>');
-
-        // Line comments //
-        html = html.replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>');
-
-        // Strings
-        html = html.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="string">$1</span>');
-
-        // Character literals
-        html = html.replace(/('(?:[^'\\]|\\.)*')/g, '<span class="string">$1</span>');
-
-        // Preprocessor directives
-        html = html.replace(/^(\s*#\s*\w+)/gm, '<span class="preprocessor">$1</span>');
-
-        // Keywords
-        const keywords = /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto|sizeof|typedef|struct|union|enum|const|volatile|static|extern|inline|void|register)\b/g;
-        html = html.replace(keywords, '<span class="keyword">$1</span>');
-
-        // Types
-        const types = /\b(int|char|short|long|float|double|signed|unsigned|bool|uint8_t|uint16_t|uint32_t|uint64_t|int8_t|int16_t|int32_t|int64_t|size_t)\b/g;
-        html = html.replace(types, '<span class="type">$1</span>');
-
-        // Numbers (hex, binary, decimal, float)
-        html = html.replace(/\b(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+\.?\d*[fF]?|\d+[uUlL]*)\b/g, '<span class="number">$1</span>');
-
-        // Function calls (word followed by parenthesis)
-        html = html.replace(/\b([a-zA-Z_]\w*)\s*(?=\()/g, '<span class="function">$1</span>');
-
-        return html;
-    }
-
-    /**
-     * Generate HTML for the webview
-     */
-    private getHtml(code: string, error: string | null): string {
-        const config = vscode.workspace.getConfiguration('cnext');
-        const showLineNumbers = config.get<boolean>('preview.showLineNumbers', true);
-
-        // Apply syntax highlighting
-        const highlightedCode = this.highlightC(code);
-
-        // Add line numbers and data-line attributes for scroll sync
-        let codeHtml: string;
-        if (code) {
-            const lines = highlightedCode.split('\n');
-            codeHtml = lines
-                .map((line, i) => {
-                    const lineNum = i + 1;
-                    const lineNumStr = showLineNumbers
-                        ? `<span class="line-number">${String(lineNum).padStart(4, ' ')}</span>`
-                        : '';
-                    return `<div class="code-line" data-line="${lineNum}">${lineNumStr}${line}</div>`;
-                })
-                .join('');
-        } else {
-            codeHtml = highlightedCode;
-        }
-
-        const errorBanner = error
-            ? `<div class="error-banner">
+    const errorBanner = error
+      ? `<div class="error-banner">
                 <span class="error-icon">$(error)</span>
                 <span>Parse Error - showing last successful output</span>
                </div>
-               <pre class="error-details">${error.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`
-            : '';
+               <pre class="error-details">${error.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`
+      : "";
 
-        return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -427,20 +456,20 @@ export default class PreviewProvider implements vscode.Disposable {
     </script>
 </body>
 </html>`;
-    }
+  }
 
-    /**
-     * Dispose resources
-     */
-    public dispose(): void {
-        if (this.updateTimeout) {
-            clearTimeout(this.updateTimeout);
-        }
-        if (this.panel) {
-            this.panel.dispose();
-        }
-        this.statusBarItem.dispose();
-        this.disposables.forEach(d => d.dispose());
-        PreviewProvider.instance = null;
+  /**
+   * Dispose resources
+   */
+  public dispose(): void {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
     }
+    if (this.panel) {
+      this.panel.dispose();
+    }
+    this.statusBarItem.dispose();
+    this.disposables.forEach((d) => d.dispose());
+    PreviewProvider.instance = null;
+  }
 }
