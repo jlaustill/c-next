@@ -5,9 +5,9 @@ import {
   parseWithSymbols,
   ISymbolInfo,
   TSymbolKind,
-} from "../../dist/lib/transpiler.js";
-import WorkspaceIndex from "./workspace/WorkspaceIndex.js";
-import { lastGoodOutputPath, outputChannel } from "./extension.js";
+} from "../../src/lib/transpiler";
+import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import { lastGoodOutputPath, outputChannel } from "./extension";
 
 /**
  * Helper to log debug messages to the output channel
@@ -210,6 +210,26 @@ function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
 }
 
 /**
+ * Get human-readable access modifier description
+ */
+function getAccessDescription(access: string): string {
+  switch (access) {
+    case "rw":
+      return "read-write";
+    case "ro":
+      return "read-only";
+    case "wo":
+      return "write-only";
+    case "w1c":
+      return "write-1-to-clear";
+    case "w1s":
+      return "write-1-to-set";
+    default:
+      return access;
+  }
+}
+
+/**
  * Create a completion item from a symbol
  */
 function createSymbolCompletion(symbol: ISymbolInfo): vscode.CompletionItem {
@@ -237,26 +257,6 @@ function createSymbolCompletion(symbol: ISymbolInfo): vscode.CompletionItem {
   }
 
   return item;
-}
-
-/**
- * Get human-readable access modifier description
- */
-function getAccessDescription(access: string): string {
-  switch (access) {
-    case "rw":
-      return "read-write";
-    case "ro":
-      return "read-only";
-    case "wo":
-      return "write-only";
-    case "w1c":
-      return "write-1-to-clear";
-    case "w1s":
-      return "write-1-to-set";
-    default:
-      return access;
-  }
 }
 
 /**
@@ -589,18 +589,19 @@ export default class CNextCompletionProvider
     const startIndex = chain[0] === "global" ? 1 : 1;
     for (let i = startIndex; i < chain.length; i++) {
       const memberName = chain[i];
+      const parentToMatch = currentParent; // Capture current value for callback
 
       // Find the symbol for this member
       // For scoped members, look for: parent_memberName or just memberName with matching parent
       let symbol: ISymbolInfo | undefined;
 
-      if (currentParent === "") {
+      if (parentToMatch === "") {
         // Global scope - find top-level symbol
         symbol = symbols.find((s) => s.name === memberName && !s.parent);
       } else {
         // Scoped - find symbol with matching parent
         symbol = symbols.find(
-          (s) => s.name === memberName && s.parent === currentParent,
+          (s) => s.name === memberName && s.parent === parentToMatch,
         );
       }
 

@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { parseWithSymbols, ISymbolInfo } from "../../dist/lib/transpiler.js";
-import WorkspaceIndex from "./workspace/WorkspaceIndex.js";
-import { lastGoodOutputPath } from "./extension.js";
+import { parseWithSymbols, ISymbolInfo } from "../../src/lib/transpiler";
+import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import { lastGoodOutputPath } from "./extension";
 
 /**
  * Extended symbol info that includes source file path
@@ -217,7 +217,6 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
   async provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
-    _token: vscode.CancellationToken,
   ): Promise<vscode.Hover | null> {
     // Get the word at the cursor position
     const wordRange = document.getWordRangeAtPosition(

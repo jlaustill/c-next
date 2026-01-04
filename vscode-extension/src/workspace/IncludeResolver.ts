@@ -67,12 +67,6 @@ export const DEFAULT_INCLUDE_CONFIG: IIncludeConfig = {
   ],
   workspaceRoot: "",
 };
-
-/**
- * Regex to extract #include directives
- */
-const INCLUDE_REGEX = /#include\s*([<"])([^>"]+)[>"]/g;
-
 /**
  * Include Resolver
  * Resolves include paths to actual file locations

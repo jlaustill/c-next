@@ -5,12 +5,12 @@ import {
   transpile,
   ITranspileResult,
   ITranspileError,
-} from "../../dist/lib/transpiler.js";
-import PreviewProvider from "./previewProvider.js";
-import CNextCompletionProvider from "./completionProvider.js";
-import CNextHoverProvider from "./hoverProvider.js";
-import CNextDefinitionProvider from "./definitionProvider.js";
-import WorkspaceIndex from "./workspace/WorkspaceIndex.js";
+} from "../../src/lib/transpiler";
+import PreviewProvider from "./previewProvider";
+import CNextCompletionProvider from "./completionProvider";
+import CNextHoverProvider from "./hoverProvider";
+import CNextDefinitionProvider from "./definitionProvider";
+import WorkspaceIndex from "./workspace/WorkspaceIndex";
 
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
@@ -71,6 +71,129 @@ export const lastGoodOutputPath: Map<string, string> = new Map();
 
 // Debounce timers for .c file generation
 const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
+
+/**
+ * Validate a C-Next document and update diagnostics
+ */
+function validateDocument(document: vscode.TextDocument): void {
+  if (document.languageId !== "cnext") {
+    return;
+  }
+
+  const source = document.getText();
+  const result = transpile(source, { parseOnly: true });
+
+  // Clear diagnostics for this specific document
+  diagnosticCollection.delete(document.uri);
+
+  const diagnostics: vscode.Diagnostic[] = result.errors.map((error) => {
+    // Try to find the end of the error token for better highlighting
+    const line = document.lineAt(Math.max(0, error.line - 1));
+    const lineText = line.text;
+
+    // Find word boundary after error position
+    let endColumn = error.column;
+    while (endColumn < lineText.length && /\w/.test(lineText[endColumn])) {
+      endColumn++;
+    }
+    // If no word found, highlight a few characters
+    if (endColumn === error.column) {
+      endColumn = Math.min(error.column + 5, lineText.length);
+    }
+
+    const range = new vscode.Range(
+      error.line - 1,
+      error.column,
+      error.line - 1,
+      endColumn,
+    );
+
+    const diagnostic = new vscode.Diagnostic(
+      range,
+      error.message,
+      error.severity === "error"
+        ? vscode.DiagnosticSeverity.Error
+        : vscode.DiagnosticSeverity.Warning,
+    );
+    diagnostic.source = "C-Next";
+    diagnostic.code = "parse-error";
+    return diagnostic;
+  });
+
+  diagnosticCollection.set(document.uri, diagnostics);
+}
+
+/**
+ * Transpile a C-Next document and write the .c file alongside it
+ * Only writes if transpilation succeeds (preserves last good .c file)
+ */
+function transpileToFile(document: vscode.TextDocument): void {
+  if (document.languageId !== "cnext") {
+    return;
+  }
+
+  // Check if feature is enabled
+  const config = vscode.workspace.getConfiguration("cnext");
+  if (!config.get<boolean>("transpile.generateCFile", true)) {
+    return;
+  }
+
+  // Don't transpile untitled documents
+  if (document.isUntitled) {
+    return;
+  }
+
+  const source = document.getText();
+  const result = transpile(source);
+
+  if (result.success) {
+    // Store as last good transpilation
+    lastGoodTranspile.set(document.uri.toString(), result.code);
+
+    // Load config to determine output extension
+    const cnxPath = document.uri.fsPath;
+    const projectConfig = loadConfig(path.dirname(cnxPath));
+    const outputExt = projectConfig.outputExtension || ".c";
+    const outputPath = cnxPath.replace(/\.cnx$/, outputExt);
+
+    try {
+      fs.writeFileSync(outputPath, result.code, "utf-8");
+      // Cache the output path for completion/hover queries
+      // This allows completions to work even when current code has parse errors
+      lastGoodOutputPath.set(document.uri.toString(), outputPath);
+    } catch (err) {
+      // Silently fail - don't interrupt the user's workflow
+      console.error("C-Next: Failed to write output file:", err);
+    }
+  }
+  // If transpilation fails, we keep the last good .c/.cpp file
+  // and the lastGoodOutputPath cache remains valid for completions
+}
+
+/**
+ * Schedule a debounced transpile-to-file operation
+ */
+function scheduleTranspileToFile(document: vscode.TextDocument): void {
+  const uri = document.uri.toString();
+
+  // Clear existing timer
+  const existingTimer = transpileTimers.get(uri);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  // Get debounce delay from settings
+  const config = vscode.workspace.getConfiguration("cnext");
+  const delay = config.get<number>("transpile.updateDelay", 500);
+
+  // Schedule new transpile
+  const timer = setTimeout(() => {
+    transpileToFile(document);
+    transpileTimers.delete(uri);
+  }, delay);
+
+  transpileTimers.set(uri, timer);
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   console.log("C-Next extension activated");
@@ -216,129 +339,6 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
   );
-}
-
-/**
- * Validate a C-Next document and update diagnostics
- */
-function validateDocument(document: vscode.TextDocument): void {
-  if (document.languageId !== "cnext") {
-    return;
-  }
-
-  const source = document.getText();
-  const result = transpile(source, { parseOnly: true });
-
-  // Clear diagnostics for this specific document
-  diagnosticCollection.delete(document.uri);
-
-  const diagnostics: vscode.Diagnostic[] = result.errors.map((error) => {
-    // Try to find the end of the error token for better highlighting
-    const line = document.lineAt(Math.max(0, error.line - 1));
-    const lineText = line.text;
-
-    // Find word boundary after error position
-    let endColumn = error.column;
-    while (endColumn < lineText.length && /\w/.test(lineText[endColumn])) {
-      endColumn++;
-    }
-    // If no word found, highlight a few characters
-    if (endColumn === error.column) {
-      endColumn = Math.min(error.column + 5, lineText.length);
-    }
-
-    const range = new vscode.Range(
-      error.line - 1,
-      error.column,
-      error.line - 1,
-      endColumn,
-    );
-
-    const diagnostic = new vscode.Diagnostic(
-      range,
-      error.message,
-      error.severity === "error"
-        ? vscode.DiagnosticSeverity.Error
-        : vscode.DiagnosticSeverity.Warning,
-    );
-    diagnostic.source = "C-Next";
-    diagnostic.code = "parse-error";
-    return diagnostic;
-  });
-
-  diagnosticCollection.set(document.uri, diagnostics);
-}
-
-/**
- * Transpile a C-Next document and write the .c file alongside it
- * Only writes if transpilation succeeds (preserves last good .c file)
- */
-function transpileToFile(document: vscode.TextDocument): void {
-  if (document.languageId !== "cnext") {
-    return;
-  }
-
-  // Check if feature is enabled
-  const config = vscode.workspace.getConfiguration("cnext");
-  if (!config.get<boolean>("transpile.generateCFile", true)) {
-    return;
-  }
-
-  // Don't transpile untitled documents
-  if (document.isUntitled) {
-    return;
-  }
-
-  const source = document.getText();
-  const result = transpile(source);
-
-  if (result.success) {
-    // Store as last good transpilation
-    lastGoodTranspile.set(document.uri.toString(), result.code);
-
-    // Load config to determine output extension
-    const cnxPath = document.uri.fsPath;
-    const projectConfig = loadConfig(path.dirname(cnxPath));
-    const outputExt = projectConfig.outputExtension || ".c";
-    const outputPath = cnxPath.replace(/\.cnx$/, outputExt);
-
-    try {
-      fs.writeFileSync(outputPath, result.code, "utf-8");
-      // Cache the output path for completion/hover queries
-      // This allows completions to work even when current code has parse errors
-      lastGoodOutputPath.set(document.uri.toString(), outputPath);
-    } catch (err) {
-      // Silently fail - don't interrupt the user's workflow
-      console.error("C-Next: Failed to write output file:", err);
-    }
-  }
-  // If transpilation fails, we keep the last good .c/.cpp file
-  // and the lastGoodOutputPath cache remains valid for completions
-}
-
-/**
- * Schedule a debounced transpile-to-file operation
- */
-function scheduleTranspileToFile(document: vscode.TextDocument): void {
-  const uri = document.uri.toString();
-
-  // Clear existing timer
-  const existingTimer = transpileTimers.get(uri);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
-
-  // Get debounce delay from settings
-  const config = vscode.workspace.getConfiguration("cnext");
-  const delay = config.get<number>("transpile.updateDelay", 500);
-
-  // Schedule new transpile
-  const timer = setTimeout(() => {
-    transpileToFile(document);
-    transpileTimers.delete(uri);
-  }, delay);
-
-  transpileTimers.set(uri, timer);
 }
 
 export function deactivate(): void {

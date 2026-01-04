@@ -8,13 +8,13 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import SymbolCache from "./SymbolCache.js";
-import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types.js";
-import { parseWithSymbols, ISymbolInfo } from "../../../dist/lib/transpiler.js";
-import IncludeResolver, { IIncludeConfig } from "./IncludeResolver.js";
-import { CLexer } from "../../../dist/parser/c/grammar/CLexer.js";
-import { CParser } from "../../../dist/parser/c/grammar/CParser.js";
-import CSymbolCollector from "../../../dist/symbols/CSymbolCollector.js";
+import SymbolCache from "./SymbolCache";
+import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types";
+import { parseWithSymbols, ISymbolInfo } from "../../../src/lib/transpiler";
+import IncludeResolver from "./IncludeResolver";
+import { CLexer } from "../../../src/parser/c/grammar/CLexer";
+import { CParser } from "../../../src/parser/c/grammar/CParser";
+import CSymbolCollector from "../../../src/symbols/CSymbolCollector";
 
 /**
  * Workspace-wide symbol index
@@ -24,10 +24,15 @@ export default class WorkspaceIndex {
   private static instance: WorkspaceIndex | null = null;
 
   private cache: SymbolCache;
+
   private headerCache: SymbolCache; // Separate cache for header files
+
   private config: IWorkspaceConfig;
+
   private workspaceFolders: vscode.WorkspaceFolder[] = [];
+
   private initialized: boolean = false;
+
   private indexing: boolean = false;
 
   /** Include resolver for header file paths */
@@ -38,6 +43,7 @@ export default class WorkspaceIndex {
 
   /** Debounce timer for file changes */
   private fileChangeTimer: NodeJS.Timeout | null = null;
+
   private pendingChanges: Set<string> = new Set();
 
   /** Status bar item for showing index status */

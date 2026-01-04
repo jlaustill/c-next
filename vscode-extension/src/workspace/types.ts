@@ -3,7 +3,7 @@
  * Shared types for workspace-wide symbol indexing
  */
 
-import { ISymbolInfo } from "../../../dist/lib/transpiler.js";
+import { ISymbolInfo } from "../../../src/lib/transpiler";
 
 /**
  * Cache entry for a parsed file

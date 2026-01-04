@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { transpile, ITranspileResult } from "../../dist/lib/transpiler.js";
+import { transpile } from "../../src/lib/transpiler";
 
 /**
  * Manages C-Next preview panels with live updates
@@ -8,11 +8,17 @@ export default class PreviewProvider implements vscode.Disposable {
   private static instance: PreviewProvider | null = null;
 
   private panel: vscode.WebviewPanel | null = null;
+
   private currentDocument: vscode.TextDocument | null = null;
+
   private lastGoodCode: string = "";
+
   private lastError: string | null = null;
+
   private updateTimeout: NodeJS.Timeout | null = null;
+
   private disposables: vscode.Disposable[] = [];
+
   private statusBarItem: vscode.StatusBarItem;
 
   private constructor() {

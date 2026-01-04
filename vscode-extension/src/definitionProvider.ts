@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
-import { parseWithSymbols, ISymbolInfo } from "../../dist/lib/transpiler.js";
-import WorkspaceIndex from "./workspace/WorkspaceIndex.js";
+import { parseWithSymbols, ISymbolInfo } from "../../src/lib/transpiler";
+import WorkspaceIndex from "./workspace/WorkspaceIndex";
 
 /**
  * Extended symbol info that includes source file path
@@ -26,7 +26,6 @@ export default class CNextDefinitionProvider
   provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
-    _token: vscode.CancellationToken,
   ): vscode.Definition | null {
     // Get the word at the cursor position
     const wordRange = document.getWordRangeAtPosition(
