@@ -1,6 +1,7 @@
 # ADR-029: Callbacks (Function-as-Type Pattern)
 
 ## Status
+
 **Implemented**
 
 ## Context
@@ -32,7 +33,9 @@ A function definition serves as both the **type definition** and the **default v
 ## Design Principles
 
 ### 1. Function-as-Type
+
 A function definition creates both a callable function AND a type:
+
 ```cnx
 void onReceive(const CAN_Message_T msg) {
     // default: no-op
@@ -40,11 +43,13 @@ void onReceive(const CAN_Message_T msg) {
 ```
 
 This single declaration:
+
 - Defines a callable function `onReceive`
 - Creates a type `onReceive` for callback fields/parameters
 - Provides the default value (the function itself)
 
 ### 2. Nominal Typing
+
 Type identity is the **function name**, not the signature. Two callbacks with identical signatures are distinct types:
 
 ```cnx
@@ -58,6 +63,7 @@ handler.down <- onMouseUp;  // COMPILE ERROR - type mismatch
 This prevents accidentally swapping handlers that happen to have the same signature.
 
 ### 3. Never Null
+
 Callback fields are always initialized to their default function. There is no null state:
 
 ```cnx
@@ -70,6 +76,7 @@ controller._handler(msg);
 ```
 
 ### 4. Explicit "Is Set" Tracking
+
 If you need to know whether a callback was explicitly set (vs using the default), use a boolean flag - this is user code, not compiler magic:
 
 ```cnx
@@ -95,6 +102,7 @@ void Controller_process(Controller self, CAN_Message_T msg) {
 ## Syntax Examples
 
 ### Define Callback Type with Default
+
 ```cnx
 // The function IS the type AND the default value
 void defaultCallback(const CAN_Message_T msg) {
@@ -108,6 +116,7 @@ void onError(const CAN_Message_T msg) {
 ```
 
 ### Use in Struct
+
 ```cnx
 struct CANController {
     defaultCallback _receiveHandler;  // Type is defaultCallback
@@ -117,6 +126,7 @@ struct CANController {
 ```
 
 ### Use as Parameter
+
 ```cnx
 void setReceiveHandler(defaultCallback handler) {
     _receiveHandler <- handler;
@@ -125,6 +135,7 @@ void setReceiveHandler(defaultCallback handler) {
 ```
 
 ### User Implementation
+
 ```cnx
 // User's handler - must match defaultCallback signature exactly
 void myReceiver(const CAN_Message_T msg) {
@@ -176,6 +187,7 @@ void Robot_wake(Robot self) {
 ```
 
 **Why enum + switch is better:**
+
 - No function pointers = no null dereference risk
 - Exhaustive switch = compiler catches missing states
 - Direct calls = easier static analysis and debugging
@@ -239,6 +251,7 @@ void EventSystem_fire(EventSystem self, Event e) {
 ```
 
 **Why named fields are better:**
+
 - Self-documenting (what does handlers[2] mean?)
 - Fixed at compile time (embedded rarely needs dynamic arrays)
 - Each can have different defaults if needed
@@ -247,6 +260,7 @@ void EventSystem_fire(EventSystem self, Event e) {
 ## Implementation Notes
 
 ### Transpilation to C
+
 ```cnx
 // Cnx source:
 void defaultHandler(const CAN_Message_T msg) { }
@@ -275,14 +289,18 @@ struct Controller Controller_init(void) {
 ```
 
 ### Type Checking
+
 The compiler:
+
 1. Sees a function definition -> creates matching typedef with `_fp` suffix
 2. Tracks which functions match which callback types
 3. Only allows assignment of functions explicitly marked as compatible
 4. Initializes all callback fields to the default function
 
 ### No Conversions (MISRA 11.1)
+
 Following MISRA C Rule 11.1:
+
 - No casting function pointers to/from `void*`
 - No casting between incompatible function pointer types
 - No pointer arithmetic on function pointers
@@ -292,6 +310,7 @@ Following MISRA C Rule 11.1:
 ## Research: MISRA C Guidelines
 
 ### Rule 11.1 - Function Pointer Conversions
+
 "Conversions shall not be performed between a pointer to a function and any other type"
 
 - Converting function pointers to `void*`, integers, or other pointer types is **prohibited**
@@ -300,16 +319,19 @@ Following MISRA C Rule 11.1:
 - Rationale: Calling a function through an incompatible pointer type is undefined behavior
 
 ### Rule 18.4 - Pointer Arithmetic
+
 - Pointer arithmetic to calculate function addresses is prohibited
 - Prevents crafting function pointers at runtime from arbitrary memory
 - Array subscript syntax `ptr[expr]` preferred over pointer manipulation
 
 ### Key MISRA Philosophy
+
 "MISRA's focus on eliminating ambiguous, error-prone, or non-portable language constructs directly supports safety goals. In cybersecurity, this reduces the attack surface; in functional safety, it minimizes the risk of hazardous failures."
 
 ## Research: How Other Languages Handle Function Pointers
 
 ### Rust
+
 ```rust
 // Non-null by default - cannot be null
 fn handler(x: i32) -> i32 { x * 2 }
@@ -325,12 +347,14 @@ let unsafe_fp: unsafe fn(i32) = risky_function;  // Must call in unsafe block
 ```
 
 **Safety features:**
+
 - Function pointers are **never null** unless wrapped in `Option`
 - `Option<fn()>` has zero-cost representation (uses null for `None`)
 - Separate types for safe vs unsafe functions
 - Compile-time signature matching prevents mismatches
 
 ### Ada
+
 ```ada
 -- Null exclusion prevents null values
 type Callback is not null access function (X : Integer) return Integer;
@@ -344,12 +368,14 @@ type Comparator is access function (A, B : Integer) return Boolean
 ```
 
 **Safety features:**
+
 - **Null exclusion** (`not null access`) guarantees non-null at compile time
 - **Accessibility rules** prevent dangling references from scope issues
 - **Contracts** can be attached to function pointer types
 - Original Ada 83 had no function pointers at all to preserve type safety
 
 ### Zig
+
 ```zig
 // Functions are first-class, can be assigned to variables
 const handler: *const fn(u32) void = myHandler;
@@ -359,12 +385,14 @@ const maybe_handler: ?*const fn(u32) void = null;
 ```
 
 **Safety features:**
+
 - Null safety through explicit optionals
 - Explicit casting required between pointer types
 - Comptime verification of function types
 - Proposal for "restricted function types" that limit indirect call targets
 
 ### Swift
+
 ```swift
 // Non-escaping by default - closure cannot outlive function
 func process(handler: (Int) -> Void) {
@@ -378,13 +406,16 @@ func setCallback(handler: @escaping (Int) -> Void) {
 ```
 
 **Safety features:**
+
 - Non-escaping closures **cannot cause retain cycles** (compiler guarantees)
 - `@escaping` forces awareness of memory/lifetime implications
 - Optional closures are implicitly escaping
 - Compiler manages closure memory more effectively with this distinction
 
 ### Go
+
 Go largely avoids function pointers in favor of interfaces:
+
 ```go
 type Handler interface {
     Handle(data int)
@@ -392,6 +423,7 @@ type Handler interface {
 ```
 
 **Safety features:**
+
 - Interfaces provide type-safe polymorphism without raw function pointers
 - Static type system enforces strict signature matching
 - Interface values are two pointers: type info + data (not raw function address)
@@ -399,35 +431,45 @@ type Handler interface {
 ## Research: Common Function Pointer Bugs
 
 ### 1. Null Dereference
+
 Calling through uninitialized or null function pointer causes crash/segfault.
+
 ```c
 void (*callback)(int) = NULL;
 callback(42);  // Crash!
 ```
 
 ### 2. Signature Mismatch
+
 Wrong parameter types lead to undefined behavior - stack corruption, wrong values.
+
 ```c
 void (*handler)(int) = (void (*)(int))wrong_signature_func;
 handler(42);  // UB - may appear to work, then fail mysteriously
 ```
 
 ### 3. Uninitialized (Wild Pointers)
+
 Uninitialized function pointers contain garbage addresses.
+
 ```c
 void (*handler)(int);  // Contains garbage!
 handler(42);  // Jumps to random memory - crash or worse
 ```
 
 ### 4. Type Punning
+
 Casting function pointer to `void*` and back is undefined behavior.
+
 ```c
 void *ptr = (void*)my_function;  // UB per C standard
 void (*fp)(void) = (void (*)(void))ptr;  // UB
 ```
 
 ### 5. Dangling Pointer
+
 Function unloaded (dynamic library) but pointer retained.
+
 ```c
 void (*fp)(void) = get_plugin_function();
 unload_plugin();
@@ -435,7 +477,9 @@ fp();  // Dangling - jumps to unmapped memory
 ```
 
 ### 6. Unchecked Nullable Callbacks
+
 Common pattern that crashes:
+
 ```c
 if (config.on_complete)  // Check exists
     config.on_complete(result);
@@ -444,25 +488,25 @@ if (config.on_complete)  // Check exists
 
 ## Research: Bug Prevention Summary
 
-| Bug Class | How Cnx Prevents It |
-|-----------|---------------------|
-| **Null dereference** | Never null - always initialized to default function |
-| **Signature mismatch** | Nominal typing - function name IS the type |
-| **Type conversions** | Prohibited (MISRA 11.1 compliance) |
-| **Uninitialized** | Always initialized to default at declaration |
-| **Accidental swap** | Nominal typing prevents swapping same-signature handlers |
+| Bug Class              | How Cnx Prevents It                                      |
+| ---------------------- | -------------------------------------------------------- |
+| **Null dereference**   | Never null - always initialized to default function      |
+| **Signature mismatch** | Nominal typing - function name IS the type               |
+| **Type conversions**   | Prohibited (MISRA 11.1 compliance)                       |
+| **Uninitialized**      | Always initialized to default at declaration             |
+| **Accidental swap**    | Nominal typing prevents swapping same-signature handlers |
 
 ## Research: Summary Comparison Table
 
-| Language | Null Handling | Type Safety | Special Features |
-|----------|--------------|-------------|------------------|
-| **C** | Nullable, unchecked | Structural | Maximum flexibility, maximum danger |
-| **Rust** | Non-null default; `Option<fn()>` | Structural | `unsafe fn` distinction |
-| **Zig** | Explicit optionals | Structural | Restricted function types (proposed) |
-| **Ada** | `not null` available | Structural | Contracts on types |
-| **Swift** | Optionals | Structural | `@escaping`/`@noescape` |
-| **Go** | Interfaces instead | Structural | Avoids raw function pointers |
-| **Cnx** | Never null (default function) | **Nominal** | Function-as-type pattern |
+| Language  | Null Handling                    | Type Safety | Special Features                     |
+| --------- | -------------------------------- | ----------- | ------------------------------------ |
+| **C**     | Nullable, unchecked              | Structural  | Maximum flexibility, maximum danger  |
+| **Rust**  | Non-null default; `Option<fn()>` | Structural  | `unsafe fn` distinction              |
+| **Zig**   | Explicit optionals               | Structural  | Restricted function types (proposed) |
+| **Ada**   | `not null` available             | Structural  | Contracts on types                   |
+| **Swift** | Optionals                        | Structural  | `@escaping`/`@noescape`              |
+| **Go**    | Interfaces instead               | Structural  | Avoids raw function pointers         |
+| **Cnx**   | Never null (default function)    | **Nominal** | Function-as-type pattern             |
 
 ## References
 

@@ -17,7 +17,8 @@ C-Next's philosophy is "safety through removal, not addition" and alignment with
 
 ### The Problem with "namespace"
 
-While ADR-002's *behavior* is correct (singleton services, private by default, name prefixing), the *terminology* creates wrong expectations:
+While ADR-002's _behavior_ is correct (singleton services, private by default, name prefixing), the _terminology_ creates wrong expectations:
+
 - Developers expect C++ namespace semantics
 - Questions arise about nested namespaces, `using` directives, anonymous namespaces
 - The concept carries OOP baggage C-Next doesn't want
@@ -25,6 +26,7 @@ While ADR-002's *behavior* is correct (singleton services, private by default, n
 ### The Problem with "class"
 
 ADR-005 attempted to provide "classes without inheritance" but the term "class" inherently implies:
+
 - Instances with bound methods (`obj.method()`)
 - Constructors that create instances
 - Data and behavior bundled together
@@ -61,6 +63,7 @@ LED.off();
 ```
 
 Transpiles to:
+
 ```c
 static uint32_t LED_brightness;
 
@@ -122,6 +125,7 @@ void Teensy4_blinkLed(void) {
 ```
 
 This pattern is useful for:
+
 - **Platform namespacing** — Avoid conflicts with HAL headers (e.g., Teensy's imxrt.h defines GPIO7_DR)
 - **Organization** — Group platform-specific registers, constants, and functions together
 - **Multiple platforms** — Support different hardware configurations in the same codebase
@@ -176,13 +180,13 @@ void main_loop() {
 
 ### Why C-Style?
 
-| Aspect | C-Style (Proposed) | Class-Style (Rejected) |
-|--------|-------------------|----------------------|
-| Mental model | Familiar to C developers | Requires OOP understanding |
-| Data ownership | Explicit — you see the pointer | Hidden behind `this` |
-| Generated code | Obvious, 1:1 mapping | Requires understanding transpilation |
-| Flexibility | Can use any function with any struct | Methods bound to types |
-| KISS principle | Simple, no magic | Implicit `self`, constructors |
+| Aspect         | C-Style (Proposed)                   | Class-Style (Rejected)               |
+| -------------- | ------------------------------------ | ------------------------------------ |
+| Mental model   | Familiar to C developers             | Requires OOP understanding           |
+| Data ownership | Explicit — you see the pointer       | Hidden behind `this`                 |
+| Generated code | Obvious, 1:1 mapping                 | Requires understanding transpilation |
+| Flexibility    | Can use any function with any struct | Methods bound to types               |
+| KISS principle | Simple, no magic                     | Implicit `self`, constructors        |
 
 ---
 
@@ -197,6 +201,7 @@ C-Next requires **explicit qualification** for all non-local references inside a
 #### The Rule
 
 Inside a scope, you MUST use:
+
 - **`this.X`** — for ANY scope member (variables, functions, types, enums)
 - **`global.X`** — for ANY global (variables, functions, registers, types)
 - **Bare `X`** — ONLY for function-local variables and parameters
@@ -297,13 +302,13 @@ scope Motor {
 
 #### Why This Design?
 
-| Aspect | `this.`/`global.` Required | Implicit Resolution |
-|--------|---------------------------|---------------------|
-| Ambiguity | **Zero** — always explicit | Shadowing causes confusion |
-| Safety | **Maximum** — no accidents | Easy to reference wrong thing |
-| Readability | **Self-documenting** | Must trace scope manually |
-| Refactoring | **Safe** — rename scope once | Must update all references |
-| Compiler | **Simple** — just parse prefix | Complex resolution rules |
+| Aspect      | `this.`/`global.` Required     | Implicit Resolution           |
+| ----------- | ------------------------------ | ----------------------------- |
+| Ambiguity   | **Zero** — always explicit     | Shadowing causes confusion    |
+| Safety      | **Maximum** — no accidents     | Easy to reference wrong thing |
+| Readability | **Self-documenting**           | Must trace scope manually     |
+| Refactoring | **Safe** — rename scope once   | Must update all references    |
+| Compiler    | **Simple** — just parse prefix | Complex resolution rules      |
 
 This approach embodies C-Next's philosophy: **safety through explicitness, not clever inference**.
 
@@ -312,6 +317,7 @@ This approach embodies C-Next's philosophy: **safety through explicitness, not c
 ### 1. What exactly should `scope` provide?
 
 Options to research:
+
 - **Organization only** — Pure name prefixing, visibility handled separately
 - **Organization + visibility** — Current namespace behavior (private by default)
 - **Organization + visibility + state** — Can scopes have private state?
@@ -338,6 +344,7 @@ scope Hardware_UART { ... }
 If we want `uart1.send(data, len)` sugar (common request), how do we provide it without implying OOP?
 
 Options:
+
 - **No sugar** — Always `UART_send(&uart1, data, len)` (pure C-style)
 - **UFCS** — Uniform Function Call Syntax: `uart1.send(data, len)` desugars to `UART_send(&uart1, data, len)`
 - **Scope-based association** — Associate functions with structs via scopes
@@ -345,6 +352,7 @@ Options:
 ### 4. How does visibility work with scopes?
 
 Current approach (from namespaces):
+
 - `public` keyword makes member externally accessible
 - No keyword means private (internal to scope)
 
@@ -374,11 +382,13 @@ struct RingBuffer<T, N> {
 ## What This ADR Does NOT Decide
 
 The following questions remain open:
+
 - Whether UFCS or method syntax will be added
 - How generic types will work
 - The complete visibility model
 
 These questions will be answered through:
+
 - Practical usage in examples
 - Community feedback
 - Analysis of embedded use cases
@@ -389,11 +399,13 @@ These questions will be answered through:
 ## Implementation Status
 
 The `scope` keyword replaces `namespace` in the current implementation:
+
 - Grammar updated: `namespace` → `scope`
 - Code generator updated
 - All examples and tests converted
 
 **Pending implementation:**
+
 - `this.` keyword for scope-local references
 - `global.` keyword for global references
 - Compile-time enforcement of explicit qualification
@@ -406,14 +418,17 @@ The class implementation has been removed pending further research.
 ## References
 
 ### Rejected ADRs
+
 - **ADR-002:** Namespaces Over Static Classes (Rejected — terminology issue)
 - **ADR-005:** Classes Without Inheritance (Rejected — OOP baggage)
 
 ### Active ADRs
+
 - **ADR-014:** Structs (Defines data containers)
 - **ADR-015:** Null State (Zero initialization)
 - **ADR-003:** Static Allocation (No dynamic memory after init)
 
 ### Design Principles
+
 - [KISS Principle](https://en.wikipedia.org/wiki/KISS_principle)
 - [C-Next Philosophy: Safety through removal, not addition](../README.md)

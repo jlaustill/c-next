@@ -2,37 +2,37 @@
  * Source location mapping from preprocessed output back to original file
  */
 interface ISourceMapping {
-    /** Line number in preprocessed output */
-    preprocessedLine: number;
+  /** Line number in preprocessed output */
+  preprocessedLine: number;
 
-    /** Original file path */
-    originalFile: string;
+  /** Original file path */
+  originalFile: string;
 
-    /** Line number in original file */
-    originalLine: number;
+  /** Line number in original file */
+  originalLine: number;
 }
 
 /**
  * Result of preprocessing a C/C++ file
  */
 interface IPreprocessResult {
-    /** Preprocessed content */
-    content: string;
+  /** Preprocessed content */
+  content: string;
 
-    /** Source mappings from #line directives */
-    sourceMappings: ISourceMapping[];
+  /** Source mappings from #line directives */
+  sourceMappings: ISourceMapping[];
 
-    /** Whether preprocessing succeeded */
-    success: boolean;
+  /** Whether preprocessing succeeded */
+  success: boolean;
 
-    /** Error message if failed */
-    error?: string;
+  /** Error message if failed */
+  error?: string;
 
-    /** Original file that was preprocessed */
-    originalFile: string;
+  /** Original file that was preprocessed */
+  originalFile: string;
 
-    /** Toolchain used for preprocessing */
-    toolchain?: string;
+  /** Toolchain used for preprocessing */
+  toolchain?: string;
 }
 
 export default IPreprocessResult;

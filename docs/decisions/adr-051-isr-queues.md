@@ -35,6 +35,7 @@ ISR → [Ring Buffer] → main calls events() → user callback
 ```
 
 Key characteristics:
+
 - Pre-allocated fixed-size buffers: `FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16>`
 - ISR only enqueues (never blocks)
 - Main loop calls `events()` to process
@@ -43,6 +44,7 @@ Key characteristics:
 ### Lock-Free SPSC Queue Theory
 
 Single-Producer/Single-Consumer (SPSC) queues are lock-free when:
+
 1. Only one context (e.g., ISR) writes to `write_index`
 2. Only one context (e.g., main) writes to `read_index`
 3. Both contexts can read both indices (for full/empty checks)
@@ -58,6 +60,7 @@ struct Queue {
 ```
 
 **Why this works on Cortex-M:**
+
 - 32-bit aligned index reads are atomic (single LDR)
 - 32-bit aligned index writes are atomic (single STR)
 - No LDREX/STREX needed because single-writer per index
@@ -65,18 +68,19 @@ struct Queue {
 
 ### MPSC and MPMC Queues
 
-| Queue Type | Lock-Free? | Complexity | Use Case |
-|------------|------------|------------|----------|
-| SPSC | Yes | Simple | ISR ↔ Main (most common) |
-| MPSC | Possible | Moderate | Multiple ISRs → Main |
-| SPMC | Possible | Moderate | Main → Multiple tasks |
-| MPMC | Complex | High | General multi-threading |
+| Queue Type | Lock-Free? | Complexity | Use Case                 |
+| ---------- | ---------- | ---------- | ------------------------ |
+| SPSC       | Yes        | Simple     | ISR ↔ Main (most common) |
+| MPSC       | Possible   | Moderate   | Multiple ISRs → Main     |
+| SPMC       | Possible   | Moderate   | Main → Multiple tasks    |
+| MPMC       | Complex    | High       | General multi-threading  |
 
 Embedded systems typically only need SPSC for ISR patterns.
 
 ### Queue Implementations in Other Languages
 
 **C++ `std::queue` / `boost::lockfree::spsc_queue`:**
+
 ```cpp
 boost::lockfree::spsc_queue<int, boost::lockfree::capacity<1024>> queue;
 queue.push(42);
@@ -85,6 +89,7 @@ queue.pop(value);
 ```
 
 **Rust `heapless::spsc::Queue`:**
+
 ```rust
 static mut QUEUE: Queue<u32, 8> = Queue::new();
 // Producer
@@ -94,6 +99,7 @@ if let Some(value) = queue.dequeue() { ... }
 ```
 
 **FreeRTOS Queues:**
+
 ```c
 QueueHandle_t queue = xQueueCreate(10, sizeof(uint32_t));
 xQueueSendFromISR(queue, &value, &woken);
@@ -107,52 +113,60 @@ xQueueReceive(queue, &value, portMAX_DELAY);
 ### Q1: Should Queues Be a Language Feature or Library?
 
 **Option A: Built-in language feature**
+
 ```cnx
 Queue<CAN_Message, 32> canRxQueue;
 ```
+
 - Compiler can optimize
 - Consistent syntax
 - More language complexity
 
 **Option B: Standard library**
+
 ```cnx
 #include <cnx/queue.h>
 Queue canRxQueue <- Queue_create(CAN_Message, 32);
 ```
+
 - Simpler language
 - Can be implemented in C-Next itself
 - Less optimization opportunity
 
 **Option C: Defer to generated C / external libraries**
+
 - Users use existing C queue libraries
 - C-Next just ensures ISR-safe access patterns
 
 ### Q2: What Queue Types to Support?
 
-| Type | Description | Complexity |
-|------|-------------|------------|
+| Type | Description                      | Complexity        |
+| ---- | -------------------------------- | ----------------- |
 | SPSC | Single-producer, single-consumer | Simple, lock-free |
-| MPSC | Multi-producer, single-consumer | Moderate |
-| SPMC | Single-producer, multi-consumer | Moderate |
-| MPMC | Multi-producer, multi-consumer | Complex |
+| MPSC | Multi-producer, single-consumer  | Moderate          |
+| SPMC | Single-producer, multi-consumer  | Moderate          |
+| MPMC | Multi-producer, multi-consumer   | Complex           |
 
 **Sub-question:** Is SPSC sufficient for v1, covering ISR ↔ main patterns?
 
 ### Q3: Syntax for Queue Declaration
 
 **Option A: Generic type syntax**
+
 ```cnx
 Queue<u32, 8> myQueue;
 Queue<CAN_Message, 32> canQueue;
 ```
 
 **Option B: Array-like with qualifier**
+
 ```cnx
 queue u32 myQueue[8];
 queue CAN_Message canQueue[32];
 ```
 
 **Option C: Function-style initialization**
+
 ```cnx
 Queue myQueue <- Queue.create(u32, 8);
 ```
@@ -161,22 +175,23 @@ Queue myQueue <- Queue.create(u32, 8);
 
 What operations should be supported?
 
-| Operation | Description | Question |
-|-----------|-------------|----------|
-| push/enqueue | Add item | Return bool or void? |
-| pop/dequeue | Remove item | Return item or fill pointer? |
-| peek | Read without removing | Needed? |
-| empty | Check if empty | Property or method? |
-| full | Check if full | Property or method? |
-| count | Current item count | Needed? |
-| capacity | Maximum capacity | Compile-time constant? |
-| clear | Remove all items | Safe from ISR? |
+| Operation    | Description           | Question                     |
+| ------------ | --------------------- | ---------------------------- |
+| push/enqueue | Add item              | Return bool or void?         |
+| pop/dequeue  | Remove item           | Return item or fill pointer? |
+| peek         | Read without removing | Needed?                      |
+| empty        | Check if empty        | Property or method?          |
+| full         | Check if full         | Property or method?          |
+| count        | Current item count    | Needed?                      |
+| capacity     | Maximum capacity      | Compile-time constant?       |
+| clear        | Remove all items      | Safe from ISR?               |
 
 ### Q5: Handling Full Queue
 
 When `push` is called on a full queue:
 
 **Option A: Return false, drop the item**
+
 ```cnx
 if (!queue.push(item)) {
     // Handle overflow
@@ -184,6 +199,7 @@ if (!queue.push(item)) {
 ```
 
 **Option B: Overwrite oldest item**
+
 ```cnx
 queue.push_overwrite(item);  // Always succeeds
 ```
@@ -197,6 +213,7 @@ queue.push_overwrite(item);  // Always succeeds
 When `pop` is called on an empty queue:
 
 **Option A: Return false, don't modify output**
+
 ```cnx
 u32 value;
 if (queue.pop(&value)) {
@@ -205,6 +222,7 @@ if (queue.pop(&value)) {
 ```
 
 **Option B: Return optional type (if ADR-047 implemented)**
+
 ```cnx
 u32? value <- queue.pop();
 if (value?) {
@@ -218,23 +236,25 @@ if (value?) {
 
 What types can be queue elements?
 
-| Type | Allowed? | Notes |
-|------|----------|-------|
-| Primitives (u8, u32, etc.) | ? | Simple copy |
-| Structs | ? | Copy by value, what about large structs? |
-| Arrays | ? | Would need special handling |
-| Strings | ? | Depends on string semantics (ADR-045) |
-| Pointers | ? | Requires pointer support in C-Next |
+| Type                       | Allowed? | Notes                                    |
+| -------------------------- | -------- | ---------------------------------------- |
+| Primitives (u8, u32, etc.) | ?        | Simple copy                              |
+| Structs                    | ?        | Copy by value, what about large structs? |
+| Arrays                     | ?        | Would need special handling              |
+| Strings                    | ?        | Depends on string semantics (ADR-045)    |
+| Pointers                   | ?        | Requires pointer support in C-Next       |
 
 ### Q8: Power-of-Two Optimization
 
 If queue capacity is power of 2, modulo can use bitmask:
+
 ```c
 next = (index + 1) % 8;   // Division (slow on M0)
 next = (index + 1) & 7;   // Bitmask (fast)
 ```
 
 Should C-Next:
+
 - Require power-of-two capacity?
 - Optimize when power-of-two, use modulo otherwise?
 - Always use modulo (simpler)?

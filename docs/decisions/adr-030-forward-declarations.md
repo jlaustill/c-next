@@ -1,11 +1,13 @@
 # ADR-030: Forward Declarations
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Forward declarations are used in C for:
+
 - Mutual recursion (function A calls B, B calls A)
 - Opaque types (declare struct without defining)
 - Header files (prototypes before definitions)
@@ -34,16 +36,19 @@ This transpiles successfully, but the generated C fails compilation because `sec
 Research from [SEI CERT C Coding Standard (DCL31-C)](https://wiki.sei.cmu.edu/confluence/display/c/DCL31-C.+Declare+identifiers+before+using+them) and [CodeQL security analysis](https://codeql.github.com/codeql-query-help/cpp/cpp-implicit-function-declaration/):
 
 **Security vulnerabilities:**
+
 - Without a prototype, C assumes `int` return type and performs no type checking on arguments
 - Passing wrong argument types/counts can override the stack (stack smashing)
 - Attackers can exploit this to insert malicious code
 
 **64-bit platform hazard:**
+
 - Pointers implicitly converted to `int` get truncated from 64 to 32 bits
 - This doesn't occur on 32-bit platforms where int and pointer are same size
 - Results in corrupted pointer values and crashes
 
 **Modern standards agree:**
+
 - C23 requires type specifiers and forbids implicit function declarations
 - [Clang 16+](https://www.redhat.com/en/blog/new-warnings-and-errors-clang-16) treats implicit declarations as errors by default
 - [OpenSSF Compiler Hardening Guide](https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html) recommends `-Werror=implicit`
@@ -87,6 +92,7 @@ However, these are **C compiler limitations**, not fundamental language requirem
 - This eliminates an entire class of bugs at the source level
 
 **Rationale:**
+
 - Catches errors at C-Next compile time, not C compile time or runtime
 - Forces logical code organization (dependencies defined first)
 - Eliminates declaration/definition mismatch bugs
@@ -140,12 +146,14 @@ Without forward declarations, mutual recursion (A calls B, B calls A) is not pos
 ### 1. Add Define-Before-Use Check
 
 Track defined functions during transpilation. When a function call is encountered:
+
 - If function is not yet defined AND not in symbol table (external) = error
 - Error message: `error[E0422]: function 'foo' called before definition`
 
 ### 2. Header Generation
 
 Generate `.h` file with prototypes for all non-static functions:
+
 - Include guards
 - Named parameters (matching definition)
 - C++ compatibility (`extern "C"`)
@@ -164,6 +172,7 @@ void processData(u8 buffer[]);
 ```
 
 **Why rejected:**
+
 - Adds complexity without sufficient benefit
 - Developer confusion about when to use
 - Declaration/definition mismatch bugs
@@ -174,6 +183,7 @@ void processData(u8 buffer[]);
 Could generate prototypes at top of `.c` file to allow any order.
 
 **Why rejected:**
+
 - Hides errors (undefined function would still compile)
 - Encourages poor code organization
 - Doesn't catch typos in function names until link time
@@ -181,14 +191,17 @@ Could generate prototypes at top of `.c` file to allow any order.
 ## References
 
 ### Security & Standards
+
 - [SEI CERT C: DCL31-C - Declare identifiers before using them](https://wiki.sei.cmu.edu/confluence/display/c/DCL31-C.+Declare+identifiers+before+using+them)
 - [CodeQL: Implicit function declaration](https://codeql.github.com/codeql-query-help/cpp/cpp-implicit-function-declaration/)
 - [OpenSSF Compiler Hardening Guide](https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html)
 - [Clang 16 implicit declaration changes](https://www.redhat.com/en/blog/new-warnings-and-errors-clang-16)
 
 ### MISRA C
+
 - [MISRA C:2012 Rule 8.2 - Function prototypes with named parameters](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule8.2.html)
 
 ### Developer Experience
+
 - [Learn C++: Forward declarations](https://www.learncpp.com/cpp-tutorial/forward-declarations/)
 - [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)

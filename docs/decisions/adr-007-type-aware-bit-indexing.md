@@ -31,6 +31,7 @@ Problems with this approach:
 ### The Key Insight
 
 The transpiler already knows type information:
+
 - `u8` is 8 bits
 - `u32` is 32 bits
 - `buffer[16]` has 16 elements
@@ -53,6 +54,7 @@ bool isSet <- flags[3];     // Read bit 3
 ```
 
 **Generated C:**
+
 ```c
 uint8_t flags = 0;
 flags = (flags & ~(1 << 3)) | ((1) << 3);   // Set
@@ -71,6 +73,7 @@ u8 field <- flags[4, 4];    // Read 4 bits starting at bit 4
 ```
 
 **Generated C:**
+
 ```c
 uint8_t flags = 0;
 flags = (flags & ~(((1 << 3) - 1) << 0)) | ((5 & ((1 << 3) - 1)) << 0);
@@ -81,15 +84,15 @@ uint8_t field = ((flags >> 4) & ((1 << 4) - 1));
 
 Every type exposes its size via `.length`:
 
-| Type | `.length` Value |
-|------|-----------------|
-| `u8` | 8 (bit width) |
-| `u16` | 16 (bit width) |
-| `u32` | 32 (bit width) |
-| `u64` | 64 (bit width) |
-| `i8`, `i16`, etc. | Same as unsigned |
-| `bool` | 1 (bit width) |
-| `T[N]` | N (element count) |
+| Type              | `.length` Value   |
+| ----------------- | ----------------- |
+| `u8`              | 8 (bit width)     |
+| `u16`             | 16 (bit width)    |
+| `u32`             | 32 (bit width)    |
+| `u64`             | 64 (bit width)    |
+| `i8`, `i16`, etc. | Same as unsigned  |
+| `bool`            | 1 (bit width)     |
+| `T[N]`            | N (element count) |
 
 ```cnx
 u8 buffer[16];
@@ -100,6 +103,7 @@ u32 bits <- counter.length;      // 32 (u32 bit width)
 ```
 
 **Generated C:**
+
 ```c
 uint8_t buffer[16];
 uint32_t counter = 0;
@@ -116,13 +120,13 @@ uint32_t bits = 32;      // Compile-time constant
 
 We considered several alternatives from other languages:
 
-| Language | Syntax | Example |
-|----------|--------|---------|
-| Verilog | `[7:4]` | High:low bit range |
-| Verilog | `[4 +: 4]` | Start, ascending width |
-| VHDL | `(7 downto 4)` | High down to low |
-| Ada | `(4..7)` | Range with dots |
-| Rust | `bits.get(4..8)` | Method call with range |
+| Language | Syntax           | Example                |
+| -------- | ---------------- | ---------------------- |
+| Verilog  | `[7:4]`          | High:low bit range     |
+| Verilog  | `[4 +: 4]`       | Start, ascending width |
+| VHDL     | `(7 downto 4)`   | High down to low       |
+| Ada      | `(4..7)`         | Range with dots        |
+| Rust     | `bits.get(4..8)` | Method call with range |
 
 **Decision:** `[start, width]` because:
 
@@ -151,20 +155,25 @@ The code generator maintains a type registry:
 
 ```typescript
 interface TypeInfo {
-    baseType: string;      // 'u8', 'u32', 'i16', etc.
-    bitWidth: number;      // 8, 16, 32, 64
-    isArray: boolean;
-    arrayLength?: number;  // For arrays only
+  baseType: string; // 'u8', 'u32', 'i16', etc.
+  bitWidth: number; // 8, 16, 32, 64
+  isArray: boolean;
+  arrayLength?: number; // For arrays only
 }
 
 // Type widths
 const TYPE_WIDTH: Record<string, number> = {
-    'u8': 8, 'i8': 8,
-    'u16': 16, 'i16': 16,
-    'u32': 32, 'i32': 32,
-    'u64': 64, 'i64': 64,
-    'f32': 32, 'f64': 64,
-    'bool': 1,
+  u8: 8,
+  i8: 8,
+  u16: 16,
+  i16: 16,
+  u32: 32,
+  i32: 32,
+  u64: 64,
+  i64: 64,
+  f32: 32,
+  f64: 64,
+  bool: 1,
 };
 ```
 
@@ -182,6 +191,7 @@ bool isOn <- GPIO7.DR[LED_BIT];   // Read bit 3 of DR register
 ```
 
 **Generated C:**
+
 ```c
 bool isOn = ((GPIO7_DR >> LED_BIT) & 1);
 ```
@@ -200,6 +210,7 @@ GPIO7.DR_SET <- mask;         // Atomic write to set register
 ```
 
 **Generated C:**
+
 ```c
 uint32_t mask = 0;
 mask = (mask & ~(1 << LED_BIT)) | ((true ? 1 : 0) << LED_BIT);
@@ -305,6 +316,7 @@ namespace LED {
 ## References
 
 ### Bit Manipulation in Other Languages
+
 - [Verilog Bit-Select and Part-Select](https://www.chipverify.com/verilog/verilog-part-select)
 - [VHDL Slice Notation](https://www.ics.uci.edu/~jmoorkan/vhdlref/arrays.html)
 - [Ada Bit Operations](https://learn.adacore.com/courses/intro-to-ada/chapters/standard_library_containers.html)
@@ -312,6 +324,7 @@ namespace LED {
 - [D Language Bit Manipulation](https://dlang.org/spec/expression.html#bit_manipulation)
 
 ### C Bit Manipulation Patterns
+
 - [Bit Twiddling Hacks](https://graphics.stanford.edu/~seander/bithacks.html)
 - [Embedded.com: Bit Manipulation](https://www.embedded.com/bit-manipulation-basics/)
 - [MISRA C: Bitwise Operations](https://www.misra.org.uk/)

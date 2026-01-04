@@ -87,6 +87,7 @@ void loop() {
 ### 5. Single Toolchain
 
 One parser infrastructure handles everything:
+
 - No separate header parser
 - No declaration file generator
 - No special build steps for interop
@@ -96,11 +97,13 @@ One parser infrastructure handles everything:
 ## Known Limitations
 
 ### C Grammar
+
 - Mature and well-tested (C11 specification)
 - Preprocessor must run before parsing
 - May need minor customization for edge cases
 
 ### C++ Grammar (CPP14)
+
 - Does not parse nested templates: `vector<unique_ptr<T>>`
 - Only covers C++14, not C++17/20 features
 - GCC extensions not supported
@@ -109,6 +112,7 @@ One parser infrastructure handles everything:
 ### Preprocessor Handling
 
 C headers use heavy preprocessing. Options:
+
 1. **Run cpp first** — Preprocess with system cpp, parse result
 2. **Parse post-include** — Parse the already-preprocessed translation unit
 3. **Common-case handling** — Handle simple `#define`, ignore complex macros
@@ -120,6 +124,7 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 ## Implementation Phases
 
 ### Phase 1: Add C Grammar
+
 1. Import `C.g4` from grammars-v4
 2. Configure antlr4ng to generate TypeScript parser
 3. Create `CSymbolCollector` visitor to extract:
@@ -129,23 +134,27 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
    - Macro constants (from preprocessed output)
 
 ### Phase 2: Unified Symbol Table
+
 1. Design shared `SymbolTable` interface
 2. Both CNext and C parsers populate it
 3. CodeGenerator resolves symbols from unified table
 4. Track symbol origin (which file, which language)
 
 ### Phase 3: Cross-File Resolution
+
 1. Parse all project files (any order)
 2. Build complete symbol table
 3. Resolve references across file boundaries
 4. Report undefined symbols as errors
 
 ### Phase 4: Header Generation
+
 1. Emit `.h` files alongside `.c` files
 2. Public C-Next symbols become C declarations
 3. Enable C code to call C-Next functions
 
 ### Phase 5: C++ Support (Optional)
+
 1. Import CPP14 grammar
 2. Handle C++ specific symbols (classes, namespaces)
 3. Work around nested template limitation
@@ -168,6 +177,7 @@ project/
 ```
 
 Build process:
+
 1. Preprocess all .h files
 2. Parse .cnx with CNext grammar → symbol table
 3. Parse .c/.h with C grammar → symbol table
@@ -179,14 +189,14 @@ Build process:
 
 ## Comparison: Old vs New Approach
 
-| Aspect | Old (Overcomplicated) | New (Unified ANTLR) |
-|--------|----------------------|---------------------|
-| C declarations | `extern` blocks or .d files | Parsed directly |
-| C headers | Custom parser or ignore | ANTLR C grammar |
-| New syntax | `extern "C" { ... }` | None needed |
-| Toolchain | Multiple parsers | One ANTLR setup |
-| Maintenance | Declaration files drift | Single source of truth |
-| Adoption | Requires wrappers | Drop-in compatible |
+| Aspect         | Old (Overcomplicated)       | New (Unified ANTLR)    |
+| -------------- | --------------------------- | ---------------------- |
+| C declarations | `extern` blocks or .d files | Parsed directly        |
+| C headers      | Custom parser or ignore     | ANTLR C grammar        |
+| New syntax     | `extern "C" { ... }`        | None needed            |
+| Toolchain      | Multiple parsers            | One ANTLR setup        |
+| Maintenance    | Declaration files drift     | Single source of truth |
+| Adoption       | Requires wrappers           | Drop-in compatible     |
 
 ---
 
@@ -213,12 +223,14 @@ Build process:
 ## References
 
 ### ANTLR Resources
+
 - [grammars-v4 Repository](https://github.com/antlr/grammars-v4)
 - [C Grammar (C11)](https://github.com/antlr/grammars-v4/tree/master/c)
 - [CPP14 Grammar](https://github.com/antlr/grammars-v4/tree/master/cpp)
 - [ANTLR Symbol Table Library](https://github.com/antlr/symtab)
 
 ### Best Practices
+
 - [ANTLR Mega Tutorial](https://tomassetti.me/antlr-mega-tutorial/)
 - [Multi-Language Parsing Patterns](https://tomassetti.me/best-practices-for-antlr-parsers/)
 - [Symbol Table Management](https://martinlwx.github.io/en/how-to-use-antlr4-to-make-semantic-actions/)

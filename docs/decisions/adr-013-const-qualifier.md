@@ -23,7 +23,7 @@ The code generator extracts and emits `const` to generated C code:
 
 ```typescript
 // src/codegen/CodeGenerator.ts line 784, 811
-const constMod = ctx.constModifier() ? 'const ' : '';
+const constMod = ctx.constModifier() ? "const " : "";
 ```
 
 **However, there is no semantic enforcement.** This code compiles without error:
@@ -65,11 +65,13 @@ void process(const int* value) {
 ```
 
 **Strengths:**
+
 - Compile-time enforcement
 - Zero runtime cost
 - Clear intent documentation
 
 **Weaknesses:**
+
 - Easy to forget `const`
 - Pointer constness is confusing (`const int*` vs `int* const`)
 - No default immutability
@@ -95,6 +97,7 @@ fn modify(value: &mut i32) {   // Mutable borrow required
 ```
 
 **Key insight from Rust**: The borrow checker enforces that you can have either:
+
 - One mutable reference, OR
 - Any number of immutable references
 
@@ -122,6 +125,7 @@ func modify(value: inout Int) {  // Explicit mutability required
 ```
 
 **Strengths:**
+
 - Clear distinction between mutable and immutable
 - Parameters immutable by default (safe default)
 - `inout` makes mutation explicit at both call site and definition
@@ -177,27 +181,27 @@ Modern JavaScript uses `const` for immutable bindings:
 
 ```javascript
 const x = 5;
-x = 6;  // TypeError: Assignment to constant variable
+x = 6; // TypeError: Assignment to constant variable
 
 const obj = { a: 1 };
-obj.a = 2;    // OK! const only prevents reassignment of binding
-obj = {};     // ERROR: Assignment to constant variable
+obj.a = 2; // OK! const only prevents reassignment of binding
+obj = {}; // ERROR: Assignment to constant variable
 ```
 
 **Key distinction**: `const` prevents rebinding, not deep immutability. This is different from C's `const` which prevents value modification.
 
 ### Comparison Matrix
 
-| Language | Default | Immutable Syntax | Mutable Syntax | Enforcement | Deep Immutability |
-|----------|---------|------------------|----------------|-------------|-------------------|
-| **C** | Mutable | `const T` | `T` | Compile-time | Yes (value) |
-| **Rust** | Immutable | `let x` | `let mut x` | Borrow checker | Yes (ownership) |
-| **Swift** | Immutable (params) | `let x` / param | `var x` / `inout` | Compile-time | Yes |
-| **Ada/SPARK** | Mode-based | `in` mode | `out`/`in out` | Formal verification | Yes |
-| **Go** | Mutable | N/A (no var const) | `var x` | N/A | No |
-| **JS/TS** | Mutable | `const x` | `let x` | Runtime | No (binding only) |
-| **C-Next (current)** | Mutable | `const T` | `T` | **NONE** | N/A |
-| **C-Next (proposed)** | Mutable | `const T` | `T` | Compile-time | Yes |
+| Language              | Default            | Immutable Syntax   | Mutable Syntax    | Enforcement         | Deep Immutability |
+| --------------------- | ------------------ | ------------------ | ----------------- | ------------------- | ----------------- |
+| **C**                 | Mutable            | `const T`          | `T`               | Compile-time        | Yes (value)       |
+| **Rust**              | Immutable          | `let x`            | `let mut x`       | Borrow checker      | Yes (ownership)   |
+| **Swift**             | Immutable (params) | `let x` / param    | `var x` / `inout` | Compile-time        | Yes               |
+| **Ada/SPARK**         | Mode-based         | `in` mode          | `out`/`in out`    | Formal verification | Yes               |
+| **Go**                | Mutable            | N/A (no var const) | `var x`           | N/A                 | No                |
+| **JS/TS**             | Mutable            | `const x`          | `let x`           | Runtime             | No (binding only) |
+| **C-Next (current)**  | Mutable            | `const T`          | `T`               | **NONE**            | N/A               |
+| **C-Next (proposed)** | Mutable            | `const T`          | `T`               | Compile-time        | Yes               |
 
 ---
 
@@ -218,6 +222,7 @@ void reconfigure() {
 ```
 
 In a real embedded system, this could cause:
+
 - Wrong GPIO being driven
 - Hardware damage if pin is connected to sensitive circuitry
 - Intermittent failures that only manifest under certain conditions
@@ -261,6 +266,7 @@ void logError() {
 MISRA C:2012 Rule 8.13 (Advisory): "A pointer should point to a const-qualified type whenever possible."
 
 Currently, C-Next emits `const` to C but doesn't enforce it. This means:
+
 1. Generated C has correct `const` qualifiers
 2. C compiler enforces them
 3. But C-Next developer gets no feedback about violations
@@ -380,10 +386,10 @@ This aligns software semantics with hardware reality—you physically cannot wri
 
 ```typescript
 interface ParameterInfo {
-    name: string;
-    isArray: boolean;
-    isStruct: boolean;
-    isConst: boolean;  // NEW
+  name: string;
+  isArray: boolean;
+  isStruct: boolean;
+  isConst: boolean; // NEW
 }
 ```
 
@@ -391,11 +397,11 @@ interface ParameterInfo {
 
 ```typescript
 interface TypeInfo {
-    baseType: string;
-    bitWidth: number;
-    isArray: boolean;
-    arrayLength?: number;
-    isConst: boolean;  // NEW
+  baseType: string;
+  bitWidth: number;
+  isArray: boolean;
+  arrayLength?: number;
+  isConst: boolean; // NEW
 }
 ```
 
@@ -527,6 +533,7 @@ void increment(mut i32 value) {
 ```
 
 **Why Rejected:**
+
 - Breaks familiarity with C (C-Next's core principle)
 - Would break all existing C-Next code
 - Requires new keyword (`mut`)
@@ -547,6 +554,7 @@ void process(in i32 read, out i32 write, inout i32 both) {
 ```
 
 **Why Rejected:**
+
 - Adds three new keywords
 - Significantly different from C
 - `out` semantics (must write before return) add complexity beyond const
@@ -557,6 +565,7 @@ void process(in i32 read, out i32 write, inout i32 both) {
 Emit warnings instead of errors for const violations.
 
 **Why Rejected:**
+
 - Warnings are often ignored
 - Doesn't provide the safety guarantee
 - MISRA requires enforcement, not suggestions
@@ -567,6 +576,7 @@ Emit warnings instead of errors for const violations.
 Generate runtime checks for const violations.
 
 **Why Rejected:**
+
 - Adds runtime overhead (violates "zero runtime cost")
 - Bug still ships—just crashes at runtime
 - Embedded systems can't afford runtime checks
@@ -785,6 +795,7 @@ void printValue(const i32 value) {  // OK
 ### Complexity
 
 This requires:
+
 - Tracking all assignment targets during function body generation
 - Handling nested scopes (loops, conditionals)
 - Distinguishing between the parameter itself and derived values
@@ -801,6 +812,7 @@ This requires:
 With const enforcement, the following cppcheck warnings should be resolved:
 
 **Before (11 `constParameterPointer` warnings)**:
+
 ```
 style: Parameter 'dividend' can be declared as pointer to const [constParameterPointer]
 style: Parameter 'divisor' can be declared as pointer to const [constParameterPointer]
@@ -814,17 +826,20 @@ style: Parameter 'divisor' can be declared as pointer to const [constParameterPo
 ## References
 
 ### Memory Safety Research
+
 - [Microsoft Security: 70% of CVEs are memory safety issues](https://msrc-blog.microsoft.com/2019/07/16/a-proactive-approach-to-more-secure-code/)
 - [Chromium Memory Safety](https://www.chromium.org/Home/chromium-security/memory-safety/) — 70% of severe security bugs
 - [CISA: The Urgent Need for Memory Safety](https://www.cisa.gov/news-events/news/urgent-need-memory-safety-software-products)
 - [TrustInSoft: Memory Safety Issues Still Plague New Code](https://www.trust-in-soft.com/resources/blogs/memory-safety-issues-still-plague-new-c-cpp-code)
 
 ### Coding Standards
+
 - [MISRA C Guidelines](https://www.perforce.com/resources/qac/misra-c-cpp) — Rule 8.13 on const
 - [MISRA C:2025 Changes](https://www.qt.io/quality-assurance/blog/misra-c-2025)
 - [Barr Group Embedded C Standard](https://barrgroup.com/embedded-systems/books/embedded-c-coding-standard)
 
 ### Language Design
+
 - [Rust Book: References and Borrowing](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html)
 - [Rust: Borrow Checker Fundamentals](https://www.slingacademy.com/article/borrow-checker-fundamentals-how-rust-enforces-memory-safety/)
 - [Swift inout Parameters](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/functions/#In-Out-Parameters)
@@ -832,6 +847,7 @@ style: Parameter 'divisor' can be declared as pointer to const [constParameterPo
 - [Ada Memory Safety](https://www.adacore.com/blog/memory-safety-in-ada-and-spark-through-language-features-and-tool-support)
 
 ### C-Next Related ADRs
+
 - [ADR-004: Register Bindings](adr-004-register-bindings.md) — ro/wo/rw access modifiers
 - [ADR-006: Simplified References](adr-006-simplified-references.md) — Pass-by-reference model
 - [ADR-008: Language Bug Prevention](adr-008-language-bug-prevention.md) — Bug prevention strategies

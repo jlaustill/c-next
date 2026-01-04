@@ -1,11 +1,13 @@
 # ADR-021: Increment/Decrement Operators
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 C's `++` and `--` operators are convenient but problematic:
+
 - Pre vs post confusion (`++i` vs `i++`)
 - Side effects in expressions (`a[i++] = b[++j]`)
 - Sequence point undefined behavior
@@ -24,7 +26,9 @@ Should C-Next include them?
 ## Options Considered
 
 ### Option A: No Increment/Decrement (Recommended)
+
 Use compound assignment only:
+
 ```cnx
 i +<- 1;  // Instead of i++
 i -<- 1;  // Instead of i--
@@ -34,7 +38,9 @@ i -<- 1;  // Instead of i--
 **Cons:** More verbose, unfamiliar to C programmers
 
 ### Option B: Statement-Only Increment/Decrement
+
 Allow `i++;` and `i--;` as statements, not expressions:
+
 ```cnx
 i++;           // OK - statement
 i--;           // OK - statement
@@ -46,7 +52,9 @@ a[i++] <- 5;   // ERROR - not allowed in expression
 **Cons:** Subtle difference from C, still special syntax for `+= 1`
 
 ### Option C: Full C-Style
+
 Allow both pre and post in all contexts:
+
 ```cnx
 i++;
 ++i;
@@ -58,6 +66,7 @@ a[++i] <- 5;
 **Cons:** All the C bugs, undefined behavior, security vulnerabilities
 
 ### Option D: Post-Only, Statement-Only
+
 ```cnx
 i++;  // OK
 i--;  // OK
@@ -74,12 +83,14 @@ i--;  // OK
 ### Rationale: Separation of Concerns
 
 A core principle of C-Next is that **each statement should do one thing and one thing only**. The `++` and `--` operators violate this by combining two operations:
+
 1. Reading a value
 2. Mutating the variable
 
 This dual nature is the root cause of their problems. When an operator both produces a value AND causes a side effect, it creates ambiguity about ordering and makes code harder to reason about.
 
 With compound assignment, the intent is explicit:
+
 ```cnx
 i +<- 1;  // Clearly: add 1 to i (mutation only, no value produced)
 ```
@@ -89,12 +100,14 @@ There is no question about "did the increment happen before or after?" because t
 ## Syntax
 
 ### Incrementing and Decrementing
+
 ```cnx
 i +<- 1;  // Increment
 i -<- 1;  // Decrement
 ```
 
 ### For Loops
+
 ```cnx
 for (u32 i <- 0; i < 10; i +<- 1) {
     // ...
@@ -102,6 +115,7 @@ for (u32 i <- 0; i < 10; i +<- 1) {
 ```
 
 ### Not Allowed
+
 ```cnx
 i++;               // ERROR: ++ operator does not exist
 ++i;               // ERROR: ++ operator does not exist
@@ -112,9 +126,11 @@ i--;               // ERROR: -- operator does not exist
 ## Implementation Notes
 
 ### Grammar Changes
+
 None required. The `++` and `--` tokens are simply not recognized as operators. Compound assignment (`+<-`, `-<-`) already exists and handles all use cases.
 
 ### Priority
+
 **Low** - No implementation work needed. This is a decision to NOT add syntax.
 
 ## Research Findings
@@ -139,6 +155,7 @@ i = ++i + ++i;        // Chaotic results
 ```
 
 Real-world bug found by PVS-Studio static analyzer:
+
 ```c
 // BUG: Compiler can evaluate & operands in either order
 while (!(m_pBitArray[m_nCurrentBitIndex >> 5] &
@@ -155,19 +172,21 @@ Buffer overflows (CWE-788) "typically occur when a pointer or its index is incre
 
 ### Modern Language Precedent
 
-| Language | Approach | Designer's Rationale |
-|----------|----------|---------------------|
-| **Go** | Statement-only, postfix-only | "By removing them from the expression hierarchy altogether, expression syntax is simplified and the messy issues around order of evaluation are eliminated." |
-| **Rust** | No `++`/`--` | "Behavior is subtle and confusing, usage uncommon enough to not warrant syntax complexity." |
-| **Python** | No `++`/`--` | Guido van Rossum: "No good reason to use them, they increase the risk of silly mistakes." |
-| **Swift** | Removed in 3.0 | Deprecated due to confusion and minimal benefit over `+= 1`. |
+| Language   | Approach                     | Designer's Rationale                                                                                                                                         |
+| ---------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Go**     | Statement-only, postfix-only | "By removing them from the expression hierarchy altogether, expression syntax is simplified and the messy issues around order of evaluation are eliminated." |
+| **Rust**   | No `++`/`--`                 | "Behavior is subtle and confusing, usage uncommon enough to not warrant syntax complexity."                                                                  |
+| **Python** | No `++`/`--`                 | Guido van Rossum: "No good reason to use them, they increase the risk of silly mistakes."                                                                    |
+| **Swift**  | Removed in 3.0               | Deprecated due to confusion and minimal benefit over `+= 1`.                                                                                                 |
 
 ### Counter-Arguments Considered
 
 From the Airbnb JavaScript style guide discussion:
+
 > "`++` doesn't cause bugs. Using `++` in 'tricky' ways can lead to bugs... but that's not a problem with the operator, it's a problem with the programmer."
 
 This argument has merit for statement-only usage, but C-Next prioritizes:
+
 1. **Consistency** - One way to do things, not two
 2. **Simplicity** - No special-case syntax for `+= 1`
 3. **Separation of concerns** - Statements should have single responsibility

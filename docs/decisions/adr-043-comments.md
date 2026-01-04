@@ -1,6 +1,7 @@
 # ADR-043: Comments
 
 ## Status
+
 **Implemented**
 
 ## Context
@@ -8,6 +9,7 @@
 Comments are essential for code documentation and maintainability. C-Next currently supports C-style comments in the grammar but skips them during transpilation, meaning no comments appear in the generated C output.
 
 For embedded systems development, comments serve critical purposes:
+
 - Documenting register bit layouts and magic numbers
 - Explaining hardware-specific workarounds
 - API documentation for libraries
@@ -33,6 +35,7 @@ DOC_COMMENT
 ```
 
 **Current behavior:**
+
 - `// comment` — Skipped, not in output
 - `/* comment */` — Skipped, not in output
 - `/// doc comment` — Preserved in HIDDEN channel (available to tooling)
@@ -75,6 +78,7 @@ void toggleLED() {
 ```
 
 Generates:
+
 ```c
 /* Initialize the LED controller */
 #define GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))  /* Atomic set register */
@@ -101,6 +105,7 @@ u32 processValue(u32 value) {
 ```
 
 Generates:
+
 ```c
 /**
  * Brief description of the function.
@@ -133,14 +138,15 @@ struct UARTConfig {
 
 ### Comment Conversion Rules
 
-| C-Next | Generated C | Notes |
-|--------|-------------|-------|
-| `// comment` | `/* comment */` | Single-line → block for C89 compat |
-| `/* comment */` | `/* comment */` | Passed through unchanged |
-| `/// doc` | `/** doc */` | Doxygen-style |
+| C-Next          | Generated C     | Notes                              |
+| --------------- | --------------- | ---------------------------------- |
+| `// comment`    | `/* comment */` | Single-line → block for C89 compat |
+| `/* comment */` | `/* comment */` | Passed through unchanged           |
+| `/// doc`       | `/** doc */`    | Doxygen-style                      |
 
 **Option: C99 mode**
 If targeting C99+, line comments can pass through unchanged:
+
 ```c
 // comment  // Same as input (C99+)
 ```
@@ -212,12 +218,15 @@ u32 bar <- 10;  // This documents bar (inline)
 ## Alternatives Considered
 
 ### 1. No Comment Preservation (Current)
+
 **Rejected.** Losing comments makes debugging generated code harder and loses valuable documentation.
 
 ### 2. Custom Comment Syntax
+
 **Rejected.** Using `#` or other non-C syntax would confuse C developers and break syntax highlighting.
 
 ### 3. Separate Documentation Files
+
 **Rejected.** Keeping docs with code is a best practice. Separate files get out of sync.
 
 ## MISRA C:2012 Compliance
@@ -235,6 +244,7 @@ The character sequences `/*` and `//` shall not appear within a comment.
 ```
 
 **Error message:**
+
 ```
 Error: Nested comment marker '/*' found inside comment (MISRA C:2012 Rule 3.1)
   --> file.cnx:5:12
@@ -250,6 +260,7 @@ x <- 5;                          // This would be commented out!
 ```
 
 **Error message:**
+
 ```
 Error: Line comment ends with '\\' which causes line-splice (MISRA C:2012 Rule 3.2)
   --> file.cnx:3:1
@@ -267,6 +278,7 @@ URLs containing `://` are permitted inside comments:
 ## Consequences
 
 ### Positive
+
 - Generated C is self-documenting
 - Doxygen documentation works automatically
 - License headers preserved
@@ -274,6 +286,7 @@ URLs containing `://` are permitted inside comments:
 - MISRA C:2012 Rules 3.1 and 3.2 enforced at transpile time
 
 ### Negative
+
 - Slightly more complex code generation
 - Must handle edge cases (comments in expressions, etc.)
 - Generated files are larger

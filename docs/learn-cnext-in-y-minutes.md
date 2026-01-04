@@ -3,6 +3,7 @@
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C code.
 
 **Status Legend:**
+
 - `[DONE]` - Implemented and working
 - `[ACCEPTED]` - Design accepted, ready for implementation
 - `[TODO]` - Planned for v1
@@ -95,6 +96,7 @@ C-Next takes a safety-first approach to the preprocessor (ADR-037).
 ### Why No `#define` with Values?
 
 `#define` macros cause 5 of the 7 classic C preprocessor bugs:
+
 - No type checking
 - Operator precedence errors
 - Multiple evaluation problems
@@ -105,19 +107,19 @@ C-Next requires `const` for type-safe, scoped, debuggable constants.
 
 ### Bug Prevention Analysis
 
-| Bug | Solved? | How |
-|-----|---------|-----|
-| 1. Operator Precedence | ✅ | No value macros allowed |
-| 2. Multiple Evaluation | ✅ | No function macros allowed |
-| 3. No Type Checking | ✅ | `const` is type-checked |
-| 4. **No Scope** | ❌ | `#define FLAG` still global |
-| 5. Swallowing the Semicolon | ✅ | No statement macros |
-| 6. Control Flow Distortion | ✅ | No macro code blocks |
-| 7. **Debugger Invisible** | ❌ | Flags can't be inspected |
+| Bug                         | Solved? | How                         |
+| --------------------------- | ------- | --------------------------- |
+| 1. Operator Precedence      | ✅      | No value macros allowed     |
+| 2. Multiple Evaluation      | ✅      | No function macros allowed  |
+| 3. No Type Checking         | ✅      | `const` is type-checked     |
+| 4. **No Scope**             | ❌      | `#define FLAG` still global |
+| 5. Swallowing the Semicolon | ✅      | No statement macros         |
+| 6. Control Flow Distortion  | ✅      | No macro code blocks        |
+| 7. **Debugger Invisible**   | ❌      | Flags can't be inspected    |
 
 **Why 2 bugs remain and why that's OK:**
 
-- **No Scope (#4):** Flag-only defines like `#define ARDUINO` are meant for conditional compilation—a global concern. Platform flags *should* be visible everywhere. Use `const` inside a scope for scoped constants.
+- **No Scope (#4):** Flag-only defines like `#define ARDUINO` are meant for conditional compilation—a global concern. Platform flags _should_ be visible everywhere. Use `const` inside a scope for scoped constants.
 
 - **Debugger Invisible (#7):** Flags control which code compiles, not runtime values. They don't need runtime inspection. Use `const` for values you want to debug.
 
@@ -205,6 +207,7 @@ void main() {
 ```
 
 **Why no forward declarations?**
+
 - Catches errors at C-Next compile time, not C compile or runtime
 - Forces logical code organization (dependencies first)
 - Eliminates declaration/definition mismatch bugs
@@ -247,10 +250,12 @@ i32 main(u8 args[][]) {
 ```
 
 The `args` parameter provides:
+
 - `args[n]` - Access the nth argument string
 - `args.length` - Get the argument count (like argc)
 
 Transpiles to standard C:
+
 ```c
 int main(int argc, char *argv[]) {
     printf("Program: %s\n", argv[0]);
@@ -260,6 +265,7 @@ int main(int argc, char *argv[]) {
 ```
 
 For Arduino/embedded frameworks, use `setup()` and `loop()` as usual:
+
 ```cnx
 void setup() {
     pinMode(LED_PIN, OUTPUT);
@@ -324,6 +330,7 @@ u32 asBits <- signedVal[0, 32];  // OK: explicit reinterpret
 ```
 
 **Why this design?**
+
 - **Widening is safe**: u8 always fits in u32
 - **Narrowing loses data**: 0x1234 truncated to u8 = 0x34 (silent bug)
 - **Sign change is reinterpretation**: -1 as u32 = 4294967295 (often unexpected)
@@ -348,11 +355,13 @@ temperature -<- 100; // Clamps to 0, not 65436!
 ```
 
 **Why per-variable?** Different use cases need different behavior:
+
 - **Sensors/PWM**: Clamping prevents wraparound glitches
 - **Counters/Timers**: Wrapping is the intended behavior
 - **Default safe**: Unmarked variables use saturating arithmetic
 
 Generated C uses inline helper functions:
+
 ```c
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
     if (a > UINT8_MAX - b) return UINT8_MAX;
@@ -364,9 +373,11 @@ counter += 1;                                      // wrap variable
 ```
 
 **Debug mode:** Compile with `--debug` to generate panic-on-overflow helpers:
+
 ```bash
 cnx --debug myfile.cnx -o myfile.c
 ```
+
 This replaces clamp helpers with abort() calls for catching overflow during development.
 
 ## Variables
@@ -1009,6 +1020,7 @@ void Robot_poke(Robot self) {
 ```
 
 **Why enum + switch is better:**
+
 - No function pointers = no null dereference risk
 - Exhaustive switch = compiler catches missing states
 - Direct calls = easier static analysis and debugging
@@ -1050,6 +1062,7 @@ void initVectors() {
 ```
 
 **Key differences from ADR-029 Callbacks:**
+
 - **Structural typing**: Any `void()` function matches `ISR` (callbacks use nominal typing)
 - **Can be null**: ISR fields don't have automatic defaults (callbacks always have a default)
 - **Use case**: Interrupt vectors (callbacks are for event handlers and plugins)
@@ -1256,28 +1269,28 @@ void loop(void) {
 
 ## Key Differences from C
 
-| C | C-Next | Why |
-|---|--------|-----|
-| `x = 5` | `x <- 5` | Assignment is explicit flow |
-| `x == 5` | `x = 5` | Equality uses mathematical = |
-| `int`, `long` | `i32`, `i64` | Fixed widths, no surprises |
-| `ptr->field` | `ptr.field` | No arrow operator |
-| `*ptr` | Implicit | Simplified references |
-| Manual init | Zero by default | No uninitialized variables |
-| Manual prefixes | `scope {}` | Organization with auto-prefixing |
-| Forward decl | Define first | Errors caught early (E0422) |
-| `(u8)bigVal` | `bigVal[0, 8]` | Explicit bit extraction for narrowing |
-| Silent overflow | `clamp`/`wrap` | Explicit overflow behavior |
-| `case X: break;` | `case X { }` | Braces replace break, no fallthrough |
-| `case A: case B:` | `case A \|\| B { }` | OR syntax for multiple cases |
-| `default:` | `default(n) { }` | Counted default catches enum growth |
-| `break`/`continue` | Loop conditions | Structured loops, no hidden exits |
-| `char buf[64]` | `string<64> buf` | Bounded strings with safety |
-| `strcmp(a,b)==0` | `a = b` | String comparison via = |
-| `strcpy`/`strcat` | `a + b` | Safe concatenation with validation |
-| `void (*fp)(int)` | `funcName type` | Function-as-Type pattern, never null |
-| `int a[] = {1,2,3}` | `u8 a[] <- [1,2,3]` | `[]` for arrays, `{}` for structs |
-| `int z[100] = {0}` | `u8 z[100] <- [0*]` | Explicit fill-all syntax |
+| C                   | C-Next              | Why                                   |
+| ------------------- | ------------------- | ------------------------------------- |
+| `x = 5`             | `x <- 5`            | Assignment is explicit flow           |
+| `x == 5`            | `x = 5`             | Equality uses mathematical =          |
+| `int`, `long`       | `i32`, `i64`        | Fixed widths, no surprises            |
+| `ptr->field`        | `ptr.field`         | No arrow operator                     |
+| `*ptr`              | Implicit            | Simplified references                 |
+| Manual init         | Zero by default     | No uninitialized variables            |
+| Manual prefixes     | `scope {}`          | Organization with auto-prefixing      |
+| Forward decl        | Define first        | Errors caught early (E0422)           |
+| `(u8)bigVal`        | `bigVal[0, 8]`      | Explicit bit extraction for narrowing |
+| Silent overflow     | `clamp`/`wrap`      | Explicit overflow behavior            |
+| `case X: break;`    | `case X { }`        | Braces replace break, no fallthrough  |
+| `case A: case B:`   | `case A \|\| B { }` | OR syntax for multiple cases          |
+| `default:`          | `default(n) { }`    | Counted default catches enum growth   |
+| `break`/`continue`  | Loop conditions     | Structured loops, no hidden exits     |
+| `char buf[64]`      | `string<64> buf`    | Bounded strings with safety           |
+| `strcmp(a,b)==0`    | `a = b`             | String comparison via =               |
+| `strcpy`/`strcat`   | `a + b`             | Safe concatenation with validation    |
+| `void (*fp)(int)`   | `funcName type`     | Function-as-Type pattern, never null  |
+| `int a[] = {1,2,3}` | `u8 a[] <- [1,2,3]` | `[]` for arrays, `{}` for structs     |
+| `int z[100] = {0}`  | `u8 z[100] <- [0*]` | Explicit fill-all syntax              |
 
 ## Further Reading
 

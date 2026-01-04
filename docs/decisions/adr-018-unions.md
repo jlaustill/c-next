@@ -1,11 +1,13 @@
 # ADR-018: Unions
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 Unions are used in embedded C for:
+
 - Register overlays (access same memory as different types)
 - Protocol parsing (interpret bytes as structured data)
 - Memory-efficient variants (only one field active at a time)
@@ -16,6 +18,7 @@ Unions are used in embedded C for:
 **C-Next will not support unions.**
 
 Unions are rejected because:
+
 1. They enable undefined behavior (reading inactive members)
 2. They violate MISRA C guidelines for safety-critical software
 3. Every use case has a safer, more explicit alternative in C-Next
@@ -26,14 +29,17 @@ Unions are rejected because:
 C-Next is a safer front-end that generates clean C. Like TypeScript removes JavaScript footguns while compiling to JavaScript, C-Next removes C footguns while compiling to C.
 
 From MISRA C guidelines:
+
 > "Using unions isn't recommended in embedded and even forbidden by most of the standards and guidelines for safety software like MISRA C 2004."
 
 Unions are exactly the kind of "clever" pattern that leads to:
+
 - Undefined behavior (reading wrong member)
 - Portability bugs (endianness, padding differences)
 - MISRA violations requiring formal deviations
 
 C-Next's value proposition:
+
 > "You get a safe abstraction, and we generate the boring C."
 
 ## Use Cases and Alternatives
@@ -41,6 +47,7 @@ C-Next's value proposition:
 ### 1. Register Overlays → ADR-004 (Implemented)
 
 **The Problem:**
+
 ```c
 // Traditional C - unions for register access
 union {
@@ -54,6 +61,7 @@ union {
 ```
 
 **C-Next Solution (ADR-004):**
+
 ```cnx
 register GPIOB @ 0x40020400 {
     MODER: u32 rw @ 0x00,
@@ -65,6 +73,7 @@ GPIOB.MODER <- GPIOB.MODER | (1 << (pin * 2));
 ```
 
 ADR-004 provides:
+
 - Compile-time access control (read-only registers can't be written)
 - No undefined behavior
 - Clean, readable generated C
@@ -73,6 +82,7 @@ ADR-004 provides:
 ### 2. Protocol Parsing → Explicit Byte Manipulation
 
 **The Problem (Union Approach):**
+
 ```c
 // C union - type punning, undefined behavior, endianness-dependent
 struct Packet {
@@ -91,6 +101,7 @@ move_to(p.coords.x, p.coords.y);  // Bug if type != COORDS
 ```
 
 **C-Next Solution (Explicit Parsing):**
+
 ```cnx
 // Message types
 const u8 MSG_DATA <- 1;
@@ -129,6 +140,7 @@ void parseMessage(u8 buffer[]) {
 ```
 
 **Why this is better:**
+
 - **No undefined behavior** - just byte reads and shifts
 - **Endianness is explicit** - you can see exactly how bytes become values
 - **Type safety enforced** - you must check the type to know what to parse
@@ -138,6 +150,7 @@ void parseMessage(u8 buffer[]) {
 ### 3. Type Punning → Forbidden
 
 Type punning (reinterpreting bits of one type as another) is:
+
 - Undefined behavior in C (except for `char` access)
 - Explicitly forbidden by MISRA C
 - A source of subtle, platform-dependent bugs
@@ -147,6 +160,7 @@ C-Next does not provide a mechanism for type punning. If you need to reinterpret
 ### 4. Memory-Efficient Variants → Explicit Design
 
 For memory-constrained scenarios where only one "variant" is active:
+
 - Use a byte array sized to the largest variant
 - Parse/construct explicitly based on a discriminator
 - The memory savings are the same; the access is safer
@@ -154,6 +168,7 @@ For memory-constrained scenarios where only one "variant" is active:
 ### 5. C Interop with Existing Union Types → ADR-010
 
 When interfacing with existing C code that uses unions:
+
 - Wrap the C code in an `extern` block
 - Treat it as unsafe/external
 - Do not expose the union type to C-Next code
@@ -161,13 +176,13 @@ When interfacing with existing C code that uses unions:
 
 ## Summary
 
-| Union Use Case | C-Next Alternative | ADR |
-|----------------|-------------------|-----|
-| Register overlays | `register` blocks with access modifiers | ADR-004 |
-| Protocol parsing | Explicit byte manipulation | (this ADR) |
-| Type punning | Forbidden - use byte manipulation | (this ADR) |
-| Memory variants | Byte array + explicit parsing | (this ADR) |
-| C interop | `extern` block, treat as unsafe | ADR-010 |
+| Union Use Case    | C-Next Alternative                      | ADR        |
+| ----------------- | --------------------------------------- | ---------- |
+| Register overlays | `register` blocks with access modifiers | ADR-004    |
+| Protocol parsing  | Explicit byte manipulation              | (this ADR) |
+| Type punning      | Forbidden - use byte manipulation       | (this ADR) |
+| Memory variants   | Byte array + explicit parsing           | (this ADR) |
+| C interop         | `extern` block, treat as unsafe         | ADR-010    |
 
 ## References
 

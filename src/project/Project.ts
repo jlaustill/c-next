@@ -3,334 +3,362 @@
  * Coordinates multi-file compilation with cross-language symbol resolution
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
-import { CharStream, CommonTokenStream } from 'antlr4ng';
-import { join, basename, dirname } from 'path';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { CharStream, CommonTokenStream } from "antlr4ng";
+import { join, basename, dirname } from "path";
 
-import { CNextLexer } from '../parser/grammar/CNextLexer.js';
-import { CNextParser } from '../parser/grammar/CNextParser.js';
-import { CLexer } from '../parser/c/grammar/CLexer.js';
-import { CParser } from '../parser/c/grammar/CParser.js';
-import { CPP14Lexer } from '../parser/cpp/grammar/CPP14Lexer.js';
-import { CPP14Parser } from '../parser/cpp/grammar/CPP14Parser.js';
+import { CNextLexer } from "../parser/grammar/CNextLexer.js";
+import { CNextParser } from "../parser/grammar/CNextParser.js";
+import { CLexer } from "../parser/c/grammar/CLexer.js";
+import { CParser } from "../parser/c/grammar/CParser.js";
+import { CPP14Lexer } from "../parser/cpp/grammar/CPP14Lexer.js";
+import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser.js";
 
-import CodeGenerator from '../codegen/CodeGenerator.js';
-import HeaderGenerator from '../codegen/HeaderGenerator.js';
-import SymbolTable from '../symbols/SymbolTable.js';
-import CNextSymbolCollector from '../symbols/CNextSymbolCollector.js';
-import CSymbolCollector from '../symbols/CSymbolCollector.js';
-import CppSymbolCollector from '../symbols/CppSymbolCollector.js';
-import Preprocessor from '../preprocessor/Preprocessor.js';
+import CodeGenerator from "../codegen/CodeGenerator.js";
+import HeaderGenerator from "../codegen/HeaderGenerator.js";
+import SymbolTable from "../symbols/SymbolTable.js";
+import CNextSymbolCollector from "../symbols/CNextSymbolCollector.js";
+import CSymbolCollector from "../symbols/CSymbolCollector.js";
+import CppSymbolCollector from "../symbols/CppSymbolCollector.js";
+import Preprocessor from "../preprocessor/Preprocessor.js";
 
-import IProjectConfig, { IProjectResult } from './types/IProjectConfig.js';
-import FileDiscovery, { EFileType, IDiscoveredFile } from './FileDiscovery.js';
+import IProjectConfig, { IProjectResult } from "./types/IProjectConfig.js";
+import FileDiscovery, { EFileType, IDiscoveredFile } from "./FileDiscovery.js";
 
 /**
  * Manages multi-file C-Next projects
  */
 class Project {
-    private config: IProjectConfig;
-    private symbolTable: SymbolTable;
-    private preprocessor: Preprocessor;
-    private codeGenerator: CodeGenerator;
-    private headerGenerator: HeaderGenerator;
+  private config: IProjectConfig;
 
-    constructor(config: IProjectConfig) {
-        this.config = {
-            extensions: ['.cnx', '.cnext'],
-            generateHeaders: true,
-            preprocess: true,
-            ...config,
-        };
+  private symbolTable: SymbolTable;
 
-        this.symbolTable = new SymbolTable();
-        this.preprocessor = new Preprocessor();
-        this.codeGenerator = new CodeGenerator();
-        this.headerGenerator = new HeaderGenerator();
-    }
+  private preprocessor: Preprocessor;
 
-    /**
-     * Compile the project
-     */
-    async compile(): Promise<IProjectResult> {
-        const result: IProjectResult = {
-            success: true,
-            filesProcessed: 0,
-            symbolsCollected: 0,
-            conflicts: [],
-            errors: [],
-            warnings: [],
-            outputFiles: [],
-        };
+  private codeGenerator: CodeGenerator;
 
-        try {
-            // Discover files
-            const files = this.discoverFiles();
+  private headerGenerator: HeaderGenerator;
 
-            if (files.length === 0) {
-                result.warnings.push('No source files found');
-                return result;
-            }
+  constructor(config: IProjectConfig) {
+    this.config = {
+      extensions: [".cnx", ".cnext"],
+      generateHeaders: true,
+      preprocess: true,
+      ...config,
+    };
 
-            // Ensure output directory exists
-            if (!existsSync(this.config.outDir)) {
-                mkdirSync(this.config.outDir, { recursive: true });
-            }
+    this.symbolTable = new SymbolTable();
+    this.preprocessor = new Preprocessor();
+    this.codeGenerator = new CodeGenerator();
+    this.headerGenerator = new HeaderGenerator();
+  }
 
-            // Phase 1: Collect symbols from all C/C++ headers
-            const headerFiles = FileDiscovery.getHeaderFiles(files);
-            for (const file of headerFiles) {
-                try {
-                    await this.collectHeaderSymbols(file, result);
-                    result.filesProcessed++;
-                } catch (err) {
-                    result.errors.push(`Failed to process ${file.path}: ${err}`);
-                }
-            }
+  /**
+   * Compile the project
+   */
+  async compile(): Promise<IProjectResult> {
+    const result: IProjectResult = {
+      success: true,
+      filesProcessed: 0,
+      symbolsCollected: 0,
+      conflicts: [],
+      errors: [],
+      warnings: [],
+      outputFiles: [],
+    };
 
-            // Phase 2: Collect symbols from C-Next files
-            const cnextFiles = FileDiscovery.getCNextFiles(files);
-            for (const file of cnextFiles) {
-                try {
-                    this.collectCNextSymbols(file, result);
-                    result.filesProcessed++;
-                } catch (err) {
-                    result.errors.push(`Failed to process ${file.path}: ${err}`);
-                }
-            }
+    try {
+      // Discover files
+      const files = this.discoverFiles();
 
-            // Phase 3: Check for conflicts
-            const conflicts = this.symbolTable.getConflicts();
-            for (const conflict of conflicts) {
-                result.conflicts.push(conflict.message);
-                if (conflict.severity === 'error') {
-                    result.success = false;
-                }
-            }
-
-            // If there are errors, stop here
-            if (!result.success) {
-                result.errors.push('Symbol conflicts detected - cannot proceed with code generation');
-                return result;
-            }
-
-            // Phase 4: Generate C code for each C-Next file
-            for (const file of cnextFiles) {
-                try {
-                    const outputFile = this.generateCode(file);
-                    result.outputFiles.push(outputFile);
-                } catch (err) {
-                    result.errors.push(`Failed to generate code for ${file.path}: ${err}`);
-                    result.success = false;
-                }
-            }
-
-            // Phase 5: Generate headers if enabled
-            if (this.config.generateHeaders && result.success) {
-                for (const file of cnextFiles) {
-                    try {
-                        const headerFile = this.generateHeader(file);
-                        if (headerFile) {
-                            result.outputFiles.push(headerFile);
-                        }
-                    } catch (err) {
-                        result.warnings.push(`Failed to generate header for ${file.path}: ${err}`);
-                    }
-                }
-            }
-
-            result.symbolsCollected = this.symbolTable.size;
-
-        } catch (err) {
-            result.errors.push(`Project compilation failed: ${err}`);
-            result.success = false;
-        }
-
+      if (files.length === 0) {
+        result.warnings.push("No source files found");
         return result;
-    }
+      }
 
-    /**
-     * Discover all project files
-     */
-    private discoverFiles(): IDiscoveredFile[] {
-        // If specific files are provided, use those
-        if (this.config.files && this.config.files.length > 0) {
-            return FileDiscovery.discoverFiles(this.config.files);
-        }
+      // Ensure output directory exists
+      if (!existsSync(this.config.outDir)) {
+        mkdirSync(this.config.outDir, { recursive: true });
+      }
 
-        // Otherwise, scan directories
-        const allDirs = [...this.config.srcDirs, ...this.config.includeDirs];
-        return FileDiscovery.discover(allDirs, {
-            extensions: this.config.extensions,
-            recursive: true,
-        });
-    }
-
-    /**
-     * Collect symbols from a C/C++ header file
-     */
-    private async collectHeaderSymbols(file: IDiscoveredFile, result: IProjectResult): Promise<void> {
-        let content: string;
-
-        // Preprocess if enabled
-        if (this.config.preprocess && this.preprocessor.isAvailable()) {
-            const preprocessResult = await this.preprocessor.preprocess(file.path, {
-                includePaths: this.config.includeDirs,
-                defines: this.config.defines,
-                keepLineDirectives: false,
-            });
-
-            if (!preprocessResult.success) {
-                result.warnings.push(`Preprocessor warning for ${file.path}: ${preprocessResult.error}`);
-                // Fall back to raw content
-                content = readFileSync(file.path, 'utf-8');
-            } else {
-                content = preprocessResult.content;
-            }
-        } else {
-            content = readFileSync(file.path, 'utf-8');
-        }
-
-        // Parse based on file type
-        if (file.type === EFileType.CHeader) {
-            this.parseCHeader(content, file.path);
-        } else if (file.type === EFileType.CppHeader) {
-            this.parseCppHeader(content, file.path);
-        }
-    }
-
-    /**
-     * Parse a C header and collect symbols
-     */
-    private parseCHeader(content: string, filePath: string): void {
-        const charStream = CharStream.fromString(content);
-        const lexer = new CLexer(charStream);
-        const tokenStream = new CommonTokenStream(lexer);
-        const parser = new CParser(tokenStream);
-
-        // Suppress error output for header parsing
-        parser.removeErrorListeners();
-
+      // Phase 1: Collect symbols from all C/C++ headers
+      const headerFiles = FileDiscovery.getHeaderFiles(files);
+      for (const file of headerFiles) {
         try {
-            const tree = parser.compilationUnit();
-            const collector = new CSymbolCollector(filePath);
-            const symbols = collector.collect(tree);
-            this.symbolTable.addSymbols(symbols);
-        } catch {
-            // Silently ignore parse errors in headers - they may have unsupported constructs
+          await this.collectHeaderSymbols(file, result);
+          result.filesProcessed++;
+        } catch (err) {
+          result.errors.push(`Failed to process ${file.path}: ${err}`);
         }
-    }
+      }
 
-    /**
-     * Parse a C++ header and collect symbols
-     */
-    private parseCppHeader(content: string, filePath: string): void {
-        const charStream = CharStream.fromString(content);
-        const lexer = new CPP14Lexer(charStream);
-        const tokenStream = new CommonTokenStream(lexer);
-        const parser = new CPP14Parser(tokenStream);
-
-        // Suppress error output for header parsing
-        parser.removeErrorListeners();
-
+      // Phase 2: Collect symbols from C-Next files
+      const cnextFiles = FileDiscovery.getCNextFiles(files);
+      for (const file of cnextFiles) {
         try {
-            const tree = parser.translationUnit();
-            const collector = new CppSymbolCollector(filePath);
-            const symbols = collector.collect(tree);
-            this.symbolTable.addSymbols(symbols);
-        } catch {
-            // Silently ignore parse errors in headers
+          this.collectCNextSymbols(file, result);
+          result.filesProcessed++;
+        } catch (err) {
+          result.errors.push(`Failed to process ${file.path}: ${err}`);
         }
-    }
+      }
 
-    /**
-     * Collect symbols from a C-Next file
-     */
-    private collectCNextSymbols(file: IDiscoveredFile, result: IProjectResult): void {
-        const content = readFileSync(file.path, 'utf-8');
-        const charStream = CharStream.fromString(content);
-        const lexer = new CNextLexer(charStream);
-        const tokenStream = new CommonTokenStream(lexer);
-        const parser = new CNextParser(tokenStream);
+      // Phase 3: Check for conflicts
+      const conflicts = this.symbolTable.getConflicts();
+      for (const conflict of conflicts) {
+        result.conflicts.push(conflict.message);
+        if (conflict.severity === "error") {
+          result.success = false;
+        }
+      }
 
-        const errors: string[] = [];
-        parser.removeErrorListeners();
-        parser.addErrorListener({
-            syntaxError(_recognizer, _offendingSymbol, line, charPositionInLine, msg, _e) {
-                errors.push(`${file.path}:${line}:${charPositionInLine} - ${msg}`);
-            },
-            reportAmbiguity() {},
-            reportAttemptingFullContext() {},
-            reportContextSensitivity() {}
-        });
+      // If there are errors, stop here
+      if (!result.success) {
+        result.errors.push(
+          "Symbol conflicts detected - cannot proceed with code generation",
+        );
+        return result;
+      }
 
-        const tree = parser.program();
+      // Phase 4: Generate C code for each C-Next file
+      for (const file of cnextFiles) {
+        try {
+          const outputFile = this.generateCode(file);
+          result.outputFiles.push(outputFile);
+        } catch (err) {
+          result.errors.push(
+            `Failed to generate code for ${file.path}: ${err}`,
+          );
+          result.success = false;
+        }
+      }
 
-        if (errors.length > 0) {
-            for (const err of errors) {
-                result.errors.push(err);
+      // Phase 5: Generate headers if enabled
+      if (this.config.generateHeaders && result.success) {
+        for (const file of cnextFiles) {
+          try {
+            const headerFile = this.generateHeader(file);
+            if (headerFile) {
+              result.outputFiles.push(headerFile);
             }
-            return;
+          } catch (err) {
+            result.warnings.push(
+              `Failed to generate header for ${file.path}: ${err}`,
+            );
+          }
         }
+      }
 
-        const collector = new CNextSymbolCollector(file.path);
-        const symbols = collector.collect(tree);
-        this.symbolTable.addSymbols(symbols);
+      result.symbolsCollected = this.symbolTable.size;
+    } catch (err) {
+      result.errors.push(`Project compilation failed: ${err}`);
+      result.success = false;
     }
 
-    /**
-     * Generate C code from a C-Next file
-     */
-    private generateCode(file: IDiscoveredFile): string {
-        const content = readFileSync(file.path, 'utf-8');
-        const charStream = CharStream.fromString(content);
-        const lexer = new CNextLexer(charStream);
-        const tokenStream = new CommonTokenStream(lexer);
-        const parser = new CNextParser(tokenStream);
+    return result;
+  }
 
-        const tree = parser.program();
-        const code = this.codeGenerator.generate(tree, this.symbolTable);
-
-        // Write output file
-        const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, '.c');
-        const outputPath = join(this.config.outDir, outputName);
-
-        writeFileSync(outputPath, code, 'utf-8');
-
-        return outputPath;
+  /**
+   * Discover all project files
+   */
+  private discoverFiles(): IDiscoveredFile[] {
+    // If specific files are provided, use those
+    if (this.config.files && this.config.files.length > 0) {
+      return FileDiscovery.discoverFiles(this.config.files);
     }
 
-    /**
-     * Generate header file for a C-Next file
-     */
-    private generateHeader(file: IDiscoveredFile): string | null {
-        const symbols = this.symbolTable.getSymbolsByFile(file.path);
+    // Otherwise, scan directories
+    const allDirs = [...this.config.srcDirs, ...this.config.includeDirs];
+    return FileDiscovery.discover(allDirs, {
+      extensions: this.config.extensions,
+      recursive: true,
+    });
+  }
 
-        // Filter to exported symbols only
-        const exportedSymbols = symbols.filter(s => s.isExported);
+  /**
+   * Collect symbols from a C/C++ header file
+   */
+  private async collectHeaderSymbols(
+    file: IDiscoveredFile,
+    result: IProjectResult,
+  ): Promise<void> {
+    let content: string;
 
-        if (exportedSymbols.length === 0) {
-            return null; // No public symbols, no header needed
-        }
+    // Preprocess if enabled
+    if (this.config.preprocess && this.preprocessor.isAvailable()) {
+      const preprocessResult = await this.preprocessor.preprocess(file.path, {
+        includePaths: this.config.includeDirs,
+        defines: this.config.defines,
+        keepLineDirectives: false,
+      });
 
-        const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, '.h');
-        const headerPath = join(this.config.outDir, headerName);
-
-        const headerContent = this.headerGenerator.generate(exportedSymbols, headerName, {
-            exportedOnly: true,
-        });
-
-        writeFileSync(headerPath, headerContent, 'utf-8');
-
-        return headerPath;
+      if (!preprocessResult.success) {
+        result.warnings.push(
+          `Preprocessor warning for ${file.path}: ${preprocessResult.error}`,
+        );
+        // Fall back to raw content
+        content = readFileSync(file.path, "utf-8");
+      } else {
+        content = preprocessResult.content;
+      }
+    } else {
+      content = readFileSync(file.path, "utf-8");
     }
 
-    /**
-     * Get the symbol table (for testing/inspection)
-     */
-    getSymbolTable(): SymbolTable {
-        return this.symbolTable;
+    // Parse based on file type
+    if (file.type === EFileType.CHeader) {
+      this.parseCHeader(content, file.path);
+    } else if (file.type === EFileType.CppHeader) {
+      this.parseCppHeader(content, file.path);
     }
+  }
+
+  /**
+   * Parse a C header and collect symbols
+   */
+  private parseCHeader(content: string, filePath: string): void {
+    const charStream = CharStream.fromString(content);
+    const lexer = new CLexer(charStream);
+    const tokenStream = new CommonTokenStream(lexer);
+    const parser = new CParser(tokenStream);
+
+    // Suppress error output for header parsing
+    parser.removeErrorListeners();
+
+    try {
+      const tree = parser.compilationUnit();
+      const collector = new CSymbolCollector(filePath);
+      const symbols = collector.collect(tree);
+      this.symbolTable.addSymbols(symbols);
+    } catch {
+      // Silently ignore parse errors in headers - they may have unsupported constructs
+    }
+  }
+
+  /**
+   * Parse a C++ header and collect symbols
+   */
+  private parseCppHeader(content: string, filePath: string): void {
+    const charStream = CharStream.fromString(content);
+    const lexer = new CPP14Lexer(charStream);
+    const tokenStream = new CommonTokenStream(lexer);
+    const parser = new CPP14Parser(tokenStream);
+
+    // Suppress error output for header parsing
+    parser.removeErrorListeners();
+
+    try {
+      const tree = parser.translationUnit();
+      const collector = new CppSymbolCollector(filePath);
+      const symbols = collector.collect(tree);
+      this.symbolTable.addSymbols(symbols);
+    } catch {
+      // Silently ignore parse errors in headers
+    }
+  }
+
+  /**
+   * Collect symbols from a C-Next file
+   */
+  private collectCNextSymbols(
+    file: IDiscoveredFile,
+    result: IProjectResult,
+  ): void {
+    const content = readFileSync(file.path, "utf-8");
+    const charStream = CharStream.fromString(content);
+    const lexer = new CNextLexer(charStream);
+    const tokenStream = new CommonTokenStream(lexer);
+    const parser = new CNextParser(tokenStream);
+
+    const errors: string[] = [];
+    parser.removeErrorListeners();
+    parser.addErrorListener({
+      syntaxError(
+        _recognizer,
+        _offendingSymbol,
+        line,
+        charPositionInLine,
+        msg,
+        _e,
+      ) {
+        errors.push(`${file.path}:${line}:${charPositionInLine} - ${msg}`);
+      },
+      reportAmbiguity() {},
+      reportAttemptingFullContext() {},
+      reportContextSensitivity() {},
+    });
+
+    const tree = parser.program();
+
+    if (errors.length > 0) {
+      for (const err of errors) {
+        result.errors.push(err);
+      }
+      return;
+    }
+
+    const collector = new CNextSymbolCollector(file.path);
+    const symbols = collector.collect(tree);
+    this.symbolTable.addSymbols(symbols);
+  }
+
+  /**
+   * Generate C code from a C-Next file
+   */
+  private generateCode(file: IDiscoveredFile): string {
+    const content = readFileSync(file.path, "utf-8");
+    const charStream = CharStream.fromString(content);
+    const lexer = new CNextLexer(charStream);
+    const tokenStream = new CommonTokenStream(lexer);
+    const parser = new CNextParser(tokenStream);
+
+    const tree = parser.program();
+    const code = this.codeGenerator.generate(tree, this.symbolTable);
+
+    // Write output file
+    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".c");
+    const outputPath = join(this.config.outDir, outputName);
+
+    writeFileSync(outputPath, code, "utf-8");
+
+    return outputPath;
+  }
+
+  /**
+   * Generate header file for a C-Next file
+   */
+  private generateHeader(file: IDiscoveredFile): string | null {
+    const symbols = this.symbolTable.getSymbolsByFile(file.path);
+
+    // Filter to exported symbols only
+    const exportedSymbols = symbols.filter((s) => s.isExported);
+
+    if (exportedSymbols.length === 0) {
+      return null; // No public symbols, no header needed
+    }
+
+    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+    const headerPath = join(this.config.outDir, headerName);
+
+    const headerContent = this.headerGenerator.generate(
+      exportedSymbols,
+      headerName,
+      {
+        exportedOnly: true,
+      },
+    );
+
+    writeFileSync(headerPath, headerContent, "utf-8");
+
+    return headerPath;
+  }
+
+  /**
+   * Get the symbol table (for testing/inspection)
+   */
+  getSymbolTable(): SymbolTable {
+    return this.symbolTable;
+  }
 }
 
 export default Project;

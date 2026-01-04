@@ -1,11 +1,13 @@
 # ADR-033: Packed and Aligned Structs
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 Packed and aligned structs are sometimes requested for embedded:
+
 - Hardware register layouts (no padding)
 - Network protocol packets (wire format)
 - Binary file formats
@@ -27,12 +29,12 @@ C uses compiler-specific pragmas or attributes (`__attribute__((packed))`).
 
 ### Alternatives for Each Use Case
 
-| Use Case | C-Next Solution |
-|----------|-----------------|
-| Hardware registers | `register` keyword (ADR-004) |
-| Network protocols | Explicit serialization functions |
-| Binary file formats | Explicit marshalling |
-| Memory constraints | Reorder struct fields largest-to-smallest |
+| Use Case            | C-Next Solution                           |
+| ------------------- | ----------------------------------------- |
+| Hardware registers  | `register` keyword (ADR-004)              |
+| Network protocols   | Explicit serialization functions          |
+| Binary file formats | Explicit marshalling                      |
+| Memory constraints  | Reorder struct fields largest-to-smallest |
 
 ## Research Findings
 
@@ -55,16 +57,17 @@ C uses compiler-specific pragmas or attributes (`__attribute__((packed))`).
 
 ### Why Serialization is Better for Protocols
 
-| Packed Structs (Bad) | Serialization (Good) |
-|---------------------|---------------------|
-| Architecture-dependent encoding | Platform-neutral encoding |
-| No endianness standardization | Explicit byte order handling |
-| No bounds checking | Built-in validation |
-| Compiler-specific behavior | Portable across toolchains |
+| Packed Structs (Bad)            | Serialization (Good)         |
+| ------------------------------- | ---------------------------- |
+| Architecture-dependent encoding | Platform-neutral encoding    |
+| No endianness standardization   | Explicit byte order handling |
+| No bounds checking              | Built-in validation          |
+| Compiler-specific behavior      | Portable across toolchains   |
 
 ## Options Considered (Historical)
 
 ### Option A: Attributes
+
 ```cnx
 @packed
 struct TCPHeader {
@@ -75,11 +78,13 @@ struct TCPHeader {
 ```
 
 ### Option B: Keywords
+
 ```cnx
 packed struct TCPHeader { ... }
 ```
 
 ### Option C: Pragma Pass-through
+
 ```cnx
 #pragma pack(push, 1)
 struct TCPHeader { ... }
@@ -87,6 +92,7 @@ struct TCPHeader { ... }
 ```
 
 ### Option D: Don't implement
+
 **Selected.** The use cases are covered by existing features or better patterns.
 
 ## References

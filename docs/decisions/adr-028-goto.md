@@ -1,6 +1,7 @@
 # ADR-028: Goto Statement
 
 ## Status
+
 **Rejected**
 
 ## Decision
@@ -10,6 +11,7 @@
 ## Context
 
 `goto` is controversial but has uses in C:
+
 - Centralized cleanup patterns
 - Breaking from deeply nested loops
 - State machine implementations
@@ -20,20 +22,24 @@ The Linux kernel uses goto extensively for cleanup.
 ## Why We Reject Goto Permanently
 
 ### 1. Spaghetti Code
+
 `goto` enables arbitrary control flow that makes code impossible to reason about. You cannot look at a block of code and understand when it executes without scanning the entire function for labels.
 
 ### 2. Better Alternatives Exist
+
 Every legitimate use case for `goto` has a structured alternative:
 
-| Use Case | Structured Alternative |
-|----------|----------------------|
-| Centralized cleanup | Call cleanup function before each return |
-| Breaking nested loops | Use a flag variable in loop conditions |
-| State machines | Use enum + switch (see ADR-029) |
-| Error handling | Early returns with explicit cleanup |
+| Use Case              | Structured Alternative                   |
+| --------------------- | ---------------------------------------- |
+| Centralized cleanup   | Call cleanup function before each return |
+| Breaking nested loops | Use a flag variable in loop conditions   |
+| State machines        | Use enum + switch (see ADR-029)          |
+| Error handling        | Early returns with explicit cleanup      |
 
 ### 3. MISRA C Heavily Restricts Goto
+
 Even in safety-critical C code, MISRA rules severely limit `goto`:
+
 - Only forward jumps allowed
 - Only to a label in the same block or enclosing block
 - Heavy documentation requirements
@@ -41,11 +47,13 @@ Even in safety-critical C code, MISRA rules severely limit `goto`:
 If `goto` is too dangerous for safety-critical C, Cnx should not have it at all.
 
 ### 4. Cnx Philosophy: Safety Through Removal
+
 Cnx makes code safe by removing dangerous features, not by adding guardrails around them. We don't restrict `goto` - we eliminate it entirely.
 
 ## Workarounds Without Goto
 
 ### Cleanup Pattern
+
 ```cnx
 // Use explicit cleanup calls
 void process() {
@@ -73,6 +81,7 @@ void process() {
 ```
 
 ### Breaking Nested Loops
+
 ```cnx
 // Use flag in loop conditions
 bool found <- false;
@@ -100,6 +109,7 @@ bool findInMatrix(Matrix m, i32 target, u32 outI, u32 outJ) {
 ```
 
 ### State Machines
+
 See ADR-029: Use enum + switch pattern, not function pointer dispatch with goto.
 
 ## What About Future Versions?

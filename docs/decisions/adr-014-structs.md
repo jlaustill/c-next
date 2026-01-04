@@ -7,11 +7,13 @@
 ## Context
 
 C-Next needs a way to group related data fields together. This is the foundation for:
+
 - Complex data types (point, vector, configuration)
 - Register layouts with multiple fields
 - The `class` feature (ADR-005) which adds methods to structs
 
 C already has `struct`, and C-Next should provide an equivalent with:
+
 - Same semantics as C structs
 - Fixed-width types (`u8`, `u32`, etc.)
 - Integration with null state semantics (ADR-015)
@@ -112,13 +114,13 @@ p = (Point){ .x = 10, .y = 20 };
 
 ## What Structs Do NOT Have
 
-| Feature | Rationale |
-|---------|-----------|
-| Methods | Use `namespace` (ADR-002) for singleton services, `class` (ADR-005) for multiple instances |
-| Constructors | Use `class` or inline initialization |
-| Visibility modifiers | All fields are public (use `class` for encapsulation) |
-| Inheritance | Not in C-Next |
-| Nested struct definitions | Define separately, compose by field |
+| Feature                   | Rationale                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| Methods                   | Use `namespace` (ADR-002) for singleton services, `class` (ADR-005) for multiple instances |
+| Constructors              | Use `class` or inline initialization                                                       |
+| Visibility modifiers      | All fields are public (use `class` for encapsulation)                                      |
+| Inheritance               | Not in C-Next                                                                              |
+| Nested struct definitions | Define separately, compose by field                                                        |
 
 ## Design Decisions
 
@@ -163,6 +165,7 @@ Point p <- Point { x: 10, y: 20 };
 **Literals are allowed** in struct initializers because initialization is not a function call — no pass-by-reference occurs. This is the same as `u8 flags <- 44;`.
 
 Not positional (error-prone with many fields):
+
 ```cnx
 // NOT SUPPORTED
 Point p <- Point(10, 20);
@@ -177,30 +180,31 @@ Point p;  // p.x = 0, p.y = 0
 ```
 
 This is explicit in generated C:
+
 ```c
 Point p = {0};
 ```
 
 ## Relationship to Namespaces and Classes
 
-| Feature | Struct | Namespace | Class |
-|---------|--------|-----------|-------|
-| Fields | Yes | Yes | Yes |
-| Methods | No | Yes | Yes |
-| Constructor | No | No | Yes |
-| Visibility | All public | Private default | Private default |
-| Instances | N/A | Singleton | Multiple |
-| Use case | Data container | Singleton service | Multiple instances |
+| Feature     | Struct         | Namespace         | Class              |
+| ----------- | -------------- | ----------------- | ------------------ |
+| Fields      | Yes            | Yes               | Yes                |
+| Methods     | No             | Yes               | Yes                |
+| Constructor | No             | No                | Yes                |
+| Visibility  | All public     | Private default   | Private default    |
+| Instances   | N/A            | Singleton         | Multiple           |
+| Use case    | Data container | Singleton service | Multiple instances |
 
 ### When to Use Each
 
-| Scenario | Use |
-|----------|-----|
-| Group related data fields | `struct` |
-| Singleton service (LED, Console, ErrorHandler) | `namespace` |
-| Multiple instances (UART1, UART2, UART3) | `class` |
-| Data + behavior, only one exists | `namespace` with `struct` parameter |
-| Data + behavior, multiple exist | `class` |
+| Scenario                                       | Use                                 |
+| ---------------------------------------------- | ----------------------------------- |
+| Group related data fields                      | `struct`                            |
+| Singleton service (LED, Console, ErrorHandler) | `namespace`                         |
+| Multiple instances (UART1, UART2, UART3)       | `class`                             |
+| Data + behavior, only one exists               | `namespace` with `struct` parameter |
+| Data + behavior, multiple exist                | `class`                             |
 
 ### Examples
 

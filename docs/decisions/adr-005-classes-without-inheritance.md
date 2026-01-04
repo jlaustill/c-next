@@ -36,6 +36,7 @@ In embedded systems, you often have multiple instances of the same hardware:
 - Most MCUs have multiple timers, ADCs, DMA channels
 
 Without classes, you either:
+
 1. **Copy-paste code** for each instance (violates DRY, bugs multiply)
 2. **Pass everything as parameters** (verbose, error-prone)
 3. **Use macros** (no type safety, debugging nightmare)
@@ -65,6 +66,7 @@ The key insight: Arduino uses C++ primarily for **encapsulation and code reuse**
 > — [Medium: The DRY Principle](https://medium.com/@ujjawalr/the-dry-principle-why-you-should-avoid-code-duplication-2ebdfce778a4)
 
 Without classes, managing 8 UARTs means either:
+
 - 8 copies of the same code (bugs get fixed in UART1, forgotten in UART5)
 - One function with 8 sets of global variables (ugly, error-prone)
 
@@ -74,6 +76,7 @@ Without classes, managing 8 UARTs means either:
 > — [Stackify: What is Encapsulation](https://stackify.com/oop-concept-for-beginners-what-is-encapsulation/)
 
 **Benefits:**
+
 - Data protection: Private members can't be accidentally modified
 - Change management: Internal implementation can change without breaking users
 - Better organization: Related data and methods stay together
@@ -98,10 +101,12 @@ A well-designed UART class can be reused across projects, MCU families, and even
 > — [Wikipedia: Multiple Inheritance](https://en.wikipedia.org/wiki/Multiple_inheritance)
 
 **Real-world example:**
+
 > "In GUI software development, a class Button may inherit from both Rectangle (for appearance) and Clickable (for functionality). Both inherit from Object. Which `equals` method does Button inherit?"
 > — [GeeksforGeeks: Diamond Problem](https://www.geeksforgeeks.org/cpp/diamond-problem-in-cpp/)
 
 **Languages' responses:**
+
 - **Java**: Banned multiple inheritance entirely
 - **C++**: Added virtual inheritance (complex, overhead)
 - **Go**: No inheritance at all
@@ -153,10 +158,12 @@ In embedded systems with limited RAM, vtable pointers are a real cost.
 MISRA C++ has extensive rules about inheritance, reflecting its complexity:
 
 ### Inheritance Hierarchy Rules
+
 - **Rule 10–1–3**: An accessible base class shall not be both virtual and non-virtual in the same hierarchy
 - **Rule 10–2–1**: All accessible entity names within a multiple inheritance hierarchy should be unique
 
 ### Virtual Function Rules
+
 - **Rule 10–3–1**: There shall be no more than one definition of each virtual function on each path through the inheritance hierarchy
 - **Rule 10–3–2**: Each overriding virtual function shall be declared with the virtual keyword
 - **Rule 10–3–3**: A virtual function shall only be overridden by a pure virtual function if it is itself declared as pure virtual
@@ -179,6 +186,7 @@ The sheer number of rules reflects how much can go wrong with inheritance.
 > — [spf13: Is Go OOP?](https://spf13.com/p/is-go-an-object-oriented-language/)
 
 Go provides the benefits of OOP without inheritance:
+
 - **Code reuse**: Struct embedding
 - **Polymorphism**: Interfaces
 - **Dynamic dispatch**: Interface method calls
@@ -215,10 +223,12 @@ The Gang of Four (Design Patterns, 1994) established this principle:
 ### Real-World Examples
 
 **UI Frameworks:**
+
 > "A LoginForm could be composed of TextFields for the username and password, and a Button for submitting the form."
 > — [DEV: Composition Over Inheritance](https://dev.to/lovestaco/composition-over-inheritance-a-flexible-design-principle-4ehh)
 
 **Vehicles:**
+
 > "Using composition, you can create a Vehicle class that contains instances of Engine, Wheels, and Transmission. You can mix and match these components without altering the class hierarchy."
 > — [Medium: Composition is Better](https://medium.com/@sandeepkv93/why-composition-is-preferred-over-inheritance-a-deep-dive-ea6911b1ad15)
 
@@ -294,6 +304,7 @@ void init() {
 ### Composition Instead of Inheritance
 
 Instead of:
+
 ```cpp
 // Traditional OOP - NOT in C-Next
 class ErrorHandlingUART extends UART {
@@ -302,6 +313,7 @@ class ErrorHandlingUART extends UART {
 ```
 
 C-Next uses composition:
+
 ```
 class UART {
     private u32 baseAddress;
@@ -406,6 +418,7 @@ void init() {
 ```
 
 **Rationale:** This pattern:
+
 - Works with startup allocation (ADR-003)
 - Ties into null state semantics (ADR-015)
 - Matches how embedded code typically structures initialization
@@ -415,6 +428,7 @@ void init() {
 **Decision:** All class instances must be created in `init()`.
 
 **Rationale:** This is the surface area for a LOT of bugs without being strict. Runtime allocation leads to:
+
 - Memory fragmentation
 - Unpredictable memory usage
 - OOM conditions in long-running systems
@@ -482,6 +496,7 @@ UART uart2 <- UART(UART2_BASE, SLOW_BAUD);   // baudRate = 9600
 ```
 
 **Rationale:** Single source of truth for defaults. Research shows field defaults cause confusion:
+
 - C++/Java: Constructor can override field default — two places to look
 - Order of initialization is non-obvious
 - Scattered initialization logic
@@ -492,73 +507,83 @@ Rust and Go require explicit initialization. C-Next follows this philosophy with
 
 ## Summary: Why This Approach?
 
-| Feature | Traditional OOP | C-Next |
-|---------|-----------------|--------|
-| Encapsulation | ✅ | ✅ |
-| Multiple instances | ✅ | ✅ |
-| Code reuse | Via inheritance | Via composition |
-| Polymorphism | Virtual functions | Namespaces/interfaces (TBD) |
-| Diamond problem | Possible | Impossible |
-| Fragile base class | Possible | Impossible |
-| vtable overhead | Yes | No |
-| MISRA complexity | 10+ rules | Minimal |
+| Feature            | Traditional OOP   | C-Next                      |
+| ------------------ | ----------------- | --------------------------- |
+| Encapsulation      | ✅                | ✅                          |
+| Multiple instances | ✅                | ✅                          |
+| Code reuse         | Via inheritance   | Via composition             |
+| Polymorphism       | Virtual functions | Namespaces/interfaces (TBD) |
+| Diamond problem    | Possible          | Impossible                  |
+| Fragile base class | Possible          | Impossible                  |
+| vtable overhead    | Yes               | No                          |
+| MISRA complexity   | 10+ rules         | Minimal                     |
 
 ---
 
 ## References
 
 ### DRY Principle and Code Reuse
+
 - [Wikipedia: Don't Repeat Yourself](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)
 - [Medium: The DRY Principle](https://medium.com/@ujjawalr/the-dry-principle-why-you-should-avoid-code-duplication-2ebdfce778a4)
 - [Plutora: Understanding the DRY Principle](https://www.plutora.com/blog/understanding-the-dry-dont-repeat-yourself-principle)
 
 ### Encapsulation Benefits
+
 - [Stackify: What is Encapsulation](https://stackify.com/oop-concept-for-beginners-what-is-encapsulation/)
 - [GeeksforGeeks: Encapsulation in C++](https://www.geeksforgeeks.org/cpp/encapsulation-in-cpp/)
 - [Medium: The Importance of Code Encapsulation](https://medium.com/swlh/the-importance-of-code-encapsulation-ce19efbcfe57)
 - [Coursera: Encapsulation in OOP](https://www.coursera.org/in/articles/encapsulation-in-oop)
 
 ### Problems with Inheritance
+
 - [Wikipedia: Multiple Inheritance (Diamond Problem)](https://en.wikipedia.org/wiki/Multiple_inheritance)
 - [GeeksforGeeks: Diamond Problem in C++](https://www.geeksforgeeks.org/cpp/diamond-problem-in-cpp/)
 - [MakeUseOf: Diamond Problem Explained](https://www.makeuseof.com/what-is-diamond-problem-in-cpp/)
 - [Wikipedia: Composition over Inheritance](https://en.wikipedia.org/wiki/Composition_over_inheritance)
 
 ### Composition Over Inheritance
+
 - [DEV: Composition Over Inheritance](https://dev.to/lovestaco/composition-over-inheritance-a-flexible-design-principle-4ehh)
 - [Medium: Why Composition is Preferred](https://medium.com/@sandeepkv93/why-composition-is-preferred-over-inheritance-a-deep-dive-ea6911b1ad15)
 - [Toxigon: Best Practices for 2025](https://toxigon.com/composition-over-inheritance-best-practices)
 - [DigitalOcean: Composition vs Inheritance](https://www.digitalocean.com/community/tutorials/composition-vs-inheritance)
 
 ### Go's Design Decision
+
 - [Medium: Why Go Chose Composition](https://medium.com/@harshithgowdakt/why-go-chose-composition-over-inheritance-and-you-should-too-ac1a89524202)
 - [YourBasic: OOP without Inheritance in Go](https://yourbasic.org/golang/inheritance-object-oriented/)
 - [spf13: Is Go OOP?](https://spf13.com/p/is-go-an-object-oriented-language/)
 - [DEV: Go Beyond Basics](https://dev.to/saksham_malhotra_27/go-beyond-basics-closures-interfaces-and-why-go-has-no-inheritance-20a9)
 
 ### Rust's Approach
+
 - [The Coded Message: Rust Is Beyond OOP](https://www.thecodedmessage.com/posts/oop-3-inheritance/)
 - [LogRocket: Inheritance Limitations in Rust](https://blog.logrocket.com/understanding-inheritance-other-limitations-rust/)
 - [Medium: 28 Days of Rust - Composition](https://medium.com/comsystoreply/28-days-of-rust-part-2-composition-over-inheritance-cab1b106534a)
 
 ### TypeScript/JavaScript Class Issues
+
 - [DEV: Do you need classes in JS/TS?](https://dev.to/latobibor/do-you-need-classes-in-jsts-4ggd)
 - [DEV: Class Contradictions](https://dev.to/bytebodger/class-contradictions-in-typescript-vs-javascript-1imp)
 - [DEV: TypeScript is not OOP](https://dev.to/macsikora/no-typescript-is-not-oop-version-of-javascript-3ed4)
 
 ### Arduino and C++ in Embedded
+
 - [Wikipedia: Arduino](https://en.wikipedia.org/wiki/Arduino)
 - [LinkedIn: Why C++ for Embedded](https://www.linkedin.com/pulse/why-c-language-choice-embedded-software-development-varteq)
 - [Qt: C++ for Embedded - Myths](https://www.qt.io/embedded-development-talk/c-for-embedded-advantages-disadvantages-and-myths)
 - [Hackaday: Hacking Arduino Environment](https://hackaday.com/2015/12/31/code-craft-embedding-c-hacking-the-arduino-software-environment/)
 
 ### MISRA C++ Rules
+
 - [MISRA C++:2008 Guidelines PDF](https://582328.fs1.hubspotusercontent-na1.net/hubfs/582328/GrammaTech-Files/MISRA_CPP-2008_7.3.pdf)
 - [Perforce: MISRA C and C++](https://www.perforce.com/resources/qac/misra-c-cpp)
 - [CppDepend: MISRA C++ Compliance](https://www.cppdepend.com/documentation/misra-cpp)
 - [EmbeddedPrep: MISRA Guidelines Tutorial](https://embeddedprep.com/misra-c-misra-c-guidelines/)
 
 ### Multiple UART Management
+
 - [ControllersTech: Managing Multiple UARTs](https://controllerstech.com/managing-multiple-uarts-in-stm32/)
 - [Simply Embedded: UART Tutorial](http://www.simplyembedded.org/tutorials/msp430-uart/)
 - [ESP-IDF: UART Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html)

@@ -1,6 +1,7 @@
 # ADR-042: Error Handling
 
 ## Status
+
 **Rejected**
 
 ## Decision
@@ -11,15 +12,16 @@
 
 C-Next's existing features provide all necessary error handling capabilities:
 
-| Pattern | How It Works in C-Next |
-|---------|------------------------|
-| Return codes | Use enums (ADR-017) as return types |
+| Pattern        | How It Works in C-Next                                          |
+| -------------- | --------------------------------------------------------------- |
+| Return codes   | Use enums (ADR-017) as return types                             |
 | Out parameters | Pass-by-reference (ADR-006) allows modifying caller's variables |
-| Rich results | Return structs containing both value and status |
+| Rich results   | Return structs containing both value and status                 |
 
 ### Example Patterns (All Work Today)
 
 **Pattern 1: Return code + out parameter**
+
 ```cnx
 Status readSensor(u32 value) {
     if (timeout) { return Status.TIMEOUT; }
@@ -29,6 +31,7 @@ Status readSensor(u32 value) {
 ```
 
 **Pattern 2: Struct return**
+
 ```cnx
 struct SensorResult {
     u32 value;
@@ -48,6 +51,7 @@ Adding Result<T, E> types or special syntax would add complexity without meaning
 ## Original Context
 
 Error handling in embedded C:
+
 - Return codes (0 = success, non-zero = error)
 - Global errno
 - Exceptions (not in embedded)
@@ -58,6 +62,7 @@ Modern languages use Result types (Rust) or multiple returns (Go).
 ## Options Considered
 
 ### Option A: C-Style Return Codes
+
 ```cnx
 enum Error { OK, TIMEOUT, INVALID_PARAM }
 
@@ -74,6 +79,7 @@ if (result != Error.OK) { handleError(result); }
 **Cons:** Easy to ignore errors
 
 ### Option B: Result Type (Rust-style)
+
 ```cnx
 Result<u32, Error> readSensor() {
     if (timeout) { return Err(Error.TIMEOUT); }
@@ -90,6 +96,7 @@ match (readSensor()) {
 **Cons:** Complex, unfamiliar
 
 ### Option C: Multiple Returns (Go-style)
+
 ```cnx
 (u32, Error) readSensor() {
     if (timeout) { return (0, Error.TIMEOUT); }
@@ -104,6 +111,7 @@ if (err != Error.OK) { handleError(err); }
 **Cons:** Syntax overhead
 
 ### Option D: Out Parameters
+
 ```cnx
 bool readSensor(u32 value) {
     if (timeout) { return false; }

@@ -1,11 +1,13 @@
 # ADR-017: Enums
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Enums are fundamental to embedded C programming:
+
 - State machines (IDLE, RUNNING, ERROR)
 - Error codes (OK, TIMEOUT, INVALID_PARAM)
 - Register field values (MODE_SPI, MODE_I2C)
@@ -34,6 +36,7 @@ handleState(42);     // COMPILES! 42 isn't a valid State - BUG!
 ### Modern Language Approach (TypeScript, C#, Zig)
 
 Enums are their own type, not freely interchangeable with integers:
+
 - Can't compare different enum types
 - Can't assign integer to enum without explicit cast
 - Explicit conversion required for integer value
@@ -54,6 +57,7 @@ enum State {
 ```
 
 With explicit values:
+
 ```cnx
 enum Command {
     READ  <- 0x01,
@@ -64,6 +68,7 @@ enum Command {
 ```
 
 Bit flags pattern:
+
 ```cnx
 enum Flags {
     NONE     <- 0,
@@ -127,6 +132,7 @@ u8 modeValue <- (u8)SPIMode.MODE_1;
 ```
 
 Enums are always treated as **unsigned integers** when cast:
+
 - Cast to `u8`, `u16`, `u32`, or `u64`
 - Value must fit in target type (compile error if too large)
 - Negative values are NOT allowed (compile error)
@@ -148,6 +154,7 @@ Motor.State current <- Motor.State.IDLE;
 ```
 
 Generates:
+
 ```c
 typedef enum {
     Motor_State_IDLE = 0,
@@ -180,6 +187,7 @@ u8 val <- (u8)State.ERROR;
 ```
 
 Generates:
+
 ```c
 typedef enum {
     State_IDLE = 0,
@@ -195,6 +203,7 @@ uint8_t val = (uint8_t)State_ERROR;
 ## Implementation
 
 ### Grammar Changes
+
 ```antlr
 enumDeclaration
     : 'enum' IDENTIFIER '{' enumMember (',' enumMember)* ','? '}'
@@ -211,6 +220,7 @@ castExpression
 ```
 
 ### Type System
+
 - Register enum types in type registry
 - Track enum members and their integer values
 - Validate comparisons: same enum type only
@@ -218,6 +228,7 @@ castExpression
 - Allow explicit cast to unsigned integer types
 
 ### CodeGenerator
+
 - Generate typedef enum with prefixed member names
 - Handle explicit value assignments with `<-`
 - Auto-increment values when not specified (like C)
@@ -226,12 +237,14 @@ castExpression
 ## Consequences
 
 ### Positive
+
 - Prevents real bugs (wrong enum type, accidental integer comparison)
 - Hardware access still possible via explicit cast
 - Matches modern language expectations (TypeScript, C#)
 - Still generates standard C enums
 
 ### Negative
+
 - Slightly more verbose than C for hardware writes
 - Stricter than C (but that's the point!)
 

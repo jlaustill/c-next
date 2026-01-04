@@ -1,11 +1,13 @@
 # ADR-019: Type Aliases
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 Type aliases improve code readability and maintainability:
+
 - `Byte` instead of `u8`
 - `Address` instead of `u32`
 - `Callback` instead of complex function pointer syntax
@@ -26,6 +28,7 @@ C uses `typedef`, C-Next should have a cleaner syntax.
 ## Options Considered
 
 ### Option A: `type` Keyword with Assignment
+
 ```cnx
 type Byte <- u8;
 type Address <- u32;
@@ -33,6 +36,7 @@ type Buffer <- u8[256];
 ```
 
 Generates:
+
 ```c
 typedef uint8_t Byte;
 typedef uint32_t Address;
@@ -43,6 +47,7 @@ typedef uint8_t Buffer[256];
 **Cons:** `<-` might be confusing for types (not a value flow)
 
 ### Option B: `type` Keyword with Equals
+
 ```cnx
 type Byte = u8;
 type Address = u32;
@@ -52,6 +57,7 @@ type Address = u32;
 **Cons:** Inconsistent with `=` being comparison elsewhere
 
 ### Option C: `alias` Keyword
+
 ```cnx
 alias Byte <- u8;
 alias Address <- u32;
@@ -60,8 +66,8 @@ alias Address <- u32;
 **Pros:** Clear intent
 **Cons:** New keyword
 
-
 ### Priority
+
 **Low** - Nice to have, not critical for v1.
 
 ## Research Findings
@@ -73,6 +79,7 @@ MISRA **Directive 4.6** (Advisory) states: "Typedefs that indicate size and sign
 However, this guidance exists because C's basic types (`int`, `char`, `long`) have platform-dependent sizes. **C-Next already solves this problem** by using fixed-width primitives (`u8`, `i32`, `f64`) as the default types.
 
 Additional MISRA rules on typedef:
+
 - **Rule 5.6** (Required): Typedef names must be unique across all namespaces
 - **Rule 2.3** (Advisory): Unused typedefs are non-compliant
 

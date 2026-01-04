@@ -21,6 +21,7 @@ void init() {
 This raises the question: **What is the value of `uart1` before `init()` is called?**
 
 This applies to all variables:
+
 - Primitives (`u32 count;`)
 - Structs (`Point origin;`)
 - Class instances (`UART uart1;`)
@@ -37,6 +38,7 @@ UART uart;       // Fields contain garbage
 ```
 
 This is a source of countless bugs:
+
 - Reading uninitialized memory
 - Using garbage pointers
 - Intermittent failures (works on my machine!)
@@ -46,11 +48,11 @@ This is a source of countless bugs:
 
 C-Next uses a **hybrid approach** that combines the best of Go-style and Rust-style:
 
-| Scope | Behavior | Rationale |
-|-------|----------|-----------|
-| **Global variables** | Zero-initialized | Embedded pattern: declare globally, initialize in `init()` |
-| **Scope/namespace variables** | Zero-initialized | Same as globals |
-| **Local variables** | **Error on use before initialization** | Catches bugs at compile time |
+| Scope                         | Behavior                               | Rationale                                                  |
+| ----------------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| **Global variables**          | Zero-initialized                       | Embedded pattern: declare globally, initialize in `init()` |
+| **Scope/namespace variables** | Zero-initialized                       | Same as globals                                            |
+| **Local variables**           | **Error on use before initialization** | Catches bugs at compile time                               |
 
 This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Uninitialized Variables.
 
@@ -64,15 +66,15 @@ This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Un
 
 ### Global Variables (Zero-Initialized)
 
-| Type | Zero Value |
-|------|------------|
-| `u8`, `u16`, `u32`, `u64` | `0` |
-| `i8`, `i16`, `i32`, `i64` | `0` |
-| `f32`, `f64` | `0.0` |
-| `bool` | `false` |
-| Arrays | All elements zero |
-| Structs | All fields zero |
-| Class instances | All fields zero |
+| Type                      | Zero Value        |
+| ------------------------- | ----------------- |
+| `u8`, `u16`, `u32`, `u64` | `0`               |
+| `i8`, `i16`, `i32`, `i64` | `0`               |
+| `f32`, `f64`              | `0.0`             |
+| `bool`                    | `false`           |
+| Arrays                    | All elements zero |
+| Structs                   | All fields zero   |
+| Class instances           | All fields zero   |
 
 #### C-Next Code (Global Scope)
 
@@ -244,6 +246,7 @@ configure(9600, 7);       // baudRate=9600, dataBits=7
 ```
 
 This is distinct from zero initialization:
+
 - **Zero init**: Variable declaration without explicit value
 - **Default params**: Function parameter with fallback value
 
@@ -273,14 +276,14 @@ visitVariableDeclaration(ctx) {
 
 ### Special Cases
 
-| Type | Generated C |
-|------|-------------|
-| `u32 x;` | `uint32_t x = 0;` |
-| `bool f;` | `bool f = false;` |
-| `f32 v;` | `float v = 0.0f;` |
+| Type           | Generated C               |
+| -------------- | ------------------------- |
+| `u32 x;`       | `uint32_t x = 0;`         |
+| `bool f;`      | `bool f = false;`         |
+| `f32 v;`       | `float v = 0.0f;`         |
 | `u8 buf[256];` | `uint8_t buf[256] = {0};` |
-| `Point p;` | `Point p = {0};` |
-| `UART u;` | `UART u = {0};` |
+| `Point p;`     | `Point p = {0};`          |
+| `UART u;`      | `UART u = {0};`           |
 
 ## Examples
 
@@ -333,14 +336,14 @@ void receive(u8 byte) {
 
 ## Comparison with Other Languages
 
-| Language | Uninitialized Variable |
-|----------|----------------------|
-| C | Undefined behavior |
-| C++ | Undefined for primitives, default constructor for objects |
-| Go | Zero value |
-| Rust | Compile error |
-| Java | Zero for primitives, null for objects |
-| **C-Next** | **Zero value** |
+| Language   | Uninitialized Variable                                    |
+| ---------- | --------------------------------------------------------- |
+| C          | Undefined behavior                                        |
+| C++        | Undefined for primitives, default constructor for objects |
+| Go         | Zero value                                                |
+| Rust       | Compile error                                             |
+| Java       | Zero for primitives, null for objects                     |
+| **C-Next** | **Zero value**                                            |
 
 ## Research: Go's Zero Initialization Experience
 
@@ -348,22 +351,22 @@ Go has used zero initialization since 2009. Research into Go's bug history shows
 
 ### What Works Well
 
-| Type | Zero Value | Read | Write | Result |
-|------|------------|------|-------|--------|
-| `int`, `bool`, `struct` | `0`, `false`, `{0}` | ✅ Safe | ✅ Safe | **No issues** |
-| `sync.Mutex` | unlocked | ✅ Safe | ✅ Safe | **Brilliant design** |
-| `bytes.Buffer` | empty | ✅ Safe | ✅ Safe | **Ready to use** |
+| Type                    | Zero Value          | Read    | Write   | Result               |
+| ----------------------- | ------------------- | ------- | ------- | -------------------- |
+| `int`, `bool`, `struct` | `0`, `false`, `{0}` | ✅ Safe | ✅ Safe | **No issues**        |
+| `sync.Mutex`            | unlocked            | ✅ Safe | ✅ Safe | **Brilliant design** |
+| `bytes.Buffer`          | empty               | ✅ Safe | ✅ Safe | **Ready to use**     |
 
 Go's philosophy of "make the zero value useful" works excellently for **value types**.
 
 ### Where Go Has Problems
 
-| Type | Zero Value | Read | Write | Result |
-|------|------------|------|-------|--------|
-| `map` | `nil` | ✅ Returns zero | ❌ **Panic** | Runtime crash |
-| `slice` | `nil` | ✅ Safe | ❌ **Panic** | Must use `append` |
-| `pointer` | `nil` | ❌ **Panic** | ❌ **Panic** | Null pointer |
-| `channel` | `nil` | ❌ Blocks forever | ❌ Blocks forever | Deadlock |
+| Type      | Zero Value | Read              | Write             | Result            |
+| --------- | ---------- | ----------------- | ----------------- | ----------------- |
+| `map`     | `nil`      | ✅ Returns zero   | ❌ **Panic**      | Runtime crash     |
+| `slice`   | `nil`      | ✅ Safe           | ❌ **Panic**      | Must use `append` |
+| `pointer` | `nil`      | ❌ **Panic**      | ❌ **Panic**      | Null pointer      |
+| `channel` | `nil`      | ❌ Blocks forever | ❌ Blocks forever | Deadlock          |
 
 The issues arise from **reference types**, not value types. There's an [open proposal](https://github.com/golang/go/issues/39572)
 debating whether nil map reads should panic instead of silently returning zero.
@@ -401,6 +404,7 @@ Rust's strict checking creates developer friction:
 > — [Rust Reviewed](https://dev.to/somedood/rust-reviewed-is-the-hype-justified-1pa1)
 
 Common issues include:
+
 - [False positives](https://github.com/rust-lang/rust/issues/106377) where the compiler claims variables are uninitialized when they aren't
 - [Confusing error messages](https://github.com/rust-lang/rust/issues/72649) that say "borrowed after move" instead of "uninitialized"
 - Closures that [can't initialize variables](https://github.com/rust-lang/rust/issues/41124) even when they obviously would
@@ -425,20 +429,20 @@ The learning curve is real: ["Senior engineers may struggle for weeks/months or 
 
 ## Summary: Final Decision
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **C (undefined)** | Fast | Bugs, CVEs, undefined behavior |
-| **Rust (compile error)** | Safest | Learning curve, false positives, friction |
-| **Go (zero value)** | Simple, safe for value types | Panics on reference types |
-| **C-Next (hybrid)** | Best of both worlds | Slightly more complex rules |
+| Approach                 | Pros                         | Cons                                      |
+| ------------------------ | ---------------------------- | ----------------------------------------- |
+| **C (undefined)**        | Fast                         | Bugs, CVEs, undefined behavior            |
+| **Rust (compile error)** | Safest                       | Learning curve, false positives, friction |
+| **Go (zero value)**      | Simple, safe for value types | Panics on reference types                 |
+| **C-Next (hybrid)**      | Best of both worlds          | Slightly more complex rules               |
 
 ### C-Next's Hybrid Approach
 
-| Scope | Behavior | Why |
-|-------|----------|-----|
-| **Globals** | Zero-initialized (Go-style) | Embedded `init()` pattern requires it |
-| **Scope members** | Zero-initialized (Go-style) | Same as globals |
-| **Locals** | Error on use before init (Rust-style) | Catches bugs at compile time |
+| Scope             | Behavior                              | Why                                   |
+| ----------------- | ------------------------------------- | ------------------------------------- |
+| **Globals**       | Zero-initialized (Go-style)           | Embedded `init()` pattern requires it |
+| **Scope members** | Zero-initialized (Go-style)           | Same as globals                       |
+| **Locals**        | Error on use before init (Rust-style) | Catches bugs at compile time          |
 
 ### Why This Works
 

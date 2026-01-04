@@ -1,11 +1,13 @@
 # ADR-032: Nested Structs
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Structs containing other structs are common:
+
 - Configuration hierarchies
 - Protocol packets
 - Composite data types
@@ -28,6 +30,7 @@ struct Rect { Point topLeft; Point bottomRight; }
 ### Named Nested Structs: Safe and Well-Supported
 
 Named/tagged nested structs are well-established C patterns with no significant MISRA concerns:
+
 - Full type compatibility across translation units
 - Forward declaration possible
 - Works with C99 and earlier standards
@@ -48,6 +51,7 @@ b = a;  // ERROR: incompatible types!
 ```
 
 C uses name equivalence within a translation unit. Without a tag, there's no name to match, making anonymous struct members:
+
 - Impossible to pass to functions expecting that type
 - Impossible to return from functions
 - Impossible to reference via external pointers
@@ -75,6 +79,7 @@ Anonymous struct types cannot be forward-declared, limiting use in header files 
 **Support named nested structs only. Do not support anonymous nested structs.**
 
 This provides:
+
 - Full type safety and compatibility
 - MISRA compliance
 - C99 compatibility
@@ -85,6 +90,7 @@ Users who need the "flattened access" pattern of anonymous structs should define
 ## Syntax
 
 ### Basic Nesting
+
 ```cnx
 struct Point {
     i32 x;
@@ -111,6 +117,7 @@ i32 width <- r.bottomRight.x - r.topLeft.x;
 ```
 
 ### Deep Nesting
+
 ```cnx
 struct Color { u8 r; u8 g; u8 b; }
 
@@ -157,21 +164,26 @@ packet.header.sequence <- 1;
 ## Implementation Notes
 
 ### Grammar
+
 Already supported - struct members can have user types.
 
 ### CodeGenerator
+
 ```c
 typedef struct { int32_t x; int32_t y; } Point;
 typedef struct { Point start; Point end; } Line;
 ```
 
 ### Member Access
+
 Already works via `.` operator chain.
 
 ### Declaration Order
+
 Structs must be defined before use. This is consistent with C semantics and avoids the need for forward declarations in most cases.
 
 ### Priority
+
 **High** - Common pattern, mostly works already.
 
 ## Open Questions

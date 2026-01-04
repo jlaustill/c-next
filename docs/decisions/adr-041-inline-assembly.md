@@ -1,6 +1,7 @@
 # ADR-041: Inline Assembly
 
 ## Status
+
 **Rejected**
 
 ## Decision
@@ -49,6 +50,7 @@ void idle() {
 ```
 
 This approach:
+
 - Uses battle-tested GCC/Clang inline asm syntax
 - Keeps platform-specific code isolated
 - Requires no new C-Next grammar or codegen
@@ -57,6 +59,7 @@ This approach:
 ## Original Context
 
 Inline assembly is sometimes unavoidable:
+
 - CPU-specific instructions (WFI, DSB, ISB)
 - Performance-critical inner loops
 - Hardware access not expressible in C
@@ -65,6 +68,7 @@ Inline assembly is sometimes unavoidable:
 ## Options Considered
 
 ### Option A: Pass-Through GCC Syntax
+
 ```cnx
 asm volatile("wfi");
 asm volatile("dsb" ::: "memory");
@@ -74,6 +78,7 @@ asm volatile("dsb" ::: "memory");
 **Cons:** GCC-specific syntax
 
 ### Option B: Block Syntax
+
 ```cnx
 asm {
     mov r0, #0
@@ -85,7 +90,9 @@ asm {
 **Cons:** New syntax
 
 ### Option C: Intrinsics Only
+
 No inline asm. Provide intrinsic functions:
+
 ```cnx
 __wfi();
 __dsb();
@@ -98,6 +105,7 @@ __enable_irq();
 **Cons:** Can't cover everything
 
 ### Option D: No Inline Assembly
+
 Call out to .s files for any assembly.
 
 **Pros:** Clear separation

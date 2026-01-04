@@ -1,6 +1,7 @@
 # ADR-024: Type Casting
 
 ## Status
+
 **Implemented**
 
 ## Context
@@ -25,11 +26,11 @@ These silent data losses cause real security vulnerabilities.
 
 ### CWE Classifications
 
-| CWE | Name | Description |
-|-----|------|-------------|
+| CWE                                                        | Name                                       | Description                                           |
+| ---------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
 | [CWE-681](https://cwe.mitre.org/data/definitions/681.html) | Incorrect Conversion between Numeric Types | Converting a value to a type that cannot represent it |
-| [CWE-195](https://cwe.mitre.org/data/definitions/195.html) | Signed to Unsigned Conversion Error | Negative values become large positive values |
-| [CWE-196](https://cwe.mitre.org/data/definitions/196.html) | Unsigned to Signed Conversion Error | Large values become negative |
+| [CWE-195](https://cwe.mitre.org/data/definitions/195.html) | Signed to Unsigned Conversion Error        | Negative values become large positive values          |
+| [CWE-196](https://cwe.mitre.org/data/definitions/196.html) | Unsigned to Signed Conversion Error        | Large values become negative                          |
 
 ### Real-World Vulnerabilities
 
@@ -80,6 +81,7 @@ i32 large <- small;    // OK: i16 → i32 is safe (implicit)
 ```
 
 **Generated C:**
+
 ```c
 uint8_t byte = 42;
 uint32_t wide = byte;      // Implicit widening
@@ -101,11 +103,13 @@ u8 highByte <- large[24, 8];  // Take bits 24-31 (most significant byte)
 ```
 
 **Why bit indexing?**
+
 - **Explicit**: Developer states exactly which bits are kept
 - **Intentional**: No accidental truncation
 - **Self-documenting**: `large[0, 8]` clearly means "low 8 bits"
 
 **Generated C:**
+
 ```c
 uint32_t large = 1000;
 uint8_t lowByte = (large >> 0) & 0xFF;   // Bits 0-7
@@ -134,11 +138,13 @@ u32 as_bits <- signed_val[0, 32];  // Explicit: treat as 32 bits
 ### Boolean Extraction (Use Bit Indexing)
 
 In C, you might write:
+
 ```c
 bool bit = (bool)((flags >> 3) & 1);
 ```
 
 In CNX, use the bit indexing syntax (ADR-007):
+
 ```cnx
 bool bit <- flags[3];  // Much cleaner!
 ```
@@ -181,15 +187,15 @@ If this is needed in the future, it would require a separate, explicit mechanism
 
 ## Summary of Cast Rules
 
-| Conversion | CNX Behavior | Rationale |
-|------------|--------------|-----------|
-| u8 → u32 (widen) | Implicit | No data loss possible |
-| i8 → i32 (widen) | Implicit | No data loss possible |
-| u32 → u8 (narrow) | **Error** - use `val[0, 8]` | Potential data loss |
-| i32 → u32 (sign change) | **Error** - use `val[0, 32]` | Sign semantics change |
-| u32 → i32 (sign change) | **Error** - use `val[0, 32]` | Sign semantics change |
-| int → pointer | **Not supported** | Use `register` (ADR-004) |
-| f32 → u32 (reinterpret) | **Not supported** | Future consideration |
+| Conversion              | CNX Behavior                 | Rationale                |
+| ----------------------- | ---------------------------- | ------------------------ |
+| u8 → u32 (widen)        | Implicit                     | No data loss possible    |
+| i8 → i32 (widen)        | Implicit                     | No data loss possible    |
+| u32 → u8 (narrow)       | **Error** - use `val[0, 8]`  | Potential data loss      |
+| i32 → u32 (sign change) | **Error** - use `val[0, 32]` | Sign semantics change    |
+| u32 → i32 (sign change) | **Error** - use `val[0, 32]` | Sign semantics change    |
+| int → pointer           | **Not supported**            | Use `register` (ADR-004) |
+| f32 → u32 (reinterpret) | **Not supported**            | Future consideration     |
 
 ---
 
@@ -265,6 +271,7 @@ ERROR: Cannot convert i32 to u32 (sign change)
 ## References
 
 ### Vulnerability Research
+
 - [CWE-681: Incorrect Conversion between Numeric Types](https://cwe.mitre.org/data/definitions/681.html)
 - [CWE-195: Signed to Unsigned Conversion Error](https://cwe.mitre.org/data/definitions/195.html)
 - [CWE-196: Unsigned to Signed Conversion Error](https://cwe.mitre.org/data/definitions/196.html)
@@ -272,11 +279,13 @@ ERROR: Cannot convert i32 to u32 (sign change)
 - [Feabhas: When Integers Go Bad](https://blog.feabhas.com/2014/10/vulnerabilities-in-c-when-integers-go-bad/)
 
 ### MISRA C Guidelines
+
 - [SPARK for the MISRA C Developer: Enforcing Strong Typing](https://learn.adacore.com/courses/SPARK_for_the_MISRA_C_Developer/chapters/04_strong_typing.html)
 - [PVS-Studio: V2572 - Narrowing Essential Type](https://pvs-studio.com/en/docs/warnings/v2572/)
 - [MISRA C 2012 Rules Explained](https://www.codeant.ai/blogs/misra-c-2012-rules-examples-pdf)
 
 ### Related ADRs
+
 - ADR-004: Register Bindings (for hardware access instead of pointer casts)
 - ADR-007: Type-Aware Bit Indexing (for explicit bit extraction)
 - ADR-044: Primitive Types (for overflow handling with clamp/wrap)

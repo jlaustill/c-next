@@ -1,11 +1,13 @@
 # ADR-037: Preprocessor Directive Handling
 
 ## Status
+
 **Implemented** — Flag-only defines pass through; value defines and function macros produce errors (E0501, E0502).
 
 ## Context
 
 C preprocessor directives are heavily used in embedded development:
+
 - `#include` - Already handled (pass-through)
 - `#define` - Constants, macros
 - `#ifdef` / `#ifndef` / `#else` / `#endif` - Conditional compilation
@@ -19,22 +21,24 @@ C-Next takes a **safety-first approach** based on MISRA C guidelines and common 
 
 MISRA has 14 rules governing preprocessor usage:
 
-| Rule | Description | Severity |
-|------|-------------|----------|
-| 20.4 | Macro shall not share name with keyword | Required |
-| 20.5 | `#undef` should not be used | Advisory |
-| 20.7 | Macro parameters must be parenthesized | Required |
+| Rule  | Description                               | Severity |
+| ----- | ----------------------------------------- | -------- |
+| 20.4  | Macro shall not share name with keyword   | Required |
+| 20.5  | `#undef` should not be used               | Advisory |
+| 20.7  | Macro parameters must be parenthesized    | Required |
 | 20.10 | `#` and `##` operators should not be used | Advisory |
 
 ### The 7 Classic `#define` Bugs
 
 1. **Operator Precedence**
+
    ```c
    #define MULT(a, b) a * b
    MULT(1+2, 3+4)  // Expands to: 1+2 * 3+4 = 11 (not 21!)
    ```
 
 2. **Multiple Evaluation**
+
    ```c
    #define SQUARE(x) ((x) * (x))
    SQUARE(i++)  // Expands to: ((i++) * (i++)) - increments twice!
@@ -52,12 +56,12 @@ MISRA has 14 rules governing preprocessor usage:
 
 ### `const` vs `#define` Comparison
 
-| Aspect | `#define` | `const` |
-|--------|-----------|---------|
-| Type safety | None | Full |
-| Scope | Global from definition | Normal C scope |
-| Debugger | Invisible | Visible |
-| Memory | None (text replace) | Usually optimized away |
+| Aspect      | `#define`              | `const`                |
+| ----------- | ---------------------- | ---------------------- |
+| Type safety | None                   | Full                   |
+| Scope       | Global from definition | Normal C scope         |
+| Debugger    | Invisible              | Visible                |
+| Memory      | None (text replace)    | Usually optimized away |
 
 Modern compilers (GCC, Clang, arm-gcc) perform constant propagation on `const` variables, making them as efficient as `#define` while maintaining type safety.
 
@@ -66,11 +70,13 @@ Modern compilers (GCC, Clang, arm-gcc) perform constant propagation on `const` v
 C-Next enforces a **safety-first preprocessor policy**:
 
 ### Allowed
+
 - `#define FLAG` — Flag-only defines for conditional compilation
 - `#ifdef` / `#ifndef` / `#else` / `#endif` — Conditional compilation
 - `#include` — Already implemented
 
 ### Forbidden (Compile Errors)
+
 - `#define NAME value` — **Error E0502**: Must use `const` instead
 - `#define NAME(args) ...` — **Error E0501**: Must use inline functions
 
@@ -78,15 +84,15 @@ This eliminates 5 of 7 classic macro bug classes while preserving useful conditi
 
 ### Bug Prevention Analysis
 
-| Bug | Solved? | How |
-|-----|---------|-----|
-| 1. Operator Precedence | ✅ | No value macros allowed |
-| 2. Multiple Evaluation | ✅ | No function macros allowed |
-| 3. No Type Checking | ✅ | `const` is type-checked |
-| 4. **No Scope** | ❌ | `#define FLAG` still global |
-| 5. Swallowing the Semicolon | ✅ | No statement macros |
-| 6. Control Flow Distortion | ✅ | No macro code blocks |
-| 7. **Debugger Invisible** | ❌ | Flags can't be inspected |
+| Bug                         | Solved? | How                         |
+| --------------------------- | ------- | --------------------------- |
+| 1. Operator Precedence      | ✅      | No value macros allowed     |
+| 2. Multiple Evaluation      | ✅      | No function macros allowed  |
+| 3. No Type Checking         | ✅      | `const` is type-checked     |
+| 4. **No Scope**             | ❌      | `#define FLAG` still global |
+| 5. Swallowing the Semicolon | ✅      | No statement macros         |
+| 6. Control Flow Distortion  | ✅      | No macro code blocks        |
+| 7. **Debugger Invisible**   | ❌      | Flags can't be inspected    |
 
 **Why the 2 unsolved bugs are acceptable:**
 
@@ -99,6 +105,7 @@ This eliminates 5 of 7 classic macro bug classes while preserving useful conditi
 ## Syntax
 
 ### Flag-Only Defines (Allowed)
+
 ```cnx
 #define ARDUINO
 #define STM32F4
@@ -114,6 +121,7 @@ This eliminates 5 of 7 classic macro bug classes while preserving useful conditi
 ```
 
 ### Value Constants (Required Approach)
+
 ```cnx
 // ERROR: #define with value
 #define BUFFER_SIZE 256  // E0502
@@ -124,6 +132,7 @@ const u8 VERSION[] <- "1.0.0";
 ```
 
 ### Function-Like Macros (Forbidden)
+
 ```cnx
 // ERROR: Function-like macro
 #define MAX(a, b) ((a) > (b) ? (a) : (b))  // E0501
@@ -136,14 +145,15 @@ inline u32 max(u32 a, u32 b) {
 
 ## Error Codes
 
-| Code | Message |
-|------|---------|
+| Code  | Message                                                                  |
+| ----- | ------------------------------------------------------------------------ |
 | E0501 | Function-like macro `NAME` is not allowed. Use inline functions instead. |
-| E0502 | `#define` with value `NAME` is not allowed. Use `const` instead. |
+| E0502 | `#define` with value `NAME` is not allowed. Use `const` instead.         |
 
 ## Implementation
 
 ### Grammar (CNext.g4)
+
 ```antlr
 preprocessorDirective
     : defineDirective
@@ -165,6 +175,7 @@ conditionalDirective
 ```
 
 ### Lexer Tokens
+
 ```antlr
 DEFINE_FUNCTION   : '#' [ \t]* 'define' [ \t]+ ID [ \t]* '(' ~[\r\n]* ;
 DEFINE_WITH_VALUE : '#' [ \t]* 'define' [ \t]+ ID [ \t]+ ~[\r\n]+ ;
@@ -176,6 +187,7 @@ ENDIF_DIRECTIVE   : '#' [ \t]* 'endif' [ \t]* ;
 ```
 
 ### CodeGenerator
+
 - Flag-only defines: Pass through unchanged
 - Conditional directives: Pass through unchanged
 - Value defines: Throw E0502 error
@@ -184,10 +196,12 @@ ENDIF_DIRECTIVE   : '#' [ \t]* 'endif' [ \t]* ;
 ## Limitations
 
 ### Current Implementation
+
 - Preprocessor directives must appear at the top of the file (before declarations)
 - Inline conditional compilation (wrapping code blocks) is handled by the C preprocessor after transpilation
 
 ### Future Enhancements
+
 - `#pragma` support (ADR-033 for `#pragma pack`)
 - Inline conditional blocks in grammar
 - `#if` / `#elif` with expressions
@@ -195,6 +209,7 @@ ENDIF_DIRECTIVE   : '#' [ \t]* 'endif' [ \t]* ;
 ## Test Files
 
 Located in `tests/preprocessor/`:
+
 - `flag-define-valid.cnx` — Valid flag-only defines
 - `value-define-error.cnx` — E0502 error case
 - `function-macro-error.cnx` — E0501 error case

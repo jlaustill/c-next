@@ -1,11 +1,13 @@
 # ADR-022: Conditional Expressions (If/Else and Ternary)
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Conditional control flow is fundamental to any programming language. C-Next needs to support:
+
 1. **If/else statements** - Standard conditional branching
 2. **Ternary operator** - Inline conditional expressions
 
@@ -60,6 +62,7 @@ x <- 5;           // Clear and distinct
 ### Implementation Notes
 
 **Grammar:**
+
 ```antlr
 ifStatement
     : 'if' '(' expression ')' block ('else' 'if' '(' expression ')' block)* ('else' block)?
@@ -68,6 +71,7 @@ ifStatement
 
 **Code Generation:**
 Direct mapping to C with operator translation:
+
 ```c
 // C-Next: if (x = 5)
 // C output: if (x == 5)
@@ -80,6 +84,7 @@ Direct mapping to C with operator translation:
 ### Decision
 
 **Standard C ternary with safety constraints:**
+
 1. **Parentheses required** around the condition
 2. **Boolean condition required** - must be an explicit comparison
 3. **No nesting allowed** - nested ternaries are a compile error
@@ -96,11 +101,11 @@ Direct mapping to C with operator translation:
 
 C-Next's ternary constraints align with these MISRA C rules:
 
-| Rule | Requirement | C-Next Approach |
-|------|-------------|-----------------|
-| **14.4** | Condition must have essential Boolean type | Required: explicit comparison |
-| **14.3** | Condition must not be invariant | Compiler can warn |
-| **13.4** | Assignment results should not be used | `<-` syntax prevents this |
+| Rule     | Requirement                                 | C-Next Approach                 |
+| -------- | ------------------------------------------- | ------------------------------- |
+| **14.4** | Condition must have essential Boolean type  | Required: explicit comparison   |
+| **14.3** | Condition must not be invariant             | Compiler can warn               |
+| **13.4** | Assignment results should not be used       | `<-` syntax prevents this       |
 | **12.1** | Use parentheses to make precedence explicit | Required: parentheses mandatory |
 
 #### MISRA Rule 14.4 - Boolean Condition
@@ -143,6 +148,7 @@ y <- (x != 0) ? x : default;
 ### Options Considered
 
 #### Option A: Standard C Ternary (with constraints) - SELECTED
+
 ```cnx
 u32 max <- (a > b) ? a : b;
 u32 abs <- (x < 0) ? -x : x;
@@ -152,6 +158,7 @@ u32 abs <- (x < 0) ? -x : x;
 **Cons:** Slightly more restrictive than C
 
 #### Option B: Keyword-Based
+
 ```cnx
 u32 max <- if a > b then a else b;
 ```
@@ -160,6 +167,7 @@ u32 max <- if a > b then a else b;
 **Cons:** Unfamiliar, longer
 
 #### Option C: No Ternary
+
 Use if/else statements only.
 
 **Pros:** Forces explicit code
@@ -168,6 +176,7 @@ Use if/else statements only.
 ### Syntax
 
 #### Valid Usage
+
 ```cnx
 // Simple conditional - parentheses required, boolean expression required
 u32 result <- (x > 0) ? x : 0;
@@ -184,6 +193,7 @@ u32 value <- (ptr != null) ? ptr.value : 0;
 ```
 
 #### Errors
+
 ```cnx
 // ERROR: No parentheses around condition
 u32 result <- x > 0 ? x : 0;
@@ -218,6 +228,7 @@ u32 clamped <- clamp(x, min, max);
 ### Implementation Notes
 
 #### Grammar
+
 ```antlr
 // Ternary cannot contain another ternary - enforced in semantic analysis
 conditionalExpression
@@ -231,19 +242,23 @@ booleanExpression
 ```
 
 #### Semantic Checks
+
 1. Verify condition is wrapped in parentheses
 2. Verify condition is a boolean expression (comparison or logical op)
 3. Verify neither branch contains a ternary operator
 4. Verify both branches have compatible types
 
 #### Code Generation
+
 Direct pass-through to C:
+
 ```c
 // C-Next: (x > 0) ? x : 0
 // C output: (x > 0) ? x : 0
 ```
 
 #### Priority
+
 **Medium** - Useful but if/else covers most cases.
 
 ---

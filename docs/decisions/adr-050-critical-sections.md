@@ -29,10 +29,10 @@ If an ISR fires between these lines, it could see inconsistent state. Critical s
 
 ### ARM Cortex-M Mechanisms
 
-| Mechanism | Availability | Effect | Use Case |
-|-----------|--------------|--------|----------|
-| **PRIMASK** | All Cortex-M | Disable ALL interrupts | Short critical sections |
-| **BASEPRI** | M3/M4/M7 only | Disable interrupts ≤ priority N | Selective masking |
+| Mechanism   | Availability  | Effect                          | Use Case                |
+| ----------- | ------------- | ------------------------------- | ----------------------- |
+| **PRIMASK** | All Cortex-M  | Disable ALL interrupts          | Short critical sections |
+| **BASEPRI** | M3/M4/M7 only | Disable interrupts ≤ priority N | Selective masking       |
 
 ### PRIMASK Implementation
 
@@ -47,6 +47,7 @@ __set_PRIMASK(primask);  // Restore previous state
 ```
 
 **Characteristics:**
+
 - Simple, works on all Cortex-M
 - Nestable via save/restore pattern
 - Blocks ALL interrupts including high-priority
@@ -64,6 +65,7 @@ __set_BASEPRI(basepri);  // Restore
 ```
 
 **Characteristics:**
+
 - Only available on M3/M4/M7
 - Higher-priority interrupts still fire
 - Requires knowing interrupt priority levels
@@ -71,6 +73,7 @@ __set_BASEPRI(basepri);  // Restore
 ### RTIC's Stack Resource Policy
 
 RTIC (Rust) automatically computes the "ceiling priority" for each resource:
+
 1. Analyzes which tasks/ISRs access each shared variable
 2. Computes ceiling = max priority of all accessors
 3. When claiming resource, sets BASEPRI to ceiling
@@ -81,6 +84,7 @@ This is elegant but requires static analysis of all resource accesses.
 ### How Other Languages Handle Critical Sections
 
 **Rust (bare-metal):**
+
 ```rust
 cortex_m::interrupt::free(|_cs| {
     // Interrupts disabled in this closure
@@ -89,6 +93,7 @@ cortex_m::interrupt::free(|_cs| {
 ```
 
 **C (CMSIS):**
+
 ```c
 __disable_irq();
 // critical section
@@ -96,11 +101,13 @@ __enable_irq();
 ```
 
 **Ada (Ravenscar):**
+
 ```ada
 protected Counter is
    procedure Increment;  -- Automatically protected
 end Counter;
 ```
+
 Ada's protected objects handle this automatically.
 
 ---
@@ -110,6 +117,7 @@ Ada's protected objects handle this automatically.
 ### Q1: Syntax for Critical Sections
 
 **Option A: Block statement**
+
 ```cnx
 critical {
     // Interrupts disabled here
@@ -117,6 +125,7 @@ critical {
 ```
 
 **Option B: Explicit enter/exit**
+
 ```cnx
 critical_enter();
 // Code here
@@ -124,6 +133,7 @@ critical_exit();
 ```
 
 **Option C: Closure-based (like Rust)**
+
 ```cnx
 critical(|cs| {
     // Interrupts disabled
@@ -136,32 +146,37 @@ Variables marked as `protected` automatically get critical sections on access.
 ### Q2: PRIMASK vs BASEPRI
 
 **Option A: Always use PRIMASK**
+
 - Simple, universal
 - May block high-priority interrupts unnecessarily
 
 **Option B: Support explicit priority parameter**
+
 ```cnx
 critical(priority: 3) {
     // Only disable interrupts with priority >= 3
 }
 ```
+
 - More control, but user must know priority levels
 - Not portable to M0
 
 **Option C: Automatic priority inference (like RTIC)**
+
 - Compiler tracks which ISRs use which variables
 - Automatically computes ceiling priority
 - Complex implementation
 
 ### Q3: Where Can Critical Sections Be Used?
 
-| Context | Should it be allowed? | What mechanism? |
-|---------|----------------------|-----------------|
-| Main code | ? | PRIMASK or BASEPRI |
-| Inside ISR | ? | Already in interrupt context |
-| Inside `scope` functions | ? | Same as caller's context |
+| Context                  | Should it be allowed? | What mechanism?              |
+| ------------------------ | --------------------- | ---------------------------- |
+| Main code                | ?                     | PRIMASK or BASEPRI           |
+| Inside ISR               | ?                     | Already in interrupt context |
+| Inside `scope` functions | ?                     | Same as caller's context     |
 
 **Sub-question:** If `critical` is used inside an ISR, what should happen?
+
 - On M3+: Could use BASEPRI to still allow higher-priority ISRs
 - On M0: PRIMASK would disable all other ISRs
 - Or: Should it be an error/warning?
@@ -183,6 +198,7 @@ void inner() {
 ```
 
 Should nested critical sections:
+
 - Work correctly (save/restore handles this naturally)?
 - Generate a warning?
 - Be an error?
@@ -190,6 +206,7 @@ Should nested critical sections:
 ### Q5: Control Flow Inside Critical Sections
 
 **Return from inside critical:**
+
 ```cnx
 u32 getValue() {
     critical {
@@ -199,6 +216,7 @@ u32 getValue() {
 ```
 
 **Break/continue inside critical:**
+
 ```cnx
 while (condition) {
     critical {
@@ -212,6 +230,7 @@ How should the compiler ensure interrupts are restored on all exit paths?
 ### Q6: Maximum Length / Complexity Warnings
 
 Long critical sections increase interrupt latency. Should the compiler:
+
 - Warn if critical section exceeds N statements?
 - Warn if critical section contains function calls?
 - Warn if critical section contains loops?
@@ -220,11 +239,13 @@ Long critical sections increase interrupt latency. Should the compiler:
 ### Q7: Can Critical Be an Expression?
 
 **Expression form:**
+
 ```cnx
 u32 value <- critical { shared_data };
 ```
 
 **Statement only:**
+
 ```cnx
 u32 value;
 critical {
@@ -235,6 +256,7 @@ critical {
 ### Q8: Platform Fallback
 
 If BASEPRI-based critical sections are used but target is M0:
+
 - Compile error?
 - Fall back to PRIMASK with warning?
 - Fall back silently?

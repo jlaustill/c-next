@@ -27,6 +27,7 @@ int main() {
 ```
 
 **Common confusions:**
+
 1. Forgetting `&` when calling a function that needs a pointer
 2. Forgetting `*` when dereferencing inside the function
 3. `*` means different things in declarations vs expressions
@@ -79,6 +80,7 @@ int main() {
 ```
 
 **Problems with C++ references:**
+
 - `&` means different things in different contexts (reference type vs address-of operator)
 - References can still dangle
 - Can't tell at the call site whether a function modifies its argument
@@ -147,6 +149,7 @@ void dangerous(int* ptr) {
 ```
 
 **Common bugs from pointer reassignment:**
+
 1. **Dangling pointers** — Reassign to stack variable that goes out of scope
 2. **Lost references** — Reassign and lose track of original memory (leak)
 3. **Aliasing confusion** — Multiple pointers to same memory, reassign one
@@ -171,11 +174,13 @@ MISRA C has extensive rules limiting pointer operations:
 Because C-Next uses static allocation (ADR-003), we have a unique opportunity:
 
 **In traditional C:**
+
 - Pointers must be reassignable because memory addresses change at runtime
 - `malloc()` returns different addresses each time
 - Pointers are passed around to track dynamically allocated memory
 
 **In C-Next:**
+
 - All memory is allocated at compile time or startup
 - Memory addresses are fixed for the program's lifetime
 - No need to "pass ownership" via pointer reassignment
@@ -216,18 +221,19 @@ Console.print(&myVar);  // Prints "0x20001234" (the address)
 
 ### What This Eliminates
 
-| C Problem | C-Next Solution |
-|-----------|-----------------|
-| Forget `&` when calling | Always pass by reference, no `&` needed |
-| Forget `*` when dereferencing | No `*` needed, assignment works directly |
-| `*` in declaration vs expression | No `*` in the language |
-| Pointer reassignment bugs | Cannot reassign addresses |
-| Dangling pointers | Addresses are fixed, no reassignment |
-| Output parameter confusion | All parameters can be "output" |
+| C Problem                        | C-Next Solution                          |
+| -------------------------------- | ---------------------------------------- |
+| Forget `&` when calling          | Always pass by reference, no `&` needed  |
+| Forget `*` when dereferencing    | No `*` needed, assignment works directly |
+| `*` in declaration vs expression | No `*` in the language                   |
+| Pointer reassignment bugs        | Cannot reassign addresses                |
+| Dangling pointers                | Addresses are fixed, no reassignment     |
+| Output parameter confusion       | All parameters can be "output"           |
 
 ### Transpilation to C
 
 C-Next:
+
 ```
 i8 myVar <- 1;
 
@@ -239,6 +245,7 @@ increment(myVar);
 ```
 
 Generated C:
+
 ```c
 int8_t myVar = 1;
 
@@ -383,11 +390,11 @@ UART_init(BAUD_RATE);
 
 ### `#define` vs Variables: Clear Separation
 
-| Mechanism | Purpose | Passed to functions? |
-|-----------|---------|---------------------|
-| `#define` | Text replacement (compile-time) | **No** — not a value |
-| `const var` | Immutable value | **Yes** |
-| `var` | Mutable value | **Yes** |
+| Mechanism   | Purpose                         | Passed to functions? |
+| ----------- | ------------------------------- | -------------------- |
+| `#define`   | Text replacement (compile-time) | **No** — not a value |
+| `const var` | Immutable value                 | **Yes**              |
+| `var`       | Mutable value                   | **Yes**              |
 
 **Guideline:**
 
@@ -504,6 +511,7 @@ u32 addr <- &GPIOA.DR;  // Should this work?
 ### Pattern: Output Parameters
 
 **C:**
+
 ```c
 bool parse(const char* input, int* result) {
     *result = atoi(input);
@@ -515,6 +523,7 @@ if (parse("42", &value)) { ... }
 ```
 
 **C-Next:**
+
 ```
 bool parse(const char input[], i32 result) {
     result <- atoi(input);
@@ -528,6 +537,7 @@ if (parse("42", value)) { ... }  // Cleaner!
 ### Pattern: Swap
 
 **C:**
+
 ```c
 void swap(int* a, int* b) {
     int temp = *a;
@@ -538,6 +548,7 @@ swap(&x, &y);
 ```
 
 **C-Next:**
+
 ```
 void swap(i32 a, i32 b) {
     i32 temp <- a;
@@ -552,6 +563,7 @@ swap(x, y);  // Just works!
 **This is intentionally unsupported.** C-Next targets static allocation. Dynamic data structures that require pointer reassignment (linked lists, trees with rebalancing) are not idiomatic C-Next.
 
 For collections, use statically-allocated alternatives:
+
 - Arrays with indices instead of pointers
 - Ring buffers with head/tail indices
 - Pool allocators with handles
@@ -563,6 +575,7 @@ For collections, use statically-allocated alternatives:
 > **Can a senior C developer read C-Next code cold and understand it in 30 seconds?**
 
 Test case:
+
 ```
 void processReading(i32 value, i32 calibration) {
     value <- value + calibration;
@@ -581,13 +594,13 @@ The key insight: **If it looks like it modifies the variable, it does.** No hidd
 
 ## Summary
 
-| Feature | C | C++ | Rust | C-Next |
-|---------|---|-----|------|--------|
-| Pass by value | Default | Default | Default | Never |
-| Pass by reference | `*` + `&` | `&` in signature | `&`/`&mut` | Default |
-| Pointer reassignment | Allowed | Allowed | Allowed | **Forbidden** |
-| Dereference syntax | `*ptr` | `*ptr` or automatic | `*ptr` | Automatic |
-| Address-of operator | `&var` | `&var` | `&var` | `&var` (read-only) |
+| Feature              | C         | C++                 | Rust       | C-Next             |
+| -------------------- | --------- | ------------------- | ---------- | ------------------ |
+| Pass by value        | Default   | Default             | Default    | Never              |
+| Pass by reference    | `*` + `&` | `&` in signature    | `&`/`&mut` | Default            |
+| Pointer reassignment | Allowed   | Allowed             | Allowed    | **Forbidden**      |
+| Dereference syntax   | `*ptr`    | `*ptr` or automatic | `*ptr`     | Automatic          |
+| Address-of operator  | `&var`    | `&var`              | `&var`     | `&var` (read-only) |
 
 **C-Next's model:** Everything is a reference. Assignment updates values. Addresses are fixed. Simple.
 
@@ -606,10 +619,12 @@ The key insight: **If it looks like it modifies the variable, it does.** No hidd
 ## References
 
 ### Pointer Safety Research
+
 - [Microsoft Security: Memory Safety](https://msrc-blog.microsoft.com/2019/07/16/a-proactive-approach-to-more-secure-code/) — 70% of CVEs are memory safety issues
 - [MISRA C:2012 Guidelines](https://www.misra.org.uk/) — Rules 18.1-18.4 on pointer use
 
 ### Language Design
+
 - [Fortran Parameter Passing](https://pages.mtu.edu/~shene/COURSES/cs201/NOTES/chap07/pass.html)
 - [C++ References](https://isocpp.org/wiki/faq/references)
 - [Rust Book: References and Borrowing](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html)
@@ -617,4 +632,5 @@ The key insight: **If it looks like it modifies the variable, it does.** No hidd
 - [Go Pointers](https://go.dev/tour/moretypes/1)
 
 ### Static Allocation Benefits
+
 - [ADR-003: Static Memory Allocation](adr-003-static-allocation.md) — Why static allocation enables this simplification

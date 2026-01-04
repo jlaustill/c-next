@@ -53,13 +53,13 @@ ISR safety is critical for practical embedded development. CAN bus communication
 
 ISR safety problems fall into 5 categories:
 
-| Hazard | Description | Example |
-|--------|-------------|---------|
-| **Torn reads/writes** | Multi-byte value partially updated when ISR fires mid-access | Main reads `u32` while ISR is between writing bytes 2 and 3 |
-| **Read-Modify-Write (RMW) races** | ISR fires between read and write phases | `counter++` is actually: load → increment → store (3 instructions) |
-| **Compiler reordering** | Optimizer caches values or reorders memory accesses | Loop reads cached value forever, never sees ISR's update |
-| **Visibility** | Main code doesn't see ISR's writes due to caching | Missing `volatile` causes optimizer to eliminate "redundant" reads |
-| **Priority inversion** | Higher-priority ISR blocked by lower-priority code holding resource | Nested interrupts with shared state |
+| Hazard                            | Description                                                         | Example                                                            |
+| --------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Torn reads/writes**             | Multi-byte value partially updated when ISR fires mid-access        | Main reads `u32` while ISR is between writing bytes 2 and 3        |
+| **Read-Modify-Write (RMW) races** | ISR fires between read and write phases                             | `counter++` is actually: load → increment → store (3 instructions) |
+| **Compiler reordering**           | Optimizer caches values or reorders memory accesses                 | Loop reads cached value forever, never sees ISR's update           |
+| **Visibility**                    | Main code doesn't see ISR's writes due to caching                   | Missing `volatile` causes optimizer to eliminate "redundant" reads |
+| **Priority inversion**            | Higher-priority ISR blocked by lower-priority code holding resource | Nested interrupts with shared state                                |
 
 **Key Insight:** `volatile` solves visibility but NOT atomicity. Many C programmers incorrectly believe `volatile` provides thread-safety — it only prevents compiler optimization, not hardware-level races.
 
@@ -68,6 +68,7 @@ ISR safety problems fall into 5 categories:
 Research into real-world embedded code (including [FlexCAN_T4](https://github.com/tonton81/FlexCAN_T4) for Teensy CAN bus) reveals common patterns:
 
 #### Pattern 1: Single-Byte Flags (Naturally Atomic)
+
 ```c
 volatile uint8_t data_ready = 0;  // Single-byte: atomic on all platforms
 
@@ -84,6 +85,7 @@ data_ready = 0;
 ```
 
 #### Pattern 2: Critical Sections (Interrupt Disable)
+
 ```c
 // Save interrupt state and disable
 uint32_t primask = __get_PRIMASK();
@@ -97,6 +99,7 @@ __set_PRIMASK(primask);
 ```
 
 #### Pattern 3: Producer-Consumer Queues (Lock-Free)
+
 ```c
 // FlexCAN_T4 pattern: ISR enqueues, main dequeues
 // Fixed-size ring buffer with separate read/write indices
@@ -108,6 +111,7 @@ __set_PRIMASK(primask);
 ```
 
 #### Pattern 4: Double Buffering
+
 ```c
 // Two buffers: ISR writes to one while main reads from other
 // Atomic pointer swap between them
@@ -116,6 +120,7 @@ uint8_t buffer_a[256], buffer_b[256];
 ```
 
 #### Pattern 5: Hardware Atomic Registers
+
 ```c
 // Many MCUs have atomic set/clear/toggle registers
 GPIO->BSRR = (1 << pin);   // Atomic set (write-only register)
@@ -220,12 +225,12 @@ uint32_t value = counter.load(std::memory_order_relaxed);
 
 ### Q4: ARM Cortex-M Hardware Capabilities
 
-| Feature | M0 | M0+ | M3/M4/M7 | Description |
-|---------|----|----|----------|-------------|
-| **PRIMASK** | ✅ | ✅ | ✅ | Disable ALL configurable interrupts |
-| **BASEPRI** | ❌ | ❌ | ✅ | Disable interrupts ≤ priority N (selective) |
-| **LDREX/STREX** | ❌ | ✅ | ✅ | Lock-free atomic read-modify-write |
-| **Natural atomicity** | 8-bit | 32-bit | 32-bit aligned | Single-instruction access guaranteed |
+| Feature               | M0    | M0+    | M3/M4/M7       | Description                                 |
+| --------------------- | ----- | ------ | -------------- | ------------------------------------------- |
+| **PRIMASK**           | ✅    | ✅     | ✅             | Disable ALL configurable interrupts         |
+| **BASEPRI**           | ❌    | ❌     | ✅             | Disable interrupts ≤ priority N (selective) |
+| **LDREX/STREX**       | ❌    | ✅     | ✅             | Lock-free atomic read-modify-write          |
+| **Natural atomicity** | 8-bit | 32-bit | 32-bit aligned | Single-instruction access guaranteed        |
 
 #### LDREX/STREX (Exclusive Access)
 
@@ -273,11 +278,13 @@ static inline uint32_t critical_enter_basepri(uint8_t priority) {
 The [FlexCAN_T4 library](https://github.com/tonton81/FlexCAN_T4) for Teensy CAN bus demonstrates production patterns:
 
 **Architecture:**
+
 ```
 ISR → [Ring Buffer (fixed size)] → main calls events() → user callback
 ```
 
 **Key Design Decisions:**
+
 - Pre-allocated circular buffers: `FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16>`
 - ISR only enqueues — never blocks, never calls user code directly
 - Main loop calls `events()` to process queued messages
@@ -314,6 +321,7 @@ x <- 5;         // ERROR: Use x.store(5) for atomic write
 ```
 
 **Transpiles to (Cortex-M3+):**
+
 ```c
 volatile uint32_t counter = 0;
 
@@ -328,6 +336,7 @@ uint32_t value = counter;  // volatile read
 ```
 
 **Transpiles to (Cortex-M0):**
+
 ```c
 volatile uint32_t counter = 0;
 
@@ -356,6 +365,7 @@ void updateData() {
 ```
 
 **Transpiles to:**
+
 ```c
 void updateData(void) {
     uint32_t __primask = __get_PRIMASK();
@@ -369,6 +379,7 @@ void updateData(void) {
 ```
 
 **Considerations:**
+
 - Should `critical` blocks be nestable? (Yes — save/restore pattern handles this)
 - Should there be a maximum length lint? (Encourage short critical sections)
 - Platform config for BASEPRI vs PRIMASK?
@@ -401,6 +412,7 @@ u32 count <- canRxQueue.count();
 ```
 
 **Implementation Notes:**
+
 - Single-producer/single-consumer: no locks needed
 - Fixed size: no dynamic allocation
 - Lock-free using atomic indices
@@ -435,6 +447,7 @@ void main() {
 ```
 
 **Considerations:**
+
 - More complex to implement
 - May be overkill for simple cases
 - Matches Ada/Ravenscar mental model
@@ -541,28 +554,34 @@ This ADR has been split into focused research ADRs:
 ## References
 
 ### Rust Embedded
+
 - [The Embedded Rust Book: Concurrency](https://docs.rust-embedded.org/book/concurrency/)
 - [RTIC (Real-Time Interrupt-driven Concurrency)](https://rtic.rs/)
 - [critical-section crate](https://docs.rs/critical-section/)
 
 ### Ada/SPARK
+
 - [Ada Ravenscar Profile (Wikipedia)](https://en.wikipedia.org/wiki/Ravenscar_profile)
 - [SPARK Concurrency Guide](https://docs.adacore.com/spark2014-docs/html/ug/en/source/concurrency.html)
 - [Ravenscar Profile Guide (PDF)](https://www.math.unipd.it/~tullio/RTS/2019/YCS-2017.pdf)
 
 ### ARM Cortex-M
+
 - [ARM: LDREX and STREX](https://developer.arm.com/documentation/dht0008/a/ch01s02s01)
 - [How ARM Ensures Atomicity (Medium)](https://medium.com/embedworld/how-arm-ensures-atomicity-ldrex-strex-explained-abe66eaa0cdc)
 - [ARM Cortex-M Interrupt Priorities](https://www.state-machine.com/cutting-through-the-confusion-with-arm-cortex-m-interrupt-priorities)
 - [Memfault: ARM Cortex-M Exceptions and NVIC](https://interrupt.memfault.com/blog/arm-cortex-m-exceptions-and-nvic)
 
 ### MISRA C
+
 - [MISRA C:2012 Guidelines](https://www.misra.org.uk/)
 - [Barr Group: ISR Coding Standard](https://barrgroup.com/embedded-systems/books/embedded-c-coding-standard/procedure-rules/interrupt-functions)
 
 ### Real-World Libraries
+
 - [FlexCAN_T4 (Teensy CAN Library)](https://github.com/tonton81/FlexCAN_T4)
 
 ### General
+
 - [Zig Documentation: Volatile](https://ziglang.org/documentation/master/)
 - [5 Best Practices for Writing ISRs (Embedded.com)](https://www.embedded.com/5-best-practices-for-writing-interrupt-service-routines/)

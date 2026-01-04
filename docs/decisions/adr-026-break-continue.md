@@ -1,11 +1,13 @@
 # ADR-026: Break and Continue
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 `break` and `continue` are common loop control statements in C:
+
 - `break` - exit loop early
 - `continue` - skip to next iteration
 
@@ -61,12 +63,14 @@ MISRA C:2023 Rule 15.4 states: "There should be no more than one break or goto s
 ## Options Considered
 
 ### Option A: C-Style Break/Continue
+
 Standard C behavior.
 
 **Pros:** Familiar to C programmers
 **Cons:** Ambiguity with nested switch/loop, hidden exit points, violates structured programming
 
 ### Option B: Labeled Breaks (Java/Rust style)
+
 ```cnx
 outer: for (u32 i <- 0; i < 10; i +<- 1) {
     for (u32 j <- 0; j < 10; j +<- 1) {
@@ -81,6 +85,7 @@ outer: for (u32 i <- 0; i < 10; i +<- 1) {
 **Cons:** Still has hidden exit points, adds complexity
 
 ### Option C: No Break/Continue (Selected)
+
 Reject both statements. Require explicit loop conditions.
 
 **Pros:** Forces clear loop structure, no ambiguity, aligns with structured programming
@@ -103,6 +108,7 @@ Every use case for `break` and `continue` can be expressed with proper loop stru
 ### Pattern 1: Search Loop
 
 **C (with break):**
+
 ```c
 for (int i = 0; i < 100; i++) {
     if (buffer[i] == 0) {
@@ -112,6 +118,7 @@ for (int i = 0; i < 100; i++) {
 ```
 
 **C-Next (exit condition in header):**
+
 ```cnx
 u8 buffer[100];  // unsigned, so != 0 is correct
 u32 i <- 0;
@@ -122,6 +129,7 @@ while (i < 100 && buffer[i] != 0) {
 ```
 
 For signed buffers, use `> 0` or `>= 0` depending on the sentinel value:
+
 ```cnx
 i8 signedBuffer[100];  // signed, could have negative values
 u32 i <- 0;
@@ -136,6 +144,7 @@ The exit condition is explicit and visible in the loop header.
 ### Pattern 2: Skip and Process
 
 **C (with continue):**
+
 ```c
 for (int i = 0; i < 100; i++) {
     if (buffer[i] == 0) {
@@ -146,6 +155,7 @@ for (int i = 0; i < 100; i++) {
 ```
 
 **C-Next (inverted condition):**
+
 ```cnx
 for (u32 i <- 0; i < 100; i +<- 1) {
     if (buffer[i] != 0) {
@@ -159,6 +169,7 @@ Simply invert the skip condition to a guard condition.
 ### Pattern 3: Read Until Sentinel
 
 **C (with break and continue):**
+
 ```c
 while (hasData()) {
     uint8_t byte = readByte();
@@ -173,6 +184,7 @@ while (hasData()) {
 ```
 
 **C-Next (structured):**
+
 ```cnx
 u8 byte <- 0;
 while (hasData() && byte != END_MARKER) {
@@ -189,6 +201,7 @@ Exit condition moves to header; skip logic becomes a guard.
 ### Pattern 4: Retry Loop
 
 **C (infinite loop with break):**
+
 ```c
 while (1) {
     result = tryOperation();
@@ -200,6 +213,7 @@ while (1) {
 ```
 
 **C-Next (proper structure):**
+
 ```cnx
 TResult result <- tryOperation();
 while (result != EResult.SUCCESS) {
@@ -209,6 +223,7 @@ while (result != EResult.SUCCESS) {
 ```
 
 Or with do-while (see ADR-027):
+
 ```cnx
 TResult result;
 do {
@@ -222,6 +237,7 @@ do {
 ### Pattern 5: Nested Search
 
 **C (with break, requires flag):**
+
 ```c
 bool found = false;
 for (int row = 0; row < rowCount && !found; row++) {
@@ -234,6 +250,7 @@ for (int row = 0; row < rowCount && !found; row++) {
 ```
 
 **C-Next (same pattern, but idiomatic):**
+
 ```cnx
 bool found <- false;
 u32 foundRow <- 0;
@@ -251,6 +268,7 @@ for (u32 row <- 0; row < rowCount && !found; row +<- 1) {
 ```
 
 **Or extract to a function:**
+
 ```cnx
 struct TSearchResult {
     bool found;
@@ -277,12 +295,16 @@ Early return from functions is permitted and encouraged for search operations.
 ## Why This Is Safer Than C
 
 ### No Ambiguity
+
 In C-Next, there is no `break` statement. You never have to wonder "does this exit the switch or the loop?" because:
+
 - Switches have implicit break (ADR-025)
 - Loops require explicit exit conditions in the header
 
 ### Visible Termination
+
 All loop exit conditions are in the loop header:
+
 ```cnx
 while (i < n && !found && retries < MAX_RETRIES) {
     // ...
@@ -292,7 +314,9 @@ while (i < n && !found && retries < MAX_RETRIES) {
 A reader immediately knows all the ways this loop can terminate.
 
 ### Better Static Analysis
+
 With single-exit loops, static analyzers can more easily:
+
 - Prove termination
 - Check bounds
 - Verify invariants
@@ -300,14 +324,18 @@ With single-exit loops, static analyzers can more easily:
 ## Implementation Notes
 
 ### Grammar
+
 No grammar changes needed - simply don't add break/continue productions.
 
 ### Semantic Analysis
+
 - If `break` or `continue` tokens appear, emit compile error
 - Error message: `"break/continue statements are not supported; restructure loop with exit condition in header"`
 
 ### Generated C
+
 The generated C will use structured loops that may include flag variables when needed. This is acceptable because:
+
 1. The C code is generated, not hand-written
 2. The flag pattern is well-understood and analyzable
 3. The source C-Next code remains clean

@@ -59,6 +59,7 @@ DO-332 (Object-Oriented Technology supplement) specifically addresses dynamic me
 > — [Wind River: DO-178C](https://www.windriver.com/solutions/learning/do-178c)
 
 Requirements include:
+
 - Verifying successful allocation for every request
 - Accurate calculations of memory usage to prevent leakage
 - Robust dynamic memory management verification at Levels A and B
@@ -75,6 +76,7 @@ Rust's embedded ecosystem uses the `heapless` crate for static data structures:
 > — [heapless crate documentation](https://docs.rs/heapless/latest/heapless/)
 
 **Key Benefits:**
+
 - O(1) operations (truly constant, not amortized)
 - No OOM risk during operation
 - Compile-time capacity specification
@@ -103,6 +105,7 @@ SPARK (Ada's formally verified subset) recently added Rust-inspired borrow check
 > — [AdaCore](https://www.adacore.com/papers/safe-dynamic-memory-management-in-ada-and-spark)
 
 **Ada/SPARK High Integrity Policies:**
+
 - DYN01: Common High Integrity Restrictions
 - DYN02: Traditional Static Allocation Policy
 - DYN03: Access Types Without Allocators Policy
@@ -141,6 +144,7 @@ This is the same pattern MISRA recommends: allocate at init, then forbid allocat
 > — [Medium: Pool Memory Allocator in C](https://medium.com/@learn_aryan/pool-memory-allocator-in-c-embedded-systems-22e9f1d0026e)
 
 **Properties:**
+
 - Fixed-size blocks eliminate fragmentation
 - O(1) allocation and deallocation
 - Predictable memory usage
@@ -152,6 +156,7 @@ This is the same pattern MISRA recommends: allocate at init, then forbid allocat
 > — [gingerbill: Memory Allocation Strategies](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
 
 **History:**
+
 > "In 1990, Hanson demonstrated that explicit regions in C (which he called arenas) could achieve time performance per allocated byte superior to even the fastest-known heap allocation mechanism."
 > — [Wikipedia: Region-based memory management](https://en.wikipedia.org/wiki/Region-based_memory_management)
 
@@ -254,11 +259,11 @@ Embedded systems use specialized printf implementations with no dynamic allocati
 
 The honest truth about static allocation:
 
-| Approach | Memory Efficiency | Safety | Flexibility |
-|----------|-------------------|--------|-------------|
-| Dynamic (`malloc`) | High | Dangerous | High |
-| Fixed max-size | Low (wasteful) | Safe | Low |
-| Pool allocator | Medium | Safe | Medium |
+| Approach           | Memory Efficiency | Safety    | Flexibility |
+| ------------------ | ----------------- | --------- | ----------- |
+| Dynamic (`malloc`) | High              | Dangerous | High        |
+| Fixed max-size     | Low (wasteful)    | Safe      | Low         |
+| Pool allocator     | Medium            | Safe      | Medium      |
 
 **In safety-critical systems, you accept the memory waste** because:
 
@@ -271,7 +276,7 @@ The honest truth about static allocation:
 
 > **"Dynamic" in embedded usually means "variable content in fixed container", not "variable container size."**
 
-A UART buffer doesn't grow and shrink — it's always 256 bytes. The *content* varies (5 bytes received, then 100, then 12), but the *container* is fixed.
+A UART buffer doesn't grow and shrink — it's always 256 bytes. The _content_ varies (5 bytes received, then 100, then 12), but the _container_ is fixed.
 
 This suggests C-Next should provide bounded collection types:
 
@@ -301,6 +306,7 @@ These would be allocated in `init()` or statically, with the memory footprint kn
 > — [TrebledJ: Why Dynamic Memory Allocation Bad for Embedded](https://trebledj.me/posts/dynamic-memory-embedded-bad/)
 
 **Common Complaints:**
+
 1. Must know maximum sizes upfront
 2. Wastes memory with worst-case allocations
 3. Hard to support user-generated content / plugins
@@ -354,6 +360,7 @@ void processData() {
 ### Q1: How should init() be enforced?
 
 Options:
+
 - a) Compiler requires `init()` to be first call in `main()`
 - b) `init()` is implicitly called before `main()` (like C++ static constructors)
 - c) Special `@startup` annotation for functions that can allocate
@@ -361,6 +368,7 @@ Options:
 ### Q2: What about variable-length data?
 
 If a UART receives messages of varying length (up to 256 bytes), how should this be handled?
+
 - a) Always allocate max size (256 bytes) — wastes memory
 - b) Pool of fixed-size buffers
 - c) Allow bounded dynamic allocation with compile-time max
@@ -368,6 +376,7 @@ If a UART receives messages of varying length (up to 256 bytes), how should this
 ### Q3: How to handle strings?
 
 Strings are notoriously variable-length. Options:
+
 - a) Fixed-capacity strings (like Rust's `heapless::String<N>`)
 - b) Interned strings (allocated at init)
 - c) Different rules for strings
@@ -375,9 +384,11 @@ Strings are notoriously variable-length. Options:
 ### Q4: What about desktop/server applications?
 
 The user notes:
+
 > "This is a feature unique to embedded development... something that would need adjusted to use c-next for, say, a CLI application for a linux desktop that handled videos."
 
 Options:
+
 - a) Different "profiles" (embedded-strict vs desktop-relaxed)
 - b) Explicit opt-in to dynamic allocation (`unsafe` block equivalent)
 - c) Always require explicit allocator (Zig style)
@@ -385,6 +396,7 @@ Options:
 ### Q5: How granular should init() be?
 
 Should subsystems have their own init?
+
 ```
 void main() {
     CanBus.init();    // Allocates CAN buffers
@@ -419,7 +431,7 @@ Arduino's model maps naturally to the MISRA static allocation pattern:
 └─────────────────────────────────────────────────────┘
 ```
 
-**Key insight:** `setup()` isn't where allocation happens — it's where *configuration* happens. The memory is already reserved at compile time via global declarations.
+**Key insight:** `setup()` isn't where allocation happens — it's where _configuration_ happens. The memory is already reserved at compile time via global declarations.
 
 Example in C-Next:
 
@@ -458,6 +470,7 @@ This is how well-written embedded C already works. Arduino's `String` class is t
 ### Q7: Memory pools — language feature or library?
 
 Should C-Next provide built-in pool types?
+
 ```
 Pool<Message, 32> messagePool;  // Pool of 32 Message-sized blocks
 ```
@@ -467,6 +480,7 @@ Or is this better as a library pattern?
 ### Q7: How to report allocation failures at init()?
 
 If init() runs out of memory, what happens?
+
 - a) Compile-time error (if sizes are static)
 - b) Runtime panic (fail-fast)
 - c) Return error code from init()
@@ -486,12 +500,14 @@ If init() runs out of memory, what happens?
 ## References
 
 ### Safety Standards
+
 - [MISRA C:2023 Dir 4.12](https://www.mathworks.com/help/bugfinder/ref/misrac2023dir4.12.html) — Dynamic memory allocation prohibition
 - [MISRA Forum: Dynamic Allocation Rule 20.4](https://forum.misra.org.uk/archive/index.php?thread-928.html=)
 - [Wind River: DO-178C](https://www.windriver.com/solutions/learning/do-178c) — Aerospace software certification
 - [SonarSource: Dynamic heap memory allocation should not be used](https://rules.sonarsource.com/c/rspec-984/)
 
 ### Real-World Failures
+
 - [Hackaday: Toyota's Code Didn't Meet Standards](https://hackaday.com/2016/10/24/toyotas-code-didnt-meet-standards-and-might-have-led-to-death/)
 - [EDN: Toyota's Killer Firmware](https://www.edn.com/toyotas-killer-firmware-bad-design-and-its-consequences/)
 - [Barr Group: Top 10 Causes of Nasty Firmware Bugs](https://barrgroup.com/embedded-systems/how-to/top-ten-nasty-firmware-bugs)
@@ -499,6 +515,7 @@ If init() runs out of memory, what happens?
 - [Ganssle: Disaster!](https://www.ganssle.com/articles/disaster.htm)
 
 ### Language Approaches
+
 - [Rust heapless crate](https://docs.rs/heapless/latest/heapless/)
 - [The Embedded Rust Book: Collections](https://docs.rust-embedded.org/book/collections/)
 - [AdaCore: Safe Dynamic Memory Management in Ada and SPARK](https://www.adacore.com/papers/safe-dynamic-memory-management-in-ada-and-spark)
@@ -508,6 +525,7 @@ If init() runs out of memory, what happens?
 - [matklad: Static Allocation For Compilers](https://matklad.github.io/2025/12/23/static-allocation-compilers.html) — TigerBeetle approach
 
 ### Allocation Patterns
+
 - [Ryan Fleury: Untangling Lifetimes: The Arena Allocator](https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator)
 - [gingerbill: Memory Allocation Strategies](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
 - [Wikipedia: Region-based memory management](https://en.wikipedia.org/wiki/Region-based_memory_management)
@@ -515,25 +533,30 @@ If init() runs out of memory, what happens?
 - [embedded-code-patterns: Memory Pool](https://embedded-code-patterns.readthedocs.io/en/latest/pool/)
 
 ### Game Engine Memory Management
+
 - [Jennifer Chukwu: Memory Management in Game Engines](https://jenniferchukwu.com/posts/memory)
 - [Isetta Engine: Memory](https://isetta.io/compendium/Memory/)
 - [Game Developer: Writing a Game Engine - Part 2: Memory](https://www.gamedeveloper.com/programming/writing-a-game-engine-from-scratch---part-2-memory)
 
 ### Developer Experience
+
 - [TrebledJ: Why Dynamic Memory Allocation Bad for Embedded](https://trebledj.me/posts/dynamic-memory-embedded-bad/)
 - [LinkedIn: Memory Allocation Best Practices](https://www.linkedin.com/advice/0/what-best-practices-memory-allocation-deallocation-lojpf)
 
 ### UART and Serial Communication
+
 - [MaJerle: STM32 USART DMA RX/TX](https://github.com/MaJerle/stm32-usart-uart-dma-rx-tx) — Comprehensive DMA examples
 - [DeepBlue Embedded: STM32 UART IDLE Line Detection](https://deepbluembedded.com/stm32-uart-receive-unknown-length-idle-line-detection-examples/)
 - [ControllersTech: Ring Buffer with Head-Tail](https://controllerstech.com/ring-buffer-using-head-and-tail-in-stm32/)
 - [Simply Embedded: UART Receive Buffering](http://www.simplyembedded.org/tutorials/interrupt-free-ring-buffer/)
 
 ### Automotive Standards
+
 - [AUTOSAR CAN Transport Layer Specification](https://www.autosar.org/fileadmin/standards/R21-11/CP/AUTOSAR_SWS_CANTransportLayer.pdf)
 - [AUTOSAR CAN Interface Specification](https://www.autosar.org/fileadmin/standards/R22-11/CP/AUTOSAR_SWS_CANInterface.pdf)
 
 ### String Handling
+
 - [AdaCore: Standard Library Strings](https://learn.adacore.com/courses/intro-to-ada/chapters/standard_library_strings.html) — Bounded strings in Ada
 - [Feabhas: Working with Strings in Embedded C++](https://blog.feabhas.com/2022/02/working-with-strings-in-embedded-c/)
 - [Embedded Artistry: std::string vs C-strings](https://embeddedartistry.com/blog/2017/07/26/stdstring-vs-c-strings/)

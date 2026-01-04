@@ -25,6 +25,7 @@ scope LED {
 ```
 
 Generates clean C:
+
 ```c
 #define GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
@@ -94,12 +95,14 @@ C-Next makes the right thing easy and the wrong thing hard, but doesn't prevent 
 ### C Preprocessor Compatibility
 
 C-Next uses the standard C preprocessor — no custom module system. This means:
+
 - `#include` directives pass through to generated C
 - MISRA preprocessor guidelines apply
 - Full compatibility with existing toolchains (PlatformIO, arm-gcc, etc.)
 - Conditional compilation (`#ifdef`) works as expected
 
 Generated headers automatically include guards:
+
 ```c
 #ifndef MYFILE_H
 #define MYFILE_H
@@ -109,12 +112,12 @@ Generated headers automatically include guards:
 
 ### The Simplicity Constraint
 
-| Rust's Path | C-Next's Path |
-|-------------|---------------|
-| Add concepts to catch errors | Remove the ability to make errors |
-| Borrow checker complexity | Startup allocation = predictable memory |
-| Lifetime annotations | Fixed runtime layout = clear lifetimes |
-| `unsafe` escape hatch | Clean C is the escape hatch |
+| Rust's Path                  | C-Next's Path                           |
+| ---------------------------- | --------------------------------------- |
+| Add concepts to catch errors | Remove the ability to make errors       |
+| Borrow checker complexity    | Startup allocation = predictable memory |
+| Lifetime annotations         | Fixed runtime layout = clear lifetimes  |
+| `unsafe` escape hatch        | Clean C is the escape hatch             |
 
 **Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship. Safety through removal, not addition.
 
@@ -169,6 +172,7 @@ flags.length;               // 8 (bit width of u8)
 ```
 
 Write-only registers generate optimized code:
+
 ```cnx
 GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 ```
@@ -176,6 +180,7 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 ### Scopes (ADR-016)
 
 Organize code with automatic name prefixing. Inside scopes, explicit qualification is required:
+
 - `this.X` for scope-local members
 - `global.X` for global variables, functions, and registers
 
@@ -197,6 +202,7 @@ LED.off();
 ```
 
 Transpiles to:
+
 ```c
 const uint8_t LED_BIT = 3;
 
@@ -211,6 +217,7 @@ uint8_t LED_getBrightness(void) { return LED_brightness; }
 ### Switch Statements (ADR-025)
 
 Safe switch with MISRA compliance:
+
 - Braces replace break (no colons needed)
 - No fallthrough allowed
 - Multiple cases with `||` syntax
@@ -232,6 +239,7 @@ void handleState(EState state) {
 ```
 
 Transpiles to:
+
 ```c
 switch (state) {
     case EState_IDLE: {
@@ -249,6 +257,7 @@ switch (state) {
 ### Ternary Operator (ADR-022)
 
 Safe conditional expressions with MISRA compliance:
+
 - Parentheses required around condition
 - Condition must be boolean (comparison or logical)
 - No nesting allowed (use if/else instead)
@@ -291,6 +300,7 @@ string<5> greeting <- name[0, 5];      // First 5 chars
 ```
 
 All operations are validated at compile time:
+
 - Literal overflow → compile error
 - Truncation on assignment → compile error
 - Concatenation capacity mismatch → compile error
@@ -299,6 +309,7 @@ All operations are validated at compile time:
 ### Callbacks (ADR-029)
 
 Type-safe function pointers with the Function-as-Type pattern:
+
 - A function definition creates both a callable function AND a type
 - Nominal typing: type identity is the function name, not just signature
 - Never null: callbacks are always initialized to their default function
@@ -323,6 +334,7 @@ controller._handler(msg);          // Always safe - never null
 ```
 
 Transpiles to:
+
 ```c
 void onReceive(const CAN_Message_T msg) { }
 
@@ -375,68 +387,72 @@ c-next/
 Decisions are documented in `/docs/decisions/`:
 
 ### Implemented
-| ADR | Title | Description |
-|-----|-------|-------------|
-| [ADR-001](docs/decisions/adr-001-assignment-operator.md) | Assignment Operator | `<-` for assignment, `=` for comparison |
-| [ADR-003](docs/decisions/adr-003-static-allocation.md) | Static Allocation | No dynamic memory after init |
-| [ADR-004](docs/decisions/adr-004-register-bindings.md) | Register Bindings | Type-safe hardware access |
-| [ADR-006](docs/decisions/adr-006-simplified-references.md) | Simplified References | Pass by reference, no pointer syntax |
-| [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md) | Type-Aware Bit Indexing | Integers as bit arrays, `.length` property |
-| [ADR-010](docs/decisions/adr-010-c-interoperability.md) | C Interoperability | Unified ANTLR parser architecture |
-| [ADR-011](docs/decisions/adr-011-vscode-extension.md) | VS Code Extension | Live C preview with syntax highlighting |
-| [ADR-012](docs/decisions/adr-012-static-analysis.md) | Static Analysis | cppcheck integration for generated C |
-| [ADR-013](docs/decisions/adr-013-const-qualifier.md) | Const Qualifier | Compile-time const enforcement |
-| [ADR-014](docs/decisions/adr-014-structs.md) | Structs | Data containers without methods |
-| [ADR-015](docs/decisions/adr-015-null-state.md) | Null State | Zero initialization for all variables |
-| [ADR-016](docs/decisions/adr-016-scope.md) | Scope | `this.`/`global.` explicit qualification |
-| [ADR-017](docs/decisions/adr-017-enums.md) | Enums | Type-safe enums with C-style casting |
-| [ADR-030](docs/decisions/adr-030-forward-declarations.md) | Define-Before-Use | Functions must be defined before called |
-| [ADR-037](docs/decisions/adr-037-preprocessor.md) | Preprocessor | Flag-only defines, const for values |
-| [ADR-043](docs/decisions/adr-043-comments.md) | Comments | Comment preservation with MISRA compliance |
-| [ADR-044](docs/decisions/adr-044-primitive-types.md) | Primitive Types | Fixed-width types with `clamp`/`wrap` overflow |
-| [ADR-024](docs/decisions/adr-024-type-casting.md) | Type Casting | Widening implicit, narrowing uses bit indexing |
-| [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | Ternary with required parens, boolean condition, no nesting |
-| [ADR-025](docs/decisions/adr-025-switch-statements.md) | Switch Statements | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
-| [ADR-029](docs/decisions/adr-029-function-pointers.md) | Callbacks | Function-as-Type pattern with nominal typing |
-| [ADR-045](docs/decisions/adr-045-string-type.md) | Bounded Strings | `string<N>` with compile-time safety |
-| [ADR-023](docs/decisions/adr-023-sizeof.md) | Sizeof | Type/value size queries with safety checks |
-| [ADR-027](docs/decisions/adr-027-do-while.md) | Do-While | `do { } while ()` with boolean condition (E0701) |
-| [ADR-032](docs/decisions/adr-032-nested-structs.md) | Nested Structs | Named nested structs only (no anonymous) |
-| [ADR-035](docs/decisions/adr-035-array-initializers.md) | Array Initializers | `[1, 2, 3]` syntax with `[0*]` fill-all |
-| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays | `arr[i][j]` with compile-time bounds enforcement |
-| [ADR-040](docs/decisions/adr-040-isr-declaration.md) | ISR Type | Built-in `ISR` type for `void(void)` function pointers |
-| [ADR-034](docs/decisions/adr-034-bit-fields.md) | Bitmap Types | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
-| [ADR-048](docs/decisions/adr-048-cli-executable.md) | CLI Executable | `cnext` command with smart defaults |
+
+| ADR                                                          | Title                   | Description                                                  |
+| ------------------------------------------------------------ | ----------------------- | ------------------------------------------------------------ |
+| [ADR-001](docs/decisions/adr-001-assignment-operator.md)     | Assignment Operator     | `<-` for assignment, `=` for comparison                      |
+| [ADR-003](docs/decisions/adr-003-static-allocation.md)       | Static Allocation       | No dynamic memory after init                                 |
+| [ADR-004](docs/decisions/adr-004-register-bindings.md)       | Register Bindings       | Type-safe hardware access                                    |
+| [ADR-006](docs/decisions/adr-006-simplified-references.md)   | Simplified References   | Pass by reference, no pointer syntax                         |
+| [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md) | Type-Aware Bit Indexing | Integers as bit arrays, `.length` property                   |
+| [ADR-010](docs/decisions/adr-010-c-interoperability.md)      | C Interoperability      | Unified ANTLR parser architecture                            |
+| [ADR-011](docs/decisions/adr-011-vscode-extension.md)        | VS Code Extension       | Live C preview with syntax highlighting                      |
+| [ADR-012](docs/decisions/adr-012-static-analysis.md)         | Static Analysis         | cppcheck integration for generated C                         |
+| [ADR-013](docs/decisions/adr-013-const-qualifier.md)         | Const Qualifier         | Compile-time const enforcement                               |
+| [ADR-014](docs/decisions/adr-014-structs.md)                 | Structs                 | Data containers without methods                              |
+| [ADR-015](docs/decisions/adr-015-null-state.md)              | Null State              | Zero initialization for all variables                        |
+| [ADR-016](docs/decisions/adr-016-scope.md)                   | Scope                   | `this.`/`global.` explicit qualification                     |
+| [ADR-017](docs/decisions/adr-017-enums.md)                   | Enums                   | Type-safe enums with C-style casting                         |
+| [ADR-030](docs/decisions/adr-030-forward-declarations.md)    | Define-Before-Use       | Functions must be defined before called                      |
+| [ADR-037](docs/decisions/adr-037-preprocessor.md)            | Preprocessor            | Flag-only defines, const for values                          |
+| [ADR-043](docs/decisions/adr-043-comments.md)                | Comments                | Comment preservation with MISRA compliance                   |
+| [ADR-044](docs/decisions/adr-044-primitive-types.md)         | Primitive Types         | Fixed-width types with `clamp`/`wrap` overflow               |
+| [ADR-024](docs/decisions/adr-024-type-casting.md)            | Type Casting            | Widening implicit, narrowing uses bit indexing               |
+| [ADR-022](docs/decisions/adr-022-conditional-expressions.md) | Conditional Expressions | Ternary with required parens, boolean condition, no nesting  |
+| [ADR-025](docs/decisions/adr-025-switch-statements.md)       | Switch Statements       | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
+| [ADR-029](docs/decisions/adr-029-function-pointers.md)       | Callbacks               | Function-as-Type pattern with nominal typing                 |
+| [ADR-045](docs/decisions/adr-045-string-type.md)             | Bounded Strings         | `string<N>` with compile-time safety                         |
+| [ADR-023](docs/decisions/adr-023-sizeof.md)                  | Sizeof                  | Type/value size queries with safety checks                   |
+| [ADR-027](docs/decisions/adr-027-do-while.md)                | Do-While                | `do { } while ()` with boolean condition (E0701)             |
+| [ADR-032](docs/decisions/adr-032-nested-structs.md)          | Nested Structs          | Named nested structs only (no anonymous)                     |
+| [ADR-035](docs/decisions/adr-035-array-initializers.md)      | Array Initializers      | `[1, 2, 3]` syntax with `[0*]` fill-all                      |
+| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md) | Multi-dim Arrays        | `arr[i][j]` with compile-time bounds enforcement             |
+| [ADR-040](docs/decisions/adr-040-isr-declaration.md)         | ISR Type                | Built-in `ISR` type for `void(void)` function pointers       |
+| [ADR-034](docs/decisions/adr-034-bit-fields.md)              | Bitmap Types            | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
+| [ADR-048](docs/decisions/adr-048-cli-executable.md)          | CLI Executable          | `cnext` command with smart defaults                          |
 
 ### Research (v1 Roadmap)
-| ADR | Title | Description |
-|-----|-------|-------------|
-| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention |
-| [ADR-009](docs/decisions/adr-009-isr-safety.md) | ISR Safety | Safe interrupts without `unsafe` blocks |
-| [ADR-047](docs/decisions/adr-047-nullable-types.md) | Nullable Types | `?` suffix for safe C library interop |
+
+| ADR                                                          | Title                         | Description                             |
+| ------------------------------------------------------------ | ----------------------------- | --------------------------------------- |
+| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention     |
+| [ADR-009](docs/decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks |
+| [ADR-047](docs/decisions/adr-047-nullable-types.md)          | Nullable Types                | `?` suffix for safe C library interop   |
 
 ### Research (v2 Roadmap)
-| ADR | Title | Description |
-|-----|-------|-------------|
+
+| ADR                                                    | Title             | Description                    |
+| ------------------------------------------------------ | ----------------- | ------------------------------ |
 | [ADR-046](docs/decisions/adr-046-prefixed-includes.md) | Prefixed Includes | Namespace control for includes |
 
 ### Rejected
-| ADR | Title | Description |
-|-----|-------|-------------|
-| [ADR-041](docs/decisions/adr-041-inline-assembly.md) | Inline Assembly | Write assembly in C files; C-Next transpiles to C anyway |
-| [ADR-042](docs/decisions/adr-042-error-handling.md) | Error Handling | Works with existing features (enums, pass-by-reference, struct returns) |
-| [ADR-039](docs/decisions/adr-039-null-safety.md) | Null Safety | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
-| [ADR-020](docs/decisions/adr-020-size-type.md) | Size Type | Fixed-width types are more predictable than platform-sized |
-| [ADR-019](docs/decisions/adr-019-type-aliases.md) | Type Aliases | Fixed-width primitives already solve the problem |
-| [ADR-021](docs/decisions/adr-021-increment-decrement.md) | Increment/Decrement | Use `+<- 1` instead; separation of concerns |
-| [ADR-002](docs/decisions/adr-002-namespaces.md) | Namespaces | Replaced by `scope` keyword (ADR-016) |
-| [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes | Use structs + free functions instead (ADR-016) |
-| [ADR-018](docs/decisions/adr-018-unions.md) | Unions | Use ADR-004 register bindings or explicit byte manipulation |
-| [ADR-038](docs/decisions/adr-038-static-extern.md) | Static/Extern | Use `scope` for visibility; no `static` keyword in v1 |
-| [ADR-026](docs/decisions/adr-026-break-continue.md) | Break/Continue | Use structured loop conditions instead |
-| [ADR-028](docs/decisions/adr-028-goto.md) | Goto | Permanently rejected; use structured alternatives |
-| [ADR-031](docs/decisions/adr-031-inline-functions.md) | Inline Functions | Trust compiler; `inline` is just a hint anyway |
-| [ADR-033](docs/decisions/adr-033-packed-structs.md) | Packed Structs | Use ADR-004 register bindings or explicit serialization |
+
+| ADR                                                              | Title               | Description                                                             |
+| ---------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| [ADR-041](docs/decisions/adr-041-inline-assembly.md)             | Inline Assembly     | Write assembly in C files; C-Next transpiles to C anyway                |
+| [ADR-042](docs/decisions/adr-042-error-handling.md)              | Error Handling      | Works with existing features (enums, pass-by-reference, struct returns) |
+| [ADR-039](docs/decisions/adr-039-null-safety.md)                 | Null Safety         | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
+| [ADR-020](docs/decisions/adr-020-size-type.md)                   | Size Type           | Fixed-width types are more predictable than platform-sized              |
+| [ADR-019](docs/decisions/adr-019-type-aliases.md)                | Type Aliases        | Fixed-width primitives already solve the problem                        |
+| [ADR-021](docs/decisions/adr-021-increment-decrement.md)         | Increment/Decrement | Use `+<- 1` instead; separation of concerns                             |
+| [ADR-002](docs/decisions/adr-002-namespaces.md)                  | Namespaces          | Replaced by `scope` keyword (ADR-016)                                   |
+| [ADR-005](docs/decisions/adr-005-classes-without-inheritance.md) | Classes             | Use structs + free functions instead (ADR-016)                          |
+| [ADR-018](docs/decisions/adr-018-unions.md)                      | Unions              | Use ADR-004 register bindings or explicit byte manipulation             |
+| [ADR-038](docs/decisions/adr-038-static-extern.md)               | Static/Extern       | Use `scope` for visibility; no `static` keyword in v1                   |
+| [ADR-026](docs/decisions/adr-026-break-continue.md)              | Break/Continue      | Use structured loop conditions instead                                  |
+| [ADR-028](docs/decisions/adr-028-goto.md)                        | Goto                | Permanently rejected; use structured alternatives                       |
+| [ADR-031](docs/decisions/adr-031-inline-functions.md)            | Inline Functions    | Trust compiler; `inline` is just a hint anyway                          |
+| [ADR-033](docs/decisions/adr-033-packed-structs.md)              | Packed Structs      | Use ADR-004 register bindings or explicit serialization                 |
 
 ## Build Commands
 

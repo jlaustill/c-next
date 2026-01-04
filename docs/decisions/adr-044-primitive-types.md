@@ -71,19 +71,19 @@ This is widely supported but requires explicit includes.
 
 CNX provides fixed-width types that transpile to C99 stdint.h types:
 
-| CNX Type | C Type | Description |
-|----------|--------|-------------|
-| `u8` | `uint8_t` | 8-bit unsigned integer |
-| `u16` | `uint16_t` | 16-bit unsigned integer |
-| `u32` | `uint32_t` | 32-bit unsigned integer |
-| `u64` | `uint64_t` | 64-bit unsigned integer |
-| `i8` | `int8_t` | 8-bit signed integer |
-| `i16` | `int16_t` | 16-bit signed integer |
-| `i32` | `int32_t` | 32-bit signed integer |
-| `i64` | `int64_t` | 64-bit signed integer |
-| `f32` | `float` | 32-bit floating point |
-| `f64` | `double` | 64-bit floating point |
-| `bool` | `bool` | Boolean (stdbool.h) |
+| CNX Type | C Type     | Description             |
+| -------- | ---------- | ----------------------- |
+| `u8`     | `uint8_t`  | 8-bit unsigned integer  |
+| `u16`    | `uint16_t` | 16-bit unsigned integer |
+| `u32`    | `uint32_t` | 32-bit unsigned integer |
+| `u64`    | `uint64_t` | 64-bit unsigned integer |
+| `i8`     | `int8_t`   | 8-bit signed integer    |
+| `i16`    | `int16_t`  | 16-bit signed integer   |
+| `i32`    | `int32_t`  | 32-bit signed integer   |
+| `i64`    | `int64_t`  | 64-bit signed integer   |
+| `f32`    | `float`    | 32-bit floating point   |
+| `f64`    | `double`   | 64-bit floating point   |
+| `bool`   | `bool`     | Boolean (stdbool.h)     |
 
 ### Usage Examples
 
@@ -199,12 +199,12 @@ Integer overflow is a major source of bugs in embedded systems. This section doc
 
 ### Real-World Disasters
 
-| Incident | Cause | Consequence |
-|----------|-------|-------------|
-| **Ariane 5 (1996)** | 64-bit float to 16-bit signed integer overflow | Rocket destroyed 37 seconds after launch, $370M loss |
-| **Therac-25 (1985-87)** | Arithmetic overflow + no hardware safety | 6 deaths from radiation overdoses |
-| **Boeing 787 (2015)** | 32-bit signed counter after 248 days | FAA ordered periodic resets to prevent power loss |
-| **WhatsApp (2022)** | CVE-2022-36934 integer overflow | Remote code execution during video calls |
+| Incident                | Cause                                          | Consequence                                          |
+| ----------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| **Ariane 5 (1996)**     | 64-bit float to 16-bit signed integer overflow | Rocket destroyed 37 seconds after launch, $370M loss |
+| **Therac-25 (1985-87)** | Arithmetic overflow + no hardware safety       | 6 deaths from radiation overdoses                    |
+| **Boeing 787 (2015)**   | 32-bit signed counter after 248 days           | FAA ordered periodic resets to prevent power loss    |
+| **WhatsApp (2022)**     | CVE-2022-36934 integer overflow                | Remote code execution during video calls             |
 
 Integer overflow ranked **#14 in CWE Top 25** most dangerous software weaknesses (2023).
 
@@ -227,6 +227,7 @@ if (a + 1 < a) {
 ```
 
 Why compilers do this:
+
 - **Performance**: 30-50% speedup in tight loops when exploiting signed overflow UB
 - **Standard compliance**: C standard says signed overflow is undefined
 
@@ -237,13 +238,13 @@ Why compilers do this:
 
 ### How Other Languages Handle Overflow
 
-| Language | Debug Mode | Release Mode | Explicit Control |
-|----------|------------|--------------|------------------|
-| **C** | Undefined (signed), Wrap (unsigned) | Same | `-fwrapv` flag |
-| **Rust** | Panic | Wrap | `checked_*`, `wrapping_*`, `saturating_*` |
-| **Zig** | Panic | Panic | `+%`, `-%`, `*%` wrapping operators |
-| **Swift** | Trap (crash) | Trap (crash) | `&+`, `&-`, `&*` overflow operators |
-| **Ada/SPARK** | Constraint_Error | Configurable | Range types, preconditions |
+| Language      | Debug Mode                          | Release Mode | Explicit Control                          |
+| ------------- | ----------------------------------- | ------------ | ----------------------------------------- |
+| **C**         | Undefined (signed), Wrap (unsigned) | Same         | `-fwrapv` flag                            |
+| **Rust**      | Panic                               | Wrap         | `checked_*`, `wrapping_*`, `saturating_*` |
+| **Zig**       | Panic                               | Panic        | `+%`, `-%`, `*%` wrapping operators       |
+| **Swift**     | Trap (crash)                        | Trap (crash) | `&+`, `&-`, `&*` overflow operators       |
+| **Ada/SPARK** | Constraint_Error                    | Configurable | Range types, preconditions                |
 
 #### Rust's Approach
 
@@ -336,11 +337,11 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 
 #### Keywords
 
-| Keyword | Behavior | Use Case |
-|---------|----------|----------|
+| Keyword | Behavior                     | Use Case                                         |
+| ------- | ---------------------------- | ------------------------------------------------ |
 | `clamp` | Saturates at min/max of type | Sensor readings, control values, safety-critical |
-| `wrap` | Two's complement wrap-around | Counters, checksums, timing, hashing |
-| (none) | Default to `clamp` | Most variables |
+| `wrap`  | Two's complement wrap-around | Counters, checksums, timing, hashing             |
+| (none)  | Default to `clamp`           | Most variables                                   |
 
 #### Rationale
 
@@ -352,9 +353,11 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 #### Why Clamp is the Default
 
 From [MATLAB Fixed-Point documentation](https://www.mathworks.com/help/fixedpoint/ug/saturation-and-wrapping.html):
+
 > "For most control applications, **saturation is the safer way** of dealing with fixed-point overflow."
 
 The disasters (Ariane 5, Therac-25, Boeing 787) were all **wrap-around bugs**:
+
 - EGT sensor: 65535 + 1 = **0** with wrap (reads "cold" - engine melts)
 - EGT sensor: 65535 + 1 = **65535** with clamp (reads "max hot" - safe)
 
@@ -427,6 +430,7 @@ static inline uint16_t cnx_debug_add_u16(uint16_t a, uint16_t b) {
 #### Trade-offs
 
 **Advantages:**
+
 - Intent is always clear at declaration
 - Safe default prevents catastrophic wrap bugs
 - Explicit `wrap` keyword documents intentional wrapping
@@ -434,6 +438,7 @@ static inline uint16_t cnx_debug_add_u16(uint16_t a, uint16_t b) {
 - More expressive than any other language surveyed
 
 **Disadvantages:**
+
 - Slight runtime cost for clamp checks (mitigated by compiler optimization)
 - New syntax for C programmers to learn
 - Generated C is more verbose
@@ -445,6 +450,7 @@ static inline uint16_t cnx_debug_add_u16(uint16_t a, uint16_t b) {
 ### 8-bit Microcontrollers (AVR)
 
 On 8-bit platforms, 64-bit types may be emulated in software. CNX should:
+
 1. Allow their use (for portability)
 2. Warn about performance implications
 3. Never silently fail
@@ -517,12 +523,17 @@ The code generator maintains a type registry for `.length` support:
 
 ```typescript
 const TYPE_WIDTH: Record<string, number> = {
-    'u8': 8, 'i8': 8,
-    'u16': 16, 'i16': 16,
-    'u32': 32, 'i32': 32,
-    'u64': 64, 'i64': 64,
-    'f32': 32, 'f64': 64,
-    'bool': 1,
+  u8: 8,
+  i8: 8,
+  u16: 16,
+  i16: 16,
+  u32: 32,
+  i32: 32,
+  u64: 64,
+  i64: 64,
+  f32: 32,
+  f64: 64,
+  bool: 1,
 };
 ```
 
@@ -545,18 +556,21 @@ const TYPE_WIDTH: Record<string, number> = {
 ## References
 
 ### Type Systems
+
 - [C99 stdint.h specification](https://en.cppreference.com/w/c/types/integer)
 - [Rust primitive types](https://doc.rust-lang.org/book/ch03-02-data-types.html)
 - [Zig primitive types](https://ziglang.org/documentation/master/#Primitive-Types)
 - [MISRA C: Type rules](https://www.misra.org.uk/)
 
 ### Integer Overflow
+
 - [Wikipedia: Integer Overflow](https://en.wikipedia.org/wiki/Integer_overflow) - Ariane 5, Therac-25, Boeing 787 cases
 - [CWE-190: Integer Overflow or Wraparound](https://cwe.mitre.org/data/definitions/190.html)
 - [A Guide to Undefined Behavior in C](https://blog.regehr.org/archives/213)
 - [Compilers Exploiting Signed Overflow](https://gist.github.com/rygorous/e0f055bfb74e3d5f0af20690759de5a7)
 
 ### Language Approaches
+
 - [Rust: Overflow Behavior](https://www.slingacademy.com/article/exploring-rusts-overflow-behavior-wrapping-saturating-and-panicking/)
 - [Zig: Integer Rules](https://zig.guide/language-basics/integer-rules/)
 - [Swift: Integer Overflow](https://developer.apple.com/documentation/xcode/integer-overflow)
@@ -564,5 +578,6 @@ const TYPE_WIDTH: Record<string, number> = {
 - [SPARK for the MISRA C Developer](https://learn.adacore.com/courses/SPARK_for_the_MISRA_C_Developer/chapters/07_undefined_behavior.html)
 
 ### Related ADRs
+
 - ADR-007: Type-Aware Bit Indexing
 - ADR-024: Type Casting

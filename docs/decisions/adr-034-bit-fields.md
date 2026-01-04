@@ -1,11 +1,13 @@
 # ADR-034: Bitmap Types for Bit-Packed Data
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 C bit fields pack multiple values into bytes/words:
+
 ```c
 struct StatusReg {
     unsigned int ready : 1;
@@ -105,12 +107,12 @@ end record;
 
 ### Summary
 
-| Language | Approach | Portability |
-|----------|----------|-------------|
-| C | Native bit fields | Implementation-defined (broken) |
-| Rust | `bitflags` macro/crate | Explicit masks (portable) |
-| Zig | `packed struct(uN)` | Guaranteed LSB-first layout |
-| Ada | Representation clauses | Explicit bit positions |
+| Language | Approach               | Portability                     |
+| -------- | ---------------------- | ------------------------------- |
+| C        | Native bit fields      | Implementation-defined (broken) |
+| Rust     | `bitflags` macro/crate | Explicit masks (portable)       |
+| Zig      | `packed struct(uN)`    | Guaranteed LSB-first layout     |
+| Ada      | Representation clauses | Explicit bit positions          |
 
 ---
 
@@ -118,12 +120,12 @@ end record;
 
 From SEI CERT and embedded systems research:
 
-| Bug | Cause |
-|-----|-------|
-| **Bit order flip** | Compilers can allocate high-to-low OR low-to-high |
-| **Cross-version breakage** | Same vendor changed layout between compiler versions |
-| **Endianness mismatch** | Big-endian packs MSB first, little-endian packs LSB first |
-| **Silent padding** | Compiler may insert padding bits unexpectedly |
+| Bug                         | Cause                                                                 |
+| --------------------------- | --------------------------------------------------------------------- |
+| **Bit order flip**          | Compilers can allocate high-to-low OR low-to-high                     |
+| **Cross-version breakage**  | Same vendor changed layout between compiler versions                  |
+| **Endianness mismatch**     | Big-endian packs MSB first, little-endian packs LSB first             |
+| **Silent padding**          | Compiler may insert padding bits unexpectedly                         |
 | **Read-modify-write on WO** | Bit field access reads before writing - fails on write-only registers |
 
 > "The C standard doesn't define how bit fields should be ordered. In fact, it says: 'The order of allocation of bit-fields within a unit (high-order to low-order or low-order to high-order) is implementation-defined.'"
@@ -141,14 +143,15 @@ From SEI CERT and embedded systems research:
 
 ### Options Summary
 
-| Option | Syntax | Portability | Compiler Enforced | New Syntax |
-|--------|--------|-------------|-------------------|------------|
-| A: C-Style | `bool ready : 1;` | ❌ Broken | ❌ No | Minimal |
-| B: Explicit Range | `ready: bits[0..1];` | ✅ Yes | ✅ Yes | Moderate |
-| C: Enum + ADR-007 | `flags[EFlags.READY]` | ✅ Yes | ❌ Convention | None |
-| **D: Bitmap Type** | `flags.Ready <- true` | ✅ Yes | ✅ Yes | New keyword |
+| Option             | Syntax                | Portability | Compiler Enforced | New Syntax  |
+| ------------------ | --------------------- | ----------- | ----------------- | ----------- |
+| A: C-Style         | `bool ready : 1;`     | ❌ Broken   | ❌ No             | Minimal     |
+| B: Explicit Range  | `ready: bits[0..1];`  | ✅ Yes      | ✅ Yes            | Moderate    |
+| C: Enum + ADR-007  | `flags[EFlags.READY]` | ✅ Yes      | ❌ Convention     | None        |
+| **D: Bitmap Type** | `flags.Ready <- true` | ✅ Yes      | ✅ Yes            | New keyword |
 
 ### Option A: C-Style Syntax
+
 ```cnx
 struct Flags {
     bool ready : 1;
@@ -161,6 +164,7 @@ struct Flags {
 **Cons**: Inherits C's portability problems
 
 ### Option B: Explicit Bit Range (Zig/Ada style)
+
 ```cnx
 struct Flags {
     ready: bits[0..1];
@@ -173,6 +177,7 @@ struct Flags {
 **Cons**: New syntax to learn, verbose
 
 ### Option C: Use ADR-007 + Enum Pattern
+
 Don't add C-style bit fields. Use type-aware bit indexing with enums for semantic clarity:
 
 ```cnx
@@ -254,6 +259,7 @@ C bit field ordering is fundamentally non-portable - even across versions of the
 ### Why Not Enum Pattern (Option C)?
 
 While Option C works and requires no new syntax, it's convention-based and verbose for complex layouts. The `bitmap` type provides:
+
 - Compiler enforcement of bit counts
 - Cleaner access syntax (`status.flags.Running` vs `status.flags[EFlags.RUNNING]`)
 - Self-documenting type definitions
@@ -261,13 +267,13 @@ While Option C works and requires no new syntax, it's convention-based and verbo
 
 ### Why This Is Different From C Bit Fields
 
-| C Bit Fields | C-Next `bitmap` |
-|--------------|-----------------|
-| Compiler chooses bit ordering | C-Next guarantees LSB-first |
-| Implementation-defined padding | Compiler enforces exact bit count |
-| Silent truncation on overflow | Compile error for literals, clamp at runtime |
-| Struct-level declaration only | Standalone reusable type |
-| No portability | Fully portable (C-Next controls layout) |
+| C Bit Fields                   | C-Next `bitmap`                              |
+| ------------------------------ | -------------------------------------------- |
+| Compiler chooses bit ordering  | C-Next guarantees LSB-first                  |
+| Implementation-defined padding | Compiler enforces exact bit count            |
+| Silent truncation on overflow  | Compile error for literals, clamp at runtime |
+| Struct-level declaration only  | Standalone reusable type                     |
+| No portability                 | Fully portable (C-Next controls layout)      |
 
 ---
 
@@ -283,6 +289,7 @@ bitmap8 TypeName {
 ```
 
 Available sizes:
+
 - `bitmap8` - 8 bits, backed by `u8`
 - `bitmap16` - 16 bits, backed by `u16`
 - `bitmap24` - 24 bits, backed by `u24` (3 bytes)
@@ -405,17 +412,20 @@ u8 currentMode <- status.flags[EMotorFlags.MODE_START, MODE_WIDTH];
 ## References
 
 ### C Bit Field Problems
+
 - [SEI CERT: Do Not Make Assumptions About Bit-Field Layout](https://wiki.sei.cmu.edu/confluence/display/c/EXP11-C.+Do+not+make+assumptions+regarding+the+layout+of+structures+with+bit-fields)
 - [Siemens: Why Not Use Bit Fields for Device Registers](https://blogs.sw.siemens.com/embedded-software/2019/12/02/why-not-use-bit-fields-for-device-registers/)
 - [Hackaday: Bit Fields vs Shift and Mask](https://hackaday.com/2015/08/28/firmware-factory-bit-fields-vs-shift-and-mask/)
 
 ### Other Language Approaches
+
 - [Rust bitflags crate](https://docs.rs/bitflags) - 935M+ downloads
 - [Zig Packed Structs](https://devlog.hexops.com/2022/packed-structs-in-zig/)
 - [Ada Representation Clauses](https://learn.adacore.com/courses/advanced-ada/parts/data_types/types_representation.html)
 - [Ada for Embedded C Developers](https://learn.adacore.com/courses/Ada_For_The_Embedded_C_Developer/chapters/04_Embedded.html)
 
 ### C-Next Related ADRs
+
 - [ADR-004: Register Bindings](adr-004-register-bindings.md) - Hardware register bitfields
 - [ADR-007: Type-Aware Bit Indexing](adr-007-type-aware-bit-indexing.md) - Integer bit access
 - [ADR-017: Enums](adr-017-enums.md) - Type-safe enums

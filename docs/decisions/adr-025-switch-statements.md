@@ -1,11 +1,13 @@
 # ADR-025: Switch Statements
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Switch statements are fundamental to embedded programming:
+
 - State machines
 - Command dispatching
 - Protocol parsing
@@ -24,6 +26,7 @@ C's switch has footguns (fall-through, missing breaks), but the pattern is essen
 ## Options Considered
 
 ### Option A: C-Style with Required Break
+
 ```cnx
 switch (state) {
     case State.IDLE: {
@@ -45,6 +48,7 @@ switch (state) {
 **Cons:** Still needs break, easy to forget
 
 ### Option B: Implicit Break, Explicit Fallthrough
+
 ```cnx
 switch (state) {
     case State.IDLE: {
@@ -65,6 +69,7 @@ switch (state) {
 **Cons:** Different from C, still allows fallthrough complexity
 
 ### Option C: Match Expression (Rust-style)
+
 ```cnx
 u32 result <- match (cmd) {
     Command.READ: 1,
@@ -77,6 +82,7 @@ u32 result <- match (cmd) {
 **Cons:** Very different from C, complex
 
 ### Option D: Braces Replace Break, No Fallthrough (Selected)
+
 ```cnx
 switch (state) {
     case State.IDLE {
@@ -99,6 +105,7 @@ switch (state) {
 **Option D: Braces Replace Break, No Fallthrough**
 
 Key design choices:
+
 1. **Required braces** - Replace `break;` with mandatory `{}` blocks
 2. **No colons** - Braces make colons redundant: `case X {` not `case X: {`
 3. **No fallthrough** - Not supported; be explicit about each case's behavior
@@ -113,6 +120,7 @@ Key design choices:
 ## Syntax
 
 ### Basic Switch (Non-Enum)
+
 ```cnx
 // For integral types, use plain default (no count)
 switch (command) {
@@ -129,6 +137,7 @@ switch (command) {
 ```
 
 ### Multiple Cases (OR Syntax)
+
 ```cnx
 switch (cmd) {
     case Command.READ || Command.PEEK {
@@ -146,6 +155,7 @@ switch (cmd) {
 ```
 
 ### Exhaustive Enum Matching (No Default)
+
 ```cnx
 enum EState { IDLE, RUNNING, STOPPED, ERROR }  // 4 variants
 
@@ -168,6 +178,7 @@ switch (state) {
 ```
 
 ### Counted Default for Large Enums
+
 ```cnx
 // HttpStatus has 50 variants, we only care about 5
 switch (status) {
@@ -194,6 +205,7 @@ switch (status) {
 ```
 
 **If a new variant is added to HttpStatus (now 51 variants):**
+
 ```
 error: switch covers 50 of 51 HttpStatus variants (5 explicit + default(45)), missing 1
   --> src/handler.cnx:42:5
@@ -203,6 +215,7 @@ error: switch covers 50 of 51 HttpStatus variants (5 explicit + default(45)), mi
 ```
 
 ### Defensive Exhaustive Matching with default(0)
+
 ```cnx
 enum EState { IDLE, RUNNING, STOPPED }  // 3 variants
 
@@ -225,7 +238,9 @@ switch (state) {
 ```
 
 ### Why No Fallthrough? Be Explicit
+
 Instead of fallthrough for cumulative behavior:
+
 ```cnx
 // C-Next: Explicit and clear
 switch (level) {
@@ -247,6 +262,7 @@ switch (level) {
 Each case is self-contained. A reader knows exactly what happens without tracing fallthrough paths.
 
 ### Generated C
+
 ```c
 // From counted default example
 switch (status) {
@@ -280,6 +296,7 @@ switch (status) {
 ## Implementation Notes
 
 ### Grammar Changes
+
 ```antlr
 switchStatement
     : 'switch' '(' expression ')' '{' switchCase+ defaultCase? '}'
@@ -301,16 +318,19 @@ defaultCase
 ### Semantic Analysis
 
 **Type Checking:**
+
 - Verify switch expression is integral type (not boolean - error)
 - Verify all case labels are constant expressions
 - Verify case label types match switch expression type
 
 **Structural Validation:**
+
 - Minimum 2 clauses required (error if only 1)
 - `default` must be last if present (error if not)
 - Detect duplicate case values (including across `||` expressions)
 
 **Exhaustiveness Checking (Enums Only):**
+
 - Count explicit cases (each `||` alternative counts as 1)
 - If `default(n)` present: verify `explicit_cases + n == enum_variant_count`
 - If no `default`: verify `explicit_cases == enum_variant_count`
@@ -318,16 +338,19 @@ defaultCase
 - Error message format: `switch covers X of Y EnumName variants (N explicit + default(M)), missing Z`
 
 **Non-Enum Switches:**
+
 - `default` required (no count parameter)
 - `default(n)` syntax is an error for non-enum types
 
 ### CodeGenerator
+
 - Add `break;` after each case block
 - Expand `case A || B { }` to separate case labels in C
 - Generate proper enum value names (e.g., `EState_IDLE`)
 - `default(n)` generates plain `default:` in C (count is compile-time only)
 
 ### Priority
+
 **Critical** - Essential for embedded state machines.
 
 ## Resolved Questions
@@ -346,21 +369,22 @@ defaultCase
 
 ## MISRA C:2012/2023 Compliance
 
-| MISRA Rule | Requirement | C-Next Approach | Status |
-|------------|-------------|-----------------|--------|
-| **16.1** | Well-formed switch | Grammar enforces structure | ✅ **Enforced** |
-| **16.2** | Labels in correct scope | Grammar prevents nesting | ✅ **Enforced** |
-| **16.3** | Unconditional break | Implicit break, no fallthrough | ✅ **Exceeds** |
-| **16.4** | Default required | Required for non-enums; `default(n)` or exhaustive for enums | ✅ **Exceeds** |
-| **16.5** | Default first or last | Default must be last (error) | ✅ **Enforced** |
-| **16.6** | Minimum 2 clauses | Compiler error if < 2 | ✅ **Enforced** |
-| **16.7** | No boolean switch | Compiler error | ✅ **Enforced** |
+| MISRA Rule | Requirement             | C-Next Approach                                              | Status          |
+| ---------- | ----------------------- | ------------------------------------------------------------ | --------------- |
+| **16.1**   | Well-formed switch      | Grammar enforces structure                                   | ✅ **Enforced** |
+| **16.2**   | Labels in correct scope | Grammar prevents nesting                                     | ✅ **Enforced** |
+| **16.3**   | Unconditional break     | Implicit break, no fallthrough                               | ✅ **Exceeds**  |
+| **16.4**   | Default required        | Required for non-enums; `default(n)` or exhaustive for enums | ✅ **Exceeds**  |
+| **16.5**   | Default first or last   | Default must be last (error)                                 | ✅ **Enforced** |
+| **16.6**   | Minimum 2 clauses       | Compiler error if < 2                                        | ✅ **Enforced** |
+| **16.7**   | No boolean switch       | Compiler error                                               | ✅ **Enforced** |
 
 ### C-Next Innovation: Counted Default
 
 C-Next's `default(n)` syntax goes beyond MISRA by providing **compile-time validation** that all enum variants are accounted for, even when using a default clause. This catches enum growth at build time rather than runtime.
 
 **Comparison:**
+
 - **C + MISRA:** `default` required but no validation of completeness
 - **Rust:** `_` wildcard is silent when enum grows
 - **C-Next:** `default(n)` forces explicit acknowledgment; enum growth breaks build

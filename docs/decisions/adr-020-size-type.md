@@ -1,6 +1,7 @@
 # ADR-020: Size Type
 
 ## Status
+
 **Rejected**
 
 ## Context
@@ -19,20 +20,21 @@ C-Next's core philosophy is that fixed-width types solve portability problems by
 
 ### Fixed-Width Types Are More Predictable
 
-| Approach | Behavior |
-|----------|----------|
-| `u32` / `u64` | Same size everywhere — explicit choice by developer |
-| `usize` | 16-bit on AVR, 32-bit on Cortex-M, 64-bit on desktop |
+| Approach      | Behavior                                             |
+| ------------- | ---------------------------------------------------- |
+| `u32` / `u64` | Same size everywhere — explicit choice by developer  |
+| `usize`       | 16-bit on AVR, 32-bit on Cortex-M, 64-bit on desktop |
 
 C-Next targets embedded systems where predictability matters more than abstracting over platform differences.
 
 ### MISRA C Supports This Decision
 
-MISRA C:2023 Directive 4.6 recommends using fixed-width types from `<stdint.h>` instead of basic types. While MISRA *permits* `size_t` and `ptrdiff_t` as exceptions, the core recommendation aligns with C-Next's approach.
+MISRA C:2023 Directive 4.6 recommends using fixed-width types from `<stdint.h>` instead of basic types. While MISRA _permits_ `size_t` and `ptrdiff_t` as exceptions, the core recommendation aligns with C-Next's approach.
 
 ### Embedded Systems Don't Need Platform-Sized Types
 
 On C-Next's target platforms (e.g., Teensy MicroMod with ~16MB RAM):
+
 - Maximum array size is well under `u32`'s 4GB limit
 - Fixed-width types generate more predictable assembly
 - Explicit sizing matches the MISRA philosophy
@@ -40,6 +42,7 @@ On C-Next's target platforms (e.g., Teensy MicroMod with ~16MB RAM):
 ### The "Portability" Argument Is Inverted
 
 The original ADR listed "portability issues" as a con of using fixed-width types. This is backwards:
+
 - `usize` creates portability issues by changing size per platform
 - `u32` is portable because it's always 32 bits everywhere
 
@@ -66,6 +69,7 @@ This keeps the C-Next source clean while ensuring correct C output.
 ## Options Considered
 
 ### Option A: `usize` and `isize` (Rejected)
+
 ```cnx
 usize length <- buffer.length;
 isize offset <- -5;
@@ -74,6 +78,7 @@ isize offset <- -5;
 **Why rejected:** Reintroduces platform variance that C-Next's type system was designed to eliminate.
 
 ### Option B: `size` Type Only (Rejected)
+
 ```cnx
 size length <- buffer.length;
 ```
@@ -81,9 +86,11 @@ size length <- buffer.length;
 **Why rejected:** Same platform variance issue, plus no signed variant.
 
 ### Option C: Use `u32`/`u64` Explicitly (Accepted)
+
 Developers choose the appropriate fixed-width type based on their requirements.
 
 **Why accepted:**
+
 - Matches C-Next's philosophy of explicit, predictable types
 - Aligns with MISRA C recommendations
 - Sufficient for all embedded use cases

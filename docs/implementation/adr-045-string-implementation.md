@@ -9,6 +9,7 @@
 ## Overview
 
 Implement `string<N>` bounded string type with compile-time safety guarantees:
+
 - `string<64>` → `char[65]` (capacity + null terminator)
 - No heap allocation, no buffer overflows
 - Properties: `.length` (strlen), `.capacity` (compile-time N)
@@ -24,6 +25,7 @@ Implement `string<N>` bounded string type with compile-time safety guarantees:
 **File:** `grammar/CNext.g4`
 
 1. Add `stringType` rule after `type` rule (~line 427):
+
 ```antlr
 stringType
     : 'string' '<' INTEGER_LITERAL '>'  // string<64>
@@ -32,6 +34,7 @@ stringType
 ```
 
 2. Add `stringType` to `type` rule:
+
 ```antlr
 type
     : primitiveType
@@ -46,6 +49,7 @@ type
 ```
 
 3. Add STRING keyword (~line 536):
+
 ```antlr
 STRING      : 'string';
 ```
@@ -57,15 +61,17 @@ STRING      : 'string';
 **File:** `src/codegen/CodeGenerator.ts`
 
 1. **Extend TypeInfo interface** (~line 68):
+
 ```typescript
 interface TypeInfo {
-    // ... existing fields
-    isString?: boolean;
-    stringCapacity?: number;  // The N in string<N>
+  // ... existing fields
+  isString?: boolean;
+  stringCapacity?: number; // The N in string<N>
 }
 ```
 
 2. **Add generateStringType method**:
+
 ```typescript
 private generateStringType(ctx: Parser.StringTypeContext): {
     cType: string;
@@ -82,21 +88,24 @@ private generateStringType(ctx: Parser.StringTypeContext): {
 ```
 
 3. **Update generateType method** to detect stringType:
+
 ```typescript
 if (ctx.stringType()) {
-    const { cType, capacity } = this.generateStringType(ctx.stringType()!);
-    // Store capacity for later use
-    return cType;
+  const { cType, capacity } = this.generateStringType(ctx.stringType()!);
+  // Store capacity for later use
+  return cType;
 }
 ```
 
 4. **Update generateVariableDeclaration**:
+
 - Detect string type
 - Generate `char name[N+1]` instead of `char name`
 - Validate literal fits in capacity
 - Add `#include <string.h>` tracking
 
 5. **Add string literal validation**:
+
 ```typescript
 private validateStringLiteral(literal: string, capacity: number): void {
     // Remove quotes from literal
@@ -113,11 +122,11 @@ private validateStringLiteral(literal: string, capacity: number): void {
 
 **Directory:** `tests/string/`
 
-| File | Description |
-|------|-------------|
-| `string-basic.cnx` | `string<64> msg <- "Hello";` |
-| `string-empty.cnx` | `string<64> buffer;` (empty init) |
-| `string-error-overflow.cnx` | Literal exceeds capacity |
+| File                        | Description                       |
+| --------------------------- | --------------------------------- |
+| `string-basic.cnx`          | `string<64> msg <- "Hello";`      |
+| `string-empty.cnx`          | `string<64> buffer;` (empty init) |
+| `string-error-overflow.cnx` | Literal exceeds capacity          |
 
 ### Success Criteria
 
@@ -135,29 +144,30 @@ private validateStringLiteral(literal: string, capacity: number): void {
 ### CodeGenerator Changes
 
 1. **Update generatePostfixExpr** (~line 3147):
+
 ```typescript
-if (memberName === 'length') {
-    const typeInfo = this.context.typeRegistry.get(primaryId);
-    if (typeInfo?.isString) {
-        result = `strlen(${primaryId})`;
-        return result;
-    }
-    // ... existing array/integer handling
+if (memberName === "length") {
+  const typeInfo = this.context.typeRegistry.get(primaryId);
+  if (typeInfo?.isString) {
+    result = `strlen(${primaryId})`;
+    return result;
+  }
+  // ... existing array/integer handling
 }
 
-if (memberName === 'capacity') {
-    const typeInfo = this.context.typeRegistry.get(primaryId);
-    if (typeInfo?.isString && typeInfo.stringCapacity) {
-        result = String(typeInfo.stringCapacity);
-        return result;
-    }
+if (memberName === "capacity") {
+  const typeInfo = this.context.typeRegistry.get(primaryId);
+  if (typeInfo?.isString && typeInfo.stringCapacity) {
+    result = String(typeInfo.stringCapacity);
+    return result;
+  }
 }
 ```
 
 ### Tests
 
-| File | Description |
-|------|-------------|
+| File                    | Description                     |
+| ----------------------- | ------------------------------- |
 | `string-properties.cnx` | `.length` and `.capacity` usage |
 
 ### Success Criteria
@@ -174,27 +184,31 @@ if (memberName === 'capacity') {
 ### CodeGenerator Changes
 
 1. **Detect const string without capacity**:
+
 ```typescript
 if (isConst && isStringType && !hasCapacity && hasLiteral) {
-    // Infer capacity from literal length
-    const literal = getLiteralContent(initExpr);
-    const inferredCapacity = literal.length;
-    // Generate: const char X[N+1] = "literal"
+  // Infer capacity from literal length
+  const literal = getLiteralContent(initExpr);
+  const inferredCapacity = literal.length;
+  // Generate: const char X[N+1] = "literal"
 }
 ```
 
 2. **Error if no initializer**:
+
 ```typescript
 if (isConst && isStringType && !hasCapacity && !hasLiteral) {
-    throw new Error('Error: const string requires initializer for capacity inference');
+  throw new Error(
+    "Error: const string requires initializer for capacity inference",
+  );
 }
 ```
 
 ### Tests
 
-| File | Description |
-|------|-------------|
-| `string-const-inference.cnx` | `const string VERSION <- "1.0.0"` |
+| File                             | Description                           |
+| -------------------------------- | ------------------------------------- |
+| `string-const-inference.cnx`     | `const string VERSION <- "1.0.0"`     |
 | `string-error-const-no-init.cnx` | `const string X;` without initializer |
 
 ### Success Criteria
@@ -215,8 +229,8 @@ Detect `==` and `!=` with string operands:
 ```typescript
 // In generateEqualityExpr
 if (leftIsString && rightIsString) {
-    const cmpOp = isEquals ? '== 0' : '!= 0';
-    return `strcmp(${leftCode}, ${rightCode}) ${cmpOp}`;
+  const cmpOp = isEquals ? "== 0" : "!= 0";
+  return `strcmp(${leftCode}, ${rightCode}) ${cmpOp}`;
 }
 ```
 
@@ -227,7 +241,9 @@ Detect `+` with string operands, validate capacity:
 ```typescript
 // In generateAdditiveExpr or assignment handling
 if (destCapacity < src1Capacity + src2Capacity) {
-    throw new Error(`Error: Concatenation requires capacity ${src1Capacity + src2Capacity}, but destination has ${destCapacity}`);
+  throw new Error(
+    `Error: Concatenation requires capacity ${src1Capacity + src2Capacity}, but destination has ${destCapacity}`,
+  );
 }
 
 // Generate:
@@ -244,23 +260,25 @@ Detect `string[start, len]` pattern:
 ```typescript
 // In generatePostfixExpr for subscript
 if (typeInfo?.isString && hasStartAndLength) {
-    // Validate bounds
-    if (start + length > capacity) {
-        throw new Error(`Error: Substring [${start},${length}] exceeds capacity ${capacity}`);
-    }
-    // Generate: strncpy(dest, src + start, length); dest[length] = '\0';
+  // Validate bounds
+  if (start + length > capacity) {
+    throw new Error(
+      `Error: Substring [${start},${length}] exceeds capacity ${capacity}`,
+    );
+  }
+  // Generate: strncpy(dest, src + start, length); dest[length] = '\0';
 }
 ```
 
 ### Tests
 
-| File | Description |
-|------|-------------|
-| `string-compare.cnx` | `a == b`, `a != b` |
-| `string-concat.cnx` | `result <- a + b` |
-| `string-substring.cnx` | `sub <- s[0, 5]` |
-| `string-error-concat-overflow.cnx` | Capacity insufficient |
-| `string-error-substring-bounds.cnx` | Out of bounds |
+| File                                | Description           |
+| ----------------------------------- | --------------------- |
+| `string-compare.cnx`                | `a == b`, `a != b`    |
+| `string-concat.cnx`                 | `result <- a + b`     |
+| `string-substring.cnx`              | `sub <- s[0, 5]`      |
+| `string-error-concat-overflow.cnx`  | Capacity insufficient |
+| `string-error-substring-bounds.cnx` | Out of bounds         |
 
 ### Success Criteria
 
@@ -285,57 +303,75 @@ After all phases complete:
 ## Reference: Generated C Patterns
 
 ### Declaration
+
 ```cnx
 string<64> message <- "Hello";
 ```
+
 →
+
 ```c
 char message[65] = "Hello";
 ```
 
 ### Empty Declaration
+
 ```cnx
 string<64> buffer;
 ```
+
 →
+
 ```c
 char buffer[65] = "";
 ```
 
 ### Properties
+
 ```cnx
 u32 len <- message.length;
 u32 cap <- message.capacity;
 ```
+
 →
+
 ```c
 uint32_t len = strlen(message);
 uint32_t cap = 64;
 ```
 
 ### Const Inference
+
 ```cnx
 const string VERSION <- "1.0.0";
 ```
+
 →
+
 ```c
 const char VERSION[6] = "1.0.0";
 ```
 
 ### Comparison
+
 ```cnx
 if (a == b) { }
 ```
+
 →
+
 ```c
 if (strcmp(a, b) == 0) { }
 ```
 
 ### Concatenation
+
 ```cnx
 string<64> result <- a + b;
 ```
+
 →
+
 ```c
 char result[65] = "";
 strncpy(result, a, 64);
@@ -344,10 +380,13 @@ result[64] = '\0';
 ```
 
 ### Substring
+
 ```cnx
 string<5> hello <- source[0, 5];
 ```
+
 →
+
 ```c
 char hello[6];
 strncpy(hello, source + 0, 5);

@@ -1,6 +1,7 @@
 # ADR-039: Null Safety
 
 ## Status
+
 **Rejected**
 
 ## Decision
@@ -11,15 +12,16 @@
 
 Null pointer bugs in C arise from specific sources. C-Next's existing ADRs eliminate all of them:
 
-| Null Source in C | C-Next Prevention | ADR |
-|------------------|-------------------|-----|
-| `malloc()` returns NULL | No dynamic allocation | ADR-003 |
-| Uninitialized pointer | Zero-init globals, error for locals | ADR-015 |
-| Dangling pointer after `free()` | No `free()` exists | ADR-003 |
-| Pointer arithmetic gone wrong | No pointer arithmetic | ADR-006 |
-| Pointer reassignment to invalid address | Addresses cannot be reassigned | ADR-006 |
+| Null Source in C                        | C-Next Prevention                   | ADR     |
+| --------------------------------------- | ----------------------------------- | ------- |
+| `malloc()` returns NULL                 | No dynamic allocation               | ADR-003 |
+| Uninitialized pointer                   | Zero-init globals, error for locals | ADR-015 |
+| Dangling pointer after `free()`         | No `free()` exists                  | ADR-003 |
+| Pointer arithmetic gone wrong           | No pointer arithmetic               | ADR-006 |
+| Pointer reassignment to invalid address | Addresses cannot be reassigned      | ADR-006 |
 
 The only remaining case is **intentionally unset callbacks**, which:
+
 1. Are zero-initialized (predictably null, not garbage)
 2. Require standard null checks before invocation (universal embedded practice)
 3. Are too narrow a use case to justify language complexity
@@ -29,6 +31,7 @@ Adding Option types or nullable annotations would add complexity without meaning
 ## Original Context
 
 Null pointer dereference is a major bug source:
+
 - Crashes
 - Security vulnerabilities
 - Hard to debug
@@ -38,6 +41,7 @@ Rust uses `Option<T>`, modern languages have null safety.
 ## Options Considered
 
 ### Option A: Optional Types (Rust-style)
+
 ```cnx
 Option<u32> maybeValue <- Some(42);
 Option<u32> empty <- None;
@@ -52,6 +56,7 @@ if (maybeValue.isSome()) {
 **Cons:** Complex, changes mental model
 
 ### Option B: Nullable Annotation
+
 ```cnx
 u32? maybeValue <- 42;
 u32? empty <- null;
@@ -65,7 +70,9 @@ if (maybeValue != null) {
 **Cons:** Still need runtime checks
 
 ### Option C: Warnings Only
+
 No language change, but warn on:
+
 - Dereference without null check
 - Uninitialized pointer use
 
@@ -73,6 +80,7 @@ No language change, but warn on:
 **Cons:** Can ignore warnings
 
 ### Option D: No Null Safety
+
 Trust the developer. Focus on ADR-015 zero initialization.
 
 **Pros:** Simple

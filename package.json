@@ -21,7 +21,11 @@
     "test:cli": "node scripts/test-cli.js",
     "test:update": "node scripts/test.js --update",
     "analyze": "./scripts/static-analysis.sh",
-    "clean": "rm -rf dist src/parser"
+    "clean": "rm -rf dist src/parser",
+    "prettier:check": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "eslint:check": "eslint src/",
+    "eslint:fix": "eslint src/ --fix"
   },
   "keywords": [
     "c",
@@ -34,8 +38,15 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "antlr4ng-cli": "^2.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
     "jest": "^30.2.0",
+    "prettier": "^3.7.4",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

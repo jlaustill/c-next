@@ -40,11 +40,13 @@ u32 main(string args[]) {
 ```
 
 **The problem:** `fgets` returns `NULL` on EOF or error, but C-Next currently has no way to:
+
 1. Express that a function can return `NULL`
 2. Require the caller to handle the `NULL` case
 3. Distinguish between "no value" and a valid value
 
 In C, the safe pattern is:
+
 ```c
 if (fgets(userName, sizeof userName, stdin) != NULL) {
     // Process the input
@@ -82,10 +84,12 @@ let name = get_user_input()?;  // Returns None if failed
 ```
 
 **Pros:**
+
 - Compile-time null safety
 - No billion-dollar mistake
 
 **Cons:**
+
 - Verbose for simple cases
 - Requires pattern matching infrastructure
 
@@ -111,10 +115,12 @@ let name = readLine() ?? "Unknown"
 ```
 
 **Pros:**
+
 - Concise syntax
 - Multiple unwrapping options
 
 **Cons:**
+
 - Force unwrap can crash
 - Requires runtime nil checks
 
@@ -140,10 +146,12 @@ if (readLine()) |name| {
 ```
 
 **Pros:**
+
 - Zero-cost abstraction
 - Compiles to simple null checks
 
 **Cons:**
+
 - Unfamiliar syntax
 
 ### C++17: std::optional<T>
@@ -186,6 +194,7 @@ string<50> name <- result ?? "Unknown";
 ```
 
 **Transpiles to:**
+
 ```c
 char *result = fgets(buffer, 51, stdin);
 if (result != NULL) {
@@ -213,10 +222,12 @@ match (result) {
 ```
 
 **Pros:**
+
 - Can carry error information
 - Very explicit
 
 **Cons:**
+
 - Requires match expressions (ADR not yet implemented)
 - More complex for simple null checks
 
@@ -288,6 +299,7 @@ string<50> input <- try fgets(buffer, buffer.size, stdin) else {
 4. **Clear semantics** - `?` suffix clearly indicates "may be null"
 
 However, this needs further research on:
+
 - How it interacts with C-Next's string type
 - Whether we need full Result types for richer error handling
 - How to annotate C function declarations

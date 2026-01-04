@@ -1,11 +1,13 @@
 # ADR-031: Inline Functions
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 Inline functions suggest the compiler embed function body at call site:
+
 - Eliminates function call overhead
 - Common for small accessor functions
 - C99 added `inline` keyword with complex semantics
@@ -19,9 +21,11 @@ Inline functions suggest the compiler embed function body at call site:
 ### 1. MISRA C Rule 8.10 Forces Our Hand
 
 MISRA C:2012/2023 Rule 8.10 (Required):
+
 > "An inline function shall be declared with the static storage class."
 
 Without `static`, inline functions cause:
+
 - **Undefined behavior** if declared but not defined in a translation unit
 - **Unspecified behavior** — compiler may inline OR call externally, affecting timing
 
@@ -34,6 +38,7 @@ Modern compilers treat `inline` as a hint they frequently ignore:
 > "Compilers can (and usually do) ignore presence or absence of the inline specifier for the purpose of optimization."
 
 At `-O2` and above, GCC automatically enables:
+
 - `-finline-small-functions`
 - `-findirect-inlining`
 - `-finline-functions`
@@ -50,19 +55,20 @@ C-Next doesn't support `register` because compilers do better register allocatio
 
 ### 4. Common Bugs and Edge Cases
 
-| Issue | Description |
-|-------|-------------|
-| **ODR Violations** | Without `static`, multiple translation units can have conflicting definitions |
-| **Static variables in inline** | Each translation unit gets its own copy — subtle bugs |
-| **Code bloat** | Excessive inlining increases binary size, hurts cache performance |
-| **Debug vs Release** | Code behaves differently: debug builds don't inline, release builds do |
-| **Timing changes** | Inlining affects execution timing — breaks real-time assumptions |
+| Issue                          | Description                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| **ODR Violations**             | Without `static`, multiple translation units can have conflicting definitions |
+| **Static variables in inline** | Each translation unit gets its own copy — subtle bugs                         |
+| **Code bloat**                 | Excessive inlining increases binary size, hurts cache performance             |
+| **Debug vs Release**           | Code behaves differently: debug builds don't inline, release builds do        |
+| **Timing changes**             | Inlining affects execution timing — breaks real-time assumptions              |
 
 ### 5. Philosophy Alignment
 
 C-Next's guiding principle: **"Safety through removal, not addition."**
 
 Adding `inline` provides:
+
 - No guaranteed behavior (compiler can ignore it)
 - Potential for misuse (code bloat, ODR violations)
 - False sense of control
@@ -78,23 +84,28 @@ If a developer truly needs forced inlining:
 ## Options Considered (Historical)
 
 ### Option A: C-Style `inline` (Rejected)
+
 ```cnx
 inline u32 getFlag(u32 reg, u32 bit) {
     return (reg >> bit) & 1;
 }
 ```
+
 **Rejected:** Complex C99 semantics, MISRA forces `static inline` anyway.
 
 ### Option B: `@inline` Attribute (Rejected)
+
 ```cnx
 @inline
 u32 getFlag(u32 reg, u32 bit) {
     return (reg >> bit) & 1;
 }
 ```
+
 **Rejected:** Still just a hint the compiler ignores.
 
 ### Option C: Compiler Decides (Accepted)
+
 No inline keyword — trust the compiler.
 
 **Accepted:** Simple, aligns with C-Next philosophy, no false promises.

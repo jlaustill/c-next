@@ -1,11 +1,13 @@
 # ADR-038: Static and Extern Keywords
 
 ## Status
+
 **Rejected**
 
 ## Context
 
 C's storage class specifiers:
+
 - `static` in function: local persistence across calls
 - `static` at file scope: internal linkage (private to file)
 - `extern`: external linkage (defined elsewhere)
@@ -15,6 +17,7 @@ C's storage class specifiers:
 **Rejected for v1.** C-Next will not support the `static` keyword.
 
 Visibility control is handled by `scope` (ADR-016) instead:
+
 - Scope members are **private by default** (generates `static` in C)
 - `public` keyword exposes members (no `static` in C)
 
@@ -36,6 +39,7 @@ scope Motor {
 ```
 
 Adding `static` would be redundant:
+
 ```cnx
 scope Motor {
     static void helper() { }  // Redundant - private is already default
@@ -47,24 +51,29 @@ scope Motor {
 Static local variables (persistence across calls) are a source of bugs:
 
 **Thread Safety Issues:**
+
 ```c
 // C code - NOT thread safe
 char* strtok(char* str, const char* delim) {
     static char* buffer;  // All threads share this!
 }
 ```
+
 The `strtok()` function caused [JVM crashes](https://bugs.openjdk.org/browse/JDK-8214773) due to its static buffer.
 
 **Reentrancy Problems:**
+
 ```c
 // C code - NOT safe in ISR
 void send_data(char* data) {
     static char buffer[10];  // Corrupted if ISR preempts
 }
 ```
+
 These bugs are [notoriously sporadic](https://interrupt.memfault.com/blog/arm-cortex-m-exceptions-and-nvic) in embedded systems.
 
 **Testing Difficulties:**
+
 ```c
 // C code - hard to test
 int counter() {
@@ -72,6 +81,7 @@ int counter() {
     return ++count;
 }
 ```
+
 Per [Google Testing Blog](https://testing.googleblog.com/2008/12/static-methods-are-death-to-testability.html): "Static methods are death to testability."
 
 **Hidden Dependencies:**
@@ -97,6 +107,7 @@ scope Counter {
 ```
 
 Generates:
+
 ```c
 static uint32_t Counter_count = 0;
 
@@ -107,6 +118,7 @@ uint32_t Counter_next(void) {
 ```
 
 Benefits:
+
 - State is visible at scope level (not hidden inside function)
 - Obvious target for thread-safety review
 - Easy to reset in tests

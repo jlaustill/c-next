@@ -18,6 +18,7 @@ This friction slows the feedback loop and makes it harder to understand how C-Ne
 ### Inspiration: VS Code Markdown Preview
 
 VS Code's markdown extension provides an excellent UX pattern:
+
 - Edit markdown on the left
 - See rendered output on the right
 - Updates live as you type
@@ -78,18 +79,19 @@ vscode-extension/
 ```
 
 **Library API:**
+
 ```typescript
 // src/lib/transpiler.ts
 export interface TranspileResult {
-    success: boolean;
-    code?: string;           // Generated C code
-    errors?: TranspileError[];
+  success: boolean;
+  code?: string; // Generated C code
+  errors?: TranspileError[];
 }
 
 export interface TranspileError {
-    line: number;
-    column: number;
-    message: string;
+  line: number;
+  column: number;
+  message: string;
 }
 
 export function transpile(source: string): TranspileResult;
@@ -115,6 +117,7 @@ vscode-extension/
 ## Implementation Phases
 
 ### Phase 1: Syntax Highlighting
+
 1. Create TextMate grammar (`cnext.tmLanguage.json`)
 2. Define scopes for:
    - Keywords (`register`, `namespace`, `void`, types)
@@ -124,6 +127,7 @@ vscode-extension/
 3. Register `.cnx` file association
 
 ### Phase 2: Refactor Transpiler to Library
+
 1. Extract core logic from `src/index.ts`
 2. Create `src/lib/transpiler.ts` with clean API
 3. Update CLI to use library
@@ -131,12 +135,14 @@ vscode-extension/
 5. Ensure library works in both Node.js and bundled extension
 
 ### Phase 3: Preview Provider
+
 1. Create Webview panel for C output
 2. Implement `CNextPreviewProvider` class
 3. Register preview command (like markdown: "Open Preview to the Side")
 4. Style C output with syntax highlighting (use Prism.js or similar)
 
 ### Phase 4: Live Updates
+
 1. Listen to `onDidChangeTextDocument` events
 2. Debounce updates (~300ms)
 3. Re-transpile on each change
@@ -144,6 +150,7 @@ vscode-extension/
 5. Show last successful output when errors occur
 
 ### Phase 5: Error Handling
+
 1. Parse errors → VS Code Diagnostics (Problems panel)
 2. Show error indicators in editor (red squiggles)
 3. Preview pane shows last good output + error banner
@@ -154,22 +161,25 @@ vscode-extension/
 ## User Experience
 
 ### Commands
-| Command | Keybinding | Description |
-|---------|------------|-------------|
-| `C-Next: Open Preview to the Side` | `Ctrl+K V` | Open C preview beside editor |
-| `C-Next: Open Preview` | `Ctrl+Shift+V` | Open C preview in current column |
-| `C-Next: Toggle Preview` | — | Toggle preview visibility |
+
+| Command                            | Keybinding     | Description                      |
+| ---------------------------------- | -------------- | -------------------------------- |
+| `C-Next: Open Preview to the Side` | `Ctrl+K V`     | Open C preview beside editor     |
+| `C-Next: Open Preview`             | `Ctrl+Shift+V` | Open C preview in current column |
+| `C-Next: Toggle Preview`           | —              | Toggle preview visibility        |
 
 ### Settings
+
 ```json
 {
-    "cnext.preview.updateDelay": 300,
-    "cnext.preview.showLineNumbers": true,
-    "cnext.preview.theme": "auto"
+  "cnext.preview.updateDelay": 300,
+  "cnext.preview.showLineNumbers": true,
+  "cnext.preview.theme": "auto"
 }
 ```
 
 ### Status Bar
+
 - Show transpile status: "C-Next: Ready" / "C-Next: Error"
 - Click to open Problems panel
 
@@ -209,22 +219,26 @@ Add a third pane showing assembly output:
 ```
 
 **Implementation Options:**
+
 1. **Local toolchain**: Invoke `arm-none-eabi-gcc -S` (requires user setup)
 2. **Compiler Explorer API**: Use godbolt.org API (requires internet)
 3. **PlatformIO integration**: Use active environment's toolchain
 
 **Architecture Selection:**
+
 - Read from `platformio.ini` if available
 - Or VS Code setting: `cnext.assembly.architecture`
 - Common targets: ARM Cortex-M4, AVR, x86-64
 
 ### Language Server Protocol (LSP)
+
 - Go to definition
 - Find references
 - Hover documentation
 - Autocomplete for register members
 
 ### Debugging Integration
+
 - Source maps: C-Next line → C line → Assembly
 - Breakpoints in C-Next that work in C debugger
 
@@ -233,6 +247,7 @@ Add a third pane showing assembly output:
 ## Trade-offs
 
 ### Advantages
+
 1. **Immediate feedback** — See C output as you type
 2. **Learning tool** — Understand how C-Next maps to C
 3. **Debugging aid** — Verify generated code is correct
@@ -240,6 +255,7 @@ Add a third pane showing assembly output:
 5. **Standard UX** — Familiar markdown preview pattern
 
 ### Disadvantages
+
 1. **Extension maintenance** — Another artifact to maintain
 2. **Bundling complexity** — Transpiler must work in VS Code context
 3. **Performance** — Re-transpiling on every keystroke (mitigated by debounce)
@@ -261,6 +277,7 @@ For MVP, option 1 (bundling) is simplest and provides best latency.
 ### Webview Security
 
 VS Code Webviews have strict CSP. The preview pane must:
+
 - Use VS Code's built-in theming
 - Not load external resources
 - Use nonces for inline scripts
@@ -281,16 +298,19 @@ VS Code Webviews have strict CSP. The preview pane must:
 ## References
 
 ### VS Code Extension Development
+
 - [Extension API](https://code.visualstudio.com/api)
 - [Webview Guide](https://code.visualstudio.com/api/extension-guides/webview)
 - [Language Extensions](https://code.visualstudio.com/api/language-extensions/overview)
 - [TextMate Grammars](https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide)
 
 ### Example Extensions
+
 - [Markdown Preview](https://github.com/microsoft/vscode/tree/main/extensions/markdown-language-features)
 - [AsciiDoc](https://github.com/asciidoctor/asciidoctor-vscode)
 - [PlantUML](https://github.com/qjebbs/vscode-plantuml)
 
 ### Syntax Highlighting
+
 - [TextMate Language Grammars](https://macromates.com/manual/en/language_grammars)
 - [Prism.js](https://prismjs.com/) — For highlighting in Webview

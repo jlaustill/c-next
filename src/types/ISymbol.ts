@@ -1,45 +1,45 @@
-import ESymbolKind from './ESymbolKind.js';
-import ESourceLanguage from './ESourceLanguage.js';
+import ESymbolKind from "./ESymbolKind.js";
+import ESourceLanguage from "./ESourceLanguage.js";
 
 /**
  * Represents a symbol collected from a source file
  */
 interface ISymbol {
-    /** Symbol name (e.g., "LED_toggle", "GPIO7", "uint32_t") */
-    name: string;
+  /** Symbol name (e.g., "LED_toggle", "GPIO7", "uint32_t") */
+  name: string;
 
-    /** Kind of symbol */
-    kind: ESymbolKind;
+  /** Kind of symbol */
+  kind: ESymbolKind;
 
-    /** Type of the symbol (e.g., "void", "u32", "int*") */
-    type?: string;
+  /** Type of the symbol (e.g., "void", "u32", "int*") */
+  type?: string;
 
-    /** Source file where the symbol is defined */
-    sourceFile: string;
+  /** Source file where the symbol is defined */
+  sourceFile: string;
 
-    /** Line number in the source file */
-    sourceLine: number;
+  /** Line number in the source file */
+  sourceLine: number;
 
-    /** Source language */
-    sourceLanguage: ESourceLanguage;
+  /** Source language */
+  sourceLanguage: ESourceLanguage;
 
-    /** Whether this symbol is exported/public */
-    isExported: boolean;
+  /** Whether this symbol is exported/public */
+  isExported: boolean;
 
-    /** Whether this is a declaration (not definition) */
-    isDeclaration?: boolean;
+  /** Whether this is a declaration (not definition) */
+  isDeclaration?: boolean;
 
-    /** Function signature for overload detection (e.g., "void foo(int, float)") */
-    signature?: string;
+  /** Function signature for overload detection (e.g., "void foo(int, float)") */
+  signature?: string;
 
-    /** Parent namespace or class name */
-    parent?: string;
+  /** Parent namespace or class name */
+  parent?: string;
 
-    /** Access modifier for register members (rw, ro, wo, w1c, w1s) */
-    accessModifier?: string;
+  /** Access modifier for register members (rw, ro, wo, w1c, w1s) */
+  accessModifier?: string;
 
-    /** For arrays: element count. For integers: bit width */
-    size?: number;
+  /** For arrays: element count. For integers: bit width */
+  size?: number;
 }
 
 export default ISymbol;

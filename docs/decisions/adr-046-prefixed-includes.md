@@ -1,6 +1,7 @@
 # ADR-046: Prefixed Includes
 
 ## Status
+
 **Research**
 
 ## Context
@@ -15,6 +16,7 @@ const int North = 0;  // Error: redefinition
 ```
 
 Other languages solve this with module systems:
+
 - Python: `import compass as Compass` → `Compass.North`
 - JavaScript: `import * as Compass from 'compass'` → `Compass.North`
 - Rust: `use compass::*` with renaming
@@ -40,6 +42,7 @@ Compass.getDirection()
 ```
 
 ### Multiple Includes
+
 ```cnx
 #includePrefixed <motor.h> Motor
 #includePrefixed <sensor.h> Sensor
@@ -49,6 +52,7 @@ Sensor.read();
 ```
 
 ### Mixed with Regular Includes
+
 ```cnx
 #include <stdint.h>              // Standard library - no prefix needed
 #includePrefixed <vendor_lib.h> Vendor  // Vendor code - prefixed
@@ -57,22 +61,27 @@ Sensor.read();
 ## Research Questions
 
 ### 1. How does the transpiler know what symbols are in the header?
+
 Options:
+
 - Parse the C header file
 - Require a manifest/declaration file
 - Use naming conventions
 - Compile-time discovery via C compiler
 
 ### 2. What symbol types need prefixing?
+
 - Functions: `Compass.getDirection()` → `Compass_getDirection()`?
 - Constants/enums: `Compass.NORTH` → `COMPASS_NORTH`?
 - Types/structs: `Compass.Point` → `Compass_Point`?
 - Macros: Cannot be prefixed (preprocessor limitation)
 
 ### 3. How to handle nested includes?
+
 If `compass.h` includes `direction.h`, what happens to those symbols?
 
 ### 4. What about types used in function signatures?
+
 ```c
 // In compass.h:
 typedef struct { int x, y; } Point;
@@ -82,15 +91,19 @@ Point getPosition(void);
 If `Point` is prefixed to `Compass.Point`, do function return types also change?
 
 ### 5. Macro limitations
+
 C macros cannot be prefixed - they're text substitution before compilation:
+
 ```c
 #define COMPASS_MAX_SPEED 100
 ```
+
 This would still be global. Document as limitation?
 
 ## Implementation Approaches
 
 ### Approach A: Source Transformation
+
 The Cnx transpiler parses the C header and generates prefixed wrappers:
 
 ```cnx
@@ -98,6 +111,7 @@ The Cnx transpiler parses the C header and generates prefixed wrappers:
 ```
 
 Generates:
+
 ```c
 #include <compass.h>
 
@@ -111,6 +125,7 @@ static inline Direction Compass_getDirection(void) {
 **Cons:** Complex, need to parse C headers
 
 ### Approach B: Scope-Based Rewriting
+
 Treat the prefix as a Cnx scope and rewrite calls during transpilation:
 
 ```cnx
@@ -122,6 +137,7 @@ void main() {
 ```
 
 Transpiles to:
+
 ```c
 #include <compass.h>
 
@@ -134,6 +150,7 @@ void main() {
 **Cons:** Only helps Cnx code, not actual C namespace
 
 ### Approach C: Manifest Files
+
 Require a `.cnxlib` manifest describing the header:
 
 ```yaml
@@ -159,12 +176,14 @@ symbols:
 ## Alternatives Considered
 
 ### Just Use Naming Conventions
+
 Libraries already use prefixes: `SDL_Init()`, `GPIO_Write()`, etc.
 Developers could just choose non-conflicting names.
 
 **Rejected:** Doesn't help with third-party libraries you don't control.
 
 ### Wrapper Headers
+
 Manually write wrapper headers with prefixed names.
 
 **Rejected:** Manual work, error-prone, maintenance burden.

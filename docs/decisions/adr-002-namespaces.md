@@ -25,11 +25,13 @@ See ADR-016 for the replacement approach using the `scope` keyword.
 Embedded systems code includes both **hardware peripherals** (often multiple instances) and **application-level services** (true singletons). It's important to distinguish these:
 
 **Hardware peripherals are often NOT singletons:**
+
 - Teensy 4.0 has 8 UARTs, 3 CAN buses, 2 ADCs
 - STM32H7 has 8 USARTs, 2 FDCANs, 3 ADCs
 - These should be **classes** — same code, different instances
 
 **Application services ARE typically singletons:**
+
 - One Console (that may use a UART internally)
 - One Logger
 - One Math utility library
@@ -84,15 +86,17 @@ This works, but conflates two separate concepts:
 Modern languages have learned to separate these concerns:
 
 **Go (2009)** uses packages for namespacing, structs for data:
+
 > "Rather than conflate the concepts of record types, modules, and traits in this God-concept of 'class,' [Go] keeps these three concepts quite separate."
 
 **Rust (2015)** uses modules for namespacing, structs + traits for types:
+
 > "There is no inheritance in Rust... Rust uses traits to define shared behavior."
 > — [The Coded Message](https://www.thecodedmessage.com/posts/oop-3-inheritance/)
 
 ### Application Services vs Hardware Peripherals
 
-While individual hardware peripheral *instances* are singletons (there's only one UART1 at address 0x40011000), the *type* UART often has multiple instances. This is why hardware peripherals should be **classes** in C-Next.
+While individual hardware peripheral _instances_ are singletons (there's only one UART1 at address 0x40011000), the _type_ UART often has multiple instances. This is why hardware peripherals should be **classes** in C-Next.
 
 However, application-level services are true singletons:
 
@@ -255,13 +259,13 @@ Just use `Console_init()` everywhere like C developers already do.
 
 Namespaces are for **singleton services**. When you need **multiple instances** of something, you need a **class**. Classes are first-class citizens in C-Next (without inheritance). That is documented in a future ADR.
 
-| Need | C-Next Construct |
-|------|------------------|
-| One system console | `namespace Console { ... }` |
-| Math utilities | `namespace Math { ... }` |
-| Application state machine | `namespace AppState { ... }` |
-| 8 UART peripherals | `class UART { ... }` (future ADR) |
-| 3 ring buffers | `class RingBuffer { ... }` (future ADR) |
+| Need                       | C-Next Construct                             |
+| -------------------------- | -------------------------------------------- |
+| One system console         | `namespace Console { ... }`                  |
+| Math utilities             | `namespace Math { ... }`                     |
+| Application state machine  | `namespace AppState { ... }`                 |
+| 8 UART peripherals         | `class UART { ... }` (future ADR)            |
+| 3 ring buffers             | `class RingBuffer { ... }` (future ADR)      |
 | Multiple motor controllers | `class MotorController { ... }` (future ADR) |
 
 ## Implementation Notes
@@ -279,23 +283,27 @@ No runtime overhead. No vtables. No dynamic dispatch. Just organized, scoped C c
 ## References
 
 ### Language Design Philosophy
+
 - [Uncle Bob: Functional Classes](https://blog.cleancoder.com/uncle-bob/2023/01/18/functional-classes.html) — "java.lang.Math is just a namespace"
 - [The Coded Message: Rust Is Beyond OO](https://www.thecodedmessage.com/posts/oop-3-inheritance/) — Separating modules from types
 - [Medium: Why Go Chose Composition](https://medium.com/@harshithgowdakt/why-go-chose-composition-over-inheritance-and-you-should-too-ac1a89524202)
 - [YourBasic: OOP without inheritance in Go](https://yourbasic.org/golang/inheritance-object-oriented/)
 
 ### Embedded Systems Patterns
+
 - [The Embedded Rust Book: Singletons](https://doc.rust-lang.org/stable/embedded-book/peripherals/singletons.html) — When singletons are appropriate
 - [mbedded.ninja: C++ On Embedded Systems](https://blog.mbedded.ninja/programming/languages/c-plus-plus/cpp-on-embedded-systems/)
 - [Stratify Labs: Singletons in Embedded C++](https://blog.stratifylabs.dev/device/2021-11-29-Using-Singletons-in-embedded-cpp/)
 
 ### C Naming Conventions
+
 - [EJRH: Namespaces in C](https://ejrh.wordpress.com/2012/01/24/namespaces-in-c/) — Prefix conventions
 - [Buildstorm: C Naming Conventions for Embedded](https://buildstorm.com/blog/c-naming-conventions-and-style-guide-for-embedded-firmware-project/)
 - [Embedded.com: Adopting C Programming Conventions](https://www.embedded.com/adopting-c-programming-conventions/)
 - [MaJerle C Code Style Guide](https://github.com/MaJerle/c-code-style)
 
 ### Composition Over Inheritance
+
 - [silverweed: Composition over Inheritance lessons learned](https://silverweed.github.io/Composition_over_Inheritance_lessons_learned/)
 - [Wikipedia: Composition over Inheritance](https://en.wikipedia.org/wiki/Composition_over_inheritance)
 - [Thoughtworks: Composition vs Inheritance](https://www.thoughtworks.com/insights/blog/composition-vs-inheritance-how-choose)

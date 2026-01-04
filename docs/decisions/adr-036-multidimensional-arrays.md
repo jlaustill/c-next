@@ -1,11 +1,13 @@
 # ADR-036: Multi-dimensional Arrays
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Multi-dimensional arrays are used for:
+
 - Matrices (graphics, transforms)
 - 2D sensor data
 - Lookup tables with multiple indices
@@ -26,6 +28,7 @@ Multi-dimensional arrays are used for:
 ## Syntax
 
 ### 2D Arrays
+
 ```cnx
 u8 display[24][80];  // 24 rows, 80 columns
 
@@ -34,6 +37,7 @@ display[0][1] <- 'i';
 ```
 
 ### 3D Arrays
+
 ```cnx
 u8 voxels[16][16][16];
 
@@ -41,6 +45,7 @@ voxels[x][y][z] <- material;
 ```
 
 ### Matrices
+
 ```cnx
 f32 transform[4][4];
 
@@ -52,7 +57,9 @@ transform[3][3] <- 1.0;
 ```
 
 ### With Initialization (ADR-035 Syntax)
+
 Per ADR-035, array initializers use square brackets `[]`, not curly braces:
+
 ```cnx
 u8 font[128][8] <- [
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],  // ' '
@@ -62,7 +69,9 @@ u8 font[128][8] <- [
 ```
 
 ### Fill-All Syntax for Multi-dimensional
+
 Extending ADR-035's `[value*]` syntax:
+
 ```cnx
 u8 matrix[4][4] <- [0*][4*];     // All 16 elements = 0
                                   // Read as: 4 rows, each filled with [0*]
@@ -74,6 +83,7 @@ u8 screen[24][80] <- [' '*][80*];   // All spaces (ASCII 32)
 ```
 
 ### In Struct
+
 ```cnx
 struct Image {
     u32 width;
@@ -83,6 +93,7 @@ struct Image {
 ```
 
 ### As Function Parameter (Size Enforced)
+
 ```cnx
 void matrixMultiply(f32 a[4][4], f32 b[4][4], f32 result[4][4]) {
     // All dimensions enforced at compile time
@@ -93,6 +104,7 @@ void matrixMultiply(f32 a[4][4], f32 b[4][4], f32 result[4][4]) {
 ## Type System Design
 
 ### Nested Types
+
 Multi-dimensional array indexing produces nested array types:
 
 ```cnx
@@ -108,7 +120,9 @@ u8 value <- matrix[0][0][0];    // Single element
 ```
 
 ### `.length` Property (Compile-Time)
+
 The `.length` property returns the outermost dimension and is resolved at compile time:
+
 ```cnx
 u8 matrix[4][8];
 const usize rows <- matrix.length;      // 4 (compile-time const)
@@ -116,6 +130,7 @@ const usize cols <- matrix[0].length;   // 8 (compile-time const)
 ```
 
 Generated C:
+
 ```c
 uint8_t matrix[4][8];
 const size_t rows = 4;   // Compile-time constant
@@ -123,6 +138,7 @@ const size_t cols = 8;   // Compile-time constant
 ```
 
 ### Function Parameters: Strict Enforcement
+
 Unlike C (where array sizes in parameters are advisory), C-Next enforces dimensions at compile time:
 
 ```cnx
@@ -142,6 +158,7 @@ This prevents the entire class of "array decay" bugs that plague C.
 ## Implementation Notes
 
 ### Grammar Changes
+
 ```antlr
 arrayDimension
     : '[' expression? ']' ('[' expression? ']')*
@@ -155,14 +172,18 @@ arrayInitializer
 ```
 
 ### Memory Layout
+
 C-Next uses **row-major** order (same as C):
+
 - `arr[i][j]` = `arr + i * cols + j`
 - Last index varies fastest in memory
 
 This is the only sensible choice for C compatibility.
 
 ### CodeGenerator
+
 Direct mapping to C with size enforcement:
+
 ```c
 // C-Next input
 void process(u8 data[4][4]) { }
@@ -175,20 +196,22 @@ void process(uint8_t data[4][4]) {
 ```
 
 ### Priority
+
 **Medium** - Useful but many embedded apps don't need.
 
 ## MISRA C Research
 
 ### Relevant MISRA C:2012 Rules
 
-| Rule | Category | Description | C-Next Mitigation |
-|------|----------|-------------|-------------------|
-| **9.2** | Required | Initializers shall be enclosed in braces | Enforced: nested `[]` required |
-| **17.5** | Advisory | Array parameters should have bounds specified | Enforced: bounds always specified and checked |
-| **18.1** | Required | Pointer arithmetic must stay within array bounds | Compile-time bounds checking |
-| **1.3** | Required | No undefined behavior | Bounds checks eliminate UB from array access |
+| Rule     | Category | Description                                      | C-Next Mitigation                             |
+| -------- | -------- | ------------------------------------------------ | --------------------------------------------- |
+| **9.2**  | Required | Initializers shall be enclosed in braces         | Enforced: nested `[]` required                |
+| **17.5** | Advisory | Array parameters should have bounds specified    | Enforced: bounds always specified and checked |
+| **18.1** | Required | Pointer arithmetic must stay within array bounds | Compile-time bounds checking                  |
+| **1.3**  | Required | No undefined behavior                            | Bounds checks eliminate UB from array access  |
 
 ### Rule 9.2: Brace Enclosure for Multi-dimensional
+
 MISRA requires each row's initializers to be enclosed in braces:
 
 ```c
@@ -202,10 +225,13 @@ int w[4][2] = {0, 0, 1, 0, 0, 1, 1, 1};
 C-Next enforces this with `[]` syntax - each dimension requires its own brackets.
 
 ### Rule 17.5: Array Parameter Bounds
+
 MISRA advises specifying array bounds in function parameters to enable static analysis. C-Next makes this **mandatory and enforced**.
 
 ### Rule 18.1: Pointer Arithmetic Within Bounds
+
 MISRA requires pointer arithmetic to stay within the originating array. C-Next achieves this through:
+
 - Compile-time bounds checking for constant indices
 - Runtime bounds checking for variable indices (optional, enabled by default)
 - `.length` property eliminates need for manual size tracking
@@ -213,9 +239,11 @@ MISRA requires pointer arithmetic to stay within the originating array. C-Next a
 ## Security Research: CWE Vulnerabilities
 
 ### CWE-125: Out-of-bounds Read
+
 "The product reads data past the end, or before the beginning, of the intended buffer."
 
 **Consequences:**
+
 - Information disclosure (cryptographic keys, PII, memory addresses)
 - ASLR bypass through memory address leaks
 - Denial of service via segmentation faults
@@ -224,9 +252,11 @@ MISRA requires pointer arithmetic to stay within the originating array. C-Next a
 **C-Next Mitigation:** Compile-time and runtime bounds checking prevents all out-of-bounds reads.
 
 ### CWE-787: Out-of-bounds Write
+
 "The product writes data past the end, or before the beginning, of the intended buffer."
 
 **Consequences:**
+
 - Arbitrary code execution
 - Data corruption
 - Stack smashing attacks
@@ -235,6 +265,7 @@ MISRA requires pointer arithmetic to stay within the originating array. C-Next a
 **C-Next Mitigation:** Same bounds checking prevents out-of-bounds writes.
 
 ### CWE-119: Improper Restriction of Operations within Bounds
+
 Parent category covering all buffer access issues.
 
 **C-Next Mitigation:** Comprehensive bounds enforcement addresses the entire category.
@@ -244,6 +275,7 @@ Parent category covering all buffer access issues.
 ### Bug 1: Array Decay in Function Parameters (SEI CERT ARR01-C)
 
 **The Problem:**
+
 ```c
 void clear(int array[]) {
     // sizeof(array) returns pointer size (4 or 8), NOT array size!
@@ -258,6 +290,7 @@ clear(data);  // Only clears 1-2 elements!
 
 **Why This Happens:**
 In C, array parameters "decay" to pointers. The size information is lost. This affects multi-dimensional arrays too:
+
 ```c
 void process(int matrix[4][4]) {
     // sizeof(matrix) is still pointer size!
@@ -266,6 +299,7 @@ void process(int matrix[4][4]) {
 ```
 
 **C-Next Solution:**
+
 - `.length` is resolved at compile time, never at runtime
 - Array parameters retain their full type including all dimensions
 - Transpiler generates size constants, not runtime calculations
@@ -273,6 +307,7 @@ void process(int matrix[4][4]) {
 ### Bug 2: Loop Index/Dimension Mismatch (SEI CERT ARR30-C)
 
 **The Problem:**
+
 ```c
 #define ROWS 10
 #define COLS 5
@@ -288,6 +323,7 @@ for (size_t i = 0; i < COLS; i++) {     // Should be ROWS
 ```
 
 **C-Next Solution:**
+
 ```cnx
 u8 matrix[10][5];
 
@@ -302,6 +338,7 @@ for (usize i <- 0; i < matrix.length; i +<- 1) {        // 10
 ### Bug 3: Negative Index (SEI CERT ARR30-C)
 
 **The Problem:**
+
 ```c
 int *table = ...;
 int len = ...;
@@ -315,12 +352,14 @@ int get(int index) {
 ```
 
 **C-Next Solution:**
+
 - Use `usize` for indices (unsigned, cannot be negative)
 - Runtime bounds checking catches any remaining issues
 
 ### Bug 4: sizeof on Pointer Parameter
 
 **The Problem:**
+
 ```c
 void clear(int a[100]) {
     memset(a, 0, sizeof(a));  // WRONG: sizeof(int*), not sizeof(int[100])
@@ -336,23 +375,27 @@ ADR-023 already forbids `sizeof` on array parameters, requiring `.length` instea
 
 **The Problem:**
 The Blaster worm exploited this exact pattern:
+
 ```c
 while (*pwszTemp != L'\\')
     *pwszServerName++ = *pwszTemp++;  // No bounds check!
 ```
 
 **C-Next Solution:**
+
 - All array access is bounds-checked
 - Loop patterns with array indexing generate bounds checks
 
 ## Bounds Checking Strategy
 
 ### Compile-Time Checking (Always)
+
 - Constant indices checked at compile time
 - Dimension mismatches in function calls are compile errors
 - `.length` resolved to constants
 
 ### Runtime Checking (Default, Optional)
+
 For variable indices, generate bounds checks:
 
 ```cnx
@@ -361,6 +404,7 @@ u8 value <- matrix[x][y];  // x and y are variables
 ```
 
 Generated C (with bounds checking):
+
 ```c
 uint8_t matrix[10][10];
 // Bounds check macro/inline function
@@ -371,6 +415,7 @@ uint8_t value = matrix[x][y];
 ```
 
 Compiler flags:
+
 - `--bounds-check` (default): Generate runtime checks
 - `--no-bounds-check`: Omit for release builds (user's responsibility)
 - `--bounds-panic`: Abort on violation (development)
@@ -386,19 +431,23 @@ Compiler flags:
 ## References
 
 ### MISRA C Standards
+
 - [MISRA C:2012 Rule 9.2 - Brace Enclosure](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule9.2.html)
 - [MISRA C:2012 Pointer Rules - AdaCore Analysis](https://learn.adacore.com/courses/SPARK_for_the_MISRA_C_Developer/chapters/04_strong_typing.html)
 
 ### SEI CERT C Coding Standard
+
 - [ARR30-C: Do not form or use out-of-bounds pointers](https://wiki.sei.cmu.edu/confluence/display/c/ARR30-C.+Do+not+form+or+use+out-of-bounds+pointers+or+array+subscripts)
 - [ARR01-C: Do not apply sizeof to pointer when taking array size](https://wiki.sei.cmu.edu/confluence/display/c/ARR01-C.+Do+not+apply+the+sizeof+operator+to+a+pointer+when+taking+the+size+of+an+array)
 
 ### CWE (Common Weakness Enumeration)
+
 - [CWE-125: Out-of-bounds Read](https://cwe.mitre.org/data/definitions/125.html)
 - [CWE-787: Out-of-bounds Write](https://cwe.mitre.org/data/definitions/787.html)
 - [CWE-119: Improper Restriction of Operations within Bounds](https://cwe.mitre.org/data/definitions/119.html)
 
 ### Related ADRs
+
 - ADR-007: `.length` property and bit indexing
 - ADR-035: Array initializers (syntax applies to multi-dimensional)
 - ADR-023: sizeof safety (forbids sizeof on array parameters)

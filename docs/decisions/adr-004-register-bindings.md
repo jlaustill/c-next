@@ -72,6 +72,7 @@ dp.GPIOA.odr.modify(|_, w| w.odr0().set_bit());
 ```
 
 **Key Benefits:**
+
 - Compile-time verification of valid register values
 - Read-only registers have no `write()` method
 - Bitfield values are constrained to valid ranges
@@ -103,10 +104,12 @@ The MicroZig framework provides higher-level abstractions:
 Several C++ libraries provide type-safe register access:
 
 **regbits** (thanks4opensource):
+
 > "Hardware does not support [atomic bit access], and with the exception of C bitfields, neither do the C and C++ languages. Regbits and other software techniques address these limitations."
 > — [GitHub: regbits](https://github.com/thanks4opensource/regbits)
 
 **Write-only enforcement:**
+
 > "This month, I'll show you one simple, yet remarkably effective way you can use C++ to eliminate accidentally reading from write-only device registers. The trick is to define a write-only data type... using this class adds no run-time overhead. It just improves compile-time type checking."
 > — [Embedded.com: Write-Only Access](https://www.embedded.com/how-to-enforce-write-only-access/)
 
@@ -118,6 +121,7 @@ ARM's CMSIS-SVD format describes registers in XML:
 > — [ARM CMSIS-SVD](https://arm-software.github.io/CMSIS_5/SVD/html/index.html)
 
 **Problems with SVD:**
+
 - Missing core peripherals (vendors don't include them)
 - Incomplete register definitions from some vendors
 - XML is verbose and hard to read directly
@@ -149,22 +153,25 @@ GPIOA->DR = 0x0001;
 **Problems:**
 
 1. **Bitfield portability:**
-> "The C standard does not define how compilers allocate bit-fields in memory. This means that bit-field layouts may differ between compilers, toolchains, or even optimization levels."
-> — [Feabhas: Peripheral Register Access](https://blog.feabhas.com/2019/01/peripheral-register-access-using-c-structs-part-1/)
+
+   > "The C standard does not define how compilers allocate bit-fields in memory. This means that bit-field layouts may differ between compilers, toolchains, or even optimization levels."
+   > — [Feabhas: Peripheral Register Access](https://blog.feabhas.com/2019/01/peripheral-register-access-using-c-structs-part-1/)
 
 2. **No read/write enforcement:**
-> "We cannot make certain bits in a bitfield read-only, but registers may have read-only bits in any given register."
-> — [AllThingsEmbedded: Register Access API](https://allthingsembedded.com/post/bare-metal-register-access-api/)
+
+   > "We cannot make certain bits in a bitfield read-only, but registers may have read-only bits in any given register."
+   > — [AllThingsEmbedded: Register Access API](https://allthingsembedded.com/post/bare-metal-register-access-api/)
 
 3. **MISRA forbids unions for type punning:**
-> "Using unions isn't recommended in embedded and even forbidden by most of the standards and guidelines for safety software like MISRA C 2004."
-> — [LinkedIn: Memory Mapped Registers](https://www.linkedin.com/pulse/best-way-handling-memory-mapped-registers-any-c-ahmed-nasr-eldin)
+   > "Using unions isn't recommended in embedded and even forbidden by most of the standards and guidelines for safety software like MISRA C 2004."
+   > — [LinkedIn: Memory Mapped Registers](https://www.linkedin.com/pulse/best-way-handling-memory-mapped-registers-any-c-ahmed-nasr-eldin)
 
 ---
 
 ## Initial Design Direction
 
 C-Next can provide a register binding syntax that is:
+
 - Human-readable with inline documentation
 - Type-safe with compile-time checks
 - MISRA-compliant by design
@@ -231,13 +238,13 @@ static inline void GPIOA_ICR1_set_ICR0(uint8_t value) {
 
 #### 1. Access Modifiers
 
-| Modifier | Meaning | C Output |
-|----------|---------|----------|
-| `rw` | Read-Write | `volatile uint32_t` |
-| `ro` | Read-Only | `volatile const uint32_t` |
-| `wo` | Write-Only | Special write-only type |
-| `w1c` | Write-1-to-Clear | Special handling |
-| `w1s` | Write-1-to-Set | Special handling |
+| Modifier | Meaning          | C Output                  |
+| -------- | ---------------- | ------------------------- |
+| `rw`     | Read-Write       | `volatile uint32_t`       |
+| `ro`     | Read-Only        | `volatile const uint32_t` |
+| `wo`     | Write-Only       | Special write-only type   |
+| `w1c`    | Write-1-to-Clear | Special handling          |
+| `w1s`    | Write-1-to-Set   | Special handling          |
 
 Attempting to write to a `ro` register or read from a `wo` register would be a **compile-time error**.
 
@@ -252,6 +259,7 @@ GPIOA.ICR1.ICR0 <- 5;     // ERROR: Value 5 doesn't fit in 2 bits
 #### 3. Documentation as First-Class
 
 Triple-slash comments become accessible to:
+
 - IDE hover information
 - Generated documentation
 - Code completion hints
@@ -274,6 +282,7 @@ GPIOA.ODR.ODR0 <- 1;
 ### Q1: How to handle the MISRA integer-to-pointer cast?
 
 Options:
+
 - a) Use linker symbols (requires linker script modification)
 - b) Generate documented deviations automatically
 - c) Use a compile-time-checked cast intrinsic
@@ -282,6 +291,7 @@ Options:
 ### Q2: What about reserved/undefined bits?
 
 Some registers have bits that are "reserved - must write 0" or "undefined - do not modify":
+
 - a) Automatically mask writes to preserve reserved bits
 - b) Make reserved bits inaccessible
 - c) Warning if accessing reserved bits
@@ -289,6 +299,7 @@ Some registers have bits that are "reserved - must write 0" or "undefined - do n
 ### Q3: Atomic read-modify-write operations?
 
 Many registers require atomic bit manipulation:
+
 - a) Generate inline functions that disable interrupts
 - b) Use hardware atomic instructions where available
 - c) Provide explicit `atomic_modify` syntax
@@ -296,6 +307,7 @@ Many registers require atomic bit manipulation:
 ### Q4: How to handle registers that change behavior based on mode?
 
 Some registers have different bit meanings depending on chip configuration:
+
 - a) Different register types for different modes
 - b) Runtime checking
 - c) Document only, don't enforce
@@ -303,6 +315,7 @@ Some registers have different bit meanings depending on chip configuration:
 ### Q5: Should C-Next ship with register definitions?
 
 Options:
+
 - a) Include common MCU families (STM32, NXP, Nordic, etc.)
 - b) Provide SVD import tool only
 - c) Community-maintained register packages
@@ -310,12 +323,14 @@ Options:
 ### Q6: What about non-standard register widths?
 
 Some peripherals have 8-bit or 16-bit registers:
+
 - a) Support u8, u16, u32, u64 register widths
 - b) Always use u32 with appropriate masking
 
 ### Q7: Alignment and padding?
 
 Registers aren't always contiguous:
+
 ```
 register UART @ 0x40000000 {
     CR: u32 rw @ 0x00,
@@ -323,6 +338,7 @@ register UART @ 0x40000000 {
     SR: u32 ro @ 0x08,
 }
 ```
+
 - a) Explicit offset syntax (shown above)
 - b) Automatic padding bytes
 - c) Both
@@ -333,14 +349,14 @@ register UART @ 0x40000000 {
 
 If done right, this could be C-Next's standout feature:
 
-| Current C | C-Next |
-|-----------|--------|
-| `GPIO1_DR = 0x01;` | `GPIOA.DR <- 0x01;` |
-| Magic hex address | Named, documented register |
-| Hope you don't write to read-only | Compile error if you try |
-| Bitfield values unchecked | Compile-time range checking |
-| No IDE help | Hover shows documentation |
-| MISRA deviations required | Compliant by design |
+| Current C                         | C-Next                      |
+| --------------------------------- | --------------------------- |
+| `GPIO1_DR = 0x01;`                | `GPIOA.DR <- 0x01;`         |
+| Magic hex address                 | Named, documented register  |
+| Hope you don't write to read-only | Compile error if you try    |
+| Bitfield values unchecked         | Compile-time range checking |
+| No IDE help                       | Hover shows documentation   |
+| MISRA deviations required         | Compliant by design         |
 
 ---
 
@@ -357,12 +373,14 @@ If done right, this could be C-Next's standout feature:
 ## References
 
 ### Current Approaches
+
 - [PJRC: Teensy imxrt.h](https://github.com/PaulStoffregen/cores/blob/master/teensy4/imxrt.h)
 - [Feabhas: Peripheral Register Access Using C Structs](https://blog.feabhas.com/2019/01/peripheral-register-access-using-c-structs-part-1/)
 - [Embedded.com: Device Registers in C](https://www.embedded.com/device-registers-in-c/)
 - [LinkedIn: Memory Mapped Registers in C](https://www.linkedin.com/pulse/best-way-handling-memory-mapped-registers-any-c-ahmed-nasr-eldin)
 
 ### Type-Safe C++ Libraries
+
 - [GitHub: regbits](https://github.com/thanks4opensource/regbits) — Type-safe bit manipulation
 - [AllThingsEmbedded: Bare Metal Register Access API](https://allthingsembedded.com/post/bare-metal-register-access-api/)
 - [Embedded.com: Write-Only Access](https://www.embedded.com/how-to-enforce-write-only-access/)
@@ -370,22 +388,26 @@ If done right, this could be C-Next's standout feature:
 - [preshing.com: Safe Bitfields in C++](https://preshing.com/20150324/safe-bitfields-in-cpp/)
 
 ### Rust Approach
+
 - [The Embedded Rust Book: Registers](https://docs.rust-embedded.org/book/start/registers.html)
 - [svd2rust documentation](https://docs.rs/svd2rust/)
 - [Embedded.com: Creating PACs](https://www.embedded.com/embedded-rust-creating-peripheral-access-crates-pacs/)
 - [Ferrous Systems: PACs and svd2rust](https://rust-training.ferrous-systems.com/latest/book/pac-svd2rust)
 
 ### Zig Approach
+
 - [scattered-thoughts: MMIO in Zig](https://www.scattered-thoughts.net/writing/mmio-in-zig/)
 - [MicroZig](https://microzig.tech/)
 - [Zig Issue #4284: Volatile Semantics](https://github.com/ziglang/zig/issues/4284)
 
 ### CMSIS-SVD
+
 - [ARM CMSIS-SVD Documentation](https://arm-software.github.io/CMSIS_5/SVD/html/index.html)
 - [Open-CMSIS-SVD Specification](https://open-cmsis-pack.github.io/svd-spec/main/index.html)
 - [GitHub: cmsis-svd](https://github.com/cmsis-svd/cmsis-svd) — Community SVD repository
 
 ### MISRA Compliance
+
 - [Feabhas: Side Effects and Sequence Points](https://blog.feabhas.com/2020/04/side-effects-and-sequence-points-why-volatile-matters/)
 - [OSDev Wiki: Memory Mapped Registers](https://wiki.osdev.org/Memory_mapped_registers_in_C/C++)
 - [Aticleworld: Access GPIO Using Bit Field](https://aticleworld.com/access-the-port-and-register-using-bit-field-in-embedded-c/)

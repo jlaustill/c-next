@@ -11,6 +11,15 @@
 3. Update the relevant ADR with research findings, links, and context as you go
 4. **Never update ADR status or decisions without user direction**
 
+## Code Quality Requirements
+
+**All new and modified TypeScript code must pass linting:**
+
+- Run `npm run prettier:fix` before committing
+- Run `npm run eslint:check` on files you've touched
+- Fix any ESLint errors in code you write or modify
+- Legacy errors in untouched files can be ignored (fix as you go)
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**
@@ -42,6 +51,7 @@ If implementing a feature, all documents must be current and memory must be upda
 - **DO NOT** change Status or Decision sections without explicit approval
 
 **Documentation Sync Order:**
+
 - When moving an ADR to "Implemented", update the ADR file FIRST, then update README.md
 - Never move an ADR to "Implemented" in README.md before updating the ADR file itself
 - This prevents README and ADR files from getting out of sync

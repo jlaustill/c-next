@@ -15,6 +15,7 @@ Strings in embedded C are problematic:
 5. **Inconsistent patterns** - Every embedded project reinvents string handling
 
 CNX needs a string type that is:
+
 - **Statically allocated** - No heap, no fragmentation (aligned with ADR-003)
 - **Bounded** - Maximum capacity known at compile time
 - **Safe** - No buffer overflows possible
@@ -91,10 +92,10 @@ string<32> greeting <- "Hi!";  // Holds up to 32 chars
 
 ### Properties
 
-| Property | Returns | Description |
-|----------|---------|-------------|
-| `.length` | Runtime `u32` | Current string length (character count) |
-| `.capacity` | Compile-time constant | Maximum capacity (N) |
+| Property    | Returns               | Description                             |
+| ----------- | --------------------- | --------------------------------------- |
+| `.length`   | Runtime `u32`         | Current string length (character count) |
+| `.capacity` | Compile-time constant | Maximum capacity (N)                    |
 
 ```cnx
 string<64> name <- "Hello";
@@ -137,13 +138,13 @@ uint32_t cap = 5;             // Compile-time constant (character capacity)
 
 All string operations are checked at **compile time** against capacity:
 
-| Operation | Rule | Example |
-|-----------|------|---------|
-| Literal assignment | literal.length ≤ dest.capacity | `string<5> s <- "Hello"` ✓ |
-| Variable assignment | src.capacity ≤ dest.capacity | `string<64> big <- small` ✓ |
-| Concatenation | src1.capacity + src2.capacity ≤ dest.capacity | `string<64> r <- a + b` |
-| Substring | start + length ≤ src.capacity | `string<10> s <- src[0,10]` |
-| Literal in expression | Tight capacity (literal.length) | `"Hello"` is `string<5>` |
+| Operation             | Rule                                          | Example                     |
+| --------------------- | --------------------------------------------- | --------------------------- |
+| Literal assignment    | literal.length ≤ dest.capacity                | `string<5> s <- "Hello"` ✓  |
+| Variable assignment   | src.capacity ≤ dest.capacity                  | `string<64> big <- small` ✓ |
+| Concatenation         | src1.capacity + src2.capacity ≤ dest.capacity | `string<64> r <- a + b`     |
+| Substring             | start + length ≤ src.capacity                 | `string<10> s <- src[0,10]` |
+| Literal in expression | Tight capacity (literal.length)               | `"Hello"` is `string<5>`    |
 
 ### Declaration and Initialization
 
@@ -273,6 +274,7 @@ string<1> ch <- source[0];    // Sugar for source[0, 1] -> "H"
 ### Bounds Checking (Capacity-Based)
 
 Substring bounds are checked against the **source capacity**, not the current content length. This ensures:
+
 - Compile-time verification (capacity is always known)
 - Zero runtime overhead
 - Memory safety (never reads past allocated memory)
@@ -319,13 +321,13 @@ hello[5] = '\0';
 
 CNX enforces strict compile-time safety. These are **errors**, not warnings:
 
-| Situation | Error |
-|-----------|-------|
-| Literal too long | `ERROR: String literal "Hello" (5 chars) exceeds string<4> capacity` |
-| Concatenation overflow | `ERROR: Concatenation requires capacity 64, but string<50> only has 50` |
-| Assignment from larger | `ERROR: Cannot assign string<64> to string<32> (potential truncation)` |
-| Substring out of bounds | `ERROR: Substring [60,10] exceeds source capacity 64` |
-| In-place concatenation | `ERROR: Self-referential concat: 64 < 64 + 6` |
+| Situation               | Error                                                                   |
+| ----------------------- | ----------------------------------------------------------------------- |
+| Literal too long        | `ERROR: String literal "Hello" (5 chars) exceeds string<4> capacity`    |
+| Concatenation overflow  | `ERROR: Concatenation requires capacity 64, but string<50> only has 50` |
+| Assignment from larger  | `ERROR: Cannot assign string<64> to string<32> (potential truncation)`  |
+| Substring out of bounds | `ERROR: Substring [60,10] exceeds source capacity 64`                   |
+| In-place concatenation  | `ERROR: Self-referential concat: 64 < 64 + 6`                           |
 
 ```cnx
 string<4> s <- "Hello";           // ERROR: 5 > 4
@@ -411,6 +413,7 @@ u8 message[65] <- "Hello";  // Must manually account for null terminator
 ```
 
 The `string` type provides safety and ergonomics, but `u8[]` remains available for:
+
 - Legacy code compatibility
 - Manual memory layout control
 - Interop with specific C APIs
@@ -494,6 +497,7 @@ struct String {
 ```
 
 We chose not to for:
+
 1. **C compatibility** - `char[]` works with all C functions
 2. **Simplicity** - No struct overhead
 3. **Memory** - Saves a `size_t` per string

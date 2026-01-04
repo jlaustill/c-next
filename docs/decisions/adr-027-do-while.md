@@ -1,11 +1,13 @@
 # ADR-027: Do-While Loops
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 `do-while` executes body at least once, then checks condition:
+
 ```c
 do {
     byte = readByte();
@@ -13,11 +15,13 @@ do {
 ```
 
 Occasionally useful, especially for:
+
 - Retry loops
 - Menu systems
 - Read-until patterns
 
 MISRA C has relevant rules:
+
 - **Rule 14.4**: Controlling expression must be essentially Boolean
 - **Rule 15.6**: Loop body must be enclosed in braces
 
@@ -45,6 +49,7 @@ do {
 ### Common Patterns
 
 #### Retry with Limit
+
 ```cnx
 u32 attempts <- 0;
 bool success <- false;
@@ -55,6 +60,7 @@ do {
 ```
 
 #### Read Until
+
 ```cnx
 u8 ch;
 u32 idx <- 0;
@@ -66,6 +72,7 @@ do {
 ```
 
 #### Menu Loop
+
 ```cnx
 u8 choice;
 do {
@@ -89,6 +96,7 @@ do {
 ```
 
 **Error message:**
+
 ```
 error[E0701]: do-while condition must be boolean (MISRA C:2012 Rule 14.4)
   --> file.cnx:4:10
@@ -100,6 +108,7 @@ error[E0701]: do-while condition must be boolean (MISRA C:2012 Rule 14.4)
 ```
 
 **Valid conditions:**
+
 ```cnx
 // Comparisons
 do { } while (count > 0);      // OK
@@ -119,6 +128,7 @@ do { } while (running);        // OK
 ## Implementation Notes
 
 ### Grammar Changes
+
 ```antlr
 doWhileStatement
     : 'do' block 'while' '(' expression ')' ';'
@@ -133,18 +143,22 @@ statement
 ### Semantic Analysis
 
 The compiler must verify the condition expression is boolean:
+
 - Comparison operators (`=`, `!=`, `<`, `<=`, `>`, `>=`)
 - Logical operators (`&&`, `||`, `!`)
 - Boolean-typed variables or function returns
 
 This is the same check used for:
+
 - `if` conditions
 - `while` conditions
 - `for` conditions
 - Ternary conditions (ADR-022)
 
 ### CodeGenerator
+
 Direct pass-through:
+
 ```c
 do {
     // body
@@ -152,6 +166,7 @@ do {
 ```
 
 ### Priority
+
 **Medium** - Nice to have, but `while` with flag works too.
 
 ## Resolved Questions
@@ -160,10 +175,10 @@ do {
 
 ## MISRA Compliance
 
-| Rule | Requirement | C-Next Status |
-|------|-------------|---------------|
-| 14.4 | Boolean controlling expression | Enforced (E0701) |
-| 15.6 | Braces required on loop body | Enforced by grammar |
+| Rule | Requirement                    | C-Next Status       |
+| ---- | ------------------------------ | ------------------- |
+| 14.4 | Boolean controlling expression | Enforced (E0701)    |
+| 15.6 | Braces required on loop body   | Enforced by grammar |
 
 ## References
 

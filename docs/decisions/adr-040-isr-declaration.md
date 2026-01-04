@@ -1,11 +1,13 @@
 # ADR-040: ISR Declaration
 
 ## Status
+
 **Implemented**
 
 ## Context
 
 Interrupt Service Routines (ISRs) are critical for embedded:
+
 - Hardware interrupts (GPIO, timer, UART)
 - Exception handlers (HardFault, NMI)
 - System tick handlers
@@ -33,6 +35,7 @@ C uses platform-specific syntax and attributes. C-Next needs a simple, portable 
 ## Syntax
 
 ### Defining an ISR
+
 ```cnx
 // ISRs are just regular void() functions
 void timerHandler() {
@@ -48,6 +51,7 @@ void uartHandler() {
 ```
 
 ### Using the ISR Type
+
 ```cnx
 // Accept any void() function as an ISR
 void registerHandler(ISR handler) {
@@ -66,6 +70,7 @@ registerHandler(uartHandler);   // OK
 ```
 
 ### ISR Arrays (Vector Tables)
+
 ```cnx
 // Array of ISRs
 ISR handlers[4];
@@ -90,6 +95,7 @@ registerHandler(timerHandler);
 ```
 
 Generates:
+
 ```c
 typedef void (*ISR)(void);
 
@@ -106,16 +112,17 @@ registerHandler(timerHandler);
 
 ## Comparison with ADR-029 Callbacks
 
-| Feature | ADR-029 Callbacks | ISR Type |
-|---------|-------------------|----------|
-| Typing | Nominal (function name is type) | Structural (signature match) |
-| Null safety | Never null (has default) | Can be null |
-| Use case | Event handlers, plugins | Interrupt vectors |
-| Signature | Any signature | Always `void(void)` |
+| Feature     | ADR-029 Callbacks               | ISR Type                     |
+| ----------- | ------------------------------- | ---------------------------- |
+| Typing      | Nominal (function name is type) | Structural (signature match) |
+| Null safety | Never null (has default)        | Can be null                  |
+| Use case    | Event handlers, plugins         | Interrupt vectors            |
+| Signature   | Any signature                   | Always `void(void)`          |
 
 ## Platform Notes
 
 Vector table placement is handled by:
+
 - Linker scripts (`.isr_vector` section)
 - Platform startup code (weak handlers)
 - Vendor HALs
@@ -125,6 +132,7 @@ C-Next does not provide `@section` attributes in v1. The `ISR` type enables pass
 ## ISR Constraints
 
 ISRs have special runtime constraints (see ADR-009 for safety research):
+
 - No blocking calls
 - Minimal execution time
 - Volatile access for shared data
@@ -135,9 +143,11 @@ These are not enforced by the type system but are documented best practices.
 ## Implementation Notes
 
 ### Priority
+
 **Low** - Simple addition of a built-in typedef.
 
 ### Implementation
+
 1. Add `ISR` to the list of primitive types
 2. Generate `typedef void (*ISR)(void);` in C output
 3. Allow any `void()` function to be assigned to `ISR`

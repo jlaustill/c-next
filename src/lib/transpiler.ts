@@ -3,33 +3,39 @@
  * Core transpilation API for use by CLI and VS Code extension
  */
 
-import { CharStream, CommonTokenStream } from 'antlr4ng';
-import { CNextLexer } from '../parser/grammar/CNextLexer.js';
-import { CNextParser } from '../parser/grammar/CNextParser.js';
-import CodeGenerator from '../codegen/CodeGenerator.js';
-import CommentExtractor from '../codegen/CommentExtractor.js';
-import CNextSymbolCollector from '../symbols/CNextSymbolCollector.js';
-import ESymbolKind from '../types/ESymbolKind.js';
-import InitializationAnalyzer from '../analysis/InitializationAnalyzer.js';
-import FunctionCallAnalyzer from '../analysis/FunctionCallAnalyzer.js';
+import { CharStream, CommonTokenStream } from "antlr4ng";
+import { CNextLexer } from "../parser/grammar/CNextLexer.js";
+import { CNextParser } from "../parser/grammar/CNextParser.js";
+import CodeGenerator from "../codegen/CodeGenerator.js";
+import CommentExtractor from "../codegen/CommentExtractor.js";
+import CNextSymbolCollector from "../symbols/CNextSymbolCollector.js";
+import ESymbolKind from "../types/ESymbolKind.js";
+import InitializationAnalyzer from "../analysis/InitializationAnalyzer.js";
+import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer.js";
 import {
-    ITranspileResult,
-    ITranspileError,
-    ISymbolInfo,
-    IParseWithSymbolsResult,
-    TSymbolKind
-} from './types/ITranspileResult.js';
+  ITranspileResult,
+  ITranspileError,
+  ISymbolInfo,
+  IParseWithSymbolsResult,
+  TSymbolKind,
+} from "./types/ITranspileResult.js";
 
-export { ITranspileResult, ITranspileError, ISymbolInfo, IParseWithSymbolsResult, TSymbolKind };
+export {
+  ITranspileResult,
+  ITranspileError,
+  ISymbolInfo,
+  IParseWithSymbolsResult,
+  TSymbolKind,
+};
 
 /**
  * Options for transpilation
  */
 export interface ITranspileOptions {
-    /** Parse only, don't generate code */
-    parseOnly?: boolean;
-    /** ADR-044: When true, generate panic-on-overflow helpers instead of clamp helpers */
-    debugMode?: boolean;
+  /** Parse only, don't generate code */
+  parseOnly?: boolean;
+  /** ADR-044: When true, generate panic-on-overflow helpers instead of clamp helpers */
+  debugMode?: boolean;
 }
 
 /**
@@ -51,184 +57,189 @@ export interface ITranspileOptions {
  * }
  * ```
  */
-export function transpile(source: string, options: ITranspileOptions = {}): ITranspileResult {
-    const { parseOnly = false, debugMode = false } = options;
-    const errors: ITranspileError[] = [];
+export function transpile(
+  source: string,
+  options: ITranspileOptions = {},
+): ITranspileResult {
+  const { parseOnly = false, debugMode = false } = options;
+  const errors: ITranspileError[] = [];
 
-    // Create the lexer and parser
-    const charStream = CharStream.fromString(source);
-    const lexer = new CNextLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
+  // Create the lexer and parser
+  const charStream = CharStream.fromString(source);
+  const lexer = new CNextLexer(charStream);
+  const tokenStream = new CommonTokenStream(lexer);
+  const parser = new CNextParser(tokenStream);
 
-    // Custom error listener to collect errors with line/column info
-    lexer.removeErrorListeners();
-    parser.removeErrorListeners();
+  // Custom error listener to collect errors with line/column info
+  lexer.removeErrorListeners();
+  parser.removeErrorListeners();
 
-    const errorListener = {
-        syntaxError(
-            _recognizer: unknown,
-            _offendingSymbol: unknown,
-            line: number,
-            charPositionInLine: number,
-            msg: string,
-            _e: unknown
-        ): void {
-            errors.push({
-                line,
-                column: charPositionInLine,
-                message: msg,
-                severity: 'error'
-            });
-        },
-        reportAmbiguity(): void {},
-        reportAttemptingFullContext(): void {},
-        reportContextSensitivity(): void {}
+  const errorListener = {
+    syntaxError(
+      _recognizer: unknown,
+      _offendingSymbol: unknown,
+      line: number,
+      charPositionInLine: number,
+      msg: string,
+      _e: unknown,
+    ): void {
+      errors.push({
+        line,
+        column: charPositionInLine,
+        message: msg,
+        severity: "error",
+      });
+    },
+    reportAmbiguity(): void {},
+    reportAttemptingFullContext(): void {},
+    reportContextSensitivity(): void {},
+  };
+
+  lexer.addErrorListener(errorListener);
+  parser.addErrorListener(errorListener);
+
+  // Parse the input
+  let tree;
+  try {
+    tree = parser.program();
+  } catch (e) {
+    // Handle catastrophic parse failures
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    errors.push({
+      line: 1,
+      column: 0,
+      message: `Parse failed: ${errorMessage}`,
+      severity: "error",
+    });
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount: 0,
     };
+  }
 
-    lexer.addErrorListener(errorListener);
-    parser.addErrorListener(errorListener);
+  const declarationCount = tree.declaration().length;
 
-    // Parse the input
-    let tree;
-    try {
-        tree = parser.program();
-    } catch (e) {
-        // Handle catastrophic parse failures
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        errors.push({
-            line: 1,
-            column: 0,
-            message: `Parse failed: ${errorMessage}`,
-            severity: 'error'
-        });
-        return {
-            success: false,
-            code: '',
-            errors,
-            declarationCount: 0
-        };
-    }
+  // If there are parse errors or parseOnly mode, return early
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
 
-    const declarationCount = tree.declaration().length;
+  if (parseOnly) {
+    return {
+      success: true,
+      code: "",
+      errors: [],
+      declarationCount,
+    };
+  }
 
-    // If there are parse errors or parseOnly mode, return early
-    if (errors.length > 0) {
-        return {
-            success: false,
-            code: '',
-            errors,
-            declarationCount
-        };
-    }
+  // Run initialization analysis (Rust-style use-before-init detection)
+  const initAnalyzer = new InitializationAnalyzer();
+  const initErrors = initAnalyzer.analyze(tree);
 
-    if (parseOnly) {
-        return {
-            success: true,
-            code: '',
-            errors: [],
-            declarationCount
-        };
-    }
+  // Convert initialization errors to transpile errors
+  for (const initError of initErrors) {
+    errors.push({
+      line: initError.line,
+      column: initError.column,
+      message: `error[${initError.code}]: ${initError.message}`,
+      severity: "error",
+    });
+  }
 
-    // Run initialization analysis (Rust-style use-before-init detection)
-    const initAnalyzer = new InitializationAnalyzer();
-    const initErrors = initAnalyzer.analyze(tree);
+  // If there are initialization errors, fail compilation
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
 
-    // Convert initialization errors to transpile errors
-    for (const initError of initErrors) {
-        errors.push({
-            line: initError.line,
-            column: initError.column,
-            message: `error[${initError.code}]: ${initError.message}`,
-            severity: 'error'
-        });
-    }
+  // Run function call analysis (ADR-030: define-before-use)
+  const funcAnalyzer = new FunctionCallAnalyzer();
+  const funcErrors = funcAnalyzer.analyze(tree);
 
-    // If there are initialization errors, fail compilation
-    if (errors.length > 0) {
-        return {
-            success: false,
-            code: '',
-            errors,
-            declarationCount
-        };
-    }
+  // Convert function call errors to transpile errors
+  for (const funcError of funcErrors) {
+    errors.push({
+      line: funcError.line,
+      column: funcError.column,
+      message: `error[${funcError.code}]: ${funcError.message}`,
+      severity: "error",
+    });
+  }
 
-    // Run function call analysis (ADR-030: define-before-use)
-    const funcAnalyzer = new FunctionCallAnalyzer();
-    const funcErrors = funcAnalyzer.analyze(tree);
+  // If there are function call errors, fail compilation
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
 
-    // Convert function call errors to transpile errors
-    for (const funcError of funcErrors) {
-        errors.push({
-            line: funcError.line,
-            column: funcError.column,
-            message: `error[${funcError.code}]: ${funcError.message}`,
-            severity: 'error'
-        });
-    }
+  // Validate comments (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  const commentExtractor = new CommentExtractor(tokenStream);
+  const commentErrors = commentExtractor.validate();
 
-    // If there are function call errors, fail compilation
-    if (errors.length > 0) {
-        return {
-            success: false,
-            code: '',
-            errors,
-            declarationCount
-        };
-    }
+  for (const commentError of commentErrors) {
+    errors.push({
+      line: commentError.line,
+      column: commentError.column,
+      message: `error[MISRA-${commentError.rule}]: ${commentError.message}`,
+      severity: "error",
+    });
+  }
 
-    // Validate comments (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
-    const commentExtractor = new CommentExtractor(tokenStream);
-    const commentErrors = commentExtractor.validate();
+  // If there are comment validation errors, fail compilation
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
 
-    for (const commentError of commentErrors) {
-        errors.push({
-            line: commentError.line,
-            column: commentError.column,
-            message: `error[MISRA-${commentError.rule}]: ${commentError.message}`,
-            severity: 'error'
-        });
-    }
+  // Generate C code
+  try {
+    const generator = new CodeGenerator();
+    const code = generator.generate(tree, undefined, tokenStream, {
+      debugMode,
+    });
 
-    // If there are comment validation errors, fail compilation
-    if (errors.length > 0) {
-        return {
-            success: false,
-            code: '',
-            errors,
-            declarationCount
-        };
-    }
-
-    // Generate C code
-    try {
-        const generator = new CodeGenerator();
-        const code = generator.generate(tree, undefined, tokenStream, { debugMode });
-
-        return {
-            success: true,
-            code,
-            errors: [],
-            declarationCount
-        };
-    } catch (e) {
-        // Handle code generation errors
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        errors.push({
-            line: 1,
-            column: 0,
-            message: `Code generation failed: ${errorMessage}`,
-            severity: 'error'
-        });
-        return {
-            success: false,
-            code: '',
-            errors,
-            declarationCount
-        };
-    }
+    return {
+      success: true,
+      code,
+      errors: [],
+      declarationCount,
+    };
+  } catch (e) {
+    // Handle code generation errors
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    errors.push({
+      line: 1,
+      column: 0,
+      message: `Code generation failed: ${errorMessage}`,
+      severity: "error",
+    });
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
 }
 
 /**
@@ -236,31 +247,31 @@ export function transpile(source: string, options: ITranspileOptions = {}): ITra
  * Convenience wrapper around transpile with parseOnly: true
  */
 export function parse(source: string): ITranspileResult {
-    return transpile(source, { parseOnly: true });
+  return transpile(source, { parseOnly: true });
 }
 
 /**
  * Map ESymbolKind to TSymbolKind for extension use
  */
 function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
-    switch (kind) {
-        case ESymbolKind.Namespace:
-            return 'namespace';
-        case ESymbolKind.Class:
-            return 'class';
-        case ESymbolKind.Struct:
-            return 'struct';
-        case ESymbolKind.Register:
-            return 'register';
-        case ESymbolKind.Function:
-            return 'function';
-        case ESymbolKind.Variable:
-            return 'variable';
-        case ESymbolKind.RegisterMember:
-            return 'registerMember';
-        default:
-            return 'variable';
-    }
+  switch (kind) {
+    case ESymbolKind.Namespace:
+      return "namespace";
+    case ESymbolKind.Class:
+      return "class";
+    case ESymbolKind.Struct:
+      return "struct";
+    case ESymbolKind.Register:
+      return "register";
+    case ESymbolKind.Function:
+      return "function";
+    case ESymbolKind.Variable:
+      return "variable";
+    case ESymbolKind.RegisterMember:
+      return "registerMember";
+    default:
+      return "variable";
+  }
 }
 
 /**
@@ -268,10 +279,10 @@ function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
  * e.g., "LED_toggle" with parent "LED" -> "toggle"
  */
 function extractLocalName(fullName: string, parent?: string): string {
-    if (parent && fullName.startsWith(parent + '_')) {
-        return fullName.substring(parent.length + 1);
-    }
-    return fullName;
+  if (parent && fullName.startsWith(parent + "_")) {
+    return fullName.substring(parent.length + 1);
+  }
+  return fullName;
 }
 
 /**
@@ -293,83 +304,83 @@ function extractLocalName(fullName: string, parent?: string): string {
  * ```
  */
 export function parseWithSymbols(source: string): IParseWithSymbolsResult {
-    const errors: ITranspileError[] = [];
+  const errors: ITranspileError[] = [];
 
-    // Create the lexer and parser
-    const charStream = CharStream.fromString(source);
-    const lexer = new CNextLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
+  // Create the lexer and parser
+  const charStream = CharStream.fromString(source);
+  const lexer = new CNextLexer(charStream);
+  const tokenStream = new CommonTokenStream(lexer);
+  const parser = new CNextParser(tokenStream);
 
-    // Custom error listener to collect errors
-    lexer.removeErrorListeners();
-    parser.removeErrorListeners();
+  // Custom error listener to collect errors
+  lexer.removeErrorListeners();
+  parser.removeErrorListeners();
 
-    const errorListener = {
-        syntaxError(
-            _recognizer: unknown,
-            _offendingSymbol: unknown,
-            line: number,
-            charPositionInLine: number,
-            msg: string,
-            _e: unknown
-        ): void {
-            errors.push({
-                line,
-                column: charPositionInLine,
-                message: msg,
-                severity: 'error'
-            });
-        },
-        reportAmbiguity(): void {},
-        reportAttemptingFullContext(): void {},
-        reportContextSensitivity(): void {}
-    };
+  const errorListener = {
+    syntaxError(
+      _recognizer: unknown,
+      _offendingSymbol: unknown,
+      line: number,
+      charPositionInLine: number,
+      msg: string,
+      _e: unknown,
+    ): void {
+      errors.push({
+        line,
+        column: charPositionInLine,
+        message: msg,
+        severity: "error",
+      });
+    },
+    reportAmbiguity(): void {},
+    reportAttemptingFullContext(): void {},
+    reportContextSensitivity(): void {},
+  };
 
-    lexer.addErrorListener(errorListener);
-    parser.addErrorListener(errorListener);
+  lexer.addErrorListener(errorListener);
+  parser.addErrorListener(errorListener);
 
-    // Parse the input - continue even with errors to get partial symbols
-    let tree;
-    try {
-        tree = parser.program();
-    } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        errors.push({
-            line: 1,
-            column: 0,
-            message: `Parse failed: ${errorMessage}`,
-            severity: 'error'
-        });
-        return {
-            success: false,
-            errors,
-            symbols: []
-        };
-    }
-
-    // Collect symbols from the parse tree
-    const collector = new CNextSymbolCollector('<source>');
-    const rawSymbols = collector.collect(tree);
-
-    // Transform ISymbol[] to ISymbolInfo[]
-    const symbols: ISymbolInfo[] = rawSymbols.map(sym => ({
-        name: extractLocalName(sym.name, sym.parent),
-        fullName: sym.name,
-        kind: mapSymbolKind(sym.kind),
-        type: sym.type,
-        parent: sym.parent,
-        signature: sym.signature,
-        accessModifier: sym.accessModifier,
-        line: sym.sourceLine,
-        size: sym.size
-    }));
-
+  // Parse the input - continue even with errors to get partial symbols
+  let tree;
+  try {
+    tree = parser.program();
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    errors.push({
+      line: 1,
+      column: 0,
+      message: `Parse failed: ${errorMessage}`,
+      severity: "error",
+    });
     return {
-        success: errors.length === 0,
-        errors,
-        symbols
+      success: false,
+      errors,
+      symbols: [],
     };
+  }
+
+  // Collect symbols from the parse tree
+  const collector = new CNextSymbolCollector("<source>");
+  const rawSymbols = collector.collect(tree);
+
+  // Transform ISymbol[] to ISymbolInfo[]
+  const symbols: ISymbolInfo[] = rawSymbols.map((sym) => ({
+    name: extractLocalName(sym.name, sym.parent),
+    fullName: sym.name,
+    kind: mapSymbolKind(sym.kind),
+    type: sym.type,
+    parent: sym.parent,
+    signature: sym.signature,
+    accessModifier: sym.accessModifier,
+    line: sym.sourceLine,
+    size: sym.size,
+  }));
+
+  return {
+    success: errors.length === 0,
+    errors,
+    symbols,
+  };
 }
 
 export default transpile;
