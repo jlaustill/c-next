@@ -2,7 +2,7 @@
 
 **Status:** Research
 **Date:** 2025-12-26
-**Updated:** 2026-01-03
+**Updated:** 2026-01-04
 **Decision Makers:** C-Next Language Design Team
 
 ## Context
@@ -511,43 +511,41 @@ Things C-Next already does well for ISR safety:
 
 4. **What about nested interrupts / priority levels?**
 
-   Need to research:
-   - Should `critical` support priority-based masking (BASEPRI)?
-   - How do we handle ISR-interrupts-ISR scenarios?
-   - Is priority ceiling (RTIC-style) worth the complexity?
+   **Resolution: Answered by ADR-050.** Critical sections use automatic ceiling priority computation (RTIC-inspired). The compiler analyzes which ISRs access which variables and sets BASEPRI to the computed ceiling. On M0/M0+ (no BASEPRI), falls back to PRIMASK. See [ADR-050: Critical Sections](adr-050-critical-sections.md) Q2 for full details.
 
 5. **Scope of v1 implementation?**
 
    **Direction: All three approaches needed, implemented incrementally:**
-   - Atomic types (Approach 1)
-   - Critical sections (Approach 2)
-   - ISR-safe queues (Approach 3)
+   - Atomic types (Approach 1) — **Accepted** (ADR-049)
+   - Critical sections (Approach 2) — **Accepted** (ADR-050)
+   - ISR-safe queues (Approach 3) — Research in progress (ADR-051)
 
-   Each may require its own ADR for detailed design. Protected scopes (Approach 4) deferred to v2.
+   Protected scopes (Approach 4) deferred to v2.
 
 6. **Target configuration mechanism?**
 
-   How does C-Next know it's targeting M0 vs M4?
-   - Command-line flag? (`cnext --target=cortex-m0`)
-   - Source annotation? (`#pragma target cortex-m4`)
-   - Build system integration?
+   **Resolution: Answered by ADR-049.** Capability-based targeting with named aliases. Transpiler needs three capabilities: `word_size`, `ldrex_strex`, and `basepri`. Named targets (e.g., `teensy41`, `cortex-m0`) are aliases for these capabilities. Specified via `#pragma target`, command-line flag, or build system detection. See [ADR-049: Atomic Types](adr-049-atomic-types.md) Q6 for full details.
 
 ---
 
 ## Child ADRs
 
-This ADR has been split into focused research ADRs:
+This ADR has been split into focused ADRs:
 
-- **[ADR-049: Atomic Types](adr-049-atomic-types.md)** — Research on atomic variable declarations and operations
-- **[ADR-050: Critical Sections](adr-050-critical-sections.md)** — Research on interrupt-disabled regions
-- **[ADR-051: ISR-Safe Queues](adr-051-isr-queues.md)** — Research on producer-consumer patterns
+| ADR | Topic | Status | Summary |
+|-----|-------|--------|---------|
+| [ADR-049](adr-049-atomic-types.md) | Atomic Types | **Accepted** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety |
+| [ADR-050](adr-050-critical-sections.md) | Critical Sections | **Accepted** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
+| [ADR-051](adr-051-isr-queues.md) | ISR-Safe Queues | Research | Producer-consumer patterns, 9 open design questions |
 
 ## Next Steps
 
-1. **Resolve open questions in child ADRs** — Each ADR has design questions to answer
-2. **Research C interop philosophy** — C-Next makes C-Next code safe, not C code
-3. **Prototype on Teensy** — Test with real CAN bus ISRs
-4. **Document target configuration** — How to specify platform capabilities
+1. ~~Resolve open questions in ADR-049~~ — **Done** (Accepted 2026-01-04)
+2. ~~Resolve open questions in ADR-050~~ — **Done** (Accepted 2026-01-04)
+3. **Resolve open questions in ADR-051** — 9 design questions for ISR-safe queues
+4. **Research C interop philosophy** — C-Next makes C-Next code safe, not C code (Q3)
+5. **Prototype on Teensy** — Test with real CAN bus ISRs
+6. **Implementation** — Begin implementing accepted ADRs (049, 050)
 
 ---
 
