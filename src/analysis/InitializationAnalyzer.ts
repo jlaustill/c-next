@@ -46,6 +46,316 @@ interface IScope {
 }
 
 /**
+ * Listener that walks the parse tree and tracks initialization
+ */
+class InitializationListener extends CNextListener {
+  private analyzer: InitializationAnalyzer;
+
+  /** Stack of saved states before each if statement */
+  private savedStates: Map<string, IVariableState>[] = [];
+
+  /** Track when we're inside a function call's argument list */
+  private inFunctionCallArgs: number = 0;
+
+  /** Track nesting depth inside functions/methods (0 = global level) */
+  private functionDepth: number = 0;
+
+  constructor(analyzer: InitializationAnalyzer) {
+    super();
+    this.analyzer = analyzer;
+  }
+
+  // ========================================================================
+  // Scope Entry/Exit
+  // ========================================================================
+
+  override enterFunctionDeclaration = (
+    ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    this.functionDepth++;
+    this.analyzer.enterScope();
+
+    // Declare parameters as initialized
+    const paramList = ctx.parameterList();
+    if (paramList) {
+      for (const param of paramList.parameter()) {
+        const name = param.IDENTIFIER().getText();
+        const line = param.start?.line ?? 0;
+        const column = param.start?.column ?? 0;
+
+        // Get type name for struct tracking
+        const typeCtx = param.type();
+        let typeName: string | null = null;
+        if (typeCtx.userType()) {
+          typeName = typeCtx.userType()!.IDENTIFIER().getText();
+        }
+
+        this.analyzer.declareParameter(name, line, column, typeName);
+      }
+    }
+  };
+
+  override exitFunctionDeclaration = (
+    _ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    this.analyzer.exitScope();
+    this.functionDepth--;
+  };
+
+  override enterBlock = (_ctx: Parser.BlockContext): void => {
+    this.analyzer.enterScope();
+  };
+
+  override exitBlock = (_ctx: Parser.BlockContext): void => {
+    this.analyzer.exitScope();
+  };
+
+  // ========================================================================
+  // Variable Declarations
+  // ========================================================================
+
+  override enterVariableDeclaration = (
+    ctx: Parser.VariableDeclarationContext,
+  ): void => {
+    // Skip global variables - they're already handled by createGlobalScope()
+    if (this.functionDepth === 0) {
+      return;
+    }
+
+    const name = ctx.IDENTIFIER().getText();
+    const line = ctx.start?.line ?? 0;
+    const column = ctx.start?.column ?? 0;
+    const hasInitializer = ctx.expression() !== null;
+
+    // Get type name for struct tracking
+    const typeCtx = ctx.type();
+    let typeName: string | null = null;
+    if (typeCtx.userType()) {
+      typeName = typeCtx.userType()!.IDENTIFIER().getText();
+    }
+
+    this.analyzer.declareVariable(name, line, column, hasInitializer, typeName);
+  };
+
+  // ========================================================================
+  // Assignments
+  // ========================================================================
+
+  override enterAssignmentStatement = (
+    ctx: Parser.AssignmentStatementContext,
+  ): void => {
+    const targetCtx = ctx.assignmentTarget();
+
+    // Simple variable assignment: x <- value
+    if (
+      targetCtx.IDENTIFIER() &&
+      !targetCtx.memberAccess() &&
+      !targetCtx.arrayAccess()
+    ) {
+      const name = targetCtx.IDENTIFIER()!.getText();
+      this.analyzer.recordAssignment(name);
+    }
+
+    // Member access: p.x <- value (only first-level field)
+    if (targetCtx.memberAccess()) {
+      const memberCtx = targetCtx.memberAccess()!;
+      const identifiers = memberCtx.IDENTIFIER();
+      if (identifiers.length >= 2) {
+        const varName = identifiers[0].getText();
+        const fieldName = identifiers[1].getText();
+        this.analyzer.recordAssignment(varName, fieldName);
+      }
+    }
+
+    // Array access: arr[i] <- value
+    if (targetCtx.arrayAccess()) {
+      const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
+      // Array element assignment initializes that element, but for simplicity
+      // we'll consider the array as a whole. More granular tracking would be complex.
+      this.analyzer.recordAssignment(arrayName);
+    }
+  };
+
+  // ========================================================================
+  // Function Call Arguments (ADR-006: pass-by-reference may initialize)
+  // ========================================================================
+
+  override enterArgumentList = (_ctx: Parser.ArgumentListContext): void => {
+    // When inside function call arguments, variables passed may be output params
+    // We don't error on uninitialized reads, and we mark them as initialized after
+    this.inFunctionCallArgs++;
+  };
+
+  override exitArgumentList = (ctx: Parser.ArgumentListContext): void => {
+    this.inFunctionCallArgs--;
+
+    // Mark any simple identifiers passed as arguments as initialized
+    // (they might be output parameters that the function writes to)
+    for (const expr of ctx.expression()) {
+      // Walk down to find simple identifiers
+      this.markArgumentsAsInitialized(expr);
+    }
+  };
+
+  /**
+   * Recursively find and mark simple identifier arguments as initialized
+   */
+  private markArgumentsAsInitialized(expr: Parser.ExpressionContext): void {
+    // Navigate through expression layers to find primary expression
+    const ternary = expr.ternaryExpression();
+    if (!ternary) return;
+    const orExprs = ternary.orExpression();
+    if (orExprs.length === 0) return;
+    const or = orExprs[0];
+    if (!or) return;
+    const and = or.andExpression(0);
+    if (!and) return;
+    const eq = and.equalityExpression(0);
+    if (!eq) return;
+    const rel = eq.relationalExpression(0);
+    if (!rel) return;
+    const bor = rel.bitwiseOrExpression(0);
+    if (!bor) return;
+    const bxor = bor.bitwiseXorExpression(0);
+    if (!bxor) return;
+    const band = bxor.bitwiseAndExpression(0);
+    if (!band) return;
+    const shift = band.shiftExpression(0);
+    if (!shift) return;
+    const add = shift.additiveExpression(0);
+    if (!add) return;
+    const mult = add.multiplicativeExpression(0);
+    if (!mult) return;
+    const unary = mult.unaryExpression(0);
+    if (!unary) return;
+    const postfix = unary.postfixExpression();
+    if (!postfix) return;
+    const primary = postfix.primaryExpression();
+    if (!primary) return;
+
+    // Found primary expression - check if it's a simple identifier
+    if (primary.IDENTIFIER()) {
+      const name = primary.IDENTIFIER()!.getText();
+      this.analyzer.recordAssignment(name);
+    }
+  }
+
+  // ========================================================================
+  // Variable Reads (in expressions)
+  // ========================================================================
+
+  override enterPrimaryExpression = (
+    ctx: Parser.PrimaryExpressionContext,
+  ): void => {
+    // Skip if we're in a write context (left side of assignment)
+    if (this.analyzer.isInWriteContext()) {
+      return;
+    }
+
+    // Skip if we're in function call arguments (might be output param)
+    if (this.inFunctionCallArgs > 0) {
+      return;
+    }
+
+    // Check for simple identifier
+    if (ctx.IDENTIFIER()) {
+      const name = ctx.IDENTIFIER()!.getText();
+      const line = ctx.start?.line ?? 0;
+      const column = ctx.start?.column ?? 0;
+
+      this.analyzer.checkRead(name, line, column);
+    }
+  };
+
+  override enterMemberAccess = (ctx: Parser.MemberAccessContext): void => {
+    // Skip if we're in a write context
+    if (this.analyzer.isInWriteContext()) {
+      return;
+    }
+
+    // Skip if we're in function call arguments
+    if (this.inFunctionCallArgs > 0) {
+      return;
+    }
+
+    const identifiers = ctx.IDENTIFIER();
+    if (identifiers.length >= 2) {
+      const varName = identifiers[0].getText();
+      const fieldName = identifiers[1].getText();
+      const line = ctx.start?.line ?? 0;
+      const column = ctx.start?.column ?? 0;
+
+      // Check if the specific field is initialized
+      this.analyzer.checkRead(varName, line, column, fieldName);
+    }
+  };
+
+  // ========================================================================
+  // Control Flow: If Statements
+  // ========================================================================
+
+  override enterIfStatement = (_ctx: Parser.IfStatementContext): void => {
+    // Save current state before entering if
+    const stateBefore = this.analyzer.cloneScopeState();
+    this.savedStates.push(stateBefore);
+  };
+
+  override exitIfStatement = (ctx: Parser.IfStatementContext): void => {
+    const stateBefore = this.savedStates.pop();
+    if (!stateBefore) return;
+
+    // Check if there's an else clause
+    const hasElse = ctx.ELSE() !== null;
+
+    if (hasElse) {
+      // With else: the tree walker processes both branches in order.
+      // If a variable is initialized in both branches, it ends up initialized.
+      // If only one branch initializes it, it may or may not be initialized
+      // depending on which branch ran last in the traversal.
+      // For now, we'll trust the final state - this is optimistic but
+      // often correct for the common pattern where both branches initialize.
+      // (A more precise analysis would track both branches separately)
+      // Don't restore - keep whatever state the branches produced.
+    } else {
+      // No else: the if might not execute, so restore to state before if
+      // Any initializations inside the if are not guaranteed
+      this.analyzer.restoreFromState(stateBefore);
+    }
+  };
+
+  // ========================================================================
+  // Control Flow: Loops
+  // ========================================================================
+
+  override enterWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
+    // Save state before loop - we'll restore after because loop might not run
+    this.savedStates.push(this.analyzer.cloneScopeState());
+  };
+
+  override exitWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
+    // Loops are conservative: we assume they might not run at all
+    // So we restore state to before the loop
+    const stateBeforeLoop = this.savedStates.pop();
+    if (stateBeforeLoop) {
+      this.analyzer.restoreFromState(stateBeforeLoop);
+    }
+  };
+
+  override enterForStatement = (_ctx: Parser.ForStatementContext): void => {
+    // Save state before loop
+    this.savedStates.push(this.analyzer.cloneScopeState());
+  };
+
+  override exitForStatement = (_ctx: Parser.ForStatementContext): void => {
+    // Same as while - conservative approach
+    const stateBeforeLoop = this.savedStates.pop();
+    if (stateBeforeLoop) {
+      this.analyzer.restoreFromState(stateBeforeLoop);
+    }
+  };
+}
+
+/**
  * Analyzes C-Next AST for use-before-initialization errors
  */
 export class InitializationAnalyzer {
@@ -410,316 +720,6 @@ export class InitializationAnalyzer {
 
     this.currentScope!.variables.set(name, state);
   }
-}
-
-/**
- * Listener that walks the parse tree and tracks initialization
- */
-class InitializationListener extends CNextListener {
-  private analyzer: InitializationAnalyzer;
-
-  /** Stack of saved states before each if statement */
-  private savedStates: Map<string, IVariableState>[] = [];
-
-  /** Track when we're inside a function call's argument list */
-  private inFunctionCallArgs: number = 0;
-
-  /** Track nesting depth inside functions/methods (0 = global level) */
-  private functionDepth: number = 0;
-
-  constructor(analyzer: InitializationAnalyzer) {
-    super();
-    this.analyzer = analyzer;
-  }
-
-  // ========================================================================
-  // Scope Entry/Exit
-  // ========================================================================
-
-  override enterFunctionDeclaration = (
-    ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    this.functionDepth++;
-    this.analyzer.enterScope();
-
-    // Declare parameters as initialized
-    const paramList = ctx.parameterList();
-    if (paramList) {
-      for (const param of paramList.parameter()) {
-        const name = param.IDENTIFIER().getText();
-        const line = param.start?.line ?? 0;
-        const column = param.start?.column ?? 0;
-
-        // Get type name for struct tracking
-        const typeCtx = param.type();
-        let typeName: string | null = null;
-        if (typeCtx.userType()) {
-          typeName = typeCtx.userType()!.IDENTIFIER().getText();
-        }
-
-        this.analyzer.declareParameter(name, line, column, typeName);
-      }
-    }
-  };
-
-  override exitFunctionDeclaration = (
-    _ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    this.analyzer.exitScope();
-    this.functionDepth--;
-  };
-
-  override enterBlock = (_ctx: Parser.BlockContext): void => {
-    this.analyzer.enterScope();
-  };
-
-  override exitBlock = (_ctx: Parser.BlockContext): void => {
-    this.analyzer.exitScope();
-  };
-
-  // ========================================================================
-  // Variable Declarations
-  // ========================================================================
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    // Skip global variables - they're already handled by createGlobalScope()
-    if (this.functionDepth === 0) {
-      return;
-    }
-
-    const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
-    const column = ctx.start?.column ?? 0;
-    const hasInitializer = ctx.expression() !== null;
-
-    // Get type name for struct tracking
-    const typeCtx = ctx.type();
-    let typeName: string | null = null;
-    if (typeCtx.userType()) {
-      typeName = typeCtx.userType()!.IDENTIFIER().getText();
-    }
-
-    this.analyzer.declareVariable(name, line, column, hasInitializer, typeName);
-  };
-
-  // ========================================================================
-  // Assignments
-  // ========================================================================
-
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    const targetCtx = ctx.assignmentTarget();
-
-    // Simple variable assignment: x <- value
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      const name = targetCtx.IDENTIFIER()!.getText();
-      this.analyzer.recordAssignment(name);
-    }
-
-    // Member access: p.x <- value (only first-level field)
-    if (targetCtx.memberAccess()) {
-      const memberCtx = targetCtx.memberAccess()!;
-      const identifiers = memberCtx.IDENTIFIER();
-      if (identifiers.length >= 2) {
-        const varName = identifiers[0].getText();
-        const fieldName = identifiers[1].getText();
-        this.analyzer.recordAssignment(varName, fieldName);
-      }
-    }
-
-    // Array access: arr[i] <- value
-    if (targetCtx.arrayAccess()) {
-      const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
-      // Array element assignment initializes that element, but for simplicity
-      // we'll consider the array as a whole. More granular tracking would be complex.
-      this.analyzer.recordAssignment(arrayName);
-    }
-  };
-
-  // ========================================================================
-  // Function Call Arguments (ADR-006: pass-by-reference may initialize)
-  // ========================================================================
-
-  override enterArgumentList = (_ctx: Parser.ArgumentListContext): void => {
-    // When inside function call arguments, variables passed may be output params
-    // We don't error on uninitialized reads, and we mark them as initialized after
-    this.inFunctionCallArgs++;
-  };
-
-  override exitArgumentList = (ctx: Parser.ArgumentListContext): void => {
-    this.inFunctionCallArgs--;
-
-    // Mark any simple identifiers passed as arguments as initialized
-    // (they might be output parameters that the function writes to)
-    for (const expr of ctx.expression()) {
-      // Walk down to find simple identifiers
-      this.markArgumentsAsInitialized(expr);
-    }
-  };
-
-  /**
-   * Recursively find and mark simple identifier arguments as initialized
-   */
-  private markArgumentsAsInitialized(expr: Parser.ExpressionContext): void {
-    // Navigate through expression layers to find primary expression
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return;
-    const orExprs = ternary.orExpression();
-    if (orExprs.length === 0) return;
-    const or = orExprs[0];
-    if (!or) return;
-    const and = or.andExpression(0);
-    if (!and) return;
-    const eq = and.equalityExpression(0);
-    if (!eq) return;
-    const rel = eq.relationalExpression(0);
-    if (!rel) return;
-    const bor = rel.bitwiseOrExpression(0);
-    if (!bor) return;
-    const bxor = bor.bitwiseXorExpression(0);
-    if (!bxor) return;
-    const band = bxor.bitwiseAndExpression(0);
-    if (!band) return;
-    const shift = band.shiftExpression(0);
-    if (!shift) return;
-    const add = shift.additiveExpression(0);
-    if (!add) return;
-    const mult = add.multiplicativeExpression(0);
-    if (!mult) return;
-    const unary = mult.unaryExpression(0);
-    if (!unary) return;
-    const postfix = unary.postfixExpression();
-    if (!postfix) return;
-    const primary = postfix.primaryExpression();
-    if (!primary) return;
-
-    // Found primary expression - check if it's a simple identifier
-    if (primary.IDENTIFIER()) {
-      const name = primary.IDENTIFIER()!.getText();
-      this.analyzer.recordAssignment(name);
-    }
-  }
-
-  // ========================================================================
-  // Variable Reads (in expressions)
-  // ========================================================================
-
-  override enterPrimaryExpression = (
-    ctx: Parser.PrimaryExpressionContext,
-  ): void => {
-    // Skip if we're in a write context (left side of assignment)
-    if (this.analyzer.isInWriteContext()) {
-      return;
-    }
-
-    // Skip if we're in function call arguments (might be output param)
-    if (this.inFunctionCallArgs > 0) {
-      return;
-    }
-
-    // Check for simple identifier
-    if (ctx.IDENTIFIER()) {
-      const name = ctx.IDENTIFIER()!.getText();
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
-
-      this.analyzer.checkRead(name, line, column);
-    }
-  };
-
-  override enterMemberAccess = (ctx: Parser.MemberAccessContext): void => {
-    // Skip if we're in a write context
-    if (this.analyzer.isInWriteContext()) {
-      return;
-    }
-
-    // Skip if we're in function call arguments
-    if (this.inFunctionCallArgs > 0) {
-      return;
-    }
-
-    const identifiers = ctx.IDENTIFIER();
-    if (identifiers.length >= 2) {
-      const varName = identifiers[0].getText();
-      const fieldName = identifiers[1].getText();
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
-
-      // Check if the specific field is initialized
-      this.analyzer.checkRead(varName, line, column, fieldName);
-    }
-  };
-
-  // ========================================================================
-  // Control Flow: If Statements
-  // ========================================================================
-
-  override enterIfStatement = (_ctx: Parser.IfStatementContext): void => {
-    // Save current state before entering if
-    const stateBefore = this.analyzer.cloneScopeState();
-    this.savedStates.push(stateBefore);
-  };
-
-  override exitIfStatement = (ctx: Parser.IfStatementContext): void => {
-    const stateBefore = this.savedStates.pop();
-    if (!stateBefore) return;
-
-    // Check if there's an else clause
-    const hasElse = ctx.ELSE() !== null;
-
-    if (hasElse) {
-      // With else: the tree walker processes both branches in order.
-      // If a variable is initialized in both branches, it ends up initialized.
-      // If only one branch initializes it, it may or may not be initialized
-      // depending on which branch ran last in the traversal.
-      // For now, we'll trust the final state - this is optimistic but
-      // often correct for the common pattern where both branches initialize.
-      // (A more precise analysis would track both branches separately)
-      // Don't restore - keep whatever state the branches produced.
-    } else {
-      // No else: the if might not execute, so restore to state before if
-      // Any initializations inside the if are not guaranteed
-      this.analyzer.restoreFromState(stateBefore);
-    }
-  };
-
-  // ========================================================================
-  // Control Flow: Loops
-  // ========================================================================
-
-  override enterWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
-    // Save state before loop - we'll restore after because loop might not run
-    this.savedStates.push(this.analyzer.cloneScopeState());
-  };
-
-  override exitWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
-    // Loops are conservative: we assume they might not run at all
-    // So we restore state to before the loop
-    const stateBeforeLoop = this.savedStates.pop();
-    if (stateBeforeLoop) {
-      this.analyzer.restoreFromState(stateBeforeLoop);
-    }
-  };
-
-  override enterForStatement = (_ctx: Parser.ForStatementContext): void => {
-    // Save state before loop
-    this.savedStates.push(this.analyzer.cloneScopeState());
-  };
-
-  override exitForStatement = (_ctx: Parser.ForStatementContext): void => {
-    // Same as while - conservative approach
-    const stateBeforeLoop = this.savedStates.pop();
-    if (stateBeforeLoop) {
-      this.analyzer.restoreFromState(stateBeforeLoop);
-    }
-  };
 }
 
 export default InitializationAnalyzer;

@@ -109,6 +109,181 @@ function showHelp(): void {
   console.log("A safer C for embedded systems development.");
 }
 
+/**
+ * Derive output path from input path (.cnx → .c or .cpp in same directory)
+ */
+function deriveOutputPath(
+  inputFile: string,
+  cppOutput: boolean = false,
+): string {
+  const ext = cppOutput ? ".cpp" : ".c";
+  return inputFile.replace(/\.cnx$/, ext);
+}
+
+/**
+ * Single file compilation (original mode)
+ */
+function runSingleFileMode(
+  inputFile: string,
+  outputFile: string,
+  parseOnly: boolean,
+  debugMode: boolean = false,
+  cppOutput: boolean = false,
+): void {
+  // Default output: same directory, .cnx → .c (or .cpp with --cpp flag)
+  const effectiveOutput = outputFile || deriveOutputPath(inputFile, cppOutput);
+
+  try {
+    const input = readFileSync(inputFile, "utf-8");
+    const result = transpile(input, { parseOnly, debugMode });
+
+    if (!result.success) {
+      console.error("Errors:");
+      result.errors.forEach((err) =>
+        console.error(`  Line ${err.line}:${err.column} - ${err.message}`),
+      );
+      process.exit(1);
+    }
+
+    if (parseOnly) {
+      console.log("Parse successful!");
+      console.log(`Found ${result.declarationCount} top-level declarations`);
+    } else {
+      writeFileSync(effectiveOutput, result.code);
+      console.log(`Generated: ${effectiveOutput}`);
+    }
+  } catch (err) {
+    console.error(`Error reading file: ${inputFile}`);
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+/**
+ * Print project compilation result
+ */
+function printProjectResult(result: {
+  success: boolean;
+  filesProcessed: number;
+  symbolsCollected: number;
+  conflicts: string[];
+  errors: string[];
+  warnings: string[];
+  outputFiles: string[];
+}): void {
+  // Print warnings
+  for (const warning of result.warnings) {
+    console.warn(`Warning: ${warning}`);
+  }
+
+  // Print conflicts
+  for (const conflict of result.conflicts) {
+    console.error(`Conflict: ${conflict}`);
+  }
+
+  // Print errors
+  for (const error of result.errors) {
+    console.error(`Error: ${error}`);
+  }
+
+  // Summary
+  if (result.success) {
+    console.log("");
+    console.log(`Compiled ${result.filesProcessed} files`);
+    console.log(`Collected ${result.symbolsCollected} symbols`);
+    console.log(`Generated ${result.outputFiles.length} output files:`);
+    for (const file of result.outputFiles) {
+      console.log(`  ${file}`);
+    }
+  } else {
+    console.error("");
+    console.error("Compilation failed");
+  }
+}
+
+/**
+ * Multi-file compilation
+ */
+async function runMultiFileMode(
+  files: string[],
+  outDir: string,
+  includeDirs: string[],
+  defines: Record<string, string | boolean>,
+  generateHeaders: boolean,
+  preprocess: boolean,
+): Promise<void> {
+  if (!outDir) {
+    console.error(
+      "Error: Output directory required for multi-file mode (-o <dir>)",
+    );
+    process.exit(1);
+  }
+
+  const project = new Project({
+    srcDirs: [],
+    includeDirs,
+    outDir,
+    files,
+    generateHeaders,
+    preprocess,
+    defines,
+  });
+
+  const result = await project.compile();
+  printProjectResult(result);
+
+  process.exit(result.success ? 0 : 1);
+}
+
+/**
+ * Project mode compilation
+ */
+async function runProjectMode(
+  projectDir: string,
+  outDir: string,
+  includeDirs: string[],
+  defines: Record<string, string | boolean>,
+  generateHeaders: boolean,
+  preprocess: boolean,
+): Promise<void> {
+  const project = new Project({
+    srcDirs: [projectDir],
+    includeDirs,
+    outDir: outDir || "./build",
+    generateHeaders,
+    preprocess,
+    defines,
+  });
+
+  const result = await project.compile();
+  printProjectResult(result);
+
+  process.exit(result.success ? 0 : 1);
+}
+
+/**
+ * Legacy compile function for backwards compatibility
+ * @deprecated Use transpile() from './lib/transpiler' instead
+ */
+interface CompileResult {
+  errors: string[];
+  declarations: number;
+  code: string;
+}
+
+function compile(input: string, parseOnly: boolean = false): CompileResult {
+  const result = transpile(input, { parseOnly });
+  return {
+    errors: result.errors.map(
+      (e) => `Line ${e.line}:${e.column} - ${e.message}`,
+    ),
+    declarations: result.declarationCount,
+    code: result.code,
+  };
+}
+
+export { compile };
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -213,181 +388,6 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 }
-
-/**
- * Derive output path from input path (.cnx → .c or .cpp in same directory)
- */
-function deriveOutputPath(
-  inputFile: string,
-  cppOutput: boolean = false,
-): string {
-  const ext = cppOutput ? ".cpp" : ".c";
-  return inputFile.replace(/\.cnx$/, ext);
-}
-
-/**
- * Single file compilation (original mode)
- */
-function runSingleFileMode(
-  inputFile: string,
-  outputFile: string,
-  parseOnly: boolean,
-  debugMode: boolean = false,
-  cppOutput: boolean = false,
-): void {
-  // Default output: same directory, .cnx → .c (or .cpp with --cpp flag)
-  const effectiveOutput = outputFile || deriveOutputPath(inputFile, cppOutput);
-
-  try {
-    const input = readFileSync(inputFile, "utf-8");
-    const result = transpile(input, { parseOnly, debugMode });
-
-    if (!result.success) {
-      console.error("Errors:");
-      result.errors.forEach((err) =>
-        console.error(`  Line ${err.line}:${err.column} - ${err.message}`),
-      );
-      process.exit(1);
-    }
-
-    if (parseOnly) {
-      console.log("Parse successful!");
-      console.log(`Found ${result.declarationCount} top-level declarations`);
-    } else {
-      writeFileSync(effectiveOutput, result.code);
-      console.log(`Generated: ${effectiveOutput}`);
-    }
-  } catch (err) {
-    console.error(`Error reading file: ${inputFile}`);
-    console.error(err);
-    process.exit(1);
-  }
-}
-
-/**
- * Multi-file compilation
- */
-async function runMultiFileMode(
-  files: string[],
-  outDir: string,
-  includeDirs: string[],
-  defines: Record<string, string | boolean>,
-  generateHeaders: boolean,
-  preprocess: boolean,
-): Promise<void> {
-  if (!outDir) {
-    console.error(
-      "Error: Output directory required for multi-file mode (-o <dir>)",
-    );
-    process.exit(1);
-  }
-
-  const project = new Project({
-    srcDirs: [],
-    includeDirs,
-    outDir,
-    files,
-    generateHeaders,
-    preprocess,
-    defines,
-  });
-
-  const result = await project.compile();
-  printProjectResult(result);
-
-  process.exit(result.success ? 0 : 1);
-}
-
-/**
- * Project mode compilation
- */
-async function runProjectMode(
-  projectDir: string,
-  outDir: string,
-  includeDirs: string[],
-  defines: Record<string, string | boolean>,
-  generateHeaders: boolean,
-  preprocess: boolean,
-): Promise<void> {
-  const project = new Project({
-    srcDirs: [projectDir],
-    includeDirs,
-    outDir: outDir || "./build",
-    generateHeaders,
-    preprocess,
-    defines,
-  });
-
-  const result = await project.compile();
-  printProjectResult(result);
-
-  process.exit(result.success ? 0 : 1);
-}
-
-/**
- * Print project compilation result
- */
-function printProjectResult(result: {
-  success: boolean;
-  filesProcessed: number;
-  symbolsCollected: number;
-  conflicts: string[];
-  errors: string[];
-  warnings: string[];
-  outputFiles: string[];
-}): void {
-  // Print warnings
-  for (const warning of result.warnings) {
-    console.warn(`Warning: ${warning}`);
-  }
-
-  // Print conflicts
-  for (const conflict of result.conflicts) {
-    console.error(`Conflict: ${conflict}`);
-  }
-
-  // Print errors
-  for (const error of result.errors) {
-    console.error(`Error: ${error}`);
-  }
-
-  // Summary
-  if (result.success) {
-    console.log("");
-    console.log(`Compiled ${result.filesProcessed} files`);
-    console.log(`Collected ${result.symbolsCollected} symbols`);
-    console.log(`Generated ${result.outputFiles.length} output files:`);
-    for (const file of result.outputFiles) {
-      console.log(`  ${file}`);
-    }
-  } else {
-    console.error("");
-    console.error("Compilation failed");
-  }
-}
-
-/**
- * Legacy compile function for backwards compatibility
- * @deprecated Use transpile() from './lib/transpiler' instead
- */
-interface CompileResult {
-  errors: string[];
-  declarations: number;
-  code: string;
-}
-
-function compile(input: string, parseOnly: boolean = false): CompileResult {
-  const result = transpile(input, { parseOnly });
-  return {
-    errors: result.errors.map(
-      (e) => `Line ${e.line}:${e.column} - ${e.message}`,
-    ),
-    declarations: result.declarationCount,
-    code: result.code,
-  };
-}
-
-export { compile };
 
 main().catch((err) => {
   console.error("Unexpected error:", err);

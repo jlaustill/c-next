@@ -209,6 +209,115 @@ const STDLIB_FUNCTIONS: Map<string, Set<string>> = new Map([
 ]);
 
 /**
+ * Listener that walks the parse tree and checks function calls
+ */
+class FunctionCallListener extends CNextListener {
+  private analyzer: FunctionCallAnalyzer;
+
+  /** Current scope name (for member function resolution) */
+  private currentScope: string | null = null;
+
+  constructor(analyzer: FunctionCallAnalyzer) {
+    super();
+    this.analyzer = analyzer;
+  }
+
+  // ========================================================================
+  // Function Definitions
+  // ========================================================================
+
+  override enterFunctionDeclaration = (
+    ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    const name = ctx.IDENTIFIER().getText();
+
+    // If inside a scope, the full name is Scope_functionName
+    if (this.currentScope) {
+      this.analyzer.defineFunction(`${this.currentScope}_${name}`);
+    } else {
+      this.analyzer.defineFunction(name);
+    }
+  };
+
+  // ========================================================================
+  // Scope Handling
+  // ========================================================================
+
+  override enterScopeDeclaration = (
+    ctx: Parser.ScopeDeclarationContext,
+  ): void => {
+    this.currentScope = ctx.IDENTIFIER().getText();
+  };
+
+  override exitScopeDeclaration = (
+    _ctx: Parser.ScopeDeclarationContext,
+  ): void => {
+    this.currentScope = null;
+  };
+
+  // ========================================================================
+  // Function Calls
+  // ========================================================================
+
+  override enterPostfixExpression = (
+    ctx: Parser.PostfixExpressionContext,
+  ): void => {
+    const ops = ctx.postfixOp();
+
+    // Find function call pattern: identifier followed by () or (args)
+    // This could be:
+    // 1. Simple call: foo()
+    // 2. Scope member call: Scope.member() -> Scope_member
+    // 3. Method-style call: obj.method() - not a C-Next function
+
+    const primary = ctx.primaryExpression();
+    if (!primary.IDENTIFIER()) {
+      return; // Not a simple identifier-based call
+    }
+
+    const baseName = primary.IDENTIFIER()!.getText();
+    let resolvedName = baseName;
+    let callOpIndex = -1;
+
+    // Walk through postfix ops to find the call and resolve the name
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+
+      // Member access: check if it's Scope.member pattern
+      if (op.IDENTIFIER()) {
+        const memberName = op.IDENTIFIER()!.getText();
+
+        // Check if base is a known scope
+        if (this.analyzer.isScope(resolvedName)) {
+          // Scope.member -> Scope_member
+          resolvedName = `${resolvedName}_${memberName}`;
+        } else {
+          // Object.method or chained access - not a C-Next function call
+          // The method belongs to the object, not a standalone function
+          return;
+        }
+      }
+      // Function call: () or (args)
+      else if (op.argumentList() || op.getChildCount() === 2) {
+        // Check if this looks like a function call (has parens)
+        const text = op.getText();
+        if (text.startsWith("(")) {
+          callOpIndex = i;
+          break;
+        }
+      }
+    }
+
+    // If we found a call, check if the function is defined
+    if (callOpIndex >= 0) {
+      const line = ctx.start?.line ?? 0;
+      const column = ctx.start?.column ?? 0;
+      this.analyzer.checkFunctionCall(resolvedName, line, column);
+    }
+  };
+}
+
+/**
  * Analyzes C-Next AST for function calls before definition
  */
 export class FunctionCallAnalyzer {
@@ -356,115 +465,6 @@ export class FunctionCallAnalyzer {
 
     return false;
   }
-}
-
-/**
- * Listener that walks the parse tree and checks function calls
- */
-class FunctionCallListener extends CNextListener {
-  private analyzer: FunctionCallAnalyzer;
-
-  /** Current scope name (for member function resolution) */
-  private currentScope: string | null = null;
-
-  constructor(analyzer: FunctionCallAnalyzer) {
-    super();
-    this.analyzer = analyzer;
-  }
-
-  // ========================================================================
-  // Function Definitions
-  // ========================================================================
-
-  override enterFunctionDeclaration = (
-    ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    const name = ctx.IDENTIFIER().getText();
-
-    // If inside a scope, the full name is Scope_functionName
-    if (this.currentScope) {
-      this.analyzer.defineFunction(`${this.currentScope}_${name}`);
-    } else {
-      this.analyzer.defineFunction(name);
-    }
-  };
-
-  // ========================================================================
-  // Scope Handling
-  // ========================================================================
-
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.currentScope = ctx.IDENTIFIER().getText();
-  };
-
-  override exitScopeDeclaration = (
-    _ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.currentScope = null;
-  };
-
-  // ========================================================================
-  // Function Calls
-  // ========================================================================
-
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const ops = ctx.postfixOp();
-
-    // Find function call pattern: identifier followed by () or (args)
-    // This could be:
-    // 1. Simple call: foo()
-    // 2. Scope member call: Scope.member() -> Scope_member
-    // 3. Method-style call: obj.method() - not a C-Next function
-
-    const primary = ctx.primaryExpression();
-    if (!primary.IDENTIFIER()) {
-      return; // Not a simple identifier-based call
-    }
-
-    const baseName = primary.IDENTIFIER()!.getText();
-    let resolvedName = baseName;
-    let callOpIndex = -1;
-
-    // Walk through postfix ops to find the call and resolve the name
-    for (let i = 0; i < ops.length; i++) {
-      const op = ops[i];
-
-      // Member access: check if it's Scope.member pattern
-      if (op.IDENTIFIER()) {
-        const memberName = op.IDENTIFIER()!.getText();
-
-        // Check if base is a known scope
-        if (this.analyzer.isScope(resolvedName)) {
-          // Scope.member -> Scope_member
-          resolvedName = `${resolvedName}_${memberName}`;
-        } else {
-          // Object.method or chained access - not a C-Next function call
-          // The method belongs to the object, not a standalone function
-          return;
-        }
-      }
-      // Function call: () or (args)
-      else if (op.argumentList() || op.getChildCount() === 2) {
-        // Check if this looks like a function call (has parens)
-        const text = op.getText();
-        if (text.startsWith("(")) {
-          callOpIndex = i;
-          break;
-        }
-      }
-    }
-
-    // If we found a call, check if the function is defined
-    if (callOpIndex >= 0) {
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
-      this.analyzer.checkFunctionCall(resolvedName, line, column);
-    }
-  };
 }
 
 export default FunctionCallAnalyzer;
