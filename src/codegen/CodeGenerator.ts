@@ -3944,10 +3944,10 @@ export default class CodeGenerator {
         // Pattern 1: GPIO7.DR_SET[bit] - 2 identifiers, first is register
         // Pattern 2: Scope.GPIO7.DR_SET[bit] - 3 identifiers, first is scope
         let fullName: string;
-        const firstId = identifiers[0].getText();
-        if (this.knownScopes.has(firstId) && identifiers.length >= 3) {
+        const leadingId = identifiers[0].getText();
+        if (this.knownScopes.has(leadingId) && identifiers.length >= 3) {
           // Scoped register: Scope.Register.Member
-          const scopeName = firstId;
+          const scopeName = leadingId;
           const regName = identifiers[1].getText();
           const memberName = identifiers[2].getText();
           fullName = `${scopeName}_${regName}_${memberName}`;
@@ -5454,13 +5454,13 @@ export default class CodeGenerator {
           const sig = this.functionSignatures.get(result);
           if (sig) {
             for (
-              let i = 0;
-              i < argExprs.length && i < sig.parameters.length;
-              i++
+              let argIdx = 0;
+              argIdx < argExprs.length && argIdx < sig.parameters.length;
+              argIdx++
             ) {
-              const argId = this.getSimpleIdentifier(argExprs[i]);
+              const argId = this.getSimpleIdentifier(argExprs[argIdx]);
               if (argId && this.isConstValue(argId)) {
-                const param = sig.parameters[i];
+                const param = sig.parameters[argIdx];
                 if (!param.isConst) {
                   throw new Error(
                     `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
