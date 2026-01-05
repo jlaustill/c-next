@@ -1,0 +1,1 @@
+1:0 Code generation failed: E0853: Cannot use 'return' inside critical section - would leave interrupts disabled

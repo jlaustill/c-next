@@ -86,9 +86,18 @@ function validateCompilation(cFile) {
     // Use gcc to check syntax only (no object file generated)
     // -std=c99 for C99 features, -fsyntax-only for fast check
     // Suppress warnings about unused variables and void main (common in tests)
+    // -I tests/include for stub headers (e.g., cmsis_gcc.h for ARM intrinsics)
     execFileSync(
       "gcc",
-      ["-fsyntax-only", "-std=c99", "-Wno-unused-variable", "-Wno-main", cFile],
+      [
+        "-fsyntax-only",
+        "-std=c99",
+        "-Wno-unused-variable",
+        "-Wno-main",
+        "-I",
+        join(rootDir, "tests/include"),
+        cFile,
+      ],
       { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
     );
     return { valid: true };

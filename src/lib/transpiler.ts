@@ -36,6 +36,8 @@ export interface ITranspileOptions {
   parseOnly?: boolean;
   /** ADR-044: When true, generate panic-on-overflow helpers instead of clamp helpers */
   debugMode?: boolean;
+  /** ADR-049: Target platform for atomic code generation (e.g., "teensy41", "cortex-m0") */
+  target?: string;
 }
 
 /**
@@ -61,7 +63,7 @@ export function transpile(
   source: string,
   options: ITranspileOptions = {},
 ): ITranspileResult {
-  const { parseOnly = false, debugMode = false } = options;
+  const { parseOnly = false, debugMode = false, target } = options;
   const errors: ITranspileError[] = [];
 
   // Create the lexer and parser
@@ -216,6 +218,7 @@ export function transpile(
     const generator = new CodeGenerator();
     const code = generator.generate(tree, undefined, tokenStream, {
       debugMode,
+      target,
     });
 
     return {

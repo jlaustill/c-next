@@ -80,6 +80,7 @@ interface TypeInfo {
   overflowBehavior?: TOverflowBehavior; // ADR-044: clamp (default) or wrap
   isString?: boolean; // ADR-045: Track if this is a bounded string type
   stringCapacity?: number; // ADR-045: The N in string<N> (character capacity)
+  isAtomic?: boolean; // ADR-049: Track if this variable has atomic modifier
 }
 
 /**
@@ -171,6 +172,62 @@ const TYPE_RANGES: Record<string, [bigint, bigint]> = {
 };
 
 /**
+ * ADR-049: Target platform capabilities for code generation
+ */
+interface TargetCapabilities {
+  wordSize: 8 | 16 | 32;
+  hasLdrexStrex: boolean;
+  hasBasepri: boolean;
+}
+
+/**
+ * ADR-049: Target platform capability map
+ */
+const TARGET_CAPABILITIES: Record<string, TargetCapabilities> = {
+  teensy41: { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
+  teensy40: { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
+  "cortex-m7": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
+  "cortex-m4": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
+  "cortex-m3": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
+  "cortex-m0+": { wordSize: 32, hasLdrexStrex: true, hasBasepri: false },
+  "cortex-m0": { wordSize: 32, hasLdrexStrex: false, hasBasepri: false },
+  avr: { wordSize: 8, hasLdrexStrex: false, hasBasepri: false },
+};
+
+/**
+ * ADR-049: Default target capabilities (safe fallback)
+ */
+const DEFAULT_TARGET: TargetCapabilities = {
+  wordSize: 32,
+  hasLdrexStrex: false,
+  hasBasepri: false,
+};
+
+/**
+ * ADR-049: LDREX/STREX intrinsic map for atomic operations
+ */
+const LDREX_MAP: Record<string, string> = {
+  u8: "__LDREXB",
+  i8: "__LDREXB",
+  u16: "__LDREXH",
+  i16: "__LDREXH",
+  u32: "__LDREXW",
+  i32: "__LDREXW",
+};
+
+/**
+ * ADR-049: STREX intrinsic map for atomic operations
+ */
+const STREX_MAP: Record<string, string> = {
+  u8: "__STREXB",
+  i8: "__STREXB",
+  u16: "__STREXH",
+  i16: "__STREXH",
+  u32: "__STREXW",
+  i32: "__STREXW",
+};
+
+/**
  * ADR-044: Assignment context for overflow behavior tracking
  */
 interface AssignmentContext {
@@ -197,6 +254,7 @@ interface GeneratorContext {
   lastArrayInitCount: number; // ADR-035: Track element count for size inference
   lastArrayFillValue: string | undefined; // ADR-035: Track fill-all value
   lengthCache: Map<string, string> | null; // Cache: variable name -> temp variable name for strlen optimization
+  targetCapabilities: TargetCapabilities; // ADR-049: Target platform for atomic code generation
 }
 
 /**
@@ -205,6 +263,8 @@ interface GeneratorContext {
 export interface ICodeGeneratorOptions {
   /** ADR-044: When true, generate panic helpers instead of clamp helpers */
   debugMode?: boolean;
+  /** ADR-049: CLI/config target override (takes priority over #pragma target) */
+  target?: string;
 }
 
 /**
@@ -233,6 +293,7 @@ export default class CodeGenerator {
     lastArrayInitCount: 0, // ADR-035: Track element count for size inference
     lastArrayFillValue: undefined, // ADR-035: Track fill-all value
     lengthCache: null, // strlen optimization: variable -> temp var name
+    targetCapabilities: DEFAULT_TARGET, // ADR-049: Target platform capabilities
   };
 
   private knownScopes: Set<string> = new Set(); // ADR-016: renamed from knownNamespaces
@@ -283,6 +344,8 @@ export default class CodeGenerator {
   private needsString: boolean = false; // ADR-045: For strlen, strncpy, etc.
 
   private needsISR: boolean = false; // ADR-040: For ISR function pointer type
+
+  private needsCMSIS: boolean = false; // ADR-049/050: For atomic intrinsics and critical sections
 
   /** External symbol table for cross-language interop */
   private symbolTable: SymbolTable | null = null;
@@ -370,6 +433,12 @@ export default class CodeGenerator {
       this.commentExtractor = null;
     }
 
+    // ADR-049: Determine target capabilities with priority: CLI > pragma > default
+    const targetCapabilities = this.resolveTargetCapabilities(
+      tree,
+      options?.target,
+    );
+
     // Reset state
     this.context = {
       currentScope: null, // ADR-016
@@ -390,6 +459,7 @@ export default class CodeGenerator {
       lastArrayInitCount: 0, // ADR-035: Track element count for size inference
       lastArrayFillValue: undefined as string | undefined, // ADR-035: Track fill-all value
       lengthCache: null, // strlen optimization: variable -> temp var name
+      targetCapabilities, // ADR-049: Target platform capabilities
     };
     this.knownScopes = new Set(); // ADR-016
     this.knownStructs = new Set();
@@ -412,6 +482,7 @@ export default class CodeGenerator {
     this.needsStdbool = false;
     this.needsString = false; // ADR-045: Reset string header tracking
     this.needsISR = false; // ADR-040: Reset ISR typedef tracking
+    this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
 
     // First pass: collect namespace and class members
     this.collectSymbols(tree);
@@ -478,6 +549,12 @@ export default class CodeGenerator {
     if (this.needsString) {
       autoIncludes.push("#include <string.h>"); // ADR-045: For strlen, strncpy, etc.
     }
+    if (this.needsCMSIS) {
+      // ADR-049/050: CMSIS intrinsics for atomic operations and critical sections
+      // Note: For Arduino/Teensy, these are typically included via Arduino.h
+      // For standalone ARM targets, cmsis_gcc.h provides __LDREX/__STREX/__get_PRIMASK etc.
+      autoIncludes.push("#include <cmsis_gcc.h>");
+    }
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes);
       output.push("");
@@ -500,6 +577,62 @@ export default class CodeGenerator {
     output.push(...declarations);
 
     return output.join("\n");
+  }
+
+  /**
+   * ADR-049: Resolve target capabilities with priority: CLI > pragma > default
+   * @param tree - The parsed program tree
+   * @param cliTarget - Optional target from CLI --target flag
+   */
+  private resolveTargetCapabilities(
+    tree: Parser.ProgramContext,
+    cliTarget?: string,
+  ): TargetCapabilities {
+    // Priority 1: CLI --target flag
+    if (cliTarget) {
+      const targetName = cliTarget.toLowerCase();
+      if (TARGET_CAPABILITIES[targetName]) {
+        return TARGET_CAPABILITIES[targetName];
+      }
+      // Warn about unknown CLI target but continue with pragma/default
+      console.warn(
+        `Warning: Unknown target '${cliTarget}', falling back to pragma or default`,
+      );
+    }
+
+    // Priority 2: #pragma target in source
+    const pragmaTarget = this.parseTargetPragma(tree);
+    if (pragmaTarget !== DEFAULT_TARGET) {
+      return pragmaTarget;
+    }
+
+    // Priority 3: Default (safe fallback - no LDREX/STREX)
+    return DEFAULT_TARGET;
+  }
+
+  /**
+   * ADR-049: Parse #pragma target directive from source
+   * Returns capabilities for the specified platform, or DEFAULT_TARGET if none found
+   */
+  private parseTargetPragma(tree: Parser.ProgramContext): TargetCapabilities {
+    // pragmaDirective is accessed through preprocessorDirective
+    const preprocessorDirs = tree.preprocessorDirective();
+    for (const ppDir of preprocessorDirs) {
+      const pragmaDir = ppDir.pragmaDirective();
+      if (pragmaDir) {
+        // PRAGMA_TARGET captures the whole "#pragma target <name>" as one token
+        const text = pragmaDir.getText();
+        // Extract target name: "#pragma target teensy41" -> "teensy41"
+        const match = text.match(/#\s*pragma\s+target\s+(\S+)/i);
+        if (match) {
+          const targetName = match[1].toLowerCase();
+          if (TARGET_CAPABILITIES[targetName]) {
+            return TARGET_CAPABILITIES[targetName];
+          }
+        }
+      }
+    }
+    return DEFAULT_TARGET;
   }
 
   /**
@@ -848,6 +981,9 @@ export default class CodeGenerator {
     const overflowBehavior: TOverflowBehavior =
       overflowMod?.getText() === "wrap" ? "wrap" : "clamp";
 
+    // ADR-049: Extract atomic modifier
+    const isAtomic = varDecl.atomicModifier() !== null;
+
     let baseType = "";
     let bitWidth = 0;
     let isArray = false;
@@ -874,6 +1010,7 @@ export default class CodeGenerator {
           isString: true,
           stringCapacity: capacity,
           overflowBehavior,
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       } else {
@@ -901,6 +1038,7 @@ export default class CodeGenerator {
           isEnum: true,
           enumTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -915,6 +1053,7 @@ export default class CodeGenerator {
           isBitmap: true,
           bitmapTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -936,6 +1075,7 @@ export default class CodeGenerator {
           isEnum: true,
           enumTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -950,6 +1090,7 @@ export default class CodeGenerator {
           isBitmap: true,
           bitmapTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -968,6 +1109,7 @@ export default class CodeGenerator {
           isEnum: true,
           enumTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -982,6 +1124,7 @@ export default class CodeGenerator {
           isBitmap: true,
           bitmapTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -1028,6 +1171,7 @@ export default class CodeGenerator {
           arrayDimensions.length > 0 ? arrayDimensions : undefined,
         isConst, // ADR-013: Store const status
         overflowBehavior, // ADR-044: Store overflow behavior
+        isAtomic, // ADR-049: Store atomic status
       });
     }
   }
@@ -1048,6 +1192,9 @@ export default class CodeGenerator {
     const overflowMod = varDecl.overflowModifier();
     const overflowBehavior: TOverflowBehavior =
       overflowMod?.getText() === "wrap" ? "wrap" : "clamp";
+
+    // ADR-049: Extract atomic modifier
+    const isAtomic = varDecl.atomicModifier() !== null;
 
     let baseType = "";
     let bitWidth = 0;
@@ -1077,6 +1224,7 @@ export default class CodeGenerator {
           isEnum: true,
           enumTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -1098,6 +1246,7 @@ export default class CodeGenerator {
           isEnum: true,
           enumTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -1115,6 +1264,7 @@ export default class CodeGenerator {
           isEnum: true,
           enumTypeName: baseType,
           overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
         });
         return; // Early return, we've handled this case
       }
@@ -1160,6 +1310,7 @@ export default class CodeGenerator {
           arrayDimensions.length > 0 ? arrayDimensions : undefined,
         isConst,
         overflowBehavior, // ADR-044: Store overflow behavior
+        isAtomic, // ADR-049: Store atomic status
       });
     }
   }
@@ -3020,6 +3171,8 @@ export default class CodeGenerator {
 
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
     const constMod = ctx.constModifier() ? "const " : "";
+    // ADR-049: Add volatile for atomic variables
+    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
     const type = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
@@ -3194,7 +3347,7 @@ export default class CodeGenerator {
       }
     }
 
-    let decl = `${constMod}${type} ${name}`;
+    let decl = `${constMod}${atomicMod}${type} ${name}`;
     // ADR-036: arrayDimension() now returns an array for multi-dimensional support
     const arrayDims = ctx.arrayDimension();
     const isArray = arrayDims.length > 0;
@@ -3511,6 +3664,10 @@ export default class CodeGenerator {
     }
     if (ctx.returnStatement()) {
       return this.generateReturn(ctx.returnStatement()!);
+    }
+    // ADR-050: Critical statement for atomic multi-variable operations
+    if (ctx.criticalStatement()) {
+      return this.generateCriticalStatement(ctx.criticalStatement()!);
     }
     if (ctx.block()) {
       return this.generateBlock(ctx.block()!);
@@ -4174,7 +4331,17 @@ export default class CodeGenerator {
     // Normal assignment (simple or compound)
     const target = this.generateAssignmentTarget(targetCtx);
 
-    // ADR-044: Handle compound assignments with overflow behavior
+    // ADR-049: Handle atomic compound assignments with LDREX/STREX or PRIMASK
+    if (isCompound && targetCtx.IDENTIFIER()) {
+      const id = targetCtx.IDENTIFIER()!.getText();
+      const typeInfo = this.context.typeRegistry.get(id);
+
+      if (typeInfo?.isAtomic) {
+        return this.generateAtomicRMW(target, cOp, value, typeInfo);
+      }
+    }
+
+    // ADR-044: Handle compound assignments with overflow behavior (non-atomic)
     if (isCompound && targetCtx.IDENTIFIER()) {
       const id = targetCtx.IDENTIFIER()!.getText();
       const typeInfo = this.context.typeRegistry.get(id);
@@ -4201,6 +4368,148 @@ export default class CodeGenerator {
     }
 
     return `${target} ${cOp} ${value};`;
+  }
+
+  /**
+   * ADR-049: Generate atomic Read-Modify-Write operation
+   * Uses LDREX/STREX on platforms that support it, otherwise PRIMASK
+   */
+  private generateAtomicRMW(
+    target: string,
+    cOp: string,
+    value: string,
+    typeInfo: TypeInfo,
+  ): string {
+    const caps = this.context.targetCapabilities;
+    const baseType = typeInfo.baseType;
+
+    // Generate the inner operation (handles clamp/wrap)
+    const innerOp = this.generateInnerAtomicOp(cOp, value, typeInfo);
+
+    // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
+    if (caps.hasLdrexStrex && LDREX_MAP[baseType]) {
+      return this.generateLdrexStrexLoop(target, innerOp, typeInfo);
+    } else {
+      return this.generatePrimaskWrapper(target, cOp, value, typeInfo);
+    }
+  }
+
+  /**
+   * ADR-049: Generate the inner operation for atomic RMW
+   * Handles clamp/wrap behavior for arithmetic operations
+   */
+  private generateInnerAtomicOp(
+    cOp: string,
+    value: string,
+    typeInfo: TypeInfo,
+  ): string {
+    // Map compound operators to simple operators
+    const simpleOpMap: Record<string, string> = {
+      "+=": "+",
+      "-=": "-",
+      "*=": "*",
+      "/=": "/",
+      "%=": "%",
+      "&=": "&",
+      "|=": "|",
+      "^=": "^",
+      "<<=": "<<",
+      ">>=": ">>",
+    };
+    const simpleOp = simpleOpMap[cOp] || "+";
+
+    // Handle clamp behavior for arithmetic operations
+    if (
+      typeInfo.overflowBehavior === "clamp" &&
+      TYPE_WIDTH[typeInfo.baseType]
+    ) {
+      const opMap: Record<string, string> = {
+        "+=": "add",
+        "-=": "sub",
+        "*=": "mul",
+      };
+      const helperOp = opMap[cOp];
+
+      if (helperOp) {
+        this.markClampOpUsed(helperOp, typeInfo.baseType);
+        return `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`;
+      }
+    }
+
+    // For wrap behavior or non-clamp ops, use natural arithmetic
+    return `__old ${simpleOp} ${value}`;
+  }
+
+  /**
+   * ADR-049: Generate LDREX/STREX retry loop for atomic RMW
+   * Uses ARM exclusive access instructions for lock-free atomics
+   */
+  private generateLdrexStrexLoop(
+    target: string,
+    innerOp: string,
+    typeInfo: TypeInfo,
+  ): string {
+    const ldrex = LDREX_MAP[typeInfo.baseType];
+    const strex = STREX_MAP[typeInfo.baseType];
+    const cType = TYPE_MAP[typeInfo.baseType];
+
+    // Mark that we need CMSIS headers
+    this.needsCMSIS = true;
+
+    // Generate LDREX/STREX retry loop
+    // Uses do-while because we always need at least one attempt
+    return `do {
+    ${cType} __old = ${ldrex}(&${target});
+    ${cType} __new = ${innerOp};
+    if (${strex}(__new, &${target}) == 0) break;
+} while (1);`;
+  }
+
+  /**
+   * ADR-049: Generate PRIMASK-based atomic wrapper
+   * Disables all interrupts during the RMW operation
+   */
+  private generatePrimaskWrapper(
+    target: string,
+    cOp: string,
+    value: string,
+    typeInfo: TypeInfo,
+  ): string {
+    // Mark that we need CMSIS headers
+    this.needsCMSIS = true;
+
+    // Generate the actual assignment operation inside the critical section
+    let assignment: string;
+
+    // Handle clamp behavior
+    if (
+      typeInfo.overflowBehavior === "clamp" &&
+      TYPE_WIDTH[typeInfo.baseType]
+    ) {
+      const opMap: Record<string, string> = {
+        "+=": "add",
+        "-=": "sub",
+        "*=": "mul",
+      };
+      const helperOp = opMap[cOp];
+
+      if (helperOp) {
+        this.markClampOpUsed(helperOp, typeInfo.baseType);
+        assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
+      } else {
+        assignment = `${target} ${cOp} ${value};`;
+      }
+    } else {
+      assignment = `${target} ${cOp} ${value};`;
+    }
+
+    // Generate PRIMASK save/restore wrapper
+    return `{
+    uint32_t __primask = __get_PRIMASK();
+    __disable_irq();
+    ${assignment}
+    __set_PRIMASK(__primask);
+}`;
   }
 
   private generateAssignmentTarget(
@@ -4495,6 +4804,97 @@ export default class CodeGenerator {
       return `return ${this.generateExpression(ctx.expression()!)};`;
     }
     return "return;";
+  }
+
+  // ========================================================================
+  // Critical Statements (ADR-050)
+  // ========================================================================
+
+  /**
+   * ADR-050: Generate critical statement with PRIMASK wrapper
+   * Ensures atomic execution of multi-variable operations
+   */
+  private generateCriticalStatement(
+    ctx: Parser.CriticalStatementContext,
+  ): string {
+    // Validate no early exits inside critical block
+    this.validateNoEarlyExits(ctx.block());
+
+    // Mark that we need CMSIS headers
+    this.needsCMSIS = true;
+
+    // Generate the block contents
+    const blockCode = this.generateBlock(ctx.block());
+
+    // Remove outer braces from block since we're wrapping
+    const innerCode = blockCode.slice(1, -1).trim();
+
+    // Generate PRIMASK save/restore wrapper
+    return `{
+    uint32_t __primask = __get_PRIMASK();
+    __disable_irq();
+    ${innerCode}
+    __set_PRIMASK(__primask);
+}`;
+  }
+
+  /**
+   * ADR-050: Validate no early exits inside critical block
+   * return, break, continue would leave interrupts disabled
+   */
+  private validateNoEarlyExits(ctx: Parser.BlockContext): void {
+    for (const stmt of ctx.statement()) {
+      if (stmt.returnStatement()) {
+        throw new Error(
+          `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
+        );
+      }
+      // Recursively check nested blocks
+      if (stmt.block()) {
+        this.validateNoEarlyExits(stmt.block()!);
+      }
+      // Check inside if statements
+      if (stmt.ifStatement()) {
+        for (const innerStmt of stmt.ifStatement()!.statement()) {
+          if (innerStmt.returnStatement()) {
+            throw new Error(
+              `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
+            );
+          }
+          if (innerStmt.block()) {
+            this.validateNoEarlyExits(innerStmt.block()!);
+          }
+        }
+      }
+      // Check inside while/for/do-while loops for return (break/continue are already rejected by ADR-026)
+      if (stmt.whileStatement()) {
+        const loopStmt = stmt.whileStatement()!.statement();
+        if (loopStmt.returnStatement()) {
+          throw new Error(
+            `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
+          );
+        }
+        if (loopStmt.block()) {
+          this.validateNoEarlyExits(loopStmt.block()!);
+        }
+      }
+      if (stmt.forStatement()) {
+        const loopStmt = stmt.forStatement()!.statement();
+        if (loopStmt.returnStatement()) {
+          throw new Error(
+            `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
+          );
+        }
+        if (loopStmt.block()) {
+          this.validateNoEarlyExits(loopStmt.block()!);
+        }
+      }
+      if (stmt.doWhileStatement()) {
+        // do-while uses block directly, not statement
+        const loopBlock = stmt.doWhileStatement()!.block();
+        this.validateNoEarlyExits(loopBlock);
+      }
+    }
   }
 
   // ========================================================================

@@ -35,9 +35,11 @@ includeDirective
 // - #define FLAG (no value) - allowed for conditional compilation
 // - #define FLAG value - ERROR, must use const
 // - #define NAME(args) - ERROR, function macros forbidden
+// - #pragma target NAME - set target platform (ADR-049)
 preprocessorDirective
     : defineDirective
     | conditionalDirective
+    | pragmaDirective
     ;
 
 defineDirective
@@ -51,6 +53,11 @@ conditionalDirective
     | IFNDEF_DIRECTIVE
     | ELSE_DIRECTIVE
     | ENDIF_DIRECTIVE
+    ;
+
+// ADR-049: Target platform pragma for code generation
+pragmaDirective
+    : PRAGMA_TARGET
     ;
 
 // Top-level declarations
@@ -176,15 +183,20 @@ overflowModifier
     | 'wrap'     // Two's complement wrap (opt-in)
     ;
 
+// ADR-049: Atomic modifier for ISR-safe variables
+atomicModifier
+    : 'atomic'
+    ;
+
 arrayDimension
     : '[' expression? ']'
     ;
 
 // ----------------------------------------------------------------------------
-// Variables (ADR-003: Static allocation, ADR-044: Overflow behavior)
+// Variables (ADR-003: Static allocation, ADR-044: Overflow behavior, ADR-049: Atomic)
 // ----------------------------------------------------------------------------
 variableDeclaration
-    : constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
+    : atomicModifier? constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -204,7 +216,13 @@ statement
     | forStatement
     | switchStatement
     | returnStatement
+    | criticalStatement    // ADR-050: Critical sections
     | block
+    ;
+
+// ADR-050: Critical section for atomic multi-variable operations
+criticalStatement
+    : 'critical' block
     ;
 
 // ADR-001: <- for assignment, with compound assignment operators
@@ -299,7 +317,7 @@ forInit
 
 // Variable declaration without trailing semicolon (for use in for loops)
 forVarDecl
-    : overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
+    : atomicModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
     ;
 
 // Assignment without trailing semicolon (for use in for loops)
@@ -604,6 +622,12 @@ ENDIF_DIRECTIVE
     : '#' [ \t]* 'endif' [ \t]*
     ;
 
+// ADR-049: Target platform pragma
+// Matches: #pragma target teensy41, #pragma target cortex-m7, etc.
+PRAGMA_TARGET
+    : '#' [ \t]* 'pragma' [ \t]+ 'target' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_\-]*
+    ;
+
 // Keywords
 SCOPE       : 'scope';
 STRUCT      : 'struct';
@@ -648,6 +672,12 @@ BITS        : 'bits';
 // Overflow behavior keywords (ADR-044)
 CLAMP       : 'clamp';
 WRAP        : 'wrap';
+
+// ADR-049: Atomic types for ISR-safe variables
+ATOMIC      : 'atomic';
+
+// ADR-050: Critical sections for multi-variable atomic operations
+CRITICAL    : 'critical';
 
 // ADR-024: Type-suffixed numeric literals (REQUIRED)
 // These MUST come before unsuffixed literals so ANTLR matches them first

@@ -1,0 +1,9 @@
+// Note: platformio.ini is present for CLI auto-detection testing
+// Test script uses pragma since it calls transpile() directly
+#pragma target teensy41
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

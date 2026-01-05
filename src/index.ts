@@ -9,6 +9,7 @@ import {
   ITranspileResult,
   ITranspileError,
 } from "./lib/transpiler.js";
+import { detectPlatformIOTarget } from "./lib/PlatformIODetector.js";
 import Project from "./project/Project.js";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { dirname, resolve } from "path";
@@ -20,6 +21,7 @@ interface ICNextConfig {
   outputExtension?: ".c" | ".cpp";
   generateHeaders?: boolean;
   debugMode?: boolean;
+  target?: string; // ADR-049: Target platform (e.g., "teensy41", "cortex-m0")
 }
 
 /**
@@ -84,6 +86,12 @@ function showHelp(): void {
   console.log(
     "  --debug            Generate panic-on-overflow helpers (ADR-044)",
   );
+  console.log(
+    "  --target <name>    Target platform for atomic code gen (ADR-049)",
+  );
+  console.log(
+    "                     Options: teensy41, cortex-m7/m4/m3/m0+/m0, avr",
+  );
   console.log("  --no-headers       Don't generate header files");
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  -D<name>[=value]   Define preprocessor macro");
@@ -129,13 +137,14 @@ function runSingleFileMode(
   parseOnly: boolean,
   debugMode: boolean = false,
   cppOutput: boolean = false,
+  target?: string,
 ): void {
   // Default output: same directory, .cnx → .c (or .cpp with --cpp flag)
   const effectiveOutput = outputFile || deriveOutputPath(inputFile, cppOutput);
 
   try {
     const input = readFileSync(inputFile, "utf-8");
-    const result = transpile(input, { parseOnly, debugMode });
+    const result = transpile(input, { parseOnly, debugMode, target });
 
     if (!result.success) {
       console.error("Errors:");
@@ -305,6 +314,7 @@ async function main(): Promise<void> {
   const defines: Record<string, string | boolean> = {};
   let parseOnly = false;
   let cliDebugMode: boolean | undefined;
+  let cliTarget: string | undefined;
   let cliGenerateHeaders: boolean | undefined;
   let preprocess = true;
   let cliCppOutput: boolean | undefined;
@@ -322,6 +332,8 @@ async function main(): Promise<void> {
       parseOnly = true;
     } else if (arg === "--debug") {
       cliDebugMode = true;
+    } else if (arg === "--target" && i + 1 < args.length) {
+      cliTarget = args[++i];
     } else if (arg === "--cpp") {
       cliCppOutput = true;
     } else if (arg === "--no-headers") {
@@ -352,6 +364,14 @@ async function main(): Promise<void> {
   const debugMode = cliDebugMode ?? config.debugMode ?? false;
   const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
 
+  // ADR-049: Target resolution priority: CLI > config > PlatformIO > pragma > default
+  // Detect PlatformIO target as fallback (only for single-file mode currently)
+  const pioTarget =
+    inputFiles.length === 1
+      ? detectPlatformIOTarget(dirname(resolve(inputFiles[0])))
+      : undefined;
+  const target = cliTarget ?? config.target ?? pioTarget;
+
   // Determine mode
   if (projectDir) {
     // Project mode
@@ -381,6 +401,7 @@ async function main(): Promise<void> {
       parseOnly,
       debugMode,
       cppOutput,
+      target,
     );
   } else {
     console.error("Error: No input files specified");

@@ -1,0 +1,11 @@
+#pragma target teensy41
+
+atomic u32 counter <- 0;
+atomic clamp u8 brightness <- 100;
+atomic wrap u32 ticks <- 0;
+
+void increment() {
+    counter +<- 1;
+    brightness +<- 10;
+    ticks +<- 1;
+}

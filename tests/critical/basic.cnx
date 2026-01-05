@@ -1,0 +1,9 @@
+u8 buffer[64];
+u32 writeIdx <- 0;
+
+void enqueue(u8 data) {
+    critical {
+        buffer[writeIdx] <- data;
+        writeIdx +<- 1;
+    }
+}
