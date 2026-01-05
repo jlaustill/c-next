@@ -4,7 +4,6 @@
  */
 
 import {
-  CParser,
   CompilationUnitContext,
   ExternalDeclarationContext,
   FunctionDefinitionContext,

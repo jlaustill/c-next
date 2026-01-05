@@ -10,11 +10,6 @@ import ESourceLanguage from "../types/ESourceLanguage.js";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
-type DeclarationContext = InstanceType<
-  typeof CPP14Parser
->["declaration"] extends () => infer R
-  ? R
-  : never;
 
 /**
  * Collects symbols from a C++ parse tree

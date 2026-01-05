@@ -5,7 +5,7 @@
 
 import { exec } from "child_process";
 import { promisify } from "util";
-import { readFile, writeFile, mkdtemp, rm } from "fs/promises";
+import { writeFile, mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join, basename, dirname } from "path";
 import IToolchain from "./types/IToolchain.js";

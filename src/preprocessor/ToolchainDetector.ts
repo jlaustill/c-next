@@ -54,8 +54,6 @@ class ToolchainDetector {
    * Detect ARM cross-compiler (arm-none-eabi-gcc)
    */
   private static detectArmToolchain(): IToolchain | null {
-    const names = ["arm-none-eabi-gcc", "arm-none-eabi-g++"];
-
     const cc = this.findExecutable("arm-none-eabi-gcc");
     if (!cc) return null;
 

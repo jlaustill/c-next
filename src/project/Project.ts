@@ -5,7 +5,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { join, basename, dirname } from "path";
+import { join, basename } from "path";
 
 import { CNextLexer } from "../parser/grammar/CNextLexer.js";
 import { CNextParser } from "../parser/grammar/CNextParser.js";

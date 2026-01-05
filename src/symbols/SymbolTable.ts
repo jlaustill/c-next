@@ -93,7 +93,7 @@ class SymbolTable {
   getConflicts(): IConflict[] {
     const conflicts: IConflict[] = [];
 
-    for (const [name, symbols] of this.symbols) {
+    for (const [, symbols] of this.symbols) {
       if (symbols.length <= 1) continue;
 
       const conflict = this.detectConflict(symbols);
