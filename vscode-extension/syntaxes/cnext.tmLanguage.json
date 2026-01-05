@@ -40,7 +40,7 @@
       "patterns": [
         {
           "name": "keyword.control.cnext",
-          "match": "\\b(if|else|for|while|do|switch|case|default|break|continue|return)\\b"
+          "match": "\\b(if|else|for|while|do|switch|case|default|break|continue|return|critical)\\b"
         },
         {
           "name": "keyword.other.cnext",
@@ -53,6 +53,10 @@
         {
           "name": "storage.modifier.overflow.cnext",
           "match": "\\b(clamp|wrap)\\b"
+        },
+        {
+          "name": "storage.modifier.atomic.cnext",
+          "match": "\\b(atomic)\\b"
         },
         {
           "name": "storage.modifier.cnext",
