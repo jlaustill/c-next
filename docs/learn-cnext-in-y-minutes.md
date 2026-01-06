@@ -1067,6 +1067,170 @@ void initVectors() {
 - **Can be null**: ISR fields don't have automatic defaults (callbacks always have a default)
 - **Use case**: Interrupt vectors (callbacks are for event handlers and plugins)
 
+## Atomic Variables [IMPLEMENTED]
+
+C-Next provides the `atomic` keyword for ISR-safe variables (ADR-049):
+
+```cnx
+// [DONE] Target platform selection (determines atomic implementation)
+#pragma target teensy41     // Cortex-M7: LDREX/STREX
+// #pragma target cortex-m0  // Cortex-M0: PRIMASK fallback
+
+// [DONE] Atomic variables - guaranteed ISR-safe
+atomic u32 counter <- 0;           // ISR-safe counter
+atomic clamp u8 brightness <- 100; // Combines atomic + overflow behavior
+atomic wrap u16 ticks <- 0;        // Wrapping atomic counter
+
+// [DONE] Atomic compound assignment - generates hardware-assisted code
+void increment() {
+    counter +<- 1;     // Lock-free increment (LDREX/STREX on M3+)
+    brightness +<- 10; // Atomic clamp-add
+    ticks +<- 1;       // Atomic wrap-add
+}
+```
+
+### Generated Code
+
+On Cortex-M3/M4/M7 (LDREX/STREX available):
+
+```c
+volatile uint32_t counter = 0;
+
+void increment(void) {
+    do {
+        uint32_t __old = __LDREXW(&counter);
+        uint32_t __new = cnx_clamp_add_u32(__old, 1);
+        if (__STREXW(__new, &counter) == 0) break;
+    } while (1);
+}
+```
+
+On Cortex-M0/M0+ (PRIMASK fallback):
+
+```c
+volatile uint32_t counter = 0;
+
+void increment(void) {
+    {
+        uint32_t __primask = __get_PRIMASK();
+        __disable_irq();
+        counter = cnx_clamp_add_u32(counter, 1);
+        __set_PRIMASK(__primask);
+    }
+}
+```
+
+### Target Detection Priority
+
+```bash
+# 1. CLI flag (highest priority)
+cnext myfile.cnx --target teensy41
+
+# 2. Config file
+# cnext.config.json: { "target": "teensy41" }
+
+# 3. PlatformIO auto-detection
+# Reads board from platformio.ini automatically
+
+# 4. Pragma in source
+#pragma target teensy41
+
+# 5. Default (lowest priority)
+# PRIMASK fallback for unknown platforms
+```
+
+### Supported Targets
+
+| Target       | Core      | LDREX/STREX | Atomic Method    |
+| ------------ | --------- | ----------- | ---------------- |
+| `teensy41`   | Cortex-M7 | ✅          | Lock-free loops  |
+| `teensy40`   | Cortex-M7 | ✅          | Lock-free loops  |
+| `cortex-m7`  | Cortex-M7 | ✅          | Lock-free loops  |
+| `cortex-m4`  | Cortex-M4 | ✅          | Lock-free loops  |
+| `cortex-m3`  | Cortex-M3 | ✅          | Lock-free loops  |
+| `cortex-m0+` | Cortex-M0+| ✅          | Lock-free loops  |
+| `cortex-m0`  | Cortex-M0 | ❌          | PRIMASK fallback |
+| `avr`        | AVR       | ❌          | PRIMASK fallback |
+
+## Critical Sections [IMPLEMENTED]
+
+For multi-statement atomic operations, use `critical { }` blocks (ADR-050):
+
+```cnx
+// [DONE] Critical sections - PRIMASK-based interrupt masking
+u8 buffer[64];
+u32 writeIdx <- 0;
+u32 readIdx <- 0;
+
+void enqueue(u8 data) {
+    critical {
+        buffer[writeIdx] <- data;
+        writeIdx +<- 1;
+    }
+}
+
+u8 dequeue() {
+    u8 data;
+    critical {
+        data <- buffer[readIdx];
+        readIdx +<- 1;
+    }
+    return data;
+}
+```
+
+### Generated Code
+
+```c
+void enqueue(uint8_t data) {
+    {
+        uint32_t __primask = __get_PRIMASK();
+        __disable_irq();
+        buffer[writeIdx] = data;
+        writeIdx += 1;
+        __set_PRIMASK(__primask);
+    }
+}
+```
+
+### Safety Rules
+
+```cnx
+// ERROR E0853: return inside critical section
+void badFunction() {
+    critical {
+        if (error) {
+            return;  // COMPILE ERROR!
+        }
+    }
+}
+
+// OK: return after critical section
+void goodFunction() {
+    u8 result;
+    critical {
+        result <- computeValue();
+    }
+    return result;
+}
+```
+
+**Why no return inside critical?**
+- Leaving critical without restoring PRIMASK = interrupts permanently disabled
+- Compiler can't track all exit paths through critical blocks
+- Explicit pattern: compute in critical, return after
+
+### When to Use What
+
+| Use Case                        | Feature          |
+| ------------------------------- | ---------------- |
+| Single variable, simple ops     | `atomic`         |
+| Multiple related variables      | `critical { }`   |
+| Counter increments              | `atomic wrap`    |
+| Sensor values with saturation   | `atomic clamp`   |
+| Ring buffer read/write          | `critical { }`   |
+| State machine transitions       | `critical { }`   |
+
 ## Register Bindings
 
 ```cnx
@@ -1291,6 +1455,8 @@ void loop(void) {
 | `void (*fp)(int)`   | `funcName type`     | Function-as-Type pattern, never null  |
 | `int a[] = {1,2,3}` | `u8 a[] <- [1,2,3]` | `[]` for arrays, `{}` for structs     |
 | `int z[100] = {0}`  | `u8 z[100] <- [0*]` | Explicit fill-all syntax              |
+| `volatile`          | `atomic`            | ISR-safe with LDREX/STREX or PRIMASK  |
+| Manual IRQ disable  | `critical { }`      | PRIMASK save/restore blocks           |
 
 ## Further Reading
 

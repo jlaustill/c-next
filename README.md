@@ -69,6 +69,9 @@ cnext examples/blink.cnx --parse
 # Output as C++ (.cpp)
 cnext examples/blink.cnx --cpp
 
+# Target platform for atomic code generation (ADR-049)
+cnext examples/blink.cnx --target teensy41
+
 # Show all options
 cnext --help
 ```
@@ -350,6 +353,59 @@ struct Controller Controller_init(void) {
 }
 ```
 
+### Atomic Variables (ADR-049)
+
+ISR-safe variables with hardware-assisted atomicity:
+
+```cnx
+#pragma target teensy41
+
+atomic u32 counter <- 0;           // ISR-safe with LDREX/STREX
+atomic clamp u8 brightness <- 100; // Combines atomic + clamp
+
+void increment() {
+    counter +<- 1;   // Lock-free atomic increment
+}
+```
+
+Generates optimized code based on target platform:
+- **Cortex-M3/M4/M7**: LDREX/STREX retry loops (lock-free)
+- **Cortex-M0/M0+**: PRIMASK disable/restore (interrupt masking)
+
+Target detection priority: `--target` CLI flag > `platformio.ini` > `#pragma target` > default
+
+### Critical Sections (ADR-050)
+
+Multi-statement atomic blocks with automatic interrupt masking:
+
+```cnx
+u8 buffer[64];
+u32 writeIdx <- 0;
+
+void enqueue(u8 data) {
+    critical {
+        buffer[writeIdx] <- data;
+        writeIdx +<- 1;
+    }
+}
+```
+
+Transpiles to PRIMASK save/restore:
+
+```c
+void enqueue(uint8_t data) {
+    {
+        uint32_t __primask = __get_PRIMASK();
+        __disable_irq();
+        buffer[writeIdx] = data;
+        writeIdx += 1;
+        __set_PRIMASK(__primask);
+    }
+}
+```
+
+**Safety**: `return` inside `critical { }` is a compile error (E0853).
+
 ### Startup Allocation
 
 Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memory is allocated during initialization, then forbidden. No runtime allocation means no fragmentation, no OOM, no leaks.
@@ -420,13 +476,8 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-040](docs/decisions/adr-040-isr-declaration.md)         | ISR Type                | Built-in `ISR` type for `void(void)` function pointers       |
 | [ADR-034](docs/decisions/adr-034-bit-fields.md)              | Bitmap Types            | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
 | [ADR-048](docs/decisions/adr-048-cli-executable.md)          | CLI Executable          | `cnext` command with smart defaults                          |
-
-### Accepted
-
-| ADR                                                          | Title                   | Description                                                  |
-| ------------------------------------------------------------ | ----------------------- | ------------------------------------------------------------ |
-| [ADR-049](docs/decisions/adr-049-atomic-types.md)            | Atomic Types            | `atomic` keyword with natural syntax, SeqCst always          |
-| [ADR-050](docs/decisions/adr-050-critical-sections.md)       | Critical Sections       | `critical { }` blocks with automatic ceiling priority        |
+| [ADR-049](docs/decisions/adr-049-atomic-types.md)            | Atomic Types            | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
+| [ADR-050](docs/decisions/adr-050-critical-sections.md)       | Critical Sections       | `critical { }` blocks with PRIMASK save/restore              |
 
 ### Research (v1 Roadmap)
 
