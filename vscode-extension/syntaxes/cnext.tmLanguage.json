@@ -229,6 +229,10 @@
           "match": "\\b(true|false)\\b"
         },
         {
+          "name": "constant.language.null.cnext",
+          "match": "\\b(null|NULL)\\b"
+        },
+        {
           "name": "constant.numeric.hex.cnext",
           "match": "\\b0[xX][0-9a-fA-F]+\\b"
         },

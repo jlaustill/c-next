@@ -1,0 +1,6 @@
+// ADR-047: fopen is forbidden - returns FILE* not supported in v1
+#include <stdio.h>
+
+void openFile() {
+    fopen("test.txt", "r");  // ERROR: forbidden function
+}

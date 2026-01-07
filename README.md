@@ -369,6 +369,7 @@ void increment() {
 ```
 
 Generates optimized code based on target platform:
+
 - **Cortex-M3/M4/M7**: LDREX/STREX retry loops (lock-free)
 - **Cortex-M0/M0+**: PRIMASK disable/restore (interrupt masking)
 
@@ -405,6 +406,30 @@ void enqueue(uint8_t data) {
 ```
 
 **Safety**: `return` inside `critical { }` is a compile error (E0853).
+
+### NULL for C Library Interop (ADR-047)
+
+Safe interop with C stream functions that can return NULL:
+
+```cnx
+#include <stdio.h>
+
+string<64> buffer;
+
+void readInput() {
+    // NULL check is REQUIRED - compiler enforces it
+    if (fgets(buffer, buffer.size, stdin) != NULL) {
+        printf("Got: %s", buffer);
+    }
+}
+```
+
+**Constraints:**
+
+- NULL only valid in comparison context (`!= NULL` or `= NULL`)
+- Only whitelisted stream functions: `fgets`, `fputs`, `fgetc`, `fputc`
+- Cannot store C pointer returns in variables
+- `fopen`, `malloc`, etc. are errors (see ADR-103 for future FILE\* support)
 
 ### Startup Allocation
 
@@ -478,6 +503,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-048](docs/decisions/adr-048-cli-executable.md)          | CLI Executable          | `cnext` command with smart defaults                          |
 | [ADR-049](docs/decisions/adr-049-atomic-types.md)            | Atomic Types            | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
 | [ADR-050](docs/decisions/adr-050-critical-sections.md)       | Critical Sections       | `critical { }` blocks with PRIMASK save/restore              |
+| [ADR-047](docs/decisions/adr-047-nullable-types.md)          | NULL for C Interop      | `NULL` keyword for C stream function comparisons             |
 
 ### Research (v1 Roadmap)
 
@@ -485,17 +511,17 @@ Decisions are documented in `/docs/decisions/`:
 | ------------------------------------------------------------ | ----------------------------- | --------------------------------------- |
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention     |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks |
-| [ADR-047](docs/decisions/adr-047-nullable-types.md)          | Nullable Types                | `?` suffix for safe C library interop   |
 | [ADR-051](docs/decisions/adr-051-isr-queues.md)              | ISR-Safe Queues               | Producer-consumer patterns for ISR/main |
 
 ### Research (v2 Roadmap)
 
-| ADR                                                                    | Title                      | Description                            |
-| ---------------------------------------------------------------------- | -------------------------- | -------------------------------------- |
-| [ADR-046](docs/decisions/adr-046-prefixed-includes.md)                 | Prefixed Includes          | Namespace control for includes         |
-| [ADR-100](docs/decisions/adr-100-multi-core-synchronization.md)        | Multi-Core Synchronization | ESP32/RP2040 spinlock patterns         |
-| [ADR-101](docs/decisions/adr-101-heap-allocation.md)                   | Heap Allocation            | Dynamic memory for desktop targets     |
-| [ADR-102](docs/decisions/adr-102-critical-section-analysis.md)         | Critical Section Analysis  | Complexity warnings and cycle analysis |
+| ADR                                                             | Title                      | Description                            |
+| --------------------------------------------------------------- | -------------------------- | -------------------------------------- |
+| [ADR-046](docs/decisions/adr-046-prefixed-includes.md)          | Prefixed Includes          | Namespace control for includes         |
+| [ADR-100](docs/decisions/adr-100-multi-core-synchronization.md) | Multi-Core Synchronization | ESP32/RP2040 spinlock patterns         |
+| [ADR-101](docs/decisions/adr-101-heap-allocation.md)            | Heap Allocation            | Dynamic memory for desktop targets     |
+| [ADR-102](docs/decisions/adr-102-critical-section-analysis.md)  | Critical Section Analysis  | Complexity warnings and cycle analysis |
+| [ADR-103](docs/decisions/adr-103-stream-handling.md)            | Stream Handling            | FILE\* and fopen patterns for file I/O |
 
 ### Rejected
 

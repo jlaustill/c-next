@@ -5,10 +5,11 @@ string<50> userName;
 u32 main(string args[]) {
     printf("What is your name in 50 characters or less? ");
 
-    fgets(userName, userName.size, stdin);  // Use .size for fgets (buffer size, not capacity)
-
-    if (userName.length > 0 && userName[userName.length - 1] = '\n') {
-        userName[userName.length - 1] <- '\0';
+    // ADR-047: NULL check required for C stream functions
+    if (fgets(userName, userName.size, stdin) != NULL) {
+        if (userName.length > 0 && userName[userName.length - 1] = '\n') {
+            userName[userName.length - 1] <- '\0';
+        }
     }
 
     u8 whoAmIByte <- args[0][0];

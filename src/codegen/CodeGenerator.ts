@@ -1787,9 +1787,7 @@ export default class CodeGenerator {
    * ADR-045: Check if an expression is a string concatenation (contains + with string operands).
    * Returns the operand expressions if it is, null otherwise.
    */
-  private getStringConcatOperands(
-    ctx: Parser.ExpressionContext,
-  ): {
+  private getStringConcatOperands(ctx: Parser.ExpressionContext): {
     left: string;
     right: string;
     leftCapacity: number;

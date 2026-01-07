@@ -1,0 +1,5 @@
+// ADR-047: NULL outside comparison context is an error
+
+void badUsage() {
+    u32 x <- NULL;  // ERROR: NULL only valid in comparison
+}

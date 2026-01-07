@@ -1141,16 +1141,16 @@ cnext myfile.cnx --target teensy41
 
 ### Supported Targets
 
-| Target       | Core      | LDREX/STREX | Atomic Method    |
-| ------------ | --------- | ----------- | ---------------- |
-| `teensy41`   | Cortex-M7 | ✅          | Lock-free loops  |
-| `teensy40`   | Cortex-M7 | ✅          | Lock-free loops  |
-| `cortex-m7`  | Cortex-M7 | ✅          | Lock-free loops  |
-| `cortex-m4`  | Cortex-M4 | ✅          | Lock-free loops  |
-| `cortex-m3`  | Cortex-M3 | ✅          | Lock-free loops  |
-| `cortex-m0+` | Cortex-M0+| ✅          | Lock-free loops  |
-| `cortex-m0`  | Cortex-M0 | ❌          | PRIMASK fallback |
-| `avr`        | AVR       | ❌          | PRIMASK fallback |
+| Target       | Core       | LDREX/STREX | Atomic Method    |
+| ------------ | ---------- | ----------- | ---------------- |
+| `teensy41`   | Cortex-M7  | ✅          | Lock-free loops  |
+| `teensy40`   | Cortex-M7  | ✅          | Lock-free loops  |
+| `cortex-m7`  | Cortex-M7  | ✅          | Lock-free loops  |
+| `cortex-m4`  | Cortex-M4  | ✅          | Lock-free loops  |
+| `cortex-m3`  | Cortex-M3  | ✅          | Lock-free loops  |
+| `cortex-m0+` | Cortex-M0+ | ✅          | Lock-free loops  |
+| `cortex-m0`  | Cortex-M0  | ❌          | PRIMASK fallback |
+| `avr`        | AVR        | ❌          | PRIMASK fallback |
 
 ## Critical Sections [IMPLEMENTED]
 
@@ -1216,20 +1216,76 @@ void goodFunction() {
 ```
 
 **Why no return inside critical?**
+
 - Leaving critical without restoring PRIMASK = interrupts permanently disabled
 - Compiler can't track all exit paths through critical blocks
 - Explicit pattern: compute in critical, return after
 
 ### When to Use What
 
-| Use Case                        | Feature          |
-| ------------------------------- | ---------------- |
-| Single variable, simple ops     | `atomic`         |
-| Multiple related variables      | `critical { }`   |
-| Counter increments              | `atomic wrap`    |
-| Sensor values with saturation   | `atomic clamp`   |
-| Ring buffer read/write          | `critical { }`   |
-| State machine transitions       | `critical { }`   |
+| Use Case                      | Feature        |
+| ----------------------------- | -------------- |
+| Single variable, simple ops   | `atomic`       |
+| Multiple related variables    | `critical { }` |
+| Counter increments            | `atomic wrap`  |
+| Sensor values with saturation | `atomic clamp` |
+| Ring buffer read/write        | `critical { }` |
+| State machine transitions     | `critical { }` |
+
+## NULL for C Library Interop [IMPLEMENTED]
+
+C-Next safely interoperates with C stream functions that return NULL (ADR-047):
+
+```cnx
+// [DONE] Safe NULL checking for C stream functions
+#include <stdio.h>
+
+string<64> buffer;
+
+void readInput() {
+    // NULL check is REQUIRED - compiler enforces it
+    if (fgets(buffer, buffer.size, stdin) != NULL) {
+        // Safe to use buffer - fgets wrote to it
+        printf("Got: %s", buffer);
+    }
+}
+```
+
+### What's Allowed
+
+```cnx
+// OK: NULL comparison with whitelisted stream functions
+if (fgets(buffer, buffer.size, stdin) != NULL) { ... }
+if (fputs("hello", stdout) = NULL) { ... }  // Note: = is equality in C-Next
+```
+
+### What's NOT Allowed
+
+```cnx
+// ERROR E0901: Must check NULL
+fgets(buffer, buffer.size, stdin);  // Missing NULL check!
+printf("Got: %s", buffer);
+
+// ERROR E0902: Forbidden function (returns FILE*)
+fopen("test.txt", "r");  // Not supported - see ADR-103
+
+// ERROR E0903: NULL outside comparison
+u32 x <- NULL;  // NULL only valid in comparison
+
+// ERROR E0904: Cannot store C pointer returns
+string<64>? result <- fgets(...);  // No nullable types
+```
+
+### Whitelisted Functions
+
+| Function | NULL Meaning | Header  |
+| -------- | ------------ | ------- |
+| `fgets`  | EOF or error | stdio.h |
+| `fputs`  | Write error  | stdio.h |
+| `fgetc`  | EOF or error | stdio.h |
+| `fputc`  | Write error  | stdio.h |
+
+**Why constrained?** C-Next eliminates null bugs by design. This feature is a controlled exception for C interop only - maintaining safety while enabling practical stdio usage.
 
 ## Register Bindings
 

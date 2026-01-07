@@ -12,6 +12,7 @@ import CNextSymbolCollector from "../symbols/CNextSymbolCollector.js";
 import ESymbolKind from "../types/ESymbolKind.js";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer.js";
 import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer.js";
+import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer.js";
 import {
   ITranspileResult,
   ITranspileError,
@@ -181,6 +182,30 @@ export function transpile(
   }
 
   // If there are function call errors, fail compilation
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
+
+  // Run NULL check analysis (ADR-047: C library interop)
+  const nullAnalyzer = new NullCheckAnalyzer();
+  const nullErrors = nullAnalyzer.analyze(tree);
+
+  // Convert NULL check errors to transpile errors
+  for (const nullError of nullErrors) {
+    errors.push({
+      line: nullError.line,
+      column: nullError.column,
+      message: `error[${nullError.code}]: ${nullError.message}`,
+      severity: "error",
+    });
+  }
+
+  // If there are NULL check errors, fail compilation
   if (errors.length > 0) {
     return {
       success: false,

@@ -572,6 +572,7 @@ literal
     | 'true'
     | 'false'
     | 'null'
+    | 'NULL'      // ADR-047: C library NULL for interop
     ;
 
 // ============================================================================
@@ -652,6 +653,7 @@ RETURN      : 'return';
 TRUE        : 'true';
 FALSE       : 'false';
 NULL        : 'null';
+C_NULL      : 'NULL';     // ADR-047: C library NULL for interop
 STRING      : 'string';   // ADR-045: Bounded string type
 SIZEOF      : 'sizeof';   // ADR-023: Sizeof operator
 

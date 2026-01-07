@@ -1,322 +1,171 @@
-# ADR-047: Nullable Types and Optional Returns
+# ADR-047: NULL Keyword for C Library Interop
 
-**Status:** Research
-**Date:** 2026-01-01
+**Status:** Accepted
+**Date:** 2026-01-06
 **Decision Makers:** C-Next Language Design Team
 
 ## Context
 
-Many C library functions signal failure by returning `NULL`. This pattern is pervasive:
+C-Next eliminates null-related bugs by design through:
+
+- ADR-003: No dynamic allocation (no malloc/free)
+- ADR-006: No pointer arithmetic or reassignment
+- ADR-015: Zero initialization + init-before-use checks
+- ADR-039: Null safety is emergent from these constraints
+
+However, C library functions commonly return `NULL` to signal failure:
 
 ```c
-// C standard library examples that return NULL on failure
 char *fgets(char *s, int n, FILE *stream);   // Returns NULL on EOF or error
-void *malloc(size_t size);                    // Returns NULL on allocation failure
-FILE *fopen(const char *path, const char *mode);  // Returns NULL if file can't be opened
-char *getenv(const char *name);               // Returns NULL if variable not set
 ```
 
-### The fgets Problem
+C-Next needs a way to safely interoperate with these functions, particularly for stdin/stdout I/O operations that are common even in embedded systems.
 
-Consider this common C-Next pattern for reading user input:
+## Decision
+
+**Support the `NULL` keyword exclusively for direct comparison with C stream function returns.**
+
+This is an intentionally constrained design:
+
+1. **NULL keyword only valid in comparison context** - Cannot be assigned to variables
+2. **Whitelisted functions only** - Stream I/O functions (fgets, fputs, etc.)
+3. **Compiler enforces NULL check** - Using result without check is an ERROR
+4. **No intermediate storage** - Result must be used directly in comparison
+5. **Forbidden functions are errors** - fopen, malloc, etc. are not supported
+
+### Valid Pattern
 
 ```cnx
 #include <stdio.h>
 
-string<50> userName;
+string<64> buffer;
 
-u32 main(string args[]) {
-    printf("What is your name? ");
-    fgets(userName, userName.size, stdin);
-
-    // Remove trailing newline
-    if (userName.length > 0 && userName[userName.length - 1] = '\n') {
-        userName[userName.length - 1] <- '\0';
-    }
-
-    printf("Hello, %s!\n", userName);
-    return 0;
-}
-```
-
-**The problem:** `fgets` returns `NULL` on EOF or error, but C-Next currently has no way to:
-
-1. Express that a function can return `NULL`
-2. Require the caller to handle the `NULL` case
-3. Distinguish between "no value" and a valid value
-
-In C, the safe pattern is:
-
-```c
-if (fgets(userName, sizeof userName, stdin) != NULL) {
-    // Process the input
-}
-```
-
-But C-Next's type system doesn't enforce this check.
-
----
-
-## Research: How Other Languages Handle Nullable Types
-
-### Rust: Option<T>
-
-Rust uses an explicit `Option<T>` type that must be unwrapped:
-
-```rust
-// Option is an enum: Some(value) or None
-fn get_user_input() -> Option<String> {
-    let mut input = String::new();
-    match io::stdin().read_line(&mut input) {
-        Ok(_) => Some(input.trim().to_string()),
-        Err(_) => None,
+void readInput() {
+    if (fgets(buffer, buffer.size, stdin) != NULL) {
+        // Safe to use buffer here - fgets wrote to it
+        printf("Got: %s", buffer);
     }
 }
-
-// Caller MUST handle the None case
-match get_user_input() {
-    Some(name) => println!("Hello, {}!", name),
-    None => println!("Failed to read input"),
-}
-
-// Or use ? for early return
-let name = get_user_input()?;  // Returns None if failed
 ```
 
-**Pros:**
-
-- Compile-time null safety
-- No billion-dollar mistake
-
-**Cons:**
-
-- Verbose for simple cases
-- Requires pattern matching infrastructure
-
-### Swift: Optional (T?)
-
-Swift uses `?` suffix for optional types:
-
-```swift
-func readLine() -> String?  // Returns nil on EOF
-
-// Must unwrap before use
-if let name = readLine() {
-    print("Hello, \(name)!")
-} else {
-    print("Failed to read input")
-}
-
-// Force unwrap (crashes if nil)
-let name = readLine()!
-
-// Nil coalescing
-let name = readLine() ?? "Unknown"
-```
-
-**Pros:**
-
-- Concise syntax
-- Multiple unwrapping options
-
-**Cons:**
-
-- Force unwrap can crash
-- Requires runtime nil checks
-
-### Zig: Optional (?T)
-
-Zig uses `?` prefix for optional types:
-
-```zig
-fn readLine() ?[]const u8 {
-    // Returns null on failure
-}
-
-// Must unwrap with orelse or if
-const name = readLine() orelse {
-    std.debug.print("Failed\n", .{});
-    return error.ReadFailed;
-};
-
-// Or with if
-if (readLine()) |name| {
-    std.debug.print("Hello, {s}!\n", .{name});
-}
-```
-
-**Pros:**
-
-- Zero-cost abstraction
-- Compiles to simple null checks
-
-**Cons:**
-
-- Unfamiliar syntax
-
-### C++17: std::optional<T>
-
-```cpp
-std::optional<std::string> get_input() {
-    std::string line;
-    if (std::getline(std::cin, line)) {
-        return line;
-    }
-    return std::nullopt;
-}
-
-// Check with has_value() or operator bool
-if (auto name = get_input()) {
-    std::cout << "Hello, " << *name << "!\n";
-}
-```
-
----
-
-## Design Options for C-Next
-
-### Option A: Nullable Type Suffix (?)
-
-Use `?` suffix to mark types that can be null:
+### Invalid Patterns (Errors)
 
 ```cnx
-// Declaration
-string<50>? result <- fgets(buffer, buffer.size, stdin);
+// E0901: Missing NULL check
+fgets(buffer, buffer.size, stdin);
+printf("Got: %s", buffer);  // ERROR!
 
-// Must check before use
-if (result?) {
-    // result is now guaranteed non-null in this scope
-    printf("Got: %s\n", result);
-}
+// E0902: Forbidden function
+fopen("file.txt", "r");  // ERROR: Not supported in v1
 
-// Or provide default
-string<50> name <- result ?? "Unknown";
+// E0903: NULL outside comparison
+u32 x <- NULL;  // ERROR
+
+// E0904: Cannot store result
+string<64>? result <- fgets(...);  // ERROR: No nullable types
 ```
 
-**Transpiles to:**
+## Whitelisted Stream Functions
 
-```c
-char *result = fgets(buffer, 51, stdin);
-if (result != NULL) {
-    printf("Got: %s\n", result);
-}
+| Function | NULL Meaning              | Header  |
+| -------- | ------------------------- | ------- |
+| `fgets`  | EOF reached or read error | stdio.h |
+| `fputs`  | Write error (returns EOF) | stdio.h |
+| `fgetc`  | EOF reached or read error | stdio.h |
+| `fputc`  | Write error (returns EOF) | stdio.h |
+| `gets`   | EOF or error (DEPRECATED) | stdio.h |
 
-const char *name = (result != NULL) ? result : "Unknown";
+## Forbidden Functions (ADR-103)
+
+These functions return pointers that cannot be safely handled in C-Next v1:
+
+| Function  | Reason                                                   |
+| --------- | -------------------------------------------------------- |
+| `fopen`   | Returns FILE\* handle - requires ADR-103 stream handling |
+| `fclose`  | Operates on FILE\* - requires ADR-103                    |
+| `malloc`  | Dynamic allocation forbidden (ADR-003)                   |
+| `calloc`  | Dynamic allocation forbidden (ADR-003)                   |
+| `realloc` | Dynamic allocation forbidden (ADR-003)                   |
+| `free`    | Dynamic allocation forbidden (ADR-003)                   |
+| `getenv`  | Returns pointer - requires ADR-103                       |
+| `strstr`  | Returns pointer into string                              |
+| `strchr`  | Returns pointer into string                              |
+| `memchr`  | Returns pointer into memory                              |
+
+## Error Codes
+
+| Code  | Message                                                        |
+| ----- | -------------------------------------------------------------- |
+| E0901 | C library function 'X' can return NULL - must check result     |
+| E0902 | C library function 'X' returns a pointer - not supported in v1 |
+| E0903 | NULL can only be used in comparison context                    |
+| E0904 | Cannot store 'X' return value in variable 'Y'                  |
+
+## Why This Approach
+
+### Alternatives Considered
+
+**Option A: Nullable Type Suffix (T?)** - Original proposal
+
+- Adds `?` suffix for nullable types
+- Requires flow analysis for null safety
+- More complex, introduces nullable types to C-Next
+
+**Option B: Result Type** - Rust-style
+
+- Requires match expressions
+- Significant language complexity
+
+**Option C: Full NULL support** - C-style
+
+- Allows NULL anywhere
+- Defeats C-Next's null safety guarantees
+
+### Why Constrained NULL
+
+1. **Maintains null safety** - C-Next variables cannot be null
+2. **Enables practical interop** - stdin/stdout I/O works
+3. **Minimal complexity** - No new type system features
+4. **Clear semantics** - NULL only appears in C interop context
+5. **VS Code integration** - Tooltips indicate "this is C code"
+
+## Implementation
+
+### Grammar (CNext.g4)
+
+```antlr
+C_NULL : 'NULL';     // Distinct from lowercase 'null'
+
+literal
+    : ...
+    | 'NULL'         // C library NULL for interop
+    ;
 ```
 
-### Option B: Result Type
+### Analysis (NullCheckAnalyzer.ts)
 
-Use a Result type for functions that can fail:
+New analyzer that:
 
-```cnx
-Result<string<50>, Error> result <- readLine(stdin);
+1. Detects C stream function calls
+2. Verifies they're in NULL comparison context
+3. Errors on forbidden functions
+4. Errors on NULL outside comparison
 
-match (result) {
-    case Ok(value): {
-        printf("Got: %s\n", value);
-    }
-    case Err(e): {
-        printf("Error: %s\n", e.message);
-    }
-}
-```
+### VS Code Extension
 
-**Pros:**
+- `[C Library]` badge on hover for stream functions
+- NULL return information
+- Links to cppreference documentation
 
-- Can carry error information
-- Very explicit
+## Related ADRs
 
-**Cons:**
-
-- Requires match expressions (ADR not yet implemented)
-- More complex for simple null checks
-
-### Option C: Explicit Null Checks (Minimal Change)
-
-Keep C semantics but add a `null` keyword and require explicit checks:
-
-```cnx
-// fgets returns pointer, can be null
-string<50> result <- fgets(buffer, buffer.size, stdin);
-
-// Compiler error: result may be null, must check
-printf("Got: %s\n", result);  // ERROR!
-
-// This works
-if (result != null) {
-    printf("Got: %s\n", result);  // OK, result proven non-null
-}
-```
-
-### Option D: Try Expression
-
-Add a `try` expression for functions that return null on failure:
-
-```cnx
-// try returns early if null (like Rust's ?)
-string<50> input <- try fgets(buffer, buffer.size, stdin);
-
-// Or use try-else for custom handling
-string<50> input <- try fgets(buffer, buffer.size, stdin) else {
-    printf("Read failed\n");
-    return 1;
-};
-```
-
----
-
-## Open Questions
-
-1. **Scope of nullable types:**
-   - Only for C interop (external functions)?
-   - Or allow C-Next functions to return nullable types?
-
-2. **Pointer types:**
-   - Does C-Next have explicit pointer types?
-   - Or only for C FFI?
-
-3. **Integration with existing types:**
-   - How do nullable strings work with `string<N>`?
-   - Is `string<N>?` a pointer to a string buffer, or the buffer itself that might be uninitialized?
-
-4. **Default behavior:**
-   - Should C functions returning pointers be assumed nullable by default?
-   - Or require explicit annotation?
-
-5. **Error handling strategy:**
-   - Is this part of a broader error handling strategy (ADR-042)?
-   - Should we unify with Result types?
-
----
-
-## Recommendation
-
-**Preliminary recommendation: Option A (Nullable Type Suffix)** for the following reasons:
-
-1. **Familiar syntax** - Swift, TypeScript, Kotlin all use `?`
-2. **Minimal overhead** - Transpiles to simple null checks
-3. **Gradual adoption** - Can be added to C interop without changing existing code
-4. **Clear semantics** - `?` suffix clearly indicates "may be null"
-
-However, this needs further research on:
-
-- How it interacts with C-Next's string type
-- Whether we need full Result types for richer error handling
-- How to annotate C function declarations
-
----
-
-## Decision
-
-**Status: Research** - Awaiting further discussion and prototyping.
-
----
+- **ADR-003**: Static Allocation - No malloc/free
+- **ADR-006**: Simplified References - No pointers
+- **ADR-015**: Null State - Zero initialization
+- **ADR-039**: Null Safety - Emergent from design
+- **ADR-103**: Stream Handling (Research) - FILE\* and fopen patterns
 
 ## References
 
-- [Rust Option Type](https://doc.rust-lang.org/std/option/)
-- [Swift Optionals](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/thebasics/#Optionals)
-- [Zig Optional Types](https://ziglang.org/documentation/master/#Optionals)
 - [Tony Hoare: Null References - The Billion Dollar Mistake](https://www.infoq.com/presentations/Null-References-The-Billion-Dollar-Mistake-Tony-Hoare/)
-- ADR-042: Error Handling (related)
-- ADR-045: String Type (affected by this decision)
+- [cppreference: fgets](https://en.cppreference.com/w/c/io/fgets)

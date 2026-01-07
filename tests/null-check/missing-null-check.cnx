@@ -1,0 +1,9 @@
+// ADR-047: Missing NULL check should be an error
+#include <stdio.h>
+
+string<64> buffer;
+
+void readInput() {
+    fgets(buffer, buffer.size, stdin);  // ERROR: must check NULL
+    printf("Got: %s", buffer);
+}

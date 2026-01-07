@@ -92,7 +92,110 @@ const KEYWORD_INFO: Record<string, string> = {
 
   // Legacy (kept for compatibility)
   namespace: 'Legacy: Use "scope" instead (ADR-016)',
+
+  // ADR-047: NULL keyword for C interop
+  NULL: "C library null pointer - only valid in comparison with C stream functions",
 };
+
+/**
+ * ADR-047: C library function metadata for hover
+ * These are whitelisted stream I/O functions that can return NULL
+ */
+interface ICLibraryFunctionInfo {
+  description: string;
+  nullMeaning: string;
+  docsUrl: string;
+  signature: string;
+}
+
+const C_LIBRARY_FUNCTIONS: Record<string, ICLibraryFunctionInfo> = {
+  fgets: {
+    description: "Read a line from stream into buffer",
+    nullMeaning: "Returns NULL on EOF or read error",
+    docsUrl: "https://en.cppreference.com/w/c/io/fgets",
+    signature: "char* fgets(char* str, int count, FILE* stream)",
+  },
+  fputs: {
+    description: "Write a string to stream",
+    nullMeaning: "Returns EOF (negative) on write error",
+    docsUrl: "https://en.cppreference.com/w/c/io/fputs",
+    signature: "int fputs(const char* str, FILE* stream)",
+  },
+  fgetc: {
+    description: "Read a character from stream",
+    nullMeaning: "Returns EOF on end-of-file or read error",
+    docsUrl: "https://en.cppreference.com/w/c/io/fgetc",
+    signature: "int fgetc(FILE* stream)",
+  },
+  fputc: {
+    description: "Write a character to stream",
+    nullMeaning: "Returns EOF on write error",
+    docsUrl: "https://en.cppreference.com/w/c/io/fputc",
+    signature: "int fputc(int ch, FILE* stream)",
+  },
+  gets: {
+    description: "Read a line from stdin (DEPRECATED - use fgets)",
+    nullMeaning: "Returns NULL on EOF or read error",
+    docsUrl: "https://en.cppreference.com/w/c/io/gets",
+    signature: "char* gets(char* str)",
+  },
+};
+
+/**
+ * ADR-047: Forbidden C library functions that return pointers
+ * These require ADR-103 (stream handling) infrastructure
+ */
+const FORBIDDEN_C_FUNCTIONS: Record<string, string> = {
+  fopen: "File operations require ADR-103 stream handling (v2)",
+  fclose: "File operations require ADR-103 stream handling (v2)",
+  malloc: "Dynamic allocation is forbidden (ADR-003)",
+  calloc: "Dynamic allocation is forbidden (ADR-003)",
+  realloc: "Dynamic allocation is forbidden (ADR-003)",
+  free: "Dynamic allocation is forbidden (ADR-003)",
+  getenv: "Environment access requires ADR-103 infrastructure (v2)",
+  strstr: "Pointer-returning string functions not yet supported",
+  strchr: "Pointer-returning string functions not yet supported",
+  strrchr: "Pointer-returning string functions not yet supported",
+  memchr: "Pointer-returning memory functions not yet supported",
+};
+
+/**
+ * Build hover content for a C library function
+ */
+function buildCLibraryHover(
+  funcName: string,
+  info: ICLibraryFunctionInfo,
+): vscode.MarkdownString {
+  const md = new vscode.MarkdownString();
+  md.isTrusted = true;
+
+  // [C Library] badge
+  md.appendMarkdown(`**[C Library]** \`${funcName}\`\n\n`);
+  md.appendMarkdown(`${info.description}\n\n`);
+  md.appendCodeblock(info.signature, "c");
+  md.appendMarkdown(`\n**NULL Return:** ${info.nullMeaning}\n\n`);
+  md.appendMarkdown(`*Must check return value against NULL*\n\n`);
+  md.appendMarkdown(`[Documentation](${info.docsUrl})`);
+
+  return md;
+}
+
+/**
+ * Build hover content for a forbidden C function
+ */
+function buildForbiddenFunctionHover(
+  funcName: string,
+  reason: string,
+): vscode.MarkdownString {
+  const md = new vscode.MarkdownString();
+  md.isTrusted = true;
+
+  md.appendMarkdown(`**[C Library - Not Supported]** \`${funcName}\`\n\n`);
+  md.appendMarkdown(`⚠️ ${reason}\n\n`);
+  md.appendMarkdown(`*This function is not available in C-Next v1.*`);
+
+  return md;
+}
 
 /**
  * Get human-readable access modifier description
@@ -263,6 +366,22 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       md.appendMarkdown(`**keyword** \`${word}\`\n\n`);
       md.appendMarkdown(KEYWORD_INFO[word]);
       return new vscode.Hover(md, wordRange);
+    }
+
+    // ADR-047: Check for C library stream functions
+    if (C_LIBRARY_FUNCTIONS[word]) {
+      return new vscode.Hover(
+        buildCLibraryHover(word, C_LIBRARY_FUNCTIONS[word]),
+        wordRange,
+      );
+    }
+
+    // ADR-047: Check for forbidden C library functions
+    if (FORBIDDEN_C_FUNCTIONS[word]) {
+      return new vscode.Hover(
+        buildForbiddenFunctionHover(word, FORBIDDEN_C_FUNCTIONS[word]),
+        wordRange,
+      );
     }
 
     // FAST PATH: Parse current document to get local symbols
