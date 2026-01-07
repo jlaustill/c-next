@@ -300,13 +300,13 @@ Multiple ISRs can call `brightness +<- 10`—the retry loop ensures each operati
 
 Other languages (C++, Rust, Zig) expose operations like `fetchAdd()`, `compareExchange()`, etc. C-Next takes a different approach:
 
-| Concern | Who Handles It |
-| --- | --- |
-| Atomicity | `atomic` keyword |
-| Overflow behavior | `clamp`/`wrap` modifier |
-| Retry loops (LDREX/STREX) | Transpiler (hidden) |
-| Platform differences | Transpiler (hidden) |
-| Conditional logic | Developer via `critical { }` |
+| Concern                   | Who Handles It               |
+| ------------------------- | ---------------------------- |
+| Atomicity                 | `atomic` keyword             |
+| Overflow behavior         | `clamp`/`wrap` modifier      |
+| Retry loops (LDREX/STREX) | Transpiler (hidden)          |
+| Platform differences      | Transpiler (hidden)          |
+| Conditional logic         | Developer via `critical { }` |
 
 **Simple operations** (arithmetic, flags) → Type handles it automatically
 
@@ -332,12 +332,12 @@ Compare-And-Swap (CAS) is the primitive that enables lock-free algorithms. It at
 
 For most embedded use cases, CAS isn't needed:
 
-| Use Case | C-Next Solution | Needs CAS? |
-| --- | --- | --- |
-| Atomic counter | `atomic wrap u32` + `counter +<- 1` | No |
-| Bounded value | `atomic clamp u8` + `brightness +<- 5` | No |
-| Flag | `atomic bool` + `flag <- true` | No |
-| State machine transition | `critical { if (state = X) state <- Y; }` | No |
+| Use Case                 | C-Next Solution                           | Needs CAS? |
+| ------------------------ | ----------------------------------------- | ---------- |
+| Atomic counter           | `atomic wrap u32` + `counter +<- 1`       | No         |
+| Bounded value            | `atomic clamp u8` + `brightness +<- 5`    | No         |
+| Flag                     | `atomic bool` + `flag <- true`            | No         |
+| State machine transition | `critical { if (state = X) state <- Y; }` | No         |
 
 The retry loop inside the transpiled code IS using CAS-like hardware (LDREX/STREX), but the developer never sees it. For conditional logic that doesn't fit simple arithmetic, `critical { }` blocks provide a clear, explicit solution.
 
@@ -345,16 +345,16 @@ The retry loop inside the transpiled code IS using CAS-like hardware (LDREX/STRE
 
 **Decision: All scalar types allowed. Transpiler handles platform differences.**
 
-| Type | Allowed? | 32-bit MCU (Cortex-M) | 8-bit MCU (AVR) |
-| --- | --- | --- | --- |
-| u8, i8, bool | ✓ | Natural | Natural |
-| u16, i16 | ✓ | Natural | Critical section |
-| u32, i32, f32 | ✓ | Natural load/store, LDREX/STREX for RMW | Critical section |
-| u64, i64, f64 | ✓ | Critical section (document cost) | Critical section |
-| Enums | ✓ | Inherits from underlying type | Inherits from underlying type |
-| bitmap8/16/32 | ✓ | Same as underlying integer | Same as underlying integer |
-| Structs | ✗ | Use `critical { }` block | Use `critical { }` block |
-| Arrays | ✗ | Use `critical { }` block | Use `critical { }` block |
+| Type          | Allowed? | 32-bit MCU (Cortex-M)                   | 8-bit MCU (AVR)               |
+| ------------- | -------- | --------------------------------------- | ----------------------------- |
+| u8, i8, bool  | ✓        | Natural                                 | Natural                       |
+| u16, i16      | ✓        | Natural                                 | Critical section              |
+| u32, i32, f32 | ✓        | Natural load/store, LDREX/STREX for RMW | Critical section              |
+| u64, i64, f64 | ✓        | Critical section (document cost)        | Critical section              |
+| Enums         | ✓        | Inherits from underlying type           | Inherits from underlying type |
+| bitmap8/16/32 | ✓        | Same as underlying integer              | Same as underlying integer    |
+| Structs       | ✗        | Use `critical { }` block                | Use `critical { }` block      |
+| Arrays        | ✗        | Use `critical { }` block                | Use `critical { }` block      |
 
 **Guiding Principle**: C-Next makes the right thing easy, the wrong thing impossible, and remains flexible in between.
 
@@ -395,13 +395,13 @@ atomic wrap u32 tickCount <- 0;
 
 The memory ordering question becomes mostly irrelevant when C-Next enforces a stronger rule: **non-atomic variables accessed from both ISR and main code are a compile error.**
 
-| Variable Access Pattern | C-Next Response |
-| --- | --- |
-| Only in main code | OK (no ISR concern) |
-| Only in ISR(s) | OK (no main concern) |
-| Both ISR and main, **atomic** | OK ✓ |
-| Both ISR and main, **non-atomic** | **COMPILE ERROR** |
-| Inside `critical { }` block | OK (protected) |
+| Variable Access Pattern           | C-Next Response      |
+| --------------------------------- | -------------------- |
+| Only in main code                 | OK (no ISR concern)  |
+| Only in ISR(s)                    | OK (no main concern) |
+| Both ISR and main, **atomic**     | OK ✓                 |
+| Both ISR and main, **non-atomic** | **COMPILE ERROR**    |
+| Inside `critical { }` block       | OK (protected)       |
 
 **Example of what C-Next prevents:**
 
@@ -469,11 +469,11 @@ For v1, the simplicity of "all atomics are SeqCst" outweighs micro-optimization.
 
 The transpiler needs three pieces of information to generate correct atomic code:
 
-| Capability | Values | Purpose |
-| --- | --- | --- |
-| `word_size` | 8, 16, 32 | Natural atomicity of types |
-| `ldrex_strex` | true/false | Lock-free RMW vs critical section |
-| `basepri` | true/false | Selective interrupt masking (for ADR-050) |
+| Capability    | Values     | Purpose                                   |
+| ------------- | ---------- | ----------------------------------------- |
+| `word_size`   | 8, 16, 32  | Natural atomicity of types                |
+| `ldrex_strex` | true/false | Lock-free RMW vs critical section         |
+| `basepri`     | true/false | Selective interrupt masking (for ADR-050) |
 
 **Named targets are just aliases** for these three capabilities:
 

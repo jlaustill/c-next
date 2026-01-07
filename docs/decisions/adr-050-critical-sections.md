@@ -141,11 +141,11 @@ critical {
 
 **Alternatives Considered:**
 
-| Option | Why Not Chosen |
-|--------|----------------|
-| Explicit enter/exit | Easy to forget exit, doesn't align with "wrong thing impossible" |
-| Closure-based (Rust) | C-Next doesn't have first-class closures |
-| Automatic (Ada) | Complex implementation, may defer to v2 for protected objects |
+| Option               | Why Not Chosen                                                   |
+| -------------------- | ---------------------------------------------------------------- |
+| Explicit enter/exit  | Easy to forget exit, doesn't align with "wrong thing impossible" |
+| Closure-based (Rust) | C-Next doesn't have first-class closures                         |
+| Automatic (Ada)      | Complex implementation, may defer to v2 for protected objects    |
 
 **Transpiled Output:**
 
@@ -186,6 +186,7 @@ ceiling(variable) = max(priority of all ISRs accessing variable)
 ```
 
 Example:
+
 - `shared_buffer` accessed by UART_RX (pri 2) and CAN_RX (pri 4)
 - `ceiling(shared_buffer) = max(2, 4) = 4`
 
@@ -229,12 +230,12 @@ __set_PRIMASK(__primask);
 
 #### Benefits
 
-| Benefit | Description |
-|---------|-------------|
-| **Zero-latency ISRs** | Higher-priority ISRs not accessing contested resources still fire |
-| **Deadlock-free** | Stack Resource Policy guarantees no circular waiting |
-| **No developer decisions** | Compiler computes optimal masking automatically |
-| **Portable** | Same source code works on M0 through M7 |
+| Benefit                    | Description                                                       |
+| -------------------------- | ----------------------------------------------------------------- |
+| **Zero-latency ISRs**      | Higher-priority ISRs not accessing contested resources still fire |
+| **Deadlock-free**          | Stack Resource Policy guarantees no circular waiting              |
+| **No developer decisions** | Compiler computes optimal masking automatically                   |
+| **Portable**               | Same source code works on M0 through M7                           |
 
 #### Lock-Free Optimization
 
@@ -248,29 +249,31 @@ If all accessors have the **same priority**, no critical section overhead needed
 
 #### Compiler Warnings
 
-| Situation | Warning |
-|-----------|---------|
+| Situation                                 | Warning                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------ |
 | Critical section with main-only variables | "Critical section unnecessary - variables only accessed from main" |
-| Function call inside critical | "Function call in critical section - ceiling assumes worst case" |
+| Function call inside critical             | "Function call in critical section - ceiling assumes worst case"   |
 
 #### What the Compiler Tracks
 
-| Information | Source | Purpose |
-|-------------|--------|---------|
-| ISR priorities | `interrupt(priority: N)` or default 0 | Compute ceilings |
-| Variable-to-context map | Static analysis | Know which contexts access which vars |
-| Critical section contents | AST analysis | Know which vars are protected |
-| Target capabilities | `#pragma target` | BASEPRI vs PRIMASK |
+| Information               | Source                                | Purpose                               |
+| ------------------------- | ------------------------------------- | ------------------------------------- |
+| ISR priorities            | `interrupt(priority: N)` or default 0 | Compute ceilings                      |
+| Variable-to-context map   | Static analysis                       | Know which contexts access which vars |
+| Critical section contents | AST analysis                          | Know which vars are protected         |
+| Target capabilities       | `#pragma target`                      | BASEPRI vs PRIMASK                    |
 
 **Rationale:**
 
 This approach makes C-Next shine by providing **correct-by-construction** concurrency:
+
 - Developer writes simple `critical { }` blocks
 - Compiler guarantees race-free, optimal code
 - No manual priority calculations
 - Works across all Cortex-M platforms
 
 **References:**
+
 - [RTIC Stack Resource Policy](https://rtic.rs/dev/book/en/by-example/resources.html)
 - [RTIC Ceiling Priority](https://rtic.rs/2/book/en/)
 
@@ -278,10 +281,10 @@ This approach makes C-Next shine by providing **correct-by-construction** concur
 
 **Decision: Allow everywhere, with context-aware automatic ceiling**
 
-| Context | Behavior |
-|---------|----------|
-| Main code | Uses computed ceiling (primary use case) |
-| Inside ISR | Uses computed ceiling (blocks higher-priority ISRs if needed) |
+| Context               | Behavior                                                           |
+| --------------------- | ------------------------------------------------------------------ |
+| Main code             | Uses computed ceiling (primary use case)                           |
+| Inside ISR            | Uses computed ceiling (blocks higher-priority ISRs if needed)      |
 | Inside scope function | Inherits context from caller, ceiling computed from all call sites |
 
 #### ISR Example
@@ -378,9 +381,9 @@ __set_BASEPRI(outer_state);  // Restore original
 
 #### Why This Is Safe
 
-| Scenario | Behavior |
-|----------|----------|
-| Inner ceiling > outer ceiling | Inner raises BASEPRI higher, then restores |
+| Scenario                      | Behavior                                           |
+| ----------------------------- | -------------------------------------------------- |
+| Inner ceiling > outer ceiling | Inner raises BASEPRI higher, then restores         |
 | Inner ceiling ≤ outer ceiling | Inner leaves BASEPRI unchanged (already protected) |
 
 The key insight: inner critical sections can only provide **more** protection, never less.
@@ -445,6 +448,7 @@ error[E0855]: Cannot use 'continue' inside critical section
 #### Workaround Patterns
 
 **Pattern 1: Assign and check after**
+
 ```cnx
 u32 getValue() {
     u32 result <- 0;
@@ -456,6 +460,7 @@ u32 getValue() {
 ```
 
 **Pattern 2: Flag for loop control**
+
 ```cnx
 bool done <- false;
 while (!done) {
@@ -470,6 +475,7 @@ while (!done) {
 ```
 
 **Pattern 3: Conditional state machine**
+
 ```cnx
 bool started <- false;
 critical {
@@ -485,10 +491,10 @@ if (started) {
 
 #### Why Forbid Instead of Auto-Restore?
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| Auto-restore on all exits | Developer convenience | Complex codegen, hides issues |
-| **Forbid early exits** | Simple codegen, MISRA aligned, explicit | Slightly more verbose |
+| Approach                  | Pros                                    | Cons                          |
+| ------------------------- | --------------------------------------- | ----------------------------- |
+| Auto-restore on all exits | Developer convenience                   | Complex codegen, hides issues |
+| **Forbid early exits**    | Simple codegen, MISRA aligned, explicit | Slightly more verbose         |
 
 The workarounds make code **clearer** - the reader sees exactly what happens before and after the critical section.
 
@@ -513,6 +519,7 @@ For v1, critical section complexity is the developer's responsibility. C-Next tr
 4. **v2 opportunity** - Cycle estimation and WCET analysis are rich features for later
 
 **v2 Features (ADR-102):**
+
 - Opt-in complexity warnings
 - Cycle estimation with `@max_cycles(N)` annotation
 - Runtime instrumentation for debugging
@@ -544,11 +551,11 @@ Expression form would encourage putting complex logic inside critical sections t
 
 **Use Cases:**
 
-| Need | Solution |
-|------|----------|
-| Single-value atomic access | Use `atomic` type (ADR-049) |
-| Multi-variable atomic update | Use `critical { }` statement |
-| Conditional with result | Assign to variable inside critical, check after |
+| Need                         | Solution                                        |
+| ---------------------------- | ----------------------------------------------- |
+| Single-value atomic access   | Use `atomic` type (ADR-049)                     |
+| Multi-variable atomic update | Use `critical { }` statement                    |
+| Conditional with result      | Assign to variable inside critical, check after |
 
 **Example - conditional state transition:**
 
@@ -571,10 +578,10 @@ if (started) {
 
 Since Q2 uses automatic ceiling computation, platform fallback is handled transparently:
 
-| Target | Mechanism | Behavior |
-|--------|-----------|----------|
-| M3/M4/M7 | BASEPRI | Uses computed ceiling priority |
-| M0/M0+ | PRIMASK | Disables all interrupts (no BASEPRI available) |
+| Target   | Mechanism | Behavior                                       |
+| -------- | --------- | ---------------------------------------------- |
+| M3/M4/M7 | BASEPRI   | Uses computed ceiling priority                 |
+| M0/M0+   | PRIMASK   | Disables all interrupts (no BASEPRI available) |
 
 **No warning needed** - the same source code produces correct behavior on all platforms. The M0 code is slightly less optimal (blocks all interrupts instead of selective masking) but is still correct.
 
@@ -588,16 +595,16 @@ The developer shouldn't need to know or care about BASEPRI vs PRIMASK. C-Next ge
 
 ### All Questions Resolved ✓
 
-| Q# | Question | Decision |
-|----|----------|----------|
-| Q1 | Syntax | Block statement `critical { }` |
-| Q2 | PRIMASK vs BASEPRI | Automatic ceiling priority with PRIMASK fallback |
-| Q3 | Where allowed | Everywhere (main, ISR, scope) with context-aware ceiling |
-| Q4 | Nesting | Allowed, safe via save/restore pattern |
-| Q5 | Control flow | Forbid early exits (return/break/continue) |
-| Q6 | Complexity warnings | Deferred to v2 (ADR-102) |
-| Q7 | Expression form | Statement only |
-| Q8 | Platform fallback | Automatic (BASEPRI on M3+, PRIMASK on M0) |
+| Q#  | Question            | Decision                                                 |
+| --- | ------------------- | -------------------------------------------------------- |
+| Q1  | Syntax              | Block statement `critical { }`                           |
+| Q2  | PRIMASK vs BASEPRI  | Automatic ceiling priority with PRIMASK fallback         |
+| Q3  | Where allowed       | Everywhere (main, ISR, scope) with context-aware ceiling |
+| Q4  | Nesting             | Allowed, safe via save/restore pattern                   |
+| Q5  | Control flow        | Forbid early exits (return/break/continue)               |
+| Q6  | Complexity warnings | Deferred to v2 (ADR-102)                                 |
+| Q7  | Expression form     | Statement only                                           |
+| Q8  | Platform fallback   | Automatic (BASEPRI on M3+, PRIMASK on M0)                |
 
 ---
 
@@ -619,11 +626,11 @@ Is the variable shared between ISR and main code?
 
 ### Comparison
 
-| Mechanism | Purpose | When to Use |
-|-----------|---------|-------------|
-| `volatile` (C) | Prevent compiler optimization | **Never in C-Next** - use `atomic` instead |
-| `atomic` | Single-variable ISR-safe operations | Counters, flags, single values |
-| `critical { }` | Multi-variable atomic updates | State machines, buffer + index pairs |
+| Mechanism      | Purpose                             | When to Use                                |
+| -------------- | ----------------------------------- | ------------------------------------------ |
+| `volatile` (C) | Prevent compiler optimization       | **Never in C-Next** - use `atomic` instead |
+| `atomic`       | Single-variable ISR-safe operations | Counters, flags, single values             |
+| `critical { }` | Multi-variable atomic updates       | State machines, buffer + index pairs       |
 
 ### Examples
 
@@ -648,11 +655,11 @@ critical {
 
 C-Next doesn't have a `volatile` keyword. Here's why:
 
-| C's `volatile` | C-Next Alternative |
-|----------------|-------------------|
-| Prevents caching | `atomic` provides this + atomicity |
-| For MMIO registers | Register bindings (ADR-004) handle this |
-| For ISR-shared data | `atomic` or `critical` required |
+| C's `volatile`      | C-Next Alternative                      |
+| ------------------- | --------------------------------------- |
+| Prevents caching    | `atomic` provides this + atomicity      |
+| For MMIO registers  | Register bindings (ADR-004) handle this |
+| For ISR-shared data | `atomic` or `critical` required         |
 
 C-Next's type system makes the right thing explicit rather than relying on a modifier that's often misunderstood.
 
@@ -670,16 +677,17 @@ While C-Next provides compile-time safety guarantees, testing remains important.
 
 ### What Still Needs Testing
 
-| Concern | Testing Approach |
-|---------|------------------|
-| Logic correctness | Unit tests with mocked ISR calls |
-| Timing requirements | Measure actual critical section duration |
-| Priority configuration | Verify ISR priorities match design |
-| Edge cases | Test boundary conditions (buffer full, etc.) |
+| Concern                | Testing Approach                             |
+| ---------------------- | -------------------------------------------- |
+| Logic correctness      | Unit tests with mocked ISR calls             |
+| Timing requirements    | Measure actual critical section duration     |
+| Priority configuration | Verify ISR priorities match design           |
+| Edge cases             | Test boundary conditions (buffer full, etc.) |
 
 ### Testing Patterns
 
 **Pattern 1: Simulated ISR for unit tests**
+
 ```cnx
 // Test file
 void test_buffer_update() {
@@ -694,6 +702,7 @@ void test_buffer_update() {
 ```
 
 **Pattern 2: Timing measurement (debug builds)**
+
 ```cnx
 // Measure critical section duration
 u32 start <- get_cycle_count();
@@ -705,6 +714,7 @@ assert(cycles < MAX_ALLOWED_CYCLES);
 ```
 
 **Pattern 3: Priority verification**
+
 ```cnx
 // Verify ISR priorities at startup
 void verify_priorities() {

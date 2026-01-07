@@ -56,16 +56,19 @@ critical_section_exit(&crit_sec);
 ### Q1: Syntax for Multi-Core Critical Sections
 
 **Option A: Separate primitive**
+
 ```cnx
 critical_sync(my_spinlock) { ... }
 ```
 
 **Option B: Parameter on critical**
+
 ```cnx
 critical(lock: my_spinlock) { ... }
 ```
 
 **Option C: Automatic detection**
+
 ```cnx
 critical { ... }  // Compiler adds spinlock for multi-core targets
 ```

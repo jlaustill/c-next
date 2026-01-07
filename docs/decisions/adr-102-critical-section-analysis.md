@@ -32,10 +32,12 @@ Deferred from ADR-050 (v1) to keep v1 focused on MVP.
 Watchdog timers typically require periodic "feeding" (writing to a register) to prevent system reset. If a critical section runs longer than the watchdog timeout, the system resets unexpectedly.
 
 **Typical watchdog timeouts:**
+
 - Independent Watchdog (IWDG): 100ms - 26s (configurable)
 - Window Watchdog (WWDG): ~50ms max
 
 **v2 Analysis Could Detect:**
+
 - Critical sections that exceed estimated watchdog timeout
 - Watchdog service calls inside critical sections (may indicate design smell)
 - Paths where watchdog might not be serviced in time
@@ -55,17 +57,18 @@ Watchdog timers typically require periodic "feeding" (writing to a register) to 
 
 What should trigger warnings?
 
-| Warning Type | Complexity |
-|--------------|------------|
-| Statement count > N | Simple |
-| Contains function calls | Simple |
-| Contains loops | Simple |
-| Cycle estimation | Complex |
+| Warning Type                     | Complexity   |
+| -------------------------------- | ------------ |
+| Statement count > N              | Simple       |
+| Contains function calls          | Simple       |
+| Contains loops                   | Simple       |
+| Cycle estimation                 | Complex      |
 | Worst-case execution time (WCET) | Very complex |
 
 ### Q2: Opt-In vs Default
 
 Should warnings be:
+
 - Off by default, opt-in via pragma?
 - On by default, opt-out via pragma?
 - Configurable severity (warning vs error)?
@@ -82,6 +85,7 @@ critical {
 ```
 
 Challenges:
+
 - Platform-dependent cycle counts
 - Function call depth analysis
 - Loop iteration estimation
@@ -102,6 +106,7 @@ critical {
 ### Q5: Integration with Static Analysis
 
 Could C-Next integrate with external tools like:
+
 - WCET analyzers
 - MISRA checkers (LDRA, Polyspace)
 - Custom lint rules

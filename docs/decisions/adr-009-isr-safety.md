@@ -532,11 +532,11 @@ Things C-Next already does well for ISR safety:
 
 This ADR has been split into focused ADRs:
 
-| ADR | Topic | Status | Summary |
-|-----|-------|--------|---------|
-| [ADR-049](adr-049-atomic-types.md) | Atomic Types | **Accepted** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety |
+| ADR                                     | Topic             | Status       | Summary                                                                             |
+| --------------------------------------- | ----------------- | ------------ | ----------------------------------------------------------------------------------- |
+| [ADR-049](adr-049-atomic-types.md)      | Atomic Types      | **Accepted** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety       |
 | [ADR-050](adr-050-critical-sections.md) | Critical Sections | **Accepted** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
-| [ADR-051](adr-051-isr-queues.md) | ISR-Safe Queues | Research | Producer-consumer patterns, 9 open design questions |
+| [ADR-051](adr-051-isr-queues.md)        | ISR-Safe Queues   | Research     | Producer-consumer patterns, 9 open design questions                                 |
 
 ## Next Steps
 

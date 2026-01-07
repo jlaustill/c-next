@@ -38,6 +38,7 @@ C-Next v1 targets embedded systems with static-only allocation (ADR-003). For v2
 ### Q1: Opt-In vs Opt-Out
 
 Should heap allocation be:
+
 - Enabled by target/config (desktop targets enable by default)?
 - Explicit opt-in via pragma?
 - Always available but discouraged?
