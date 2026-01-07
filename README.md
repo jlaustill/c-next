@@ -511,17 +511,17 @@ Decisions are documented in `/docs/decisions/`:
 | ------------------------------------------------------------ | ----------------------------- | --------------------------------------- |
 | [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention     |
 | [ADR-009](docs/decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks |
-| [ADR-051](docs/decisions/adr-051-isr-queues.md)              | ISR-Safe Queues               | Producer-consumer patterns for ISR/main |
 
 ### Research (v2 Roadmap)
 
 | ADR                                                             | Title                      | Description                            |
 | --------------------------------------------------------------- | -------------------------- | -------------------------------------- |
-| [ADR-046](docs/decisions/adr-046-prefixed-includes.md)          | Prefixed Includes          | Namespace control for includes         |
 | [ADR-100](docs/decisions/adr-100-multi-core-synchronization.md) | Multi-Core Synchronization | ESP32/RP2040 spinlock patterns         |
 | [ADR-101](docs/decisions/adr-101-heap-allocation.md)            | Heap Allocation            | Dynamic memory for desktop targets     |
 | [ADR-102](docs/decisions/adr-102-critical-section-analysis.md)  | Critical Section Analysis  | Complexity warnings and cycle analysis |
 | [ADR-103](docs/decisions/adr-103-stream-handling.md)            | Stream Handling            | FILE\* and fopen patterns for file I/O |
+| [ADR-104](docs/decisions/adr-104-isr-queues.md)                 | ISR-Safe Queues            | Producer-consumer patterns for ISR/main |
+| [ADR-105](docs/decisions/adr-105-prefixed-includes.md)          | Prefixed Includes          | Namespace control for includes         |
 
 ### Rejected
 

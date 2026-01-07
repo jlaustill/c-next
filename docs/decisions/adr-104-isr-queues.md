@@ -1,4 +1,4 @@
-# ADR-051: ISR-Safe Queues
+# ADR-104: ISR-Safe Queues
 
 **Status:** Research
 **Date:** 2026-01-03

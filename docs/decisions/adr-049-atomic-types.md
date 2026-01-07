@@ -20,7 +20,7 @@ C-Next needs a way to declare variables that are safe for ISR/main sharing, with
 
 - **ADR-009**: Parent ADR covering overall ISR safety strategy
 - **ADR-050**: Critical sections (for complex multi-variable operations)
-- **ADR-051**: ISR-safe queues (for producer-consumer patterns)
+- **ADR-104**: ISR-safe queues (for producer-consumer patterns)
 
 ---
 

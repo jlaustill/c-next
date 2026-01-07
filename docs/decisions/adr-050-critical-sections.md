@@ -22,7 +22,7 @@ If an ISR fires between these lines, it could see inconsistent state. Critical s
 
 - **ADR-009**: Parent ADR covering overall ISR safety strategy
 - **ADR-049**: Atomic types (for single-variable operations)
-- **ADR-051**: ISR-safe queues (built on critical sections internally)
+- **ADR-104**: ISR-safe queues (built on critical sections internally)
 - **ADR-100**: Multi-core synchronization (v2, deferred)
 - **ADR-102**: Critical section complexity analysis (v2, deferred)
 

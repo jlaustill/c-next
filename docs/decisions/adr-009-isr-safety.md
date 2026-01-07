@@ -518,7 +518,7 @@ Things C-Next already does well for ISR safety:
    **Direction: All three approaches needed, implemented incrementally:**
    - Atomic types (Approach 1) — **Accepted** (ADR-049)
    - Critical sections (Approach 2) — **Accepted** (ADR-050)
-   - ISR-safe queues (Approach 3) — Research in progress (ADR-051)
+   - ISR-safe queues (Approach 3) — Research in progress (ADR-104)
 
    Protected scopes (Approach 4) deferred to v2.
 
@@ -536,13 +536,13 @@ This ADR has been split into focused ADRs:
 | --------------------------------------- | ----------------- | ------------ | ----------------------------------------------------------------------------------- |
 | [ADR-049](adr-049-atomic-types.md)      | Atomic Types      | **Accepted** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety       |
 | [ADR-050](adr-050-critical-sections.md) | Critical Sections | **Accepted** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
-| [ADR-051](adr-051-isr-queues.md)        | ISR-Safe Queues   | Research     | Producer-consumer patterns, 9 open design questions                                 |
+| [ADR-104](adr-104-isr-queues.md)        | ISR-Safe Queues   | Research     | Producer-consumer patterns, 9 open design questions                                 |
 
 ## Next Steps
 
 1. ~~Resolve open questions in ADR-049~~ — **Done** (Accepted 2026-01-04)
 2. ~~Resolve open questions in ADR-050~~ — **Done** (Accepted 2026-01-04)
-3. **Resolve open questions in ADR-051** — 9 design questions for ISR-safe queues
+3. **Resolve open questions in ADR-104** — 9 design questions for ISR-safe queues
 4. **Research C interop philosophy** — C-Next makes C-Next code safe, not C code (Q3)
 5. **Prototype on Teensy** — Test with real CAN bus ISRs
 6. **Implementation** — Begin implementing accepted ADRs (049, 050)
