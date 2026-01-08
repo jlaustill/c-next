@@ -472,8 +472,7 @@ function runTest(cnxFile, updateMode, tools) {
 
       // Step 5: Execution test (if /* test-execution */ marker present)
       if (source.includes("/* test-execution */")) {
-        const expectedC = readFileSync(expectedCFile, "utf-8");
-        if (requiresArmRuntime(expectedC)) {
+        if (requiresArmRuntime(result.code)) {
           return { passed: true, skippedExec: true };
         }
 
@@ -488,6 +487,32 @@ function runTest(cnxFile, updateMode, tools) {
       }
 
       return { passed: true };
+    }
+
+    // Snapshot mismatch - but still try to execute if marker present
+    if (source.includes("/* test-execution */")) {
+      // Write transpiled code to temp file for execution
+      const tempCFile = expectedCFile.replace(".expected.c", ".tmp.c");
+      writeFileSync(tempCFile, result.code);
+
+      try {
+        if (!requiresArmRuntime(result.code)) {
+          const execResult = executeTest(tempCFile, 0);
+          if (!execResult.valid) {
+            return {
+              passed: false,
+              message: "C output mismatch AND execution failed",
+              expected: expectedC,
+              actual: result.code,
+              execError: execResult.message,
+            };
+          }
+        }
+      } finally {
+        try {
+          unlinkSync(tempCFile);
+        } catch {}
+      }
     }
 
     return {
@@ -623,6 +648,12 @@ function main() {
           // Just actual (no expected) - for compilation/analysis errors
           console.log(
             `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+          );
+        }
+        // Show execution error if present
+        if (result.execError) {
+          console.log(
+            `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
           );
         }
       }
