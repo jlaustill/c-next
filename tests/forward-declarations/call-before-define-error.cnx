@@ -1,0 +1,10 @@
+// ADR-030: Error - call before definition
+// Tests: calling function before it's defined produces error
+
+void first() {
+    second();  // ERROR: function called before definition
+}
+
+void second() {
+    // This function is defined after first
+}

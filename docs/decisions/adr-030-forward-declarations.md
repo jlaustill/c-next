@@ -71,6 +71,14 @@ From [Learn C++](https://www.learncpp.com/cpp-tutorial/forward-declarations/) an
 - Parameters must be named for documentation and error detection
 - Prototypes should be in header files, included by all source files
 
+[MISRA C:2012 Rule 17.2](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule17.2.html) (Required): Functions shall not call themselves, either directly or indirectly
+
+- **Direct recursion** (function calls itself) is forbidden
+- **Indirect recursion** (A calls B, B calls A) is forbidden
+- Recursion leads to unpredictable stack usage — critical for embedded systems with limited memory
+- Stack overflow from deep recursion can cause silent data corruption or crashes
+- Recursive algorithms must be converted to iterative equivalents using loops
+
 ### Why Forward Declarations Exist in C
 
 Forward declarations solve specific C problems:
@@ -133,13 +141,52 @@ void process(u8 data[]) {
 
 Generated prototypes in `.h` files also include parameter names.
 
-### Mutual Recursion
+### Recursion Prohibition
 
-Without forward declarations, mutual recursion (A calls B, B calls A) is not possible in a single file. This is an intentional constraint:
+**C-Next forbids all forms of recursion** per MISRA C:2012 Rule 17.2 (Required):
 
-- Mutual recursion is rare in embedded code
-- When needed, split into separate files where header includes provide the declarations
-- This forces better code organization
+**Direct recursion** (function calls itself):
+
+```cnx
+// FORBIDDEN in C-Next
+void countdown(u32 n) {
+    if (n = 0) { return; }
+    Console.print(n);
+    countdown(n - 1);  // ERROR: Self-recursion forbidden
+}
+```
+
+**Indirect recursion** (A calls B, B calls A):
+
+```cnx
+// FORBIDDEN in C-Next (even if forward declarations existed)
+void funcA() {
+    funcB();  // B calls A - circular dependency
+}
+
+void funcB() {
+    funcA();  // A calls B - mutual recursion
+}
+```
+
+**Why recursion is forbidden:**
+
+- Unpredictable stack usage — critical for embedded systems with limited memory
+- Stack overflow from deep recursion causes silent data corruption or crashes
+- Recursion depth cannot be statically analyzed in the general case
+- MISRA C:2012 Rule 17.2 (Required) explicitly forbids both direct and indirect recursion
+- Recursive algorithms must be converted to iterative equivalents using loops
+
+**Converting recursion to iteration:**
+
+```cnx
+// Iterative version (correct C-Next approach)
+void countdown(u32 n) {
+    for i in (n..0) {
+        Console.print(i);
+    }
+}
+```
 
 ## Implementation Requirements
 
@@ -150,7 +197,16 @@ Track defined functions during transpilation. When a function call is encountere
 - If function is not yet defined AND not in symbol table (external) = error
 - Error message: `error[E0422]: function 'foo' called before definition`
 
-### 2. Header Generation
+### 2. Add Self-Recursion Detection
+
+Track the current function being defined. When a function call is encountered:
+
+- If function call matches current function name = error
+- Error message: `error[E0423]: recursive call to 'foo' is forbidden (MISRA C:2012 Rule 17.2)`
+
+Note: Indirect recursion (A calls B, B calls A) is naturally prevented by define-before-use — the second function in the cycle cannot call the first because it's not yet defined.
+
+### 3. Header Generation
 
 Generate `.h` file with prototypes for all non-static functions:
 
@@ -158,7 +214,7 @@ Generate `.h` file with prototypes for all non-static functions:
 - Named parameters (matching definition)
 - C++ compatibility (`extern "C"`)
 
-### 3. Parameter Name Enforcement
+### 4. Parameter Name Enforcement
 
 Grammar already requires parameter names. Verify CodeGenerator preserves them in output.
 
@@ -200,6 +256,7 @@ Could generate prototypes at top of `.c` file to allow any order.
 ### MISRA C
 
 - [MISRA C:2012 Rule 8.2 - Function prototypes with named parameters](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule8.2.html)
+- [MISRA C:2012 Rule 17.2 - Functions shall not call themselves](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule17.2.html)
 
 ### Developer Experience
 

@@ -1,0 +1,18 @@
+// ADR-030: Valid nested call chain
+// Tests: chain of calls where each is defined before caller
+
+void level3() {
+    // Deepest level
+}
+
+void level2() {
+    level3();  // OK: level3 defined first
+}
+
+void level1() {
+    level2();  // OK: level2 defined first
+}
+
+void main() {
+    level1();  // OK: level1 defined first
+}

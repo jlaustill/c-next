@@ -1,0 +1,10 @@
+// ADR-030: Valid define-before-use
+// Tests: function defined before it's called compiles successfully
+
+void helper() {
+    // Simple helper function
+}
+
+void main() {
+    helper();  // OK: helper defined before main
+}

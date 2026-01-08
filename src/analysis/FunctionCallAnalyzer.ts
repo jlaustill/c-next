@@ -232,11 +232,23 @@ class FunctionCallListener extends CNextListener {
     const name = ctx.IDENTIFIER().getText();
 
     // If inside a scope, the full name is Scope_functionName
+    let fullName: string;
     if (this.currentScope) {
-      this.analyzer.defineFunction(`${this.currentScope}_${name}`);
+      fullName = `${this.currentScope}_${name}`;
     } else {
-      this.analyzer.defineFunction(name);
+      fullName = name;
     }
+
+    // Track that we're currently inside this function (for self-recursion detection)
+    this.analyzer.enterFunction(fullName);
+    this.analyzer.defineFunction(fullName);
+  };
+
+  override exitFunctionDeclaration = (
+    _ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    // We're leaving the function definition
+    this.analyzer.exitFunction();
   };
 
   // ========================================================================
@@ -335,6 +347,9 @@ export class FunctionCallAnalyzer {
   /** Included headers (for stdlib function lookup) */
   private includedHeaders: Set<string> = new Set();
 
+  /** Current function being defined (for self-recursion detection) */
+  private currentFunctionName: string | null = null;
+
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
@@ -350,6 +365,7 @@ export class FunctionCallAnalyzer {
     this.knownScopes = new Set();
     this.includedHeaders = new Set();
     this.symbolTable = symbolTable ?? null;
+    this.currentFunctionName = null;
 
     // First pass: collect scope names and included headers
     this.collectScopes(tree);
@@ -409,6 +425,20 @@ export class FunctionCallAnalyzer {
   }
 
   /**
+   * Track entering a function definition (for self-recursion detection)
+   */
+  public enterFunction(name: string): void {
+    this.currentFunctionName = name;
+  }
+
+  /**
+   * Track exiting a function definition
+   */
+  public exitFunction(): void {
+    this.currentFunctionName = null;
+  }
+
+  /**
    * Check if a function name is a known scope
    */
   public isScope(name: string): boolean {
@@ -419,6 +449,18 @@ export class FunctionCallAnalyzer {
    * Check if a function call is valid (function is defined or external)
    */
   public checkFunctionCall(name: string, line: number, column: number): void {
+    // Check for self-recursion (MISRA C:2012 Rule 17.2)
+    if (this.currentFunctionName && name === this.currentFunctionName) {
+      this.errors.push({
+        code: "E0423",
+        functionName: name,
+        line,
+        column,
+        message: `recursive call to '${name}' is forbidden (MISRA C:2012 Rule 17.2)`,
+      });
+      return;
+    }
+
     // Check if function is defined in C-Next
     if (this.definedFunctions.has(name)) {
       return; // OK - defined before use

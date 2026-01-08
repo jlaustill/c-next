@@ -591,7 +591,7 @@ while (*status_reg == 0) {  // Compiler might read once and loop forever!
 
 ---
 
-### 12. Stack Overflow
+### 12. Stack Overflow / Recursion
 
 **Embedded-Specific**
 
@@ -606,11 +606,38 @@ void recursive(int n) {
 }
 ```
 
+**Why recursion is dangerous:**
+
+- Recursion depth cannot be statically analyzed in the general case
+- Stack overflow from deep recursion causes silent data corruption or crashes
+- Unpredictable stack usage is critical for embedded systems with limited memory
+- [MISRA C:2012 Rule 17.2](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule17.2.html) (Required): "Functions shall not call themselves, either directly or indirectly"
+
 **C-Next Prevention:**
 
-- Static allocation means large buffers don't go on stack
-- Recursion could be limited or require explicit opt-in
-- Stack usage analysis at compile time (future)
+| Mechanism                | How it Prevents                                |
+| ------------------------ | ---------------------------------------------- |
+| **Static allocation**    | Large buffers don't go on stack                |
+| **Recursion forbidden**  | Self-recursion is a compile-time error         |
+| **Define-before-use**    | Prevents indirect recursion (mutual recursion) |
+| **Stack usage analysis** | Compile-time analysis (future)                 |
+
+```
+// C-Next: Recursion is forbidden
+void countdown(u32 n) {
+    if (n = 0) { return; }
+    countdown(n - 1);  // ERROR: Recursive call to 'countdown' is forbidden
+}
+
+// Correct approach: use iteration
+void countdown(u32 n) {
+    for i in (n..0) {
+        Console.print(i);
+    }
+}
+```
+
+**See also:** [ADR-030: Forward Declarations](adr-030-forward-declarations.md) (Recursion Prohibition)
 
 ---
 
@@ -669,23 +696,23 @@ printf(user_input);  // If user_input is "%s%s%s%s", crash!
 
 ## Summary: C-Next Bug Prevention Matrix
 
-| Bug Category         | CWE | C-Next Prevention           | ADR                                     |
-| -------------------- | --- | --------------------------- | --------------------------------------- |
-| Buffer Overflow      | 787 | Bounds-checked arrays       | Future                                  |
-| Use-After-Free       | 416 | Static allocation only      | [003](adr-003-static-allocation.md)     |
-| Null Dereference     | 476 | Mandatory init, no null     | Future                                  |
-| Assignment Confusion | 481 | `<-` vs `=` operators       | [001](adr-001-assignment-operator.md)   |
-| Integer Overflow     | 190 | Explicit overflow semantics | Future                                  |
-| Uninitialized Vars   | 824 | Mandatory initialization    | Future                                  |
-| Race Conditions      | 362 | No shared mutable state     | Future                                  |
-| Off-by-One           | 193 | Range-based iteration       | Future                                  |
-| Memory Leaks         | N/A | Static allocation only      | [003](adr-003-static-allocation.md)     |
-| Type Confusion       | N/A | No implicit conversions     | Future                                  |
-| Missing Volatile     | N/A | Auto-volatile registers     | [004](adr-004-register-bindings.md)     |
-| Stack Overflow       | N/A | Static allocation           | [003](adr-003-static-allocation.md)     |
-| Pointer Arithmetic   | N/A | No pointer arithmetic       | [006](adr-006-simplified-references.md) |
-| Format Strings       | 134 | Type-safe printing          | Future                                  |
-| Deadlocks            | 362 | Structured concurrency      | Future                                  |
+| Bug Category         | CWE | C-Next Prevention               | ADR                                                                         |
+| -------------------- | --- | ------------------------------- | --------------------------------------------------------------------------- |
+| Buffer Overflow      | 787 | Bounds-checked arrays           | Future                                                                      |
+| Use-After-Free       | 416 | Static allocation only          | [003](adr-003-static-allocation.md)                                         |
+| Null Dereference     | 476 | Mandatory init, no null         | Future                                                                      |
+| Assignment Confusion | 481 | `<-` vs `=` operators           | [001](adr-001-assignment-operator.md)                                       |
+| Integer Overflow     | 190 | Explicit overflow semantics     | Future                                                                      |
+| Uninitialized Vars   | 824 | Mandatory initialization        | Future                                                                      |
+| Race Conditions      | 362 | No shared mutable state         | Future                                                                      |
+| Off-by-One           | 193 | Range-based iteration           | Future                                                                      |
+| Memory Leaks         | N/A | Static allocation only          | [003](adr-003-static-allocation.md)                                         |
+| Type Confusion       | N/A | No implicit conversions         | Future                                                                      |
+| Missing Volatile     | N/A | Auto-volatile registers         | [004](adr-004-register-bindings.md)                                         |
+| Stack Overflow       | N/A | Static allocation, no recursion | [003](adr-003-static-allocation.md), [030](adr-030-forward-declarations.md) |
+| Pointer Arithmetic   | N/A | No pointer arithmetic           | [006](adr-006-simplified-references.md)                                     |
+| Format Strings       | 134 | Type-safe printing              | Future                                                                      |
+| Deadlocks            | 362 | Structured concurrency          | Future                                                                      |
 
 ---
 
