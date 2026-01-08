@@ -1,0 +1,14 @@
+// ADR-006: Output parameter pattern
+// Tests: function writes result to caller's variable
+
+void calculateSum(i32 a, i32 b, i32 result) {
+    result <- a + b;
+}
+
+void main() {
+    i32 x <- 10;
+    i32 y <- 20;
+    i32 sum <- 0;
+    calculateSum(x, y, sum);
+    // sum is now 30
+}

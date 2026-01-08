@@ -1,0 +1,9 @@
+// ADR-007: Bit range read
+// Tests: reading multiple bits with [start, width] syntax
+
+void main() {
+    u8 config <- 0b11110101;
+    u8 lowNibble <- config[0, 4];   // bits 0-3 = 0101 = 5
+    u8 highNibble <- config[4, 4];  // bits 4-7 = 1111 = 15
+    u8 midBits <- config[2, 3];     // bits 2-4 = 101 = 5
+}

@@ -1,0 +1,19 @@
+// ADR-004 + ADR-007: Bit indexing on registers
+// Tests: single bit access on register members
+
+register GPIO @ 0x40000000 {
+    DR:      u32 rw @ 0x00,
+    DR_SET:  u32 wo @ 0x84,
+}
+
+void main() {
+    // Set single bit
+    GPIO.DR[0] <- true;
+    GPIO.DR[7] <- true;
+
+    // Read single bit
+    bool bit3 <- GPIO.DR[3];
+
+    // Write to set register bit
+    GPIO.DR_SET[4] <- true;
+}

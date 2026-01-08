@@ -1,0 +1,2 @@
+10:4 error[E0904]: Cannot store 'fgets' return value in variable 'result'
+10:17 error[E0901]: C library function 'fgets' can return NULL - must check result

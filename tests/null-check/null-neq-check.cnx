@@ -1,0 +1,15 @@
+// ADR-047: NULL check with != operator
+// Tests: checking for non-NULL before using result
+
+#include <stdio.h>
+
+void processFile() {
+    u8 buffer[64];
+    buffer[0] <- 0;  // Initialize
+
+    u8 result <- fgets(buffer, buffer.length, stdin);
+    if (result != NULL) {
+        // Process the valid result
+        u8 first <- buffer[0];
+    }
+}

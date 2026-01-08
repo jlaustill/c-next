@@ -1,0 +1,15 @@
+// ADR-007: The .length property
+// Tests: .length returns bit width for integers and element count for arrays
+
+void main() {
+    u8 byte <- 0;
+    u16 word <- 0;
+    u32 dword <- 0;
+    u8 buffer[64];
+    buffer[0] <- 0;  // Initialize to satisfy use-before-init check
+
+    u32 byteBits <- byte.length;    // 8
+    u32 wordBits <- word.length;    // 16
+    u32 dwordBits <- dword.length;  // 32
+    u32 bufLen <- buffer.length;    // 64
+}

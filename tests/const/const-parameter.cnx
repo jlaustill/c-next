@@ -1,0 +1,13 @@
+// ADR-013: Const function parameter
+// Tests: const parameter can be read but not modified
+
+void printValue(const i32 value, const u8 flags) {
+    i32 copy <- value;
+    u8 flagCopy <- flags;
+}
+
+void main() {
+    i32 x <- 42;
+    u8 f <- 0xFF;
+    printValue(x, f);
+}

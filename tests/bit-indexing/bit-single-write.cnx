@@ -1,0 +1,10 @@
+// ADR-007: Single bit write
+// Tests: setting individual bits in integer
+
+void main() {
+    u8 flags <- 0;
+    flags[0] <- true;
+    flags[3] <- true;
+    flags[7] <- true;
+    flags[3] <- false;
+}

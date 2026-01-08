@@ -1,0 +1,14 @@
+// ADR-049: Atomic variables with all integer types
+// Tests: atomic works with u8, u16, u32, u64
+
+#pragma target teensy41
+
+atomic u8 byte_counter <- 0;
+atomic u16 word_counter <- 0;
+atomic u32 dword_counter <- 0;
+
+void main() {
+    byte_counter +<- 1;
+    word_counter +<- 1;
+    dword_counter +<- 1;
+}

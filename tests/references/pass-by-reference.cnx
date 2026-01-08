@@ -1,0 +1,12 @@
+// ADR-006: Pass-by-reference
+// Tests: function modifies caller's variable
+
+void increment(i32 value) {
+    value <- value + 1;
+}
+
+void main() {
+    i32 x <- 5;
+    increment(x);
+    // x is now 6 (pass-by-reference)
+}

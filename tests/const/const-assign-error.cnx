@@ -1,0 +1,8 @@
+// ADR-013: Error - assigning to const variable
+// Tests: cannot assign to const variable
+
+const u32 CONFIG <- 100;
+
+void main() {
+    CONFIG <- 200;  // ERROR: cannot assign to const variable
+}

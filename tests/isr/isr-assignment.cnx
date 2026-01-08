@@ -1,0 +1,16 @@
+// ADR-040: ISR assignment
+// Tests: assigning handler functions to ISR variables
+
+void handler1() {
+    // Handler 1
+}
+
+void handler2() {
+    // Handler 2
+}
+
+ISR currentHandler <- handler1;
+
+void switchHandler() {
+    currentHandler <- handler2;
+}

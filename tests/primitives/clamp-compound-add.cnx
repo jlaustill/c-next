@@ -1,0 +1,8 @@
+// ADR-044: Clamp with compound assignment
+// Tests: clamp modifier with compound addition
+
+clamp u8 brightness <- 200;
+
+void main() {
+    brightness +<- 100;  // Would overflow, but clamps to 255
+}

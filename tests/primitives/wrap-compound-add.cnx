@@ -1,0 +1,8 @@
+// ADR-044: Wrap with compound assignment
+// Tests: wrap modifier with compound addition
+
+wrap u8 counter <- 250;
+
+void main() {
+    counter +<- 10;  // Wraps around: 250 + 10 = 260 -> wraps to 4
+}

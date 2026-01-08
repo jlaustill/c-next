@@ -1,0 +1,19 @@
+// ADR-004: Register offset calculation test
+// Tests: correct offset values in generated C macros
+
+register UART @ 0x40001000 {
+    CR:    u32 rw @ 0x00,
+    SR:    u32 ro @ 0x04,
+    DR:    u32 rw @ 0x08,
+    BRR:   u32 rw @ 0x0C,
+    CR1:   u32 rw @ 0x10,
+}
+
+void main() {
+    UART.CR <- 0x01;
+    UART.DR <- 0x55;
+    UART.BRR <- 9600;
+    UART.CR1 <- 0x80;
+
+    u32 status <- UART.SR;
+}

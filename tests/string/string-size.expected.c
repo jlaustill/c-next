@@ -14,4 +14,3 @@ void test(void) {
     uint32_t bufferSize = 51;
     uint32_t maxLength = 50;
 }
-

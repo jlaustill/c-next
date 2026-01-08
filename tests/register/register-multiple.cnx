@@ -1,0 +1,30 @@
+// ADR-004: Multiple registers in same file
+// Tests: defining and using multiple register blocks
+
+register GPIOA @ 0x40020000 {
+    DR:   u32 rw @ 0x00,
+    GDIR: u32 rw @ 0x04,
+}
+
+register GPIOB @ 0x40020400 {
+    DR:   u32 rw @ 0x00,
+    GDIR: u32 rw @ 0x04,
+}
+
+register TIMER @ 0x40000000 {
+    CR:    u32 rw @ 0x00,
+    CNT:   u32 ro @ 0x04,
+}
+
+void main() {
+    // Configure GPIO A as output
+    GPIOA.GDIR <- 0xFF;
+    GPIOA.DR <- 0x01;
+
+    // Configure GPIO B as input
+    GPIOB.GDIR <- 0x00;
+    u32 input <- GPIOB.DR;
+
+    // Read timer count
+    u32 count <- TIMER.CNT;
+}

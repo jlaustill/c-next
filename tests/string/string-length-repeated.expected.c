@@ -17,4 +17,3 @@ void test(void) {
         text[_text_len - 1] = 'D';
     }
 }
-

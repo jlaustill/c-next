@@ -1,0 +1,10 @@
+// ADR-013: Const variable usage
+// Tests: const variable can be read but not written
+
+const u32 MAX_SIZE <- 100;
+const u8 FLAGS <- 0x55;
+
+void main() {
+    u32 size <- MAX_SIZE;
+    u8 f <- FLAGS;
+}
