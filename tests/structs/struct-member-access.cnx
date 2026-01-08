@@ -1,0 +1,23 @@
+// ADR-014: Struct member access
+// Tests: reading and writing struct members
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+void main() {
+    Point p <- { x: 10, y: 20 };
+
+    // Read members
+    i32 xVal <- p.x;
+    i32 yVal <- p.y;
+
+    // Write members
+    p.x <- 100;
+    p.y <- 200;
+
+    // Compound assignment
+    p.x +<- 5;
+    p.y -<- 10;
+}

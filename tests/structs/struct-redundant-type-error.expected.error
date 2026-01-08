@@ -1,0 +1,1 @@
+1:0 Code generation failed: Redundant type 'Point' in struct initializer. Use '{ field: value }' syntax when type is already declared.

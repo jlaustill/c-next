@@ -1,0 +1,15 @@
+// ADR-014: Struct with array member
+// Tests: array fields inside structs
+
+struct Buffer {
+    u8 data[16];
+    u32 length;
+}
+
+void main() {
+    Buffer buf;
+    buf.length <- 0;
+    buf.data[0] <- 0x41;
+    buf.data[1] <- 0x42;
+    buf.length <- 2;
+}

@@ -1,0 +1,9 @@
+// ADR-014: Redundant type in struct initializer should error
+// Use { field: value } syntax when type is already declared
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+const Point ORIGIN <- Point { x: 0, y: 0 };

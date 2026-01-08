@@ -1,0 +1,12 @@
+// ADR-014: Named field initialization
+// Tests: struct initialization with named fields
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+void main() {
+    Point origin <- { x: 0, y: 0 };
+    Point p <- { x: 100, y: 200 };
+}

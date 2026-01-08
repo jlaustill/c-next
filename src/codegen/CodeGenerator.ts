@@ -2885,12 +2885,25 @@ export default class CodeGenerator {
 
   /**
    * ADR-014: Generate struct initializer
-   * Point { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 }
-   * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (inferred from context)
+   * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (type inferred from context)
+   *
+   * Note: Explicit type syntax (Point { x: 10 }) is rejected as redundant
+   * when type is already declared on the left side of assignment.
    */
   private generateStructInitializer(
     ctx: Parser.StructInitializerContext,
   ): string {
+    // Reject redundant type in struct initializer
+    // Wrong: const Point p <- Point { x: 0 };
+    // Right: const Point p <- { x: 0 };
+    if (ctx.IDENTIFIER() && this.context.expectedType) {
+      const explicitType = ctx.IDENTIFIER()!.getText();
+      throw new Error(
+        `Redundant type '${explicitType}' in struct initializer. ` +
+          `Use '{ field: value }' syntax when type is already declared.`,
+      );
+    }
+
     // Get type name - either explicit or inferred from context
     let typeName: string;
     if (ctx.IDENTIFIER()) {

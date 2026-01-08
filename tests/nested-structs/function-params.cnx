@@ -37,6 +37,6 @@ void moveRect(Rectangle rect, i32 dx, i32 dy) {
 
 // Test instance
 Rectangle bounds <- {
-    topLeft: Point { x: 10, y: 20 },
-    bottomRight: Point { x: 60, y: 70 }
+    topLeft: { x: 10, y: 20 },
+    bottomRight: { x: 60, y: 70 }
 };
