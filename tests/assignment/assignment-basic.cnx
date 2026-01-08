@@ -1,0 +1,17 @@
+// ADR-001: Basic assignment operator
+// Tests: <- operator transpiles to = in C
+
+u32 counter <- 0;
+i32 offset <- -10;
+bool flag <- true;
+
+void updateValues() {
+    counter <- 42;
+    offset <- 100;
+    flag <- false;
+}
+
+u32 main() {
+    updateValues();
+    return counter;
+}

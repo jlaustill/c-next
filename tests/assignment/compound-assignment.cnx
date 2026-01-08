@@ -1,0 +1,24 @@
+// ADR-001: Compound assignment operators
+// Tests: compound assignment with <- syntax
+
+u32 testCompound() {
+    u32 val <- 10;
+
+    val +<- 5;    // val = val + 5
+    val -<- 3;    // val = val - 3
+    val *<- 2;    // val = val * 2
+    val /<- 4;    // val = val / 4
+    val %<- 3;    // val = val % 3
+
+    return val;
+}
+
+void testBitwise() {
+    u32 flags <- 0xFF;
+
+    flags &<- 0x0F;   // AND
+    flags |<- 0xF0;   // OR
+    flags ^<- 0x55;   // XOR
+    flags <<<- 2;     // Left shift
+    flags >><- 1;     // Right shift
+}

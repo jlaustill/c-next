@@ -1,0 +1,26 @@
+// ADR-001: Comparison in if statements
+// Tests: = operator transpiles to == in conditions
+
+u32 checkValue(u32 x) {
+    if (x = 0) {
+        return 0;
+    }
+    if (x = 100) {
+        return 100;
+    }
+    return x;
+}
+
+bool isPositive(i32 n) {
+    if (n > 0) {
+        return true;
+    }
+    return false;
+}
+
+void testNotEqual() {
+    u32 val <- 5;
+    if (val != 0) {
+        val <- 10;
+    }
+}
