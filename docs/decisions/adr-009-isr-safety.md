@@ -503,11 +503,71 @@ Things C-Next already does well for ISR safety:
 
 3. **How do we integrate with existing C ISR patterns?**
 
-   Need to research:
-   - How does C-Next call into C++ callbacks (e.g., FlexCAN_T4)?
-   - How do vendor HAL ISR registration mechanisms work?
-   - Can C-Next define ISR handlers that the linker places in vector tables?
-   - Example needed: calling FlexCAN `onReceive()` from C-Next
+   **Status: Partially resolved, needs documentation and examples.**
+
+   C-Next already provides the foundation:
+   - Generates valid C with correct ISR signatures
+   - Supports `--cpp` for C++ output
+   - Has `ISR` type for function pointers (ADR-040)
+
+   **Sub-questions and analysis:**
+
+   #### 3a. Vector Table Placement
+
+   How does a C-Next ISR end up in the hardware vector table?
+
+   ```cnx
+   // C-Next declares this...
+   interrupt UART_RX {
+       // handle interrupt
+   }
+
+   // But linker needs to know to put this at the correct vector address
+   ```
+
+   **Mechanisms (platform-dependent):**
+
+   | Mechanism | How It Works | Platforms |
+   |-----------|--------------|-----------|
+   | Naming convention | Function named `UART_IRQHandler` matches weak symbol in startup file | CMSIS, STM32, most ARM |
+   | Linker script | Section attributes place function at specific address | Bare metal |
+   | Runtime registration | `attachInterruptVector(IRQ_UART, handler)` | Teensyduino |
+   | Compiler attributes | `__attribute__((interrupt("IRQ")))` | GCC/Clang |
+
+   **Current C-Next approach:** Generate standard C function, user wires to vector table.
+
+   **Possible enhancement:** `interrupt(vector: "UART_IRQHandler")` syntax to control generated name.
+
+   #### 3b. C++ Callback Integration
+
+   FlexCAN_T4 uses C++ member functions:
+
+   ```cpp
+   // FlexCAN_T4 API (C++)
+   can.onReceive(myCallback);  // myCallback is a function pointer
+   ```
+
+   C-Next generates C, which can't call C++ member functions directly.
+
+   **Solutions:**
+   - Use `--cpp` flag to generate C++ output
+   - Write `extern "C"` wrapper functions in a `.cpp` file
+   - FlexCAN callbacks are actually C-compatible function pointers
+
+   #### 3c. Vendor HAL Patterns
+
+   | Vendor | Pattern | C-Next Integration |
+   |--------|---------|-------------------|
+   | CMSIS | `void SysTick_Handler(void)` | Match naming convention |
+   | Arduino | `attachInterrupt(pin, func, mode)` | Pass function pointer |
+   | STM32 HAL | `HAL_UART_RxCpltCallback()` | Override weak symbol |
+   | Teensyduino | `attachInterruptVector()` | Runtime registration |
+
+   #### 3d. Remaining Work
+
+   1. **Documentation**: "How to use C-Next ISRs with [Teensy/STM32/etc]"
+   2. **Examples**: Real FlexCAN_T4 integration example
+   3. **Possible v2 feature**: ISR naming convention support
 
 4. **What about nested interrupts / priority levels?**
 
@@ -515,12 +575,11 @@ Things C-Next already does well for ISR safety:
 
 5. **Scope of v1 implementation?**
 
-   **Direction: All three approaches needed, implemented incrementally:**
-   - Atomic types (Approach 1) — **Accepted** (ADR-049)
-   - Critical sections (Approach 2) — **Accepted** (ADR-050)
-   - ISR-safe queues (Approach 3) — Research in progress (ADR-104)
-
-   Protected scopes (Approach 4) deferred to v2.
+   **Resolution: v1 ISR safety is complete.**
+   - Atomic types (Approach 1) — **Implemented** (ADR-049)
+   - Critical sections (Approach 2) — **Implemented** (ADR-050)
+   - ISR-safe queues (Approach 3) — Deferred to v2 (ADR-104)
+   - Protected scopes (Approach 4) — Deferred to v2
 
 6. **Target configuration mechanism?**
 
@@ -532,20 +591,20 @@ Things C-Next already does well for ISR safety:
 
 This ADR has been split into focused ADRs:
 
-| ADR                                     | Topic             | Status       | Summary                                                                             |
-| --------------------------------------- | ----------------- | ------------ | ----------------------------------------------------------------------------------- |
-| [ADR-049](adr-049-atomic-types.md)      | Atomic Types      | **Accepted** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety       |
-| [ADR-050](adr-050-critical-sections.md) | Critical Sections | **Accepted** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
-| [ADR-104](adr-104-isr-queues.md)        | ISR-Safe Queues   | Research     | Producer-consumer patterns, 9 open design questions                                 |
+| ADR                                     | Topic             | Status          | Summary                                                                             |
+| --------------------------------------- | ----------------- | --------------- | ----------------------------------------------------------------------------------- |
+| [ADR-049](adr-049-atomic-types.md)      | Atomic Types      | **Implemented** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety       |
+| [ADR-050](adr-050-critical-sections.md) | Critical Sections | **Implemented** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
+| [ADR-104](adr-104-isr-queues.md)        | ISR-Safe Queues   | Research (v2)   | Producer-consumer patterns, 9 open design questions                                 |
+| [ADR-106](adr-106-isr-vector-bindings.md) | Vector Table Bindings | Research    | Treat vector table as register binding, platform-specific ISR assignment            |
 
 ## Next Steps
 
-1. ~~Resolve open questions in ADR-049~~ — **Done** (Accepted 2026-01-04)
-2. ~~Resolve open questions in ADR-050~~ — **Done** (Accepted 2026-01-04)
-3. **Resolve open questions in ADR-104** — 9 design questions for ISR-safe queues
+1. ~~Resolve open questions in ADR-049~~ — **Done** (Implemented 2026-01-06)
+2. ~~Resolve open questions in ADR-050~~ — **Done** (Implemented 2026-01-06)
+3. ~~Resolve open questions in ADR-104~~ — **Deferred to v2**
 4. **Research C interop philosophy** — C-Next makes C-Next code safe, not C code (Q3)
 5. **Prototype on Teensy** — Test with real CAN bus ISRs
-6. **Implementation** — Begin implementing accepted ADRs (049, 050)
 
 ---
 

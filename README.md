@@ -520,8 +520,9 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-101](docs/decisions/adr-101-heap-allocation.md)            | Heap Allocation            | Dynamic memory for desktop targets     |
 | [ADR-102](docs/decisions/adr-102-critical-section-analysis.md)  | Critical Section Analysis  | Complexity warnings and cycle analysis |
 | [ADR-103](docs/decisions/adr-103-stream-handling.md)            | Stream Handling            | FILE\* and fopen patterns for file I/O |
-| [ADR-104](docs/decisions/adr-104-isr-queues.md)                 | ISR-Safe Queues            | Producer-consumer patterns for ISR/main |
-| [ADR-105](docs/decisions/adr-105-prefixed-includes.md)          | Prefixed Includes          | Namespace control for includes         |
+| [ADR-104](docs/decisions/adr-104-isr-queues.md)                 | ISR-Safe Queues            | Producer-consumer patterns for ISR/main  |
+| [ADR-105](docs/decisions/adr-105-prefixed-includes.md)          | Prefixed Includes          | Namespace control for includes           |
+| [ADR-106](docs/decisions/adr-106-isr-vector-bindings.md)        | Vector Table Bindings      | Register bindings for ISR vector tables  |
 
 ### Rejected
 

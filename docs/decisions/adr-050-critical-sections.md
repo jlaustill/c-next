@@ -1,8 +1,9 @@
 # ADR-050: Critical Sections
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2026-01-03
 **Accepted:** 2026-01-04
+**Implemented:** 2026-01-06
 **Decision Makers:** C-Next Language Design Team
 **Parent ADR:** [ADR-009: ISR Safety](adr-009-isr-safety.md)
 
