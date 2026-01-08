@@ -23,6 +23,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint32_t b) {
     return a - b;
 }
 
+/* test-execution */
 // ADR-001: Compound assignment operators
 // Tests: compound assignment with <- syntax
 uint32_t testCompound(void) {
@@ -35,11 +36,22 @@ uint32_t testCompound(void) {
     return val;
 }
 
-void testBitwise(void) {
+uint32_t testBitwise(void) {
     uint32_t flags = 0xFF;
     flags &= 0x0F;
     flags |= 0xF0;
     flags ^= 0x55;
     flags <<= 2;
     flags >>= 1;
+    return flags;
+}
+
+uint32_t main(void) {
+    if (testCompound() != 0) {
+        return 1;
+    }
+    if (testBitwise() != 0x154) {
+        return 1;
+    }
+    return 0;
 }

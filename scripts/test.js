@@ -12,6 +12,12 @@
  *   2. Cppcheck static analysis
  *   3. Clang-tidy analysis
  *   4. MISRA C compliance check
+ *   5. Execution test (if test-execution marker present)
+ *
+ * Execution testing:
+ * - Add test-execution comment at top of .cnx file to enable
+ * - Test must return 0 for success, non-zero for failure
+ * - ARM tests (using LDREX/STREX/PRIMASK) auto-skip execution
  *
  * Usage:
  *   npm test                    # Run all tests with full validation
@@ -25,10 +31,13 @@ import {
   existsSync,
   readdirSync,
   statSync,
+  unlinkSync,
 } from "fs";
 import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
 import { execFileSync } from "child_process";
+import { tmpdir } from "os";
+import { randomBytes } from "crypto";
 import { transpile } from "../dist/lib/transpiler.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -216,6 +225,102 @@ function validateMisra(cFile) {
 }
 
 /**
+ * Get a unique path for a test executable in the temp directory
+ */
+function getExecutablePath(cnxFile) {
+  const testName = basename(cnxFile, ".cnx");
+  const uniqueId = randomBytes(4).toString("hex");
+  return join(tmpdir(), `cnx-test-${testName}-${uniqueId}`);
+}
+
+/**
+ * Check if generated C code requires ARM runtime (can't execute on x86)
+ */
+function requiresArmRuntime(cCode) {
+  return (
+    cCode.includes("cmsis_gcc.h") ||
+    cCode.includes("__LDREX") ||
+    cCode.includes("__STREX") ||
+    cCode.includes("__get_PRIMASK") ||
+    cCode.includes("__set_PRIMASK") ||
+    cCode.includes("__disable_irq") ||
+    cCode.includes("__enable_irq")
+  );
+}
+
+/**
+ * Compile and execute a C file, validating exit code
+ * @param {string} cFile - Path to the C file
+ * @param {number} expectedExitCode - Expected exit code (default 0)
+ * @returns {{valid: boolean, message?: string}}
+ */
+function executeTest(cFile, expectedExitCode = 0) {
+  const execPath = getExecutablePath(cFile);
+
+  try {
+    // Compile to executable
+    execFileSync(
+      "gcc",
+      [
+        "-std=c99",
+        "-Wno-unused-variable",
+        "-Wno-main",
+        "-I",
+        join(rootDir, "tests/include"),
+        "-o",
+        execPath,
+        cFile,
+      ],
+      { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
+    );
+
+    // Execute the compiled program
+    try {
+      execFileSync(execPath, [], {
+        encoding: "utf-8",
+        timeout: 5000,
+        stdio: "pipe",
+      });
+
+      // Program exited with 0
+      if (expectedExitCode !== 0) {
+        return {
+          valid: false,
+          message: `Expected exit ${expectedExitCode}, got 0`,
+        };
+      }
+      return { valid: true };
+    } catch (execError) {
+      const actualCode = execError.status || 1;
+
+      if (actualCode === expectedExitCode) {
+        return { valid: true };
+      }
+
+      return {
+        valid: false,
+        message: `Expected exit 0, got ${actualCode}`,
+      };
+    }
+  } catch (compileError) {
+    const output = compileError.stderr || compileError.message;
+    return {
+      valid: false,
+      message: `Compile failed: ${output.split("\n")[0]}`,
+    };
+  } finally {
+    // Clean up executable
+    try {
+      if (existsSync(execPath)) {
+        unlinkSync(execPath);
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+/**
  * Check if validation tools are available
  */
 function checkValidationTools() {
@@ -365,6 +470,23 @@ function runTest(cnxFile, updateMode, tools) {
         }
       }
 
+      // Step 5: Execution test (if /* test-execution */ marker present)
+      if (source.includes("/* test-execution */")) {
+        const expectedC = readFileSync(expectedCFile, "utf-8");
+        if (requiresArmRuntime(expectedC)) {
+          return { passed: true, skippedExec: true };
+        }
+
+        const execResult = executeTest(expectedCFile, 0);
+        if (!execResult.valid) {
+          return {
+            passed: false,
+            message: "Execution failed",
+            actual: execResult.message,
+          };
+        }
+      }
+
       return { passed: true };
     }
 
@@ -471,6 +593,10 @@ function main() {
       if (result.updated) {
         console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
         updated++;
+      } else if (result.skippedExec) {
+        console.log(
+          `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
+        );
       } else {
         console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
       }

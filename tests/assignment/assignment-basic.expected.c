@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // ADR-001: Basic assignment operator
 // Tests: <- operator transpiles to = in C
 uint32_t counter = 0;
@@ -22,5 +23,8 @@ void updateValues(void) {
 
 uint32_t main(void) {
     updateValues();
-    return counter;
+    if (counter == 42 && offset == 100 && flag == false) {
+        return 0;
+    }
+    return 1;
 }

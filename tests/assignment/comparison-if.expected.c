@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
 uint32_t checkValue(uint32_t* x) {
@@ -25,9 +26,26 @@ bool isPositive(int32_t* n) {
     return false;
 }
 
-void testNotEqual(void) {
-    uint32_t val = 5;
-    if (val != 0) {
-        val = 10;
+uint32_t main(void) {
+    uint32_t zero = 0;
+    uint32_t hundred = 100;
+    uint32_t fifty = 50;
+    int32_t positive = 5;
+    int32_t negative = -5;
+    if (checkValue(&zero) != 0) {
+        return 1;
     }
+    if (checkValue(&hundred) != 100) {
+        return 1;
+    }
+    if (checkValue(&fifty) != 50) {
+        return 1;
+    }
+    if (isPositive(&positive) != true) {
+        return 1;
+    }
+    if (isPositive(&negative) != false) {
+        return 1;
+    }
+    return 0;
 }

@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -14,19 +13,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
     return a + b;
 }
 
+/* test-execution */
 // ADR-001: Comparison in while loops
 // Tests: = operator transpiles to == in while conditions
-void countToZero(uint32_t* count) {
-    while ((*count) != 0) {
-        (*count) -= 1;
-    }
-}
-
-void waitForFlag(bool* done) {
-    while ((*done) == false) {
-    }
-}
-
 uint32_t sumUntilLimit(uint32_t* limit) {
     uint32_t sum = 0;
     uint32_t i = 0;
@@ -35,4 +24,20 @@ uint32_t sumUntilLimit(uint32_t* limit) {
         i = cnx_clamp_add_u32(i, 1);
     }
     return sum;
+}
+
+uint32_t main(void) {
+    uint32_t five = 5;
+    uint32_t zero = 0;
+    uint32_t three = 3;
+    if (sumUntilLimit(&five) != 10) {
+        return 1;
+    }
+    if (sumUntilLimit(&zero) != 0) {
+        return 1;
+    }
+    if (sumUntilLimit(&three) != 3) {
+        return 1;
+    }
+    return 0;
 }

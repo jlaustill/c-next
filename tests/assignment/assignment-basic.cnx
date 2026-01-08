@@ -1,3 +1,4 @@
+/* test-execution */
 // ADR-001: Basic assignment operator
 // Tests: <- operator transpiles to = in C
 
@@ -13,5 +14,10 @@ void updateValues() {
 
 u32 main() {
     updateValues();
-    return counter;
+
+    // Validate all assignments worked correctly
+    if (counter = 42 && offset = 100 && flag = false) {
+        return 0;
+    }
+    return 1;
 }

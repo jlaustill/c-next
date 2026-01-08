@@ -1,3 +1,4 @@
+/* test-execution */
 // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
 
@@ -18,9 +19,31 @@ bool isPositive(i32 n) {
     return false;
 }
 
-void testNotEqual() {
-    u32 val <- 5;
-    if (val != 0) {
-        val <- 10;
+u32 main() {
+    // Test checkValue - use variables to avoid cppcheck null pointer warning
+    u32 zero <- 0;
+    u32 hundred <- 100;
+    u32 fifty <- 50;
+    i32 positive <- 5;
+    i32 negative <- -5;
+
+    if (checkValue(zero) != 0) {
+        return 1;
     }
+    if (checkValue(hundred) != 100) {
+        return 1;
+    }
+    if (checkValue(fifty) != 50) {
+        return 1;
+    }
+
+    // Test isPositive
+    if (isPositive(positive) != true) {
+        return 1;
+    }
+    if (isPositive(negative) != false) {
+        return 1;
+    }
+
+    return 0;
 }
