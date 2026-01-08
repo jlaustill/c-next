@@ -527,12 +527,12 @@ Things C-Next already does well for ISR safety:
 
    **Mechanisms (platform-dependent):**
 
-   | Mechanism | How It Works | Platforms |
-   |-----------|--------------|-----------|
-   | Naming convention | Function named `UART_IRQHandler` matches weak symbol in startup file | CMSIS, STM32, most ARM |
-   | Linker script | Section attributes place function at specific address | Bare metal |
-   | Runtime registration | `attachInterruptVector(IRQ_UART, handler)` | Teensyduino |
-   | Compiler attributes | `__attribute__((interrupt("IRQ")))` | GCC/Clang |
+   | Mechanism            | How It Works                                                         | Platforms              |
+   | -------------------- | -------------------------------------------------------------------- | ---------------------- |
+   | Naming convention    | Function named `UART_IRQHandler` matches weak symbol in startup file | CMSIS, STM32, most ARM |
+   | Linker script        | Section attributes place function at specific address                | Bare metal             |
+   | Runtime registration | `attachInterruptVector(IRQ_UART, handler)`                           | Teensyduino            |
+   | Compiler attributes  | `__attribute__((interrupt("IRQ")))`                                  | GCC/Clang              |
 
    **Current C-Next approach:** Generate standard C function, user wires to vector table.
 
@@ -556,15 +556,14 @@ Things C-Next already does well for ISR safety:
 
    #### 3c. Vendor HAL Patterns
 
-   | Vendor | Pattern | C-Next Integration |
-   |--------|---------|-------------------|
-   | CMSIS | `void SysTick_Handler(void)` | Match naming convention |
-   | Arduino | `attachInterrupt(pin, func, mode)` | Pass function pointer |
-   | STM32 HAL | `HAL_UART_RxCpltCallback()` | Override weak symbol |
-   | Teensyduino | `attachInterruptVector()` | Runtime registration |
+   | Vendor      | Pattern                            | C-Next Integration      |
+   | ----------- | ---------------------------------- | ----------------------- |
+   | CMSIS       | `void SysTick_Handler(void)`       | Match naming convention |
+   | Arduino     | `attachInterrupt(pin, func, mode)` | Pass function pointer   |
+   | STM32 HAL   | `HAL_UART_RxCpltCallback()`        | Override weak symbol    |
+   | Teensyduino | `attachInterruptVector()`          | Runtime registration    |
 
    #### 3d. Remaining Work
-
    1. **Documentation**: "How to use C-Next ISRs with [Teensy/STM32/etc]"
    2. **Examples**: Real FlexCAN_T4 integration example
    3. **Possible v2 feature**: ISR naming convention support
@@ -591,12 +590,12 @@ Things C-Next already does well for ISR safety:
 
 This ADR has been split into focused ADRs:
 
-| ADR                                     | Topic             | Status          | Summary                                                                             |
-| --------------------------------------- | ----------------- | --------------- | ----------------------------------------------------------------------------------- |
-| [ADR-049](adr-049-atomic-types.md)      | Atomic Types      | **Implemented** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety       |
-| [ADR-050](adr-050-critical-sections.md) | Critical Sections | **Implemented** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
-| [ADR-104](adr-104-isr-queues.md)        | ISR-Safe Queues   | Research (v2)   | Producer-consumer patterns, 9 open design questions                                 |
-| [ADR-106](adr-106-isr-vector-bindings.md) | Vector Table Bindings | Research    | Treat vector table as register binding, platform-specific ISR assignment            |
+| ADR                                       | Topic                 | Status          | Summary                                                                             |
+| ----------------------------------------- | --------------------- | --------------- | ----------------------------------------------------------------------------------- |
+| [ADR-049](adr-049-atomic-types.md)        | Atomic Types          | **Implemented** | `atomic` keyword, natural syntax, SeqCst always, compiler-enforced ISR safety       |
+| [ADR-050](adr-050-critical-sections.md)   | Critical Sections     | **Implemented** | `critical { }` blocks, automatic ceiling priority (RTIC-inspired), PRIMASK fallback |
+| [ADR-104](adr-104-isr-queues.md)          | ISR-Safe Queues       | Research (v2)   | Producer-consumer patterns, 9 open design questions                                 |
+| [ADR-106](adr-106-isr-vector-bindings.md) | Vector Table Bindings | Research        | Treat vector table as register binding, platform-specific ISR assignment            |
 
 ## Next Steps
 

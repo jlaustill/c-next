@@ -32,11 +32,11 @@ The "+16" accounts for the 16 ARM exception vectors (Reset, NMI, HardFault, etc.
 Each chip family has different IRQ assignments:
 
 | Peripheral | STM32F446 IRQ | IMXRT1062 (Teensy 4) IRQ |
-|------------|---------------|--------------------------|
-| UART1 | 37 | 20 (LPUART1) |
-| CAN1 | 20 | 36 |
-| SPI1 | 35 | 32 (LPSPI1) |
-| Timer | 28 (TIM2) | Various (GPT, PIT, etc.) |
+| ---------- | ------------- | ------------------------ |
+| UART1      | 37            | 20 (LPUART1)             |
+| CAN1       | 20            | 36                       |
+| SPI1       | 35            | 32 (LPSPI1)              |
+| Timer      | 28 (TIM2)     | Various (GPT, PIT, etc.) |
 
 This is why **register definitions are never portable MCU to MCU** - each platform needs its own definitions.
 
@@ -152,12 +152,12 @@ void setup(void) {
 
 ### Flash vs RAM Vector Tables
 
-| Platform | Vector Table | Writable at Runtime? | C-Next Strategy |
-|----------|--------------|---------------------|-----------------|
-| Teensy 4.x | RAM (0x20000000) | Yes | Direct write via register |
-| STM32 (default) | Flash | No | Link-time binding (see below) |
-| STM32 (relocated) | RAM | Yes | Direct write via register |
-| Cortex-M0 | Flash only | No | Link-time binding only |
+| Platform          | Vector Table     | Writable at Runtime? | C-Next Strategy               |
+| ----------------- | ---------------- | -------------------- | ----------------------------- |
+| Teensy 4.x        | RAM (0x20000000) | Yes                  | Direct write via register     |
+| STM32 (default)   | Flash            | No                   | Link-time binding (see below) |
+| STM32 (relocated) | RAM              | Yes                  | Direct write via register     |
+| Cortex-M0         | Flash only       | No                   | Link-time binding only        |
 
 ### Link-Time Binding for Flash Tables
 
@@ -190,6 +190,7 @@ The `link` modifier indicates "resolved at link time, not runtime."
 How should platform-specific register definitions be distributed?
 
 **Options:**
+
 - A) Built into C-Next compiler (requires updates for new chips)
 - B) External `.cnx` header files (community-maintained)
 - C) Generated from vendor SVD/CMSIS-SVD files (automated)
@@ -248,16 +249,16 @@ Can C-Next detect whether the vector table is writable and choose the appropriat
 
 From [imxrt.h](https://github.com/PaulStoffregen/cores/blob/master/teensy4/imxrt.h):
 
-| IRQ | Name | Offset | Description |
-|-----|------|--------|-------------|
-| 0-15 | DMA_CH0-15 | 0x40-0x7C | DMA channels |
-| 16 | DMA_ERROR | 0x80 | DMA error |
-| 20-27 | LPUART1-8 | 0x90-0xAC | Low-power UART |
-| 28-31 | LPI2C1-4 | 0xB0-0xBC | Low-power I2C |
-| 32-35 | LPSPI1-4 | 0xC0-0xCC | Low-power SPI |
-| 36-37 | CAN1-2 | 0xD0-0xD4 | FlexCAN |
-| 80-89 | GPIO1-5 | 0x180-0x1A4 | Slow GPIO (split) |
-| 157 | GPIO6789 | 0x2B4 | High-speed GPIO |
+| IRQ   | Name       | Offset      | Description       |
+| ----- | ---------- | ----------- | ----------------- |
+| 0-15  | DMA_CH0-15 | 0x40-0x7C   | DMA channels      |
+| 16    | DMA_ERROR  | 0x80        | DMA error         |
+| 20-27 | LPUART1-8  | 0x90-0xAC   | Low-power UART    |
+| 28-31 | LPI2C1-4   | 0xB0-0xBC   | Low-power I2C     |
+| 32-35 | LPSPI1-4   | 0xC0-0xCC   | Low-power SPI     |
+| 36-37 | CAN1-2     | 0xD0-0xD4   | FlexCAN           |
+| 80-89 | GPIO1-5    | 0x180-0x1A4 | Slow GPIO (split) |
+| 157   | GPIO6789   | 0x2B4       | High-speed GPIO   |
 
 Full list: 160 IRQs (0-159)
 
