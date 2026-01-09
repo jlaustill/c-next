@@ -1,0 +1,10 @@
+// ADR-047: Valid NULL check pattern for fgetc
+#include <stdio.h>
+
+i32 readChar() {
+    i32 ch <- fgetc(stdin);
+    if (ch != EOF) {
+        return ch;
+    }
+    return -1;
+}

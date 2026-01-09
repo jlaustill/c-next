@@ -1,9 +1,16 @@
+/* test-execution */
 // For loop tests: Basic for loop
 // Tests: standard for loop with all three parts
 
-void main() {
+u32 main() {
     u32 sum <- 0;
     for (u32 i <- 0; i < 10; i <- i + 1) {
         sum +<- i;
     }
+
+    // 0+1+2+3+4+5+6+7+8+9 = 45
+    if (sum = 45) {
+        return 0;
+    }
+    return 1;
 }

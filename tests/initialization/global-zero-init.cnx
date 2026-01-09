@@ -1,0 +1,16 @@
+/* test-execution */
+// ADR-015: Global zero initialization
+// Tests: globals are automatically zero-initialized
+
+u32 counter;
+i32 offset;
+bool flag;
+u8 byte;
+
+u32 main() {
+    // All globals should be zero without explicit init
+    if (counter = 0 && offset = 0 && flag = false && byte = 0) {
+        return 0;
+    }
+    return 1;
+}

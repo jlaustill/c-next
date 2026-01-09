@@ -4070,7 +4070,7 @@ export default class CodeGenerator {
 
         // Generate all subscript indices
         const indices = exprs.map((e) => this.generateExpression(e)).join("][");
-        return `${arrayName}[${indices}] = ${value};`;
+        return `${arrayName}[${indices}] ${cOp} ${value};`;
       }
 
       // ADR-036: Struct member multi-dimensional array access (e.g., screen.pixels[0][0])
@@ -4090,13 +4090,30 @@ export default class CodeGenerator {
         !this.knownRegisters.has(firstId) &&
         !isScopedRegister
       ) {
-        // Build the struct.field chain
+        // Distinguish between two grammar patterns:
+        // 1. IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+ -> struct.field[i]
+        // 2. IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)? -> arr[i].field
+        // Check if original text has bracket before the first dot
+        const text = memberAccessCtx.getText();
+        const firstBracket = text.indexOf("[");
+        const firstDot = text.indexOf(".");
+        const indices = exprs.map((e) => this.generateExpression(e)).join("][");
+
+        if (firstBracket !== -1 && firstBracket < firstDot) {
+          // Pattern: arr[i].field -> indices come after first identifier
+          const trailingMembers = identifiers
+            .slice(1)
+            .map((id) => id.getText());
+          if (trailingMembers.length > 0) {
+            return `${firstId}[${indices}].${trailingMembers.join(".")} ${cOp} ${value};`;
+          }
+          return `${firstId}[${indices}] ${cOp} ${value};`;
+        }
+
+        // Pattern: struct.field[i][j] -> indices come at the end
         const memberChain = identifiers.map((id) => id.getText()).join(".");
         // TODO: Add bounds checking for struct member arrays
-
-        // Generate all subscript indices
-        const indices = exprs.map((e) => this.generateExpression(e)).join("][");
-        return `${memberChain}[${indices}] = ${value};`;
+        return `${memberChain}[${indices}] ${cOp} ${value};`;
       }
 
       // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT] or Scope.GPIO7.DR_SET[LED_BIT])
@@ -6312,8 +6329,26 @@ export default class CodeGenerator {
       const indices = expressions
         .map((e) => this.generateExpression(e))
         .join("][");
+
       if (parts.length > 1) {
-        // struct.field[i][j] pattern
+        // Distinguish between two grammar patterns:
+        // 1. IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+ -> struct.field[i]
+        // 2. IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)? -> arr[i].field
+        // Check if original text has bracket before the first dot
+        const text = ctx.getText();
+        const firstBracket = text.indexOf("[");
+        const firstDot = text.indexOf(".");
+
+        if (firstBracket !== -1 && firstBracket < firstDot) {
+          // Pattern: arr[i].field -> indices come after first identifier
+          const trailingMembers = parts.slice(1);
+          if (trailingMembers.length > 0) {
+            return `${firstPart}[${indices}].${trailingMembers.join(".")}`;
+          }
+          return `${firstPart}[${indices}]`;
+        }
+
+        // Pattern: struct.field[i][j] -> indices come at the end
         return `${parts.join(".")}[${indices}]`;
       }
       return `${firstPart}[${indices}]`;

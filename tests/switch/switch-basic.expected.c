@@ -5,30 +5,43 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // ADR-025: Basic Switch Test
-// Tests basic switch statement with integer type
-void handleReset(void) {
-}
-
-void handleStart(void) {
-}
-
-void handleUnknown(void) {
-}
+// Tests: basic switch statement with integer type
+uint32_t result = 0;
 
 void handleCommand(uint32_t* cmd) {
     switch ((*cmd)) {
         case 0: {
-            handleReset();
+            result = 100;
             break;
         }
         case 1: {
-            handleStart();
+            result = 200;
             break;
         }
         default: {
-            handleUnknown();
+            result = 999;
             break;
         }
     }
+}
+
+uint32_t main(void) {
+    uint32_t cmd0 = 0;
+    uint32_t cmd1 = 1;
+    uint32_t cmd99 = 99;
+    handleCommand(&cmd0);
+    if (result != 100) {
+        return 1;
+    }
+    handleCommand(&cmd1);
+    if (result != 200) {
+        return 2;
+    }
+    handleCommand(&cmd99);
+    if (result != 999) {
+        return 3;
+    }
+    return 0;
 }

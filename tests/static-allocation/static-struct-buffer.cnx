@@ -1,0 +1,42 @@
+/* test-execution */
+// ADR-003: Static struct buffer allocation
+// Tests: array of structs with member access
+
+struct SensorReading {
+    u32 timestamp;
+    i16 value;
+    u8 sensorId;
+}
+
+// Fixed-size array of readings - no heap allocation
+SensorReading readings[10];
+
+void addReading(u8 index, u32 ts, i16 val, u8 id) {
+    readings[index].timestamp <- ts;
+    readings[index].value <- val;
+    readings[index].sensorId <- id;
+}
+
+u32 main() {
+    u8 idx0 <- 0;
+    u8 idx1 <- 1;
+    u8 idx2 <- 2;
+    u32 ts1 <- 1000;
+    u32 ts2 <- 2000;
+    u32 ts3 <- 3000;
+    i16 val1 <- 25;
+    i16 val2 <- 30;
+    i16 val3 <- -5;
+    u8 id1 <- 1;
+    u8 id2 <- 2;
+
+    addReading(idx0, ts1, val1, id1);
+    addReading(idx1, ts2, val2, id2);
+    addReading(idx2, ts3, val3, id1);
+
+    // Verify readings using array[index].member pattern
+    if (readings[0].value = 25 && readings[1].value = 30 && readings[2].value = -5) {
+        return 0;
+    }
+    return 1;
+}

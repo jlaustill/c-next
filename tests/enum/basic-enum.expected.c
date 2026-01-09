@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // ADR-017: Basic Enum Test
 // Tests basic enum declaration, usage, and code generation
 // Simple enum with auto-incrementing values
@@ -31,20 +32,26 @@ typedef enum {
     Flags_EXECUTABLE = 4
 } Flags;
 
-// Usage examples
 State currentState = State_IDLE;
 
 Command lastCmd = Command_READ;
 
-void main(void) {
+uint32_t main(void) {
+    if ((uint32_t)State_IDLE != 0) {
+        return 1;
+    }
+    if ((uint32_t)State_RUNNING != 1) {
+        return 2;
+    }
+    if ((uint32_t)Command_ERASE != 0x04) {
+        return 3;
+    }
+    if ((uint32_t)Command_RESET != 0xFF) {
+        return 4;
+    }
     currentState = State_RUNNING;
-    if (currentState == State_RUNNING) {
-        currentState = State_PAUSED;
+    if (currentState != State_RUNNING) {
+        return 5;
     }
-    if (currentState != State_ERROR) {
-        lastCmd = Command_WRITE;
-    }
-    uint8_t cmdValue = (uint8_t)Command_ERASE;
-    uint32_t flagValue = (uint32_t)Flags_READABLE;
+    return 0;
 }
-

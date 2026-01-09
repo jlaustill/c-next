@@ -14,4 +14,3 @@ void readUntilEnd(void) {
         byte = 0x42;
     } while (byte != END_MARKER);
 }
-

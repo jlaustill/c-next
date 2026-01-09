@@ -1,0 +1,12 @@
+// ADR-047: Valid NULL check with else branch
+#include <stdio.h>
+
+string<128> line;
+
+void processLine() {
+    if (fgets(line, line.size, stdin) != NULL) {
+        printf("Read: %s", line);
+    } else {
+        printf("No more input\n");
+    }
+}

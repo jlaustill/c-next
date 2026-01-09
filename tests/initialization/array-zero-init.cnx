@@ -1,0 +1,23 @@
+/* test-execution */
+// ADR-015: Array zero initialization
+// Tests: arrays are automatically zero-initialized
+
+u8 buffer[16];
+i32 values[4];
+
+u32 main() {
+    // Check all buffer bytes are zero
+    u32 i <- 0;
+    while (i < 16) {
+        if (buffer[i] != 0) {
+            return 1;
+        }
+        i +<- 1;
+    }
+
+    // Check all values are zero
+    if (values[0] = 0 && values[1] = 0 && values[2] = 0 && values[3] = 0) {
+        return 0;
+    }
+    return 1;
+}

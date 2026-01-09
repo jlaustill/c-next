@@ -6,12 +6,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // ADR-007: Single bit read
 // Tests: reading individual bits from integer
-void main(void) {
+uint32_t main(void) {
     uint8_t flags = 0b01010101;
     bool b0 = ((flags >> 0) & 1);
     bool b1 = ((flags >> 1) & 1);
     bool b2 = ((flags >> 2) & 1);
     bool b7 = ((flags >> 7) & 1);
+    if (b0 == true && b1 == false && b2 == true && b7 == false) {
+        return 0;
+    }
+    return 1;
 }

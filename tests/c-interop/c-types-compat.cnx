@@ -1,0 +1,22 @@
+/* test-execution */
+// ADR-010: C Interoperability - Type compatibility
+// Tests: C-Next types map cleanly to C types
+
+// All C-Next types map to stdint.h types
+u8 byte <- 255;
+u16 word <- 65535;
+u32 dword <- 0xFFFFFFFF;
+i8 sbyte <- -128;
+i16 sword <- -32768;
+i32 sdword <- -2147483648;
+f32 single <- 3.14;
+f64 double_val <- 3.14159265359;
+bool flag <- true;
+
+u32 main() {
+    // Verify type ranges work correctly
+    if (byte = 255 && word = 65535 && sbyte = -128 && flag = true) {
+        return 0;
+    }
+    return 1;
+}

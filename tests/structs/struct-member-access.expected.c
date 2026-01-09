@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // ADR-014: Struct member access
 // Tests: reading and writing struct members
 typedef struct {
@@ -12,12 +13,29 @@ typedef struct {
     int32_t y;
 } Point;
 
-void main(void) {
+uint32_t main(void) {
     Point p = (Point){ .x = 10, .y = 20 };
-    int32_t xVal = p.x;
-    int32_t yVal = p.y;
+    if (p.x != 10) {
+        return 1;
+    }
+    if (p.y != 20) {
+        return 2;
+    }
     p.x = 100;
     p.y = 200;
+    if (p.x != 100) {
+        return 3;
+    }
+    if (p.y != 200) {
+        return 4;
+    }
     p.x += 5;
     p.y -= 10;
+    if (p.x != 105) {
+        return 5;
+    }
+    if (p.y != 190) {
+        return 6;
+    }
+    return 0;
 }

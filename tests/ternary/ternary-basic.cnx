@@ -1,5 +1,6 @@
+/* test-execution */
 // ADR-022: Basic ternary operator test
-// Simple relational conditions with parentheses
+// Tests: simple relational conditions with parentheses
 
 u32 getMax(u32 a, u32 b) {
     return (a > b) ? a : b;
@@ -13,9 +14,34 @@ i32 getAbs(i32 x) {
     return (x < 0) ? -x : x;
 }
 
-void test() {
+u32 main() {
     u32 a <- 10;
     u32 b <- 20;
-    u32 max <- (a > b) ? a : b;
-    u32 min <- (a <= b) ? a : b;
+    u32 c <- 30;
+    u32 d <- 5;
+    i32 neg <- -5;
+    i32 pos <- 7;
+
+    // Test max function
+    if (getMax(a, b) != 20) {
+        return 1;
+    }
+    if (getMax(c, d) != 30) {
+        return 2;
+    }
+
+    // Test min function
+    if (getMin(a, b) != 10) {
+        return 3;
+    }
+
+    // Test abs function
+    if (getAbs(neg) != 5) {
+        return 4;
+    }
+    if (getAbs(pos) != 7) {
+        return 5;
+    }
+
+    return 0;
 }

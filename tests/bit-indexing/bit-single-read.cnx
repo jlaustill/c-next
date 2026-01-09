@@ -1,10 +1,16 @@
+/* test-execution */
 // ADR-007: Single bit read
 // Tests: reading individual bits from integer
 
-void main() {
-    u8 flags <- 0b01010101;
-    bool b0 <- flags[0];  // true
-    bool b1 <- flags[1];  // false
-    bool b2 <- flags[2];  // true
-    bool b7 <- flags[7];  // false
+u32 main() {
+    u8 flags <- 0b01010101;  // Binary: 01010101
+    bool b0 <- flags[0];  // true (bit 0 = 1)
+    bool b1 <- flags[1];  // false (bit 1 = 0)
+    bool b2 <- flags[2];  // true (bit 2 = 1)
+    bool b7 <- flags[7];  // false (bit 7 = 0)
+
+    if (b0 = true && b1 = false && b2 = true && b7 = false) {
+        return 0;
+    }
+    return 1;
 }

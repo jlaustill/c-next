@@ -48,4 +48,3 @@ void main(void) {
         externalState = Motor_State_STALLED;
     }
 }
-

@@ -1,0 +1,12 @@
+// ADR-047: Valid NULL check using = (equality) comparison
+#include <stdio.h>
+
+string<64> buffer;
+
+void handleEof() {
+    // Using = NULL instead of != NULL
+    if (fgets(buffer, buffer.size, stdin) = NULL) {
+        // EOF or error occurred
+        printf("End of input\n");
+    }
+}

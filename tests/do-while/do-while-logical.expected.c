@@ -25,4 +25,3 @@ void retryLoop(void) {
         success = true;
     } while (!success && attempts < MAX_RETRIES);
 }
-

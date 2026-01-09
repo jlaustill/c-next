@@ -12,4 +12,3 @@ void menuLoop(void) {
         running = false;
     } while (running);
 }
-

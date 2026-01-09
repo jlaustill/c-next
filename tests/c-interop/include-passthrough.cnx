@@ -1,0 +1,12 @@
+/* test-execution */
+// ADR-010: C Interoperability - Include passthrough
+// Tests: #include directives pass through to generated C
+
+#include <stdio.h>
+#include <string.h>
+
+u32 main() {
+    // Using C standard library functions via include
+    // printf passes through, string.h functions available
+    return 0;
+}

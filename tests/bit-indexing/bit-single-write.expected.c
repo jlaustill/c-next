@@ -6,12 +6,20 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // ADR-007: Single bit write
 // Tests: setting individual bits in integer
-void main(void) {
+uint32_t main(void) {
     uint8_t flags = 0;
     flags = (flags & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     flags = (flags & ~(1 << 3)) | ((true ? 1 : 0) << 3);
     flags = (flags & ~(1 << 7)) | ((true ? 1 : 0) << 7);
+    if (flags != 0x89) {
+        return 1;
+    }
     flags = (flags & ~(1 << 3)) | ((false ? 1 : 0) << 3);
+    if (flags == 0x81) {
+        return 0;
+    }
+    return 1;
 }

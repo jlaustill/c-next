@@ -14,13 +14,21 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
 }
 
 /* test-execution */
-// ADR-027: Basic do-while loop with comparison condition
+// ADR-015: Array zero initialization
+// Tests: arrays are automatically zero-initialized
+uint8_t buffer[16] = {0};
+
+int32_t values[4] = {0};
+
 uint32_t main(void) {
-    uint32_t count = 0;
-    do {
-        count = cnx_clamp_add_u32(count, 1);
-    } while (count < 10);
-    if (count == 10) {
+    uint32_t i = 0;
+    while (i < 16) {
+        if (buffer[i] != 0) {
+            return 1;
+        }
+        i = cnx_clamp_add_u32(i, 1);
+    }
+    if (values[0] == 0 && values[1] == 0 && values[2] == 0 && values[3] == 0) {
         return 0;
     }
     return 1;

@@ -1,0 +1,27 @@
+/* test-execution */
+// ADR-015: Struct zero initialization
+// Tests: struct members are automatically zero-initialized
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Config {
+    u32 baudRate;
+    u8 dataBits;
+    bool enabled;
+}
+
+Point origin;
+Config settings;
+
+u32 main() {
+    // All struct fields should be zero
+    if (origin.x = 0 && origin.y = 0) {
+        if (settings.baudRate = 0 && settings.dataBits = 0 && settings.enabled = false) {
+            return 0;
+        }
+    }
+    return 1;
+}

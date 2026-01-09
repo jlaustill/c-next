@@ -5,8 +5,9 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // ADR-022: Basic ternary operator test
-// Simple relational conditions with parentheses
+// Tests: simple relational conditions with parentheses
 uint32_t getMax(uint32_t* a, uint32_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
@@ -19,9 +20,27 @@ int32_t getAbs(int32_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 
-void test(void) {
+uint32_t main(void) {
     uint32_t a = 10;
     uint32_t b = 20;
-    uint32_t max = (a > b) ? a : b;
-    uint32_t min = (a <= b) ? a : b;
+    uint32_t c = 30;
+    uint32_t d = 5;
+    int32_t neg = -5;
+    int32_t pos = 7;
+    if (getMax(&a, &b) != 20) {
+        return 1;
+    }
+    if (getMax(&c, &d) != 30) {
+        return 2;
+    }
+    if (getMin(&a, &b) != 10) {
+        return 3;
+    }
+    if (getAbs(&neg) != 5) {
+        return 4;
+    }
+    if (getAbs(&pos) != 7) {
+        return 5;
+    }
+    return 0;
 }

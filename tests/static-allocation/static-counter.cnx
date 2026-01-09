@@ -1,0 +1,35 @@
+/* test-execution */
+// ADR-003: Static counter allocation
+// Tests: global counters with known sizes are valid
+
+u32 eventCount;
+u16 errorCount;
+u8 retryCount;
+
+void recordEvent() {
+    eventCount +<- 1;
+}
+
+void recordError() {
+    errorCount +<- 1;
+}
+
+void recordRetry() {
+    retryCount +<- 1;
+}
+
+u32 main() {
+    // Call each multiple times
+    recordEvent();
+    recordEvent();
+    recordEvent();
+    recordError();
+    recordError();
+    recordRetry();
+
+    // Verify counts
+    if (eventCount = 3 && errorCount = 2 && retryCount = 1) {
+        return 0;
+    }
+    return 1;
+}
