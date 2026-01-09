@@ -1,0 +1,39 @@
+// Test: Compound assignment with scope-local (this.) patterns
+// Tests lines 4336 and 4338 in CodeGenerator.ts
+
+scope Counter {
+    i32 value <- 100;
+    i32 values[4];
+
+    void increment() {
+        // this.member compound assignment
+        this.value +<- 10;  // Should be: Counter_value += 10
+    }
+
+    void incrementArray() {
+        // this.arr[i] compound assignment (line 4336)
+        this.values[0] <- 50;
+        this.values[0] +<- 25;  // Should be: Counter_values[0] += 25
+    }
+
+    i32 test() {
+        this.increment();
+        this.incrementArray();
+
+        // Verify this.value compound worked
+        if (this.value != 110) {
+            return 1;
+        }
+
+        // Verify this.arr[i] compound worked
+        if (this.values[0] != 75) {
+            return 2;
+        }
+
+        return 0;
+    }
+}
+
+i32 main() {
+    return Counter.test();
+}

@@ -1,0 +1,37 @@
+// Test: Compound assignment with global.* patterns inside scopes
+// Tests global array access with compound operators
+
+i32 counter <- 100;
+i32 values[4];
+
+scope Worker {
+    void updateGlobal() {
+        // global.var compound assignment
+        global.counter +<- 50;  // Should be: counter += 50
+    }
+
+    void updateGlobalArray() {
+        // global.arr[i] compound assignment
+        global.values[0] <- 200;
+        global.values[0] +<- 100;  // Should be: values[0] += 100
+    }
+}
+
+i32 main() {
+    values[0] <- 0;
+
+    Worker.updateGlobal();
+    Worker.updateGlobalArray();
+
+    // Verify global.var compound worked
+    if (counter != 150) {
+        return 1;
+    }
+
+    // Verify global.arr[i] compound worked
+    if (values[0] != 300) {
+        return 2;
+    }
+
+    return 0;
+}

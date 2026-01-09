@@ -1,0 +1,36 @@
+// Test: Compound assignment with cross-scope access
+// Tests OtherScope.var +<- value pattern
+
+scope Counter {
+    i32 value <- 100;
+    i32 data[3];
+}
+
+scope Manager {
+    void incrementCounter() {
+        // Cross-scope compound assignment
+        Counter.value +<- 50;  // Should be: Counter_value += 50
+    }
+
+    void incrementCounterArray() {
+        Counter.data[0] <- 10;
+        Counter.data[0] +<- 5;  // Should be: Counter_data[0] += 5
+    }
+}
+
+i32 main() {
+    Manager.incrementCounter();
+    Manager.incrementCounterArray();
+
+    // Verify cross-scope compound worked
+    if (Counter.value != 150) {
+        return 1;
+    }
+
+    // Verify cross-scope array compound worked
+    if (Counter.data[0] != 15) {
+        return 2;
+    }
+
+    return 0;
+}

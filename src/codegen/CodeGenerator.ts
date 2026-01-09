@@ -301,6 +301,7 @@ export default class CodeGenerator {
   private knownStructs: Set<string> = new Set();
 
   private structFields: Map<string, Map<string, string>> = new Map(); // struct -> (field -> type)
+  private structFieldArrays: Map<string, Set<string>> = new Map(); // struct -> set of array field names
 
   private knownRegisters: Set<string> = new Set();
 
@@ -464,6 +465,7 @@ export default class CodeGenerator {
     this.knownScopes = new Set(); // ADR-016
     this.knownStructs = new Set();
     this.structFields = new Map();
+    this.structFieldArrays = new Map();
     this.knownRegisters = new Set();
     this.scopedRegisters = new Map(); // Scoped register tracking
     this.knownFunctions = new Set();
@@ -723,10 +725,16 @@ export default class CodeGenerator {
 
         // Track field types for inferred struct initializers
         const fields = new Map<string, string>();
+        const arrayFields = new Set<string>();
         for (const member of structDecl.structMember()) {
           const fieldName = member.IDENTIFIER().getText();
           const fieldType = this.getTypeName(member.type());
           fields.set(fieldName, fieldType);
+
+          // Track if this field has array dimensions
+          if (member.arrayDimension().length > 0) {
+            arrayFields.add(fieldName);
+          }
 
           // ADR-029: Track callback field types during symbol collection
           // (needed to know which functions need typedefs before generation)
@@ -735,6 +743,7 @@ export default class CodeGenerator {
           }
         }
         this.structFields.set(name, fields);
+        this.structFieldArrays.set(name, arrayFields);
       }
 
       // ADR-017: Handle enum declarations
@@ -1994,6 +2003,24 @@ export default class CodeGenerator {
    */
   private isFloatType(typeName: string): boolean {
     return (FLOAT_TYPES as readonly string[]).includes(typeName);
+  }
+
+  /**
+   * Get type info for a struct member field
+   * Used to track types through member access chains like buf.data[0]
+   */
+  private getMemberTypeInfo(
+    structType: string,
+    memberName: string,
+  ): { isArray: boolean; baseType: string } | undefined {
+    const fieldType = this.structFields.get(structType)?.get(memberName);
+    if (!fieldType) return undefined;
+
+    // Check if this field is marked as an array
+    const arrayFields = this.structFieldArrays.get(structType);
+    const isArray = arrayFields?.has(memberName) ?? false;
+
+    return { isArray, baseType: fieldType };
   }
 
   /**
@@ -4111,7 +4138,19 @@ export default class CodeGenerator {
         }
 
         // Pattern: struct.field[i][j] -> indices come at the end
-        const memberChain = identifiers.map((id) => id.getText()).join(".");
+        // Check if first identifier is a scope (cross-scope access)
+        const isCrossScope = this.knownScopes.has(firstId);
+        let memberChain: string;
+        if (isCrossScope) {
+          // Cross-scope: Counter.data -> Counter_data (underscore for scope prefix)
+          const remaining = identifiers.slice(1).map((id) => id.getText());
+          memberChain =
+            remaining.length > 1
+              ? `${firstId}_${remaining[0]}.${remaining.slice(1).join(".")}`
+              : `${firstId}_${remaining[0]}`;
+        } else {
+          memberChain = identifiers.map((id) => id.getText()).join(".");
+        }
         // TODO: Add bounds checking for struct member arrays
         return `${memberChain}[${indices}] ${cOp} ${value};`;
       }
@@ -4190,20 +4229,20 @@ export default class CodeGenerator {
     // ADR-016: Check if this is a global array access (e.g., global.GPIO7.DR_SET[LED_BIT])
     const globalArrayAccessCtx = targetCtx.globalArrayAccess();
     if (globalArrayAccessCtx) {
-      // Compound operators not supported for bit field access
-      if (isCompound) {
-        throw new Error(
-          `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-        );
-      }
-
       const identifiers = globalArrayAccessCtx.IDENTIFIER();
       const parts = identifiers.map((id) => id.getText());
       const expr = globalArrayAccessCtx.expression();
-      const bitIndex = this.generateExpression(expr);
+      const indexExpr = this.generateExpression(expr);
       const firstId = parts[0];
 
       if (this.knownRegisters.has(firstId)) {
+        // Compound operators not supported for bit field access on registers
+        if (isCompound) {
+          throw new Error(
+            `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+          );
+        }
+        const bitIndex = indexExpr;
         // This is a register access: global.GPIO7.DR_SET[LED_BIT]
         const regName = parts.join("_");
 
@@ -4228,9 +4267,11 @@ export default class CodeGenerator {
           return `${regName} = (${regName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
         }
       } else {
-        // Non-register global array access
-        const baseName = parts.join(".");
-        return `${baseName} = (${baseName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+        // Non-register global array access - normal array indexing
+        if (parts.length === 1) {
+          return `${parts[0]}[${indexExpr}] ${cOp} ${value};`;
+        }
+        return `${parts[0]}.${parts.slice(1).join(".")}[${indexExpr}] ${cOp} ${value};`;
       }
     }
 
@@ -4239,12 +4280,6 @@ export default class CodeGenerator {
     if (thisArrayAccessCtx) {
       if (!this.context.currentScope) {
         throw new Error("Error: 'this' can only be used inside a scope");
-      }
-      // Compound operators not supported for bit field access
-      if (isCompound) {
-        throw new Error(
-          `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-        );
       }
 
       const identifiers = thisArrayAccessCtx.IDENTIFIER();
@@ -4255,6 +4290,12 @@ export default class CodeGenerator {
       // Check if first identifier is a scoped register
       const scopedRegName = `${scopeName}_${parts[0]}`;
       if (this.knownRegisters.has(scopedRegName)) {
+        // Compound operators not supported for bit field access on registers
+        if (isCompound) {
+          throw new Error(
+            `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+          );
+        }
         // This is a scoped register access: this.GPIO7.DR_SET[LED_BIT]
         const regName = `${scopeName}_${parts.join("_")}`;
 
@@ -4306,9 +4347,9 @@ export default class CodeGenerator {
         // Non-register scoped array access
         const expr = this.generateExpression(expressions[0]);
         if (parts.length === 1) {
-          return `${scopeName}_${parts[0]}[${expr}] = ${value};`;
+          return `${scopeName}_${parts[0]}[${expr}] ${cOp} ${value};`;
         }
-        return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}[${expr}] = ${value};`;
+        return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}[${expr}] ${cOp} ${value};`;
       }
     }
 
@@ -5616,6 +5657,15 @@ export default class CodeGenerator {
       ? this.knownRegisters.has(primaryId)
       : false;
 
+    // Track if current member is an array through member access chain
+    // e.g., buf.data[0] - after .data, we know data is an array member
+    let currentMemberIsArray = primaryId
+      ? (this.context.typeRegistry.get(primaryId)?.isArray ?? false)
+      : false;
+    let currentStructType = primaryId
+      ? this.context.typeRegistry.get(primaryId)?.baseType
+      : undefined;
+
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
 
@@ -5778,8 +5828,30 @@ export default class CodeGenerator {
           // ADR-006: Struct parameter uses -> for member access
           else if (isStructParam && result === primaryId) {
             result = `${result}->${memberName}`;
+            // Update type tracking for struct member
+            if (currentStructType) {
+              const memberTypeInfo = this.getMemberTypeInfo(
+                currentStructType,
+                memberName,
+              );
+              if (memberTypeInfo) {
+                currentMemberIsArray = memberTypeInfo.isArray;
+                currentStructType = memberTypeInfo.baseType;
+              }
+            }
           } else {
             result = `${result}.${memberName}`;
+            // Update type tracking for struct member
+            if (currentStructType) {
+              const memberTypeInfo = this.getMemberTypeInfo(
+                currentStructType,
+                memberName,
+              );
+              if (memberTypeInfo) {
+                currentMemberIsArray = memberTypeInfo.isArray;
+                currentStructType = memberTypeInfo.baseType;
+              }
+            }
           }
         }
         // No primaryId - check type access patterns: Scope.member, Enum.member, Register.member
@@ -5837,21 +5909,34 @@ export default class CodeGenerator {
           // Single index: could be array[i] or bit access flags[3]
           const index = this.generateExpression(exprs[0]);
 
-          // Check type registry to determine if this is bit access or array access
-          const typeInfo = primaryId
-            ? this.context.typeRegistry.get(primaryId)
-            : undefined;
-
           // ADR-016: Use isRegisterChain to detect register access via global. prefix
           const isRegisterAccess =
             isRegisterChain ||
             (primaryId ? this.knownRegisters.has(primaryId) : false);
 
-          if ((typeInfo && !typeInfo.isArray) || isRegisterAccess) {
-            // Integer type or register - use bit access: ((value >> index) & 1)
+          // Check if primary identifier (before any member access) is an array
+          const primaryTypeInfo = primaryId
+            ? this.context.typeRegistry.get(primaryId)
+            : undefined;
+          const isPrimaryArray = primaryTypeInfo?.isArray ?? false;
+
+          // Determine if this subscript is array access or bit access
+          // Priority: register access > tracked member array > primary array > bit access
+          if (isRegisterAccess) {
+            // Register - use bit access: ((value >> index) & 1)
+            result = `((${result} >> ${index}) & 1)`;
+          } else if (currentMemberIsArray) {
+            // Struct member that is an array (e.g., buf.data[0])
+            result = `${result}[${index}]`;
+            currentMemberIsArray = false; // After subscript, no longer array
+          } else if (isPrimaryArray) {
+            // Primary identifier is an array (e.g., arr[0])
+            result = `${result}[${index}]`;
+          } else if (primaryTypeInfo && !isPrimaryArray) {
+            // Non-array type (integer, etc.) - use bit access
             result = `((${result} >> ${index}) & 1)`;
           } else {
-            // Array or unknown - use array access
+            // Unknown type - default to array access
             result = `${result}[${index}]`;
           }
         } else if (exprs.length === 2) {

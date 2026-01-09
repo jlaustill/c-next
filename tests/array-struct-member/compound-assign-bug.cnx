@@ -1,0 +1,28 @@
+// Focused test: Compound assignment on array-of-struct member
+// Bug: arr[i].field +<- value generates arr[i].field = value (loses the +=)
+
+struct Counter {
+    i32 value;
+}
+
+Counter counters[2];
+
+i32 main() {
+    // Initialize
+    counters[0].value <- 100;
+    counters[1].value <- 200;
+
+    // Compound assignments - these are buggy
+    counters[0].value +<- 10;   // Should be: counters[0].value += 10; (result: 110)
+    counters[1].value -<- 50;   // Should be: counters[1].value -= 50; (result: 150)
+
+    // Verify
+    if (counters[0].value != 110) {
+        return 1;
+    }
+    if (counters[1].value != 150) {
+        return 1;
+    }
+
+    return 0;
+}

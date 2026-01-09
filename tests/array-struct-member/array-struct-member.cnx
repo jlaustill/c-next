@@ -1,0 +1,84 @@
+// Test: Array-of-struct member assignment
+// Bug: arr[i].field generates arr.field[i] instead of arr[i].field
+// This test verifies correct code generation and runtime behavior
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Sensor {
+    u16 id;
+    i32 value;
+    bool active;
+}
+
+// Test arrays
+Point points[3];
+Sensor sensors[4];
+
+// Test function to verify array-of-struct assignment
+i32 main() {
+    i32 errors <- 0;
+
+    // === Test 1: Basic array-of-struct member write ===
+    points[0].x <- 10;
+    points[0].y <- 20;
+    points[1].x <- 30;
+    points[1].y <- 40;
+    points[2].x <- 50;
+    points[2].y <- 60;
+
+    // Verify Test 1
+    if (points[0].x != 10) { errors +<- 1; }
+    if (points[0].y != 20) { errors +<- 1; }
+    if (points[1].x != 30) { errors +<- 1; }
+    if (points[1].y != 40) { errors +<- 1; }
+    if (points[2].x != 50) { errors +<- 1; }
+    if (points[2].y != 60) { errors +<- 1; }
+
+    // === Test 2: Different struct type ===
+    sensors[0].id <- 100;
+    sensors[0].value <- 1000;
+    sensors[0].active <- true;
+    sensors[1].id <- 200;
+    sensors[1].value <- 2000;
+    sensors[1].active <- false;
+
+    // Verify Test 2
+    if (sensors[0].id != 100) { errors +<- 1; }
+    if (sensors[0].value != 1000) { errors +<- 1; }
+    if (sensors[0].active != true) { errors +<- 1; }
+    if (sensors[1].id != 200) { errors +<- 1; }
+    if (sensors[1].value != 2000) { errors +<- 1; }
+    if (sensors[1].active != false) { errors +<- 1; }
+
+    // === Test 3: Variable index ===
+    i32 idx <- 2;
+    sensors[idx].id <- 300;
+    sensors[idx].value <- 3000;
+
+    // Verify Test 3
+    if (sensors[2].id != 300) { errors +<- 1; }
+    if (sensors[2].value != 3000) { errors +<- 1; }
+
+    // === Test 4: Compound assignment on array-of-struct member ===
+    points[0].x +<- 5;
+    points[1].y -<- 10;
+
+    // Verify Test 4
+    if (points[0].x != 15) { errors +<- 1; }
+    if (points[1].y != 30) { errors +<- 1; }
+
+    // === Test 5: Read and write in same expression context ===
+    points[2].x <- points[0].x + points[1].x;
+
+    // Verify Test 5
+    if (points[2].x != 45) { errors +<- 1; }
+
+    // Return 1 if any errors, 0 if all passed
+    if (errors > 0) {
+        return 1;
+    }
+    return 0;
+}
