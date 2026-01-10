@@ -11,6 +11,8 @@ import ESymbolKind from "../types/ESymbolKind.js";
 import CommentExtractor from "./CommentExtractor.js";
 import CommentFormatter from "./CommentFormatter.js";
 import IComment from "./types/IComment.js";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * Maps C-Next types to C types
@@ -265,6 +267,8 @@ export interface ICodeGeneratorOptions {
   debugMode?: boolean;
   /** ADR-049: CLI/config target override (takes priority over #pragma target) */
   target?: string;
+  /** ADR-010: Source file path for validating includes */
+  sourcePath?: string;
 }
 
 /**
@@ -351,6 +355,9 @@ export default class CodeGenerator {
   /** External symbol table for cross-language interop */
   private symbolTable: SymbolTable | null = null;
 
+  /** ADR-010: Source file path for validating includes */
+  private sourcePath: string | null = null;
+
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
 
@@ -425,6 +432,9 @@ export default class CodeGenerator {
 
     // ADR-044: Store debug mode for panic helper generation
     this.debugMode = options?.debugMode ?? false;
+
+    // ADR-010: Store source path for include validation
+    this.sourcePath = options?.sourcePath ?? null;
 
     // Initialize comment extraction (ADR-043)
     this.tokenStream = tokenStream ?? null;
@@ -501,10 +511,12 @@ export default class CodeGenerator {
     // Pass through #include directives from source
     // C-Next does NOT hardcode any libraries - all includes must be explicit
     // ADR-043: Comments before first include become file-level comments
+    // ADR-010: Transform .cnx includes to .h
     for (const includeDir of tree.includeDirective()) {
       const leadingComments = this.getLeadingComments(includeDir);
       output.push(...this.formatLeadingComments(leadingComments));
-      output.push(includeDir.getText());
+      const transformedInclude = this.transformIncludeDirective(includeDir.getText());
+      output.push(transformedInclude);
     }
 
     // Add blank line after includes if there were any
@@ -635,6 +647,49 @@ export default class CodeGenerator {
       }
     }
     return DEFAULT_TARGET;
+  }
+
+  /**
+   * ADR-010: Transform #include directives, converting .cnx to .h
+   * Validates that .cnx files exist if sourcePath is available
+   * Supports both <file.cnx> and "file.cnx" forms
+   */
+  private transformIncludeDirective(includeText: string): string {
+    // Match: #include <file.cnx> or #include "file.cnx"
+    const angleMatch = includeText.match(
+      /#\s*include\s*<([^>]+)\.cnx>/,
+    );
+    const quoteMatch = includeText.match(
+      /#\s*include\s*"([^"]+)\.cnx"/,
+    );
+
+    if (angleMatch) {
+      const filename = angleMatch[1];
+      // Angle brackets: system/library includes - no validation needed
+      return includeText.replace(`<${filename}.cnx>`, `<${filename}.h>`);
+    } else if (quoteMatch) {
+      const filepath = quoteMatch[1];
+
+      // Validate .cnx file exists if we have source path
+      if (this.sourcePath) {
+        const sourceDir = path.dirname(this.sourcePath);
+        const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
+
+        if (!fs.existsSync(cnxPath)) {
+          throw new Error(
+            `Error: Included C-Next file not found: ${filepath}.cnx\n` +
+            `  Searched at: ${cnxPath}\n` +
+            `  Referenced in: ${this.sourcePath}`
+          );
+        }
+      }
+
+      // Transform to .h
+      return includeText.replace(`"${filepath}.cnx"`, `"${filepath}.h"`);
+    }
+
+    // Not a .cnx include - pass through unchanged
+    return includeText;
   }
 
   /**

@@ -1,0 +1,13 @@
+// Helper file with type definitions
+// This file will be included by other tests
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Color {
+    u8 red;
+    u8 green;
+    u8 blue;
+}

@@ -100,6 +100,8 @@ C-Next makes the right thing easy and the wrong thing hard, but doesn't prevent 
 C-Next uses the standard C preprocessor — no custom module system. This means:
 
 - `#include` directives pass through to generated C
+- Include C-Next files: `#include "utils.cnx"` → `#include "utils.h"` in generated C
+- Works with both `<file.cnx>` and `"file.cnx"` syntax
 - MISRA preprocessor guidelines apply
 - Full compatibility with existing toolchains (PlatformIO, arm-gcc, etc.)
 - Conditional compilation (`#ifdef`) works as expected

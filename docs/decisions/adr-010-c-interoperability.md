@@ -94,6 +94,47 @@ One parser infrastructure handles everything:
 
 ---
 
+## C-Next File Includes
+
+C-Next supports including other C-Next files using standard C `#include` syntax. The transpiler automatically transforms `.cnx` file references to `.h` references in the generated C code:
+
+```cnx
+// C-Next source file
+#include <types.cnx>        // System/library includes use angle brackets
+#include "utils.cnx"        // Local includes use quotes
+
+u32 main() {
+    Point p;
+    p.x <- calculate(10);
+    return 0;
+}
+```
+
+Transpiles to:
+
+```c
+// Generated C file
+#include <types.h>          // .cnx → .h transformation
+#include "utils.h"          // Works with both <> and ""
+
+uint32_t main(void) {
+    Point p = {0};
+    p.x = calculate(10);
+    return 0;
+}
+```
+
+**Key features:**
+
+- Supports both `<file.cnx>` and `"file.cnx"` syntax
+- Validates that quoted (local) `.cnx` files exist at transpile time
+- Angle bracket includes (system/library) are transformed without validation
+- Works with relative paths: `"../../common/types.cnx"` → `"../../common/types.h"`
+
+This enables modular C-Next code while ensuring the generated C code includes the correct header files.
+
+---
+
 ## Known Limitations
 
 ### C Grammar
