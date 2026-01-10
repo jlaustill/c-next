@@ -1,0 +1,11 @@
+// Test: bits[start..end] syntax should produce a parse error
+// This syntax is NOT valid C-Next. Use bitmap types instead.
+
+register GPIO @ 0x40000000 {
+    ICR1: u32 rw @ 0x0C {
+        ICR0: bits[0..2],
+    },
+}
+
+void main() {
+}

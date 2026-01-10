@@ -99,7 +99,7 @@ registerDeclaration
     ;
 
 registerMember
-    : IDENTIFIER ':' type accessModifier '@' expression registerBitfields? ','?
+    : IDENTIFIER ':' type accessModifier '@' expression ','?
     ;
 
 accessModifier
@@ -108,14 +108,6 @@ accessModifier
     | 'wo'      // Write-Only
     | 'w1c'     // Write-1-to-Clear
     | 'w1s'     // Write-1-to-Set
-    ;
-
-registerBitfields
-    : '{' bitfieldMember* '}'
-    ;
-
-bitfieldMember
-    : IDENTIFIER ':' 'bits' '[' expression '..' expression ']' ','?
     ;
 
 // ----------------------------------------------------------------------------
@@ -669,7 +661,6 @@ RO          : 'ro';
 WO          : 'wo';
 W1C         : 'w1c';
 W1S         : 'w1s';
-BITS        : 'bits';
 
 // Overflow behavior keywords (ADR-044)
 CLAMP       : 'clamp';

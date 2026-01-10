@@ -334,8 +334,8 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Multi-dim array element | [x] | `multi-dim-arrays/compound-assign-2d.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Multi-dim array element | [x] | `multi-dim-arrays/compound-assign-2d.cnx`, `compound-assign-3d.cnx`, `compound-assign-10d.cnx` |
 | Struct member | [x] | `multi-dim-arrays/struct-member-compound.cnx` |
 | Bit index | [ ] | |
 | this.member | [x] | `scope/scope-compound-assign.cnx` |
@@ -347,8 +347,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -357,8 +358,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -367,8 +369,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -377,8 +380,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -387,8 +391,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -397,8 +402,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -407,8 +413,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -417,8 +424,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -427,8 +435,9 @@ This document tracks test coverage for every language construct in every valid c
 | Context | Status | Test File |
 |---------|--------|-----------|
 | Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [ ] | |
-| Struct member | [ ] | |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -915,14 +924,13 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 12.2 Register Bitfields (bits keyword)
 
+**STATUS: NOT VALID C-NEXT SYNTAX** - The `bits[start..end]` syntax has been removed from the grammar. Attempting to use it will produce a parse error.
+
+**Note:** Use **bitmap types** instead (Section 11). Bitmaps are fully implemented and provide the same functionality with better reusability. The blink example demonstrates this pattern: define a `bitmap32` type, then use it as the register member type.
+
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Bitfield declaration | [ ] | |
-| Bitfield with range [start..end] | [ ] | |
-| Multiple bitfields | [ ] | |
-| Bitfield read | [ ] | |
-| Bitfield write | [ ] | |
-| Named bitfield access | [ ] | |
+| bits[start..end] syntax **(ERROR)** | [x] | `register/register-bits-syntax-error.cnx` |
 
 ---
 
@@ -1497,12 +1505,12 @@ This document tracks test coverage for every language construct in every valid c
 
 *Last updated: 2026-01-09*
 
-**Current Test Count: 203 passing tests**
+**Current Test Count: 209 passing tests**
 
 | Category | Estimated Coverage |
 |----------|-------------------|
 | Primitive Types | ~60% (gaps in f32/f64, u64/i64 operations) |
-| Assignment Operators | ~40% (compound ops on non-variables sparse) |
+| Assignment Operators | ~65% (array + struct compound ops now tested) |
 | Comparison Operators | ~50% (float comparisons missing) |
 | Arithmetic Operators | ~30% (float ops missing) |
 | Bitwise Operators | ~20% (only u32 well tested) |
@@ -1529,12 +1537,13 @@ This document tracks test coverage for every language construct in every valid c
 | switch | 9 | 5 |
 | null-check | 9 | 5 |
 | initialization | 8 | 3 |
-| multi-dim-arrays | 8 | 1 |
+| multi-dim-arrays | 11 | 1 |
 | primitives | 8 | 0 |
 | static-allocation | 7 | 4 |
-| structs | 7 | 1 |
+| structs | 8 | 1 |
+| nested-structs | 5 | 0 |
 | enum | 6 | 4 |
 | register | 6 | 1 |
 | ternary | 6 | 3 |
-| Other categories | ~94 | ~21 |
-| **TOTAL** | **203** | **~62** |
+| Other categories | ~93 | ~21 |
+| **TOTAL** | **209** | **~62** |
