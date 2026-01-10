@@ -1,0 +1,6 @@
+// ADR-051: Modulo by literal zero should fail at compile time
+
+void testModuloZero() {
+    // Modulo by zero
+    u32 remainder <- 10 % 0;
+}

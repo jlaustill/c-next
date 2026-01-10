@@ -582,7 +582,7 @@ This document tracks test coverage for every language construct in every valid c
 | f32 / f32 | [ ] | |
 | f64 / f64 | [ ] | |
 | Integer / Literal | [x] | |
-| Division by zero **(ERROR)** | [ ] | |
+| Division by zero **(ERROR)** | [x] | `arithmetic/division-by-zero-literal.test.cnx` |
 
 ### 4.5 Modulo (%)
 
@@ -591,7 +591,7 @@ This document tracks test coverage for every language construct in every valid c
 | u32 % u32 | [x] | |
 | i32 % i32 | [x] | |
 | Integer % Literal | [x] | |
-| Modulo by zero **(ERROR)** | [ ] | |
+| Modulo by zero **(ERROR)** | [x] | `arithmetic/modulo-by-zero-literal.test.cnx` |
 
 ---
 
@@ -1505,7 +1505,7 @@ This document tracks test coverage for every language construct in every valid c
 
 *Last updated: 2026-01-10*
 
-**Current Test Count: 213 passing tests** (added 3 short-circuit evaluation tests)
+**Current Test Count: 217 passing tests** (213 + 4 division by zero tests)
 
 | Category | Estimated Coverage |
 |----------|-------------------|

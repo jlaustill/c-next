@@ -13,6 +13,7 @@ import ESymbolKind from "../types/ESymbolKind.js";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer.js";
 import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer.js";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer.js";
+import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer.js";
 import {
   ITranspileResult,
   ITranspileError,
@@ -206,6 +207,30 @@ export function transpile(
   }
 
   // If there are NULL check errors, fail compilation
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
+
+  // Run division by zero analysis (ADR-051: compile-time detection)
+  const divZeroAnalyzer = new DivisionByZeroAnalyzer();
+  const divZeroErrors = divZeroAnalyzer.analyze(tree);
+
+  // Convert division by zero errors to transpile errors
+  for (const divZeroError of divZeroErrors) {
+    errors.push({
+      line: divZeroError.line,
+      column: divZeroError.column,
+      message: `error[${divZeroError.code}]: ${divZeroError.message}`,
+      severity: "error",
+    });
+  }
+
+  // If there are division by zero errors, fail compilation
   if (errors.length > 0) {
     return {
       success: false,
