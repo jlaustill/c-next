@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i8 Negative Literal Assignment\n\n## Description\nWrite test for i8 negative literal assignment in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nAssigning negative literal values directly to i8 variables.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i8-negative-literal.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 Negative literal assignment\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare i8 variables with negative literal initializations\n- Test various negative values within i8 range (-128 to -1)\n- Example syntax: `i8 negValue <- -42;`\n- Test minimum value: `i8 minVal <- -128;`\n- Verify transpiled C code correctly represents negative literals\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.101766"
+        "last_modified": "2026-01-10T06:59:44.990338"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

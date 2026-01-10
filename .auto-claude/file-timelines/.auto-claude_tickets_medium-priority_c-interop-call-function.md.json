@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: C Interoperability - Call C Function\n\n## Description\nWrite test for calling C functions from C-Next code.\n\n## Test Category\nC Interoperability\n\n## Context Being Tested\nCalling external C functions declared via `#include` directives from C-Next code.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/c-interop/call-c-function.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Call C function\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Include a standard C header (e.g., `<stdio.h>` or `<string.h>`)\n- Call a C function like `strlen` or `memset`\n- Verify correct parameter passing and return value handling\n- Example: use `strlen` on a string literal and assign result\n- Transpiled C code should generate valid function calls\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.078860"
+        "last_modified": "2026-01-10T06:59:44.967199"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

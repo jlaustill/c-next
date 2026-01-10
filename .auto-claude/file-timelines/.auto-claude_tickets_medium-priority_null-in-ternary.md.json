@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: NULL Interop - NULL in Ternary Condition\n\n## Description\nWrite test for using NULL checks in ternary operator conditions in C-Next.\n\n## Test Category\nNULL Interop\n\n## Context Being Tested\nUsing NULL comparisons (= NULL, != NULL) as the condition in a ternary operator to conditionally select values based on NULL status.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/null-check/null-in-ternary.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for NULL in ternary\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use a ternary operator with a NULL check as the condition\n- Example: selecting a default value when result is NULL\n- Example syntax: `u32 result <- (fgets(buffer, size, file) != NULL) ? 1 : 0;`\n- Test both `!= NULL` and `= NULL` conditions in ternary\n- Verify transpiled C code correctly handles NULL comparison in ternary condition\n- Ensure proper C interop function usage (fgets, etc.)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.108462"
+        "last_modified": "2026-01-10T06:59:44.997328"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - while Non-boolean Condition Error\n\n## Description\nWrite test for while loop with non-boolean condition (ERROR case) in C-Next.\n\n## Test Category\nControl Flow - while Loop\n\n## Context Being Tested\nEnsuring the compiler rejects while loops with non-boolean conditions.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/control-flow/while-error-nonbool.cnx`\n- [ ] Test produces expected compiler error\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Non-boolean condition (ERROR)\n- [ ] Jest test runner passes (error test should expect failure)\n\n## Test Implementation Notes\n- Attempt to use an integer as a while condition\n- Example: `while (1) { ... }` should fail\n- Example: `while (someIntVar) { ... }` should fail\n- Verify error message is clear and helpful\n- C-Next requires explicit boolean conditions unlike C\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.126823"
+        "last_modified": "2026-01-10T06:59:45.016063"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

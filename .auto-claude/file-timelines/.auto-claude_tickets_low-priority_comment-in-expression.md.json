@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comments - Comment in Expression\n\n## Description\nWrite test for comments appearing within expressions in C-Next.\n\n## Test Category\nComments\n\n## Context Being Tested\nComments (line or block) placed within the middle of expressions.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comments/comment-in-expression.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Comment in expression\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test line comments within expressions where valid\n- Test block comments within expressions\n- Example syntax:\n  ```\n  u32 result <- value1 /* inline comment */ + value2;\n  u32 total <- a + /* middle */ b + c;\n  ```\n- Verify comments are properly stripped and don't affect expression parsing\n- Test both single-line and multi-line block comments in expressions\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.060645"
+        "last_modified": "2026-01-10T06:59:44.947560"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

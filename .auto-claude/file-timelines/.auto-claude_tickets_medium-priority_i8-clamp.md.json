@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i8 with clamp Modifier\n\n## Description\nWrite test for i8 with clamp (saturating) overflow modifier in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nDeclaring i8 variables with clamp modifier that saturates on overflow/underflow.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i8-clamp.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 With clamp modifier\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a clamp i8 variable\n- Example syntax: `clamp i8 saturatingVal <- 100;`\n- Test overflow scenario: adding to near-max value should clamp to 127\n- Test underflow scenario: subtracting from near-min value should clamp to -128\n- Verify transpiled C code handles saturating arithmetic correctly\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.101012"
+        "last_modified": "2026-01-10T06:59:44.989507"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

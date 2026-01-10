@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Arithmetic Operators - u16 Subtraction\n\n## Description\nWrite test for u16 - u16 subtraction operation in C-Next.\n\n## Test Category\nArithmetic Operators\n\n## Context Being Tested\nSubtraction operation between two u16 operands.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/arithmetic-u16-sub.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u16 - u16\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test basic subtraction of two u16 values\n- Verify the transpiled C code correctly handles u16 arithmetic\n- Test edge cases (e.g., 1000 - 500, 65535 - 0)\n- Be aware of potential underflow behavior with unsigned types\n- Example syntax:\n  ```\n  u16 a <- 1000;\n  u16 b <- 500;\n  u16 diff <- a - b;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.065612"
+        "last_modified": "2026-01-10T06:59:44.952875"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Generic Types - Generic Function\n\n## Description\nWrite test for generic function declarations in C-Next.\n\n## Test Category\nGeneric Types\n\n## Context Being Tested\nGeneric function - a function that can operate on multiple types using type parameters.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/generic-types/generic-function.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Generic function\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test declaring and calling a generic function\n- Verify the transpiler correctly handles generic function syntax\n- Example syntax:\n  ```\n  fn swap<T>(ref a: T, ref b: T) -> void {\n      temp: T <- a;\n      a <- b;\n      b <- temp;\n  }\n  ```\n- Note: Generic types are defined in grammar but implementation status is unclear\n- This test may reveal that generic functions need to be fully implemented\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.060899"
+        "last_modified": "2026-01-10T06:59:44.947825"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

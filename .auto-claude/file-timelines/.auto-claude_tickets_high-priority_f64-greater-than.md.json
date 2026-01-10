@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comparison Operators - f64 > f64\n\n## Description\nWrite test for f64 greater-than comparison in C-Next.\n\n## Test Category\nComparison Operators\n\n## Context Being Tested\nGreater-than comparison between two f64 values.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comparison/f64-greater-than.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f64 > f64\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test greater-than comparison between f64 variables\n- Test both true and false cases\n- Test with negative values\n- Example syntax:\n  ```\n  f64 a <- 3.14159;\n  f64 b <- 2.718;\n  f64 c <- 3.14159;\n  bool gt1 <- (a > b);  // true\n  bool gt2 <- (b > a);  // false\n  bool gt3 <- (a > c);  // false (equal)\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.054145"
+        "last_modified": "2026-01-10T06:59:44.941056"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

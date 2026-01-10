@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bitwise Operators - u8 OR\n\n## Description\nWrite test for u8 | u8 bitwise OR operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nBitwise OR operation between two u8 operands.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-u8-or.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u8 | u8\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test basic bitwise OR of two u8 values\n- Verify the transpiled C code correctly handles 8-bit bitwise OR\n- Test with various bit patterns (all zeros, all ones, alternating)\n- Example syntax:\n  ```\n  u8 a <- 0b11110000;\n  u8 b <- 0b00001111;\n  u8 result <- a | b;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.077624"
+        "last_modified": "2026-01-10T06:59:44.965938"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

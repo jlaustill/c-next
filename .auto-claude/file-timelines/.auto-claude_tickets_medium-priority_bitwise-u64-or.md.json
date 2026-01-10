@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bitwise Operators - u64 OR\n\n## Description\nWrite test for u64 | u64 bitwise OR operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nBitwise OR operation between two u64 operands.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-u64-or.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 | u64\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test basic bitwise OR of two u64 values\n- Verify the transpiled C code correctly handles 64-bit bitwise OR\n- Test with various bit patterns across full 64-bit range\n- Example syntax:\n  ```\n  u64 a <- 0xFFFFFFFF00000000;\n  u64 b <- 0x00000000FFFFFFFF;\n  u64 result <- a | b;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.076358"
+        "last_modified": "2026-01-10T06:59:44.964629"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

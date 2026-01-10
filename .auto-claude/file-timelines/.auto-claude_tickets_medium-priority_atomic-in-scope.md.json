@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Atomic Modifier - Atomic in scope\n\n## Description\nWrite test for using the atomic modifier on variables declared inside a scope declaration in C-Next.\n\n## Test Category\nAtomic Modifier\n\n## Context Being Tested\nDeclaring atomic variables as members of a scope (namespace), accessible via this.member or ScopeName.member syntax.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/atomic/atomic-in-scope.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for atomic In scope\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a scope with atomic member variables\n- Access the atomic variable via `this.member` from within scope functions\n- Test compound assignment on scoped atomic variables\n- Verify the transpiled C code properly handles atomic operations through scope indirection\n- Example:\n  ```\n  scope MyModule {\n      atomic u32 counter <- 0;\n\n      fn increment() -> void {\n          this.counter +<- 1;\n      }\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.067642"
+        "last_modified": "2026-01-10T06:59:44.955414"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

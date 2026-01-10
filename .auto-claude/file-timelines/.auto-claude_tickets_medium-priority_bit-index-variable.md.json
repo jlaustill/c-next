@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bit Indexing - Variable Index\n\n## Description\nWrite test for bit indexing using a variable as the index in C-Next.\n\n## Test Category\nBit Indexing\n\n## Context Being Tested\nUsing a variable (not a literal) as the bit index in bit access operations.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/bit-indexing/bit-index-variable.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Variable index\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare an integer variable to use as the index\n- Use that variable in bit access: `u32 idx <- 5; bool bit <- value[idx];`\n- Test writing with variable index: `value[idx] <- true;`\n- Consider loop scenarios where index varies\n- Verify transpiled C code correctly computes the bit mask at runtime\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.069889"
+        "last_modified": "2026-01-10T06:59:44.957872"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

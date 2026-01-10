@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i8 in Comparison\n\n## Description\nWrite test for i8 in comparison operations in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nUsing i8 values in comparison operations (=, !=, <, >, <=, >=).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i8-comparison.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 In comparison\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare i8 variables and perform comparison operations\n- Test equality, inequality, less than, greater than, etc.\n- Example syntax: `bool result <- a < b;`\n- Include comparisons with negative values\n- Verify transpiled C code correctly handles int8_t comparisons\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.101260"
+        "last_modified": "2026-01-10T06:59:44.989795"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

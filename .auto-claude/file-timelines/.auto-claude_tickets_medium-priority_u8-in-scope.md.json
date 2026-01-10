@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - u8 in Scope Declaration\n\n## Description\nWrite test for u8 variable within a scope declaration in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nDeclaring and using u8 variables inside a scope block, accessed via this.member syntax.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u8-in-scope.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u8 In scope declaration\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a scope with a u8 member variable\n- Access the variable using this.member syntax within scope functions\n- Example syntax:\n  ```\n  scope MyScope {\n      u8 counter;\n\n      void increment() {\n          this.counter +<- 1;\n      }\n  }\n  ```\n- Verify transpiled C code correctly handles scoped u8 variables\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.123147"
+        "last_modified": "2026-01-10T06:59:45.012327"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

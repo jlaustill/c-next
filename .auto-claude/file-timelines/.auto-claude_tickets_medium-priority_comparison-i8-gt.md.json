@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comparison Operators - i8 > i8\n\n## Description\nWrite test for i8 greater-than comparison in C-Next.\n\n## Test Category\nComparison Operators\n\n## Context Being Tested\nGreater-than comparison between two i8 values.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comparison/i8-greater-than.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 > i8\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test greater-than comparison between i8 variables\n- Test both true and false cases\n- Test with negative values\n- Test with boundary values (-128, 127)\n- Example syntax:\n  ```\n  i8 a <- 20;\n  i8 b <- -10;\n  i8 c <- 20;\n  bool gt1 <- (a > b);  // true\n  bool gt2 <- (b > a);  // false\n  bool gt3 <- (a > c);  // false (equal)\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.084095"
+        "last_modified": "2026-01-10T06:59:44.972519"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Literals - String Escape Sequences\n\n## Description\nWrite test for escape sequences in string literals in C-Next.\n\n## Test Category\nLiterals - String Literals\n\n## Context Being Tested\nUsing escape sequences within string literals (newline, tab, backslash, quotes, etc.).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/string/string-escape-sequences.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Escape sequences under String Literals\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test common escape sequences in string literals:\n  - `\\n` - newline\n  - `\\t` - tab\n  - `\\\\` - backslash\n  - `\\\"` - double quote\n  - `\\r` - carriage return\n  - `\\0` - null character\n- Example syntax:\n  ```\n  string<32> message <- \"Hello\\nWorld\";\n  string<16> path <- \"C:\\\\temp\";\n  string<24> quote <- \"She said \\\"Hi\\\"\";\n  ```\n- Verify the transpiled C code preserves escape sequences correctly\n- Test string.length with escape sequences (escape is single character)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.114869"
+        "last_modified": "2026-01-10T06:59:45.003930"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

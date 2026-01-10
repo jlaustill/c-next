@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - Switch with Character Literal Cases\n\n## Description\nWrite test for switch statements with character literal case values in C-Next.\n\n## Test Category\nControl Flow - Switch Statement\n\n## Context Being Tested\nUsing character literals ('a', 'b', etc.) as case values in switch statements.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/switch/switch-char-cases.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Char literal cases\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create a switch statement with character literal case values\n- Test common patterns like parsing commands or handling keyboard input\n- Example syntax:\n  ```\n  switch (inputChar) {\n      case 'a': { // handle 'a' }\n      case 'b': { // handle 'b' }\n      case '\\n': { // handle newline escape sequence }\n      default(252): { // handle other ASCII values }\n  }\n  ```\n- Verify transpiled C code correctly handles char literals in case labels\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.115828"
+        "last_modified": "2026-01-10T06:59:45.004925"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bit Indexing - On u8\n\n## Description\nWrite test for bit indexing operations on u8 variables in C-Next.\n\n## Test Category\nBit Indexing\n\n## Context Being Tested\nUsing bit indexing syntax ([n] for single bit, [start..end] for range) on u8 type variables.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/bit-indexing/bit-index-u8.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for On u8\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare u8 variable and access individual bits using [n] syntax\n- Test reading bits: `bool bit <- value[3];`\n- Test writing bits: `value[5] <- true;`\n- Test bit range access if applicable\n- Verify transpiled C code correctly handles 8-bit values\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.069631"
+        "last_modified": "2026-01-10T06:59:44.957587"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i16 Array Element\n\n## Description\nWrite test for i16 as array element type in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nUsing i16 as the element type for single-dimensional arrays.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i16-array.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i16 Array element type\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a 1D array with i16 element type\n- Initialize with values including negative numbers and access elements\n- Example syntax: `i16[4] signedShorts <- [-32768, -1, 0, 32767];`\n- Verify transpiled C code uses `int16_t` for array elements\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.096973"
+        "last_modified": "2026-01-10T06:59:44.985408"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

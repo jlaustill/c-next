@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Overflow Modifiers - wrap with atomic\n\n## Description\nWrite test for wrap (wrapping) modifier combined with atomic modifier in C-Next.\n\n## Test Category\nOverflow Modifiers - wrap (Wrapping)\n\n## Context Being Tested\nTesting that wrap and atomic modifiers can be combined, providing both atomic operations and wrapping arithmetic.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/overflow/wrap-with-atomic.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for With atomic in Section 21.2\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare variable with both modifiers: `atomic wrap u32 counter <- 0;`\n- Test that atomic compound operations also wrap\n- Verify modifier order is handled correctly (atomic wrap vs wrap atomic)\n- Test overflow: atomic increment at max should wrap to 0\n- Test underflow: atomic decrement at 0 should wrap to max\n- Verify transpiled C code uses both atomic intrinsics and wrapping behavior\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.129165"
+        "last_modified": "2026-01-10T06:59:45.018337"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Ternary Operator - In Function Argument\n\n## Description\nWrite test for using ternary expressions as function arguments in C-Next.\n\n## Test Category\nTernary Operator\n\n## Context Being Tested\nUsing a ternary expression directly as an argument when calling a function.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/ternary/ternary-in-function-arg.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"In function argument\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a function that takes a parameter\n- Call the function with a ternary expression as the argument\n- Example syntax: `someFunction((condition) ? value1 : value2);`\n- Verify transpiled C code correctly passes the ternary result to the function\n- Test with both true and false conditions to ensure correct value is passed\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.117102"
+        "last_modified": "2026-01-10T06:59:45.006228"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

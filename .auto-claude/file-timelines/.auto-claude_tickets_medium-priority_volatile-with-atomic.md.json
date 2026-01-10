@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Volatile Modifier - With Atomic\n\n## Description\nWrite test for combining volatile and atomic modifiers in C-Next.\n\n## Test Category\nModifiers - Volatile\n\n## Context Being Tested\nUsing volatile together with atomic modifier on variable declarations. This combination ensures both atomic access and volatile semantics.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/modifiers/volatile-with-atomic.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for volatile With atomic\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a variable with both volatile and atomic modifiers\n- Example syntax: `volatile atomic u32 sharedHwCounter <- 0;`\n- Verify transpiled C code includes both volatile semantics and atomic operations\n- Test read and write operations to the variable\n- Use case: shared hardware counters accessed by multiple threads/ISRs\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.125347"
+        "last_modified": "2026-01-10T06:59:45.014600"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

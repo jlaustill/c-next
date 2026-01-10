@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Scope Declaration - Public Visibility\n\n## Description\nWrite test for public visibility modifier on scope members in C-Next.\n\n## Test Category\nScope Declaration\n\n## Context Being Tested\nUsing the `public` visibility modifier on scope members to allow external access.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/scope-public.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for public visibility\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare public members within a scope\n- Verify public members are accessible from outside the scope\n- Example syntax:\n  ```\n  scope Sensor {\n      public u32 reading;\n      public bool enabled;\n\n      void update(u32 newValue) {\n          this.reading <- newValue;\n      }\n  }\n\n  void main() {\n      Sensor.reading <- 100;\n      Sensor.enabled <- true;\n  }\n  ```\n- Verify transpiled C code correctly exposes public members\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.111433"
+        "last_modified": "2026-01-10T06:59:45.000377"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

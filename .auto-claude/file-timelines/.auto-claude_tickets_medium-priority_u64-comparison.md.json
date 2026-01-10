@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - u64 in Comparison\n\n## Description\nWrite test for u64 in comparison expressions in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing u64 values in comparison operations (=, !=, <, >, <=, >=).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u64-comparison.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 In comparison\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare u64 variables and perform comparison operations\n- Test equality, inequality, less than, greater than, and compound comparisons\n- Example syntax: `if (a < b) { ... }`\n- Use large values that require 64-bit representation\n- Verify transpiled C code correctly compares uint64_t values\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.120575"
+        "last_modified": "2026-01-10T06:59:45.009783"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Expression Contexts - Statement Nesting (while inside while)\n\n## Description\nWrite test for nesting a while loop inside another while loop in C-Next.\n\n## Test Category\nExpression Contexts - Statement Nesting\n\n## Context Being Tested\nVerify that while loops can be properly nested within other while loops, ensuring correct scope handling and C code generation.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/expression-contexts/nesting-while-in-while.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"while inside while\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create nested while loops (inner while inside outer while)\n- Test break/continue behavior in both inner and outer loops\n- Verify loop variables are correctly scoped\n- Example:\n  ```\n  while (outer_condition) {\n      while (inner_condition) {\n          // nested loop body\n      }\n  }\n  ```\n- Ensure proper brace generation and indentation in C output\n- Test that inner loop termination doesn't affect outer loop\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.108223"
+        "last_modified": "2026-01-10T06:59:44.997081"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

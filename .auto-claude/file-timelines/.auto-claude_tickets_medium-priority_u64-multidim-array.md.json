@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - u64 Multi-dimensional Array Element\n\n## Description\nWrite test for u64 as multi-dimensional array element type in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing u64 as the element type for multi-dimensional arrays (2D, 3D, etc.).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u64-multidim-array.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 Array element type (multi-dim)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a 2D array with u64 element type\n- Initialize with values and access elements\n- Example syntax: `u64[2][3] matrix <- [[1000000000000, 2000000000000, 3000000000000], [4000000000000, 5000000000000, 6000000000000]];`\n- Verify transpiled C code uses `uint64_t` for array elements\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.121577"
+        "last_modified": "2026-01-10T06:59:45.010783"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

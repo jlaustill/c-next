@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Scope Declaration - Nested Scopes\n\n## Description\nWrite test for nested scope declarations in C-Next.\n\n## Test Category\nScope Declaration\n\n## Context Being Tested\nDeclaring scopes inside other scopes and accessing members through the scope hierarchy.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/scope-nested.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Nested scopes\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a scope inside another scope\n- Access nested scope members using qualified names\n- Example syntax:\n  ```\n  scope Outer {\n      u32 outerValue;\n\n      scope Inner {\n          u32 innerValue;\n\n          void setInner(u32 val) {\n              this.innerValue <- val;\n          }\n      }\n\n      void setOuter(u32 val) {\n          this.outerValue <- val;\n      }\n  }\n\n  void main() {\n      Outer.outerValue <- 10;\n      Outer.Inner.innerValue <- 20;\n  }\n  ```\n- Verify transpiled C code correctly handles scope nesting\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.110948"
+        "last_modified": "2026-01-10T06:59:44.999891"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

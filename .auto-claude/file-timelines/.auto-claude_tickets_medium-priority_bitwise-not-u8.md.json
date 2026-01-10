@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bitwise Operators - u8 NOT\n\n## Description\nWrite test for ~u8 bitwise NOT operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nBitwise NOT (complement) operation on u8 operand.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-not-u8.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for ~u8\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test bitwise NOT of u8 values\n- Verify the transpiled C code correctly handles 8-bit complement\n- Test with all zeros (expect all ones), all ones (expect all zeros), and patterns\n- Example syntax:\n  ```\n  u8 a <- 0b11110000;\n  u8 result <- ~a;  // Expected: 0b00001111\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.073653"
+        "last_modified": "2026-01-10T06:59:44.961857"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

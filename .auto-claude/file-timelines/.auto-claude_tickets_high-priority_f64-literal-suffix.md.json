@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - f64 Literal with f64 Suffix\n\n## Description\nWrite test for f64 literal with explicit f64 suffix in C-Next.\n\n## Test Category\nPrimitive Types - Floating Point / Literals\n\n## Context Being Tested\nFloat literal with explicit f64 type suffix.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/f64-literal-suffix.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f64 Literal with f64 suffix\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test assignment of literals with explicit f64 suffix\n- Verify the transpiled C code correctly handles the double suffix notation\n- Example syntax:\n  ```\n  f64 value <- 3.14159265358979f64;\n  f64 precise <- 1.0f64;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.054916"
+        "last_modified": "2026-01-10T06:59:44.941847"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

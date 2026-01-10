@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - f32 Local Variable Declaration\n\n## Description\nWrite test for f32 local variable declaration in C-Next.\n\n## Test Category\nPrimitive Types - Floating Point\n\n## Context Being Tested\nLocal variable declaration with f32 type without initialization inside a function.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/f32-local-var-declaration.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f32 Local variable declaration\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a local f32 variable inside a function without initialization\n- Verify the transpiled C code uses the correct float type\n- Example syntax:\n  ```\n  void testFunction() {\n      f32 localFloat;\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.050025"
+        "last_modified": "2026-01-10T06:59:44.937403"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

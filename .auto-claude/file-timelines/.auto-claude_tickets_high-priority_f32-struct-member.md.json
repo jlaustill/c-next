@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - f32 Struct Member\n\n## Description\nWrite test for f32 as a struct member type in C-Next.\n\n## Test Category\nPrimitive Types - Floating Point\n\n## Context Being Tested\nStruct containing an f32 member field.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/f32-struct-member.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f32 Struct member\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct with an f32 member\n- Test accessing and assigning to the f32 member\n- Verify the transpiled C code correctly declares the float struct member\n- Example syntax:\n  ```\n  struct Measurement {\n      f32 value;\n      u32 timestamp;\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.050994"
+        "last_modified": "2026-01-10T06:59:44.938186"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Struct Declaration - Struct in Scope\n\n## Description\nWrite test for struct declaration inside a scope in C-Next.\n\n## Test Category\nStruct Declaration\n\n## Context Being Tested\nDeclaring and using a struct type within a scope declaration.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/structs/struct-in-scope.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"Struct in scope\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create a scope with a struct declaration inside\n- Use `this.StructName` to reference the scoped struct\n- Instantiate and use the struct within scope functions\n- Verify transpiled C code properly namespaces the struct\n- Example:\n  ```\n  scope MyModule {\n      struct Config {\n          u32 value;\n          bool enabled;\n      }\n\n      this.Config config;\n\n      fn init() -> void {\n          this.config <- this.Config{value: 100, enabled: true};\n      }\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.115583"
+        "last_modified": "2026-01-10T06:59:45.004673"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

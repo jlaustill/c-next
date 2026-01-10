@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - Infinite while Loop\n\n## Description\nWrite test for infinite while loop with `while (true)` in C-Next.\n\n## Test Category\nControl Flow - while Loop\n\n## Context Being Tested\nUsing `while (true)` for intentional infinite loops (common in embedded systems).\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/control-flow/while-infinite.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Infinite while (while true)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create a while loop with boolean literal `true`\n- Include a way to break out (return or break) to allow test completion\n- Example:\n  ```\n  while (true) {\n      // main loop body\n      if (shouldExit) {\n          return;\n      }\n  }\n  ```\n- This pattern is common in embedded main loops\n- Verify `while (true)` generates `while (1)` or `while (true)` in C\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.125839"
+        "last_modified": "2026-01-10T06:59:45.015089"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

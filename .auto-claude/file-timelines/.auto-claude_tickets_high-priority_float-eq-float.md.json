@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comparison Operators - Float = Float\n\n## Description\nWrite test for float equality comparison (Float = Float) in C-Next.\n\n## Test Category\nComparison Operators\n\n## Context Being Tested\nEquality comparison between two float variables.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comparison/float-eq-float.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Float = Float\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test equality comparison between f32 variables\n- Test equality comparison between f64 variables\n- Test both true and false cases\n- Example syntax:\n  ```\n  f32 a <- 3.14;\n  f32 b <- 3.14;\n  f32 c <- 2.0;\n  bool eq1 <- (a = b);  // true\n  bool eq2 <- (a = c);  // false\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.056516"
+        "last_modified": "2026-01-10T06:59:44.943425"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Logical Operators - && Chained (a && b && c)\n\n## Description\nWrite test for chained logical AND (&&) expressions in C-Next.\n\n## Test Category\nLogical Operators - AND (&&)\n\n## Context Being Tested\nUsing multiple && operators chained together in a single expression: `a && b && c`.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/logical/logical-and-chained.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"Chained (a && b && c)\" under 6.1 AND (&&)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create expressions with 3+ chained && operators\n- Example syntax: `if (a > 0 && b > 0 && c > 0 && d > 0) { ... }`\n- Test both in conditions and as standalone assignments\n- Verify transpiled C code correctly handles chained logical AND operations\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.104304"
+        "last_modified": "2026-01-10T06:59:44.993204"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

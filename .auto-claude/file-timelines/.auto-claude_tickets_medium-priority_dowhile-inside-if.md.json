@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - do-while Loop Inside if\n\n## Description\nWrite test for do-while loop inside if statement in C-Next.\n\n## Test Category\nControl Flow - do-while Loop\n\n## Context Being Tested\nUsing a do-while loop inside an if statement block.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/do-while/dowhile-inside-if.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for do-while inside if\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create an if statement containing a do-while loop\n- Test in both if branch and else branch\n- Example:\n  ```\n  if (condition) {\n      u32 i <- 0;\n      do {\n          // loop body\n          i +<- 1;\n      } while (i < 5);\n  }\n  ```\n- Verify correct C code generation with proper scoping\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.092746"
+        "last_modified": "2026-01-10T06:59:44.981161"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

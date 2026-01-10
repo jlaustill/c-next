@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - Critical Block Inside If Statement\n\n## Description\nWrite test for critical block placed inside an if statement in C-Next.\n\n## Test Category\nControl Flow - Critical Block\n\n## Context Being Tested\nCritical block nested within an if or if-else statement branch.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/critical/critical-in-if.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Critical in if\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Place a critical block inside an if statement branch\n- Optionally place different critical operations in if and else branches\n- Example syntax:\n  ```\n  atomic u32 counter;\n  bool needsUpdate;\n\n  if (needsUpdate) {\n      critical (counter) {\n          counter +<- 1;\n      }\n  }\n  ```\n- Verify transpiled C code correctly handles conditional critical section entry\n- Test both simple if and if-else variations\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.091993"
+        "last_modified": "2026-01-10T06:59:44.980402"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

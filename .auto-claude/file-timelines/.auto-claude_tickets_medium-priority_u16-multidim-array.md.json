@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - u16 Multi-dimensional Array Element\n\n## Description\nWrite test for u16 as multi-dimensional array element type in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing u16 as the element type for multi-dimensional arrays (2D, 3D, etc.).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u16-multidim-array.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u16 Array element type (multi-dim)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a 2D array with u16 element type\n- Initialize with values and access elements\n- Example syntax: `u16[3][4] matrix <- [[100, 200, 300, 400], [500, 600, 700, 800], [900, 1000, 1100, 1200]];`\n- Verify transpiled C code uses `uint16_t` for array elements\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.118782"
+        "last_modified": "2026-01-10T06:59:45.007985"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

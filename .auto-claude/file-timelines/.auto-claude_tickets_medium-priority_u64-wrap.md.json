@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - u64 with wrap Modifier\n\n## Description\nWrite test for u64 with wrap (wrapping arithmetic) modifier in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing wrap modifier on u64 to enable explicit wrapping arithmetic behavior.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u64-wrap.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 With wrap modifier\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a u64 variable with wrap modifier\n- Example syntax: `wrap u64 value <- 0;`\n- Test that overflow wraps around to 0\n- Test that underflow wraps around to max value\n- Verify transpiled C code allows natural C wrapping behavior\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.122408"
+        "last_modified": "2026-01-10T06:59:45.011573"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

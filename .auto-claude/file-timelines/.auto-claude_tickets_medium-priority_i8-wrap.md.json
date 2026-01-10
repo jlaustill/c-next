@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i8 with wrap Modifier\n\n## Description\nWrite test for i8 with wrap (wrapping) overflow modifier in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nDeclaring i8 variables with wrap modifier that wraps on overflow/underflow.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i8-wrap.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 With wrap modifier\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a wrap i8 variable\n- Example syntax: `wrap i8 wrappingVal <- 100;`\n- Test overflow scenario: 127 + 1 should wrap to -128\n- Test underflow scenario: -128 - 1 should wrap to 127\n- Verify transpiled C code handles wrapping arithmetic correctly\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.102017"
+        "last_modified": "2026-01-10T06:59:44.990618"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

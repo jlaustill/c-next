@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Callbacks - Array of Callbacks\n\n## Description\nWrite test for array of callback types in C-Next.\n\n## Test Category\nCallbacks\n\n## Context Being Tested\nDeclaring and using an array of callback types, allowing multiple callback functions to be stored and invoked.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/callbacks/callback-array.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Array of callbacks\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a callback type\n- Create an array of that callback type\n- Assign different function implementations to array elements\n- Invoke callbacks through array indexing\n- Example syntax:\n  ```\n  callback void Handler();\n  Handler[3] handlers;\n  handlers[0] <- myHandler1;\n  handlers[1] <- myHandler2;\n  handlers[0]();\n  ```\n- Verify transpiled C code correctly handles function pointer arrays\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.079889"
+        "last_modified": "2026-01-10T06:59:44.968243"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

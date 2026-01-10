@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - for Loop with Empty Init\n\n## Description\nWrite test for for loop with empty initialization in C-Next.\n\n## Test Category\nControl Flow - for Loop\n\n## Context Being Tested\nUsing a for loop where the init section is empty (variable declared before loop).\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/for-loops/for-empty-init.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for For with empty init\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare loop variable before the for loop\n- Leave init section empty\n- Example:\n  ```\n  u32 i <- 0;\n  for (; i < 10; i +<- 1) {\n      // loop body\n  }\n  ```\n- Verify correct C code generation with empty init\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.095258"
+        "last_modified": "2026-01-10T06:59:44.983681"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

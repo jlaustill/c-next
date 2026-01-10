@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Assignment Operators - Compound Bitwise AND on global.member\n\n## Description\nWrite test for compound bitwise AND (&<-) operator on global.member in C-Next.\n\n## Test Category\nAssignment Operators - Compound Assignment\n\n## Context Being Tested\nUsing the compound bitwise AND assignment operator (&<-) on a scope member accessed via `global.member` syntax from a non-scope context.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/compound-global-band.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for global.member &<-\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a scope with a member variable\n- Use compound bitwise AND on `global.ScopeName.member` from outside the scope\n- Example syntax: `global.MyScope.flags &<- 0x0F;`\n- Verify transpiled C code correctly generates the compound operation\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.087107"
+        "last_modified": "2026-01-10T06:59:44.975549"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

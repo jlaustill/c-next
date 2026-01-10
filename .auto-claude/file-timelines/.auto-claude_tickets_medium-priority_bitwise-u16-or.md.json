@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bitwise Operators - u16 OR\n\n## Description\nWrite test for u16 | u16 bitwise OR operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nBitwise OR operation between two u16 operands.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-u16-or.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u16 | u16\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test basic bitwise OR of two u16 values\n- Verify the transpiled C code correctly handles 16-bit bitwise OR\n- Test with various bit patterns\n- Example syntax:\n  ```\n  u16 a <- 0xFF00;\n  u16 b <- 0x00FF;\n  u16 result <- a | b;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.075130"
+        "last_modified": "2026-01-10T06:59:44.963376"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

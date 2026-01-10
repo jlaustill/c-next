@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Overflow Modifiers - clamp i8\n\n## Description\nWrite test for clamp (saturating) overflow behavior with i8 type in C-Next.\n\n## Test Category\nOverflow Modifiers - clamp (Saturating)\n\n## Context Being Tested\nTesting clamp modifier behavior specifically for i8 type, verifying saturating arithmetic at type bounds (-128 to 127).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/overflow/clamp-i8.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 clamp in Section 21.1\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a clamp i8 variable\n- Test positive overflow: 120 + 20 should saturate to 127\n- Test negative overflow: -120 - 20 should saturate to -128\n- Example syntax: `clamp i8 value <- 120;`\n- Verify both positive and negative saturation works correctly\n- Compare with expected C output using saturation macros/inline functions\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.081603"
+        "last_modified": "2026-01-10T06:59:44.969998"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

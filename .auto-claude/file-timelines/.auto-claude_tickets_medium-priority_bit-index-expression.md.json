@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bit Indexing - Expression Index\n\n## Description\nWrite test for bit indexing using an expression as the index in C-Next.\n\n## Test Category\nBit Indexing\n\n## Context Being Tested\nUsing an expression (arithmetic, function call, etc.) as the bit index in bit access operations.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/bit-indexing/bit-index-expression.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Expression index\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use arithmetic expression as index: `bool bit <- value[offset + 3];`\n- Test with subtraction: `value[total - 1] <- true;`\n- Test with more complex expressions: `value[base * 2 + 1]`\n- Verify transpiled C code correctly evaluates the expression before computing bit mask\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.068908"
+        "last_modified": "2026-01-10T06:59:44.956787"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

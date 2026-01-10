@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Overflow Modifiers - clamp Compound Subtraction\n\n## Description\nWrite test for clamp (saturating) behavior with compound subtraction operator (-<-) in C-Next.\n\n## Test Category\nOverflow Modifiers - clamp (Saturating)\n\n## Context Being Tested\nTesting that compound subtraction assignment (-<-) correctly saturates when used with clamp modifier variables.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/overflow/clamp-compound-sub.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Compound sub in Section 21.1\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare clamp variables of various integer types\n- Use compound subtraction: `value -<- 100;`\n- Test underflow scenarios that should saturate to minimum\n- Test with u32: `clamp u32 val <- 50; val -<- 100;` should give 0\n- Test with i32: `clamp i32 val <- -2147483640; val -<- 100;` should give INT32_MIN\n- Verify transpiled C code implements saturating compound subtraction\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.080877"
+        "last_modified": "2026-01-10T06:59:44.969260"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

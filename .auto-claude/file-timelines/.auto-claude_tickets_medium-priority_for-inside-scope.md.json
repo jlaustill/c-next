@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - for Loop Inside Scope\n\n## Description\nWrite test for for loop inside a scope declaration in C-Next.\n\n## Test Category\nControl Flow - for Loop\n\n## Context Being Tested\nUsing a for loop inside a scope block with this.member access.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/for-loops/for-inside-scope.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for For inside scope\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create a scope with variables and a function containing a for loop\n- Use this.member to access scope variables in loop\n- Example:\n  ```\n  scope ArrayProcessor {\n      u32[10] data;\n      u32 sum <- 0;\n\n      fn computeSum() -> void {\n          for (u32 i <- 0; i < this.data.length; i +<- 1) {\n              this.sum +<- this.data[i];\n          }\n      }\n  }\n  ```\n- Verify correct C code generation with proper namespace prefixing\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.095999"
+        "last_modified": "2026-01-10T06:59:44.984420"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

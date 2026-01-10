@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Atomic Modifier - Atomic with clamp\n\n## Description\nWrite test for combining the atomic modifier with the clamp (saturating) overflow modifier in C-Next.\n\n## Test Category\nAtomic Modifier\n\n## Context Being Tested\nUsing both atomic and clamp modifiers together on a variable to get thread-safe saturating arithmetic operations.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/atomic/atomic-with-clamp.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for atomic With clamp\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a variable with both atomic and clamp modifiers\n- Example syntax: `atomic clamp u32 counter <- 0;` or `clamp atomic u32 counter <- 0;`\n- Test compound operations that would overflow/underflow\n- Verify the transpiled C code generates both atomic intrinsics and saturating logic\n- Test on types where atomic is supported (u8, u16, u32, u64, i8, i16, i32, i64)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.068170"
+        "last_modified": "2026-01-10T06:59:44.955957"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

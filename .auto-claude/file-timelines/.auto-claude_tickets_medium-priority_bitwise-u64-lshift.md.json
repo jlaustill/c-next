@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bitwise Operators - u64 Left Shift\n\n## Description\nWrite test for u64 << amount left shift operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nLeft shift operation on u64 operand with literal shift amount.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-u64-lshift.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 << amount\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test left shift of u64 values by various amounts\n- Verify the transpiled C code correctly handles 64-bit left shift\n- Test shift amounts including high values (e.g., 32, 48, 63)\n- Example syntax:\n  ```\n  u64 a <- 0x0000000000000001;\n  u64 result <- a << 32;  // Expected: 0x0000000100000000\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.076109"
+        "last_modified": "2026-01-10T06:59:44.964381"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

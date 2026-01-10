@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Volatile Modifier - Struct Member\n\n## Description\nWrite test for volatile modifier on struct member declarations in C-Next.\n\n## Test Category\nModifiers - Volatile\n\n## Context Being Tested\nUsing the volatile modifier on individual struct member fields.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/modifiers/volatile-struct-member.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for volatile Struct member\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a struct with a volatile member field\n- Test accessing and modifying the volatile member\n- Example syntax:\n  ```\n  struct HardwareStatus {\n      volatile u32 statusReg;\n      u32 normalField;\n  }\n  ```\n- Verify transpiled C code includes `volatile` on the correct struct member\n- Useful for memory-mapped hardware registers represented as struct fields\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.125109"
+        "last_modified": "2026-01-10T06:59:45.014359"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

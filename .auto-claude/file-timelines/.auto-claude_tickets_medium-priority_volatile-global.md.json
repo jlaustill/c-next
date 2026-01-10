@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Volatile Modifier - Global Variable\n\n## Description\nWrite test for volatile modifier on global variable declarations in C-Next.\n\n## Test Category\nModifiers - Volatile\n\n## Context Being Tested\nUsing the volatile modifier on global variable declarations to indicate that the variable may be modified by external factors (hardware, ISRs, other threads).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/modifiers/volatile-global.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for volatile Global variable\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a global variable with the volatile modifier\n- Test with different types (u32, u8, etc.)\n- Example syntax: `volatile u32 hwRegister <- 0;`\n- Verify transpiled C code includes the `volatile` keyword in the correct position\n- Volatile prevents compiler optimizations that assume the value doesn't change unexpectedly\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.124341"
+        "last_modified": "2026-01-10T06:59:45.013567"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

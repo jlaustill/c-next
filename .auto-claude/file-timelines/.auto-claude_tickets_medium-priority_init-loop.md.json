@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Initialization - Loop Init\n\n## Description\nWrite test for variable initialization inside a loop in C-Next.\n\n## Test Category\nInitialization\n\n## Context Being Tested\nVerifying that variables initialized inside a loop are properly tracked for definite assignment.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/initialization/loop-init.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Loop init\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a variable before a loop\n- Initialize the variable inside the loop body\n- Use the variable after the loop (should be valid if loop always executes)\n- Consider both for and while loop variants\n- Example: declaring uninitialized, then assigning in loop body\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.102770"
+        "last_modified": "2026-01-10T06:59:44.991459"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comparison Operators - u16 < u16\n\n## Description\nWrite test for u16 less-than comparison in C-Next.\n\n## Test Category\nComparison Operators\n\n## Context Being Tested\nLess-than comparison between two u16 values.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comparison/u16-less-than.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u16 < u16\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test less-than comparison between u16 variables\n- Test both true and false cases\n- Test with boundary values (0, 65535)\n- Example syntax:\n  ```\n  u16 a <- 1000;\n  u16 b <- 2000;\n  u16 c <- 1000;\n  bool lt1 <- (a < b);  // true\n  bool lt2 <- (b < a);  // false\n  bool lt3 <- (a < c);  // false (equal)\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.085610"
+        "last_modified": "2026-01-10T06:59:44.974074"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

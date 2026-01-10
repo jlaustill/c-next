@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Literals - Integer with i8 Suffix\n\n## Description\nWrite test for integer literal with explicit i8 suffix in C-Next.\n\n## Test Category\nLiterals - Integer Literals\n\n## Context Being Tested\nInteger literal with explicit i8 type suffix.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/integer-i8-suffix.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"With i8 suffix\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test assignment of integer literals with explicit i8 suffix\n- Verify the transpiled C code correctly handles the type suffix notation\n- Test various valid i8 values (-128 to 127 range)\n- Include both positive and negative values\n- Example syntax:\n  ```\n  i8 value <- 42i8;\n  i8 negative <- -100i8;\n  i8 max <- 127i8;\n  i8 min <- -128i8;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.058434"
+        "last_modified": "2026-01-10T06:59:44.945245"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

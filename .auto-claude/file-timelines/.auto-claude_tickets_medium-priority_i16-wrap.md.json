@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i16 Wrap Modifier\n\n## Description\nWrite test for i16 with wrap (wrapping) overflow modifier in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers / Overflow Modifiers\n\n## Context Being Tested\nUsing wrap modifier with i16 type to enable wrapping arithmetic that wraps around on overflow.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i16-wrap.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i16 With wrap modifier\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare wrap i16 variable\n- Example syntax: `wrap i16 value <- 32000;`\n- Test overflow scenario: adding past 32767 should wrap to negative values\n- Test underflow scenario: subtracting past -32768 should wrap to positive values\n- Verify transpiled C code includes wrapping logic\n- Reference existing patterns in `primitives/signed-overflow.cnx` and `primitives/wrap-declaration.cnx`\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.097996"
+        "last_modified": "2026-01-10T06:59:44.986442"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Scope Declaration - this.Type Declaration\n\n## Description\nWrite test for declaring variables using this.Type syntax within a scope in C-Next.\n\n## Test Category\nScope Declaration - Scoped Types\n\n## Context Being Tested\nDeclaring a variable of a type defined in the current scope using the `this.Type` syntax.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/this-type-declaration.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for this.Type declaration\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct or enum type inside a scope\n- Declare a variable using `this.TypeName` syntax\n- Example syntax:\n  ```\n  scope Device {\n      struct Config {\n          u32 baudRate;\n          u8 address;\n      }\n\n      this.Config deviceConfig;\n\n      void init() {\n          this.deviceConfig.baudRate <- 115200;\n          this.deviceConfig.address <- 0x42;\n      }\n  }\n  ```\n- Verify transpiled C code correctly resolves the scoped type reference\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.112168"
+        "last_modified": "2026-01-10T06:59:45.001128"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

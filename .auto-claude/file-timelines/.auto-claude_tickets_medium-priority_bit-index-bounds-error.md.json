@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bit Indexing - Out of Bounds Index (ERROR)\n\n## Description\nWrite error test for bit indexing with out-of-bounds index in C-Next.\n\n## Test Category\nBit Indexing\n\n## Context Being Tested\nCompiler should produce an error when bit index exceeds the type's bit width (e.g., accessing bit 32 of a u32, or bit 8 of a u8).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/bit-indexing/bit-index-bounds-error.cnx`\n- [ ] Test correctly triggers compiler error\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Out of bounds index (ERROR)\n- [ ] Jest test runner passes (error is expected)\n\n## Test Implementation Notes\n- Attempt to access bit beyond type width: `u8 val <- 0; bool bit <- val[8];` (u8 only has bits 0-7)\n- Test for u16: `u16 val <- 0; bool bit <- val[16];` (u16 only has bits 0-15)\n- Test for u32: `u32 val <- 0; bool bit <- val[32];` (u32 only has bits 0-31)\n- Verify compiler produces a clear error message about out-of-bounds bit access\n- This is an ERROR test - it should NOT compile successfully\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.068654"
+        "last_modified": "2026-01-10T06:59:44.956508"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

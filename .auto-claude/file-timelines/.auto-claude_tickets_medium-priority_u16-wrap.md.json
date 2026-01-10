@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - u16 with wrap Modifier\n\n## Description\nWrite test for u16 with wrap (wrapping) overflow modifier in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing the wrap modifier with u16 to enable wrapping arithmetic that wraps around at min/max bounds.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u16-wrap.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u16 With wrap modifier\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a u16 variable with wrap modifier\n- Perform operations that would overflow (e.g., 65535 + 1 should wrap to 0)\n- Perform operations that would underflow (e.g., 0 - 1 should wrap to 65535)\n- Example syntax: `wrap u16 wrapped <- 65535;`\n- Verify transpiled C code implements wrapping arithmetic correctly\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.119306"
+        "last_modified": "2026-01-10T06:59:45.008534"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

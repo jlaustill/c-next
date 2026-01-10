@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i16 Arithmetic Expression\n\n## Description\nWrite test for i16 in arithmetic expressions in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nUsing i16 values in arithmetic operations (addition, subtraction, multiplication, division, modulo).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i16-arithmetic.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i16 In arithmetic expression\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare i16 variables and perform arithmetic operations\n- Test addition: `i16 sum <- a + b;`\n- Test subtraction: `i16 diff <- a - b;`\n- Test multiplication: `i16 prod <- a * b;`\n- Test division: `i16 quot <- a / b;`\n- Test modulo: `i16 rem <- a % b;`\n- Include operations with negative values\n- Verify transpiled C code uses `int16_t` and correct operators\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.096730"
+        "last_modified": "2026-01-10T06:59:44.985167"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

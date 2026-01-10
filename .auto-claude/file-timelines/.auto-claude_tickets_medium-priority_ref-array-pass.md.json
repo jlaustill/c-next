@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: References - Array Pass by Reference\n\n## Description\nWrite test for passing arrays by reference in C-Next.\n\n## Test Category\nReferences (Pass-by-reference)\n\n## Context Being Tested\nPassing an array as a reference parameter to a function, allowing the function to modify the array contents.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/references/array-pass-by-ref.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Array pass by ref\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a function that takes an array by reference\n- Modify array elements within the function\n- Verify modifications persist after function returns\n- Example syntax: `fn modifyArray(ref u32[5] arr) -> void { arr[0] <- 100; }`\n- Test with various array types (u8, u32, etc.)\n- Verify transpiled C code passes array pointer correctly\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.108946"
+        "last_modified": "2026-01-10T06:59:44.997833"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

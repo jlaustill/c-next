@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: NULL Interop - NULL in While Condition\n\n## Description\nWrite test for using NULL checks in while loop conditions in C-Next.\n\n## Test Category\nNULL Interop\n\n## Context Being Tested\nUsing NULL comparisons (= NULL, != NULL) as while loop conditions, typically for iterating through data until a NULL terminator is reached.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/null-check/null-in-while.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for NULL in while\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use a while loop with a NULL check condition\n- Example: reading lines until fgets returns NULL\n- Example syntax: `while (fgets(buffer, size, file) != NULL) { ... }`\n- Test both `!= NULL` and `= NULL` conditions in while\n- Verify transpiled C code correctly handles NULL comparison in loop condition\n- Ensure proper C interop function usage (fgets, etc.)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.108707"
+        "last_modified": "2026-01-10T06:59:44.997575"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

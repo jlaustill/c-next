@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Arithmetic Operators - f32 + f32\n\n## Description\nWrite test for f32 addition operation in C-Next.\n\n## Test Category\nArithmetic Operators\n\n## Context Being Tested\nAddition operation between two f32 values.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/arithmetic/f32-addition.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f32 + f32\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test addition between f32 variables\n- Test addition with literals\n- Test addition with negative values\n- Verify precision handling\n- Example syntax:\n  ```\n  f32 a <- 3.14;\n  f32 b <- 2.0;\n  f32 sum <- a + b;  // 5.14\n  f32 sumLit <- a + 1.5;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.046699"
+        "last_modified": "2026-01-10T06:59:44.934028"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - for Loop with Empty Update\n\n## Description\nWrite test for for loop with empty update expression in C-Next.\n\n## Test Category\nControl Flow - for Loop\n\n## Context Being Tested\nUsing a for loop where the update section is empty (update done in body).\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/for-loops/for-empty-update.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for For with empty update\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create for loop with empty update section\n- Perform update inside loop body\n- Example:\n  ```\n  for (u32 i <- 0; i < 10;) {\n      // loop body\n      i +<- 1;  // update inside body\n  }\n  ```\n- Verify correct C code generation with empty update\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.095499"
+        "last_modified": "2026-01-10T06:59:44.983934"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

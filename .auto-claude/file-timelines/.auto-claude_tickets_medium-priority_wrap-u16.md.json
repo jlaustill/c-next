@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Overflow Modifiers - wrap u16\n\n## Description\nWrite test for wrap (wrapping) overflow behavior with u16 type in C-Next.\n\n## Test Category\nOverflow Modifiers - wrap (Wrapping)\n\n## Context Being Tested\nTesting wrap modifier behavior specifically for u16 type, verifying wrapping arithmetic at type bounds (0-65535).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/overflow/wrap-u16.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u16 wrap in Section 21.2\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a wrap u16 variable\n- Test overflow: 65535 + 1 should wrap to 0\n- Test underflow: 0 - 1 should wrap to 65535\n- Example syntax: `wrap u16 value <- 65535;`\n- Verify wrapping behavior matches expected modular arithmetic\n- Compare with expected C output\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.128416"
+        "last_modified": "2026-01-10T06:59:45.017579"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

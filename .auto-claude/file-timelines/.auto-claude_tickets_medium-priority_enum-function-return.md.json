@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Enum Declaration - Function Return\n\n## Description\nWrite test for enum as function return type in C-Next.\n\n## Test Category\nEnum Declaration\n\n## Context Being Tested\nUsing an enum type as the return type for a function.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/enum/enum-function-return.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"Enum as function return\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define an enum type\n- Create a function that returns the enum type\n- Return different enum values based on logic\n- Verify transpiled C code handles enum return correctly\n- Example:\n  ```\n  enum Status {\n      Success,\n      Error,\n      Pending\n  }\n\n  fn getStatus(bool ok) -> Status {\n      return (ok) ? Status.Success : Status.Error;\n  }\n\n  fn main() -> void {\n      Status s <- getStatus(true);\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.093733"
+        "last_modified": "2026-01-10T06:59:44.982150"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

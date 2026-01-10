@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Arithmetic Operators - u64 Addition\n\n## Description\nWrite test for u64 + u64 addition operation in C-Next.\n\n## Test Category\nArithmetic Operators\n\n## Context Being Tested\nAddition operation between two u64 operands.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/arithmetic-u64-add.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 + u64\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test basic addition of two u64 values\n- Verify the transpiled C code correctly handles u64 arithmetic\n- Test with large values that require 64-bit precision\n- Example syntax:\n  ```\n  u64 a <- 1000000000;\n  u64 b <- 500000000;\n  u64 sum <- a + b;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.065866"
+        "last_modified": "2026-01-10T06:59:44.953127"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

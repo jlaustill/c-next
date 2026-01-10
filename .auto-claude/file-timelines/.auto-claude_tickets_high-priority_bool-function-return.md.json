@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - Boolean Function Return\n\n## Description\nWrite test for boolean as a function return type in C-Next.\n\n## Test Category\nPrimitive Types - Boolean\n\n## Context Being Tested\nFunction return type with bool.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/bool-function-return.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Boolean Function return type\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a function that returns a bool value\n- Verify the transpiled C code correctly declares the bool return type\n- Example syntax:\n  ```\n  bool isValid(u32 value) {\n      return value > 0;\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.045117"
+        "last_modified": "2026-01-10T06:59:44.932383"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

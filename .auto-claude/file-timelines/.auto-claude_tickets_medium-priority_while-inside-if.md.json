@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - while Loop Inside if\n\n## Description\nWrite test for while loop inside if statement in C-Next.\n\n## Test Category\nControl Flow - while Loop\n\n## Context Being Tested\nUsing a while loop inside an if statement block.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/control-flow/while-inside-if.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for While inside if\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create an if statement containing a while loop\n- Test both if branch and else branch with while loops\n- Example:\n  ```\n  if (condition) {\n      u32 i <- 0;\n      while (i < 5) {\n          // loop body\n          i +<- 1;\n      }\n  }\n  ```\n- Verify correct C code generation with proper scoping\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.126075"
+        "last_modified": "2026-01-10T06:59:45.015332"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

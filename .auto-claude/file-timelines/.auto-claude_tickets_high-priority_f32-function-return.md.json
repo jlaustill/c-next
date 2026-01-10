@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - f32 Function Return Type\n\n## Description\nWrite test for f32 as a function return type in C-Next.\n\n## Test Category\nPrimitive Types - Floating Point\n\n## Context Being Tested\nFunction with f32 return type.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/f32-function-return.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f32 Function return type\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a function that returns an f32 value\n- Verify the transpiled C code correctly declares the float return type\n- Example syntax:\n  ```\n  f32 getFloat() {\n      return 1.5;\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.048156"
+        "last_modified": "2026-01-10T06:59:44.935549"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

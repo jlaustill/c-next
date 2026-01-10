@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - Boolean Array Element\n\n## Description\nWrite test for bool as an array element type in C-Next.\n\n## Test Category\nPrimitive Types - Boolean\n\n## Context Being Tested\nUsing bool as the element type for arrays.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/bool-array-element.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Boolean Array element type\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare an array with bool element type\n- Initialize with true/false values and access elements\n- Example syntax: `bool[4] flags <- [true, false, true, false];`\n- Verify transpiled C code uses `bool` or `_Bool` for array elements\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.078369"
+        "last_modified": "2026-01-10T06:59:44.966698"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

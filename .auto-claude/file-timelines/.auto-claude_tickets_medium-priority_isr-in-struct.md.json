@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: ISR Type - ISR in Struct\n\n## Description\nWrite test for using ISR (Interrupt Service Routine) type as a struct member in C-Next.\n\n## Test Category\nISR Type\n\n## Context Being Tested\nUsing ISR type as a member of a struct, allowing structs to contain interrupt handler references.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/isr/isr-in-struct.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for ISR in struct\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct with an ISR member\n- Initialize the struct with an ISR reference\n- Access and potentially invoke the ISR through the struct member\n- Reference existing ISR tests: `isr/isr-basic.cnx`, `isr/isr-assignment.cnx`\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.103746"
+        "last_modified": "2026-01-10T06:59:44.992579"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

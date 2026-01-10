@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Scope Declaration - Scope with Structs\n\n## Description\nWrite test for declaring struct types within a scope declaration in C-Next.\n\n## Test Category\nScope Declaration\n\n## Context Being Tested\nDeclaring struct types inside a scope block and using them with appropriate scoped access.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/scope-with-structs.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Scope with structs\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a struct type inside a scope block\n- Instantiate and use the struct with proper scoped access\n- Example syntax:\n  ```\n  scope DeviceScope {\n      struct Config {\n          u32 baudRate;\n          u8 address;\n      }\n\n      this.Config settings;\n\n      void init() {\n          this.settings.baudRate <- 9600;\n          this.settings.address <- 0x50;\n      }\n  }\n  ```\n- Verify transpiled C code correctly handles scoped struct declarations\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.113178"
+        "last_modified": "2026-01-10T06:59:45.002177"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Arithmetic Operators - i8 Addition\n\n## Description\nWrite test for i8 + i8 addition operation in C-Next.\n\n## Test Category\nArithmetic Operators\n\n## Context Being Tested\nAddition operation between two i8 operands.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/arithmetic-i8-add.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i8 + i8\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test basic addition of two i8 values\n- Verify the transpiled C code correctly handles signed i8 arithmetic\n- Test with negative values and edge cases near type bounds (-128, 127)\n- Example syntax:\n  ```\n  i8 a <- 50;\n  i8 b <- -25;\n  i8 sum <- a + b;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.064628"
+        "last_modified": "2026-01-10T06:59:44.951827"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

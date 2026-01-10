@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Scope Declaration - Private Visibility\n\n## Description\nWrite test for private visibility modifier on scope members in C-Next.\n\n## Test Category\nScope Declaration\n\n## Context Being Tested\nUsing the `private` visibility modifier on scope members to restrict access from outside the scope.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/scope-private.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for private visibility\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare private members within a scope\n- Verify private members are accessible within scope functions\n- Example syntax:\n  ```\n  scope Counter {\n      private u32 value;\n\n      void increment() {\n          this.value +<- 1;\n      }\n\n      u32 getValue() -> u32 {\n          return this.value;\n      }\n  }\n  ```\n- Verify transpiled C code correctly encapsulates private members\n- Consider adding an error test for accessing private members from outside\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.111195"
+        "last_modified": "2026-01-10T06:59:45.000134"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

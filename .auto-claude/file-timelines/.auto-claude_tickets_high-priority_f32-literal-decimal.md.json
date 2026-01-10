@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - f32 Literal with Decimal\n\n## Description\nWrite test for f32 literal with decimal notation in C-Next.\n\n## Test Category\nPrimitive Types - Floating Point / Literals\n\n## Context Being Tested\nFloat literal with decimal point assigned to f32 variable.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/f32-literal-decimal.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f32 Literal with decimal\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test assignment of decimal literals to f32 variables\n- Verify the transpiled C code correctly handles float literal notation\n- Example syntax:\n  ```\n  f32 pi <- 3.14159;\n  f32 half <- 0.5;\n  f32 negativeValue <- -1.5;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.049405"
+        "last_modified": "2026-01-10T06:59:44.936893"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comparison Operators - Float = Literal\n\n## Description\nWrite test for float equality comparison with literal (Float = Literal) in C-Next.\n\n## Test Category\nComparison Operators\n\n## Context Being Tested\nEquality comparison between a float variable and a literal value.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comparison/float-eq-literal.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Float = Literal\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test equality comparison between f32 variable and decimal literal\n- Test equality comparison between f64 variable and decimal literal\n- Test with typed literal suffixes (f32, f64)\n- Example syntax:\n  ```\n  f32 a <- 3.14;\n  bool eq1 <- (a = 3.14);\n  bool eq2 <- (a = 3.14f32);\n\n  f64 b <- 2.718;\n  bool eq3 <- (b = 2.718);\n  bool eq4 <- (b = 2.718f64);\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.056776"
+        "last_modified": "2026-01-10T06:59:44.943684"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

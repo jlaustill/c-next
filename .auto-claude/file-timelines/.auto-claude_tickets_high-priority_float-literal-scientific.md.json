@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Literals - Float Literal Scientific Notation\n\n## Description\nWrite test for float literal with scientific notation (e.g., 1e-5) in C-Next.\n\n## Test Category\nLiterals - Float Literals\n\n## Context Being Tested\nFloat literal with scientific/exponential notation used in variable initialization.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/float-literal-scientific.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Scientific (1e-5) Variable init\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test assignment of scientific notation float literals to variables\n- Include various scientific notation formats:\n  - Small numbers (1e-5, 1e-10)\n  - Large numbers (1e5, 1e10)\n  - With decimal component (1.5e3, 2.5e-4)\n  - Negative values (-1e5, -2.5e-3)\n  - Uppercase E (1E5, 1E-5)\n- Verify the transpiled C code correctly handles scientific notation\n- Example syntax:\n  ```\n  f32 tiny <- 1e-5;\n  f64 large <- 1e10;\n  f32 combined <- 1.5e3;\n  f64 precise <- 6.022e23;\n  f32 negative <- -2.5e-4;\n  ```\n\n## Related Coverage\n- Section 32.2 Float Literals in coverage.md\n- Complements float-literal-decimal.md for complete float literal coverage\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.057276"
+        "last_modified": "2026-01-10T06:59:44.944189"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

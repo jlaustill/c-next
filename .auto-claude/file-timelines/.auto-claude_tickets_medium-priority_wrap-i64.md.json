@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Overflow Modifiers - wrap i64\n\n## Description\nWrite test for wrap (wrapping) overflow behavior with i64 type in C-Next.\n\n## Test Category\nOverflow Modifiers - wrap (Wrapping)\n\n## Context Being Tested\nTesting wrap modifier behavior specifically for i64 type, verifying wrapping arithmetic at type bounds (INT64_MIN to INT64_MAX).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/overflow/wrap-i64.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i64 wrap in Section 21.2\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a wrap i64 variable\n- Test positive overflow: INT64_MAX + 1 should wrap to INT64_MIN\n- Test negative overflow: INT64_MIN - 1 should wrap to INT64_MAX\n- Example syntax: `wrap i64 value <- 9223372036854775807;`\n- Verify wrapping behavior matches expected two's complement arithmetic\n- Compare with expected C output\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.127869"
+        "last_modified": "2026-01-10T06:59:45.017045"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Comparison Operators - Literal < Integer\n\n## Description\nWrite test for literal less-than integer comparison in C-Next.\n\n## Test Category\nComparison Operators\n\n## Context Being Tested\nLess-than comparison with a literal on the left side and an integer variable on the right.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/comparison/literal-lt-integer.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Literal < Integer\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test less-than comparison with literal on left side\n- Test with different integer types (u32, i32)\n- Test both true and false cases\n- Example syntax:\n  ```\n  u32 a <- 20;\n  u32 b <- 5;\n  bool lt1 <- (10 < a);  // true (10 < 20)\n  bool lt2 <- (10 < b);  // false (10 < 5)\n  bool lt3 <- (10 < 10); // false (10 < 10 - if variable holds 10)\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.084574"
+        "last_modified": "2026-01-10T06:59:44.973008"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

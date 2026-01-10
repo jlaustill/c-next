@@ -1,0 +1,29 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
+      "Write(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
+      "Edit(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
+      "Glob(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
+      "Grep(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
+      "Read(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/.auto-claude/specs/002-ticket-out-tests/**)",
+      "Write(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/.auto-claude/specs/002-ticket-out-tests/**)",
+      "Edit(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/.auto-claude/specs/002-ticket-out-tests/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)"
+    ]
+  }
+}

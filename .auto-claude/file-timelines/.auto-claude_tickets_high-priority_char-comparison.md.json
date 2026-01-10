@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Literals - Character Comparison\n\n## Description\nWrite test for character literal comparison in C-Next.\n\n## Test Category\nLiterals - Character Literals\n\n## Context Being Tested\nComparing a variable or value against a character literal.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/char-comparison.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Character literal Comparison\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Compare a variable against a character literal using equality and relational operators\n- Verify the transpiled C code correctly handles char comparisons\n- Example syntax: `if (ch = 'Y') { ... }` or `if (ch < 'z') { ... }`\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.045691"
+        "last_modified": "2026-01-10T06:59:44.932984"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

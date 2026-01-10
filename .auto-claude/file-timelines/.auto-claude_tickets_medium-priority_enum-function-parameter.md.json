@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Enum Declaration - Function Parameter\n\n## Description\nWrite test for enum as function parameter type in C-Next.\n\n## Test Category\nEnum Declaration\n\n## Context Being Tested\nUsing an enum type as a parameter to a function.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/enum/enum-function-parameter.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"Enum as function parameter\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define an enum type\n- Create a function that takes the enum as a parameter\n- Call the function with different enum values\n- Verify transpiled C code handles enum parameter correctly\n- Example:\n  ```\n  enum Color {\n      Red,\n      Green,\n      Blue\n  }\n\n  fn printColor(Color c) -> void {\n      switch (c) {\n          case Color.Red: // ...\n          case Color.Green: // ...\n          case Color.Blue: // ...\n      }\n  }\n\n  fn main() -> void {\n      printColor(Color.Red);\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.093482"
+        "last_modified": "2026-01-10T06:59:44.981903"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

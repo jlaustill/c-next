@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - for Loop with Empty Condition\n\n## Description\nWrite test for for loop with empty condition (infinite loop) in C-Next.\n\n## Test Category\nControl Flow - for Loop\n\n## Context Being Tested\nUsing a for loop where the condition section is empty (creates infinite loop).\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/for-loops/for-empty-condition.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for For with empty condition\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create for loop with empty condition (infinite loop)\n- Include a way to break out for test completion\n- Example:\n  ```\n  for (u32 i <- 0; ; i +<- 1) {\n      if (i >= 10) {\n          return;\n      }\n  }\n  ```\n- Verify correct C code generation with `for(;;)` pattern\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.095016"
+        "last_modified": "2026-01-10T06:59:44.983427"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

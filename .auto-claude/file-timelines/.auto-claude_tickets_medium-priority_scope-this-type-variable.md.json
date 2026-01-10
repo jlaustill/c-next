@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Scope Declaration - this.Type as Variable\n\n## Description\nWrite test for declaring local variables using this.Type syntax within a scope function in C-Next.\n\n## Test Category\nScope Declaration - Scoped Types\n\n## Context Being Tested\nUsing `this.Type` syntax to declare a local variable of a scope-defined type within a scope function.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/this-type-variable.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for this.Type as variable\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct or enum type inside a scope\n- Declare a local variable using `this.TypeName` syntax in a function\n- Example syntax:\n  ```\n  scope DataProcessor {\n      struct Buffer {\n          u32[16] data;\n          u8 count;\n      }\n\n      void processData() {\n          this.Buffer localBuffer;\n          localBuffer.count <- 0;\n          localBuffer.data[0] <- 42;\n      }\n\n      this.Buffer temp;\n\n      void copyToTemp() {\n          this.Buffer source;\n          source.count <- 5;\n          this.temp <- source;\n      }\n  }\n  ```\n- Verify transpiled C code correctly resolves the local variable type\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.112890"
+        "last_modified": "2026-01-10T06:59:45.001876"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: sizeof Operator - In Expression\n\n## Description\nWrite test for sizeof operator used within an arithmetic expression in C-Next.\n\n## Test Category\nsizeof Operator\n\n## Context Being Tested\nUsing sizeof as part of a larger expression, such as arithmetic or comparisons.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/sizeof/in-expression.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for sizeof In expression\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use sizeof in an arithmetic expression\n- Example: `u32 count <- total_bytes / sizeof(u32);`\n- Example: `u32 offset <- index * sizeof(MyStruct);`\n- Verify transpiled C code preserves the expression with sizeof\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.113655"
+        "last_modified": "2026-01-10T06:59:45.002670"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

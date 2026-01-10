@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Literals - Integer with i32 Suffix\n\n## Description\nWrite test for integer literal with explicit i32 suffix in C-Next.\n\n## Test Category\nLiterals - Integer Literals\n\n## Context Being Tested\nInteger literal with explicit i32 type suffix.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/integer-i32-suffix.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"With i32 suffix\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test assignment of integer literals with explicit i32 suffix\n- Verify the transpiled C code correctly handles the type suffix notation\n- Test various valid i32 values (-2147483648 to 2147483647 range)\n- Include both positive and negative values\n- Example syntax:\n  ```\n  i32 value <- 100000i32;\n  i32 negative <- -500000i32;\n  i32 max <- 2147483647i32;\n  i32 min <- -2147483648i32;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.058138"
+        "last_modified": "2026-01-10T06:59:44.944949"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

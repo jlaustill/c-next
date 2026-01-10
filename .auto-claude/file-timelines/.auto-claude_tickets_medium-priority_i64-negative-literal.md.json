@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Primitive Types - i64 Negative Literal Assignment\n\n## Description\nWrite test for i64 negative literal assignment in C-Next.\n\n## Test Category\nPrimitive Types - Signed Integers\n\n## Context Being Tested\nAssigning negative literal values to i64 variables.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/i64-negative-literal.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i64 Negative literal assignment\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare i64 variables with negative literal values\n- Example syntax: `i64 negVal <- -1000000000000;`\n- Test edge cases like minimum i64 value: `i64 minVal <- -9223372036854775808;`\n- Test unary negation of positive values\n- Verify transpiled C code handles int64_t negative literals correctly (may need LL suffix)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.099932"
+        "last_modified": "2026-01-10T06:59:44.988333"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

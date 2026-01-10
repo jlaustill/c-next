@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Control Flow - Critical Block Inside Loop\n\n## Description\nWrite test for critical block placed inside a loop in C-Next.\n\n## Test Category\nControl Flow - Critical Block\n\n## Context Being Tested\nCritical block nested within a for, while, or do-while loop.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/critical/critical-in-loop.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Critical in loop\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Place a critical block inside a loop\n- The critical block should protect atomic operations on each iteration\n- Example syntax:\n  ```\n  atomic u32 counter;\n\n  for (u32 i <- 0; i < 10; i <- i + 1) {\n      critical (counter) {\n          counter +<- 1;\n      }\n  }\n  ```\n- Verify transpiled C code correctly handles critical section entry/exit on each iteration\n- Test with for loop and while loop variations\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.092240"
+        "last_modified": "2026-01-10T06:59:44.980646"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

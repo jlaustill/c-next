@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: References - Reference in Loop\n\n## Description\nWrite test for using reference parameters within loops in C-Next.\n\n## Test Category\nReferences (Pass-by-reference)\n\n## Context Being Tested\nModifying a reference parameter inside a loop iteration, such as accumulating values or iteratively updating data.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/references/ref-in-loop.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Ref in loop\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a function that takes a reference parameter\n- Inside the function, use a loop (for/while) that modifies the reference\n- Example: accumulator function that sums array elements into a ref parameter\n- Example syntax: `fn sumArray(u32[5] arr, ref u32 total) -> void { for (u32 i <- 0; i < 5; i +<- 1) { total +<- arr[i]; } }`\n- Test with different loop types (for, while, do-while)\n- Verify transpiled C code correctly handles reference modification in loop body\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.109191"
+        "last_modified": "2026-01-10T06:59:44.998086"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

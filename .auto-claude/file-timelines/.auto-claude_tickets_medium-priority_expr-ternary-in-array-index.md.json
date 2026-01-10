@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Expression Contexts - Ternary in Array Index\n\n## Description\nWrite test for using ternary expressions as array indices in C-Next.\n\n## Test Category\nExpression Contexts - Nested/Complex Expressions\n\n## Context Being Tested\nUsing a ternary operator expression to compute an array index dynamically.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/expression-contexts/ternary-in-array-index.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"Ternary in array index\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define an array with multiple elements\n- Use a ternary expression to compute the index for array access\n- Example syntax: `array[(condition) ? index1 : index2]`\n- Test both read and write operations with ternary indices\n- Verify correct element is accessed based on condition\n- Verify transpiled C code correctly handles the ternary as an index\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.094222"
+        "last_modified": "2026-01-10T06:59:44.982635"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

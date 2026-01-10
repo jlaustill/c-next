@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Const Modifier - Struct Member\n\n## Description\nWrite test for const modifier on struct members in C-Next.\n\n## Test Category\nConst Modifier\n\n## Context Being Tested\nUsing const modifier on individual struct member declarations.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/const/const-struct-member.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Const Modifier - Struct member\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a struct with const member(s)\n- Example syntax: `struct Config { const u32 version; u32 count; }`\n- Verify const member can be initialized during struct creation\n- Verify assignment to const member produces compile error\n- Test mixing const and non-const members in same struct\n- Verify transpiled C code uses `const` qualifier on the member\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.091743"
+        "last_modified": "2026-01-10T06:59:44.980154"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",

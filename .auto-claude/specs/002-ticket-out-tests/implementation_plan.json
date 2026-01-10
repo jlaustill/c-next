@@ -1410,7 +1410,7 @@
   },
   "status": "human_review",
   "planStatus": "review",
-  "updated_at": "2026-01-10T13:07:46.330Z",
+  "updated_at": "2026-01-10T13:59:53.647Z",
   "last_updated": "2026-01-10T13:15:00.000Z",
   "qa_iteration_history": [
     {
@@ -1427,5 +1427,7 @@
     "last_status": "approved",
     "issues_by_type": {}
   },
-  "recoveryNote": "Task recovered from stuck state at 2026-01-10T12:54:47.903Z"
+  "recoveryNote": "Task recovered from stuck state at 2026-01-10T12:54:47.903Z",
+  "stagedAt": "2026-01-10T13:59:53.647Z",
+  "stagedInMainProject": true
 }

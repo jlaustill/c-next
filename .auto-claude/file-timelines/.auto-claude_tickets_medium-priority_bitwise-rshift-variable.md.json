@@ -11,7 +11,7 @@
       },
       "worktree_state": {
         "content": "# Ticket: Bitwise Operators - Right Shift by Variable\n\n## Description\nWrite test for right shift operation with variable shift amount in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nRight shift operation where the shift amount is a variable rather than a literal.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-rshift-variable.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Right shift by variable\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test right shift with shift amount stored in a variable\n- Verify the transpiled C code correctly handles dynamic shift amounts\n- Test with u32 (well-tested baseline) and other types if appropriate\n- Example syntax:\n  ```\n  u32 value <- 0x80000000;\n  u32 amount <- 4;\n  u32 result <- value >> amount;  // Expected: 0x08000000\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
-        "last_modified": "2026-01-10T06:14:38.073914"
+        "last_modified": "2026-01-10T06:59:44.962108"
       },
       "task_intent": {
         "title": "002-ticket-out-tests",
