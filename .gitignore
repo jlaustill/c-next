@@ -98,7 +98,3 @@ fabric.properties
 
 # Temporary C-Next test files
 temp.cnx
-
-# Auto Claude data directory
-.auto-claude/
-.worktrees/

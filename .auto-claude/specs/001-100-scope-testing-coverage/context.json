@@ -1,7 +1,0 @@
-{
-  "task_description": "I want to make sure we have 100% test coverage for scopes. Every possible use should be tested, this. for every data type, global. for every data type, scope inside scope is a compile error. Also need to test different permutations of public and private, registers, clamped, wrapped, critical, atomic, everything needs to work at scope level as well as inside private and public methods.",
-  "scoped_services": [],
-  "files_to_modify": [],
-  "files_to_reference": [],
-  "created_at": "2026-01-09T20:45:22.204605"
-}

@@ -11,19 +11,21 @@
       "Edit(./**)",
       "Glob(./**)",
       "Grep(./**)",
-      "Read(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
-      "Write(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
-      "Edit(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
-      "Glob(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
-      "Grep(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/**)",
-      "Read(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/.auto-claude/specs/002-ticket-out-tests/**)",
-      "Write(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/.auto-claude/specs/002-ticket-out-tests/**)",
-      "Edit(/home/jlaustill/code/c-next/.worktrees/002-ticket-out-tests/.auto-claude/specs/002-ticket-out-tests/**)",
+      "Read(/home/jlaustill/code/c-next/**)",
+      "Write(/home/jlaustill/code/c-next/**)",
+      "Edit(/home/jlaustill/code/c-next/**)",
+      "Glob(/home/jlaustill/code/c-next/**)",
+      "Grep(/home/jlaustill/code/c-next/**)",
       "Bash(*)",
       "WebFetch(*)",
       "WebSearch(*)",
       "mcp__context7__resolve-library-id(*)",
-      "mcp__context7__get-library-docs(*)"
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
     ]
   }
 }

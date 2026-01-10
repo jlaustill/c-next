@@ -1,5 +1,0 @@
-feat(coverage): add tracking infrastructure for uncovered tests
-
-Add auto-claude status tracking, claude settings configuration, and gitignore 
-updates to establish infrastructure for creating and tracking tickets for 
-uncovered test cases documented in coverage.md.

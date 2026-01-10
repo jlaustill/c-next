@@ -1,4 +1,0 @@
-{
-  "task_description": "We need to create tickets for all of the uncovered tests called out in coverage.md. For each missing test case, a ticket should be created to write the test and update the coverage.md. If the test finds a bug, the test should be merged failing and another ticket created to fix the bug separately.",
-  "workflow_type": "feature"
-}
