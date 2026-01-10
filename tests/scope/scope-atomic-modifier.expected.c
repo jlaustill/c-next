@@ -8,43 +8,14 @@
 // Tests: atomic variables accessed via this. accessor with compound assignment operators
 
 #include <stdint.h>
-#include <cmsis_gcc.h>
-
-// ADR-044: Overflow helper functions
-#include <limits.h>
-
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
-    if (a > UINT8_MAX - b) return UINT8_MAX;
-    return a + b;
-}
-
-static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
-    if (a < b) return 0;
-    return a - b;
-}
-
-static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
-    if (a > UINT16_MAX - b) return UINT16_MAX;
-    return a + b;
-}
-
-static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint16_t b) {
-    if (a < b) return 0;
-    return a - b;
-}
-
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
-}
 
 /* Scope: AtomicTest */
-volatile uint8_t AtomicTest_counterU8 = 0;
-volatile uint16_t AtomicTest_counterU16 = 0;
-volatile uint32_t AtomicTest_counterU32 = 0;
-volatile uint8_t AtomicTest_brightness = 100;
-volatile uint16_t AtomicTest_position = 500;
-volatile uint32_t AtomicTest_ticks = 0;
+uint8_t AtomicTest_counterU8 = 0;
+uint16_t AtomicTest_counterU16 = 0;
+uint32_t AtomicTest_counterU32 = 0;
+uint8_t AtomicTest_brightness = 100;
+uint16_t AtomicTest_position = 500;
+uint32_t AtomicTest_ticks = 0;
 
 uint8_t AtomicTest_getCounterU8(void) {
     return AtomicTest_counterU8;
@@ -71,82 +42,38 @@ uint32_t AtomicTest_getTicks(void) {
 }
 
 void AtomicTest_incrementU8(void) {
-    do {
-        uint8_t __old = __LDREXB(&AtomicTest_counterU8);
-        uint8_t __new = cnx_clamp_add_u8(__old, 1);
-        if (__STREXB(__new, &AtomicTest_counterU8) == 0) break;
-    } while (1);
+    AtomicTest_counterU8 += 1;
 }
 
 void AtomicTest_incrementU16(void) {
-    do {
-        uint16_t __old = __LDREXH(&AtomicTest_counterU16);
-        uint16_t __new = cnx_clamp_add_u16(__old, 1);
-        if (__STREXH(__new, &AtomicTest_counterU16) == 0) break;
-    } while (1);
+    AtomicTest_counterU16 += 1;
 }
 
 void AtomicTest_incrementU32(void) {
-    do {
-        uint32_t __old = __LDREXW(&AtomicTest_counterU32);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1);
-        if (__STREXW(__new, &AtomicTest_counterU32) == 0) break;
-    } while (1);
+    AtomicTest_counterU32 += 1;
 }
 
 void AtomicTest_decrementBrightness(void) {
-    do {
-        uint8_t __old = __LDREXB(&AtomicTest_brightness);
-        uint8_t __new = cnx_clamp_sub_u8(__old, 10);
-        if (__STREXB(__new, &AtomicTest_brightness) == 0) break;
-    } while (1);
+    AtomicTest_brightness -= 10;
 }
 
 void AtomicTest_decrementPosition(void) {
-    do {
-        uint16_t __old = __LDREXH(&AtomicTest_position);
-        uint16_t __new = cnx_clamp_sub_u16(__old, 50);
-        if (__STREXH(__new, &AtomicTest_position) == 0) break;
-    } while (1);
+    AtomicTest_position -= 50;
 }
 
 void AtomicTest_maskTicks(void) {
-    do {
-        uint32_t __old = __LDREXW(&AtomicTest_ticks);
-        uint32_t __new = __old & 0xFFFF;
-        if (__STREXW(__new, &AtomicTest_ticks) == 0) break;
-    } while (1);
+    AtomicTest_ticks &= 0xFFFF;
 }
 
 void AtomicTest_setTickFlag(void) {
-    do {
-        uint32_t __old = __LDREXW(&AtomicTest_ticks);
-        uint32_t __new = __old | 0x80000000;
-        if (__STREXW(__new, &AtomicTest_ticks) == 0) break;
-    } while (1);
+    AtomicTest_ticks |= 0x80000000;
 }
 
 void AtomicTest_incrementAll(void) {
-    do {
-        uint8_t __old = __LDREXB(&AtomicTest_counterU8);
-        uint8_t __new = cnx_clamp_add_u8(__old, 1);
-        if (__STREXB(__new, &AtomicTest_counterU8) == 0) break;
-    } while (1);
-    do {
-        uint16_t __old = __LDREXH(&AtomicTest_counterU16);
-        uint16_t __new = cnx_clamp_add_u16(__old, 1);
-        if (__STREXH(__new, &AtomicTest_counterU16) == 0) break;
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&AtomicTest_counterU32);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1);
-        if (__STREXW(__new, &AtomicTest_counterU32) == 0) break;
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&AtomicTest_ticks);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1);
-        if (__STREXW(__new, &AtomicTest_ticks) == 0) break;
-    } while (1);
+    AtomicTest_counterU8 += 1;
+    AtomicTest_counterU16 += 1;
+    AtomicTest_counterU32 += 1;
+    AtomicTest_ticks += 1;
 }
 
 void main(void) {

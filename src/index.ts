@@ -92,7 +92,9 @@ function showHelp(): void {
   console.log(
     "                     Options: teensy41, cortex-m7/m4/m3/m0+/m0, avr",
   );
-  console.log("  --exclude-headers  Don't generate header files (default: generate)");
+  console.log(
+    "  --exclude-headers  Don't generate header files (default: generate)",
+  );
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --version, -v      Show version");

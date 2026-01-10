@@ -19,6 +19,7 @@ uint32_t result = 10 / 0;  // warning: division by zero [-Wdiv-by-zero]
 ```
 
 **Runtime behavior:**
+
 - x86/x86_64: Hardware exception (SIGFPE), program crash
 - ARM Cortex-M: Returns 0 by default (unless DIV_0_TRP enabled), **silent corruption**
 - Both cases: Undefined behavior per C standard
@@ -78,6 +79,7 @@ In safety-critical embedded systems (medical devices, automotive), this **silent
 **Runtime:** [Classified as "illegal behavior"](https://zig.guide/language-basics/runtime-safety/), checked in safe builds
 
 **Safety modes:**
+
 - Debug builds: [Runtime check, panics on division by zero](https://github.com/ziglang/zig/issues/149)
 - Release-safe builds: Runtime check included
 - Release-fast/small builds: Check omitted for performance (undefined behavior)
@@ -118,14 +120,14 @@ In safety-critical embedded systems (medical devices, automotive), this **silent
 
 ### Summary Table
 
-| Language | Compile-Time Detection | Runtime Behavior | Safe Alternative |
-|----------|------------------------|------------------|------------------|
-| **C/C++** | Warning only | Undefined (crash on x86, silent on ARM) | UBSan runtime check |
-| **Rust** | Error in const expr | Panic (crash) | `checked_div()` returns `Option<T>` |
-| **Zig** | Error for literals | Panic in safe mode, UB in fast mode | Build mode control |
-| **Ada** | Optional (SPARK) | Exception (catchable) | Exception handling |
-| **Swift** | No | Trap (crash) | `dividedReportingOverflow(by:)` |
-| **Go** | No | Panic (crash) | Manual check + error return |
+| Language  | Compile-Time Detection | Runtime Behavior                        | Safe Alternative                    |
+| --------- | ---------------------- | --------------------------------------- | ----------------------------------- |
+| **C/C++** | Warning only           | Undefined (crash on x86, silent on ARM) | UBSan runtime check                 |
+| **Rust**  | Error in const expr    | Panic (crash)                           | `checked_div()` returns `Option<T>` |
+| **Zig**   | Error for literals     | Panic in safe mode, UB in fast mode     | Build mode control                  |
+| **Ada**   | Optional (SPARK)       | Exception (catchable)                   | Exception handling                  |
+| **Swift** | No                     | Trap (crash)                            | `dividedReportingOverflow(by:)`     |
+| **Go**    | No                     | Panic (crash)                           | Manual check + error return         |
 
 ---
 
@@ -140,11 +142,13 @@ u32 result <- 10 / 0;  // Transpiles to: uint32_t result = 10 / 0;
 ```
 
 **Pros:**
+
 - Zero implementation cost
 - Matches C behavior exactly
 - No performance overhead
 
 **Cons:**
+
 - ❌ Violates MISRA Rule 1.3 (undefined behavior)
 - ❌ Silent corruption on ARM Cortex-M (most C-Next target platforms)
 - ❌ No safety improvement over C
@@ -174,17 +178,20 @@ u32 result <- 10 / divisor;  // Undefined if divisor is 0
 ```
 
 **Implementation:**
+
 - Add semantic check in analysis phase
 - Evaluate constant expressions
 - Emit error if divisor evaluates to 0
 
 **Pros:**
+
 - ✅ Catches trivial bugs (typos, logic errors)
 - ✅ Zero runtime overhead
 - ✅ Simple implementation
 - ✅ Aligns with Rust/Zig compile-time detection
 
 **Cons:**
+
 - ⚠️ Doesn't protect against runtime division by zero
 - ⚠️ Partial solution only
 
@@ -209,17 +216,20 @@ uint32_t result = numerator / denominator;
 ```
 
 **Handler options:**
+
 - Call abort() or trap handler
 - Set result to 0 and continue (silent error - BAD)
 - Invoke user-defined error handler
 - On ARM: Trigger UsageFault via `__builtin_trap()`
 
 **Pros:**
+
 - ✅ Complete protection against division by zero
 - ✅ Works on ARM Cortex-M (fixes silent corruption)
 - ✅ Full MISRA compliance
 
 **Cons:**
+
 - ❌ Performance overhead on every division
 - ❌ Code size increase
 - ❌ May be overkill for validated inputs
@@ -246,18 +256,21 @@ u32 result <- safe numerator / divisor;
 ```
 
 **Alternative syntax:**
+
 ```cnx
 // Built-in checked division function
 u32 result <- checked_div(numerator, divisor);  // Aborts on zero
 ```
 
 **Pros:**
+
 - ✅ Catches trivial bugs at compile time
 - ✅ Zero overhead by default
 - ✅ Opt-in safety for critical paths
 - ✅ Flexible for embedded constraints
 
 **Cons:**
+
 - ⚠️ Requires programmer discipline
 - ⚠️ Extra syntax/built-in to learn
 - ⚠️ Partial MISRA compliance (depends on usage)
@@ -282,16 +295,19 @@ if (divisor != 0) {
 ```
 
 **Flow-sensitive analysis:**
+
 - Compiler tracks which variables have been checked
 - Division only allowed after `!= 0` check in control flow
 - Similar to Rust's ownership/borrow checker complexity
 
 **Pros:**
+
 - ✅ Forces correct handling
 - ✅ No runtime overhead (check is already there)
 - ✅ Excellent safety
 
 **Cons:**
+
 - ❌ Very complex to implement (flow analysis)
 - ❌ Frustrating when divisor is known safe (e.g., constant 10)
 - ❌ Overkill for C-Next's simplicity goals
@@ -312,11 +328,13 @@ uint32_t result = (denominator == 0) ? UINT32_MAX : (numerator / denominator);
 ```
 
 **Pros:**
+
 - ✅ Defined behavior (no UB)
 - ✅ Works on ARM (fixes silent corruption)
 - ✅ Fast (one comparison)
 
 **Cons:**
+
 - ❌ Hides bugs (program continues with wrong data)
 - ❌ Not a real solution (0 vs UINT32_MAX are both wrong)
 - ❌ Violates principle of least surprise
@@ -448,6 +466,7 @@ motorControl(speed);             // Motor receives bad command
 ```
 
 With `safe_div()`:
+
 ```cnx
 bool err <- safe_div(speed, distance, time, speed);  // Preserve current speed if time=0
 ```
@@ -459,11 +478,13 @@ This prevents silent corruption while allowing the developer to specify context-
 ## MISRA Compliance
 
 **Rule 1.3:** "There shall be no occurrence of undefined or critical unspecified behavior"
+
 - **Compile-time detection** catches statically determinable violations
 - **safe_div()** provides runtime safety for critical paths
 - Combined with ADR-012 static analysis (cppcheck/clang-tidy), achieves full coverage
 
 **Directive 4.1:** "Run-time failures shall be minimized"
+
 - Developers can use `safe_div()` for all division in safety-critical modules
 - Error return value enables proper logging and fault handling
 
@@ -628,6 +649,7 @@ void testFloatDivisionByZero() {
 4. Test with all error test cases
 
 **Files to modify:**
+
 - `src/analysis/SemanticAnalyzer.ts` (or equivalent)
 - Add constant folding logic
 - Emit error for zero divisors
@@ -642,6 +664,7 @@ void testFloatDivisionByZero() {
    - `cnx_safe_mod_*` variants for modulo
 
 2. Add to generated C header:
+
 ```c
 // Division by zero safety helpers (ADR-051)
 static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator,
@@ -662,6 +685,7 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator,
 5. Test with all safe_div() test cases
 
 **Files to modify:**
+
 - `src/codegen/CodeGenerator.ts` (or equivalent)
 - Add built-in function recognition
 - Generate appropriate helper functions in C output
@@ -670,13 +694,13 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator,
 
 Add to `coverage.md`:
 
-| Feature | Status | Test File |
-|---------|--------|-----------|
-| Division by zero error (literal) | [x] | `arithmetic/division-by-zero-literal.test.cnx` |
-| Division by zero error (const) | [x] | `arithmetic/division-by-zero-const.test.cnx` |
-| Modulo by zero error | [x] | `arithmetic/modulo-by-zero-literal.test.cnx` |
-| safe_div() built-in | [x] | `arithmetic/safe-div-basic.test.cnx` |
-| safe_mod() built-in | [x] | `arithmetic/safe-mod-basic.test.cnx` |
+| Feature                          | Status | Test File                                      |
+| -------------------------------- | ------ | ---------------------------------------------- |
+| Division by zero error (literal) | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
+| Division by zero error (const)   | [x]    | `arithmetic/division-by-zero-const.test.cnx`   |
+| Modulo by zero error             | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx`   |
+| safe_div() built-in              | [x]    | `arithmetic/safe-div-basic.test.cnx`           |
+| safe_mod() built-in              | [x]    | `arithmetic/safe-mod-basic.test.cnx`           |
 
 ---
 
@@ -695,27 +719,33 @@ Add to `coverage.md`:
 ### Language Behavior Research
 
 **Rust:**
+
 - [Rust programs crash when dividing by zero](https://github.com/rust-lang/rust/issues/944)
 - [Why dividing by zero has no safety guarantees](https://internals.rust-lang.org/t/question-why-does-dividing-by-zero-have-no-safety-guarantees/19189)
 - [CheckedDiv trait](https://docs.rs/num/latest/num/trait.CheckedDiv.html)
 
 **Zig:**
+
 - [Add compile error for division by zero](https://github.com/ziglang/zig/issues/372)
 - [Runtime Safety Guide](https://zig.guide/language-basics/runtime-safety/)
 - [How (memory) safe is Zig?](https://www.scattered-thoughts.net/writing/how-safe-is-zig/)
 
 **Ada:**
+
 - [Understanding Built-in Exceptions in Ada](https://piembsystech.com/understanding-built-in-exceptions-in-ada-programming-language/)
 - [SPARK for MISRA C Developers - Undefined Behavior](https://learn.adacore.com/courses/SPARK_for_the_MISRA_C_Developer/chapters/07_undefined_behavior.html)
 
 **Swift:**
+
 - [Throwing Arithmetic Operators in Swift](https://medium.com/@wircho/throwing-arithmetic-operators-in-swift-6c39fca4ff0e)
 - [Notes on numerics in Swift](https://numerics.diploid.ca/integers-part-2.html)
 
 **Go:**
+
 - [How does Go handle division by zero?](https://labex.io/questions/how-does-go-handle-division-by-zero-166173)
 
 **C/C++:**
+
 - [Undefined Behavior in C and C++](https://www.geeksforgeeks.org/cpp/undefined-behavior-c-cpp/)
 - [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
 

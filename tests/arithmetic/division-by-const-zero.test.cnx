@@ -1,0 +1,8 @@
+// ADR-051 Phase 3: Division by const zero
+// Should fail at compile time
+
+const u32 ZERO <- 0;
+
+void testDivisionByConstZero() {
+    u32 result <- 10 / ZERO;  // Should error: Division by zero
+}

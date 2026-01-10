@@ -169,6 +169,10 @@ constModifier
     : 'const'
     ;
 
+volatileModifier
+    : 'volatile'
+    ;
+
 // ADR-044: Overflow behavior modifier
 overflowModifier
     : 'clamp'    // Saturating arithmetic (safe default)
@@ -188,7 +192,7 @@ arrayDimension
 // Variables (ADR-003: Static allocation, ADR-044: Overflow behavior, ADR-049: Atomic)
 // ----------------------------------------------------------------------------
 variableDeclaration
-    : atomicModifier? constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
+    : atomicModifier? volatileModifier? constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
     ;
 
 // ----------------------------------------------------------------------------
@@ -309,7 +313,7 @@ forInit
 
 // Variable declaration without trailing semicolon (for use in for loops)
 forVarDecl
-    : atomicModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
+    : atomicModifier? volatileModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
     ;
 
 // Assignment without trailing semicolon (for use in for loops)

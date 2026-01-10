@@ -3,12 +3,11 @@
  * A safer C for embedded systems
  */
 
+#include <stdint.h>
+
 // Test: ADR-016 + ADR-044 Wrap overflow modifier inside scopes
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
-
-#include <stdint.h>
-
 /* Scope: WrapTest */
 uint8_t WrapTest_byteCounter = 250;
 uint16_t WrapTest_tickCount = 65530;

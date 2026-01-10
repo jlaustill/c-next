@@ -377,6 +377,43 @@ Generates optimized code based on target platform:
 
 Target detection priority: `--target` CLI flag > `platformio.ini` > `#pragma target` > default
 
+### Volatile Variables (ADR-108)
+
+Prevent compiler optimization for variables that change outside normal program flow:
+
+```cnx
+// Delay loop - prevent optimization
+void delay_ms(const u32 ms) {
+    volatile u32 i <- 0;
+    volatile u32 count <- ms * 2000;
+
+    while (i < count) {
+        i +<- 1;  // Compiler cannot optimize away
+    }
+}
+
+// Hardware register - reads actual memory
+volatile u32 status_register @ 0x40020000;
+
+void waitReady() {
+    while (status_register & 0x01 = 0) {
+        // Always reads from hardware
+    }
+}
+```
+
+**When to use:**
+
+- ✅ Delay loops that must not be optimized away
+- ✅ Memory-mapped hardware registers
+- ✅ Variables polled in tight loops
+- ❌ ISR-shared variables (use `atomic` instead for RMW safety)
+
+**Key difference from `atomic`:**
+
+- `volatile` = prevents optimization only
+- `atomic` = prevents optimization + adds synchronization (ISR-safe)
+
 ### Critical Sections (ADR-050)
 
 Multi-statement atomic blocks with automatic interrupt masking:
@@ -505,6 +542,7 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-048](docs/decisions/adr-048-cli-executable.md)          | CLI Executable          | `cnext` command with smart defaults                          |
 | [ADR-049](docs/decisions/adr-049-atomic-types.md)            | Atomic Types            | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
 | [ADR-050](docs/decisions/adr-050-critical-sections.md)       | Critical Sections       | `critical { }` blocks with PRIMASK save/restore              |
+| [ADR-108](docs/decisions/adr-108-volatile-keyword.md)        | Volatile Variables      | `volatile` keyword prevents compiler optimization            |
 | [ADR-047](docs/decisions/adr-047-nullable-types.md)          | NULL for C Interop      | `NULL` keyword for C stream function comparisons             |
 
 ### Research (v1 Roadmap)
