@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/register-w1c.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Register Declaration - w1c Access Modifier\n\n## Description\nWrite test for w1c (write-1-to-clear) register access modifier in C-Next.\n\n## Test Category\nRegister Declaration\n\n## Context Being Tested\nw1c access modifier for register fields that are cleared by writing a 1 (common for interrupt flags).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/register/register-w1c-modifier.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"w1c access modifier\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Follow patterns from `tests/register/register-access-modifiers.cnx`\n- w1c (write-1-to-clear) is used for interrupt flags and status bits\n- Writing 1 clears the bit, writing 0 has no effect\n- Reading returns current state\n- Common in interrupt status registers\n- Example syntax:\n  ```\n  register INTERRUPT @ 0x40000000 {\n      STATUS: u32 w1c @ 0x00,  // Write-1-to-clear: write 1 to clear flags\n      ENABLE: u32 rw  @ 0x04,  // Read-write: normal register\n  }\n\n  void main() {\n      // Clear specific interrupt flags by writing 1\n      INTERRUPT.STATUS <- 0x01;  // Clear flag in bit 0\n\n      // Read current interrupt status\n      u32 status <- INTERRUPT.STATUS;\n\n      // Clear multiple flags\n      INTERRUPT.STATUS <- 0xFF;  // Clear flags in bits 0-7\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.110460"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.958669",
+  "last_updated": "2026-01-10T06:00:20.960250"
+}

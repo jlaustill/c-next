@@ -1,0 +1,93 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.90,
+  "reasoning": "This is a ticket creation task, not code implementation. It involves systematically parsing coverage.md to extract ~150+ uncovered test cases and creating ticket specifications for each. While high volume, the work is mechanical and pattern-based with no external dependencies or research required.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 5,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Only ticket specification files will be created. No actual test code or source code modifications. The main input is coverage.md which is a single well-structured document."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "No external integrations. This is purely a documentation/planning task involving parsing markdown and creating ticket specs."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "No infrastructure impact. Only creates ticket definition files."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "The coverage.md document is well-structured with clear patterns. Each uncovered test is marked with [ ] and has a context/category. Ticket creation follows existing spec patterns."
+    },
+    "risk": {
+      "level": "low",
+      "concerns": ["Ensuring all uncovered tests are captured", "Ticket granularity - one ticket per test vs grouping"],
+      "notes": "Low risk since this creates planning artifacts, not executable code. The main risk is missing some uncovered tests during extraction."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "low",
+    "skip_validation": false,
+    "minimal_mode": true,
+    "test_types_required": [],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "This is a ticket creation task that produces planning artifacts, not executable code. Minimal validation to verify tickets were created correctly. No security or deployment considerations."
+  },
+
+  "task_characteristics": {
+    "estimated_uncovered_tests": "150+",
+    "ticket_structure": "Each ticket covers: 1) Write specific test, 2) Update coverage.md checkbox",
+    "special_workflow": "If test discovers bug: merge failing test first, create separate bug-fix ticket",
+    "categories_to_process": [
+      "Primitive Types (f32/f64, u64/i64 gaps)",
+      "Comparison Operators (float comparisons)",
+      "Arithmetic Operators (float operations)",
+      "Bitwise Operators (all types except u32)",
+      "Logical Operators (short-circuit, chained)",
+      "Control Flow (nested combinations)",
+      "Ternary Operator (in function arg, array index)",
+      "Structs (return type, in scope)",
+      "Enums (function param/return, cast)",
+      "Bitmaps (bitmap24, bitmap32, struct member)",
+      "Registers (w1c, w1s, bitfield members)",
+      "Scopes (private/public, nested, this.Type)",
+      "Arrays (bounds errors)",
+      "Bit Indexing (all types, variable index)",
+      "Strings (struct member, array of strings)",
+      "Modifiers (atomic with clamp/wrap, volatile)",
+      "ISR (parameter, struct, invocation)",
+      "Literals (suffixed, float, char, escape sequences)",
+      "Generic Types (all features)",
+      "Statement Nesting (many combinations)"
+    ]
+  },
+
+  "created_at": "2025-01-09T00:00:00.000Z"
+}

@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/high-priority/literal-u16-suffix.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Literals - Integer with u16 Suffix\n\n## Description\nWrite test for integer literal with explicit u16 suffix in C-Next.\n\n## Test Category\nLiterals - Integer Literals\n\n## Context Being Tested\nInteger literal with explicit u16 type suffix.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/integer-u16-suffix.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"With u16 suffix\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test assignment of integer literals with explicit u16 suffix\n- Verify the transpiled C code correctly handles the type suffix notation\n- Test various valid u16 values (0-65535 range)\n- Example syntax:\n  ```\n  u16 value <- 1000u16;\n  u16 max <- 65535u16;\n  u16 zero <- 0u16;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.058690"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.556857",
+  "last_updated": "2026-01-10T06:00:20.558481"
+}

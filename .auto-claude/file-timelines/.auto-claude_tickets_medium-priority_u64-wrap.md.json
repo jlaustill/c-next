@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/u64-wrap.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Primitive Types - u64 with wrap Modifier\n\n## Description\nWrite test for u64 with wrap (wrapping arithmetic) modifier in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing wrap modifier on u64 to enable explicit wrapping arithmetic behavior.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u64-wrap.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 With wrap modifier\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a u64 variable with wrap modifier\n- Example syntax: `wrap u64 value <- 0;`\n- Test that overflow wraps around to 0\n- Test that underflow wraps around to max value\n- Verify transpiled C code allows natural C wrapping behavior\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.122408"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.055772",
+  "last_updated": "2026-01-10T06:00:21.057289"
+}

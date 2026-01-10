@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/string-array.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Strings - Array of Strings\n\n## Description\nWrite test for arrays of string type in C-Next.\n\n## Test Category\nStrings\n\n## Context Being Tested\nDeclaring and using arrays where each element is a string.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/string/string-array.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Strings - Array of strings\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare an array of strings with fixed capacity\n- Initialize array elements with string literals\n- Access individual strings via array index\n- Example syntax: `string[16] names[4];` or `string[16][4] names;`\n- Verify transpiled C code correctly handles array of strings\n- Test iteration over string array in for loop\n- Consider testing .length property on the outer array\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.114613"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.992574",
+  "last_updated": "2026-01-10T06:00:20.994450"
+}

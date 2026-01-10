@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/sizeof-local-array.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: sizeof Operator - Local Array\n\n## Description\nWrite test for sizeof operator applied to a local array in C-Next.\n\n## Test Category\nsizeof Operator\n\n## Context Being Tested\nUsing sizeof on a local array variable to get the total size of the array in bytes.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/sizeof/local-array.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for sizeof Local array\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a local array of known size\n- Use sizeof on the array variable\n- Verify the result is (element_count * element_size)\n- Example syntax: `u32[10] arr; u32 size <- sizeof(arr);` should yield 40\n- Verify transpiled C code correctly uses sizeof\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.113900"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.986477",
+  "last_updated": "2026-01-10T06:00:20.988186"
+}

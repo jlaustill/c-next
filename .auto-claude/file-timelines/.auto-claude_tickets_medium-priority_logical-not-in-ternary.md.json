@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/logical-not-in-ternary.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Logical Operators - ! in Ternary Condition\n\n## Description\nWrite test for logical NOT (!) used in ternary operator conditions in C-Next.\n\n## Test Category\nLogical Operators - NOT (!)\n\n## Context Being Tested\nUsing the ! operator in a ternary operator's condition expression.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/logical/logical-not-in-ternary.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"In ternary condition\" under 6.3 NOT (!)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use ! operator in the condition of a ternary expression\n- Example syntax: `u32 result <- (!flag) ? 1 : 0;`\n- Test with boolean variables and comparison results\n- Verify transpiled C code correctly handles negation in ternary conditions\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.105268"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.919049",
+  "last_updated": "2026-01-10T06:00:20.920661"
+}

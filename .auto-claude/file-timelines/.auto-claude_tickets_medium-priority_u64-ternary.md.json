@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/u64-ternary.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Primitive Types - u64 in Ternary Expression\n\n## Description\nWrite test for u64 in ternary expressions in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing u64 values as the result of ternary (conditional) expressions.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u64-ternary.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 In ternary expression\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use u64 values as the true/false branches of ternary expressions\n- Example syntax: `u64 result <- (condition) ? largeValueA : largeValueB;`\n- Test with both literal and variable u64 values\n- Verify transpiled C code correctly handles uint64_t in ternary\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.122165"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.053866",
+  "last_updated": "2026-01-10T06:00:21.055502"
+}

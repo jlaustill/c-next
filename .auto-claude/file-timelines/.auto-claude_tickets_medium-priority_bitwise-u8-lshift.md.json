@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/bitwise-u8-lshift.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Bitwise Operators - u8 Left Shift\n\n## Description\nWrite test for u8 << amount left shift operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nLeft shift operation on u8 operand with literal shift amount.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-u8-lshift.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u8 << amount\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test left shift of u8 values by various amounts\n- Verify the transpiled C code correctly handles 8-bit left shift\n- Test shift amounts from 0 to 7\n- Example syntax:\n  ```\n  u8 a <- 0b00000001;\n  u8 result <- a << 4;  // Expected: 0b00010000\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.077383"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.701158",
+  "last_updated": "2026-01-10T06:00:20.702951"
+}

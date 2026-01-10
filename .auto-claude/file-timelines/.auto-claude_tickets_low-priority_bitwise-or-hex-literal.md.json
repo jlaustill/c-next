@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/low-priority/bitwise-or-hex-literal.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Bitwise Operators - OR with Hex Literal\n\n## Description\nWrite test for bitwise OR (|) operator used with hexadecimal literals in C-Next.\n\n## Test Category\nBitwise Operators - OR (|)\n\n## Context Being Tested\nBitwise OR operation with hexadecimal literal operands.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/bitwise/or-hex-literal.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"With hex literal\" in section 5.2 OR (|)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test bitwise OR with hex literal as right operand\n- Test bitwise OR with hex literal as left operand\n- Example syntax:\n  ```\n  u32 value <- 0x0000FFFF;\n  u32 combined <- value | 0xFFFF0000;  // set upper bits\n  u32 result <- 0x12340000 | value;    // hex on left side\n  ```\n- Test with common bit-setting patterns (0xFF, 0x0F, 0xF0, etc.)\n- Verify the transpiled C code correctly represents hex literals in OR operations\n- Test with different integer types (u8, u16, u32)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.060404"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.570222",
+  "last_updated": "2026-01-10T06:00:20.571758"
+}

@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/scope-this-type-variable.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Scope Declaration - this.Type as Variable\n\n## Description\nWrite test for declaring local variables using this.Type syntax within a scope function in C-Next.\n\n## Test Category\nScope Declaration - Scoped Types\n\n## Context Being Tested\nUsing `this.Type` syntax to declare a local variable of a scope-defined type within a scope function.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/this-type-variable.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for this.Type as variable\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct or enum type inside a scope\n- Declare a local variable using `this.TypeName` syntax in a function\n- Example syntax:\n  ```\n  scope DataProcessor {\n      struct Buffer {\n          u32[16] data;\n          u8 count;\n      }\n\n      void processData() {\n          this.Buffer localBuffer;\n          localBuffer.count <- 0;\n          localBuffer.data[0] <- 42;\n      }\n\n      this.Buffer temp;\n\n      void copyToTemp() {\n          this.Buffer source;\n          source.count <- 5;\n          this.temp <- source;\n      }\n  }\n  ```\n- Verify transpiled C code correctly resolves the local variable type\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.112890"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.978152",
+  "last_updated": "2026-01-10T06:00:20.980200"
+}

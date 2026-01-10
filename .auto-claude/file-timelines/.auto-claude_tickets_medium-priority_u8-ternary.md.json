@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/u8-ternary.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Primitive Types - u8 in Ternary Expression\n\n## Description\nWrite test for u8 in ternary expressions in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing u8 values as the result branches of ternary expressions.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u8-ternary.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u8 In ternary expression\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use u8 values in both branches of a ternary expression\n- Assign the result to a u8 variable\n- Example syntax: `u8 result <- (condition) ? value1 : value2;`\n- Verify transpiled C code maintains u8 type throughout\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.123866"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.067900",
+  "last_updated": "2026-01-10T06:00:21.069577"
+}

@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/register-read-wo-error.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Register Declaration - Read from wo Error\n\n## Description\nWrite test for compiler error when reading from a write-only register field in C-Next.\n\n## Test Category\nRegister Declaration - Error Handling\n\n## Context Being Tested\nCompiler error detection when attempting to read from a write-only (wo) register field.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/register/register-read-wo-error.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"Read from wo (ERROR)\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- This is an ERROR test - it should verify the compiler correctly detects invalid reads\n- Follow pattern from `tests/register/register-write-ro-error.cnx`\n- Attempting to read from a write-only register should produce a compiler error\n- This enforces hardware safety constraints (reading wo registers may return undefined values)\n- Example syntax (should produce error):\n  ```\n  register PERIPH @ 0x50000000 {\n      CMD:  u32 wo @ 0x00,  // Write-only command register\n      DATA: u32 rw @ 0x04,  // Read-write data register\n  }\n\n  void main() {\n      // This should be allowed\n      PERIPH.CMD <- 0x01;\n\n      // This should produce ERROR: cannot read from write-only register\n      u32 value <- PERIPH.CMD;\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.110219"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.956476",
+  "last_updated": "2026-01-10T06:00:20.958307"
+}

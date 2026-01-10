@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/low-priority/nesting-3plus-levels.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Expression Contexts - 3+ Levels of Nesting\n\n## Description\nWrite test for deeply nested statement blocks (3 or more levels) in C-Next.\n\n## Test Category\nExpression Contexts - Statement Nesting\n\n## Context Being Tested\n3+ levels of nesting - verifying the transpiler correctly handles deeply nested control flow statements.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/nesting/deep-nesting-3plus.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"3+ levels of nesting\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test various combinations of deeply nested control flow:\n  - `if` inside `if` inside `if` (3 levels)\n  - `for` inside `while` inside `if` (mixed 3 levels)\n  - `switch` inside `for` inside `while` (3 levels)\n  - Even deeper nesting (4+ levels) if desired\n- Verify proper variable scoping at each nesting level\n- Test that break/return work correctly from deep nesting\n- Example syntax:\n  ```\n  if (a > 0) {\n      for (u32 i <- 0; i < 10; i +<- 1) {\n          while (x < max) {\n              // 3 levels deep\n              if (condition) {\n                  // 4 levels deep\n              }\n          }\n      }\n  }\n  ```\n- This tests the transpiler's ability to maintain proper C code generation with complex nesting\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.062395"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.585314",
+  "last_updated": "2026-01-10T06:00:20.586921"
+}

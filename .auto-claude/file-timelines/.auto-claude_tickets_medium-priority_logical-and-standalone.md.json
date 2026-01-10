@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/logical-and-standalone.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Logical Operators - && as Standalone Expression\n\n## Description\nWrite test for logical AND (&&) used as a standalone expression in C-Next.\n\n## Test Category\nLogical Operators - AND (&&)\n\n## Context Being Tested\nUsing && as a standalone expression assigned to a boolean variable, not just in control flow conditions.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/logical/logical-and-standalone.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"As standalone expression\" under 6.1 AND (&&)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare boolean variables and use && outside of if/while/for conditions\n- Example syntax: `bool result <- (a > 5) && (b < 10);`\n- Test assignment of && result to a variable\n- Verify transpiled C code correctly handles standalone logical AND expressions\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.104792"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.915194",
+  "last_updated": "2026-01-10T06:00:20.916766"
+}

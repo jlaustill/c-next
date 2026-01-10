@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/c-interop-macro-constant.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: C Interoperability - Use C Macro Constant\n\n## Description\nWrite test for using C macro constants in C-Next code.\n\n## Test Category\nC Interoperability\n\n## Context Being Tested\nUsing preprocessor-defined constants from C headers (like `NULL`, `EOF`, `INT_MAX`) in C-Next code.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/c-interop/use-c-macro-constant.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Use C macro constant\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Include appropriate C header for macro constants (e.g., `<limits.h>` for `INT_MAX`)\n- Use macro constants in expressions, comparisons, or initializations\n- Example: `u32 maxVal <- INT_MAX;` or comparison `if (value < INT_MAX)`\n- Verify transpiled C code correctly references macro constants\n- Test should compile and run correctly with C compiler\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.079102"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.714167",
+  "last_updated": "2026-01-10T06:00:20.715714"
+}

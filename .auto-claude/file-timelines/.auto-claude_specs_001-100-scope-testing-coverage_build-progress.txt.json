@@ -1,0 +1,25 @@
+{
+  "file_path": ".auto-claude/specs/001-100-scope-testing-coverage/build-progress.txt",
+  "main_branch_history": [],
+  "task_views": {
+    "001-100-scope-testing-coverage": {
+      "task_id": "001-100-scope-testing-coverage",
+      "branch_point": {
+        "commit_hash": "6085a00ee4bff6129a6503c31d4280591d7eb497",
+        "content": "",
+        "timestamp": "2026-01-09T22:16:23.113589"
+      },
+      "worktree_state": null,
+      "task_intent": {
+        "title": "100% Scope Testing Coverage",
+        "description": "Expand the C-Next test suite to achieve comprehensive coverage of scope-related functionality including this./global. accessors with all data types, modifier permutations, and error cases.",
+        "from_plan": true
+      },
+      "commits_behind_main": 1,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-09T22:16:23.113594",
+  "last_updated": "2026-01-09T22:16:23.115434"
+}

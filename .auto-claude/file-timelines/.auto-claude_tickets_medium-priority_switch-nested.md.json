@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/switch-nested.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Control Flow - Nested Switch Statements\n\n## Description\nWrite test for nested switch statements in C-Next.\n\n## Test Category\nControl Flow - Switch Statement\n\n## Context Being Tested\nSwitch statement containing another switch statement within a case block.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/switch/switch-nested.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Nested switch\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create an outer switch with an inner switch inside a case block\n- Both switches should have multiple cases\n- Test that the inner switch executes correctly based on outer switch path\n- Example syntax:\n  ```\n  switch (outer) {\n      case 1: {\n          switch (inner) {\n              case 10: { // handle (1, 10) }\n              case 20: { // handle (1, 20) }\n              default(remaining): { // handle (1, other) }\n          }\n      }\n      case 2: { // handle case 2 }\n      default(remaining): { // handle other }\n  }\n  ```\n- Verify transpiled C code correctly handles nested switch scoping\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.116859"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.011445",
+  "last_updated": "2026-01-10T06:00:21.013191"
+}

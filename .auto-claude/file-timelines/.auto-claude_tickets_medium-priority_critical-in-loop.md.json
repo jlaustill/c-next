@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/critical-in-loop.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Control Flow - Critical Block Inside Loop\n\n## Description\nWrite test for critical block placed inside a loop in C-Next.\n\n## Test Category\nControl Flow - Critical Block\n\n## Context Being Tested\nCritical block nested within a for, while, or do-while loop.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/critical/critical-in-loop.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Critical in loop\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Place a critical block inside a loop\n- The critical block should protect atomic operations on each iteration\n- Example syntax:\n  ```\n  atomic u32 counter;\n\n  for (u32 i <- 0; i < 10; i <- i + 1) {\n      critical (counter) {\n          counter +<- 1;\n      }\n  }\n  ```\n- Verify transpiled C code correctly handles critical section entry/exit on each iteration\n- Test with for loop and while loop variations\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.092240"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.817811",
+  "last_updated": "2026-01-10T06:00:20.819299"
+}

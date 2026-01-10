@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/high-priority/f64-division.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Arithmetic Operators - f64 / f64\n\n## Description\nWrite test for f64 division operation in C-Next.\n\n## Test Category\nArithmetic Operators\n\n## Context Being Tested\nDivision operation between two f64 values.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/arithmetic/f64-division.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f64 / f64\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test division between f64 variables\n- Test division with literals\n- Test division with negative values\n- Test division resulting in fractional values\n- Verify precision with irrational results\n- Example syntax:\n  ```\n  f64 a <- 22.0;\n  f64 b <- 7.0;\n  f64 quotient <- a / b;  // ~3.142857...\n  f64 negQuotient <- a / -2.0;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.052825"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.514358",
+  "last_updated": "2026-01-10T06:00:20.515817"
+}

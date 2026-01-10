@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/c-interop-typedef.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: C Interoperability - Use C Typedef\n\n## Description\nWrite test for using C typedef types in C-Next code.\n\n## Test Category\nC Interoperability\n\n## Context Being Tested\nUsing type definitions from C headers (like `size_t`, `FILE`, etc.) in C-Next code.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/c-interop/use-c-typedef.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Use C typedef\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Include appropriate C header for typedef (e.g., `<stddef.h>` for `size_t`)\n- Declare variables using C typedef types\n- Use the typedef in expressions and function calls\n- Example: `size_t len <- strlen(\"hello\");`\n- Verify transpiled C code preserves typedef usage correctly\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.079343"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.715968",
+  "last_updated": "2026-01-10T06:00:20.717569"
+}

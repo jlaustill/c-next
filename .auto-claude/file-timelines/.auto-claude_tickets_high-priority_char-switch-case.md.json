@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/high-priority/char-switch-case.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Literals - Character in Switch Case\n\n## Description\nWrite test for character literal in switch case in C-Next.\n\n## Test Category\nLiterals - Character Literals\n\n## Context Being Tested\nUsing character literals as case values in a switch statement.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/char-switch-case.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Character literal In switch case\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create a switch statement with character literal case values\n- Verify the transpiled C code correctly handles char cases in switch\n- Example syntax:\n  ```\n  switch (ch) {\n      case 'a': { ... }\n      case 'b': { ... }\n      default: { ... }\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.046204"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.469476",
+  "last_updated": "2026-01-10T06:00:20.470844"
+}

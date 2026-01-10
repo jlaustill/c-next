@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/low-priority/generic-numeric-type-param.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Generic Types - Numeric Type Parameter\n\n## Description\nWrite test for numeric type parameters (const generics) in C-Next.\n\n## Test Category\nGeneric Types\n\n## Context Being Tested\nNumeric type parameter - a type parameter that takes a compile-time numeric value rather than a type.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/generic-types/numeric-type-param.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Numeric type parameter\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test declaring and using a type with a numeric type parameter (const generic)\n- Verify the transpiler correctly handles numeric/const generic syntax\n- Example syntax:\n  ```\n  struct FixedArray<N: u32> {\n      data: u32[N]\n  }\n\n  buffer: FixedArray<10>;\n  ```\n- This is similar to Rust's const generics or C++ template non-type parameters\n- Note: Generic types are defined in grammar but implementation status is unclear\n- This test may reveal that numeric type parameters need to be fully implemented\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.061141"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.575852",
+  "last_updated": "2026-01-10T06:00:20.577493"
+}

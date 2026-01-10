@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/u64-register-field.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Primitive Types - u64 in Register Field\n\n## Description\nWrite test for u64 as register field type in C-Next.\n\n## Test Category\nPrimitive Types - Unsigned Integers\n\n## Context Being Tested\nUsing u64 as the underlying type for register declarations in memory-mapped I/O contexts.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/u64-register-field.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for u64 In register field\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a register with u64 fields\n- Example syntax:\n  ```\n  register SystemTimer @ 0x40000000 {\n      rw u64 count;\n      ro u64 status;\n  }\n  ```\n- Test reading and writing to u64 register fields\n- Verify transpiled C code uses volatile uint64_t pointers for register access\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.121866"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.051999",
+  "last_updated": "2026-01-10T06:00:21.053519"
+}

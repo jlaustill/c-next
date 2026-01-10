@@ -1,0 +1,47 @@
+{
+  "project_root": "/home/jlaustill/code/c-next",
+  "project_type": "single",
+  "services": {
+    "main": {
+      "name": "main",
+      "path": "/home/jlaustill/code/c-next",
+      "language": "TypeScript",
+      "framework": null,
+      "type": "unknown",
+      "package_manager": "npm",
+      "dev_command": "npm run dev",
+      "key_directories": {
+        "src": {
+          "path": "src",
+          "purpose": "Source code"
+        },
+        "tests": {
+          "path": "tests",
+          "purpose": "Tests"
+        }
+      },
+      "entry_point": "src/index.ts",
+      "dependencies": [
+        "antlr4ng"
+      ],
+      "dev_dependencies": [
+        "@types/node",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "antlr4ng-cli",
+        "eslint",
+        "eslint-config-airbnb-typescript",
+        "eslint-config-prettier",
+        "eslint-plugin-import",
+        "jest",
+        "prettier"
+      ],
+      "testing": "Jest",
+      "test_directory": "tests"
+    }
+  },
+  "infrastructure": {},
+  "conventions": {
+    "typescript": true
+  }
+}

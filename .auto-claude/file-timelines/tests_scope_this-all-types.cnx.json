@@ -1,0 +1,28 @@
+{
+  "file_path": "tests/scope/this-all-types.cnx",
+  "main_branch_history": [],
+  "task_views": {
+    "001-100-scope-testing-coverage": {
+      "task_id": "001-100-scope-testing-coverage",
+      "branch_point": {
+        "commit_hash": "6085a00ee4bff6129a6503c31d4280591d7eb497",
+        "content": "",
+        "timestamp": "2026-01-09T22:16:23.113589"
+      },
+      "worktree_state": {
+        "content": "// Test: ADR-016 this. accessor with all primitive types\n// Verifies that this. works correctly with every C-Next primitive type inside scope methods\n\nscope AllTypesTest {\n    // Unsigned integers\n    u8 valU8 <- 255;\n    u16 valU16 <- 65535;\n    u32 valU32 <- 4294967295;\n    u64 valU64 <- 0;\n\n    // Signed integers\n    i8 valI8 <- -128;\n    i16 valI16 <- -32768;\n    i32 valI32 <- -2147483648;\n    i64 valI64 <- 0;\n\n    // Floating point\n    f32 valF32 <- 3.14;\n    f64 valF64 <- 3.141592653589793;\n\n    // Boolean\n    bool valBool <- true;\n\n    // Getters using this. accessor - Unsigned integers\n    u8 getU8() {\n        return this.valU8;\n    }\n\n    u16 getU16() {\n        return this.valU16;\n    }\n\n    u32 getU32() {\n        return this.valU32;\n    }\n\n    u64 getU64() {\n        return this.valU64;\n    }\n\n    // Getters using this. accessor - Signed integers\n    i8 getI8() {\n        return this.valI8;\n    }\n\n    i16 getI16() {\n        return this.valI16;\n    }\n\n    i32 getI32() {\n        return this.valI32;\n    }\n\n    i64 getI64() {\n        return this.valI64;\n    }\n\n    // Getters using this. accessor - Floating point\n    f32 getF32() {\n        return this.valF32;\n    }\n\n    f64 getF64() {\n        return this.valF64;\n    }\n\n    // Getter using this. accessor - Boolean\n    bool getBool() {\n        return this.valBool;\n    }\n\n    // Setters using this. accessor to test assignment\n    void setU8(u8 val) {\n        this.valU8 <- val;\n    }\n\n    void setBool(bool val) {\n        this.valBool <- val;\n    }\n\n    void setF64(f64 val) {\n        this.valF64 <- val;\n    }\n}\n\nvoid main() {\n    // Test all getter methods using this. accessor\n    AllTypesTest.getU8();\n    AllTypesTest.getU16();\n    AllTypesTest.getU32();\n    AllTypesTest.getU64();\n    AllTypesTest.getI8();\n    AllTypesTest.getI16();\n    AllTypesTest.getI32();\n    AllTypesTest.getI64();\n    AllTypesTest.getF32();\n    AllTypesTest.getF64();\n    AllTypesTest.getBool();\n}\n",
+        "last_modified": "2026-01-09T22:16:23.159781"
+      },
+      "task_intent": {
+        "title": "100% Scope Testing Coverage",
+        "description": "Expand the C-Next test suite to achieve comprehensive coverage of scope-related functionality including this./global. accessors with all data types, modifier permutations, and error cases.",
+        "from_plan": true
+      },
+      "commits_behind_main": 1,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-09T22:16:23.147427",
+  "last_updated": "2026-01-09T22:16:23.149094"
+}

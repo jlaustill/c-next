@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/ref-multiple-output.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: References - Multiple Output Parameters\n\n## Description\nWrite test for functions with multiple output parameters (pass-by-reference) in C-Next.\n\n## Test Category\nReferences (Pass-by-reference)\n\n## Context Being Tested\nUsing multiple reference parameters as output parameters, allowing a function to return multiple values through its parameters.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/references/multiple-output-params.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Multiple output params\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a function with 2+ reference parameters for output\n- Function should compute and assign values to all output parameters\n- Verify all outputs are correctly populated after function call\n- Example: `fn divmod(u32 a, u32 b, ref u32 quotient, ref u32 remainder) -> void`\n- Test with different combinations of input and output parameters\n- Verify transpiled C code correctly handles multiple pointer parameters\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.109435"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.950801",
+  "last_updated": "2026-01-10T06:00:20.952503"
+}

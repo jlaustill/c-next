@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/high-priority/f64-addition.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Arithmetic Operators - f64 + f64\n\n## Description\nWrite test for f64 addition operation in C-Next.\n\n## Test Category\nArithmetic Operators\n\n## Context Being Tested\nAddition operation between two f64 values.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/arithmetic/f64-addition.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f64 + f64\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test addition between f64 variables\n- Test addition with literals\n- Test addition with negative values\n- Verify precision handling\n- Example syntax:\n  ```\n  f64 a <- 3.14159265358979;\n  f64 b <- 2.71828182845904;\n  f64 sum <- a + b;\n  f64 sumLit <- a + 1.5;\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.051613"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.506407",
+  "last_updated": "2026-01-10T06:00:20.508209"
+}

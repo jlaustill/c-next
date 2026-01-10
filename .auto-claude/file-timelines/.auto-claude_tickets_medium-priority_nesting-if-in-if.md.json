@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/nesting-if-in-if.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Expression Contexts - Statement Nesting (if inside if)\n\n## Description\nWrite test for nesting an if statement inside another if statement in C-Next.\n\n## Test Category\nExpression Contexts - Statement Nesting\n\n## Context Being Tested\nVerify that if statements can be properly nested within other if statements, ensuring correct scope handling and C code generation.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/expression-contexts/nesting-if-in-if.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for \"if inside if\"\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create multiple levels of nested if statements\n- Test with both true and false conditions at each level\n- Verify else branches work correctly with nested ifs\n- Example:\n  ```\n  if (outer_condition) {\n      if (inner_condition) {\n          // deeply nested code\n      } else {\n          // inner else branch\n      }\n  }\n  ```\n- Ensure proper brace generation and indentation in C output\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.107231"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.933169",
+  "last_updated": "2026-01-10T06:00:20.934853"
+}

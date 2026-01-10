@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/string-struct-member.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Strings - Struct Member\n\n## Description\nWrite test for string type as a struct member in C-Next.\n\n## Test Category\nStrings\n\n## Context Being Tested\nUsing string type as a member within struct declarations.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/string/string-struct-member.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Strings - As struct member\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a struct with a string member\n- Initialize the struct with string values\n- Access and modify the string member\n- Example syntax: `struct Person { string[32] name; u32 age; }`\n- Verify transpiled C code correctly handles string member initialization\n- Test string member access via struct.member syntax\n- Consider testing nested struct with string members\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.115109"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.997117",
+  "last_updated": "2026-01-10T06:00:20.998841"
+}

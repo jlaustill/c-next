@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/wrap-compound-sub.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Overflow Modifiers - wrap Compound Subtraction\n\n## Description\nWrite test for wrap (wrapping) behavior with compound subtraction operator (-<-) in C-Next.\n\n## Test Category\nOverflow Modifiers - wrap (Wrapping)\n\n## Context Being Tested\nTesting that compound subtraction assignment (-<-) correctly wraps when used with wrap modifier variables.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/overflow/wrap-compound-sub.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Compound sub in Section 21.2\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare wrap variables of various integer types\n- Use compound subtraction: `value -<- 100;`\n- Test underflow scenarios that should wrap\n- Test with u32: `wrap u32 val <- 50; val -<- 100;` should wrap to UINT32_MAX - 49\n- Test with i32: wrapping from negative to positive boundary\n- Verify transpiled C code implements wrapping compound subtraction\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.127350"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.095828",
+  "last_updated": "2026-01-10T06:00:21.097348"
+}

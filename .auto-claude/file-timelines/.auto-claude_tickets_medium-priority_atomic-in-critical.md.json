@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/atomic-in-critical.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Atomic Modifier - Atomic in critical section\n\n## Description\nWrite test for using atomic variables inside a critical block in C-Next.\n\n## Test Category\nAtomic Modifier\n\n## Context Being Tested\nUsing atomic variables within a critical section, where interrupts are disabled. This tests the interaction between two concurrency mechanisms.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/atomic/atomic-in-critical.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for atomic In critical section\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare an atomic variable\n- Access and modify it inside a critical block\n- Test both read and compound assignment operations within critical\n- Verify the transpiled C code handles both atomic operations and interrupt disabling correctly\n- Consider whether atomic operations inside critical are redundant (should still compile)\n- Example:\n  ```\n  atomic u32 sharedCounter <- 0;\n\n  fn updateCounter() -> void {\n      critical (sharedCounter) {\n          sharedCounter +<- 1;\n          // More complex logic that requires atomicity\n      }\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.067090"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.622467",
+  "last_updated": "2026-01-10T06:00:20.624378"
+}

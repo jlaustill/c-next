@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/while-nested.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Control Flow - Nested while Loop\n\n## Description\nWrite test for nested while loops in C-Next.\n\n## Test Category\nControl Flow - while Loop\n\n## Context Being Tested\nUsing while loops inside other while loops.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/control-flow/while-nested.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Nested while\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Create a while loop inside another while loop\n- Use separate counters for outer and inner loops\n- Example:\n  ```\n  u32 i <- 0;\n  while (i < 3) {\n      u32 j <- 0;\n      while (j < 3) {\n          // inner loop body\n          j +<- 1;\n      }\n      i +<- 1;\n  }\n  ```\n- Verify correct C code generation\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.126546"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:21.089643",
+  "last_updated": "2026-01-10T06:00:21.091283"
+}

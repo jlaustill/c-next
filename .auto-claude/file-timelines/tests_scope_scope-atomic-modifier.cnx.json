@@ -1,0 +1,28 @@
+{
+  "file_path": "tests/scope/scope-atomic-modifier.cnx",
+  "main_branch_history": [],
+  "task_views": {
+    "001-100-scope-testing-coverage": {
+      "task_id": "001-100-scope-testing-coverage",
+      "branch_point": {
+        "commit_hash": "6085a00ee4bff6129a6503c31d4280591d7eb497",
+        "content": "",
+        "timestamp": "2026-01-09T22:16:23.113589"
+      },
+      "worktree_state": {
+        "content": "// Test: ADR-016 + ADR-049 Atomic variables inside scopes\n// Verifies that atomic modifier works correctly with integer types inside scope methods\n// Tests: atomic variables accessed via this. accessor with compound assignment operators\n\n#pragma target teensy41\n\nscope AtomicTest {\n    // Atomic scope variables - unsigned integers\n    atomic u8 counterU8 <- 0;\n    atomic u16 counterU16 <- 0;\n    atomic u32 counterU32 <- 0;\n\n    // Atomic scope variables - signed integers (u64 not commonly used with atomic)\n    atomic u8 brightness <- 100;\n    atomic u16 position <- 500;\n    atomic u32 ticks <- 0;\n\n    // Public getter methods using this. accessor for atomic variables\n    u8 getCounterU8() {\n        return this.counterU8;\n    }\n\n    u16 getCounterU16() {\n        return this.counterU16;\n    }\n\n    u32 getCounterU32() {\n        return this.counterU32;\n    }\n\n    u8 getBrightness() {\n        return this.brightness;\n    }\n\n    u16 getPosition() {\n        return this.position;\n    }\n\n    u32 getTicks() {\n        return this.ticks;\n    }\n\n    // Increment methods using atomic compound add (+<-)\n    void incrementU8() {\n        this.counterU8 +<- 1;\n    }\n\n    void incrementU16() {\n        this.counterU16 +<- 1;\n    }\n\n    void incrementU32() {\n        this.counterU32 +<- 1;\n    }\n\n    // Decrement methods using atomic compound subtract (-<-)\n    void decrementBrightness() {\n        this.brightness -<- 10;\n    }\n\n    void decrementPosition() {\n        this.position -<- 50;\n    }\n\n    // Bitwise operations using atomic compound operators\n    void maskTicks() {\n        this.ticks &<- 0xFFFF;\n    }\n\n    void setTickFlag() {\n        this.ticks |<- 0x80000000;\n    }\n\n    // Combined increment of all counters\n    void incrementAll() {\n        this.counterU8 +<- 1;\n        this.counterU16 +<- 1;\n        this.counterU32 +<- 1;\n        this.ticks +<- 1;\n    }\n}\n\nvoid main() {\n    // Test reading atomic values via this. accessor\n    AtomicTest.getCounterU8();\n    AtomicTest.getCounterU16();\n    AtomicTest.getCounterU32();\n    AtomicTest.getBrightness();\n    AtomicTest.getPosition();\n    AtomicTest.getTicks();\n\n    // Test atomic increment operations\n    AtomicTest.incrementU8();\n    AtomicTest.incrementU16();\n    AtomicTest.incrementU32();\n\n    // Test atomic decrement operations\n    AtomicTest.decrementBrightness();\n    AtomicTest.decrementPosition();\n\n    // Test atomic bitwise operations\n    AtomicTest.maskTicks();\n    AtomicTest.setTickFlag();\n\n    // Test combined increments\n    AtomicTest.incrementAll();\n}\n",
+        "last_modified": "2026-01-09T22:16:23.157423"
+      },
+      "task_intent": {
+        "title": "100% Scope Testing Coverage",
+        "description": "Expand the C-Next test suite to achieve comprehensive coverage of scope-related functionality including this./global. accessors with all data types, modifier permutations, and error cases.",
+        "from_plan": true
+      },
+      "commits_behind_main": 1,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-09T22:16:23.117470",
+  "last_updated": "2026-01-09T22:16:23.118915"
+}

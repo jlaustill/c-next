@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/sizeof-in-expression.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: sizeof Operator - In Expression\n\n## Description\nWrite test for sizeof operator used within an arithmetic expression in C-Next.\n\n## Test Category\nsizeof Operator\n\n## Context Being Tested\nUsing sizeof as part of a larger expression, such as arithmetic or comparisons.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/sizeof/in-expression.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for sizeof In expression\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Use sizeof in an arithmetic expression\n- Example: `u32 count <- total_bytes / sizeof(u32);`\n- Example: `u32 offset <- index * sizeof(MyStruct);`\n- Verify transpiled C code preserves the expression with sizeof\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.113655"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.984546",
+  "last_updated": "2026-01-10T06:00:20.986159"
+}

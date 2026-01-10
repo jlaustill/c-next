@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/high-priority/f64-local-var-with-init.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Primitive Types - f64 Local Variable with Init\n\n## Description\nWrite test for f64 local variable declaration with initialization in C-Next.\n\n## Test Category\nPrimitive Types - Floating Point\n\n## Context Being Tested\nLocal variable declaration with f64 type with initial value inside a function.\n\n## Priority\nHigh\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/primitives/f64-local-var-with-init.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for f64 Local variable with init\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Declare a local f64 variable inside a function with initialization\n- Verify the transpiled C code uses the correct double type and value\n- Example syntax:\n  ```\n  void testFunction() {\n      f64 localDouble <- 2.718281828459045;\n  }\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.055480"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.533849",
+  "last_updated": "2026-01-10T06:00:20.535474"
+}

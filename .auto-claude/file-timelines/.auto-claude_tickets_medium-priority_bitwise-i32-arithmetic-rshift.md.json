@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/bitwise-i32-arithmetic-rshift.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Bitwise Operators - i32 Arithmetic Right Shift\n\n## Description\nWrite test for i32 >> amount arithmetic right shift operation in C-Next.\n\n## Test Category\nBitwise Operators\n\n## Context Being Tested\nArithmetic right shift operation on i32 operand (sign bit preserved).\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/operators/bitwise-i32-arithmetic-rshift.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for i32 >> amount (arithmetic)\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test right shift of i32 values including negative numbers\n- Verify the transpiled C code correctly handles arithmetic right shift\n- Signed types use arithmetic right shift (sign bit fill)\n- Test with positive values (zero fill expected) and negative values (one fill expected)\n- Example syntax:\n  ```\n  i32 positive <- 0x40000000;\n  i32 r1 <- positive >> 4;  // Logical-like: 0x04000000\n\n  i32 negative <- -16;  // 0xFFFFFFF0\n  i32 r2 <- negative >> 2;  // Arithmetic: -4 (0xFFFFFFFC)\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.071413"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.654775",
+  "last_updated": "2026-01-10T06:00:20.656586"
+}

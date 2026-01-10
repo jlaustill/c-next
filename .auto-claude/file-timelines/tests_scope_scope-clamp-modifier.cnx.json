@@ -1,0 +1,28 @@
+{
+  "file_path": "tests/scope/scope-clamp-modifier.cnx",
+  "main_branch_history": [],
+  "task_views": {
+    "001-100-scope-testing-coverage": {
+      "task_id": "001-100-scope-testing-coverage",
+      "branch_point": {
+        "commit_hash": "6085a00ee4bff6129a6503c31d4280591d7eb497",
+        "content": "",
+        "timestamp": "2026-01-09T22:16:23.113589"
+      },
+      "worktree_state": {
+        "content": "// Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes\n// Verifies that clamp modifier works correctly with integer types inside scope methods\n// Tests: clamp variables accessed via this. accessor with compound assignment operators\n\nscope ClampTest {\n    // Clamp scope variables - unsigned integers\n    clamp u8 brightness <- 200;\n    clamp u16 sensorValue <- 60000;\n    clamp u32 counter <- 4000000000;\n\n    // Clamp scope variables - signed integers\n    clamp i8 temperature <- -100;\n    clamp i16 altitude <- 30000;\n    clamp i32 position <- 2000000000;\n\n    // Public getter methods using this. accessor for clamp variables\n    u8 getBrightness() {\n        return this.brightness;\n    }\n\n    u16 getSensorValue() {\n        return this.sensorValue;\n    }\n\n    u32 getCounter() {\n        return this.counter;\n    }\n\n    i8 getTemperature() {\n        return this.temperature;\n    }\n\n    i16 getAltitude() {\n        return this.altitude;\n    }\n\n    i32 getPosition() {\n        return this.position;\n    }\n\n    // Increment methods using clamp compound add (+<-)\n    // These test overflow clamping to maximum values\n    void increaseBrightness() {\n        this.brightness +<- 100;  // Would overflow, clamps to 255\n    }\n\n    void increaseSensorValue() {\n        this.sensorValue +<- 10000;  // Would overflow, clamps to 65535\n    }\n\n    void increaseCounter() {\n        this.counter +<- 500000000;  // Would overflow, clamps to UINT32_MAX\n    }\n\n    // Decrement methods using clamp compound subtract (-<-)\n    // These test underflow clamping to minimum values\n    void decreaseTemperature() {\n        this.temperature -<- 50;  // Would underflow, clamps to -128\n    }\n\n    void decreaseAltitude() {\n        this.altitude -<- 5000;  // Normal decrease, no clamping needed\n    }\n\n    void decreasePosition() {\n        this.position -<- 100000000;  // Normal decrease, no clamping needed\n    }\n\n    // Test unsigned underflow - clamps to 0\n    void dimBrightness() {\n        this.brightness -<- 250;  // Would underflow, clamps to 0\n    }\n\n    void resetSensor() {\n        this.sensorValue -<- 65000;  // Would underflow, clamps to 0\n    }\n\n    // Combined operations to test multiple clamp behaviors\n    void adjustAll() {\n        this.brightness +<- 10;\n        this.sensorValue +<- 100;\n        this.temperature -<- 5;\n        this.altitude +<- 1000;\n    }\n}\n\nvoid main() {\n    // Test reading clamp values via this. accessor\n    ClampTest.getBrightness();\n    ClampTest.getSensorValue();\n    ClampTest.getCounter();\n    ClampTest.getTemperature();\n    ClampTest.getAltitude();\n    ClampTest.getPosition();\n\n    // Test clamp overflow operations (add)\n    ClampTest.increaseBrightness();\n    ClampTest.increaseSensorValue();\n    ClampTest.increaseCounter();\n\n    // Test clamp operations (subtract)\n    ClampTest.decreaseTemperature();\n    ClampTest.decreaseAltitude();\n    ClampTest.decreasePosition();\n\n    // Test unsigned underflow clamping\n    ClampTest.dimBrightness();\n    ClampTest.resetSensor();\n\n    // Test combined operations\n    ClampTest.adjustAll();\n}\n",
+        "last_modified": "2026-01-09T22:16:23.157832"
+      },
+      "task_intent": {
+        "title": "100% Scope Testing Coverage",
+        "description": "Expand the C-Next test suite to achieve comprehensive coverage of scope-related functionality including this./global. accessors with all data types, modifier permutations, and error cases.",
+        "from_plan": true
+      },
+      "commits_behind_main": 1,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-09T22:16:23.127926",
+  "last_updated": "2026-01-09T22:16:23.129540"
+}

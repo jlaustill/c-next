@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/low-priority/preprocessor-nested-ifdef.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Preprocessor - Nested #ifdef\n\n## Description\nWrite test for nested #ifdef preprocessor directives in C-Next.\n\n## Test Category\nPreprocessor\n\n## Context Being Tested\nNested #ifdef / #endif directives for conditional compilation with multiple levels.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/preprocessor/nested-ifdef.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Nested #ifdef\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test nested conditional compilation with #ifdef inside another #ifdef block\n- Verify the transpiler correctly handles multiple nesting levels\n- Example syntax:\n  ```\n  #define OUTER\n  #define INNER\n\n  #ifdef OUTER\n    // outer block\n    #ifdef INNER\n      // inner block\n    #endif\n  #endif\n  ```\n- Consider testing both defined and undefined combinations\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.062633"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.587173",
+  "last_updated": "2026-01-10T06:00:20.588701"
+}

@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/scope-qualified-parameter.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Scope Declaration - Scope.Type as Parameter\n\n## Description\nWrite test for using Scope.Type as a function parameter type from outside the scope in C-Next.\n\n## Test Category\nScope Declaration - Qualified Types\n\n## Context Being Tested\nUsing `ScopeName.TypeName` syntax to specify a function parameter type when accessing a type from another scope.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/scope/qualified-type-parameter.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Scope.Type as parameter\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct or enum type inside a scope\n- Use `ScopeName.TypeName` as a parameter type from outside the scope\n- Example syntax:\n  ```\n  scope Geometry {\n      struct Point {\n          i32 x;\n          i32 y;\n      }\n  }\n\n  void printPoint(Geometry.Point p) {\n      // Use the point from Geometry scope\n  }\n\n  i32 calculateDistance(Geometry.Point a, Geometry.Point b) -> i32 {\n      i32 dx <- a.x - b.x;\n      i32 dy <- a.y - b.y;\n      return dx * dx + dy * dy;\n  }\n\n  void main() {\n      Geometry.Point origin;\n      origin.x <- 0;\n      origin.y <- 0;\n      this.printPoint(origin);\n  }\n  ```\n- Verify transpiled C code correctly resolves the qualified type reference\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.111681"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.968447",
+  "last_updated": "2026-01-10T06:00:20.970058"
+}

@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/low-priority/literal-binary-bitmask.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Literals - Binary Bit Mask\n\n## Description\nWrite test for binary literals (0b prefix) used as bit masks in C-Next.\n\n## Test Category\nLiterals - Integer Literals\n\n## Context Being Tested\nBinary literals (0b prefix) used in bit mask operations.\n\n## Priority\nLow\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/literals/binary-bitmask.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Binary (0b) bit mask\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Test binary literals used in bitwise AND operations for masking\n- Test binary literals used in bitwise OR operations for setting bits\n- Example syntax:\n  ```\n  u32 value <- 0xFF;\n  u32 masked <- value & 0b00001111;  // mask lower 4 bits\n  u32 setBits <- value | 0b11110000; // set upper 4 bits\n  ```\n- Verify the transpiled C code correctly represents binary literals\n- Test with different bit widths (8, 16, 32 bits)\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.062157"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.583467",
+  "last_updated": "2026-01-10T06:00:20.585100"
+}

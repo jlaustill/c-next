@@ -1,0 +1,68 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Create Tickets for All Uncovered Tests
+Workspace: c-next
+Started: 2026-01-09
+
+Workflow Type: feature
+Rationale: Systematic ticket creation workflow for test coverage gaps. Each phase generates tickets for a priority tier of uncovered tests. No code implementation, only planning artifacts.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 12
+- Total subtasks: 39
+- Created init.sh
+
+Phase Summary:
+- Phase 1 (Setup): 1 subtask - Create ticket directory structure
+- Phase 2 (High Priority - Float): 2 subtasks - f32 and f64 type tickets (24 tickets)
+- Phase 3 (High Priority - Literals): 5 subtasks - Character, type-suffixed, boolean, float comparison/arithmetic tickets (~30 tickets)
+- Phase 4 (Medium - Primitives): 7 subtasks - u8, u16, u64, i8, i16, i32, i64, bool type gaps (~48 tickets)
+- Phase 5 (Medium - Operators): 4 subtasks - Comparison, arithmetic, bitwise, compound operators (~78 tickets)
+- Phase 6 (Medium - Control Flow): 4 subtasks - Logical operators, if/while/for/do-while, switch/critical, ternary (~35 tickets)
+- Phase 7 (Medium - Types): 3 subtasks - Struct, enum, bitmap, register, scope declarations (~23 tickets)
+- Phase 8 (Medium - Features): 5 subtasks - Callbacks, arrays, bit indexing, strings, modifiers (~37 tickets)
+- Phase 9 (Medium - Misc): 5 subtasks - sizeof, init, references, NULL, static, C interop, volatile, ISR (~27 tickets)
+- Phase 10 (Medium - Expression): 2 subtasks - Expression contexts, statement nesting (~11 tickets)
+- Phase 11 (Low Priority): 4 subtasks - Preprocessor, comments, literals, generics, edge cases (~14 tickets)
+- Phase 12 (Validation): 1 subtask - Verify ticket count and structure
+
+Services Involved:
+- main: TypeScript-based C-Next compiler (ticket storage location)
+
+Files to Create:
+- ~265 ticket markdown files in .auto-claude/tickets/
+- Organized by priority: high-priority/, medium-priority/, low-priority/
+
+Ticket Format:
+Each ticket follows this structure:
+  - Description: What test needs to be written
+  - Test Category: From coverage.md
+  - Acceptance Criteria:
+    * Test file created in tests/[category]/[name].cnx
+    * Test passes (or fails if bug found)
+    * coverage.md updated with [x] and file reference
+  - Bug Handling: If test discovers bug, merge failing test first, create separate bug fix ticket
+
+Parallelism Analysis:
+- Max parallel phases: 10 (phases 2-11 can all run after setup)
+- Recommended workers: 3
+- Parallel groups: All phases 2-11 depend only on phase 1, no file conflicts
+- Speedup estimate: 3x faster than sequential
+
+Estimated Ticket Count:
+- High priority: ~60 tickets
+- Medium priority: ~180 tickets
+- Low priority: ~25 tickets
+- TOTAL: ~265 tickets
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 002 --parallel 3
+
+Example:
+  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 002 --parallel 3
+
+=== END SESSION 1 ===

@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/for-nonbool-error.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Control Flow - for Non-boolean Condition Error\n\n## Description\nWrite test for for loop with non-boolean condition (ERROR case) in C-Next.\n\n## Test Category\nControl Flow - for Loop\n\n## Context Being Tested\nEnsuring the compiler rejects for loops with non-boolean conditions.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/for-loops/for-error-nonbool.cnx`\n- [ ] Test produces expected compiler error\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Non-boolean condition (ERROR)\n- [ ] Jest test runner passes (error test should expect failure)\n\n## Test Implementation Notes\n- Attempt to use an integer as a for loop condition\n- Example: `for (u32 i <- 0; i; i +<- 1) { ... }` should fail\n- Example: `for (u32 i <- 0; 1; i +<- 1) { ... }` should fail\n- Verify error message is clear and helpful\n- C-Next requires explicit boolean conditions unlike C\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.096483"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.850959",
+  "last_updated": "2026-01-10T06:00:20.852570"
+}

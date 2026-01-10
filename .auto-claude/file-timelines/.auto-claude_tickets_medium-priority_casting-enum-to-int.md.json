@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/casting-enum-to-int.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Type Casting - Enum to Integer Cast\n\n## Description\nWrite test for casting enum values to integer types in C-Next.\n\n## Test Category\nType Casting\n\n## Context Being Tested\nExplicitly casting an enum value to an integer type (u8, u16, u32, i32, etc.) to obtain its underlying numeric value.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/casting/enum-to-int.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for Enum to int cast\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define an enum with explicit values\n- Cast enum values to various integer types (u32, i32, etc.)\n- Verify the cast syntax is explicit (C-Next likely requires explicit casts)\n- Verify transpiled C code correctly extracts the underlying value\n- Reference existing enum tests: `enum/basic-enum.cnx`, `enum/scoped-enum.cnx`\n- Reference casting patterns: `casting/widening-unsigned.cnx`\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.080374"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.723923",
+  "last_updated": "2026-01-10T06:00:20.725471"
+}

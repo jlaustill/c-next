@@ -1,0 +1,28 @@
+{
+  "file_path": ".auto-claude/tickets/medium-priority/atomic-struct-member.md",
+  "main_branch_history": [],
+  "task_views": {
+    "002-ticket-out-tests": {
+      "task_id": "002-ticket-out-tests",
+      "branch_point": {
+        "commit_hash": "fd58facb912af0e26d3a6d748de6237122a31874",
+        "content": "",
+        "timestamp": "2026-01-10T06:00:20.448107"
+      },
+      "worktree_state": {
+        "content": "# Ticket: Atomic Modifier - Atomic as struct member\n\n## Description\nWrite test for using the atomic modifier on struct member fields in C-Next.\n\n## Test Category\nAtomic Modifier\n\n## Context Being Tested\nDeclaring atomic fields inside a struct definition to ensure thread-safe access to individual struct members.\n\n## Priority\nMedium\n\n## Acceptance Criteria\n- [ ] Test file created in `tests/atomic/atomic-struct-member.cnx`\n- [ ] Test passes (or fails if it reveals a bug - see workflow)\n- [ ] `coverage.md` updated: `[ ]` changed to `[x]` with test file reference for atomic As struct member\n- [ ] Jest test runner passes\n\n## Test Implementation Notes\n- Define a struct with atomic member fields\n- Create an instance and modify the atomic member\n- Test compound assignment on atomic struct members\n- Verify the transpiled C code uses atomic operations for member access\n- Example:\n  ```\n  struct SharedState {\n      atomic u32 counter;\n      u32 nonAtomicValue;\n  }\n\n  SharedState state <- {0};\n  state.counter +<- 1;  // Should be atomic\n  ```\n\n## Bug Handling\nIf this test reveals a bug:\n1. Merge the failing test first\n2. Create a separate ticket to fix the bug\n3. The bug fix ticket should reference this test\n",
+        "last_modified": "2026-01-10T06:14:38.067909"
+      },
+      "task_intent": {
+        "title": "002-ticket-out-tests",
+        "description": "",
+        "from_plan": false
+      },
+      "commits_behind_main": 2,
+      "status": "active",
+      "merged_at": null
+    }
+  },
+  "created_at": "2026-01-10T06:00:20.626792",
+  "last_updated": "2026-01-10T06:00:20.628392"
+}
