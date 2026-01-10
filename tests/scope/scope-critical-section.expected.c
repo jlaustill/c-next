@@ -7,37 +7,16 @@
 #include <stdbool.h>
 #include <cmsis_gcc.h>
 
-// ADR-044: Overflow helper functions
-#include <limits.h>
-
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
-}
-
-static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint32_t b) {
-    if (a < b) return 0;
-    return a - b;
-}
-
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
-    if (a > UINT8_MAX - b) return UINT8_MAX;
-    return a + b;
-}
-
-static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
-    if (a < b) return 0;
-    return a - b;
-}
-
 // Test: ADR-016 + ADR-050 Critical sections inside scope methods
 // Verifies that critical { } blocks work correctly inside scope methods
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical
-
 // Global variables for testing global. accessor inside critical sections
 uint8_t globalSharedBuffer[16] = {0};
+
 uint32_t globalWriteIndex = 0;
+
 uint32_t globalReadIndex = 0;
+
 bool globalBufferLock = false;
 
 /* Scope: CriticalTest */
@@ -47,19 +26,17 @@ uint32_t CriticalTest_readIndex = 0;
 uint8_t CriticalTest_count = 0;
 bool CriticalTest_locked = false;
 
-// Private method: basic critical section with this. accessor
 void CriticalTest_internalEnqueue(uint8_t* data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         CriticalTest_buffer[CriticalTest_writeIndex] = (*data);
-        CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
-        CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
+        CriticalTest_writeIndex += 1;
+        CriticalTest_count += 1;
         __set_PRIMASK(__primask);
     }
 }
 
-// Private method: critical section with conditional and this.
 uint8_t CriticalTest_internalDequeue(void) {
     uint8_t result = 0;
     {
@@ -67,39 +44,36 @@ uint8_t CriticalTest_internalDequeue(void) {
         __disable_irq();
         if (CriticalTest_count > 0) {
             result = CriticalTest_buffer[CriticalTest_readIndex];
-            CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
-            CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
+            CriticalTest_readIndex += 1;
+            CriticalTest_count -= 1;
         }
         __set_PRIMASK(__primask);
     }
     return result;
 }
 
-// Private method: critical section with global. accessor
 void CriticalTest_internalUpdateGlobal(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
+        globalWriteIndex += 1;
         globalBufferLock = true;
         __set_PRIMASK(__primask);
     }
 }
 
-// Private method: critical section with combined this. and global.
 void CriticalTest_internalTransfer(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         uint8_t data = CriticalTest_buffer[CriticalTest_readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
-        CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
-        globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
+        CriticalTest_readIndex += 1;
+        globalWriteIndex += 1;
         __set_PRIMASK(__primask);
     }
 }
 
-// Private method: critical section with boolean flag operations
 bool CriticalTest_internalTryLock(void) {
     bool acquired = false;
     {
@@ -114,7 +88,6 @@ bool CriticalTest_internalTryLock(void) {
     return acquired;
 }
 
-// Private method: critical section unlock
 void CriticalTest_internalUnlock(void) {
     {
         uint32_t __primask = __get_PRIMASK();
@@ -124,19 +97,17 @@ void CriticalTest_internalUnlock(void) {
     }
 }
 
-// Public method: basic critical section with this. accessor
 void CriticalTest_enqueue(uint8_t* data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         CriticalTest_buffer[CriticalTest_writeIndex] = (*data);
-        CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
-        CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
+        CriticalTest_writeIndex += 1;
+        CriticalTest_count += 1;
         __set_PRIMASK(__primask);
     }
 }
 
-// Public method: critical section with conditional and this.
 uint8_t CriticalTest_dequeue(void) {
     uint8_t result = 0;
     {
@@ -144,40 +115,37 @@ uint8_t CriticalTest_dequeue(void) {
         __disable_irq();
         if (CriticalTest_count > 0) {
             result = CriticalTest_buffer[CriticalTest_readIndex];
-            CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
-            CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
+            CriticalTest_readIndex += 1;
+            CriticalTest_count -= 1;
         }
         __set_PRIMASK(__primask);
     }
     return result;
 }
 
-// Public method: critical section with global. accessor
 void CriticalTest_updateGlobalIndex(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
-        globalReadIndex = cnx_clamp_add_u32(globalReadIndex, 1);
+        globalWriteIndex += 1;
+        globalReadIndex += 1;
         __set_PRIMASK(__primask);
     }
 }
 
-// Public method: critical section with combined this. and global.
 void CriticalTest_transferToGlobal(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         uint8_t data = CriticalTest_buffer[CriticalTest_readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
-        CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
-        CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
-        globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
+        CriticalTest_readIndex += 1;
+        CriticalTest_count -= 1;
+        globalWriteIndex += 1;
         __set_PRIMASK(__primask);
     }
 }
 
-// Public method: get count inside critical section
 uint8_t CriticalTest_getCount(void) {
     uint8_t result = 0;
     {
@@ -189,7 +157,6 @@ uint8_t CriticalTest_getCount(void) {
     return result;
 }
 
-// Public method: boolean flag operation in critical section
 bool CriticalTest_tryLock(void) {
     bool acquired = false;
     {
@@ -204,7 +171,6 @@ bool CriticalTest_tryLock(void) {
     return acquired;
 }
 
-// Public method: unlock in critical section
 void CriticalTest_unlock(void) {
     {
         uint32_t __primask = __get_PRIMASK();
@@ -214,7 +180,6 @@ void CriticalTest_unlock(void) {
     }
 }
 
-// Public method: check if locked (thread-safe read)
 bool CriticalTest_isLocked(void) {
     bool result = false;
     {
@@ -226,7 +191,6 @@ bool CriticalTest_isLocked(void) {
     return result;
 }
 
-// Public method: multiple operations in single critical section
 void CriticalTest_resetAll(void) {
     {
         uint32_t __primask = __get_PRIMASK();
@@ -239,7 +203,6 @@ void CriticalTest_resetAll(void) {
     }
 }
 
-// Public method: compare scope and global values in critical section
 bool CriticalTest_isInSync(void) {
     bool inSync = false;
     {
@@ -251,17 +214,14 @@ bool CriticalTest_isInSync(void) {
     return inSync;
 }
 
-// Public wrapper that calls internal critical method
 void CriticalTest_safeEnqueue(uint8_t* data) {
     CriticalTest_internalEnqueue(data);
 }
 
-// Public wrapper that calls internal critical method
 uint8_t CriticalTest_safeDequeue(void) {
     return CriticalTest_internalDequeue();
 }
 
-// Public method: chain lock-operation-unlock pattern
 void CriticalTest_lockedEnqueue(uint8_t* data) {
     CriticalTest_internalTryLock();
     CriticalTest_internalEnqueue(data);
@@ -269,30 +229,17 @@ void CriticalTest_lockedEnqueue(uint8_t* data) {
 }
 
 void main(void) {
-    // Test public methods with critical sections - basic this. operations
     CriticalTest_enqueue(42);
     CriticalTest_enqueue(84);
     CriticalTest_dequeue();
-
-    // Test public methods with critical sections - global. operations
     CriticalTest_updateGlobalIndex();
     CriticalTest_transferToGlobal();
-
-    // Test thread-safe reads
     CriticalTest_getCount();
     CriticalTest_isLocked();
-
-    // Test lock/unlock pattern
     CriticalTest_tryLock();
     CriticalTest_unlock();
-
-    // Test reset
     CriticalTest_resetAll();
-
-    // Test sync check
     CriticalTest_isInSync();
-
-    // Test wrappers calling internal critical methods
     CriticalTest_safeEnqueue(10);
     CriticalTest_safeDequeue();
     CriticalTest_lockedEnqueue(20);

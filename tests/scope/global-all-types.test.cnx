@@ -121,12 +121,14 @@ i32 main() {
     }
 
     // Test setters - modify and verify
-    GlobalAccessTest.setGlobalU8(100);
+    u8 newU8Value <- 100;
+    GlobalAccessTest.setGlobalU8(newU8Value);
     if (GlobalAccessTest.getGlobalU8() != 100) {
         return 1;
     }
 
-    GlobalAccessTest.setGlobalBool(false);
+    bool newBoolValue <- false;
+    GlobalAccessTest.setGlobalBool(newBoolValue);
     if (GlobalAccessTest.getGlobalBool() != false) {
         return 1;
     }

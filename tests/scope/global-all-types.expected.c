@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // Test: ADR-016 global. accessor with all primitive types
 // Verifies that global. works correctly with every C-Next primitive type inside scope methods
 // Unsigned integer globals
@@ -92,16 +93,43 @@ void GlobalAccessTest_setGlobalF64(double* val) {
     globalF64 = (*val);
 }
 
-void main(void) {
-    GlobalAccessTest_getGlobalU8();
-    GlobalAccessTest_getGlobalU16();
-    GlobalAccessTest_getGlobalU32();
-    GlobalAccessTest_getGlobalU64();
-    GlobalAccessTest_getGlobalI8();
-    GlobalAccessTest_getGlobalI16();
-    GlobalAccessTest_getGlobalI32();
-    GlobalAccessTest_getGlobalI64();
-    GlobalAccessTest_getGlobalF32();
-    GlobalAccessTest_getGlobalF64();
-    GlobalAccessTest_getGlobalBool();
+int32_t main(void) {
+    if (GlobalAccessTest_getGlobalU8() != 255) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalU16() != 65535) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalU32() != 4294967295) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalU64() != 0) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalI8() != -128) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalI16() != -32768) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalI32() != -2147483648) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalI64() != 0) {
+        return 1;
+    }
+    if (GlobalAccessTest_getGlobalBool() != true) {
+        return 1;
+    }
+    uint8_t newU8Value = 100;
+    GlobalAccessTest_setGlobalU8(&newU8Value);
+    if (GlobalAccessTest_getGlobalU8() != 100) {
+        return 1;
+    }
+    bool newBoolValue = false;
+    GlobalAccessTest_setGlobalBool(&newBoolValue);
+    if (GlobalAccessTest_getGlobalBool() != false) {
+        return 1;
+    }
+    return 0;
 }

@@ -175,7 +175,7 @@ scope CriticalTest {
     public bool isInSync() {
         bool inSync <- false;
         critical {
-            inSync <- this.writeIndex == global.globalWriteIndex;
+            inSync <- this.writeIndex = global.globalWriteIndex;
         }
         return inSync;
     }

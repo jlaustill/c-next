@@ -63,8 +63,10 @@ void Visibility_setPublicFlag(bool* val) {
 }
 
 void main(void) {
-    Visibility_publicCounter;
-    Visibility_publicFlag;
+    uint8_t testCounter = Visibility_publicCounter;
+    bool testFlag = Visibility_publicFlag;
+    if (testCounter == 0 && testFlag == false) {
+    }
     Visibility_getPrivateCounter();
     Visibility_getPrivateCounterViaInternal();
     Visibility_getPublicCounter();

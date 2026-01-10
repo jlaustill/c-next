@@ -72,9 +72,14 @@ scope Visibility {
 }
 
 void main() {
-    // Access public variables directly
-    Visibility.publicCounter;
-    Visibility.publicFlag;
+    // Access public variables directly - verify they can be read
+    u8 testCounter <- Visibility.publicCounter;
+    bool testFlag <- Visibility.publicFlag;
+
+    // Use the values to prevent warnings
+    if (testCounter = 0 && testFlag = false) {
+        // Values accessed successfully
+    }
 
     // Access private variables via public methods (encapsulation)
     Visibility.getPrivateCounter();

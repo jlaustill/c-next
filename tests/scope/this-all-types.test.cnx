@@ -121,12 +121,14 @@ i32 main() {
     }
 
     // Test setters - modify and verify
-    AllTypesTest.setU8(100);
+    u8 newU8Value <- 100;
+    AllTypesTest.setU8(newU8Value);
     if (AllTypesTest.getU8() != 100) {
         return 1;
     }
 
-    AllTypesTest.setBool(false);
+    bool newBoolValue <- false;
+    AllTypesTest.setBool(newBoolValue);
     if (AllTypesTest.getBool() != false) {
         return 1;
     }

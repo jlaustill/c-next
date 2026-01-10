@@ -220,16 +220,22 @@ void main() {
     ModifierCombos.adjustAllClamp();
     ModifierCombos.adjustAllWrap();
 
-    // Direct access to public clamp variables
-    ModifierCombos.publicClampByte;
-    ModifierCombos.publicClampWord;
-    ModifierCombos.publicClampSigned;
+    // Direct access to public clamp variables - verify they can be read
+    u8 testClampByte <- ModifierCombos.publicClampByte;
+    u16 testClampWord <- ModifierCombos.publicClampWord;
+    i8 testClampSigned <- ModifierCombos.publicClampSigned;
 
-    // Direct access to public wrap variables
-    ModifierCombos.publicWrapByte;
-    ModifierCombos.publicWrapWord;
+    // Direct access to public wrap variables - verify they can be read
+    u8 testWrapByte <- ModifierCombos.publicWrapByte;
+    u16 testWrapWord <- ModifierCombos.publicWrapWord;
 
-    // Direct access to public const variables
-    ModifierCombos.PUBLIC_CONST;
-    ModifierCombos.PUBLIC_FLAG;
+    // Direct access to public const variables - verify they can be read
+    u8 testConst <- ModifierCombos.PUBLIC_CONST;
+    bool testConstFlag <- ModifierCombos.PUBLIC_FLAG;
+
+    // Use the values to prevent warnings
+    if (testClampByte = 0 && testClampWord = 0 && testClampSigned = 0 &&
+        testWrapByte = 0 && testWrapWord = 0 && testConst = 0 && testConstFlag = false) {
+        // Values accessed successfully
+    }
 }

@@ -1,0 +1,11 @@
+// Test that using both atomic and volatile modifiers together is rejected
+// Should error: Cannot use both 'atomic' and 'volatile' modifiers
+
+#pragma target stm32f4
+
+// This should error - can't use both atomic and volatile
+atomic volatile u32 tick_count <- 0;
+
+void main() {
+    tick_count +<- 1;
+}

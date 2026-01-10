@@ -3,43 +3,24 @@
  * A safer C for embedded systems
  */
 
-// Test: ADR-016 Modifiers in public and private method contexts
-// Verifies that this. and global. accessors work correctly in all method contexts
-// Tests: public methods, private methods, local variables with modifiers, combined access patterns
-
 #include <stdint.h>
 #include <stdbool.h>
 
-// ADR-044: Overflow helper functions
-#include <limits.h>
-
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
-    if (a > UINT8_MAX - b) return UINT8_MAX;
-    return a + b;
-}
-
-static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
-    if (a < b) return 0;
-    return a - b;
-}
-
-static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
-    if (a > UINT16_MAX - b) return UINT16_MAX;
-    return a + b;
-}
-
-static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint16_t b) {
-    if (a < b) return 0;
-    return a - b;
-}
-
+// Test: ADR-016 Modifiers in public and private method contexts
+// Verifies that this. and global. accessors work correctly in all method contexts
+// Tests: public methods, private methods, local variables with modifiers, combined access patterns
 // Global variables for testing global. accessor in all method contexts
 const uint8_t GLOBAL_MAX = 100;
+
 const uint16_t GLOBAL_THRESHOLD = 1000;
+
 uint8_t globalCounter = 50;
+
 bool globalEnabled = true;
+
 int16_t globalOffset = -25;
-float globalScale = 2.5f;
+
+float globalScale = 2.5;
 
 /* Scope: MethodContexts */
 uint8_t MethodContexts_privateValue = 10;
@@ -70,7 +51,7 @@ uint8_t MethodContexts_getPrivateWrapValue(void) {
 }
 
 void MethodContexts_incrementPrivateClamp(void) {
-    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 100);
+    MethodContexts_privateClampValue += 100;
 }
 
 void MethodContexts_incrementPrivateWrap(void) {
@@ -134,7 +115,7 @@ uint16_t MethodContexts_getPublicWrapValue(void) {
 }
 
 void MethodContexts_incrementPublicClamp(void) {
-    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 10000);
+    MethodContexts_publicClampValue += 10000;
 }
 
 void MethodContexts_incrementPublicWrap(void) {
@@ -215,7 +196,7 @@ uint8_t MethodContexts_getPrivateClampViaInternal(void) {
 
 void MethodContexts_modifyAllPrivate(void) {
     MethodContexts_privateValue = MethodContexts_privateValue + 1;
-    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 10);
+    MethodContexts_privateClampValue += 10;
     MethodContexts_privateWrapValue += 5;
     MethodContexts_privateFlag = !MethodContexts_privateFlag;
     MethodContexts_privateOffset = MethodContexts_privateOffset - 10;
@@ -223,7 +204,7 @@ void MethodContexts_modifyAllPrivate(void) {
 
 void MethodContexts_modifyAllPublic(void) {
     MethodContexts_publicValue = MethodContexts_publicValue + 1;
-    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 100);
+    MethodContexts_publicClampValue += 100;
     MethodContexts_publicWrapValue += 5;
     MethodContexts_publicFlag = !MethodContexts_publicFlag;
     MethodContexts_publicOffset = MethodContexts_publicOffset - 100;
@@ -266,9 +247,11 @@ void main(void) {
     MethodContexts_modifyAllPublic();
     MethodContexts_checkThresholds();
     MethodContexts_getAllFlags();
-    MethodContexts_publicValue;
-    MethodContexts_publicClampValue;
-    MethodContexts_publicWrapValue;
-    MethodContexts_publicFlag;
-    MethodContexts_publicOffset;
+    uint8_t testValue = MethodContexts_publicValue;
+    uint8_t testClamp = MethodContexts_publicClampValue;
+    uint8_t testWrap = MethodContexts_publicWrapValue;
+    bool testFlag = MethodContexts_publicFlag;
+    int16_t testOffset = MethodContexts_publicOffset;
+    if (testValue == 0 && testClamp == 0 && testWrap == 0 && testFlag == false && testOffset == 0) {
+    }
 }

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // Test: ADR-016 this. accessor with all primitive types
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */
@@ -77,16 +78,43 @@ void AllTypesTest_setF64(double* val) {
     AllTypesTest_valF64 = (*val);
 }
 
-void main(void) {
-    AllTypesTest_getU8();
-    AllTypesTest_getU16();
-    AllTypesTest_getU32();
-    AllTypesTest_getU64();
-    AllTypesTest_getI8();
-    AllTypesTest_getI16();
-    AllTypesTest_getI32();
-    AllTypesTest_getI64();
-    AllTypesTest_getF32();
-    AllTypesTest_getF64();
-    AllTypesTest_getBool();
+int32_t main(void) {
+    if (AllTypesTest_getU8() != 255) {
+        return 1;
+    }
+    if (AllTypesTest_getU16() != 65535) {
+        return 1;
+    }
+    if (AllTypesTest_getU32() != 4294967295) {
+        return 1;
+    }
+    if (AllTypesTest_getU64() != 0) {
+        return 1;
+    }
+    if (AllTypesTest_getI8() != -128) {
+        return 1;
+    }
+    if (AllTypesTest_getI16() != -32768) {
+        return 1;
+    }
+    if (AllTypesTest_getI32() != -2147483648) {
+        return 1;
+    }
+    if (AllTypesTest_getI64() != 0) {
+        return 1;
+    }
+    if (AllTypesTest_getBool() != true) {
+        return 1;
+    }
+    uint8_t newU8Value = 100;
+    AllTypesTest_setU8(&newU8Value);
+    if (AllTypesTest_getU8() != 100) {
+        return 1;
+    }
+    bool newBoolValue = false;
+    AllTypesTest_setBool(&newBoolValue);
+    if (AllTypesTest_getBool() != false) {
+        return 1;
+    }
+    return 0;
 }

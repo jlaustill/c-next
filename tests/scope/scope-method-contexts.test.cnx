@@ -327,10 +327,15 @@ void main() {
     MethodContexts.checkThresholds();
     MethodContexts.getAllFlags();
 
-    // Direct access to public variables
-    MethodContexts.publicValue;
-    MethodContexts.publicClampValue;
-    MethodContexts.publicWrapValue;
-    MethodContexts.publicFlag;
-    MethodContexts.publicOffset;
+    // Direct access to public variables - verify they can be read
+    u8 testValue <- MethodContexts.publicValue;
+    u8 testClamp <- MethodContexts.publicClampValue;
+    u8 testWrap <- MethodContexts.publicWrapValue;
+    bool testFlag <- MethodContexts.publicFlag;
+    i16 testOffset <- MethodContexts.publicOffset;
+
+    // Use the values to prevent warnings
+    if (testValue = 0 && testClamp = 0 && testWrap = 0 && testFlag = false && testOffset = 0) {
+        // Values accessed successfully
+    }
 }
