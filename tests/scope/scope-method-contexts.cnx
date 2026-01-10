@@ -1,0 +1,336 @@
+// Test: ADR-016 Modifiers in public and private method contexts
+// Verifies that this. and global. accessors work correctly in all method contexts
+// Tests: public methods, private methods, local variables with modifiers, combined access patterns
+
+// Global variables for testing global. accessor in all method contexts
+const u8 GLOBAL_MAX <- 100;
+const u16 GLOBAL_THRESHOLD <- 1000;
+u8 globalCounter <- 50;
+bool globalEnabled <- true;
+i16 globalOffset <- -25;
+f32 globalScale <- 2.5;
+
+scope MethodContexts {
+    // Scope-level variables - private (default)
+    u8 privateValue <- 10;
+    clamp u8 privateClampValue <- 200;
+    wrap u8 privateWrapValue <- 250;
+    bool privateFlag <- false;
+    i16 privateOffset <- -50;
+
+    // Scope-level variables - public
+    public u8 publicValue <- 20;
+    public clamp u16 publicClampValue <- 60000;
+    public wrap u16 publicWrapValue <- 65530;
+    public bool publicFlag <- true;
+    public i32 publicOffset <- -1000;
+
+    // ========================================
+    // PRIVATE METHODS - this. accessor tests
+    // ========================================
+
+    // Private method: basic this. access to private members
+    u8 getPrivateValue() {
+        return this.privateValue;
+    }
+
+    // Private method: basic this. access to public members
+    u8 getPublicValueInternal() {
+        return this.publicValue;
+    }
+
+    // Private method: this. with clamp modifier
+    u8 getPrivateClampValue() {
+        return this.privateClampValue;
+    }
+
+    // Private method: this. with wrap modifier
+    u8 getPrivateWrapValue() {
+        return this.privateWrapValue;
+    }
+
+    // Private method: this. modify private clamp variable
+    void incrementPrivateClamp() {
+        this.privateClampValue +<- 100;  // Clamps at 255
+    }
+
+    // Private method: this. modify private wrap variable
+    void incrementPrivateWrap() {
+        this.privateWrapValue +<- 10;  // Wraps around
+    }
+
+    // Private method: boolean this. access
+    bool getPrivateFlag() {
+        return this.privateFlag;
+    }
+
+    // Private method: signed integer this. access
+    i16 getPrivateOffset() {
+        return this.privateOffset;
+    }
+
+    // ========================================
+    // PRIVATE METHODS - global. accessor tests
+    // ========================================
+
+    // Private method: global. access to const global
+    u8 getGlobalMaxInternal() {
+        return global.GLOBAL_MAX;
+    }
+
+    // Private method: global. access to mutable global
+    u8 getGlobalCounterInternal() {
+        return global.globalCounter;
+    }
+
+    // Private method: global. access to bool global
+    bool getGlobalEnabledInternal() {
+        return global.globalEnabled;
+    }
+
+    // Private method: global. access to signed global
+    i16 getGlobalOffsetInternal() {
+        return global.globalOffset;
+    }
+
+    // Private method: global. access to float global
+    f32 getGlobalScaleInternal() {
+        return global.globalScale;
+    }
+
+    // ========================================
+    // PRIVATE METHODS - combined this. and global.
+    // ========================================
+
+    // Private method: combine scope and global values
+    u8 computePrivateSum() {
+        return this.privateValue + global.globalCounter;
+    }
+
+    // Private method: compare scope and global values
+    bool privateValueBelowMax() {
+        return this.privateValue < global.GLOBAL_MAX;
+    }
+
+    // Private method: offset calculation using this. and global.
+    i16 computePrivateWithOffset() {
+        return this.privateOffset + global.globalOffset;
+    }
+
+    // ========================================
+    // PUBLIC METHODS - this. accessor tests
+    // ========================================
+
+    // Public method: basic this. access to private members
+    public u8 getPrivateValueExternal() {
+        return this.privateValue;
+    }
+
+    // Public method: basic this. access to public members
+    public u8 getPublicValue() {
+        return this.publicValue;
+    }
+
+    // Public method: this. with clamp modifier on public variable
+    public u16 getPublicClampValue() {
+        return this.publicClampValue;
+    }
+
+    // Public method: this. with wrap modifier on public variable
+    public u16 getPublicWrapValue() {
+        return this.publicWrapValue;
+    }
+
+    // Public method: this. modify public clamp variable
+    public void incrementPublicClamp() {
+        this.publicClampValue +<- 10000;  // Clamps at 65535
+    }
+
+    // Public method: this. modify public wrap variable
+    public void incrementPublicWrap() {
+        this.publicWrapValue +<- 10;  // Wraps around
+    }
+
+    // Public method: boolean this. access
+    public bool getPublicFlag() {
+        return this.publicFlag;
+    }
+
+    // Public method: signed integer this. access
+    public i32 getPublicOffset() {
+        return this.publicOffset;
+    }
+
+    // Public method: set private value via this.
+    public void setPrivateValue(u8 val) {
+        this.privateValue <- val;
+    }
+
+    // Public method: set public value via this.
+    public void setPublicValue(u8 val) {
+        this.publicValue <- val;
+    }
+
+    // Public method: set private flag via this.
+    public void setPrivateFlag(bool val) {
+        this.privateFlag <- val;
+    }
+
+    // Public method: set public flag via this.
+    public void setPublicFlag(bool val) {
+        this.publicFlag <- val;
+    }
+
+    // ========================================
+    // PUBLIC METHODS - global. accessor tests
+    // ========================================
+
+    // Public method: global. access to const global
+    public u8 getGlobalMax() {
+        return global.GLOBAL_MAX;
+    }
+
+    // Public method: global. access to threshold
+    public u16 getGlobalThreshold() {
+        return global.GLOBAL_THRESHOLD;
+    }
+
+    // Public method: global. access to mutable global
+    public u8 getGlobalCounter() {
+        return global.globalCounter;
+    }
+
+    // Public method: global. access to bool global
+    public bool getGlobalEnabled() {
+        return global.globalEnabled;
+    }
+
+    // Public method: global. access to signed global
+    public i16 getGlobalOffset() {
+        return global.globalOffset;
+    }
+
+    // Public method: global. access to float global
+    public f32 getGlobalScale() {
+        return global.globalScale;
+    }
+
+    // ========================================
+    // PUBLIC METHODS - combined this. and global.
+    // ========================================
+
+    // Public method: combine scope and global values (unsigned)
+    public u8 computePublicSum() {
+        return this.publicValue + global.globalCounter;
+    }
+
+    // Public method: compare scope and global values
+    public bool publicValueBelowMax() {
+        return this.publicValue < global.GLOBAL_MAX;
+    }
+
+    // Public method: offset calculation using this. and global.
+    public i32 computePublicWithOffset() {
+        return this.publicOffset + global.globalOffset;
+    }
+
+    // Public method: call private method (tests method chaining)
+    public u8 getPrivateSumViaInternal() {
+        return this.computePrivateSum();
+    }
+
+    // Public method: call private method that uses global.
+    public u8 getGlobalCounterViaInternal() {
+        return this.getGlobalCounterInternal();
+    }
+
+    // Public method: call private method that uses this.
+    public u8 getPrivateClampViaInternal() {
+        return this.getPrivateClampValue();
+    }
+
+    // ========================================
+    // PUBLIC METHODS - comprehensive tests
+    // ========================================
+
+    // Public method: access all private modifiers via this.
+    public void modifyAllPrivate() {
+        this.privateValue <- this.privateValue + 1;
+        this.privateClampValue +<- 10;
+        this.privateWrapValue +<- 5;
+        this.privateFlag <- !this.privateFlag;
+        this.privateOffset <- this.privateOffset - 10;
+    }
+
+    // Public method: access all public modifiers via this.
+    public void modifyAllPublic() {
+        this.publicValue <- this.publicValue + 1;
+        this.publicClampValue +<- 100;
+        this.publicWrapValue +<- 5;
+        this.publicFlag <- !this.publicFlag;
+        this.publicOffset <- this.publicOffset - 100;
+    }
+
+    // Public method: mixed access - scope members and global values
+    public bool checkThresholds() {
+        return this.publicClampValue < global.GLOBAL_THRESHOLD && this.privateValue < global.GLOBAL_MAX;
+    }
+
+    // Public method: all bool flags
+    public bool getAllFlags() {
+        return this.privateFlag && this.publicFlag && global.globalEnabled;
+    }
+}
+
+void main() {
+    // Test private methods indirectly via public wrappers
+    MethodContexts.getPrivateValueExternal();
+    MethodContexts.getPrivateSumViaInternal();
+    MethodContexts.getGlobalCounterViaInternal();
+    MethodContexts.getPrivateClampViaInternal();
+
+    // Test public methods - this. accessor (basic)
+    MethodContexts.getPublicValue();
+    MethodContexts.getPublicClampValue();
+    MethodContexts.getPublicWrapValue();
+    MethodContexts.getPublicFlag();
+    MethodContexts.getPublicOffset();
+
+    // Test public methods - global. accessor
+    MethodContexts.getGlobalMax();
+    MethodContexts.getGlobalThreshold();
+    MethodContexts.getGlobalCounter();
+    MethodContexts.getGlobalEnabled();
+    MethodContexts.getGlobalOffset();
+    MethodContexts.getGlobalScale();
+
+    // Test public methods - combined this. and global.
+    MethodContexts.computePublicSum();
+    MethodContexts.publicValueBelowMax();
+    MethodContexts.computePublicWithOffset();
+
+    // Test public methods - modify scope variables via this.
+    MethodContexts.setPrivateValue(42);
+    MethodContexts.setPublicValue(84);
+    MethodContexts.setPrivateFlag(true);
+    MethodContexts.setPublicFlag(false);
+
+    // Test public methods - modify clamp/wrap variables
+    MethodContexts.incrementPublicClamp();
+    MethodContexts.incrementPublicWrap();
+
+    // Test comprehensive modification methods
+    MethodContexts.modifyAllPrivate();
+    MethodContexts.modifyAllPublic();
+
+    // Test threshold checks (combined this. and global. in conditions)
+    MethodContexts.checkThresholds();
+    MethodContexts.getAllFlags();
+
+    // Direct access to public variables
+    MethodContexts.publicValue;
+    MethodContexts.publicClampValue;
+    MethodContexts.publicWrapValue;
+    MethodContexts.publicFlag;
+    MethodContexts.publicOffset;
+}

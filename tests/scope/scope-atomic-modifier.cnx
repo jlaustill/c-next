@@ -1,0 +1,107 @@
+// Test: ADR-016 + ADR-049 Atomic variables inside scopes
+// Verifies that atomic modifier works correctly with integer types inside scope methods
+// Tests: atomic variables accessed via this. accessor with compound assignment operators
+
+#pragma target teensy41
+
+scope AtomicTest {
+    // Atomic scope variables - unsigned integers
+    atomic u8 counterU8 <- 0;
+    atomic u16 counterU16 <- 0;
+    atomic u32 counterU32 <- 0;
+
+    // Atomic scope variables - signed integers (u64 not commonly used with atomic)
+    atomic u8 brightness <- 100;
+    atomic u16 position <- 500;
+    atomic u32 ticks <- 0;
+
+    // Public getter methods using this. accessor for atomic variables
+    u8 getCounterU8() {
+        return this.counterU8;
+    }
+
+    u16 getCounterU16() {
+        return this.counterU16;
+    }
+
+    u32 getCounterU32() {
+        return this.counterU32;
+    }
+
+    u8 getBrightness() {
+        return this.brightness;
+    }
+
+    u16 getPosition() {
+        return this.position;
+    }
+
+    u32 getTicks() {
+        return this.ticks;
+    }
+
+    // Increment methods using atomic compound add (+<-)
+    void incrementU8() {
+        this.counterU8 +<- 1;
+    }
+
+    void incrementU16() {
+        this.counterU16 +<- 1;
+    }
+
+    void incrementU32() {
+        this.counterU32 +<- 1;
+    }
+
+    // Decrement methods using atomic compound subtract (-<-)
+    void decrementBrightness() {
+        this.brightness -<- 10;
+    }
+
+    void decrementPosition() {
+        this.position -<- 50;
+    }
+
+    // Bitwise operations using atomic compound operators
+    void maskTicks() {
+        this.ticks &<- 0xFFFF;
+    }
+
+    void setTickFlag() {
+        this.ticks |<- 0x80000000;
+    }
+
+    // Combined increment of all counters
+    void incrementAll() {
+        this.counterU8 +<- 1;
+        this.counterU16 +<- 1;
+        this.counterU32 +<- 1;
+        this.ticks +<- 1;
+    }
+}
+
+void main() {
+    // Test reading atomic values via this. accessor
+    AtomicTest.getCounterU8();
+    AtomicTest.getCounterU16();
+    AtomicTest.getCounterU32();
+    AtomicTest.getBrightness();
+    AtomicTest.getPosition();
+    AtomicTest.getTicks();
+
+    // Test atomic increment operations
+    AtomicTest.incrementU8();
+    AtomicTest.incrementU16();
+    AtomicTest.incrementU32();
+
+    // Test atomic decrement operations
+    AtomicTest.decrementBrightness();
+    AtomicTest.decrementPosition();
+
+    // Test atomic bitwise operations
+    AtomicTest.maskTicks();
+    AtomicTest.setTickFlag();
+
+    // Test combined increments
+    AtomicTest.incrementAll();
+}

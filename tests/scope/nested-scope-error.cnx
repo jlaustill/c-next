@@ -1,0 +1,14 @@
+// Test: ADR-016 nested scopes should produce compile error
+
+scope OuterScope {
+    u8 outerValue <- 10;
+
+    // This should produce a compile error - nested scopes are not allowed
+    scope InnerScope {
+        u8 innerValue <- 5;
+    }
+}
+
+void main() {
+    // Empty main for valid C output structure
+}

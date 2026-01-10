@@ -1,0 +1,1 @@
+7:4 mismatched input 'scope' expecting {'private', 'public', 'register', 'enum', 'bitmap8', 'bitmap16', 'bitmap24', 'bitmap32', 'atomic', 'const', 'clamp', 'wrap', '}', TYPE}

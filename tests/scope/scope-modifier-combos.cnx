@@ -1,0 +1,235 @@
+// Test: ADR-016 + ADR-044 Valid modifier combinations in scopes
+// Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
+// work correctly with scope variables accessed via this. accessor
+
+scope ModifierCombos {
+    // const + clamp combination - immutable with clamp semantics
+    const clamp u8 MAX_BRIGHTNESS <- 255;
+    const clamp u16 MAX_SENSOR <- 65535;
+    const clamp i8 MIN_TEMP <- -128;
+
+    // const + wrap combination - immutable with wrap semantics
+    const wrap u8 COUNTER_START <- 0;
+    const wrap u16 TICK_START <- 1000;
+
+    // public + clamp combination - visible with clamp overflow
+    public clamp u8 publicClampByte <- 200;
+    public clamp u16 publicClampWord <- 60000;
+    public clamp i8 publicClampSigned <- 100;
+
+    // private + clamp combination - hidden with clamp overflow
+    clamp u8 privateClampByte <- 50;
+    clamp u16 privateClampWord <- 10000;
+    clamp i8 privateClampSigned <- -50;
+
+    // public + wrap combination - visible with wrap overflow
+    public wrap u8 publicWrapByte <- 250;
+    public wrap u16 publicWrapWord <- 65530;
+
+    // private + wrap combination - hidden with wrap overflow
+    wrap u8 privateWrapByte <- 5;
+    wrap u16 privateWrapWord <- 100;
+
+    // public + const combination - visible constant
+    public const u8 PUBLIC_CONST <- 42;
+    public const bool PUBLIC_FLAG <- true;
+
+    // private + const combination - hidden constant
+    const u8 PRIVATE_CONST <- 99;
+    const bool PRIVATE_FLAG <- false;
+
+    // Getter methods for const clamp variables
+    u8 getMaxBrightness() {
+        return this.MAX_BRIGHTNESS;
+    }
+
+    u16 getMaxSensor() {
+        return this.MAX_SENSOR;
+    }
+
+    i8 getMinTemp() {
+        return this.MIN_TEMP;
+    }
+
+    // Getter methods for const wrap variables
+    u8 getCounterStart() {
+        return this.COUNTER_START;
+    }
+
+    u16 getTickStart() {
+        return this.TICK_START;
+    }
+
+    // Getter methods for public clamp variables
+    public u8 getPublicClampByte() {
+        return this.publicClampByte;
+    }
+
+    public u16 getPublicClampWord() {
+        return this.publicClampWord;
+    }
+
+    public i8 getPublicClampSigned() {
+        return this.publicClampSigned;
+    }
+
+    // Getter methods for private clamp variables
+    u8 getPrivateClampByte() {
+        return this.privateClampByte;
+    }
+
+    u16 getPrivateClampWord() {
+        return this.privateClampWord;
+    }
+
+    i8 getPrivateClampSigned() {
+        return this.privateClampSigned;
+    }
+
+    // Getter methods for public wrap variables
+    public u8 getPublicWrapByte() {
+        return this.publicWrapByte;
+    }
+
+    public u16 getPublicWrapWord() {
+        return this.publicWrapWord;
+    }
+
+    // Getter methods for private wrap variables
+    u8 getPrivateWrapByte() {
+        return this.privateWrapByte;
+    }
+
+    u16 getPrivateWrapWord() {
+        return this.privateWrapWord;
+    }
+
+    // Getter methods for public const variables
+    public u8 getPublicConst() {
+        return this.PUBLIC_CONST;
+    }
+
+    public bool getPublicFlag() {
+        return this.PUBLIC_FLAG;
+    }
+
+    // Getter methods for private const variables
+    u8 getPrivateConst() {
+        return this.PRIVATE_CONST;
+    }
+
+    bool getPrivateFlag() {
+        return this.PRIVATE_FLAG;
+    }
+
+    // Methods to modify public clamp variables (test clamp overflow)
+    public void increasePublicClampByte() {
+        this.publicClampByte +<- 100;  // Would overflow, clamps to 255
+    }
+
+    public void decreasePublicClampSigned() {
+        this.publicClampSigned -<- 50;  // Normal decrease
+    }
+
+    // Methods to modify private clamp variables (test clamp overflow)
+    void increasePrivateClampByte() {
+        this.privateClampByte +<- 220;  // Would overflow, clamps to 255
+    }
+
+    void decreasePrivateClampWord() {
+        this.privateClampWord -<- 15000;  // Would underflow, clamps to 0
+    }
+
+    // Methods to modify public wrap variables (test wrap overflow)
+    public void incrementPublicWrapByte() {
+        this.publicWrapByte +<- 10;  // 250 + 10 = 260 -> wraps to 4
+    }
+
+    public void incrementPublicWrapWord() {
+        this.publicWrapWord +<- 10;  // 65530 + 10 = 65540 -> wraps to 4
+    }
+
+    // Methods to modify private wrap variables (test wrap overflow)
+    void decrementPrivateWrapByte() {
+        this.privateWrapByte -<- 10;  // 5 - 10 = -5 -> wraps to 251
+    }
+
+    void decrementPrivateWrapWord() {
+        this.privateWrapWord -<- 150;  // 100 - 150 = -50 -> wraps to 65486
+    }
+
+    // Combined operations testing multiple modifier combinations
+    public void adjustAllClamp() {
+        this.publicClampByte +<- 10;
+        this.publicClampSigned -<- 5;
+        this.increasePrivateClampByte();
+    }
+
+    public void adjustAllWrap() {
+        this.publicWrapByte +<- 1;
+        this.publicWrapWord +<- 1;
+        this.decrementPrivateWrapByte();
+    }
+}
+
+void main() {
+    // Test reading const clamp values
+    ModifierCombos.getMaxBrightness();
+    ModifierCombos.getMaxSensor();
+    ModifierCombos.getMinTemp();
+
+    // Test reading const wrap values
+    ModifierCombos.getCounterStart();
+    ModifierCombos.getTickStart();
+
+    // Test reading public clamp values
+    ModifierCombos.getPublicClampByte();
+    ModifierCombos.getPublicClampWord();
+    ModifierCombos.getPublicClampSigned();
+
+    // Test reading private clamp values via public methods
+    ModifierCombos.getPrivateClampByte();
+    ModifierCombos.getPrivateClampWord();
+    ModifierCombos.getPrivateClampSigned();
+
+    // Test reading public wrap values
+    ModifierCombos.getPublicWrapByte();
+    ModifierCombos.getPublicWrapWord();
+
+    // Test reading private wrap values via public methods
+    ModifierCombos.getPrivateWrapByte();
+    ModifierCombos.getPrivateWrapWord();
+
+    // Test reading public const values
+    ModifierCombos.getPublicConst();
+    ModifierCombos.getPublicFlag();
+
+    // Test reading private const values via public methods
+    ModifierCombos.getPrivateConst();
+    ModifierCombos.getPrivateFlag();
+
+    // Test modifying public clamp variables (overflow clamping)
+    ModifierCombos.increasePublicClampByte();
+    ModifierCombos.decreasePublicClampSigned();
+
+    // Test modifying public wrap variables (overflow wrapping)
+    ModifierCombos.incrementPublicWrapByte();
+    ModifierCombos.incrementPublicWrapWord();
+
+    // Test combined operations
+    ModifierCombos.adjustAllClamp();
+    ModifierCombos.adjustAllWrap();
+
+    // Direct access to public clamp variables
+    ModifierCombos.publicClampByte;
+    ModifierCombos.publicClampWord;
+    ModifierCombos.publicClampSigned;
+
+    // Direct access to public wrap variables
+    ModifierCombos.publicWrapByte;
+    ModifierCombos.publicWrapWord;
+
+    // Direct access to public const variables
+    ModifierCombos.PUBLIC_CONST;
+    ModifierCombos.PUBLIC_FLAG;
+}

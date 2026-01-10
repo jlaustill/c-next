@@ -1,0 +1,136 @@
+/* test-execution */
+// Test: ADR-016 this. accessor with all primitive types
+// Verifies that this. works correctly with every C-Next primitive type inside scope methods
+
+scope AllTypesTest {
+    // Unsigned integers
+    u8 valU8 <- 255;
+    u16 valU16 <- 65535;
+    u32 valU32 <- 4294967295;
+    u64 valU64 <- 0;
+
+    // Signed integers
+    i8 valI8 <- -128;
+    i16 valI16 <- -32768;
+    i32 valI32 <- -2147483648;
+    i64 valI64 <- 0;
+
+    // Floating point
+    f32 valF32 <- 3.14;
+    f64 valF64 <- 3.141592653589793;
+
+    // Boolean
+    bool valBool <- true;
+
+    // Getters using this. accessor - Unsigned integers
+    public u8 getU8() {
+        return this.valU8;
+    }
+
+    public u16 getU16() {
+        return this.valU16;
+    }
+
+    public u32 getU32() {
+        return this.valU32;
+    }
+
+    public u64 getU64() {
+        return this.valU64;
+    }
+
+    // Getters using this. accessor - Signed integers
+    public i8 getI8() {
+        return this.valI8;
+    }
+
+    public i16 getI16() {
+        return this.valI16;
+    }
+
+    public i32 getI32() {
+        return this.valI32;
+    }
+
+    public i64 getI64() {
+        return this.valI64;
+    }
+
+    // Getters using this. accessor - Floating point
+    public f32 getF32() {
+        return this.valF32;
+    }
+
+    public f64 getF64() {
+        return this.valF64;
+    }
+
+    // Getter using this. accessor - Boolean
+    public bool getBool() {
+        return this.valBool;
+    }
+
+    // Setters using this. accessor to test assignment
+    public void setU8(u8 val) {
+        this.valU8 <- val;
+    }
+
+    public void setBool(bool val) {
+        this.valBool <- val;
+    }
+
+    public void setF64(f64 val) {
+        this.valF64 <- val;
+    }
+}
+
+i32 main() {
+    // Test all getter methods using this. accessor - verify returned values
+
+    // Unsigned integers
+    if (AllTypesTest.getU8() != 255) {
+        return 1;
+    }
+    if (AllTypesTest.getU16() != 65535) {
+        return 1;
+    }
+    if (AllTypesTest.getU32() != 4294967295) {
+        return 1;
+    }
+    if (AllTypesTest.getU64() != 0) {
+        return 1;
+    }
+
+    // Signed integers
+    if (AllTypesTest.getI8() != -128) {
+        return 1;
+    }
+    if (AllTypesTest.getI16() != -32768) {
+        return 1;
+    }
+    if (AllTypesTest.getI32() != -2147483648) {
+        return 1;
+    }
+    if (AllTypesTest.getI64() != 0) {
+        return 1;
+    }
+
+    // Boolean
+    if (AllTypesTest.getBool() != true) {
+        return 1;
+    }
+
+    // Test setters - modify and verify
+    AllTypesTest.setU8(100);
+    if (AllTypesTest.getU8() != 100) {
+        return 1;
+    }
+
+    AllTypesTest.setBool(false);
+    if (AllTypesTest.getBool() != false) {
+        return 1;
+    }
+
+    // All tests passed
+    return 0;
+}

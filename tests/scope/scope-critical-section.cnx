@@ -1,0 +1,233 @@
+// Test: ADR-016 + ADR-050 Critical sections inside scope methods
+// Verifies that critical { } blocks work correctly inside scope methods
+// Tests: public method with critical, private method with critical, this. inside critical, global. inside critical
+
+// Global variables for testing global. accessor inside critical sections
+u8 globalSharedBuffer[16];
+u32 globalWriteIndex <- 0;
+u32 globalReadIndex <- 0;
+bool globalBufferLock <- false;
+
+scope CriticalTest {
+    // Scope-level variables accessed via this. inside critical sections
+    u8 buffer[32];
+    u32 writeIndex <- 0;
+    u32 readIndex <- 0;
+    u8 count <- 0;
+    bool locked <- false;
+
+    // ========================================
+    // PRIVATE METHODS with critical sections
+    // ========================================
+
+    // Private method: basic critical section with this. accessor
+    void internalEnqueue(u8 data) {
+        critical {
+            this.buffer[this.writeIndex] <- data;
+            this.writeIndex +<- 1;
+            this.count +<- 1;
+        }
+    }
+
+    // Private method: critical section with conditional and this.
+    u8 internalDequeue() {
+        u8 result <- 0;
+        critical {
+            if (this.count > 0) {
+                result <- this.buffer[this.readIndex];
+                this.readIndex +<- 1;
+                this.count -<- 1;
+            }
+        }
+        return result;
+    }
+
+    // Private method: critical section with global. accessor
+    void internalUpdateGlobal() {
+        critical {
+            global.globalWriteIndex +<- 1;
+            global.globalBufferLock <- true;
+        }
+    }
+
+    // Private method: critical section with combined this. and global.
+    void internalTransfer() {
+        critical {
+            u8 data <- this.buffer[this.readIndex];
+            global.globalSharedBuffer[global.globalWriteIndex] <- data;
+            this.readIndex +<- 1;
+            global.globalWriteIndex +<- 1;
+        }
+    }
+
+    // Private method: critical section with boolean flag operations
+    bool internalTryLock() {
+        bool acquired <- false;
+        critical {
+            if (!this.locked) {
+                this.locked <- true;
+                acquired <- true;
+            }
+        }
+        return acquired;
+    }
+
+    // Private method: critical section unlock
+    void internalUnlock() {
+        critical {
+            this.locked <- false;
+        }
+    }
+
+    // ========================================
+    // PUBLIC METHODS with critical sections
+    // ========================================
+
+    // Public method: basic critical section with this. accessor
+    public void enqueue(u8 data) {
+        critical {
+            this.buffer[this.writeIndex] <- data;
+            this.writeIndex +<- 1;
+            this.count +<- 1;
+        }
+    }
+
+    // Public method: critical section with conditional and this.
+    public u8 dequeue() {
+        u8 result <- 0;
+        critical {
+            if (this.count > 0) {
+                result <- this.buffer[this.readIndex];
+                this.readIndex +<- 1;
+                this.count -<- 1;
+            }
+        }
+        return result;
+    }
+
+    // Public method: critical section with global. accessor
+    public void updateGlobalIndex() {
+        critical {
+            global.globalWriteIndex +<- 1;
+            global.globalReadIndex +<- 1;
+        }
+    }
+
+    // Public method: critical section with combined this. and global.
+    public void transferToGlobal() {
+        critical {
+            u8 data <- this.buffer[this.readIndex];
+            global.globalSharedBuffer[global.globalWriteIndex] <- data;
+            this.readIndex +<- 1;
+            this.count -<- 1;
+            global.globalWriteIndex +<- 1;
+        }
+    }
+
+    // Public method: get count inside critical section
+    public u8 getCount() {
+        u8 result <- 0;
+        critical {
+            result <- this.count;
+        }
+        return result;
+    }
+
+    // Public method: boolean flag operation in critical section
+    public bool tryLock() {
+        bool acquired <- false;
+        critical {
+            if (!this.locked) {
+                this.locked <- true;
+                acquired <- true;
+            }
+        }
+        return acquired;
+    }
+
+    // Public method: unlock in critical section
+    public void unlock() {
+        critical {
+            this.locked <- false;
+        }
+    }
+
+    // Public method: check if locked (thread-safe read)
+    public bool isLocked() {
+        bool result <- false;
+        critical {
+            result <- this.locked;
+        }
+        return result;
+    }
+
+    // Public method: multiple operations in single critical section
+    public void resetAll() {
+        critical {
+            this.writeIndex <- 0;
+            this.readIndex <- 0;
+            this.count <- 0;
+            this.locked <- false;
+        }
+    }
+
+    // Public method: compare scope and global values in critical section
+    public bool isInSync() {
+        bool inSync <- false;
+        critical {
+            inSync <- this.writeIndex == global.globalWriteIndex;
+        }
+        return inSync;
+    }
+
+    // ========================================
+    // PUBLIC METHODS calling private methods with critical
+    // ========================================
+
+    // Public wrapper that calls internal critical method
+    public void safeEnqueue(u8 data) {
+        this.internalEnqueue(data);
+    }
+
+    // Public wrapper that calls internal critical method
+    public u8 safeDequeue() {
+        return this.internalDequeue();
+    }
+
+    // Public method: chain lock-operation-unlock pattern
+    public void lockedEnqueue(u8 data) {
+        this.internalTryLock();
+        this.internalEnqueue(data);
+        this.internalUnlock();
+    }
+}
+
+void main() {
+    // Test public methods with critical sections - basic this. operations
+    CriticalTest.enqueue(42);
+    CriticalTest.enqueue(84);
+    CriticalTest.dequeue();
+
+    // Test public methods with critical sections - global. operations
+    CriticalTest.updateGlobalIndex();
+    CriticalTest.transferToGlobal();
+
+    // Test thread-safe reads
+    CriticalTest.getCount();
+    CriticalTest.isLocked();
+
+    // Test lock/unlock pattern
+    CriticalTest.tryLock();
+    CriticalTest.unlock();
+
+    // Test reset
+    CriticalTest.resetAll();
+
+    // Test sync check
+    CriticalTest.isInSync();
+
+    // Test wrappers calling internal critical methods
+    CriticalTest.safeEnqueue(10);
+    CriticalTest.safeDequeue();
+    CriticalTest.lockedEnqueue(20);
+}

@@ -1,0 +1,112 @@
+// Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
+// Verifies that clamp modifier works correctly with integer types inside scope methods
+// Tests: clamp variables accessed via this. accessor with compound assignment operators
+
+scope ClampTest {
+    // Clamp scope variables - unsigned integers
+    clamp u8 brightness <- 200;
+    clamp u16 sensorValue <- 60000;
+    clamp u32 counter <- 4000000000;
+
+    // Clamp scope variables - signed integers
+    clamp i8 temperature <- -100;
+    clamp i16 altitude <- 30000;
+    clamp i32 position <- 2000000000;
+
+    // Public getter methods using this. accessor for clamp variables
+    u8 getBrightness() {
+        return this.brightness;
+    }
+
+    u16 getSensorValue() {
+        return this.sensorValue;
+    }
+
+    u32 getCounter() {
+        return this.counter;
+    }
+
+    i8 getTemperature() {
+        return this.temperature;
+    }
+
+    i16 getAltitude() {
+        return this.altitude;
+    }
+
+    i32 getPosition() {
+        return this.position;
+    }
+
+    // Increment methods using clamp compound add (+<-)
+    // These test overflow clamping to maximum values
+    void increaseBrightness() {
+        this.brightness +<- 100;  // Would overflow, clamps to 255
+    }
+
+    void increaseSensorValue() {
+        this.sensorValue +<- 10000;  // Would overflow, clamps to 65535
+    }
+
+    void increaseCounter() {
+        this.counter +<- 500000000;  // Would overflow, clamps to UINT32_MAX
+    }
+
+    // Decrement methods using clamp compound subtract (-<-)
+    // These test underflow clamping to minimum values
+    void decreaseTemperature() {
+        this.temperature -<- 50;  // Would underflow, clamps to -128
+    }
+
+    void decreaseAltitude() {
+        this.altitude -<- 5000;  // Normal decrease, no clamping needed
+    }
+
+    void decreasePosition() {
+        this.position -<- 100000000;  // Normal decrease, no clamping needed
+    }
+
+    // Test unsigned underflow - clamps to 0
+    void dimBrightness() {
+        this.brightness -<- 250;  // Would underflow, clamps to 0
+    }
+
+    void resetSensor() {
+        this.sensorValue -<- 65000;  // Would underflow, clamps to 0
+    }
+
+    // Combined operations to test multiple clamp behaviors
+    void adjustAll() {
+        this.brightness +<- 10;
+        this.sensorValue +<- 100;
+        this.temperature -<- 5;
+        this.altitude +<- 1000;
+    }
+}
+
+void main() {
+    // Test reading clamp values via this. accessor
+    ClampTest.getBrightness();
+    ClampTest.getSensorValue();
+    ClampTest.getCounter();
+    ClampTest.getTemperature();
+    ClampTest.getAltitude();
+    ClampTest.getPosition();
+
+    // Test clamp overflow operations (add)
+    ClampTest.increaseBrightness();
+    ClampTest.increaseSensorValue();
+    ClampTest.increaseCounter();
+
+    // Test clamp operations (subtract)
+    ClampTest.decreaseTemperature();
+    ClampTest.decreaseAltitude();
+    ClampTest.decreasePosition();
+
+    // Test unsigned underflow clamping
+    ClampTest.dimBrightness();
+    ClampTest.resetSensor();
+
+    // Test combined operations
+    ClampTest.adjustAll();
+}

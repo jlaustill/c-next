@@ -1,0 +1,99 @@
+// Test: ADR-016 public and private visibility modifiers on scope members and methods
+// Verifies public members are accessible from outside scope and private are only internal
+
+scope Visibility {
+    // Private variables (default - no modifier)
+    u8 privateCounter <- 0;
+    bool privateFlag <- false;
+
+    // Public variables (explicit public modifier)
+    public u8 publicCounter <- 10;
+    public bool publicFlag <- true;
+
+    // Private method (default - no modifier)
+    u8 getPrivateCounterInternal() {
+        return this.privateCounter;
+    }
+
+    // Private method that modifies private state
+    void incrementPrivateCounter() {
+        this.privateCounter <- this.privateCounter + 1;
+    }
+
+    // Private method that uses private flag
+    bool checkPrivateFlag() {
+        return this.privateFlag;
+    }
+
+    // Public method that accesses private members
+    public u8 getPrivateCounter() {
+        return this.privateCounter;
+    }
+
+    // Public method that calls private method
+    public u8 getPrivateCounterViaInternal() {
+        return this.getPrivateCounterInternal();
+    }
+
+    // Public method that accesses public members
+    public u8 getPublicCounter() {
+        return this.publicCounter;
+    }
+
+    // Public method that modifies public state
+    public void setPublicCounter(u8 val) {
+        this.publicCounter <- val;
+    }
+
+    // Public method that modifies private state (encapsulation)
+    public void incrementPrivate() {
+        this.incrementPrivateCounter();
+    }
+
+    // Public method that tests both private and public members
+    public u8 getSum() {
+        return this.privateCounter + this.publicCounter;
+    }
+
+    // Public method that uses private and public flags
+    public bool getBothFlags() {
+        return this.privateFlag && this.publicFlag;
+    }
+
+    // Public setter for private flag (encapsulation)
+    public void setPrivateFlag(bool val) {
+        this.privateFlag <- val;
+    }
+
+    // Public setter for public flag
+    public void setPublicFlag(bool val) {
+        this.publicFlag <- val;
+    }
+}
+
+void main() {
+    // Access public variables directly
+    Visibility.publicCounter;
+    Visibility.publicFlag;
+
+    // Access private variables via public methods (encapsulation)
+    Visibility.getPrivateCounter();
+    Visibility.getPrivateCounterViaInternal();
+
+    // Access public variables via public methods
+    Visibility.getPublicCounter();
+
+    // Modify public state directly
+    Visibility.publicCounter <- 20;
+
+    // Modify public state via public methods
+    Visibility.setPublicCounter(30);
+
+    // Modify private state via public methods (encapsulation)
+    Visibility.incrementPrivate();
+    Visibility.setPrivateFlag(true);
+
+    // Test combined access
+    Visibility.getSum();
+    Visibility.getBothFlags();
+}

@@ -1,0 +1,136 @@
+/* test-execution */
+// Test: ADR-016 global. accessor with all primitive types
+// Verifies that global. works correctly with every C-Next primitive type inside scope methods
+
+// Unsigned integer globals
+u8 globalU8 <- 255;
+u16 globalU16 <- 65535;
+u32 globalU32 <- 4294967295;
+u64 globalU64 <- 0;
+
+// Signed integer globals
+i8 globalI8 <- -128;
+i16 globalI16 <- -32768;
+i32 globalI32 <- -2147483648;
+i64 globalI64 <- 0;
+
+// Floating point globals
+f32 globalF32 <- 3.14;
+f64 globalF64 <- 3.141592653589793;
+
+// Boolean global
+bool globalBool <- true;
+
+scope GlobalAccessTest {
+    // Getters using global. accessor - Unsigned integers
+    public u8 getGlobalU8() {
+        return global.globalU8;
+    }
+
+    public u16 getGlobalU16() {
+        return global.globalU16;
+    }
+
+    public u32 getGlobalU32() {
+        return global.globalU32;
+    }
+
+    public u64 getGlobalU64() {
+        return global.globalU64;
+    }
+
+    // Getters using global. accessor - Signed integers
+    public i8 getGlobalI8() {
+        return global.globalI8;
+    }
+
+    public i16 getGlobalI16() {
+        return global.globalI16;
+    }
+
+    public i32 getGlobalI32() {
+        return global.globalI32;
+    }
+
+    public i64 getGlobalI64() {
+        return global.globalI64;
+    }
+
+    // Getters using global. accessor - Floating point
+    public f32 getGlobalF32() {
+        return global.globalF32;
+    }
+
+    public f64 getGlobalF64() {
+        return global.globalF64;
+    }
+
+    // Getter using global. accessor - Boolean
+    public bool getGlobalBool() {
+        return global.globalBool;
+    }
+
+    // Setters using global. accessor to test assignment
+    public void setGlobalU8(u8 val) {
+        global.globalU8 <- val;
+    }
+
+    public void setGlobalBool(bool val) {
+        global.globalBool <- val;
+    }
+
+    public void setGlobalF64(f64 val) {
+        global.globalF64 <- val;
+    }
+}
+
+i32 main() {
+    // Test all getter methods using global. accessor - verify returned values
+
+    // Unsigned integers
+    if (GlobalAccessTest.getGlobalU8() != 255) {
+        return 1;
+    }
+    if (GlobalAccessTest.getGlobalU16() != 65535) {
+        return 1;
+    }
+    if (GlobalAccessTest.getGlobalU32() != 4294967295) {
+        return 1;
+    }
+    if (GlobalAccessTest.getGlobalU64() != 0) {
+        return 1;
+    }
+
+    // Signed integers
+    if (GlobalAccessTest.getGlobalI8() != -128) {
+        return 1;
+    }
+    if (GlobalAccessTest.getGlobalI16() != -32768) {
+        return 1;
+    }
+    if (GlobalAccessTest.getGlobalI32() != -2147483648) {
+        return 1;
+    }
+    if (GlobalAccessTest.getGlobalI64() != 0) {
+        return 1;
+    }
+
+    // Boolean
+    if (GlobalAccessTest.getGlobalBool() != true) {
+        return 1;
+    }
+
+    // Test setters - modify and verify
+    GlobalAccessTest.setGlobalU8(100);
+    if (GlobalAccessTest.getGlobalU8() != 100) {
+        return 1;
+    }
+
+    GlobalAccessTest.setGlobalBool(false);
+    if (GlobalAccessTest.getGlobalBool() != false) {
+        return 1;
+    }
+
+    // All tests passed
+    return 0;
+}

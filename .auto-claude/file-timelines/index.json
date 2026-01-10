@@ -349,7 +349,12 @@
     ".auto-claude/tickets/medium-priority/wrap-u64.md",
     ".auto-claude/tickets/medium-priority/wrap-u8.md",
     ".auto-claude/tickets/medium-priority/wrap-with-atomic.md",
-    ".auto-claude-status"
+    "tests/scope/global-all-types.cnx",
+    "tests/scope/global-all-types.expected.c",
+    "tests/scope/nested-scope-error.cnx",
+    "tests/scope/nested-scope-error.expected.error",
+    "tests/scope/scope-public-private.cnx",
+    "tests/scope/scope-public-private.expected.c"
   ],
-  "last_updated": "2026-01-10T06:59:45.018413"
+  "last_updated": "2026-01-10T07:02:20.268921"
 }
