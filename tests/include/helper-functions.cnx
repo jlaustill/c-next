@@ -1,0 +1,5 @@
+// Helper file with function declarations
+// This file will be included by other tests
+
+i32 add(i32 a, i32 b);
+i32 multiply(i32 a, i32 b);
