@@ -1,0 +1,55 @@
+// ADR-013: Logical OR (||) must short-circuit
+// If left operand is true, right operand must NOT be evaluated
+
+u32 sideEffectCounter <- 0;
+
+bool causeSideEffect() {
+    sideEffectCounter +<- 1;
+    return false;
+}
+
+void testOrShortCircuit() {
+    // Case 1: Left is true - right should NOT execute
+    sideEffectCounter <- 0;
+    bool result1 <- true || causeSideEffect();
+
+    // If short-circuit works: sideEffectCounter should still be 0
+    // If it doesn't work: sideEffectCounter would be 1 (BUG!)
+
+    // Case 2: Left is false - right SHOULD execute
+    sideEffectCounter <- 0;
+    bool result2 <- false || causeSideEffect();
+
+    // Here sideEffectCounter should be 1 (right side was evaluated)
+}
+
+void testOrShortCircuitWithComparison() {
+    u32 value <- 1;
+    sideEffectCounter <- 0;
+
+    // Common pattern: default value check before expensive operation
+    // If value is non-zero, second part should NOT execute
+    bool result <- (value != 0) || causeSideEffect();
+
+    // sideEffectCounter should be 0 because left was true
+}
+
+void testOrShortCircuitChained() {
+    sideEffectCounter <- 0;
+
+    // Multiple ORs: should stop at first true
+    bool result <- true || causeSideEffect() || causeSideEffect();
+
+    // sideEffectCounter should be 0 (neither call executed)
+}
+
+void testOrShortCircuitMixed() {
+    sideEffectCounter <- 0;
+
+    // Mixed: first is false, second is true, third shouldn't evaluate
+    bool a <- false;
+    bool b <- true;
+    bool result <- a || b || causeSideEffect();
+
+    // sideEffectCounter should be 0 (stopped at b which is true)
+}

@@ -1,0 +1,44 @@
+// ADR-013: Logical AND (&&) must short-circuit
+// If left operand is false, right operand must NOT be evaluated
+
+u32 sideEffectCounter <- 0;
+
+bool causeSideEffect() {
+    sideEffectCounter +<- 1;
+    return true;
+}
+
+void testAndShortCircuit() {
+    // Case 1: Left is false - right should NOT execute
+    sideEffectCounter <- 0;
+    bool result1 <- false && causeSideEffect();
+
+    // If short-circuit works: sideEffectCounter should still be 0
+    // If it doesn't work: sideEffectCounter would be 1 (BUG!)
+
+    // Case 2: Left is true - right SHOULD execute
+    sideEffectCounter <- 0;
+    bool result2 <- true && causeSideEffect();
+
+    // Here sideEffectCounter should be 1 (right side was evaluated)
+}
+
+void testAndShortCircuitWithComparison() {
+    u32 value <- 0;
+    sideEffectCounter <- 0;
+
+    // Critical pattern: null-like check before dereference
+    // If value is 0, second part should NOT execute
+    bool result <- (value != 0) && causeSideEffect();
+
+    // sideEffectCounter should be 0 because left was false
+}
+
+void testAndShortCircuitChained() {
+    sideEffectCounter <- 0;
+
+    // Multiple ANDs: should stop at first false
+    bool result <- false && causeSideEffect() && causeSideEffect();
+
+    // sideEffectCounter should be 0 (neither call executed)
+}

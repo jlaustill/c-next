@@ -686,7 +686,7 @@ This document tracks test coverage for every language construct in every valid c
 | In do-while condition | [x] | `do-while/do-while-logical.test.cnx` |
 | In ternary condition | [x] | `ternary/ternary-logical.test.cnx` |
 | As standalone expression | [ ] | |
-| Short-circuit evaluation | [ ] | |
+| Short-circuit evaluation | [x] | `logical/and-short-circuit.test.cnx`, `logical/short-circuit-safety.test.cnx` |
 | With bool operands | [x] | |
 | With comparison operands | [x] | |
 | Chained (a && b && c) | [ ] | |
@@ -701,7 +701,7 @@ This document tracks test coverage for every language construct in every valid c
 | In do-while condition | [x] | |
 | In ternary condition | [x] | |
 | As standalone expression | [ ] | |
-| Short-circuit evaluation | [ ] | |
+| Short-circuit evaluation | [x] | `logical/or-short-circuit.test.cnx`, `logical/short-circuit-safety.test.cnx` |
 | In switch case labels | [x] | `switch/switch-multiple-cases.test.cnx` |
 | Chained (a \|\| b \|\| c) | [ ] | |
 
@@ -1505,7 +1505,7 @@ This document tracks test coverage for every language construct in every valid c
 
 *Last updated: 2026-01-10*
 
-**Current Test Count: 210 passing tests**
+**Current Test Count: 213 passing tests** (added 3 short-circuit evaluation tests)
 
 | Category | Estimated Coverage |
 |----------|-------------------|
@@ -1514,7 +1514,7 @@ This document tracks test coverage for every language construct in every valid c
 | Comparison Operators | ~50% (float comparisons missing) |
 | Arithmetic Operators | ~30% (float ops missing) |
 | Bitwise Operators | ~20% (only u32 well tested) |
-| Logical Operators | ~70% (basic contexts covered) |
+| Logical Operators | ~80% (short-circuit now tested, chaining gaps remain) |
 | Control Flow | ~80% (good coverage, some nesting gaps) |
 | Type Declarations | ~75% (structs/enums good, bitmaps sparse) |
 | Functions | ~85% (solid basic coverage) |

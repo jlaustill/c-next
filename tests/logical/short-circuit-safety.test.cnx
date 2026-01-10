@@ -1,0 +1,63 @@
+// ADR-013: Short-circuit evaluation prevents unsafe operations
+// Critical for embedded systems where bounds checking and validation matter
+
+u32 accessCount <- 0;
+u32 dangerousValue <- 0;
+
+bool isIndexSafe(u32 index) {
+    return index < 5;
+}
+
+u32 performDangerousOperation(u32 index) {
+    accessCount +<- 1;
+    dangerousValue <- index * 2;
+    return dangerousValue;
+}
+
+void testSafeGuardPattern() {
+    accessCount <- 0;
+
+    // CRITICAL: If short-circuit fails, dangerous operation executes when it shouldn't
+    // With proper short-circuit: isIndexSafe(10) returns false, performDangerousOperation never runs
+    bool result <- isIndexSafe(10) && (performDangerousOperation(10) > 0);
+
+    // accessCount should be 0 - operation was never performed
+}
+
+void testSafeGuardPatternValid() {
+    accessCount <- 0;
+
+    // Valid index: both sides should evaluate
+    bool result <- isIndexSafe(2) && (performDangerousOperation(2) >= 0);
+
+    // accessCount should be 1 - operation was performed
+}
+
+void testOrSafetyPattern() {
+    accessCount <- 0;
+    u32 invalidIndex <- 100;
+
+    // Common pattern: use default if out of bounds
+    // If index is invalid (>= 5), don't perform operation
+    bool shouldUseDefault <- (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) = 0);
+
+    // accessCount should be 0 - operation never executed due to short-circuit
+}
+
+struct TStatusRegister {
+    u32 enabled;
+    u32 value;
+}
+
+TStatusRegister status;
+
+void testNullLikeCheck() {
+    status.enabled <- 0;
+    accessCount <- 0;
+
+    // Pattern: check if peripheral is enabled before reading value
+    // If not enabled, don't access value (might be hardware register)
+    bool shouldRead <- (status.enabled != 0) && (status.value > 0);
+
+    // Safe even if status.value would trigger hardware read
+}
