@@ -582,7 +582,10 @@ This document tracks test coverage for every language construct in every valid c
 | f32 / f32                    | [ ]    |                                                |
 | f64 / f64                    | [ ]    |                                                |
 | Integer / Literal            | [x]    |                                                |
-| Division by zero **(ERROR)** | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
+| Division by zero **(ERROR)**      | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
+| Division by const zero **(ERROR)** | [x]    | `arithmetic/division-by-const-zero.test.cnx`  |
+| Division const zero formats **(ERROR)** | [x]    | `arithmetic/division-const-zero-formats.test.cnx` |
+| Division by const non-zero    | [x]    | `arithmetic/division-const-non-zero.test.cnx`  |
 | Safe division (ADR-051)      | [x]    | `arithmetic/safe-div-basic.test.cnx`           |
 | Safe div preserve on error   | [x]    | `arithmetic/safe-div-preserve-on-error.test.cnx` |
 | Safe div all types           | [x]    | `arithmetic/safe-div-all-types.test.cnx`       |
@@ -591,11 +594,12 @@ This document tracks test coverage for every language construct in every valid c
 
 | Operand Types              | Status | Test File                                    |
 | -------------------------- | ------ | -------------------------------------------- |
-| u32 % u32                  | [x]    |                                              |
-| i32 % i32                  | [x]    |                                              |
-| Integer % Literal          | [x]    |                                              |
-| Modulo by zero **(ERROR)** | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx` |
-| Safe modulo (ADR-051)      | [x]    | `arithmetic/safe-mod-basic.test.cnx`         |
+| u32 % u32                       | [x]    |                                              |
+| i32 % i32                       | [x]    |                                              |
+| Integer % Literal               | [x]    |                                              |
+| Modulo by zero **(ERROR)**      | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx` |
+| Modulo by const zero **(ERROR)** | [x]    | `arithmetic/modulo-by-const-zero.test.cnx`  |
+| Safe modulo (ADR-051)           | [x]    | `arithmetic/safe-mod-basic.test.cnx`         |
 
 ---
 
@@ -1509,7 +1513,7 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 _Last updated: 2026-01-10_
 
-**Current Test Count: 221 passing tests** (213 + 4 division by zero tests + 4 safe_div/safe_mod tests)
+**Current Test Count: 225 passing tests** (213 + 4 literal zero tests + 4 safe_div/safe_mod tests + 4 const zero tests)
 
 | Category             | Estimated Coverage                                    |
 | -------------------- | ----------------------------------------------------- |

@@ -2,10 +2,12 @@
  * Division By Zero Analyzer
  * Detects division and modulo by zero at compile time (ADR-051)
  *
- * Phases:
- * 1. Literal zero detection (10 / 0, 10 % 0)
- * 2. Const zero detection (const ZERO <- 0; x / ZERO)
- * 3. Const expression evaluation (const VALUE <- 5 - 5; x / VALUE)
+ * Implemented Phases:
+ * ✓ Phase 1: Literal zero detection (10 / 0, 10 % 0)
+ * ✓ Phase 3: Const zero detection (const u32 ZERO <- 0; x / ZERO)
+ *
+ * Future Enhancement (Phase 3+):
+ * - Const expression evaluation (const u32 VALUE <- 5 - 5; x / VALUE)
  */
 
 import { ParseTreeWalker } from "antlr4ng";

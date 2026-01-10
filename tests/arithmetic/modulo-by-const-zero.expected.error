@@ -1,1 +1,1 @@
-4:11 missing IDENTIFIER at '<-'
+7:26 error[E0802]: Modulo by zero
