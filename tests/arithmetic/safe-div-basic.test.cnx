@@ -1,0 +1,38 @@
+// ADR-051: Basic safe division tests
+// Tests the safe_div() built-in function with valid and zero divisors
+
+void testSafeDivBasic() {
+    u32 result <- 0;
+    bool err <- false;
+
+    // Case 1: Valid division (10 / 2 = 5)
+    err <- safe_div(result, 10, 2, 0);
+    // Expected: result = 5, err = false
+
+    // Case 2: Division by zero (should use default value)
+    result <- 100;
+    err <- safe_div(result, 10, 0, 99);
+    // Expected: result = 99, err = true
+
+    // Case 3: Preserve current value on error
+    result <- 42;
+    err <- safe_div(result, 10, 0, result);
+    // Expected: result = 42, err = true
+}
+
+void testSafeDivEdgeCases() {
+    u32 result <- 0;
+    bool err <- false;
+
+    // Case 1: Zero divided by non-zero
+    err <- safe_div(result, 0, 5, 999);
+    // Expected: result = 0, err = false
+
+    // Case 2: Division by 1
+    err <- safe_div(result, 42, 1, 0);
+    // Expected: result = 42, err = false
+
+    // Case 3: Large numbers
+    err <- safe_div(result, 1000000, 1000, 0);
+    // Expected: result = 1000, err = false
+}

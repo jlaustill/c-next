@@ -1,0 +1,34 @@
+// ADR-051: Safe division - preserve current value on error
+// Demonstrates the pattern for preserving state when division fails
+// Example: speed <- distance / time (if time is zero, speed shouldn't change)
+
+void testPreserveSpeedOnZeroTime() {
+    u32 speed <- 60; // Current speed: 60 mph
+    u32 distance <- 120; // Distance: 120 miles
+    u32 time <- 0; // Time: 0 hours (error condition)
+    bool err <- false;
+
+    // Attempt to calculate new speed, but preserve current speed if time is zero
+    err <- safe_div(speed, distance, time, speed);
+    // Expected: speed = 60 (preserved), err = true
+}
+
+void testPreserveMultipleValues() {
+    u32 avgTemp <- 72; // Current average temperature
+    u32 totalTemp <- 500; // Sum of temperatures
+    u32 sampleCount <- 0; // No samples yet (error)
+    bool err <- false;
+
+    // Calculate new average, but preserve old value if no samples
+    err <- safe_div(avgTemp, totalTemp, sampleCount, avgTemp);
+    // Expected: avgTemp = 72 (preserved), err = true
+}
+
+void testUpdateOnSuccess() {
+    u32 value <- 50; // Current value
+    bool err <- false;
+
+    // Should update when divisor is non-zero
+    err <- safe_div(value, 100, 2, value);
+    // Expected: value = 50 (result of 100/2), err = false
+}

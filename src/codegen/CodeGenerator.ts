@@ -305,9 +305,11 @@ export default class CodeGenerator {
   private knownStructs: Set<string> = new Set();
 
   private structFields: Map<string, Map<string, string>> = new Map(); // struct -> (field -> type)
+
   private structFieldArrays: Map<string, Set<string>> = new Map(); // struct -> set of array field names
 
   private knownRegisters: Set<string> = new Set();
+
   private inAssignmentTarget: boolean = false;
 
   private scopedRegisters: Map<string, string> = new Map(); // fullRegName -> scopeName (for scoped registers)
@@ -341,6 +343,8 @@ export default class CodeGenerator {
 
   // ADR-044: Track which overflow helper types and operations are needed
   private usedClampOps: Set<string> = new Set(); // Format: "add_u8", "sub_u16", "mul_u32"
+
+  private usedSafeDivOps: Set<string> = new Set(); // ADR-051: Format: "div_u32", "mod_i16"
 
   // Track required standard library includes
   private needsStdint: boolean = false; // For u8, u16, u32, u64, i8, i16, i32, i64
@@ -491,6 +495,7 @@ export default class CodeGenerator {
     this.callbackTypes = new Map(); // ADR-029: Reset callback types
     this.callbackFieldTypes = new Map(); // ADR-029: Reset callback field tracking
     this.usedClampOps = new Set(); // ADR-044: Reset overflow helpers
+    this.usedSafeDivOps = new Set(); // ADR-051: Reset safe division helpers
     this.needsStdint = false;
     this.needsStdbool = false;
     this.needsString = false; // ADR-045: Reset string header tracking
@@ -516,7 +521,9 @@ export default class CodeGenerator {
     for (const includeDir of tree.includeDirective()) {
       const leadingComments = this.getLeadingComments(includeDir);
       output.push(...this.formatLeadingComments(leadingComments));
-      const transformedInclude = this.transformIncludeDirective(includeDir.getText());
+      const transformedInclude = this.transformIncludeDirective(
+        includeDir.getText(),
+      );
       output.push(transformedInclude);
     }
 
@@ -588,6 +595,12 @@ export default class CodeGenerator {
       output.push(...helpers);
     }
 
+    // ADR-051: Insert safe division helpers
+    const safeDivHelpers = this.generateSafeDivHelpers();
+    if (safeDivHelpers.length > 0) {
+      output.push(...safeDivHelpers);
+    }
+
     // Add the declarations
     output.push(...declarations);
 
@@ -657,12 +670,8 @@ export default class CodeGenerator {
    */
   private transformIncludeDirective(includeText: string): string {
     // Match: #include <file.cnx> or #include "file.cnx"
-    const angleMatch = includeText.match(
-      /#\s*include\s*<([^>]+)\.cnx>/,
-    );
-    const quoteMatch = includeText.match(
-      /#\s*include\s*"([^"]+)\.cnx"/,
-    );
+    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)\.cnx>/);
+    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)\.cnx"/);
 
     if (angleMatch) {
       const filename = angleMatch[1];
@@ -679,8 +688,8 @@ export default class CodeGenerator {
         if (!fs.existsSync(cnxPath)) {
           throw new Error(
             `Error: Included C-Next file not found: ${filepath}.cnx\n` +
-            `  Searched at: ${cnxPath}\n` +
-            `  Referenced in: ${this.sourcePath}`
+              `  Searched at: ${cnxPath}\n` +
+              `  Referenced in: ${this.sourcePath}`,
           );
         }
       }
@@ -3267,6 +3276,19 @@ export default class CodeGenerator {
     const constMod = ctx.constModifier() ? "const " : "";
     // ADR-049: Add volatile for atomic variables
     const atomicMod = ctx.atomicModifier() ? "volatile " : "";
+    // Explicit volatile modifier
+    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
+
+    // Error if both atomic and volatile are specified
+    if (ctx.atomicModifier() && ctx.volatileModifier()) {
+      const line = ctx.start?.line ?? 0;
+      throw new Error(
+        `Error at line ${line}: Cannot use both 'atomic' and 'volatile' modifiers. ` +
+          `Use 'atomic' for ISR-shared variables (includes volatile + atomicity), ` +
+          `or 'volatile' for hardware registers and delay loops.`,
+      );
+    }
+
     const type = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
@@ -3441,7 +3463,7 @@ export default class CodeGenerator {
       }
     }
 
-    let decl = `${constMod}${atomicMod}${type} ${name}`;
+    let decl = `${constMod}${atomicMod}${volatileMod}${type} ${name}`;
     // ADR-036: arrayDimension() now returns an array for multi-dimensional support
     const arrayDims = ctx.arrayDimension();
     const isArray = arrayDims.length > 0;
@@ -4409,6 +4431,82 @@ export default class CodeGenerator {
       }
     }
 
+    // ADR-034: Check if this is a thisMemberAccess bitmap field assignment (e.g., this.SysTick.CTRL.ENABLE <- true)
+    const thisMemberAccessCtx = targetCtx.thisMemberAccess();
+    if (thisMemberAccessCtx) {
+      if (!this.context.currentScope) {
+        throw new Error("Error: 'this' can only be used inside a scope");
+      }
+
+      const identifiers = thisMemberAccessCtx.IDENTIFIER();
+      const parts = identifiers.map((id) => id.getText());
+      const scopeName = this.context.currentScope;
+
+      // Check for scoped register member bitmap field: this.SysTick.CTRL.ENABLE (3 parts)
+      if (parts.length === 3) {
+        const regName = parts[0];
+        const memberName = parts[1];
+        const fieldName = parts[2];
+
+        const scopedRegName = `${scopeName}_${regName}`;
+        if (this.knownRegisters.has(scopedRegName)) {
+          const fullRegMember = `${scopedRegName}_${memberName}`;
+          const bitmapType = this.registerMemberTypes.get(fullRegMember);
+
+          if (bitmapType) {
+            // This is a bitmap field access on a scoped register member
+            if (isCompound) {
+              throw new Error(
+                `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
+              );
+            }
+
+            const fields = this.bitmapFields.get(bitmapType);
+            if (fields && fields.has(fieldName)) {
+              const fieldInfo = fields.get(fieldName)!;
+
+              // Validate compile-time literal overflow
+              this.validateBitmapFieldLiteral(
+                ctx.expression(),
+                fieldInfo.width,
+                fieldName,
+              );
+
+              const mask = (1 << fieldInfo.width) - 1;
+              const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+
+              // Check if this is a write-only register
+              const accessMod = this.registerMemberAccess.get(fullRegMember);
+              const isWriteOnly =
+                accessMod === "wo" ||
+                accessMod === "w1s" ||
+                accessMod === "w1c";
+
+              if (isWriteOnly) {
+                // Write-only register: just write the value, no RMW needed
+                if (fieldInfo.width === 1) {
+                  return `${fullRegMember} = ((${value} ? 1 : 0) << ${fieldInfo.offset});`;
+                } else {
+                  return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                }
+              } else {
+                // Read-write register: use read-modify-write pattern
+                if (fieldInfo.width === 1) {
+                  return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | ((${value} ? 1 : 0) << ${fieldInfo.offset});`;
+                } else {
+                  return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                }
+              }
+            } else {
+              throw new Error(
+                `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
+              );
+            }
+          }
+        }
+      }
+    }
+
     // Check if this is a simple array/bit access assignment (e.g., flags[3])
     const arrayAccessCtx = targetCtx.arrayAccess();
     if (arrayAccessCtx) {
@@ -4792,6 +4890,17 @@ export default class CodeGenerator {
     if (this.knownRegisters.has(scopedRegName)) {
       // Scoped register bit access: this.GPIO7.DR_SET[idx] -> Teensy4_GPIO7_DR_SET[idx]
       const regName = `${scopeName}_${parts.join("_")}`;
+
+      // Check if this register member has a bitmap type
+      const bitmapType = this.registerMemberTypes.get(regName);
+      if (bitmapType) {
+        const line = ctx.start?.line ?? 0;
+        throw new Error(
+          `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
+            `Use named field access instead (e.g., ${parts.join(".")}.FIELD_NAME).`,
+        );
+      }
+
       if (expressions.length === 2) {
         // Multi-bit field: this.GPIO7.ICR1[6, 2]
         const offset = this.generateExpression(expressions[0]);
@@ -4903,13 +5012,15 @@ export default class CodeGenerator {
 
   // Generate variable declaration for for loop init (no trailing semicolon)
   private generateForVarDecl(ctx: Parser.ForVarDeclContext): string {
+    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
+    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
     const typeName = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
     // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
     this.context.localVariables.add(name);
 
-    let result = `${typeName} ${name}`;
+    let result = `${atomicMod}${volatileMod}${typeName} ${name}`;
 
     // ADR-036: Handle array dimensions (now returns array for multi-dim support)
     const arrayDims = ctx.arrayDimension();
@@ -5986,6 +6097,16 @@ export default class CodeGenerator {
           // Single index: could be array[i] or bit access flags[3]
           const index = this.generateExpression(exprs[0]);
 
+          // Check if result is a register member with bitmap type
+          if (this.registerMemberTypes.has(result)) {
+            const bitmapType = this.registerMemberTypes.get(result)!;
+            const line = primary.start?.line ?? 0;
+            throw new Error(
+              `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
+                `Use named field access instead (e.g., ${result.split("_").slice(-1)[0]}.FIELD_NAME).`,
+            );
+          }
+
           // ADR-016: Use isRegisterChain to detect register access via global. prefix
           const isRegisterAccess =
             isRegisterChain ||
@@ -6039,37 +6160,89 @@ export default class CodeGenerator {
 
         const argExprs = op.argumentList()!.expression();
 
-        // ADR-013: Check const-to-non-const before generating arguments
-        if (isCNextFunc) {
-          const sig = this.functionSignatures.get(result);
-          if (sig) {
-            for (
-              let argIdx = 0;
-              argIdx < argExprs.length && argIdx < sig.parameters.length;
-              argIdx++
-            ) {
-              const argId = this.getSimpleIdentifier(argExprs[argIdx]);
-              if (argId && this.isConstValue(argId)) {
-                const param = sig.parameters[argIdx];
-                if (!param.isConst) {
-                  throw new Error(
-                    `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
-                      `of function '${result}'`,
-                  );
+        // ADR-051: Handle safe_div() and safe_mod() built-in functions
+        if (result === "safe_div" || result === "safe_mod") {
+          if (argExprs.length !== 4) {
+            throw new Error(
+              `${result} requires exactly 4 arguments: output, numerator, divisor, defaultValue`,
+            );
+          }
+
+          // Get the output parameter (first argument) to determine type
+          const outputArgId = this.getSimpleIdentifier(argExprs[0]);
+          if (!outputArgId) {
+            throw new Error(
+              `${result} requires a variable as the first argument (output parameter)`,
+            );
+          }
+
+          // Look up the type of the output parameter
+          const typeInfo = this.context.typeRegistry.get(outputArgId);
+          if (!typeInfo) {
+            throw new Error(
+              `Cannot determine type of output parameter '${outputArgId}' for ${result}`,
+            );
+          }
+
+          // Map C-Next type to helper function suffix
+          const cnxType = typeInfo.baseType; // e.g., "u32", "i16", etc.
+          if (!cnxType) {
+            throw new Error(
+              `Output parameter '${outputArgId}' has no C-Next type for ${result}`,
+            );
+          }
+
+          // Generate arguments: &output, numerator, divisor, defaultValue
+          const outputArg = `&${this.generateExpression(argExprs[0])}`;
+          const numeratorArg = this.generateExpression(argExprs[1]);
+          const divisorArg = this.generateExpression(argExprs[2]);
+          const defaultArg = this.generateExpression(argExprs[3]);
+
+          const helperName =
+            result === "safe_div"
+              ? `cnx_safe_div_${cnxType}`
+              : `cnx_safe_mod_${cnxType}`;
+
+          // Track that this operation is used for helper generation
+          const opType = result === "safe_div" ? "div" : "mod";
+          this.usedSafeDivOps.add(`${opType}_${cnxType}`);
+
+          result = `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`;
+        }
+        // Regular function call handling
+        else {
+          // ADR-013: Check const-to-non-const before generating arguments
+          if (isCNextFunc) {
+            const sig = this.functionSignatures.get(result);
+            if (sig) {
+              for (
+                let argIdx = 0;
+                argIdx < argExprs.length && argIdx < sig.parameters.length;
+                argIdx++
+              ) {
+                const argId = this.getSimpleIdentifier(argExprs[argIdx]);
+                if (argId && this.isConstValue(argId)) {
+                  const param = sig.parameters[argIdx];
+                  if (!param.isConst) {
+                    throw new Error(
+                      `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
+                        `of function '${result}'`,
+                    );
+                  }
                 }
               }
             }
           }
-        }
 
-        const args = argExprs
-          .map((e) =>
-            isCNextFunc
-              ? this.generateFunctionArg(e)
-              : this.generateExpression(e),
-          )
-          .join(", ");
-        result = `${result}(${args})`;
+          const args = argExprs
+            .map((e) =>
+              isCNextFunc
+                ? this.generateFunctionArg(e)
+                : this.generateExpression(e),
+            )
+            .join(", ");
+          result = `${result}(${args})`;
+        }
       }
       // Empty function call
       else {
@@ -6578,6 +6751,16 @@ export default class CodeGenerator {
       // Single index: array[i] or bit access flags[3]
       // ADR-036: Compile-time bounds checking for constant indices
       const typeInfo = this.context.typeRegistry.get(name);
+
+      // Check if this is a bitmap type
+      if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
+        const line = ctx.start?.line ?? 0;
+        throw new Error(
+          `Error at line ${line}: Cannot use bracket indexing on bitmap type '${typeInfo.bitmapTypeName}'. ` +
+            `Use named field access instead (e.g., ${name}.FIELD_NAME).`,
+        );
+      }
+
       if (typeInfo?.isArray && typeInfo.arrayDimensions) {
         this.checkArrayBounds(
           name,
@@ -7335,5 +7518,65 @@ export default class CodeGenerator {
     if (comments.length === 0) return "";
     // Only use the first comment for inline
     return this.commentFormatter.formatTrailingComment(comments[0]);
+  }
+
+  /**
+   * ADR-051: Generate safe division helper functions for used integer types only
+   */
+  private generateSafeDivHelpers(): string[] {
+    if (this.usedSafeDivOps.size === 0) {
+      return [];
+    }
+
+    const lines: string[] = [];
+
+    lines.push("// ADR-051: Safe division helper functions");
+    lines.push("#include <stdbool.h>");
+    lines.push("");
+
+    const integerTypes = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"];
+
+    for (const cnxType of integerTypes) {
+      const needsDiv = this.usedSafeDivOps.has(`div_${cnxType}`);
+      const needsMod = this.usedSafeDivOps.has(`mod_${cnxType}`);
+
+      if (!needsDiv && !needsMod) {
+        continue; // Skip types that aren't used
+      }
+
+      const cType = TYPE_MAP[cnxType];
+
+      // Generate safe_div helper if needed
+      if (needsDiv) {
+        lines.push(
+          `static inline bool cnx_safe_div_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
+        );
+        lines.push(`    if (divisor == 0) {`);
+        lines.push(`        *output = defaultValue;`);
+        lines.push(`        return true;  // Error occurred`);
+        lines.push(`    }`);
+        lines.push(`    *output = numerator / divisor;`);
+        lines.push(`    return false;  // Success`);
+        lines.push(`}`);
+        lines.push("");
+      }
+
+      // Generate safe_mod helper if needed
+      if (needsMod) {
+        lines.push(
+          `static inline bool cnx_safe_mod_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
+        );
+        lines.push(`    if (divisor == 0) {`);
+        lines.push(`        *output = defaultValue;`);
+        lines.push(`        return true;  // Error occurred`);
+        lines.push(`    }`);
+        lines.push(`    *output = numerator % divisor;`);
+        lines.push(`    return false;  // Success`);
+        lines.push(`}`);
+        lines.push("");
+      }
+    }
+
+    return lines;
   }
 }

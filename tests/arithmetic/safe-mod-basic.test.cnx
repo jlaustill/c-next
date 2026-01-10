@@ -1,0 +1,51 @@
+// ADR-051: Basic safe modulo tests
+// Tests the safe_mod() built-in function with valid and zero divisors
+
+void testSafeModBasic() {
+    u32 result <- 0;
+    bool err <- false;
+
+    // Case 1: Valid modulo (10 % 3 = 1)
+    err <- safe_mod(result, 10, 3, 0);
+    // Expected: result = 1, err = false
+
+    // Case 2: Modulo by zero (should use default value)
+    result <- 100;
+    err <- safe_mod(result, 10, 0, 99);
+    // Expected: result = 99, err = true
+
+    // Case 3: Preserve current value on error
+    result <- 42;
+    err <- safe_mod(result, 10, 0, result);
+    // Expected: result = 42, err = true
+}
+
+void testSafeModEdgeCases() {
+    u32 result <- 0;
+    bool err <- false;
+
+    // Case 1: Zero modulo non-zero
+    err <- safe_mod(result, 0, 5, 999);
+    // Expected: result = 0, err = false
+
+    // Case 2: Modulo by same number
+    err <- safe_mod(result, 10, 10, 0);
+    // Expected: result = 0, err = false
+
+    // Case 3: Modulo larger than dividend
+    err <- safe_mod(result, 5, 10, 0);
+    // Expected: result = 5, err = false
+}
+
+void testSafeModCircularBuffer() {
+    u32 index <- 0;
+    u32 bufferSize <- 16;
+    bool err <- false;
+
+    // Circular buffer pattern: next index = (current + 1) % size
+    err <- safe_mod(index, 10, bufferSize, 0);
+    // Expected: index = 10, err = false
+
+    err <- safe_mod(index, 17, bufferSize, 0);
+    // Expected: index = 1, err = false
+}

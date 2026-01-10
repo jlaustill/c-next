@@ -18,6 +18,15 @@ import { IFunctionCallError } from "./types/IFunctionCallError.js";
 export { IFunctionCallError };
 
 /**
+ * C-Next built-in functions
+ * These are compiler intrinsics that don't need to be defined by the user
+ */
+const CNEXT_BUILTINS: Set<string> = new Set([
+  "safe_div", // ADR-051: Safe division with default value
+  "safe_mod", // ADR-051: Safe modulo with default value
+]);
+
+/**
  * Standard library functions from common C headers
  * These are considered "external" and don't need to be defined in C-Next
  */
@@ -464,6 +473,11 @@ export class FunctionCallAnalyzer {
     // Check if function is defined in C-Next
     if (this.definedFunctions.has(name)) {
       return; // OK - defined before use
+    }
+
+    // Check if function is a C-Next built-in
+    if (CNEXT_BUILTINS.has(name)) {
+      return; // OK - built-in function
     }
 
     // Check if function is from an included standard library header
