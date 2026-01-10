@@ -308,6 +308,7 @@ export default class CodeGenerator {
   private structFieldArrays: Map<string, Set<string>> = new Map(); // struct -> set of array field names
 
   private knownRegisters: Set<string> = new Set();
+  private inAssignmentTarget: boolean = false;
 
   private scopedRegisters: Map<string, string> = new Map(); // fullRegName -> scopeName (for scoped registers)
 
@@ -4639,6 +4640,18 @@ export default class CodeGenerator {
   private generateAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
   ): string {
+    // Set flag to indicate we're generating an assignment target (write context)
+    this.inAssignmentTarget = true;
+    try {
+      return this.doGenerateAssignmentTarget(ctx);
+    } finally {
+      this.inAssignmentTarget = false;
+    }
+  }
+
+  private doGenerateAssignmentTarget(
+    ctx: Parser.AssignmentTargetContext,
+  ): string {
     // ADR-016: Handle global.arr[i] or global.GPIO7.DR_SET[i] access
     if (ctx.globalArrayAccess()) {
       return this.generateGlobalArrayAccess(ctx.globalArrayAccess()!);
@@ -5855,8 +5868,17 @@ export default class CodeGenerator {
           }
           // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
           else if (this.knownRegisters.has(result)) {
+            // ADR-013: Check for write-only register members (wo = cannot read)
+            const fullName = `${result}_${memberName}`;
+            const accessMod = this.registerMemberAccess.get(fullName);
+            if (accessMod === "wo") {
+              throw new Error(
+                `cannot read from write-only register member '${memberName}' ` +
+                  `(${result}.${memberName} has 'wo' access modifier)`,
+              );
+            }
             // Transform Register.member to Register_member (matching #define)
-            result = `${result}_${memberName}`;
+            result = fullName;
             isRegisterChain = true; // ADR-016: Track register chain for subscript handling
           }
           // ADR-034: Check if result is a register member with bitmap type
@@ -6436,6 +6458,22 @@ export default class CodeGenerator {
         // This is register member bit access (handled elsewhere for assignment)
         // For read: generate bit extraction
         const registerName = parts.join("_");
+
+        // ADR-013: Check for write-only register members (wo = cannot read)
+        // Skip check if we're in assignment target context (write operation)
+        if (!this.inAssignmentTarget) {
+          const accessMod = this.registerMemberAccess.get(registerName);
+          if (accessMod === "wo") {
+            const displayName = isDirectRegister
+              ? `${parts[0]}.${parts[1]}`
+              : `${parts[0]}.${parts[1]}.${parts[2]}`;
+            throw new Error(
+              `cannot read from write-only register member '${parts[isDirectRegister ? 1 : 2]}' ` +
+                `(${displayName} has 'wo' access modifier)`,
+            );
+          }
+        }
+
         if (expressions.length === 1) {
           const bitIndex = this.generateExpression(expressions[0]);
           return `((${registerName} >> ${bitIndex}) & 1)`;
@@ -6498,6 +6536,19 @@ export default class CodeGenerator {
 
     // Check if it's a register member access: GPIO7.DR -> GPIO7_DR
     if (this.knownRegisters.has(firstPart)) {
+      // ADR-013: Check for write-only register members (wo = cannot read)
+      // Skip check if we're in assignment target context (write operation)
+      if (!this.inAssignmentTarget && parts.length >= 2) {
+        const memberName = parts[1];
+        const fullName = `${firstPart}_${memberName}`;
+        const accessMod = this.registerMemberAccess.get(fullName);
+        if (accessMod === "wo") {
+          throw new Error(
+            `cannot read from write-only register member '${memberName}' ` +
+              `(${firstPart}.${memberName} has 'wo' access modifier)`,
+          );
+        }
+      }
       return parts.join("_");
     }
 

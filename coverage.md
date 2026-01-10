@@ -62,7 +62,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -76,8 +76,8 @@ This document tracks test coverage for every language construct in every valid c
 | In bitwise operation | [ ] | |
 | As loop counter | [ ] | |
 | In ternary expression | [ ] | |
-| With const modifier | [x] | `const/const-variable.cnx` |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
+| With const modifier | [x] | `const/const-variable.test.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
 | With clamp modifier | [ ] | |
 | With wrap modifier | [ ] | |
 | In scope declaration | [ ] | |
@@ -87,7 +87,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -102,7 +102,7 @@ This document tracks test coverage for every language construct in every valid c
 | As loop counter | [ ] | |
 | In ternary expression | [ ] | |
 | With const modifier | [ ] | |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
 | With clamp modifier | [ ] | |
 | With wrap modifier | [ ] | |
 | In scope declaration | [ ] | |
@@ -112,7 +112,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -120,24 +120,24 @@ This document tracks test coverage for every language construct in every valid c
 | Function return type | [x] | |
 | Struct member | [x] | |
 | Array element type | [x] | |
-| Array element type (multi-dim) | [x] | `multi-dim-arrays/basic-2d.cnx` |
+| Array element type (multi-dim) | [x] | `multi-dim-arrays/basic-2d.test.cnx` |
 | In arithmetic expression | [x] | |
 | In comparison | [x] | |
 | In bitwise operation | [x] | |
-| As loop counter | [x] | `for-loops/for-basic.cnx` |
-| In ternary expression | [x] | `ternary/ternary-basic.cnx` |
-| With const modifier | [x] | `const/const-variable.cnx` |
-| With atomic modifier | [x] | `atomic/basic.cnx` |
-| With clamp modifier | [x] | `primitives/clamp-declaration.cnx` |
-| With wrap modifier | [x] | `primitives/wrap-declaration.cnx` |
-| In scope declaration | [x] | `scope/this-global-test.cnx` |
-| In register field | [x] | `register/register-basic.cnx` |
+| As loop counter | [x] | `for-loops/for-basic.test.cnx` |
+| In ternary expression | [x] | `ternary/ternary-basic.test.cnx` |
+| With const modifier | [x] | `const/const-variable.test.cnx` |
+| With atomic modifier | [x] | `atomic/basic.test.cnx` |
+| With clamp modifier | [x] | `primitives/clamp-declaration.test.cnx` |
+| With wrap modifier | [x] | `primitives/wrap-declaration.test.cnx` |
+| In scope declaration | [x] | `scope/this-global-test.test.cnx` |
+| In register field | [x] | `register/register-basic.test.cnx` |
 
 #### u64
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -152,7 +152,7 @@ This document tracks test coverage for every language construct in every valid c
 | As loop counter | [ ] | |
 | In ternary expression | [ ] | |
 | With const modifier | [ ] | |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
 | With clamp modifier | [ ] | |
 | With wrap modifier | [ ] | |
 | In scope declaration | [ ] | |
@@ -164,7 +164,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -176,7 +176,7 @@ This document tracks test coverage for every language construct in every valid c
 | In comparison | [ ] | |
 | Negative literal assignment | [ ] | |
 | With const modifier | [ ] | |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
 | With clamp modifier | [ ] | |
 | With wrap modifier | [ ] | |
 
@@ -184,7 +184,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -196,7 +196,7 @@ This document tracks test coverage for every language construct in every valid c
 | In comparison | [ ] | |
 | Negative literal assignment | [x] | |
 | With const modifier | [ ] | |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
 | With clamp modifier | [ ] | |
 | With wrap modifier | [ ] | |
 
@@ -204,7 +204,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -216,15 +216,15 @@ This document tracks test coverage for every language construct in every valid c
 | In comparison | [x] | |
 | Negative literal assignment | [x] | |
 | With const modifier | [x] | |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
-| With clamp modifier | [x] | `primitives/signed-overflow.cnx` |
-| With wrap modifier | [x] | `primitives/signed-overflow.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
+| With clamp modifier | [x] | `primitives/signed-overflow.test.cnx` |
+| With wrap modifier | [x] | `primitives/signed-overflow.test.cnx` |
 
 #### i64
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `primitives/all-types.cnx` |
+| Global variable declaration | [x] | `primitives/all-types.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -236,7 +236,7 @@ This document tracks test coverage for every language construct in every valid c
 | In comparison | [ ] | |
 | Negative literal assignment | [ ] | |
 | With const modifier | [ ] | |
-| With atomic modifier | [x] | `atomic/atomic-all-types.cnx` |
+| With atomic modifier | [x] | `atomic/atomic-all-types.test.cnx` |
 | With clamp modifier | [ ] | |
 | With wrap modifier | [ ] | |
 
@@ -280,7 +280,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable declaration | [x] | `assignment/assignment-basic.cnx` |
+| Global variable declaration | [x] | `assignment/assignment-basic.test.cnx` |
 | Global variable with init | [x] | |
 | Local variable declaration | [x] | |
 | Local variable with init | [x] | |
@@ -291,7 +291,7 @@ This document tracks test coverage for every language construct in every valid c
 | In if condition | [x] | |
 | In while condition | [x] | |
 | In for condition | [x] | |
-| In do-while condition | [x] | `do-while/do-while-boolean-var.cnx` |
+| In do-while condition | [x] | `do-while/do-while-boolean-var.test.cnx` |
 | In ternary condition | [x] | |
 | Literal true | [x] | |
 | Literal false | [x] | |
@@ -314,42 +314,42 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable init | [x] | `assignment/assignment-basic.cnx` |
+| Global variable init | [x] | `assignment/assignment-basic.test.cnx` |
 | Local variable init | [x] | |
 | Reassignment | [x] | |
-| Struct member | [x] | `structs/struct-member-access.cnx` |
-| Nested struct member | [x] | `nested-structs/basic-nesting.cnx` |
+| Struct member | [x] | `structs/struct-member-access.test.cnx` |
+| Nested struct member | [x] | `nested-structs/basic-nesting.test.cnx` |
 | Array element | [x] | |
-| Multi-dim array element | [x] | `multi-dim-arrays/basic-2d.cnx` |
-| Bit index (single) | [x] | `bit-indexing/bit-single-write.cnx` |
-| Bit range | [x] | `bit-indexing/bit-range-write.cnx` |
-| this.member | [x] | `scope/this-global-test.cnx` |
-| global.member | [x] | `scope/global-compound-assign.cnx` |
-| Register field | [x] | `register/register-basic.cnx` |
-| Callback variable | [x] | `callbacks/callback-assign.cnx` |
-| Array of struct member | [x] | `static-allocation/static-struct-buffer.cnx` |
+| Multi-dim array element | [x] | `multi-dim-arrays/basic-2d.test.cnx` |
+| Bit index (single) | [x] | `bit-indexing/bit-single-write.test.cnx` |
+| Bit range | [x] | `bit-indexing/bit-range-write.test.cnx` |
+| this.member | [x] | `scope/this-global-test.test.cnx` |
+| global.member | [x] | `scope/global-compound-assign.test.cnx` |
+| Register field | [x] | `register/register-basic.test.cnx` |
+| Callback variable | [x] | `callbacks/callback-assign.test.cnx` |
+| Array of struct member | [x] | `static-allocation/static-struct-buffer.test.cnx` |
 
 ### 2.2 Compound Assignment (+<-)
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Multi-dim array element | [x] | `multi-dim-arrays/compound-assign-2d.cnx`, `compound-assign-3d.cnx`, `compound-assign-10d.cnx` |
-| Struct member | [x] | `multi-dim-arrays/struct-member-compound.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Multi-dim array element | [x] | `multi-dim-arrays/compound-assign-2d.test.cnx`, `compound-assign-3d.test.cnx`, `compound-assign-10d.test.cnx` |
+| Struct member | [x] | `multi-dim-arrays/struct-member-compound.test.cnx` |
 | Bit index | [ ] | |
-| this.member | [x] | `scope/scope-compound-assign.cnx` |
-| global.member | [x] | `scope/global-compound-assign.cnx` |
-| Cross-scope | [x] | `scope/cross-scope-compound.cnx` |
+| this.member | [x] | `scope/scope-compound-assign.test.cnx` |
+| global.member | [x] | `scope/global-compound-assign.test.cnx` |
+| Cross-scope | [x] | `scope/cross-scope-compound.test.cnx` |
 
 ### 2.3 Compound Assignment (-<-)
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -357,10 +357,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -368,10 +368,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -379,10 +379,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -390,10 +390,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -401,10 +401,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -412,10 +412,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -423,10 +423,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -434,10 +434,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable | [x] | `primitives/compound-assignment.cnx` |
-| Array element | [x] | `multi-dim-arrays/compound-assign-1d.cnx` |
-| Struct member | [x] | `structs/struct-compound-all-ops.cnx` |
-| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.cnx` |
+| Variable | [x] | `primitives/compound-assignment.test.cnx` |
+| Array element | [x] | `multi-dim-arrays/compound-assign-1d.test.cnx` |
+| Struct member | [x] | `structs/struct-compound-all-ops.test.cnx` |
+| Nested struct member | [x] | `nested-structs/nested-compound-all-ops.test.cnx` |
 | this.member | [ ] | |
 | global.member | [ ] | |
 
@@ -449,18 +449,18 @@ This document tracks test coverage for every language construct in every valid c
 
 | Operand Types | Status | Test File |
 |---------------|--------|-----------|
-| Integer = Integer | [x] | `assignment/comparison-if.cnx` |
+| Integer = Integer | [x] | `assignment/comparison-if.test.cnx` |
 | Integer = Literal | [x] | |
 | Bool = Bool | [x] | |
 | Bool = true/false | [x] | |
-| Enum = Enum (same type) | [x] | `enum/basic-enum.cnx` |
-| Enum = Enum (diff type) **(ERROR)** | [x] | `enum/enum-error-compare-types.cnx` |
-| Enum = Integer **(ERROR)** | [x] | `enum/enum-error-compare-int.cnx` |
-| String = String | [x] | `string/string-compare-eq.cnx` |
-| String = Literal | [x] | `string/string-compare-literal.cnx` |
+| Enum = Enum (same type) | [x] | `enum/basic-enum.test.cnx` |
+| Enum = Enum (diff type) **(ERROR)** | [x] | `enum/enum-error-compare-types.test.cnx` |
+| Enum = Integer **(ERROR)** | [x] | `enum/enum-error-compare-int.test.cnx` |
+| String = String | [x] | `string/string-compare-eq.test.cnx` |
+| String = Literal | [x] | `string/string-compare-literal.test.cnx` |
 | Float = Float | [ ] | |
 | Float = Literal | [ ] | |
-| Pointer = NULL | [x] | `null-check/valid-null-eq-check.cnx` |
+| Pointer = NULL | [x] | `null-check/valid-null-eq-check.test.cnx` |
 
 ### 3.2 Not Equal (!=)
 
@@ -470,9 +470,9 @@ This document tracks test coverage for every language construct in every valid c
 | Integer != Literal | [x] | |
 | Bool != Bool | [x] | |
 | Enum != Enum | [x] | |
-| String != String | [x] | `string/string-compare-neq.cnx` |
+| String != String | [x] | `string/string-compare-neq.test.cnx` |
 | Float != Float | [ ] | |
-| Pointer != NULL | [x] | `null-check/null-neq-check.cnx` |
+| Pointer != NULL | [x] | `null-check/null-neq-check.test.cnx` |
 
 ### 3.3 Less Than (<)
 
@@ -542,9 +542,9 @@ This document tracks test coverage for every language construct in every valid c
 | f32 + f32 | [ ] | |
 | f64 + f64 | [ ] | |
 | Integer + Literal | [x] | |
-| With clamp (saturating) | [x] | `primitives/clamp-compound-add.cnx` |
-| With wrap (wrapping) | [x] | `primitives/wrap-compound-add.cnx` |
-| String + String (concat) | [x] | `string/string-concat-basic.cnx` |
+| With clamp (saturating) | [x] | `primitives/clamp-compound-add.test.cnx` |
+| With wrap (wrapping) | [x] | `primitives/wrap-compound-add.test.cnx` |
+| String + String (concat) | [x] | `string/string-concat-basic.test.cnx` |
 
 ### 4.2 Subtraction (-)
 
@@ -683,8 +683,8 @@ This document tracks test coverage for every language construct in every valid c
 | In if condition | [x] | |
 | In while condition | [x] | |
 | In for condition | [x] | |
-| In do-while condition | [x] | `do-while/do-while-logical.cnx` |
-| In ternary condition | [x] | `ternary/ternary-logical.cnx` |
+| In do-while condition | [x] | `do-while/do-while-logical.test.cnx` |
+| In ternary condition | [x] | `ternary/ternary-logical.test.cnx` |
 | As standalone expression | [ ] | |
 | Short-circuit evaluation | [ ] | |
 | With bool operands | [x] | |
@@ -702,7 +702,7 @@ This document tracks test coverage for every language construct in every valid c
 | In ternary condition | [x] | |
 | As standalone expression | [ ] | |
 | Short-circuit evaluation | [ ] | |
-| In switch case labels | [x] | `switch/switch-multiple-cases.cnx` |
+| In switch case labels | [x] | `switch/switch-multiple-cases.test.cnx` |
 | Chained (a \|\| b \|\| c) | [ ] | |
 
 ### 6.3 NOT (!)
@@ -724,21 +724,21 @@ This document tracks test coverage for every language construct in every valid c
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Simple if | [x] | `assignment/comparison-if.cnx` |
+| Simple if | [x] | `assignment/comparison-if.test.cnx` |
 | if with block | [x] | |
 | if-else | [x] | |
 | if-else if-else | [x] | |
 | Nested if | [ ] | |
 | if inside loop | [x] | |
 | if inside scope | [x] | |
-| if inside critical | [x] | `critical/critical-with-conditional.cnx` |
+| if inside critical | [x] | `critical/critical-with-conditional.test.cnx` |
 | Non-boolean condition **(ERROR)** | [ ] | |
 
 ### 7.2 while Loop
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Simple while | [x] | `assignment/comparison-while.cnx` |
+| Simple while | [x] | `assignment/comparison-while.test.cnx` |
 | While with block | [x] | |
 | While with counter | [x] | |
 | Nested while | [ ] | |
@@ -751,21 +751,21 @@ This document tracks test coverage for every language construct in every valid c
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Simple do-while | [x] | `do-while/do-while-basic.cnx` |
-| With equality condition | [x] | `do-while/do-while-equality.cnx` |
-| With logical condition | [x] | `do-while/do-while-logical.cnx` |
-| With boolean variable | [x] | `do-while/do-while-boolean-var.cnx` |
+| Simple do-while | [x] | `do-while/do-while-basic.test.cnx` |
+| With equality condition | [x] | `do-while/do-while-equality.test.cnx` |
+| With logical condition | [x] | `do-while/do-while-logical.test.cnx` |
+| With boolean variable | [x] | `do-while/do-while-boolean-var.test.cnx` |
 | Nested do-while | [ ] | |
 | do-while inside if | [ ] | |
-| Non-boolean condition **(ERROR)** | [x] | `do-while/do-while-error-non-boolean.cnx` |
+| Non-boolean condition **(ERROR)** | [x] | `do-while/do-while-error-non-boolean.test.cnx` |
 
 ### 7.4 for Loop
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Basic for | [x] | `for-loops/for-basic.cnx` |
-| Array iteration | [x] | `for-loops/for-array-iteration.cnx` |
-| Nested for | [x] | `for-loops/for-nested.cnx` |
+| Basic for | [x] | `for-loops/for-basic.test.cnx` |
+| Array iteration | [x] | `for-loops/for-array-iteration.test.cnx` |
+| Nested for | [x] | `for-loops/for-nested.test.cnx` |
 | For with compound update | [ ] | |
 | For with multiple init | [ ] | |
 | For with empty init | [ ] | |
@@ -779,20 +779,20 @@ This document tracks test coverage for every language construct in every valid c
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Basic integer switch | [x] | `switch/switch-basic.cnx` |
-| Enum exhaustive | [x] | `switch/switch-enum-exhaustive.cnx` |
-| Multiple cases (\|\|) | [x] | `switch/switch-multiple-cases.cnx` |
-| Counted default | [x] | `switch/switch-enum-default-counted.cnx` |
+| Basic integer switch | [x] | `switch/switch-basic.test.cnx` |
+| Enum exhaustive | [x] | `switch/switch-enum-exhaustive.test.cnx` |
+| Multiple cases (\|\|) | [x] | `switch/switch-multiple-cases.test.cnx` |
+| Counted default | [x] | `switch/switch-enum-default-counted.test.cnx` |
 | Hex literal cases | [ ] | |
 | Char literal cases | [ ] | |
 | Nested switch | [ ] | |
 | Switch inside loop | [ ] | |
 | Switch inside scope | [ ] | |
-| Boolean switch **(ERROR)** | [x] | `switch/switch-error-boolean.cnx` |
-| Single case **(ERROR)** | [x] | `switch/switch-error-single-case.cnx` |
-| Duplicate case **(ERROR)** | [x] | `switch/switch-error-duplicate-case.cnx` |
-| Non-exhaustive enum **(ERROR)** | [x] | `switch/switch-error-non-exhaustive.cnx` |
-| Wrong default count **(ERROR)** | [x] | `switch/switch-error-wrong-count.cnx` |
+| Boolean switch **(ERROR)** | [x] | `switch/switch-error-boolean.test.cnx` |
+| Single case **(ERROR)** | [x] | `switch/switch-error-single-case.test.cnx` |
+| Duplicate case **(ERROR)** | [x] | `switch/switch-error-duplicate-case.test.cnx` |
+| Non-exhaustive enum **(ERROR)** | [x] | `switch/switch-error-non-exhaustive.test.cnx` |
+| Wrong default count **(ERROR)** | [x] | `switch/switch-error-wrong-count.test.cnx` |
 
 ### 7.6 return Statement
 
@@ -804,7 +804,7 @@ This document tracks test coverage for every language construct in every valid c
 | Return in if branch | [x] | |
 | Return in else branch | [x] | |
 | Return in loop | [x] | |
-| Return in critical **(ERROR)** | [x] | `critical/return-error.cnx` |
+| Return in critical **(ERROR)** | [x] | `critical/return-error.test.cnx` |
 | Early return | [x] | |
 | Return ternary result | [x] | |
 
@@ -812,13 +812,13 @@ This document tracks test coverage for every language construct in every valid c
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Basic critical | [x] | `critical/basic.cnx` |
-| With conditional | [x] | `critical/critical-with-conditional.cnx` |
-| Multi-variable | [x] | `critical/multi-variable.cnx` |
+| Basic critical | [x] | `critical/basic.test.cnx` |
+| With conditional | [x] | `critical/critical-with-conditional.test.cnx` |
+| Multi-variable | [x] | `critical/multi-variable.test.cnx` |
 | Nested critical | [ ] | |
 | Critical in loop | [ ] | |
 | Critical in if | [ ] | |
-| Return inside **(ERROR)** | [x] | `critical/return-error.cnx` |
+| Return inside **(ERROR)** | [x] | `critical/return-error.test.cnx` |
 
 ---
 
@@ -826,17 +826,17 @@ This document tracks test coverage for every language construct in every valid c
 
 | Variant | Status | Test File |
 |---------|--------|-----------|
-| Basic ternary | [x] | `ternary/ternary-basic.cnx` |
-| With equality condition | [x] | `ternary/ternary-equality.cnx` |
+| Basic ternary | [x] | `ternary/ternary-basic.test.cnx` |
+| With equality condition | [x] | `ternary/ternary-equality.test.cnx` |
 | With relational condition | [x] | |
-| With logical condition | [x] | `ternary/ternary-logical.cnx` |
+| With logical condition | [x] | `ternary/ternary-logical.test.cnx` |
 | In return statement | [x] | |
 | In assignment | [x] | |
 | In function argument | [ ] | |
 | With function calls as values | [ ] | |
-| Non-boolean condition **(ERROR)** | [x] | `ternary/ternary-error-non-boolean.cnx` |
-| Nested ternary **(ERROR)** | [x] | `ternary/ternary-error-nested.cnx` |
-| Missing parentheses **(ERROR)** | [x] | `ternary/ternary-error-no-parens.cnx` |
+| Non-boolean condition **(ERROR)** | [x] | `ternary/ternary-error-non-boolean.test.cnx` |
+| Nested ternary **(ERROR)** | [x] | `ternary/ternary-error-nested.test.cnx` |
+| Missing parentheses **(ERROR)** | [x] | `ternary/ternary-error-no-parens.test.cnx` |
 
 ---
 
@@ -844,23 +844,23 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic declaration | [x] | `structs/struct-declaration.cnx` |
+| Basic declaration | [x] | `structs/struct-declaration.test.cnx` |
 | With primitive members | [x] | |
-| With array member | [x] | `structs/struct-with-array.cnx` |
-| With nested struct | [x] | `nested-structs/basic-nesting.cnx` |
-| Deep nesting (3+ levels) | [x] | `nested-structs/deep-nesting.cnx` |
+| With array member | [x] | `structs/struct-with-array.test.cnx` |
+| With nested struct | [x] | `nested-structs/basic-nesting.test.cnx` |
+| Deep nesting (3+ levels) | [x] | `nested-structs/deep-nesting.test.cnx` |
 | Zero initialization | [x] | |
-| Named field initialization | [x] | `structs/struct-initialization.cnx` |
-| Member access (.) | [x] | `structs/struct-member-access.cnx` |
-| Chained member access | [x] | `nested-structs/basic-nesting.cnx` |
-| As function parameter | [x] | `structs/struct-function-param.cnx` |
-| Nested as parameter | [x] | `nested-structs/function-params.cnx` |
+| Named field initialization | [x] | `structs/struct-initialization.test.cnx` |
+| Member access (.) | [x] | `structs/struct-member-access.test.cnx` |
+| Chained member access | [x] | `nested-structs/basic-nesting.test.cnx` |
+| As function parameter | [x] | `structs/struct-function-param.test.cnx` |
+| Nested as parameter | [x] | `nested-structs/function-params.test.cnx` |
 | As function return | [ ] | |
-| Const struct | [x] | `structs/struct-const.cnx` |
-| Array of structs | [x] | `array-initializers/struct-array.cnx` |
-| Array of struct member access | [x] | `static-allocation/static-struct-buffer.cnx` |
+| Const struct | [x] | `structs/struct-const.test.cnx` |
+| Array of structs | [x] | `array-initializers/struct-array.test.cnx` |
+| Array of struct member access | [x] | `static-allocation/static-struct-buffer.test.cnx` |
 | Struct in scope | [ ] | |
-| Redundant type in init **(ERROR)** | [x] | `structs/struct-redundant-type-error.cnx` |
+| Redundant type in init **(ERROR)** | [x] | `structs/struct-redundant-type-error.test.cnx` |
 
 ---
 
@@ -868,19 +868,19 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic enum | [x] | `enum/basic-enum.cnx` |
+| Basic enum | [x] | `enum/basic-enum.test.cnx` |
 | With explicit values | [x] | |
 | With auto-increment values | [x] | |
-| Scoped enum | [x] | `enum/scoped-enum.cnx` |
-| Enum in switch | [x] | `switch/switch-enum-exhaustive.cnx` |
+| Scoped enum | [x] | `enum/scoped-enum.test.cnx` |
+| Enum in switch | [x] | `switch/switch-enum-exhaustive.test.cnx` |
 | Enum comparison (same type) | [x] | |
 | Enum as function parameter | [ ] | |
 | Enum as function return | [ ] | |
 | Cast to integer | [ ] | |
-| Compare different types **(ERROR)** | [x] | `enum/enum-error-compare-types.cnx` |
-| Compare with int **(ERROR)** | [x] | `enum/enum-error-compare-int.cnx` |
-| Assign int **(ERROR)** | [x] | `enum/enum-error-assign-int.cnx` |
-| Negative value **(ERROR)** | [x] | `enum/enum-error-negative.cnx` |
+| Compare different types **(ERROR)** | [x] | `enum/enum-error-compare-types.test.cnx` |
+| Compare with int **(ERROR)** | [x] | `enum/enum-error-compare-int.test.cnx` |
+| Assign int **(ERROR)** | [x] | `enum/enum-error-assign-int.test.cnx` |
+| Negative value **(ERROR)** | [x] | `enum/enum-error-negative.test.cnx` |
 
 ---
 
@@ -888,17 +888,17 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| bitmap8 basic | [x] | `bitmap/basic-bitmap.cnx` |
-| bitmap16 | [x] | `bitmap/bitmap-16.cnx` |
+| bitmap8 basic | [x] | `bitmap/basic-bitmap.test.cnx` |
+| bitmap16 | [x] | `bitmap/bitmap-16.test.cnx` |
 | bitmap24 | [ ] | |
 | bitmap32 | [ ] | |
 | Single-bit field | [x] | |
 | Multi-bit field | [x] | |
-| In register | [x] | `bitmap/bitmap-in-register.cnx` |
+| In register | [x] | `bitmap/bitmap-in-register.test.cnx` |
 | As variable type | [x] | |
 | As struct member | [ ] | |
-| Bit overflow **(ERROR)** | [x] | `bitmap/bitmap-error-overflow.cnx` |
-| Total bits mismatch **(ERROR)** | [x] | `bitmap/bitmap-error-bits.cnx` |
+| Bit overflow **(ERROR)** | [x] | `bitmap/bitmap-error-overflow.test.cnx` |
+| Total bits mismatch **(ERROR)** | [x] | `bitmap/bitmap-error-bits.test.cnx` |
 
 ---
 
@@ -906,21 +906,21 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic register | [x] | `register/register-basic.cnx` |
-| Multiple registers | [x] | `register/register-multiple.cnx` |
-| With address offset | [x] | `register/register-offsets.cnx` |
-| rw access modifier | [x] | `register/register-access-modifiers.cnx` |
+| Basic register | [x] | `register/register-basic.test.cnx` |
+| Multiple registers | [x] | `register/register-multiple.test.cnx` |
+| With address offset | [x] | `register/register-offsets.test.cnx` |
+| rw access modifier | [x] | `register/register-access-modifiers.test.cnx` |
 | ro access modifier | [x] | |
 | wo access modifier | [x] | |
 | w1c access modifier | [ ] | |
 | w1s access modifier | [ ] | |
-| Bit indexing | [x] | `register/register-bit-indexing.cnx` |
+| Bit indexing | [x] | `register/register-bit-indexing.test.cnx` |
 | Bit range access | [ ] | |
 | Bitfield members | [ ] | |
-| Scoped register | [x] | `scope/scoped-register-basic.cnx` |
-| Scoped register bit access | [x] | `scope/scoped-register-bit-access.cnx` |
-| Write to ro **(ERROR)** | [x] | `register/register-write-ro-error.cnx` |
-| Read from wo **(ERROR)** | [ ] | |
+| Scoped register | [x] | `scope/scoped-register-basic.test.cnx` |
+| Scoped register bit access | [x] | `scope/scoped-register-bit-access.test.cnx` |
+| Write to ro **(ERROR)** | [x] | `register/register-write-ro-error.test.cnx` |
+| Read from wo **(ERROR)** | [x] | `register/register-read-wo-error.test.cnx` |
 
 ### 12.2 Register Bitfields (bits keyword)
 
@@ -930,7 +930,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| bits[start..end] syntax **(ERROR)** | [x] | `register/register-bits-syntax-error.cnx` |
+| bits[start..end] syntax **(ERROR)** | [x] | `register/register-bits-syntax-error.test.cnx` |
 
 ---
 
@@ -938,23 +938,23 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic scope | [x] | `scope/this-global-test.cnx` |
+| Basic scope | [x] | `scope/this-global-test.test.cnx` |
 | Scope with variables | [x] | |
 | Scope with functions | [x] | |
 | Scope with structs | [ ] | |
-| Scope with enums | [x] | `enum/scoped-enum.cnx` |
-| Scope with registers | [x] | `scope/scoped-register-basic.cnx` |
+| Scope with enums | [x] | `enum/scoped-enum.test.cnx` |
+| Scope with registers | [x] | `scope/scoped-register-basic.test.cnx` |
 | this.member access | [x] | |
 | this.member assignment | [x] | |
-| this.member compound assign | [x] | `scope/scope-compound-assign.cnx` |
+| this.member compound assign | [x] | `scope/scope-compound-assign.test.cnx` |
 | global.member access | [x] | |
 | global.member assignment | [x] | |
-| global.member compound assign | [x] | `scope/global-compound-assign.cnx` |
-| Cross-scope access | [x] | `scope/cross-scope-compound.cnx` |
+| global.member compound assign | [x] | `scope/global-compound-assign.test.cnx` |
+| Cross-scope access | [x] | `scope/cross-scope-compound.test.cnx` |
 | private visibility | [ ] | |
 | public visibility | [ ] | |
-| Bare identifier in scope **(ERROR)** | [x] | `scope/bare-identifier-error.cnx` |
-| Bare global access **(ERROR)** | [x] | `scope/bare-global-error.cnx` |
+| Bare identifier in scope **(ERROR)** | [x] | `scope/bare-identifier-error.test.cnx` |
+| Bare global access **(ERROR)** | [x] | `scope/bare-global-error.test.cnx` |
 | Nested scopes | [ ] | |
 
 ### 13.2 Scoped Types (this.Type)
@@ -970,7 +970,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Scope.Type reference | [x] | `enum/scoped-enum.cnx` |
+| Scope.Type reference | [x] | `enum/scoped-enum.test.cnx` |
 | Scope.Type as parameter | [ ] | |
 | Scope.Type as return | [ ] | |
 | Scope.Enum.VALUE access | [x] | |
@@ -986,17 +986,17 @@ This document tracks test coverage for every language construct in every valid c
 | With return value | [x] | |
 | Void return | [x] | |
 | Multiple parameters | [x] | |
-| Const parameters | [x] | `const/const-parameter.cnx` |
+| Const parameters | [x] | `const/const-parameter.test.cnx` |
 | Array parameters | [x] | |
-| Struct parameters | [x] | `structs/struct-function-param.cnx` |
-| Nested struct parameters | [x] | `nested-structs/function-params.cnx` |
-| main() no args | [x] | `functions/main-no-args.cnx` |
-| main() with args | [x] | `functions/main-with-args.cnx` |
-| main() with 2D array | [x] | `functions/main-2d-array.cnx` |
-| Define before use | [x] | `forward-declarations/define-before-use-valid.cnx` |
-| Nested calls | [x] | `forward-declarations/nested-calls-valid.cnx` |
-| Call before define **(ERROR)** | [x] | `forward-declarations/call-before-define-error.cnx` |
-| Recursive call **(ERROR)** | [x] | `forward-declarations/recursive-call-error.cnx` |
+| Struct parameters | [x] | `structs/struct-function-param.test.cnx` |
+| Nested struct parameters | [x] | `nested-structs/function-params.test.cnx` |
+| main() no args | [x] | `functions/main-no-args.test.cnx` |
+| main() with args | [x] | `functions/main-with-args.test.cnx` |
+| main() with 2D array | [x] | `functions/main-2d-array.test.cnx` |
+| Define before use | [x] | `forward-declarations/define-before-use-valid.test.cnx` |
+| Nested calls | [x] | `forward-declarations/nested-calls-valid.test.cnx` |
+| Call before define **(ERROR)** | [x] | `forward-declarations/call-before-define-error.test.cnx` |
+| Recursive call **(ERROR)** | [x] | `forward-declarations/recursive-call-error.test.cnx` |
 | Function in scope | [x] | |
 
 ---
@@ -1005,13 +1005,13 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic callback type | [x] | `callbacks/callback-basic.cnx` |
-| Callback assignment | [x] | `callbacks/callback-assign.cnx` |
-| Callback as parameter | [x] | `callbacks/callback-param.cnx` |
+| Basic callback type | [x] | `callbacks/callback-basic.test.cnx` |
+| Callback assignment | [x] | `callbacks/callback-assign.test.cnx` |
+| Callback as parameter | [x] | `callbacks/callback-param.test.cnx` |
 | Callback invocation | [x] | |
 | Array of callbacks | [ ] | |
 | Callback as struct member | [ ] | |
-| Nominal type mismatch **(ERROR)** | [x] | `callbacks/callback-error-nominal.cnx` |
+| Nominal type mismatch **(ERROR)** | [x] | `callbacks/callback-error-nominal.test.cnx` |
 
 ---
 
@@ -1022,15 +1022,15 @@ This document tracks test coverage for every language construct in every valid c
 | Feature | Status | Test File |
 |---------|--------|-----------|
 | Declaration with size | [x] | |
-| Declaration with init | [x] | `array-initializers/basic-init.cnx` |
-| Inferred size | [x] | `array-initializers/size-inference.cnx` |
-| Fill-all [0*] | [x] | `array-initializers/fill-all.cnx` |
-| Const array | [x] | `array-initializers/const-tables.cnx` |
-| Array of structs | [x] | `array-initializers/struct-array.cnx` |
-| .length property | [x] | `bit-indexing/length-property.cnx` |
+| Declaration with init | [x] | `array-initializers/basic-init.test.cnx` |
+| Inferred size | [x] | `array-initializers/size-inference.test.cnx` |
+| Fill-all [0*] | [x] | `array-initializers/fill-all.test.cnx` |
+| Const array | [x] | `array-initializers/const-tables.test.cnx` |
+| Array of structs | [x] | `array-initializers/struct-array.test.cnx` |
+| .length property | [x] | `bit-indexing/length-property.test.cnx` |
 | Element access | [x] | |
 | Element assignment | [x] | |
-| In for loop | [x] | `for-loops/for-array-iteration.cnx` |
+| In for loop | [x] | `for-loops/for-array-iteration.test.cnx` |
 | As function parameter | [x] | |
 | Out of bounds **(ERROR)** | [ ] | |
 
@@ -1038,14 +1038,14 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| 2D declaration | [x] | `multi-dim-arrays/basic-2d.cnx` |
-| 3D declaration | [x] | `multi-dim-arrays/basic-3d.cnx` |
-| Nested initialization | [x] | `multi-dim-arrays/nested-init.cnx` |
-| .length per dimension | [x] | `multi-dim-arrays/length-property.cnx` |
-| As struct member | [x] | `multi-dim-arrays/struct-member.cnx` |
-| Compound assignment | [x] | `multi-dim-arrays/compound-assign-2d.cnx` |
-| Struct member compound | [x] | `multi-dim-arrays/struct-member-compound.cnx` |
-| Bounds check **(ERROR)** | [x] | `multi-dim-arrays/bounds-error.cnx` |
+| 2D declaration | [x] | `multi-dim-arrays/basic-2d.test.cnx` |
+| 3D declaration | [x] | `multi-dim-arrays/basic-3d.test.cnx` |
+| Nested initialization | [x] | `multi-dim-arrays/nested-init.test.cnx` |
+| .length per dimension | [x] | `multi-dim-arrays/length-property.test.cnx` |
+| As struct member | [x] | `multi-dim-arrays/struct-member.test.cnx` |
+| Compound assignment | [x] | `multi-dim-arrays/compound-assign-2d.test.cnx` |
+| Struct member compound | [x] | `multi-dim-arrays/struct-member-compound.test.cnx` |
+| Bounds check **(ERROR)** | [x] | `multi-dim-arrays/bounds-error.test.cnx` |
 
 ---
 
@@ -1053,19 +1053,19 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Single bit read | [x] | `bit-indexing/bit-single-read.cnx` |
-| Single bit write | [x] | `bit-indexing/bit-single-write.cnx` |
-| Bit range read | [x] | `bit-indexing/bit-range-read.cnx` |
-| Bit range write | [x] | `bit-indexing/bit-range-write.cnx` |
-| .length property | [x] | `bit-indexing/length-property.cnx` |
+| Single bit read | [x] | `bit-indexing/bit-single-read.test.cnx` |
+| Single bit write | [x] | `bit-indexing/bit-single-write.test.cnx` |
+| Bit range read | [x] | `bit-indexing/bit-range-read.test.cnx` |
+| Bit range write | [x] | `bit-indexing/bit-range-write.test.cnx` |
+| .length property | [x] | `bit-indexing/length-property.test.cnx` |
 | On u8 | [ ] | |
 | On u16 | [ ] | |
 | On u32 | [x] | |
 | On u64 | [ ] | |
-| On register fields | [x] | `register/register-bit-indexing.cnx` |
+| On register fields | [x] | `register/register-bit-indexing.test.cnx` |
 | On wo register (optimized) | [x] | |
-| For narrowing cast | [x] | `casting/bit-index-narrowing.cnx` |
-| For sign cast | [x] | `casting/bit-index-sign.cnx` |
+| For narrowing cast | [x] | `casting/bit-index-narrowing.test.cnx` |
+| For sign cast | [x] | `casting/bit-index-sign.test.cnx` |
 | Variable index | [ ] | |
 | Expression index | [ ] | |
 | Out of bounds index **(ERROR)** | [ ] | |
@@ -1076,28 +1076,28 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic declaration | [x] | `string/string-basic.cnx` |
-| Empty string | [x] | `string/string-empty.cnx` |
-| .length property | [x] | `string/string-length.cnx` |
-| .capacity property | [x] | `string/string-capacity.cnx` |
-| .size property | [x] | `string/string-size.cnx` |
-| Const inference | [x] | `string/string-const-inference.cnx` |
-| Compare = | [x] | `string/string-compare-eq.cnx` |
-| Compare != | [x] | `string/string-compare-neq.cnx` |
-| Compare with literal | [x] | `string/string-compare-literal.cnx` |
-| Concatenation | [x] | `string/string-concat-basic.cnx` |
-| Concat with literal | [x] | `string/string-concat-literal.cnx` |
-| Substring | [x] | `string/string-substring.cnx` |
-| Substring with offset | [x] | `string/string-substring-offset.cnx` |
-| Function parameter | [x] | `string/string-function-param.cnx` |
+| Basic declaration | [x] | `string/string-basic.test.cnx` |
+| Empty string | [x] | `string/string-empty.test.cnx` |
+| .length property | [x] | `string/string-length.test.cnx` |
+| .capacity property | [x] | `string/string-capacity.test.cnx` |
+| .size property | [x] | `string/string-size.test.cnx` |
+| Const inference | [x] | `string/string-const-inference.test.cnx` |
+| Compare = | [x] | `string/string-compare-eq.test.cnx` |
+| Compare != | [x] | `string/string-compare-neq.test.cnx` |
+| Compare with literal | [x] | `string/string-compare-literal.test.cnx` |
+| Concatenation | [x] | `string/string-concat-basic.test.cnx` |
+| Concat with literal | [x] | `string/string-concat-literal.test.cnx` |
+| Substring | [x] | `string/string-substring.test.cnx` |
+| Substring with offset | [x] | `string/string-substring-offset.test.cnx` |
+| Function parameter | [x] | `string/string-function-param.test.cnx` |
 | As struct member | [ ] | |
 | Array of strings | [ ] | |
-| Overflow **(ERROR)** | [x] | `string/string-error-overflow.cnx` |
-| Const no init **(ERROR)** | [x] | `string/string-error-const-no-init.cnx` |
-| Non-const unsized **(ERROR)** | [x] | `string/string-error-nonconst-unsized.cnx` |
-| Concat overflow **(ERROR)** | [x] | `string/string-error-concat-overflow.cnx` |
-| Substring bounds **(ERROR)** | [x] | `string/string-error-substring-bounds.cnx` |
-| Substring dest size **(ERROR)** | [x] | `string/string-error-substring-dest.cnx` |
+| Overflow **(ERROR)** | [x] | `string/string-error-overflow.test.cnx` |
+| Const no init **(ERROR)** | [x] | `string/string-error-const-no-init.test.cnx` |
+| Non-const unsized **(ERROR)** | [x] | `string/string-error-nonconst-unsized.test.cnx` |
+| Concat overflow **(ERROR)** | [x] | `string/string-error-concat-overflow.test.cnx` |
+| Substring bounds **(ERROR)** | [x] | `string/string-error-substring-bounds.test.cnx` |
+| Substring dest size **(ERROR)** | [x] | `string/string-error-substring-dest.test.cnx` |
 
 ---
 
@@ -1105,15 +1105,15 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Global variable | [x] | `const/const-variable.cnx` |
+| Global variable | [x] | `const/const-variable.test.cnx` |
 | Local variable | [x] | |
-| Function parameter | [x] | `const/const-parameter.cnx` |
-| Array element type | [x] | `array-initializers/const-tables.cnx` |
+| Function parameter | [x] | `const/const-parameter.test.cnx` |
+| Array element type | [x] | `array-initializers/const-tables.test.cnx` |
 | Struct member | [ ] | |
-| String (inferred) | [x] | `string/string-const-inference.cnx` |
-| Assign to const **(ERROR)** | [x] | `const/const-assign-error.cnx` |
-| Compound assign const **(ERROR)** | [x] | `const/const-compound-assign-error.cnx` |
-| Assign const param **(ERROR)** | [x] | `const/const-param-assign-error.cnx` |
+| String (inferred) | [x] | `string/string-const-inference.test.cnx` |
+| Assign to const **(ERROR)** | [x] | `const/const-assign-error.test.cnx` |
+| Compound assign const **(ERROR)** | [x] | `const/const-compound-assign-error.test.cnx` |
+| Assign const param **(ERROR)** | [x] | `const/const-param-assign-error.test.cnx` |
 
 ---
 
@@ -1121,10 +1121,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Basic atomic | [x] | `atomic/basic.cnx` |
-| All integer types | [x] | `atomic/atomic-all-types.cnx` |
-| Compound operations | [x] | `atomic/atomic-compound-ops.cnx` |
-| PRIMASK fallback | [x] | `atomic/primask-fallback.cnx` |
+| Basic atomic | [x] | `atomic/basic.test.cnx` |
+| All integer types | [x] | `atomic/atomic-all-types.test.cnx` |
+| Compound operations | [x] | `atomic/atomic-compound-ops.test.cnx` |
+| PRIMASK fallback | [x] | `atomic/primask-fallback.test.cnx` |
 | With clamp | [ ] | |
 | With wrap | [ ] | |
 | In scope | [ ] | |
@@ -1141,13 +1141,13 @@ This document tracks test coverage for every language construct in every valid c
 |---------|--------|-----------|
 | u8 clamp | [ ] | |
 | u16 clamp | [ ] | |
-| u32 clamp | [x] | `primitives/clamp-declaration.cnx` |
+| u32 clamp | [x] | `primitives/clamp-declaration.test.cnx` |
 | u64 clamp | [ ] | |
 | i8 clamp | [ ] | |
 | i16 clamp | [ ] | |
-| i32 clamp | [x] | `primitives/signed-overflow.cnx` |
+| i32 clamp | [x] | `primitives/signed-overflow.test.cnx` |
 | i64 clamp | [ ] | |
-| Compound add | [x] | `primitives/clamp-compound-add.cnx` |
+| Compound add | [x] | `primitives/clamp-compound-add.test.cnx` |
 | Compound sub | [ ] | |
 | Compound mul | [ ] | |
 | With atomic | [ ] | |
@@ -1160,13 +1160,13 @@ This document tracks test coverage for every language construct in every valid c
 |---------|--------|-----------|
 | u8 wrap | [ ] | |
 | u16 wrap | [ ] | |
-| u32 wrap | [x] | `primitives/wrap-declaration.cnx` |
+| u32 wrap | [x] | `primitives/wrap-declaration.test.cnx` |
 | u64 wrap | [ ] | |
 | i8 wrap | [ ] | |
 | i16 wrap | [ ] | |
-| i32 wrap | [x] | `primitives/signed-overflow.cnx` |
+| i32 wrap | [x] | `primitives/signed-overflow.test.cnx` |
 | i64 wrap | [ ] | |
-| Compound add | [x] | `primitives/wrap-compound-add.cnx` |
+| Compound add | [x] | `primitives/wrap-compound-add.test.cnx` |
 | Compound sub | [ ] | |
 | Compound mul | [ ] | |
 | With atomic | [ ] | |
@@ -1176,7 +1176,7 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Mixed in expression | [x] | `primitives/mixed-overflow.cnx` |
+| Mixed in expression | [x] | `primitives/mixed-overflow.test.cnx` |
 | clamp + wrap interaction | [x] | |
 
 ---
@@ -1185,21 +1185,21 @@ This document tracks test coverage for every language construct in every valid c
 
 | Conversion | Status | Test File |
 |------------|--------|-----------|
-| Widening unsigned (u8 -> u16) | [x] | `casting/widening-unsigned.cnx` |
-| Widening signed (i8 -> i16) | [x] | `casting/widening-signed.cnx` |
+| Widening unsigned (u8 -> u16) | [x] | `casting/widening-unsigned.test.cnx` |
+| Widening signed (i8 -> i16) | [x] | `casting/widening-signed.test.cnx` |
 | Explicit cast (u32) | [x] | |
-| Literal in range | [x] | `casting/literal-valid.cnx` |
+| Literal in range | [x] | `casting/literal-valid.test.cnx` |
 | Enum to int cast | [ ] | |
-| Narrowing assign **(ERROR)** | [x] | `casting/narrowing-assign-error.cnx` |
-| Narrowing cast **(ERROR)** | [x] | `casting/narrowing-cast-error.cnx` |
-| Sign assign **(ERROR)** | [x] | `casting/sign-assign-error.cnx` |
-| Sign cast **(ERROR)** | [x] | `casting/sign-cast-error.cnx` |
-| Literal overflow **(ERROR)** | [x] | `casting/literal-overflow-error.cnx` |
-| Literal neg to unsigned **(ERROR)** | [x] | `casting/literal-negative-unsigned-error.cnx` |
-| Literal hex overflow **(ERROR)** | [x] | `casting/literal-hex-overflow-error.cnx` |
-| Literal binary overflow **(ERROR)** | [x] | `casting/literal-binary-overflow-error.cnx` |
-| Bit index narrowing | [x] | `casting/bit-index-narrowing.cnx` |
-| Bit index sign | [x] | `casting/bit-index-sign.cnx` |
+| Narrowing assign **(ERROR)** | [x] | `casting/narrowing-assign-error.test.cnx` |
+| Narrowing cast **(ERROR)** | [x] | `casting/narrowing-cast-error.test.cnx` |
+| Sign assign **(ERROR)** | [x] | `casting/sign-assign-error.test.cnx` |
+| Sign cast **(ERROR)** | [x] | `casting/sign-cast-error.test.cnx` |
+| Literal overflow **(ERROR)** | [x] | `casting/literal-overflow-error.test.cnx` |
+| Literal neg to unsigned **(ERROR)** | [x] | `casting/literal-negative-unsigned-error.test.cnx` |
+| Literal hex overflow **(ERROR)** | [x] | `casting/literal-hex-overflow-error.test.cnx` |
+| Literal binary overflow **(ERROR)** | [x] | `casting/literal-binary-overflow-error.test.cnx` |
+| Bit index narrowing | [x] | `casting/bit-index-narrowing.test.cnx` |
+| Bit index sign | [x] | `casting/bit-index-sign.test.cnx` |
 
 ---
 
@@ -1207,15 +1207,15 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Primitive type | [x] | `sizeof/basic-type.cnx` |
-| Variable | [x] | `sizeof/basic-variable.cnx` |
-| Struct type | [x] | `sizeof/struct-type.cnx` |
+| Primitive type | [x] | `sizeof/basic-type.test.cnx` |
+| Variable | [x] | `sizeof/basic-variable.test.cnx` |
+| Struct type | [x] | `sizeof/struct-type.test.cnx` |
 | Local array | [ ] | |
 | Struct member | [ ] | |
 | In expression | [ ] | |
 | In array size | [ ] | |
-| Array parameter **(ERROR)** | [x] | `sizeof/array-param-error.cnx` |
-| Side effects **(ERROR)** | [x] | `sizeof/side-effects-error.cnx` |
+| Array parameter **(ERROR)** | [x] | `sizeof/array-param-error.test.cnx` |
+| Side effects **(ERROR)** | [x] | `sizeof/side-effects-error.test.cnx` |
 
 ---
 
@@ -1223,15 +1223,15 @@ This document tracks test coverage for every language construct in every valid c
 
 | Directive | Status | Test File |
 |-----------|--------|-----------|
-| #include <system> | [x] | `c-interop/include-passthrough.cnx` |
+| #include <system> | [x] | `c-interop/include-passthrough.test.cnx` |
 | #include "local" | [x] | |
-| #define FLAG (valid) | [x] | `preprocessor/flag-define-valid.cnx` |
-| #ifdef / #endif | [x] | `preprocessor/conditional-compilation.cnx` |
+| #define FLAG (valid) | [x] | `preprocessor/flag-define-valid.test.cnx` |
+| #ifdef / #endif | [x] | `preprocessor/conditional-compilation.test.cnx` |
 | #ifndef / #else / #endif | [x] | |
-| #pragma target | [x] | `platformio-detect/auto-detect.cnx` |
+| #pragma target | [x] | `platformio-detect/auto-detect.test.cnx` |
 | Nested #ifdef | [ ] | |
-| #define VALUE **(ERROR)** | [x] | `preprocessor/value-define-error.cnx` |
-| #define FUNC() **(ERROR)** | [x] | `preprocessor/function-macro-error.cnx` |
+| #define VALUE **(ERROR)** | [x] | `preprocessor/value-define-error.test.cnx` |
+| #define FUNC() **(ERROR)** | [x] | `preprocessor/function-macro-error.test.cnx` |
 
 ---
 
@@ -1239,14 +1239,14 @@ This document tracks test coverage for every language construct in every valid c
 
 | Type | Status | Test File |
 |------|--------|-----------|
-| Line comment // | [x] | `comments/basic-comments.cnx` |
+| Line comment // | [x] | `comments/basic-comments.test.cnx` |
 | Block comment /* */ | [x] | |
-| Doc comment /// | [x] | `comments/doc-comments.cnx` |
-| URI exception | [x] | `comments/uri-exception.cnx` |
+| Doc comment /// | [x] | `comments/doc-comments.test.cnx` |
+| URI exception | [x] | `comments/uri-exception.test.cnx` |
 | Multi-line block | [x] | |
 | Comment in expression | [ ] | |
-| MISRA 3.1 nested **(ERROR)** | [x] | `comments/misra-3-1-nested-block.cnx` |
-| MISRA 3.2 backslash **(ERROR)** | [x] | `comments/misra-3-2-backslash.cnx` |
+| MISRA 3.1 nested **(ERROR)** | [x] | `comments/misra-3-1-nested-block.test.cnx` |
+| MISRA 3.2 backslash **(ERROR)** | [x] | `comments/misra-3-2-backslash.test.cnx` |
 
 ---
 
@@ -1254,16 +1254,16 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Zero-init global | [x] | `initialization/global-zero-init.cnx` |
-| Zero-init array | [x] | `initialization/array-zero-init.cnx` |
-| Zero-init struct | [x] | `initialization/struct-zero-init.cnx` |
-| Counter from zero | [x] | `initialization/counter-from-zero.cnx` |
-| Init then use | [x] | `initialization/init-then-use.cnx` |
-| If-else branches | [x] | `initialization/if-else-branches.cnx` |
-| Namespace init | [x] | `initialization/namespace-init.cnx` |
+| Zero-init global | [x] | `initialization/global-zero-init.test.cnx` |
+| Zero-init array | [x] | `initialization/array-zero-init.test.cnx` |
+| Zero-init struct | [x] | `initialization/struct-zero-init.test.cnx` |
+| Counter from zero | [x] | `initialization/counter-from-zero.test.cnx` |
+| Init then use | [x] | `initialization/init-then-use.test.cnx` |
+| If-else branches | [x] | `initialization/if-else-branches.test.cnx` |
+| Namespace init | [x] | `initialization/namespace-init.test.cnx` |
 | Loop init | [ ] | |
 | Switch branch init | [ ] | |
-| Use before init **(ERROR)** | [x] | `initialization/use-before-init.cnx` |
+| Use before init **(ERROR)** | [x] | `initialization/use-before-init.test.cnx` |
 | Partial branch init **(ERROR)** | [ ] | |
 
 ---
@@ -1272,11 +1272,11 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Pass by reference | [x] | `references/pass-by-reference.cnx` |
-| Output parameter | [x] | `references/output-parameter.cnx` |
-| Struct pass by ref | [x] | `references/struct-pass-by-ref.cnx` |
-| Swap function | [x] | `references/swap-function.cnx` |
-| Compound via ref | [x] | `references/compound-via-ref.cnx` |
+| Pass by reference | [x] | `references/pass-by-reference.test.cnx` |
+| Output parameter | [x] | `references/output-parameter.test.cnx` |
+| Struct pass by ref | [x] | `references/struct-pass-by-ref.test.cnx` |
+| Swap function | [x] | `references/swap-function.test.cnx` |
+| Compound via ref | [x] | `references/compound-via-ref.test.cnx` |
 | Array pass by ref | [ ] | |
 | Multiple output params | [ ] | |
 | Ref in loop | [ ] | |
@@ -1287,17 +1287,17 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| fgets != NULL | [x] | `null-check/valid-fgets-check.cnx` |
-| fgets = NULL | [x] | `null-check/valid-null-eq-check.cnx` |
-| fgets else branch | [x] | `null-check/valid-fgets-else.cnx` |
-| fputs check | [x] | `null-check/valid-fputs-check.cnx` |
-| fgetc check | [x] | `null-check/valid-fgetc-check.cnx` |
-| != NULL variant | [x] | `null-check/null-neq-check.cnx` |
+| fgets != NULL | [x] | `null-check/valid-fgets-check.test.cnx` |
+| fgets = NULL | [x] | `null-check/valid-null-eq-check.test.cnx` |
+| fgets else branch | [x] | `null-check/valid-fgets-else.test.cnx` |
+| fputs check | [x] | `null-check/valid-fputs-check.test.cnx` |
+| fgetc check | [x] | `null-check/valid-fgetc-check.test.cnx` |
+| != NULL variant | [x] | `null-check/null-neq-check.test.cnx` |
 | NULL in while | [ ] | |
 | NULL in ternary | [ ] | |
-| Missing check **(ERROR)** | [x] | `null-check/missing-null-check.cnx` |
-| Invalid usage **(ERROR)** | [x] | `null-check/invalid-null-usage.cnx` |
-| fopen forbidden **(ERROR)** | [x] | `null-check/forbidden-fopen.cnx` |
+| Missing check **(ERROR)** | [x] | `null-check/missing-null-check.test.cnx` |
+| Invalid usage **(ERROR)** | [x] | `null-check/invalid-null-usage.test.cnx` |
+| fopen forbidden **(ERROR)** | [x] | `null-check/forbidden-fopen.test.cnx` |
 
 ---
 
@@ -1305,14 +1305,14 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Static array | [x] | `static-allocation/static-array.cnx` |
-| Static counter | [x] | `static-allocation/static-counter.cnx` |
-| Static struct buffer | [x] | `static-allocation/static-struct-buffer.cnx` |
+| Static array | [x] | `static-allocation/static-array.test.cnx` |
+| Static counter | [x] | `static-allocation/static-counter.test.cnx` |
+| Static struct buffer | [x] | `static-allocation/static-struct-buffer.test.cnx` |
 | Static string buffer | [ ] | |
-| malloc **(ERROR)** | [x] | `static-allocation/malloc-error.cnx` |
-| calloc **(ERROR)** | [x] | `static-allocation/calloc-error.cnx` |
-| realloc **(ERROR)** | [x] | `static-allocation/realloc-error.cnx` |
-| free **(ERROR)** | [x] | `static-allocation/free-error.cnx` |
+| malloc **(ERROR)** | [x] | `static-allocation/malloc-error.test.cnx` |
+| calloc **(ERROR)** | [x] | `static-allocation/calloc-error.test.cnx` |
+| realloc **(ERROR)** | [x] | `static-allocation/realloc-error.test.cnx` |
+| free **(ERROR)** | [x] | `static-allocation/free-error.test.cnx` |
 
 ---
 
@@ -1320,9 +1320,9 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| C types compatibility | [x] | `c-interop/c-types-compat.cnx` |
-| Generated C readable | [x] | `c-interop/generated-c-readable.cnx` |
-| Include passthrough | [x] | `c-interop/include-passthrough.cnx` |
+| C types compatibility | [x] | `c-interop/c-types-compat.test.cnx` |
+| Generated C readable | [x] | `c-interop/generated-c-readable.test.cnx` |
+| Include passthrough | [x] | `c-interop/include-passthrough.test.cnx` |
 | Call C function | [ ] | |
 | Use C typedef | [ ] | |
 | Use C macro constant | [ ] | |
@@ -1347,9 +1347,9 @@ This document tracks test coverage for every language construct in every valid c
 
 | Feature | Status | Test File |
 |---------|--------|-----------|
-| Basic ISR | [x] | `isr/isr-basic.cnx` |
-| ISR assignment | [x] | `isr/isr-assignment.cnx` |
-| ISR array | [x] | `isr/isr-array.cnx` |
+| Basic ISR | [x] | `isr/isr-basic.test.cnx` |
+| ISR assignment | [x] | `isr/isr-assignment.test.cnx` |
+| ISR array | [x] | `isr/isr-array.test.cnx` |
 | ISR as parameter | [ ] | |
 | ISR in struct | [ ] | |
 | ISR invocation | [ ] | |
@@ -1391,11 +1391,11 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Variable init | [x] | `string/string-basic.cnx` |
+| Variable init | [x] | `string/string-basic.test.cnx` |
 | Function argument | [x] | |
-| Comparison | [x] | `string/string-compare-literal.cnx` |
-| Concatenation | [x] | `string/string-concat-literal.cnx` |
-| Empty string "" | [x] | `string/string-empty.cnx` |
+| Comparison | [x] | `string/string-compare-literal.test.cnx` |
+| Concatenation | [x] | `string/string-concat-literal.test.cnx` |
+| Empty string "" | [x] | `string/string-empty.test.cnx` |
 | Escape sequences | [ ] | |
 
 ### 32.4 Character Literals
@@ -1413,7 +1413,7 @@ This document tracks test coverage for every language construct in every valid c
 | Literal | Context | Status | Test File |
 |---------|---------|--------|-----------|
 | true | Variable init | [x] | |
-| true | Bit assignment | [x] | `bit-indexing/bit-single-write.cnx` |
+| true | Bit assignment | [x] | `bit-indexing/bit-single-write.test.cnx` |
 | true | Comparison | [x] | |
 | false | Variable init | [x] | |
 | false | Bit assignment | [x] | |
@@ -1441,9 +1441,9 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context | Status | Test File |
 |---------|--------|-----------|
-| Nested function calls | [x] | `forward-declarations/nested-calls-valid.cnx` |
-| Chained member access | [x] | `nested-structs/basic-nesting.cnx` |
-| Array in array | [x] | `multi-dim-arrays/nested-init.cnx` |
+| Nested function calls | [x] | `forward-declarations/nested-calls-valid.test.cnx` |
+| Chained member access | [x] | `nested-structs/basic-nesting.test.cnx` |
+| Array in array | [x] | `multi-dim-arrays/nested-init.test.cnx` |
 | Arithmetic in comparison | [x] | |
 | Comparison in logical | [x] | |
 | Function call in expression | [x] | |
@@ -1462,7 +1462,7 @@ This document tracks test coverage for every language construct in every valid c
 | if inside for | [x] | |
 | while inside if | [ ] | |
 | while inside while | [ ] | |
-| for inside for | [x] | `for-loops/for-nested.cnx` |
+| for inside for | [x] | `for-loops/for-nested.test.cnx` |
 | for inside if | [ ] | |
 | switch inside if | [ ] | |
 | switch inside loop | [ ] | |
@@ -1503,9 +1503,9 @@ This document tracks test coverage for every language construct in every valid c
 
 ## Statistics
 
-*Last updated: 2026-01-09*
+*Last updated: 2026-01-10*
 
-**Current Test Count: 209 passing tests**
+**Current Test Count: 210 passing tests**
 
 | Category | Estimated Coverage |
 |----------|-------------------|
@@ -1543,7 +1543,7 @@ This document tracks test coverage for every language construct in every valid c
 | structs | 8 | 1 |
 | nested-structs | 5 | 0 |
 | enum | 6 | 4 |
-| register | 6 | 1 |
+| register | 8 | 2 |
 | ternary | 6 | 3 |
 | Other categories | ~93 | ~21 |
-| **TOTAL** | **209** | **~62** |
+| **TOTAL** | **210** | **~63** |

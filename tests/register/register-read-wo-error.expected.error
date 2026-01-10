@@ -1,0 +1,1 @@
+1:0 Code generation failed: cannot read from write-only register member 'COMMAND' (CONTROL_REG.COMMAND has 'wo' access modifier)

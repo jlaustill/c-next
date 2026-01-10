@@ -3,7 +3,7 @@
  * C-Next Integration Test Runner
  *
  * Comprehensive testing for transpiler output:
- * - Finds all .cnx test files
+ * - Finds all .test.cnx test files (helpers without .test are skipped)
  * - Transpiles each file
  * - Compares output to .expected.c file (if exists)
  * - For error tests, compares to .expected.error file
@@ -55,7 +55,7 @@ const colors = {
 };
 
 /**
- * Find all .cnx files recursively in a directory
+ * Find all .test.cnx files recursively in a directory
  */
 function findCnxFiles(dir) {
   const files = [];
@@ -67,7 +67,7 @@ function findCnxFiles(dir) {
 
     if (stat.isDirectory()) {
       files.push(...findCnxFiles(fullPath));
-    } else if (entry.endsWith(".cnx")) {
+    } else if (entry.endsWith(".test.cnx")) {
       files.push(fullPath);
     }
   }
@@ -228,7 +228,7 @@ function validateMisra(cFile) {
  * Get a unique path for a test executable in the temp directory
  */
 function getExecutablePath(cnxFile) {
-  const testName = basename(cnxFile, ".cnx");
+  const testName = basename(cnxFile, ".test.cnx");
   const uniqueId = randomBytes(4).toString("hex");
   return join(tmpdir(), `cnx-test-${testName}-${uniqueId}`);
 }
@@ -358,7 +358,7 @@ function checkValidationTools() {
  */
 function runTest(cnxFile, updateMode, tools) {
   const source = readFileSync(cnxFile, "utf-8");
-  const basePath = cnxFile.replace(/\.cnx$/, "");
+  const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
 
@@ -601,7 +601,7 @@ function main() {
   const cnxFiles = findCnxFiles(testDir);
 
   if (cnxFiles.length === 0) {
-    console.log(`${colors.yellow}No .cnx test files found${colors.reset}`);
+    console.log(`${colors.yellow}No .test.cnx test files found${colors.reset}`);
     process.exit(0);
   }
 
