@@ -92,7 +92,7 @@ function showHelp(): void {
   console.log(
     "                     Options: teensy41, cortex-m7/m4/m3/m0+/m0, avr",
   );
-  console.log("  --no-headers       Don't generate header files");
+  console.log("  --exclude-headers  Don't generate header files (default: generate)");
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --version, -v      Show version");
@@ -336,7 +336,7 @@ async function main(): Promise<void> {
       cliTarget = args[++i];
     } else if (arg === "--cpp") {
       cliCppOutput = true;
-    } else if (arg === "--no-headers") {
+    } else if (arg === "--exclude-headers") {
       cliGenerateHeaders = false;
     } else if (arg === "--no-preprocess") {
       preprocess = false;
