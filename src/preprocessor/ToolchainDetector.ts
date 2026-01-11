@@ -205,6 +205,7 @@ class ToolchainDetector {
       const config = JSON.parse(result);
 
       // Extract include directories from build flags
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const env of Object.values(config) as any[]) {
         const buildFlags = env.build_flags ?? [];
         for (const flag of buildFlags) {

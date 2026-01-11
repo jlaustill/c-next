@@ -10,18 +10,22 @@
 ## ✅ Bug #1: Float Parameters Incorrectly Transpiled as Pointers (FIXED)
 
 ### Location
+
 - **Files Modified:** `src/codegen/CodeGenerator.ts`
 - **Lines:** 56-62, 1433-1440, 1475-1497, 3249-3256, 4809-4812, 6263-6283, 6318-6321
 
 ### Problem
+
 Float parameters (f32/f64) were being converted to pointers like all other C-Next parameters, breaking standard C calling conventions and making it impossible to call float functions with literals.
 
 ### Root Cause
+
 ADR-006 "pass by reference" logic treated ALL primitive types uniformly, but floats should be pass-by-value in C.
 
 ### Solution Implemented
 
 1. **Updated `generateParameter()`** to exclude floats from pointer conversion:
+
 ```typescript
 // Float types (f32, f64) use standard C pass-by-value semantics
 if (this.isFloatType(typeName)) {
@@ -32,6 +36,7 @@ if (this.isFloatType(typeName)) {
 2. **Added `baseType` to `ParameterInfo`** interface to track parameter types
 
 3. **Updated parameter dereferencing logic** in two locations to skip dereferencing for float parameters:
+
 ```typescript
 // Float types use pass-by-value, no dereference needed
 if (this.isFloatType(paramInfo.baseType)) {
@@ -42,6 +47,7 @@ if (this.isFloatType(paramInfo.baseType)) {
 4. **Enhanced `FunctionSignature`** interface to track parameter types
 
 5. **Updated function call argument generation** to pass float arguments by value:
+
 ```typescript
 if (isFloatParam) {
   // Target parameter is float (pass-by-value): pass value directly
@@ -50,6 +56,7 @@ if (isFloatParam) {
 ```
 
 ### Result
+
 Float parameters now use standard C pass-by-value semantics. Functions can be called with literals and values are passed correctly.
 
 ---
@@ -73,7 +80,7 @@ Created 10 comprehensive tests covering:
 7. ✅ **float-const-zero-valid.test.cnx** - Const zero division valid for floats (PASSING)
 8. ✅ **float-int-conversion.test.cnx** - Conversions between int and float (PASSING)
 9. ✅ **float-arrays.test.cnx** - Float array operations (PASSING)
-10. ⚠️  **float-modulo-error.test.cnx** - Modulo on floats should error (Needs transpiler validation)
+10. ⚠️ **float-modulo-error.test.cnx** - Modulo on floats should error (Needs transpiler validation)
 
 **Success Rate: 9/10 (90%)**
 
@@ -85,9 +92,10 @@ The failing test expects a transpiler error but currently fails at C compilation
 
 Before: f32/f64 had **0% coverage**
 After: f32/f64 now have comprehensive coverage across:
+
 - ✅ Variable declarations (global, local, struct members)
 - ✅ Function parameters and returns
-- ✅ All arithmetic operations (+, -, *, /)
+- ✅ All arithmetic operations (+, -, \*, /)
 - ✅ All comparison operations (=, !=, <, >, <=, >=)
 - ✅ Arrays and array operations
 - ✅ Literals (decimal and scientific notation)
@@ -114,6 +122,7 @@ During testing, discovered an **arithmetic operator bug** where some operators a
 ## Summary
 
 The float implementation had a **critical architectural bug** where all parameters were converted to pointers. This has been successfully fixed by:
+
 1. Excluding floats from pointer conversion in parameter generation
 2. Skipping dereference operations for float parameters
 3. Handling float arguments correctly in function calls

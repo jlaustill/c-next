@@ -6,6 +6,7 @@ This document tracks test coverage for every language construct in every valid c
 ## Recent Updates
 
 **2026-01-11: Comprehensive Postfix Expression Chain Testing**
+
 - ✅ Added 11 new test files targeting lines 5850-6285 (most complex code in transpiler)
 - ✅ Fixed grammar bug (lines 485-486 in CNext.g4) - parser now accepts complex chains
 - 🔶 Discovered code generator bug - order scrambling in mixed chains (documented)
@@ -253,37 +254,37 @@ This document tracks test coverage for every language construct in every valid c
 
 #### f32
 
-| Context                     | Status | Test File                              |
-| --------------------------- | ------ | -------------------------------------- |
-| Global variable declaration | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Global variable with init   | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Local variable declaration  | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Local variable with init    | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Function parameter          | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Function return type        | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Struct member               | [x]    | `floats/f32-all-contexts.test.cnx`     |
-| Array element type          | [x]    | `floats/float-arrays.test.cnx`         |
-| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx`     |
-| In comparison               | [x]    | `floats/float-comparison.test.cnx`     |
-| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`       |
-| Literal with f32 suffix     | [ ]    |                                        |
+| Context                     | Status | Test File                          |
+| --------------------------- | ------ | ---------------------------------- |
+| Global variable declaration | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Global variable with init   | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Local variable declaration  | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Local variable with init    | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Function parameter          | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Function return type        | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Struct member               | [x]    | `floats/f32-all-contexts.test.cnx` |
+| Array element type          | [x]    | `floats/float-arrays.test.cnx`     |
+| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx` |
+| In comparison               | [x]    | `floats/float-comparison.test.cnx` |
+| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`   |
+| Literal with f32 suffix     | [ ]    |                                    |
 
 #### f64
 
-| Context                     | Status | Test File                              |
-| --------------------------- | ------ | -------------------------------------- |
-| Global variable declaration | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Global variable with init   | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Local variable declaration  | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Local variable with init    | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Function parameter          | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Function return type        | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Struct member               | [x]    | `floats/f64-all-contexts.test.cnx`     |
-| Array element type          | [x]    | `floats/float-arrays.test.cnx`         |
-| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx`     |
-| In comparison               | [x]    | `floats/float-comparison.test.cnx`     |
-| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`       |
-| Literal with f64 suffix     | [ ]    |                                        |
+| Context                     | Status | Test File                          |
+| --------------------------- | ------ | ---------------------------------- |
+| Global variable declaration | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Global variable with init   | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Local variable declaration  | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Local variable with init    | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Function parameter          | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Function return type        | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Struct member               | [x]    | `floats/f64-all-contexts.test.cnx` |
+| Array element type          | [x]    | `floats/float-arrays.test.cnx`     |
+| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx` |
+| In comparison               | [x]    | `floats/float-comparison.test.cnx` |
+| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`   |
+| Literal with f64 suffix     | [ ]    |                                    |
 
 ### 1.4 Boolean
 
@@ -485,36 +486,36 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 3.3 Less Than (<)
 
-| Operand Types     | Status | Test File |
-| ----------------- | ------ | --------- |
-| u8 < u8           | [ ]    |           |
-| u16 < u16         | [ ]    |           |
-| u32 < u32         | [x]    |           |
-| u64 < u64         | [ ]    |           |
-| i8 < i8           | [ ]    |           |
-| i16 < i16         | [ ]    |           |
-| i32 < i32         | [x]    |           |
-| i64 < i64         | [ ]    |           |
+| Operand Types     | Status | Test File                          |
+| ----------------- | ------ | ---------------------------------- |
+| u8 < u8           | [ ]    |                                    |
+| u16 < u16         | [ ]    |                                    |
+| u32 < u32         | [x]    |                                    |
+| u64 < u64         | [ ]    |                                    |
+| i8 < i8           | [ ]    |                                    |
+| i16 < i16         | [ ]    |                                    |
+| i32 < i32         | [x]    |                                    |
+| i64 < i64         | [ ]    |                                    |
 | f32 < f32         | [x]    | `floats/float-comparison.test.cnx` |
 | f64 < f64         | [x]    | `floats/float-comparison.test.cnx` |
-| Integer < Literal | [x]    |           |
-| Literal < Integer | [ ]    |           |
+| Integer < Literal | [x]    |                                    |
+| Literal < Integer | [ ]    |                                    |
 
 ### 3.4 Greater Than (>)
 
-| Operand Types     | Status | Test File |
-| ----------------- | ------ | --------- |
-| u8 > u8           | [ ]    |           |
-| u16 > u16         | [ ]    |           |
-| u32 > u32         | [x]    |           |
-| u64 > u64         | [ ]    |           |
-| i8 > i8           | [ ]    |           |
-| i16 > i16         | [ ]    |           |
-| i32 > i32         | [x]    |           |
-| i64 > i64         | [ ]    |           |
+| Operand Types     | Status | Test File                          |
+| ----------------- | ------ | ---------------------------------- |
+| u8 > u8           | [ ]    |                                    |
+| u16 > u16         | [ ]    |                                    |
+| u32 > u32         | [x]    |                                    |
+| u64 > u64         | [ ]    |                                    |
+| i8 > i8           | [ ]    |                                    |
+| i16 > i16         | [ ]    |                                    |
+| i32 > i32         | [x]    |                                    |
+| i64 > i64         | [ ]    |                                    |
 | f32 > f32         | [x]    | `floats/float-comparison.test.cnx` |
 | f64 > f64         | [x]    | `floats/float-comparison.test.cnx` |
-| Integer > Literal | [x]    |           |
+| Integer > Literal | [x]    |                                    |
 
 ### 3.5 Less Than or Equal (<=)
 
@@ -561,61 +562,61 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 4.2 Subtraction (-)
 
-| Operand Types       | Status | Test File |
-| ------------------- | ------ | --------- |
-| u8 - u8             | [ ]    |           |
-| u16 - u16           | [ ]    |           |
-| u32 - u32           | [x]    |           |
-| u64 - u64           | [ ]    |           |
-| i8 - i8             | [ ]    |           |
-| i16 - i16           | [ ]    |           |
-| i32 - i32           | [x]    |           |
-| i64 - i64           | [ ]    |           |
+| Operand Types       | Status | Test File                          |
+| ------------------- | ------ | ---------------------------------- |
+| u8 - u8             | [ ]    |                                    |
+| u16 - u16           | [ ]    |                                    |
+| u32 - u32           | [x]    |                                    |
+| u64 - u64           | [ ]    |                                    |
+| i8 - i8             | [ ]    |                                    |
+| i16 - i16           | [ ]    |                                    |
+| i32 - i32           | [x]    |                                    |
+| i64 - i64           | [ ]    |                                    |
 | f32 - f32           | [x]    | `floats/float-arithmetic.test.cnx` |
 | f64 - f64           | [x]    | `floats/float-arithmetic.test.cnx` |
-| Integer - Literal   | [x]    |           |
-| Unary negation (-x) | [x]    |           |
+| Integer - Literal   | [x]    |                                    |
+| Unary negation (-x) | [x]    |                                    |
 
 ### 4.3 Multiplication (\*)
 
-| Operand Types      | Status | Test File |
-| ------------------ | ------ | --------- |
-| u32 \* u32         | [x]    |           |
-| i32 \* i32         | [x]    |           |
+| Operand Types      | Status | Test File                          |
+| ------------------ | ------ | ---------------------------------- |
+| u32 \* u32         | [x]    |                                    |
+| i32 \* i32         | [x]    |                                    |
 | f32 \* f32         | [x]    | `floats/float-arithmetic.test.cnx` |
 | f64 \* f64         | [x]    | `floats/float-arithmetic.test.cnx` |
-| Integer \* Literal | [x]    |           |
+| Integer \* Literal | [x]    |                                    |
 
 ### 4.4 Division (/)
 
-| Operand Types                | Status | Test File                                      |
-| ---------------------------- | ------ | ---------------------------------------------- |
-| u32 / u32                         | [x]    |                                                |
-| i32 / i32                         | [x]    |                                                |
-| f32 / f32                         | [x]    | `floats/float-arithmetic.test.cnx`             |
-| f64 / f64                         | [x]    | `floats/float-arithmetic.test.cnx`             |
-| Integer / Literal                 | [x]    |                                                |
-| Float division by zero (valid)    | [x]    | `floats/float-division-by-zero.test.cnx`       |
-| Float division by const zero (valid) | [x] | `floats/float-const-zero-valid.test.cnx`       |
-| Division by zero **(ERROR)**      | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
-| Division by const zero **(ERROR)** | [x]    | `arithmetic/division-by-const-zero.test.cnx`  |
+| Operand Types                           | Status | Test File                                         |
+| --------------------------------------- | ------ | ------------------------------------------------- |
+| u32 / u32                               | [x]    |                                                   |
+| i32 / i32                               | [x]    |                                                   |
+| f32 / f32                               | [x]    | `floats/float-arithmetic.test.cnx`                |
+| f64 / f64                               | [x]    | `floats/float-arithmetic.test.cnx`                |
+| Integer / Literal                       | [x]    |                                                   |
+| Float division by zero (valid)          | [x]    | `floats/float-division-by-zero.test.cnx`          |
+| Float division by const zero (valid)    | [x]    | `floats/float-const-zero-valid.test.cnx`          |
+| Division by zero **(ERROR)**            | [x]    | `arithmetic/division-by-zero-literal.test.cnx`    |
+| Division by const zero **(ERROR)**      | [x]    | `arithmetic/division-by-const-zero.test.cnx`      |
 | Division const zero formats **(ERROR)** | [x]    | `arithmetic/division-const-zero-formats.test.cnx` |
-| Division by const non-zero    | [x]    | `arithmetic/division-const-non-zero.test.cnx`  |
-| Safe division (ADR-051)      | [x]    | `arithmetic/safe-div-basic.test.cnx`           |
-| Safe div preserve on error   | [x]    | `arithmetic/safe-div-preserve-on-error.test.cnx` |
-| Safe div all types           | [x]    | `arithmetic/safe-div-all-types.test.cnx`       |
+| Division by const non-zero              | [x]    | `arithmetic/division-const-non-zero.test.cnx`     |
+| Safe division (ADR-051)                 | [x]    | `arithmetic/safe-div-basic.test.cnx`              |
+| Safe div preserve on error              | [x]    | `arithmetic/safe-div-preserve-on-error.test.cnx`  |
+| Safe div all types                      | [x]    | `arithmetic/safe-div-all-types.test.cnx`          |
 
 ### 4.5 Modulo (%)
 
-| Operand Types              | Status | Test File                                    |
-| -------------------------- | ------ | -------------------------------------------- |
-| u32 % u32                       | [x]    |                                              |
-| i32 % i32                       | [x]    |                                              |
-| Integer % Literal               | [x]    |                                              |
-| Modulo by zero **(ERROR)**      | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx` |
-| Modulo by const zero **(ERROR)** | [x]    | `arithmetic/modulo-by-const-zero.test.cnx`  |
-| Safe modulo (ADR-051)           | [x]    | `arithmetic/safe-mod-basic.test.cnx`         |
-| Float modulo **(ERROR)**        | [x]    | `floats/float-modulo-error.test.cnx`         |
+| Operand Types                    | Status | Test File                                    |
+| -------------------------------- | ------ | -------------------------------------------- |
+| u32 % u32                        | [x]    |                                              |
+| i32 % i32                        | [x]    |                                              |
+| Integer % Literal                | [x]    |                                              |
+| Modulo by zero **(ERROR)**       | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx` |
+| Modulo by const zero **(ERROR)** | [x]    | `arithmetic/modulo-by-const-zero.test.cnx`   |
+| Safe modulo (ADR-051)            | [x]    | `arithmetic/safe-mod-basic.test.cnx`         |
+| Float modulo **(ERROR)**         | [x]    | `floats/float-modulo-error.test.cnx`         |
 
 ---
 
@@ -1356,20 +1357,21 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 30a. Volatile Modifier
 
-| Context                  | Status | Test File                                   |
-| ------------------------ | ------ | ------------------------------------------- |
-| Global variable          | [ ]    |                                             |
-| Local variable           | [ ]    |                                             |
-| Struct member            | [ ]    |                                             |
-| Register field (implied) | [ ]    |                                             |
-| With const               | [ ]    |                                             |
-| With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx`     |
+| Context                  | Status | Test File                               |
+| ------------------------ | ------ | --------------------------------------- |
+| Global variable          | [ ]    |                                         |
+| Local variable           | [ ]    |                                         |
+| Struct member            | [ ]    |                                         |
+| Register field (implied) | [ ]    |                                         |
+| With const               | [ ]    |                                         |
+| With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx` |
 
 **Implementation Note (ADR-108):**
 
 ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE, but test suite coverage is minimal. Currently only the error case is tested (volatile + atomic combination rejection).
 
 **Tests needed for comprehensive coverage:**
+
 - Basic volatile usage (global/local variables)
 - Hardware register patterns (memory-mapped I/O)
 - Delay loop patterns (optimization prevention)
@@ -1416,12 +1418,12 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 32.2 Float Literals
 
-| Format            | Context       | Status | Test File                          |
-| ----------------- | ------------- | ------ | ---------------------------------- |
-| Decimal (3.14)    | Variable init | [x]    | `floats/float-literals.test.cnx`   |
-| Scientific (1e-5) | Variable init | [x]    | `floats/float-literals.test.cnx`   |
-| With f32 suffix   | [ ]           |        |                                    |
-| With f64 suffix   | [ ]           |        |                                    |
+| Format            | Context       | Status | Test File                        |
+| ----------------- | ------------- | ------ | -------------------------------- |
+| Decimal (3.14)    | Variable init | [x]    | `floats/float-literals.test.cnx` |
+| Scientific (1e-5) | Variable init | [x]    | `floats/float-literals.test.cnx` |
+| With f32 suffix   | [ ]           |        |                                  |
+| With f64 suffix   | [ ]           |        |                                  |
 
 ### 32.3 String Literals
 
@@ -1493,21 +1495,21 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 **Comprehensive testing of lines 5850-6285 in CodeGenerator.ts (most complex code)**
 
-| Context                                       | Status | Test File                                          |
-| --------------------------------------------- | ------ | -------------------------------------------------- |
-| 2-level chains: arr[i].field                  | [x]    | `postfix-chains/basic-two-level.test.cnx`          |
-| 3-level chains: arr[i].struct.field           | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`   |
-| 4-level chains: arr[i][j].struct.field        | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`   |
-| 5-level chains: arr[i][j].struct.field.member | [x]    | `postfix-chains/array-struct-chain.test.cnx`       |
-| 7-level chains: mega stress test              | [x]    | `postfix-chains/mixed-access-ultimate.test.cnx`    |
-| Register + bitmap + bit indexing              | [x]    | `postfix-chains/register-bitmap-bit-chain.test.cnx`|
+| Context                                       | Status | Test File                                              |
+| --------------------------------------------- | ------ | ------------------------------------------------------ |
+| 2-level chains: arr[i].field                  | [x]    | `postfix-chains/basic-two-level.test.cnx`              |
+| 3-level chains: arr[i].struct.field           | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`       |
+| 4-level chains: arr[i][j].struct.field        | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`       |
+| 5-level chains: arr[i][j].struct.field.member | [x]    | `postfix-chains/array-struct-chain.test.cnx`           |
+| 7-level chains: mega stress test              | [x]    | `postfix-chains/mixed-access-ultimate.test.cnx`        |
+| Register + bitmap + bit indexing              | [x]    | `postfix-chains/register-bitmap-bit-chain.test.cnx`    |
 | Scoped register + bitmap chains               | [x]    | `postfix-chains/scoped-register-bitmap-chain.test.cnx` |
-| Array + struct member chains                  | [x]    | `postfix-chains/array-struct-chain.test.cnx`       |
-| Function calls with chained params            | [x]    | `postfix-chains/function-call-chain.test.cnx`      |
-| Write-only register chains                    | [x]    | `postfix-chains/write-only-register-chain.test.cnx`|
-| Multi-bit range chains [start, width]         | [x]    | `postfix-chains/multi-bit-range-chain.test.cnx`    |
-| Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`      |
-| Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`   |
+| Array + struct member chains                  | [x]    | `postfix-chains/array-struct-chain.test.cnx`           |
+| Function calls with chained params            | [x]    | `postfix-chains/function-call-chain.test.cnx`          |
+| Write-only register chains                    | [x]    | `postfix-chains/write-only-register-chain.test.cnx`    |
+| Multi-bit range chains [start, width]         | [x]    | `postfix-chains/multi-bit-range-chain.test.cnx`        |
+| Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`          |
+| Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`       |
 
 **Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in CNext.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
 
@@ -1587,6 +1589,7 @@ _Last updated: 2026-01-11_
 **Overall Estimated Coverage: ~62%**
 
 **Recent Improvements (2026-01-11):**
+
 - ✅ Added comprehensive postfix expression chain testing (11 files)
 - ✅ Fixed grammar bug (lines 485-486) - parser now accepts complex chains
 - 🔶 Discovered code generator bug (lines 6715-6738) - order scrambling
@@ -1594,33 +1597,33 @@ _Last updated: 2026-01-11_
 
 ### Coverage by Test File Count
 
-| Test Category        | Files   | Error Tests |
-| -------------------- | ------- | ----------- |
-| string               | 21      | 6           |
-| scope                | 21      | 5           |
-| casting              | 13      | 8           |
-| arithmetic           | 12      | 3           |
-| multi-dim-arrays     | 11      | 1           |
-| postfix-chains       | 11      | 0           |
-| floats               | 10      | 1           |
-| switch               | 9       | 5           |
-| null-check           | 9       | 5           |
-| structs              | 8       | 1           |
-| register             | 8       | 2           |
-| primitives           | 8       | 0           |
-| initialization       | 8       | 3           |
-| static-allocation    | 7       | 4           |
-| bitmap               | 7       | 2           |
-| ternary              | 6       | 3           |
-| enum                 | 6       | 4           |
-| nested-structs       | 5       | 0           |
-| sizeof               | 5       | 2           |
-| references           | 5       | 0           |
-| do-while             | 5       | 1           |
-| const                | 5       | 3           |
-| comments             | 5       | 2           |
-| bit-indexing         | 5       | 0           |
-| atomic               | 5       | 1           |
-| array-initializers   | 5       | 0           |
-| Other categories     | ~29     | ~5          |
-| **TOTAL**            | **262** | **72**      |
+| Test Category      | Files   | Error Tests |
+| ------------------ | ------- | ----------- |
+| string             | 21      | 6           |
+| scope              | 21      | 5           |
+| casting            | 13      | 8           |
+| arithmetic         | 12      | 3           |
+| multi-dim-arrays   | 11      | 1           |
+| postfix-chains     | 11      | 0           |
+| floats             | 10      | 1           |
+| switch             | 9       | 5           |
+| null-check         | 9       | 5           |
+| structs            | 8       | 1           |
+| register           | 8       | 2           |
+| primitives         | 8       | 0           |
+| initialization     | 8       | 3           |
+| static-allocation  | 7       | 4           |
+| bitmap             | 7       | 2           |
+| ternary            | 6       | 3           |
+| enum               | 6       | 4           |
+| nested-structs     | 5       | 0           |
+| sizeof             | 5       | 2           |
+| references         | 5       | 0           |
+| do-while           | 5       | 1           |
+| const              | 5       | 3           |
+| comments           | 5       | 2           |
+| bit-indexing       | 5       | 0           |
+| atomic             | 5       | 1           |
+| array-initializers | 5       | 0           |
+| Other categories   | ~29     | ~5          |
+| **TOTAL**          | **262** | **72**      |

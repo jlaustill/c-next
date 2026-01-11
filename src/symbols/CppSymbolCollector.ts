@@ -3,6 +3,8 @@
  * Extracts symbols from C++ parse trees for the unified symbol table
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser.js";
 import ISymbol from "../types/ISymbol.js";
 import ESymbolKind from "../types/ESymbolKind.js";
