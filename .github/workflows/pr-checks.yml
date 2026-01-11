@@ -48,7 +48,7 @@ jobs:
         id: cli
         run: |
           # Smoke test: Verify transpiler can process example file
-          ./dist/index.js examples/blink.cnx
+          node dist/index.js examples/blink.cnx
           # Check that output was generated
           test -f examples/blink.c || exit 1
         continue-on-error: true
