@@ -159,6 +159,20 @@ my-teensy-project/
     └── AppConfig.h          # Shared types
 ```
 
+### Uninstall
+
+To remove c-next integration:
+
+```bash
+cnext --pio-uninstall
+```
+
+This removes:
+- `cnext_build.py` script
+- `extra_scripts` reference from `platformio.ini`
+
+Your `.cnx` files and generated `.c` files remain untouched.
+
 ### Manual Integration
 
 If you prefer manual control, you can also run the transpiler explicitly:

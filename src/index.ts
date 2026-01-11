@@ -11,7 +11,7 @@ import {
 } from "./lib/transpiler.js";
 import { detectPlatformIOTarget } from "./lib/PlatformIODetector.js";
 import Project from "./project/Project.js";
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
 import { dirname, resolve } from "path";
 
 /**
@@ -98,6 +98,7 @@ function showHelp(): void {
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --pio-install      Setup PlatformIO integration");
+  console.log("  --pio-uninstall    Remove PlatformIO integration");
   console.log("  --version, -v      Show version");
   console.log("  --help, -h         Show this help");
   console.log("");
@@ -387,6 +388,71 @@ env.AddPreAction("buildprog", transpile_cnext)
   console.log("Commit both .cnx and generated .c files to version control.");
 }
 
+/**
+ * Remove PlatformIO integration
+ * Deletes cnext_build.py and removes extra_scripts from platformio.ini
+ */
+function uninstallPlatformIO(): void {
+  const pioIniPath = resolve(process.cwd(), "platformio.ini");
+  const scriptPath = resolve(process.cwd(), "cnext_build.py");
+
+  // Check if platformio.ini exists
+  if (!existsSync(pioIniPath)) {
+    console.error("Error: platformio.ini not found in current directory");
+    console.error("Run this command from your PlatformIO project root");
+    process.exit(1);
+  }
+
+  let hasChanges = false;
+
+  // Remove cnext_build.py if it exists
+  if (existsSync(scriptPath)) {
+    try {
+      unlinkSync(scriptPath);
+      console.log(`✓ Removed: ${scriptPath}`);
+      hasChanges = true;
+    } catch (err) {
+      console.error(`Error removing ${scriptPath}:`, err);
+      process.exit(1);
+    }
+  } else {
+    console.log("✓ cnext_build.py not found (already removed)");
+  }
+
+  // Read platformio.ini
+  let pioIni = readFileSync(pioIniPath, "utf-8");
+
+  // Check if extra_scripts includes cnext_build.py
+  if (pioIni.includes("cnext_build.py")) {
+    // Remove the cnext_build.py reference
+    // Handle both standalone and appended cases
+    pioIni = pioIni
+      // Remove standalone "extra_scripts = pre:cnext_build.py" line (with newline)
+      .replace(/^extra_scripts\s*=\s*pre:cnext_build\.py\s*\n/m, "")
+      // Remove from multi-line extra_scripts (e.g., "    pre:cnext_build.py")
+      .replace(/\s+pre:cnext_build\.py/g, "")
+      // Clean up multiple consecutive blank lines
+      .replace(/\n\n\n+/g, "\n\n");
+
+    writeFileSync(pioIniPath, pioIni, "utf-8");
+    console.log(`✓ Modified: ${pioIniPath}`);
+    hasChanges = true;
+  } else {
+    console.log("✓ platformio.ini already clean (no c-next integration found)");
+  }
+
+  if (hasChanges) {
+    console.log("");
+    console.log("✓ PlatformIO integration removed!");
+    console.log("");
+    console.log("Your .cnx files remain untouched.");
+    console.log("To re-enable integration: cnext --pio-install");
+  } else {
+    console.log("");
+    console.log("No c-next integration found - nothing to remove.");
+  }
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -402,6 +468,11 @@ async function main(): Promise<void> {
 
   if (args.includes("--pio-install")) {
     setupPlatformIO();
+    process.exit(0);
+  }
+
+  if (args.includes("--pio-uninstall")) {
+    uninstallPlatformIO();
     process.exit(0);
   }
 
