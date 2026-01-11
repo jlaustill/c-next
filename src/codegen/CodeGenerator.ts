@@ -4209,42 +4209,48 @@ export default class CodeGenerator {
         !this.knownRegisters.has(firstId) &&
         !isScopedRegister
       ) {
-        // Distinguish between two grammar patterns:
-        // 1. IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+ -> struct.field[i]
-        // 2. IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)? -> arr[i].field
-        // Check if original text has bracket before the first dot
-        const text = memberAccessCtx.getText();
-        const firstBracket = text.indexOf("[");
-        const firstDot = text.indexOf(".");
-        const indices = exprs.map((e) => this.generateExpression(e)).join("][");
+        // Fix for Bug #2: Walk children in order to preserve operation sequence
+        // For cfg.items[0].value, we need to emit: cfg.items[0].value
+        // Not: cfg.items.value[0] (which the old heuristic generated)
 
-        if (firstBracket !== -1 && firstBracket < firstDot) {
-          // Pattern: arr[i].field -> indices come after first identifier
-          const trailingMembers = identifiers
-            .slice(1)
-            .map((id) => id.getText());
-          if (trailingMembers.length > 0) {
-            return `${firstId}[${indices}].${trailingMembers.join(".")} ${cOp} ${value};`;
+        if (memberAccessCtx.children && identifiers.length > 1) {
+          // Walk parse tree children in order, building result incrementally
+          let result = firstId;
+          let idIndex = 1; // Start at 1 since we already used firstId
+          let exprIndex = 0;
+
+          // Check if first identifier is a scope for special handling
+          const isCrossScope = this.knownScopes.has(firstId);
+
+          for (let i = 1; i < memberAccessCtx.children.length; i++) {
+            const child = memberAccessCtx.children[i];
+            const childText = child.getText();
+
+            if (childText === ".") {
+              // Next child should be an IDENTIFIER
+              if (i + 1 < memberAccessCtx.children.length && idIndex < identifiers.length) {
+                // Use underscore for first join if cross-scope, dot otherwise
+                const separator = (isCrossScope && idIndex === 1) ? "_" : ".";
+                result += `${separator}${identifiers[idIndex].getText()}`;
+                idIndex++;
+                i++; // Skip the identifier we just processed
+              }
+            } else if (childText === "[") {
+              // Next child is an expression, then "]"
+              if (exprIndex < exprs.length) {
+                const expr = this.generateExpression(exprs[exprIndex]);
+                result += `[${expr}]`;
+                exprIndex++;
+                i += 2; // Skip expression and "]"
+              }
+            }
           }
-          return `${firstId}[${indices}] ${cOp} ${value};`;
+          return `${result} ${cOp} ${value};`;
         }
 
-        // Pattern: struct.field[i][j] -> indices come at the end
-        // Check if first identifier is a scope (cross-scope access)
-        const isCrossScope = this.knownScopes.has(firstId);
-        let memberChain: string;
-        if (isCrossScope) {
-          // Cross-scope: Counter.data -> Counter_data (underscore for scope prefix)
-          const remaining = identifiers.slice(1).map((id) => id.getText());
-          memberChain =
-            remaining.length > 1
-              ? `${firstId}_${remaining[0]}.${remaining.slice(1).join(".")}`
-              : `${firstId}_${remaining[0]}`;
-        } else {
-          memberChain = identifiers.map((id) => id.getText()).join(".");
-        }
-        // TODO: Add bounds checking for struct member arrays
-        return `${memberChain}[${indices}] ${cOp} ${value};`;
+        // Fallback for simple cases (shouldn't normally reach here)
+        const indices = exprs.map((e) => this.generateExpression(e)).join("][");
+        return `${firstId}[${indices}] ${cOp} ${value};`;
       }
 
       // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT] or Scope.GPIO7.DR_SET[LED_BIT])
@@ -6718,9 +6724,46 @@ export default class CodeGenerator {
         .join("][");
 
       if (parts.length > 1) {
-        // TODO: New grammar allows arbitrary mixing: arr[i].field[j].member
-        // Current implementation has order-preservation bug (see BUG-DISCOVERED-postfix-chains.md)
-        // Temporary: Use old logic for now
+        // Fix for Bug #2: Walk children in order to preserve operation sequence
+        // For cfg.items[i].value, we need to emit: cfg.items[i].value
+        // Not: cfg.items.value[i] (which the old heuristic generated)
+
+        if (ctx.children) {
+          // Walk parse tree children in order, building result incrementally
+          let result = firstPart;
+          let idIndex = 1; // Start at 1 since we already used firstPart
+          let exprIndex = 0;
+
+          // Check if first identifier is a scope for special handling
+          const isCrossScope = this.knownScopes.has(firstPart);
+
+          for (let i = 1; i < ctx.children.length; i++) {
+            const child = ctx.children[i];
+            const childText = child.getText();
+
+            if (childText === ".") {
+              // Next child should be an IDENTIFIER
+              if (i + 1 < ctx.children.length && idIndex < parts.length) {
+                // Use underscore for first join if cross-scope, dot otherwise
+                const separator = (isCrossScope && idIndex === 1) ? "_" : ".";
+                result += `${separator}${parts[idIndex]}`;
+                idIndex++;
+                i++; // Skip the identifier we just processed
+              }
+            } else if (childText === "[") {
+              // Next child is an expression, then "]"
+              if (exprIndex < expressions.length) {
+                const expr = this.generateExpression(expressions[exprIndex]);
+                result += `[${expr}]`;
+                exprIndex++;
+                i += 2; // Skip expression and "]"
+              }
+            }
+          }
+          return result;
+        }
+
+        // Fallback for simple cases without children
         const text = ctx.getText();
         const firstBracket = text.indexOf("[");
         const firstDot = text.indexOf(".");

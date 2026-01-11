@@ -1,0 +1,53 @@
+/* test-execution */
+// Test postfix chain ordering for both reads and assignments
+// Bug: cfg.items[0].value transpiles to cfg.items.value[0] (wrong order!)
+
+struct Item {
+    u32 value;
+    u8 flags;
+}
+
+struct Container {
+    Item items[3];
+}
+
+i32 main() {
+    Container cfg;
+
+    // Test 1: Assignment with constant indices (BROKEN before fix)
+    cfg.items[0].value <- 100;
+    cfg.items[0].flags <- 0x01;
+
+    cfg.items[1].value <- 200;
+    cfg.items[1].flags <- 0x02;
+
+    cfg.items[2].value <- 300;
+    cfg.items[2].flags <- 0x04;
+
+    // Test 2: Read with variable indices in loop (BROKEN before fix)
+    u32 sum <- 0;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        sum +<- cfg.items[i].value;  // Should: cfg.items[i].value
+    }
+
+    // Test 3: Read with constant indices (BROKEN before fix)
+    u32 first <- cfg.items[0].value;  // Should: cfg.items[0].value
+    u8 firstFlags <- cfg.items[0].flags;
+
+    // Expected: 100 + 200 + 300 = 600
+    if (sum != 600) {
+        return 1;
+    }
+
+    // Expected: first value = 100
+    if (first != 100) {
+        return 2;
+    }
+
+    // Expected: first flags = 0x01
+    if (firstFlags != 0x01) {
+        return 3;
+    }
+
+    return 0;
+}
