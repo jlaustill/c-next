@@ -1,0 +1,105 @@
+/* test-execution */
+// Comprehensive .length test for i64 arrays across all contexts
+// Tests: array.length returns 16 (element count), array[0].length returns 64 (element bit width)
+
+i64 globalArr[16];
+
+scope TestScope {
+    public u32 getGlobalArrayLength() {
+        return global.globalArr.length;
+    }
+
+    public u32 getGlobalElementLength() {
+        return global.globalArr[0].length;
+    }
+
+    i64 scopeArr[16];
+
+    public u32 getScopeArrayLength() {
+        return this.scopeArr.length;
+    }
+
+    public u32 getScopeElementLength() {
+        return this.scopeArr[0].length;
+    }
+
+    public i64 publicArr[16];
+}
+
+u32 checkArrayLength(i64 arr[16]) {
+    return arr.length;
+}
+
+u32 checkElementLength(i64 arr[16]) {
+    return arr[0].length;
+}
+
+struct TestStruct {
+    i64 arr[16];
+}
+
+i32 main() {
+    globalArr[0] <- -1000000;
+
+    if (globalArr.length != 16) {
+        return 1;
+    }
+
+    if (globalArr[0].length != 64) {
+        return 2;
+    }
+
+    if (TestScope.getGlobalArrayLength() != 16) {
+        return 3;
+    }
+
+    if (TestScope.getGlobalElementLength() != 64) {
+        return 4;
+    }
+
+    if (TestScope.getScopeArrayLength() != 16) {
+        return 5;
+    }
+
+    if (TestScope.getScopeElementLength() != 64) {
+        return 6;
+    }
+
+    if (TestScope.publicArr.length != 16) {
+        return 7;
+    }
+
+    if (TestScope.publicArr[0].length != 64) {
+        return 8;
+    }
+
+    i64 localArr[16];
+    localArr[0] <- -1000000;
+    if (localArr.length != 16) {
+        return 9;
+    }
+    if (localArr[0].length != 64) {
+        return 10;
+    }
+
+    i64 testArr[16];
+    testArr[0] <- -1000000;
+    if (checkArrayLength(testArr) != 16) {
+        return 11;
+    }
+
+    if (checkElementLength(testArr) != 64) {
+        return 12;
+    }
+
+    TestStruct ts;
+    ts.arr[0] <- -1000000;
+    if (ts.arr.length != 16) {
+        return 13;
+    }
+    if (ts.arr[0].length != 64) {
+        return 14;
+    }
+
+    return 0;
+}

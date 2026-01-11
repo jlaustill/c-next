@@ -1,0 +1,105 @@
+/* test-execution */
+// Comprehensive .length test for f32 arrays across all contexts
+// Tests: array.length returns 16 (element count), array[0].length returns 32 (element bit width)
+
+f32 globalArr[16];
+
+scope TestScope {
+    public u32 getGlobalArrayLength() {
+        return global.globalArr.length;
+    }
+
+    public u32 getGlobalElementLength() {
+        return global.globalArr[0].length;
+    }
+
+    f32 scopeArr[16];
+
+    public u32 getScopeArrayLength() {
+        return this.scopeArr.length;
+    }
+
+    public u32 getScopeElementLength() {
+        return this.scopeArr[0].length;
+    }
+
+    public f32 publicArr[16];
+}
+
+u32 checkArrayLength(f32 arr[16]) {
+    return arr.length;
+}
+
+u32 checkElementLength(f32 arr[16]) {
+    return arr[0].length;
+}
+
+struct TestStruct {
+    f32 arr[16];
+}
+
+i32 main() {
+    globalArr[0] <- 3.14;
+
+    if (globalArr.length != 16) {
+        return 1;
+    }
+
+    if (globalArr[0].length != 32) {
+        return 2;
+    }
+
+    if (TestScope.getGlobalArrayLength() != 16) {
+        return 3;
+    }
+
+    if (TestScope.getGlobalElementLength() != 32) {
+        return 4;
+    }
+
+    if (TestScope.getScopeArrayLength() != 16) {
+        return 5;
+    }
+
+    if (TestScope.getScopeElementLength() != 32) {
+        return 6;
+    }
+
+    if (TestScope.publicArr.length != 16) {
+        return 7;
+    }
+
+    if (TestScope.publicArr[0].length != 32) {
+        return 8;
+    }
+
+    f32 localArr[16];
+    localArr[0] <- 3.14;
+    if (localArr.length != 16) {
+        return 9;
+    }
+    if (localArr[0].length != 32) {
+        return 10;
+    }
+
+    f32 testArr[16];
+    testArr[0] <- 3.14;
+    if (checkArrayLength(testArr) != 16) {
+        return 11;
+    }
+
+    if (checkElementLength(testArr) != 32) {
+        return 12;
+    }
+
+    TestStruct ts;
+    ts.arr[0] <- 3.14;
+    if (ts.arr.length != 16) {
+        return 13;
+    }
+    if (ts.arr[0].length != 32) {
+        return 14;
+    }
+
+    return 0;
+}

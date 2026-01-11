@@ -1,0 +1,195 @@
+/* test-execution */
+// Comprehensive .length test for struct members of all primitive types
+// Tests: .length returns correct bit width for each struct member type
+
+struct AllTypes {
+    u8 u8Field;
+    u16 u16Field;
+    u32 u32Field;
+    u64 u64Field;
+    i8 i8Field;
+    i16 i16Field;
+    i32 i32Field;
+    i64 i64Field;
+    f32 f32Field;
+    f64 f64Field;
+    bool boolField;
+}
+
+// Test in global context
+AllTypes globalStruct;
+
+// Test in scope context
+scope TestScope {
+    AllTypes scopeStruct;
+
+    public u32 checkScopeStructMember() {
+        // Test one member to verify scope access works
+        if (this.scopeStruct.u32Field.length != 32) {
+            return 1;
+        }
+        return 0;
+    }
+}
+
+// Test as function parameter
+u32 checkParamStructMembers(AllTypes param) {
+    if (param.u8Field.length != 8) {
+        return 1;
+    }
+    if (param.u16Field.length != 16) {
+        return 2;
+    }
+    if (param.u32Field.length != 32) {
+        return 3;
+    }
+    if (param.u64Field.length != 64) {
+        return 4;
+    }
+    if (param.i8Field.length != 8) {
+        return 5;
+    }
+    if (param.i16Field.length != 16) {
+        return 6;
+    }
+    if (param.i32Field.length != 32) {
+        return 7;
+    }
+    if (param.i64Field.length != 64) {
+        return 8;
+    }
+    if (param.f32Field.length != 32) {
+        return 9;
+    }
+    if (param.f64Field.length != 64) {
+        return 10;
+    }
+    if (param.boolField.length != 1) {
+        return 11;
+    }
+    return 0;
+}
+
+i32 main() {
+    // Initialize global struct
+    globalStruct.u8Field <- 42;
+    globalStruct.u16Field <- 1000;
+    globalStruct.u32Field <- 100000;
+    globalStruct.u64Field <- 1000000;
+    globalStruct.i8Field <- -42;
+    globalStruct.i16Field <- -1000;
+    globalStruct.i32Field <- -100000;
+    globalStruct.i64Field <- -1000000;
+    globalStruct.f32Field <- 3.14;
+    globalStruct.f64Field <- 3.14159;
+    globalStruct.boolField <- true;
+
+    // Test global struct members
+    if (globalStruct.u8Field.length != 8) {
+        return 1;
+    }
+    if (globalStruct.u16Field.length != 16) {
+        return 2;
+    }
+    if (globalStruct.u32Field.length != 32) {
+        return 3;
+    }
+    if (globalStruct.u64Field.length != 64) {
+        return 4;
+    }
+    if (globalStruct.i8Field.length != 8) {
+        return 5;
+    }
+    if (globalStruct.i16Field.length != 16) {
+        return 6;
+    }
+    if (globalStruct.i32Field.length != 32) {
+        return 7;
+    }
+    if (globalStruct.i64Field.length != 64) {
+        return 8;
+    }
+    if (globalStruct.f32Field.length != 32) {
+        return 9;
+    }
+    if (globalStruct.f64Field.length != 64) {
+        return 10;
+    }
+    if (globalStruct.boolField.length != 1) {
+        return 11;
+    }
+
+    // Test scope struct members
+    if (TestScope.checkScopeStructMember() != 0) {
+        return 12;
+    }
+
+    // Test local struct members
+    AllTypes localStruct;
+    localStruct.u8Field <- 1;
+    localStruct.u16Field <- 1;
+    localStruct.u32Field <- 1;
+    localStruct.u64Field <- 1;
+    localStruct.i8Field <- -1;
+    localStruct.i16Field <- -1;
+    localStruct.i32Field <- -1;
+    localStruct.i64Field <- -1;
+    localStruct.f32Field <- 1.0;
+    localStruct.f64Field <- 1.0;
+    localStruct.boolField <- false;
+
+    if (localStruct.u8Field.length != 8) {
+        return 13;
+    }
+    if (localStruct.u16Field.length != 16) {
+        return 14;
+    }
+    if (localStruct.u32Field.length != 32) {
+        return 15;
+    }
+    if (localStruct.u64Field.length != 64) {
+        return 16;
+    }
+    if (localStruct.i8Field.length != 8) {
+        return 17;
+    }
+    if (localStruct.i16Field.length != 16) {
+        return 18;
+    }
+    if (localStruct.i32Field.length != 32) {
+        return 19;
+    }
+    if (localStruct.i64Field.length != 64) {
+        return 20;
+    }
+    if (localStruct.f32Field.length != 32) {
+        return 21;
+    }
+    if (localStruct.f64Field.length != 64) {
+        return 22;
+    }
+    if (localStruct.boolField.length != 1) {
+        return 23;
+    }
+
+    // Test parameter struct members
+    AllTypes paramStruct;
+    paramStruct.u8Field <- 1;
+    paramStruct.u16Field <- 1;
+    paramStruct.u32Field <- 1;
+    paramStruct.u64Field <- 1;
+    paramStruct.i8Field <- -1;
+    paramStruct.i16Field <- -1;
+    paramStruct.i32Field <- -1;
+    paramStruct.i64Field <- -1;
+    paramStruct.f32Field <- 1.0;
+    paramStruct.f64Field <- 1.0;
+    paramStruct.boolField <- false;
+
+    u32 paramResult <- checkParamStructMembers(paramStruct);
+    if (paramResult != 0) {
+        return 24 + paramResult;
+    }
+
+    return 0;
+}

@@ -1,0 +1,69 @@
+/* test-execution */
+// Comprehensive .length test for i64 type across all contexts
+// Tests: .length returns 64 for i64 in every possible scope and access pattern
+
+i64 globalVar <- -1000000;
+
+scope TestScope {
+    public u32 getGlobalLength() {
+        return global.globalVar.length;
+    }
+
+    i64 scopeMember <- -1000000;
+
+    public u32 getMemberLength() {
+        return this.scopeMember.length;
+    }
+
+    public i64 publicMember <- -1000000;
+}
+
+u32 checkParamLength(i64 param) {
+    return param.length;
+}
+
+struct TestStruct {
+    i64 member;
+}
+
+i32 main() {
+    if (globalVar.length != 64) {
+        return 1;
+    }
+
+    if (TestScope.getGlobalLength() != 64) {
+        return 2;
+    }
+
+    if (TestScope.getMemberLength() != 64) {
+        return 3;
+    }
+
+    if (TestScope.publicMember.length != 64) {
+        return 4;
+    }
+
+    i64 localVar <- -1000000;
+    if (localVar.length != 64) {
+        return 5;
+    }
+
+    i64 testVal <- -1000000;
+    if (checkParamLength(testVal) != 64) {
+        return 6;
+    }
+
+    TestStruct ts;
+    ts.member <- -1000000;
+    if (ts.member.length != 64) {
+        return 7;
+    }
+
+    i64 arr[4];
+    arr[0] <- -1000000;
+    if (arr[0].length != 64) {
+        return 8;
+    }
+
+    return 0;
+}

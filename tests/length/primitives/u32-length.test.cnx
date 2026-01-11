@@ -1,0 +1,69 @@
+/* test-execution */
+// Comprehensive .length test for u32 type across all contexts
+// Tests: .length returns 32 for u32 in every possible scope and access pattern
+
+u32 globalVar <- 100000;
+
+scope TestScope {
+    public u32 getGlobalLength() {
+        return global.globalVar.length;
+    }
+
+    u32 scopeMember <- 100000;
+
+    public u32 getMemberLength() {
+        return this.scopeMember.length;
+    }
+
+    public u32 publicMember <- 100000;
+}
+
+u32 checkParamLength(u32 param) {
+    return param.length;
+}
+
+struct TestStruct {
+    u32 member;
+}
+
+i32 main() {
+    if (globalVar.length != 32) {
+        return 1;
+    }
+
+    if (TestScope.getGlobalLength() != 32) {
+        return 2;
+    }
+
+    if (TestScope.getMemberLength() != 32) {
+        return 3;
+    }
+
+    if (TestScope.publicMember.length != 32) {
+        return 4;
+    }
+
+    u32 localVar <- 100000;
+    if (localVar.length != 32) {
+        return 5;
+    }
+
+    u32 testVal <- 100000;
+    if (checkParamLength(testVal) != 32) {
+        return 6;
+    }
+
+    TestStruct ts;
+    ts.member <- 100000;
+    if (ts.member.length != 32) {
+        return 7;
+    }
+
+    u32 arr[4];
+    arr[0] <- 100000;
+    if (arr[0].length != 32) {
+        return 8;
+    }
+
+    return 0;
+}

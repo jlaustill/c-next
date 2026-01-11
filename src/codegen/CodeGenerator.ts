@@ -314,6 +314,8 @@ export default class CodeGenerator {
 
   private structFieldArrays: Map<string, Set<string>> = new Map(); // struct -> set of array field names
 
+  private structFieldDimensions: Map<string, Map<string, number[]>> = new Map(); // struct -> (field -> dimensions)
+
   private knownRegisters: Set<string> = new Set();
 
   private inAssignmentTarget: boolean = false;
@@ -487,6 +489,7 @@ export default class CodeGenerator {
     this.knownStructs = new Set();
     this.structFields = new Map();
     this.structFieldArrays = new Map();
+    this.structFieldDimensions = new Map();
     this.knownRegisters = new Set();
     this.scopedRegisters = new Map(); // Scoped register tracking
     this.knownFunctions = new Set();
@@ -510,6 +513,11 @@ export default class CodeGenerator {
 
     // First pass: collect namespace and class members
     this.collectSymbols(tree);
+
+    // Second pass: register all variable types in the type registry
+    // This ensures .length and other type-dependent operations can resolve
+    // variables regardless of declaration order
+    this.registerAllVariableTypes(tree);
 
     const output: string[] = [];
 
@@ -797,14 +805,32 @@ export default class CodeGenerator {
         // Track field types for inferred struct initializers
         const fields = new Map<string, string>();
         const arrayFields = new Set<string>();
+        const fieldDimensions = new Map<string, number[]>();
         for (const member of structDecl.structMember()) {
           const fieldName = member.IDENTIFIER().getText();
           const fieldType = this.getTypeName(member.type());
           fields.set(fieldName, fieldType);
 
           // Track if this field has array dimensions
-          if (member.arrayDimension().length > 0) {
+          const arrayDims = member.arrayDimension();
+          if (arrayDims.length > 0) {
             arrayFields.add(fieldName);
+
+            // Extract and store array dimensions
+            const dimensions: number[] = [];
+            for (const dim of arrayDims) {
+              const sizeExpr = dim.expression();
+              if (sizeExpr) {
+                const sizeText = sizeExpr.getText();
+                const size = parseInt(sizeText, 10);
+                if (!isNaN(size)) {
+                  dimensions.push(size);
+                }
+              }
+            }
+            if (dimensions.length > 0) {
+              fieldDimensions.set(fieldName, dimensions);
+            }
           }
 
           // ADR-029: Track callback field types during symbol collection
@@ -815,6 +841,7 @@ export default class CodeGenerator {
         }
         this.structFields.set(name, fields);
         this.structFieldArrays.set(name, arrayFields);
+        this.structFieldDimensions.set(name, fieldDimensions);
       }
 
       // ADR-017: Handle enum declarations
@@ -862,11 +889,41 @@ export default class CodeGenerator {
         this.registerCallbackType(name, funcDecl);
       }
 
-      // Track top-level variable types
+    }
+  }
+
+  /**
+   * Second pass: register all variable types in the type registry
+   * This ensures type information is available before generating any code,
+   * allowing .length and other type-dependent operations to work regardless
+   * of declaration order (e.g., scope functions can reference globals declared later)
+   */
+  private registerAllVariableTypes(tree: Parser.ProgramContext): void {
+    for (const decl of tree.declaration()) {
+      // Register global variable types
       if (decl.variableDeclaration()) {
         const varDecl = decl.variableDeclaration()!;
         this.trackVariableType(varDecl);
       }
+
+      // Register scope member variable types
+      if (decl.scopeDeclaration()) {
+        const scopeDecl = decl.scopeDeclaration()!;
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+
+        for (const member of scopeDecl.scopeMember()) {
+          if (member.variableDeclaration()) {
+            const varDecl = member.variableDeclaration()!;
+            const varName = varDecl.IDENTIFIER().getText();
+            const fullName = `${scopeName}_${varName}`;
+            // Register with mangled name (Scope_variable)
+            this.trackVariableTypeWithName(varDecl, fullName);
+          }
+        }
+      }
+
+      // Note: Function parameters are registered per-function during generation
+      // since they're scoped to the function body
     }
   }
 
@@ -1421,7 +1478,10 @@ export default class CodeGenerator {
       let isStruct = false;
       let isCallback = false;
       let typeName = typeCtx.getText();
-      if (typeCtx.userType()) {
+      if (typeCtx.primitiveType()) {
+        // Primitive type (u8, i32, etc.)
+        typeName = typeCtx.primitiveType()!.getText();
+      } else if (typeCtx.userType()) {
         typeName = typeCtx.userType()!.getText();
         isStruct = this.isStructType(typeName);
         // ADR-029: Check if this is a callback type
@@ -1446,13 +1506,34 @@ export default class CodeGenerator {
 
       // ADR-025: Register parameter type for switch exhaustiveness checking
       const isEnum = this.knownEnums.has(typeName);
+      const isBitmap = this.knownBitmaps.has(typeName);
+
+      // Extract array dimensions if this is an array parameter
+      const arrayDimensions: number[] = [];
+      if (isArray) {
+        const arrayDims = param.arrayDimension();
+        for (const dim of arrayDims) {
+          const sizeExpr = dim.expression();
+          if (sizeExpr) {
+            const sizeText = sizeExpr.getText();
+            const size = parseInt(sizeText, 10);
+            if (!isNaN(size)) {
+              arrayDimensions.push(size);
+            }
+          }
+        }
+      }
+
       this.context.typeRegistry.set(name, {
         baseType: typeName,
-        bitWidth: 0,
+        bitWidth: isBitmap ? (BITMAP_SIZE[typeName] || 0) : (TYPE_WIDTH[typeName] || 0),
         isArray: isArray,
+        arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
         isConst: isConst,
         isEnum: isEnum,
         enumTypeName: isEnum ? typeName : undefined,
+        isBitmap: isBitmap,
+        bitmapTypeName: isBitmap ? typeName : undefined,
       });
     }
   }
@@ -2649,8 +2730,7 @@ export default class CodeGenerator {
         const fullName = `${name}_${varName}`;
         const prefix = isPrivate ? "static " : "";
 
-        // Track variable type with mangled name for scope-aware const checking
-        this.trackVariableTypeWithName(varDecl, fullName);
+        // Note: Type already registered in registerAllVariableTypes() pass
 
         // ADR-036: arrayDimension() now returns an array
         const arrayDims = varDecl.arrayDimension();
@@ -3308,12 +3388,11 @@ export default class CodeGenerator {
     const typeCtx = ctx.type();
 
     // Track type for bit access and .length support
-    this.trackVariableType(ctx);
-
-    // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
-    // Only track as local if we're inside a function body
-    // Global and scope-level variables should NOT be tracked as local
+    // Note: Global variables already registered in registerAllVariableTypes() pass
+    // Only track local variables here (declared inside function bodies)
     if (this.context.inFunctionBody) {
+      this.trackVariableType(ctx);
+      // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
       this.context.localVariables.add(name);
     }
 
@@ -6070,6 +6149,11 @@ export default class CodeGenerator {
     let previousStructType: string | undefined = undefined;
     let previousMemberName: string | undefined = undefined;
 
+    // Track the current resolved identifier for type lookups (fixes scope/parameter .length)
+    let currentIdentifier = primaryId;
+    // Track if we've subscripted an array (arr[0] -> element type, not array type)
+    let isSubscripted = false;
+
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
 
@@ -6080,6 +6164,7 @@ export default class CodeGenerator {
         // ADR-016: Handle global. prefix - first member becomes the identifier
         if (result === "__GLOBAL_PREFIX__") {
           result = memberName;
+          currentIdentifier = memberName; // Track for .length lookups
           // Check if this first identifier is a register
           if (this.knownRegisters.has(memberName)) {
             isRegisterChain = true;
@@ -6105,12 +6190,29 @@ export default class CodeGenerator {
               if (structFields) {
                 const memberType = structFields.get(previousMemberName);
                 if (memberType) {
-                  // Get bit width from TYPE_WIDTH map
-                  const bitWidth = TYPE_WIDTH[memberType] || 0;
-                  if (bitWidth > 0) {
-                    result = String(bitWidth);
+                  // Check if this member is an array
+                  const fieldDimensions = this.structFieldDimensions.get(previousStructType);
+                  const dimensions = fieldDimensions?.get(previousMemberName);
+
+                  if (dimensions && dimensions.length > 0 && !isSubscripted) {
+                    // Array member without subscript -> return array length (first dimension)
+                    result = String(dimensions[0]);
+                  } else if (dimensions && dimensions.length > 0 && isSubscripted) {
+                    // Array member with subscript (e.g., ts.arr[0].length) -> return element bit width
+                    const bitWidth = TYPE_WIDTH[memberType] || 0;
+                    if (bitWidth > 0) {
+                      result = String(bitWidth);
+                    } else {
+                      result = `/* .length: unsupported element type ${memberType} */0`;
+                    }
                   } else {
-                    result = `/* .length: unsupported type ${memberType} */0`;
+                    // Non-array member -> return bit width
+                    const bitWidth = TYPE_WIDTH[memberType] || 0;
+                    if (bitWidth > 0) {
+                      result = String(bitWidth);
+                    } else {
+                      result = `/* .length: unsupported type ${memberType} */0`;
+                    }
                   }
                   // Skip the rest of the logic since we handled it
                   previousStructType = undefined;
@@ -6120,37 +6222,56 @@ export default class CodeGenerator {
               }
             }
 
-            // Fall back to checking the primary identifier's type
-            const typeInfo = primaryId
-              ? this.context.typeRegistry.get(primaryId)
+            // Fall back to checking the current resolved identifier's type
+            // Check type registry (parameters are also registered here with bitWidth)
+            const typeInfo = currentIdentifier
+              ? this.context.typeRegistry.get(currentIdentifier)
               : undefined;
+
+            if (!typeInfo) {
+              // Type lookup failed - generate error placeholder
+              result = `/* .length: unknown type for ${result} */0`;
+              continue;
+            }
+
             if (typeInfo) {
               // ADR-045: String length is runtime strlen()
-              if (typeInfo.isString && primaryId) {
+              if (typeInfo.isString && currentIdentifier) {
                 // Check length cache for optimization
-                if (this.context.lengthCache?.has(primaryId)) {
-                  result = this.context.lengthCache.get(primaryId)!;
+                if (this.context.lengthCache?.has(currentIdentifier)) {
+                  result = this.context.lengthCache.get(currentIdentifier)!;
                 } else {
-                  result = `strlen(${primaryId})`;
+                  result = `strlen(${currentIdentifier})`;
                 }
               } else if (
                 typeInfo.isArray &&
                 typeInfo.arrayDimensions &&
-                typeInfo.arrayDimensions.length > 0
+                typeInfo.arrayDimensions.length > 0 &&
+                !isSubscripted
               ) {
                 // ADR-036: Array length - return the first dimension
                 // For matrix.length -> first dimension
-                // TODO: For matrix[0].length -> second dimension (needs subscript depth tracking)
                 result = String(typeInfo.arrayDimensions[0]);
+              } else if (
+                typeInfo.isArray &&
+                typeInfo.arrayDimensions &&
+                typeInfo.arrayDimensions.length > 0 &&
+                isSubscripted
+              ) {
+                // arr[0].length -> return element bit width from TYPE_WIDTH
+                const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+                if (elementBitWidth > 0) {
+                  result = String(elementBitWidth);
+                } else {
+                  result = `/* .length: unsupported element type ${typeInfo.baseType} */0`;
+                }
               } else if (!typeInfo.isArray) {
                 // Integer bit width - return the compile-time constant
                 result = String(typeInfo.bitWidth);
               } else {
                 // Unknown length, generate error placeholder
-                result = `/* .length unknown for ${primaryId} */0`;
+                result = `/* .length unknown for ${currentIdentifier} */0`;
               }
-            } else {
-              result = `/* .length: unknown type for ${result} */0`;
             }
           }
         }
@@ -6203,14 +6324,6 @@ export default class CodeGenerator {
               );
             }
           }
-          // ADR-016: Handle 'this' marker for scope-local access (this.member -> Scope_member)
-          else if (result === "__THIS_SCOPE__") {
-            if (!this.context.currentScope) {
-              throw new Error("Error: 'this' can only be used inside a scope");
-            }
-            // Transform this.member to Scope_member
-            result = `${this.context.currentScope}_${memberName}`;
-          }
           // Check if this is a scope member access: Scope.member (ADR-016)
           else if (this.knownScopes.has(result)) {
             // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
@@ -6221,6 +6334,13 @@ export default class CodeGenerator {
             }
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
+            currentIdentifier = result; // Track for .length lookups
+
+            // Check if this resolved identifier is a struct type for chained access
+            const resolvedTypeInfo = this.context.typeRegistry.get(result);
+            if (resolvedTypeInfo && this.knownStructs.has(resolvedTypeInfo.baseType)) {
+              currentStructType = resolvedTypeInfo.baseType;
+            }
           }
           // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
           else if (this.knownEnums.has(result)) {
@@ -6265,6 +6385,14 @@ export default class CodeGenerator {
           }
           // ADR-006: Struct parameter uses -> for member access
           else if (isStructParam && result === primaryId) {
+            // If currentStructType is not set yet, check if current result is a struct
+            if (!currentStructType && currentIdentifier) {
+              const identifierTypeInfo = this.context.typeRegistry.get(currentIdentifier);
+              if (identifierTypeInfo && this.knownStructs.has(identifierTypeInfo.baseType)) {
+                currentStructType = identifierTypeInfo.baseType;
+              }
+            }
+
             result = `${result}->${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
@@ -6281,6 +6409,15 @@ export default class CodeGenerator {
               }
             }
           } else {
+            // If currentStructType is not set yet, check if current result is a struct
+            // This handles cases like global.structVar.field or this.structVar.field
+            if (!currentStructType && currentIdentifier) {
+              const identifierTypeInfo = this.context.typeRegistry.get(currentIdentifier);
+              if (identifierTypeInfo && this.knownStructs.has(identifierTypeInfo.baseType)) {
+                currentStructType = identifierTypeInfo.baseType;
+              }
+            }
+
             result = `${result}.${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
@@ -6307,6 +6444,21 @@ export default class CodeGenerator {
             }
             // Transform this.member to Scope_member
             result = `${this.context.currentScope}_${memberName}`;
+            currentIdentifier = result; // Track for .length lookups
+
+            // Check if this resolved identifier is a struct type for chained access
+            const resolvedTypeInfo = this.context.typeRegistry.get(result);
+            // DEBUG: Show what's happening
+            if (resolvedTypeInfo) {
+              const isStructType = this.knownStructs.has(resolvedTypeInfo.baseType);
+              result = `/* [DEBUG_THIS] scope=${this.context.currentScope}, member=${memberName}, result=${result}, baseType=${resolvedTypeInfo.baseType}, isStruct=${isStructType} */${result}`;
+              if (isStructType) {
+                currentStructType = resolvedTypeInfo.baseType;
+              }
+            } else {
+              const keys = Array.from(this.context.typeRegistry.keys()).slice(0, 5).join(', ');
+              result = `/* [DEBUG_THIS] scope=${this.context.currentScope}, member=${memberName}, result=${result}, NO TYPE, keys: ${keys} */${result}`;
+            }
           } else if (this.knownScopes.has(result)) {
             // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
             if (result === this.context.currentScope) {
@@ -6316,6 +6468,13 @@ export default class CodeGenerator {
             }
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
+            currentIdentifier = result; // Track for .length lookups
+
+            // Check if this resolved identifier is a struct type for chained access
+            const resolvedTypeInfo = this.context.typeRegistry.get(result);
+            if (resolvedTypeInfo && this.knownStructs.has(resolvedTypeInfo.baseType)) {
+              currentStructType = resolvedTypeInfo.baseType;
+            }
           } else if (this.knownEnums.has(result)) {
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
@@ -6368,11 +6527,14 @@ export default class CodeGenerator {
             isRegisterChain ||
             (primaryId ? this.knownRegisters.has(primaryId) : false);
 
-          // Check if primary identifier (before any member access) is an array
-          const primaryTypeInfo = primaryId
-            ? this.context.typeRegistry.get(primaryId)
+          // Check if current identifier (which may have been updated by global./this./Scope. access) is an array
+          // Use currentIdentifier if available (handles global.arr, this.arr, Scope.arr),
+          // otherwise fall back to primaryId (handles bare arr)
+          const identifierToCheck = currentIdentifier || primaryId;
+          const identifierTypeInfo = identifierToCheck
+            ? this.context.typeRegistry.get(identifierToCheck)
             : undefined;
-          const isPrimaryArray = primaryTypeInfo?.isArray ?? false;
+          const isPrimaryArray = identifierTypeInfo?.isArray ?? false;
 
           // Determine if this subscript is array access or bit access
           // Priority: register access > tracked member array > primary array > bit access
@@ -6383,10 +6545,12 @@ export default class CodeGenerator {
             // Struct member that is an array (e.g., buf.data[0])
             result = `${result}[${index}]`;
             currentMemberIsArray = false; // After subscript, no longer array
+            isSubscripted = true; // Track for .length on element
           } else if (isPrimaryArray) {
-            // Primary identifier is an array (e.g., arr[0])
+            // Primary identifier is an array (e.g., arr[0] or global.arr[0])
             result = `${result}[${index}]`;
-          } else if (primaryTypeInfo && !isPrimaryArray) {
+            isSubscripted = true; // Track for .length on element
+          } else if (identifierTypeInfo && !isPrimaryArray) {
             // Non-array type (integer, etc.) - use bit access
             result = `((${result} >> ${index}) & 1)`;
           } else {

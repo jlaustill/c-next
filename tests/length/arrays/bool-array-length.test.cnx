@@ -1,0 +1,105 @@
+/* test-execution */
+// Comprehensive .length test for bool arrays across all contexts
+// Tests: array.length returns 16 (element count), array[0].length returns 1 (element bit width)
+
+bool globalArr[16];
+
+scope TestScope {
+    public u32 getGlobalArrayLength() {
+        return global.globalArr.length;
+    }
+
+    public u32 getGlobalElementLength() {
+        return global.globalArr[0].length;
+    }
+
+    bool scopeArr[16];
+
+    public u32 getScopeArrayLength() {
+        return this.scopeArr.length;
+    }
+
+    public u32 getScopeElementLength() {
+        return this.scopeArr[0].length;
+    }
+
+    public bool publicArr[16];
+}
+
+u32 checkArrayLength(bool arr[16]) {
+    return arr.length;
+}
+
+u32 checkElementLength(bool arr[16]) {
+    return arr[0].length;
+}
+
+struct TestStruct {
+    bool arr[16];
+}
+
+i32 main() {
+    globalArr[0] <- true;
+
+    if (globalArr.length != 16) {
+        return 1;
+    }
+
+    if (globalArr[0].length != 1) {
+        return 2;
+    }
+
+    if (TestScope.getGlobalArrayLength() != 16) {
+        return 3;
+    }
+
+    if (TestScope.getGlobalElementLength() != 1) {
+        return 4;
+    }
+
+    if (TestScope.getScopeArrayLength() != 16) {
+        return 5;
+    }
+
+    if (TestScope.getScopeElementLength() != 1) {
+        return 6;
+    }
+
+    if (TestScope.publicArr.length != 16) {
+        return 7;
+    }
+
+    if (TestScope.publicArr[0].length != 1) {
+        return 8;
+    }
+
+    bool localArr[16];
+    localArr[0] <- true;
+    if (localArr.length != 16) {
+        return 9;
+    }
+    if (localArr[0].length != 1) {
+        return 10;
+    }
+
+    bool testArr[16];
+    testArr[0] <- true;
+    if (checkArrayLength(testArr) != 16) {
+        return 11;
+    }
+
+    if (checkElementLength(testArr) != 1) {
+        return 12;
+    }
+
+    TestStruct ts;
+    ts.arr[0] <- true;
+    if (ts.arr.length != 16) {
+        return 13;
+    }
+    if (ts.arr[0].length != 1) {
+        return 14;
+    }
+
+    return 0;
+}
