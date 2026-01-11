@@ -242,6 +242,7 @@ class CSymbolCollector {
 
   // Helper methods
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private extractDeclaratorName(declarator: any): string | null {
     // Direct declarator contains the identifier
     const directDecl = declarator.directDeclarator?.();
@@ -262,6 +263,7 @@ class CSymbolCollector {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private declaratorIsFunction(declarator: any): boolean {
     const directDecl = declarator.directDeclarator?.();
     if (!directDecl) return false;

@@ -197,6 +197,7 @@ class ConstZeroCollector extends CNextListener {
  */
 class DivisionByZeroListener extends CNextListener {
   private analyzer: DivisionByZeroAnalyzer;
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private constZeros: Set<string>;
 
   constructor(analyzer: DivisionByZeroAnalyzer, constZeros: Set<string>) {

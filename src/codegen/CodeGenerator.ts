@@ -6253,6 +6253,7 @@ export default class CodeGenerator {
           }
 
           const args = argExprs
+            // eslint-disable-next-line @typescript-eslint/no-loop-func
             .map((e, idx) => {
               if (!isCNextFunc) {
                 return this.generateExpression(e);

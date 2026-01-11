@@ -209,6 +209,7 @@ class Preprocessor {
       }
 
       return stdout;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Include stderr in error message for better debugging
       const stderr = error.stderr ?? "";
