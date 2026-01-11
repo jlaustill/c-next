@@ -89,6 +89,7 @@ cnext --pio-install
 ```
 
 This command:
+
 - Creates `cnext_build.py` (pre-build transpilation script)
 - Modifies `platformio.ini` to add `extra_scripts = pre:cnext_build.py`
 
@@ -110,6 +111,7 @@ pio run
 ```
 
 Output:
+
 ```
 Transpiling 2 c-next files...
   ✓ ConfigStorage.cnx
@@ -136,6 +138,7 @@ Generated `.c` files are **reviewable artifacts** in pull requests:
 ```
 
 **Benefits**:
+
 - See exactly what C code the transpiler generates
 - Review safety features (overflow protection, atomic operations)
 - Verify transpiler behavior
@@ -168,6 +171,7 @@ cnext --pio-uninstall
 ```
 
 This removes:
+
 - `cnext_build.py` script
 - `extra_scripts` reference from `platformio.ini`
 

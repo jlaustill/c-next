@@ -364,13 +364,13 @@ env.AddPreAction("buildprog", transpile_cnext)
     // Append to existing extra_scripts
     pioIni = pioIni.replace(
       /extra_scripts\s*=\s*(.+)/,
-      "extra_scripts = $1\n    pre:cnext_build.py"
+      "extra_scripts = $1\n    pre:cnext_build.py",
     );
   } else {
     // Add new extra_scripts line after first [env:*] section
     pioIni = pioIni.replace(
       /(\[env:[^\]]+\])/,
-      "$1\nextra_scripts = pre:cnext_build.py"
+      "$1\nextra_scripts = pre:cnext_build.py",
     );
   }
 
@@ -384,7 +384,9 @@ env.AddPreAction("buildprog", transpile_cnext)
   console.log("  1. Create .cnx files in src/ (alongside your .c/.cpp files)");
   console.log("  2. Run: pio run");
   console.log("");
-  console.log("The transpiler will automatically convert .cnx → .c before each build.");
+  console.log(
+    "The transpiler will automatically convert .cnx → .c before each build.",
+  );
   console.log("Commit both .cnx and generated .c files to version control.");
 }
 

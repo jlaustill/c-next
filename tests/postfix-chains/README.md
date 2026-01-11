@@ -6,6 +6,7 @@
 ## Status
 
 ### ✅ Passing Tests (3)
+
 These tests have `.expected.c` files and pass with current implementation:
 
 1. **basic-two-level.test.cnx** - Simple 2-level chains (`arr[i].field`)
@@ -13,6 +14,7 @@ These tests have `.expected.c` files and pass with current implementation:
 3. **register-bitmap-bit-chain.test.cnx** - Register + bitmap + bit indexing
 
 ### 🔶 Blocked by Code Generator Bug (6)
+
 These tests expose a code generator bug (order scrambling). They will pass once Bug #2 is fixed:
 
 4. **array-struct-chain.test.cnx** - Arrays with nested struct members
@@ -27,6 +29,7 @@ These tests expose a code generator bug (order scrambling). They will pass once 
 **Details:** See `/BUG-DISCOVERED-postfix-chains.md`
 
 ### ⚠️ Expected Semantic Errors (2)
+
 These tests correctly trigger semantic validation errors (not bugs):
 
 10. **scoped-register-bitmap-chain.test.cnx** - Tests scope self-reference constraint
@@ -35,6 +38,7 @@ These tests correctly trigger semantic validation errors (not bugs):
 ## Test Coverage
 
 These 11 tests comprehensively cover:
+
 - 2-level through 7-level postfix chains
 - All combinations of array subscripts and member access
 - Register + bitmap + bit indexing interactions
