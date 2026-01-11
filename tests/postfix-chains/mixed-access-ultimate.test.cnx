@@ -1,0 +1,122 @@
+// Postfix Chain Test: Mixed Access Types - ULTIMATE STRESS TEST
+// Tests: Every combination of postfix operations together
+// This is the HIGHEST RISK area (lines 5850-6285 CodeGenerator.ts)
+// Tests the most complex chaining scenarios that can exist in the language
+
+bitmap8 DeviceFlags {
+    Active,         // bit 0
+    Ready,          // bit 1
+    Mode[3],        // bits 2-4
+    Reserved[3]     // bits 5-7
+}
+
+struct Sensor {
+    u32 id;
+    u8 data[8];
+    DeviceFlags flags;
+}
+
+struct Controller {
+    Sensor sensors[4];
+    u32 status;
+}
+
+register PERIPH @ 0x50000000 {
+    CTRL:   DeviceFlags rw @ 0x00,
+    DATA:   u32 rw @ 0x04,
+}
+
+scope Device {
+    Controller controllers[2];
+
+    register HW @ 0x60000000 {
+        STATUS: DeviceFlags rw @ 0x00,
+        CONFIG: u32 rw @ 0x04,
+    }
+
+    void configure() {
+        // MEGA CHAIN: Scope.array[i].struct.array[j].struct.bitmap.field (7 levels!)
+        Device.controllers[0].sensors[0].flags.Active <- true;
+        Device.controllers[0].sensors[0].flags.Mode <- 7;
+
+        // Another mega chain with different indices
+        Device.controllers[1].sensors[3].flags.Ready <- true;
+        Device.controllers[1].sensors[3].flags.Mode <- 3;
+    }
+
+    bool isActive(u32 ctrlIdx, u32 sensorIdx) {
+        // Read through 7-level chain
+        return Device.controllers[ctrlIdx].sensors[sensorIdx].flags.Active;
+    }
+}
+
+Controller globalCtrl;
+
+void main() {
+    // Chain 1: global.Scope.array[i].struct.array[j].bitmap.field (7 levels)
+    Device.controllers[0].sensors[0].flags.Active <- true;
+    Device.controllers[0].sensors[0].flags.Ready <- false;
+    Device.controllers[0].sensors[0].flags.Mode <- 5;
+
+    // Chain 2: global.Scope.array[i].struct.array[j].array[k] (6 levels)
+    Device.controllers[0].sensors[0].data[0] <- 0xAA;
+    Device.controllers[0].sensors[0].data[7] <- 0x55;
+
+    // Chain 3: global.Scope.array[i].struct.array[j].array[k][bit] (7 levels with bit!)
+    Device.controllers[0].sensors[0].data[0] <- 0xFF;
+    Device.controllers[0].sensors[0].data[0][0] <- false;
+    Device.controllers[0].sensors[0].data[0][7] <- true;
+
+    // Chain 4: global.Scope.Register.Bitmap.Field (5 levels)
+    Device.HW.STATUS.Active <- true;
+    Device.HW.STATUS.Mode <- 6;
+
+    // Chain 5: global.Register.Bitmap.Field (4 levels)
+    PERIPH.CTRL.Active <- true;
+    PERIPH.CTRL.Ready <- false;
+    PERIPH.CTRL.Mode <- 4;
+
+    // Chain 6: global.array[i].struct.array[j].u32[bit] (6 levels)
+    globalCtrl.sensors[0].id <- 0xFFFFFFFF;
+    globalCtrl.sensors[0].id[16] <- false;
+    globalCtrl.sensors[0].id[31] <- true;
+
+    // Chain 7: Mix array indexing with bitmap field access
+    globalCtrl.sensors[1].flags.Active <- true;
+    globalCtrl.sensors[1].flags.Mode <- 2;
+
+    // READ operations through all these chains
+    bool active <- Device.controllers[0].sensors[0].flags.Active;
+    u8 mode <- Device.controllers[0].sensors[0].flags.Mode;
+    u8 data <- Device.controllers[0].sensors[0].data[0];
+    bool bit <- Device.controllers[0].sensors[0].data[0][0];
+    bool hwActive <- Device.HW.STATUS.Active;
+    bool periphActive <- PERIPH.CTRL.Active;
+    bool idBit <- globalCtrl.sensors[0].id[16];
+
+    // Conditional on mega chain
+    if (Device.controllers[0].sensors[0].flags.Active = true) {
+        Device.controllers[0].sensors[0].flags.Mode <- 7;
+    }
+
+    // Use mega chain result in expression
+    u8 doubleMode <- Device.controllers[0].sensors[0].flags.Mode * 2;
+
+    // Compound assignment through mega chain
+    Device.controllers[0].sensors[0].data[0] <- 100;
+    Device.controllers[0].sensors[0].data[0] +<- 50;
+
+    // Call scoped function that uses mega chains internally
+    Device.configure();
+    bool isSensorActive <- Device.isActive(0, 1);
+
+    // Chain with register DATA field bit indexing
+    PERIPH.DATA[0] <- true;
+    PERIPH.DATA[31] <- false;
+    bool dataBit <- PERIPH.DATA[15];
+
+    // Scope register config bit indexing
+    Device.HW.CONFIG[0] <- true;
+    Device.HW.CONFIG[15] <- false;
+    bool cfgBit <- Device.HW.CONFIG[8];
+}

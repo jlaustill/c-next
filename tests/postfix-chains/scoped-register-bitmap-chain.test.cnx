@@ -1,0 +1,79 @@
+// Postfix Chain Test: Scoped Register + Bitmap Access
+// Tests: Scope.Register.Bitmap.Field chains (HIGH RISK)
+// This tests the interaction between scope qualification, register access, and bitmap fields
+
+bitmap8 MotorFlags {
+    Running,        // bit 0
+    Direction,      // bit 1
+    Fault,          // bit 2
+    Mode[3],        // bits 3-5
+    Reserved[2]     // bits 6-7
+}
+
+scope MotorController {
+    const u32 DEFAULT_SPEED <- 100;
+
+    register MOTOR_REG @ 0x40002000 {
+        CTRL:   MotorFlags rw @ 0x00,
+        SPEED:  u32 rw @ 0x04,
+        STATUS: u32 ro @ 0x08,
+    }
+
+    void start() {
+        // Inside scope: accessing scoped register with bitmap
+        MotorController.MOTOR_REG.CTRL.Running <- true;
+        MotorController.MOTOR_REG.CTRL.Mode <- 3;
+        MotorController.MOTOR_REG.SPEED <- global.MotorController.DEFAULT_SPEED;
+    }
+
+    bool isRunning() {
+        // Read through scoped register bitmap chain
+        return MotorController.MOTOR_REG.CTRL.Running;
+    }
+
+    u8 getMode() {
+        // Read multi-bit field through scoped register
+        return MotorController.MOTOR_REG.CTRL.Mode;
+    }
+}
+
+scope Board {
+    register GPIO @ 0x40000000 {
+        DR:     u32 rw @ 0x00,
+        DR_SET: u32 wo @ 0x84,
+    }
+
+    const u32 LED_BIT <- 3;
+
+    void toggleLed() {
+        // Scoped register with bit indexing
+        Board.GPIO.DR_SET[global.Board.LED_BIT] <- true;
+    }
+}
+
+void main() {
+    // Access scoped register from global context (4 levels)
+    MotorController.MOTOR_REG.CTRL.Running <- true;
+    MotorController.MOTOR_REG.CTRL.Direction <- false;
+    MotorController.MOTOR_REG.CTRL.Mode <- 5;
+
+    // Read through scoped register bitmap from global
+    bool running <- MotorController.MOTOR_REG.CTRL.Running;
+    u8 mode <- MotorController.MOTOR_REG.CTRL.Mode;
+
+    // Scoped register bit access from global (3 levels)
+    Board.GPIO.DR[0] <- true;
+    bool ledState <- Board.GPIO.DR[3];
+
+    // Call scoped methods that use chains internally
+    MotorController.start();
+    bool isRun <- MotorController.isRunning();
+    u8 currentMode <- MotorController.getMode();
+
+    Board.toggleLed();
+
+    // Conditional on deeply chained scoped register bitmap field
+    if (MotorController.MOTOR_REG.CTRL.Fault = true) {
+        MotorController.MOTOR_REG.CTRL.Mode <- 0;
+    }
+}

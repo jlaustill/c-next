@@ -1,0 +1,54 @@
+// Postfix Chain Test: Deep nesting (3+ levels)
+// Tests: Complex chains with multiple member/array/bit accesses
+
+struct Color {
+    u8 r;
+    u8 g;
+    u8 b;
+}
+
+struct Material {
+    Color ambient;
+    Color diffuse;
+    u8 opacity;
+}
+
+struct Object {
+    Material material;
+    i32 id;
+}
+
+struct Scene {
+    Object objects[4];
+    u32 count;
+}
+
+Scene scenes[2];
+
+void main() {
+    // 4-level deep write: scenes[i].objects[j].material.ambient.r
+    scenes[0].objects[0].material.ambient.r <- 255;
+    scenes[0].objects[0].material.ambient.g <- 128;
+    scenes[0].objects[0].material.ambient.b <- 64;
+
+    // 4-level deep read
+    u8 red <- scenes[0].objects[0].material.ambient.r;
+    u8 green <- scenes[0].objects[0].material.ambient.g;
+
+    // 4-level diffuse access
+    scenes[0].objects[1].material.diffuse.r <- 200;
+    scenes[0].objects[1].material.diffuse.g <- 100;
+    scenes[0].objects[1].material.diffuse.b <- 50;
+
+    // 3-level opacity access
+    scenes[0].objects[0].material.opacity <- 255;
+    u8 alpha <- scenes[0].objects[0].material.opacity;
+
+    // Multiple array indices in chain
+    scenes[1].objects[2].material.ambient.r <- 100;
+    scenes[1].objects[3].material.diffuse.b <- 75;
+
+    // 3-level ID access
+    scenes[0].objects[0].id <- 42;
+    i32 objId <- scenes[1].objects[2].id;
+}

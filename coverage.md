@@ -3,6 +3,15 @@
 This document tracks test coverage for every language construct in every valid context.
 **Goal: 100% language coverage before v1 release.**
 
+## Recent Updates
+
+**2026-01-11: Comprehensive Postfix Expression Chain Testing**
+- ✅ Added 11 new test files targeting lines 5850-6285 (most complex code in transpiler)
+- ✅ Fixed grammar bug (lines 485-486 in CNext.g4) - parser now accepts complex chains
+- 🔶 Discovered code generator bug - order scrambling in mixed chains (documented)
+- 📊 Coverage increased from ~60% to ~62% overall
+- 📄 See [BUG-DISCOVERED-postfix-chains.md](../BUG-DISCOVERED-postfix-chains.md) for details
+
 ## How to Use This Document
 
 - Each section lists a language construct category
@@ -1480,6 +1489,28 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 | Multiple operators same precedence | [ ]    |                                                    |
 | Parenthesized sub-expressions      | [x]    |                                                    |
 
+### 34.3 Postfix Expression Chains
+
+**Comprehensive testing of lines 5850-6285 in CodeGenerator.ts (most complex code)**
+
+| Context                                       | Status | Test File                                          |
+| --------------------------------------------- | ------ | -------------------------------------------------- |
+| 2-level chains: arr[i].field                  | [x]    | `postfix-chains/basic-two-level.test.cnx`          |
+| 3-level chains: arr[i].struct.field           | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`   |
+| 4-level chains: arr[i][j].struct.field        | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`   |
+| 5-level chains: arr[i][j].struct.field.member | [x]    | `postfix-chains/array-struct-chain.test.cnx`       |
+| 7-level chains: mega stress test              | [x]    | `postfix-chains/mixed-access-ultimate.test.cnx`    |
+| Register + bitmap + bit indexing              | [x]    | `postfix-chains/register-bitmap-bit-chain.test.cnx`|
+| Scoped register + bitmap chains               | [x]    | `postfix-chains/scoped-register-bitmap-chain.test.cnx` |
+| Array + struct member chains                  | [x]    | `postfix-chains/array-struct-chain.test.cnx`       |
+| Function calls with chained params            | [x]    | `postfix-chains/function-call-chain.test.cnx`      |
+| Write-only register chains                    | [x]    | `postfix-chains/write-only-register-chain.test.cnx`|
+| Multi-bit range chains [start, width]         | [x]    | `postfix-chains/multi-bit-range-chain.test.cnx`    |
+| Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`      |
+| Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`   |
+
+**Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in CNext.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
+
 ### 34.2 Statement Nesting
 
 | Context              | Status | Test File                       |
@@ -1530,9 +1561,9 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 ## Statistics
 
-_Last updated: 2026-01-10_
+_Last updated: 2026-01-11_
 
-**Current Test Count: 251 test files** (179 success tests + 72 error tests)
+**Current Test Count: 262 test files** (190 success tests + 72 error tests)
 
 | Category             | Estimated Coverage                                    |
 | -------------------- | ----------------------------------------------------- |
@@ -1551,8 +1582,15 @@ _Last updated: 2026-01-10_
 | Register Bitfields   | ~10% (sparse)                                         |
 | Generic Types        | ~0% (not tested)                                      |
 | Statement Nesting    | ~30% (basic only)                                     |
+| Postfix Chains       | ~95% (comprehensive 11-file test suite, code gen bug) |
 
-**Overall Estimated Coverage: ~60%**
+**Overall Estimated Coverage: ~62%**
+
+**Recent Improvements (2026-01-11):**
+- ✅ Added comprehensive postfix expression chain testing (11 files)
+- ✅ Fixed grammar bug (lines 485-486) - parser now accepts complex chains
+- 🔶 Discovered code generator bug (lines 6715-6738) - order scrambling
+- 📄 See `BUG-DISCOVERED-postfix-chains.md` for details
 
 ### Coverage by Test File Count
 
@@ -1563,6 +1601,7 @@ _Last updated: 2026-01-10_
 | casting              | 13      | 8           |
 | arithmetic           | 12      | 3           |
 | multi-dim-arrays     | 11      | 1           |
+| postfix-chains       | 11      | 0           |
 | floats               | 10      | 1           |
 | switch               | 9       | 5           |
 | null-check           | 9       | 5           |
@@ -1584,4 +1623,4 @@ _Last updated: 2026-01-10_
 | atomic               | 5       | 1           |
 | array-initializers   | 5       | 0           |
 | Other categories     | ~29     | ~5          |
-| **TOTAL**            | **251** | **72**      |
+| **TOTAL**            | **262** | **72**      |

@@ -482,7 +482,8 @@ memberAccess
     : IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+           // ADR-036: screen.pixels[0][0]
     | IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']' // GPIO7.DR[start, width]
     | IDENTIFIER ('.' IDENTIFIER)+                                  // GPIO7.DR_SET
-    | IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)?           // arr[i].field
+    | IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)+           // arr[i].field1.field2...
+    | IDENTIFIER (('[' expression ']') | ('.' IDENTIFIER))+        // arr[i].field[j].member... (any mix)
     ;
 
 arrayAccess

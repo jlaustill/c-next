@@ -1,0 +1,71 @@
+// Postfix Chain Test: Const Expressions in Chains
+// Tests: Using const values and expressions as indices in chains
+
+const u32 INDEX_0 <- 0;
+const u32 INDEX_1 <- 1;
+const u32 INDEX_2 <- 2;
+const u32 SENSOR_COUNT <- 4;
+const u32 LED_BIT <- 3;
+const u32 STATUS_BIT <- 7;
+
+struct Sensor {
+    u32 id;
+    u8 data;
+}
+
+Sensor sensors[SENSOR_COUNT];
+
+register GPIO @ 0x40000000 {
+    DR:     u32 rw @ 0x00,
+    DR_SET: u32 wo @ 0x84,
+}
+
+void main() {
+    // Array indexing with const
+    sensors[INDEX_0].id <- 100;
+    sensors[INDEX_1].id <- 200;
+    sensors[INDEX_2].id <- 300;
+
+    // Read with const index
+    u32 id0 <- sensors[INDEX_0].id;
+    u32 id1 <- sensors[INDEX_1].id;
+
+    // Bit indexing with const
+    sensors[INDEX_0].data <- 0xFF;
+    sensors[INDEX_0].data[LED_BIT] <- false;
+    sensors[INDEX_0].data[STATUS_BIT] <- true;
+
+    // Register access with const bit index
+    GPIO.DR[LED_BIT] <- true;
+    GPIO.DR[STATUS_BIT] <- false;
+
+    // Write-only register with const
+    GPIO.DR_SET[LED_BIT] <- true;
+
+    // Const expression as index (computed at compile time)
+    const u32 COMPUTED_IDX <- INDEX_1 + INDEX_1;  // Should be 2
+    sensors[COMPUTED_IDX].id <- 500;
+    u32 computedId <- sensors[COMPUTED_IDX].id;
+
+    // Multiple const references in same chain
+    sensors[INDEX_0].data[LED_BIT] <- true;
+    sensors[INDEX_1].data[STATUS_BIT] <- false;
+
+    // Conditional with const in chain
+    if (sensors[INDEX_0].data[LED_BIT] = true) {
+        GPIO.DR[LED_BIT] <- true;
+    }
+
+    // Const used in multiple levels
+    const u32 ROW <- 0;
+    const u32 COL <- 1;
+    const u32 FIELD_BIT <- 5;
+
+    // Nested array with const indices
+    u8 matrix[4][4];
+    matrix[ROW][COL] <- 0xFF;
+    matrix[ROW][COL][FIELD_BIT] <- false;
+
+    u8 value <- matrix[ROW][COL];
+    bool bit <- matrix[ROW][COL][FIELD_BIT];
+}

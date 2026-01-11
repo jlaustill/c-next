@@ -1,0 +1,61 @@
+// Postfix Chain Test: Register + Bitmap + Bit Indexing
+// Tests: Complex chains mixing hardware registers, bitmap fields, and bit access
+// HIGH RISK AREA: Lines 5850-6285 in CodeGenerator.ts
+
+bitmap8 StatusFlags {
+    Ready,          // bit 0
+    Error,          // bit 1
+    Mode[3],        // bits 2-4
+    Reserved[3]     // bits 5-7
+}
+
+bitmap16 ControlFlags {
+    Enable,         // bit 0
+    Direction,      // bit 1
+    Speed[8],       // bits 2-9
+    Reserved[6]     // bits 10-15
+}
+
+register MOTOR @ 0x40001000 {
+    STATUS:  StatusFlags rw @ 0x00,
+    CONTROL: ControlFlags rw @ 0x04,
+    DATA:    u32 rw @ 0x08,
+}
+
+void main() {
+    // Chain: register.bitmap_member.field (3 levels)
+    MOTOR.STATUS.Ready <- true;
+    MOTOR.STATUS.Error <- false;
+    MOTOR.STATUS.Mode <- 5;
+
+    // Read through chain
+    bool isReady <- MOTOR.STATUS.Ready;
+    bool hasError <- MOTOR.STATUS.Error;
+    u8 mode <- MOTOR.STATUS.Mode;
+
+    // Chain: register.bitmap_member.multi_bit_field (3 levels)
+    MOTOR.CONTROL.Enable <- true;
+    MOTOR.CONTROL.Direction <- false;
+    MOTOR.CONTROL.Speed <- 127;
+
+    // Read multi-bit field through chain
+    u8 speed <- MOTOR.CONTROL.Speed;
+    bool enabled <- MOTOR.CONTROL.Enable;
+
+    // Chain: register.field[bit_index] (3 levels with bit indexing)
+    MOTOR.DATA[0] <- true;
+    MOTOR.DATA[15] <- false;
+    MOTOR.DATA[31] <- true;
+
+    // Read bit through chain
+    bool bit0 <- MOTOR.DATA[0];
+    bool bit15 <- MOTOR.DATA[15];
+
+    // Conditional on chained bitmap field
+    if (MOTOR.STATUS.Ready = true) {
+        MOTOR.CONTROL.Enable <- true;
+    }
+
+    // Use chained bitmap field in expression
+    u8 doubleSpeed <- MOTOR.CONTROL.Speed * 2;
+}

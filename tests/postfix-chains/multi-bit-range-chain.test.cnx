@@ -1,0 +1,80 @@
+// Postfix Chain Test: Multi-Bit Field Ranges
+// Tests: Bit range assignment [start, width] through chains
+// HIGH RISK: Lines 3373-3443 in CodeGenerator.ts - overflow protection needed
+
+struct Device {
+    u8 control;
+    u16 status;
+    u32 config;
+}
+
+Device devices[4];
+
+u8 flags <- 0;
+u16 settings <- 0;
+u32 registers <- 0;
+
+void main() {
+    // Multi-bit assignment to primitives
+    flags[0, 3] <- 7;      // bits 0-2 = 3 bits = max value 7
+    flags[3, 5] <- 31;     // bits 3-7 = 5 bits = max value 31
+
+    // Multi-bit assignment to u16
+    settings[0, 8] <- 255;    // bits 0-7 = 8 bits
+    settings[8, 8] <- 128;    // bits 8-15 = 8 bits
+
+    // Multi-bit assignment to u32
+    registers[0, 16] <- 0xFFFF;   // bits 0-15 = 16 bits
+    registers[16, 16] <- 0x1234;  // bits 16-31 = 16 bits
+
+    // Multi-bit read
+    u8 lowBits <- flags[0, 3];
+    u8 highBits <- flags[3, 5];
+    u16 lowWord <- registers[0, 16];
+    u16 highWord <- registers[16, 16];
+
+    // Multi-bit assignment through struct member chain
+    devices[0].control <- 0;
+    devices[0].control[0, 4] <- 15;    // bits 0-3
+    devices[0].control[4, 4] <- 8;     // bits 4-7
+
+    // Multi-bit read through chain
+    u8 ctrlLow <- devices[0].control[0, 4];
+    u8 ctrlHigh <- devices[0].control[4, 4];
+
+    // Multi-bit assignment through array + struct chain
+    devices[1].status <- 0;
+    devices[1].status[0, 8] <- 0xAA;
+    devices[1].status[8, 8] <- 0x55;
+
+    // Multi-bit read through array + struct chain
+    u16 statusLow <- devices[1].status[0, 8];
+    u16 statusHigh <- devices[1].status[8, 8];
+
+    // Multi-bit assignment to u32 through chain
+    devices[2].config <- 0;
+    devices[2].config[0, 8] <- 0x12;
+    devices[2].config[8, 8] <- 0x34;
+    devices[2].config[16, 8] <- 0x56;
+    devices[2].config[24, 8] <- 0x78;
+
+    // Read back full 32-bit with bit ranges
+    u32 byte0 <- devices[2].config[0, 8];
+    u32 byte1 <- devices[2].config[8, 8];
+    u32 byte2 <- devices[2].config[16, 8];
+    u32 byte3 <- devices[2].config[24, 8];
+
+    // Edge case: 1-bit range (should work same as single bit)
+    flags[0, 1] <- 1;
+    u8 singleBit <- flags[0, 1];
+
+    // Various width combinations on u8
+    u8 test <- 0;
+    test[0, 2] <- 3;    // 2 bits
+    test[2, 3] <- 7;    // 3 bits
+    test[5, 3] <- 6;    // 3 bits
+
+    u8 r1 <- test[0, 2];
+    u8 r2 <- test[2, 3];
+    u8 r3 <- test[5, 3];
+}

@@ -1,0 +1,82 @@
+// Postfix Chain Test: Arrays + Struct Members
+// Tests: Complex chains involving multi-dimensional arrays and struct members
+
+struct Vec3 {
+    f32 x;
+    f32 y;
+    f32 z;
+}
+
+struct Transform {
+    Vec3 position;
+    Vec3 rotation;
+    Vec3 scale;
+}
+
+struct Entity {
+    Transform transform;
+    u32 id;
+    u8 flags;
+}
+
+// 2D array of structs
+Entity grid[4][4];
+
+// Array of struct containing arrays
+struct Mesh {
+    Vec3 vertices[8];
+    u32 indices[12];
+}
+
+Mesh meshes[3];
+
+void main() {
+    // Chain: 2D_array[i][j].struct_member.field (5 levels)
+    grid[0][0].transform.position.x <- 1.0;
+    grid[0][0].transform.position.y <- 2.0;
+    grid[0][0].transform.position.z <- 3.0;
+
+    grid[1][2].transform.rotation.x <- 0.0;
+    grid[1][2].transform.rotation.y <- 90.0;
+    grid[1][2].transform.rotation.z <- 0.0;
+
+    // Read through 5-level chain
+    f32 px <- grid[0][0].transform.position.x;
+    f32 ry <- grid[1][2].transform.rotation.y;
+
+    // Chain: array[i].struct_member[j].field (5 levels)
+    meshes[0].vertices[0].x <- 0.0;
+    meshes[0].vertices[0].y <- 0.0;
+    meshes[0].vertices[0].z <- 0.0;
+
+    meshes[0].vertices[7].x <- 1.0;
+    meshes[0].vertices[7].y <- 1.0;
+    meshes[0].vertices[7].z <- 1.0;
+
+    // Read vertex data through chain
+    f32 vx <- meshes[0].vertices[0].x;
+    f32 vz <- meshes[0].vertices[7].z;
+
+    // Chain: 2D_array[i][j].field[bit] (4 levels with bit indexing)
+    grid[2][3].flags <- 0xFF;
+    grid[2][3].flags[0] <- true;
+    grid[2][3].flags[7] <- false;
+
+    // Read bit through 4-level chain
+    bool bit0 <- grid[2][3].flags[0];
+    bool bit7 <- grid[2][3].flags[7];
+
+    // Array indexing on nested arrays
+    meshes[1].indices[0] <- 0;
+    meshes[1].indices[11] <- 7;
+    u32 idx <- meshes[1].indices[0];
+
+    // Compound assignment through chain
+    grid[0][1].transform.scale.x <- 1.0;
+    grid[0][1].transform.scale.x *<- 2.0;
+    f32 sx <- grid[0][1].transform.scale.x;
+
+    // ID access through 2D array
+    grid[3][3].id <- 999;
+    u32 entityId <- grid[3][3].id;
+}

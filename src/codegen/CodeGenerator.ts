@@ -6717,10 +6717,9 @@ export default class CodeGenerator {
         .join("][");
 
       if (parts.length > 1) {
-        // Distinguish between two grammar patterns:
-        // 1. IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+ -> struct.field[i]
-        // 2. IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)? -> arr[i].field
-        // Check if original text has bracket before the first dot
+        // TODO: New grammar allows arbitrary mixing: arr[i].field[j].member
+        // Current implementation has order-preservation bug (see BUG-DISCOVERED-postfix-chains.md)
+        // Temporary: Use old logic for now
         const text = ctx.getText();
         const firstBracket = text.indexOf("[");
         const firstDot = text.indexOf(".");

@@ -1,0 +1,60 @@
+// Postfix Chain Test: Write-Only Registers with Complex Expressions
+// Tests: Write-only register optimization with various expression types
+// HIGH RISK: Lines 4405-4437 in CodeGenerator.ts
+
+register GPIO @ 0x42000000 {
+    DR:         u32 rw @ 0x00,
+    DR_SET:     u32 wo @ 0x84,
+    DR_CLEAR:   u32 wo @ 0x88,
+    DR_TOGGLE:  u32 wo @ 0x8C,
+}
+
+const u32 LED_BIT <- 3;
+const u32 BUTTON_BIT <- 7;
+
+u32 dynamicBit <- 5;
+
+void main() {
+    // Write-only register with literal bit index
+    GPIO.DR_SET[0] <- true;
+    GPIO.DR_SET[31] <- true;
+
+    // Write-only register with const bit index
+    GPIO.DR_SET[LED_BIT] <- true;
+    GPIO.DR_CLEAR[LED_BIT] <- true;
+    GPIO.DR_TOGGLE[LED_BIT] <- true;
+
+    // Write-only register with multiple const indices
+    GPIO.DR_SET[BUTTON_BIT] <- true;
+    GPIO.DR_CLEAR[BUTTON_BIT] <- true;
+
+    // Write-only register with variable bit index
+    GPIO.DR_SET[dynamicBit] <- true;
+    GPIO.DR_CLEAR[dynamicBit] <- true;
+
+    // Write-only register with expression bit index
+    GPIO.DR_SET[LED_BIT + 1] <- true;
+    GPIO.DR_CLEAR[LED_BIT * 2] <- true;
+
+    // Write-only register setting to false (should use clear)
+    GPIO.DR_SET[3] <- false;  // Edge case: false to write-only SET
+
+    // Write-only multi-bit range (if supported in future)
+    // This might expose edge cases in range validation
+
+    // Chained access to write-only registers
+    u32 targetBit <- LED_BIT;
+    GPIO.DR_TOGGLE[targetBit] <- true;
+
+    // Write to read-write register for comparison
+    GPIO.DR[LED_BIT] <- true;
+    GPIO.DR[BUTTON_BIT] <- false;
+
+    // Read from read-write, write to write-only
+    bool state <- GPIO.DR[LED_BIT];
+    if (state = true) {
+        GPIO.DR_CLEAR[LED_BIT] <- true;
+    } else {
+        GPIO.DR_SET[LED_BIT] <- true;
+    }
+}

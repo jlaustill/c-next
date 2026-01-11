@@ -1,0 +1,103 @@
+// Postfix Chain Test: Boundary Conditions
+// Tests: Edge cases at type boundaries, max indices, etc.
+
+struct Data {
+    u8 byte;
+    u16 word;
+    u32 dword;
+    u64 qword;
+}
+
+Data items[16];  // Max reasonable array size for testing
+
+void main() {
+    // Test maximum bit indices for each type
+
+    // u8: bits 0-7
+    items[0].byte <- 0xFF;
+    items[0].byte[0] <- true;   // First bit
+    items[0].byte[7] <- false;  // Last bit
+
+    bool b0 <- items[0].byte[0];
+    bool b7 <- items[0].byte[7];
+
+    // u16: bits 0-15
+    items[0].word <- 0xFFFF;
+    items[0].word[0] <- true;
+    items[0].word[15] <- false;  // Last bit of u16
+
+    bool w0 <- items[0].word[0];
+    bool w15 <- items[0].word[15];
+
+    // u32: bits 0-31
+    items[0].dword <- 0xFFFFFFFF;
+    items[0].dword[0] <- true;
+    items[0].dword[31] <- false;  // Last bit of u32
+
+    bool d0 <- items[0].dword[0];
+    bool d31 <- items[0].dword[31];
+
+    // u64: bits 0-63
+    items[0].qword <- 0xFFFFFFFFFFFFFFFF;
+    items[0].qword[0] <- true;
+    items[0].qword[63] <- false;  // Last bit of u64
+
+    bool q0 <- items[0].qword[0];
+    bool q63 <- items[0].qword[63];
+
+    // Test maximum array indices
+    items[15].byte <- 0xAA;  // Last element
+    u8 lastByte <- items[15].byte;
+
+    // Multi-bit ranges at boundaries
+
+    // u8: maximum width = 8 bits
+    u8 test8 <- 0;
+    test8[0, 8] <- 0xFF;  // All 8 bits
+    u8 all8 <- test8[0, 8];
+
+    // u16: maximum width = 16 bits
+    u16 test16 <- 0;
+    test16[0, 16] <- 0xFFFF;  // All 16 bits
+    u16 all16 <- test16[0, 16];
+
+    // u32: maximum width = 32 bits
+    u32 test32 <- 0;
+    test32[0, 32] <- 0xFFFFFFFF;  // All 32 bits
+    u32 all32 <- test32[0, 32];
+
+    // Edge case: Single bit at maximum position
+    u32 maxBitTest <- 0;
+    maxBitTest[31] <- true;
+    bool maxBit <- maxBitTest[31];
+
+    // Complex chain with maximum indices
+    items[15].dword <- 0xFFFFFFFF;
+    items[15].dword[31] <- false;
+    bool complexMax <- items[15].dword[31];
+
+    // Zero indices (edge case)
+    items[0].byte[0] <- true;
+    bool zeroIdx <- items[0].byte[0];
+
+    // Consecutive bit access
+    u8 consecutive <- 0xFF;
+    consecutive[0] <- false;
+    consecutive[1] <- false;
+    consecutive[2] <- false;
+    consecutive[3] <- false;
+    consecutive[4] <- false;
+    consecutive[5] <- false;
+    consecutive[6] <- false;
+    consecutive[7] <- false;
+
+    // Read all consecutive bits
+    bool c0 <- consecutive[0];
+    bool c1 <- consecutive[1];
+    bool c2 <- consecutive[2];
+    bool c3 <- consecutive[3];
+    bool c4 <- consecutive[4];
+    bool c5 <- consecutive[5];
+    bool c6 <- consecutive[6];
+    bool c7 <- consecutive[7];
+}

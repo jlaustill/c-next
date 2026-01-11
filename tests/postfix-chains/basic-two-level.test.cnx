@@ -1,0 +1,44 @@
+// Postfix Chain Test: Basic 2-level chains
+// Tests: struct.member, array[index], register.field combinations
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Line {
+    Point start;
+    Point end;
+}
+
+register GPIO @ 0x40000000 {
+    DR:     u32 rw @ 0x00,
+    DR_SET: u32 wo @ 0x84,
+}
+
+Point points[4];
+Line lines[2];
+
+void main() {
+    // Struct member access (2 levels)
+    lines[0].start.x <- 10;
+    lines[0].start.y <- 20;
+    lines[0].end.x <- 30;
+    lines[0].end.y <- 40;
+
+    // Read through 2 levels
+    i32 x1 <- lines[0].start.x;
+    i32 y1 <- lines[0].start.y;
+
+    // Array of structs (2 levels)
+    points[0].x <- 5;
+    points[0].y <- 15;
+    i32 px <- points[0].x;
+
+    // Register member bit access (2 levels)
+    GPIO.DR[3] <- true;
+    bool bit <- GPIO.DR[5];
+
+    // Register write-only bit access (2 levels)
+    GPIO.DR_SET[7] <- true;
+}

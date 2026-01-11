@@ -1,0 +1,88 @@
+// Postfix Chain Test: Function Calls in Chains
+// Tests: Function calls with complex chained parameters
+// HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
+
+struct Vec3 {
+    f32 x;
+    f32 y;
+    f32 z;
+}
+
+struct Transform {
+    Vec3 position;
+    Vec3 scale;
+}
+
+Transform transforms[4];
+
+// Functions with various parameter types
+u32 addU32(u32 a, u32 b) {
+    return a + b;
+}
+
+f32 addF32(f32 a, f32 b) {
+    return a + b;
+}
+
+f32 multiplyF32(f32 a, f32 b) {
+    return a * b;
+}
+
+Vec3 scaleVec3(Vec3 v, f32 scale) {
+    Vec3 result;
+    result.x <- v.x * scale;
+    result.y <- v.y * scale;
+    result.z <- v.z * scale;
+    return result;
+}
+
+bool isGreater(f32 a, f32 b) {
+    return a > b;
+}
+
+void setTransform(Transform t, u32 index) {
+    transforms[index] <- t;
+}
+
+void main() {
+    transforms[0].position.x <- 1.0;
+    transforms[0].position.y <- 2.0;
+    transforms[0].position.z <- 3.0;
+    transforms[0].scale.x <- 1.0;
+    transforms[0].scale.y <- 1.0;
+    transforms[0].scale.z <- 1.0;
+
+    // Function call with chained struct members as params (float params!)
+    f32 sumX <- addF32(transforms[0].position.x, transforms[0].scale.x);
+    f32 sumY <- addF32(transforms[0].position.y, transforms[0].scale.y);
+    f32 sumZ <- addF32(transforms[0].position.z, transforms[0].scale.z);
+
+    // Function call with chained array access and member access
+    f32 product <- multiplyF32(transforms[1].position.x, transforms[1].scale.x);
+
+    // Nested function calls with chains
+    f32 nestedSum <- addF32(
+        multiplyF32(transforms[0].position.x, 2.0),
+        transforms[0].position.y
+    );
+
+    // Function returning struct, then accessing members
+    Vec3 scaled <- scaleVec3(transforms[0].position, 2.0);
+    f32 scaledX <- scaled.x;
+
+    // Boolean function with chained float params
+    bool result <- isGreater(transforms[0].position.x, transforms[1].position.x);
+
+    // Function call taking struct as parameter (constructed from chained access)
+    Transform temp;
+    temp.position <- transforms[0].position;
+    temp.scale <- transforms[0].scale;
+    setTransform(temp, 2);
+
+    // Chained member access on function return value (reading result.x)
+    transforms[2].position <- scaleVec3(transforms[0].position, 3.0);
+
+    // Function call in array index expression
+    u32 idx <- addU32(1, 1);
+    transforms[idx].position.x <- 5.0;
+}
