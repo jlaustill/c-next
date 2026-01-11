@@ -244,37 +244,37 @@ This document tracks test coverage for every language construct in every valid c
 
 #### f32
 
-| Context                     | Status | Test File |
-| --------------------------- | ------ | --------- |
-| Global variable declaration | [ ]    |           |
-| Global variable with init   | [ ]    |           |
-| Local variable declaration  | [ ]    |           |
-| Local variable with init    | [ ]    |           |
-| Function parameter          | [ ]    |           |
-| Function return type        | [ ]    |           |
-| Struct member               | [ ]    |           |
-| Array element type          | [ ]    |           |
-| In arithmetic expression    | [ ]    |           |
-| In comparison               | [ ]    |           |
-| Literal with decimal        | [ ]    |           |
-| Literal with f32 suffix     | [ ]    |           |
+| Context                     | Status | Test File                              |
+| --------------------------- | ------ | -------------------------------------- |
+| Global variable declaration | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Global variable with init   | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Local variable declaration  | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Local variable with init    | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Function parameter          | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Function return type        | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Struct member               | [x]    | `floats/f32-all-contexts.test.cnx`     |
+| Array element type          | [x]    | `floats/float-arrays.test.cnx`         |
+| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx`     |
+| In comparison               | [x]    | `floats/float-comparison.test.cnx`     |
+| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`       |
+| Literal with f32 suffix     | [ ]    |                                        |
 
 #### f64
 
-| Context                     | Status | Test File |
-| --------------------------- | ------ | --------- |
-| Global variable declaration | [ ]    |           |
-| Global variable with init   | [ ]    |           |
-| Local variable declaration  | [ ]    |           |
-| Local variable with init    | [ ]    |           |
-| Function parameter          | [ ]    |           |
-| Function return type        | [ ]    |           |
-| Struct member               | [ ]    |           |
-| Array element type          | [ ]    |           |
-| In arithmetic expression    | [ ]    |           |
-| In comparison               | [ ]    |           |
-| Literal with decimal        | [ ]    |           |
-| Literal with f64 suffix     | [ ]    |           |
+| Context                     | Status | Test File                              |
+| --------------------------- | ------ | -------------------------------------- |
+| Global variable declaration | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Global variable with init   | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Local variable declaration  | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Local variable with init    | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Function parameter          | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Function return type        | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Struct member               | [x]    | `floats/f64-all-contexts.test.cnx`     |
+| Array element type          | [x]    | `floats/float-arrays.test.cnx`         |
+| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx`     |
+| In comparison               | [x]    | `floats/float-comparison.test.cnx`     |
+| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`       |
+| Literal with f64 suffix     | [ ]    |                                        |
 
 ### 1.4 Boolean
 
@@ -458,8 +458,8 @@ This document tracks test coverage for every language construct in every valid c
 | Enum = Integer **(ERROR)**          | [x]    | `enum/enum-error-compare-int.test.cnx`    |
 | String = String                     | [x]    | `string/string-compare-eq.test.cnx`       |
 | String = Literal                    | [x]    | `string/string-compare-literal.test.cnx`  |
-| Float = Float                       | [ ]    |                                           |
-| Float = Literal                     | [ ]    |                                           |
+| Float = Float                       | [x]    | `floats/float-comparison.test.cnx`        |
+| Float = Literal                     | [x]    | `floats/float-comparison.test.cnx`        |
 | Pointer = NULL                      | [x]    | `null-check/valid-null-eq-check.test.cnx` |
 
 ### 3.2 Not Equal (!=)
@@ -471,7 +471,7 @@ This document tracks test coverage for every language construct in every valid c
 | Bool != Bool       | [x]    |                                      |
 | Enum != Enum       | [x]    |                                      |
 | String != String   | [x]    | `string/string-compare-neq.test.cnx` |
-| Float != Float     | [ ]    |                                      |
+| Float != Float     | [x]    | `floats/float-comparison.test.cnx`   |
 | Pointer != NULL    | [x]    | `null-check/null-neq-check.test.cnx` |
 
 ### 3.3 Less Than (<)
@@ -486,8 +486,8 @@ This document tracks test coverage for every language construct in every valid c
 | i16 < i16         | [ ]    |           |
 | i32 < i32         | [x]    |           |
 | i64 < i64         | [ ]    |           |
-| f32 < f32         | [ ]    |           |
-| f64 < f64         | [ ]    |           |
+| f32 < f32         | [x]    | `floats/float-comparison.test.cnx` |
+| f64 < f64         | [x]    | `floats/float-comparison.test.cnx` |
 | Integer < Literal | [x]    |           |
 | Literal < Integer | [ ]    |           |
 
@@ -503,25 +503,29 @@ This document tracks test coverage for every language construct in every valid c
 | i16 > i16         | [ ]    |           |
 | i32 > i32         | [x]    |           |
 | i64 > i64         | [ ]    |           |
-| f32 > f32         | [ ]    |           |
-| f64 > f64         | [ ]    |           |
+| f32 > f32         | [x]    | `floats/float-comparison.test.cnx` |
+| f64 > f64         | [x]    | `floats/float-comparison.test.cnx` |
 | Integer > Literal | [x]    |           |
 
 ### 3.5 Less Than or Equal (<=)
 
-| Operand Types | Status | Test File |
-| ------------- | ------ | --------- |
-| u32 <= u32    | [x]    |           |
-| i32 <= i32    | [x]    |           |
-| Other types   | [ ]    |           |
+| Operand Types | Status | Test File                          |
+| ------------- | ------ | ---------------------------------- |
+| u32 <= u32    | [x]    |                                    |
+| i32 <= i32    | [x]    |                                    |
+| f32 <= f32    | [x]    | `floats/float-comparison.test.cnx` |
+| f64 <= f64    | [x]    | `floats/float-comparison.test.cnx` |
+| Other types   | [ ]    |                                    |
 
 ### 3.6 Greater Than or Equal (>=)
 
-| Operand Types | Status | Test File |
-| ------------- | ------ | --------- |
-| u32 >= u32    | [x]    |           |
-| i32 >= i32    | [x]    |           |
-| Other types   | [ ]    |           |
+| Operand Types | Status | Test File                          |
+| ------------- | ------ | ---------------------------------- |
+| u32 >= u32    | [x]    |                                    |
+| i32 >= i32    | [x]    |                                    |
+| f32 >= f32    | [x]    | `floats/float-comparison.test.cnx` |
+| f64 >= f64    | [x]    | `floats/float-comparison.test.cnx` |
+| Other types   | [ ]    |                                    |
 
 ---
 
@@ -539,8 +543,8 @@ This document tracks test coverage for every language construct in every valid c
 | i16 + i16                | [ ]    |                                          |
 | i32 + i32                | [x]    |                                          |
 | i64 + i64                | [ ]    |                                          |
-| f32 + f32                | [ ]    |                                          |
-| f64 + f64                | [ ]    |                                          |
+| f32 + f32                | [x]    | `floats/float-arithmetic.test.cnx`       |
+| f64 + f64                | [x]    | `floats/float-arithmetic.test.cnx`       |
 | Integer + Literal        | [x]    |                                          |
 | With clamp (saturating)  | [x]    | `primitives/clamp-compound-add.test.cnx` |
 | With wrap (wrapping)     | [x]    | `primitives/wrap-compound-add.test.cnx`  |
@@ -558,8 +562,8 @@ This document tracks test coverage for every language construct in every valid c
 | i16 - i16           | [ ]    |           |
 | i32 - i32           | [x]    |           |
 | i64 - i64           | [ ]    |           |
-| f32 - f32           | [ ]    |           |
-| f64 - f64           | [ ]    |           |
+| f32 - f32           | [x]    | `floats/float-arithmetic.test.cnx` |
+| f64 - f64           | [x]    | `floats/float-arithmetic.test.cnx` |
 | Integer - Literal   | [x]    |           |
 | Unary negation (-x) | [x]    |           |
 
@@ -569,19 +573,21 @@ This document tracks test coverage for every language construct in every valid c
 | ------------------ | ------ | --------- |
 | u32 \* u32         | [x]    |           |
 | i32 \* i32         | [x]    |           |
-| f32 \* f32         | [ ]    |           |
-| f64 \* f64         | [ ]    |           |
+| f32 \* f32         | [x]    | `floats/float-arithmetic.test.cnx` |
+| f64 \* f64         | [x]    | `floats/float-arithmetic.test.cnx` |
 | Integer \* Literal | [x]    |           |
 
 ### 4.4 Division (/)
 
 | Operand Types                | Status | Test File                                      |
 | ---------------------------- | ------ | ---------------------------------------------- |
-| u32 / u32                    | [x]    |                                                |
-| i32 / i32                    | [x]    |                                                |
-| f32 / f32                    | [ ]    |                                                |
-| f64 / f64                    | [ ]    |                                                |
-| Integer / Literal            | [x]    |                                                |
+| u32 / u32                         | [x]    |                                                |
+| i32 / i32                         | [x]    |                                                |
+| f32 / f32                         | [x]    | `floats/float-arithmetic.test.cnx`             |
+| f64 / f64                         | [x]    | `floats/float-arithmetic.test.cnx`             |
+| Integer / Literal                 | [x]    |                                                |
+| Float division by zero (valid)    | [x]    | `floats/float-division-by-zero.test.cnx`       |
+| Float division by const zero (valid) | [x] | `floats/float-const-zero-valid.test.cnx`       |
 | Division by zero **(ERROR)**      | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
 | Division by const zero **(ERROR)** | [x]    | `arithmetic/division-by-const-zero.test.cnx`  |
 | Division const zero formats **(ERROR)** | [x]    | `arithmetic/division-const-zero-formats.test.cnx` |
@@ -600,6 +606,7 @@ This document tracks test coverage for every language construct in every valid c
 | Modulo by zero **(ERROR)**      | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx` |
 | Modulo by const zero **(ERROR)** | [x]    | `arithmetic/modulo-by-const-zero.test.cnx`  |
 | Safe modulo (ADR-051)           | [x]    | `arithmetic/safe-mod-basic.test.cnx`         |
+| Float modulo **(ERROR)**        | [x]    | `floats/float-modulo-error.test.cnx`         |
 
 ---
 
@@ -1340,14 +1347,26 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 30a. Volatile Modifier
 
-| Context                  | Status | Test File |
-| ------------------------ | ------ | --------- |
-| Global variable          | [ ]    |           |
-| Local variable           | [ ]    |           |
-| Struct member            | [ ]    |           |
-| Register field (implied) | [ ]    |           |
-| With const               | [ ]    |           |
-| With atomic              | [ ]    |           |
+| Context                  | Status | Test File                                   |
+| ------------------------ | ------ | ------------------------------------------- |
+| Global variable          | [ ]    |                                             |
+| Local variable           | [ ]    |                                             |
+| Struct member            | [ ]    |                                             |
+| Register field (implied) | [ ]    |                                             |
+| With const               | [ ]    |                                             |
+| With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx`     |
+
+**Implementation Note (ADR-108):**
+
+ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE, but test suite coverage is minimal. Currently only the error case is tested (volatile + atomic combination rejection).
+
+**Tests needed for comprehensive coverage:**
+- Basic volatile usage (global/local variables)
+- Hardware register patterns (memory-mapped I/O)
+- Delay loop patterns (optimization prevention)
+- Volatile + const combination
+
+See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and usage patterns.
 
 ---
 
@@ -1388,12 +1407,12 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 32.2 Float Literals
 
-| Format            | Context       | Status | Test File |
-| ----------------- | ------------- | ------ | --------- |
-| Decimal (3.14)    | Variable init | [ ]    |           |
-| Scientific (1e-5) | Variable init | [ ]    |           |
-| With f32 suffix   | [ ]           |        |
-| With f64 suffix   | [ ]           |        |
+| Format            | Context       | Status | Test File                          |
+| ----------------- | ------------- | ------ | ---------------------------------- |
+| Decimal (3.14)    | Variable init | [x]    | `floats/float-literals.test.cnx`   |
+| Scientific (1e-5) | Variable init | [x]    | `floats/float-literals.test.cnx`   |
+| With f32 suffix   | [ ]           |        |                                    |
+| With f64 suffix   | [ ]           |        |                                    |
 
 ### 32.3 String Literals
 
@@ -1513,14 +1532,14 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 _Last updated: 2026-01-10_
 
-**Current Test Count: 225 passing tests** (213 + 4 literal zero tests + 4 safe_div/safe_mod tests + 4 const zero tests)
+**Current Test Count: 251 test files** (179 success tests + 72 error tests)
 
 | Category             | Estimated Coverage                                    |
 | -------------------- | ----------------------------------------------------- |
-| Primitive Types      | ~60% (gaps in f32/f64, u64/i64 operations)            |
+| Primitive Types      | ~75% (f32/f64 now tested, gaps in u64/i64 operations) |
 | Assignment Operators | ~65% (array + struct compound ops now tested)         |
-| Comparison Operators | ~50% (float comparisons missing)                      |
-| Arithmetic Operators | ~30% (float ops missing)                              |
+| Comparison Operators | ~65% (float comparisons now tested)                   |
+| Arithmetic Operators | ~50% (float ops now tested)                           |
 | Bitwise Operators    | ~20% (only u32 well tested)                           |
 | Logical Operators    | ~80% (short-circuit now tested, chaining gaps remain) |
 | Control Flow         | ~80% (good coverage, some nesting gaps)               |
@@ -1533,25 +1552,36 @@ _Last updated: 2026-01-10_
 | Generic Types        | ~0% (not tested)                                      |
 | Statement Nesting    | ~30% (basic only)                                     |
 
-**Overall Estimated Coverage: ~55%**
+**Overall Estimated Coverage: ~60%**
 
 ### Coverage by Test File Count
 
-| Test Category     | Files   | Error Tests |
-| ----------------- | ------- | ----------- |
-| string            | 21      | 6           |
-| casting           | 13      | 8           |
-| scope             | 11      | 5           |
-| switch            | 9       | 5           |
-| null-check        | 9       | 5           |
-| initialization    | 8       | 3           |
-| multi-dim-arrays  | 11      | 1           |
-| primitives        | 8       | 0           |
-| static-allocation | 7       | 4           |
-| structs           | 8       | 1           |
-| nested-structs    | 5       | 0           |
-| enum              | 6       | 4           |
-| register          | 8       | 2           |
-| ternary           | 6       | 3           |
-| Other categories  | ~93     | ~21         |
-| **TOTAL**         | **210** | **~63**     |
+| Test Category        | Files   | Error Tests |
+| -------------------- | ------- | ----------- |
+| string               | 21      | 6           |
+| scope                | 21      | 5           |
+| casting              | 13      | 8           |
+| arithmetic           | 12      | 3           |
+| multi-dim-arrays     | 11      | 1           |
+| floats               | 10      | 1           |
+| switch               | 9       | 5           |
+| null-check           | 9       | 5           |
+| structs              | 8       | 1           |
+| register             | 8       | 2           |
+| primitives           | 8       | 0           |
+| initialization       | 8       | 3           |
+| static-allocation    | 7       | 4           |
+| bitmap               | 7       | 2           |
+| ternary              | 6       | 3           |
+| enum                 | 6       | 4           |
+| nested-structs       | 5       | 0           |
+| sizeof               | 5       | 2           |
+| references           | 5       | 0           |
+| do-while             | 5       | 1           |
+| const                | 5       | 3           |
+| comments             | 5       | 2           |
+| bit-indexing         | 5       | 0           |
+| atomic               | 5       | 1           |
+| array-initializers   | 5       | 0           |
+| Other categories     | ~29     | ~5          |
+| **TOTAL**            | **251** | **72**      |
