@@ -4228,9 +4228,12 @@ export default class CodeGenerator {
 
             if (childText === ".") {
               // Next child should be an IDENTIFIER
-              if (i + 1 < memberAccessCtx.children.length && idIndex < identifiers.length) {
+              if (
+                i + 1 < memberAccessCtx.children.length &&
+                idIndex < identifiers.length
+              ) {
                 // Use underscore for first join if cross-scope, dot otherwise
-                const separator = (isCrossScope && idIndex === 1) ? "_" : ".";
+                const separator = isCrossScope && idIndex === 1 ? "_" : ".";
                 result += `${separator}${identifiers[idIndex].getText()}`;
                 idIndex++;
                 i++; // Skip the identifier we just processed
@@ -6745,7 +6748,7 @@ export default class CodeGenerator {
               // Next child should be an IDENTIFIER
               if (i + 1 < ctx.children.length && idIndex < parts.length) {
                 // Use underscore for first join if cross-scope, dot otherwise
-                const separator = (isCrossScope && idIndex === 1) ? "_" : ".";
+                const separator = isCrossScope && idIndex === 1 ? "_" : ".";
                 result += `${separator}${parts[idIndex]}`;
                 idIndex++;
                 i++; // Skip the identifier we just processed
