@@ -1127,7 +1127,7 @@ export default class CodeGenerator {
       if (this.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: 0,
+          bitWidth: BITMAP_SIZE[baseType] || 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1164,7 +1164,7 @@ export default class CodeGenerator {
       if (this.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: 0,
+          bitWidth: BITMAP_SIZE[baseType] || 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1198,7 +1198,7 @@ export default class CodeGenerator {
       if (this.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: 0,
+          bitWidth: BITMAP_SIZE[baseType] || 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -6950,30 +6950,44 @@ export default class CodeGenerator {
       }
       // TODO: Add bounds checking for struct.field[i][j] patterns
 
+      // Fix for Bug #2: Walk children in order to preserve operation sequence
+      // For cfg.items[0].value, we need to emit: cfg.items[0].value
+      // Not: cfg.items.value[0] (which the old code generated)
+
+      if (parts.length > 1 && ctx.children) {
+        // Walk parse tree children in order, building result incrementally
+        let result = firstPart;
+        let idIndex = 1; // Start at 1 since we already used firstPart
+        let exprIndex = 0;
+
+        for (let i = 1; i < ctx.children.length; i++) {
+          const child = ctx.children[i];
+          const childText = child.getText();
+
+          if (childText === ".") {
+            // Next child should be an IDENTIFIER
+            if (i + 1 < ctx.children.length && idIndex < parts.length) {
+              result += `.${parts[idIndex]}`;
+              idIndex++;
+              i++; // Skip the identifier we just processed
+            }
+          } else if (childText === "[") {
+            // Next child is an expression, then "]"
+            if (exprIndex < expressions.length) {
+              const expr = this.generateExpression(expressions[exprIndex]);
+              result += `[${expr}]`;
+              exprIndex++;
+              i += 2; // Skip expression and "]"
+            }
+          }
+        }
+        return result;
+      }
+
+      // Simple case: just array indices, no member access
       const indices = expressions
         .map((e) => this.generateExpression(e))
         .join("][");
-
-      if (parts.length > 1) {
-        // TODO: New grammar allows arbitrary mixing: arr[i].field[j].member
-        // Current implementation has order-preservation bug (see BUG-DISCOVERED-postfix-chains.md)
-        // Temporary: Use old logic for now
-        const text = ctx.getText();
-        const firstBracket = text.indexOf("[");
-        const firstDot = text.indexOf(".");
-
-        if (firstBracket !== -1 && firstBracket < firstDot) {
-          // Pattern: arr[i].field -> indices come after first identifier
-          const trailingMembers = parts.slice(1);
-          if (trailingMembers.length > 0) {
-            return `${firstPart}[${indices}].${trailingMembers.join(".")}`;
-          }
-          return `${firstPart}[${indices}]`;
-        }
-
-        // Pattern: struct.field[i][j] -> indices come at the end
-        return `${parts.join(".")}[${indices}]`;
-      }
       return `${firstPart}[${indices}]`;
     }
 
