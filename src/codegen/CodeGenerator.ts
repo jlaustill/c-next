@@ -5798,7 +5798,7 @@ export default class CodeGenerator {
     leftType: string,
     rightExpr: Parser.AdditiveExpressionContext,
     op: string,
-    ctx: Parser.ShiftExpressionContext
+    ctx: Parser.ShiftExpressionContext,
   ): void {
     // Get type width in bits
     const typeWidth = this.getTypeWidth(leftType);
@@ -5812,9 +5812,9 @@ export default class CodeGenerator {
     if (shiftAmount < 0) {
       throw new Error(
         `Error: Negative shift amount (${shiftAmount}) is undefined behavior\n` +
-        `  Type: ${leftType}\n` +
-        `  Expression: ${ctx.getText()}\n` +
-        `  Shift amounts must be non-negative`
+          `  Type: ${leftType}\n` +
+          `  Expression: ${ctx.getText()}\n` +
+          `  Shift amounts must be non-negative`,
       );
     }
 
@@ -5822,9 +5822,9 @@ export default class CodeGenerator {
     if (shiftAmount >= typeWidth) {
       throw new Error(
         `Error: Shift amount (${shiftAmount}) exceeds type width (${typeWidth} bits) for type '${leftType}'\n` +
-        `  Expression: ${ctx.getText()}\n` +
-        `  Shift amount must be < ${typeWidth} for ${typeWidth}-bit types\n` +
-        `  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior`
+          `  Expression: ${ctx.getText()}\n` +
+          `  Shift amount must be < ${typeWidth} for ${typeWidth}-bit types\n` +
+          `  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior`,
       );
     }
   }
@@ -5855,7 +5855,9 @@ export default class CodeGenerator {
    * Try to evaluate a shift amount expression to get its numeric value.
    * Returns null if not a constant or cannot be evaluated.
    */
-  private evaluateShiftAmount(ctx: Parser.AdditiveExpressionContext): number | null {
+  private evaluateShiftAmount(
+    ctx: Parser.AdditiveExpressionContext,
+  ): number | null {
     // For now, handle simple literals only
     const multExprs = ctx.multiplicativeExpression();
     if (multExprs.length !== 1) return null; // Not a simple literal
@@ -5917,7 +5919,9 @@ export default class CodeGenerator {
   /**
    * Helper to evaluate a unary expression recursively.
    */
-  private evaluateUnaryExpression(ctx: Parser.UnaryExpressionContext): number | null {
+  private evaluateUnaryExpression(
+    ctx: Parser.UnaryExpressionContext,
+  ): number | null {
     const unaryText = ctx.getText();
     const isNegative = unaryText.startsWith("-");
 
@@ -5965,7 +5969,9 @@ export default class CodeGenerator {
   /**
    * Get the type of an additive expression.
    */
-  private getAdditiveExpressionType(ctx: Parser.AdditiveExpressionContext): string | null {
+  private getAdditiveExpressionType(
+    ctx: Parser.AdditiveExpressionContext,
+  ): string | null {
     // For simple case, get type from first multiplicative expression
     const multExprs = ctx.multiplicativeExpression();
     if (multExprs.length === 0) return null;
@@ -5976,7 +5982,9 @@ export default class CodeGenerator {
   /**
    * Get the type of a multiplicative expression.
    */
-  private getMultiplicativeExpressionType(ctx: Parser.MultiplicativeExpressionContext): string | null {
+  private getMultiplicativeExpressionType(
+    ctx: Parser.MultiplicativeExpressionContext,
+  ): string | null {
     const unaryExprs = ctx.unaryExpression();
     if (unaryExprs.length === 0) return null;
 
