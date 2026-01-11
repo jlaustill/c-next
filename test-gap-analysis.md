@@ -87,7 +87,7 @@ All test files are technically "mentioned" somewhere in coverage.md, BUT:
 **Missing row**:
 
 ```markdown
-| floats            | 10      | 2           |
+| floats | 10 | 2 |
 ```
 
 Should be inserted between `multi-dim-arrays` and `switch`.
@@ -106,6 +106,7 @@ Should be inserted between `multi-dim-arrays` and `switch`.
 ## Conclusion
 
 The 26-file gap is fully accounted for:
+
 - 10 float tests (highest impact)
 - 6 arithmetic tests (ADR-051)
 - 5 comprehensive scope tests (multi-context)
