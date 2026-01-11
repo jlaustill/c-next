@@ -62,6 +62,7 @@ npm run eslint:check
 ### When to Create a Branch
 
 **Always create a branch for:**
+
 - New features (ADR implementation)
 - Bug fixes
 - Refactoring
@@ -216,6 +217,7 @@ diff tests/my-feature/basic.c tests/my-feature/basic.expected.c
 #### 1. README.md
 
 Update if your changes affect:
+
 - Feature list or examples
 - CLI usage or flags
 - Installation/setup process
@@ -226,17 +228,20 @@ Update if your changes affect:
 **CRITICAL: NEVER change ADR status without explicit confirmation.**
 
 **You CAN:**
+
 - ✅ Add research findings, links, and context
 - ✅ Update "Research Notes" sections
 - ✅ Add "Implementation Details" after implementation
 
 **You CANNOT (without approval):**
+
 - ❌ Change Status field (Research/Accepted/Implemented/Rejected)
 - ❌ Modify Decision section
 - ❌ Change the core proposal
 
 **Documentation Sync Order:**
 When implementing a feature, update in this order:
+
 1. **ADR file** (`docs/decisions/adr-NNN.md`) — Add implementation details, mark Implemented
 2. **README.md** — Update feature list to reflect ADR is Implemented
 3. **learn-cnext-in-y-minutes.md** — Add syntax examples
@@ -246,11 +251,13 @@ This prevents README and ADR from getting out of sync.
 #### 3. Learn C-Next (`docs/learn-cnext-in-y-minutes.md`)
 
 Update if your changes add:
+
 - New syntax or language features
 - New keywords or operators
 - New compilation flags or pragmas
 
 **Add:**
+
 - Code examples showing the new feature
 - Expected C output
 - Common use cases
@@ -266,6 +273,7 @@ Update if your changes add:
 ### Memory Bank Updates
 
 If the project uses a memory bank system, update it with:
+
 - New patterns learned
 - Important decisions made
 - Workflow improvements discovered
@@ -319,6 +327,7 @@ git add README.md
 ```
 
 **Handling Unrelated Changes:**
+
 - If you see unrelated modified files in `git status`, **IGNORE them**
 - **NEVER** revert or checkout unrelated files without explicit direction
 - **NEVER** commit unrelated changes as part of your PR
@@ -337,11 +346,13 @@ git push origin feature/your-feature-name
 #### 4. Create Pull Request
 
 **PR Title Format:**
+
 ```
 [Feature|Fix|Docs|Test]: Short description
 ```
 
 **Examples:**
+
 ```
 Feature: Implement critical sections (ADR-050)
 Fix: Correct postfix chain member ordering
@@ -353,30 +364,36 @@ Docs: Update contributing guide with PR workflow
 
 ```markdown
 ## Summary
+
 [1-3 sentences describing what this PR does]
 
 ## Changes
+
 - Added/Modified: [File] - [What changed]
 - Added: [Test files] - [What they test]
 - Updated: [Docs] - [What was updated]
 
 ## Testing
+
 - [ ] All existing tests pass (npm test)
 - [ ] New tests added: [N] tests in tests/[feature]/
 - [ ] Code builds cleanly (npm run build)
 - [ ] Lint checks pass (eslint:check, prettier:fix)
 
 ## Documentation
+
 - [ ] README.md updated (if feature-visible)
 - [ ] ADR updated with implementation details
 - [ ] learn-cnext-in-y-minutes.md updated (if syntax changed)
 - [ ] Test README created
 
 ## Related Issues
+
 Closes #NNN (if applicable)
 Related to ADR-NNN (if implementing an ADR)
 
 ## Checklist
+
 - [ ] No unrelated changes included
 - [ ] All documentation requirements met
 - [ ] No regressions (existing tests pass)
@@ -447,6 +464,7 @@ git push
 ### Branch Protection
 
 The `main` branch is protected and requires:
+
 - ✅ All CI checks must pass
 - ✅ At least 1 approving review
 - ✅ Branch must be up-to-date with main
@@ -460,12 +478,14 @@ The `main` branch is protected and requires:
 ### For Authors
 
 **Responding to Reviews:**
+
 - Address all comments, even if just to explain your reasoning
 - Be open to feedback and suggestions
 - Make requested changes in new commits (easier to review)
 - Mark conversations as resolved after addressing
 
 **What Reviewers Look For:**
+
 - Code quality and correctness
 - Test coverage and quality
 - Documentation completeness
@@ -477,12 +497,14 @@ The `main` branch is protected and requires:
 **Review Checklist:**
 
 #### 1. Code Quality
+
 - [ ] Code follows existing patterns in the codebase
 - [ ] No TypeScript or ESLint errors in modified files
 - [ ] Changes are focused and don't include unrelated modifications
 - [ ] No debug code left in source (`console.log`, `DEBUG` flags)
 
 #### 2. Testing
+
 - [ ] Tests exist for new functionality
 - [ ] Tests follow progression: basic → complex → edge cases
 - [ ] `.expected.c` files created for passing tests
@@ -490,6 +512,7 @@ The `main` branch is protected and requires:
 - [ ] All existing tests still pass
 
 #### 3. Documentation
+
 - [ ] README.md updated if feature is user-visible
 - [ ] ADR updated with implementation details (if applicable)
 - [ ] ADR status changes have explicit approval (if applicable)
@@ -497,17 +520,20 @@ The `main` branch is protected and requires:
 - [ ] Code comments explain "why", not "what"
 
 #### 4. Correctness
+
 - [ ] Generated C code is correct and idiomatic
 - [ ] No security vulnerabilities introduced
 - [ ] Edge cases handled appropriately
 - [ ] Error messages are clear and helpful
 
 #### 5. Integration
+
 - [ ] Changes work with existing features
 - [ ] No breaking changes to existing syntax
 - [ ] Grammar changes don't introduce ambiguity
 
 **Approval Standards:**
+
 - **Approve**: All checklist items pass, no issues found
 - **Request Changes**: Critical issues that must be fixed
 - **Comment**: Suggestions or questions, but not blocking
@@ -598,6 +624,7 @@ All existing tests pass (no regressions).
 ### Commit Message Tips
 
 **DO:**
+
 - ✅ Write in imperative mood: "Add feature" not "Added feature"
 - ✅ Reference ADRs, issues, or bug docs
 - ✅ Explain "why" if not obvious from "what"
@@ -605,6 +632,7 @@ All existing tests pass (no regressions).
 - ✅ Note if no regressions
 
 **DON'T:**
+
 - ❌ Write vague messages: "fix bug", "update code"
 - ❌ Omit context about why change was needed
 - ❌ Forget to mention documentation updates

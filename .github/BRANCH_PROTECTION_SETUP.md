@@ -7,6 +7,7 @@ This guide shows how to configure GitHub branch protection rules to enforce the 
 ## Overview
 
 Branch protection will:
+
 - ✅ Require all tests to pass before merge
 - ✅ Require code review approval
 - ✅ Prevent direct pushes to `main`
@@ -26,6 +27,7 @@ Branch protection will:
 ### 2. Configure Protection Rule
 
 **Branch name pattern:**
+
 ```
 main
 ```
@@ -33,27 +35,30 @@ main
 **Enable these settings:**
 
 #### Require a pull request before merging
+
 - [x] **Require a pull request before merging**
   - [x] Require approvals: **1** (or more, depending on team size)
   - [x] Dismiss stale pull request approvals when new commits are pushed
-  - [ ] Require review from Code Owners *(optional - if you have CODEOWNERS file)*
+  - [ ] Require review from Code Owners _(optional - if you have CODEOWNERS file)_
 
 #### Require status checks to pass before merging
+
 - [x] **Require status checks to pass before merging**
   - [x] Require branches to be up to date before merging
   - **Search for and select these status checks:**
-    - `Code Quality & Tests` *(from pr-checks.yml workflow)*
-    - `All Checks Passed` *(summary job)*
+    - `Code Quality & Tests` _(from pr-checks.yml workflow)_
+    - `All Checks Passed` _(summary job)_
 
   > **Note:** These checks will appear in the list after the workflow runs at least once. Push a test PR or push to main first to populate them.
 
 #### Other settings
-- [x] **Require conversation resolution before merging** *(optional but recommended)*
-- [ ] **Require signed commits** *(optional - if your team uses GPG signing)*
-- [ ] **Require linear history** *(optional - enforces squash merging)*
-- [x] **Do not allow bypassing the above settings** *(recommended - applies to admins too)*
-- [ ] **Allow force pushes** *(leave unchecked)*
-- [ ] **Allow deletions** *(leave unchecked)*
+
+- [x] **Require conversation resolution before merging** _(optional but recommended)_
+- [ ] **Require signed commits** _(optional - if your team uses GPG signing)_
+- [ ] **Require linear history** _(optional - enforces squash merging)_
+- [x] **Do not allow bypassing the above settings** _(recommended - applies to admins too)_
+- [ ] **Allow force pushes** _(leave unchecked)_
+- [ ] **Allow deletions** _(leave unchecked)_
 
 ### 3. Save Protection Rule
 
@@ -83,6 +88,7 @@ git push origin test/branch-protection
 ### Step 3: Verify Protections
 
 You should see:
+
 - ✅ **Status checks running** (Code Quality & Tests)
 - ⚠️ **Merge button disabled** until checks pass
 - ⚠️ **"Review required"** message (if review requirement enabled)
@@ -123,6 +129,7 @@ Replace `YOUR_USERNAME` with your GitHub username or organization name.
 **Problem:** The workflow must run at least once before checks appear.
 
 **Solution:**
+
 ```bash
 # Push directly to main (before protection is enabled)
 git checkout main
@@ -137,6 +144,7 @@ git push origin main
 **Problem:** Someone else merged to main while you were working.
 
 **Solution:**
+
 ```bash
 git checkout your-branch
 git fetch origin
@@ -147,6 +155,7 @@ git push --force-with-lease
 ### Merge blocked even though checks passed
 
 **Possible causes:**
+
 1. Review approval not received yet
 2. Conversations not resolved
 3. Branch not up-to-date with main
