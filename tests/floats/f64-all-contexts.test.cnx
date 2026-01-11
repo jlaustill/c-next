@@ -1,0 +1,54 @@
+// Test f64 in all language contexts
+
+// Global variable declarations
+f64 global_d <- 3.141592653589793;
+f64 global_uninit;
+
+// Struct member
+struct Vector {
+    f64 x;
+    f64 y;
+    f64 z;
+}
+
+// Array element type
+f64 measurements[8];
+
+// Function with f64 parameter and return
+f64 multiply(f64 a, f64 b) {
+    return a * b;
+}
+
+// Local variables in function
+void calculate() {
+    f64 local <- 2.718281828;
+    f64 result <- multiply(local, 2.0);
+    measurements[0] <- result;
+}
+
+// In arithmetic expression
+void arithmetic() {
+    f64 x <- 100.0;
+    f64 y <- x * 2.5 / 5.0;
+}
+
+// In comparison
+void compare() {
+    f64 a <- 1.5;
+    f64 b <- 2.5;
+    if (a <= b) {
+        global_d <- a;
+    }
+}
+
+// In ternary expression
+f64 min(f64 a, f64 b) {
+    return (a < b) ? a : b;
+}
+
+void main() {
+    calculate();
+    arithmetic();
+    compare();
+    f64 result <- min(3.14159, 2.71828);
+}

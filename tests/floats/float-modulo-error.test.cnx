@@ -1,0 +1,14 @@
+// EXPECT-ERROR: Modulo operator not supported for floating-point types
+// The % operator is only valid for integer types
+
+void test_invalid_modulo() {
+    f32 a <- 10.5;
+    f32 b <- 3.2;
+
+    // This should cause a type error
+    f32 result <- a % b;
+}
+
+void main() {
+    test_invalid_modulo();
+}

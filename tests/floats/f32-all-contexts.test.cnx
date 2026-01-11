@@ -1,0 +1,53 @@
+// Test f32 in all language contexts
+
+// Global variable declarations
+f32 global_f <- 3.14;
+f32 global_uninit;
+
+// Struct member
+struct Point {
+    f32 x;
+    f32 y;
+}
+
+// Array element type
+f32 samples[4];
+
+// Function with f32 parameter and return
+f32 add(f32 a, f32 b) {
+    return a + b;
+}
+
+// Local variables in function
+void process() {
+    f32 local <- 2.5;
+    f32 result <- add(local, 1.5);
+    samples[0] <- result;
+}
+
+// In arithmetic expression
+void arithmetic() {
+    f32 x <- 10.0;
+    f32 y <- x + 5.0 - 2.0;
+}
+
+// In comparison
+void compare() {
+    f32 a <- 1.5;
+    f32 b <- 2.5;
+    if (a < b) {
+        global_f <- a;
+    }
+}
+
+// In ternary expression
+f32 max(f32 a, f32 b) {
+    return (a > b) ? a : b;
+}
+
+void main() {
+    process();
+    arithmetic();
+    compare();
+    f32 result <- max(3.14, 2.71);
+}

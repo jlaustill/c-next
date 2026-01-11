@@ -1,0 +1,74 @@
+// Test all float arithmetic operations
+
+f32 result_f32;
+f64 result_f64;
+
+void test_f32_arithmetic() {
+    // Addition
+    f32 a <- 10.5;
+    f32 b <- 3.2;
+    result_f32 <- a + b;
+
+    // Subtraction
+    result_f32 <- a - b;
+
+    // Multiplication
+    result_f32 <- a * b;
+
+    // Division
+    result_f32 <- a / b;
+
+    // Mixed with literals
+    result_f32 <- a + 5.0;
+    result_f32 <- 100.0 - a;
+    result_f32 <- a * 2.0;
+    result_f32 <- a / 2.0;
+
+    // Unary negation
+    result_f32 <- -a;
+    f32 neg <- -10.5;
+}
+
+void test_f64_arithmetic() {
+    // Addition
+    f64 x <- 100.25;
+    f64 y <- 50.75;
+    result_f64 <- x + y;
+
+    // Subtraction
+    result_f64 <- x - y;
+
+    // Multiplication
+    result_f64 <- x * y;
+
+    // Division
+    result_f64 <- x / y;
+
+    // Mixed with literals
+    result_f64 <- x + 10.0;
+    result_f64 <- 500.0 - x;
+    result_f64 <- x * 1.5;
+    result_f64 <- x / 4.0;
+
+    // Unary negation
+    result_f64 <- -x;
+    f64 neg <- -99.99;
+}
+
+void test_complex_expressions() {
+    f32 a <- 5.0;
+    f32 b <- 3.0;
+    f32 c <- 2.0;
+
+    // Multiple operations
+    result_f32 <- a + b * c;
+    result_f32 <- (a + b) * c;
+    result_f32 <- a / b + c;
+    result_f32 <- a - b / c;
+}
+
+void main() {
+    test_f32_arithmetic();
+    test_f64_arithmetic();
+    test_complex_expressions();
+}

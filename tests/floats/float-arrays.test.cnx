@@ -1,0 +1,53 @@
+// Test float arrays
+
+f32 samples_f32[10];
+f64 measurements_f64[5];
+
+void test_f32_array() {
+    // Initialization
+    samples_f32[0] <- 1.1;
+    samples_f32[1] <- 2.2;
+    samples_f32[2] <- 3.3;
+
+    // Access
+    f32 first <- samples_f32[0];
+    f32 second <- samples_f32[1];
+
+    // Arithmetic with array elements
+    f32 sum <- samples_f32[0] + samples_f32[1];
+    samples_f32[3] <- sum;
+
+    // Loop iteration
+    for (u32 i <- 0; i < 10; i +<- 1) {
+        samples_f32[i] <- i * 1.5;
+    }
+}
+
+void test_f64_array() {
+    // Initialization
+    measurements_f64[0] <- 10.5;
+    measurements_f64[1] <- 20.75;
+
+    // Access
+    f64 val <- measurements_f64[0];
+
+    // Comparison
+    if (measurements_f64[0] < measurements_f64[1]) {
+        measurements_f64[2] <- measurements_f64[1];
+    }
+}
+
+void test_array_init() {
+    // Array with initializer
+    f32 coords[3] <- [0.0, 1.0, 2.0];
+    f64 precise[2] <- [3.14159, 2.71828];
+
+    f32 x <- coords[0];
+    f64 pi <- precise[0];
+}
+
+void main() {
+    test_f32_array();
+    test_f64_array();
+    test_array_init();
+}

@@ -1,0 +1,19 @@
+// Test that const zero detection does NOT apply to floats
+// Float division by zero is well-defined (produces infinity or NaN)
+
+void test_const_zero_float() {
+    const f32 ZERO <- 0.0;
+    const f64 ZERO_D <- 0.0;
+
+    // These should be VALID for floats (unlike integers)
+    f32 result_f <- 10.0 / ZERO;
+    f64 result_d <- 100.0 / ZERO_D;
+
+    // Even 0.0 / 0.0 is valid (produces NaN)
+    result_f <- ZERO / ZERO;
+    result_d <- ZERO_D / ZERO_D;
+}
+
+void main() {
+    test_const_zero_float();
+}

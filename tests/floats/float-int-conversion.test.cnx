@@ -1,0 +1,43 @@
+// Test conversions between float and integer types
+
+void test_int_to_float() {
+    // Integer to f32
+    i32 int_val <- 42;
+    f32 float_val <- int_val;
+
+    u32 uint_val <- 100;
+    float_val <- uint_val;
+
+    // Integer to f64
+    f64 double_val <- int_val;
+    double_val <- uint_val;
+
+    // Literal integers to float
+    float_val <- 123;
+    double_val <- 456;
+}
+
+void test_f32_to_f64() {
+    // Widening: f32 to f64 should be allowed
+    f32 single <- 3.14;
+    f64 precise <- single;
+}
+
+void test_explicit_cast() {
+    // These might require explicit casts
+    f32 a <- 3.14;
+    i32 truncated <- (i32)a;
+
+    f64 b <- 99.99;
+    u32 unsigned_val <- (u32)b;
+
+    // f64 to f32 narrowing
+    f64 big <- 3.141592653589793;
+    f32 small <- (f32)big;
+}
+
+void main() {
+    test_int_to_float();
+    test_f32_to_f64();
+    test_explicit_cast();
+}

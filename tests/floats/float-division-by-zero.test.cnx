@@ -1,0 +1,51 @@
+// Test float division by zero (should produce infinity, not error)
+
+f32 result_f32;
+f64 result_f64;
+
+void test_f32_division_by_zero() {
+    f32 x <- 10.0;
+    f32 zero <- 0.0;
+
+    // Division by literal zero - should produce infinity
+    result_f32 <- x / 0.0;
+
+    // Division by zero variable - should produce infinity
+    result_f32 <- x / zero;
+
+    // Negative divided by zero
+    f32 neg <- -10.0;
+    result_f32 <- neg / 0.0;
+}
+
+void test_f64_division_by_zero() {
+    f64 y <- 100.0;
+    f64 zero <- 0.0;
+
+    // Division by literal zero
+    result_f64 <- y / 0.0;
+
+    // Division by zero variable
+    result_f64 <- y / zero;
+
+    // Negative divided by zero
+    f64 neg <- -100.0;
+    result_f64 <- neg / 0.0;
+}
+
+void test_zero_divided_by_zero() {
+    // 0.0 / 0.0 should produce NaN
+    f32 zero_f <- 0.0;
+    result_f32 <- 0.0 / 0.0;
+    result_f32 <- zero_f / zero_f;
+
+    f64 zero_d <- 0.0;
+    result_f64 <- 0.0 / 0.0;
+    result_f64 <- zero_d / zero_d;
+}
+
+void main() {
+    test_f32_division_by_zero();
+    test_f64_division_by_zero();
+    test_zero_divided_by_zero();
+}

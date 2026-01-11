@@ -1,0 +1,102 @@
+// Test all float comparison operations
+
+bool result;
+
+void test_f32_comparison() {
+    f32 a <- 10.5;
+    f32 b <- 5.5;
+    f32 c <- 10.5;
+
+    // Equality
+    result <- (a = c);
+    result <- (a = b);
+
+    // Not equal
+    result <- (a != b);
+    result <- (a != c);
+
+    // Less than
+    result <- (b < a);
+    result <- (a < b);
+
+    // Greater than
+    result <- (a > b);
+    result <- (b > a);
+
+    // Less than or equal
+    result <- (b <= a);
+    result <- (a <= c);
+    result <- (a <= b);
+
+    // Greater than or equal
+    result <- (a >= b);
+    result <- (a >= c);
+    result <- (b >= a);
+}
+
+void test_f64_comparison() {
+    f64 x <- 100.25;
+    f64 y <- 50.75;
+    f64 z <- 100.25;
+
+    // Equality
+    result <- (x = z);
+    result <- (x = y);
+
+    // Not equal
+    result <- (x != y);
+    result <- (x != z);
+
+    // Less than
+    result <- (y < x);
+    result <- (x < y);
+
+    // Greater than
+    result <- (x > y);
+    result <- (y > x);
+
+    // Less than or equal
+    result <- (y <= x);
+    result <- (x <= z);
+
+    // Greater than or equal
+    result <- (x >= y);
+    result <- (x >= z);
+}
+
+void test_literal_comparison() {
+    f32 a <- 3.14;
+
+    result <- (a = 3.14);
+    result <- (a != 3.14);
+    result <- (a < 10.0);
+    result <- (a > 1.0);
+    result <- (a <= 3.14);
+    result <- (a >= 3.14);
+}
+
+void test_in_control_flow() {
+    f32 temp <- 25.5;
+
+    if (temp > 30.0) {
+        result <- true;
+    }
+
+    if (temp <= 25.5) {
+        result <- true;
+    }
+
+    while (temp < 100.0) {
+        temp <- temp + 1.0;
+        if (temp >= 30.0) {
+            temp <- 100.0;
+        }
+    }
+}
+
+void main() {
+    test_f32_comparison();
+    test_f64_comparison();
+    test_literal_comparison();
+    test_in_control_flow();
+}

@@ -1,0 +1,52 @@
+// Test various float literal formats
+
+void test_decimal_literals() {
+    // Simple decimal
+    f32 a <- 3.14;
+    f32 b <- 0.5;
+    f32 c <- 100.0;
+    f32 d <- 0.0;
+
+    f64 x <- 3.141592653589793;
+    f64 y <- 0.123456789;
+    f64 z <- 999.999;
+}
+
+void test_scientific_notation() {
+    // Scientific notation (e notation)
+    f32 small <- 1.5e-10;
+    f32 large <- 3.0e8;
+    f32 tiny <- 1e-38;
+    f32 huge <- 1e38;
+
+    f64 very_small <- 2.5e-100;
+    f64 very_large <- 1.7e100;
+    f64 precise <- 6.022e23;
+}
+
+void test_negative_literals() {
+    f32 neg_dec <- -3.14;
+    f32 neg_sci <- -1.5e10;
+
+    f64 neg_dec_d <- -99.99;
+    f64 neg_sci_d <- -2.5e-50;
+}
+
+void test_edge_case_literals() {
+    // Zero
+    f32 zero <- 0.0;
+    f32 neg_zero <- -0.0;
+
+    // Very small
+    f32 epsilon <- 1.192092896e-7;
+
+    // Very large
+    f32 max_float <- 3.402823466e38;
+}
+
+void main() {
+    test_decimal_literals();
+    test_scientific_notation();
+    test_negative_literals();
+    test_edge_case_literals();
+}

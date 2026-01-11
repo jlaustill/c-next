@@ -55,6 +55,7 @@ const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
  */
 interface ParameterInfo {
   name: string;
+  baseType: string; // The C-Next type (e.g., 'u32', 'f32', 'Point')
   isArray: boolean;
   isStruct: boolean; // User-defined type (struct/class)
   isConst: boolean; // ADR-013: Track const modifier for immutability enforcement
@@ -91,7 +92,12 @@ interface TypeInfo {
  */
 interface FunctionSignature {
   name: string;
-  parameters: Array<{ name: string; isConst: boolean; isArray: boolean }>;
+  parameters: Array<{
+    name: string;
+    baseType: string; // The C-Next type (e.g., 'u32', 'f32')
+    isConst: boolean;
+    isArray: boolean;
+  }>;
 }
 
 /**
@@ -1431,6 +1437,7 @@ export default class CodeGenerator {
 
       this.context.currentParameters.set(name, {
         name,
+        baseType: typeName,
         isArray,
         isStruct,
         isConst,
@@ -1471,6 +1478,7 @@ export default class CodeGenerator {
   ): FunctionSignature {
     const parameters: Array<{
       name: string;
+      baseType: string;
       isConst: boolean;
       isArray: boolean;
     }> = [];
@@ -1481,7 +1489,8 @@ export default class CodeGenerator {
         const isConst = param.constModifier() !== null;
         // arrayDimension() returns an array (due to grammar's *), so check length
         const isArray = param.arrayDimension().length > 0;
-        parameters.push({ name: paramName, isConst, isArray });
+        const baseType = this.getTypeName(param.type());
+        parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }
 
@@ -2549,7 +2558,7 @@ export default class CodeGenerator {
     const id = this.getSimpleIdentifier(ctx);
 
     if (id) {
-      // Check if it's a parameter (already a pointer)
+      // Check if it's a parameter (already a pointer for non-floats)
       const paramInfo = this.context.currentParameters.get(id);
       if (paramInfo) {
         // Arrays are passed as-is, non-arrays are already pointers
@@ -3243,6 +3252,11 @@ export default class CodeGenerator {
 
     // ADR-040: ISR is already a function pointer typedef, no additional pointer needed
     if (typeName === "ISR") {
+      return `${constMod}${type} ${name}`;
+    }
+
+    // Float types (f32, f64) use standard C pass-by-value semantics
+    if (this.isFloatType(typeName)) {
       return `${constMod}${type} ${name}`;
     }
 
@@ -4799,6 +4813,10 @@ export default class CodeGenerator {
       if (paramInfo.isCallback) {
         return id;
       }
+      // Float types use pass-by-value, no dereference needed
+      if (this.isFloatType(paramInfo.baseType)) {
+        return id;
+      }
       // Parameter - allowed as bare identifier, but needs dereference
       if (!paramInfo.isArray) {
         return `(*${id})`;
@@ -6235,11 +6253,24 @@ export default class CodeGenerator {
           }
 
           const args = argExprs
-            .map((e) =>
-              isCNextFunc
-                ? this.generateFunctionArg(e)
-                : this.generateExpression(e),
-            )
+            .map((e, idx) => {
+              if (!isCNextFunc) {
+                return this.generateExpression(e);
+              }
+              // C-Next function: check if target parameter is a float type
+              const sig = this.functionSignatures.get(result);
+              const targetParam = sig?.parameters[idx];
+              const isFloatParam =
+                targetParam && this.isFloatType(targetParam.baseType);
+
+              if (isFloatParam) {
+                // Target parameter is float (pass-by-value): pass value directly
+                return this.generateExpression(e);
+              } else {
+                // Target parameter is non-float (pass-by-reference): use & logic
+                return this.generateFunctionArg(e);
+              }
+            })
             .join(", ");
           result = `${result}(${args})`;
         }
@@ -6302,6 +6333,10 @@ export default class CodeGenerator {
       if (paramInfo) {
         // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
         if (paramInfo.isCallback) {
+          return id;
+        }
+        // Float types use pass-by-value, no dereference needed
+        if (this.isFloatType(paramInfo.baseType)) {
           return id;
         }
         // Parameter - allowed as bare identifier
