@@ -1,0 +1,66 @@
+/* test-execution */
+// ADR-044: Test .length property on all primitive types
+// The .length property should return the bit width of any type
+
+i32 main() {
+    // Unsigned integers
+    u8 val8 <- 1;
+    if (val8.length != 8) {
+        return 1;
+    }
+
+    u16 val16 <- 1;
+    if (val16.length != 16) {
+        return 1;
+    }
+
+    u32 val32 <- 1;
+    if (val32.length != 32) {
+        return 1;
+    }
+
+    u64 val64 <- 1;
+    if (val64.length != 64) {
+        return 1;
+    }
+
+    // Signed integers
+    i8 sval8 <- -1;
+    if (sval8.length != 8) {
+        return 1;
+    }
+
+    i16 sval16 <- -1;
+    if (sval16.length != 16) {
+        return 1;
+    }
+
+    i32 sval32 <- -1;
+    if (sval32.length != 32) {
+        return 1;
+    }
+
+    i64 sval64 <- -1;
+    if (sval64.length != 64) {
+        return 1;
+    }
+
+    // Floating point
+    f32 float32 <- 3.14;
+    if (float32.length != 32) {
+        return 1;
+    }
+
+    f64 float64 <- 3.14159;
+    if (float64.length != 64) {
+        return 1;
+    }
+
+    // Boolean
+    bool flag <- true;
+    if (flag.length != 1) {
+        return 1;
+    }
+
+    return 0;
+}

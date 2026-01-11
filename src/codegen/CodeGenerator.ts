@@ -6066,7 +6066,8 @@ export default class CodeGenerator {
       ? this.context.typeRegistry.get(primaryId)?.baseType
       : undefined;
 
-    // Track previous member name for .length on struct members (cfg.magic.length)
+    // Track previous struct type and member name for .length on struct members (cfg.magic.length)
+    let previousStructType: string | undefined = undefined;
     let previousMemberName: string | undefined = undefined;
 
     for (let i = 0; i < ops.length; i++) {
@@ -6098,9 +6099,9 @@ export default class CodeGenerator {
             // Check if we're accessing a struct member (cfg.magic.length)
             let targetTypeInfo: TypeInfo | undefined = undefined;
 
-            if (currentStructType && previousMemberName) {
+            if (previousStructType && previousMemberName) {
               // Look up the member's type in the struct definition
-              const structFields = this.structFields.get(currentStructType);
+              const structFields = this.structFields.get(previousStructType);
               if (structFields) {
                 const memberType = structFields.get(previousMemberName);
                 if (memberType) {
@@ -6112,6 +6113,7 @@ export default class CodeGenerator {
                     result = `/* .length: unsupported type ${memberType} */0`;
                   }
                   // Skip the rest of the logic since we handled it
+                  previousStructType = undefined;
                   previousMemberName = undefined;
                   continue;
                 }
@@ -6264,6 +6266,9 @@ export default class CodeGenerator {
           // ADR-006: Struct parameter uses -> for member access
           else if (isStructParam && result === primaryId) {
             result = `${result}->${memberName}`;
+            // Track this member for potential .length access (save BEFORE updating)
+            previousStructType = currentStructType;
+            previousMemberName = memberName;
             // Update type tracking for struct member
             if (currentStructType) {
               const memberTypeInfo = this.getMemberTypeInfo(
@@ -6277,6 +6282,9 @@ export default class CodeGenerator {
             }
           } else {
             result = `${result}.${memberName}`;
+            // Track this member for potential .length access (save BEFORE updating)
+            previousStructType = currentStructType;
+            previousMemberName = memberName;
             // Update type tracking for struct member
             if (currentStructType) {
               const memberTypeInfo = this.getMemberTypeInfo(
