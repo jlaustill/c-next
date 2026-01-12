@@ -295,12 +295,17 @@ Build process:
 3. **Build system integration** ✅
    - **Decision:** Remove `--project` flag, always use unified parsing
    - **Behavior:**
-     - `cnext file.cnx` → Parses file.cnx + discovers and parses all headers in include path
-     - `cnext src/*.cnx` → Multi-file mode (parses all .cnx files + headers)
+     - `cnext file.cnx` → Parses file.cnx + discovers and parses headers referenced by `#include` directives
+     - `cnext src/*.cnx` → Multi-file mode (parses all .cnx files + their included headers)
      - Always builds unified symbol table
+   - **Include Path Resolution:**
+     - Parse .cnx files first, extract `#include "..."` and `#include <...>` directives
+     - Resolve header paths using `--include` directories (if specified) and standard search rules
+     - Parse ONLY headers that are actually `#include`d (not all .h files in include dirs)
+     - **Benefit:** Matches standard C behavior and improves IntelliSense (only shows symbols in scope)
    - **Rationale:** Unified parsing should be the default behavior as shown in architecture diagram
    - **Watch mode:** Deferred - VSCode extension already handles live rebuilds gracefully
-   - **Implementation:** TODO - requires refactoring CLI to remove mode distinction
+   - **Implementation:** TODO - requires refactoring CLI to remove mode distinction and implement smart include discovery
 
 4. **C++ priority** ✅
    - **Decision:** Context-dependent priority - fix issues in whichever language users encounter them
