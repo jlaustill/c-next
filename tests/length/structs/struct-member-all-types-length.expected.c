@@ -31,7 +31,7 @@ AllTypes globalStruct = {0};
 AllTypes TestScope_scopeStruct = {0};
 
 uint32_t TestScope_checkScopeStructMember(void) {
-    if (0 != 32) {
+    if (32 != 32) {
         return 1;
     }
     return 0;

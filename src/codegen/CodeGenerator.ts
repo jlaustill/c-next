@@ -6172,16 +6172,8 @@ export default class CodeGenerator {
 
             // Check if this resolved identifier is a struct type for chained access
             const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            // DEBUG: Show what's happening
-            if (resolvedTypeInfo) {
-              const isStructType = this.knownStructs.has(resolvedTypeInfo.baseType);
-              result = `/* [DEBUG_THIS] scope=${this.context.currentScope}, member=${memberName}, result=${result}, baseType=${resolvedTypeInfo.baseType}, isStruct=${isStructType} */${result}`;
-              if (isStructType) {
-                currentStructType = resolvedTypeInfo.baseType;
-              }
-            } else {
-              const keys = Array.from(this.context.typeRegistry.keys()).slice(0, 5).join(', ');
-              result = `/* [DEBUG_THIS] scope=${this.context.currentScope}, member=${memberName}, result=${result}, NO TYPE, keys: ${keys} */${result}`;
+            if (resolvedTypeInfo && this.knownStructs.has(resolvedTypeInfo.baseType)) {
+              currentStructType = resolvedTypeInfo.baseType;
             }
           } else if (this.knownScopes.has(result)) {
             // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
@@ -6226,6 +6218,22 @@ export default class CodeGenerator {
             }
           } else {
             result = `${result}.${memberName}`;
+            // Track this member for potential .length access (save BEFORE updating)
+            previousStructType = currentStructType;
+            previousMemberName = memberName;
+            // Update type tracking for struct member
+            if (currentStructType) {
+              const memberTypeInfo = this.getMemberTypeInfo(
+                currentStructType,
+                memberName,
+              );
+              if (memberTypeInfo) {
+                currentMemberIsArray = memberTypeInfo.isArray;
+                currentStructType = memberTypeInfo.baseType;
+                // Clear currentIdentifier so .length uses previousStructType path
+                currentIdentifier = undefined;
+              }
+            }
           }
         } // end of else (no primaryId)
       }
