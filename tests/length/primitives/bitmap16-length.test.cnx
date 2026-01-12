@@ -1,0 +1,93 @@
+/* test-execution */
+// Comprehensive .length test for bitmap16 type across all contexts
+// Tests: .length returns 16 for bitmap16 in every possible scope and access pattern
+
+// Define bitmap16 type
+bitmap16 StatusFlags {
+    bit0,
+    bit1,
+    bit2,
+    bit3,
+    bit4,
+    bit5,
+    bit6,
+    bit7,
+    bit8,
+    bit9,
+    bit10,
+    bit11,
+    bit12,
+    bit13,
+    bit14,
+    bit15
+}
+
+StatusFlags globalVar;
+
+scope TestScope {
+    public u32 getGlobalLength() {
+        return global.globalVar.length;
+    }
+
+    StatusFlags scopeMember;
+
+    public u32 getMemberLength() {
+        return this.scopeMember.length;
+    }
+
+    public StatusFlags publicMember;
+}
+
+u32 checkParamLength(StatusFlags param) {
+    return param.length;
+}
+
+struct TestStruct {
+    StatusFlags member;
+}
+
+i32 main() {
+    globalVar.bit0 <- true;
+
+    if (globalVar.length != 16) {
+        return 1;
+    }
+
+    if (TestScope.getGlobalLength() != 16) {
+        return 2;
+    }
+
+    if (TestScope.getMemberLength() != 16) {
+        return 3;
+    }
+
+    if (TestScope.publicMember.length != 16) {
+        return 4;
+    }
+
+    StatusFlags localVar;
+    localVar.bit0 <- true;
+    if (localVar.length != 16) {
+        return 5;
+    }
+
+    StatusFlags testVal;
+    testVal.bit0 <- true;
+    if (checkParamLength(testVal) != 16) {
+        return 6;
+    }
+
+    TestStruct ts;
+    ts.member.bit0 <- true;
+    if (ts.member.length != 16) {
+        return 7;
+    }
+
+    StatusFlags arr[4];
+    arr[0].bit0 <- true;
+    if (arr[0].length != 16) {
+        return 8;
+    }
+
+    return 0;
+}

@@ -1,0 +1,96 @@
+/* test-execution */
+// Comprehensive .length test for multi-dimensional arrays
+// Tests: array.length returns first dimension only (ADR-036)
+
+// Global multi-dim arrays
+u8 globalU8Matrix[4][8];
+u32 globalU32Matrix[3][5];
+f32 globalF32Matrix[2][10];
+
+// Scope with multi-dim arrays
+scope TestScope {
+    u8 scopeMatrix[4][8];
+
+    public u32 getScopeMatrixLength() {
+        return this.scopeMatrix.length;
+    }
+
+    public u8 publicMatrix[3][5];
+}
+
+// Function with multi-dim array parameter
+u32 checkMatrixLength(u8 matrix[4][8]) {
+    return matrix.length;
+}
+
+// Struct with multi-dim array
+struct TestStruct {
+    u8 matrix[4][8];
+}
+
+i32 main() {
+    // Initialize arrays
+    globalU8Matrix[0][0] <- 1;
+    globalU32Matrix[0][0] <- 100;
+    globalF32Matrix[0][0] <- 1.5;
+
+    // Test global u8 matrix - should return first dimension (4)
+    if (globalU8Matrix.length != 4) {
+        return 1;
+    }
+
+    // Test global u32 matrix - should return first dimension (3)
+    if (globalU32Matrix.length != 3) {
+        return 2;
+    }
+
+    // Test global f32 matrix - should return first dimension (2)
+    if (globalF32Matrix.length != 2) {
+        return 3;
+    }
+
+    // Test scope member matrix
+    if (TestScope.getScopeMatrixLength() != 4) {
+        return 4;
+    }
+
+    // Test cross-scope matrix
+    if (TestScope.publicMatrix.length != 3) {
+        return 5;
+    }
+
+    // Test local multi-dim arrays
+    u8 localU8Matrix[4][8];
+    localU8Matrix[0][0] <- 1;
+    if (localU8Matrix.length != 4) {
+        return 6;
+    }
+
+    u32 localU32Matrix[3][5];
+    localU32Matrix[0][0] <- 100;
+    if (localU32Matrix.length != 3) {
+        return 7;
+    }
+
+    f32 localF32Matrix[2][10];
+    localF32Matrix[0][0] <- 1.5;
+    if (localF32Matrix.length != 2) {
+        return 8;
+    }
+
+    // Test function parameter matrix
+    u8 paramMatrix[4][8];
+    paramMatrix[0][0] <- 1;
+    if (checkMatrixLength(paramMatrix) != 4) {
+        return 9;
+    }
+
+    // Test struct member matrix
+    TestStruct ts;
+    ts.matrix[0][0] <- 1;
+    if (ts.matrix.length != 4) {
+        return 10;
+    }
+
+    return 0;
+}

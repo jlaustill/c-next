@@ -1,0 +1,69 @@
+/* test-execution */
+// Comprehensive .length test for bool type across all contexts
+// Tests: .length returns 1 for bool in every possible scope and access pattern
+
+bool globalVar <- true;
+
+scope TestScope {
+    public u32 getGlobalLength() {
+        return global.globalVar.length;
+    }
+
+    bool scopeMember <- true;
+
+    public u32 getMemberLength() {
+        return this.scopeMember.length;
+    }
+
+    public bool publicMember <- true;
+}
+
+u32 checkParamLength(bool param) {
+    return param.length;
+}
+
+struct TestStruct {
+    bool member;
+}
+
+i32 main() {
+    if (globalVar.length != 1) {
+        return 1;
+    }
+
+    if (TestScope.getGlobalLength() != 1) {
+        return 2;
+    }
+
+    if (TestScope.getMemberLength() != 1) {
+        return 3;
+    }
+
+    if (TestScope.publicMember.length != 1) {
+        return 4;
+    }
+
+    bool localVar <- true;
+    if (localVar.length != 1) {
+        return 5;
+    }
+
+    bool testVal <- true;
+    if (checkParamLength(testVal) != 1) {
+        return 6;
+    }
+
+    TestStruct ts;
+    ts.member <- true;
+    if (ts.member.length != 1) {
+        return 7;
+    }
+
+    bool arr[4];
+    arr[0] <- true;
+    if (arr[0].length != 1) {
+        return 8;
+    }
+
+    return 0;
+}

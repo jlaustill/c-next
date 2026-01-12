@@ -1,0 +1,39 @@
+/* test-execution */
+// Test accessing array members within structs
+// Bug: config.items[i].value transpiles to bit operations instead of array access
+
+struct Item {
+    u32 value;
+    u8 flags;
+}
+
+struct Container {
+    Item items[3];
+}
+
+i32 main() {
+    Container cfg;
+
+    // Initialize the array
+    cfg.items[0].value <- 100;
+    cfg.items[0].flags <- 0x01;
+
+    cfg.items[1].value <- 200;
+    cfg.items[1].flags <- 0x02;
+
+    cfg.items[2].value <- 300;
+    cfg.items[2].flags <- 0x04;
+
+    // Access in a loop (this is where the bug occurs)
+    u32 sum <- 0;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        sum +<- cfg.items[i].value;
+    }
+
+    // Expected: 100 + 200 + 300 = 600
+    if (sum != 600) {
+        return 1;
+    }
+
+    return 0;
+}
