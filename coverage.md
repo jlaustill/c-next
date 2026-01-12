@@ -84,7 +84,7 @@ This document tracks test coverage for every language construct in every valid c
 | In arithmetic expression       | [x]    |                                    |
 | In comparison                  | [x]    |                                    |
 | In bitwise operation           | [ ]    |                                    |
-| As loop counter                | [ ]    |                                    |
+| As loop counter                | [x]    | `for-loops/for-u8-counter.test.cnx` |
 | In ternary expression          | [ ]    |                                    |
 | With const modifier            | [x]    | `const/const-variable.test.cnx`    |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx` |
@@ -109,7 +109,7 @@ This document tracks test coverage for every language construct in every valid c
 | In arithmetic expression       | [x]    |                                    |
 | In comparison                  | [x]    |                                    |
 | In bitwise operation           | [ ]    |                                    |
-| As loop counter                | [ ]    |                                    |
+| As loop counter                | [x]    | `for-loops/for-u16-counter.test.cnx` |
 | In ternary expression          | [ ]    |                                    |
 | With const modifier            | [ ]    |                                    |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx` |
@@ -159,7 +159,7 @@ This document tracks test coverage for every language construct in every valid c
 | In arithmetic expression       | [ ]    |                                    |
 | In comparison                  | [ ]    |                                    |
 | In bitwise operation           | [ ]    |                                    |
-| As loop counter                | [ ]    |                                    |
+| As loop counter                | [x]    | `for-loops/for-u64-counter.test.cnx` |
 | In ternary expression          | [ ]    |                                    |
 | With const modifier            | [ ]    |                                    |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx` |
@@ -184,6 +184,7 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type          | [ ]    |                                    |
 | In arithmetic expression    | [ ]    |                                    |
 | In comparison               | [ ]    |                                    |
+| As loop counter             | [x]    | `for-loops/for-i8-counter.test.cnx` |
 | Negative literal assignment | [ ]    |                                    |
 | With const modifier         | [ ]    |                                    |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx` |
@@ -204,6 +205,7 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type          | [ ]    |                                    |
 | In arithmetic expression    | [ ]    |                                    |
 | In comparison               | [ ]    |                                    |
+| As loop counter             | [x]    | `for-loops/for-i16-counter.test.cnx` |
 | Negative literal assignment | [x]    |                                    |
 | With const modifier         | [ ]    |                                    |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx` |
@@ -224,6 +226,7 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type          | [ ]    |                                       |
 | In arithmetic expression    | [x]    |                                       |
 | In comparison               | [x]    |                                       |
+| As loop counter             | [ ]    |                                       |
 | Negative literal assignment | [x]    |                                       |
 | With const modifier         | [x]    |                                       |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`    |
@@ -244,6 +247,7 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type          | [ ]    |                                    |
 | In arithmetic expression    | [ ]    |                                    |
 | In comparison               | [ ]    |                                    |
+| As loop counter             | [x]    | `for-loops/for-i64-counter.test.cnx` |
 | Negative literal assignment | [ ]    |                                    |
 | With const modifier         | [ ]    |                                    |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx` |
