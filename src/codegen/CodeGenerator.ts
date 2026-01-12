@@ -11,6 +11,16 @@ import ESymbolKind from "../types/ESymbolKind.js";
 import CommentExtractor from "./CommentExtractor.js";
 import CommentFormatter from "./CommentFormatter.js";
 import IComment from "./types/IComment.js";
+import {
+  TYPE_WIDTH,
+  TYPE_RANGES,
+  BITMAP_SIZE,
+  BITMAP_BACKING_TYPE,
+} from "./types/TTypeConstants.js";
+import TTypeInfo from "./types/TTypeInfo.js";
+import TParameterInfo from "./types/TParameterInfo.js";
+import TOverflowBehavior from "./types/TOverflowBehavior.js";
+import TypeResolver from "./TypeResolver.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -51,42 +61,6 @@ const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
 };
 
 /**
- * Parameter info for ADR-006 pointer semantics and ADR-013 const enforcement
- */
-interface ParameterInfo {
-  name: string;
-  baseType: string; // The C-Next type (e.g., 'u32', 'f32', 'Point')
-  isArray: boolean;
-  isStruct: boolean; // User-defined type (struct/class)
-  isConst: boolean; // ADR-013: Track const modifier for immutability enforcement
-  isCallback: boolean; // ADR-029: Track callback type parameters
-}
-
-/**
- * ADR-044: Overflow behavior for integer types
- */
-type TOverflowBehavior = "clamp" | "wrap";
-
-/**
- * Type info for bit manipulation, .length support, and ADR-013 const enforcement
- */
-interface TypeInfo {
-  baseType: string; // 'u8', 'u32', 'i16', 'State' (enum), etc.
-  bitWidth: number; // 8, 16, 32, 64 (0 for enums)
-  isArray: boolean;
-  arrayDimensions?: number[]; // ADR-036: All dimensions, e.g., [4, 8] for u8[4][8]
-  isConst: boolean; // ADR-013: Track const modifier for immutability enforcement
-  isEnum?: boolean; // ADR-017: Track if this is an enum type
-  enumTypeName?: string; // ADR-017: The enum type name (e.g., 'State')
-  isBitmap?: boolean; // ADR-034: Track if this is a bitmap type
-  bitmapTypeName?: string; // ADR-034: The bitmap type name (e.g., 'MotorFlags')
-  overflowBehavior?: TOverflowBehavior; // ADR-044: clamp (default) or wrap
-  isString?: boolean; // ADR-045: Track if this is a bounded string type
-  stringCapacity?: number; // ADR-045: The N in string<N> (character capacity)
-  isAtomic?: boolean; // ADR-049: Track if this variable has atomic modifier
-}
-
-/**
  * ADR-013: Function signature for const parameter tracking
  * Used to validate const-to-non-const errors at call sites
  */
@@ -118,66 +92,6 @@ interface CallbackTypeInfo {
   }>;
   typedefName: string; // e.g., "onReceive_fp"
 }
-
-/**
- * Maps primitive types to their bit widths
- */
-const TYPE_WIDTH: Record<string, number> = {
-  u8: 8,
-  i8: 8,
-  u16: 16,
-  i16: 16,
-  u32: 32,
-  i32: 32,
-  u64: 64,
-  i64: 64,
-  f32: 32,
-  f64: 64,
-  bool: 1,
-};
-
-/**
- * ADR-034: Bitmap type sizes (total bits)
- */
-const BITMAP_SIZE: Record<string, number> = {
-  bitmap8: 8,
-  bitmap16: 16,
-  bitmap24: 24,
-  bitmap32: 32,
-};
-
-/**
- * ADR-034: Bitmap backing types for C output
- */
-const BITMAP_BACKING_TYPE: Record<string, string> = {
-  bitmap8: "uint8_t",
-  bitmap16: "uint16_t",
-  bitmap24: "uint32_t", // 24-bit uses 32-bit backing for simplicity
-  bitmap32: "uint32_t",
-};
-
-/**
- * ADR-024: Type classification for safe casting
- */
-const UNSIGNED_TYPES = ["u8", "u16", "u32", "u64"] as const;
-const SIGNED_TYPES = ["i8", "i16", "i32", "i64"] as const;
-const INTEGER_TYPES = [...UNSIGNED_TYPES, ...SIGNED_TYPES] as const;
-const FLOAT_TYPES = ["f32", "f64"] as const;
-
-/**
- * ADR-024: Type ranges for literal validation
- * Maps type name to [min, max] inclusive range
- */
-const TYPE_RANGES: Record<string, [bigint, bigint]> = {
-  u8: [0n, 255n],
-  u16: [0n, 65535n],
-  u32: [0n, 4294967295n],
-  u64: [0n, 18446744073709551615n],
-  i8: [-128n, 127n],
-  i16: [-32768n, 32767n],
-  i32: [-2147483648n, 2147483647n],
-  i64: [-9223372036854775808n, 9223372036854775807n],
-};
 
 /**
  * ADR-049: Target platform capabilities for code generation
@@ -251,11 +165,11 @@ interface GeneratorContext {
   currentScope: string | null; // ADR-016: renamed from currentNamespace
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
-  currentParameters: Map<string, ParameterInfo>; // ADR-006: track params for pointer semantics
+  currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
   localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
   localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
   inFunctionBody: boolean; // ADR-016: track if we're inside a function body
-  typeRegistry: Map<string, TypeInfo>; // Track variable types for bit access and .length
+  typeRegistry: Map<string, TTypeInfo>; // Track variable types for bit access and .length
   expectedType: string | null; // For inferred struct initializers
   mainArgsName: string | null; // Track the args parameter name for main() translation
   assignmentContext: AssignmentContext; // ADR-044: Track current assignment for overflow
@@ -378,6 +292,9 @@ export default class CodeGenerator {
 
   private commentFormatter: CommentFormatter = new CommentFormatter();
 
+  /** Type resolution and classification */
+  private typeResolver: TypeResolver | null = null;
+
   /**
    * Check if a function is a C-Next function (uses pass-by-reference semantics).
    * Checks both internal tracking and external symbol table.
@@ -456,6 +373,9 @@ export default class CodeGenerator {
     } else {
       this.commentExtractor = null;
     }
+
+    // Initialize type resolver for type classification and validation
+    this.typeResolver = new TypeResolver(this);
 
     // ADR-049: Determine target capabilities with priority: CLI > pragma > default
     const targetCapabilities = this.resolveTargetCapabilities(
@@ -1456,7 +1376,7 @@ export default class CodeGenerator {
    * Check if a type name is a user-defined struct
    */
   private isStructType(typeName: string): boolean {
-    return this.knownStructs.has(typeName);
+    return this.typeResolver!.isStructType(typeName);
   }
 
   /**
@@ -2136,28 +2056,28 @@ export default class CodeGenerator {
    * ADR-024: Check if a type is an unsigned integer
    */
   private isUnsignedType(typeName: string): boolean {
-    return (UNSIGNED_TYPES as readonly string[]).includes(typeName);
+    return this.typeResolver!.isUnsignedType(typeName);
   }
 
   /**
    * ADR-024: Check if a type is a signed integer
    */
   private isSignedType(typeName: string): boolean {
-    return (SIGNED_TYPES as readonly string[]).includes(typeName);
+    return this.typeResolver!.isSignedType(typeName);
   }
 
   /**
    * ADR-024: Check if a type is any integer (signed or unsigned)
    */
   private isIntegerType(typeName: string): boolean {
-    return (INTEGER_TYPES as readonly string[]).includes(typeName);
+    return this.typeResolver!.isIntegerType(typeName);
   }
 
   /**
    * ADR-024: Check if a type is a floating point type
    */
   private isFloatType(typeName: string): boolean {
-    return (FLOAT_TYPES as readonly string[]).includes(typeName);
+    return this.typeResolver!.isFloatType(typeName);
   }
 
   /**
@@ -4288,42 +4208,51 @@ export default class CodeGenerator {
         !this.knownRegisters.has(firstId) &&
         !isScopedRegister
       ) {
-        // Distinguish between two grammar patterns:
-        // 1. IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+ -> struct.field[i]
-        // 2. IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)? -> arr[i].field
-        // Check if original text has bracket before the first dot
-        const text = memberAccessCtx.getText();
-        const firstBracket = text.indexOf("[");
-        const firstDot = text.indexOf(".");
-        const indices = exprs.map((e) => this.generateExpression(e)).join("][");
+        // Fix for Bug #2: Walk children in order to preserve operation sequence
+        // For cfg.items[0].value, we need to emit: cfg.items[0].value
+        // Not: cfg.items.value[0] (which the old heuristic generated)
 
-        if (firstBracket !== -1 && firstBracket < firstDot) {
-          // Pattern: arr[i].field -> indices come after first identifier
-          const trailingMembers = identifiers
-            .slice(1)
-            .map((id) => id.getText());
-          if (trailingMembers.length > 0) {
-            return `${firstId}[${indices}].${trailingMembers.join(".")} ${cOp} ${value};`;
+        if (memberAccessCtx.children && identifiers.length > 1) {
+          // Walk parse tree children in order, building result incrementally
+          let result = firstId;
+          let idIndex = 1; // Start at 1 since we already used firstId
+          let exprIndex = 0;
+
+          // Check if first identifier is a scope for special handling
+          const isCrossScope = this.knownScopes.has(firstId);
+
+          for (let i = 1; i < memberAccessCtx.children.length; i++) {
+            const child = memberAccessCtx.children[i];
+            const childText = child.getText();
+
+            if (childText === ".") {
+              // Next child should be an IDENTIFIER
+              if (
+                i + 1 < memberAccessCtx.children.length &&
+                idIndex < identifiers.length
+              ) {
+                // Use underscore for first join if cross-scope, dot otherwise
+                const separator = isCrossScope && idIndex === 1 ? "_" : ".";
+                result += `${separator}${identifiers[idIndex].getText()}`;
+                idIndex++;
+                i++; // Skip the identifier we just processed
+              }
+            } else if (childText === "[") {
+              // Next child is an expression, then "]"
+              if (exprIndex < exprs.length) {
+                const expr = this.generateExpression(exprs[exprIndex]);
+                result += `[${expr}]`;
+                exprIndex++;
+                i += 2; // Skip expression and "]"
+              }
+            }
           }
-          return `${firstId}[${indices}] ${cOp} ${value};`;
+          return `${result} ${cOp} ${value};`;
         }
 
-        // Pattern: struct.field[i][j] -> indices come at the end
-        // Check if first identifier is a scope (cross-scope access)
-        const isCrossScope = this.knownScopes.has(firstId);
-        let memberChain: string;
-        if (isCrossScope) {
-          // Cross-scope: Counter.data -> Counter_data (underscore for scope prefix)
-          const remaining = identifiers.slice(1).map((id) => id.getText());
-          memberChain =
-            remaining.length > 1
-              ? `${firstId}_${remaining[0]}.${remaining.slice(1).join(".")}`
-              : `${firstId}_${remaining[0]}`;
-        } else {
-          memberChain = identifiers.map((id) => id.getText()).join(".");
-        }
-        // TODO: Add bounds checking for struct member arrays
-        return `${memberChain}[${indices}] ${cOp} ${value};`;
+        // Fallback for simple cases (shouldn't normally reach here)
+        const indices = exprs.map((e) => this.generateExpression(e)).join("][");
+        return `${firstId}[${indices}] ${cOp} ${value};`;
       }
 
       // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT] or Scope.GPIO7.DR_SET[LED_BIT])
@@ -4694,7 +4623,7 @@ export default class CodeGenerator {
     target: string,
     cOp: string,
     value: string,
-    typeInfo: TypeInfo,
+    typeInfo: TTypeInfo,
   ): string {
     const caps = this.context.targetCapabilities;
     const baseType = typeInfo.baseType;
@@ -4717,7 +4646,7 @@ export default class CodeGenerator {
   private generateInnerAtomicOp(
     cOp: string,
     value: string,
-    typeInfo: TypeInfo,
+    typeInfo: TTypeInfo,
   ): string {
     // Map compound operators to simple operators
     const simpleOpMap: Record<string, string> = {
@@ -4763,7 +4692,7 @@ export default class CodeGenerator {
   private generateLdrexStrexLoop(
     target: string,
     innerOp: string,
-    typeInfo: TypeInfo,
+    typeInfo: TTypeInfo,
   ): string {
     const ldrex = LDREX_MAP[typeInfo.baseType];
     const strex = STREX_MAP[typeInfo.baseType];
@@ -4789,7 +4718,7 @@ export default class CodeGenerator {
     target: string,
     cOp: string,
     value: string,
-    typeInfo: TypeInfo,
+    typeInfo: TTypeInfo,
   ): string {
     // Mark that we need CMSIS headers
     this.needsCMSIS = true;
@@ -6655,6 +6584,7 @@ export default class CodeGenerator {
           }
 
           const args = argExprs
+            // eslint-disable-next-line @typescript-eslint/no-loop-func
             .map((e, idx) => {
               if (!isCNextFunc) {
                 return this.generateExpression(e);
@@ -7152,6 +7082,67 @@ export default class CodeGenerator {
       const indices = expressions
         .map((e) => this.generateExpression(e))
         .join("][");
+<<<<<<< HEAD
+=======
+
+      if (parts.length > 1) {
+        // Fix for Bug #2: Walk children in order to preserve operation sequence
+        // For cfg.items[i].value, we need to emit: cfg.items[i].value
+        // Not: cfg.items.value[i] (which the old heuristic generated)
+
+        if (ctx.children) {
+          // Walk parse tree children in order, building result incrementally
+          let result = firstPart;
+          let idIndex = 1; // Start at 1 since we already used firstPart
+          let exprIndex = 0;
+
+          // Check if first identifier is a scope for special handling
+          const isCrossScope = this.knownScopes.has(firstPart);
+
+          for (let i = 1; i < ctx.children.length; i++) {
+            const child = ctx.children[i];
+            const childText = child.getText();
+
+            if (childText === ".") {
+              // Next child should be an IDENTIFIER
+              if (i + 1 < ctx.children.length && idIndex < parts.length) {
+                // Use underscore for first join if cross-scope, dot otherwise
+                const separator = isCrossScope && idIndex === 1 ? "_" : ".";
+                result += `${separator}${parts[idIndex]}`;
+                idIndex++;
+                i++; // Skip the identifier we just processed
+              }
+            } else if (childText === "[") {
+              // Next child is an expression, then "]"
+              if (exprIndex < expressions.length) {
+                const expr = this.generateExpression(expressions[exprIndex]);
+                result += `[${expr}]`;
+                exprIndex++;
+                i += 2; // Skip expression and "]"
+              }
+            }
+          }
+          return result;
+        }
+
+        // Fallback for simple cases without children
+        const text = ctx.getText();
+        const firstBracket = text.indexOf("[");
+        const firstDot = text.indexOf(".");
+
+        if (firstBracket !== -1 && firstBracket < firstDot) {
+          // Pattern: arr[i].field -> indices come after first identifier
+          const trailingMembers = parts.slice(1);
+          if (trailingMembers.length > 0) {
+            return `${firstPart}[${indices}].${trailingMembers.join(".")}`;
+          }
+          return `${firstPart}[${indices}]`;
+        }
+
+        // Pattern: struct.field[i][j] -> indices come at the end
+        return `${parts.join(".")}[${indices}]`;
+      }
+>>>>>>> main
       return `${firstPart}[${indices}]`;
     }
 
