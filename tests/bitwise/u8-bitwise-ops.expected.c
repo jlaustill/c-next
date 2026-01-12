@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 /* test-execution */
 // Test u8 bitwise operations: AND, OR, XOR, NOT
@@ -24,8 +23,10 @@ uint32_t main(void) {
     uint8_t dec_and = 240 & 170;
     uint8_t dec_or = 240 | 170;
     if (and_result == 160 && or_result == 250 && xor_result == 90 && not_result == 85) {
-        if (hex_and == 160 && hex_or == 250 && dec_and == 160 && dec_or == 250) {
-            return 0;
+        if (hex_and == 160 && hex_or == 250) {
+            if (dec_and == 160 && dec_or == 250) {
+                return 0;
+            }
         }
     }
     return 1;

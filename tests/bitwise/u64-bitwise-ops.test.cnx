@@ -19,7 +19,7 @@ u32 main() {
     u64 not_result <- ~c;     // 0x5555555555555555
 
     // Test with smaller values
-    u64 small_a <- 0xFF00;
+    u64 small_a <- 0xFFA0;
     u64 small_b <- 0xAA;
     u64 small_and <- small_a & small_b;  // 0x00A0 = 160
     u64 small_or <- small_a | small_b;   // 0xFFAA = 65450

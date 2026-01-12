@@ -6,7 +6,7 @@ u32 main() {
     // AND operations with positive values
     i32 a <- 0x7FFF0000;  // 2147418112
     i32 b <- 0x55555555;  // 1431655765
-    i32 and_result <- a & b;  // 0x55550000 = 1431568384
+    i32 and_result <- a & b;  // 0x55550000 = 1431633920
 
     // AND with negative values
     i32 neg_a <- -65536;  // 0xFFFF0000
@@ -14,10 +14,10 @@ u32 main() {
     i32 neg_and <- neg_a & neg_b;  // -65536
 
     // OR operations
-    i32 or_result <- a | b;   // 0x7FFF5555 = 2147439973
+    i32 or_result <- a | b;   // 0x7FFF5555 = 2147439957
 
     // XOR operations
-    i32 xor_result <- a ^ b;  // 0x2AAA5555 = 715871589
+    i32 xor_result <- a ^ b;  // 0x2AAA5555 = 715806037
 
     // NOT operations - positive to negative
     i32 c <- 2147483647;  // 0x7FFFFFFF (max positive)
@@ -32,12 +32,12 @@ u32 main() {
     i32 not_minus_one <- ~minus_one;  // 0
 
     // Test with smaller values
-    i32 small_a <- 0xFF00;
+    i32 small_a <- 0xFFA0;
     i32 small_b <- 0xAA;
     i32 small_and <- small_a & small_b;  // 0xA0 = 160
 
     // Verify results
-    if (and_result = 1431568384 && or_result = 2147439973) {
+    if (and_result = 1431633920 && or_result = 2147439957) {
         if (not_pos = -2147483648 && not_neg = 2147483647 && not_minus_one = 0) {
             if (neg_and = -65536 && small_and = 160) {
                 return 0;

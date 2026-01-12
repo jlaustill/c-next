@@ -30,8 +30,10 @@ u32 main() {
 
     // Verify results
     if (and_result = 160 && or_result = 250 && xor_result = 90 && not_result = 85) {
-        if (hex_and = 160 && hex_or = 250 && dec_and = 160 && dec_or = 250) {
-            return 0;
+        if (hex_and = 160 && hex_or = 250) {
+            if (dec_and = 160 && dec_or = 250) {
+                return 0;
+            }
         }
     }
     return 1;

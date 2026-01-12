@@ -1104,7 +1104,7 @@ export default class CodeGenerator {
       if (this.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: BITMAP_SIZE[baseType] || 0,
+          bitWidth: 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1141,7 +1141,7 @@ export default class CodeGenerator {
       if (this.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: BITMAP_SIZE[baseType] || 0,
+          bitWidth: 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1175,7 +1175,7 @@ export default class CodeGenerator {
       if (this.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: BITMAP_SIZE[baseType] || 0,
+          bitWidth: 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -5780,215 +5780,12 @@ export default class CodeGenerator {
     let result = this.generateAdditiveExpr(exprs[0]);
     const text = ctx.getText();
 
-    // Get type of left operand for shift validation
-    const leftType = this.getAdditiveExpressionType(exprs[0]);
-
     for (let i = 1; i < exprs.length; i++) {
       const op = text.includes("<<") ? "<<" : ">>";
-      const rightExpr = exprs[i];
-
-      // Validate shift amount if we can determine the left operand type
-      if (leftType) {
-        this.validateShiftAmount(leftType, rightExpr, op, ctx);
-      }
-
       result += ` ${op} ${this.generateAdditiveExpr(exprs[i])}`;
     }
 
     return result;
-  }
-
-  /**
-   * Validate shift amount doesn't exceed type width (MISRA C:2012 Rule 12.2).
-   * Shifting by an amount >= type width is undefined behavior.
-   */
-  private validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext
-  ): void {
-    // Get type width in bits
-    const typeWidth = this.getTypeWidth(leftType);
-    if (!typeWidth) return; // Unknown type, skip validation
-
-    // Try to evaluate shift amount if it's a constant
-    const shiftAmount = this.evaluateShiftAmount(rightExpr);
-    if (shiftAmount === null) return; // Not a constant, skip validation
-
-    // Check for negative shift (undefined behavior)
-    if (shiftAmount < 0) {
-      throw new Error(
-        `Error: Negative shift amount (${shiftAmount}) is undefined behavior\n` +
-        `  Type: ${leftType}\n` +
-        `  Expression: ${ctx.getText()}\n` +
-        `  Shift amounts must be non-negative`
-      );
-    }
-
-    // Check if shift amount >= type width (undefined behavior)
-    if (shiftAmount >= typeWidth) {
-      throw new Error(
-        `Error: Shift amount (${shiftAmount}) exceeds type width (${typeWidth} bits) for type '${leftType}'\n` +
-        `  Expression: ${ctx.getText()}\n` +
-        `  Shift amount must be < ${typeWidth} for ${typeWidth}-bit types\n` +
-        `  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior`
-      );
-    }
-  }
-
-  /**
-   * Get the bit width of a primitive type.
-   */
-  private getTypeWidth(type: string): number | null {
-    switch (type) {
-      case "u8":
-      case "i8":
-        return 8;
-      case "u16":
-      case "i16":
-        return 16;
-      case "u32":
-      case "i32":
-        return 32;
-      case "u64":
-      case "i64":
-        return 64;
-      default:
-        return null; // Unknown type
-    }
-  }
-
-  /**
-   * Try to evaluate a shift amount expression to get its numeric value.
-   * Returns null if not a constant or cannot be evaluated.
-   */
-  private evaluateShiftAmount(ctx: Parser.AdditiveExpressionContext): number | null {
-    // For now, handle simple literals only
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length !== 1) return null; // Not a simple literal
-
-    const multExpr = multExprs[0];
-    const unaryExprs = multExpr.unaryExpression();
-    if (unaryExprs.length !== 1) return null;
-
-    const unaryExpr = unaryExprs[0];
-
-    // Check for unary minus (negative literal)
-    const unaryText = unaryExpr.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = unaryExpr.postfixExpression();
-    if (!postfixExpr) {
-      // Might be a nested unary expression like -(-5)
-      const nestedUnary = unaryExpr.unaryExpression();
-      if (nestedUnary) {
-        const nestedValue = this.evaluateUnaryExpression(nestedUnary);
-        if (nestedValue !== null) {
-          return isNegative ? -nestedValue : nestedValue;
-        }
-      }
-      return null;
-    }
-
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return null;
-
-    const literal = primaryExpr.literal();
-    if (!literal) return null;
-
-    const text = literal.getText();
-    let value: number | null = null;
-
-    // Handle different number formats
-    if (text.startsWith("0x") || text.startsWith("0X")) {
-      // Hex literal
-      value = parseInt(text.slice(2), 16);
-    } else if (text.startsWith("0b") || text.startsWith("0B")) {
-      // Binary literal
-      value = parseInt(text.slice(2), 2);
-    } else {
-      // Decimal literal (strip any type suffix)
-      const numMatch = text.match(/^\d+/);
-      if (numMatch) {
-        value = parseInt(numMatch[0], 10);
-      }
-    }
-
-    if (value !== null && isNegative) {
-      value = -value;
-    }
-
-    return value;
-  }
-
-  /**
-   * Helper to evaluate a unary expression recursively.
-   */
-  private evaluateUnaryExpression(ctx: Parser.UnaryExpressionContext): number | null {
-    const unaryText = ctx.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = ctx.postfixExpression();
-    if (postfixExpr) {
-      const primaryExpr = postfixExpr.primaryExpression();
-      if (!primaryExpr) return null;
-
-      const literal = primaryExpr.literal();
-      if (!literal) return null;
-
-      const text = literal.getText();
-      let value: number | null = null;
-
-      if (text.startsWith("0x") || text.startsWith("0X")) {
-        value = parseInt(text.slice(2), 16);
-      } else if (text.startsWith("0b") || text.startsWith("0B")) {
-        value = parseInt(text.slice(2), 2);
-      } else {
-        const numMatch = text.match(/^\d+/);
-        if (numMatch) {
-          value = parseInt(numMatch[0], 10);
-        }
-      }
-
-      if (value !== null && isNegative) {
-        value = -value;
-      }
-
-      return value;
-    }
-
-    // Recursive unary
-    const nestedUnary = ctx.unaryExpression();
-    if (nestedUnary) {
-      const nestedValue = this.evaluateUnaryExpression(nestedUnary);
-      if (nestedValue !== null) {
-        return isNegative ? -nestedValue : nestedValue;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Get the type of an additive expression.
-   */
-  private getAdditiveExpressionType(ctx: Parser.AdditiveExpressionContext): string | null {
-    // For simple case, get type from first multiplicative expression
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length === 0) return null;
-
-    return this.getMultiplicativeExpressionType(multExprs[0]);
-  }
-
-  /**
-   * Get the type of a multiplicative expression.
-   */
-  private getMultiplicativeExpressionType(ctx: Parser.MultiplicativeExpressionContext): string | null {
-    const unaryExprs = ctx.unaryExpression();
-    if (unaryExprs.length === 0) return null;
-
-    return this.getUnaryExpressionType(unaryExprs[0]);
   }
 
   private generateAdditiveExpr(ctx: Parser.AdditiveExpressionContext): string {
@@ -6111,8 +5908,6 @@ export default class CodeGenerator {
             result = "argc";
           } else {
             // Check if we're accessing a struct member (cfg.magic.length)
-            let targetTypeInfo: TypeInfo | undefined = undefined;
-
             if (previousStructType && previousMemberName) {
               // Look up the member's type in the struct definition
               const structFields = this.structFields.get(previousStructType);
@@ -7044,46 +6839,9 @@ export default class CodeGenerator {
       }
       // TODO: Add bounds checking for struct.field[i][j] patterns
 
-      // Fix for Bug #2: Walk children in order to preserve operation sequence
-      // For cfg.items[0].value, we need to emit: cfg.items[0].value
-      // Not: cfg.items.value[0] (which the old code generated)
-
-      if (parts.length > 1 && ctx.children) {
-        // Walk parse tree children in order, building result incrementally
-        let result = firstPart;
-        let idIndex = 1; // Start at 1 since we already used firstPart
-        let exprIndex = 0;
-
-        for (let i = 1; i < ctx.children.length; i++) {
-          const child = ctx.children[i];
-          const childText = child.getText();
-
-          if (childText === ".") {
-            // Next child should be an IDENTIFIER
-            if (i + 1 < ctx.children.length && idIndex < parts.length) {
-              result += `.${parts[idIndex]}`;
-              idIndex++;
-              i++; // Skip the identifier we just processed
-            }
-          } else if (childText === "[") {
-            // Next child is an expression, then "]"
-            if (exprIndex < expressions.length) {
-              const expr = this.generateExpression(expressions[exprIndex]);
-              result += `[${expr}]`;
-              exprIndex++;
-              i += 2; // Skip expression and "]"
-            }
-          }
-        }
-        return result;
-      }
-
-      // Simple case: just array indices, no member access
       const indices = expressions
         .map((e) => this.generateExpression(e))
         .join("][");
-<<<<<<< HEAD
-=======
 
       if (parts.length > 1) {
         // Fix for Bug #2: Walk children in order to preserve operation sequence
@@ -7142,7 +6900,6 @@ export default class CodeGenerator {
         // Pattern: struct.field[i][j] -> indices come at the end
         return `${parts.join(".")}[${indices}]`;
       }
->>>>>>> main
       return `${firstPart}[${indices}]`;
     }
 

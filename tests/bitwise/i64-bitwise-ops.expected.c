@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 /* test-execution */
 // Test i64 bitwise operations: AND, OR, XOR, NOT
@@ -24,7 +23,7 @@ uint32_t main(void) {
     int64_t not_neg = ~d;
     int64_t minus_one = -1;
     int64_t not_minus_one = ~minus_one;
-    int64_t small_a = 0xFF00;
+    int64_t small_a = 0xFFA0;
     int64_t small_b = 0xAA;
     int64_t small_and = small_a & small_b;
     if (small_and == 160 && not_minus_one == 0) {
