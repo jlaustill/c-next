@@ -807,7 +807,6 @@ export default class CodeGenerator {
         // ADR-029: Register function as callback type
         this.registerCallbackType(name, funcDecl);
       }
-
     }
   }
 
@@ -1445,9 +1444,12 @@ export default class CodeGenerator {
 
       this.context.typeRegistry.set(name, {
         baseType: typeName,
-        bitWidth: isBitmap ? (BITMAP_SIZE[typeName] || 0) : (TYPE_WIDTH[typeName] || 0),
+        bitWidth: isBitmap
+          ? BITMAP_SIZE[typeName] || 0
+          : TYPE_WIDTH[typeName] || 0,
         isArray: isArray,
-        arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+        arrayDimensions:
+          arrayDimensions.length > 0 ? arrayDimensions : undefined,
         isConst: isConst,
         isEnum: isEnum,
         enumTypeName: isEnum ? typeName : undefined,
@@ -5703,13 +5705,18 @@ export default class CodeGenerator {
                 const memberType = structFields.get(previousMemberName);
                 if (memberType) {
                   // Check if this member is an array
-                  const fieldDimensions = this.structFieldDimensions.get(previousStructType);
+                  const fieldDimensions =
+                    this.structFieldDimensions.get(previousStructType);
                   const dimensions = fieldDimensions?.get(previousMemberName);
 
                   if (dimensions && dimensions.length > 0 && !isSubscripted) {
                     // Array member without subscript -> return array length (first dimension)
                     result = String(dimensions[0]);
-                  } else if (dimensions && dimensions.length > 0 && isSubscripted) {
+                  } else if (
+                    dimensions &&
+                    dimensions.length > 0 &&
+                    isSubscripted
+                  ) {
                     // Array member with subscript (e.g., ts.arr[0].length) -> return element bit width
                     const bitWidth = TYPE_WIDTH[memberType] || 0;
                     if (bitWidth > 0) {
@@ -5850,7 +5857,10 @@ export default class CodeGenerator {
 
             // Check if this resolved identifier is a struct type for chained access
             const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (resolvedTypeInfo && this.knownStructs.has(resolvedTypeInfo.baseType)) {
+            if (
+              resolvedTypeInfo &&
+              this.knownStructs.has(resolvedTypeInfo.baseType)
+            ) {
               currentStructType = resolvedTypeInfo.baseType;
             }
           }
@@ -5899,8 +5909,12 @@ export default class CodeGenerator {
           else if (isStructParam && result === primaryId) {
             // If currentStructType is not set yet, check if current result is a struct
             if (!currentStructType && currentIdentifier) {
-              const identifierTypeInfo = this.context.typeRegistry.get(currentIdentifier);
-              if (identifierTypeInfo && this.knownStructs.has(identifierTypeInfo.baseType)) {
+              const identifierTypeInfo =
+                this.context.typeRegistry.get(currentIdentifier);
+              if (
+                identifierTypeInfo &&
+                this.knownStructs.has(identifierTypeInfo.baseType)
+              ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
             }
@@ -5924,8 +5938,12 @@ export default class CodeGenerator {
             // If currentStructType is not set yet, check if current result is a struct
             // This handles cases like global.structVar.field or this.structVar.field
             if (!currentStructType && currentIdentifier) {
-              const identifierTypeInfo = this.context.typeRegistry.get(currentIdentifier);
-              if (identifierTypeInfo && this.knownStructs.has(identifierTypeInfo.baseType)) {
+              const identifierTypeInfo =
+                this.context.typeRegistry.get(currentIdentifier);
+              if (
+                identifierTypeInfo &&
+                this.knownStructs.has(identifierTypeInfo.baseType)
+              ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
             }
@@ -5960,7 +5978,10 @@ export default class CodeGenerator {
 
             // Check if this resolved identifier is a struct type for chained access
             const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (resolvedTypeInfo && this.knownStructs.has(resolvedTypeInfo.baseType)) {
+            if (
+              resolvedTypeInfo &&
+              this.knownStructs.has(resolvedTypeInfo.baseType)
+            ) {
               currentStructType = resolvedTypeInfo.baseType;
             }
           } else if (this.knownScopes.has(result)) {
@@ -5976,7 +5997,10 @@ export default class CodeGenerator {
 
             // Check if this resolved identifier is a struct type for chained access
             const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (resolvedTypeInfo && this.knownStructs.has(resolvedTypeInfo.baseType)) {
+            if (
+              resolvedTypeInfo &&
+              this.knownStructs.has(resolvedTypeInfo.baseType)
+            ) {
               currentStructType = resolvedTypeInfo.baseType;
             }
           } else if (this.knownEnums.has(result)) {
