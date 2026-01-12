@@ -302,6 +302,8 @@ Build process:
      - Parse .cnx files first, extract `#include "..."` and `#include <...>` directives
      - Resolve header paths using `--include` directories (if specified) and standard search rules
      - Parse ONLY headers that are actually `#include`d (not all .h files in include dirs)
+     - **Parsed header extensions:** `.h`, `.hpp`, `.hh`, `.hxx`, `.h++`, `.inl`, `.cnx`
+     - **Error on implementation files:** `.c`, `.cpp`, `.cc`, `.cxx`, `.c++` (not headers, should not be #included)
      - **Benefit:** Matches standard C behavior and improves IntelliSense (only shows symbols in scope)
    - **Rationale:** Unified parsing should be the default behavior as shown in architecture diagram
    - **Watch mode:** Deferred - VSCode extension already handles live rebuilds gracefully
