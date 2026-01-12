@@ -1,0 +1,43 @@
+/* test-execution */
+// Test i16 bitwise operations: AND, OR, XOR, NOT
+// Coverage: Section 5.1-5.4 for i16 type
+
+u32 main() {
+    // AND operations with positive values
+    i16 a <- 0x7F00;  // 32512
+    i16 b <- 0x5555;  // 21845
+    i16 and_result <- a & b;  // 0x5500 = 21760
+
+    // AND with negative values
+    i16 neg_a <- -256;  // 0xFF00
+    i16 neg_b <- -1;    // 0xFFFF
+    i16 neg_and <- neg_a & neg_b;  // -256
+
+    // OR operations
+    i16 or_result <- a | b;   // 0x7F55 = 32597
+
+    // XOR operations
+    i16 xor_result <- a ^ b;  // 0x2A55 = 10837
+
+    // NOT operations - positive to negative
+    i16 c <- 32767;  // 0x7FFF (max positive)
+    i16 not_pos <- ~c;  // 0x8000 = -32768
+
+    // NOT operations - negative to positive
+    i16 d <- -32768;  // 0x8000 (min negative)
+    i16 not_neg <- ~d;  // 0x7FFF = 32767
+
+    // Edge case: NOT of -1
+    i16 minus_one <- -1;
+    i16 not_minus_one <- ~minus_one;  // 0
+
+    // Verify results
+    if (and_result = 21760 && or_result = 32597 && xor_result = 10837) {
+        if (not_pos = -32768 && not_neg = 32767 && not_minus_one = 0) {
+            if (neg_and = -256) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}

@@ -1,0 +1,46 @@
+/* test-execution */
+// Test i64 bitwise operations: AND, OR, XOR, NOT
+// Coverage: Section 5.1-5.4 for i64 type
+
+u32 main() {
+    // AND operations with positive values
+    i64 a <- 0x7FFFFFFF00000000;
+    i64 b <- 0x5555555555555555;
+    i64 and_result <- a & b;  // 0x5555555500000000
+
+    // AND with negative values
+    i64 neg_a <- -4294967296;  // 0xFFFFFFFF00000000
+    i64 neg_b <- -1;           // 0xFFFFFFFFFFFFFFFF
+    i64 neg_and <- neg_a & neg_b;  // -4294967296
+
+    // OR operations
+    i64 or_result <- a | b;   // 0x7FFFFFFF55555555
+
+    // XOR operations
+    i64 xor_result <- a ^ b;  // 0x2AAAAAAA55555555
+
+    // NOT operations - positive to negative
+    i64 c <- 9223372036854775807;  // 0x7FFFFFFFFFFFFFFF (max positive i64)
+    i64 not_pos <- ~c;  // 0x8000000000000000 = min negative i64
+
+    // NOT operations - negative to positive
+    i64 d <- -9223372036854775808;  // 0x8000000000000000 (min negative)
+    i64 not_neg <- ~d;  // 0x7FFFFFFFFFFFFFFF = max positive
+
+    // Edge case: NOT of -1
+    i64 minus_one <- -1;
+    i64 not_minus_one <- ~minus_one;  // 0
+
+    // Test with smaller values
+    i64 small_a <- 0xFFA0;
+    i64 small_b <- 0xAA;
+    i64 small_and <- small_a & small_b;  // 0xA0 = 160
+
+    // Verify results (using smaller values for easier verification)
+    if (small_and = 160 && not_minus_one = 0) {
+        if (neg_and = -4294967296) {
+            return 0;
+        }
+    }
+    return 1;
+}

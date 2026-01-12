@@ -1,0 +1,9 @@
+// Test u8 shift beyond width - should be ERROR
+// Coverage: Section 5.5-5.6 error case - shift beyond type width
+
+void testU8ShiftBeyondWidth() {
+    u8 a <- 1;
+
+    // u8 is 8 bits, so shifting by 8 or more is undefined/error
+    u8 bad_shift <- a << 8;  // ERROR: shift amount >= type width
+}

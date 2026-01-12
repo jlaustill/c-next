@@ -1,0 +1,31 @@
+/* test-execution */
+// Test .length property on struct member access
+// Bug: config.magic.length evaluates to 0 instead of 32
+
+struct Config {
+    u32 magic;
+    u16 version;
+    u8 flags;
+}
+
+i32 main() {
+    Config cfg;
+    cfg.magic <- 0x12345678;
+    cfg.version <- 1;
+    cfg.flags <- 0xFF;
+
+    // Test .length on struct members
+    if (cfg.magic.length != 32) {
+        return 1;
+    }
+
+    if (cfg.version.length != 16) {
+        return 1;
+    }
+
+    if (cfg.flags.length != 8) {
+        return 1;
+    }
+
+    return 0;
+}

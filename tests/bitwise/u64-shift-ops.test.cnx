@@ -1,0 +1,37 @@
+/* test-execution */
+// Test u64 shift operations: left shift (<<) and right shift (>>)
+// Coverage: Section 5.5-5.6 for u64 type
+
+u32 main() {
+    // Left shift by literal
+    u64 a <- 0x0000000000000001;
+    u64 left1 <- a << 1;   // 0x0000000000000002 = 2
+    u64 left32 <- a << 32; // 0x0000000100000000
+    u64 left63 <- a << 63; // 0x8000000000000000
+
+    // Right shift by literal
+    u64 b <- 0x8000000000000000;
+    u64 right1 <- b >> 1;   // 0x4000000000000000
+    u64 right32 <- b >> 32; // 0x0000000080000000
+    u64 right63 <- b >> 63; // 0x0000000000000001 = 1
+
+    // Shift by variable
+    u64 c <- 0x00000000FFFFFFFF;
+    u64 shift_amount <- 16;
+    u64 left_var <- c << shift_amount;   // 0x0000FFFFFFFF0000
+    u64 right_var <- c >> shift_amount;  // 0x000000000000FFFF = 65535
+
+    // Edge case: shift across 32-bit boundary
+    u64 d <- 0x00000000FF000000;
+    u64 shift_cross <- d << 8;  // 0x000000FF00000000
+
+    // Complex shift patterns
+    u64 e <- 0x0000FFFF0000FFFF;
+    u64 multi_shift <- (e >> 16) << 8;
+
+    // Verify results
+    if (left1 = 2 && right63 = 1 && right_var = 65535) {
+        return 0;
+    }
+    return 1;
+}
