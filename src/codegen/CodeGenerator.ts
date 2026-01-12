@@ -5976,13 +5976,16 @@ export default class CodeGenerator {
             result = `${this.context.currentScope}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
 
-            // Check if this resolved identifier is a struct type for chained access
-            const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (
-              resolvedTypeInfo &&
-              this.knownStructs.has(resolvedTypeInfo.baseType)
-            ) {
-              currentStructType = resolvedTypeInfo.baseType;
+            // Set struct type for chained access, but ONLY if result is not an enum
+            // This prevents treating enum types (like Motor_State) as struct variables
+            if (!this.knownEnums.has(result)) {
+              const resolvedTypeInfo = this.context.typeRegistry.get(result);
+              if (
+                resolvedTypeInfo &&
+                this.knownStructs.has(resolvedTypeInfo.baseType)
+              ) {
+                currentStructType = resolvedTypeInfo.baseType;
+              }
             }
           } else if (this.knownScopes.has(result)) {
             // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
@@ -5994,15 +5997,6 @@ export default class CodeGenerator {
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
-
-            // Check if this resolved identifier is a struct type for chained access
-            const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (
-              resolvedTypeInfo &&
-              this.knownStructs.has(resolvedTypeInfo.baseType)
-            ) {
-              currentStructType = resolvedTypeInfo.baseType;
-            }
           } else if (this.knownEnums.has(result)) {
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
