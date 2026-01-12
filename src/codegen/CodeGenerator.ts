@@ -2053,42 +2053,7 @@ export default class CodeGenerator {
    * Returns the inferred type or null if type cannot be determined.
    */
   private getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    // Navigate through expression tree to get the actual value
-    const postfix = this.getPostfixExpression(ctx);
-    if (postfix) {
-      return this.getPostfixExpressionType(postfix);
-    }
-
-    // For more complex expressions (binary ops, etc.), try to infer type
-    const ternary = ctx.ternaryExpression();
-    const orExprs = ternary.orExpression();
-    // If it's a ternary, we can't easily determine the type
-    if (orExprs.length > 1) {
-      return null;
-    }
-    const or = orExprs[0];
-    if (or.andExpression().length > 1) {
-      return "bool"; // Logical OR returns bool
-    }
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length > 1) {
-      return "bool"; // Logical AND returns bool
-    }
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length > 1) {
-      return "bool"; // Equality comparison returns bool
-    }
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length > 1) {
-      return "bool"; // Relational comparison returns bool
-    }
-
-    // For arithmetic expressions, we'd need to track operand types
-    // For now, return null for complex expressions
-    return null;
+    return this.typeResolver!.getExpressionType(ctx);
   }
 
   /**
@@ -2097,32 +2062,7 @@ export default class CodeGenerator {
   private getPostfixExpressionType(
     ctx: Parser.PostfixExpressionContext,
   ): string | null {
-    const primary = ctx.primaryExpression();
-    if (!primary) return null;
-
-    // Get base type from primary expression
-    const baseType = this.getPrimaryExpressionType(primary);
-
-    // Check for postfix operations like bit indexing
-    const suffixes = ctx.children?.slice(1) || [];
-    for (const suffix of suffixes) {
-      const text = suffix.getText();
-      // Bit indexing: [start, width] or [index]
-      if (text.startsWith("[") && text.endsWith("]")) {
-        const inner = text.slice(1, -1);
-        if (inner.includes(",")) {
-          // Range indexing: [start, width]
-          // ADR-024: Return null for bit indexing to skip type conversion validation
-          // Bit indexing is the explicit escape hatch for narrowing/sign conversions
-          return null;
-        } else {
-          // Single bit indexing: [index] - returns bool
-          return "bool";
-        }
-      }
-    }
-
-    return baseType;
+    return this.typeResolver!.getPostfixExpressionType(ctx);
   }
 
   /**
@@ -2131,37 +2071,7 @@ export default class CodeGenerator {
   private getPrimaryExpressionType(
     ctx: Parser.PrimaryExpressionContext,
   ): string | null {
-    // Check for identifier
-    const id = ctx.IDENTIFIER();
-    if (id) {
-      const name = id.getText();
-      const scopedName = this.resolveIdentifier(name);
-      const typeInfo = this.context.typeRegistry.get(scopedName);
-      if (typeInfo) {
-        return typeInfo.baseType;
-      }
-      return null;
-    }
-
-    // Check for literal
-    const literal = ctx.literal();
-    if (literal) {
-      return this.getLiteralType(literal);
-    }
-
-    // Check for parenthesized expression
-    const expr = ctx.expression();
-    if (expr) {
-      return this.getExpressionType(expr);
-    }
-
-    // Check for cast expression
-    const cast = ctx.castExpression();
-    if (cast) {
-      return cast.type().getText();
-    }
-
-    return null;
+    return this.typeResolver!.getPrimaryExpressionType(ctx);
   }
 
   /**
@@ -2170,19 +2080,7 @@ export default class CodeGenerator {
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
-    // Check for unary operators - type doesn't change for !, ~, -, +
-    const postfix = ctx.postfixExpression();
-    if (postfix) {
-      return this.getPostfixExpressionType(postfix);
-    }
-
-    // Check for recursive unary expression
-    const unary = ctx.unaryExpression();
-    if (unary) {
-      return this.getUnaryExpressionType(unary);
-    }
-
-    return null;
+    return this.typeResolver!.getUnaryExpressionType(ctx);
   }
 
   /**
@@ -2190,27 +2088,7 @@ export default class CodeGenerator {
    * Returns the explicit suffix type, or null for unsuffixed literals.
    */
   private getLiteralType(ctx: Parser.LiteralContext): string | null {
-    const text = ctx.getText();
-
-    // Boolean literals
-    if (text === "true" || text === "false") return "bool";
-
-    // Check for type suffix on numeric literals
-    const suffixMatch = text.match(/([uUiI])(8|16|32|64)$/);
-    if (suffixMatch) {
-      const signChar = suffixMatch[1].toLowerCase();
-      const width = suffixMatch[2];
-      return (signChar === "u" ? "u" : "i") + width;
-    }
-
-    // Float suffix
-    const floatMatch = text.match(/[fF](32|64)$/);
-    if (floatMatch) {
-      return "f" + floatMatch[1];
-    }
-
-    // Unsuffixed literal - type depends on context (handled by caller)
-    return null;
+    return this.typeResolver!.getLiteralType(ctx);
   }
 
   /**
