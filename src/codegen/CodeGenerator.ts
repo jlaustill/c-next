@@ -13,7 +13,6 @@ import CommentFormatter from "./CommentFormatter.js";
 import IComment from "./types/IComment.js";
 import {
   TYPE_WIDTH,
-  TYPE_RANGES,
   BITMAP_SIZE,
   BITMAP_BACKING_TYPE,
 } from "./types/TTypeConstants.js";
@@ -2025,14 +2024,7 @@ export default class CodeGenerator {
     sourceType: string,
     targetType: string,
   ): boolean {
-    const sourceWidth = TYPE_WIDTH[sourceType] || 0;
-    const targetWidth = TYPE_WIDTH[targetType] || 0;
-
-    if (sourceWidth === 0 || targetWidth === 0) {
-      return false; // Can't determine for unknown types
-    }
-
-    return targetWidth < sourceWidth;
+    return this.typeResolver!.isNarrowingConversion(sourceType, targetType);
   }
 
   /**
@@ -2040,15 +2032,7 @@ export default class CodeGenerator {
    * Sign change occurs when converting between signed and unsigned types
    */
   private isSignConversion(sourceType: string, targetType: string): boolean {
-    const sourceIsSigned = this.isSignedType(sourceType);
-    const sourceIsUnsigned = this.isUnsignedType(sourceType);
-    const targetIsSigned = this.isSignedType(targetType);
-    const targetIsUnsigned = this.isUnsignedType(targetType);
-
-    return (
-      (sourceIsSigned && targetIsUnsigned) ||
-      (sourceIsUnsigned && targetIsSigned)
-    );
+    return this.typeResolver!.isSignConversion(sourceType, targetType);
   }
 
   /**
@@ -2061,48 +2045,7 @@ export default class CodeGenerator {
     literalText: string,
     targetType: string,
   ): void {
-    const range = TYPE_RANGES[targetType];
-    if (!range) {
-      return; // No validation for unknown types (floats, bools, etc.)
-    }
-
-    // Parse the literal value
-    let value: bigint;
-    try {
-      const cleanText = literalText.trim();
-
-      if (cleanText.match(/^-?\d+$/)) {
-        // Decimal integer
-        value = BigInt(cleanText);
-      } else if (cleanText.match(/^0[xX][0-9a-fA-F]+$/)) {
-        // Hex literal
-        value = BigInt(cleanText);
-      } else if (cleanText.match(/^0[bB][01]+$/)) {
-        // Binary literal
-        value = BigInt(cleanText);
-      } else {
-        // Not an integer literal we can validate
-        return;
-      }
-    } catch {
-      return; // Can't parse, skip validation
-    }
-
-    const [min, max] = range;
-
-    // Check if value is negative for unsigned type
-    if (this.isUnsignedType(targetType) && value < 0n) {
-      throw new Error(
-        `Error: Negative value ${literalText} cannot be assigned to unsigned type ${targetType}`,
-      );
-    }
-
-    // Check if value is out of range
-    if (value < min || value > max) {
-      throw new Error(
-        `Error: Value ${literalText} exceeds ${targetType} range (${min} to ${max})`,
-      );
-    }
+    this.typeResolver!.validateLiteralFitsType(literalText, targetType);
   }
 
   /**
