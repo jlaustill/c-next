@@ -25,6 +25,7 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 **Scale:** [~20,000 compiler test cases](https://devblogs.microsoft.com/typescript/progress-on-typescript-7-december-2025/)
 
 **Strategy:**
+
 - Comprehensive test suite covering language features systematically
 - Tests organized by language feature, not transpiler code paths
 - [fourslash testing framework](https://devblogs.microsoft.com/typescript/progress-on-typescript-7-december-2025/) for editor integration
@@ -37,12 +38,15 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 **Initiative:** [Rust Specification Testing 2025](https://rust-lang.github.io/rust-project-goals/2025h1/spec-testing.html)
 
 **Current State:**
+
 > "The rust compiler currently has tests for many aspects of the language... these tests are largely contained in the ui test suite, are disorganized, and are intermingled."
 
 **2025 Goal:**
+
 > "Rust tests will be added and linked directly in the specification itself... reorganize test structure to make it more clear which tests are exercising guaranteed aspects of the language."
 
 **Tools:**
+
 - [compiletest](https://rustc-dev-guide.rust-lang.org/tests/compiletest.html) - test runner supporting multiple test suite styles
 - [LLVM coverage instrumentation](https://rustc-dev-guide.rust-lang.org/llvm-coverage-instrumentation.html)
 - ui tests, run-make tests, coverage tests
@@ -54,22 +58,26 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 **Tools:** [lit + FileCheck](https://llvm.org/docs/TestingGuide.html)
 
 **lit (LLVM Integrated Tester):**
+
 - Lightweight test runner
 - Executes tests in parallel
 - [Supports coverage data per test case](https://llvm.org/docs/CommandGuide/lit.html)
 
 **[FileCheck](https://llvm.org/docs/CommandGuide/FileCheck.html):**
+
 - Pattern-matching file verifier
 - Similar to grep but optimized for ordered multi-pattern matching
 - Used to verify compiler output contains expected IR/assembly
 
 **Test Organization:**
+
 - Tests organized in `llvm/test` directory
 - Each test exercises specific language features
 - Uses RUN lines to execute compiler with specific flags
 - CHECK: lines verify output
 
 **Example Test Structure:**
+
 ```llvm
 ; RUN: llc < %s | FileCheck %s
 ; CHECK: expected output pattern
@@ -87,6 +95,7 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 **Repository:** [renatahodovan/grammarinator](https://github.com/renatahodovan/grammarinator)
 
 **What it does:**
+
 - Takes ANTLR v4 grammar as input
 - Generates test cases automatically
 - Can generate from scratch or mutate existing inputs
@@ -99,16 +108,19 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 ### 2. ANTLR Testing Frameworks
 
 **[ANTLR Testing (Java/JUnit)](https://antlr-testing.sourceforge.net/):**
+
 - Library for testing ANTLR-generated grammars
 - Integrates with JUnit
 - Helps verify parser behavior
 
 **[Grun.Net (C#)](https://github.com/wiredwiz/Grun.Net):**
+
 - Command-line and GUI testing tools
 - Similar to ANTLR TestRig
 - Visualizes parse trees
 
 **[ANTLR Lab](http://lab.antlr.org/):**
+
 - Online platform for testing grammars
 - Interactive parse tree visualization
 
@@ -119,6 +131,7 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 **Paper:** ["Parser Knows Best: Testing DBMS with Coverage-Guided Grammar-Rule Traversal"](https://arxiv.org/abs/2503.03893) (March 2025)
 
 **Innovation:**
+
 - **Grammar Edge Coverage** - tracks combinations between grammar rules
 - Automatically extracts grammar rules from syntax definition files
 - Uses code coverage as feedback to guide mutation
@@ -137,6 +150,7 @@ Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of tra
 Property-based testing generates random inputs and verifies properties hold:
 
 **Frameworks:**
+
 - [QuickCheck (Haskell)](https://hypothesis.works/articles/quickcheck-in-every-language/) - original (1999)
 - [Hypothesis (Python)](https://hypothesis.works/articles/what-is-property-based-testing/) - most powerful
 - [fast-check (TypeScript)](https://github.com/dubzzz/fast-check)
@@ -145,6 +159,7 @@ Property-based testing generates random inputs and verifies properties hold:
 ### Application to Compilers
 
 **Properties to test:**
+
 - Idempotency: `transpile(transpile(input)) == transpile(input)`
 - Round-trip: `parse(generate(ast)) == ast`
 - Equivalence: Multiple ways to express same thing produce same output
@@ -181,6 +196,7 @@ Property-based testing is **excellent for finding bugs** but **doesn't guarantee
 **Tool:** [babel-plugin-tester](https://github.com/babel-utils/babel-plugin-tester)
 
 **Approach:**
+
 - Tests organized by plugin/transformation
 - Input → Expected Output verification
 - Works with Jest, Mocha, Vitest, etc.
@@ -227,6 +243,7 @@ After researching how TypeScript (20K tests), Rust, LLVM, and others handle this
 **1. Manual Feature Matrix (What You're Already Doing!)**
 
 Your `coverage.md` is **exactly how major compilers track feature coverage:**
+
 - Systematically enumerate features × contexts
 - Track with checkboxes
 - Write focused tests for each combination
@@ -263,6 +280,7 @@ Your current approach is **exactly what successful compilers do:**
 #### 1. Enhanced Test Runner with Coverage Tracking
 
 **Create a tool that:**
+
 - Runs all tests (current behavior) ✅
 - **Parses coverage.md** to extract checkboxes
 - **Maps test files to checkboxes** using annotations
@@ -282,10 +300,12 @@ Your current approach is **exactly what successful compilers do:**
 #### 2. Grammar Rule Coverage (Nice to Have)
 
 **Use ANTLR's parse tree listeners to track:**
+
 - Which parser rules were visited during test execution
 - Which rules never execute
 
 **Implementation:**
+
 ```typescript
 class CoverageListener extends CNextBaseListener {
   visitedRules = new Set<string>();
@@ -297,8 +317,9 @@ class CoverageListener extends CNextBaseListener {
 ```
 
 **Output:** Report showing:
+
 - ✅ `primary_expression` - visited 523 times
-- ⚠️  `inline_assembly` - never visited
+- ⚠️ `inline_assembly` - never visited
 - ✅ `for_loop` - visited 47 times
 
 **Benefit:** Identifies dead grammar rules or untested constructs
@@ -320,6 +341,7 @@ u8 main() {
 ```
 
 **Benefits:**
+
 - Less brittle than full-file comparison
 - Can check for specific patterns
 - Ignore formatting differences
@@ -334,6 +356,7 @@ u8 main() {
 ```
 
 **Template includes:**
+
 - Test skeleton
 - Coverage annotation comment
 - TODOs for test implementation
@@ -347,6 +370,7 @@ u8 main() {
 **Create:** `scripts/coverage-checker.ts`
 
 **Features:**
+
 1. Parse coverage.md → extract all checkboxes
 2. Scan tests/ → find all .test.cnx files
 3. Read coverage annotations from test files
@@ -356,6 +380,7 @@ u8 main() {
    - Which checkboxes have no tests
 
 **Output:**
+
 ```
 Coverage Report:
   Total checkboxes: 941
@@ -377,11 +402,13 @@ Untested features (HIGH priority):
 **Create:** `scripts/grammar-coverage.ts`
 
 **Features:**
+
 1. Instrument transpiler with rule visitor
 2. Track which grammar rules execute
 3. Generate report of covered/uncovered rules
 
 **Output:**
+
 ```
 Grammar Rule Coverage:
   Total rules: 156
@@ -399,12 +426,14 @@ Untested grammar rules:
 **Create:** `scripts/filecheck-runner.ts`
 
 **Features:**
+
 1. Parse CHECK: comments from test files
 2. Run transpiler
 3. Verify output matches CHECK patterns
 4. More flexible than exact .expected.c comparison
 
 **Benefits:**
+
 - Easier to maintain tests
 - Focus on important output characteristics
 - Less affected by formatting changes
@@ -414,6 +443,7 @@ Untested grammar rules:
 **Create:** `scripts/generate-test.ts`
 
 **Usage:**
+
 ```bash
 ./scripts/generate-test.ts \
   --section "1.1-u16-loop-counter" \
@@ -422,6 +452,7 @@ Untested grammar rules:
 ```
 
 **Generates:**
+
 ```cnx
 /* test-coverage: 1.1-u16-loop-counter */
 /* test-execution */
@@ -439,15 +470,15 @@ u16 main() {
 
 ## Tool Comparison Matrix
 
-| Tool/Approach | Measures | Pros | Cons | Recommendation |
-|---------------|----------|------|------|----------------|
-| **Manual Matrix (coverage.md)** | Language features | Industry standard, flexible | Manual tracking | ✅ **Keep (already excellent)** |
-| **Grammar Rule Coverage** | Parser rules visited | Finds dead code | Rules ≠ features | ⚡ **Add (nice to have)** |
-| **Property-Based Testing** | Random bug finding | Finds edge cases | No coverage guarantee | 🔶 **Consider for fuzzing** |
-| **FileCheck-style Tests** | Output patterns | Flexible, maintainable | Initial setup | ✅ **Adopt (enhance tests)** |
-| **Grammarinator** | Test generation | Auto-generates inputs | Generic tests | 🔶 **Consider for fuzzing** |
-| **Test Annotations** | Feature→test mapping | Automated tracking | Requires discipline | ✅ **Implement (Phase 1)** |
-| **Code Coverage (nyc, c8)** | Transpiler code | Standard tooling | Wrong metric | ❌ **Not useful for features** |
+| Tool/Approach                   | Measures             | Pros                        | Cons                  | Recommendation                  |
+| ------------------------------- | -------------------- | --------------------------- | --------------------- | ------------------------------- |
+| **Manual Matrix (coverage.md)** | Language features    | Industry standard, flexible | Manual tracking       | ✅ **Keep (already excellent)** |
+| **Grammar Rule Coverage**       | Parser rules visited | Finds dead code             | Rules ≠ features      | ⚡ **Add (nice to have)**       |
+| **Property-Based Testing**      | Random bug finding   | Finds edge cases            | No coverage guarantee | 🔶 **Consider for fuzzing**     |
+| **FileCheck-style Tests**       | Output patterns      | Flexible, maintainable      | Initial setup         | ✅ **Adopt (enhance tests)**    |
+| **Grammarinator**               | Test generation      | Auto-generates inputs       | Generic tests         | 🔶 **Consider for fuzzing**     |
+| **Test Annotations**            | Feature→test mapping | Automated tracking          | Requires discipline   | ✅ **Implement (Phase 1)**      |
+| **Code Coverage (nyc, c8)**     | Transpiler code      | Standard tooling            | Wrong metric          | ❌ **Not useful for features**  |
 
 ---
 
@@ -508,12 +539,12 @@ coverageListener.report();
 // scripts/coverage-checker.ts
 
 interface CoverageItem {
-  id: string;           // e.g., "1.1-u8-loop-counter"
-  section: string;      // e.g., "1. Primitive Types"
-  feature: string;      // e.g., "As loop counter"
-  type: string;         // e.g., "u8"
-  tested: boolean;      // Has test file
-  testFiles: string[];  // Which tests cover this
+  id: string; // e.g., "1.1-u8-loop-counter"
+  section: string; // e.g., "1. Primitive Types"
+  feature: string; // e.g., "As loop counter"
+  type: string; // e.g., "u8"
+  tested: boolean; // Has test file
+  testFiles: string[]; // Which tests cover this
 }
 
 async function parseCoverageMarkdown(): Promise<CoverageItem[]> {
@@ -531,7 +562,7 @@ async function scanTestFiles(): Promise<Map<string, string[]>> {
 
 function generateReport(
   coverageItems: CoverageItem[],
-  testMapping: Map<string, string[]>
+  testMapping: Map<string, string[]>,
 ): void {
   // Calculate statistics
   // List untested features by priority
@@ -541,7 +572,7 @@ function generateReport(
 
 // Run it
 parseCoverageMarkdown()
-  .then(items => scanTestFiles().then(tests => ({ items, tests })))
+  .then((items) => scanTestFiles().then((tests) => ({ items, tests })))
   .then(({ items, tests }) => generateReport(items, tests));
 ```
 
@@ -550,12 +581,14 @@ parseCoverageMarkdown()
 ## Sources
 
 ### ANTLR Testing
+
 - [ANTLR Development Tools](https://www.antlr.org/tools.html)
 - [Grammarinator](https://github.com/renatahodovan/grammarinator)
 - [Grun.Net](https://github.com/wiredwiz/Grun.Net)
 - [ANTLR Testing Library](https://antlr-testing.sourceforge.net/)
 
 ### Compiler Testing
+
 - [LLVM Testing Infrastructure](https://llvm.org/docs/TestingGuide.html)
 - [lit - LLVM Integrated Tester](https://llvm.org/docs/CommandGuide/lit.html)
 - [FileCheck Documentation](https://llvm.org/docs/CommandGuide/FileCheck.html)
@@ -563,19 +596,23 @@ parseCoverageMarkdown()
 - [Rust compiletest](https://rustc-dev-guide.rust-lang.org/tests/compiletest.html)
 
 ### TypeScript
+
 - [TypeScript 7 Progress (2025)](https://devblogs.microsoft.com/typescript/progress-on-typescript-7-december-2025/)
 - [TypeScript Testing Infrastructure](https://devblogs.microsoft.com/typescript/progress-on-typescript-7-december-2025/)
 
 ### Grammar Coverage Research
+
 - [ParserFuzz Paper (2025)](https://arxiv.org/abs/2503.03893)
 - [LegoFuzz Compiler Testing (2025)](https://arxiv.org/html/2508.18955)
 
 ### Property-Based Testing
+
 - [QuickCheck in Every Language](https://hypothesis.works/articles/quickcheck-in-every-language/)
 - [Hypothesis](https://hypothesis.works/articles/what-is-property-based-testing/)
 - [fast-check (TypeScript)](https://github.com/dubzzz/fast-check)
 
 ### Transpiler Testing
+
 - [babel-plugin-tester](https://github.com/babel-utils/babel-plugin-tester)
 
 ---
@@ -589,6 +626,7 @@ parseCoverageMarkdown()
 3. ✅ Systematic coverage tracking
 
 **Enhancements to consider:**
+
 - ⚡ Automated coverage↔test mapping
 - ⚡ Grammar rule coverage reporting
 - ⚡ FileCheck-style output verification
