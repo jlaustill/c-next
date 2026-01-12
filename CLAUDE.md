@@ -78,13 +78,12 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## Pull Request Workflow
 
-**All changes MUST go through Pull Requests. NEVER push directly to any branch.**
+**All changes to main MUST go through Pull Requests. NEVER push directly to the main branch.**
 
 - **NEVER work directly on the main branch** - always create/checkout a feature branch before starting work
 - Check current branch with `git branch --show-current` before making changes
 - Create feature branches with descriptive names (e.g., `feature/add-loop-tests`, `fix/parser-bug`)
-- After committing changes, NEVER suggest or attempt to push directly
-- All commits must be reviewed via Pull Request before merging
-- Use the `/commit-push-pr` skill or `gh pr create` to create PRs
-- This applies to ALL branches, including feature branches
-- If the user says "commit this", only commit - do NOT push
+- After committing to a feature branch, push the branch and create a PR
+- All merges to main must be reviewed via Pull Request
+- Use the `/commit-push-pr` skill or `git push` + `gh pr create` to push and create PRs
+- If the user says "commit this", only commit - ask before pushing
