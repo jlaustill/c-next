@@ -75,3 +75,16 @@ If implementing a feature, all documents must be current and memory must be upda
 - **NEVER commit unrelated changes** as part of your work
 - If unsure whether a change is related, ask the user
 - Unrelated changes are the user's responsibility — don't touch them
+
+## Pull Request Workflow
+
+**All changes MUST go through Pull Requests. NEVER push directly to any branch.**
+
+- **NEVER work directly on the main branch** - always create/checkout a feature branch before starting work
+- Check current branch with `git branch --show-current` before making changes
+- Create feature branches with descriptive names (e.g., `feature/add-loop-tests`, `fix/parser-bug`)
+- After committing changes, NEVER suggest or attempt to push directly
+- All commits must be reviewed via Pull Request before merging
+- Use the `/commit-push-pr` skill or `gh pr create` to create PRs
+- This applies to ALL branches, including feature branches
+- If the user says "commit this", only commit - do NOT push
