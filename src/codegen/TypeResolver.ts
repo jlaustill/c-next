@@ -304,6 +304,62 @@ class TypeResolver {
 
     return null;
   }
+
+  /**
+   * ADR-024: Validate that a type conversion is allowed.
+   * Throws error for narrowing or sign-changing conversions.
+   */
+  validateTypeConversion(targetType: string, sourceType: string | null): void {
+    // If we can't determine source type, skip validation
+    if (!sourceType) return;
+
+    // Skip if types are the same
+    if (sourceType === targetType) return;
+
+    // Only validate integer-to-integer conversions
+    if (!this.isIntegerType(sourceType) || !this.isIntegerType(targetType))
+      return;
+
+    // Check for narrowing conversion
+    if (this.isNarrowingConversion(sourceType, targetType)) {
+      const targetWidth = TYPE_WIDTH[targetType] || 0;
+      throw new Error(
+        `Error: Cannot assign ${sourceType} to ${targetType} (narrowing). ` +
+          `Use bit indexing: value[0, ${targetWidth}]`,
+      );
+    }
+
+    // Check for sign conversion
+    if (this.isSignConversion(sourceType, targetType)) {
+      const targetWidth = TYPE_WIDTH[targetType] || 0;
+      throw new Error(
+        `Error: Cannot assign ${sourceType} to ${targetType} (sign change). ` +
+          `Use bit indexing: value[0, ${targetWidth}]`,
+      );
+    }
+  }
+
+  /**
+   * Get type info for a struct member field
+   * Used to track types through member access chains like buf.data[0]
+   */
+  getMemberTypeInfo(
+    structType: string,
+    memberName: string,
+  ): { isArray: boolean; baseType: string } | undefined {
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const fieldType = this.codeGen["structFields"]
+      .get(structType)
+      ?.get(memberName);
+    if (!fieldType) return undefined;
+
+    // Check if this field is marked as an array
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const arrayFields = this.codeGen["structFieldArrays"].get(structType);
+    const isArray = arrayFields?.has(memberName) ?? false;
+
+    return { isArray, baseType: fieldType };
+  }
 }
 
 export default TypeResolver;

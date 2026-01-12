@@ -2006,14 +2006,7 @@ export default class CodeGenerator {
     structType: string,
     memberName: string,
   ): { isArray: boolean; baseType: string } | undefined {
-    const fieldType = this.structFields.get(structType)?.get(memberName);
-    if (!fieldType) return undefined;
-
-    // Check if this field is marked as an array
-    const arrayFields = this.structFieldArrays.get(structType);
-    const isArray = arrayFields?.has(memberName) ?? false;
-
-    return { isArray, baseType: fieldType };
+    return this.typeResolver!.getMemberTypeInfo(structType, memberName);
   }
 
   /**
@@ -2099,33 +2092,7 @@ export default class CodeGenerator {
     targetType: string,
     sourceType: string | null,
   ): void {
-    // If we can't determine source type, skip validation
-    if (!sourceType) return;
-
-    // Skip if types are the same
-    if (sourceType === targetType) return;
-
-    // Only validate integer-to-integer conversions
-    if (!this.isIntegerType(sourceType) || !this.isIntegerType(targetType))
-      return;
-
-    // Check for narrowing conversion
-    if (this.isNarrowingConversion(sourceType, targetType)) {
-      const targetWidth = TYPE_WIDTH[targetType] || 0;
-      throw new Error(
-        `Error: Cannot assign ${sourceType} to ${targetType} (narrowing). ` +
-          `Use bit indexing: value[0, ${targetWidth}]`,
-      );
-    }
-
-    // Check for sign conversion
-    if (this.isSignConversion(sourceType, targetType)) {
-      const targetWidth = TYPE_WIDTH[targetType] || 0;
-      throw new Error(
-        `Error: Cannot assign ${sourceType} to ${targetType} (sign change). ` +
-          `Use bit indexing: value[0, ${targetWidth}]`,
-      );
-    }
+    this.typeResolver!.validateTypeConversion(targetType, sourceType);
   }
 
   /**
