@@ -1,8 +1,10 @@
 # ADR-010: C/C++ Interoperability via Unified ANTLR Parsing
 
-**Status:** Implemented
+**Status:** Partial (In Progress)
 **Date:** 2025-12-27
+**Last Updated:** 2026-01-12
 **Decision Makers:** C-Next Language Design Team
+**Tracking:** [Issue #39](https://github.com/jlaustill/c-next/issues/39)
 
 ## Context
 
@@ -203,6 +205,42 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 
 ---
 
+## Implementation Status
+
+**Completed:**
+
+- ✅ Phase 1: C11 and CPP14 grammars imported from grammars-v4
+- ✅ Phase 1: `CSymbolCollector` and `CppSymbolCollector` extract symbols from C/C++ files
+- ✅ Phase 2: `SymbolTable` class with cross-language conflict detection
+- ✅ Phase 2: All parsers (CNext, C, C++) populate unified symbol table
+- ✅ Phase 4: `HeaderGenerator` emits `.h` files with include guards
+- ✅ Phase 5: C++ grammar imported and working (with known limitations)
+- ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)
+- ✅ `Project` class for multi-file compilation
+- ✅ CLI `--project` mode for multi-file builds
+
+**In Progress:**
+
+- 🔶 Phase 3: Cross-file resolution partially works
+  - Symbol table is populated but not fully utilized
+  - **Issue:** `CodeGenerator` doesn't use symbol table for type resolution
+  - **Impact:** `.length` property on C header struct members evaluates to `0`
+  - **Example:** `config.magic.length` where `AppConfig` is from C header → `length = 0 / 8`
+
+**Not Started:**
+
+- ❌ Remove `--project` flag (should always use unified parsing)
+- ❌ Make unified parsing the default behavior
+- ❌ Update CodeGenerator to use SymbolTable for type resolution
+
+**Known Issues:**
+
+- CodeGenerator line 5616 only checks local `structFields` map, ignores `symbolTable`
+- Single-file mode (`cnext file.cnx`) doesn't parse C headers
+- Array indexing on C header structs broken (related to [Issue #8](https://github.com/jlaustill/c-next/issues/8))
+
+---
+
 ## Example: Mixed Project
 
 ```
@@ -243,21 +281,46 @@ Build process:
 
 ## Open Questions
 
-1. **Preprocessor strategy?**
-   - Run system cpp and parse output?
-   - Or handle common cases inline?
+### Resolved
 
-2. **Symbol conflicts?**
-   - What if C-Next and C define same symbol?
-   - Error? Warning? C-Next shadows C?
+1. **Preprocessor strategy** ✅
+   - **Decision:** Run system cpp and parse output
+   - **Rationale:** `Preprocessor` class uses gcc/clang/arm-gcc to preprocess C headers before parsing
+   - **Implementation:** Already working in project mode
 
-3. **Build system integration?**
-   - How does cnx CLI handle multi-file projects?
-   - Watch mode for incremental builds?
+2. **Symbol conflicts** ✅
+   - **Decision:** Symbol conflicts between C-Next and C/C++ are **ERRORS**
+   - **Exceptions:**
+     - Multiple `extern` declarations in C (OK - declaration, not definition)
+     - C++ function overloads (OK - different signatures)
+   - **Rationale:** Catch collisions for safety, don't silently shadow
+   - **Implementation:** `SymbolTable` already implements this behavior
 
-4. **C++ priority?**
-   - Focus on C first (embedded primary use case)?
-   - C++ as optional phase?
+3. **Build system integration** ✅
+   - **Decision:** Remove `--project` flag, always use unified parsing
+   - **Behavior:**
+     - `cnext file.cnx` → Parses file.cnx + discovers and parses headers referenced by `#include` directives
+     - `cnext src/*.cnx` → Multi-file mode (parses all .cnx files + their included headers)
+     - Always builds unified symbol table
+   - **Include Path Resolution:**
+     - Parse .cnx files first, extract `#include "..."` and `#include <...>` directives
+     - Resolve header paths using `--include` directories (if specified) and standard search rules
+     - Parse ONLY headers that are actually `#include`d (not all .h files in include dirs)
+     - **Parsed header extensions:** `.h`, `.hpp`, `.hh`, `.hxx`, `.h++`, `.inl`, `.cnx`
+     - **Error on implementation files:** `.c`, `.cpp`, `.cc`, `.cxx`, `.c++` (not headers, should not be #included)
+     - **Benefit:** Matches standard C behavior and improves IntelliSense (only shows symbols in scope)
+   - **Rationale:** Unified parsing should be the default behavior as shown in architecture diagram
+   - **Watch mode:** Deferred - VSCode extension already handles live rebuilds gracefully
+   - **Implementation:** TODO - requires refactoring CLI to remove mode distinction and implement smart include discovery
+
+4. **C++ priority** ✅
+   - **Decision:** Context-dependent priority - fix issues in whichever language users encounter them
+   - **Rationale:**
+     - Both C and C++ infrastructure already implemented using upstream ANTLR grammars
+     - Many embedded projects mix C and C++ (Arduino, mbed, Zephyr)
+     - Fixes may result in PRs back to grammars-v4 upstream projects
+     - User needs drive priority, not arbitrary language preference
+   - **Implementation:** Both C and C++ are first-class citizens
 
 ---
 
