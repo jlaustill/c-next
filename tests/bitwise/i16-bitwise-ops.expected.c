@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 /* test-execution */
 // Test i16 bitwise operations: AND, OR, XOR, NOT

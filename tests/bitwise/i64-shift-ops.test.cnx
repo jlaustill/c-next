@@ -19,7 +19,7 @@ u32 main() {
     i64 c <- -4611686018427387904;  // 0xC000000000000000 (two's complement)
     i64 neg_right1 <- c >> 1;   // 0xE000000000000000
     i64 neg_right32 <- c >> 32; // 0xFFFFFFFFC0000000 = -1073741824
-    i64 neg_right62 <- c >> 62; // 0xFFFFFFFFFFFFFFFE = -2
+    i64 neg_right62 <- c >> 62; // 0xFFFFFFFFFFFFFFFF = -1
 
     // Edge case: shift -1 (all bits set)
     i64 minus_one <- -1;
@@ -37,7 +37,7 @@ u32 main() {
 
     // Verify results
     if (left1 = 2 && left32 = 4294967296 && right62 = 1) {
-        if (right32 = 1073741824 && neg_right32 = -1073741824 && neg_right62 = -2) {
+        if (right32 = 1073741824 && neg_right32 = -1073741824 && neg_right62 = -1) {
             if (shift_minus_one = -1 && left_var = 4096 && right_var = 16) {
                 if (neg_shift = -65536) {
                     return 0;

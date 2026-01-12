@@ -5872,6 +5872,10 @@ export default class CodeGenerator {
       ? this.context.typeRegistry.get(primaryId)?.baseType
       : undefined;
 
+    // Track previous struct type and member name for .length on struct members (cfg.magic.length)
+    let previousStructType: string | undefined = undefined;
+    let previousMemberName: string | undefined = undefined;
+
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
 
@@ -5898,6 +5902,29 @@ export default class CodeGenerator {
           ) {
             result = "argc";
           } else {
+            // Check if we're accessing a struct member (cfg.magic.length)
+            if (previousStructType && previousMemberName) {
+              // Look up the member's type in the struct definition
+              const structFields = this.structFields.get(previousStructType);
+              if (structFields) {
+                const memberType = structFields.get(previousMemberName);
+                if (memberType) {
+                  // Get bit width from TYPE_WIDTH map
+                  const bitWidth = TYPE_WIDTH[memberType] || 0;
+                  if (bitWidth > 0) {
+                    result = String(bitWidth);
+                  } else {
+                    result = `/* .length: unsupported type ${memberType} */0`;
+                  }
+                  // Skip the rest of the logic since we handled it
+                  previousStructType = undefined;
+                  previousMemberName = undefined;
+                  continue;
+                }
+              }
+            }
+
+            // Fall back to checking the primary identifier's type
             const typeInfo = primaryId
               ? this.context.typeRegistry.get(primaryId)
               : undefined;
@@ -6043,6 +6070,9 @@ export default class CodeGenerator {
           // ADR-006: Struct parameter uses -> for member access
           else if (isStructParam && result === primaryId) {
             result = `${result}->${memberName}`;
+            // Track this member for potential .length access (save BEFORE updating)
+            previousStructType = currentStructType;
+            previousMemberName = memberName;
             // Update type tracking for struct member
             if (currentStructType) {
               const memberTypeInfo = this.getMemberTypeInfo(
@@ -6056,6 +6086,9 @@ export default class CodeGenerator {
             }
           } else {
             result = `${result}.${memberName}`;
+            // Track this member for potential .length access (save BEFORE updating)
+            previousStructType = currentStructType;
+            previousMemberName = memberName;
             // Update type tracking for struct member
             if (currentStructType) {
               const memberTypeInfo = this.getMemberTypeInfo(

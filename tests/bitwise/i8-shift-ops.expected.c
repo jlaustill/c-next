@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 /* test-execution */
 // Test i8 shift operations: arithmetic right shift preserves sign
@@ -32,7 +31,7 @@ uint32_t main(void) {
     int8_t neg_shift = e >> 1;
     if (left1 == 2 && left4 == 16 && left6 == 64) {
         if (right1 == 32 && right2 == 16 && right6 == 1) {
-            if (neg_right1 == -32 && neg_right2 == -16 && neg_right6 == -2) {
+            if (neg_right1 == -32 && neg_right2 == -16 && neg_right6 == -1) {
                 if (shift_minus_one == -1 && left_var == 64 && right_var == 4) {
                     if (neg_shift == -4) {
                         return 0;

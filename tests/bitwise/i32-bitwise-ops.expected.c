@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 /* test-execution */
 // Test i32 bitwise operations: AND, OR, XOR, NOT
@@ -24,10 +23,10 @@ uint32_t main(void) {
     int32_t not_neg = ~d;
     int32_t minus_one = -1;
     int32_t not_minus_one = ~minus_one;
-    int32_t small_a = 0xFF00;
+    int32_t small_a = 0xFFA0;
     int32_t small_b = 0xAA;
     int32_t small_and = small_a & small_b;
-    if (and_result == 1431568384 && or_result == 2147439973) {
+    if (and_result == 1431633920 && or_result == 2147439957) {
         if (not_pos == -2147483648 && not_neg == 2147483647 && not_minus_one == 0) {
             if (neg_and == -65536 && small_and == 160) {
                 return 0;
