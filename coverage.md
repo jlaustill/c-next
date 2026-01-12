@@ -83,15 +83,16 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type (multi-dim) | [ ]    |                                    |
 | In arithmetic expression       | [x]    |                                    |
 | In comparison                  | [x]    |                                    |
-| In bitwise operation           | [ ]    |                                    |
-| As loop counter                | [x]    | `for-loops/for-u8-counter.test.cnx` |
-| In ternary expression          | [ ]    |                                    |
-| With const modifier            | [x]    | `const/const-variable.test.cnx`    |
-| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx` |
-| With clamp modifier            | [ ]    |                                    |
-| With wrap modifier             | [ ]    |                                    |
-| In scope declaration           | [ ]    |                                    |
-| In register field              | [x]    |                                    |
+| In bitwise operation           | [x]    | `bitwise/u8-bitwise-ops.test.cnx`               |
+| As loop counter                | [x]    | `for-loops/for-u8-counter.test.cnx`             |
+| In ternary expression          | [ ]    |                                                 |
+| With const modifier            | [x]    | `const/const-variable.test.cnx`                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [ ]    |                                                 |
+| With wrap modifier             | [ ]    |                                                 |
+| In scope declaration           | [ ]    |                                                 |
+| In register field              | [x]    |                                                 |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### u16
 
@@ -108,15 +109,16 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type (multi-dim) | [ ]    |                                    |
 | In arithmetic expression       | [x]    |                                    |
 | In comparison                  | [x]    |                                    |
-| In bitwise operation           | [ ]    |                                    |
-| As loop counter                | [x]    | `for-loops/for-u16-counter.test.cnx` |
-| In ternary expression          | [ ]    |                                    |
-| With const modifier            | [ ]    |                                    |
-| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx` |
-| With clamp modifier            | [ ]    |                                    |
-| With wrap modifier             | [ ]    |                                    |
-| In scope declaration           | [ ]    |                                    |
-| In register field              | [x]    |                                    |
+| In bitwise operation           | [x]    | `bitwise/u16-bitwise-ops.test.cnx`              |
+| As loop counter                | [x]    | `for-loops/for-u16-counter.test.cnx`            |
+| In ternary expression          | [ ]    |                                                 |
+| With const modifier            | [ ]    |                                                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [ ]    |                                                 |
+| With wrap modifier             | [ ]    |                                                 |
+| In scope declaration           | [ ]    |                                                 |
+| In register field              | [x]    |                                                 |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### u32
 
@@ -139,9 +141,10 @@ This document tracks test coverage for every language construct in every valid c
 | With const modifier            | [x]    | `const/const-variable.test.cnx`         |
 | With atomic modifier           | [x]    | `atomic/basic.test.cnx`                 |
 | With clamp modifier            | [x]    | `primitives/clamp-declaration.test.cnx` |
-| With wrap modifier             | [x]    | `primitives/wrap-declaration.test.cnx`  |
-| In scope declaration           | [x]    | `scope/this-global-test.test.cnx`       |
-| In register field              | [x]    | `register/register-basic.test.cnx`      |
+| With wrap modifier             | [x]    | `primitives/wrap-declaration.test.cnx`          |
+| In scope declaration           | [x]    | `scope/this-global-test.test.cnx`               |
+| In register field              | [x]    | `register/register-basic.test.cnx`              |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### u64
 
@@ -158,15 +161,16 @@ This document tracks test coverage for every language construct in every valid c
 | Array element type (multi-dim) | [ ]    |                                    |
 | In arithmetic expression       | [ ]    |                                    |
 | In comparison                  | [ ]    |                                    |
-| In bitwise operation           | [ ]    |                                    |
-| As loop counter                | [x]    | `for-loops/for-u64-counter.test.cnx` |
-| In ternary expression          | [ ]    |                                    |
-| With const modifier            | [ ]    |                                    |
-| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx` |
-| With clamp modifier            | [ ]    |                                    |
-| With wrap modifier             | [ ]    |                                    |
-| In scope declaration           | [ ]    |                                    |
-| In register field              | [ ]    |                                    |
+| In bitwise operation           | [x]    | `bitwise/u64-bitwise-ops.test.cnx`              |
+| As loop counter                | [x]    | `for-loops/for-u64-counter.test.cnx`            |
+| In ternary expression          | [ ]    |                                                 |
+| With const modifier            | [ ]    |                                                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [ ]    |                                                 |
+| With wrap modifier             | [ ]    |                                                 |
+| In scope declaration           | [ ]    |                                                 |
+| In register field              | [ ]    |                                                 |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 ### 1.2 Signed Integers
 
@@ -181,15 +185,17 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter          | [x]    |                                    |
 | Function return type        | [x]    |                                    |
 | Struct member               | [x]    |                                    |
-| Array element type          | [ ]    |                                    |
-| In arithmetic expression    | [ ]    |                                    |
-| In comparison               | [ ]    |                                    |
-| As loop counter             | [x]    | `for-loops/for-i8-counter.test.cnx` |
-| Negative literal assignment | [ ]    |                                    |
-| With const modifier         | [ ]    |                                    |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx` |
-| With clamp modifier         | [ ]    |                                    |
-| With wrap modifier          | [ ]    |                                    |
+| Array element type          | [ ]    |                                                 |
+| In arithmetic expression    | [ ]    |                                                 |
+| In comparison               | [ ]    |                                                 |
+| In bitwise operation        | [x]    | `bitwise/i8-bitwise-ops.test.cnx`               |
+| As loop counter             | [x]    | `for-loops/for-i8-counter.test.cnx`             |
+| Negative literal assignment | [ ]    |                                                 |
+| With const modifier         | [ ]    |                                                 |
+| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier         | [ ]    |                                                 |
+| With wrap modifier          | [ ]    |                                                 |
+| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i16
 
@@ -202,15 +208,17 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter          | [x]    |                                    |
 | Function return type        | [x]    |                                    |
 | Struct member               | [x]    |                                    |
-| Array element type          | [ ]    |                                    |
-| In arithmetic expression    | [ ]    |                                    |
-| In comparison               | [ ]    |                                    |
-| As loop counter             | [x]    | `for-loops/for-i16-counter.test.cnx` |
-| Negative literal assignment | [x]    |                                    |
-| With const modifier         | [ ]    |                                    |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx` |
-| With clamp modifier         | [ ]    |                                    |
-| With wrap modifier          | [ ]    |                                    |
+| Array element type          | [ ]    |                                                 |
+| In arithmetic expression    | [ ]    |                                                 |
+| In comparison               | [ ]    |                                                 |
+| In bitwise operation        | [x]    | `bitwise/i16-bitwise-ops.test.cnx`              |
+| As loop counter             | [x]    | `for-loops/for-i16-counter.test.cnx`            |
+| Negative literal assignment | [x]    |                                                 |
+| With const modifier         | [ ]    |                                                 |
+| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier         | [ ]    |                                                 |
+| With wrap modifier          | [ ]    |                                                 |
+| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i32
 
@@ -223,15 +231,17 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter          | [x]    |                                       |
 | Function return type        | [x]    |                                       |
 | Struct member               | [x]    |                                       |
-| Array element type          | [ ]    |                                       |
-| In arithmetic expression    | [x]    |                                       |
-| In comparison               | [x]    |                                       |
-| As loop counter             | [ ]    |                                       |
-| Negative literal assignment | [x]    |                                       |
-| With const modifier         | [x]    |                                       |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`    |
-| With clamp modifier         | [x]    | `primitives/signed-overflow.test.cnx` |
-| With wrap modifier          | [x]    | `primitives/signed-overflow.test.cnx` |
+| Array element type          | [ ]    |                                                 |
+| In arithmetic expression    | [x]    |                                                 |
+| In comparison               | [x]    |                                                 |
+| In bitwise operation        | [x]    | `bitwise/i32-bitwise-ops.test.cnx`              |
+| As loop counter             | [ ]    |                                                 |
+| Negative literal assignment | [x]    |                                                 |
+| With const modifier         | [x]    |                                                 |
+| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier         | [x]    | `primitives/signed-overflow.test.cnx`           |
+| With wrap modifier          | [x]    | `primitives/signed-overflow.test.cnx`           |
+| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i64
 
@@ -244,15 +254,17 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter          | [x]    |                                    |
 | Function return type        | [x]    |                                    |
 | Struct member               | [x]    |                                    |
-| Array element type          | [ ]    |                                    |
-| In arithmetic expression    | [ ]    |                                    |
-| In comparison               | [ ]    |                                    |
-| As loop counter             | [x]    | `for-loops/for-i64-counter.test.cnx` |
-| Negative literal assignment | [ ]    |                                    |
-| With const modifier         | [ ]    |                                    |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx` |
-| With clamp modifier         | [ ]    |                                    |
-| With wrap modifier          | [ ]    |                                    |
+| Array element type          | [ ]    |                                                 |
+| In arithmetic expression    | [ ]    |                                                 |
+| In comparison               | [ ]    |                                                 |
+| In bitwise operation        | [x]    | `bitwise/i64-bitwise-ops.test.cnx`              |
+| As loop counter             | [x]    | `for-loops/for-i64-counter.test.cnx`            |
+| Negative literal assignment | [ ]    |                                                 |
+| With const modifier         | [ ]    |                                                 |
+| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier         | [ ]    |                                                 |
+| With wrap modifier          | [ ]    |                                                 |
+| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 ### 1.3 Floating Point
 
