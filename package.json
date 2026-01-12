@@ -25,7 +25,8 @@
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
     "eslint:check": "eslint src/",
-    "eslint:fix": "eslint src/ --fix"
+    "eslint:fix": "eslint src/ --fix",
+    "prepare": "husky"
   },
   "keywords": [
     "c",
@@ -45,7 +46,9 @@
     "eslint-config-airbnb-typescript": "^18.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
@@ -53,5 +56,13 @@
   },
   "dependencies": {
     "antlr4ng": "^3.0.16"
+  },
+  "lint-staged": {
+    "*.{js,ts,json,md}": [
+      "prettier --write"
+    ],
+    "*.ts": [
+      "eslint --fix"
+    ]
   }
 }
