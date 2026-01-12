@@ -70,19 +70,19 @@ This document tracks test coverage for every language construct in every valid c
 
 #### u8
 
-| Context                        | Status | Test File                          |
-| ------------------------------ | ------ | ---------------------------------- |
-| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`    |
-| Global variable with init      | [x]    |                                    |
-| Local variable declaration     | [x]    |                                    |
-| Local variable with init       | [x]    |                                    |
-| Function parameter             | [x]    |                                    |
-| Function return type           | [x]    |                                    |
-| Struct member                  | [x]    |                                    |
-| Array element type             | [x]    |                                    |
-| Array element type (multi-dim) | [ ]    |                                    |
-| In arithmetic expression       | [x]    |                                    |
-| In comparison                  | [x]    |                                    |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [x]    |                                                 |
+| Array element type (multi-dim) | [ ]    |                                                 |
+| In arithmetic expression       | [x]    |                                                 |
+| In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u8-bitwise-ops.test.cnx`               |
 | As loop counter                | [x]    | `for-loops/for-u8-counter.test.cnx`             |
 | In ternary expression          | [ ]    |                                                 |
@@ -96,19 +96,19 @@ This document tracks test coverage for every language construct in every valid c
 
 #### u16
 
-| Context                        | Status | Test File                          |
-| ------------------------------ | ------ | ---------------------------------- |
-| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`    |
-| Global variable with init      | [x]    |                                    |
-| Local variable declaration     | [x]    |                                    |
-| Local variable with init       | [x]    |                                    |
-| Function parameter             | [x]    |                                    |
-| Function return type           | [x]    |                                    |
-| Struct member                  | [x]    |                                    |
-| Array element type             | [x]    |                                    |
-| Array element type (multi-dim) | [ ]    |                                    |
-| In arithmetic expression       | [x]    |                                    |
-| In comparison                  | [x]    |                                    |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [x]    |                                                 |
+| Array element type (multi-dim) | [ ]    |                                                 |
+| In arithmetic expression       | [x]    |                                                 |
+| In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u16-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-u16-counter.test.cnx`            |
 | In ternary expression          | [ ]    |                                                 |
@@ -122,25 +122,25 @@ This document tracks test coverage for every language construct in every valid c
 
 #### u32
 
-| Context                        | Status | Test File                               |
-| ------------------------------ | ------ | --------------------------------------- |
-| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`         |
-| Global variable with init      | [x]    |                                         |
-| Local variable declaration     | [x]    |                                         |
-| Local variable with init       | [x]    |                                         |
-| Function parameter             | [x]    |                                         |
-| Function return type           | [x]    |                                         |
-| Struct member                  | [x]    |                                         |
-| Array element type             | [x]    |                                         |
-| Array element type (multi-dim) | [x]    | `multi-dim-arrays/basic-2d.test.cnx`    |
-| In arithmetic expression       | [x]    |                                         |
-| In comparison                  | [x]    |                                         |
-| In bitwise operation           | [x]    |                                         |
-| As loop counter                | [x]    | `for-loops/for-basic.test.cnx`          |
-| In ternary expression          | [x]    | `ternary/ternary-basic.test.cnx`        |
-| With const modifier            | [x]    | `const/const-variable.test.cnx`         |
-| With atomic modifier           | [x]    | `atomic/basic.test.cnx`                 |
-| With clamp modifier            | [x]    | `primitives/clamp-declaration.test.cnx` |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [x]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/basic-2d.test.cnx`            |
+| In arithmetic expression       | [x]    |                                                 |
+| In comparison                  | [x]    |                                                 |
+| In bitwise operation           | [x]    |                                                 |
+| As loop counter                | [x]    | `for-loops/for-basic.test.cnx`                  |
+| In ternary expression          | [x]    | `ternary/ternary-basic.test.cnx`                |
+| With const modifier            | [x]    | `const/const-variable.test.cnx`                 |
+| With atomic modifier           | [x]    | `atomic/basic.test.cnx`                         |
+| With clamp modifier            | [x]    | `primitives/clamp-declaration.test.cnx`         |
 | With wrap modifier             | [x]    | `primitives/wrap-declaration.test.cnx`          |
 | In scope declaration           | [x]    | `scope/this-global-test.test.cnx`               |
 | In register field              | [x]    | `register/register-basic.test.cnx`              |
@@ -148,19 +148,19 @@ This document tracks test coverage for every language construct in every valid c
 
 #### u64
 
-| Context                        | Status | Test File                          |
-| ------------------------------ | ------ | ---------------------------------- |
-| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`    |
-| Global variable with init      | [x]    |                                    |
-| Local variable declaration     | [x]    |                                    |
-| Local variable with init       | [x]    |                                    |
-| Function parameter             | [x]    |                                    |
-| Function return type           | [x]    |                                    |
-| Struct member                  | [x]    |                                    |
-| Array element type             | [ ]    |                                    |
-| Array element type (multi-dim) | [ ]    |                                    |
-| In arithmetic expression       | [ ]    |                                    |
-| In comparison                  | [ ]    |                                    |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [ ]    |                                                 |
+| Array element type (multi-dim) | [ ]    |                                                 |
+| In arithmetic expression       | [ ]    |                                                 |
+| In comparison                  | [ ]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u64-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-u64-counter.test.cnx`            |
 | In ternary expression          | [ ]    |                                                 |
@@ -176,15 +176,15 @@ This document tracks test coverage for every language construct in every valid c
 
 #### i8
 
-| Context                     | Status | Test File                          |
-| --------------------------- | ------ | ---------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`    |
-| Global variable with init   | [x]    |                                    |
-| Local variable declaration  | [x]    |                                    |
-| Local variable with init    | [x]    |                                    |
-| Function parameter          | [x]    |                                    |
-| Function return type        | [x]    |                                    |
-| Struct member               | [x]    |                                    |
+| Context                     | Status | Test File                                       |
+| --------------------------- | ------ | ----------------------------------------------- |
+| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init   | [x]    |                                                 |
+| Local variable declaration  | [x]    |                                                 |
+| Local variable with init    | [x]    |                                                 |
+| Function parameter          | [x]    |                                                 |
+| Function return type        | [x]    |                                                 |
+| Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
 | In arithmetic expression    | [ ]    |                                                 |
 | In comparison               | [ ]    |                                                 |
@@ -199,15 +199,15 @@ This document tracks test coverage for every language construct in every valid c
 
 #### i16
 
-| Context                     | Status | Test File                          |
-| --------------------------- | ------ | ---------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`    |
-| Global variable with init   | [x]    |                                    |
-| Local variable declaration  | [x]    |                                    |
-| Local variable with init    | [x]    |                                    |
-| Function parameter          | [x]    |                                    |
-| Function return type        | [x]    |                                    |
-| Struct member               | [x]    |                                    |
+| Context                     | Status | Test File                                       |
+| --------------------------- | ------ | ----------------------------------------------- |
+| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init   | [x]    |                                                 |
+| Local variable declaration  | [x]    |                                                 |
+| Local variable with init    | [x]    |                                                 |
+| Function parameter          | [x]    |                                                 |
+| Function return type        | [x]    |                                                 |
+| Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
 | In arithmetic expression    | [ ]    |                                                 |
 | In comparison               | [ ]    |                                                 |
@@ -222,15 +222,15 @@ This document tracks test coverage for every language construct in every valid c
 
 #### i32
 
-| Context                     | Status | Test File                             |
-| --------------------------- | ------ | ------------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`       |
-| Global variable with init   | [x]    |                                       |
-| Local variable declaration  | [x]    |                                       |
-| Local variable with init    | [x]    |                                       |
-| Function parameter          | [x]    |                                       |
-| Function return type        | [x]    |                                       |
-| Struct member               | [x]    |                                       |
+| Context                     | Status | Test File                                       |
+| --------------------------- | ------ | ----------------------------------------------- |
+| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init   | [x]    |                                                 |
+| Local variable declaration  | [x]    |                                                 |
+| Local variable with init    | [x]    |                                                 |
+| Function parameter          | [x]    |                                                 |
+| Function return type        | [x]    |                                                 |
+| Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
 | In arithmetic expression    | [x]    |                                                 |
 | In comparison               | [x]    |                                                 |
@@ -245,15 +245,15 @@ This document tracks test coverage for every language construct in every valid c
 
 #### i64
 
-| Context                     | Status | Test File                          |
-| --------------------------- | ------ | ---------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`    |
-| Global variable with init   | [x]    |                                    |
-| Local variable declaration  | [x]    |                                    |
-| Local variable with init    | [x]    |                                    |
-| Function parameter          | [x]    |                                    |
-| Function return type        | [x]    |                                    |
-| Struct member               | [x]    |                                    |
+| Context                     | Status | Test File                                       |
+| --------------------------- | ------ | ----------------------------------------------- |
+| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init   | [x]    |                                                 |
+| Local variable declaration  | [x]    |                                                 |
+| Local variable with init    | [x]    |                                                 |
+| Function parameter          | [x]    |                                                 |
+| Function return type        | [x]    |                                                 |
+| Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
 | In arithmetic expression    | [ ]    |                                                 |
 | In comparison               | [ ]    |                                                 |
