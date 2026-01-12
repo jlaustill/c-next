@@ -208,6 +208,7 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 ## Implementation Status
 
 **Completed:**
+
 - ✅ Phase 1: C11 and CPP14 grammars imported from grammars-v4
 - ✅ Phase 1: `CSymbolCollector` and `CppSymbolCollector` extract symbols from C/C++ files
 - ✅ Phase 2: `SymbolTable` class with cross-language conflict detection
@@ -219,6 +220,7 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 - ✅ CLI `--project` mode for multi-file builds
 
 **In Progress:**
+
 - 🔶 Phase 3: Cross-file resolution partially works
   - Symbol table is populated but not fully utilized
   - **Issue:** `CodeGenerator` doesn't use symbol table for type resolution
@@ -226,11 +228,13 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
   - **Example:** `config.magic.length` where `AppConfig` is from C header → `length = 0 / 8`
 
 **Not Started:**
+
 - ❌ Remove `--project` flag (should always use unified parsing)
 - ❌ Make unified parsing the default behavior
 - ❌ Update CodeGenerator to use SymbolTable for type resolution
 
 **Known Issues:**
+
 - CodeGenerator line 5616 only checks local `structFields` map, ignores `symbolTable`
 - Single-file mode (`cnext file.cnx`) doesn't parse C headers
 - Array indexing on C header structs broken (related to [Issue #8](https://github.com/jlaustill/c-next/issues/8))
