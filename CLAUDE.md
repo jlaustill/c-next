@@ -15,10 +15,11 @@
 
 **All new and modified TypeScript code must pass linting:**
 
-- Run `npm run prettier:fix` before committing
-- Run `npm run eslint:check` on files you've touched
+- **Automated**: Pre-commit hooks automatically run prettier and eslint on staged files
+- **Manual** (if needed): `npm run prettier:fix` and `npm run eslint:check`
 - Fix any ESLint errors in code you write or modify
 - Legacy errors in untouched files can be ignored (fix as you go)
+- Pre-commit hooks use `lint-staged` to only check files you're committing
 
 ## Testing Requirements
 
