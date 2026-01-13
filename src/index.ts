@@ -9,9 +9,16 @@ import {
   ITranspileResult,
   ITranspileError,
 } from "./lib/transpiler.js";
-import { detectPlatformIOTarget } from "./lib/PlatformIODetector.js";
+import { IncludeDiscovery } from "./lib/IncludeDiscovery.js";
+import { InputExpansion } from "./lib/InputExpansion.js";
 import Project from "./project/Project.js";
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  statSync,
+} from "fs";
 import { dirname, resolve } from "path";
 
 /**
@@ -80,8 +87,8 @@ function showHelp(): void {
   console.log(
     "  --cpp              Output .cpp instead of .c (for C++ features like Serial)",
   );
-  console.log("  --project <dir>    Compile all .cnx files in directory");
   console.log("  --include <dir>    Additional include directory (can repeat)");
+  console.log("  --verbose          Show include path discovery");
   console.log("  --parse            Parse only, don't generate code");
   console.log(
     "  --debug            Generate panic-on-overflow helpers (ADR-044)",
@@ -103,14 +110,18 @@ function showHelp(): void {
   console.log("  --help, -h         Show this help");
   console.log("");
   console.log("Examples:");
-  console.log("  cnext main.cnx                            # Outputs main.c");
+  console.log(
+    "  cnext main.cnx                            # Outputs main.c (same dir)",
+  );
   console.log(
     "  cnext main.cnx -o build/main.c            # Explicit output path",
   );
   console.log(
     "  cnext src/*.cnx -o build/                 # Multiple files to directory",
   );
-  console.log("  cnext --project ./src -o ./build          # Project mode");
+  console.log(
+    "  cnext src/                                # Compile all .cnx files in src/ (recursive)",
+  );
   console.log("");
   console.log("Config files (searched in order, JSON format):");
   console.log("  cnext.config.json, .cnext.json, .cnextrc");
@@ -119,57 +130,6 @@ function showHelp(): void {
   console.log('  { "outputExtension": ".cpp" }');
   console.log("");
   console.log("A safer C for embedded systems development.");
-}
-
-/**
- * Derive output path from input path (.cnx → .c or .cpp in same directory)
- */
-function deriveOutputPath(
-  inputFile: string,
-  cppOutput: boolean = false,
-): string {
-  const ext = cppOutput ? ".cpp" : ".c";
-  return inputFile.replace(/\.cnx$/, ext);
-}
-
-/**
- * Single file compilation (original mode)
- */
-function runSingleFileMode(
-  inputFile: string,
-  outputFile: string,
-  parseOnly: boolean,
-  debugMode: boolean = false,
-  cppOutput: boolean = false,
-  target?: string,
-): void {
-  // Default output: same directory, .cnx → .c (or .cpp with --cpp flag)
-  const effectiveOutput = outputFile || deriveOutputPath(inputFile, cppOutput);
-
-  try {
-    const input = readFileSync(inputFile, "utf-8");
-    const result = transpile(input, { parseOnly, debugMode, target });
-
-    if (!result.success) {
-      console.error("Errors:");
-      result.errors.forEach((err) =>
-        console.error(`  Line ${err.line}:${err.column} - ${err.message}`),
-      );
-      process.exit(1);
-    }
-
-    if (parseOnly) {
-      console.log("Parse successful!");
-      console.log(`Found ${result.declarationCount} top-level declarations`);
-    } else {
-      writeFileSync(effectiveOutput, result.code);
-      console.log(`Generated: ${effectiveOutput}`);
-    }
-  } catch (err) {
-    console.error(`Error reading file: ${inputFile}`);
-    console.error(err);
-    process.exit(1);
-  }
 }
 
 /**
@@ -215,62 +175,74 @@ function printProjectResult(result: {
 }
 
 /**
- * Multi-file compilation
+ * Unified mode - always use Project class with header discovery
  */
-async function runMultiFileMode(
-  files: string[],
-  outDir: string,
+async function runUnifiedMode(
+  inputs: string[],
+  outputPath: string,
   includeDirs: string[],
   defines: Record<string, string | boolean>,
   generateHeaders: boolean,
   preprocess: boolean,
+  verbose: boolean,
 ): Promise<void> {
-  if (!outDir) {
-    console.error(
-      "Error: Output directory required for multi-file mode (-o <dir>)",
-    );
+  // Step 1: Expand directories to .cnx files
+  let files: string[];
+  try {
+    files = InputExpansion.expandInputs(inputs);
+  } catch (error) {
+    console.error(`Error: ${error}`);
     process.exit(1);
   }
 
+  if (files.length === 0) {
+    console.error("Error: No .cnx files found");
+    process.exit(1);
+  }
+
+  // Step 2: Auto-discover include paths from first file
+  const autoIncludePaths = IncludeDiscovery.discoverIncludePaths(files[0]);
+  const allIncludePaths = [...autoIncludePaths, ...includeDirs];
+
+  if (verbose) {
+    console.log("Include paths:");
+    for (const path of allIncludePaths) {
+      console.log(`  ${path}`);
+    }
+  }
+
+  // Step 3: Determine output directory
+  let outDir: string;
+  if (outputPath) {
+    // User specified -o
+    const stats = existsSync(outputPath) ? statSync(outputPath) : null;
+    if (stats?.isDirectory() || outputPath.endsWith("/")) {
+      outDir = outputPath;
+    } else if (files.length === 1) {
+      // Single file + explicit file path -> use directory
+      outDir = dirname(outputPath);
+    } else {
+      outDir = outputPath;
+    }
+  } else {
+    // No -o flag: use same directory as first input file
+    outDir = dirname(files[0]);
+  }
+
+  // Step 4: Create Project
   const project = new Project({
-    srcDirs: [],
-    includeDirs,
-    outDir,
+    srcDirs: [], // No srcDirs, use explicit files
     files,
+    includeDirs: allIncludePaths,
+    outDir,
     generateHeaders,
     preprocess,
     defines,
   });
 
+  // Step 5: Compile
   const result = await project.compile();
   printProjectResult(result);
-
-  process.exit(result.success ? 0 : 1);
-}
-
-/**
- * Project mode compilation
- */
-async function runProjectMode(
-  projectDir: string,
-  outDir: string,
-  includeDirs: string[],
-  defines: Record<string, string | boolean>,
-  generateHeaders: boolean,
-  preprocess: boolean,
-): Promise<void> {
-  const project = new Project({
-    srcDirs: [projectDir],
-    includeDirs,
-    outDir: outDir || "./build",
-    generateHeaders,
-    preprocess,
-    defines,
-  });
-
-  const result = await project.compile();
-  printProjectResult(result);
-
   process.exit(result.success ? 0 : 1);
 }
 
@@ -481,33 +453,21 @@ async function main(): Promise<void> {
   // Parse arguments (first pass to get input files for config lookup)
   const inputFiles: string[] = [];
   let outputPath = "";
-  let projectDir = "";
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
-  let parseOnly = false;
-  let cliDebugMode: boolean | undefined;
-  let cliTarget: string | undefined;
   let cliGenerateHeaders: boolean | undefined;
   let preprocess = true;
-  let cliCppOutput: boolean | undefined;
+  let verbose = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === "-o" && i + 1 < args.length) {
       outputPath = args[++i];
-    } else if (arg === "--project" && i + 1 < args.length) {
-      projectDir = args[++i];
     } else if (arg === "--include" && i + 1 < args.length) {
       includeDirs.push(args[++i]);
-    } else if (arg === "--parse") {
-      parseOnly = true;
-    } else if (arg === "--debug") {
-      cliDebugMode = true;
-    } else if (arg === "--target" && i + 1 < args.length) {
-      cliTarget = args[++i];
-    } else if (arg === "--cpp") {
-      cliCppOutput = true;
+    } else if (arg === "--verbose") {
+      verbose = true;
     } else if (arg === "--exclude-headers") {
       cliGenerateHeaders = false;
     } else if (arg === "--no-preprocess") {
@@ -525,61 +485,30 @@ async function main(): Promise<void> {
     }
   }
 
-  // Load config file (searches up from input file or project directory)
+  // Load config file (searches up from input file directory)
   const configDir =
-    projectDir ||
-    (inputFiles.length > 0 ? dirname(resolve(inputFiles[0])) : process.cwd());
+    inputFiles.length > 0 ? dirname(resolve(inputFiles[0])) : process.cwd();
   const config = loadConfig(configDir);
 
   // Apply config defaults, CLI flags take precedence
-  const cppOutput = cliCppOutput ?? config.outputExtension === ".cpp";
-  const debugMode = cliDebugMode ?? config.debugMode ?? false;
   const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
 
-  // ADR-049: Target resolution priority: CLI > config > PlatformIO > pragma > default
-  // Detect PlatformIO target as fallback (only for single-file mode currently)
-  const pioTarget =
-    inputFiles.length === 1
-      ? detectPlatformIOTarget(dirname(resolve(inputFiles[0])))
-      : undefined;
-  const target = cliTarget ?? config.target ?? pioTarget;
-
-  // Determine mode
-  if (projectDir) {
-    // Project mode
-    await runProjectMode(
-      projectDir,
-      outputPath,
-      includeDirs,
-      defines,
-      generateHeaders,
-      preprocess,
-    );
-  } else if (inputFiles.length > 1) {
-    // Multi-file mode
-    await runMultiFileMode(
-      inputFiles,
-      outputPath,
-      includeDirs,
-      defines,
-      generateHeaders,
-      preprocess,
-    );
-  } else if (inputFiles.length === 1) {
-    // Single file mode
-    runSingleFileMode(
-      inputFiles[0],
-      outputPath,
-      parseOnly,
-      debugMode,
-      cppOutput,
-      target,
-    );
-  } else {
+  // Unified mode - always use Project class with header discovery
+  if (inputFiles.length === 0) {
     console.error("Error: No input files specified");
     showHelp();
     process.exit(1);
   }
+
+  await runUnifiedMode(
+    inputFiles,
+    outputPath,
+    includeDirs,
+    defines,
+    generateHeaders,
+    preprocess,
+    verbose,
+  );
 }
 
 main().catch((err) => {
