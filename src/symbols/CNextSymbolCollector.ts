@@ -3,10 +3,10 @@
  * Extracts symbols from C-Next parse trees for the unified symbol table
  */
 
-import * as Parser from "../parser/grammar/CNextParser.js";
-import ISymbol from "../types/ISymbol.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
+import * as Parser from "../parser/grammar/CNextParser";
+import ISymbol from "../types/ISymbol";
+import ESymbolKind from "../types/ESymbolKind";
+import ESourceLanguage from "../types/ESourceLanguage";
 
 /**
  * Collects symbols from a C-Next parse tree

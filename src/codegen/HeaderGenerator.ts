@@ -3,10 +3,10 @@
  * Generates C header (.h) files from C-Next source
  */
 
-import ISymbol from "../types/ISymbol.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
-import SymbolTable from "../symbols/SymbolTable.js";
+import ISymbol from "../types/ISymbol";
+import ESymbolKind from "../types/ESymbolKind";
+import ESourceLanguage from "../types/ESourceLanguage";
+import SymbolTable from "../symbols/SymbolTable";
 
 /**
  * Maps C-Next types to C types

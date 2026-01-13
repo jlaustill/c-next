@@ -4,23 +4,23 @@
  */
 
 import { CommonTokenStream } from "antlr4ng";
-import * as Parser from "../parser/grammar/CNextParser.js";
-import SymbolTable from "../symbols/SymbolTable.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import CommentExtractor from "./CommentExtractor.js";
-import CommentFormatter from "./CommentFormatter.js";
-import IComment from "./types/IComment.js";
+import * as Parser from "../parser/grammar/CNextParser";
+import SymbolTable from "../symbols/SymbolTable";
+import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
+import CommentExtractor from "./CommentExtractor";
+import CommentFormatter from "./CommentFormatter";
+import IComment from "./types/IComment";
 import {
   TYPE_WIDTH,
   C_TYPE_WIDTH,
   BITMAP_SIZE,
   BITMAP_BACKING_TYPE,
-} from "./types/TTypeConstants.js";
-import TTypeInfo from "./types/TTypeInfo.js";
-import TParameterInfo from "./types/TParameterInfo.js";
-import TOverflowBehavior from "./types/TOverflowBehavior.js";
-import TypeResolver from "./TypeResolver.js";
+} from "./types/TTypeConstants";
+import TTypeInfo from "./types/TTypeInfo";
+import TParameterInfo from "./types/TParameterInfo";
+import TOverflowBehavior from "./types/TOverflowBehavior";
+import TypeResolver from "./TypeResolver";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -337,134 +337,6 @@ export default class CodeGenerator {
     }
 
     return undefined;
-  }
-
-  /**
-   * Check if a type name is a known struct (from C-Next or C headers)
-   */
-  private isKnownStruct(typeName: string): boolean {
-    // Check local C-Next structs
-    if (this.knownStructs.has(typeName)) {
-      return true;
-    }
-
-    // Check SymbolTable for C header structs
-    if (this.symbolTable) {
-      const symbols = this.symbolTable.getOverloads(typeName);
-      for (const sym of symbols) {
-        if (sym.kind === ESymbolKind.Struct) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Convert C type name to C-Next type name for TYPE_WIDTH lookup
-   * E.g., "uint32_t" -> "u32", "int16_t" -> "i16"
-   */
-  private normalizeCTypeForLookup(cType: string): string {
-    // Remove qualifiers and whitespace
-    const cleanType = cType
-      .trim()
-      .replace(/\b(const|volatile)\b/g, "")
-      .trim();
-
-    // Map C stdint types to C-Next types
-    const cTypeMap: Record<string, string> = {
-      uint8_t: "u8",
-      uint16_t: "u16",
-      uint32_t: "u32",
-      uint64_t: "u64",
-      int8_t: "i8",
-      int16_t: "i16",
-      int32_t: "i32",
-      int64_t: "i64",
-      float: "f32",
-      double: "f64",
-      _Bool: "bool",
-      bool: "bool",
-    };
-
-    return cTypeMap[cleanType] || cleanType;
-  }
-
-  /**
-   * Check if an assignment target is a string that requires strcpy()
-   * Handles: arr[0], struct.arr[0], this.arr[0], Scope.arr[0]
-   */
-  private isStringAssignmentTarget(
-    targetCtx: Parser.AssignmentTargetContext,
-  ): boolean {
-    // Case 1: Simple array access - arr[0]
-    if (targetCtx.arrayAccess()) {
-      const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
-      const typeInfo = this.context.typeRegistry.get(arrayName);
-
-      // Check if it's a string array (has isString and multiple dimensions)
-      if (
-        typeInfo &&
-        typeInfo.isString &&
-        typeInfo.arrayDimensions &&
-        typeInfo.arrayDimensions.length > 1
-      ) {
-        return true;
-      }
-    }
-
-    // Case 2: Member access - struct.arr[0]
-    if (targetCtx.memberAccess()) {
-      const memberAccessCtx = targetCtx.memberAccess()!;
-      const identifiers = memberAccessCtx.IDENTIFIER();
-      const expressions = memberAccessCtx.expression();
-
-      if (identifiers.length >= 2 && expressions.length > 0) {
-        const rootName = identifiers[0].getText();
-        const memberName = identifiers[1].getText();
-
-        // Get root type
-        const rootTypeInfo = this.context.typeRegistry.get(rootName);
-        if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
-          const structType = rootTypeInfo.baseType;
-          const fieldInfo = this.getStructFieldInfo(structType, memberName);
-
-          // Check if the field is a string array
-          if (
-            fieldInfo &&
-            fieldInfo.type.startsWith("string<") &&
-            fieldInfo.dimensions &&
-            fieldInfo.dimensions.length > 1
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-
-    // Case 3: This array access - this.arr[0] (within a scope)
-    if (targetCtx.thisArrayAccess()) {
-      const thisArrayAccessCtx = targetCtx.thisArrayAccess()!;
-      const identifiers = thisArrayAccessCtx.IDENTIFIER();
-
-      if (identifiers.length >= 1 && this.context.currentScope) {
-        const memberName = identifiers[0].getText();
-        const scopedName = `${this.context.currentScope}_${memberName}`;
-
-        const typeInfo = this.context.typeRegistry.get(scopedName);
-        if (
-          typeInfo &&
-          typeInfo.isString &&
-          typeInfo.arrayDimensions &&
-          typeInfo.arrayDimensions.length > 1
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 
   /**
@@ -1487,63 +1359,6 @@ export default class CodeGenerator {
     if (typeCtx.primitiveType()) {
       baseType = typeCtx.primitiveType()!.getText();
       bitWidth = TYPE_WIDTH[baseType] || 0;
-    } else if (typeCtx.stringType()) {
-      // ADR-045: Handle bounded string type
-      const stringCtx = typeCtx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-
-      if (intLiteral) {
-        const capacity = parseInt(intLiteral.getText(), 10);
-        this.needsString = true;
-        const stringDim = capacity + 1; // String capacity dimension (last)
-
-        // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
-        if (arrayDim && arrayDim.length > 0) {
-          // Process array dimensions (they come BEFORE string capacity)
-          const stringArrayDims: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = parseInt(sizeExpr.getText(), 10);
-              if (!isNaN(size) && size > 0) {
-                stringArrayDims.push(size);
-              }
-            }
-          }
-          // Append string capacity as final dimension
-          stringArrayDims.push(stringDim);
-
-          this.context.typeRegistry.set(registryName, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: stringArrayDims, // [4, 65] for string<64> arr[4]
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-            overflowBehavior,
-            isAtomic,
-          });
-        } else {
-          // Single string: string<64> s
-          this.context.typeRegistry.set(registryName, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: [stringDim], // [65]
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-            overflowBehavior,
-            isAtomic,
-          });
-        }
-        return; // Early return, we've handled this case
-      } else {
-        // Unsized string - for const inference (handled in generateVariableDecl)
-        baseType = "string";
-        bitWidth = 0;
-      }
     } else if (typeCtx.scopedType()) {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
       const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
@@ -4782,9 +4597,9 @@ export default class CodeGenerator {
 
     // Check for struct member string array assignment: struct.arr[0] <- "value"
     if (targetCtx.memberAccess()) {
-      const memberAccessForStringCtx = targetCtx.memberAccess()!;
-      const identifiers = memberAccessForStringCtx.IDENTIFIER();
-      const exprs = memberAccessForStringCtx.expression();
+      const structMemberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = structMemberAccessCtx.IDENTIFIER();
+      const exprs = structMemberAccessCtx.expression();
 
       // Pattern: struct.field[index] (2 identifiers, 1 expression)
       if (identifiers.length === 2 && exprs.length === 1) {
@@ -6136,38 +5951,15 @@ export default class CodeGenerator {
                 const memberType = fieldInfo.type;
                 const dimensions = fieldInfo.dimensions;
 
-                // Check if this is a string field
-                const isStringField = memberType.startsWith("string<");
-
-                if (dimensions && dimensions.length > 1 && isStringField) {
-                  // String array field
-                  if (!isSubscripted) {
-                    // ts.arr.length -> return element count (first dimension)
-                    result = String(dimensions[0]);
-                  } else {
-                    // ts.arr[0].length -> strlen(ts.arr[0])
-                    result = `strlen(${result})`;
-                  }
-                } else if (
-                  dimensions &&
-                  dimensions.length === 1 &&
-                  isStringField
-                ) {
-                  // Single string field: ts.str.length -> strlen(ts.str)
-                  result = `strlen(${result})`;
-                } else if (
-                  dimensions &&
-                  dimensions.length > 0 &&
-                  !isSubscripted
-                ) {
-                  // Non-string array member -> return array length (first dimension)
+                if (dimensions && dimensions.length > 0 && !isSubscripted) {
+                  // Array member without subscript -> return array length (first dimension)
                   result = String(dimensions[0]);
                 } else if (
                   dimensions &&
                   dimensions.length > 0 &&
                   isSubscripted
                 ) {
-                  // Non-string array element: return element bit width
+                  // Array member with subscript (e.g., ts.arr[0].length) -> return element bit width
                   // Try C-Next types first, then C types
                   const bitWidth =
                     TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
@@ -6218,9 +6010,10 @@ export default class CodeGenerator {
                     // arr.length -> return element count (first dimension)
                     result = String(typeInfo.arrayDimensions[0]);
                   } else {
-                    // arr[0].length -> strlen(arr[0])
-                    // Use 'result' which has the subscript, not 'currentIdentifier'
-                    result = `strlen(${result})`;
+                    // arr[0].length -> return strlen(arr[0])
+                    result = currentIdentifier
+                      ? `strlen(${currentIdentifier})`
+                      : `strlen(${result})`;
                   }
                 } else {
                   // Single string: arrayDimensions: [65]

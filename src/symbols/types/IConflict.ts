@@ -1,4 +1,4 @@
-import ISymbol from "../../types/ISymbol.js";
+import ISymbol from "../../types/ISymbol";
 
 /**
  * Represents a symbol conflict between languages

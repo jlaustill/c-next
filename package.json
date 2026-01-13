@@ -2,11 +2,10 @@
   "name": "c-next",
   "version": "0.1.0",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
-  "main": "dist/index.js",
+  "main": "src/index.ts",
   "bin": {
-    "cnext": "./dist/index.js"
+    "cnext": "./bin/cnext.js"
   },
-  "type": "module",
   "scripts": {
     "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser grammar/CNext.g4",
     "antlr:c": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser/c grammar/C.g4",
@@ -14,14 +13,13 @@
     "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser/cpp -lib src/parser/cpp/grammar grammar/CPP14Parser.g4",
     "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
     "antlr:all": "npm run antlr && npm run antlr:c && npm run antlr:cpp",
-    "build": "npm run antlr:all && tsc",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
-    "test": "node scripts/test.js",
+    "test": "tsx scripts/test.js",
     "test:cli": "node scripts/test-cli.js",
-    "test:update": "node scripts/test.js --update",
+    "test:update": "tsx scripts/test.js --update",
     "analyze": "./scripts/static-analysis.sh",
-    "clean": "rm -rf dist src/parser",
+    "clean": "rm -rf src/parser",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
     "eslint:check": "eslint src/",
@@ -50,12 +48,12 @@
     "jest": "^30.2.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "ts-jest": "^29.4.6",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "ts-jest": "^29.4.6"
   },
   "dependencies": {
-    "antlr4ng": "^3.0.16"
+    "antlr4ng": "^3.0.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "lint-staged": {
     "*.{js,ts,json,md}": [

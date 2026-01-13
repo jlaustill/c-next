@@ -7,23 +7,23 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname } from "path";
 
-import { CNextLexer } from "../parser/grammar/CNextLexer.js";
-import { CNextParser } from "../parser/grammar/CNextParser.js";
-import { CLexer } from "../parser/c/grammar/CLexer.js";
-import { CParser } from "../parser/c/grammar/CParser.js";
-import { CPP14Lexer } from "../parser/cpp/grammar/CPP14Lexer.js";
-import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser.js";
+import { CNextLexer } from "../parser/grammar/CNextLexer";
+import { CNextParser } from "../parser/grammar/CNextParser";
+import { CLexer } from "../parser/c/grammar/CLexer";
+import { CParser } from "../parser/c/grammar/CParser";
+import { CPP14Lexer } from "../parser/cpp/grammar/CPP14Lexer";
+import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
 
-import CodeGenerator from "../codegen/CodeGenerator.js";
-import HeaderGenerator from "../codegen/HeaderGenerator.js";
-import SymbolTable from "../symbols/SymbolTable.js";
-import CNextSymbolCollector from "../symbols/CNextSymbolCollector.js";
-import CSymbolCollector from "../symbols/CSymbolCollector.js";
-import CppSymbolCollector from "../symbols/CppSymbolCollector.js";
-import Preprocessor from "../preprocessor/Preprocessor.js";
+import CodeGenerator from "../codegen/CodeGenerator";
+import HeaderGenerator from "../codegen/HeaderGenerator";
+import SymbolTable from "../symbols/SymbolTable";
+import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
+import CSymbolCollector from "../symbols/CSymbolCollector";
+import CppSymbolCollector from "../symbols/CppSymbolCollector";
+import Preprocessor from "../preprocessor/Preprocessor";
 
-import IProjectConfig, { IProjectResult } from "./types/IProjectConfig.js";
-import FileDiscovery, { EFileType, IDiscoveredFile } from "./FileDiscovery.js";
+import IProjectConfig, { IProjectResult } from "./types/IProjectConfig";
+import FileDiscovery, { EFileType, IDiscoveredFile } from "./FileDiscovery";
 
 /**
  * Manages multi-file C-Next projects

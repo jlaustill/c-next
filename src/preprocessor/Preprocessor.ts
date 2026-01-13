@@ -8,11 +8,9 @@ import { promisify } from "util";
 import { writeFile, mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join, basename, dirname } from "path";
-import IToolchain from "./types/IToolchain.js";
-import IPreprocessResult, {
-  ISourceMapping,
-} from "./types/IPreprocessResult.js";
-import ToolchainDetector from "./ToolchainDetector.js";
+import IToolchain from "./types/IToolchain";
+import IPreprocessResult, { ISourceMapping } from "./types/IPreprocessResult";
+import ToolchainDetector from "./ToolchainDetector";
 
 const execAsync = promisify(exec);
 

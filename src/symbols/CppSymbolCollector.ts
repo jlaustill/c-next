@@ -5,10 +5,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser.js";
-import ISymbol from "../types/ISymbol.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
+import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
+import ISymbol from "../types/ISymbol";
+import ESymbolKind from "../types/ESymbolKind";
+import ESourceLanguage from "../types/ESourceLanguage";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
