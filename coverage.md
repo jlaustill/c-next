@@ -80,7 +80,7 @@ This document tracks test coverage for every language construct in every valid c
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
 | Array element type             | [x]    |                                                 |
-| Array element type (multi-dim) | [ ]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/u8-multi-dim.test.cnx`        |
 | In arithmetic expression       | [x]    |                                                 |
 | In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u8-bitwise-ops.test.cnx`               |
@@ -106,7 +106,7 @@ This document tracks test coverage for every language construct in every valid c
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
 | Array element type             | [x]    |                                                 |
-| Array element type (multi-dim) | [ ]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/u16-multi-dim.test.cnx`       |
 | In arithmetic expression       | [x]    |                                                 |
 | In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u16-bitwise-ops.test.cnx`              |
@@ -176,131 +176,137 @@ This document tracks test coverage for every language construct in every valid c
 
 #### i8
 
-| Context                     | Status | Test File                                       |
-| --------------------------- | ------ | ----------------------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
-| Global variable with init   | [x]    |                                                 |
-| Local variable declaration  | [x]    |                                                 |
-| Local variable with init    | [x]    |                                                 |
-| Function parameter          | [x]    |                                                 |
-| Function return type        | [x]    |                                                 |
-| Struct member               | [x]    |                                                 |
-| Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
-| In comparison               | [x]    | `comparison/i8-comparison.test.cnx`             |
-| In bitwise operation        | [x]    | `bitwise/i8-bitwise-ops.test.cnx`               |
-| As loop counter             | [x]    | `for-loops/for-i8-counter.test.cnx`             |
-| Negative literal assignment | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
-| With const modifier         | [ ]    |                                                 |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier         | [ ]    |                                                 |
-| With wrap modifier          | [ ]    |                                                 |
-| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [ ]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/i8-multi-dim.test.cnx`        |
+| In arithmetic expression       | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
+| In comparison                  | [x]    | `comparison/i8-comparison.test.cnx`             |
+| In bitwise operation           | [x]    | `bitwise/i8-bitwise-ops.test.cnx`               |
+| As loop counter                | [x]    | `for-loops/for-i8-counter.test.cnx`             |
+| Negative literal assignment    | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
+| With const modifier            | [ ]    |                                                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [ ]    |                                                 |
+| With wrap modifier             | [ ]    |                                                 |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i16
 
-| Context                     | Status | Test File                                       |
-| --------------------------- | ------ | ----------------------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
-| Global variable with init   | [x]    |                                                 |
-| Local variable declaration  | [x]    |                                                 |
-| Local variable with init    | [x]    |                                                 |
-| Function parameter          | [x]    |                                                 |
-| Function return type        | [x]    |                                                 |
-| Struct member               | [x]    |                                                 |
-| Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
-| In comparison               | [x]    | `comparison/i16-comparison.test.cnx`            |
-| In bitwise operation        | [x]    | `bitwise/i16-bitwise-ops.test.cnx`              |
-| As loop counter             | [x]    | `for-loops/for-i16-counter.test.cnx`            |
-| Negative literal assignment | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
-| With const modifier         | [ ]    |                                                 |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier         | [ ]    |                                                 |
-| With wrap modifier          | [ ]    |                                                 |
-| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [ ]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/i16-multi-dim.test.cnx`       |
+| In arithmetic expression       | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
+| In comparison                  | [x]    | `comparison/i16-comparison.test.cnx`            |
+| In bitwise operation           | [x]    | `bitwise/i16-bitwise-ops.test.cnx`              |
+| As loop counter                | [x]    | `for-loops/for-i16-counter.test.cnx`            |
+| Negative literal assignment    | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
+| With const modifier            | [ ]    |                                                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [ ]    |                                                 |
+| With wrap modifier             | [ ]    |                                                 |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i32
 
-| Context                     | Status | Test File                                       |
-| --------------------------- | ------ | ----------------------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
-| Global variable with init   | [x]    |                                                 |
-| Local variable declaration  | [x]    |                                                 |
-| Local variable with init    | [x]    |                                                 |
-| Function parameter          | [x]    |                                                 |
-| Function return type        | [x]    |                                                 |
-| Struct member               | [x]    |                                                 |
-| Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [x]    |                                                 |
-| In comparison               | [x]    |                                                 |
-| In bitwise operation        | [x]    | `bitwise/i32-bitwise-ops.test.cnx`              |
-| As loop counter             | [ ]    |                                                 |
-| Negative literal assignment | [x]    |                                                 |
-| With const modifier         | [x]    |                                                 |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier         | [x]    | `primitives/signed-overflow.test.cnx`           |
-| With wrap modifier          | [x]    | `primitives/signed-overflow.test.cnx`           |
-| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [ ]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/i32-multi-dim.test.cnx`       |
+| In arithmetic expression       | [x]    |                                                 |
+| In comparison                  | [x]    |                                                 |
+| In bitwise operation           | [x]    | `bitwise/i32-bitwise-ops.test.cnx`              |
+| As loop counter                | [ ]    |                                                 |
+| Negative literal assignment    | [x]    |                                                 |
+| With const modifier            | [x]    |                                                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [x]    | `primitives/signed-overflow.test.cnx`           |
+| With wrap modifier             | [x]    | `primitives/signed-overflow.test.cnx`           |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i64
 
-| Context                     | Status | Test File                                       |
-| --------------------------- | ------ | ----------------------------------------------- |
-| Global variable declaration | [x]    | `primitives/all-types.test.cnx`                 |
-| Global variable with init   | [x]    |                                                 |
-| Local variable declaration  | [x]    |                                                 |
-| Local variable with init    | [x]    |                                                 |
-| Function parameter          | [x]    |                                                 |
-| Function return type        | [x]    |                                                 |
-| Struct member               | [x]    |                                                 |
-| Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
-| In comparison               | [x]    | `comparison/i64-comparison.test.cnx`            |
-| In bitwise operation        | [x]    | `bitwise/i64-bitwise-ops.test.cnx`              |
-| As loop counter             | [x]    | `for-loops/for-i64-counter.test.cnx`            |
-| Negative literal assignment | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
-| With const modifier         | [ ]    |                                                 |
-| With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier         | [ ]    |                                                 |
-| With wrap modifier          | [ ]    |                                                 |
-| .length property            | [x]    | `primitives/length-property-all-types.test.cnx` |
+| Context                        | Status | Test File                                       |
+| ------------------------------ | ------ | ----------------------------------------------- |
+| Global variable declaration    | [x]    | `primitives/all-types.test.cnx`                 |
+| Global variable with init      | [x]    |                                                 |
+| Local variable declaration     | [x]    |                                                 |
+| Local variable with init       | [x]    |                                                 |
+| Function parameter             | [x]    |                                                 |
+| Function return type           | [x]    |                                                 |
+| Struct member                  | [x]    |                                                 |
+| Array element type             | [ ]    |                                                 |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/i64-multi-dim.test.cnx`       |
+| In arithmetic expression       | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
+| In comparison                  | [x]    | `comparison/i64-comparison.test.cnx`            |
+| In bitwise operation           | [x]    | `bitwise/i64-bitwise-ops.test.cnx`              |
+| As loop counter                | [x]    | `for-loops/for-i64-counter.test.cnx`            |
+| Negative literal assignment    | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
+| With const modifier            | [ ]    |                                                 |
+| With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
+| With clamp modifier            | [ ]    |                                                 |
+| With wrap modifier             | [ ]    |                                                 |
+| .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 ### 1.3 Floating Point
 
 #### f32
 
-| Context                     | Status | Test File                          |
-| --------------------------- | ------ | ---------------------------------- |
-| Global variable declaration | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Global variable with init   | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Local variable declaration  | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Local variable with init    | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Function parameter          | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Function return type        | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Struct member               | [x]    | `floats/f32-all-contexts.test.cnx` |
-| Array element type          | [x]    | `floats/float-arrays.test.cnx`     |
-| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx` |
-| In comparison               | [x]    | `floats/float-comparison.test.cnx` |
-| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`   |
-| Literal with f32 suffix     | [ ]    |                                    |
+| Context                        | Status | Test File                                 |
+| ------------------------------ | ------ | ----------------------------------------- |
+| Global variable declaration    | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Global variable with init      | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Local variable declaration     | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Local variable with init       | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Function parameter             | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Function return type           | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Struct member                  | [x]    | `floats/f32-all-contexts.test.cnx`        |
+| Array element type             | [x]    | `floats/float-arrays.test.cnx`            |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/f32-multi-dim.test.cnx` |
+| In arithmetic expression       | [x]    | `floats/float-arithmetic.test.cnx`        |
+| In comparison                  | [x]    | `floats/float-comparison.test.cnx`        |
+| Literal with decimal           | [x]    | `floats/float-literals.test.cnx`          |
+| Literal with f32 suffix        | [ ]    |                                           |
 
 #### f64
 
-| Context                     | Status | Test File                          |
-| --------------------------- | ------ | ---------------------------------- |
-| Global variable declaration | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Global variable with init   | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Local variable declaration  | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Local variable with init    | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Function parameter          | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Function return type        | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Struct member               | [x]    | `floats/f64-all-contexts.test.cnx` |
-| Array element type          | [x]    | `floats/float-arrays.test.cnx`     |
-| In arithmetic expression    | [x]    | `floats/float-arithmetic.test.cnx` |
-| In comparison               | [x]    | `floats/float-comparison.test.cnx` |
-| Literal with decimal        | [x]    | `floats/float-literals.test.cnx`   |
-| Literal with f64 suffix     | [ ]    |                                    |
+| Context                        | Status | Test File                                 |
+| ------------------------------ | ------ | ----------------------------------------- |
+| Global variable declaration    | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Global variable with init      | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Local variable declaration     | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Local variable with init       | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Function parameter             | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Function return type           | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Struct member                  | [x]    | `floats/f64-all-contexts.test.cnx`        |
+| Array element type             | [x]    | `floats/float-arrays.test.cnx`            |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/f64-multi-dim.test.cnx` |
+| In arithmetic expression       | [x]    | `floats/float-arithmetic.test.cnx`        |
+| In comparison                  | [x]    | `floats/float-comparison.test.cnx`        |
+| Literal with decimal           | [x]    | `floats/float-literals.test.cnx`          |
+| Literal with f64 suffix        | [ ]    |                                           |
 
 ### 1.4 Boolean
 
