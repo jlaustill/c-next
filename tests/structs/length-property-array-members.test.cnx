@@ -1,0 +1,44 @@
+/* test-execution */
+// Regression test: .length on struct members that are arrays
+// Tests both array.length (element count) and array[i].field.length
+
+struct DataPoint {
+    u32 timestamp;
+    u16 value;
+    u8 quality;
+}
+
+struct Dataset {
+    u32 id;
+    DataPoint samples[10];
+    u8 count;
+}
+
+u32 main() {
+    Dataset data;
+    data.id <- 12345;
+    data.count <- 5;
+
+    // Initialize first sample
+    data.samples[0].timestamp <- 1000;
+    data.samples[0].value <- 42;
+    data.samples[0].quality <- 100;
+
+    // Test .length on scalar struct member
+    if (data.id.length != 32) return 1;
+    if (data.count.length != 8) return 2;
+
+    // Test .length on array member (should be element count)
+    if (data.samples.length != 10) return 3;
+
+    // Test .length on array element's field
+    if (data.samples[0].timestamp.length != 32) return 4;
+    if (data.samples[0].value.length != 16) return 5;
+    if (data.samples[0].quality.length != 8) return 6;
+
+    // Test byte calculation from array element field
+    u32 bytes <- data.samples[0].timestamp.length / 8;
+    if (bytes != 4) return 7;
+
+    return 0;
+}
