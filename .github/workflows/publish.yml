@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate parser files
+        run: npm run antlr:all
+
       - name: Run tests
         run: npm test
 
