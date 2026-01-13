@@ -344,6 +344,163 @@ export default class CodeGenerator {
   }
 
   /**
+   * Check if a type name is a known struct (from C-Next or C headers)
+   */
+  private isKnownStruct(typeName: string): boolean {
+    // Check local C-Next structs
+    if (this.knownStructs.has(typeName)) {
+      return true;
+    }
+
+    // Check SymbolTable for C header structs
+    if (this.symbolTable) {
+      const symbols = this.symbolTable.getOverloads(typeName);
+      for (const sym of symbols) {
+        if (sym.kind === ESymbolKind.Struct) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Convert C type name to C-Next type name for TYPE_WIDTH lookup
+   * E.g., "uint32_t" -> "u32", "int16_t" -> "i16"
+   */
+  private normalizeCTypeForLookup(cType: string): string {
+    // Remove qualifiers and whitespace
+    const cleanType = cType
+      .trim()
+      .replace(/\b(const|volatile)\b/g, "")
+      .trim();
+
+    // Map C stdint types to C-Next types
+    const cTypeMap: Record<string, string> = {
+      uint8_t: "u8",
+      uint16_t: "u16",
+      uint32_t: "u32",
+      uint64_t: "u64",
+      int8_t: "i8",
+      int16_t: "i16",
+      int32_t: "i32",
+      int64_t: "i64",
+      float: "f32",
+      double: "f64",
+      _Bool: "bool",
+      bool: "bool",
+    };
+
+    return cTypeMap[cleanType] || cleanType;
+  }
+
+  /**
+   * Get struct field type and dimensions from both local structs and SymbolTable
+   * Returns {type, dimensions} or null if not found
+   */
+  private getStructFieldInfo(
+    structName: string,
+    fieldName: string,
+  ): { type: string; dimensions?: number[] } | null {
+    // First check local C-Next structs
+    const localFields = this.structFields.get(structName);
+    if (localFields) {
+      const fieldType = localFields.get(fieldName);
+      if (fieldType) {
+        const fieldDimensions = this.structFieldDimensions.get(structName);
+        const dimensions = fieldDimensions?.get(fieldName);
+        return {
+          type: fieldType,
+          dimensions:
+            dimensions && dimensions.length > 0 ? dimensions : undefined,
+        };
+      }
+    }
+
+    // TODO: Add SymbolTable integration when Issue #45 is merged
+    // For now, only check local C-Next structs
+
+    return null;
+  }
+
+  /**
+   * Check if an assignment target is a string that requires strcpy()
+   * Handles: arr[0], struct.arr[0], this.arr[0], Scope.arr[0]
+   */
+  private isStringAssignmentTarget(
+    targetCtx: Parser.AssignmentTargetContext,
+  ): boolean {
+    // Case 1: Simple array access - arr[0]
+    if (targetCtx.arrayAccess()) {
+      const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
+      const typeInfo = this.context.typeRegistry.get(arrayName);
+
+      // Check if it's a string array (has isString and multiple dimensions)
+      if (
+        typeInfo &&
+        typeInfo.isString &&
+        typeInfo.arrayDimensions &&
+        typeInfo.arrayDimensions.length > 1
+      ) {
+        return true;
+      }
+    }
+
+    // Case 2: Member access - struct.arr[0]
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      const expressions = memberAccessCtx.expression();
+
+      if (identifiers.length >= 2 && expressions.length > 0) {
+        const rootName = identifiers[0].getText();
+        const memberName = identifiers[1].getText();
+
+        // Get root type
+        const rootTypeInfo = this.context.typeRegistry.get(rootName);
+        if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
+          const structType = rootTypeInfo.baseType;
+          const fieldInfo = this.getStructFieldInfo(structType, memberName);
+
+          // Check if the field is a string array
+          if (
+            fieldInfo &&
+            fieldInfo.type.startsWith("string<") &&
+            fieldInfo.dimensions &&
+            fieldInfo.dimensions.length > 1
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // Case 3: This array access - this.arr[0] (within a scope)
+    if (targetCtx.thisArrayAccess()) {
+      const thisArrayAccessCtx = targetCtx.thisArrayAccess()!;
+      const identifiers = thisArrayAccessCtx.IDENTIFIER();
+
+      if (identifiers.length >= 1 && this.context.currentScope) {
+        const memberName = identifiers[0].getText();
+        const scopedName = `${this.context.currentScope}_${memberName}`;
+
+        const typeInfo = this.context.typeRegistry.get(scopedName);
+        if (
+          typeInfo &&
+          typeInfo.isString &&
+          typeInfo.arrayDimensions &&
+          typeInfo.arrayDimensions.length > 1
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Generate C code from a C-Next program
    * @param tree The parsed C-Next program
    * @param symbolTable Optional symbol table for cross-language interop
@@ -727,29 +884,53 @@ export default class CodeGenerator {
         const fieldDimensions = new Map<string, number[]>();
         for (const member of structDecl.structMember()) {
           const fieldName = member.IDENTIFIER().getText();
-          const fieldType = this.getTypeName(member.type());
+          const typeCtx = member.type();
+          const fieldType = this.getTypeName(typeCtx);
           fields.set(fieldName, fieldType);
 
-          // Track if this field has array dimensions
           const arrayDims = member.arrayDimension();
-          if (arrayDims.length > 0) {
-            arrayFields.add(fieldName);
+          const dimensions: number[] = [];
 
-            // Extract and store array dimensions
-            const dimensions: number[] = [];
+          // Check if this is a string type
+          if (typeCtx.stringType()) {
+            const stringCtx = typeCtx.stringType()!;
+            const intLiteral = stringCtx.INTEGER_LITERAL();
+
+            if (intLiteral) {
+              const capacity = parseInt(intLiteral.getText(), 10);
+
+              // If there are array dimensions, they come BEFORE string capacity
+              if (arrayDims.length > 0) {
+                for (const dim of arrayDims) {
+                  const sizeExpr = dim.expression();
+                  if (sizeExpr) {
+                    const size = parseInt(sizeExpr.getText(), 10);
+                    if (!isNaN(size)) {
+                      dimensions.push(size);
+                    }
+                  }
+                }
+              }
+              // Always add string capacity as final dimension
+              dimensions.push(capacity + 1);
+              arrayFields.add(fieldName);
+            }
+          } else if (arrayDims.length > 0) {
+            // Non-string array field (existing logic)
+            arrayFields.add(fieldName);
             for (const dim of arrayDims) {
               const sizeExpr = dim.expression();
               if (sizeExpr) {
-                const sizeText = sizeExpr.getText();
-                const size = parseInt(sizeText, 10);
+                const size = parseInt(sizeExpr.getText(), 10);
                 if (!isNaN(size)) {
                   dimensions.push(size);
                 }
               }
             }
-            if (dimensions.length > 0) {
-              fieldDimensions.set(fieldName, dimensions);
-            }
+          }
+
+          if (dimensions.length > 0) {
+            fieldDimensions.set(fieldName, dimensions);
           }
 
           // ADR-029: Track callback field types during symbol collection
@@ -1055,19 +1236,50 @@ export default class CodeGenerator {
       if (intLiteral) {
         const capacity = parseInt(intLiteral.getText(), 10);
         this.needsString = true;
+        const stringDim = capacity + 1; // String capacity dimension (last)
 
-        this.context.typeRegistry.set(name, {
-          baseType: "char",
-          bitWidth: 8,
-          isArray: true,
-          arrayDimensions: [capacity + 1], // +1 for null terminator
-          isConst,
-          isString: true,
-          stringCapacity: capacity,
-          overflowBehavior,
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
+        // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
+        if (arrayDim && arrayDim.length > 0) {
+          // Process array dimensions (they come BEFORE string capacity)
+          const stringArrayDims: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = parseInt(sizeExpr.getText(), 10);
+              if (!isNaN(size) && size > 0) {
+                stringArrayDims.push(size);
+              }
+            }
+          }
+          // Append string capacity as final dimension
+          stringArrayDims.push(stringDim);
+
+          this.context.typeRegistry.set(name, {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: stringArrayDims, // [4, 65] for string<64> arr[4]
+            isConst,
+            isString: true,
+            stringCapacity: capacity,
+            overflowBehavior,
+            isAtomic, // ADR-049
+          });
+        } else {
+          // Single string: string<64> s
+          this.context.typeRegistry.set(name, {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: [stringDim], // [65]
+            isConst,
+            isString: true,
+            stringCapacity: capacity,
+            overflowBehavior,
+            isAtomic, // ADR-049
+          });
+        }
+        return; // Now we can return, having processed all dimensions
       } else {
         // Unsized string - for const inference (handled in generateVariableDecl)
         baseType = "string";
@@ -1259,6 +1471,63 @@ export default class CodeGenerator {
     if (typeCtx.primitiveType()) {
       baseType = typeCtx.primitiveType()!.getText();
       bitWidth = TYPE_WIDTH[baseType] || 0;
+    } else if (typeCtx.stringType()) {
+      // ADR-045: Handle bounded string type
+      const stringCtx = typeCtx.stringType()!;
+      const intLiteral = stringCtx.INTEGER_LITERAL();
+
+      if (intLiteral) {
+        const capacity = parseInt(intLiteral.getText(), 10);
+        this.needsString = true;
+        const stringDim = capacity + 1; // String capacity dimension (last)
+
+        // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
+        if (arrayDim && arrayDim.length > 0) {
+          // Process array dimensions (they come BEFORE string capacity)
+          const stringArrayDims: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = parseInt(sizeExpr.getText(), 10);
+              if (!isNaN(size) && size > 0) {
+                stringArrayDims.push(size);
+              }
+            }
+          }
+          // Append string capacity as final dimension
+          stringArrayDims.push(stringDim);
+
+          this.context.typeRegistry.set(registryName, {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: stringArrayDims, // [4, 65] for string<64> arr[4]
+            isConst,
+            isString: true,
+            stringCapacity: capacity,
+            overflowBehavior,
+            isAtomic,
+          });
+        } else {
+          // Single string: string<64> s
+          this.context.typeRegistry.set(registryName, {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: [stringDim], // [65]
+            isConst,
+            isString: true,
+            stringCapacity: capacity,
+            overflowBehavior,
+            isAtomic,
+          });
+        }
+        return; // Early return, we've handled this case
+      } else {
+        // Unsized string - for const inference (handled in generateVariableDecl)
+        baseType = "string";
+        bitWidth = 0;
+      }
     } else if (typeCtx.scopedType()) {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
       const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
@@ -2435,27 +2704,60 @@ export default class CodeGenerator {
 
       if (member.variableDeclaration()) {
         const varDecl = member.variableDeclaration()!;
-        const type = this.generateType(varDecl.type());
+        const typeCtx = varDecl.type();
+        const type = this.generateType(typeCtx);
         const varName = varDecl.IDENTIFIER().getText();
         const fullName = `${name}_${varName}`;
         const prefix = isPrivate ? "static " : "";
 
         // Note: Type already registered in registerAllVariableTypes() pass
 
-        // ADR-036: arrayDimension() now returns an array
+        // ADR-045: Special handling for string arrays
         const arrayDims = varDecl.arrayDimension();
-        const isArray = arrayDims.length > 0;
-        let decl = `${prefix}${type} ${fullName}`;
-        if (isArray) {
-          decl += this.generateArrayDimensions(arrayDims);
-        }
-        if (varDecl.expression()) {
-          decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
+        if (typeCtx.stringType()) {
+          const stringCtx = typeCtx.stringType()!;
+          const intLiteral = stringCtx.INTEGER_LITERAL();
+
+          if (intLiteral) {
+            const capacity = parseInt(intLiteral.getText(), 10);
+            let decl = `${prefix}char ${fullName}`;
+
+            if (arrayDims.length > 0) {
+              // String array: string<64> arr[4] -> char arr[4][65]
+              decl += this.generateArrayDimensions(arrayDims); // [4]
+              decl += `[${capacity + 1}]`; // [65]
+            } else {
+              // Single string: string<64> s -> char s[65]
+              decl += `[${capacity + 1}]`;
+            }
+
+            if (varDecl.expression()) {
+              decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
+            } else {
+              // ADR-015: Zero initialization
+              decl += arrayDims.length > 0 ? " = {0}" : ' = ""';
+            }
+            lines.push(decl + ";");
+          } else {
+            throw new Error(
+              `Error: Unsized string not allowed in scope member`,
+            );
+          }
         } else {
-          // ADR-015: Zero initialization for uninitialized scope variables
-          decl += ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
+          // Non-string types (existing logic)
+          const isArray = arrayDims.length > 0;
+          let decl = `${prefix}${type} ${fullName}`;
+          if (isArray) {
+            decl += this.generateArrayDimensions(arrayDims);
+          }
+          if (varDecl.expression()) {
+            decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
+          } else {
+            // ADR-015: Zero initialization for uninitialized scope variables
+            decl += ` = ${this.getZeroInitializer(typeCtx, isArray)}`;
+          }
+          lines.push(decl + ";");
         }
-        lines.push(decl + ";");
       }
 
       if (member.functionDeclaration()) {
@@ -2622,7 +2924,8 @@ export default class CodeGenerator {
 
     for (const member of ctx.structMember()) {
       const fieldName = member.IDENTIFIER().getText();
-      const typeName = this.getTypeName(member.type());
+      const typeCtx = member.type();
+      const typeName = this.getTypeName(typeCtx);
       // ADR-036: arrayDimension() now returns an array for multi-dimensional support
       const arrayDims = member.arrayDimension();
       const isArray = arrayDims.length > 0;
@@ -2641,9 +2944,28 @@ export default class CodeGenerator {
         } else {
           lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
         }
+      } else if (typeCtx.stringType()) {
+        // ADR-045: Special handling for string types
+        const stringCtx = typeCtx.stringType()!;
+        const intLiteral = stringCtx.INTEGER_LITERAL();
+
+        if (intLiteral) {
+          const capacity = parseInt(intLiteral.getText(), 10);
+
+          if (isArray) {
+            // String array: string<64> arr[4] -> char arr[4][65]
+            const dims = this.generateArrayDimensions(arrayDims);
+            lines.push(`    char ${fieldName}${dims}[${capacity + 1}];`);
+          } else {
+            // Single string: string<64> s -> char s[65]
+            lines.push(`    char ${fieldName}[${capacity + 1}];`);
+          }
+        } else {
+          throw new Error(`Error: Unsized string not allowed in struct member`);
+        }
       } else {
         // Regular field handling
-        const type = this.generateType(member.type());
+        const type = this.generateType(typeCtx);
         if (isArray) {
           const dims = this.generateArrayDimensions(arrayDims);
           lines.push(`    ${type} ${fieldName}${dims};`);
@@ -3114,6 +3436,24 @@ export default class CodeGenerator {
       if (intLiteral) {
         const capacity = parseInt(intLiteral.getText(), 10);
 
+        // Check for array dimensions on the variable declaration
+        const arrayDims = ctx.arrayDimension();
+        if (arrayDims.length > 0) {
+          // String array: string<64> arr[4] -> char arr[4][65] = {0};
+          let decl = `${constMod}char ${name}`;
+          decl += this.generateArrayDimensions(arrayDims); // [4]
+          decl += `[${capacity + 1}]`; // [65]
+
+          if (ctx.expression()) {
+            throw new Error(
+              `Error: Array initializers for string arrays not yet supported`,
+            );
+          }
+
+          // Initialize to empty: char arr[4][65] = {0};
+          return `${decl} = {0};`;
+        }
+
         if (ctx.expression()) {
           const exprText = ctx.expression()!.getText();
 
@@ -3231,6 +3571,14 @@ export default class CodeGenerator {
         if (!isConst) {
           throw new Error(
             "Error: Non-const string requires explicit capacity, e.g., string<64>",
+          );
+        }
+
+        // Array dimensions not supported for unsized strings
+        const arrayDims = ctx.arrayDimension();
+        if (arrayDims.length > 0) {
+          throw new Error(
+            "Error: const string array requires explicit capacity, e.g., const string<32> arr[4]",
           );
         }
 
@@ -3768,7 +4116,7 @@ export default class CodeGenerator {
 
           // ADR-029: Validate callback field assignments with nominal typing
           const rootTypeInfo = this.context.typeRegistry.get(rootName);
-          if (rootTypeInfo && this.knownStructs.has(rootTypeInfo.baseType)) {
+          if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
             const structType = rootTypeInfo.baseType;
             const callbackFieldKey = `${structType}.${memberName}`;
             const expectedCallbackType =
@@ -3978,6 +4326,19 @@ export default class CodeGenerator {
 
         // Generate all subscript indices
         const indices = exprs.map((e) => this.generateExpression(e)).join("][");
+
+        // ADR-045: String array assignment - use strcpy for simple assignments
+        if (
+          !isCompound &&
+          typeInfo &&
+          typeInfo.isString &&
+          typeInfo.arrayDimensions &&
+          typeInfo.arrayDimensions.length > 1
+        ) {
+          this.needsString = true;
+          return `strcpy(${arrayName}[${indices}], ${value});`;
+        }
+
         return `${arrayName}[${indices}] ${cOp} ${value};`;
       }
 
@@ -4037,6 +4398,29 @@ export default class CodeGenerator {
               }
             }
           }
+
+          // ADR-045: Check if this is a string array member assignment
+          if (!isCompound && identifiers.length >= 2 && exprs.length > 0) {
+            const rootName = identifiers[0].getText();
+            const memberName = identifiers[1].getText();
+            const rootTypeInfo = this.context.typeRegistry.get(rootName);
+
+            if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
+              const structType = rootTypeInfo.baseType;
+              const fieldInfo = this.getStructFieldInfo(structType, memberName);
+
+              if (
+                fieldInfo &&
+                fieldInfo.type.startsWith("string<") &&
+                fieldInfo.dimensions &&
+                fieldInfo.dimensions.length > 1
+              ) {
+                this.needsString = true;
+                return `strcpy(${result}, ${value});`;
+              }
+            }
+          }
+
           return `${result} ${cOp} ${value};`;
         }
 
@@ -4337,6 +4721,19 @@ export default class CodeGenerator {
       if (isActualArray || isISRType) {
         // Normal array element assignment
         const index = this.generateExpression(exprs[0]);
+
+        // ADR-045: String array assignment - use strcpy for simple assignments
+        if (
+          !isCompound &&
+          typeInfo &&
+          typeInfo.isString &&
+          typeInfo.arrayDimensions &&
+          typeInfo.arrayDimensions.length > 1
+        ) {
+          this.needsString = true;
+          return `strcpy(${name}[${index}], ${value});`;
+        }
+
         return `${name}[${index}] ${cOp} ${value};`;
       }
 
@@ -5699,45 +6096,66 @@ export default class CodeGenerator {
           } else {
             // Check if we're accessing a struct member (cfg.magic.length)
             if (previousStructType && previousMemberName) {
-              // Look up the member's type in the struct definition
-              const structFields = this.structFields.get(previousStructType);
-              if (structFields) {
-                const memberType = structFields.get(previousMemberName);
-                if (memberType) {
-                  // Check if this member is an array
-                  const fieldDimensions =
-                    this.structFieldDimensions.get(previousStructType);
-                  const dimensions = fieldDimensions?.get(previousMemberName);
+              // Look up the member's type using unified lookup (C-Next + C headers)
+              const fieldInfo = this.getStructFieldInfo(
+                previousStructType,
+                previousMemberName,
+              );
 
-                  if (dimensions && dimensions.length > 0 && !isSubscripted) {
-                    // Array member without subscript -> return array length (first dimension)
+              if (fieldInfo) {
+                const { type: memberType, dimensions } = fieldInfo;
+
+                // Check if this is a string field
+                const isStringField = memberType.startsWith("string<");
+
+                if (dimensions && dimensions.length > 1 && isStringField) {
+                  // String array field
+                  if (!isSubscripted) {
+                    // ts.arr.length -> return element count (first dimension)
                     result = String(dimensions[0]);
-                  } else if (
-                    dimensions &&
-                    dimensions.length > 0 &&
-                    isSubscripted
-                  ) {
-                    // Array member with subscript (e.g., ts.arr[0].length) -> return element bit width
-                    const bitWidth = TYPE_WIDTH[memberType] || 0;
-                    if (bitWidth > 0) {
-                      result = String(bitWidth);
-                    } else {
-                      result = `/* .length: unsupported element type ${memberType} */0`;
-                    }
                   } else {
-                    // Non-array member -> return bit width
-                    const bitWidth = TYPE_WIDTH[memberType] || 0;
-                    if (bitWidth > 0) {
-                      result = String(bitWidth);
-                    } else {
-                      result = `/* .length: unsupported type ${memberType} */0`;
-                    }
+                    // ts.arr[0].length -> strlen(ts.arr[0])
+                    result = `strlen(${result})`;
                   }
-                  // Skip the rest of the logic since we handled it
-                  previousStructType = undefined;
-                  previousMemberName = undefined;
-                  continue;
+                } else if (
+                  dimensions &&
+                  dimensions.length === 1 &&
+                  isStringField
+                ) {
+                  // Single string field: ts.str.length -> strlen(ts.str)
+                  result = `strlen(${result})`;
+                } else if (
+                  dimensions &&
+                  dimensions.length > 0 &&
+                  !isSubscripted
+                ) {
+                  // Non-string array member: return array length (first dimension)
+                  result = String(dimensions[0]);
+                } else if (
+                  dimensions &&
+                  dimensions.length > 0 &&
+                  isSubscripted
+                ) {
+                  // Non-string array element: return element bit width
+                  const bitWidth = TYPE_WIDTH[memberType] || 0;
+                  if (bitWidth > 0) {
+                    result = String(bitWidth);
+                  } else {
+                    result = `/* .length: unsupported element type ${memberType} */0`;
+                  }
+                } else {
+                  // Non-array member: return bit width
+                  const bitWidth = TYPE_WIDTH[memberType] || 0;
+                  if (bitWidth > 0) {
+                    result = String(bitWidth);
+                  } else {
+                    result = `/* .length: unsupported type ${memberType} */0`;
+                  }
                 }
+                // Skip the rest of the logic since we handled it
+                previousStructType = undefined;
+                previousMemberName = undefined;
+                continue;
               }
             }
 
@@ -5754,13 +6172,31 @@ export default class CodeGenerator {
             }
 
             if (typeInfo) {
-              // ADR-045: String length is runtime strlen()
-              if (typeInfo.isString && currentIdentifier) {
-                // Check length cache for optimization
-                if (this.context.lengthCache?.has(currentIdentifier)) {
-                  result = this.context.lengthCache.get(currentIdentifier)!;
+              // ADR-045: String type handling
+              if (typeInfo.isString) {
+                if (
+                  typeInfo.arrayDimensions &&
+                  typeInfo.arrayDimensions.length > 1
+                ) {
+                  // String array: arrayDimensions: [4, 65]
+                  if (!isSubscripted) {
+                    // arr.length -> return element count (first dimension)
+                    result = String(typeInfo.arrayDimensions[0]);
+                  } else {
+                    // arr[0].length -> strlen(arr[0])
+                    // Use 'result' which has the subscript, not 'currentIdentifier'
+                    result = `strlen(${result})`;
+                  }
+                } else if (currentIdentifier) {
+                  // Single string: arrayDimensions: [65]
+                  // str.length -> strlen(str)
+                  if (this.context.lengthCache?.has(currentIdentifier)) {
+                    result = this.context.lengthCache.get(currentIdentifier)!;
+                  } else {
+                    result = `strlen(${currentIdentifier})`;
+                  }
                 } else {
-                  result = `strlen(${currentIdentifier})`;
+                  result = `/* .length: no identifier for string */0`;
                 }
               } else if (
                 typeInfo.isArray &&
@@ -5859,7 +6295,7 @@ export default class CodeGenerator {
             const resolvedTypeInfo = this.context.typeRegistry.get(result);
             if (
               resolvedTypeInfo &&
-              this.knownStructs.has(resolvedTypeInfo.baseType)
+              this.isKnownStruct(resolvedTypeInfo.baseType)
             ) {
               currentStructType = resolvedTypeInfo.baseType;
             }
@@ -5913,7 +6349,7 @@ export default class CodeGenerator {
                 this.context.typeRegistry.get(currentIdentifier);
               if (
                 identifierTypeInfo &&
-                this.knownStructs.has(identifierTypeInfo.baseType)
+                this.isKnownStruct(identifierTypeInfo.baseType)
               ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
@@ -5942,7 +6378,7 @@ export default class CodeGenerator {
                 this.context.typeRegistry.get(currentIdentifier);
               if (
                 identifierTypeInfo &&
-                this.knownStructs.has(identifierTypeInfo.baseType)
+                this.isKnownStruct(identifierTypeInfo.baseType)
               ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
@@ -5982,7 +6418,7 @@ export default class CodeGenerator {
               const resolvedTypeInfo = this.context.typeRegistry.get(result);
               if (
                 resolvedTypeInfo &&
-                this.knownStructs.has(resolvedTypeInfo.baseType)
+                this.isKnownStruct(resolvedTypeInfo.baseType)
               ) {
                 currentStructType = resolvedTypeInfo.baseType;
               }
