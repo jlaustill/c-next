@@ -1,0 +1,3 @@
+72:8 error[E0381]: use of uninitialized variable 'sequence'
+73:8 error[E0381]: use of uninitialized variable 'sequence'
+74:8 error[E0381]: use of uninitialized variable 'sequence'

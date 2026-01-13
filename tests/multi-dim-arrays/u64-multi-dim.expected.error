@@ -1,0 +1,4 @@
+100:8 error[E0381]: use of uninitialized variable 'timestamps'
+101:8 error[E0381]: use of uninitialized variable 'timestamps'
+104:16 error[E0381]: use of uninitialized variable 'timestamps'
+104:35 error[E0381]: use of uninitialized variable 'timestamps'

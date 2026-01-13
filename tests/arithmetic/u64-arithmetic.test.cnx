@@ -1,0 +1,125 @@
+/* test-execution */
+// Tests: u64 arithmetic operations (+, -, *, /, %)
+// Validates all basic arithmetic operations with u64 type
+// Includes edge cases with large values relevant to embedded systems
+
+u64 result;
+
+void test_addition() {
+    u64 a <- 1000000000000;  // 1 trillion
+    u64 b <- 500000000000;   // 500 billion
+    result <- a + b;         // 1.5 trillion
+
+    // With literals
+    result <- a + 1000;
+    result <- 5000 + a;
+
+    // Large values
+    result <- 9000000000000000000 + 1000000000000000000;
+}
+
+void test_subtraction() {
+    u64 a <- 1000000000000;
+    u64 b <- 300000000000;
+    result <- a - b;  // 700 billion
+
+    // With literals
+    result <- a - 1000;
+    result <- 2000000000000 - a;
+
+    // Edge case: result close to zero
+    u64 c <- 1000;
+    u64 d <- 999;
+    result <- c - d;  // 1
+}
+
+void test_multiplication() {
+    u64 a <- 1000000;
+    u64 b <- 1000000;
+    result <- a * b;  // 1 trillion
+
+    // With literals
+    result <- a * 2;
+    result <- 1000 * a;
+
+    // Larger multiplication
+    u64 c <- 100000000;  // 100 million
+    u64 d <- 10000;      // 10 thousand
+    result <- c * d;     // 1 trillion
+}
+
+void test_division() {
+    u64 a <- 1000000000000;
+    u64 b <- 1000;
+    result <- a / b;  // 1 billion
+
+    // With literals
+    result <- a / 2;
+    result <- 1000000000000 / 500;
+
+    // Large dividend
+    u64 c <- 9000000000000000000;
+    u64 d <- 1000000;
+    result <- c / d;
+}
+
+void test_modulo() {
+    u64 a <- 1000000000007;  // Large prime-ish
+    u64 b <- 1000000;
+    result <- a % b;  // 7
+
+    // With literals
+    result <- a % 100;
+    result <- 12345 % 7;
+
+    // Timestamp modulo (common in embedded)
+    u64 timestamp <- 1609459200000;  // milliseconds
+    result <- timestamp % 1000;       // get milliseconds part
+}
+
+void test_complex_expressions() {
+    u64 a <- 10000;
+    u64 b <- 5000;
+    u64 c <- 2000;
+
+    // Test operator precedence
+    result <- a + b * c;      // 10000 + 10000000 = 10010000
+    result <- (a + b) * c;    // 15000 * 2000 = 30000000
+    result <- a / b + c;      // 2 + 2000 = 2002
+    result <- a - b / c;      // 10000 - 2 = 9998
+
+    // Multiple operations
+    result <- a * b / c + 1000;
+    result <- (a + b) / (c - 1000);
+}
+
+void test_edge_cases() {
+    // Zero operations
+    u64 zero <- 0;
+    u64 val <- 1000000;
+    result <- zero + val;    // 1000000
+    result <- val - zero;    // 1000000
+    result <- zero * val;    // 0
+    result <- zero / 1;      // 0
+    result <- zero % 100;    // 0
+
+    // Operations with 1
+    result <- val * 1;       // 1000000
+    result <- val / 1;       // 1000000
+
+    // Large values (typical embedded timestamps)
+    u64 timestamp1 <- 1609459200000;  // Jan 1, 2021 in ms
+    u64 timestamp2 <- 1609545600000;  // Jan 2, 2021 in ms
+    result <- timestamp2 - timestamp1; // 86400000 ms (1 day)
+}
+
+u32 main() {
+    test_addition();
+    test_subtraction();
+    test_multiplication();
+    test_division();
+    test_modulo();
+    test_complex_expressions();
+    test_edge_cases();
+    return 0;
+}

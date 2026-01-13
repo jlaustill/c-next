@@ -1,0 +1,180 @@
+/* test-execution */
+// Tests: u64 comparison operations (<, >, <=, >=, =, !=)
+// Validates all comparison operators with u64 type
+// Includes edge cases with zero, max values, and typical embedded use cases
+
+bool result;
+
+void test_equality() {
+    u64 a <- 1000000000000;
+    u64 b <- 1000000000000;
+    u64 c <- 2000000000000;
+
+    // Equality
+    result <- (a = b);   // true
+    result <- (a = c);   // false
+
+    // Inequality
+    result <- (a != c);  // true
+    result <- (a != b);  // false
+
+    // With zero
+    u64 zero <- 0;
+    result <- (zero = 0);
+    result <- (zero != 1);
+}
+
+void test_less_than() {
+    u64 small <- 1000;
+    u64 large <- 1000000000000;
+
+    result <- (small < large);   // true
+    result <- (large < small);   // false
+    result <- (small < small);   // false
+
+    // Less than or equal
+    result <- (small <= large);  // true
+    result <- (small <= small);  // true
+    result <- (large <= small);  // false
+
+    // With zero
+    u64 zero <- 0;
+    result <- (zero < 1);        // true
+    result <- (zero <= 0);       // true
+}
+
+void test_greater_than() {
+    u64 small <- 1000;
+    u64 large <- 1000000000000;
+
+    result <- (large > small);   // true
+    result <- (small > large);   // false
+    result <- (small > small);   // false
+
+    // Greater than or equal
+    result <- (large >= small);  // true
+    result <- (small >= small);  // true
+    result <- (small >= large);  // false
+
+    // With zero
+    u64 zero <- 0;
+    result <- (1 > zero);        // true
+    result <- (zero >= 0);       // true
+}
+
+void test_literal_comparison() {
+    u64 val <- 1000000000000;
+
+    // Equality with literals
+    result <- (val = 1000000000000);
+    result <- (val != 1000000000000);
+
+    // Less than with literals
+    result <- (val < 2000000000000);
+    result <- (val < 500000000000);
+
+    // Greater than with literals
+    result <- (val > 500000000000);
+    result <- (val > 2000000000000);
+
+    // Less than or equal with literals
+    result <- (val <= 1000000000000);
+    result <- (val <= 2000000000000);
+
+    // Greater than or equal with literals
+    result <- (val >= 1000000000000);
+    result <- (val >= 500000000000);
+}
+
+void test_in_control_flow() {
+    u64 counter <- 0;
+
+    // In if statement
+    if (counter < 1000000) {
+        result <- true;
+    }
+
+    // In while loop
+    while (counter < 100) {
+        counter +<- 1;
+        if (counter >= 50) {
+            counter <- 100;
+        }
+    }
+
+    // Verify final value
+    if (counter = 100) {
+        result <- true;
+    }
+
+    // Nested conditions
+    u64 threshold <- 1000000000;
+    if (counter > 0) {
+        if (counter < threshold) {
+            result <- true;
+        }
+    }
+}
+
+void test_edge_cases() {
+    u64 zero <- 0;
+    u64 max <- 18446744073709551615;  // u64 max value
+    u64 near_max <- 18446744073709551614;
+
+    // Zero comparisons
+    result <- (zero < 1);
+    result <- (zero = 0);
+    result <- (0 <= zero);
+
+    // Max value comparisons
+    result <- (zero < max);
+    result <- (max > zero);
+    result <- (max >= max);
+    result <- (max = max);
+
+    // Near max comparisons
+    result <- (near_max < max);
+    result <- (near_max != max);
+    result <- (near_max <= max);
+
+    // Large values (embedded timestamps)
+    u64 timestamp_2020 <- 1577836800000;  // Jan 1, 2020
+    u64 timestamp_2021 <- 1609459200000;  // Jan 1, 2021
+    result <- (timestamp_2021 > timestamp_2020);
+    result <- (timestamp_2021 != timestamp_2020);
+}
+
+void test_comparison_chains() {
+    u64 a <- 1000;
+    u64 b <- 5000;
+    u64 c <- 10000;
+
+    // Multiple comparisons
+    if (a < b) {
+        if (b < c) {
+            result <- true;  // a < b < c
+        }
+    }
+
+    // Complex conditions
+    if ((a < b) = true) {
+        result <- true;
+    }
+
+    // Comparison results in expressions
+    bool less <- (a < b);
+    bool greater <- (c > b);
+    result <- less;
+    result <- greater;
+}
+
+u32 main() {
+    test_equality();
+    test_less_than();
+    test_greater_than();
+    test_literal_comparison();
+    test_in_control_flow();
+    test_edge_cases();
+    test_comparison_chains();
+    return 0;
+}
