@@ -38,20 +38,25 @@ void LED_toggle(void) {
 
 ## Installation
 
+### From npm (Recommended)
+
+```bash
+npm install -g c-next
+```
+
+Verify the installation:
+
+```bash
+cnext --version
+```
+
+### From Source (Development)
+
 ```bash
 git clone https://github.com/jlaustill/c-next.git
 cd c-next
 npm install
-npm run build
-```
-
-### Global Installation (optional)
-
-```bash
-npm link                    # For local development
-# or
-npm install -g c-next       # When published to npm
-cnext --version
+npm link
 ```
 
 ## Usage
