@@ -20,7 +20,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
-const cliPath = join(rootDir, "dist", "index.js");
+const cliPath = join(rootDir, "bin", "cnext.js");
 
 // ANSI colors for terminal output
 const colors = {
@@ -159,8 +159,8 @@ test("no arguments shows help and exits 0", () => {
 
 // Default output path (alongside input)
 test("single file transpiles to .c alongside input", () => {
-  const inputFile = "tests/basics/hello-world.cnx";
-  const expectedOutput = "tests/basics/hello-world.c";
+  const inputFile = "tests/basics/hello-world.test.cnx";
+  const expectedOutput = "tests/basics/hello-world.test.c";
 
   // Clean up first
   cleanup([expectedOutput]);
@@ -178,7 +178,7 @@ test("single file transpiles to .c alongside input", () => {
 
 // Explicit -o flag
 test("-o flag overrides output path", () => {
-  const inputFile = "tests/basics/hello-world.cnx";
+  const inputFile = "tests/basics/hello-world.test.cnx";
   const customOutput = "/tmp/cnext-test-output.c";
 
   cleanup([customOutput]);
@@ -192,8 +192,8 @@ test("-o flag overrides output path", () => {
 
 // --cpp flag
 test("--cpp flag outputs .cpp extension", () => {
-  const inputFile = "tests/basics/hello-world.cnx";
-  const expectedOutput = "tests/basics/hello-world.cpp";
+  const inputFile = "tests/basics/hello-world.test.cnx";
+  const expectedOutput = "tests/basics/hello-world.test.cpp";
 
   cleanup([join(rootDir, expectedOutput)]);
 
@@ -216,7 +216,7 @@ test("nonexistent file exits 1 with error", () => {
 
 // --parse mode
 test("--parse mode validates without creating output file", () => {
-  const inputFile = "tests/basics/hello-world.cnx";
+  const inputFile = "tests/basics/hello-world.test.cnx";
   const wouldBeOutput = "tests/basics/hello-world.c";
 
   cleanup([join(rootDir, wouldBeOutput)]);
