@@ -702,13 +702,15 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-031](docs/decisions/adr-031-inline-functions.md)            | Inline Functions    | Trust compiler; `inline` is just a hint anyway                          |
 | [ADR-033](docs/decisions/adr-033-packed-structs.md)              | Packed Structs      | Use ADR-004 register bindings or explicit serialization                 |
 
-## Build Commands
+## Development Commands
 
 ```bash
-npm run build      # Full build: ANTLR + TypeScript
 npm run antlr      # Regenerate parser from grammar
-npx tsc            # TypeScript only
+npm run typecheck  # Type-check TypeScript (no build required)
+npm test           # Run all tests
 ```
+
+**Note:** C-Next runs directly via `tsx` without a build step. The `typecheck` command validates types only and does not generate any output files.
 
 ## Contributing
 
