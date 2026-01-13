@@ -1,5 +1,5 @@
-import ECommentType from "./types/ECommentType.js";
-import IComment from "./types/IComment.js";
+import ECommentType from "./types/ECommentType";
+import IComment from "./types/IComment";
 
 /**
  * Formats comments for C output (ADR-043)

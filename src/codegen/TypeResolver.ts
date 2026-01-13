@@ -2,8 +2,8 @@
  * TypeResolver - Handles type inference, classification, and validation
  * Extracted from CodeGenerator for better separation of concerns
  */
-import * as Parser from "../parser/grammar/CNextParser.js";
-import CodeGenerator from "./CodeGenerator.js";
+import * as Parser from "../parser/grammar/CNextParser";
+import CodeGenerator from "./CodeGenerator";
 import {
   INTEGER_TYPES,
   FLOAT_TYPES,
@@ -11,7 +11,7 @@ import {
   UNSIGNED_TYPES,
   TYPE_WIDTH,
   TYPE_RANGES,
-} from "./types/TTypeConstants.js";
+} from "./types/TTypeConstants";
 
 class TypeResolver {
   private codeGen: CodeGenerator;

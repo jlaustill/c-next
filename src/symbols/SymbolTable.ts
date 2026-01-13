@@ -3,9 +3,9 @@
  * Stores symbols from all source languages and detects conflicts
  */
 
-import ISymbol from "../types/ISymbol.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
-import IConflict from "./types/IConflict.js";
+import ISymbol from "../types/ISymbol";
+import ESourceLanguage from "../types/ESourceLanguage";
+import IConflict from "./types/IConflict";
 
 /**
  * Central symbol table for cross-language interoperability

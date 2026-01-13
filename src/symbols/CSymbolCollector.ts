@@ -12,10 +12,10 @@ import {
   InitDeclaratorListContext,
   StructOrUnionSpecifierContext,
   EnumSpecifierContext,
-} from "../parser/c/grammar/CParser.js";
-import ISymbol from "../types/ISymbol.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
+} from "../parser/c/grammar/CParser";
+import ISymbol from "../types/ISymbol";
+import ESymbolKind from "../types/ESymbolKind";
+import ESourceLanguage from "../types/ESourceLanguage";
 
 /**
  * Collects symbols from a C parse tree

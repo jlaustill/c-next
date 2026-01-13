@@ -1,4 +1,4 @@
-import ECommentType from "./ECommentType.js";
+import ECommentType from "./ECommentType";
 
 /**
  * Represents a comment extracted from source (ADR-043)

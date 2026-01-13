@@ -12,12 +12,12 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener.js";
-import * as Parser from "../parser/grammar/CNextParser.js";
+import { CNextListener } from "../parser/grammar/CNextListener";
+import * as Parser from "../parser/grammar/CNextParser";
 import {
   IInitializationError,
   IDeclarationInfo,
-} from "./types/IInitializationError.js";
+} from "./types/IInitializationError";
 
 /**
  * Tracks the initialization state of a variable

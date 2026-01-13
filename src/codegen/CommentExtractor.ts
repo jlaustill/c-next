@@ -1,8 +1,8 @@
 import { CommonTokenStream, Token } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer.js";
-import ECommentType from "./types/ECommentType.js";
-import IComment from "./types/IComment.js";
-import ICommentError from "./types/ICommentError.js";
+import { CNextLexer } from "../parser/grammar/CNextLexer";
+import ECommentType from "./types/ECommentType";
+import IComment from "./types/IComment";
+import ICommentError from "./types/ICommentError";
 
 /**
  * Extracts and validates comments from the HIDDEN channel (ADR-043)

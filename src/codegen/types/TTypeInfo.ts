@@ -1,7 +1,7 @@
 /**
  * Type information for variables and expressions
  */
-import TOverflowBehavior from "./TOverflowBehavior.js";
+import TOverflowBehavior from "./TOverflowBehavior";
 
 type TTypeInfo = {
   baseType: string;

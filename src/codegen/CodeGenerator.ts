@@ -4,22 +4,22 @@
  */
 
 import { CommonTokenStream } from "antlr4ng";
-import * as Parser from "../parser/grammar/CNextParser.js";
-import SymbolTable from "../symbols/SymbolTable.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import CommentExtractor from "./CommentExtractor.js";
-import CommentFormatter from "./CommentFormatter.js";
-import IComment from "./types/IComment.js";
+import * as Parser from "../parser/grammar/CNextParser";
+import SymbolTable from "../symbols/SymbolTable";
+import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
+import CommentExtractor from "./CommentExtractor";
+import CommentFormatter from "./CommentFormatter";
+import IComment from "./types/IComment";
 import {
   TYPE_WIDTH,
   BITMAP_SIZE,
   BITMAP_BACKING_TYPE,
-} from "./types/TTypeConstants.js";
-import TTypeInfo from "./types/TTypeInfo.js";
-import TParameterInfo from "./types/TParameterInfo.js";
-import TOverflowBehavior from "./types/TOverflowBehavior.js";
-import TypeResolver from "./TypeResolver.js";
+} from "./types/TTypeConstants";
+import TTypeInfo from "./types/TTypeInfo";
+import TParameterInfo from "./types/TParameterInfo";
+import TOverflowBehavior from "./types/TOverflowBehavior";
+import TypeResolver from "./TypeResolver";
 import * as fs from "fs";
 import * as path from "path";
 
