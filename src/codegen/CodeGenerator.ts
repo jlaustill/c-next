@@ -898,6 +898,10 @@ export default class CodeGenerator {
         const scopeDecl = decl.scopeDeclaration()!;
         const scopeName = scopeDecl.IDENTIFIER().getText();
 
+        // Set currentScope so that this.Type references resolve correctly
+        const savedScope = this.context.currentScope;
+        this.context.currentScope = scopeName;
+
         for (const member of scopeDecl.scopeMember()) {
           if (member.variableDeclaration()) {
             const varDecl = member.variableDeclaration()!;
@@ -907,6 +911,9 @@ export default class CodeGenerator {
             this.trackVariableTypeWithName(varDecl, fullName);
           }
         }
+
+        // Restore previous scope
+        this.context.currentScope = savedScope;
       }
 
       // Note: Function parameters are registered per-function during generation
