@@ -6,7 +6,7 @@
 import { execSync } from "child_process";
 import { existsSync } from "fs";
 import { join } from "path";
-import IToolchain from "./types/IToolchain.js";
+import IToolchain from "./types/IToolchain";
 
 /**
  * Detects available C/C++ toolchains

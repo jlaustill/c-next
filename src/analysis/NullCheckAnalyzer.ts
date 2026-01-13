@@ -14,9 +14,9 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener.js";
-import * as Parser from "../parser/grammar/CNextParser.js";
-import { INullCheckError } from "./types/INullCheckError.js";
+import { CNextListener } from "../parser/grammar/CNextListener";
+import * as Parser from "../parser/grammar/CNextParser";
+import { INullCheckError } from "./types/INullCheckError";
 
 export { INullCheckError };
 

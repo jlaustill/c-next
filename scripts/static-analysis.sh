@@ -32,10 +32,10 @@ fi
 echo -e "${BLUE}cppcheck version:${NC} $(cppcheck --version)"
 echo ""
 
-# Build the transpiler if needed
-if [ ! -f "${PROJECT_ROOT}/dist/index.js" ]; then
-    echo -e "${YELLOW}Building transpiler...${NC}"
-    cd "$PROJECT_ROOT" && npm run build
+# Generate parser files if needed
+if [ ! -d "${PROJECT_ROOT}/src/parser" ]; then
+    echo -e "${YELLOW}Generating parser files...${NC}"
+    cd "$PROJECT_ROOT" && npm run antlr:all
 fi
 
 # Find all .cnx example files
@@ -54,7 +54,7 @@ for cnx_file in $EXAMPLES; do
 
     echo -n "  Transpiling ${filename}.cnx... "
 
-    if node "${PROJECT_ROOT}/dist/index.js" "$cnx_file" -o "$c_file" >/dev/null 2>&1; then
+    if "${PROJECT_ROOT}/bin/cnext.js" "$cnx_file" -o "$c_file" >/dev/null 2>&1; then
         echo -e "${GREEN}OK${NC}"
         TRANSPILED=$((TRANSPILED + 1))
     else

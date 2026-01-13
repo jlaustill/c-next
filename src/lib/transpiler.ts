@@ -4,23 +4,23 @@
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer.js";
-import { CNextParser } from "../parser/grammar/CNextParser.js";
-import CodeGenerator from "../codegen/CodeGenerator.js";
-import CommentExtractor from "../codegen/CommentExtractor.js";
-import CNextSymbolCollector from "../symbols/CNextSymbolCollector.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import InitializationAnalyzer from "../analysis/InitializationAnalyzer.js";
-import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer.js";
-import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer.js";
-import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer.js";
+import { CNextLexer } from "../parser/grammar/CNextLexer";
+import { CNextParser } from "../parser/grammar/CNextParser";
+import CodeGenerator from "../codegen/CodeGenerator";
+import CommentExtractor from "../codegen/CommentExtractor";
+import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
+import ESymbolKind from "../types/ESymbolKind";
+import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
+import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
+import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
+import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
 import {
   ITranspileResult,
   ITranspileError,
   ISymbolInfo,
   IParseWithSymbolsResult,
   TSymbolKind,
-} from "./types/ITranspileResult.js";
+} from "./types/ITranspileResult";
 
 export {
   ITranspileResult,

@@ -4,14 +4,10 @@
  * A safer C for embedded systems development
  */
 
-import {
-  transpile,
-  ITranspileResult,
-  ITranspileError,
-} from "./lib/transpiler.js";
-import { IncludeDiscovery } from "./lib/IncludeDiscovery.js";
-import { InputExpansion } from "./lib/InputExpansion.js";
-import Project from "./project/Project.js";
+import { transpile, ITranspileResult, ITranspileError } from "./lib/transpiler";
+import { IncludeDiscovery } from "./lib/IncludeDiscovery";
+import { InputExpansion } from "./lib/InputExpansion";
+import Project from "./project/Project";
 import {
   readFileSync,
   writeFileSync,

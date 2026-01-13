@@ -1,5 +1,5 @@
-import ESymbolKind from "./ESymbolKind.js";
-import ESourceLanguage from "./ESourceLanguage.js";
+import ESymbolKind from "./ESymbolKind";
+import ESourceLanguage from "./ESourceLanguage";
 
 /**
  * Represents a symbol collected from a source file

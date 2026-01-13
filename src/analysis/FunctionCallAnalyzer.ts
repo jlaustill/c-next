@@ -8,12 +8,12 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener.js";
-import * as Parser from "../parser/grammar/CNextParser.js";
-import SymbolTable from "../symbols/SymbolTable.js";
-import ESourceLanguage from "../types/ESourceLanguage.js";
-import ESymbolKind from "../types/ESymbolKind.js";
-import { IFunctionCallError } from "./types/IFunctionCallError.js";
+import { CNextListener } from "../parser/grammar/CNextListener";
+import * as Parser from "../parser/grammar/CNextParser";
+import SymbolTable from "../symbols/SymbolTable";
+import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
+import { IFunctionCallError } from "./types/IFunctionCallError";
 
 export { IFunctionCallError };
 

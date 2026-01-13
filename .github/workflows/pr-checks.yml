@@ -34,9 +34,9 @@ jobs:
         run: npm run eslint:check
         continue-on-error: true
 
-      - name: Build project
-        id: build
-        run: npm run build
+      - name: Generate parser files
+        id: generate
+        run: npm run antlr:all
         continue-on-error: true
 
       - name: Run tests
@@ -48,7 +48,7 @@ jobs:
         id: cli
         run: |
           # Smoke test: Verify transpiler can process example file
-          node dist/index.js examples/teensy4/blink.cnx
+          ./bin/cnext.js examples/teensy4/blink.cnx
           # Check that output was generated
           test -f examples/teensy4/blink.c || exit 1
         continue-on-error: true
@@ -74,11 +74,11 @@ jobs:
             echo "✅ ESLint check passed"
           fi
 
-          if [ "${{ steps.build.outcome }}" != "success" ]; then
-            echo "❌ Build failed"
+          if [ "${{ steps.generate.outcome }}" != "success" ]; then
+            echo "❌ Parser generation failed"
             FAILED=1
           else
-            echo "✅ Build passed"
+            echo "✅ Parser generation passed"
           fi
 
           if [ "${{ steps.test.outcome }}" != "success" ]; then
