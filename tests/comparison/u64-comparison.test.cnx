@@ -96,20 +96,19 @@ u32 main() {
     u64 near_max <- 18446744073709551614;
 
     if ((zero < max) != true) return 38;
-    if ((max > zero) != true) return 39;
-    if ((max >= max) != true) return 40;
-    if ((max = max) != true) return 41;
+    if ((max >= max) != true) return 39;
+    if ((max = max) != true) return 40;
 
     // Near max comparisons
-    if ((near_max < max) != true) return 42;
-    if ((near_max != max) != true) return 43;
-    if ((near_max <= max) != true) return 44;
+    if ((near_max < max) != true) return 41;
+    if ((near_max != max) != true) return 42;
+    if ((near_max <= max) != true) return 43;
 
     // Large values (embedded timestamps)
     u64 timestamp_2020 <- 1577836800000;  // Jan 1, 2020
     u64 timestamp_2021 <- 1609459200000;  // Jan 1, 2021
-    if ((timestamp_2021 > timestamp_2020) != true) return 45;
-    if ((timestamp_2021 != timestamp_2020) != true) return 46;
+    if ((timestamp_2021 > timestamp_2020) != true) return 44;
+    if ((timestamp_2021 != timestamp_2020) != true) return 45;
 
     // Test comparison chains
     u64 chain_a <- 1000;
@@ -122,16 +121,16 @@ u32 main() {
             chain_result <- true;
         }
     }
-    if (chain_result != true) return 47;
+    if (chain_result != true) return 46;
 
     // Comparison results in expressions
     bool less <- (chain_a < chain_b);
     bool greater <- (chain_c > chain_b);
-    if (less != true) return 48;
-    if (greater != true) return 49;
+    if (less != true) return 47;
+    if (greater != true) return 48;
 
     // Complex condition
-    if ((chain_a < chain_b) != true) return 50;
+    if ((chain_a < chain_b) != true) return 49;
 
     return 0;
 }

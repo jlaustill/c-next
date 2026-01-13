@@ -18,130 +18,91 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 // Tests: u64 comparison operations (<, >, <=, >=, =, !=)
 // Validates all comparison operators with u64 type
 // Includes edge cases with zero, max values, and typical embedded use cases
-bool result = false;
-
-void test_equality(void) {
+uint32_t main(void) {
     uint64_t a = 1000000000000;
     uint64_t b = 1000000000000;
     uint64_t c = 2000000000000;
-    result = (a == b);
-    result = (a == c);
-    result = (a != c);
-    result = (a != b);
+    if ((a == b) != true) return 1;
+    if ((a == c) != false) return 2;
+    if ((a != c) != true) return 3;
+    if ((a != b) != false) return 4;
     uint64_t zero = 0;
-    result = (zero == 0);
-    result = (zero != 1);
-}
-
-void test_less_than(void) {
+    if ((zero == 0) != true) return 5;
+    if ((zero != 1) != true) return 6;
     uint64_t small = 1000;
     uint64_t large = 1000000000000;
-    result = (small < large);
-    result = (large < small);
-    result = (small < small);
-    result = (small <= large);
-    result = (small <= small);
-    result = (large <= small);
-    uint64_t zero = 0;
-    result = (zero < 1);
-    result = (zero <= 0);
-}
-
-void test_greater_than(void) {
-    uint64_t small = 1000;
-    uint64_t large = 1000000000000;
-    result = (large > small);
-    result = (small > large);
-    result = (small > small);
-    result = (large >= small);
-    result = (small >= small);
-    result = (small >= large);
-    uint64_t zero = 0;
-    result = (1 > zero);
-    result = (zero >= 0);
-}
-
-void test_literal_comparison(void) {
+    if ((small < large) != true) return 7;
+    if ((large < small) != false) return 8;
+    if ((small < small) != false) return 9;
+    if ((small <= large) != true) return 10;
+    if ((small <= small) != true) return 11;
+    if ((large <= small) != false) return 12;
+    if ((zero < 1) != true) return 13;
+    if ((zero <= 0) != true) return 14;
+    if ((large > small) != true) return 15;
+    if ((small > large) != false) return 16;
+    if ((small > small) != false) return 17;
+    if ((large >= small) != true) return 18;
+    if ((small >= small) != true) return 19;
+    if ((small >= large) != false) return 20;
+    if ((1 > zero) != true) return 21;
+    if ((zero >= 0) != true) return 22;
     uint64_t val = 1000000000000;
-    result = (val == 1000000000000);
-    result = (val != 1000000000000);
-    result = (val < 2000000000000);
-    result = (val < 500000000000);
-    result = (val > 500000000000);
-    result = (val > 2000000000000);
-    result = (val <= 1000000000000);
-    result = (val <= 2000000000000);
-    result = (val >= 1000000000000);
-    result = (val >= 500000000000);
-}
-
-void test_in_control_flow(void) {
+    if ((val == 1000000000000) != true) return 23;
+    if ((val != 1000000000000) != false) return 24;
+    if ((val < 2000000000000) != true) return 25;
+    if ((val < 500000000000) != false) return 26;
+    if ((val > 500000000000) != true) return 27;
+    if ((val > 2000000000000) != false) return 28;
+    if ((val <= 1000000000000) != true) return 29;
+    if ((val <= 2000000000000) != true) return 30;
+    if ((val >= 1000000000000) != true) return 31;
+    if ((val >= 500000000000) != true) return 32;
     uint64_t counter = 0;
-    if (counter < 1000000) {
-        result = true;
-    }
     while (counter < 100) {
         counter = cnx_clamp_add_u64(counter, 1);
         if (counter >= 50) {
             counter = 100;
         }
     }
-    if (counter == 100) {
-        result = true;
-    }
+    if (counter != 100) return 33;
     uint64_t threshold = 1000000000;
+    bool nested_passed = false;
     if (counter > 0) {
         if (counter < threshold) {
-            result = true;
+            nested_passed = true;
         }
     }
-}
-
-void test_edge_cases(void) {
-    uint64_t zero = 0;
+    if (nested_passed != true) return 34;
+    if ((zero < 1) != true) return 35;
+    if ((zero == 0) != true) return 36;
+    if ((0 <= zero) != true) return 37;
     uint64_t max = 18446744073709551615;
     uint64_t near_max = 18446744073709551614;
-    result = (zero < 1);
-    result = (zero == 0);
-    result = (0 <= zero);
-    result = (zero < max);
-    result = (max > zero);
-    result = (max >= max);
-    result = (max == max);
-    result = (near_max < max);
-    result = (near_max != max);
-    result = (near_max <= max);
+    if ((zero < max) != true) return 38;
+    if ((max >= max) != true) return 39;
+    if ((max == max) != true) return 40;
+    if ((near_max < max) != true) return 41;
+    if ((near_max != max) != true) return 42;
+    if ((near_max <= max) != true) return 43;
     uint64_t timestamp_2020 = 1577836800000;
     uint64_t timestamp_2021 = 1609459200000;
-    result = (timestamp_2021 > timestamp_2020);
-    result = (timestamp_2021 != timestamp_2020);
-}
-
-void test_comparison_chains(void) {
-    uint64_t a = 1000;
-    uint64_t b = 5000;
-    uint64_t c = 10000;
-    if (a < b) {
-        if (b < c) {
-            result = true;
+    if ((timestamp_2021 > timestamp_2020) != true) return 44;
+    if ((timestamp_2021 != timestamp_2020) != true) return 45;
+    uint64_t chain_a = 1000;
+    uint64_t chain_b = 5000;
+    uint64_t chain_c = 10000;
+    bool chain_result = false;
+    if (chain_a < chain_b) {
+        if (chain_b < chain_c) {
+            chain_result = true;
         }
     }
-    if ((a < b) == true) {
-        result = true;
-    }
-    bool less = (a < b);
-    bool greater = (c > b);
-    result = less;
-    result = greater;
-}
-
-uint32_t main(void) {
-    test_equality();
-    test_less_than();
-    test_greater_than();
-    test_literal_comparison();
-    test_in_control_flow();
-    test_edge_cases();
-    test_comparison_chains();
+    if (chain_result != true) return 46;
+    bool less = (chain_a < chain_b);
+    bool greater = (chain_c > chain_b);
+    if (less != true) return 47;
+    if (greater != true) return 48;
+    if ((chain_a < chain_b) != true) return 49;
     return 0;
 }
