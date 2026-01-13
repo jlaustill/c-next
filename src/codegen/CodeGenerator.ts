@@ -6454,12 +6454,13 @@ export default class CodeGenerator {
           const isPrimaryArray = identifierTypeInfo?.isArray ?? false;
 
           // Determine if this subscript is array access or bit access
-          // Priority: register access > tracked member array > primary array > bit access
+          // Priority: register access > tracked member array > primary array > primitive integer bit access > default array access
           if (isRegisterAccess) {
             // Register - use bit access: ((value >> index) & 1)
             result = `((${result} >> ${index}) & 1)`;
           } else if (currentMemberIsArray) {
-            // Struct member that is an array (e.g., buf.data[0])
+            // Struct member that is an array (e.g., config.tempInputs[0])
+            // This is the most reliable indicator - we tracked it through member access
             result = `${result}[${index}]`;
             currentMemberIsArray = false; // After subscript, no longer array
             isSubscripted = true; // Track for .length on element
@@ -6467,12 +6468,24 @@ export default class CodeGenerator {
             // Primary identifier is an array (e.g., arr[0] or global.arr[0])
             result = `${result}[${index}]`;
             isSubscripted = true; // Track for .length on element
-          } else if (identifierTypeInfo && !isPrimaryArray) {
-            // Non-array type (integer, etc.) - use bit access
-            result = `((${result} >> ${index}) & 1)`;
+            // After subscripting an array, set currentStructType if the element is a struct
+            if (identifierTypeInfo && !currentStructType) {
+              const elementType = identifierTypeInfo.baseType;
+              if (this.knownStructs.has(elementType)) {
+                currentStructType = elementType;
+              }
+            }
           } else {
-            // Unknown type - default to array access
-            result = `${result}[${index}]`;
+            // Check both currentStructType (for member access chains) and identifierTypeInfo (for simple variables)
+            const typeToCheck = currentStructType || identifierTypeInfo?.baseType;
+            const isPrimitiveInt = typeToCheck && ['u8', 'u16', 'u32', 'u64', 'i8', 'i16', 'i32', 'i64'].includes(typeToCheck);
+            if (isPrimitiveInt) {
+              // Primitive integer - use bit access: ((value >> index) & 1)
+              result = `((${result} >> ${index}) & 1)`;
+            } else {
+              // Non-primitive type or unknown - default to array access
+              result = `${result}[${index}]`;
+            }
           }
         } else if (exprs.length === 2) {
           // Bit range: flags[start, width]
