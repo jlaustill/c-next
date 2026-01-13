@@ -1,0 +1,72 @@
+/* test-execution */
+// ADR-022: Ternary operator test for u64
+// Tests: ternary with u64 in conditions and branches
+
+u64 getMax(u64 a, u64 b) {
+    return (a > b) ? a : b;
+}
+
+u64 getMin(u64 a, u64 b) {
+    return (a < b) ? a : b;
+}
+
+u32 main() {
+    u64 a <- 1000;
+    u64 b <- 2000;
+    u64 c <- 3000;
+    u64 d <- 500;
+
+    // Test max function
+    if (getMax(a, b) != 2000) {
+        return 1;
+    }
+    if (getMax(c, d) != 3000) {
+        return 2;
+    }
+
+    // Test min function
+    if (getMin(a, b) != 1000) {
+        return 3;
+    }
+    if (getMin(c, d) != 500) {
+        return 4;
+    }
+
+    // Test inline ternary
+    u64 result <- (a > b) ? a : b;
+    if (result != 2000) {
+        return 5;
+    }
+
+    // Test with large values (timestamp-like)
+    u64 large_a <- 1000000000000;
+    u64 large_b <- 2000000000000;
+    u64 large_result <- (large_a < large_b) ? large_a : large_b;
+    if (large_result != 1000000000000) {
+        return 6;
+    }
+
+    // Test with edge cases - min value (0)
+    u64 zero <- 0;
+    u64 one <- 1;
+    u64 zero_result <- (zero < one) ? zero : one;
+    if (zero_result != 0) {
+        return 7;
+    }
+
+    // Test equality condition
+    u64 equal_test <- (a = 1000) ? 100000 : 200000;
+    if (equal_test != 100000) {
+        return 8;
+    }
+
+    // Test with very large values
+    u64 very_large_a <- 9000000000000000000;
+    u64 very_large_b <- 9000000000000000001;
+    u64 very_large_result <- (very_large_a < very_large_b) ? very_large_a : very_large_b;
+    if (very_large_result != 9000000000000000000) {
+        return 9;
+    }
+
+    return 0;
+}
