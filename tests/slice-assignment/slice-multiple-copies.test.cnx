@@ -1,0 +1,98 @@
+/* test-execution */
+// Tests: Multiple sequential slice assignments to same buffer
+// Validates non-overlapping regions and advancing offset pattern
+// Simulates real-world buffer building (like crc32.cnx pattern)
+
+u32 main() {
+    u8 buffer[256];
+    u32 offset <- 0;
+
+    // Sequential writes building a protocol packet
+    // Packet format: [magic:4][version:2][length:2][flags:1][reserved:3][data:8]
+
+    // Write magic number
+    u32 magic <- 0x50415255;  // "URAP" (little-endian)
+    buffer[offset, 4] <- magic;
+    offset +<- 4;
+
+    // Write version
+    u16 version <- 0x0100;  // Version 1.0
+    buffer[offset, 2] <- version;
+    offset +<- 2;
+
+    // Write length
+    u16 length <- 20;  // Total packet length
+    buffer[offset, 2] <- length;
+    offset +<- 2;
+
+    // Write flags
+    u8 flags <- 0x0F;
+    buffer[offset, 1] <- flags;
+    offset +<- 1;
+
+    // Write reserved bytes (zeros)
+    u8 reserved1 <- 0;
+    u8 reserved2 <- 0;
+    u8 reserved3 <- 0;
+    buffer[offset, 1] <- reserved1;
+    offset +<- 1;
+    buffer[offset, 1] <- reserved2;
+    offset +<- 1;
+    buffer[offset, 1] <- reserved3;
+    offset +<- 1;
+
+    // Write data payload
+    u64 data <- 0x0102030405060708;
+    buffer[offset, 8] <- data;
+    offset +<- 8;
+
+    // Validate final offset
+    if (offset != 20) return 1;
+
+    // Validate magic (bytes 0-3)
+    if (buffer[0] != 0x55) return 2;  // 'U'
+    if (buffer[1] != 0x52) return 3;  // 'R'
+    if (buffer[2] != 0x41) return 4;  // 'A'
+    if (buffer[3] != 0x50) return 5;  // 'P'
+
+    // Validate version (bytes 4-5)
+    if (buffer[4] != 0x00) return 6;
+    if (buffer[5] != 0x01) return 7;
+
+    // Validate length (bytes 6-7)
+    if (buffer[6] != 20) return 8;
+    if (buffer[7] != 0) return 9;
+
+    // Validate flags (byte 8)
+    if (buffer[8] != 0x0F) return 10;
+
+    // Validate reserved (bytes 9-11)
+    if (buffer[9] != 0) return 11;
+    if (buffer[10] != 0) return 12;
+    if (buffer[11] != 0) return 13;
+
+    // Validate data (bytes 12-19)
+    if (buffer[12] != 0x08) return 14;
+    if (buffer[13] != 0x07) return 15;
+    if (buffer[14] != 0x06) return 16;
+    if (buffer[15] != 0x05) return 17;
+    if (buffer[16] != 0x04) return 18;
+    if (buffer[17] != 0x03) return 19;
+    if (buffer[18] != 0x02) return 20;
+    if (buffer[19] != 0x01) return 21;
+
+    // Test 2: Overwriting specific regions
+    u32 newMagic <- 0x44434241;  // "ABCD"
+    buffer[0, 4] <- newMagic;
+
+    if (buffer[0] != 0x41) return 22;  // 'A'
+    if (buffer[1] != 0x42) return 23;  // 'B'
+    if (buffer[2] != 0x43) return 24;  // 'C'
+    if (buffer[3] != 0x44) return 25;  // 'D'
+
+    // Verify other bytes unchanged
+    if (buffer[4] != 0x00) return 26;
+    if (buffer[8] != 0x0F) return 27;
+
+    return 0;  // All tests passed
+}

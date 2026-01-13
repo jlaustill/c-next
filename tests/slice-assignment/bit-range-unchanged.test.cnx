@@ -1,0 +1,75 @@
+/* test-execution */
+// Tests: Verify bit manipulation operations still work correctly
+// Ensures that slice assignment fix doesn't break existing bit-range operations
+// Bit operations on scalar integers should use bit manipulation, not memcpy
+
+u32 main() {
+    // Test 1: Single bit assignment
+    u32 flags <- 0;
+
+    // Set bit 0
+    flags[0] <- true;
+    if (flags != 0x00000001) return 1;
+
+    // Set bit 7
+    flags[7] <- true;
+    if (flags != 0x00000081) return 2;
+
+    // Clear bit 0
+    flags[0] <- false;
+    if (flags != 0x00000080) return 3;
+
+    // Set bit 15
+    flags[15] <- true;
+    if (flags != 0x00008080) return 4;
+
+    // Test 2: Bit range assignment
+    u32 value <- 0;
+
+    // Set bits [0, 3] to value 5 (0b101)
+    value[0, 3] <- 5;
+    if (value != 0x00000005) return 5;
+
+    // Set bits [4, 4] to value 10 (0b1010)
+    value[4, 4] <- 10;
+    if (value != 0x000000A5) return 6;
+
+    // Set bits [8, 8] to value 255 (0b11111111)
+    value[8, 8] <- 255;
+    if (value != 0x0000FFA5) return 7;
+
+    // Test 3: Overwriting bit ranges
+    u32 bits <- 0xFFFFFFFF;
+
+    // Clear bits [0, 4] by setting to 0
+    bits[0, 4] <- 0;
+    if (bits != 0xFFFFFFF0) return 8;
+
+    // Set bits [4, 4] to 5 (0b0101)
+    bits[4, 4] <- 5;
+    if (bits != 0xFFFFFF50) return 9;
+
+    // Test 4: u8 bit manipulation
+    u8 smallFlags <- 0;
+
+    // Set bits [0, 4] to 15 (0b1111)
+    smallFlags[0, 4] <- 15;
+    if (smallFlags != 0x0F) return 10;
+
+    // Set bit 7
+    smallFlags[7] <- true;
+    if (smallFlags != 0x8F) return 11;
+
+    // Test 5: u16 bit manipulation
+    u16 mediumFlags <- 0;
+
+    // Set bits [0, 8] to 0xFF
+    mediumFlags[0, 8] <- 0xFF;
+    if (mediumFlags != 0x00FF) return 12;
+
+    // Set bits [8, 4] to 0x0A
+    mediumFlags[8, 4] <- 0x0A;
+    if (mediumFlags != 0x0AFF) return 13;
+
+    return 0;  // All tests passed
+}
