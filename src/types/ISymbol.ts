@@ -32,6 +32,15 @@ interface ISymbol {
   /** Function signature for overload detection (e.g., "void foo(int, float)") */
   signature?: string;
 
+  /** Function parameters with names, types, and modifiers for header generation */
+  parameters?: Array<{
+    name: string;
+    type: string; // C-Next type (u32, Configuration, etc.)
+    isConst: boolean;
+    isArray: boolean;
+    arrayDimensions?: string[]; // e.g., ["10", "20"] or ["", ""] for unbounded
+  }>;
+
   /** Parent namespace or class name */
   parent?: string;
 
