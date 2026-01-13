@@ -1423,6 +1423,57 @@ export default class CodeGenerator {
         });
         return; // Early return, we've handled this case
       }
+    } else if (typeCtx.stringType()) {
+      // ADR-045: Handle bounded string type
+      const stringCtx = typeCtx.stringType()!;
+      const intLiteral = stringCtx.INTEGER_LITERAL();
+
+      if (intLiteral) {
+        const capacity = parseInt(intLiteral.getText(), 10);
+        this.needsString = true;
+        const stringDim = capacity + 1;
+
+        // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
+        if (arrayDim && arrayDim.length > 0) {
+          const stringArrayDims: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = parseInt(sizeExpr.getText(), 10);
+              if (!isNaN(size) && size > 0) {
+                stringArrayDims.push(size);
+              }
+            }
+          }
+          stringArrayDims.push(stringDim);
+
+          this.context.typeRegistry.set(registryName, {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: stringArrayDims,
+            isConst,
+            isString: true,
+            stringCapacity: capacity,
+            overflowBehavior,
+            isAtomic,
+          });
+        } else {
+          // Single string: string<64> s
+          this.context.typeRegistry.set(registryName, {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: [stringDim],
+            isConst,
+            isString: true,
+            stringCapacity: capacity,
+            overflowBehavior,
+            isAtomic,
+          });
+        }
+        return; // Early return, we've handled this case
+      }
     } else if (typeCtx.arrayType()) {
       isArray = true;
       const arrayTypeCtx = typeCtx.arrayType()!;
@@ -2548,6 +2599,15 @@ export default class CodeGenerator {
         let decl = `${prefix}${type} ${fullName}`;
         if (isArray) {
           decl += this.generateArrayDimensions(arrayDims);
+        }
+        // ADR-045: Add string capacity dimension for string arrays
+        if (varDecl.type().stringType()) {
+          const stringCtx = varDecl.type().stringType()!;
+          const intLiteral = stringCtx.INTEGER_LITERAL();
+          if (intLiteral) {
+            const capacity = parseInt(intLiteral.getText(), 10);
+            decl += `[${capacity + 1}]`;
+          }
         }
         if (varDecl.expression()) {
           decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
