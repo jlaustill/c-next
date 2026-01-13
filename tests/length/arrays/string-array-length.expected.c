@@ -9,12 +9,12 @@
 /* test-execution */
 // Comprehensive .length test for string arrays across all contexts
 // Tests: array.length returns 4 (element count), string.length returns strlen (runtime)
-char globalArr[65] = "";
+char globalArr[4][65] = {0};
 
 /* Scope: TestScope */
 
 uint32_t TestScope_getGlobalArrayLength(void) {
-    return strlen(globalArr);
+    return 4;
 }
 char TestScope_scopeArr[4] = {0};
 
@@ -34,7 +34,7 @@ typedef struct {
 int32_t main(void) {
     globalArr[0] = "Hello";
     globalArr[1] = "World";
-    if (strlen(globalArr) != 4) {
+    if (4 != 4) {
         return 1;
     }
     if (strlen(globalArr) != 5) {
@@ -49,15 +49,15 @@ int32_t main(void) {
     if (/* .length: unknown type for TestScope_publicArr */0 != 4) {
         return 5;
     }
-    char localArr[65] = "";
+    char localArr[4][65] = {0};
     localArr[0] = "Test";
-    if (strlen(localArr) != 4) {
+    if (4 != 4) {
         return 6;
     }
     if (strlen(localArr) != 4) {
         return 7;
     }
-    char testArr[65] = "";
+    char testArr[4][65] = {0};
     testArr[0] = "Param";
     if (checkArrayLength(&testArr) != 4) {
         return 8;
