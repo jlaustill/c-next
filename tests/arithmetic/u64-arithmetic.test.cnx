@@ -1,0 +1,159 @@
+/* test-execution */
+// Tests: u64 arithmetic operations (+, -, *, /, %)
+// Validates all basic arithmetic operations with u64 type
+// Includes edge cases with large values relevant to embedded systems
+
+u32 main() {
+    // Test addition
+    u64 a <- 1000000000000;  // 1 trillion
+    u64 b <- 500000000000;   // 500 billion
+    u64 result <- a + b;
+    if (result != 1500000000000) return 1;
+
+    // Addition with literals
+    result <- a + 1000;
+    if (result != 1000000001000) return 2;
+
+    result <- 5000 + a;
+    if (result != 1000000005000) return 3;
+
+    // Large value addition
+    u64 large1 <- 9000000000000000000;
+    u64 large2 <- 1000000000000000000;
+    result <- large1 + large2;
+    if (result != 10000000000000000000) return 4;
+
+    // Test subtraction
+    a <- 1000000000000;
+    b <- 300000000000;
+    result <- a - b;
+    if (result != 700000000000) return 5;
+
+    // Subtraction with literals
+    result <- a - 1000;
+    if (result != 999999999000) return 6;
+
+    result <- 2000000000000 - a;
+    if (result != 1000000000000) return 7;
+
+    // Edge case: result close to zero
+    u64 c <- 1000;
+    u64 d <- 999;
+    result <- c - d;
+    if (result != 1) return 8;
+
+    // Test multiplication
+    u64 m1 <- 1000000;
+    u64 m2 <- 1000000;
+    result <- m1 * m2;
+    if (result != 1000000000000) return 9;
+
+    // Multiplication with literals
+    result <- m1 * 2;
+    if (result != 2000000) return 10;
+
+    result <- 1000 * m1;
+    if (result != 1000000000) return 11;
+
+    // Larger multiplication
+    u64 m3 <- 100000000;  // 100 million
+    u64 m4 <- 10000;      // 10 thousand
+    result <- m3 * m4;
+    if (result != 1000000000000) return 12;
+
+    // Test division
+    u64 div1 <- 1000000000000;
+    u64 div2 <- 1000;
+    result <- div1 / div2;
+    if (result != 1000000000) return 13;
+
+    // Division with literals
+    result <- div1 / 2;
+    if (result != 500000000000) return 14;
+
+    result <- 1000000000000 / 500;
+    if (result != 2000000000) return 15;
+
+    // Large dividend
+    u64 div3 <- 9000000000000000000;
+    u64 div4 <- 1000000;
+    result <- div3 / div4;
+    if (result != 9000000000000) return 16;
+
+    // Test modulo
+    u64 mod1 <- 1000000000007;
+    u64 mod2 <- 1000000;
+    result <- mod1 % mod2;
+    if (result != 7) return 17;
+
+    // Modulo with literals
+    result <- mod1 % 100;
+    if (result != 7) return 18;
+
+    result <- 12345 % 7;
+    if (result != 4) return 19;
+
+    // Timestamp modulo (common in embedded)
+    u64 timestamp <- 1609459200000;
+    result <- timestamp % 1000;
+    if (result != 0) return 20;
+
+    // Test complex expressions - operator precedence
+    u64 e1 <- 10000;
+    u64 e2 <- 5000;
+    u64 e3 <- 2000;
+
+    result <- e1 + e2 * e3;  // 10000 + 10000000
+    if (result != 10010000) return 21;
+
+    result <- (e1 + e2) * e3;  // 15000 * 2000
+    if (result != 30000000) return 22;
+
+    result <- e1 / e2 + e3;  // 2 + 2000
+    if (result != 2002) return 23;
+
+    result <- e1 - e2 / e3;  // 10000 - 2
+    if (result != 9998) return 24;
+
+    // Multiple operations
+    // Note: e1=10000, e2=5000, e3=2000
+    result <- (e1 * e2) / e3 + 1000;  // (10000 * 5000) / 2000 + 1000 = 25000 + 1000 = 26000
+    if (result != 26000) return 25;
+
+    result <- (e1 + e2) / (e3 - 1000);  // 15000 / 1000 = 15
+    if (result != 15) return 26;
+
+    // Test edge cases - zero operations
+    u64 zero <- 0;
+    u64 val <- 1000000;
+
+    result <- zero + val;
+    if (result != 1000000) return 27;
+
+    result <- val - zero;
+    if (result != 1000000) return 28;
+
+    result <- zero * val;
+    if (result != 0) return 29;
+
+    result <- zero / 1;
+    if (result != 0) return 30;
+
+    result <- zero % 100;
+    if (result != 0) return 31;
+
+    // Operations with 1
+    result <- val * 1;
+    if (result != 1000000) return 32;
+
+    result <- val / 1;
+    if (result != 1000000) return 33;
+
+    // Large values (typical embedded timestamps)
+    u64 timestamp1 <- 1609459200000;  // Jan 1, 2021 in ms
+    u64 timestamp2 <- 1609545600000;  // Jan 2, 2021 in ms
+    result <- timestamp2 - timestamp1;
+    if (result != 86400000) return 34;  // 86400000 ms (1 day)
+
+    return 0;
+}

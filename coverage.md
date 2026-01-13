@@ -157,13 +157,13 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter             | [x]    |                                                 |
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
-| Array element type             | [ ]    |                                                 |
-| Array element type (multi-dim) | [ ]    |                                                 |
-| In arithmetic expression       | [ ]    |                                                 |
-| In comparison                  | [ ]    |                                                 |
+| Array element type             | [x]    | `array-initializers/u64-array-init.test.cnx`    |
+| Array element type (multi-dim) | [x]    | `multi-dim-arrays/u64-multi-dim.test.cnx`       |
+| In arithmetic expression       | [x]    | `arithmetic/u64-arithmetic.test.cnx`            |
+| In comparison                  | [x]    | `comparison/u64-comparison.test.cnx`            |
 | In bitwise operation           | [x]    | `bitwise/u64-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-u64-counter.test.cnx`            |
-| In ternary expression          | [ ]    |                                                 |
+| In ternary expression          | [x]    | `ternary/ternary-u64.test.cnx`                  |
 | With const modifier            | [ ]    |                                                 |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier            | [ ]    |                                                 |

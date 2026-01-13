@@ -29,6 +29,96 @@
 2. Verify transpiled output compiles cleanly with `npm run analyze`
 3. Run tests before considering a task complete
 
+### Test File Patterns
+
+There are **two types of tests** in C-Next:
+
+#### 1. Compilation Tests (No Validation)
+
+Tests that verify code transpiles and compiles correctly. **NO** result validation needed.
+
+```cnx
+// Test all operations (NO test-execution comment)
+// Note: No /* test-execution */ marker
+
+f32 result;
+
+void test_operations() {
+    f32 a <- 10.5;
+    result <- a + 5.0;  // Just assign, no validation
+    result <- a * 2.0;
+}
+
+void main() {
+    test_operations();
+}
+```
+
+**Examples**: `tests/floats/float-arithmetic.test.cnx`, `tests/floats/float-comparison.test.cnx`
+
+#### 2. Execution Tests (With Validation) ⭐ **MOST TESTS**
+
+Tests marked with `/* test-execution */` that **execute and validate results**. These **MUST validate every operation**.
+
+```cnx
+/* test-execution */
+// Tests: description of what is being validated
+
+u32 main() {
+    // Perform operation
+    u64 result <- 1000 + 500;
+
+    // ALWAYS validate result
+    if (result != 1500) return 1;  // Return error code on failure
+
+    // Test another operation
+    result <- 1000 - 200;
+    if (result != 800) return 2;   // Different error code
+
+    // ... more tests with incrementing error codes ...
+
+    return 0;  // Success - ALL validations passed
+}
+```
+
+**Key Requirements for Execution Tests**:
+
+- **MUST** include `/* test-execution */` comment at top
+- **MUST** validate EVERY result with `if (result != expected) return N;`
+- **MUST** use unique return codes (1, 2, 3, ...) for each validation
+- Return 0 **ONLY** if all validations pass
+- Include comments explaining what each test validates
+
+**Examples**:
+
+- `tests/arithmetic/u64-arithmetic.test.cnx` (34 validations)
+- `tests/comparison/u64-comparison.test.cnx` (50 validations)
+- `tests/ternary/ternary-u64.test.cnx`
+- `tests/array-initializers/u64-array-init.test.cnx` (31 validations)
+
+### Common Mistakes to Avoid
+
+❌ **WRONG** - Execution test without validation:
+
+```cnx
+/* test-execution */
+u32 main() {
+    u64 result <- 1000 + 500;
+    return 0;  // BUG: Always passes, never validates!
+}
+```
+
+✅ **CORRECT** - Execution test with validation:
+
+```cnx
+/* test-execution */
+u32 main() {
+    u64 result <- 1000 + 500;
+    if (result != 1500) return 1;  // Validation required!
+    return 0;
+}
+```
+
 ## Task Completion Requirements
 
 **A task is NOT complete until all relevant documentation is updated:**

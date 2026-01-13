@@ -1,0 +1,136 @@
+/* test-execution */
+// Tests: u64 comparison operations (<, >, <=, >=, =, !=)
+// Validates all comparison operators with u64 type
+// Includes edge cases with zero, max values, and typical embedded use cases
+
+u32 main() {
+    // Test equality
+    u64 a <- 1000000000000;
+    u64 b <- 1000000000000;
+    u64 c <- 2000000000000;
+
+    if ((a = b) != true) return 1;
+    if ((a = c) != false) return 2;
+
+    // Test inequality
+    if ((a != c) != true) return 3;
+    if ((a != b) != false) return 4;
+
+    // Equality with zero
+    u64 zero <- 0;
+    if ((zero = 0) != true) return 5;
+    if ((zero != 1) != true) return 6;
+
+    // Test less than
+    u64 small <- 1000;
+    u64 large <- 1000000000000;
+
+    if ((small < large) != true) return 7;
+    if ((large < small) != false) return 8;
+    if ((small < small) != false) return 9;
+
+    // Test less than or equal
+    if ((small <= large) != true) return 10;
+    if ((small <= small) != true) return 11;
+    if ((large <= small) != false) return 12;
+
+    // Less than with zero
+    if ((zero < 1) != true) return 13;
+    if ((zero <= 0) != true) return 14;
+
+    // Test greater than
+    if ((large > small) != true) return 15;
+    if ((small > large) != false) return 16;
+    if ((small > small) != false) return 17;
+
+    // Test greater than or equal
+    if ((large >= small) != true) return 18;
+    if ((small >= small) != true) return 19;
+    if ((small >= large) != false) return 20;
+
+    // Greater than with zero
+    if ((1 > zero) != true) return 21;
+    if ((zero >= 0) != true) return 22;
+
+    // Test comparison with literals
+    u64 val <- 1000000000000;
+
+    if ((val = 1000000000000) != true) return 23;
+    if ((val != 1000000000000) != false) return 24;
+    if ((val < 2000000000000) != true) return 25;
+    if ((val < 500000000000) != false) return 26;
+    if ((val > 500000000000) != true) return 27;
+    if ((val > 2000000000000) != false) return 28;
+    if ((val <= 1000000000000) != true) return 29;
+    if ((val <= 2000000000000) != true) return 30;
+    if ((val >= 1000000000000) != true) return 31;
+    if ((val >= 500000000000) != true) return 32;
+
+    // Test in control flow - while loop
+    u64 counter <- 0;
+    while (counter < 100) {
+        counter +<- 1;
+        if (counter >= 50) {
+            counter <- 100;
+        }
+    }
+    if (counter != 100) return 33;
+
+    // Nested conditions
+    u64 threshold <- 1000000000;
+    bool nested_passed <- false;
+    if (counter > 0) {
+        if (counter < threshold) {
+            nested_passed <- true;
+        }
+    }
+    if (nested_passed != true) return 34;
+
+    // Test edge cases - zero
+    if ((zero < 1) != true) return 35;
+    if ((zero = 0) != true) return 36;
+    if ((0 <= zero) != true) return 37;
+
+    // Max value comparisons
+    u64 max <- 18446744073709551615;
+    u64 near_max <- 18446744073709551614;
+
+    if ((zero < max) != true) return 38;
+    if ((max >= max) != true) return 39;
+    if ((max = max) != true) return 40;
+
+    // Near max comparisons
+    if ((near_max < max) != true) return 41;
+    if ((near_max != max) != true) return 42;
+    if ((near_max <= max) != true) return 43;
+
+    // Large values (embedded timestamps)
+    u64 timestamp_2020 <- 1577836800000;  // Jan 1, 2020
+    u64 timestamp_2021 <- 1609459200000;  // Jan 1, 2021
+    if ((timestamp_2021 > timestamp_2020) != true) return 44;
+    if ((timestamp_2021 != timestamp_2020) != true) return 45;
+
+    // Test comparison chains
+    u64 chain_a <- 1000;
+    u64 chain_b <- 5000;
+    u64 chain_c <- 10000;
+
+    bool chain_result <- false;
+    if (chain_a < chain_b) {
+        if (chain_b < chain_c) {
+            chain_result <- true;
+        }
+    }
+    if (chain_result != true) return 46;
+
+    // Comparison results in expressions
+    bool less <- (chain_a < chain_b);
+    bool greater <- (chain_c > chain_b);
+    if (less != true) return 47;
+    if (greater != true) return 48;
+
+    // Complex condition
+    if ((chain_a < chain_b) != true) return 49;
+
+    return 0;
+}
