@@ -2,7 +2,7 @@
 
 **Status:** Partial (In Progress)
 **Date:** 2025-12-27
-**Last Updated:** 2026-01-12
+**Last Updated:** 2026-01-13
 **Decision Makers:** C-Next Language Design Team
 **Tracking:** [Issue #39](https://github.com/jlaustill/c-next/issues/39)
 
@@ -213,29 +213,25 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 - ✅ Phase 1: `CSymbolCollector` and `CppSymbolCollector` extract symbols from C/C++ files
 - ✅ Phase 2: `SymbolTable` class with cross-language conflict detection
 - ✅ Phase 2: All parsers (CNext, C, C++) populate unified symbol table
+- ✅ Phase 3: Cross-file resolution with SymbolTable integration
+  - **Implementation:** `CodeGenerator` now queries `SymbolTable` for struct field types
+  - **Fix:** Enhanced `SymbolTable` to store struct field information (type + array dimensions)
+  - **Fix:** Updated `CSymbolCollector` to extract struct field types from C headers
+  - **Fix:** Updated `CodeGenerator` to use unified lookup checking both local structs and SymbolTable
+  - **Impact:** `.length` property now works correctly on C header struct members ([Issue #45](https://github.com/jlaustill/c-next/issues/45))
 - ✅ Phase 4: `HeaderGenerator` emits `.h` files with include guards
 - ✅ Phase 5: C++ grammar imported and working (with known limitations)
 - ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)
 - ✅ `Project` class for multi-file compilation
 - ✅ CLI `--project` mode for multi-file builds
 
-**In Progress:**
-
-- 🔶 Phase 3: Cross-file resolution partially works
-  - Symbol table is populated but not fully utilized
-  - **Issue:** `CodeGenerator` doesn't use symbol table for type resolution
-  - **Impact:** `.length` property on C header struct members evaluates to `0`
-  - **Example:** `config.magic.length` where `AppConfig` is from C header → `length = 0 / 8`
-
 **Not Started:**
 
 - ❌ Remove `--project` flag (should always use unified parsing)
 - ❌ Make unified parsing the default behavior
-- ❌ Update CodeGenerator to use SymbolTable for type resolution
 
 **Known Issues:**
 
-- CodeGenerator line 5616 only checks local `structFields` map, ignores `symbolTable`
 - Single-file mode (`cnext file.cnx`) doesn't parse C headers
 - Array indexing on C header structs broken (related to [Issue #8](https://github.com/jlaustill/c-next/issues/8))
 
