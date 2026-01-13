@@ -5950,16 +5950,41 @@ export default class CodeGenerator {
               if (fieldInfo) {
                 const memberType = fieldInfo.type;
                 const dimensions = fieldInfo.dimensions;
+                // ADR-045: Check if this is a string field
+                const isStringField = memberType.startsWith("string<");
 
-                if (dimensions && dimensions.length > 0 && !isSubscripted) {
-                  // Array member without subscript -> return array length (first dimension)
+                if (dimensions && dimensions.length > 1 && isStringField) {
+                  // String array field: string<64> arr[4]
+                  if (!isSubscripted) {
+                    // ts.arr.length -> return element count (first dimension)
+                    result = String(dimensions[0]);
+                  } else {
+                    // ts.arr[0].length -> strlen(ts.arr[0])
+                    this.needsString = true;
+                    result = `strlen(${result})`;
+                  }
+                } else if (
+                  dimensions &&
+                  dimensions.length === 1 &&
+                  isStringField
+                ) {
+                  // Single string field: string<64> str
+                  // ts.str.length -> strlen(ts.str)
+                  this.needsString = true;
+                  result = `strlen(${result})`;
+                } else if (
+                  dimensions &&
+                  dimensions.length > 0 &&
+                  !isSubscripted
+                ) {
+                  // Non-string array member without subscript -> return array length (first dimension)
                   result = String(dimensions[0]);
                 } else if (
                   dimensions &&
                   dimensions.length > 0 &&
                   isSubscripted
                 ) {
-                  // Array member with subscript (e.g., ts.arr[0].length) -> return element bit width
+                  // Non-string array member with subscript (e.g., ts.arr[0].length) -> return element bit width
                   // Try C-Next types first, then C types
                   const bitWidth =
                     TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
@@ -6010,10 +6035,9 @@ export default class CodeGenerator {
                     // arr.length -> return element count (first dimension)
                     result = String(typeInfo.arrayDimensions[0]);
                   } else {
-                    // arr[0].length -> return strlen(arr[0])
-                    result = currentIdentifier
-                      ? `strlen(${currentIdentifier})`
-                      : `strlen(${result})`;
+                    // arr[0].length -> strlen(arr[0])
+                    // Use 'result' which has the subscript, not 'currentIdentifier'
+                    result = `strlen(${result})`;
                   }
                 } else {
                   // Single string: arrayDimensions: [65]
