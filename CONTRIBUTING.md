@@ -37,6 +37,18 @@ npm test
 
 ### Development Setup
 
+**IMPORTANT: Run `npm install` after cloning to install pre-commit hooks!**
+
+The project uses [Husky](https://typicode.github.io/husky/) to automatically format code before every commit. This prevents prettier/eslint errors from reaching PRs.
+
+**What happens when you run `npm install`:**
+
+- ✅ Pre-commit hooks are installed via Husky
+- ✅ Prettier automatically formats staged files before commit
+- ✅ ESLint automatically fixes staged TypeScript files before commit
+
+**You don't need to manually run `prettier:fix` before commits** - the hook does it for you!
+
 ```bash
 # Create your feature branch
 git checkout -b feature/your-feature-name
@@ -44,11 +56,13 @@ git checkout -b feature/your-feature-name
 # Make changes and test
 npm test
 
-# Check code quality
+# Optional: Manually check code quality (hooks do this automatically)
 npm run prettier:fix
 npm run eslint:check
 npm run typecheck
 ```
+
+**Bypassing hooks:** Don't use `git commit --no-verify` unless absolutely necessary - this skips formatting and will cause CI failures.
 
 ---
 
