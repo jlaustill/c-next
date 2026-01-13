@@ -6477,8 +6477,13 @@ export default class CodeGenerator {
             }
           } else {
             // Check both currentStructType (for member access chains) and identifierTypeInfo (for simple variables)
-            const typeToCheck = currentStructType || identifierTypeInfo?.baseType;
-            const isPrimitiveInt = typeToCheck && ['u8', 'u16', 'u32', 'u64', 'i8', 'i16', 'i32', 'i64'].includes(typeToCheck);
+            const typeToCheck =
+              currentStructType || identifierTypeInfo?.baseType;
+            const isPrimitiveInt =
+              typeToCheck &&
+              ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
+                typeToCheck,
+              );
             if (isPrimitiveInt) {
               // Primitive integer - use bit access: ((value >> index) & 1)
               result = `((${result} >> ${index}) & 1)`;
