@@ -17,6 +17,10 @@ import {
 } from "fs";
 import { dirname, resolve } from "path";
 
+// Read version from package.json to ensure consistency
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJson = require("../package.json");
+
 /**
  * C-Next configuration file options
  */
@@ -61,7 +65,8 @@ function loadConfig(startDir: string): ICNextConfig {
 // Re-export library for backwards compatibility
 export { transpile, ITranspileResult, ITranspileError };
 
-const VERSION = "0.2.0";
+// Read version dynamically from package.json
+const VERSION = packageJson.version as string;
 
 function showHelp(): void {
   console.log(`C-Next Transpiler v${VERSION}`);
