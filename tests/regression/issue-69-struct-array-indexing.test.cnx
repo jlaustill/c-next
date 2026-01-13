@@ -1,0 +1,79 @@
+/* test-execution */
+// Regression test for issue #69: Array indexing transpiles as bitshift operation
+//
+// Bug: Array indexing on struct array members like config.tempInputs[index].assignedSpn
+// was incorrectly transpiling as bitshift: ((config.tempInputs >> index) & 1).assignedSpn
+//
+// Expected: config->tempInputs[index].assignedSpn
+//
+// This test ensures the bug does not regress in future changes.
+
+struct InputData {
+    u16 assignedSpn;
+    f32 coeffA;
+}
+
+struct Configuration {
+    InputData tempInputs[8];
+}
+
+// Function that exposes the bug - passing struct by value with array member access
+u16 getSpn(const Configuration conf, u32 idx) {
+    return conf.tempInputs[idx].assignedSpn;
+}
+
+f32 getCoeff(const Configuration data, u32 pos) {
+    return data.tempInputs[pos].coeffA;
+}
+
+u32 main() {
+    Configuration cfg;
+
+    // Initialize test data
+    cfg.tempInputs[0].assignedSpn <- 100;
+    cfg.tempInputs[0].coeffA <- 1.5;
+
+    cfg.tempInputs[1].assignedSpn <- 200;
+    cfg.tempInputs[1].coeffA <- 2.5;
+
+    cfg.tempInputs[2].assignedSpn <- 300;
+    cfg.tempInputs[2].coeffA <- 3.5;
+
+    cfg.tempInputs[5].assignedSpn <- 999;
+    cfg.tempInputs[5].coeffA <- 9.9;
+
+    // Index variables to avoid cppcheck warnings with literal-to-pointer
+    u32 idx0 <- 0;
+    u32 idx1 <- 1;
+    u32 idx2 <- 2;
+    u32 idx5 <- 5;
+
+    // Test 1: Function parameter access (original issue #69 pattern)
+    if (getSpn(cfg, idx0) != 100) return 1;
+    if (getSpn(cfg, idx1) != 200) return 2;
+    if (getSpn(cfg, idx2) != 300) return 3;
+    if (getSpn(cfg, idx5) != 999) return 4;
+
+    // Test 2: Float member access
+    if (getCoeff(cfg, idx0) != 1.5) return 5;
+    if (getCoeff(cfg, idx1) != 2.5) return 6;
+    if (getCoeff(cfg, idx2) != 3.5) return 7;
+
+    // Test 3: Direct access patterns
+    if (cfg.tempInputs[0].assignedSpn != 100) return 8;
+    if (cfg.tempInputs[1].assignedSpn != 200) return 9;
+    if (cfg.tempInputs[2].assignedSpn != 300) return 10;
+
+    // Test 4: Array access in expressions
+    u16 sum <- cfg.tempInputs[0].assignedSpn + cfg.tempInputs[1].assignedSpn;
+    if (sum != 300) return 11;
+
+    // Test 5: Array access as function argument
+    u16 val <- getSpn(cfg, idx2);
+    if (val != 300) return 12;
+
+    // Test 6: Nested expressions
+    if ((cfg.tempInputs[0].assignedSpn + cfg.tempInputs[2].assignedSpn) != 400) return 13;
+
+    return 0;
+}
