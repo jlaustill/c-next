@@ -2751,7 +2751,7 @@ export default class CodeGenerator {
 
         if (fieldDims && fieldDims.length > 0) {
           // Use tracked dimensions (includes string capacity for string arrays)
-          const dimsStr = fieldDims.map(d => `[${d}]`).join("");
+          const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
           lines.push(`    ${type} ${fieldName}${dimsStr};`);
         } else if (isArray) {
           // Fall back to AST dimensions for non-string arrays
@@ -4171,9 +4171,13 @@ export default class CodeGenerator {
             const fieldName = identifiers[1].getText();
 
             const structTypeInfo = this.context.typeRegistry.get(structName);
-            if (structTypeInfo && this.knownStructs.has(structTypeInfo.baseType)) {
+            if (
+              structTypeInfo &&
+              this.knownStructs.has(structTypeInfo.baseType)
+            ) {
               const structType = structTypeInfo.baseType;
-              const fieldDimensions = this.structFieldDimensions.get(structType);
+              const fieldDimensions =
+                this.structFieldDimensions.get(structType);
               const dimensions = fieldDimensions?.get(fieldName);
               const fieldArrays = this.structFieldArrays.get(structType);
               const isArrayField = fieldArrays?.has(fieldName);
@@ -4181,10 +4185,18 @@ export default class CodeGenerator {
               const fieldType = structFields?.get(fieldName);
 
               // String arrays: field type starts with "string<" and has multi-dimensional array
-              if (fieldType && fieldType.startsWith("string<") && isArrayField && dimensions && dimensions.length > 1) {
+              if (
+                fieldType &&
+                fieldType.startsWith("string<") &&
+                isArrayField &&
+                dimensions &&
+                dimensions.length > 1
+              ) {
                 const capacity = dimensions[dimensions.length - 1] - 1; // -1 because we added +1 for null terminator
                 if (cOp !== "=") {
-                  throw new Error(`Error: Compound operators not supported for string array assignment: ${cnextOp}`);
+                  throw new Error(
+                    `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
+                  );
                 }
                 this.needsString = true; // Ensure #include <string.h>
                 const index = this.generateExpression(exprs[0]);
@@ -4496,15 +4508,23 @@ export default class CodeGenerator {
 
         // Check if this is a string array (e.g., string<64> arr[4])
         // String arrays need strncpy, not direct assignment
-        if (typeInfo?.isString && typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
+        if (
+          typeInfo?.isString &&
+          typeInfo.arrayDimensions &&
+          typeInfo.arrayDimensions.length > 1
+        ) {
           // This is a string array (multi-dimensional: [array_size, string_capacity])
           // arr[0] <- "value" should generate: strncpy(arr[index], value, capacity);
           const capacity = typeInfo.stringCapacity;
           if (!capacity) {
-            throw new Error(`Error: String array ${name} missing capacity information`);
+            throw new Error(
+              `Error: String array ${name} missing capacity information`,
+            );
           }
           if (cOp !== "=") {
-            throw new Error(`Error: Compound operators not supported for string array assignment: ${cnextOp}`);
+            throw new Error(
+              `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
+            );
           }
           this.needsString = true; // Ensure #include <string.h>
           return `strncpy(${name}[${index}], ${value}, ${capacity});`;
@@ -4601,12 +4621,20 @@ export default class CodeGenerator {
           const fieldType = structFields?.get(fieldName);
 
           // String arrays in structs: field type starts with "string<" and has multi-dimensional array
-          if (fieldType && fieldType.startsWith("string<") && isArrayField && dimensions && dimensions.length > 1) {
+          if (
+            fieldType &&
+            fieldType.startsWith("string<") &&
+            isArrayField &&
+            dimensions &&
+            dimensions.length > 1
+          ) {
             // This is a string array: dimensions are [array_size, string_capacity]
             const capacity = dimensions[dimensions.length - 1] - 1; // -1 because we added +1 for null terminator
 
             if (cOp !== "=") {
-              throw new Error(`Error: Compound operators not supported for string array assignment: ${cnextOp}`);
+              throw new Error(
+                `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
+              );
             }
             this.needsString = true; // Ensure #include <string.h>
             const index = this.generateExpression(exprs[0]);

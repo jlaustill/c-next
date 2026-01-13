@@ -182,7 +182,10 @@ class SymbolTable {
    * @param fieldName Name of the field
    * @returns Field type or undefined if not found
    */
-  getStructFieldType(structName: string, fieldName: string): string | undefined {
+  getStructFieldType(
+    structName: string,
+    fieldName: string,
+  ): string | undefined {
     const fields = this.structFields.get(structName);
     return fields?.get(fieldName)?.type;
   }
@@ -206,7 +209,9 @@ class SymbolTable {
    * @param structName Name of the struct
    * @returns Map of field names to field info, or undefined if struct not found
    */
-  getStructFields(structName: string): Map<string, IStructFieldInfo> | undefined {
+  getStructFields(
+    structName: string,
+  ): Map<string, IStructFieldInfo> | undefined {
     return this.structFields.get(structName);
   }
 
