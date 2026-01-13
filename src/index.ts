@@ -9,11 +9,16 @@ import {
   ITranspileResult,
   ITranspileError,
 } from "./lib/transpiler.js";
-import { detectPlatformIOTarget } from "./lib/PlatformIODetector.js";
 import { IncludeDiscovery } from "./lib/IncludeDiscovery.js";
 import { InputExpansion } from "./lib/InputExpansion.js";
 import Project from "./project/Project.js";
-import { readFileSync, writeFileSync, existsSync, unlinkSync, statSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  statSync,
+} from "fs";
 import { dirname, resolve } from "path";
 
 /**
@@ -105,14 +110,18 @@ function showHelp(): void {
   console.log("  --help, -h         Show this help");
   console.log("");
   console.log("Examples:");
-  console.log("  cnext main.cnx                            # Outputs main.c (same dir)");
+  console.log(
+    "  cnext main.cnx                            # Outputs main.c (same dir)",
+  );
   console.log(
     "  cnext main.cnx -o build/main.c            # Explicit output path",
   );
   console.log(
     "  cnext src/*.cnx -o build/                 # Multiple files to directory",
   );
-  console.log("  cnext src/                                # Compile all .cnx files in src/ (recursive)");
+  console.log(
+    "  cnext src/                                # Compile all .cnx files in src/ (recursive)",
+  );
   console.log("");
   console.log("Config files (searched in order, JSON format):");
   console.log("  cnext.config.json, .cnext.json, .cnextrc");
@@ -124,14 +133,45 @@ function showHelp(): void {
 }
 
 /**
- * Derive output path from input path (.cnx → .c or .cpp in same directory)
+ * Print project compilation result
  */
-function deriveOutputPath(
-  inputFile: string,
-  cppOutput: boolean = false,
-): string {
-  const ext = cppOutput ? ".cpp" : ".c";
-  return inputFile.replace(/\.cnx$/, ext);
+function printProjectResult(result: {
+  success: boolean;
+  filesProcessed: number;
+  symbolsCollected: number;
+  conflicts: string[];
+  errors: string[];
+  warnings: string[];
+  outputFiles: string[];
+}): void {
+  // Print warnings
+  for (const warning of result.warnings) {
+    console.warn(`Warning: ${warning}`);
+  }
+
+  // Print conflicts
+  for (const conflict of result.conflicts) {
+    console.error(`Conflict: ${conflict}`);
+  }
+
+  // Print errors
+  for (const error of result.errors) {
+    console.error(`Error: ${error}`);
+  }
+
+  // Summary
+  if (result.success) {
+    console.log("");
+    console.log(`Compiled ${result.filesProcessed} files`);
+    console.log(`Collected ${result.symbolsCollected} symbols`);
+    console.log(`Generated ${result.outputFiles.length} output files:`);
+    for (const file of result.outputFiles) {
+      console.log(`  ${file}`);
+    }
+  } else {
+    console.error("");
+    console.error("Compilation failed");
+  }
 }
 
 /**
@@ -204,48 +244,6 @@ async function runUnifiedMode(
   const result = await project.compile();
   printProjectResult(result);
   process.exit(result.success ? 0 : 1);
-}
-
-/**
- * Print project compilation result
- */
-function printProjectResult(result: {
-  success: boolean;
-  filesProcessed: number;
-  symbolsCollected: number;
-  conflicts: string[];
-  errors: string[];
-  warnings: string[];
-  outputFiles: string[];
-}): void {
-  // Print warnings
-  for (const warning of result.warnings) {
-    console.warn(`Warning: ${warning}`);
-  }
-
-  // Print conflicts
-  for (const conflict of result.conflicts) {
-    console.error(`Conflict: ${conflict}`);
-  }
-
-  // Print errors
-  for (const error of result.errors) {
-    console.error(`Error: ${error}`);
-  }
-
-  // Summary
-  if (result.success) {
-    console.log("");
-    console.log(`Compiled ${result.filesProcessed} files`);
-    console.log(`Collected ${result.symbolsCollected} symbols`);
-    console.log(`Generated ${result.outputFiles.length} output files:`);
-    for (const file of result.outputFiles) {
-      console.log(`  ${file}`);
-    }
-  } else {
-    console.error("");
-    console.error("Compilation failed");
-  }
 }
 
 /**
@@ -455,15 +453,10 @@ async function main(): Promise<void> {
   // Parse arguments (first pass to get input files for config lookup)
   const inputFiles: string[] = [];
   let outputPath = "";
-  let projectDir = "";
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
-  let parseOnly = false;
-  let cliDebugMode: boolean | undefined;
-  let cliTarget: string | undefined;
   let cliGenerateHeaders: boolean | undefined;
   let preprocess = true;
-  let cliCppOutput: boolean | undefined;
   let verbose = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -475,14 +468,6 @@ async function main(): Promise<void> {
       includeDirs.push(args[++i]);
     } else if (arg === "--verbose") {
       verbose = true;
-    } else if (arg === "--parse") {
-      parseOnly = true;
-    } else if (arg === "--debug") {
-      cliDebugMode = true;
-    } else if (arg === "--target" && i + 1 < args.length) {
-      cliTarget = args[++i];
-    } else if (arg === "--cpp") {
-      cliCppOutput = true;
     } else if (arg === "--exclude-headers") {
       cliGenerateHeaders = false;
     } else if (arg === "--no-preprocess") {
@@ -500,24 +485,13 @@ async function main(): Promise<void> {
     }
   }
 
-  // Load config file (searches up from input file or project directory)
+  // Load config file (searches up from input file directory)
   const configDir =
-    projectDir ||
-    (inputFiles.length > 0 ? dirname(resolve(inputFiles[0])) : process.cwd());
+    inputFiles.length > 0 ? dirname(resolve(inputFiles[0])) : process.cwd();
   const config = loadConfig(configDir);
 
   // Apply config defaults, CLI flags take precedence
-  const cppOutput = cliCppOutput ?? config.outputExtension === ".cpp";
-  const debugMode = cliDebugMode ?? config.debugMode ?? false;
   const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
-
-  // ADR-049: Target resolution priority: CLI > config > PlatformIO > pragma > default
-  // Detect PlatformIO target as fallback (only for single-file mode currently)
-  const pioTarget =
-    inputFiles.length === 1
-      ? detectPlatformIOTarget(dirname(resolve(inputFiles[0])))
-      : undefined;
-  const target = cliTarget ?? config.target ?? pioTarget;
 
   // Unified mode - always use Project class with header discovery
   if (inputFiles.length === 0) {
