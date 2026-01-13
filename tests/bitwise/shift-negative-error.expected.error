@@ -1,0 +1,4 @@
+1:0 Code generation failed: Error: Negative shift amount (-1) is undefined behavior
+  Type: u32
+  Expression: a<<-1
+  Shift amounts must be non-negative

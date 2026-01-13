@@ -1,0 +1,4 @@
+1:0 Code generation failed: Error: Shift amount (16) exceeds type width (16 bits) for type 'u16'
+  Expression: a<<16
+  Shift amount must be < 16 for 16-bit types
+  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior

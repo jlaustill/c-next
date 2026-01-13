@@ -1,0 +1,4 @@
+1:0 Code generation failed: Error: Shift amount (32) exceeds type width (32 bits) for type 'i32'
+  Expression: a>>32
+  Shift amount must be < 32 for 32-bit types
+  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior
