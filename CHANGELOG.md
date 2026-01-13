@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-13
+
+### Fixed
+
+- GitHub Actions publish workflow now has correct permissions to create GitHub releases
+
 ## [0.1.0] - 2026-01-13
 
 ### Added
@@ -25,5 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file mode doesn't parse C headers (Issue #45 partial - works in project mode)
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/jlaustill/c-next/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jlaustill/c-next/releases/tag/v0.1.0
