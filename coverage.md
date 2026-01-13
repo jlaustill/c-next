@@ -186,11 +186,11 @@ This document tracks test coverage for every language construct in every valid c
 | Function return type        | [x]    |                                                 |
 | Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [ ]    |                                                 |
-| In comparison               | [ ]    |                                                 |
+| In arithmetic expression    | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
+| In comparison               | [x]    | `comparison/i8-comparison.test.cnx`             |
 | In bitwise operation        | [x]    | `bitwise/i8-bitwise-ops.test.cnx`               |
 | As loop counter             | [x]    | `for-loops/for-i8-counter.test.cnx`             |
-| Negative literal assignment | [ ]    |                                                 |
+| Negative literal assignment | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
 | With const modifier         | [ ]    |                                                 |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier         | [ ]    |                                                 |
@@ -209,11 +209,11 @@ This document tracks test coverage for every language construct in every valid c
 | Function return type        | [x]    |                                                 |
 | Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [ ]    |                                                 |
-| In comparison               | [ ]    |                                                 |
+| In arithmetic expression    | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
+| In comparison               | [x]    | `comparison/i16-comparison.test.cnx`            |
 | In bitwise operation        | [x]    | `bitwise/i16-bitwise-ops.test.cnx`              |
 | As loop counter             | [x]    | `for-loops/for-i16-counter.test.cnx`            |
-| Negative literal assignment | [x]    |                                                 |
+| Negative literal assignment | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
 | With const modifier         | [ ]    |                                                 |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier         | [ ]    |                                                 |
@@ -255,11 +255,11 @@ This document tracks test coverage for every language construct in every valid c
 | Function return type        | [x]    |                                                 |
 | Struct member               | [x]    |                                                 |
 | Array element type          | [ ]    |                                                 |
-| In arithmetic expression    | [ ]    |                                                 |
-| In comparison               | [ ]    |                                                 |
+| In arithmetic expression    | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
+| In comparison               | [x]    | `comparison/i64-comparison.test.cnx`            |
 | In bitwise operation        | [x]    | `bitwise/i64-bitwise-ops.test.cnx`              |
 | As loop counter             | [x]    | `for-loops/for-i64-counter.test.cnx`            |
-| Negative literal assignment | [ ]    |                                                 |
+| Negative literal assignment | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
 | With const modifier         | [ ]    |                                                 |
 | With atomic modifier        | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier         | [ ]    |                                                 |
@@ -502,56 +502,62 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 3.3 Less Than (<)
 
-| Operand Types     | Status | Test File                          |
-| ----------------- | ------ | ---------------------------------- |
-| u8 < u8           | [ ]    |                                    |
-| u16 < u16         | [ ]    |                                    |
-| u32 < u32         | [x]    |                                    |
-| u64 < u64         | [ ]    |                                    |
-| i8 < i8           | [ ]    |                                    |
-| i16 < i16         | [ ]    |                                    |
-| i32 < i32         | [x]    |                                    |
-| i64 < i64         | [ ]    |                                    |
-| f32 < f32         | [x]    | `floats/float-comparison.test.cnx` |
-| f64 < f64         | [x]    | `floats/float-comparison.test.cnx` |
-| Integer < Literal | [x]    |                                    |
-| Literal < Integer | [ ]    |                                    |
+| Operand Types     | Status | Test File                            |
+| ----------------- | ------ | ------------------------------------ |
+| u8 < u8           | [ ]    |                                      |
+| u16 < u16         | [ ]    |                                      |
+| u32 < u32         | [x]    |                                      |
+| u64 < u64         | [ ]    |                                      |
+| i8 < i8           | [x]    | `comparison/i8-comparison.test.cnx`  |
+| i16 < i16         | [x]    | `comparison/i16-comparison.test.cnx` |
+| i32 < i32         | [x]    |                                      |
+| i64 < i64         | [x]    | `comparison/i64-comparison.test.cnx` |
+| f32 < f32         | [x]    | `floats/float-comparison.test.cnx`   |
+| f64 < f64         | [x]    | `floats/float-comparison.test.cnx`   |
+| Integer < Literal | [x]    |                                      |
+| Literal < Integer | [ ]    |                                      |
 
 ### 3.4 Greater Than (>)
 
-| Operand Types     | Status | Test File                          |
-| ----------------- | ------ | ---------------------------------- |
-| u8 > u8           | [ ]    |                                    |
-| u16 > u16         | [ ]    |                                    |
-| u32 > u32         | [x]    |                                    |
-| u64 > u64         | [ ]    |                                    |
-| i8 > i8           | [ ]    |                                    |
-| i16 > i16         | [ ]    |                                    |
-| i32 > i32         | [x]    |                                    |
-| i64 > i64         | [ ]    |                                    |
-| f32 > f32         | [x]    | `floats/float-comparison.test.cnx` |
-| f64 > f64         | [x]    | `floats/float-comparison.test.cnx` |
-| Integer > Literal | [x]    |                                    |
+| Operand Types     | Status | Test File                            |
+| ----------------- | ------ | ------------------------------------ |
+| u8 > u8           | [ ]    |                                      |
+| u16 > u16         | [ ]    |                                      |
+| u32 > u32         | [x]    |                                      |
+| u64 > u64         | [ ]    |                                      |
+| i8 > i8           | [x]    | `comparison/i8-comparison.test.cnx`  |
+| i16 > i16         | [x]    | `comparison/i16-comparison.test.cnx` |
+| i32 > i32         | [x]    |                                      |
+| i64 > i64         | [x]    | `comparison/i64-comparison.test.cnx` |
+| f32 > f32         | [x]    | `floats/float-comparison.test.cnx`   |
+| f64 > f64         | [x]    | `floats/float-comparison.test.cnx`   |
+| Integer > Literal | [x]    |                                      |
 
 ### 3.5 Less Than or Equal (<=)
 
-| Operand Types | Status | Test File                          |
-| ------------- | ------ | ---------------------------------- |
-| u32 <= u32    | [x]    |                                    |
-| i32 <= i32    | [x]    |                                    |
-| f32 <= f32    | [x]    | `floats/float-comparison.test.cnx` |
-| f64 <= f64    | [x]    | `floats/float-comparison.test.cnx` |
-| Other types   | [ ]    |                                    |
+| Operand Types | Status | Test File                            |
+| ------------- | ------ | ------------------------------------ |
+| u32 <= u32    | [x]    |                                      |
+| i8 <= i8      | [x]    | `comparison/i8-comparison.test.cnx`  |
+| i16 <= i16    | [x]    | `comparison/i16-comparison.test.cnx` |
+| i32 <= i32    | [x]    |                                      |
+| i64 <= i64    | [x]    | `comparison/i64-comparison.test.cnx` |
+| f32 <= f32    | [x]    | `floats/float-comparison.test.cnx`   |
+| f64 <= f64    | [x]    | `floats/float-comparison.test.cnx`   |
+| Other types   | [ ]    |                                      |
 
 ### 3.6 Greater Than or Equal (>=)
 
-| Operand Types | Status | Test File                          |
-| ------------- | ------ | ---------------------------------- |
-| u32 >= u32    | [x]    |                                    |
-| i32 >= i32    | [x]    |                                    |
-| f32 >= f32    | [x]    | `floats/float-comparison.test.cnx` |
-| f64 >= f64    | [x]    | `floats/float-comparison.test.cnx` |
-| Other types   | [ ]    |                                    |
+| Operand Types | Status | Test File                            |
+| ------------- | ------ | ------------------------------------ |
+| u32 >= u32    | [x]    |                                      |
+| i8 >= i8      | [x]    | `comparison/i8-comparison.test.cnx`  |
+| i16 >= i16    | [x]    | `comparison/i16-comparison.test.cnx` |
+| i32 >= i32    | [x]    |                                      |
+| i64 >= i64    | [x]    | `comparison/i64-comparison.test.cnx` |
+| f32 >= f32    | [x]    | `floats/float-comparison.test.cnx`   |
+| f64 >= f64    | [x]    | `floats/float-comparison.test.cnx`   |
+| Other types   | [ ]    |                                      |
 
 ---
 
@@ -565,10 +571,10 @@ This document tracks test coverage for every language construct in every valid c
 | u16 + u16                | [ ]    |                                          |
 | u32 + u32                | [x]    |                                          |
 | u64 + u64                | [ ]    |                                          |
-| i8 + i8                  | [ ]    |                                          |
-| i16 + i16                | [ ]    |                                          |
+| i8 + i8                  | [x]    | `arithmetic/i8-arithmetic.test.cnx`      |
+| i16 + i16                | [x]    | `arithmetic/i16-arithmetic.test.cnx`     |
 | i32 + i32                | [x]    |                                          |
-| i64 + i64                | [ ]    |                                          |
+| i64 + i64                | [x]    | `arithmetic/i64-arithmetic.test.cnx`     |
 | f32 + f32                | [x]    | `floats/float-arithmetic.test.cnx`       |
 | f64 + f64                | [x]    | `floats/float-arithmetic.test.cnx`       |
 | Integer + Literal        | [x]    |                                          |
@@ -578,37 +584,43 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 4.2 Subtraction (-)
 
-| Operand Types       | Status | Test File                          |
-| ------------------- | ------ | ---------------------------------- |
-| u8 - u8             | [ ]    |                                    |
-| u16 - u16           | [ ]    |                                    |
-| u32 - u32           | [x]    |                                    |
-| u64 - u64           | [ ]    |                                    |
-| i8 - i8             | [ ]    |                                    |
-| i16 - i16           | [ ]    |                                    |
-| i32 - i32           | [x]    |                                    |
-| i64 - i64           | [ ]    |                                    |
-| f32 - f32           | [x]    | `floats/float-arithmetic.test.cnx` |
-| f64 - f64           | [x]    | `floats/float-arithmetic.test.cnx` |
-| Integer - Literal   | [x]    |                                    |
-| Unary negation (-x) | [x]    |                                    |
+| Operand Types       | Status | Test File                            |
+| ------------------- | ------ | ------------------------------------ |
+| u8 - u8             | [ ]    |                                      |
+| u16 - u16           | [ ]    |                                      |
+| u32 - u32           | [x]    |                                      |
+| u64 - u64           | [ ]    |                                      |
+| i8 - i8             | [x]    | `arithmetic/i8-arithmetic.test.cnx`  |
+| i16 - i16           | [x]    | `arithmetic/i16-arithmetic.test.cnx` |
+| i32 - i32           | [x]    |                                      |
+| i64 - i64           | [x]    | `arithmetic/i64-arithmetic.test.cnx` |
+| f32 - f32           | [x]    | `floats/float-arithmetic.test.cnx`   |
+| f64 - f64           | [x]    | `floats/float-arithmetic.test.cnx`   |
+| Integer - Literal   | [x]    |                                      |
+| Unary negation (-x) | [x]    |                                      |
 
 ### 4.3 Multiplication (\*)
 
-| Operand Types      | Status | Test File                          |
-| ------------------ | ------ | ---------------------------------- |
-| u32 \* u32         | [x]    |                                    |
-| i32 \* i32         | [x]    |                                    |
-| f32 \* f32         | [x]    | `floats/float-arithmetic.test.cnx` |
-| f64 \* f64         | [x]    | `floats/float-arithmetic.test.cnx` |
-| Integer \* Literal | [x]    |                                    |
+| Operand Types      | Status | Test File                            |
+| ------------------ | ------ | ------------------------------------ |
+| u32 \* u32         | [x]    |                                      |
+| i8 \* i8           | [x]    | `arithmetic/i8-arithmetic.test.cnx`  |
+| i16 \* i16         | [x]    | `arithmetic/i16-arithmetic.test.cnx` |
+| i32 \* i32         | [x]    |                                      |
+| i64 \* i64         | [x]    | `arithmetic/i64-arithmetic.test.cnx` |
+| f32 \* f32         | [x]    | `floats/float-arithmetic.test.cnx`   |
+| f64 \* f64         | [x]    | `floats/float-arithmetic.test.cnx`   |
+| Integer \* Literal | [x]    |                                      |
 
 ### 4.4 Division (/)
 
 | Operand Types                           | Status | Test File                                         |
 | --------------------------------------- | ------ | ------------------------------------------------- |
 | u32 / u32                               | [x]    |                                                   |
+| i8 / i8                                 | [x]    | `arithmetic/i8-arithmetic.test.cnx`               |
+| i16 / i16                               | [x]    | `arithmetic/i16-arithmetic.test.cnx`              |
 | i32 / i32                               | [x]    |                                                   |
+| i64 / i64                               | [x]    | `arithmetic/i64-arithmetic.test.cnx`              |
 | f32 / f32                               | [x]    | `floats/float-arithmetic.test.cnx`                |
 | f64 / f64                               | [x]    | `floats/float-arithmetic.test.cnx`                |
 | Integer / Literal                       | [x]    |                                                   |
@@ -627,7 +639,10 @@ This document tracks test coverage for every language construct in every valid c
 | Operand Types                    | Status | Test File                                    |
 | -------------------------------- | ------ | -------------------------------------------- |
 | u32 % u32                        | [x]    |                                              |
+| i8 % i8                          | [x]    | `arithmetic/i8-arithmetic.test.cnx`          |
+| i16 % i16                        | [x]    | `arithmetic/i16-arithmetic.test.cnx`         |
 | i32 % i32                        | [x]    |                                              |
+| i64 % i64                        | [x]    | `arithmetic/i64-arithmetic.test.cnx`         |
 | Integer % Literal                | [x]    |                                              |
 | Modulo by zero **(ERROR)**       | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx` |
 | Modulo by const zero **(ERROR)** | [x]    | `arithmetic/modulo-by-const-zero.test.cnx`   |
