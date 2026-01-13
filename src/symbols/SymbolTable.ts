@@ -8,6 +8,16 @@ import ESourceLanguage from "../types/ESourceLanguage";
 import IConflict from "./types/IConflict";
 
 /**
+ * Struct field information
+ */
+interface IStructFieldInfo {
+  /** Field type (e.g., "uint32_t", "uint16_t") */
+  type: string;
+  /** Array dimensions if field is an array */
+  arrayDimensions?: number[];
+}
+
+/**
  * Central symbol table for cross-language interoperability
  *
  * Per user requirement: Symbol conflicts between C-Next and C/C++ are ERRORS.
@@ -21,6 +31,9 @@ class SymbolTable {
 
   /** Symbols indexed by source file */
   private byFile: Map<string, ISymbol[]> = new Map();
+
+  /** Struct field information: struct name -> (field name -> field info) */
+  private structFields: Map<string, Map<string, IStructFieldInfo>> = new Map();
 
   /**
    * Add a symbol to the table
@@ -139,11 +152,76 @@ class SymbolTable {
   }
 
   /**
+   * Add struct field information
+   * @param structName Name of the struct
+   * @param fieldName Name of the field
+   * @param fieldType Type of the field (e.g., "uint32_t")
+   * @param arrayDimensions Optional array dimensions if field is an array
+   */
+  addStructField(
+    structName: string,
+    fieldName: string,
+    fieldType: string,
+    arrayDimensions?: number[],
+  ): void {
+    let fields = this.structFields.get(structName);
+    if (!fields) {
+      fields = new Map();
+      this.structFields.set(structName, fields);
+    }
+
+    fields.set(fieldName, {
+      type: fieldType,
+      arrayDimensions,
+    });
+  }
+
+  /**
+   * Get struct field type
+   * @param structName Name of the struct
+   * @param fieldName Name of the field
+   * @returns Field type or undefined if not found
+   */
+  getStructFieldType(
+    structName: string,
+    fieldName: string,
+  ): string | undefined {
+    const fields = this.structFields.get(structName);
+    return fields?.get(fieldName)?.type;
+  }
+
+  /**
+   * Get struct field info (type and array dimensions)
+   * @param structName Name of the struct
+   * @param fieldName Name of the field
+   * @returns Field info or undefined if not found
+   */
+  getStructFieldInfo(
+    structName: string,
+    fieldName: string,
+  ): IStructFieldInfo | undefined {
+    const fields = this.structFields.get(structName);
+    return fields?.get(fieldName);
+  }
+
+  /**
+   * Get all fields for a struct
+   * @param structName Name of the struct
+   * @returns Map of field names to field info, or undefined if struct not found
+   */
+  getStructFields(
+    structName: string,
+  ): Map<string, IStructFieldInfo> | undefined {
+    return this.structFields.get(structName);
+  }
+
+  /**
    * Clear all symbols
    */
   clear(): void {
     this.symbols.clear();
     this.byFile.clear();
+    this.structFields.clear();
   }
 
   /**
@@ -231,3 +309,4 @@ class SymbolTable {
 }
 
 export default SymbolTable;
+export type { IStructFieldInfo };

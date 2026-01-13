@@ -16,6 +16,7 @@ import {
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
+import SymbolTable from "./SymbolTable";
 
 /**
  * Collects symbols from a C parse tree
@@ -25,8 +26,11 @@ class CSymbolCollector {
 
   private symbols: ISymbol[] = [];
 
-  constructor(sourceFile: string) {
+  private symbolTable: SymbolTable | null;
+
+  constructor(sourceFile: string, symbolTable?: SymbolTable) {
     this.sourceFile = sourceFile;
+    this.symbolTable = symbolTable ?? null;
   }
 
   /**
@@ -105,7 +109,24 @@ class CSymbolCollector {
     // Check for struct/union
     const structSpec = this.findStructOrUnionSpecifier(declSpecs);
     if (structSpec) {
-      this.collectStructOrUnion(structSpec, line);
+      // For typedef struct, extract the typedef name from declarationSpecifiers
+      // Example: typedef struct { ... } AppConfig;
+      // "AppConfig" appears as a typedefName in declarationSpecifiers
+      let typedefName: string | undefined;
+      if (isTypedef) {
+        for (const spec of declSpecs.declarationSpecifier()) {
+          const typeSpec = spec.typeSpecifier();
+          if (typeSpec) {
+            const typeName = typeSpec.typedefName?.();
+            if (typeName) {
+              typedefName = typeName.getText();
+              break;
+            }
+          }
+        }
+      }
+
+      this.collectStructOrUnion(structSpec, line, typedefName);
     }
 
     // Check for enum
@@ -184,11 +205,14 @@ class CSymbolCollector {
   private collectStructOrUnion(
     structSpec: StructOrUnionSpecifierContext,
     line: number,
+    typedefName?: string,
   ): void {
     const identifier = structSpec.Identifier();
-    if (!identifier) return;
 
-    const name = identifier.getText();
+    // Use typedef name for anonymous structs (e.g., typedef struct { ... } AppConfig;)
+    const name = identifier?.getText() || typedefName;
+    if (!name) return; // Skip if no name available
+
     const isUnion = structSpec.structOrUnion()?.getText() === "union";
 
     this.symbols.push({
@@ -200,6 +224,16 @@ class CSymbolCollector {
       sourceLanguage: ESourceLanguage.C,
       isExported: true,
     });
+
+    // Extract struct field information if SymbolTable is available
+    if (this.symbolTable) {
+      const declList = structSpec.structDeclarationList();
+      if (declList) {
+        for (const structDecl of declList.structDeclaration()) {
+          this.collectStructFields(name, structDecl);
+        }
+      }
+    }
   }
 
   private collectEnum(enumSpec: EnumSpecifierContext, line: number): void {
@@ -238,6 +272,95 @@ class CSymbolCollector {
         }
       }
     }
+  }
+
+  /**
+   * Collect struct field information
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private collectStructFields(structName: string, structDecl: any): void {
+    const specQualList = structDecl.specifierQualifierList?.();
+    if (!specQualList) return;
+
+    // Extract the field type from specifierQualifierList
+    const fieldType = this.extractTypeFromSpecQualList(specQualList);
+
+    // Extract field names from structDeclaratorList
+    const structDeclList = structDecl.structDeclaratorList?.();
+    if (!structDeclList) return;
+
+    for (const structDeclarator of structDeclList.structDeclarator()) {
+      const declarator = structDeclarator.declarator?.();
+      if (!declarator) continue;
+
+      const fieldName = this.extractDeclaratorName(declarator);
+      if (!fieldName) continue;
+
+      // Check if this field is an array and extract dimensions
+      const arrayDimensions = this.extractArrayDimensions(declarator);
+
+      // Add to SymbolTable
+      this.symbolTable!.addStructField(
+        structName,
+        fieldName,
+        fieldType,
+        arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      );
+    }
+  }
+
+  /**
+   * Extract type from specifierQualifierList (for struct fields)
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractTypeFromSpecQualList(specQualList: any): string {
+    const parts: string[] = [];
+
+    // Traverse the specifierQualifierList
+    let current = specQualList;
+    while (current) {
+      const typeSpec = current.typeSpecifier?.();
+      if (typeSpec) {
+        parts.push(typeSpec.getText());
+      }
+
+      const typeQual = current.typeQualifier?.();
+      if (typeQual) {
+        parts.push(typeQual.getText());
+      }
+
+      current = current.specifierQualifierList?.();
+    }
+
+    return parts.join(" ") || "int";
+  }
+
+  /**
+   * Extract array dimensions from a declarator
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractArrayDimensions(declarator: any): number[] {
+    const dimensions: number[] = [];
+
+    // Navigate to directDeclarator
+    const directDecl = declarator.directDeclarator?.();
+    if (!directDecl) return dimensions;
+
+    // Check for array syntax: directDeclarator '[' ... ']'
+    // This is a simplified extraction - may need enhancement for complex cases
+    const text = directDecl.getText();
+    const arrayMatches = text.match(/\[(\d+)\]/g);
+
+    if (arrayMatches) {
+      for (const match of arrayMatches) {
+        const size = parseInt(match.slice(1, -1), 10);
+        if (!isNaN(size)) {
+          dimensions.push(size);
+        }
+      }
+    }
+
+    return dimensions;
   }
 
   // Helper methods

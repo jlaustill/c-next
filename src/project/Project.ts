@@ -227,7 +227,7 @@ class Project {
 
     try {
       const tree = parser.compilationUnit();
-      const collector = new CSymbolCollector(filePath);
+      const collector = new CSymbolCollector(filePath, this.symbolTable);
       const symbols = collector.collect(tree);
       this.symbolTable.addSymbols(symbols);
     } catch {
