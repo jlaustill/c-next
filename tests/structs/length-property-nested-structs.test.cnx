@@ -1,0 +1,56 @@
+/* test-execution */
+// Regression test: .length on nested struct members
+// Ensures the fix handles deep member chains correctly
+
+struct Inner {
+    u32 value;
+    u16 status;
+}
+
+struct Outer {
+    Inner inner;
+    u8 flags;
+}
+
+struct DeepNest {
+    Outer outer;
+    u64 timestamp;
+}
+
+u32 main() {
+    // Test 2-level nesting: outer.inner.field.length
+    Outer config;
+    config.inner.value <- 0x12345678;
+    config.inner.status <- 100;
+    config.flags <- 0xFF;
+
+    // Test nested struct member .length
+    if (config.inner.value.length != 32) return 1;
+    if (config.inner.status.length != 16) return 2;
+
+    // Test direct member .length on nested struct
+    if (config.flags.length != 8) return 3;
+
+    // Test 3-level nesting: deep.outer.inner.field.length
+    DeepNest deep;
+    deep.outer.inner.value <- 0xABCDEF;
+    deep.outer.inner.status <- 200;
+    deep.outer.flags <- 0x42;
+    deep.timestamp <- 999999;
+
+    // Test deep nested member .length
+    if (deep.outer.inner.value.length != 32) return 4;
+    if (deep.outer.inner.status.length != 16) return 5;
+    if (deep.outer.flags.length != 8) return 6;
+    if (deep.timestamp.length != 64) return 7;
+
+    // Test byte calculation from nested struct
+    u32 bytes <- deep.outer.inner.value.length / 8;
+    if (bytes != 4) return 8;
+
+    // Test multiple nested .length in expression
+    u32 total <- deep.outer.inner.value.length + deep.outer.flags.length;
+    if (total != 40) return 9;  // 32 + 8 = 40
+
+    return 0;
+}
