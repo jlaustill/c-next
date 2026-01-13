@@ -31,9 +31,6 @@ cd c-next
 # Install dependencies
 npm install
 
-# Build the project
-npm run build
-
 # Run tests
 npm test
 ```
@@ -45,12 +42,12 @@ npm test
 git checkout -b feature/your-feature-name
 
 # Make changes and test
-npm run build
 npm test
 
 # Check code quality
 npm run prettier:fix
 npm run eslint:check
+npm run typecheck
 ```
 
 ---
@@ -151,14 +148,11 @@ npm run eslint:check
 - **Zero ESLint errors**: In files you touch (fix as you go)
 - **Formatting**: Use Prettier (automatic with `prettier:fix`)
 
-### Build Verification
+### Code Verification
 
 ```bash
-# Full rebuild to catch integration issues
-npm run build
-
-# Verify transpiler works
-./dist/index.js examples/blink.cnx
+# Type-check TypeScript
+npm run typecheck
 
 # Check generated C compiles (if applicable)
 npm run analyze
@@ -190,7 +184,7 @@ npm test
 npm test -- tests/postfix-chains/
 
 # Transpile single test file
-./dist/index.js tests/my-feature/basic.test.cnx
+cnext tests/my-feature/basic.test.cnx
 
 # Verify output matches expected
 diff tests/my-feature/basic.c tests/my-feature/basic.expected.c
@@ -290,9 +284,9 @@ If the project uses a memory bank system, update it with:
 # 1. Code Quality
 npm run prettier:fix
 npm run eslint:check
+npm run typecheck
 
-# 2. Build & Tests
-npm run build
+# 2. Tests
 npm test
 
 # 3. Git Status
@@ -377,7 +371,6 @@ Docs: Update contributing guide with PR workflow
 
 - [ ] All existing tests pass (npm test)
 - [ ] New tests added: [N] tests in tests/[feature]/
-- [ ] Code builds cleanly (npm run build)
 - [ ] Lint checks pass (eslint:check, prettier:fix)
 
 ## Documentation
@@ -419,7 +412,7 @@ The GitHub Actions workflow (`.github/workflows/pr-checks.yml`) automatically ru
 
 1. ✅ **Code Formatting** - `npm run prettier:check`
 2. ✅ **Linting** - `npm run eslint:check`
-3. ✅ **Build** - `npm run build` (TypeScript compilation + ANTLR)
+3. ✅ **Type Checking** - `npm run typecheck`
 4. ✅ **Tests** - `npm test` (all test suites)
 5. ✅ **CLI Smoke Test** - Verify transpiler works on example file
 
@@ -446,11 +439,11 @@ git add -A
 git commit -m "Fix lint errors"
 git push
 
-# Fix build errors
-npm run build       # see error messages
+# Fix type errors
+npm run typecheck   # see error messages
 # Fix issues, then:
 git add -A
-git commit -m "Fix build errors"
+git commit -m "Fix type errors"
 git push
 
 # Fix test failures
@@ -658,7 +651,7 @@ git checkout -b feature/my-feature
 # 4. Quality checks
 npm run prettier:fix
 npm run eslint:check
-npm run build
+npm run typecheck
 npm test
 
 # 5. Stage ONLY related files
@@ -679,7 +672,7 @@ git push origin feature/my-feature
 # Code Quality
 □ npm run prettier:fix
 □ npm run eslint:check
-□ npm run build (no errors)
+□ npm run typecheck
 □ npm test (all pass)
 
 # Documentation

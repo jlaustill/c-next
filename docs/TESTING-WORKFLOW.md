@@ -159,10 +159,6 @@ cd tests/[feature-name]
 #### Step 6: Run Tests Incrementally
 
 ```bash
-# After each test file, transpile and check output
-npm run build
-./dist/index.js tests/[feature]/[test].test.cnx
-
 # Run full test suite
 npm test
 ```
@@ -254,11 +250,11 @@ vim grammar/CNext.g4
 # Rebuild parser
 npm run antlr
 
-# Rebuild TypeScript
-npx tsc
+# Type-check TypeScript
+npm run typecheck
 
 # Test fix
-./dist/index.js [test-file].cnx
+cnext [test-file].cnx
 ````
 
 **Code Generator Bugs:**
@@ -267,11 +263,11 @@ npx tsc
 # Edit code generator
 vim src/codegen/CodeGenerator.ts
 
-# Rebuild
-npx tsc
+# Type-check changes
+npm run typecheck
 
 # Test fix
-./dist/index.js [test-file].cnx
+cnext [test-file].cnx
 
 # Compare output
 diff [test].c [test].expected.c
@@ -298,7 +294,7 @@ cd tests/[feature]
 
 # Generate and save expected output
 for test in *.test.cnx; do
-  if ./dist/index.js "$test" && [ -f "${test%.test.cnx}.c" ]; then
+  if cnext "$test" && [ -f "${test%.test.cnx}.c" ]; then
     cp "${test%.test.cnx}.c" "${test%.test.cnx}.expected.c"
     echo "Created ${test%.test.cnx}.expected.c"
   fi
@@ -590,7 +586,6 @@ npm test                               # Run tests
 
 # Phase 3: Bug Resolution
 vim grammar/CNext.g4                   # Fix grammar
-npm run build                          # Rebuild
 vim BUG-DISCOVERED-[feature].md       # Document bugs
 
 # Phase 4: Documentation

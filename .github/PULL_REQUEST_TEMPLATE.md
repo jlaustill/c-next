@@ -16,7 +16,7 @@
 
 - [ ] All existing tests pass (`npm test`)
 - [ ] New tests added: \_\_\_ tests in `tests/[feature]/`
-- [ ] Code builds cleanly (`npm run build`)
+- [ ] Type checking passes (`npm run typecheck`)
 - [ ] Lint checks pass (`npm run eslint:check`)
 - [ ] Formatting checked (`npm run prettier:fix`)
 

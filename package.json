@@ -15,6 +15,7 @@
     "antlr:all": "npm run antlr && npm run antlr:c && npm run antlr:cpp",
     "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
     "test": "tsx scripts/test.js",
     "test:cli": "node scripts/test-cli.js",
     "test:update": "tsx scripts/test.js --update",

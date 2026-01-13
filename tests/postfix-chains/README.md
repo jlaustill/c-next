@@ -60,7 +60,7 @@ npm test
 npm test tests/postfix-chains/
 
 # Generate expected outputs for passing tests
-./dist/index.js tests/postfix-chains/basic-two-level.test.cnx -o basic-two-level.c
+cnext tests/postfix-chains/basic-two-level.test.cnx -o basic-two-level.c
 ```
 
 ## Related Documentation
