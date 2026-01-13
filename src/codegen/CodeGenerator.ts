@@ -4570,7 +4570,28 @@ export default class CodeGenerator {
       const isISRType = typeInfo?.baseType === "ISR";
 
       if (isActualArray || isISRType) {
-        // Normal array element assignment
+        // Check for slice assignment: array[offset, length] <- value
+        if (exprs.length === 2) {
+          // Slice assignment - generate memcpy with bounds checking
+          const offset = this.generateExpression(exprs[0]);
+          const length = this.generateExpression(exprs[1]);
+
+          // Compound operators not supported for slice assignment
+          if (cOp !== "=") {
+            throw new Error(
+              `Compound assignment operators not supported for slice assignment: ${cnextOp}`,
+            );
+          }
+
+          // Set flag to include string.h for memcpy
+          this.needsString = true;
+
+          // Generate bounds-checked memcpy
+          // if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &value, length); }
+          return `if (${offset} + ${length} <= sizeof(${name})) { memcpy(&${name}[${offset}], &${value}, ${length}); }`;
+        }
+
+        // Normal array element assignment (single index)
         const index = this.generateExpression(exprs[0]);
 
         // Check if this is a string array (e.g., string<64> arr[4])

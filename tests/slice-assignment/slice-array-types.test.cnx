@@ -1,0 +1,75 @@
+/* test-execution */
+// Tests: Slice assignment with different array types
+// Validates that slice assignment works with u8[], u16[], u32[], u64[], and string buffers
+// Ensures type-agnostic byte copying behavior
+
+u32 main() {
+    // Test 1: u8 array
+    u8 arr8[32];
+    u32 value1 <- 0x11223344;
+    arr8[0, 4] <- value1;
+
+    if (arr8[0] != 0x44) return 1;
+    if (arr8[1] != 0x33) return 2;
+    if (arr8[2] != 0x22) return 3;
+    if (arr8[3] != 0x11) return 4;
+
+    // Test 2: u16 array
+    u16 arr16[16];
+    u64 value2 <- 0x0102030405060708;
+    arr16[0, 8] <- value2;
+
+    // u16 array stores 16-bit values, but we're copying bytes
+    // First u16: 0x0201 (little-endian: bytes 0x08, 0x07)
+    u8 byte0 <- arr16[0];
+    u8 byte1 <- arr16[0] >> 8;
+    u8 byte2 <- arr16[1];
+    u8 byte3 <- arr16[1] >> 8;
+
+    if (byte0 != 0x08) return 5;
+    if (byte1 != 0x07) return 6;
+    if (byte2 != 0x06) return 7;
+    if (byte3 != 0x05) return 8;
+
+    // Test 3: u32 array
+    u32 arr32[16];
+    u32 value3 <- 0xAABBCCDD;
+    arr32[0, 4] <- value3;
+
+    // Verify by reading back the u32 value
+    if (arr32[0] != 0xAABBCCDD) return 9;
+
+    // Test 4: u64 array
+    u64 arr64[8];
+    u64 value4 <- 0x123456789ABCDEF0;
+    arr64[0, 8] <- value4;
+
+    // Verify by reading back the u64 value
+    if (arr64[0] != 0x123456789ABCDEF0) return 10;
+
+    // Test 5: u8 buffer (basic byte array)
+    u8 buffer[64];
+    u32 value5 <- 0x55667788;
+    buffer[0, 4] <- value5;
+
+    if (buffer[0] != 0x88) return 11;
+    if (buffer[1] != 0x77) return 12;
+    if (buffer[2] != 0x66) return 13;
+    if (buffer[3] != 0x55) return 14;
+
+    // Test 6: Multiple copies to same array at different offsets
+    u8 multiArr[32];
+    u32 val1 <- 0x11111111;
+    u32 val2 <- 0x22222222;
+    u32 val3 <- 0x33333333;
+
+    multiArr[0, 4] <- val1;
+    multiArr[4, 4] <- val2;
+    multiArr[8, 4] <- val3;
+
+    if (multiArr[0] != 0x11) return 15;
+    if (multiArr[4] != 0x22) return 16;
+    if (multiArr[8] != 0x33) return 17;
+
+    return 0;  // All tests passed
+}

@@ -1,0 +1,54 @@
+/* test-execution */
+// Tests: Large value copies with slice assignment
+// Validates copying maximum values and large data structures
+// Ensures no truncation or overflow in memory operations
+
+u32 main() {
+    u8 buffer[256];
+
+    // Test 1: u64 maximum value
+    u64 maxU64 <- 0xFFFFFFFFFFFFFFFF;
+    buffer[0, 8] <- maxU64;
+
+    // Verify all bytes are 0xFF
+    if (buffer[0] != 0xFF) return 1;
+    if (buffer[1] != 0xFF) return 2;
+    if (buffer[2] != 0xFF) return 3;
+    if (buffer[3] != 0xFF) return 4;
+    if (buffer[4] != 0xFF) return 5;
+    if (buffer[5] != 0xFF) return 6;
+    if (buffer[6] != 0xFF) return 7;
+    if (buffer[7] != 0xFF) return 8;
+
+    // Test 2: u32 maximum value
+    u32 maxU32 <- 0xFFFFFFFF;
+    buffer[10, 4] <- maxU32;
+
+    if (buffer[10] != 0xFF) return 9;
+    if (buffer[11] != 0xFF) return 10;
+    if (buffer[12] != 0xFF) return 11;
+    if (buffer[13] != 0xFF) return 12;
+
+    // Test 3: Copy multiple large values sequentially
+    u64 val1 <- 0x8000000000000000;  // Largest bit set
+    u64 val2 <- 0x7FFFFFFFFFFFFFFF;  // All but largest bit set
+    u64 val3 <- 0x0000000000000001;  // Smallest bit set
+
+    buffer[20, 8] <- val1;
+    buffer[28, 8] <- val2;
+    buffer[36, 8] <- val3;
+
+    // Verify val1 (0x8000000000000000)
+    if (buffer[20] != 0x00) return 13;
+    if (buffer[27] != 0x80) return 14;
+
+    // Verify val2 (0x7FFFFFFFFFFFFFFF)
+    if (buffer[28] != 0xFF) return 15;
+    if (buffer[35] != 0x7F) return 16;
+
+    // Verify val3 (0x0000000000000001)
+    if (buffer[36] != 0x01) return 17;
+    if (buffer[43] != 0x00) return 18;
+
+    return 0;  // All tests passed
+}

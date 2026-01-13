@@ -636,7 +636,51 @@ u8 data[2][3] <- [
 // Compile-time bounds checking for constant indices
 // u8 bad[4][8];
 // bad[5][0] <- 1;  // ERROR: index 5 >= dimension 4
+
+// [DONE] Slice assignment - multi-byte memory copy with bounds checking
+u8 packet[256];
+u32 magic <- 0x12345678;
+u8 length <- 4;
+u32 offset <- 0;
+
+// Copy 'length' bytes from 'magic' into 'packet' starting at 'offset'
+packet[offset, length] <- magic;  // Generates bounds-checked memcpy
+
+// Works with struct fields (binary serialization)
+struct Header {
+    u32 magic;
+    u16 version;
+    u8 flags;
+}
+
+Header hdr;
+hdr.magic <- 0x43534E58;
+hdr.version <- 0x0100;
+hdr.flags <- 0x0F;
+
+// Serialize struct fields into buffer
+packet[0, 4] <- hdr.magic;    // Copy 4 bytes at offset 0
+packet[4, 2] <- hdr.version;  // Copy 2 bytes at offset 4
+packet[6, 1] <- hdr.flags;    // Copy 1 byte at offset 6
+
+// Distinction from bit operations:
+// - Arrays: buffer[offset, length] <- value  → memcpy (byte copy)
+// - Scalars: flags[start, width] <- value    → bit manipulation
 ```
+
+Transpiles to runtime bounds-checked code:
+
+```c
+if (offset + length <= sizeof(packet)) {
+    memcpy(&packet[offset], &magic, length);
+}
+```
+
+**Key Features:**
+
+- Runtime bounds checking prevents buffer overflows
+- Enables binary protocol implementation and serialization
+- Distinct semantics: array slices = memory copy, scalar slices = bit operations
 
 ## Strings [DONE]
 

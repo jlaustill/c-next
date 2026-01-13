@@ -1,0 +1,48 @@
+/* test-execution */
+// Tests: Basic slice assignment functionality for multi-byte copies
+// Validates copying u8, u16, u32, u64 values into string buffers
+// Each byte is verified individually to ensure correct memory layout
+
+u32 main() {
+    u8 buffer[64];
+
+    // Test 1: Copy u32 (4 bytes) into buffer
+    u32 value32 <- 0x12345678;
+    buffer[0, 4] <- value32;
+
+    // Verify each byte (little-endian)
+    if (buffer[0] != 0x78) return 1;
+    if (buffer[1] != 0x56) return 2;
+    if (buffer[2] != 0x34) return 3;
+    if (buffer[3] != 0x12) return 4;
+
+    // Test 2: Copy u64 (8 bytes) into buffer at different offset
+    u64 value64 <- 0x0102030405060708;
+    buffer[10, 8] <- value64;
+
+    // Verify each byte (little-endian)
+    if (buffer[10] != 0x08) return 5;
+    if (buffer[11] != 0x07) return 6;
+    if (buffer[12] != 0x06) return 7;
+    if (buffer[13] != 0x05) return 8;
+    if (buffer[14] != 0x04) return 9;
+    if (buffer[15] != 0x03) return 10;
+    if (buffer[16] != 0x02) return 11;
+    if (buffer[17] != 0x01) return 12;
+
+    // Test 3: Copy u8 (1 byte) into buffer
+    u8 value8 <- 0xAB;
+    buffer[20, 1] <- value8;
+
+    if (buffer[20] != 0xAB) return 13;
+
+    // Test 4: Copy u16 (2 bytes) into buffer
+    u16 value16 <- 0xCDEF;
+    buffer[30, 2] <- value16;
+
+    // Verify each byte (little-endian)
+    if (buffer[30] != 0xEF) return 14;
+    if (buffer[31] != 0xCD) return 15;
+
+    return 0;  // All tests passed
+}

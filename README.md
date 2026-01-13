@@ -301,6 +301,40 @@ Write-only registers generate optimized code:
 GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 ```
 
+### Slice Assignment for Memory Operations
+
+Multi-byte copying with bounds-checked `memcpy` generation:
+
+```cnx
+u8 buffer[256];
+u32 magic <- 0x12345678;
+u8 length <- 4;
+u32 offset <- 0;
+
+// Copy 4 bytes from value into buffer at offset
+buffer[offset, length] <- magic;
+```
+
+Transpiles to runtime bounds-checked code:
+
+```c
+uint8_t buffer[256] = {0};
+uint32_t magic = 0x12345678;
+uint8_t length = 4;
+uint32_t offset = 0;
+
+if (offset + length <= sizeof(buffer)) {
+    memcpy(&buffer[offset], &magic, length);
+}
+```
+
+**Key Features:**
+
+- Runtime bounds checking prevents buffer overflows
+- Enables binary serialization and protocol implementation
+- Works with struct fields: `buffer[offset, len] <- config.magic`
+- Distinct from bit operations: array slices use `memcpy`, scalar bit ranges use bit manipulation
+
 ### Scopes (ADR-016)
 
 Organize code with automatic name prefixing. Inside scopes, explicit qualification is required:
