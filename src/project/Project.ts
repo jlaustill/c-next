@@ -5,7 +5,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { join, basename } from "path";
+import { join, basename, relative, dirname } from "path";
 
 import { CNextLexer } from "../parser/grammar/CNextLexer.js";
 import { CNextParser } from "../parser/grammar/CNextParser.js";
@@ -303,6 +303,37 @@ class Project {
   }
 
   /**
+   * Get output path for a file, preserving directory structure if from srcDirs
+   *
+   * @param file - The discovered file
+   * @returns Output path for the generated C file
+   */
+  private getOutputPath(file: IDiscoveredFile): string {
+    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".c");
+
+    // If file is in a subdirectory of srcDir, preserve structure
+    for (const srcDir of this.config.srcDirs) {
+      const relativePath = relative(srcDir, file.path);
+      if (!relativePath.startsWith("..")) {
+        // File is under srcDir - preserve directory structure
+        const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".c");
+        const outputPath = join(this.config.outDir, outputRelative);
+
+        // Ensure output directory exists
+        const outputDir = dirname(outputPath);
+        if (!existsSync(outputDir)) {
+          mkdirSync(outputDir, { recursive: true });
+        }
+
+        return outputPath;
+      }
+    }
+
+    // Fallback: flat output (for files not in srcDirs)
+    return join(this.config.outDir, outputName);
+  }
+
+  /**
    * Generate C code from a C-Next file
    */
   private generateCode(file: IDiscoveredFile): string {
@@ -315,13 +346,43 @@ class Project {
     const tree = parser.program();
     const code = this.codeGenerator.generate(tree, this.symbolTable);
 
-    // Write output file
-    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".c");
-    const outputPath = join(this.config.outDir, outputName);
+    // Write output file with directory structure preserved
+    const outputPath = this.getOutputPath(file);
 
     writeFileSync(outputPath, code, "utf-8");
 
     return outputPath;
+  }
+
+  /**
+   * Get output path for a header file, preserving directory structure if from srcDirs
+   *
+   * @param file - The discovered file
+   * @returns Output path for the generated header file
+   */
+  private getHeaderOutputPath(file: IDiscoveredFile): string {
+    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+
+    // If file is in a subdirectory of srcDir, preserve structure
+    for (const srcDir of this.config.srcDirs) {
+      const relativePath = relative(srcDir, file.path);
+      if (!relativePath.startsWith("..")) {
+        // File is under srcDir - preserve directory structure
+        const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
+        const outputPath = join(this.config.outDir, outputRelative);
+
+        // Ensure output directory exists
+        const outputDir = dirname(outputPath);
+        if (!existsSync(outputDir)) {
+          mkdirSync(outputDir, { recursive: true });
+        }
+
+        return outputPath;
+      }
+    }
+
+    // Fallback: flat output (for files not in srcDirs)
+    return join(this.config.outDir, headerName);
   }
 
   /**
@@ -338,7 +399,7 @@ class Project {
     }
 
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    const headerPath = join(this.config.outDir, headerName);
+    const headerPath = this.getHeaderOutputPath(file);
 
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
