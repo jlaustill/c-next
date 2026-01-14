@@ -1,6 +1,7 @@
-// Postfix Chain Test: Write-Only Registers with Complex Expressions
-// Tests: Write-only register optimization with various expression types
-// HIGH RISK: Lines 4405-4437 in CodeGenerator.ts
+// ADR-004: Write-only register operations test
+// Tests: Valid write-only register bit operations with various index types
+// Coverage: Section 12 - Register Declaration (write-only bit access)
+// Extracted from: write-only-register-chain.test.cnx.skip
 
 register GPIO @ 0x42000000 {
     DR:         u32 rw @ 0x00,
@@ -36,12 +37,6 @@ void main() {
     GPIO.DR_SET[LED_BIT + 1] <- true;
     GPIO.DR_CLEAR[LED_BIT * 2] <- true;
 
-    // Write-only register setting to false (should use clear)
-    GPIO.DR_SET[3] <- false;  // Edge case: false to write-only SET
-
-    // Write-only multi-bit range (if supported in future)
-    // This might expose edge cases in range validation
-
     // Chained access to write-only registers
     u32 targetBit <- LED_BIT;
     GPIO.DR_TOGGLE[targetBit] <- true;
@@ -50,7 +45,7 @@ void main() {
     GPIO.DR[LED_BIT] <- true;
     GPIO.DR[BUTTON_BIT] <- false;
 
-    // Read from read-write, write to write-only
+    // Read from read-write, write to write-only based on condition
     bool state <- GPIO.DR[LED_BIT];
     if (state = true) {
         GPIO.DR_CLEAR[LED_BIT] <- true;

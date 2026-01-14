@@ -1,0 +1,11 @@
+// ADR-004: Error test - assigning false to write-only SET register
+// Tests: compile error when attempting to assign false to wo SET bit
+// Coverage: Section 12 - Register Declaration (write-only validation)
+
+register GPIO @ 0x42000000 {
+    DR_SET: u32 wo @ 0x84,
+}
+
+void main() {
+    GPIO.DR_SET[3] <- false;  // ERROR: Use DR_CLEAR register to clear bits
+}
