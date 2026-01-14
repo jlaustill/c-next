@@ -235,6 +235,9 @@ export default class CodeGenerator {
 
   private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
 
+  // Bug #8: Track compile-time const values for array size resolution at file scope
+  private constValues: Map<string, number> = new Map(); // constName -> numeric value
+
   // ADR-034: Bitmap types registry
   private knownBitmaps: Set<string> = new Set(); // Track bitmap type names
 
@@ -878,6 +881,15 @@ export default class CodeGenerator {
       if (decl.variableDeclaration()) {
         const varDecl = decl.variableDeclaration()!;
         this.trackVariableType(varDecl);
+
+        // Bug #8: Track const values for array size resolution at file scope
+        if (varDecl.constModifier() && varDecl.expression()) {
+          const constName = varDecl.IDENTIFIER().getText();
+          const constValue = this.tryEvaluateConstant(varDecl.expression()!);
+          if (constValue !== undefined) {
+            this.constValues.set(constName, constValue);
+          }
+        }
       }
 
       // Register scope member variable types
@@ -1035,6 +1047,7 @@ export default class CodeGenerator {
   /**
    * ADR-036: Try to evaluate an expression as a compile-time constant.
    * Returns the numeric value if constant, undefined if not evaluable.
+   * Bug #8: Extended to resolve const variable references for file-scope array sizes.
    */
   private tryEvaluateConstant(
     ctx: Parser.ExpressionContext,
@@ -1053,6 +1066,26 @@ export default class CodeGenerator {
     // Check if it's a binary literal
     if (/^0[bB][01]+$/.test(text)) {
       return parseInt(text.substring(2), 2);
+    }
+
+    // Bug #8: Check if it's a known const value (identifier)
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(text)) {
+      const constValue = this.constValues.get(text);
+      if (constValue !== undefined) {
+        return constValue;
+      }
+    }
+
+    // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
+    const addMatch = text.match(
+      /^([a-zA-Z_][a-zA-Z0-9_]*)\+([a-zA-Z_][a-zA-Z0-9_]*)$/,
+    );
+    if (addMatch) {
+      const left = this.constValues.get(addMatch[1]);
+      const right = this.constValues.get(addMatch[2]);
+      if (left !== undefined && right !== undefined) {
+        return left + right;
+      }
     }
 
     // For more complex expressions, we can't evaluate at compile time
@@ -1297,14 +1330,14 @@ export default class CodeGenerator {
 
     // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
     // arrayDim is now an array of ArrayDimensionContext
+    // Bug #8: Use tryEvaluateConstant to resolve const identifiers in array sizes
     if (arrayDim && arrayDim.length > 0) {
       isArray = true;
       for (const dim of arrayDim) {
         const sizeExpr = dim.expression();
         if (sizeExpr) {
-          const sizeText = sizeExpr.getText();
-          const size = parseInt(sizeText, 10);
-          if (!isNaN(size)) {
+          const size = this.tryEvaluateConstant(sizeExpr);
+          if (size !== undefined && size > 0) {
             arrayDimensions.push(size);
           }
         }
@@ -1487,14 +1520,14 @@ export default class CodeGenerator {
 
     // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
     // arrayDim is now an array of ArrayDimensionContext
+    // Bug #8: Use tryEvaluateConstant to resolve const identifiers in array sizes
     if (arrayDim && arrayDim.length > 0) {
       isArray = true;
       for (const dim of arrayDim) {
         const sizeExpr = dim.expression();
         if (sizeExpr) {
-          const sizeText = sizeExpr.getText();
-          const size = parseInt(sizeText, 10);
-          if (!isNaN(size)) {
+          const size = this.tryEvaluateConstant(sizeExpr);
+          if (size !== undefined && size > 0) {
             arrayDimensions.push(size);
           }
         }
@@ -3329,6 +3362,14 @@ export default class CodeGenerator {
 
   private generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
     if (ctx.expression()) {
+      // Bug #8: At file scope, resolve const values to numeric literals
+      // because C doesn't allow const variables as array sizes at file scope
+      if (!this.context.inFunctionBody) {
+        const constValue = this.tryEvaluateConstant(ctx.expression()!);
+        if (constValue !== undefined) {
+          return `[${constValue}]`;
+        }
+      }
       return `[${this.generateExpression(ctx.expression()!)}]`;
     }
     return "[]";
@@ -3376,6 +3417,14 @@ export default class CodeGenerator {
       this.trackVariableType(ctx);
       // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
       this.context.localVariables.add(name);
+
+      // Bug #8: Track local const values for array size and bit index resolution
+      if (ctx.constModifier() && ctx.expression()) {
+        const constValue = this.tryEvaluateConstant(ctx.expression()!);
+        if (constValue !== undefined) {
+          this.constValues.set(name, constValue);
+        }
+      }
     }
 
     // ADR-045: Handle bounded string type specially
@@ -4284,6 +4333,45 @@ export default class CodeGenerator {
             exprs,
             ctx.start?.line ?? 0,
           );
+
+          // Bug #8: Check for bit indexing on array element
+          // e.g., matrix[ROW][COL][FIELD_BIT] where matrix is u8[4][4]
+          const numDims = typeInfo.arrayDimensions.length;
+          const numSubscripts = exprs.length;
+
+          if (numSubscripts === numDims + 1) {
+            const elementType = typeInfo.baseType;
+            const isPrimitiveInt = [
+              "u8",
+              "u16",
+              "u32",
+              "u64",
+              "i8",
+              "i16",
+              "i32",
+              "i64",
+            ].includes(elementType);
+
+            if (isPrimitiveInt) {
+              // Compound operators not supported for bit field access
+              if (isCompound) {
+                throw new Error(
+                  `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+                );
+              }
+
+              // Generate array access for dimensions, then bit assignment
+              const arrayIndices = exprs
+                .slice(0, numDims)
+                .map((e) => `[${this.generateExpression(e)}]`)
+                .join("");
+              const bitIndex = this.generateExpression(exprs[numDims]);
+              const arrayElement = `${arrayName}${arrayIndices}`;
+
+              // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
+              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+            }
+          }
         }
 
         // Generate all subscript indices
@@ -4314,6 +4402,8 @@ export default class CodeGenerator {
 
         if (memberAccessCtx.children && identifiers.length > 1) {
           // Walk parse tree children in order, building result incrementally
+          // Bug #8 fix: Use while loop with proper child iteration
+          // instead of fragile index arithmetic (i += 2)
           let result = firstId;
           let idIndex = 1; // Start at 1 since we already used firstId
           let exprIndex = 0;
@@ -4321,31 +4411,109 @@ export default class CodeGenerator {
           // Check if first identifier is a scope for special handling
           const isCrossScope = this.knownScopes.has(firstId);
 
-          for (let i = 1; i < memberAccessCtx.children.length; i++) {
+          // Bug #8: Track struct types to detect bit access through chains
+          // e.g., items[0].byte[7] where byte is u8 - final [7] is bit access
+          let currentStructType: string | undefined;
+          let lastMemberType: string | undefined;
+          let lastMemberIsArray = false; // Track if last accessed member is an array
+          let _lastMemberStructType: string | undefined; // Struct type containing the last member (kept for future use)
+          const firstTypeInfo = this.context.typeRegistry.get(firstId);
+          if (firstTypeInfo) {
+            currentStructType = this.knownStructs.has(firstTypeInfo.baseType)
+              ? firstTypeInfo.baseType
+              : undefined;
+          }
+
+          let i = 1;
+          while (i < memberAccessCtx.children.length) {
             const child = memberAccessCtx.children[i];
             const childText = child.getText();
 
             if (childText === ".") {
-              // Next child should be an IDENTIFIER
+              // Dot found - consume it, then get the next identifier
+              i++;
               if (
-                i + 1 < memberAccessCtx.children.length &&
+                i < memberAccessCtx.children.length &&
                 idIndex < identifiers.length
               ) {
+                const memberName = identifiers[idIndex].getText();
                 // Use underscore for first join if cross-scope, dot otherwise
                 const separator = isCrossScope && idIndex === 1 ? "_" : ".";
-                result += `${separator}${identifiers[idIndex].getText()}`;
+                result += `${separator}${memberName}`;
                 idIndex++;
-                i++; // Skip the identifier we just processed
+
+                // Update type tracking for the member we just accessed
+                if (currentStructType) {
+                  const fields = this.structFields.get(currentStructType);
+                  lastMemberType = fields?.get(memberName);
+                  _lastMemberStructType = currentStructType;
+                  // Check if this member is an array field
+                  const arrayFields =
+                    this.structFieldArrays.get(currentStructType);
+                  lastMemberIsArray = arrayFields?.has(memberName) ?? false;
+                  // Check if this member is itself a struct
+                  if (lastMemberType && this.knownStructs.has(lastMemberType)) {
+                    currentStructType = lastMemberType;
+                  } else {
+                    currentStructType = undefined;
+                  }
+                }
               }
             } else if (childText === "[") {
-              // Next child is an expression, then "]"
+              // Opening bracket - check if this is bit access on primitive integer
+              // Must NOT be an array field (e.g., indices[12] is array, not bit access)
+              const isPrimitiveInt =
+                lastMemberType &&
+                !lastMemberIsArray &&
+                ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
+                  lastMemberType,
+                );
+              const isLastExpr = exprIndex === exprs.length - 1;
+
+              if (isPrimitiveInt && isLastExpr && exprIndex < exprs.length) {
+                // Bug #8: This is bit access on a struct member!
+                // e.g., items[0].byte[7] <- true
+                // Generate: result = (result & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
+                if (isCompound) {
+                  throw new Error(
+                    `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+                  );
+                }
+                const bitIndex = this.generateExpression(exprs[exprIndex]);
+                // Use 1ULL for 64-bit types to avoid undefined behavior on large shifts
+                const one =
+                  lastMemberType === "u64" || lastMemberType === "i64"
+                    ? "1ULL"
+                    : "1";
+                return `${result} = (${result} & ~(${one} << ${bitIndex})) | ((${value} ? ${one} : 0) << ${bitIndex});`;
+              }
+
+              // Normal array subscript
               if (exprIndex < exprs.length) {
                 const expr = this.generateExpression(exprs[exprIndex]);
                 result += `[${expr}]`;
                 exprIndex++;
-                i += 2; // Skip expression and "]"
+
+                // After subscripting an array, update type tracking
+                if (firstTypeInfo?.isArray && exprIndex === 1) {
+                  // First subscript on array - element type might be a struct
+                  const elementType = firstTypeInfo.baseType;
+                  if (this.knownStructs.has(elementType)) {
+                    currentStructType = elementType;
+                  }
+                }
               }
+              // Skip forward to find and pass the closing bracket
+              while (
+                i < memberAccessCtx.children.length &&
+                memberAccessCtx.children[i].getText() !== "]"
+              ) {
+                i++;
+              }
+              // Reset lastMemberType after subscript (no longer on a member)
+              lastMemberType = undefined;
             }
+            i++;
           }
 
           // Check if this is a string array element assignment before returning
@@ -4758,6 +4926,61 @@ export default class CodeGenerator {
         // Generate: name = (name & ~(mask << start)) | ((value & mask) << start)
         const mask = this.generateBitMask(width);
         return `${name} = (${name} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
+      }
+    }
+
+    // Bug #8: Handle bit assignment on multi-dimensional array elements
+    // e.g., matrix[ROW][COL][FIELD_BIT] <- false
+    // where matrix is u8[4][4] and FIELD_BIT is a bit index on the u8 element
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      const exprs = memberAccessCtx.expression();
+
+      // Check if first identifier is an array with known dimensions
+      if (identifiers.length === 1 && exprs.length > 0) {
+        const arrayName = identifiers[0].getText();
+        const typeInfo = this.context.typeRegistry.get(arrayName);
+
+        if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+          const numDims = typeInfo.arrayDimensions.length;
+          const numSubscripts = exprs.length;
+
+          // If we have more subscripts than dimensions, the extra one is a bit index
+          if (numSubscripts === numDims + 1) {
+            const elementType = typeInfo.baseType;
+            const isPrimitiveInt = [
+              "u8",
+              "u16",
+              "u32",
+              "u64",
+              "i8",
+              "i16",
+              "i32",
+              "i64",
+            ].includes(elementType);
+
+            if (isPrimitiveInt) {
+              // Compound operators not supported for bit field access
+              if (isCompound) {
+                throw new Error(
+                  `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+                );
+              }
+
+              // Generate array access for dimensions, then bit assignment
+              const arrayIndices = exprs
+                .slice(0, numDims)
+                .map((e) => `[${this.generateExpression(e)}]`)
+                .join("");
+              const bitIndex = this.generateExpression(exprs[numDims]);
+              const arrayElement = `${arrayName}${arrayIndices}`;
+
+              // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
+              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+            }
+          }
+        }
       }
     }
 
@@ -6343,9 +6566,9 @@ export default class CodeGenerator {
 
     // Track if current member is an array through member access chain
     // e.g., buf.data[0] - after .data, we know data is an array member
-    let currentMemberIsArray = primaryId
-      ? (this.context.typeRegistry.get(primaryId)?.isArray ?? false)
-      : false;
+    // Note: This tracks STRUCT MEMBER arrays only, not the primary identifier being an array
+    // Primary identifier arrays are handled by remainingArrayDims and isPrimaryArray
+    let currentMemberIsArray = false;
     let currentStructType = primaryId
       ? this.context.typeRegistry.get(primaryId)?.baseType
       : undefined;
@@ -6356,6 +6579,19 @@ export default class CodeGenerator {
 
     // Track the current resolved identifier for type lookups (fixes scope/parameter .length)
     let currentIdentifier = primaryId;
+    // Bug #8: Track remaining array dimensions for multi-dimensional arrays
+    // e.g., matrix[4][4] starts with 2 dims; after matrix[0] there's still 1 dim left
+    // Check both typeRegistry (for variables) and currentParameters (for function params)
+    const primaryTypeInfo = primaryId
+      ? this.context.typeRegistry.get(primaryId)
+      : undefined;
+    const primaryParamInfo = primaryId
+      ? this.context.currentParameters.get(primaryId)
+      : undefined;
+    let remainingArrayDims =
+      primaryTypeInfo?.arrayDimensions?.length ??
+      // Fallback: if parameter is marked as array but no dimensions, assume at least 1
+      (primaryParamInfo?.isArray ? 1 : 0);
     // Track how many dimensions we've subscripted (arr[0] -> depth 1, arr[0][1] -> depth 2)
     let subscriptDepth = 0;
 
@@ -6814,7 +7050,14 @@ export default class CodeGenerator {
           const isPrimaryArray = identifierTypeInfo?.isArray ?? false;
 
           // Determine if this subscript is array access or bit access
-          // Priority: register access > tracked member array > primary array > primitive integer bit access > default array access
+          // Priority: register access > tracked member array > struct member primitive int > primary array > default bit access
+          // Bug #8: Check currentStructType BEFORE isPrimaryArray to handle items[0].byte[7] correctly
+          const isPrimitiveIntMember =
+            currentStructType &&
+            ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
+              currentStructType,
+            );
+
           if (isRegisterAccess) {
             // Register - use bit access: ((value >> index) & 1)
             result = `((${result} >> ${index}) & 1)`;
@@ -6824,6 +7067,24 @@ export default class CodeGenerator {
             result = `${result}[${index}]`;
             currentMemberIsArray = false; // After subscript, no longer array
             subscriptDepth++; // Track dimension depth for .length
+          } else if (remainingArrayDims > 0) {
+            // Bug #8: Multi-dimensional array - still have dimensions to consume
+            // e.g., matrix[0][0] where matrix is u8[4][4]
+            result = `${result}[${index}]`;
+            remainingArrayDims--;
+            subscriptDepth++; // Track dimension depth for .length
+            // After consuming all array dimensions, set struct type if element is struct
+            if (remainingArrayDims === 0 && primaryTypeInfo) {
+              const elementType = primaryTypeInfo.baseType;
+              if (this.knownStructs.has(elementType)) {
+                currentStructType = elementType;
+              }
+            }
+          } else if (isPrimitiveIntMember) {
+            // Bug #8: Struct member is primitive integer - use bit access
+            // e.g., items[0].byte[7] where byte is u8
+            result = `((${result} >> ${index}) & 1)`;
+            currentStructType = undefined; // Reset after bit access
           } else if (isPrimaryArray) {
             // Primary identifier is an array (e.g., arr[0] or global.arr[0])
             result = `${result}[${index}]`;
@@ -6836,9 +7097,8 @@ export default class CodeGenerator {
               }
             }
           } else {
-            // Check both currentStructType (for member access chains) and identifierTypeInfo (for simple variables)
-            const typeToCheck =
-              currentStructType || identifierTypeInfo?.baseType;
+            // Check identifierTypeInfo for simple variables (not through member access)
+            const typeToCheck = identifierTypeInfo?.baseType;
             const isPrimitiveInt =
               typeToCheck &&
               ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
@@ -7429,6 +7689,8 @@ export default class CodeGenerator {
 
         if (ctx.children) {
           // Walk parse tree children in order, building result incrementally
+          // Bug #8 fix: Use while loop with proper child type detection
+          // instead of fragile index arithmetic (i += 2)
           let result = firstPart;
           let idIndex = 1; // Start at 1 since we already used firstPart
           let exprIndex = 0;
@@ -7436,28 +7698,99 @@ export default class CodeGenerator {
           // Check if first identifier is a scope for special handling
           const isCrossScope = this.knownScopes.has(firstPart);
 
-          for (let i = 1; i < ctx.children.length; i++) {
+          // Bug #8: Track struct types to detect bit access through chains
+          // e.g., items[0].byte[7] where byte is u8 - final [7] is bit read
+          let currentStructType: string | undefined;
+          let lastMemberType: string | undefined;
+          let lastMemberIsArray = false; // Track if last accessed member is an array
+          const firstTypeInfo = this.context.typeRegistry.get(firstPart);
+          if (firstTypeInfo) {
+            currentStructType = this.knownStructs.has(firstTypeInfo.baseType)
+              ? firstTypeInfo.baseType
+              : undefined;
+          }
+
+          let i = 1;
+          while (i < ctx.children.length) {
             const child = ctx.children[i];
             const childText = child.getText();
 
             if (childText === ".") {
-              // Next child should be an IDENTIFIER
-              if (i + 1 < ctx.children.length && idIndex < parts.length) {
+              // Dot found - consume it, then get the next identifier
+              i++;
+              if (i < ctx.children.length && idIndex < parts.length) {
+                const memberName = parts[idIndex];
                 // Use underscore for first join if cross-scope, dot otherwise
                 const separator = isCrossScope && idIndex === 1 ? "_" : ".";
-                result += `${separator}${parts[idIndex]}`;
+                result += `${separator}${memberName}`;
                 idIndex++;
-                i++; // Skip the identifier we just processed
+
+                // Update type tracking for the member we just accessed
+                if (currentStructType) {
+                  const fields = this.structFields.get(currentStructType);
+                  lastMemberType = fields?.get(memberName);
+                  // Check if this member is an array field
+                  const arrayFields =
+                    this.structFieldArrays.get(currentStructType);
+                  lastMemberIsArray = arrayFields?.has(memberName) ?? false;
+                  // Check if this member is itself a struct
+                  if (lastMemberType && this.knownStructs.has(lastMemberType)) {
+                    currentStructType = lastMemberType;
+                  } else {
+                    currentStructType = undefined;
+                  }
+                }
               }
             } else if (childText === "[") {
-              // Next child is an expression, then "]"
+              // Opening bracket - check if this is bit access on primitive integer
+              // Must NOT be an array field (e.g., indices[12] is array, not bit access)
+              const isPrimitiveInt =
+                lastMemberType &&
+                !lastMemberIsArray &&
+                ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
+                  lastMemberType,
+                );
+              const isLastExpr = exprIndex === expressions.length - 1;
+
+              if (
+                isPrimitiveInt &&
+                isLastExpr &&
+                exprIndex < expressions.length
+              ) {
+                // Bug #8: This is bit read on a struct member!
+                // e.g., items[0].byte[7] -> ((items[0].byte >> 7) & 1)
+                const bitIndex = this.generateExpression(
+                  expressions[exprIndex],
+                );
+                return `((${result} >> ${bitIndex}) & 1)`;
+              }
+
+              // Normal array subscript
               if (exprIndex < expressions.length) {
                 const expr = this.generateExpression(expressions[exprIndex]);
                 result += `[${expr}]`;
                 exprIndex++;
-                i += 2; // Skip expression and "]"
+
+                // After subscripting an array, update type tracking
+                if (firstTypeInfo?.isArray && exprIndex === 1) {
+                  // First subscript on array - element type might be a struct
+                  const elementType = firstTypeInfo.baseType;
+                  if (this.knownStructs.has(elementType)) {
+                    currentStructType = elementType;
+                  }
+                }
               }
+              // Skip forward to find and pass the closing bracket
+              while (
+                i < ctx.children.length &&
+                ctx.children[i].getText() !== "]"
+              ) {
+                i++;
+              }
+              // Reset lastMemberType after subscript (no longer on a member)
+              lastMemberType = undefined;
             }
+            i++;
           }
           return result;
         }
