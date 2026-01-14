@@ -5805,9 +5805,15 @@ export default class CodeGenerator {
 
     if (ctx.BINARY_LITERAL()) {
       // Convert binary to hex for cleaner C output
+      // Issue #114: Use BigInt to preserve precision for values > 2^53
       const binText = ctx.BINARY_LITERAL()!.getText();
-      const value = parseInt(binText.replace(/0[bB]/, ""), 2);
-      return `0x${value.toString(16).toUpperCase()}`;
+      // Check if minus token exists (first child would be '-')
+      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
+      const value = BigInt(binText); // BigInt handles 0b prefix natively
+      const hexStr = (hasNeg ? -value : value).toString(16).toUpperCase();
+      // Add ULL suffix for values that exceed 32-bit range
+      const needsULL = value > 0xffffffffn;
+      return `${hasNeg ? "-" : ""}0x${hexStr}${needsULL ? "ULL" : ""}`;
     }
 
     if (ctx.CHAR_LITERAL()) {
