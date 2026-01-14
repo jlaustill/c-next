@@ -237,10 +237,10 @@ void main(void) {
     MethodContexts_computePublicSum();
     MethodContexts_publicValueBelowMax();
     MethodContexts_computePublicWithOffset();
-    MethodContexts_setPrivateValue(42);
-    MethodContexts_setPublicValue(84);
-    MethodContexts_setPrivateFlag(true);
-    MethodContexts_setPublicFlag(false);
+    MethodContexts_setPrivateValue(&(uint8_t){42});
+    MethodContexts_setPublicValue(&(uint8_t){84});
+    MethodContexts_setPrivateFlag(&(bool){true});
+    MethodContexts_setPublicFlag(&(bool){false});
     MethodContexts_incrementPublicClamp();
     MethodContexts_incrementPublicWrap();
     MethodContexts_modifyAllPrivate();

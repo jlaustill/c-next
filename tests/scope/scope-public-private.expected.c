@@ -71,9 +71,9 @@ void main(void) {
     Visibility_getPrivateCounterViaInternal();
     Visibility_getPublicCounter();
     Visibility_publicCounter = 20;
-    Visibility_setPublicCounter(30);
+    Visibility_setPublicCounter(&(uint8_t){30});
     Visibility_incrementPrivate();
-    Visibility_setPrivateFlag(true);
+    Visibility_setPrivateFlag(&(bool){true});
     Visibility_getSum();
     Visibility_getBothFlags();
 }

@@ -229,8 +229,8 @@ void CriticalTest_lockedEnqueue(uint8_t* data) {
 }
 
 void main(void) {
-    CriticalTest_enqueue(42);
-    CriticalTest_enqueue(84);
+    CriticalTest_enqueue(&(uint8_t){42});
+    CriticalTest_enqueue(&(uint8_t){84});
     CriticalTest_dequeue();
     CriticalTest_updateGlobalIndex();
     CriticalTest_transferToGlobal();
@@ -240,7 +240,7 @@ void main(void) {
     CriticalTest_unlock();
     CriticalTest_resetAll();
     CriticalTest_isInSync();
-    CriticalTest_safeEnqueue(10);
+    CriticalTest_safeEnqueue(&(uint8_t){10});
     CriticalTest_safeDequeue();
-    CriticalTest_lockedEnqueue(20);
+    CriticalTest_lockedEnqueue(&(uint8_t){20});
 }
