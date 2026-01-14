@@ -3927,11 +3927,6 @@ export default class CodeGenerator {
       return "{0}";
     }
 
-    // Check for generic types (like RingBuffer<u8, 256>)
-    if (typeCtx.genericType()) {
-      return "{0}";
-    }
-
     // Primitive types
     if (typeCtx.primitiveType()) {
       const primType = typeCtx.primitiveType()!.getText();
@@ -8057,9 +8052,6 @@ export default class CodeGenerator {
     if (ctx.primitiveType()) {
       return ctx.primitiveType()!.getText();
     }
-    if (ctx.genericType()) {
-      return ctx.genericType()!.IDENTIFIER().getText();
-    }
     return ctx.getText();
   }
 
@@ -8110,10 +8102,6 @@ export default class CodeGenerator {
         baseType = arrCtx.userType()!.getText();
       }
       return baseType;
-    }
-    if (ctx.genericType()) {
-      // Generics need special handling - for now, return the base name
-      return ctx.genericType()!.IDENTIFIER().getText();
     }
     if (ctx.getText() === "void") {
       return "void";

@@ -505,7 +505,6 @@ type
     | qualifiedType                           // ADR-016: Scope.Type from outside scope
     | userType
     | arrayType
-    | genericType
     | 'void'
     ;
 
@@ -541,15 +540,6 @@ stringType
 arrayType
     : primitiveType '[' expression ']'
     | userType '[' expression ']'
-    ;
-
-genericType
-    : IDENTIFIER '<' typeArgument (',' typeArgument)* '>'
-    ;
-
-typeArgument
-    : type
-    | expression    // For numeric type parameters like buffer sizes
     ;
 
 // ----------------------------------------------------------------------------

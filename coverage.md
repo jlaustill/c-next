@@ -59,8 +59,7 @@ This document tracks test coverage for every language construct in every valid c
 30. [C Interoperability](#30-c-interoperability) (includes Volatile)
 31. [ISR Type](#31-isr-type)
 32. [Literals](#32-literals)
-33. [Generic Types](#33-generic-types)
-34. [Expression Contexts](#34-expression-contexts)
+33. [Expression Contexts](#33-expression-contexts)
 
 ---
 
@@ -1553,23 +1552,9 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ---
 
-## 33. Generic Types
+## 33. Expression Contexts
 
-| Feature                | Status | Test File |
-| ---------------------- | ------ | --------- |
-| Type<Arg> declaration  | [ ]    |           |
-| Type<Arg1, Arg2>       | [ ]    |           |
-| Generic function       | [ ]    |           |
-| Generic struct         | [ ]    |           |
-| Numeric type parameter | [ ]    |           |
-
-_Note: Generic types are defined in grammar but implementation status unclear._
-
----
-
-## 34. Expression Contexts
-
-### 34.1 Nested/Complex Expressions
+### 33.1 Nested/Complex Expressions
 
 | Context                            | Status | Test File                                          |
 | ---------------------------------- | ------ | -------------------------------------------------- |
@@ -1607,7 +1592,7 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 **Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in CNext.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
 
-### 34.2 Statement Nesting
+### 33.2 Statement Nesting
 
 | Context              | Status | Test File                            |
 | -------------------- | ------ | ------------------------------------ |
@@ -1676,7 +1661,6 @@ _Last updated: 2026-01-11_
 | Strings              | ~90% (excellent coverage)                             |
 | Modifiers            | ~60% (atomic good, volatile missing)                  |
 | Register Bitfields   | ~10% (sparse)                                         |
-| Generic Types        | ~0% (not tested)                                      |
 | Statement Nesting    | ~30% (basic only)                                     |
 | Postfix Chains       | ~95% (comprehensive 11-file test suite, code gen bug) |
 
