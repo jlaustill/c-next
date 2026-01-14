@@ -1,0 +1,8 @@
+// ADR-013: Error - compound assignment to const i8
+// Tests: cannot use compound multiplication on const i8 variable
+
+const i8 FACTOR <- 10;
+
+void main() {
+    FACTOR *<- 2;  // ERROR: cannot assign to const variable
+}

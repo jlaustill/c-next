@@ -1,0 +1,8 @@
+// ADR-013: Error - compound assignment to const u64
+// Tests: cannot use compound subtraction on const u64 variable
+
+const u64 TOTAL <- 1000000;
+
+void main() {
+    TOTAL -<- 1;  // ERROR: cannot assign to const variable
+}

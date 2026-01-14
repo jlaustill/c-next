@@ -1,0 +1,8 @@
+// ADR-013: Error - compound assignment to const i64
+// Tests: cannot use compound modulo on const i64 variable
+
+const i64 VALUE <- 1000;
+
+void main() {
+    VALUE %<- 7;  // ERROR: cannot assign to const variable
+}

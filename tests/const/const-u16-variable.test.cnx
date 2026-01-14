@@ -1,0 +1,33 @@
+/* test-execution */
+// ADR-013: Const u16 variable
+// Tests: const u16 declaration and read access
+
+const u16 MAX_PORT <- 65535;
+const u16 DEFAULT_PORT <- 8080;
+
+u32 main() {
+    // Test 1: Read const into local variable
+    u16 port <- MAX_PORT;
+    if (port != 65535) return 1;
+
+    // Test 2: Read second const
+    u16 defPort <- DEFAULT_PORT;
+    if (defPort != 8080) return 2;
+
+    // Test 3: Use const in arithmetic
+    u16 result <- MAX_PORT - DEFAULT_PORT;
+    if (result != 57455) return 3;
+
+    // Test 4: Use const in comparison
+    if (DEFAULT_PORT >= MAX_PORT) return 4;
+
+    // Test 5: Use const as array index bound
+    u16 values[3] <- [100, 200, 300];
+    u16 sum <- 0;
+    for (u16 i <- 0; i < 3; i <- i + 1) {
+        sum <- sum + values[i];
+    }
+    if (sum != 600) return 5;
+
+    return 0;
+}

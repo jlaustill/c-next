@@ -1,0 +1,39 @@
+/* test-execution */
+// ADR-013: Const i64 parameter
+// Tests: const i64 parameter read access with negative values
+
+i64 readConstI64(const i64 value) {
+    return value;
+}
+
+i64 absConstI64(const i64 value) {
+    if (value < 0) {
+        return 0 - value;
+    }
+    return value;
+}
+
+u32 main() {
+    // Test 1: Read positive const parameter
+    i64 result <- readConstI64(1000000000);
+    if (result != 1000000000) return 1;
+
+    // Test 2: Read negative const parameter
+    i64 negResult <- readConstI64(-500000000);
+    if (negResult != -500000000) return 2;
+
+    // Test 3: Abs of positive
+    i64 absPos <- absConstI64(123456789);
+    if (absPos != 123456789) return 3;
+
+    // Test 4: Abs of negative
+    i64 absNeg <- absConstI64(-987654321);
+    if (absNeg != 987654321) return 4;
+
+    // Test 5: Pass variable to const parameter
+    i64 myValue <- -2147483648;
+    i64 readBack <- readConstI64(myValue);
+    if (readBack != -2147483648) return 5;
+
+    return 0;
+}

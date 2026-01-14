@@ -1,0 +1,8 @@
+// ADR-013: Error - compound assignment to const f32
+// Tests: cannot use compound addition on const f32 variable
+
+const f32 SCALE <- 1.0;
+
+void main() {
+    SCALE +<- 0.5;  // ERROR: cannot assign to const variable
+}
