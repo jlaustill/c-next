@@ -7386,10 +7386,18 @@ export default class CodeGenerator {
       return id;
     }
     if (ctx.literal()) {
-      const literalText = ctx.literal()!.getText();
+      let literalText = ctx.literal()!.getText();
       // Track boolean literal usage to include stdbool.h
       if (literalText === "true" || literalText === "false") {
         this.needsStdbool = true;
+      }
+      // ADR-024: Transform C-Next float suffixes to standard C syntax
+      // 3.14f32 -> 3.14f (C float)
+      // 3.14f64 -> 3.14 (C double, no suffix needed)
+      if (/[fF]32$/.test(literalText)) {
+        literalText = literalText.replace(/[fF]32$/, "f");
+      } else if (/[fF]64$/.test(literalText)) {
+        literalText = literalText.replace(/[fF]64$/, "");
       }
       return literalText;
     }

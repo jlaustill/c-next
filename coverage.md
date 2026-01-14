@@ -288,7 +288,7 @@ This document tracks test coverage for every language construct in every valid c
 | In arithmetic expression       | [x]    | `floats/float-arithmetic.test.cnx`        |
 | In comparison                  | [x]    | `floats/float-comparison.test.cnx`        |
 | Literal with decimal           | [x]    | `floats/float-literals.test.cnx`          |
-| Literal with f32 suffix        | [ ]    |                                           |
+| Literal with f32 suffix        | [x]    | `floats/float-literal-suffixes.test.cnx`  |
 
 #### f64
 
@@ -306,7 +306,7 @@ This document tracks test coverage for every language construct in every valid c
 | In arithmetic expression       | [x]    | `floats/float-arithmetic.test.cnx`        |
 | In comparison                  | [x]    | `floats/float-comparison.test.cnx`        |
 | Literal with decimal           | [x]    | `floats/float-literals.test.cnx`          |
-| Literal with f64 suffix        | [ ]    |                                           |
+| Literal with f64 suffix        | [x]    | `floats/float-literal-suffixes.test.cnx`  |
 
 ### 1.4 Boolean
 
@@ -1512,12 +1512,12 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 32.2 Float Literals
 
-| Format            | Context       | Status | Test File                        |
-| ----------------- | ------------- | ------ | -------------------------------- |
-| Decimal (3.14)    | Variable init | [x]    | `floats/float-literals.test.cnx` |
-| Scientific (1e-5) | Variable init | [x]    | `floats/float-literals.test.cnx` |
-| With f32 suffix   | [ ]           |        |                                  |
-| With f64 suffix   | [ ]           |        |                                  |
+| Format            | Context       | Status | Test File                                |
+| ----------------- | ------------- | ------ | ---------------------------------------- |
+| Decimal (3.14)    | Variable init | [x]    | `floats/float-literals.test.cnx`         |
+| Scientific (1e-5) | Variable init | [x]    | `floats/float-literals.test.cnx`         |
+| With f32 suffix   | [x]           |        | `floats/float-literal-suffixes.test.cnx` |
+| With f64 suffix   | [x]           |        | `floats/float-literal-suffixes.test.cnx` |
 
 ### 32.3 String Literals
 
