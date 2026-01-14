@@ -8,12 +8,6 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline int16_t cnx_clamp_add_i16(int16_t a, int16_t b) {
-    if (b > 0 && a > INT16_MAX - b) return INT16_MAX;
-    if (b < 0 && a < INT16_MIN - b) return INT16_MIN;
-    return a + b;
-}
-
 static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
     if (a > UINT16_MAX - b) return UINT16_MAX;
     return a + b;
@@ -57,6 +51,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
     return a - b;
 }
 
+/* test-execution */
 // Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
@@ -124,27 +119,38 @@ void ClampTest_resetSensor(void) {
     ClampTest_sensorValue = cnx_clamp_sub_u16(ClampTest_sensorValue, 65000);
 }
 
-void ClampTest_adjustAll(void) {
-    ClampTest_brightness = cnx_clamp_add_u8(ClampTest_brightness, 10);
-    ClampTest_sensorValue = cnx_clamp_add_u16(ClampTest_sensorValue, 100);
-    ClampTest_temperature = cnx_clamp_sub_i8(ClampTest_temperature, 5);
-    ClampTest_altitude = cnx_clamp_add_i16(ClampTest_altitude, 1000);
+void ClampTest_setBrightness(uint8_t* val) {
+    ClampTest_brightness = (*val);
 }
 
-void main(void) {
-    ClampTest_getBrightness();
-    ClampTest_getSensorValue();
-    ClampTest_getCounter();
-    ClampTest_getTemperature();
-    ClampTest_getAltitude();
-    ClampTest_getPosition();
+void ClampTest_setSensorValue(uint16_t* val) {
+    ClampTest_sensorValue = (*val);
+}
+
+uint32_t main(void) {
+    if (ClampTest_getBrightness() != 200) return 1;
+    if (ClampTest_getSensorValue() != 60000) return 2;
+    if (ClampTest_getCounter() != 4000000000) return 3;
+    if (ClampTest_getTemperature() != -100) return 4;
+    if (ClampTest_getAltitude() != 30000) return 5;
+    if (ClampTest_getPosition() != 2000000000) return 6;
     ClampTest_increaseBrightness();
+    if (ClampTest_getBrightness() != 255) return 7;
     ClampTest_increaseSensorValue();
+    if (ClampTest_getSensorValue() != 65535) return 8;
     ClampTest_increaseCounter();
+    if (ClampTest_getCounter() != 4294967295) return 9;
     ClampTest_decreaseTemperature();
+    if (ClampTest_getTemperature() != -128) return 10;
     ClampTest_decreaseAltitude();
+    if (ClampTest_getAltitude() != 25000) return 11;
     ClampTest_decreasePosition();
+    if (ClampTest_getPosition() != 1900000000) return 12;
+    ClampTest_setBrightness(&(uint8_t){100});
     ClampTest_dimBrightness();
+    if (ClampTest_getBrightness() != 0) return 13;
+    ClampTest_setSensorValue(&(uint16_t){1000});
     ClampTest_resetSensor();
-    ClampTest_adjustAll();
+    if (ClampTest_getSensorValue() != 0) return 14;
+    return 0;
 }

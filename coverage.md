@@ -1037,15 +1037,19 @@ This document tracks test coverage for every language construct in every valid c
 | this.member access                   | [x]    |                                         |
 | this.member assignment               | [x]    |                                         |
 | this.member compound assign          | [x]    | `scope/scope-compound-assign.test.cnx`  |
+| this. with all primitive types       | [x]    | `scope/this-all-types.test.cnx`         |
 | global.member access                 | [x]    |                                         |
 | global.member assignment             | [x]    |                                         |
 | global.member compound assign        | [x]    | `scope/global-compound-assign.test.cnx` |
+| global. with all primitive types     | [x]    | `scope/global-all-types.test.cnx`       |
 | Cross-scope access                   | [x]    | `scope/cross-scope-compound.test.cnx`   |
-| private visibility                   | [ ]    |                                         |
-| public visibility                    | [ ]    |                                         |
+| private visibility                   | [x]    | `scope/scope-public-private.test.cnx`   |
+| public visibility                    | [x]    | `scope/scope-public-private.test.cnx`   |
+| clamp modifier in scope              | [x]    | `scope/scope-clamp-modifier.test.cnx`   |
+| wrap modifier in scope               | [x]    | `scope/scope-wrap-modifier.test.cnx`    |
 | Bare identifier in scope **(ERROR)** | [x]    | `scope/bare-identifier-error.test.cnx`  |
 | Bare global access **(ERROR)**       | [x]    | `scope/bare-global-error.test.cnx`      |
-| Nested scopes                        | [ ]    |                                         |
+| Nested scopes **(ERROR)**            | [x]    | `scope/nested-scope-error.test.cnx`     |
 
 ### 13.2 Scoped Types (this.Type)
 

@@ -1,3 +1,4 @@
+/* test-execution */
 // Test: Compound assignment with global.* patterns inside scopes
 // Tests global array access with compound operators
 
@@ -17,7 +18,7 @@ scope Worker {
     }
 }
 
-i32 main() {
+u32 main() {
     values[0] <- 0;
 
     Worker.updateGlobal();

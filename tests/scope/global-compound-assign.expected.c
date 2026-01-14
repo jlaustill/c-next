@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // Test: Compound assignment with global.* patterns inside scopes
 // Tests global array access with compound operators
 int32_t counter = 100;
@@ -22,7 +23,7 @@ void Worker_updateGlobalArray(void) {
     values[0] += 100;
 }
 
-int32_t main(void) {
+uint32_t main(void) {
     values[0] = 0;
     Worker_updateGlobal();
     Worker_updateGlobalArray();

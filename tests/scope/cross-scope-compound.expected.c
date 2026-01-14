@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // Test: Compound assignment with cross-scope access
 // Tests OtherScope.var +<- value pattern
 /* Scope: Counter */
@@ -22,7 +23,7 @@ void Manager_incrementCounterArray(void) {
     Counter_data[0] += 5;
 }
 
-int32_t main(void) {
+uint32_t main(void) {
     Manager_incrementCounter();
     Manager_incrementCounterArray();
     if (Counter_value != 150) {

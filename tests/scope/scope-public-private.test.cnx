@@ -1,3 +1,4 @@
+/* test-execution */
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
 
@@ -41,8 +42,8 @@ scope Visibility {
     }
 
     // Public method that modifies public state
-    public void setPublicCounter(u8 val) {
-        this.publicCounter <- val;
+    public void setPublicCounter(u8 value) {
+        this.publicCounter <- value;
     }
 
     // Public method that modifies private state (encapsulation)
@@ -61,44 +62,64 @@ scope Visibility {
     }
 
     // Public setter for private flag (encapsulation)
-    public void setPrivateFlag(bool val) {
-        this.privateFlag <- val;
+    public void setPrivateFlag(bool value) {
+        this.privateFlag <- value;
     }
 
     // Public setter for public flag
-    public void setPublicFlag(bool val) {
-        this.publicFlag <- val;
+    public void setPublicFlag(bool value) {
+        this.publicFlag <- value;
+    }
+
+    // Public method to set private counter
+    public void setPrivateCounter(u8 value) {
+        this.privateCounter <- value;
     }
 }
 
-void main() {
-    // Access public variables directly - verify they can be read
-    u8 testCounter <- Visibility.publicCounter;
-    bool testFlag <- Visibility.publicFlag;
+u32 main() {
+    // Test 1-2: Read public variables directly
+    if (Visibility.publicCounter != 10) return 1;
+    if (Visibility.publicFlag != true) return 2;
 
-    // Use the values to prevent warnings
-    if (testCounter = 0 && testFlag = false) {
-        // Values accessed successfully
-    }
+    // Test 3-4: Access private variables via public getter methods (encapsulation)
+    if (Visibility.getPrivateCounter() != 0) return 3;
+    if (Visibility.getPrivateCounterViaInternal() != 0) return 4;
 
-    // Access private variables via public methods (encapsulation)
-    Visibility.getPrivateCounter();
-    Visibility.getPrivateCounterViaInternal();
+    // Test 5: Access public variables via public methods
+    if (Visibility.getPublicCounter() != 10) return 5;
 
-    // Access public variables via public methods
-    Visibility.getPublicCounter();
-
-    // Modify public state directly
+    // Test 6: Modify public state directly
     Visibility.publicCounter <- 20;
+    if (Visibility.publicCounter != 20) return 6;
 
-    // Modify public state via public methods
+    // Test 7: Modify public state via public methods
     Visibility.setPublicCounter(30);
+    if (Visibility.getPublicCounter() != 30) return 7;
 
-    // Modify private state via public methods (encapsulation)
+    // Test 8: Modify private state via public methods (encapsulation)
     Visibility.incrementPrivate();
-    Visibility.setPrivateFlag(true);
+    if (Visibility.getPrivateCounter() != 1) return 8;
 
-    // Test combined access
-    Visibility.getSum();
-    Visibility.getBothFlags();
+    // Test 9: Test getSum combines private and public
+    // private = 1, public = 30, sum = 31
+    if (Visibility.getSum() != 31) return 9;
+
+    // Test 10: Set private flag via public method
+    Visibility.setPrivateFlag(true);
+    // private flag is now true, public flag was set to default true
+    // both true -> should return true
+    if (Visibility.getBothFlags() != true) return 10;
+
+    // Test 11: Set public flag via public method
+    Visibility.setPublicFlag(false);
+    // now private=true, public=false -> AND = false
+    if (Visibility.getBothFlags() != false) return 11;
+
+    // Test 12: Set private counter directly via public setter
+    Visibility.setPrivateCounter(100);
+    if (Visibility.getPrivateCounter() != 100) return 12;
+
+    // All 12 validations passed
+    return 0;
 }

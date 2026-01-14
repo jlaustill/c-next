@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-execution */
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
 /* Scope: Visibility */
@@ -38,8 +39,8 @@ uint8_t Visibility_getPublicCounter(void) {
     return Visibility_publicCounter;
 }
 
-void Visibility_setPublicCounter(uint8_t* val) {
-    Visibility_publicCounter = (*val);
+void Visibility_setPublicCounter(uint8_t* value) {
+    Visibility_publicCounter = (*value);
 }
 
 void Visibility_incrementPrivate(void) {
@@ -54,26 +55,36 @@ bool Visibility_getBothFlags(void) {
     return Visibility_privateFlag && Visibility_publicFlag;
 }
 
-void Visibility_setPrivateFlag(bool* val) {
-    Visibility_privateFlag = (*val);
+void Visibility_setPrivateFlag(bool* value) {
+    Visibility_privateFlag = (*value);
 }
 
-void Visibility_setPublicFlag(bool* val) {
-    Visibility_publicFlag = (*val);
+void Visibility_setPublicFlag(bool* value) {
+    Visibility_publicFlag = (*value);
 }
 
-void main(void) {
-    uint8_t testCounter = Visibility_publicCounter;
-    bool testFlag = Visibility_publicFlag;
-    if (testCounter == 0 && testFlag == false) {
-    }
-    Visibility_getPrivateCounter();
-    Visibility_getPrivateCounterViaInternal();
-    Visibility_getPublicCounter();
+void Visibility_setPrivateCounter(uint8_t* value) {
+    Visibility_privateCounter = (*value);
+}
+
+uint32_t main(void) {
+    if (Visibility_publicCounter != 10) return 1;
+    if (Visibility_publicFlag != true) return 2;
+    if (Visibility_getPrivateCounter() != 0) return 3;
+    if (Visibility_getPrivateCounterViaInternal() != 0) return 4;
+    if (Visibility_getPublicCounter() != 10) return 5;
     Visibility_publicCounter = 20;
+    if (Visibility_publicCounter != 20) return 6;
     Visibility_setPublicCounter(&(uint8_t){30});
+    if (Visibility_getPublicCounter() != 30) return 7;
     Visibility_incrementPrivate();
+    if (Visibility_getPrivateCounter() != 1) return 8;
+    if (Visibility_getSum() != 31) return 9;
     Visibility_setPrivateFlag(&(bool){true});
-    Visibility_getSum();
-    Visibility_getBothFlags();
+    if (Visibility_getBothFlags() != true) return 10;
+    Visibility_setPublicFlag(&(bool){false});
+    if (Visibility_getBothFlags() != false) return 11;
+    Visibility_setPrivateCounter(&(uint8_t){100});
+    if (Visibility_getPrivateCounter() != 100) return 12;
+    return 0;
 }
