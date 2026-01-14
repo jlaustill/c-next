@@ -1,7 +1,22 @@
 #!/bin/bash
 # C-Next Release Script
-# Usage: ./scripts/release.sh <version>
-# Example: ./scripts/release.sh 0.1.4
+#
+# Two-phase release process (required for branch protection):
+#
+# Phase 1: ./scripts/release.sh <version>
+#   - Runs tests and linter
+#   - Generates release notes
+#   - Creates release branch with version bump
+#   - Opens PR for review
+#
+# Phase 2: ./scripts/release.sh <version> --finalize
+#   - Run after PR is merged
+#   - Creates tag and GitHub release
+#
+# Example:
+#   ./scripts/release.sh 0.1.4           # Create PR
+#   # ... merge PR ...
+#   ./scripts/release.sh 0.1.4 --finalize # Tag and release
 
 set -e
 
@@ -12,20 +27,42 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Parse arguments
+VERSION=""
+FINALIZE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --finalize)
+            FINALIZE=true
+            shift
+            ;;
+        *)
+            VERSION="$1"
+            shift
+            ;;
+    esac
+done
+
 echo "========================================"
 echo "  C-Next Release Script"
 echo "========================================"
 echo ""
 
 # Check if version argument provided
-if [ -z "$1" ]; then
+if [ -z "$VERSION" ]; then
     echo -e "${RED}Error: Version argument required${NC}"
-    echo "Usage: ./scripts/release.sh <version>"
-    echo "Example: ./scripts/release.sh 0.1.4"
+    echo ""
+    echo "Usage:"
+    echo "  ./scripts/release.sh <version>            # Phase 1: Create PR"
+    echo "  ./scripts/release.sh <version> --finalize # Phase 2: Tag & release"
+    echo ""
+    echo "Example:"
+    echo "  ./scripts/release.sh 0.1.4"
+    echo "  # ... merge PR ..."
+    echo "  ./scripts/release.sh 0.1.4 --finalize"
     exit 1
 fi
-
-VERSION="$1"
 
 # Validate version format (semver without v prefix)
 if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -35,6 +72,103 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 TAG="v$VERSION"
+RELEASE_BRANCH="release/v$VERSION"
+NOTES_FILE="/tmp/release-notes-$VERSION.md"
+
+# ============================================================================
+# PHASE 2: Finalize (tag and release after PR merge)
+# ============================================================================
+if [ "$FINALIZE" = true ]; then
+    echo -e "${BLUE}Phase 2: Finalizing release $TAG${NC}"
+    echo ""
+
+    # Check we're on main branch
+    CURRENT_BRANCH=$(git branch --show-current)
+    if [ "$CURRENT_BRANCH" != "main" ]; then
+        echo -e "${RED}Error: Must be on main branch (currently on '$CURRENT_BRANCH')${NC}"
+        exit 1
+    fi
+
+    # Pull latest
+    echo -e "${YELLOW}Pulling latest changes...${NC}"
+    git pull origin main
+
+    # Verify version was bumped (PR was merged)
+    CURRENT_VERSION=$(grep '"version"' package.json | sed 's/.*"\([0-9.]*\)".*/\1/')
+    if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+        echo -e "${RED}Error: package.json version is $CURRENT_VERSION, expected $VERSION${NC}"
+        echo "Make sure the release PR was merged first."
+        exit 1
+    fi
+
+    # Check if tag already exists
+    if git rev-parse "$TAG" >/dev/null 2>&1; then
+        echo -e "${RED}Error: Tag '$TAG' already exists${NC}"
+        exit 1
+    fi
+
+    # Check for saved release notes
+    if [ ! -f "$NOTES_FILE" ]; then
+        echo -e "${YELLOW}Warning: No saved release notes found at $NOTES_FILE${NC}"
+        echo "You'll need to enter release notes manually."
+        read -p "Continue? (y/N) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 0
+        fi
+        # Create empty notes file for manual entry
+        EDITOR_CMD="${EDITOR:-${VISUAL:-nano}}"
+        echo "# Release $TAG" > "$NOTES_FILE"
+        echo "" >> "$NOTES_FILE"
+        echo "## Changes" >> "$NOTES_FILE"
+        echo "" >> "$NOTES_FILE"
+        $EDITOR_CMD "$NOTES_FILE"
+    fi
+
+    # Show release notes
+    echo ""
+    echo -e "${BLUE}Release notes:${NC}"
+    echo "----------------------------------------"
+    cat "$NOTES_FILE"
+    echo "----------------------------------------"
+    echo ""
+
+    # Confirm
+    read -p "Create tag $TAG and GitHub release? (y/N) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Release cancelled."
+        exit 0
+    fi
+
+    # Create and push tag
+    echo -e "${YELLOW}Creating tag $TAG...${NC}"
+    git tag "$TAG"
+    git push origin "$TAG"
+
+    # Create GitHub release
+    echo -e "${YELLOW}Creating GitHub release...${NC}"
+    gh release create "$TAG" --title "$TAG" --notes-file "$NOTES_FILE"
+
+    # Cleanup
+    rm -f "$NOTES_FILE"
+
+    echo ""
+    echo -e "${GREEN}========================================"
+    echo "  Release $TAG complete!"
+    echo "========================================${NC}"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Check the publish workflow: https://github.com/jlaustill/c-next/actions"
+    echo "  2. Verify npm package: https://www.npmjs.com/package/c-next"
+    exit 0
+fi
+
+# ============================================================================
+# PHASE 1: Create release PR
+# ============================================================================
+echo -e "${BLUE}Phase 1: Creating release PR for $TAG${NC}"
+echo ""
 
 # Check we're on main branch
 CURRENT_BRANCH=$(git branch --show-current)
@@ -56,6 +190,13 @@ if git rev-parse "$TAG" >/dev/null 2>&1; then
     echo -e "${RED}Error: Tag '$TAG' already exists${NC}"
     echo "If you need to recreate it, delete it first:"
     echo "  git tag -d $TAG && git push origin --delete $TAG"
+    exit 1
+fi
+
+# Check if release branch already exists
+if git rev-parse "refs/heads/$RELEASE_BRANCH" >/dev/null 2>&1; then
+    echo -e "${RED}Error: Branch '$RELEASE_BRANCH' already exists locally${NC}"
+    echo "Delete it first: git branch -D $RELEASE_BRANCH"
     exit 1
 fi
 
@@ -168,8 +309,6 @@ for PR_NUM in $MERGED_PRS; do
 done
 
 # Create release notes file
-NOTES_FILE=$(mktemp /tmp/release-notes-XXXXXX.md)
-
 {
     if [ ${#BUG_FIXES[@]} -gt 0 ]; then
         echo "## Bug Fixes"
@@ -245,9 +384,9 @@ cat "$NOTES_FILE"
 echo "----------------------------------------"
 echo ""
 
-# Confirm release
-echo -e "${YELLOW}Ready to release $TAG${NC}"
-read -p "Continue with release? (y/N) " -n 1 -r
+# Confirm release PR
+echo -e "${YELLOW}Ready to create release PR for $TAG${NC}"
+read -p "Continue? (y/N) " -n 1 -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Release cancelled."
@@ -255,8 +394,12 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Update version in package.json
+# Create release branch
 echo ""
+echo -e "${YELLOW}Creating release branch '$RELEASE_BRANCH'...${NC}"
+git checkout -b "$RELEASE_BRANCH"
+
+# Update version in package.json
 echo -e "${YELLOW}Updating package.json version to $VERSION...${NC}"
 sed -i "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$VERSION\"/" package.json
 
@@ -265,28 +408,40 @@ echo -e "${YELLOW}Committing version bump...${NC}"
 git add package.json
 git commit -m "Bump version to $VERSION"
 
-# Create tag
-echo -e "${YELLOW}Creating tag $TAG...${NC}"
-git tag "$TAG"
+# Push branch
+echo -e "${YELLOW}Pushing release branch...${NC}"
+git push -u origin "$RELEASE_BRANCH"
 
-# Push commit and tag
-echo -e "${YELLOW}Pushing to origin...${NC}"
-git push origin main
-git push origin "$TAG"
+# Create PR
+echo -e "${YELLOW}Creating pull request...${NC}"
+PR_BODY="## Release $TAG
 
-# Create GitHub release
-echo ""
-echo -e "${YELLOW}Creating GitHub release...${NC}"
-gh release create "$TAG" --title "$TAG" --notes-file "$NOTES_FILE"
+### Changes
 
-# Cleanup
-rm -f "$NOTES_FILE"
+$(cat "$NOTES_FILE")
+
+---
+
+After merging, run:
+\`\`\`bash
+./scripts/release.sh $VERSION --finalize
+\`\`\`
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+
+gh pr create --title "Release $TAG" --body "$PR_BODY"
+
+# Switch back to main
+git checkout main
 
 echo ""
 echo -e "${GREEN}========================================"
-echo "  Release $TAG complete!"
+echo "  Release PR created!"
 echo "========================================${NC}"
 echo ""
 echo "Next steps:"
-echo "  1. Check the publish workflow: https://github.com/jlaustill/c-next/actions"
-echo "  2. Verify npm package: https://www.npmjs.com/package/c-next"
+echo "  1. Review and merge the PR"
+echo "  2. Run: ./scripts/release.sh $VERSION --finalize"
+echo ""
+echo -e "${YELLOW}Release notes saved to: $NOTES_FILE${NC}"
+echo "(Will be used by --finalize step)"
