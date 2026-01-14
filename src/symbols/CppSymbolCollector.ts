@@ -9,6 +9,7 @@ import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
+import SymbolTable from "./SymbolTable";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
@@ -23,8 +24,11 @@ class CppSymbolCollector {
 
   private currentNamespace: string | undefined;
 
-  constructor(sourceFile: string) {
+  private symbolTable: SymbolTable | null;
+
+  constructor(sourceFile: string, symbolTable?: SymbolTable) {
     this.sourceFile = sourceFile;
+    this.symbolTable = symbolTable ?? null;
   }
 
   /**
@@ -252,6 +256,111 @@ class CppSymbolCollector {
       isExported: true,
       parent: this.currentNamespace,
     });
+
+    // Extract struct/class field information if SymbolTable is available
+    if (this.symbolTable) {
+      const memberSpec = classSpec.memberSpecification?.();
+      if (memberSpec) {
+        this.collectClassMembers(fullName, memberSpec);
+      }
+    }
+  }
+
+  /**
+   * Collect class/struct member fields
+   */
+  private collectClassMembers(className: string, memberSpec: any): void {
+    // Iterate through member declarations
+    for (const memberDecl of memberSpec.memberdeclaration?.() ?? []) {
+      this.collectMemberDeclaration(className, memberDecl);
+    }
+  }
+
+  /**
+   * Collect a single member declaration
+   */
+  private collectMemberDeclaration(className: string, memberDecl: any): void {
+    // Skip function definitions, access specifiers, etc.
+    // We only want data members
+
+    // Get member declaration list
+    const declSpecSeq = memberDecl.declSpecifierSeq?.();
+    if (!declSpecSeq) return;
+
+    const fieldType = this.extractTypeFromDeclSpecSeq(declSpecSeq);
+
+    // Get declarator list
+    const memberDeclList = memberDecl.memberDeclaratorList?.();
+    if (!memberDeclList) return;
+
+    for (const memberDeclarator of memberDeclList.memberDeclarator?.() ?? []) {
+      const declarator = memberDeclarator.declarator?.();
+      if (!declarator) continue;
+
+      const fieldName = this.extractDeclaratorName(declarator);
+      if (!fieldName) continue;
+
+      // Check if this is a function (has parameters) - skip functions
+      if (this.declaratorIsFunction(declarator)) {
+        continue;
+      }
+
+      // Extract array dimensions if any
+      const arrayDimensions = this.extractArrayDimensions(declarator);
+
+      // Add to SymbolTable
+      this.symbolTable!.addStructField(
+        className,
+        fieldName,
+        fieldType,
+        arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      );
+    }
+  }
+
+  /**
+   * Extract array dimensions from a declarator
+   */
+  private extractArrayDimensions(declarator: any): number[] {
+    const dimensions: number[] = [];
+
+    // For C++, we need to check both pointer and no-pointer declarators
+    const ptrDecl = declarator.pointerDeclarator?.();
+    if (ptrDecl) {
+      const noPtr = ptrDecl.noPointerDeclarator?.();
+      if (noPtr) {
+        return this.extractArrayDimensionsFromNoPtr(noPtr);
+      }
+    }
+
+    const noPtr = declarator.noPointerDeclarator?.();
+    if (noPtr) {
+      return this.extractArrayDimensionsFromNoPtr(noPtr);
+    }
+
+    return dimensions;
+  }
+
+  /**
+   * Extract array dimensions from a noPointerDeclarator
+   */
+  private extractArrayDimensionsFromNoPtr(noPtr: any): number[] {
+    const dimensions: number[] = [];
+
+    // Check for array notation: noPointerDeclarator '[' ... ']'
+    const text = noPtr.getText();
+    const arrayMatches = text.match(/\[(\d+)\]/g);
+
+    if (arrayMatches) {
+      for (const match of arrayMatches) {
+        const size = parseInt(match.slice(1, -1), 10);
+        if (!isNaN(size)) {
+          dimensions.push(size);
+        }
+      }
+    }
+
+    return dimensions;
   }
 
   private collectEnumSpecifier(enumSpec: any, line: number): void {

@@ -231,23 +231,57 @@ class Project {
 
   /**
    * Parse a C header and collect symbols
+   * Tries both C and C++ parsers, merging results (Issue #81)
    */
   private parseCHeader(content: string, filePath: string): void {
-    const charStream = CharStream.fromString(content);
-    const lexer = new CLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CParser(tokenStream);
+    let cSymbols: ISymbol[] = [];
+    let cppSymbols: ISymbol[] = [];
 
-    // Suppress error output for header parsing
-    parser.removeErrorListeners();
-
+    // Try C parser first - it populates struct field info in SymbolTable
     try {
+      const charStream = CharStream.fromString(content);
+      const lexer = new CLexer(charStream);
+      const tokenStream = new CommonTokenStream(lexer);
+      const parser = new CParser(tokenStream);
+
+      parser.removeErrorListeners();
+
       const tree = parser.compilationUnit();
       const collector = new CSymbolCollector(filePath, this.symbolTable);
-      const symbols = collector.collect(tree);
-      this.symbolTable.addSymbols(symbols);
+      cSymbols = collector.collect(tree);
     } catch {
-      // Silently ignore parse errors in headers - they may have unsupported constructs
+      // C parser failed
+    }
+
+    // Also try C++ parser for better C++11 support (typed enums, etc.)
+    // C++ parser now also populates struct field info (Issue #81)
+    try {
+      const cppCharStream = CharStream.fromString(content);
+      const cppLexer = new CPP14Lexer(cppCharStream);
+      const cppTokenStream = new CommonTokenStream(cppLexer);
+      const cppParser = new CPP14Parser(cppTokenStream);
+
+      cppParser.removeErrorListeners();
+
+      const cppTree = cppParser.translationUnit();
+      const cppCollector = new CppSymbolCollector(filePath, this.symbolTable);
+      cppSymbols = cppCollector.collect(cppTree);
+    } catch {
+      // C++ parser failed
+    }
+
+    // Merge symbols: use C++ symbols but supplement with C symbols not found by C++
+    // This handles cases where C++11 features break C parser for some symbols
+    // but C parser successfully collected others (with struct field info)
+    const cppSymbolNames = new Set(cppSymbols.map((s) => s.name));
+    const additionalSymbols = cSymbols.filter(
+      (s) => !cppSymbolNames.has(s.name),
+    );
+
+    const allSymbols = [...cppSymbols, ...additionalSymbols];
+
+    if (allSymbols.length > 0) {
+      this.symbolTable.addSymbols(allSymbols);
     }
   }
 
@@ -265,7 +299,7 @@ class Project {
 
     try {
       const tree = parser.translationUnit();
-      const collector = new CppSymbolCollector(filePath);
+      const collector = new CppSymbolCollector(filePath, this.symbolTable);
       const symbols = collector.collect(tree);
       this.symbolTable.addSymbols(symbols);
     } catch {
