@@ -1,0 +1,198 @@
+/* test-execution */
+// ADR-025: Multiple cases execution test
+// Tests: case A || B syntax with result validation
+// Coverage: Section 7 (Control Flow) - multiple cases per block
+
+u32 result;
+
+// Basic multiple case syntax
+void testMultiCase(u32 val) {
+    switch (val) {
+        case 0 || 1 || 2 { result <- 100; }
+        case 10 || 20 { result <- 200; }
+        case 100 { result <- 300; }
+        default { result <- 999; }
+    }
+}
+
+// Multiple cases with hex literals
+void testMultiCaseHex(u8 val) {
+    switch (val) {
+        case 0x00 || 0x01 { result <- 10; }
+        case 0x0A || 0x0B { result <- 20; }
+        case 0xFF { result <- 30; }
+        default { result <- 99; }
+    }
+}
+
+// Multiple cases with binary literals
+void testMultiCaseBinary(u8 val) {
+    switch (val) {
+        case 0b00000000 || 0b00000001 { result <- 40; }
+        case 0b00001010 || 0b00001011 { result <- 50; }
+        case 0b11111111 { result <- 60; }
+        default { result <- 99; }
+    }
+}
+
+// Multiple cases with signed values (positive case labels only)
+void testMultiCaseSigned(i8 val) {
+    switch (val) {
+        case 0 || 1 || 2 { result <- 1; }
+        case 50 || 51 || 52 { result <- 2; }
+        case 126 || 127 { result <- 3; }
+        default { result <- 9; }
+    }
+}
+
+// Many cases combined (5 alternatives)
+void testManyMultiCases(u16 val) {
+    switch (val) {
+        case 1 || 2 || 3 || 4 || 5 { result <- 500; }
+        case 100 || 200 || 300 { result <- 600; }
+        default { result <- 999; }
+    }
+}
+
+u32 main() {
+    // === BASIC MULTI-CASE TESTS (7 validations: codes 1-7) ===
+    u32 val0 <- 0;
+    u32 val1 <- 1;
+    u32 val2 <- 2;
+    u32 val10 <- 10;
+    u32 val20 <- 20;
+    u32 val100 <- 100;
+    u32 val50 <- 50;
+
+    testMultiCase(val0);
+    if (result != 100) return 1;
+
+    testMultiCase(val1);
+    if (result != 100) return 2;
+
+    testMultiCase(val2);
+    if (result != 100) return 3;
+
+    testMultiCase(val10);
+    if (result != 200) return 4;
+
+    testMultiCase(val20);
+    if (result != 200) return 5;
+
+    testMultiCase(val100);
+    if (result != 300) return 6;
+
+    testMultiCase(val50);
+    if (result != 999) return 7;
+
+    // === HEX LITERAL TESTS (5 validations: codes 8-12) ===
+    u8 hex0 <- 0x00;
+    u8 hex1 <- 0x01;
+    u8 hexA <- 0x0A;
+    u8 hexFF <- 0xFF;
+    u8 hexOther <- 0x50;
+
+    testMultiCaseHex(hex0);
+    if (result != 10) return 8;
+
+    testMultiCaseHex(hex1);
+    if (result != 10) return 9;
+
+    testMultiCaseHex(hexA);
+    if (result != 20) return 10;
+
+    testMultiCaseHex(hexFF);
+    if (result != 30) return 11;
+
+    testMultiCaseHex(hexOther);
+    if (result != 99) return 12;
+
+    // === BINARY LITERAL TESTS (5 validations: codes 13-17) ===
+    u8 bin0 <- 0b00000000;
+    u8 bin1 <- 0b00000001;
+    u8 binA <- 0b00001010;
+    u8 binFF <- 0b11111111;
+    u8 binOther <- 0b00100000;
+
+    testMultiCaseBinary(bin0);
+    if (result != 40) return 13;
+
+    testMultiCaseBinary(bin1);
+    if (result != 40) return 14;
+
+    testMultiCaseBinary(binA);
+    if (result != 50) return 15;
+
+    testMultiCaseBinary(binFF);
+    if (result != 60) return 16;
+
+    testMultiCaseBinary(binOther);
+    if (result != 99) return 17;
+
+    // === SIGNED MULTI-CASE TESTS (8 validations: codes 18-25) ===
+    // Note: Using positive case labels; negative values fall to default
+    i8 sZero <- 0;
+    i8 sOne <- 1;
+    i8 sTwo <- 2;
+    i8 sFifty <- 50;
+    i8 sFiftyOne <- 51;
+    i8 sMax1 <- 126;
+    i8 sMax <- 127;
+    i8 sNeg <- -50;
+
+    testMultiCaseSigned(sZero);
+    if (result != 1) return 18;
+
+    testMultiCaseSigned(sOne);
+    if (result != 1) return 19;
+
+    testMultiCaseSigned(sTwo);
+    if (result != 1) return 20;
+
+    testMultiCaseSigned(sFifty);
+    if (result != 2) return 21;
+
+    testMultiCaseSigned(sFiftyOne);
+    if (result != 2) return 22;
+
+    testMultiCaseSigned(sMax1);
+    if (result != 3) return 23;
+
+    testMultiCaseSigned(sMax);
+    if (result != 3) return 24;
+
+    testMultiCaseSigned(sNeg);
+    if (result != 9) return 25;
+
+    // === MANY CASES TESTS (7 validations: codes 26-32) ===
+    u16 m1 <- 1;
+    u16 m3 <- 3;
+    u16 m5 <- 5;
+    u16 m100 <- 100;
+    u16 m200 <- 200;
+    u16 m300 <- 300;
+    u16 mOther <- 999;
+
+    testManyMultiCases(m1);
+    if (result != 500) return 26;
+
+    testManyMultiCases(m3);
+    if (result != 500) return 27;
+
+    testManyMultiCases(m5);
+    if (result != 500) return 28;
+
+    testManyMultiCases(m100);
+    if (result != 600) return 29;
+
+    testManyMultiCases(m200);
+    if (result != 600) return 30;
+
+    testManyMultiCases(m300);
+    if (result != 600) return 31;
+
+    testManyMultiCases(mOther);
+    if (result != 999) return 32;
+
+    return 0;
+}

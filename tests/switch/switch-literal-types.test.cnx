@@ -1,0 +1,187 @@
+/* test-execution */
+// ADR-025: Switch with different literal formats
+// Tests: hex, binary, and char literals in case labels
+// Coverage: Section 7 (Control Flow) - case label literal types
+
+u32 result;
+
+// Hex literal cases
+void testHexCases(u8 val) {
+    switch (val) {
+        case 0x00 { result <- 1; }
+        case 0x0F { result <- 2; }
+        case 0x10 { result <- 3; }
+        case 0x7F { result <- 4; }
+        case 0x80 { result <- 5; }
+        case 0xFF { result <- 6; }
+        default { result <- 99; }
+    }
+}
+
+// Binary literal cases
+void testBinaryCases(u8 val) {
+    switch (val) {
+        case 0b00000000 { result <- 10; }
+        case 0b00000001 { result <- 11; }
+        case 0b00001111 { result <- 12; }
+        case 0b01111111 { result <- 13; }
+        case 0b10000000 { result <- 14; }
+        case 0b11111111 { result <- 15; }
+        default { result <- 99; }
+    }
+}
+
+// Char literal cases
+void testCharCases(u8 val) {
+    switch (val) {
+        case 'A' { result <- 20; }
+        case 'Z' { result <- 21; }
+        case 'a' { result <- 22; }
+        case 'z' { result <- 23; }
+        case '0' { result <- 24; }
+        case '9' { result <- 25; }
+        default { result <- 99; }
+    }
+}
+
+// Mixed literal types in same switch
+void testMixedLiterals(u8 val) {
+    switch (val) {
+        case 0 { result <- 30; }
+        case 0x0A { result <- 31; }
+        case 0b00010100 { result <- 32; }
+        case 'X' { result <- 33; }
+        default { result <- 99; }
+    }
+}
+
+// Large hex values (u16)
+void testLargeHex(u16 val) {
+    switch (val) {
+        case 0x0000 { result <- 40; }
+        case 0x00FF { result <- 41; }
+        case 0x0100 { result <- 42; }
+        case 0x7FFF { result <- 43; }
+        case 0x8000 { result <- 44; }
+        case 0xFFFF { result <- 45; }
+        default { result <- 99; }
+    }
+}
+
+u32 main() {
+    // === HEX CASES TESTS (7 validations: codes 1-7) ===
+    u8 h00 <- 0x00;
+    u8 h0F <- 0x0F;
+    u8 h10 <- 0x10;
+    u8 h7F <- 0x7F;
+    u8 h80 <- 0x80;
+    u8 hFF <- 0xFF;
+    u8 hOther <- 0x50;
+
+    testHexCases(h00);
+    if (result != 1) return 1;
+    testHexCases(h0F);
+    if (result != 2) return 2;
+    testHexCases(h10);
+    if (result != 3) return 3;
+    testHexCases(h7F);
+    if (result != 4) return 4;
+    testHexCases(h80);
+    if (result != 5) return 5;
+    testHexCases(hFF);
+    if (result != 6) return 6;
+    testHexCases(hOther);
+    if (result != 99) return 7;
+
+    // === BINARY CASES TESTS (7 validations: codes 8-14) ===
+    u8 b00 <- 0b00000000;
+    u8 b01 <- 0b00000001;
+    u8 b0F <- 0b00001111;
+    u8 b7F <- 0b01111111;
+    u8 b80 <- 0b10000000;
+    u8 bFF <- 0b11111111;
+    u8 bOther <- 0b00100000;
+
+    testBinaryCases(b00);
+    if (result != 10) return 8;
+    testBinaryCases(b01);
+    if (result != 11) return 9;
+    testBinaryCases(b0F);
+    if (result != 12) return 10;
+    testBinaryCases(b7F);
+    if (result != 13) return 11;
+    testBinaryCases(b80);
+    if (result != 14) return 12;
+    testBinaryCases(bFF);
+    if (result != 15) return 13;
+    testBinaryCases(bOther);
+    if (result != 99) return 14;
+
+    // === CHAR CASES TESTS (7 validations: codes 15-21) ===
+    u8 cA <- 'A';
+    u8 cZ <- 'Z';
+    u8 ca <- 'a';
+    u8 cz <- 'z';
+    u8 c0 <- '0';
+    u8 c9 <- '9';
+    u8 cOther <- 'X';
+
+    testCharCases(cA);
+    if (result != 20) return 15;
+    testCharCases(cZ);
+    if (result != 21) return 16;
+    testCharCases(ca);
+    if (result != 22) return 17;
+    testCharCases(cz);
+    if (result != 23) return 18;
+    testCharCases(c0);
+    if (result != 24) return 19;
+    testCharCases(c9);
+    if (result != 25) return 20;
+    testCharCases(cOther);
+    if (result != 99) return 21;
+
+    // === MIXED LITERAL TESTS (5 validations: codes 22-26) ===
+    u8 m0 <- 0;
+    u8 m10 <- 10;
+    u8 m20 <- 20;
+    u8 mX <- 'X';
+    u8 mOther <- 100;
+
+    testMixedLiterals(m0);
+    if (result != 30) return 22;
+    testMixedLiterals(m10);
+    if (result != 31) return 23;
+    testMixedLiterals(m20);
+    if (result != 32) return 24;
+    testMixedLiterals(mX);
+    if (result != 33) return 25;
+    testMixedLiterals(mOther);
+    if (result != 99) return 26;
+
+    // === LARGE HEX TESTS (7 validations: codes 27-33) ===
+    u16 l0000 <- 0x0000;
+    u16 l00FF <- 0x00FF;
+    u16 l0100 <- 0x0100;
+    u16 l7FFF <- 0x7FFF;
+    u16 l8000 <- 0x8000;
+    u16 lFFFF <- 0xFFFF;
+    u16 lOther <- 0x1234;
+
+    testLargeHex(l0000);
+    if (result != 40) return 27;
+    testLargeHex(l00FF);
+    if (result != 41) return 28;
+    testLargeHex(l0100);
+    if (result != 42) return 29;
+    testLargeHex(l7FFF);
+    if (result != 43) return 30;
+    testLargeHex(l8000);
+    if (result != 44) return 31;
+    testLargeHex(lFFFF);
+    if (result != 45) return 32;
+    testLargeHex(lOther);
+    if (result != 99) return 33;
+
+    return 0;
+}

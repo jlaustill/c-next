@@ -1,0 +1,1 @@
+78:29 error[E0423]: recursive call to 'factorial' is forbidden (MISRA C:2012 Rule 17.2)

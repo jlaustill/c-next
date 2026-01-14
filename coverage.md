@@ -839,22 +839,27 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 7.5 switch Statement
 
-| Variant                         | Status | Test File                                     |
-| ------------------------------- | ------ | --------------------------------------------- |
-| Basic integer switch            | [x]    | `switch/switch-basic.test.cnx`                |
-| Enum exhaustive                 | [x]    | `switch/switch-enum-exhaustive.test.cnx`      |
-| Multiple cases (\|\|)           | [x]    | `switch/switch-multiple-cases.test.cnx`       |
-| Counted default                 | [x]    | `switch/switch-enum-default-counted.test.cnx` |
-| Hex literal cases               | [ ]    |                                               |
-| Char literal cases              | [ ]    |                                               |
-| Nested switch                   | [ ]    |                                               |
-| Switch inside loop              | [ ]    |                                               |
-| Switch inside scope             | [ ]    |                                               |
-| Boolean switch **(ERROR)**      | [x]    | `switch/switch-error-boolean.test.cnx`        |
-| Single case **(ERROR)**         | [x]    | `switch/switch-error-single-case.test.cnx`    |
-| Duplicate case **(ERROR)**      | [x]    | `switch/switch-error-duplicate-case.test.cnx` |
-| Non-exhaustive enum **(ERROR)** | [x]    | `switch/switch-error-non-exhaustive.test.cnx` |
-| Wrong default count **(ERROR)** | [x]    | `switch/switch-error-wrong-count.test.cnx`    |
+| Variant                         | Status | Test File                                         |
+| ------------------------------- | ------ | ------------------------------------------------- |
+| Basic integer switch            | [x]    | `switch/switch-basic.test.cnx`                    |
+| All integer types (u8-i64)      | [x]    | `switch/switch-integer-types.test.cnx`            |
+| Enum exhaustive                 | [x]    | `switch/switch-enum-exhaustive.test.cnx`          |
+| Multiple cases (\|\|)           | [x]    | `switch/switch-multiple-cases.test.cnx`           |
+| Multiple cases execution        | [x]    | `switch/switch-multiple-cases-execution.test.cnx` |
+| Counted default                 | [x]    | `switch/switch-enum-default-counted.test.cnx`     |
+| Hex literal cases               | [x]    | `switch/switch-literal-types.test.cnx`            |
+| Binary literal cases            | [x]    | `switch/switch-literal-types.test.cnx`            |
+| Char literal cases              | [x]    | `switch/switch-literal-types.test.cnx`            |
+| Nested switch                   | [x]    | `switch/switch-nested.test.cnx`                   |
+| Switch inside loop              | [x]    | `switch/switch-in-function.test.cnx`              |
+| Switch with return values       | [x]    | `switch/switch-in-function.test.cnx`              |
+| Recursive function with switch  | [x]    | `switch/switch-in-function.test.cnx`              |
+| Switch inside scope             | [ ]    |                                                   |
+| Boolean switch **(ERROR)**      | [x]    | `switch/switch-error-boolean.test.cnx`            |
+| Single case **(ERROR)**         | [x]    | `switch/switch-error-single-case.test.cnx`        |
+| Duplicate case **(ERROR)**      | [x]    | `switch/switch-error-duplicate-case.test.cnx`     |
+| Non-exhaustive enum **(ERROR)** | [x]    | `switch/switch-error-non-exhaustive.test.cnx`     |
+| Wrong default count **(ERROR)** | [x]    | `switch/switch-error-wrong-count.test.cnx`        |
 
 ### 7.6 return Statement
 
@@ -1600,20 +1605,20 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 ### 34.2 Statement Nesting
 
-| Context              | Status | Test File                       |
-| -------------------- | ------ | ------------------------------- |
-| if inside if         | [ ]    |                                 |
-| if inside while      | [x]    |                                 |
-| if inside for        | [x]    |                                 |
-| while inside if      | [ ]    |                                 |
-| while inside while   | [ ]    |                                 |
-| for inside for       | [x]    | `for-loops/for-nested.test.cnx` |
-| for inside if        | [ ]    |                                 |
-| switch inside if     | [ ]    |                                 |
-| switch inside loop   | [ ]    |                                 |
-| critical inside if   | [ ]    |                                 |
-| critical inside loop | [ ]    |                                 |
-| 3+ levels of nesting | [ ]    |                                 |
+| Context              | Status | Test File                            |
+| -------------------- | ------ | ------------------------------------ |
+| if inside if         | [ ]    |                                      |
+| if inside while      | [x]    |                                      |
+| if inside for        | [x]    |                                      |
+| while inside if      | [ ]    |                                      |
+| while inside while   | [ ]    |                                      |
+| for inside for       | [x]    | `for-loops/for-nested.test.cnx`      |
+| for inside if        | [ ]    |                                      |
+| switch inside if     | [ ]    |                                      |
+| switch inside loop   | [x]    | `switch/switch-in-function.test.cnx` |
+| critical inside if   | [ ]    |                                      |
+| critical inside loop | [ ]    |                                      |
+| 3+ levels of nesting | [ ]    |                                      |
 
 ---
 
@@ -1691,7 +1696,7 @@ _Last updated: 2026-01-11_
 | multi-dim-arrays   | 11      | 1           |
 | postfix-chains     | 11      | 0           |
 | floats             | 10      | 1           |
-| switch             | 9       | 5           |
+| switch             | 14      | 5           |
 | null-check         | 9       | 5           |
 | structs            | 8       | 1           |
 | register           | 8       | 2           |
