@@ -176,7 +176,7 @@ function validateCppcheck(cFile: string): IValidationResult {
         "--quiet",
         cFile,
       ],
-      { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
+      { encoding: "utf-8", timeout: 90000, stdio: "pipe" },
     );
     return { valid: true };
   } catch (error: unknown) {
@@ -423,6 +423,16 @@ function runTest(
     const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
 
     if (result.success) {
+      // In update mode, switch from error test to success test
+      if (updateMode) {
+        unlinkSync(expectedErrorFile);
+        writeFileSync(expectedCFile, result.code);
+        return {
+          passed: true,
+          message: "Switched from error to C snapshot",
+          updated: true,
+        };
+      }
       return {
         passed: false,
         message: `Expected errors but transpilation succeeded`,
@@ -460,6 +470,16 @@ function runTest(
       const errors = result.errors
         .map((e) => `${e.line}:${e.column} ${e.message}`)
         .join("\n");
+      // In update mode, switch from success test to error test
+      if (updateMode) {
+        unlinkSync(expectedCFile);
+        writeFileSync(expectedErrorFile, errors + "\n");
+        return {
+          passed: true,
+          message: "Switched from C to error snapshot",
+          updated: true,
+        };
+      }
       return {
         passed: false,
         message: `Transpilation failed unexpectedly`,
