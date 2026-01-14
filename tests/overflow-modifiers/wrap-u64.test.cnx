@@ -1,0 +1,113 @@
+/* test-execution */
+// Tests: wrap modifier for u64 type (0 to 18446744073709551615)
+// Validates: overflow wraps to 0, underflow wraps to max
+// Issue #19: Add wrap modifier tests for all integer types
+
+u32 main() {
+    // === OVERFLOW WRAPPING (wraps to 0) ===
+
+    // Test 1: Basic overflow - add past max
+    wrap u64 val <- 18446744073709551615;  // U64_MAX
+    val +<- 1;  // Should wrap to 0
+    if (val != 0) return 1;
+
+    // Test 2: Overflow with larger addition
+    wrap u64 val2 <- 18446744073709551610;  // U64_MAX - 5
+    val2 +<- 10;  // Should wrap to 4
+    if (val2 != 4) return 2;
+
+    // Test 3: Large value operations
+    val <- 10000000000000000000;  // 10 quintillion
+    val +<- 10000000000000000000;  // 20 quintillion, wraps
+    // 20000000000000000000 - 18446744073709551616 = 1553255926290448384
+    if (val != 1553255926290448384) return 3;
+
+    // Test 4: Multiple overflows in sequence
+    val <- 18446744073709551615;
+    val +<- 1;  // 0
+    if (val != 0) return 4;
+    val +<- 18446744073709551615;  // U64_MAX
+    if (val != 18446744073709551615) return 5;
+
+    // === UNDERFLOW WRAPPING (wraps to max) ===
+
+    // Test 6: Basic underflow - subtract below zero
+    val <- 0;
+    val -<- 1;  // Should wrap to U64_MAX
+    if (val != 18446744073709551615) return 6;
+
+    // Test 7: Underflow with larger subtraction
+    val <- 5;
+    val -<- 10;  // Should wrap to U64_MAX - 4 = 18446744073709551611
+    if (val != 18446744073709551611) return 7;
+
+    // Test 8: Large underflow
+    val <- 100;
+    val -<- 1000;  // Should wrap to U64_MAX - 899 = 18446744073709550716
+    if (val != 18446744073709550716) return 8;
+
+    // Test 9: Multiple underflows in sequence
+    val <- 5;
+    val -<- 10;  // U64_MAX - 4
+    if (val != 18446744073709551611) return 9;
+    val -<- 18446744073709551611;  // 0
+    if (val != 0) return 10;
+
+    // === NORMAL OPERATIONS (no wrapping needed) ===
+
+    // Test 11: Normal addition within bounds
+    val <- 1000000000000;
+    val +<- 2000000000000;
+    if (val != 3000000000000) return 11;
+
+    // Test 12: Normal subtraction within bounds
+    val <- 5000000000000;
+    val -<- 2000000000000;
+    if (val != 3000000000000) return 12;
+
+    // Test 13: Add to zero
+    val <- 0;
+    val +<- 9999999999999999999;
+    if (val != 9999999999999999999) return 13;
+
+    // Test 14: Subtract to zero exactly
+    val <- 1000000000000;
+    val -<- 1000000000000;
+    if (val != 0) return 14;
+
+    // === BOUNDARY TESTS ===
+
+    // Test 15: Add 1 to U64_MAX - 1 (just under max, no wrap)
+    val <- 18446744073709551614;
+    val +<- 1;
+    if (val != 18446744073709551615) return 15;
+
+    // Test 16: Subtract 1 from 1 (just above min, no wrap)
+    val <- 1;
+    val -<- 1;
+    if (val != 0) return 16;
+
+    // Test 17: Add 0 (no change)
+    val <- 9223372036854775808;  // 2^63
+    val +<- 0;
+    if (val != 9223372036854775808) return 17;
+
+    // Test 18: Subtract 0 (no change)
+    val <- 9223372036854775808;
+    val -<- 0;
+    if (val != 9223372036854775808) return 18;
+
+    // === WRAP-AROUND CYCLES ===
+
+    // Test 19: Full wrap cycle (0 -> max -> 0)
+    val <- 1;
+    val -<- 1;  // 0
+    if (val != 0) return 19;
+    val -<- 1;  // U64_MAX
+    if (val != 18446744073709551615) return 20;
+    val +<- 1;  // 0
+    if (val != 0) return 21;
+
+    // All tests passed
+    return 0;
+}
