@@ -345,8 +345,8 @@ switchCase
 caseLabel
     : qualifiedType      // Enum value: EState.IDLE
     | IDENTIFIER         // Const or enum member
-    | INTEGER_LITERAL
-    | HEX_LITERAL
+    | '-'? INTEGER_LITERAL  // Allow negative integers
+    | '-'? HEX_LITERAL      // Allow negative hex (e.g., -0x80)
     | BINARY_LITERAL
     | CHAR_LITERAL
     ;

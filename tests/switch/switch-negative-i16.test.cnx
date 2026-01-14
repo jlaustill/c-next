@@ -1,0 +1,147 @@
+/* test-execution */
+// Issue #107: Negative Case Labels - i16 Type
+// Tests: negative literals with i16 switch expressions
+
+i32 result;
+
+// Test i16 boundary values
+void testI16Boundaries(i16 val) {
+    switch (val) {
+        case -32768 {
+            result <- 1;   // INT16_MIN
+        }
+        case -32767 {
+            result <- 2;   // INT16_MIN + 1
+        }
+        case -256 {
+            result <- 3;   // Beyond i8 range
+        }
+        case -129 {
+            result <- 4;   // Just beyond i8 min
+        }
+        case -128 {
+            result <- 5;   // i8 min boundary
+        }
+        case -1 {
+            result <- 6;
+        }
+        case 0 {
+            result <- 7;
+        }
+        case 127 {
+            result <- 8;   // i8 max boundary
+        }
+        case 128 {
+            result <- 9;   // Just beyond i8 max
+        }
+        case 32766 {
+            result <- 10;  // INT16_MAX - 1
+        }
+        case 32767 {
+            result <- 11;  // INT16_MAX
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+// Test negative hex with i16 values
+void testI16Hex(i16 val) {
+    switch (val) {
+        case -0x8000 {
+            result <- 20;  // -32768
+        }
+        case -0x100 {
+            result <- 21;  // -256
+        }
+        case -0x80 {
+            result <- 22;  // -128
+        }
+        case -0x01 {
+            result <- 23;  // -1
+        }
+        case 0x00 {
+            result <- 24;  // 0
+        }
+        case 0x7FFF {
+            result <- 25;  // 32767
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+u32 main() {
+    // Test i16 boundaries
+    i16 minVal <- -32768;
+    i16 minPlus1 <- -32767;
+    i16 neg256 <- -256;
+    i16 neg129 <- -129;
+    i16 neg128 <- -128;
+    i16 negOne <- -1;
+    i16 zero <- 0;
+    i16 pos127 <- 127;
+    i16 pos128 <- 128;
+    i16 maxMinus1 <- 32766;
+    i16 maxVal <- 32767;
+    i16 other <- 1000;
+
+    testI16Boundaries(minVal);
+    if (result != 1) return 1;
+
+    testI16Boundaries(minPlus1);
+    if (result != 2) return 2;
+
+    testI16Boundaries(neg256);
+    if (result != 3) return 3;
+
+    testI16Boundaries(neg129);
+    if (result != 4) return 4;
+
+    testI16Boundaries(neg128);
+    if (result != 5) return 5;
+
+    testI16Boundaries(negOne);
+    if (result != 6) return 6;
+
+    testI16Boundaries(zero);
+    if (result != 7) return 7;
+
+    testI16Boundaries(pos127);
+    if (result != 8) return 8;
+
+    testI16Boundaries(pos128);
+    if (result != 9) return 9;
+
+    testI16Boundaries(maxMinus1);
+    if (result != 10) return 10;
+
+    testI16Boundaries(maxVal);
+    if (result != 11) return 11;
+
+    testI16Boundaries(other);
+    if (result != 99) return 12;
+
+    // Test hex literals
+    testI16Hex(minVal);
+    if (result != 20) return 13;
+
+    testI16Hex(neg256);
+    if (result != 21) return 14;
+
+    testI16Hex(neg128);
+    if (result != 22) return 15;
+
+    testI16Hex(negOne);
+    if (result != 23) return 16;
+
+    testI16Hex(zero);
+    if (result != 24) return 17;
+
+    testI16Hex(maxVal);
+    if (result != 25) return 18;
+
+    return 0;
+}

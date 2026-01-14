@@ -1,0 +1,191 @@
+/* test-execution */
+// Issue #107: Negative Case Labels with Multi-Case Syntax
+// Tests: negative literals with || syntax for multiple case labels
+
+i32 result;
+
+// Test multiple negative cases grouped together
+void testNegativeGroup(i8 val) {
+    switch (val) {
+        case -3 || -2 || -1 {
+            result <- 1;   // Small negatives
+        }
+        case -128 || -127 || -126 {
+            result <- 2;   // Min boundary negatives
+        }
+        case 0 {
+            result <- 3;
+        }
+        case 1 || 2 || 3 {
+            result <- 4;   // Small positives
+        }
+        case 125 || 126 || 127 {
+            result <- 5;   // Max boundary positives
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+// Test mixed positive and negative in same case
+void testMixedGroup(i16 val) {
+    switch (val) {
+        case -100 || 100 {
+            result <- 10;  // Opposites
+        }
+        case -1 || 0 || 1 {
+            result <- 11;  // Around zero
+        }
+        case -32768 || 32767 {
+            result <- 12;  // Min and max
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+// Test negative hex in multi-case
+void testNegativeHexGroup(i32 val) {
+    switch (val) {
+        case -0x10 || -0x20 || -0x30 {
+            result <- 20;  // -16, -32, -48
+        }
+        case -0xFF || -0x100 {
+            result <- 21;  // -255, -256
+        }
+        case 0x00 {
+            result <- 22;
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+u32 main() {
+    // Test negative groups
+    i8 neg1 <- -1;
+    i8 neg2 <- -2;
+    i8 neg3 <- -3;
+    i8 neg128 <- -128;
+    i8 neg127 <- -127;
+    i8 neg126 <- -126;
+    i8 zero <- 0;
+    i8 pos1 <- 1;
+    i8 pos2 <- 2;
+    i8 pos3 <- 3;
+    i8 pos125 <- 125;
+    i8 pos126 <- 126;
+    i8 pos127 <- 127;
+    i8 other <- 50;
+
+    testNegativeGroup(neg1);
+    if (result != 1) return 1;
+
+    testNegativeGroup(neg2);
+    if (result != 1) return 2;
+
+    testNegativeGroup(neg3);
+    if (result != 1) return 3;
+
+    testNegativeGroup(neg128);
+    if (result != 2) return 4;
+
+    testNegativeGroup(neg127);
+    if (result != 2) return 5;
+
+    testNegativeGroup(neg126);
+    if (result != 2) return 6;
+
+    testNegativeGroup(zero);
+    if (result != 3) return 7;
+
+    testNegativeGroup(pos1);
+    if (result != 4) return 8;
+
+    testNegativeGroup(pos2);
+    if (result != 4) return 9;
+
+    testNegativeGroup(pos3);
+    if (result != 4) return 10;
+
+    testNegativeGroup(pos125);
+    if (result != 5) return 11;
+
+    testNegativeGroup(pos126);
+    if (result != 5) return 12;
+
+    testNegativeGroup(pos127);
+    if (result != 5) return 13;
+
+    testNegativeGroup(other);
+    if (result != 99) return 14;
+
+    // Test mixed groups
+    i16 neg100 <- -100;
+    i16 pos100 <- 100;
+    i16 negOneI16 <- -1;
+    i16 zeroI16 <- 0;
+    i16 posOneI16 <- 1;
+    i16 minI16 <- -32768;
+    i16 maxI16 <- 32767;
+    i16 otherI16 <- 500;
+
+    testMixedGroup(neg100);
+    if (result != 10) return 15;
+
+    testMixedGroup(pos100);
+    if (result != 10) return 16;
+
+    testMixedGroup(negOneI16);
+    if (result != 11) return 17;
+
+    testMixedGroup(zeroI16);
+    if (result != 11) return 18;
+
+    testMixedGroup(posOneI16);
+    if (result != 11) return 19;
+
+    testMixedGroup(minI16);
+    if (result != 12) return 20;
+
+    testMixedGroup(maxI16);
+    if (result != 12) return 21;
+
+    testMixedGroup(otherI16);
+    if (result != 99) return 22;
+
+    // Test negative hex groups
+    i32 neg16 <- -16;
+    i32 neg32 <- -32;
+    i32 neg48 <- -48;
+    i32 neg255 <- -255;
+    i32 neg256 <- -256;
+    i32 zeroI32 <- 0;
+    i32 otherI32 <- 1000;
+
+    testNegativeHexGroup(neg16);
+    if (result != 20) return 23;
+
+    testNegativeHexGroup(neg32);
+    if (result != 20) return 24;
+
+    testNegativeHexGroup(neg48);
+    if (result != 20) return 25;
+
+    testNegativeHexGroup(neg255);
+    if (result != 21) return 26;
+
+    testNegativeHexGroup(neg256);
+    if (result != 21) return 27;
+
+    testNegativeHexGroup(zeroI32);
+    if (result != 22) return 28;
+
+    testNegativeHexGroup(otherI32);
+    if (result != 99) return 29;
+
+    return 0;
+}

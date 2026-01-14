@@ -1,0 +1,161 @@
+/* test-execution */
+// Issue #107: Negative Case Labels - i64 Type
+// Tests: negative literals with i64 switch expressions
+// Note: Avoids INT64_MIN/MAX due to JS parseInt precision limits in duplicate detection
+
+i32 result;
+
+// Test i64 with various negative values (within JS safe integer range)
+void testI64Values(i64 val) {
+    switch (val) {
+        case -9007199254740991 {
+            result <- 1;   // JS MIN_SAFE_INTEGER
+        }
+        case -1000000000000000 {
+            result <- 2;   // Quadrillion
+        }
+        case -1000000000000 {
+            result <- 3;   // Trillion
+        }
+        case -2147483649 {
+            result <- 4;   // Just beyond i32 min
+        }
+        case -2147483648 {
+            result <- 5;   // i32 min boundary
+        }
+        case -1 {
+            result <- 6;
+        }
+        case 0 {
+            result <- 7;
+        }
+        case 2147483647 {
+            result <- 8;   // i32 max boundary
+        }
+        case 2147483648 {
+            result <- 9;   // Just beyond i32 max
+        }
+        case 1000000000000 {
+            result <- 10;  // Trillion
+        }
+        case 1000000000000000 {
+            result <- 11;  // Quadrillion
+        }
+        case 9007199254740991 {
+            result <- 12;  // JS MAX_SAFE_INTEGER
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+// Test negative hex with i64 values
+// Note: Avoids -0x80000000 due to C's unsigned hex literal interpretation
+void testI64Hex(i64 val) {
+    switch (val) {
+        case -0x100000000 {
+            result <- 20;  // Beyond i32 range (-4294967296)
+        }
+        case -0x7FFFFFFF {
+            result <- 21;  // -2147483647 (i32 max negated)
+        }
+        case -0x1000000 {
+            result <- 22;  // -16777216
+        }
+        case -0xFF {
+            result <- 23;  // -255
+        }
+        case 0x00 {
+            result <- 24;
+        }
+        case 0x100000000 {
+            result <- 25;  // Beyond i32 range
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+u32 main() {
+    // Test i64 values
+    i64 minSafe <- -9007199254740991;
+    i64 negQuad <- -1000000000000000;
+    i64 negTrillion <- -1000000000000;
+    i64 negBeyondI32 <- -2147483649;
+    i64 negI32Min <- -2147483648;
+    i64 negOne <- -1;
+    i64 zero <- 0;
+    i64 posI32Max <- 2147483647;
+    i64 posBeyondI32 <- 2147483648;
+    i64 posTrillion <- 1000000000000;
+    i64 posQuad <- 1000000000000000;
+    i64 maxSafe <- 9007199254740991;
+    i64 other <- 123456789;
+
+    testI64Values(minSafe);
+    if (result != 1) return 1;
+
+    testI64Values(negQuad);
+    if (result != 2) return 2;
+
+    testI64Values(negTrillion);
+    if (result != 3) return 3;
+
+    testI64Values(negBeyondI32);
+    if (result != 4) return 4;
+
+    testI64Values(negI32Min);
+    if (result != 5) return 5;
+
+    testI64Values(negOne);
+    if (result != 6) return 6;
+
+    testI64Values(zero);
+    if (result != 7) return 7;
+
+    testI64Values(posI32Max);
+    if (result != 8) return 8;
+
+    testI64Values(posBeyondI32);
+    if (result != 9) return 9;
+
+    testI64Values(posTrillion);
+    if (result != 10) return 10;
+
+    testI64Values(posQuad);
+    if (result != 11) return 11;
+
+    testI64Values(maxSafe);
+    if (result != 12) return 12;
+
+    testI64Values(other);
+    if (result != 99) return 13;
+
+    // Test hex literals
+    i64 negBeyondU32 <- -4294967296;
+    testI64Hex(negBeyondU32);
+    if (result != 20) return 14;
+
+    i64 negI32Max <- -2147483647;
+    testI64Hex(negI32Max);
+    if (result != 21) return 15;
+
+    i64 neg16M <- -16777216;
+    testI64Hex(neg16M);
+    if (result != 22) return 16;
+
+    i64 neg255 <- -255;
+    testI64Hex(neg255);
+    if (result != 23) return 17;
+
+    testI64Hex(zero);
+    if (result != 24) return 18;
+
+    i64 posBeyondU32 <- 4294967296;
+    testI64Hex(posBeyondU32);
+    if (result != 25) return 19;
+
+    return 0;
+}
