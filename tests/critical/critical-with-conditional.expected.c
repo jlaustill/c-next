@@ -9,9 +9,9 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > UINT32_MAX - a) return UINT32_MAX;
+    return a + (uint32_t)b;
 }
 
 // ADR-050: Critical section with conditional

@@ -9,8 +9,8 @@
 #include <limits.h>
 
 static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
-    if (a > UINT64_MAX - b) return UINT64_MAX;
-    return a + b;
+    if (b > UINT64_MAX - a) return UINT64_MAX;
+    return a + (uint64_t)b;
 }
 
 /* test-execution */

@@ -8,25 +8,25 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline int16_t cnx_clamp_add_i16(int16_t a, int16_t b) {
-    if (b > 0 && a > INT16_MAX - b) return INT16_MAX;
-    if (b < 0 && a < INT16_MIN - b) return INT16_MIN;
-    return a + b;
+static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
 }
 
-static inline int16_t cnx_clamp_mul_i16(int16_t a, int16_t b) {
-    if (a == 0 || b == 0) return 0;
-    if (a > 0 && b > 0 && a > INT16_MAX / b) return INT16_MAX;
-    if (a < 0 && b < 0 && a < INT16_MAX / b) return INT16_MAX;
-    if (a > 0 && b < 0 && b < INT16_MIN / a) return INT16_MIN;
-    if (a < 0 && b > 0 && a < INT16_MIN / b) return INT16_MIN;
-    return a * b;
+static inline int16_t cnx_clamp_mul_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a * b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
 }
 
-static inline int16_t cnx_clamp_sub_i16(int16_t a, int16_t b) {
-    if (b < 0 && a > INT16_MAX + b) return INT16_MAX;
-    if (b > 0 && a < INT16_MIN + b) return INT16_MIN;
-    return a - b;
+static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
 }
 
 /* test-execution */

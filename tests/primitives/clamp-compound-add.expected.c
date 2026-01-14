@@ -8,9 +8,9 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
-    if (a > UINT8_MAX - b) return UINT8_MAX;
-    return a + b;
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > UINT8_MAX - a) return UINT8_MAX;
+    return a + (uint8_t)b;
 }
 
 // ADR-044: Clamp with compound assignment

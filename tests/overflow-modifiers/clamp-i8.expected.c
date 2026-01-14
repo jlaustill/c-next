@@ -8,16 +8,18 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline int8_t cnx_clamp_add_i8(int8_t a, int8_t b) {
-    if (b > 0 && a > INT8_MAX - b) return INT8_MAX;
-    if (b < 0 && a < INT8_MIN - b) return INT8_MIN;
-    return a + b;
+static inline int8_t cnx_clamp_add_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
 }
 
-static inline int8_t cnx_clamp_sub_i8(int8_t a, int8_t b) {
-    if (b < 0 && a > INT8_MAX + b) return INT8_MAX;
-    if (b > 0 && a < INT8_MIN + b) return INT8_MIN;
-    return a - b;
+static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
 }
 
 /* test-execution */
