@@ -29,6 +29,13 @@
 2. Verify transpiled output compiles cleanly with `npm run analyze`
 3. Run tests before considering a task complete
 
+**Test Commands:**
+
+- `npm test` — Run all tests with full output
+- `npm test -- --quiet` or `-q` — Minimal output (errors + summary only, ideal for AI)
+- `npm test -- tests/enum` — Run specific directory
+- `npm test -- tests/enum/my.test.cnx` — Run single test file
+
 ### Test File Patterns
 
 There are **two types of tests** in C-Next:

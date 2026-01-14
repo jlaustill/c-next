@@ -7,6 +7,7 @@ import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "../symbols/SymbolTable";
+import IHeaderOptions from "./types/IHeaderOptions";
 
 /**
  * Maps C-Next types to C types
@@ -26,20 +27,6 @@ const TYPE_MAP: Record<string, string> = {
   void: "void",
   ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
 };
-
-/**
- * Options for header generation
- */
-interface IHeaderOptions {
-  /** Guard prefix (default: derived from filename) */
-  guardPrefix?: string;
-
-  /** Include system headers in the output */
-  includeSystemHeaders?: boolean;
-
-  /** Only generate declarations for exported symbols */
-  exportedOnly?: boolean;
-}
 
 /**
  * Generates C header files from symbol information
@@ -243,23 +230,49 @@ class HeaderGenerator {
 
   /**
    * Generate a function prototype from symbol info
+   * Handles all parameter edge cases per ADR-006, ADR-029, and ADR-040
    */
   private generateFunctionPrototype(sym: ISymbol): string | null {
-    // Use signature if available
-    if (sym.signature) {
-      // Parse signature to extract return type and params
-      // Signature format is typically: "return_type(param1_type, param2_type, ...)"
-      return `${sym.signature};`;
-    }
-
-    // Generate from type info
+    // Map return type from C-Next to C
     const returnType = sym.type ? this.mapType(sym.type) : "void";
 
-    // For C-Next functions, all non-array parameters become pointers
-    // This is a simplified version - full implementation would need param info
-    return `${returnType} ${sym.name}(void);`;
+    // Build parameter list with proper C semantics
+    let params = "void"; // Default for no parameters
+
+    if (sym.parameters && sym.parameters.length > 0) {
+      const translatedParams = sym.parameters.map((p) => {
+        const baseType = this.mapType(p.type);
+        const constMod = p.isConst ? "const " : "";
+
+        // Handle array parameters (pass naturally as pointers per C semantics)
+        if (p.isArray && p.arrayDimensions) {
+          const dims = p.arrayDimensions.map((d) => `[${d}]`).join("");
+          // Special case: string[] becomes char* name[]
+          if (p.type === "string") {
+            return `${constMod}char* ${p.name}${dims}`;
+          }
+          return `${constMod}${baseType} ${p.name}${dims}`;
+        }
+
+        // ADR-040: ISR is already a function pointer typedef, no pointer needed
+        if (p.type === "ISR") {
+          return `${constMod}${baseType} ${p.name}`;
+        }
+
+        // Float types (f32, f64) use standard C pass-by-value semantics
+        if (p.type === "f32" || p.type === "f64") {
+          return `${constMod}${baseType} ${p.name}`;
+        }
+
+        // ADR-006: Pass by reference - non-array, non-float params become pointers
+        // This applies to primitives (u32, i16, etc.) and struct types
+        return `${constMod}${baseType}* ${p.name}`;
+      });
+      params = translatedParams.join(", ");
+    }
+
+    return `${returnType} ${sym.name}(${params});`;
   }
 }
 
 export default HeaderGenerator;
-export type { IHeaderOptions };

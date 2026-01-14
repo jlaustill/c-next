@@ -14,10 +14,8 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
-import {
-  IInitializationError,
-  IDeclarationInfo,
-} from "./types/IInitializationError";
+import IInitializationError from "./types/IInitializationError";
+import IDeclarationInfo from "./types/IDeclarationInfo";
 
 /**
  * Tracks the initialization state of a variable
@@ -358,7 +356,7 @@ class InitializationListener extends CNextListener {
 /**
  * Analyzes C-Next AST for use-before-initialization errors
  */
-export class InitializationAnalyzer {
+class InitializationAnalyzer {
   private errors: IInitializationError[] = [];
 
   private currentScope: IScope | null = null;

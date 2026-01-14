@@ -7,7 +7,7 @@ import { existsSync, statSync, readdirSync } from "fs";
  * Expands file paths and directories into a list of .cnx files to compile.
  * Handles recursive directory scanning and file validation.
  */
-export class InputExpansion {
+class InputExpansion {
   /**
    * Expand inputs (files or directories) to list of .cnx files
    *
@@ -80,7 +80,9 @@ export class InputExpansion {
         }
       }
     } catch (error) {
-      throw new Error(`Failed to scan directory ${dir}: ${error}`);
+      throw new Error(`Failed to scan directory ${dir}: ${error}`, {
+        cause: error,
+      });
     }
 
     return files;
@@ -119,3 +121,5 @@ export class InputExpansion {
     }
   }
 }
+
+export default InputExpansion;

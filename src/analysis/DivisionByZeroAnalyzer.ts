@@ -13,7 +13,7 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
-import { IDivisionByZeroError } from "./types/IDivisionByZeroError";
+import IDivisionByZeroError from "./types/IDivisionByZeroError";
 
 /**
  * First pass: Collect const declarations that are zero
@@ -323,7 +323,7 @@ class DivisionByZeroListener extends CNextListener {
 /**
  * Analyzer that detects division by zero
  */
-export class DivisionByZeroAnalyzer {
+class DivisionByZeroAnalyzer {
   private errors: IDivisionByZeroError[] = [];
 
   /**

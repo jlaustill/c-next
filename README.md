@@ -736,19 +736,41 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-031](docs/decisions/adr-031-inline-functions.md)            | Inline Functions    | Trust compiler; `inline` is just a hint anyway                          |
 | [ADR-033](docs/decisions/adr-033-packed-structs.md)              | Packed Structs      | Use ADR-004 register bindings or explicit serialization                 |
 
-## Development Commands
+## Development
+
+### Setup
+
+```bash
+# Clone and install (IMPORTANT: npm install sets up pre-commit hooks)
+git clone https://github.com/jlaustill/c-next.git
+cd c-next
+npm install  # Installs dependencies and Husky pre-commit hooks
+```
+
+**Pre-commit hooks:** The project uses [Husky](https://typicode.github.io/husky/) to automatically format code (Prettier) and fix linting (ESLint) before every commit. This prevents formatting errors in PRs.
+
+### Commands
 
 ```bash
 npm run antlr      # Regenerate parser from grammar
 npm run typecheck  # Type-check TypeScript (no build required)
-npm test           # Run all tests
+npm test                              # Run all tests
+npm test -- --quiet                   # Minimal output (errors + summary only)
+npm test -- tests/enum                # Run specific directory
+npm test -- tests/enum/my.test.cnx    # Run single test file
+
+# Code quality (auto-run by pre-commit hooks)
+npm run prettier:fix   # Format all code
+npm run eslint:check   # Check for lint errors
 ```
 
 **Note:** C-Next runs directly via `tsx` without a build step. The `typecheck` command validates types only and does not generate any output files.
 
 ## Contributing
 
-Ideas and feedback welcome via issues.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete development workflow, testing requirements, and PR process.
+
+**Quick start:** Ideas and feedback welcome via issues.
 
 ## License
 

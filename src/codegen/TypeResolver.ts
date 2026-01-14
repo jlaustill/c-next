@@ -4,14 +4,12 @@
  */
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenerator from "./CodeGenerator";
-import {
-  INTEGER_TYPES,
-  FLOAT_TYPES,
-  SIGNED_TYPES,
-  UNSIGNED_TYPES,
-  TYPE_WIDTH,
-  TYPE_RANGES,
-} from "./types/TTypeConstants";
+import INTEGER_TYPES from "./types/INTEGER_TYPES";
+import FLOAT_TYPES from "./types/FLOAT_TYPES";
+import SIGNED_TYPES from "./types/SIGNED_TYPES";
+import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
+import TYPE_WIDTH from "./types/TYPE_WIDTH";
+import TYPE_RANGES from "./types/TYPE_RANGES";
 
 class TypeResolver {
   private codeGen: CodeGenerator;

@@ -20,9 +20,11 @@
  * - ARM tests (using LDREX/STREX/PRIMASK) auto-skip execution
  *
  * Usage:
- *   npm test                    # Run all tests with full validation
- *   npm test -- --update        # Update snapshots
- *   npm test -- tests/enum      # Run specific directory
+ *   npm test                              # Run all tests with full validation
+ *   npm test -- --update                  # Update snapshots
+ *   npm test -- --quiet                   # Minimal output (errors + summary only)
+ *   npm test -- tests/enum                # Run specific directory
+ *   npm test -- tests/enum/my.test.cnx    # Run single test file
  */
 
 import {
@@ -38,7 +40,7 @@ import { fileURLToPath } from "url";
 import { execFileSync } from "child_process";
 import { tmpdir } from "os";
 import { randomBytes } from "crypto";
-import { transpile } from "../src/lib/transpiler";
+import transpile from "../src/lib/transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -551,19 +553,32 @@ function runTest(cnxFile, updateMode, tools) {
 function main() {
   const args = process.argv.slice(2);
   const updateMode = args.includes("--update") || args.includes("-u");
+  const quietMode = args.includes("--quiet") || args.includes("-q");
   const filterPath = args.find((arg) => !arg.startsWith("-"));
 
-  // Determine test directory
-  let testDir = join(rootDir, "tests");
+  // Determine test path (file or directory)
+  let testPath = join(rootDir, "tests");
   if (filterPath) {
-    testDir = filterPath.startsWith("/")
+    testPath = filterPath.startsWith("/")
       ? filterPath
       : join(rootDir, filterPath);
   }
 
-  if (!existsSync(testDir)) {
+  // Check if path exists and determine if it's a file or directory
+  if (!existsSync(testPath)) {
     console.error(
-      `${colors.red}Error: Test directory not found: ${testDir}${colors.reset}`,
+      `${colors.red}Error: Test path not found: ${testPath}${colors.reset}`,
+    );
+    process.exit(1);
+  }
+
+  const pathStat = statSync(testPath);
+  const isSingleFile = pathStat.isFile();
+
+  // Validate single file has correct extension
+  if (isSingleFile && !testPath.endsWith(".test.cnx")) {
+    console.error(
+      `${colors.red}Error: Test file must end with .test.cnx: ${testPath}${colors.reset}`,
     );
     process.exit(1);
   }
@@ -579,26 +594,31 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
-  console.log(`${colors.dim}Test directory: ${testDir}${colors.reset}`);
-  if (updateMode) {
+  if (!quietMode) {
+    console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
     console.log(
-      `${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`,
+      `${colors.dim}Test ${isSingleFile ? "file" : "directory"}: ${testPath}${colors.reset}`,
     );
+    if (updateMode) {
+      console.log(
+        `${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`,
+      );
+    }
+
+    // Show available validation tools
+    const toolList = [];
+    if (tools.gcc) toolList.push("gcc");
+    if (tools.cppcheck) toolList.push("cppcheck");
+    if (tools.clangTidy) toolList.push("clang-tidy");
+    if (tools.misra) toolList.push("MISRA");
+    console.log(
+      `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
+    );
+    console.log();
   }
 
-  // Show available validation tools
-  const toolList = [];
-  if (tools.gcc) toolList.push("gcc");
-  if (tools.cppcheck) toolList.push("cppcheck");
-  if (tools.clangTidy) toolList.push("clang-tidy");
-  if (tools.misra) toolList.push("MISRA");
-  console.log(
-    `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
-  );
-  console.log();
-
-  const cnxFiles = findCnxFiles(testDir);
+  // Discover test files: single file or recursive directory scan
+  const cnxFiles = isSingleFile ? [testPath] : findCnxFiles(testPath);
 
   if (cnxFiles.length === 0) {
     console.log(`${colors.yellow}No .test.cnx test files found${colors.reset}`);
@@ -616,14 +636,20 @@ function main() {
 
     if (result.passed) {
       if (result.updated) {
-        console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
+        if (!quietMode) {
+          console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
+        }
         updated++;
       } else if (result.skippedExec) {
-        console.log(
-          `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
-        );
+        if (!quietMode) {
+          console.log(
+            `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
+          );
+        }
       } else {
-        console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
+        if (!quietMode) {
+          console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
+        }
       }
       passed++;
     } else {
@@ -661,19 +687,32 @@ function main() {
     }
   }
 
-  console.log();
-  console.log(`${colors.cyan}Results:${colors.reset}`);
-  console.log(`  ${colors.green}Passed:${colors.reset}  ${passed}`);
-  if (failed > 0) {
-    console.log(`  ${colors.red}Failed:${colors.reset}  ${failed}`);
-  }
-  if (updated > 0) {
-    console.log(`  ${colors.yellow}Updated:${colors.reset} ${updated}`);
-  }
-  if (noSnapshot > 0) {
-    console.log(
-      `  ${colors.yellow}Skipped:${colors.reset} ${noSnapshot} (no snapshot)`,
-    );
+  if (quietMode) {
+    // Single-line summary for AI-friendly output
+    if (failed > 0) {
+      console.log(
+        `${passed}/${cnxFiles.length} tests passed, ${colors.red}${failed} failed${colors.reset}`,
+      );
+    } else {
+      console.log(
+        `${colors.green}${cnxFiles.length}/${cnxFiles.length} tests passed${colors.reset}`,
+      );
+    }
+  } else {
+    console.log();
+    console.log(`${colors.cyan}Results:${colors.reset}`);
+    console.log(`  ${colors.green}Passed:${colors.reset}  ${passed}`);
+    if (failed > 0) {
+      console.log(`  ${colors.red}Failed:${colors.reset}  ${failed}`);
+    }
+    if (updated > 0) {
+      console.log(`  ${colors.yellow}Updated:${colors.reset} ${updated}`);
+    }
+    if (noSnapshot > 0) {
+      console.log(
+        `  ${colors.yellow}Skipped:${colors.reset} ${noSnapshot} (no snapshot)`,
+      );
+    }
   }
 
   process.exit(failed > 0 ? 1 : 0);

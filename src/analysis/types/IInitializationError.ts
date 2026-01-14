@@ -3,22 +3,12 @@
  * Used for Rust-style "use before initialization" detection
  */
 
-/**
- * Information about where a variable was declared
- */
-export interface IDeclarationInfo {
-  /** Variable name */
-  name: string;
-  /** Line where variable was declared */
-  line: number;
-  /** Column where variable was declared */
-  column: number;
-}
+import IDeclarationInfo from "./IDeclarationInfo";
 
 /**
  * Error for using a variable before initialization
  */
-export interface IInitializationError {
+interface IInitializationError {
   /** Error code (E0381 matches Rust's error code) */
   code: "E0381";
   /** The variable or field that was used before initialization */
@@ -33,23 +23,6 @@ export interface IInitializationError {
   mayBeUninitialized: boolean;
   /** Human-readable message */
   message: string;
-}
-
-/**
- * Format an initialization error into a Rust-style error message
- */
-export function formatInitializationError(error: IInitializationError): string {
-  const certainty = error.mayBeUninitialized ? "possibly " : "";
-  return `error[${error.code}]: use of ${certainty}uninitialized variable '${error.variable}'
-  --> line ${error.line}:${error.column}
-   |
-${error.declaration.line} |     ${error.declaration.name}
-   |         - variable declared here
-...
-${error.line} |     ${error.variable}
-   |     ^ use of ${certainty}uninitialized '${error.variable}'
-   |
-   = help: consider initializing '${error.variable}'`;
 }
 
 export default IInitializationError;

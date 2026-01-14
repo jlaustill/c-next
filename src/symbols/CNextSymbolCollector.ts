@@ -253,6 +253,24 @@ class CNextSymbolCollector {
     const paramTypes = params.map((p) => p.type()?.getText() ?? "unknown");
     const signature = `${returnType} ${fullName}(${paramTypes.join(", ")})`;
 
+    // Build parameter info for header generation (ADR-030 compliance)
+    const parameters = params.map((p) => {
+      const arrayDims = p.arrayDimension();
+      const dimensions = arrayDims.map((d) => {
+        const text = d.getText();
+        const match = text.match(/\[(\d*)\]/);
+        return match ? match[1] : ""; // "" means unbounded array
+      });
+
+      return {
+        name: p.IDENTIFIER().getText(),
+        type: p.type()?.getText() ?? "unknown",
+        isConst: !!p.constModifier(),
+        isArray: arrayDims.length > 0,
+        arrayDimensions: dimensions.length > 0 ? dimensions : undefined,
+      };
+    });
+
     this.symbols.push({
       name: fullName,
       kind: ESymbolKind.Function,
@@ -263,6 +281,7 @@ class CNextSymbolCollector {
       isExported: true,
       parent,
       signature,
+      parameters,
     });
 
     // Collect function parameters as symbols for hover support

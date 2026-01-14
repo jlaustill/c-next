@@ -5,17 +5,8 @@
 
 import TParameterInfo from "./TParameterInfo";
 import TTypeInfo from "./TTypeInfo";
-import TOverflowBehavior from "./TOverflowBehavior";
 import ITargetCapabilities from "./ITargetCapabilities";
-
-/**
- * Assignment context for overflow behavior tracking
- */
-export interface IAssignmentContext {
-  targetName: string | null;
-  targetType: string | null;
-  overflowBehavior: TOverflowBehavior;
-}
+import IAssignmentContext from "./IAssignmentContext";
 
 /**
  * Code generation context - mutable state passed to all codegen components

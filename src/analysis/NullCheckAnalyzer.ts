@@ -16,9 +16,7 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
-import { INullCheckError } from "./types/INullCheckError";
-
-export { INullCheckError };
+import INullCheckError from "./types/INullCheckError";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -284,7 +282,7 @@ class NullCheckListener extends CNextListener {
 /**
  * Analyzes C-Next AST for NULL safety violations
  */
-export class NullCheckAnalyzer {
+class NullCheckAnalyzer {
   private errors: INullCheckError[] = [];
 
   /** Included headers (for context) */

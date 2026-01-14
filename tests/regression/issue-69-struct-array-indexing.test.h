@@ -18,9 +18,9 @@ typedef struct InputData InputData;
 typedef struct Configuration Configuration;
 
 /* Function prototypes */
-u16 getSpn(Configuration, u32);
-f32 getCoeff(Configuration, u32);
-u32 main();
+uint16_t getSpn(const Configuration* conf, uint32_t* idx);
+float getCoeff(const Configuration* data, uint32_t* pos);
+uint32_t main(void);
 
 #ifdef __cplusplus
 }

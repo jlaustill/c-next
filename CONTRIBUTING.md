@@ -37,6 +37,18 @@ npm test
 
 ### Development Setup
 
+**IMPORTANT: Run `npm install` after cloning to install pre-commit hooks!**
+
+The project uses [Husky](https://typicode.github.io/husky/) to automatically format code before every commit. This prevents prettier/eslint errors from reaching PRs.
+
+**What happens when you run `npm install`:**
+
+- ✅ Pre-commit hooks are installed via Husky
+- ✅ Prettier automatically formats staged files before commit
+- ✅ ESLint automatically fixes staged TypeScript files before commit
+
+**You don't need to manually run `prettier:fix` before commits** - the hook does it for you!
+
 ```bash
 # Create your feature branch
 git checkout -b feature/your-feature-name
@@ -44,11 +56,13 @@ git checkout -b feature/your-feature-name
 # Make changes and test
 npm test
 
-# Check code quality
+# Optional: Manually check code quality (hooks do this automatically)
 npm run prettier:fix
 npm run eslint:check
 npm run typecheck
 ```
+
+**Bypassing hooks:** Don't use `git commit --no-verify` unless absolutely necessary - this skips formatting and will cause CI failures.
 
 ---
 
@@ -180,10 +194,16 @@ See [Testing Workflow](./TESTING-WORKFLOW.md) for comprehensive testing methodol
 # Run all tests
 npm test
 
-# Run specific test category
+# Run all tests with minimal output (errors + summary only)
+npm test -- --quiet    # or: npm test -- -q
+
+# Run specific test directory
 npm test -- tests/postfix-chains/
 
-# Transpile single test file
+# Run single test file
+npm test -- tests/postfix-chains/basic-chaining.test.cnx
+
+# Transpile single test file (without running full test validation)
 cnext tests/my-feature/basic.test.cnx
 
 # Verify output matches expected

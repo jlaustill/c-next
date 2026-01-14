@@ -1,6 +1,6 @@
 {
   "name": "c-next",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "main": "src/index.ts",
   "bin": {
@@ -23,10 +23,10 @@
     "clean": "rm -rf src/parser",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
-    "eslint:check": "eslint src/",
-    "eslint:fix": "eslint src/ --fix",
+    "oxlint:check": "oxlint src/",
+    "oxlint:fix": "oxlint src/ --fix",
     "prepare": "husky",
-    "prepublishOnly": "npm run prettier:check && npm run eslint:check && npm test"
+    "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm test"
   },
   "keywords": [
     "c",
@@ -57,16 +57,11 @@
   ],
   "devDependencies": {
     "@types/node": "^25.0.3",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
     "antlr4ng-cli": "^2.0.0",
-    "eslint": "^8.57.1",
-    "eslint-config-airbnb-typescript": "^18.0.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "lint-staged": "^16.2.7",
+    "oxlint": "^1.39.0",
     "prettier": "^3.7.4",
     "ts-jest": "^29.4.6"
   },
@@ -80,7 +75,7 @@
       "prettier --write --ignore-unknown"
     ],
     "*.ts": [
-      "eslint --fix"
+      "oxlint --fix"
     ]
   }
 }

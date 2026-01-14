@@ -7,7 +7,7 @@
  * - E0903: NULL can only be used in comparison context
  * - E0904: Cannot store C function pointer return in variable
  */
-export interface INullCheckError {
+interface INullCheckError {
   /** Error code (E0901-E0904) */
   code: string;
   /** Name of the function or literal involved */
