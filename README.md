@@ -700,10 +700,11 @@ Decisions are documented in `/docs/decisions/`:
 
 ### Research (v1 Roadmap)
 
-| ADR                                                          | Title                         | Description                             |
-| ------------------------------------------------------------ | ----------------------------- | --------------------------------------- |
-| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention     |
-| [ADR-009](docs/decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks |
+| ADR                                                                  | Title                         | Description                                     |
+| -------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------- |
+| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md)         | Language-Level Bug Prevention | Top 15 embedded bugs and prevention             |
+| [ADR-009](docs/decisions/adr-009-isr-safety.md)                      | ISR Safety                    | Safe interrupts without `unsafe` blocks         |
+| [ADR-052](docs/decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals         | Portable C generation for hex/negative literals |
 
 ### Research (v2 Roadmap)
 
