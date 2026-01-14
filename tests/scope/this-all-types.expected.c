@@ -13,11 +13,11 @@
 uint8_t AllTypesTest_valU8 = 255;
 uint16_t AllTypesTest_valU16 = 65535;
 uint32_t AllTypesTest_valU32 = 4294967295;
-uint64_t AllTypesTest_valU64 = 0;
+uint64_t AllTypesTest_valU64 = 18446744073709551615;
 int8_t AllTypesTest_valI8 = -128;
 int16_t AllTypesTest_valI16 = -32768;
 int32_t AllTypesTest_valI32 = -2147483648;
-int64_t AllTypesTest_valI64 = 0;
+int64_t AllTypesTest_valI64 = -9223372036854775808;
 float AllTypesTest_valF32 = 3.14;
 double AllTypesTest_valF64 = 3.141592653589793;
 bool AllTypesTest_valBool = true;
@@ -74,8 +74,12 @@ void AllTypesTest_setBool(bool* val) {
     AllTypesTest_valBool = (*val);
 }
 
-void AllTypesTest_setF64(double* val) {
-    AllTypesTest_valF64 = (*val);
+void AllTypesTest_setF32(float val) {
+    AllTypesTest_valF32 = val;
+}
+
+void AllTypesTest_setF64(double val) {
+    AllTypesTest_valF64 = val;
 }
 
 int32_t main(void) {
@@ -83,38 +87,48 @@ int32_t main(void) {
         return 1;
     }
     if (AllTypesTest_getU16() != 65535) {
-        return 1;
+        return 2;
     }
     if (AllTypesTest_getU32() != 4294967295) {
-        return 1;
+        return 3;
     }
-    if (AllTypesTest_getU64() != 0) {
-        return 1;
+    if (AllTypesTest_getU64() != 18446744073709551615) {
+        return 4;
     }
     if (AllTypesTest_getI8() != -128) {
-        return 1;
+        return 5;
     }
     if (AllTypesTest_getI16() != -32768) {
-        return 1;
+        return 6;
     }
     if (AllTypesTest_getI32() != -2147483648) {
-        return 1;
+        return 7;
     }
-    if (AllTypesTest_getI64() != 0) {
-        return 1;
+    if (AllTypesTest_getI64() != -9223372036854775808) {
+        return 8;
+    }
+    float testF32 = 99.5;
+    AllTypesTest_setF32(testF32);
+    if (AllTypesTest_getF32() != testF32) {
+        return 9;
+    }
+    double testF64 = 123.456789012345;
+    AllTypesTest_setF64(testF64);
+    if (AllTypesTest_getF64() != testF64) {
+        return 10;
     }
     if (AllTypesTest_getBool() != true) {
-        return 1;
+        return 11;
     }
     uint8_t newU8Value = 100;
     AllTypesTest_setU8(&newU8Value);
     if (AllTypesTest_getU8() != 100) {
-        return 1;
+        return 12;
     }
     bool newBoolValue = false;
     AllTypesTest_setBool(&newBoolValue);
     if (AllTypesTest_getBool() != false) {
-        return 1;
+        return 13;
     }
     return 0;
 }

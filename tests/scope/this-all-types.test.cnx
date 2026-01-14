@@ -7,13 +7,13 @@ scope AllTypesTest {
     u8 valU8 <- 255;
     u16 valU16 <- 65535;
     u32 valU32 <- 4294967295;
-    u64 valU64 <- 0;
+    u64 valU64 <- 18446744073709551615;
 
     // Signed integers
     i8 valI8 <- -128;
     i16 valI16 <- -32768;
     i32 valI32 <- -2147483648;
-    i64 valI64 <- 0;
+    i64 valI64 <- -9223372036854775808;
 
     // Floating point
     f32 valF32 <- 3.14;
@@ -79,6 +79,10 @@ scope AllTypesTest {
         this.valBool <- val;
     }
 
+    public void setF32(f32 val) {
+        this.valF32 <- val;
+    }
+
     public void setF64(f64 val) {
         this.valF64 <- val;
     }
@@ -86,53 +90,68 @@ scope AllTypesTest {
 
 i32 main() {
     // Test all getter methods using this. accessor - verify returned values
+    // Each validation uses a unique error code for debugging
 
     // Unsigned integers
     if (AllTypesTest.getU8() != 255) {
         return 1;
     }
     if (AllTypesTest.getU16() != 65535) {
-        return 1;
+        return 2;
     }
     if (AllTypesTest.getU32() != 4294967295) {
-        return 1;
+        return 3;
     }
-    if (AllTypesTest.getU64() != 0) {
-        return 1;
+    if (AllTypesTest.getU64() != 18446744073709551615) {
+        return 4;
     }
 
     // Signed integers
     if (AllTypesTest.getI8() != -128) {
-        return 1;
+        return 5;
     }
     if (AllTypesTest.getI16() != -32768) {
-        return 1;
+        return 6;
     }
     if (AllTypesTest.getI32() != -2147483648) {
-        return 1;
+        return 7;
     }
-    if (AllTypesTest.getI64() != 0) {
-        return 1;
+    if (AllTypesTest.getI64() != -9223372036854775808) {
+        return 8;
+    }
+
+    // Floating point - test via setter/getter roundtrip to avoid literal comparison issues
+    // Direct comparison of float to double literals has precision issues (see Issue #26)
+    f32 testF32 <- 99.5;
+    AllTypesTest.setF32(testF32);
+    if (AllTypesTest.getF32() != testF32) {
+        return 9;
+    }
+
+    f64 testF64 <- 123.456789012345;
+    AllTypesTest.setF64(testF64);
+    if (AllTypesTest.getF64() != testF64) {
+        return 10;
     }
 
     // Boolean
     if (AllTypesTest.getBool() != true) {
-        return 1;
+        return 11;
     }
 
     // Test setters - modify and verify
     u8 newU8Value <- 100;
     AllTypesTest.setU8(newU8Value);
     if (AllTypesTest.getU8() != 100) {
-        return 1;
+        return 12;
     }
 
     bool newBoolValue <- false;
     AllTypesTest.setBool(newBoolValue);
     if (AllTypesTest.getBool() != false) {
-        return 1;
+        return 13;
     }
 
-    // All tests passed
+    // All tests passed (13 validations total)
     return 0;
 }

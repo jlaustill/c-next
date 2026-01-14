@@ -6,13 +6,13 @@
 u8 globalU8 <- 255;
 u16 globalU16 <- 65535;
 u32 globalU32 <- 4294967295;
-u64 globalU64 <- 0;
+u64 globalU64 <- 18446744073709551615;
 
 // Signed integer globals
 i8 globalI8 <- -128;
 i16 globalI16 <- -32768;
 i32 globalI32 <- -2147483648;
-i64 globalI64 <- 0;
+i64 globalI64 <- -9223372036854775808;
 
 // Floating point globals
 f32 globalF32 <- 3.14;
@@ -79,6 +79,10 @@ scope GlobalAccessTest {
         global.globalBool <- val;
     }
 
+    public void setGlobalF32(f32 val) {
+        global.globalF32 <- val;
+    }
+
     public void setGlobalF64(f64 val) {
         global.globalF64 <- val;
     }
@@ -86,53 +90,68 @@ scope GlobalAccessTest {
 
 i32 main() {
     // Test all getter methods using global. accessor - verify returned values
+    // Each validation uses a unique error code for debugging
 
     // Unsigned integers
     if (GlobalAccessTest.getGlobalU8() != 255) {
         return 1;
     }
     if (GlobalAccessTest.getGlobalU16() != 65535) {
-        return 1;
+        return 2;
     }
     if (GlobalAccessTest.getGlobalU32() != 4294967295) {
-        return 1;
+        return 3;
     }
-    if (GlobalAccessTest.getGlobalU64() != 0) {
-        return 1;
+    if (GlobalAccessTest.getGlobalU64() != 18446744073709551615) {
+        return 4;
     }
 
     // Signed integers
     if (GlobalAccessTest.getGlobalI8() != -128) {
-        return 1;
+        return 5;
     }
     if (GlobalAccessTest.getGlobalI16() != -32768) {
-        return 1;
+        return 6;
     }
     if (GlobalAccessTest.getGlobalI32() != -2147483648) {
-        return 1;
+        return 7;
     }
-    if (GlobalAccessTest.getGlobalI64() != 0) {
-        return 1;
+    if (GlobalAccessTest.getGlobalI64() != -9223372036854775808) {
+        return 8;
+    }
+
+    // Floating point - test via setter/getter roundtrip to avoid literal comparison issues
+    // Direct comparison of float to double literals has precision issues (see Issue #26)
+    f32 testF32 <- 99.5;
+    GlobalAccessTest.setGlobalF32(testF32);
+    if (GlobalAccessTest.getGlobalF32() != testF32) {
+        return 9;
+    }
+
+    f64 testF64 <- 123.456789012345;
+    GlobalAccessTest.setGlobalF64(testF64);
+    if (GlobalAccessTest.getGlobalF64() != testF64) {
+        return 10;
     }
 
     // Boolean
     if (GlobalAccessTest.getGlobalBool() != true) {
-        return 1;
+        return 11;
     }
 
     // Test setters - modify and verify
     u8 newU8Value <- 100;
     GlobalAccessTest.setGlobalU8(newU8Value);
     if (GlobalAccessTest.getGlobalU8() != 100) {
-        return 1;
+        return 12;
     }
 
     bool newBoolValue <- false;
     GlobalAccessTest.setGlobalBool(newBoolValue);
     if (GlobalAccessTest.getGlobalBool() != false) {
-        return 1;
+        return 13;
     }
 
-    // All tests passed
+    // All tests passed (13 validations total)
     return 0;
 }
