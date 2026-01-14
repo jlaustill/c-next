@@ -162,17 +162,33 @@ class Project {
    * Discover all project files
    */
   private discoverFiles(): IDiscoveredFile[] {
+    let files: IDiscoveredFile[] = [];
+
     // If specific files are provided, use those
     if (this.config.files && this.config.files.length > 0) {
-      return FileDiscovery.discoverFiles(this.config.files);
+      files = FileDiscovery.discoverFiles(this.config.files);
     }
 
-    // Otherwise, scan directories
+    // Also scan directories (especially includeDirs for headers)
+    // This ensures headers are discovered even when using explicit .cnx files (Issue #80)
     const allDirs = [...this.config.srcDirs, ...this.config.includeDirs];
-    return FileDiscovery.discover(allDirs, {
-      extensions: this.config.extensions,
-      recursive: true,
-    });
+    if (allDirs.length > 0) {
+      const discoveredFiles = FileDiscovery.discover(allDirs, {
+        // Don't pass extensions - we want ALL supported types (.cnx, .h, .hpp, etc.)
+        // Config extensions are only for limiting explicit files, not header discovery
+        recursive: true,
+      });
+
+      // Merge with explicit files, avoiding duplicates
+      const existingPaths = new Set(files.map((f) => f.path));
+      for (const file of discoveredFiles) {
+        if (!existingPaths.has(file.path)) {
+          files.push(file);
+        }
+      }
+    }
+
+    return files;
   }
 
   /**
