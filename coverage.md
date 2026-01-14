@@ -882,6 +882,34 @@ This document tracks test coverage for every language construct in every valid c
 | Critical in if            | [ ]    |                                               |
 | Return inside **(ERROR)** | [x]    | `critical/return-error.test.cnx`              |
 
+### 7.8 break Statement
+
+| Variant                     | Status | Test File                                       |
+| --------------------------- | ------ | ----------------------------------------------- |
+| break in for loop           | [x]    | `control-flow/break-for-basic.test.cnx`         |
+| break in while loop         | [x]    | `control-flow/break-while.test.cnx`             |
+| break in do-while loop      | [x]    | `control-flow/break-do-while.test.cnx`          |
+| break in nested for         | [x]    | `control-flow/nested-break.test.cnx`            |
+| break in nested while       | [x]    | `control-flow/nested-break.test.cnx`            |
+| break in nested do-while    | [x]    | `control-flow/nested-break.test.cnx`            |
+| break with condition        | [x]    | `control-flow/break-for-comprehensive.test.cnx` |
+| break in 3-level nesting    | [x]    | `control-flow/nested-break.test.cnx`            |
+| mixed loop types with break | [x]    | `control-flow/nested-break.test.cnx`            |
+
+### 7.9 continue Statement
+
+| Variant                     | Status | Test File                                 |
+| --------------------------- | ------ | ----------------------------------------- |
+| continue in for loop        | [x]    | `control-flow/continue-for.test.cnx`      |
+| continue in while loop      | [x]    | `control-flow/continue-while.test.cnx`    |
+| continue in do-while loop   | [x]    | `control-flow/continue-do-while.test.cnx` |
+| continue in nested for      | [x]    | `control-flow/nested-continue.test.cnx`   |
+| continue in nested while    | [x]    | `control-flow/nested-continue.test.cnx`   |
+| continue in nested do-while | [x]    | `control-flow/nested-continue.test.cnx`   |
+| continue with condition     | [x]    | `control-flow/continue-for.test.cnx`      |
+| continue in 3-level nesting | [x]    | `control-flow/nested-continue.test.cnx`   |
+| mixed break/continue        | [x]    | `control-flow/nested-mixed.test.cnx`      |
+
 ---
 
 ## 8. Ternary Operator
@@ -1612,7 +1640,7 @@ _Last updated: 2026-01-11_
 | Arithmetic Operators | ~50% (float ops now tested)                           |
 | Bitwise Operators    | ~20% (only u32 well tested)                           |
 | Logical Operators    | ~80% (short-circuit now tested, chaining gaps remain) |
-| Control Flow         | ~80% (good coverage, some nesting gaps)               |
+| Control Flow         | ~95% (break/continue now fully tested)                |
 | Type Declarations    | ~75% (structs/enums good, bitmaps sparse)             |
 | Functions            | ~85% (solid basic coverage)                           |
 | Arrays               | ~80% (good, some edge cases)                          |
