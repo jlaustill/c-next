@@ -310,10 +310,10 @@ This document tracks test coverage for every language construct in every valid c
 | Global variable with init   | [x]    |                                          |
 | Local variable declaration  | [x]    |                                          |
 | Local variable with init    | [x]    |                                          |
-| Function parameter          | [ ]    |                                          |
-| Function return type        | [ ]    |                                          |
-| Struct member               | [ ]    |                                          |
-| Array element type          | [ ]    |                                          |
+| Function parameter          | [x]    | `primitives/bool-all-contexts.test.cnx`  |
+| Function return type        | [x]    | `primitives/bool-all-contexts.test.cnx`  |
+| Struct member               | [x]    | `primitives/bool-all-contexts.test.cnx`  |
+| Array element type          | [x]    | `primitives/bool-all-contexts.test.cnx`  |
 | In if condition             | [x]    |                                          |
 | In while condition          | [x]    |                                          |
 | In for condition            | [x]    |                                          |
@@ -1570,7 +1570,7 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 - [ ] Float types (f32, f64) - all contexts
 - [ ] Character literals
 - [ ] Type-suffixed literals (42u8, etc.)
-- [ ] Boolean as function parameter/return
+- [x] Boolean as function parameter/return (`primitives/bool-all-contexts.test.cnx`)
 - [ ] Nested control flow combinations
 - [ ] All compound operators on array/struct targets
 
