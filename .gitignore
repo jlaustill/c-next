@@ -98,3 +98,4 @@ fabric.properties
 
 # Temporary C-Next test files
 temp.cnx
+*.ctu-info
