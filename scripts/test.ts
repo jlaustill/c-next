@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * C-Next Integration Test Runner
  *
@@ -20,9 +20,11 @@
  * - ARM tests (using LDREX/STREX/PRIMASK) auto-skip execution
  *
  * Usage:
- *   npm test                              # Run all tests with full validation
+ *   npm test                              # Run all tests with full validation (parallel)
  *   npm test -- --update                  # Update snapshots
  *   npm test -- --quiet                   # Minimal output (errors + summary only)
+ *   npm test -- --jobs 4                  # Run with 4 parallel workers
+ *   npm test -- --jobs 1                  # Run sequentially (no parallelism)
  *   npm test -- tests/enum                # Run specific directory
  *   npm test -- tests/enum/my.test.cnx    # Run single test file
  */
@@ -37,8 +39,8 @@ import {
 } from "fs";
 import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
-import { execFileSync } from "child_process";
-import { tmpdir } from "os";
+import { execFileSync, fork, ChildProcess } from "child_process";
+import { tmpdir, cpus } from "os";
 import { randomBytes } from "crypto";
 import transpile from "../src/lib/transpiler";
 
@@ -56,11 +58,40 @@ const colors = {
   dim: "\x1b[2m",
 };
 
+interface ITools {
+  gcc: boolean;
+  cppcheck: boolean;
+  clangTidy: boolean;
+  misra: boolean;
+}
+
+interface ITestResult {
+  passed: boolean;
+  message?: string;
+  expected?: string;
+  actual?: string;
+  updated?: boolean;
+  skippedExec?: boolean;
+  noSnapshot?: boolean;
+  execError?: string;
+}
+
+interface IValidationResult {
+  valid: boolean;
+  message?: string;
+}
+
+interface IWorkerResult {
+  type: "result" | "ready" | "loaded";
+  cnxFile?: string;
+  result?: ITestResult;
+}
+
 /**
  * Find all .test.cnx files recursively in a directory
  */
-function findCnxFiles(dir) {
-  const files = [];
+function findCnxFiles(dir: string): string[] {
+  const files: string[] = [];
   const entries = readdirSync(dir);
 
   for (const entry of entries) {
@@ -80,7 +111,7 @@ function findCnxFiles(dir) {
 /**
  * Normalize output for comparison (trim trailing whitespace, normalize line endings)
  */
-function normalize(str) {
+function normalize(str: string): string {
   return str
     .split("\n")
     .map((line) => line.trimEnd())
@@ -92,7 +123,7 @@ function normalize(str) {
  * Validate that a C file compiles without errors
  * Uses gcc with -fsyntax-only for fast syntax checking
  */
-function validateCompilation(cFile) {
+function validateCompilation(cFile: string): IValidationResult {
   try {
     // Use gcc to check syntax only (no object file generated)
     // -std=c99 for C99 features, -fsyntax-only for fast check
@@ -112,9 +143,10 @@ function validateCompilation(cFile) {
       { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
     );
     return { valid: true };
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message: string };
     // Extract just the error messages
-    const output = error.stderr || error.stdout || error.message;
+    const output = err.stderr || err.stdout || err.message;
     const errors = output
       .split("\n")
       .filter((line) => line.includes("error:"))
@@ -131,7 +163,7 @@ function validateCompilation(cFile) {
 /**
  * Validate that a C file passes cppcheck static analysis
  */
-function validateCppcheck(cFile) {
+function validateCppcheck(cFile: string): IValidationResult {
   try {
     execFileSync(
       "cppcheck",
@@ -147,8 +179,9 @@ function validateCppcheck(cFile) {
       { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
     );
     return { valid: true };
-  } catch (error) {
-    const output = error.stderr || error.stdout || error.message;
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message: string };
+    const output = err.stderr || err.stdout || err.message;
     const issues = output
       .split("\n")
       .filter((line) => line.trim().length > 0)
@@ -164,7 +197,7 @@ function validateCppcheck(cFile) {
 /**
  * Validate that a C file passes clang-tidy analysis
  */
-function validateClangTidy(cFile) {
+function validateClangTidy(cFile: string): IValidationResult {
   try {
     // Run clang-tidy with safety and readability checks
     execFileSync(
@@ -173,8 +206,9 @@ function validateClangTidy(cFile) {
       { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
     );
     return { valid: true };
-  } catch (error) {
-    const output = error.stderr || error.stdout || error.message;
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message: string };
+    const output = err.stderr || err.stdout || err.message;
     // Filter for actual warnings/errors (not notes)
     const issues = output
       .split("\n")
@@ -196,7 +230,7 @@ function validateClangTidy(cFile) {
  * Validate that a C file passes MISRA C compliance check
  * Uses cppcheck's MISRA addon
  */
-function validateMisra(cFile) {
+function validateMisra(cFile: string): IValidationResult {
   try {
     // Run cppcheck with MISRA addon
     execFileSync(
@@ -212,8 +246,9 @@ function validateMisra(cFile) {
       { encoding: "utf-8", timeout: 60000, stdio: "pipe" },
     );
     return { valid: true };
-  } catch (error) {
-    const output = error.stderr || error.stdout || error.message;
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message: string };
+    const output = err.stderr || err.stdout || err.message;
     const issues = output
       .split("\n")
       .filter((line) => line.includes("misra") || line.includes("MISRA"))
@@ -229,7 +264,7 @@ function validateMisra(cFile) {
 /**
  * Get a unique path for a test executable in the temp directory
  */
-function getExecutablePath(cnxFile) {
+function getExecutablePath(cnxFile: string): string {
   const testName = basename(cnxFile, ".test.cnx");
   const uniqueId = randomBytes(4).toString("hex");
   return join(tmpdir(), `cnx-test-${testName}-${uniqueId}`);
@@ -238,7 +273,7 @@ function getExecutablePath(cnxFile) {
 /**
  * Check if generated C code requires ARM runtime (can't execute on x86)
  */
-function requiresArmRuntime(cCode) {
+function requiresArmRuntime(cCode: string): boolean {
   return (
     cCode.includes("cmsis_gcc.h") ||
     cCode.includes("__LDREX") ||
@@ -252,11 +287,11 @@ function requiresArmRuntime(cCode) {
 
 /**
  * Compile and execute a C file, validating exit code
- * @param {string} cFile - Path to the C file
- * @param {number} expectedExitCode - Expected exit code (default 0)
- * @returns {{valid: boolean, message?: string}}
  */
-function executeTest(cFile, expectedExitCode = 0) {
+function executeTest(
+  cFile: string,
+  expectedExitCode: number = 0,
+): IValidationResult {
   const execPath = getExecutablePath(cFile);
 
   try {
@@ -292,8 +327,9 @@ function executeTest(cFile, expectedExitCode = 0) {
         };
       }
       return { valid: true };
-    } catch (execError) {
-      const actualCode = execError.status || 1;
+    } catch (execError: unknown) {
+      const err = execError as { status?: number };
+      const actualCode = err.status || 1;
 
       if (actualCode === expectedExitCode) {
         return { valid: true };
@@ -304,8 +340,9 @@ function executeTest(cFile, expectedExitCode = 0) {
         message: `Expected exit 0, got ${actualCode}`,
       };
     }
-  } catch (compileError) {
-    const output = compileError.stderr || compileError.message;
+  } catch (compileError: unknown) {
+    const err = compileError as { stderr?: string; message: string };
+    const output = err.stderr || err.message;
     return {
       valid: false,
       message: `Compile failed: ${output.split("\n")[0]}`,
@@ -325,13 +362,20 @@ function executeTest(cFile, expectedExitCode = 0) {
 /**
  * Check if validation tools are available
  */
-function checkValidationTools() {
-  const tools = { gcc: false, cppcheck: false, clangTidy: false, misra: false };
+function checkValidationTools(): ITools {
+  const tools: ITools = {
+    gcc: false,
+    cppcheck: false,
+    clangTidy: false,
+    misra: false,
+  };
 
   try {
     execFileSync("gcc", ["--version"], { encoding: "utf-8", stdio: "pipe" });
     tools.gcc = true;
-  } catch {}
+  } catch {
+    // gcc not available
+  }
 
   try {
     execFileSync("cppcheck", ["--version"], {
@@ -341,7 +385,9 @@ function checkValidationTools() {
     tools.cppcheck = true;
     // MISRA addon requires cppcheck
     tools.misra = true;
-  } catch {}
+  } catch {
+    // cppcheck not available
+  }
 
   try {
     execFileSync("clang-tidy", ["--version"], {
@@ -349,16 +395,22 @@ function checkValidationTools() {
       stdio: "pipe",
     });
     tools.clangTidy = true;
-  } catch {}
+  } catch {
+    // clang-tidy not available
+  }
 
   return tools;
 }
 
 /**
- * Run a single test
+ * Run a single test (sequential mode)
  * Always validates: transpile -> snapshot match -> gcc -> cppcheck -> clang-tidy -> MISRA
  */
-function runTest(cnxFile, updateMode, tools) {
+function runTest(
+  cnxFile: string,
+  updateMode: boolean,
+  tools: ITools,
+): ITestResult {
   const source = readFileSync(cnxFile, "utf-8");
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
@@ -513,7 +565,9 @@ function runTest(cnxFile, updateMode, tools) {
       } finally {
         try {
           unlinkSync(tempCFile);
-        } catch {}
+        } catch {
+          // Ignore cleanup errors
+        }
       }
     }
 
@@ -548,13 +602,286 @@ function runTest(cnxFile, updateMode, tools) {
 }
 
 /**
+ * Print a test result
+ */
+function printResult(
+  relativePath: string,
+  result: ITestResult,
+  quietMode: boolean,
+): void {
+  if (result.passed) {
+    if (result.updated) {
+      if (!quietMode) {
+        console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
+      }
+    } else if (result.skippedExec) {
+      if (!quietMode) {
+        console.log(
+          `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
+        );
+      }
+    } else {
+      if (!quietMode) {
+        console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
+      }
+    }
+  } else {
+    if (result.noSnapshot) {
+      console.log(
+        `${colors.yellow}SKIP${colors.reset}    ${relativePath} (no snapshot)`,
+      );
+    } else {
+      console.log(`${colors.red}FAIL${colors.reset}    ${relativePath}`);
+      console.log(`        ${colors.dim}${result.message}${colors.reset}`);
+      if (result.expected && result.actual) {
+        console.log(`        ${colors.dim}Expected:${colors.reset}`);
+        console.log(
+          `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
+        );
+        console.log(`        ${colors.dim}Actual:${colors.reset}`);
+        console.log(
+          `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+        );
+      } else if (result.actual) {
+        // Just actual (no expected) - for compilation/analysis errors
+        console.log(
+          `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+        );
+      }
+      // Show execution error if present
+      if (result.execError) {
+        console.log(
+          `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Run tests in parallel using child process fork
+ */
+async function runTestsParallel(
+  cnxFiles: string[],
+  updateMode: boolean,
+  quietMode: boolean,
+  tools: ITools,
+  numWorkers: number,
+): Promise<{
+  passed: number;
+  failed: number;
+  updated: number;
+  noSnapshot: number;
+}> {
+  return new Promise((resolve) => {
+    let passed = 0;
+    let failed = 0;
+    let updated = 0;
+    let noSnapshot = 0;
+
+    const pendingTests = [...cnxFiles];
+    const activeWorkers = new Map<ChildProcess, string>();
+    let completedCount = 0;
+
+    // Results are stored and printed in order for consistent output
+    const results = new Map<string, ITestResult>();
+    let nextToPrint = 0;
+
+    const workerPath = join(__dirname, "test-worker.ts");
+
+    function tryPrintResults(): void {
+      // Print results in order as they become available
+      while (
+        nextToPrint < cnxFiles.length &&
+        results.has(cnxFiles[nextToPrint])
+      ) {
+        const cnxFile = cnxFiles[nextToPrint];
+        const result = results.get(cnxFile)!;
+        const relativePath = cnxFile.replace(rootDir + "/", "");
+
+        printResult(relativePath, result, quietMode);
+
+        if (result.passed) {
+          if (result.updated) {
+            updated++;
+          }
+          passed++;
+        } else {
+          if (result.noSnapshot) {
+            noSnapshot++;
+          }
+          failed++;
+        }
+
+        nextToPrint++;
+      }
+    }
+
+    function createWorker(): ChildProcess {
+      // Fork using tsx to run TypeScript worker
+      const worker = fork(workerPath, [], {
+        execArgv: ["--import", "tsx"],
+        stdio: ["pipe", "pipe", "pipe", "ipc"],
+      });
+
+      worker.on("message", (message: IWorkerResult) => {
+        if (message.type === "loaded") {
+          // Worker is loaded, send init message
+          worker.send({ type: "init", rootDir, tools });
+        } else if (message.type === "ready") {
+          // Worker is initialized, assign work
+          assignWork(worker);
+        } else if (
+          message.type === "result" &&
+          message.cnxFile &&
+          message.result
+        ) {
+          // Store result
+          results.set(message.cnxFile, message.result);
+          activeWorkers.delete(worker);
+          completedCount++;
+
+          // Try to print results in order
+          tryPrintResults();
+
+          // Check if done
+          if (completedCount === cnxFiles.length) {
+            // Terminate all workers
+            workers.forEach((w) => w.send({ type: "exit" }));
+            resolve({ passed, failed, updated, noSnapshot });
+          } else {
+            // Assign more work
+            assignWork(worker);
+          }
+        }
+      });
+
+      worker.on("error", (error) => {
+        const cnxFile = activeWorkers.get(worker);
+        if (cnxFile) {
+          results.set(cnxFile, {
+            passed: false,
+            message: `Worker error: ${error.message}`,
+          });
+          completedCount++;
+          tryPrintResults();
+        }
+        activeWorkers.delete(worker);
+
+        // Replace crashed worker if there's more work
+        if (pendingTests.length > 0) {
+          const newWorker = createWorker();
+          workers.push(newWorker);
+        }
+
+        if (completedCount === cnxFiles.length) {
+          workers.forEach((w) => {
+            try {
+              w.send({ type: "exit" });
+            } catch {
+              // Worker may already be terminated
+            }
+          });
+          resolve({ passed, failed, updated, noSnapshot });
+        }
+      });
+
+      worker.on("exit", (code) => {
+        // Handle unexpected exit
+        const cnxFile = activeWorkers.get(worker);
+        if (cnxFile && !results.has(cnxFile)) {
+          results.set(cnxFile, {
+            passed: false,
+            message: `Worker exited unexpectedly with code ${code}`,
+          });
+          completedCount++;
+          tryPrintResults();
+        }
+        activeWorkers.delete(worker);
+
+        if (completedCount === cnxFiles.length) {
+          resolve({ passed, failed, updated, noSnapshot });
+        }
+      });
+
+      return worker;
+    }
+
+    function assignWork(worker: ChildProcess): void {
+      if (pendingTests.length > 0) {
+        const cnxFile = pendingTests.shift()!;
+        activeWorkers.set(worker, cnxFile);
+        worker.send({ type: "test", cnxFile, updateMode });
+      }
+    }
+
+    // Create worker pool
+    const workers: ChildProcess[] = [];
+    const actualWorkers = Math.min(numWorkers, cnxFiles.length);
+    for (let i = 0; i < actualWorkers; i++) {
+      workers.push(createWorker());
+    }
+  });
+}
+
+/**
+ * Run tests sequentially (original behavior)
+ */
+function runTestsSequential(
+  cnxFiles: string[],
+  updateMode: boolean,
+  quietMode: boolean,
+  tools: ITools,
+): { passed: number; failed: number; updated: number; noSnapshot: number } {
+  let passed = 0;
+  let failed = 0;
+  let updated = 0;
+  let noSnapshot = 0;
+
+  for (const cnxFile of cnxFiles) {
+    const relativePath = cnxFile.replace(rootDir + "/", "");
+    const result = runTest(cnxFile, updateMode, tools);
+
+    printResult(relativePath, result, quietMode);
+
+    if (result.passed) {
+      if (result.updated) {
+        updated++;
+      }
+      passed++;
+    } else {
+      if (result.noSnapshot) {
+        noSnapshot++;
+      }
+      failed++;
+    }
+  }
+
+  return { passed, failed, updated, noSnapshot };
+}
+
+/**
  * Main test runner
  */
-function main() {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const updateMode = args.includes("--update") || args.includes("-u");
   const quietMode = args.includes("--quiet") || args.includes("-q");
-  const filterPath = args.find((arg) => !arg.startsWith("-"));
+
+  // Parse --jobs argument
+  let numJobs = cpus().length; // Default to CPU count
+  const jobsIndex = args.findIndex((arg) => arg === "--jobs" || arg === "-j");
+  if (jobsIndex !== -1 && args[jobsIndex + 1]) {
+    const parsed = parseInt(args[jobsIndex + 1], 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      numJobs = parsed;
+    }
+  }
+
+  const filterPath = args.find(
+    (arg) =>
+      !arg.startsWith("-") && (jobsIndex === -1 || arg !== args[jobsIndex + 1]), // Exclude the number after --jobs
+  );
 
   // Determine test path (file or directory)
   let testPath = join(rootDir, "tests");
@@ -606,7 +933,7 @@ function main() {
     }
 
     // Show available validation tools
-    const toolList = [];
+    const toolList: string[] = [];
     if (tools.gcc) toolList.push("gcc");
     if (tools.cppcheck) toolList.push("cppcheck");
     if (tools.clangTidy) toolList.push("clang-tidy");
@@ -614,6 +941,13 @@ function main() {
     console.log(
       `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
     );
+
+    // Show parallelism info
+    if (numJobs > 1) {
+      console.log(`${colors.cyan}Workers: ${numJobs} parallel${colors.reset}`);
+    } else {
+      console.log(`${colors.dim}Mode: sequential${colors.reset}`);
+    }
     console.log();
   }
 
@@ -625,67 +959,27 @@ function main() {
     process.exit(0);
   }
 
-  let passed = 0;
-  let failed = 0;
-  let updated = 0;
-  let noSnapshot = 0;
+  // Run tests (parallel or sequential)
+  let results: {
+    passed: number;
+    failed: number;
+    updated: number;
+    noSnapshot: number;
+  };
 
-  for (const cnxFile of cnxFiles) {
-    const relativePath = cnxFile.replace(rootDir + "/", "");
-    const result = runTest(cnxFile, updateMode, tools);
-
-    if (result.passed) {
-      if (result.updated) {
-        if (!quietMode) {
-          console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
-        }
-        updated++;
-      } else if (result.skippedExec) {
-        if (!quietMode) {
-          console.log(
-            `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
-          );
-        }
-      } else {
-        if (!quietMode) {
-          console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
-        }
-      }
-      passed++;
-    } else {
-      if (result.noSnapshot) {
-        console.log(
-          `${colors.yellow}SKIP${colors.reset}    ${relativePath} (no snapshot)`,
-        );
-        noSnapshot++;
-      } else {
-        console.log(`${colors.red}FAIL${colors.reset}    ${relativePath}`);
-        console.log(`        ${colors.dim}${result.message}${colors.reset}`);
-        if (result.expected && result.actual) {
-          console.log(`        ${colors.dim}Expected:${colors.reset}`);
-          console.log(
-            `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
-          );
-          console.log(`        ${colors.dim}Actual:${colors.reset}`);
-          console.log(
-            `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
-          );
-        } else if (result.actual) {
-          // Just actual (no expected) - for compilation/analysis errors
-          console.log(
-            `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
-          );
-        }
-        // Show execution error if present
-        if (result.execError) {
-          console.log(
-            `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
-          );
-        }
-      }
-      failed++;
-    }
+  if (numJobs > 1 && cnxFiles.length > 1) {
+    results = await runTestsParallel(
+      cnxFiles,
+      updateMode,
+      quietMode,
+      tools,
+      numJobs,
+    );
+  } else {
+    results = runTestsSequential(cnxFiles, updateMode, quietMode, tools);
   }
+
+  const { passed, failed, updated, noSnapshot } = results;
 
   if (quietMode) {
     // Single-line summary for AI-friendly output
@@ -719,3 +1013,5 @@ function main() {
 }
 
 main();
+
+export default main;
