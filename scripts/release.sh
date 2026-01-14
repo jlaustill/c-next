@@ -70,6 +70,11 @@ echo ""
 echo -e "${YELLOW}Pulling latest changes from origin/main...${NC}"
 git pull origin main
 
+# Regenerate parser (in case grammar changed)
+echo ""
+echo -e "${YELLOW}Regenerating parser from grammar...${NC}"
+npm run antlr:all
+
 # Run tests
 echo ""
 echo -e "${YELLOW}Running tests...${NC}"
