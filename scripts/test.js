@@ -20,10 +20,11 @@
  * - ARM tests (using LDREX/STREX/PRIMASK) auto-skip execution
  *
  * Usage:
- *   npm test                    # Run all tests with full validation
- *   npm test -- --update        # Update snapshots
- *   npm test -- --quiet         # Minimal output (errors + summary only)
- *   npm test -- tests/enum      # Run specific directory
+ *   npm test                              # Run all tests with full validation
+ *   npm test -- --update                  # Update snapshots
+ *   npm test -- --quiet                   # Minimal output (errors + summary only)
+ *   npm test -- tests/enum                # Run specific directory
+ *   npm test -- tests/enum/my.test.cnx    # Run single test file
  */
 
 import {
@@ -555,17 +556,29 @@ function main() {
   const quietMode = args.includes("--quiet") || args.includes("-q");
   const filterPath = args.find((arg) => !arg.startsWith("-"));
 
-  // Determine test directory
-  let testDir = join(rootDir, "tests");
+  // Determine test path (file or directory)
+  let testPath = join(rootDir, "tests");
   if (filterPath) {
-    testDir = filterPath.startsWith("/")
+    testPath = filterPath.startsWith("/")
       ? filterPath
       : join(rootDir, filterPath);
   }
 
-  if (!existsSync(testDir)) {
+  // Check if path exists and determine if it's a file or directory
+  if (!existsSync(testPath)) {
     console.error(
-      `${colors.red}Error: Test directory not found: ${testDir}${colors.reset}`,
+      `${colors.red}Error: Test path not found: ${testPath}${colors.reset}`,
+    );
+    process.exit(1);
+  }
+
+  const pathStat = statSync(testPath);
+  const isSingleFile = pathStat.isFile();
+
+  // Validate single file has correct extension
+  if (isSingleFile && !testPath.endsWith(".test.cnx")) {
+    console.error(
+      `${colors.red}Error: Test file must end with .test.cnx: ${testPath}${colors.reset}`,
     );
     process.exit(1);
   }
@@ -583,7 +596,9 @@ function main() {
 
   if (!quietMode) {
     console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
-    console.log(`${colors.dim}Test directory: ${testDir}${colors.reset}`);
+    console.log(
+      `${colors.dim}Test ${isSingleFile ? "file" : "directory"}: ${testPath}${colors.reset}`,
+    );
     if (updateMode) {
       console.log(
         `${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`,
@@ -602,7 +617,8 @@ function main() {
     console.log();
   }
 
-  const cnxFiles = findCnxFiles(testDir);
+  // Discover test files: single file or recursive directory scan
+  const cnxFiles = isSingleFile ? [testPath] : findCnxFiles(testPath);
 
   if (cnxFiles.length === 0) {
     console.log(`${colors.yellow}No .test.cnx test files found${colors.reset}`);
