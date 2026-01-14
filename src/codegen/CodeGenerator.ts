@@ -4801,6 +4801,34 @@ export default class CodeGenerator {
       // Wrap behavior or non-integer: use natural C arithmetic (fall through)
     }
 
+    // ADR-044: Handle compound assignments with overflow behavior for this.member access
+    if (isCompound && targetCtx.thisAccess() && this.context.currentScope) {
+      const memberName = targetCtx.thisAccess()!.IDENTIFIER().getText();
+      const scopedName = `${this.context.currentScope}_${memberName}`;
+      const typeInfo = this.context.typeRegistry.get(scopedName);
+
+      if (
+        typeInfo &&
+        typeInfo.overflowBehavior === "clamp" &&
+        TYPE_WIDTH[typeInfo.baseType] &&
+        !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
+      ) {
+        // Clamp behavior: use helper function (integers only)
+        const opMap: Record<string, string> = {
+          "+=": "add",
+          "-=": "sub",
+          "*=": "mul",
+        };
+        const helperOp = opMap[cOp];
+
+        if (helperOp) {
+          this.markClampOpUsed(helperOp, typeInfo.baseType);
+          return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
+        }
+      }
+      // Wrap behavior or non-integer: use natural C arithmetic (fall through)
+    }
+
     // Check for struct member string array assignment: struct.arr[0] <- "value"
     if (targetCtx.memberAccess()) {
       const structMemberAccessCtx = targetCtx.memberAccess()!;

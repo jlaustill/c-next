@@ -1,0 +1,141 @@
+/* test-execution */
+// Tests: clamp modifier for i16 type (-32768 to 32767)
+// Validates overflow clamps to 32767, underflow clamps to -32768
+// ADR-044: Per-variable overflow semantics
+
+u32 main() {
+    // === OVERFLOW TESTS (clamp to 32767) ===
+
+    // Test 1: Basic overflow - add past max
+    clamp i16 val <- 30000;
+    val +<- 5000;  // 35000, should clamp to 32767
+    if (val != 32767) return 1;
+
+    // Test 2: Overflow from max value
+    val <- 32767;
+    val +<- 1;  // 32768, should clamp to 32767
+    if (val != 32767) return 2;
+
+    // Test 3: Large overflow
+    val <- 20000;
+    val +<- 20000;  // 40000, should clamp to 32767
+    if (val != 32767) return 3;
+
+    // Test 4: Overflow with max addend
+    val <- 1;
+    val +<- 32767;  // 32768, should clamp to 32767
+    if (val != 32767) return 4;
+
+    // Test 5: Multiple overflows stay clamped
+    val <- 32000;
+    val +<- 1000;  // 33000, clamps to 32767
+    if (val != 32767) return 5;
+    val +<- 1000;  // Still 32767
+    if (val != 32767) return 6;
+
+    // === UNDERFLOW TESTS (clamp to -32768) ===
+
+    // Test 7: Basic underflow - subtract below min
+    val <- -30000;
+    val -<- 5000;  // -35000, should clamp to -32768
+    if (val != -32768) return 7;
+
+    // Test 8: Underflow from min value
+    val <- -32768;
+    val -<- 1;  // -32769, should clamp to -32768
+    if (val != -32768) return 8;
+
+    // Test 9: Large underflow
+    val <- -20000;
+    val -<- 20000;  // -40000, should clamp to -32768
+    if (val != -32768) return 9;
+
+    // Test 10: Multiple underflows stay clamped
+    val <- -32000;
+    val -<- 1000;  // -33000, clamps to -32768
+    if (val != -32768) return 10;
+    val -<- 1000;  // Still -32768
+    if (val != -32768) return 11;
+
+    // === CROSSING ZERO TESTS ===
+
+    // Test 12: Positive to negative (no clamp)
+    val <- 1000;
+    val -<- 5000;  // -4000
+    if (val != -4000) return 12;
+
+    // Test 13: Negative to positive (no clamp)
+    val <- -1000;
+    val +<- 5000;  // 4000
+    if (val != 4000) return 13;
+
+    // Test 14: Positive overflow past max
+    val <- 20000;
+    val +<- 20000;  // 40000 > 32767, clamp
+    if (val != 32767) return 14;
+
+    // Test 15: Negative underflow past min
+    val <- -20000;
+    val -<- 20000;  // -40000 < -32768, clamp
+    if (val != -32768) return 15;
+
+    // === NORMAL OPERATIONS ===
+
+    // Test 16: Normal addition within bounds
+    val <- 10000;
+    val +<- 10000;  // 20000
+    if (val != 20000) return 16;
+
+    // Test 17: Normal subtraction within bounds
+    val <- -10000;
+    val -<- 10000;  // -20000
+    if (val != -20000) return 17;
+
+    // Test 18: Add to zero
+    val <- 0;
+    val +<- 16384;
+    if (val != 16384) return 18;
+
+    // Test 19: Subtract to zero exactly
+    val <- 5000;
+    val -<- 5000;
+    if (val != 0) return 19;
+
+    // === BOUNDARY TESTS ===
+
+    // Test 20: Add 1 to 32766 (just under max)
+    val <- 32766;
+    val +<- 1;
+    if (val != 32767) return 20;
+
+    // Test 21: Subtract 1 from -32767 (just above min)
+    val <- -32767;
+    val -<- 1;
+    if (val != -32768) return 21;
+
+    // Test 22: Add 0 (no change)
+    val <- 16384;
+    val +<- 0;
+    if (val != 16384) return 22;
+
+    // Test 23: Subtract 0 (no change)
+    val <- -16384;
+    val -<- 0;
+    if (val != -16384) return 23;
+
+    // === SEQUENTIAL OPERATIONS ===
+
+    // Test 24: Overflow then underflow
+    val <- 30000;
+    val +<- 5000;  // Clamp to 32767
+    if (val != 32767) return 24;
+    val -<- 32767;  // 32767 - 32767 = 0
+    if (val != 0) return 25;
+    val -<- 32767;  // 0 - 32767 = -32767
+    if (val != -32767) return 26;
+    val -<- 32767;  // -32767 - 32767 = -65534, clamp to -32768
+    if (val != -32768) return 27;
+
+    // All tests passed
+    return 0;
+}

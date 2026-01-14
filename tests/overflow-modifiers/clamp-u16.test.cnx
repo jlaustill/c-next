@@ -1,0 +1,133 @@
+/* test-execution */
+// Tests: clamp modifier for u16 type (0 to 65535)
+// Validates overflow clamps to 65535, underflow clamps to 0
+// ADR-044: Per-variable overflow semantics
+
+u32 main() {
+    // === OVERFLOW TESTS (clamp to 65535) ===
+
+    // Test 1: Basic overflow - add past max
+    clamp u16 val <- 60000;
+    val +<- 10000;  // 70000, should clamp to 65535
+    if (val != 65535) return 1;
+
+    // Test 2: Overflow from max value
+    val <- 65535;
+    val +<- 1;  // 65536, should clamp to 65535
+    if (val != 65535) return 2;
+
+    // Test 3: Large overflow
+    val <- 50000;
+    val +<- 30000;  // 80000, should clamp to 65535
+    if (val != 65535) return 3;
+
+    // Test 4: Overflow with max addend
+    val <- 1;
+    val +<- 65535;  // 65536, should clamp to 65535
+    if (val != 65535) return 4;
+
+    // Test 5: Multiple overflows stay clamped
+    val <- 65000;
+    val +<- 1000;  // 66000, clamps to 65535
+    if (val != 65535) return 5;
+    val +<- 1000;  // Still 65535 (already at max)
+    if (val != 65535) return 6;
+
+    // === UNDERFLOW TESTS (clamp to 0) ===
+
+    // Test 7: Basic underflow - subtract below zero
+    val <- 5000;
+    val -<- 10000;  // -5000, should clamp to 0
+    if (val != 0) return 7;
+
+    // Test 8: Underflow from min value
+    val <- 0;
+    val -<- 1;  // -1, should clamp to 0
+    if (val != 0) return 8;
+
+    // Test 9: Large underflow
+    val <- 1000;
+    val -<- 65535;  // -64535, should clamp to 0
+    if (val != 0) return 9;
+
+    // Test 10: Multiple underflows stay clamped
+    val <- 500;
+    val -<- 1000;  // -500, clamps to 0
+    if (val != 0) return 10;
+    val -<- 1000;  // Still 0 (already at min)
+    if (val != 0) return 11;
+
+    // === NORMAL OPERATIONS (no clamping needed) ===
+
+    // Test 12: Normal addition within bounds
+    val <- 30000;
+    val +<- 20000;  // 50000, no clamping
+    if (val != 50000) return 12;
+
+    // Test 13: Normal subtraction within bounds
+    val <- 40000;
+    val -<- 10000;  // 30000, no clamping
+    if (val != 30000) return 13;
+
+    // Test 14: Add to zero
+    val <- 0;
+    val +<- 32768;
+    if (val != 32768) return 14;
+
+    // Test 15: Subtract to zero exactly
+    val <- 10000;
+    val -<- 10000;  // Exactly 0
+    if (val != 0) return 15;
+
+    // === BOUNDARY TESTS ===
+
+    // Test 16: Add 1 to 65534 (just under max)
+    val <- 65534;
+    val +<- 1;
+    if (val != 65535) return 16;
+
+    // Test 17: Subtract 1 from 1 (just above min)
+    val <- 1;
+    val -<- 1;
+    if (val != 0) return 17;
+
+    // Test 18: Add 0 (no change)
+    val <- 32768;
+    val +<- 0;
+    if (val != 32768) return 18;
+
+    // Test 19: Subtract 0 (no change)
+    val <- 32768;
+    val -<- 0;
+    if (val != 32768) return 19;
+
+    // === SEQUENTIAL OPERATIONS ===
+
+    // Test 20: Overflow then underflow
+    val <- 60000;
+    val +<- 10000;  // Clamp to 65535
+    if (val != 65535) return 20;
+    val -<- 65535;  // 65535 - 65535 = 0
+    if (val != 0) return 21;
+
+    // Test 21: Multiple small additions causing overflow
+    val <- 65530;
+    val +<- 2;  // 65532
+    if (val != 65532) return 22;
+    val +<- 2;  // 65534
+    if (val != 65534) return 23;
+    val +<- 2;  // 65536 -> clamp to 65535
+    if (val != 65535) return 24;
+
+    // Test 22: Multiple small subtractions causing underflow
+    val <- 5;
+    val -<- 2;  // 3
+    if (val != 3) return 25;
+    val -<- 2;  // 1
+    if (val != 1) return 26;
+    val -<- 2;  // -1 -> clamp to 0
+    if (val != 0) return 27;
+
+    // All tests passed
+    return 0;
+}

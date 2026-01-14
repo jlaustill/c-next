@@ -6,6 +6,25 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
+    if (a > UINT8_MAX - b) return UINT8_MAX;
+    return a + b;
+}
+
+static inline int8_t cnx_clamp_sub_i8(int8_t a, int8_t b) {
+    if (b < 0 && a > INT8_MAX + b) return INT8_MAX;
+    if (b > 0 && a < INT8_MIN + b) return INT8_MIN;
+    return a - b;
+}
+
+static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint16_t b) {
+    if (a < b) return 0;
+    return a - b;
+}
+
 // Test: ADR-016 + ADR-044 Valid modifier combinations in scopes
 // Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
 // work correctly with scope variables accessed via this. accessor
@@ -107,19 +126,19 @@ bool ModifierCombos_getPrivateFlag(void) {
 }
 
 void ModifierCombos_increasePublicClampByte(void) {
-    ModifierCombos_publicClampByte += 100;
+    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 100);
 }
 
 void ModifierCombos_decreasePublicClampSigned(void) {
-    ModifierCombos_publicClampSigned -= 50;
+    ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 50);
 }
 
 void ModifierCombos_increasePrivateClampByte(void) {
-    ModifierCombos_privateClampByte += 220;
+    ModifierCombos_privateClampByte = cnx_clamp_add_u8(ModifierCombos_privateClampByte, 220);
 }
 
 void ModifierCombos_decreasePrivateClampWord(void) {
-    ModifierCombos_privateClampWord -= 15000;
+    ModifierCombos_privateClampWord = cnx_clamp_sub_u16(ModifierCombos_privateClampWord, 15000);
 }
 
 void ModifierCombos_incrementPublicWrapByte(void) {
@@ -139,8 +158,8 @@ void ModifierCombos_decrementPrivateWrapWord(void) {
 }
 
 void ModifierCombos_adjustAllClamp(void) {
-    ModifierCombos_publicClampByte += 10;
-    ModifierCombos_publicClampSigned -= 5;
+    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 10);
+    ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 5);
     ModifierCombos_increasePrivateClampByte();
 }
 

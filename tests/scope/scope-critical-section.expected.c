@@ -7,6 +7,24 @@
 #include <stdbool.h>
 #include <cmsis_gcc.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
+    if (a > UINT32_MAX - b) return UINT32_MAX;
+    return a + b;
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
+    if (a > UINT8_MAX - b) return UINT8_MAX;
+    return a + b;
+}
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
+    if (a < b) return 0;
+    return a - b;
+}
+
 // Test: ADR-016 + ADR-050 Critical sections inside scope methods
 // Verifies that critical { } blocks work correctly inside scope methods
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical
@@ -31,8 +49,8 @@ void CriticalTest_internalEnqueue(uint8_t* data) {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         CriticalTest_buffer[CriticalTest_writeIndex] = (*data);
-        CriticalTest_writeIndex += 1;
-        CriticalTest_count += 1;
+        CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
+        CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
         __set_PRIMASK(__primask);
     }
 }
@@ -44,8 +62,8 @@ uint8_t CriticalTest_internalDequeue(void) {
         __disable_irq();
         if (CriticalTest_count > 0) {
             result = CriticalTest_buffer[CriticalTest_readIndex];
-            CriticalTest_readIndex += 1;
-            CriticalTest_count -= 1;
+            CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
+            CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
         }
         __set_PRIMASK(__primask);
     }
@@ -68,7 +86,7 @@ void CriticalTest_internalTransfer(void) {
         __disable_irq();
         uint8_t data = CriticalTest_buffer[CriticalTest_readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
-        CriticalTest_readIndex += 1;
+        CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
         globalWriteIndex += 1;
         __set_PRIMASK(__primask);
     }
@@ -102,8 +120,8 @@ void CriticalTest_enqueue(uint8_t* data) {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         CriticalTest_buffer[CriticalTest_writeIndex] = (*data);
-        CriticalTest_writeIndex += 1;
-        CriticalTest_count += 1;
+        CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
+        CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
         __set_PRIMASK(__primask);
     }
 }
@@ -115,8 +133,8 @@ uint8_t CriticalTest_dequeue(void) {
         __disable_irq();
         if (CriticalTest_count > 0) {
             result = CriticalTest_buffer[CriticalTest_readIndex];
-            CriticalTest_readIndex += 1;
-            CriticalTest_count -= 1;
+            CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
+            CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
         }
         __set_PRIMASK(__primask);
     }
@@ -139,8 +157,8 @@ void CriticalTest_transferToGlobal(void) {
         __disable_irq();
         uint8_t data = CriticalTest_buffer[CriticalTest_readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
-        CriticalTest_readIndex += 1;
-        CriticalTest_count -= 1;
+        CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
+        CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
         globalWriteIndex += 1;
         __set_PRIMASK(__primask);
     }
