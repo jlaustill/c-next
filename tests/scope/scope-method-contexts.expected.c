@@ -6,6 +6,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
+    if (a > UINT16_MAX - b) return UINT16_MAX;
+    return a + b;
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
+    if (a > UINT8_MAX - b) return UINT8_MAX;
+    return a + b;
+}
+
 // Test: ADR-016 Modifiers in public and private method contexts
 // Verifies that this. and global. accessors work correctly in all method contexts
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns
@@ -51,7 +64,7 @@ uint8_t MethodContexts_getPrivateWrapValue(void) {
 }
 
 void MethodContexts_incrementPrivateClamp(void) {
-    MethodContexts_privateClampValue += 100;
+    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 100);
 }
 
 void MethodContexts_incrementPrivateWrap(void) {
@@ -115,7 +128,7 @@ uint16_t MethodContexts_getPublicWrapValue(void) {
 }
 
 void MethodContexts_incrementPublicClamp(void) {
-    MethodContexts_publicClampValue += 10000;
+    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 10000);
 }
 
 void MethodContexts_incrementPublicWrap(void) {
@@ -196,7 +209,7 @@ uint8_t MethodContexts_getPrivateClampViaInternal(void) {
 
 void MethodContexts_modifyAllPrivate(void) {
     MethodContexts_privateValue = MethodContexts_privateValue + 1;
-    MethodContexts_privateClampValue += 10;
+    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 10);
     MethodContexts_privateWrapValue += 5;
     MethodContexts_privateFlag = !MethodContexts_privateFlag;
     MethodContexts_privateOffset = MethodContexts_privateOffset - 10;
@@ -204,7 +217,7 @@ void MethodContexts_modifyAllPrivate(void) {
 
 void MethodContexts_modifyAllPublic(void) {
     MethodContexts_publicValue = MethodContexts_publicValue + 1;
-    MethodContexts_publicClampValue += 100;
+    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 100);
     MethodContexts_publicWrapValue += 5;
     MethodContexts_publicFlag = !MethodContexts_publicFlag;
     MethodContexts_publicOffset = MethodContexts_publicOffset - 100;

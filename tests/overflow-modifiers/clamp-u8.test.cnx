@@ -1,0 +1,133 @@
+/* test-execution */
+// Tests: clamp modifier for u8 type (0 to 255)
+// Validates overflow clamps to 255, underflow clamps to 0
+// ADR-044: Per-variable overflow semantics
+
+u32 main() {
+    // === OVERFLOW TESTS (clamp to 255) ===
+
+    // Test 1: Basic overflow - add past max
+    clamp u8 val <- 200;
+    val +<- 100;  // 200 + 100 = 300, should clamp to 255
+    if (val != 255) return 1;
+
+    // Test 2: Overflow from max value
+    val <- 255;
+    val +<- 1;  // 255 + 1 = 256, should clamp to 255
+    if (val != 255) return 2;
+
+    // Test 3: Large overflow
+    val <- 100;
+    val +<- 200;  // 100 + 200 = 300, should clamp to 255
+    if (val != 255) return 3;
+
+    // Test 4: Overflow with max addend
+    val <- 1;
+    val +<- 255;  // 1 + 255 = 256, should clamp to 255
+    if (val != 255) return 4;
+
+    // Test 5: Multiple overflows stay clamped
+    val <- 250;
+    val +<- 10;  // 260, clamps to 255
+    if (val != 255) return 5;
+    val +<- 10;  // Still 255 (already at max)
+    if (val != 255) return 6;
+
+    // === UNDERFLOW TESTS (clamp to 0) ===
+
+    // Test 7: Basic underflow - subtract below zero
+    val <- 50;
+    val -<- 100;  // 50 - 100 = -50, should clamp to 0
+    if (val != 0) return 7;
+
+    // Test 8: Underflow from min value
+    val <- 0;
+    val -<- 1;  // 0 - 1 = -1, should clamp to 0
+    if (val != 0) return 8;
+
+    // Test 9: Large underflow
+    val <- 10;
+    val -<- 255;  // 10 - 255 = -245, should clamp to 0
+    if (val != 0) return 9;
+
+    // Test 10: Multiple underflows stay clamped
+    val <- 5;
+    val -<- 10;  // -5, clamps to 0
+    if (val != 0) return 10;
+    val -<- 10;  // Still 0 (already at min)
+    if (val != 0) return 11;
+
+    // === NORMAL OPERATIONS (no clamping needed) ===
+
+    // Test 12: Normal addition within bounds
+    val <- 100;
+    val +<- 50;  // 150, no clamping
+    if (val != 150) return 12;
+
+    // Test 13: Normal subtraction within bounds
+    val <- 200;
+    val -<- 50;  // 150, no clamping
+    if (val != 150) return 13;
+
+    // Test 14: Add to zero
+    val <- 0;
+    val +<- 100;
+    if (val != 100) return 14;
+
+    // Test 15: Subtract to zero exactly
+    val <- 100;
+    val -<- 100;  // Exactly 0
+    if (val != 0) return 15;
+
+    // === BOUNDARY TESTS ===
+
+    // Test 16: Add 1 to 254 (just under max)
+    val <- 254;
+    val +<- 1;
+    if (val != 255) return 16;
+
+    // Test 17: Subtract 1 from 1 (just above min)
+    val <- 1;
+    val -<- 1;
+    if (val != 0) return 17;
+
+    // Test 18: Add 0 (no change)
+    val <- 128;
+    val +<- 0;
+    if (val != 128) return 18;
+
+    // Test 19: Subtract 0 (no change)
+    val <- 128;
+    val -<- 0;
+    if (val != 128) return 19;
+
+    // === SEQUENTIAL OPERATIONS ===
+
+    // Test 20: Overflow then underflow
+    val <- 200;
+    val +<- 100;  // Clamp to 255
+    if (val != 255) return 20;
+    val -<- 255;  // 255 - 255 = 0 (exactly zero)
+    if (val != 0) return 21;
+
+    // Test 21: Multiple small additions causing overflow
+    val <- 250;
+    val +<- 2;  // 252
+    if (val != 252) return 22;
+    val +<- 2;  // 254
+    if (val != 254) return 23;
+    val +<- 2;  // 256 -> clamp to 255
+    if (val != 255) return 24;
+
+    // Test 22: Multiple small subtractions causing underflow
+    val <- 5;
+    val -<- 2;  // 3
+    if (val != 3) return 25;
+    val -<- 2;  // 1
+    if (val != 1) return 26;
+    val -<- 2;  // -1 -> clamp to 0
+    if (val != 0) return 27;
+
+    // All tests passed
+    return 0;
+}

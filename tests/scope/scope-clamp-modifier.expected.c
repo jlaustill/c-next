@@ -5,6 +5,58 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int16_t cnx_clamp_add_i16(int16_t a, int16_t b) {
+    if (b > 0 && a > INT16_MAX - b) return INT16_MAX;
+    if (b < 0 && a < INT16_MIN - b) return INT16_MIN;
+    return a + b;
+}
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
+    if (a > UINT16_MAX - b) return UINT16_MAX;
+    return a + b;
+}
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
+    if (a > UINT32_MAX - b) return UINT32_MAX;
+    return a + b;
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
+    if (a > UINT8_MAX - b) return UINT8_MAX;
+    return a + b;
+}
+
+static inline int16_t cnx_clamp_sub_i16(int16_t a, int16_t b) {
+    if (b < 0 && a > INT16_MAX + b) return INT16_MAX;
+    if (b > 0 && a < INT16_MIN + b) return INT16_MIN;
+    return a - b;
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int32_t b) {
+    if (b < 0 && a > INT32_MAX + b) return INT32_MAX;
+    if (b > 0 && a < INT32_MIN + b) return INT32_MIN;
+    return a - b;
+}
+
+static inline int8_t cnx_clamp_sub_i8(int8_t a, int8_t b) {
+    if (b < 0 && a > INT8_MAX + b) return INT8_MAX;
+    if (b > 0 && a < INT8_MIN + b) return INT8_MIN;
+    return a - b;
+}
+
+static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint16_t b) {
+    if (a < b) return 0;
+    return a - b;
+}
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
+    if (a < b) return 0;
+    return a - b;
+}
+
 // Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
@@ -41,42 +93,42 @@ int32_t ClampTest_getPosition(void) {
 }
 
 void ClampTest_increaseBrightness(void) {
-    ClampTest_brightness += 100;
+    ClampTest_brightness = cnx_clamp_add_u8(ClampTest_brightness, 100);
 }
 
 void ClampTest_increaseSensorValue(void) {
-    ClampTest_sensorValue += 10000;
+    ClampTest_sensorValue = cnx_clamp_add_u16(ClampTest_sensorValue, 10000);
 }
 
 void ClampTest_increaseCounter(void) {
-    ClampTest_counter += 500000000;
+    ClampTest_counter = cnx_clamp_add_u32(ClampTest_counter, 500000000);
 }
 
 void ClampTest_decreaseTemperature(void) {
-    ClampTest_temperature -= 50;
+    ClampTest_temperature = cnx_clamp_sub_i8(ClampTest_temperature, 50);
 }
 
 void ClampTest_decreaseAltitude(void) {
-    ClampTest_altitude -= 5000;
+    ClampTest_altitude = cnx_clamp_sub_i16(ClampTest_altitude, 5000);
 }
 
 void ClampTest_decreasePosition(void) {
-    ClampTest_position -= 100000000;
+    ClampTest_position = cnx_clamp_sub_i32(ClampTest_position, 100000000);
 }
 
 void ClampTest_dimBrightness(void) {
-    ClampTest_brightness -= 250;
+    ClampTest_brightness = cnx_clamp_sub_u8(ClampTest_brightness, 250);
 }
 
 void ClampTest_resetSensor(void) {
-    ClampTest_sensorValue -= 65000;
+    ClampTest_sensorValue = cnx_clamp_sub_u16(ClampTest_sensorValue, 65000);
 }
 
 void ClampTest_adjustAll(void) {
-    ClampTest_brightness += 10;
-    ClampTest_sensorValue += 100;
-    ClampTest_temperature -= 5;
-    ClampTest_altitude += 1000;
+    ClampTest_brightness = cnx_clamp_add_u8(ClampTest_brightness, 10);
+    ClampTest_sensorValue = cnx_clamp_add_u16(ClampTest_sensorValue, 100);
+    ClampTest_temperature = cnx_clamp_sub_i8(ClampTest_temperature, 5);
+    ClampTest_altitude = cnx_clamp_add_i16(ClampTest_altitude, 1000);
 }
 
 void main(void) {

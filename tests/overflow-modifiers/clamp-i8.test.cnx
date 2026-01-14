@@ -1,0 +1,141 @@
+/* test-execution */
+// Tests: clamp modifier for i8 type (-128 to 127)
+// Validates overflow clamps to 127, underflow clamps to -128
+// ADR-044: Per-variable overflow semantics
+
+u32 main() {
+    // === OVERFLOW TESTS (clamp to 127) ===
+
+    // Test 1: Basic overflow - add past max
+    clamp i8 val <- 100;
+    val +<- 50;  // 150, should clamp to 127
+    if (val != 127) return 1;
+
+    // Test 2: Overflow from max value
+    val <- 127;
+    val +<- 1;  // 128, should clamp to 127
+    if (val != 127) return 2;
+
+    // Test 3: Large overflow from positive
+    val <- 50;
+    val +<- 100;  // 150, should clamp to 127
+    if (val != 127) return 3;
+
+    // Test 4: Overflow with max addend
+    val <- 1;
+    val +<- 127;  // 128, should clamp to 127
+    if (val != 127) return 4;
+
+    // Test 5: Multiple overflows stay clamped
+    val <- 120;
+    val +<- 20;  // 140, clamps to 127
+    if (val != 127) return 5;
+    val +<- 10;  // Still 127
+    if (val != 127) return 6;
+
+    // === UNDERFLOW TESTS (clamp to -128) ===
+
+    // Test 7: Basic underflow - subtract below min
+    val <- -100;
+    val -<- 50;  // -150, should clamp to -128
+    if (val != -128) return 7;
+
+    // Test 8: Underflow from min value
+    val <- -128;
+    val -<- 1;  // -129, should clamp to -128
+    if (val != -128) return 8;
+
+    // Test 9: Large underflow from negative
+    val <- -50;
+    val -<- 100;  // -150, should clamp to -128
+    if (val != -128) return 9;
+
+    // Test 10: Multiple underflows stay clamped
+    val <- -120;
+    val -<- 20;  // -140, clamps to -128
+    if (val != -128) return 10;
+    val -<- 10;  // Still -128
+    if (val != -128) return 11;
+
+    // === CROSSING ZERO TESTS ===
+
+    // Test 12: Positive to negative (no clamp)
+    val <- 10;
+    val -<- 50;  // -40, no clamping needed
+    if (val != -40) return 12;
+
+    // Test 13: Negative to positive (no clamp)
+    val <- -10;
+    val +<- 50;  // 40, no clamping needed
+    if (val != 40) return 13;
+
+    // Test 14: Positive overflow past max
+    val <- 50;
+    val +<- 100;  // 150 > 127, clamp to 127
+    if (val != 127) return 14;
+
+    // Test 15: Negative underflow past min
+    val <- -50;
+    val -<- 100;  // -150 < -128, clamp to -128
+    if (val != -128) return 15;
+
+    // === NORMAL OPERATIONS ===
+
+    // Test 16: Normal addition within bounds
+    val <- 50;
+    val +<- 30;  // 80
+    if (val != 80) return 16;
+
+    // Test 17: Normal subtraction within bounds
+    val <- -50;
+    val -<- 30;  // -80
+    if (val != -80) return 17;
+
+    // Test 18: Add to zero
+    val <- 0;
+    val +<- 100;
+    if (val != 100) return 18;
+
+    // Test 19: Subtract to zero exactly
+    val <- 50;
+    val -<- 50;
+    if (val != 0) return 19;
+
+    // === BOUNDARY TESTS ===
+
+    // Test 20: Add 1 to 126 (just under max)
+    val <- 126;
+    val +<- 1;
+    if (val != 127) return 20;
+
+    // Test 21: Subtract 1 from -127 (just above min)
+    val <- -127;
+    val -<- 1;
+    if (val != -128) return 21;
+
+    // Test 22: Add 0 (no change)
+    val <- 64;
+    val +<- 0;
+    if (val != 64) return 22;
+
+    // Test 23: Subtract 0 (no change)
+    val <- -64;
+    val -<- 0;
+    if (val != -64) return 23;
+
+    // === SEQUENTIAL OPERATIONS ===
+
+    // Test 24: Overflow then underflow
+    val <- 100;
+    val +<- 50;  // Clamp to 127
+    if (val != 127) return 24;
+    val -<- 127;  // 127 - 127 = 0
+    if (val != 0) return 25;
+    val -<- 127;  // 0 - 127 = -127
+    if (val != -127) return 26;
+    val -<- 127;  // -127 - 127 = -254, clamp to -128
+    if (val != -128) return 27;
+
+    // All tests passed
+    return 0;
+}
