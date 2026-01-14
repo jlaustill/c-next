@@ -1,0 +1,14 @@
+// Issue #107: Error Test - Duplicate Negative Case
+// Should error: duplicate negative case values not allowed
+
+void test() {
+    i32 val <- 0;
+    switch (val) {
+        case -1 {
+        }
+        case 0 {
+        }
+        case -1 {
+        }
+    }
+}

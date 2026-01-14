@@ -5773,13 +5773,19 @@ export default class CodeGenerator {
       return ctx.IDENTIFIER()!.getText();
     }
 
-    // Numeric literals
+    // Numeric literals (may have optional minus prefix)
     if (ctx.INTEGER_LITERAL()) {
-      return ctx.INTEGER_LITERAL()!.getText();
+      const num = ctx.INTEGER_LITERAL()!.getText();
+      // Check if minus token exists (first child would be '-')
+      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
+      return hasNeg ? `-${num}` : num;
     }
 
     if (ctx.HEX_LITERAL()) {
-      return ctx.HEX_LITERAL()!.getText();
+      const hex = ctx.HEX_LITERAL()!.getText();
+      // Check if minus token exists (first child would be '-')
+      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
+      return hasNeg ? `-${hex}` : hex;
     }
 
     if (ctx.BINARY_LITERAL()) {
@@ -5942,12 +5948,19 @@ export default class CodeGenerator {
       return ctx.IDENTIFIER()!.getText();
     }
     if (ctx.INTEGER_LITERAL()) {
-      return ctx.INTEGER_LITERAL()!.getText();
+      const num = ctx.INTEGER_LITERAL()!.getText();
+      // Check if minus token exists (first child would be '-')
+      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
+      const value = parseInt(num, 10);
+      return String(hasNeg ? -value : value);
     }
     if (ctx.HEX_LITERAL()) {
       // Normalize hex to decimal for comparison
       const hex = ctx.HEX_LITERAL()!.getText();
-      return String(parseInt(hex, 16));
+      // Check if minus token exists (first child would be '-')
+      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
+      const value = parseInt(hex, 16);
+      return String(hasNeg ? -value : value);
     }
     if (ctx.BINARY_LITERAL()) {
       // Normalize binary to decimal for comparison
