@@ -1,0 +1,32 @@
+/* test-execution */
+// ADR-013: Const u64 parameter
+// Tests: const u64 parameter read access
+
+u64 readConstU64(const u64 value) {
+    return value;
+}
+
+u64 halfConstU64(const u64 value) {
+    return value / 2;
+}
+
+u32 main() {
+    // Test 1: Read const parameter directly
+    u64 result <- readConstU64(1000000);
+    if (result != 1000000) return 1;
+
+    // Test 2: Read const parameter with large value
+    u64 largeResult <- readConstU64(4294967296);
+    if (largeResult != 4294967296) return 2;
+
+    // Test 3: Use const parameter in arithmetic
+    u64 halved <- halfConstU64(1000);
+    if (halved != 500) return 3;
+
+    // Test 4: Pass variable to const parameter
+    u64 myValue <- 9999999;
+    u64 readBack <- readConstU64(myValue);
+    if (readBack != 9999999) return 4;
+
+    return 0;
+}

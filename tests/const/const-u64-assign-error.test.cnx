@@ -1,0 +1,8 @@
+// ADR-013: Error - assigning to const u64 variable
+// Tests: cannot assign to const variable
+
+const u64 FILE_SIZE <- 4294967296;
+
+void main() {
+    FILE_SIZE <- 0;  // ERROR: cannot assign to const variable
+}

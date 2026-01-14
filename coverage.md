@@ -112,10 +112,10 @@ This document tracks test coverage for every language construct in every valid c
 | In bitwise operation           | [x]    | `bitwise/u16-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-u16-counter.test.cnx`            |
 | In ternary expression          | [ ]    |                                                 |
-| With const modifier            | [ ]    |                                                 |
+| With const modifier            | [x]    | `const/const-u16-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier            | [ ]    |                                                 |
-| With wrap modifier             | [ ]    |                                                 |
+| With clamp modifier            | [x]    | `const/const-clamp-u16.test.cnx`                |
+| With wrap modifier             | [x]    | `const/const-wrap-u16.test.cnx`                 |
 | In scope declaration           | [ ]    |                                                 |
 | In register field              | [x]    |                                                 |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
@@ -164,7 +164,7 @@ This document tracks test coverage for every language construct in every valid c
 | In bitwise operation           | [x]    | `bitwise/u64-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-u64-counter.test.cnx`            |
 | In ternary expression          | [x]    | `ternary/ternary-u64.test.cnx`                  |
-| With const modifier            | [ ]    |                                                 |
+| With const modifier            | [x]    | `const/const-u64-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier            | [ ]    |                                                 |
 | With wrap modifier             | [ ]    |                                                 |
@@ -192,7 +192,7 @@ This document tracks test coverage for every language construct in every valid c
 | In bitwise operation           | [x]    | `bitwise/i8-bitwise-ops.test.cnx`               |
 | As loop counter                | [x]    | `for-loops/for-i8-counter.test.cnx`             |
 | Negative literal assignment    | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
-| With const modifier            | [ ]    |                                                 |
+| With const modifier            | [x]    | `const/const-i8-variable.test.cnx`              |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier            | [ ]    |                                                 |
 | With wrap modifier             | [ ]    |                                                 |
@@ -216,7 +216,7 @@ This document tracks test coverage for every language construct in every valid c
 | In bitwise operation           | [x]    | `bitwise/i16-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-i16-counter.test.cnx`            |
 | Negative literal assignment    | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
-| With const modifier            | [ ]    |                                                 |
+| With const modifier            | [x]    | `const/const-i16-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier            | [ ]    |                                                 |
 | With wrap modifier             | [ ]    |                                                 |
@@ -264,7 +264,7 @@ This document tracks test coverage for every language construct in every valid c
 | In bitwise operation           | [x]    | `bitwise/i64-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-i64-counter.test.cnx`            |
 | Negative literal assignment    | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
-| With const modifier            | [ ]    |                                                 |
+| With const modifier            | [x]    | `const/const-i64-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier            | [ ]    |                                                 |
 | With wrap modifier             | [ ]    |                                                 |
@@ -1176,6 +1176,26 @@ This document tracks test coverage for every language construct in every valid c
 | Assign to const **(ERROR)**       | [x]    | `const/const-assign-error.test.cnx`          |
 | Compound assign const **(ERROR)** | [x]    | `const/const-compound-assign-error.test.cnx` |
 | Assign const param **(ERROR)**    | [x]    | `const/const-param-assign-error.test.cnx`    |
+| u16 variable                      | [x]    | `const/const-u16-variable.test.cnx`          |
+| u64 variable                      | [x]    | `const/const-u64-variable.test.cnx`          |
+| i8 variable                       | [x]    | `const/const-i8-variable.test.cnx`           |
+| i16 variable                      | [x]    | `const/const-i16-variable.test.cnx`          |
+| i64 variable                      | [x]    | `const/const-i64-variable.test.cnx`          |
+| bool variable                     | [x]    | `const/const-bool-variable.test.cnx`         |
+| f32 variable                      | [x]    | `const/const-f32-variable.test.cnx`          |
+| f64 variable                      | [x]    | `const/const-f64-variable.test.cnx`          |
+| u16 parameter                     | [x]    | `const/const-u16-parameter.test.cnx`         |
+| u64 parameter                     | [x]    | `const/const-u64-parameter.test.cnx`         |
+| i8 parameter                      | [x]    | `const/const-i8-parameter.test.cnx`          |
+| i16 parameter                     | [x]    | `const/const-i16-parameter.test.cnx`         |
+| i64 parameter                     | [x]    | `const/const-i64-parameter.test.cnx`         |
+| bool parameter                    | [x]    | `const/const-bool-parameter.test.cnx`        |
+| f32 parameter                     | [x]    | `const/const-f32-parameter.test.cnx`         |
+| f64 parameter                     | [x]    | `const/const-f64-parameter.test.cnx`         |
+| const + clamp u8                  | [x]    | `const/const-clamp-u8.test.cnx`              |
+| const + clamp u16                 | [x]    | `const/const-clamp-u16.test.cnx`             |
+| const + wrap u8                   | [x]    | `const/const-wrap-u8.test.cnx`               |
+| const + wrap u16                  | [x]    | `const/const-wrap-u16.test.cnx`              |
 
 ---
 

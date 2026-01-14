@@ -1,0 +1,33 @@
+/* test-execution */
+// ADR-013: Const f64 variable
+// Tests: const f64 declaration and read access
+
+const f64 PI_PRECISE <- 3.14159265358979;
+const f64 E <- 2.71828182845905;
+const f64 ZERO <- 0.0;
+
+u32 main() {
+    // Test 1: Read const into local variable
+    f64 pi <- PI_PRECISE;
+    if (pi < 3.141592) return 1;
+    if (pi > 3.141593) return 2;
+
+    // Test 2: Read second const
+    f64 e <- E;
+    if (e < 2.718281) return 3;
+    if (e > 2.718282) return 4;
+
+    // Test 3: Read zero const
+    f64 zero <- ZERO;
+    if (zero != 0.0) return 5;
+
+    // Test 4: Use const in arithmetic
+    f64 area <- PI_PRECISE * 5.0 * 5.0;
+    if (area < 78.5) return 6;
+    if (area > 78.6) return 7;
+
+    // Test 5: Use const in comparison
+    if (E >= PI_PRECISE) return 8;
+
+    return 0;
+}

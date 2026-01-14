@@ -1,0 +1,8 @@
+// ADR-013: Error - assigning to const i8 variable
+// Tests: cannot assign to const variable
+
+const i8 MIN_TEMP <- -40;
+
+void main() {
+    MIN_TEMP <- 0;  // ERROR: cannot assign to const variable
+}

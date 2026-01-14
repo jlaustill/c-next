@@ -2550,8 +2550,28 @@ export default class CodeGenerator {
       const unaryExpr = unaryExprs[0];
 
       // unaryExpression -> postfixExpression (no unary operators)
+      // OR unaryExpression -> '-' unaryExpression (negated literal)
       const postfixExpr = unaryExpr.postfixExpression();
-      if (!postfixExpr) return false;
+
+      // Handle negated literals: -50, -3.14, etc.
+      if (!postfixExpr) {
+        // Check if it's a unary minus with a nested literal
+        const nestedUnary = unaryExpr.unaryExpression();
+        if (nestedUnary && unaryExpr.getText().startsWith("-")) {
+          // Recursively check if the nested expression is a literal
+          const nestedPostfix = nestedUnary.postfixExpression();
+          if (nestedPostfix) {
+            const nestedPrimary = nestedPostfix.primaryExpression();
+            if (nestedPrimary) {
+              const nestedLiteral = nestedPrimary.literal();
+              if (nestedLiteral && !nestedLiteral.STRING_LITERAL()) {
+                return true; // Negated numeric literal
+              }
+            }
+          }
+        }
+        return false;
+      }
 
       // postfixExpression -> primaryExpression (no postfix ops)
       const postfixOps = postfixExpr.postfixOp();

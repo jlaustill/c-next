@@ -1,0 +1,32 @@
+/* test-execution */
+// ADR-013: Const u16 parameter
+// Tests: const u16 parameter read access
+
+u16 readConstU16(const u16 value) {
+    return value;
+}
+
+u16 doubleConstU16(const u16 value) {
+    return value * 2;
+}
+
+u32 main() {
+    // Test 1: Read const parameter directly
+    u16 result <- readConstU16(1000);
+    if (result != 1000) return 1;
+
+    // Test 2: Read const parameter with max value
+    u16 maxResult <- readConstU16(65535);
+    if (maxResult != 65535) return 2;
+
+    // Test 3: Use const parameter in arithmetic
+    u16 doubled <- doubleConstU16(100);
+    if (doubled != 200) return 3;
+
+    // Test 4: Pass variable to const parameter
+    u16 myValue <- 5000;
+    u16 readBack <- readConstU16(myValue);
+    if (readBack != 5000) return 4;
+
+    return 0;
+}

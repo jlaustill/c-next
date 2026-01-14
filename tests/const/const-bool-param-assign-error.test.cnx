@@ -1,0 +1,6 @@
+// ADR-013: Error - assigning to const bool parameter
+// Tests: cannot modify const parameter
+
+void setFlag(const bool flag) {
+    flag <- false;  // ERROR: cannot assign to const parameter
+}
