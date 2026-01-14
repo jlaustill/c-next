@@ -194,10 +194,16 @@ See [Testing Workflow](./TESTING-WORKFLOW.md) for comprehensive testing methodol
 # Run all tests
 npm test
 
-# Run specific test category
+# Run all tests with minimal output (errors + summary only)
+npm test -- --quiet    # or: npm test -- -q
+
+# Run specific test directory
 npm test -- tests/postfix-chains/
 
-# Transpile single test file
+# Run single test file
+npm test -- tests/postfix-chains/basic-chaining.test.cnx
+
+# Transpile single test file (without running full test validation)
 cnext tests/my-feature/basic.test.cnx
 
 # Verify output matches expected
