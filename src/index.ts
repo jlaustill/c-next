@@ -77,7 +77,9 @@ function showHelp(): void {
     "  cnext <file.cnx> -o <output.c>            Single file with explicit output",
   );
   console.log("  cnext <files...> -o <dir>                 Multi-file mode");
-  console.log("  cnext --project <dir> [-o <outdir>]       Project mode");
+  console.log(
+    "  cnext <dir>                               Directory mode (recursive)",
+  );
   console.log("");
   console.log("Options:");
   console.log(

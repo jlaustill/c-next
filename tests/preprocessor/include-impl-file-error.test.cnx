@@ -1,0 +1,8 @@
+// ADR-010: Including implementation files should produce E0503 error
+// This file should FAIL to transpile
+
+#include "implementation.c"
+
+void test() {
+    // This should not be reached - transpile should fail
+}
