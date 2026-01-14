@@ -1,3 +1,4 @@
+/* test-coverage: 1.1-u64-in-comparison */
 /* test-execution */
 // Tests: u64 comparison operations (<, >, <=, >=, =, !=)
 // Validates all comparison operators with u64 type

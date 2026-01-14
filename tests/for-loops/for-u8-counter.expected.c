@@ -13,6 +13,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return a + (uint8_t)b;
 }
 
+/* test-coverage: 1.1-u8-as-loop-counter */
 /* test-execution */
 // For loop tests: u8 as loop counter
 // Tests: u8 type can be used as for-loop counter

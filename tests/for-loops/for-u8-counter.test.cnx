@@ -1,3 +1,4 @@
+/* test-coverage: 1.1-u8-as-loop-counter */
 /* test-execution */
 // For loop tests: u8 as loop counter
 // Tests: u8 type can be used as for-loop counter

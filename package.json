@@ -26,7 +26,11 @@
     "oxlint:check": "oxlint src/",
     "oxlint:fix": "oxlint src/ --fix",
     "prepare": "husky",
-    "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm test"
+    "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm test",
+    "coverage:check": "tsx scripts/coverage-checker.ts check",
+    "coverage:report": "tsx scripts/coverage-checker.ts report",
+    "coverage:gaps": "tsx scripts/coverage-checker.ts gaps",
+    "coverage:ids": "tsx scripts/coverage-checker.ts ids"
   },
   "keywords": [
     "c",
