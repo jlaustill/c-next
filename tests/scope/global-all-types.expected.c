@@ -16,7 +16,7 @@ uint16_t globalU16 = 65535;
 
 uint32_t globalU32 = 4294967295;
 
-uint64_t globalU64 = 0;
+uint64_t globalU64 = 18446744073709551615;
 
 // Signed integer globals
 int8_t globalI8 = -128;
@@ -25,7 +25,7 @@ int16_t globalI16 = -32768;
 
 int32_t globalI32 = -2147483648;
 
-int64_t globalI64 = 0;
+int64_t globalI64 = -9223372036854775808;
 
 // Floating point globals
 float globalF32 = 3.14;
@@ -89,8 +89,12 @@ void GlobalAccessTest_setGlobalBool(bool* val) {
     globalBool = (*val);
 }
 
-void GlobalAccessTest_setGlobalF64(double* val) {
-    globalF64 = (*val);
+void GlobalAccessTest_setGlobalF32(float val) {
+    globalF32 = val;
+}
+
+void GlobalAccessTest_setGlobalF64(double val) {
+    globalF64 = val;
 }
 
 int32_t main(void) {
@@ -98,38 +102,48 @@ int32_t main(void) {
         return 1;
     }
     if (GlobalAccessTest_getGlobalU16() != 65535) {
-        return 1;
+        return 2;
     }
     if (GlobalAccessTest_getGlobalU32() != 4294967295) {
-        return 1;
+        return 3;
     }
-    if (GlobalAccessTest_getGlobalU64() != 0) {
-        return 1;
+    if (GlobalAccessTest_getGlobalU64() != 18446744073709551615) {
+        return 4;
     }
     if (GlobalAccessTest_getGlobalI8() != -128) {
-        return 1;
+        return 5;
     }
     if (GlobalAccessTest_getGlobalI16() != -32768) {
-        return 1;
+        return 6;
     }
     if (GlobalAccessTest_getGlobalI32() != -2147483648) {
-        return 1;
+        return 7;
     }
-    if (GlobalAccessTest_getGlobalI64() != 0) {
-        return 1;
+    if (GlobalAccessTest_getGlobalI64() != -9223372036854775808) {
+        return 8;
+    }
+    float testF32 = 99.5;
+    GlobalAccessTest_setGlobalF32(testF32);
+    if (GlobalAccessTest_getGlobalF32() != testF32) {
+        return 9;
+    }
+    double testF64 = 123.456789012345;
+    GlobalAccessTest_setGlobalF64(testF64);
+    if (GlobalAccessTest_getGlobalF64() != testF64) {
+        return 10;
     }
     if (GlobalAccessTest_getGlobalBool() != true) {
-        return 1;
+        return 11;
     }
     uint8_t newU8Value = 100;
     GlobalAccessTest_setGlobalU8(&newU8Value);
     if (GlobalAccessTest_getGlobalU8() != 100) {
-        return 1;
+        return 12;
     }
     bool newBoolValue = false;
     GlobalAccessTest_setGlobalBool(&newBoolValue);
     if (GlobalAccessTest_getGlobalBool() != false) {
-        return 1;
+        return 13;
     }
     return 0;
 }
