@@ -93,7 +93,7 @@ Advanced features and edge cases:
 | ---------------------------------------------------- | ------------------------- | ------------------------------- |
 | [#9](https://github.com/jlaustill/c-next/issues/9)   | Semantic error tests      | 2 tests (already working)       |
 | [#10](https://github.com/jlaustill/c-next/issues/10) | Scope tests investigation | 2 tests (needs analysis)        |
-| [#11](https://github.com/jlaustill/c-next/issues/11) | Float modulo test         | 1 test (already working)        |
+| [#11](https://github.com/jlaustill/c-next/issues/11) | Float modulo test         | 1 test ✅ DONE (E0804)          |
 | [#12](https://github.com/jlaustill/c-next/issues/12) | Function-call-chain test  | 1 test (may be passing)         |
 | [#25](https://github.com/jlaustill/c-next/issues/25) | Boolean type coverage     | ~5 gaps                         |
 | [#26](https://github.com/jlaustill/c-next/issues/26) | Float literal suffixes    | ~2 gaps (feature may not exist) |
