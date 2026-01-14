@@ -48,7 +48,7 @@ bool isGreater(float a, float b) {
 }
 
 void setTransform(Transform* t, uint32_t* index) {
-    transforms[(*index)] = t;
+    transforms[(*index)] = (*t);
 }
 
 void main(void) {
@@ -69,8 +69,8 @@ void main(void) {
     Transform temp = {0};
     temp.position = transforms[0].position;
     temp.scale = transforms[0].scale;
-    setTransform(&temp, 2);
+    setTransform(&temp, &(uint32_t){2});
     transforms[2].position = scaleVec3(&transforms[0].position, 3.0);
-    uint32_t idx = addU32(1, 1);
+    uint32_t idx = addU32(&(uint32_t){1}, &(uint32_t){1});
     transforms[idx].position.x = 5.0;
 }

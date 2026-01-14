@@ -2482,15 +2482,113 @@ export default class CodeGenerator {
   }
 
   /**
+   * Check if an expression is a simple literal (number, bool, etc.)
+   * Navigates: expression -> ternaryExpression -> orExpression -> ... -> primaryExpression -> literal
+   */
+  private isLiteralExpression(ctx: Parser.ExpressionContext): boolean {
+    try {
+      // expression -> ternaryExpression
+      const ternaryExpr = ctx.ternaryExpression();
+      if (!ternaryExpr) return false;
+
+      // Check it's not a ternary (no COLON token)
+      if (ternaryExpr.COLON()) return false;
+
+      // ternaryExpression -> orExpression (single)
+      const orExprs = ternaryExpr.orExpression();
+      if (orExprs.length !== 1) return false;
+      const orExpr = orExprs[0];
+
+      // orExpression -> andExpression (single, no || operators)
+      const andExprs = orExpr.andExpression();
+      if (andExprs.length !== 1) return false;
+      const andExpr = andExprs[0];
+
+      // andExpression -> equalityExpression (single, no && operators)
+      const eqExprs = andExpr.equalityExpression();
+      if (eqExprs.length !== 1) return false;
+      const eqExpr = eqExprs[0];
+
+      // equalityExpression -> relationalExpression (single, no = or != operators)
+      const relExprs = eqExpr.relationalExpression();
+      if (relExprs.length !== 1) return false;
+      const relExpr = relExprs[0];
+
+      // relationalExpression -> bitwiseOrExpression (single, no comparison operators)
+      const bitOrExprs = relExpr.bitwiseOrExpression();
+      if (bitOrExprs.length !== 1) return false;
+      const bitOrExpr = bitOrExprs[0];
+
+      // bitwiseOrExpression -> bitwiseXorExpression (single)
+      const xorExprs = bitOrExpr.bitwiseXorExpression();
+      if (xorExprs.length !== 1) return false;
+      const xorExpr = xorExprs[0];
+
+      // bitwiseXorExpression -> bitwiseAndExpression (single)
+      const bitAndExprs = xorExpr.bitwiseAndExpression();
+      if (bitAndExprs.length !== 1) return false;
+      const bitAndExpr = bitAndExprs[0];
+
+      // bitwiseAndExpression -> shiftExpression (single)
+      const shiftExprs = bitAndExpr.shiftExpression();
+      if (shiftExprs.length !== 1) return false;
+      const shiftExpr = shiftExprs[0];
+
+      // shiftExpression -> additiveExpression (single)
+      const addExprs = shiftExpr.additiveExpression();
+      if (addExprs.length !== 1) return false;
+      const addExpr = addExprs[0];
+
+      // additiveExpression -> multiplicativeExpression (single)
+      const mulExprs = addExpr.multiplicativeExpression();
+      if (mulExprs.length !== 1) return false;
+      const mulExpr = mulExprs[0];
+
+      // multiplicativeExpression -> unaryExpression (single)
+      const unaryExprs = mulExpr.unaryExpression();
+      if (unaryExprs.length !== 1) return false;
+      const unaryExpr = unaryExprs[0];
+
+      // unaryExpression -> postfixExpression (no unary operators)
+      const postfixExpr = unaryExpr.postfixExpression();
+      if (!postfixExpr) return false;
+
+      // postfixExpression -> primaryExpression (no postfix ops)
+      const postfixOps = postfixExpr.postfixOp();
+      if (postfixOps.length > 0) return false;
+
+      const primaryExpr = postfixExpr.primaryExpression();
+      if (!primaryExpr) return false;
+
+      // Check if it's a literal (but not a string literal)
+      const literal = primaryExpr.literal();
+      if (literal && !literal.STRING_LITERAL()) {
+        return true;
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Generate a function argument with proper ADR-006 semantics.
    * - Local variables get & (address-of)
    * - Member access (cursor.x) gets & (address-of)
    * - Array access (arr[i]) gets & (address-of)
    * - Parameters are passed as-is (already pointers)
    * - Arrays are passed as-is (naturally decay to pointers)
-   * - Literals and complex expressions are passed as-is
+   * - Literals use compound literals for pointer params: &(type){value}
+   * - Complex expressions are passed as-is
+   *
+   * @param ctx The expression context
+   * @param targetParamBaseType Optional: the C-Next type of the target parameter (e.g., 'u32')
    */
-  private generateFunctionArg(ctx: Parser.ExpressionContext): string {
+  private generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string {
     const id = this.getSimpleIdentifier(ctx);
 
     if (id) {
@@ -2527,7 +2625,17 @@ export default class CodeGenerator {
       return `&${this.generateExpression(ctx)}`;
     }
 
-    // Complex expression or literal - generate normally
+    // Check if it's a literal being passed to a pointer parameter
+    // Use C99 compound literal syntax: &(type){value}
+    if (targetParamBaseType && this.isLiteralExpression(ctx)) {
+      const cType = TYPE_MAP[targetParamBaseType];
+      if (cType && cType !== "void") {
+        const value = this.generateExpression(ctx);
+        return `&(${cType}){${value}}`;
+      }
+    }
+
+    // Complex expression or literal (for non-pointer targets) - generate normally
     return this.generateExpression(ctx);
   }
 
@@ -6804,7 +6912,8 @@ export default class CodeGenerator {
                 return this.generateExpression(e);
               } else {
                 // Target parameter is non-float (pass-by-reference): use & logic
-                return this.generateFunctionArg(e);
+                // Pass the target param type for proper literal handling
+                return this.generateFunctionArg(e, targetParam?.baseType);
               }
             })
             .join(", ");
@@ -6815,6 +6924,13 @@ export default class CodeGenerator {
       else {
         result = `${result}()`;
       }
+    }
+
+    // ADR-006: If a struct parameter is used as a whole value (no postfix ops),
+    // it needs to be dereferenced since it's a pointer in C.
+    // With postfix ops (member access), -> is already used in the loop above.
+    if (isStructParam && ops.length === 0) {
+      return `(*${result})`;
     }
 
     return result;

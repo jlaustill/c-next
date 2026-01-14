@@ -32,12 +32,12 @@ uint32_t performDangerousOperation(uint32_t* index) {
 
 void testSafeGuardPattern(void) {
     accessCount = 0;
-    bool result = isIndexSafe(10) && (performDangerousOperation(10) > 0);
+    bool result = isIndexSafe(&(uint32_t){10}) && (performDangerousOperation(&(uint32_t){10}) > 0);
 }
 
 void testSafeGuardPatternValid(void) {
     accessCount = 0;
-    bool result = isIndexSafe(2) && (performDangerousOperation(2) >= 0);
+    bool result = isIndexSafe(&(uint32_t){2}) && (performDangerousOperation(&(uint32_t){2}) >= 0);
 }
 
 void testOrSafetyPattern(void) {

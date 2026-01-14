@@ -138,6 +138,83 @@ void main() {
 
 ---
 
+## Bug #5: Pass-by-Pointer Code Generation Issues - FIXED ✅
+
+### Issue
+
+When C-Next converts value parameters to pointer parameters (for safety/efficiency), the code generator has two problems:
+
+### Problem 1: Struct pointer not dereferenced when assigning
+
+**C-Next code:**
+
+```cnx
+void setTransform(Transform t, u32 index) {
+    transforms[index] <- t;
+}
+```
+
+**Generated C (WRONG):**
+
+```c
+void setTransform(Transform* t, uint32_t* index) {
+    transforms[(*index)] = t;  // BUG: assigning Transform* to Transform
+}
+```
+
+**Expected C (CORRECT):**
+
+```c
+void setTransform(Transform* t, uint32_t* index) {
+    transforms[(*index)] = *t;  // Must dereference pointer
+}
+```
+
+### Problem 2: Integer literals passed directly to pointer params
+
+**C-Next code:**
+
+```cnx
+setTransform(temp, 2);
+u32 idx <- addU32(1, 1);
+```
+
+**Generated C (WRONG):**
+
+```c
+setTransform(&temp, 2);     // BUG: 2 is int literal, not uint32_t*
+uint32_t idx = addU32(1, 1); // BUG: same issue
+```
+
+**Expected C (CORRECT):**
+
+```c
+setTransform(&temp, &(uint32_t){2});              // C99 compound literal
+uint32_t idx = addU32(&(uint32_t){1}, &(uint32_t){1});
+```
+
+### Root Cause
+
+Code generator's pass-by-pointer transformation was incomplete:
+
+1. Assignment expressions didn't dereference struct pointers
+2. Function call arguments didn't handle integer literals for pointer params
+
+### Fix Applied
+
+1. **Struct dereference**: Added check in `generatePostfixExpr()` - when a struct param is used as a whole value (no postfix ops), wrap in `(*param)`
+2. **Literal handling**: Added `isLiteralExpression()` helper and modified `generateFunctionArg()` to use C99 compound literals: `&(type){value}`
+
+### Status
+
+✅ **FIXED** - Both issues resolved
+
+### Test File
+
+- `tests/postfix-chains/function-call-chain.test.cnx` (enabled, passing)
+
+---
+
 ## Test Files Created
 
 Comprehensive postfix chain test suite in `tests/postfix-chains/`:
@@ -157,8 +234,8 @@ Comprehensive postfix chain test suite in `tests/postfix-chains/`:
 ### Tests Passing
 
 - ✅ basic-two-level.test.cnx
-- ✅ function-call-chain.test.cnx
 - ✅ register-bitmap-bit-chain.test.cnx
+- ✅ function-call-chain.test.cnx (Bug #5 fixed!)
 
 ### Tests Blocked by Bug #2
 
@@ -184,8 +261,9 @@ Comprehensive postfix chain test suite in `tests/postfix-chains/`:
 
 ### Bugs Found
 
-- 1 Grammar bug (FIXED)
-- 1 Code generator bug (IN PROGRESS)
+- 1 Grammar bug (FIXED) - Bug #1
+- 1 Code generator order bug (IN PROGRESS) - Bug #2
+- 1 Code generator pass-by-pointer bug (FIXED) - Bug #5
 - 2 Semantic validations confirmed working correctly
 
 ### Value Delivered

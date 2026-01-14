@@ -17,6 +17,7 @@ import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
 import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
 import SymbolTable from "../symbols/SymbolTable";
+import ISymbol from "../types/ISymbol";
 import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
 import CSymbolCollector from "../symbols/CSymbolCollector";
 import CppSymbolCollector from "../symbols/CppSymbolCollector";
