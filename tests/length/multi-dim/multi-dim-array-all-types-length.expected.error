@@ -1,3 +1,0 @@
-65:8 error[E0381]: use of uninitialized variable 'localU8Matrix'
-71:8 error[E0381]: use of uninitialized variable 'localU32Matrix'
-77:8 error[E0381]: use of uninitialized variable 'localF32Matrix'

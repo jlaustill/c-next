@@ -5,14 +5,40 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // ADR-035: Fill-All Syntax Test
-// Tests: [0*] fills all elements
+// Tests: [value*] fills all elements with the specified value
+// Validates that all array elements are properly initialized
 // Zero fill
 uint8_t buffer[100] = {0};
 
 // Fill with other values
-uint8_t ones[50] = {1};
+uint8_t ones[50] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-uint16_t magic[10] = {0xDEAD};
+uint16_t magic[10] = {0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD};
 
-int32_t negatives[5] = {-1};
+int32_t negatives[5] = {-1, -1, -1, -1, -1};
+
+uint32_t main(void) {
+    if (buffer[0] != 0) return 1;
+    if (buffer[49] != 0) return 2;
+    if (buffer[99] != 0) return 3;
+    if (ones[0] != 1) return 4;
+    if (ones[24] != 1) return 5;
+    if (ones[49] != 1) return 6;
+    if (magic[0] != 0xDEAD) return 7;
+    if (magic[5] != 0xDEAD) return 8;
+    if (magic[9] != 0xDEAD) return 9;
+    if (negatives[0] != -1) return 10;
+    if (negatives[2] != -1) return 11;
+    if (negatives[4] != -1) return 12;
+    buffer[50] = 42;
+    if (buffer[50] != 42) return 13;
+    if (buffer[49] != 0) return 14;
+    if (buffer[51] != 0) return 15;
+    ones[25] = 255;
+    if (ones[25] != 255) return 16;
+    if (ones[24] != 1) return 17;
+    if (ones[26] != 1) return 18;
+    return 0;
+}

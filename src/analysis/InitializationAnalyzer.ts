@@ -154,14 +154,19 @@ class InitializationListener extends CNextListener {
       this.analyzer.recordAssignment(name);
     }
 
-    // Member access: p.x <- value (only first-level field)
+    // Member access: p.x <- value (struct field) or arr[i][j] <- value (multi-dim array)
     if (targetCtx.memberAccess()) {
       const memberCtx = targetCtx.memberAccess()!;
       const identifiers = memberCtx.IDENTIFIER();
       if (identifiers.length >= 2) {
+        // Struct field access: p.x <- value
         const varName = identifiers[0].getText();
         const fieldName = identifiers[1].getText();
         this.analyzer.recordAssignment(varName, fieldName);
+      } else if (identifiers.length === 1) {
+        // Multi-dimensional array access: arr[i][j] <- value
+        const varName = identifiers[0].getText();
+        this.analyzer.recordAssignment(varName);
       }
     }
 
@@ -344,11 +349,54 @@ class InitializationListener extends CNextListener {
     this.savedStates.push(this.analyzer.cloneScopeState());
   };
 
-  override exitForStatement = (_ctx: Parser.ForStatementContext): void => {
-    // Same as while - conservative approach
+  /**
+   * Check if a for-loop is deterministic (will definitely run at least once)
+   * A loop is deterministic if it has the form: for (var <- 0; var < CONSTANT; ...)
+   * where CONSTANT > 0
+   */
+  private isDeterministicForLoop(ctx: Parser.ForStatementContext): boolean {
+    const init = ctx.forInit();
+    const cond = ctx.expression();
+
+    if (!init || !cond) return false;
+
+    // Check if init is a variable declaration starting at 0
+    const forVarDecl = init.forVarDecl();
+    if (forVarDecl) {
+      const initExpr = forVarDecl.expression();
+      if (!initExpr) return false;
+      const initText = initExpr.getText();
+      if (initText !== "0") return false;
+    } else {
+      // forAssignment case: check if assigning 0
+      const forAssign = init.forAssignment();
+      if (!forAssign) return false;
+      const assignExpr = forAssign.expression();
+      if (!assignExpr) return false;
+      const assignText = assignExpr.getText();
+      if (assignText !== "0") return false;
+    }
+
+    // Check if condition is var < POSITIVE_CONSTANT
+    const condText = cond.getText();
+    // Match patterns like "i<4" or "ti<3" (no spaces in AST getText())
+    const match = condText.match(/^\w+<(\d+)$/);
+    if (!match) return false;
+    const bound = parseInt(match[1], 10);
+    return bound > 0;
+  }
+
+  override exitForStatement = (ctx: Parser.ForStatementContext): void => {
     const stateBeforeLoop = this.savedStates.pop();
     if (stateBeforeLoop) {
-      this.analyzer.restoreFromState(stateBeforeLoop);
+      const isDeterministic = this.isDeterministicForLoop(ctx);
+      if (isDeterministic) {
+        // Deterministic loop - preserve initialization (loop WILL run)
+        this.analyzer.mergeInitializationState(stateBeforeLoop);
+      } else {
+        // Non-deterministic loop - conservative restore (loop might not run)
+        this.analyzer.restoreFromState(stateBeforeLoop);
+      }
     }
   };
 }
@@ -648,6 +696,32 @@ class InitializationAnalyzer {
         currentVar.initialized = savedVarState.initialized;
         currentVar.initializedFields = new Set(savedVarState.initializedFields);
       }
+    }
+  }
+
+  /**
+   * Merge initialization state from a saved snapshot
+   * Used for deterministic loops where initialization inside the loop
+   * should be preserved (the loop WILL run at least once)
+   */
+  public mergeInitializationState(
+    beforeState: Map<string, IVariableState>,
+  ): void {
+    let scope = this.currentScope;
+    while (scope) {
+      for (const [name, currentState] of scope.variables) {
+        const beforeVar = beforeState.get(name);
+        if (beforeVar) {
+          // Preserve initialization if it happened inside the loop
+          // (currentState.initialized stays true if set inside loop)
+          // Merge initializedFields from before state to preserve any
+          // fields that were initialized before the loop
+          for (const field of beforeVar.initializedFields) {
+            currentState.initializedFields.add(field);
+          }
+        }
+      }
+      scope = scope.parent;
     }
   }
 
