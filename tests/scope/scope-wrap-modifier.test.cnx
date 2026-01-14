@@ -1,3 +1,4 @@
+/* test-execution */
 // Test: ADR-016 + ADR-044 Wrap overflow modifier inside scopes
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
@@ -14,128 +15,159 @@ scope WrapTest {
     wrap u32 position <- 50;
 
     // Public getter methods using this. accessor for wrap variables
-    u8 getByteCounter() {
+    public u8 getByteCounter() {
         return this.byteCounter;
     }
 
-    u16 getTickCount() {
+    public u16 getTickCount() {
         return this.tickCount;
     }
 
-    u32 getCycleCounter() {
+    public u32 getCycleCounter() {
         return this.cycleCounter;
     }
 
-    u8 getBrightness() {
+    public u8 getBrightness() {
         return this.brightness;
     }
 
-    u16 getSensorValue() {
+    public u16 getSensorValue() {
         return this.sensorValue;
     }
 
-    u32 getPosition() {
+    public u32 getPosition() {
         return this.position;
     }
 
     // Increment methods using wrap compound add (+<-)
     // These test overflow wrapping (back to 0 and continue)
-    void incrementByteCounter() {
+    public void incrementByteCounter() {
         this.byteCounter +<- 10;  // 250 + 10 = 260 -> wraps to 4
     }
 
-    void incrementTickCount() {
+    public void incrementTickCount() {
         this.tickCount +<- 10;  // 65530 + 10 = 65540 -> wraps to 4
     }
 
-    void incrementCycleCounter() {
+    public void incrementCycleCounter() {
         this.cycleCounter +<- 10;  // Would overflow and wrap
     }
 
     // Simple increment (no overflow expected)
-    void incrementBrightness() {
+    public void incrementBrightness() {
         this.brightness +<- 5;  // Normal increment, no wrap
     }
 
-    void incrementSensorValue() {
+    public void incrementSensorValue() {
         this.sensorValue +<- 100;  // Normal increment, no wrap
     }
 
-    void incrementPosition() {
+    public void incrementPosition() {
         this.position +<- 1000;  // Normal increment, no wrap
     }
 
     // Decrement methods using wrap compound subtract (-<-)
     // These test underflow wrapping (back to MAX and continue)
-    void decrementBrightness() {
+    public void decrementBrightness() {
         this.brightness -<- 20;  // 10 - 20 = -10 -> wraps to 246
     }
 
-    void decrementSensorValue() {
+    public void decrementSensorValue() {
         this.sensorValue -<- 150;  // 100 - 150 = -50 -> wraps to 65486
     }
 
-    void decrementPosition() {
+    public void decrementPosition() {
         this.position -<- 100;  // 50 - 100 = -50 -> wraps to UINT32_MAX - 49
     }
 
     // Normal decrements (no underflow expected)
-    void decrementByteCounter() {
-        this.byteCounter -<- 10;  // Normal decrement
+    public void decrementByteCounter() {
+        this.byteCounter -<- 1;  // Normal decrement
     }
 
-    void decrementTickCount() {
-        this.tickCount -<- 100;  // Normal decrement
+    public void decrementTickCount() {
+        this.tickCount -<- 1;  // Normal decrement
     }
 
-    void decrementCycleCounter() {
-        this.cycleCounter -<- 1000;  // Normal decrement
+    public void decrementCycleCounter() {
+        this.cycleCounter -<- 1;  // Normal decrement
     }
 
-    // Combined operations to test multiple wrap behaviors
-    void updateCounters() {
-        this.byteCounter +<- 1;
-        this.tickCount +<- 1;
-        this.cycleCounter +<- 1;
+    // Setter methods for resetting state
+    public void setByteCounter(u8 val) {
+        this.byteCounter <- val;
     }
 
-    void adjustValues() {
-        this.brightness +<- 10;
-        this.sensorValue -<- 50;
-        this.position +<- 25;
+    public void setBrightness(u8 val) {
+        this.brightness <- val;
+    }
+
+    public void setSensorValue(u16 val) {
+        this.sensorValue <- val;
+    }
+
+    public void setPosition(u32 val) {
+        this.position <- val;
     }
 }
 
-void main() {
-    // Test reading wrap values via this. accessor
-    WrapTest.getByteCounter();
-    WrapTest.getTickCount();
-    WrapTest.getCycleCounter();
-    WrapTest.getBrightness();
-    WrapTest.getSensorValue();
-    WrapTest.getPosition();
+u32 main() {
+    // Test 1-6: Validate initial values
+    if (WrapTest.getByteCounter() != 250) return 1;
+    if (WrapTest.getTickCount() != 65530) return 2;
+    if (WrapTest.getCycleCounter() != 4294967290) return 3;
+    if (WrapTest.getBrightness() != 10) return 4;
+    if (WrapTest.getSensorValue() != 100) return 5;
+    if (WrapTest.getPosition() != 50) return 6;
 
-    // Test wrap overflow operations (add wrapping)
+    // Test 7: u8 overflow wraps around (250 + 10 = 260 -> 4)
     WrapTest.incrementByteCounter();
+    if (WrapTest.getByteCounter() != 4) return 7;
+
+    // Test 8: u16 overflow wraps around (65530 + 10 = 65540 -> 4)
     WrapTest.incrementTickCount();
+    if (WrapTest.getTickCount() != 4) return 8;
+
+    // Test 9: u32 overflow wraps around (4294967290 + 10 = 4294967300 -> 4)
     WrapTest.incrementCycleCounter();
+    if (WrapTest.getCycleCounter() != 4) return 9;
 
-    // Test normal increments
+    // Test 10: Normal u8 increment (10 + 5 = 15)
+    if (WrapTest.getBrightness() != 10) return 100;  // Verify initial
     WrapTest.incrementBrightness();
+    if (WrapTest.getBrightness() != 15) return 10;
+
+    // Test 11: Normal u16 increment (100 + 100 = 200)
     WrapTest.incrementSensorValue();
+    if (WrapTest.getSensorValue() != 200) return 11;
+
+    // Test 12: Normal u32 increment (50 + 1000 = 1050)
     WrapTest.incrementPosition();
+    if (WrapTest.getPosition() != 1050) return 12;
 
-    // Test wrap underflow operations (subtract wrapping)
-    WrapTest.decrementBrightness();
-    WrapTest.decrementSensorValue();
-    WrapTest.decrementPosition();
+    // Test 13: u8 underflow wraps around
+    // Reset brightness to 10 first
+    WrapTest.setBrightness(10);
+    WrapTest.decrementBrightness();  // 10 - 20 = -10 -> wraps to 246
+    if (WrapTest.getBrightness() != 246) return 13;
 
-    // Test normal decrements
-    WrapTest.decrementByteCounter();
-    WrapTest.decrementTickCount();
-    WrapTest.decrementCycleCounter();
+    // Test 14: u16 underflow wraps around
+    // Reset sensorValue to 100 first
+    WrapTest.setSensorValue(100);
+    WrapTest.decrementSensorValue();  // 100 - 150 = -50 -> wraps to 65486
+    if (WrapTest.getSensorValue() != 65486) return 14;
 
-    // Test combined operations
-    WrapTest.updateCounters();
-    WrapTest.adjustValues();
+    // Test 15: u32 underflow wraps around
+    // Reset position to 50 first
+    WrapTest.setPosition(50);
+    WrapTest.decrementPosition();  // 50 - 100 = -50 -> wraps to UINT32_MAX - 49 = 4294967246
+    if (WrapTest.getPosition() != 4294967246) return 15;
+
+    // Test 16-18: Normal decrements after wrap
+    WrapTest.setByteCounter(10);
+    WrapTest.decrementByteCounter();  // 10 - 1 = 9
+    if (WrapTest.getByteCounter() != 9) return 16;
+
+    // All 16 validations passed
+    return 0;
 }

@@ -1,3 +1,4 @@
+/* test-execution */
 // Test: Compound assignment with scope-local (this.) patterns
 // Tests lines 4336 and 4338 in CodeGenerator.ts
 
@@ -34,6 +35,6 @@ scope Counter {
     }
 }
 
-i32 main() {
+u32 main() {
     return Counter.test();
 }

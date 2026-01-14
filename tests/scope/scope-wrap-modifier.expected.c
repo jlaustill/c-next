@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-execution */
 // Test: ADR-016 + ADR-044 Wrap overflow modifier inside scopes
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
@@ -77,48 +78,64 @@ void WrapTest_decrementPosition(void) {
 }
 
 void WrapTest_decrementByteCounter(void) {
-    WrapTest_byteCounter -= 10;
+    WrapTest_byteCounter -= 1;
 }
 
 void WrapTest_decrementTickCount(void) {
-    WrapTest_tickCount -= 100;
+    WrapTest_tickCount -= 1;
 }
 
 void WrapTest_decrementCycleCounter(void) {
-    WrapTest_cycleCounter -= 1000;
+    WrapTest_cycleCounter -= 1;
 }
 
-void WrapTest_updateCounters(void) {
-    WrapTest_byteCounter += 1;
-    WrapTest_tickCount += 1;
-    WrapTest_cycleCounter += 1;
+void WrapTest_setByteCounter(uint8_t* val) {
+    WrapTest_byteCounter = (*val);
 }
 
-void WrapTest_adjustValues(void) {
-    WrapTest_brightness += 10;
-    WrapTest_sensorValue -= 50;
-    WrapTest_position += 25;
+void WrapTest_setBrightness(uint8_t* val) {
+    WrapTest_brightness = (*val);
 }
 
-void main(void) {
-    WrapTest_getByteCounter();
-    WrapTest_getTickCount();
-    WrapTest_getCycleCounter();
-    WrapTest_getBrightness();
-    WrapTest_getSensorValue();
-    WrapTest_getPosition();
+void WrapTest_setSensorValue(uint16_t* val) {
+    WrapTest_sensorValue = (*val);
+}
+
+void WrapTest_setPosition(uint32_t* val) {
+    WrapTest_position = (*val);
+}
+
+uint32_t main(void) {
+    if (WrapTest_getByteCounter() != 250) return 1;
+    if (WrapTest_getTickCount() != 65530) return 2;
+    if (WrapTest_getCycleCounter() != 4294967290) return 3;
+    if (WrapTest_getBrightness() != 10) return 4;
+    if (WrapTest_getSensorValue() != 100) return 5;
+    if (WrapTest_getPosition() != 50) return 6;
     WrapTest_incrementByteCounter();
+    if (WrapTest_getByteCounter() != 4) return 7;
     WrapTest_incrementTickCount();
+    if (WrapTest_getTickCount() != 4) return 8;
     WrapTest_incrementCycleCounter();
+    if (WrapTest_getCycleCounter() != 4) return 9;
+    if (WrapTest_getBrightness() != 10) return 100;
     WrapTest_incrementBrightness();
+    if (WrapTest_getBrightness() != 15) return 10;
     WrapTest_incrementSensorValue();
+    if (WrapTest_getSensorValue() != 200) return 11;
     WrapTest_incrementPosition();
+    if (WrapTest_getPosition() != 1050) return 12;
+    WrapTest_setBrightness(&(uint8_t){10});
     WrapTest_decrementBrightness();
+    if (WrapTest_getBrightness() != 246) return 13;
+    WrapTest_setSensorValue(&(uint16_t){100});
     WrapTest_decrementSensorValue();
+    if (WrapTest_getSensorValue() != 65486) return 14;
+    WrapTest_setPosition(&(uint32_t){50});
     WrapTest_decrementPosition();
+    if (WrapTest_getPosition() != 4294967246) return 15;
+    WrapTest_setByteCounter(&(uint8_t){10});
     WrapTest_decrementByteCounter();
-    WrapTest_decrementTickCount();
-    WrapTest_decrementCycleCounter();
-    WrapTest_updateCounters();
-    WrapTest_adjustValues();
+    if (WrapTest_getByteCounter() != 9) return 16;
+    return 0;
 }

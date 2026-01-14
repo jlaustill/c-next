@@ -1,3 +1,4 @@
+/* test-execution */
 // Test: Compound assignment with cross-scope access
 // Tests OtherScope.var +<- value pattern
 
@@ -18,7 +19,7 @@ scope Manager {
     }
 }
 
-i32 main() {
+u32 main() {
     Manager.incrementCounter();
     Manager.incrementCounterArray();
 
