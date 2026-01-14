@@ -8,23 +8,24 @@
 
 /* test-execution */
 // Comprehensive .length test for bool type across all contexts
-// Tests: .length returns 1 for bool in every possible scope and access pattern
+// Tests: .length returns 8 for bool in every possible scope and access pattern
+// Note: bool storage is 1 byte (8 bits), not 1 bit
 bool globalVar = true;
 
 /* Scope: TestScope */
 
 uint32_t TestScope_getGlobalLength(void) {
-    return 1;
+    return 8;
 }
 bool TestScope_scopeMember = true;
 
 uint32_t TestScope_getMemberLength(void) {
-    return 1;
+    return 8;
 }
 bool TestScope_publicMember = true;
 
 uint32_t checkParamLength(bool* param) {
-    return 1;
+    return 8;
 }
 
 typedef struct {
@@ -32,34 +33,34 @@ typedef struct {
 } TestStruct;
 
 int32_t main(void) {
-    if (1 != 1) {
+    if (8 != 8) {
         return 1;
     }
-    if (TestScope_getGlobalLength() != 1) {
+    if (TestScope_getGlobalLength() != 8) {
         return 2;
     }
-    if (TestScope_getMemberLength() != 1) {
+    if (TestScope_getMemberLength() != 8) {
         return 3;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 4;
     }
     bool localVar = true;
-    if (1 != 1) {
+    if (8 != 8) {
         return 5;
     }
     bool testVal = true;
-    if (checkParamLength(&testVal) != 1) {
+    if (checkParamLength(&testVal) != 8) {
         return 6;
     }
     TestStruct ts = {0};
     ts.member = true;
-    if (1 != 1) {
+    if (8 != 8) {
         return 7;
     }
     bool arr[4] = {0};
     arr[0] = true;
-    if (1 != 1) {
+    if (8 != 8) {
         return 8;
     }
     return 0;

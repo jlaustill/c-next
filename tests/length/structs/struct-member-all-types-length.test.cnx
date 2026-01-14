@@ -64,7 +64,7 @@ u32 checkParamStructMembers(AllTypes param) {
     if (param.f64Field.length != 64) {
         return 10;
     }
-    if (param.boolField.length != 1) {
+    if (param.boolField.length != 8) {
         return 11;
     }
     return 0;
@@ -115,7 +115,7 @@ i32 main() {
     if (globalStruct.f64Field.length != 64) {
         return 10;
     }
-    if (globalStruct.boolField.length != 1) {
+    if (globalStruct.boolField.length != 8) {
         return 11;
     }
 
@@ -168,7 +168,7 @@ i32 main() {
     if (localStruct.f64Field.length != 64) {
         return 22;
     }
-    if (localStruct.boolField.length != 1) {
+    if (localStruct.boolField.length != 8) {
         return 23;
     }
 

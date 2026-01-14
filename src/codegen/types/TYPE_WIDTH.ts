@@ -12,7 +12,7 @@ const TYPE_WIDTH: Record<string, number> = {
   i64: 64,
   f32: 32,
   f64: 64,
-  bool: 1,
+  bool: 8, // Storage size is 1 byte (8 bits), not 1 bit
 };
 
 export default TYPE_WIDTH;

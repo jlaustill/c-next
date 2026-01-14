@@ -13,8 +13,8 @@ const C_TYPE_WIDTH: Record<string, number> = {
   int64_t: 64,
   float: 32,
   double: 64,
-  _Bool: 1,
-  bool: 1,
+  _Bool: 8, // Storage size is 1 byte (8 bits), not 1 bit
+  bool: 8, // Storage size is 1 byte (8 bits), not 1 bit
   char: 8,
   "unsigned char": 8,
   "signed char": 8,

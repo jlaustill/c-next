@@ -1,6 +1,6 @@
 /* test-execution */
 // Comprehensive .length test for bool arrays across all contexts
-// Tests: array.length returns 16 (element count), array[0].length returns 1 (element bit width)
+// Tests: array.length returns 16 (element count), array[0].length returns 8 (element byte width)
 
 bool globalArr[16];
 
@@ -45,7 +45,7 @@ i32 main() {
         return 1;
     }
 
-    if (globalArr[0].length != 1) {
+    if (globalArr[0].length != 8) {
         return 2;
     }
 
@@ -53,7 +53,7 @@ i32 main() {
         return 3;
     }
 
-    if (TestScope.getGlobalElementLength() != 1) {
+    if (TestScope.getGlobalElementLength() != 8) {
         return 4;
     }
 
@@ -61,7 +61,7 @@ i32 main() {
         return 5;
     }
 
-    if (TestScope.getScopeElementLength() != 1) {
+    if (TestScope.getScopeElementLength() != 8) {
         return 6;
     }
 
@@ -69,7 +69,7 @@ i32 main() {
         return 7;
     }
 
-    if (TestScope.publicArr[0].length != 1) {
+    if (TestScope.publicArr[0].length != 8) {
         return 8;
     }
 
@@ -78,7 +78,7 @@ i32 main() {
     if (localArr.length != 16) {
         return 9;
     }
-    if (localArr[0].length != 1) {
+    if (localArr[0].length != 8) {
         return 10;
     }
 
@@ -88,7 +88,7 @@ i32 main() {
         return 11;
     }
 
-    if (checkElementLength(testArr) != 1) {
+    if (checkElementLength(testArr) != 8) {
         return 12;
     }
 
@@ -97,7 +97,7 @@ i32 main() {
     if (ts.arr.length != 16) {
         return 13;
     }
-    if (ts.arr[0].length != 1) {
+    if (ts.arr[0].length != 8) {
         return 14;
     }
 
