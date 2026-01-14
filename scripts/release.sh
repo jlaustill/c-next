@@ -9,6 +9,7 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo "========================================"
@@ -60,6 +61,7 @@ fi
 
 # Get current version from package.json
 CURRENT_VERSION=$(grep '"version"' package.json | sed 's/.*"\([0-9.]*\)".*/\1/')
+CURRENT_TAG="v$CURRENT_VERSION"
 echo "Current version: $CURRENT_VERSION"
 echo "New version:     $VERSION"
 echo ""
@@ -82,19 +84,169 @@ echo ""
 echo -e "${GREEN}All checks passed!${NC}"
 echo ""
 
-# Show what will be released
-echo "========================================"
-echo "  Changes since v$CURRENT_VERSION"
-echo "========================================"
-git log "v$CURRENT_VERSION"..HEAD --oneline --merges | head -20
+# Generate release notes
+echo -e "${YELLOW}Generating release notes...${NC}"
+
+# Get merged PRs since last tag
+MERGED_PRS=$(git log "$CURRENT_TAG"..HEAD --oneline --merges | grep -oP '#\d+' | tr -d '#' | sort -u)
+
+# Initialize categories
+declare -a BUG_FIXES
+declare -a FEATURES
+declare -a TEST_COVERAGE
+declare -a DOCUMENTATION
+declare -a REFACTORING
+declare -a OTHER
+
+# Categorize each PR
+for PR_NUM in $MERGED_PRS; do
+    # Get PR info from GitHub
+    PR_INFO=$(gh pr view "$PR_NUM" --json title,headRefName,body 2>/dev/null || echo "")
+
+    if [ -z "$PR_INFO" ]; then
+        continue
+    fi
+
+    PR_TITLE=$(echo "$PR_INFO" | jq -r '.title')
+    PR_BRANCH=$(echo "$PR_INFO" | jq -r '.headRefName')
+    PR_BODY=$(echo "$PR_INFO" | jq -r '.body')
+
+    # Extract issue number if present (closes #X, fixes #X, etc.)
+    ISSUE_REF=""
+    if echo "$PR_TITLE $PR_BODY" | grep -qiE '(closes?|fixes?|resolves?)\s*#[0-9]+'; then
+        ISSUE_NUM=$(echo "$PR_TITLE $PR_BODY" | grep -oiE '(closes?|fixes?|resolves?)\s*#[0-9]+' | head -1 | grep -oE '[0-9]+')
+        if [ -n "$ISSUE_NUM" ]; then
+            ISSUE_REF=", closes #$ISSUE_NUM"
+        fi
+    fi
+
+    # Format the entry
+    ENTRY="- $PR_TITLE (#$PR_NUM$ISSUE_REF)"
+
+    # Categorize based on branch name prefix
+    case "$PR_BRANCH" in
+        fix/*|bugfix/*|hotfix/*)
+            BUG_FIXES+=("$ENTRY")
+            ;;
+        feature/*|feat/*)
+            # Check if it's actually a test coverage PR
+            if echo "$PR_TITLE" | grep -qiE 'test|coverage'; then
+                TEST_COVERAGE+=("$ENTRY")
+            else
+                FEATURES+=("$ENTRY")
+            fi
+            ;;
+        test/*|tests/*)
+            TEST_COVERAGE+=("$ENTRY")
+            ;;
+        docs/*|doc/*)
+            DOCUMENTATION+=("$ENTRY")
+            ;;
+        refactor/*|chore/*)
+            REFACTORING+=("$ENTRY")
+            ;;
+        *)
+            # Try to categorize by title if branch name doesn't match
+            if echo "$PR_TITLE" | grep -qiE '^fix|bug'; then
+                BUG_FIXES+=("$ENTRY")
+            elif echo "$PR_TITLE" | grep -qiE 'test|coverage'; then
+                TEST_COVERAGE+=("$ENTRY")
+            elif echo "$PR_TITLE" | grep -qiE '^doc|readme'; then
+                DOCUMENTATION+=("$ENTRY")
+            elif echo "$PR_TITLE" | grep -qiE 'refactor|migrate|chore'; then
+                REFACTORING+=("$ENTRY")
+            else
+                OTHER+=("$ENTRY")
+            fi
+            ;;
+    esac
+done
+
+# Create release notes file
+NOTES_FILE=$(mktemp /tmp/release-notes-XXXXXX.md)
+
+{
+    if [ ${#BUG_FIXES[@]} -gt 0 ]; then
+        echo "## Bug Fixes"
+        echo ""
+        printf '%s\n' "${BUG_FIXES[@]}"
+        echo ""
+    fi
+
+    if [ ${#FEATURES[@]} -gt 0 ]; then
+        echo "## Features & Improvements"
+        echo ""
+        printf '%s\n' "${FEATURES[@]}"
+        echo ""
+    fi
+
+    if [ ${#TEST_COVERAGE[@]} -gt 0 ]; then
+        echo "## Test Coverage"
+        echo ""
+        printf '%s\n' "${TEST_COVERAGE[@]}"
+        echo ""
+    fi
+
+    if [ ${#REFACTORING[@]} -gt 0 ]; then
+        echo "## Refactoring & Maintenance"
+        echo ""
+        printf '%s\n' "${REFACTORING[@]}"
+        echo ""
+    fi
+
+    if [ ${#DOCUMENTATION[@]} -gt 0 ]; then
+        echo "## Documentation"
+        echo ""
+        printf '%s\n' "${DOCUMENTATION[@]}"
+        echo ""
+    fi
+
+    if [ ${#OTHER[@]} -gt 0 ]; then
+        echo "## Other Changes"
+        echo ""
+        printf '%s\n' "${OTHER[@]}"
+        echo ""
+    fi
+} > "$NOTES_FILE"
+
+# Show generated notes
+echo ""
+echo -e "${BLUE}========================================"
+echo "  Generated Release Notes"
+echo "========================================${NC}"
+cat "$NOTES_FILE"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+
+# Open in editor for review
+EDITOR_CMD="${EDITOR:-${VISUAL:-nano}}"
+echo -e "${YELLOW}Opening release notes in $EDITOR_CMD for review...${NC}"
+echo "(Save and exit when done, or clear the file to cancel)"
+read -p "Press Enter to open editor..." -r
+$EDITOR_CMD "$NOTES_FILE"
+
+# Check if file is empty (user cancelled)
+if [ ! -s "$NOTES_FILE" ]; then
+    echo -e "${RED}Release notes are empty. Release cancelled.${NC}"
+    rm -f "$NOTES_FILE"
+    exit 0
+fi
+
+# Show final notes and confirm
+echo ""
+echo -e "${BLUE}Final release notes:${NC}"
+echo "----------------------------------------"
+cat "$NOTES_FILE"
+echo "----------------------------------------"
 echo ""
 
 # Confirm release
 echo -e "${YELLOW}Ready to release $TAG${NC}"
-read -p "Continue? (y/N) " -n 1 -r
+read -p "Continue with release? (y/N) " -n 1 -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Release cancelled."
+    rm -f "$NOTES_FILE"
     exit 0
 fi
 
@@ -120,11 +272,10 @@ git push origin "$TAG"
 # Create GitHub release
 echo ""
 echo -e "${YELLOW}Creating GitHub release...${NC}"
-echo "Enter release notes (press Ctrl+D when done):"
-echo "---"
-NOTES=$(cat)
+gh release create "$TAG" --title "$TAG" --notes-file "$NOTES_FILE"
 
-gh release create "$TAG" --title "$TAG" --notes "$NOTES"
+# Cleanup
+rm -f "$NOTES_FILE"
 
 echo ""
 echo -e "${GREEN}========================================"
