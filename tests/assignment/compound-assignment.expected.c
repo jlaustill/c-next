@@ -8,19 +8,19 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > UINT32_MAX - a) return UINT32_MAX;
+    return a + (uint32_t)b;
 }
 
-static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint32_t b) {
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
-    return a * b;
+    return a * (uint32_t)b;
 }
 
-static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint32_t b) {
-    if (a < b) return 0;
-    return a - b;
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b >= (uint64_t)a) return 0;
+    return a - (uint32_t)b;
 }
 
 /* test-execution */

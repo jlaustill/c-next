@@ -8,47 +8,50 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
-    if (a > UINT16_MAX - b) return UINT16_MAX;
-    return a + b;
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > UINT16_MAX - a) return UINT16_MAX;
+    return a + (uint16_t)b;
 }
 
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > UINT32_MAX - a) return UINT32_MAX;
+    return a + (uint32_t)b;
 }
 
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
-    if (a > UINT8_MAX - b) return UINT8_MAX;
-    return a + b;
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > UINT8_MAX - a) return UINT8_MAX;
+    return a + (uint8_t)b;
 }
 
-static inline int16_t cnx_clamp_sub_i16(int16_t a, int16_t b) {
-    if (b < 0 && a > INT16_MAX + b) return INT16_MAX;
-    if (b > 0 && a < INT16_MIN + b) return INT16_MIN;
-    return a - b;
+static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
 }
 
-static inline int32_t cnx_clamp_sub_i32(int32_t a, int32_t b) {
-    if (b < 0 && a > INT32_MAX + b) return INT32_MAX;
-    if (b > 0 && a < INT32_MIN + b) return INT32_MIN;
-    return a - b;
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
 }
 
-static inline int8_t cnx_clamp_sub_i8(int8_t a, int8_t b) {
-    if (b < 0 && a > INT8_MAX + b) return INT8_MAX;
-    if (b > 0 && a < INT8_MIN + b) return INT8_MIN;
-    return a - b;
+static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
 }
 
-static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint16_t b) {
-    if (a < b) return 0;
-    return a - b;
+static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
+    if (b >= (uint32_t)a) return 0;
+    return a - (uint16_t)b;
 }
 
-static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
-    if (a < b) return 0;
-    return a - b;
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b >= (uint32_t)a) return 0;
+    return a - (uint8_t)b;
 }
 
 /* test-execution */

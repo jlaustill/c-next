@@ -8,19 +8,19 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint8_t b) {
-    if (a > UINT8_MAX - b) return UINT8_MAX;
-    return a + b;
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > UINT8_MAX - a) return UINT8_MAX;
+    return a + (uint8_t)b;
 }
 
-static inline uint16_t cnx_clamp_mul_u16(uint16_t a, uint16_t b) {
+static inline uint16_t cnx_clamp_mul_u16(uint16_t a, uint32_t b) {
     if (b != 0 && a > UINT16_MAX / b) return UINT16_MAX;
-    return a * b;
+    return a * (uint16_t)b;
 }
 
-static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint8_t b) {
-    if (a < b) return 0;
-    return a - b;
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b >= (uint32_t)a) return 0;
+    return a - (uint8_t)b;
 }
 
 // ADR-044: Test compound assignments with overflow behavior

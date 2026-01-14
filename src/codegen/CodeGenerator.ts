@@ -43,6 +43,21 @@ const TYPE_MAP: Record<string, string> = {
 };
 
 /**
+ * Maps C-Next types to wider C types for clamp helper operands
+ * Issue #94: Prevents silent truncation when operand exceeds target type range
+ */
+const WIDER_TYPE_MAP: Record<string, string> = {
+  u8: "uint32_t",
+  u16: "uint32_t",
+  u32: "uint64_t",
+  u64: "uint64_t", // Already widest
+  i8: "int32_t",
+  i16: "int32_t",
+  i32: "int64_t",
+  i64: "int64_t", // Already widest
+};
+
+/**
  * Maps C-Next assignment operators to C assignment operators
  */
 const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
@@ -8377,6 +8392,7 @@ export default class CodeGenerator {
     cnxType: string,
   ): string | null {
     const cType = TYPE_MAP[cnxType];
+    const widerType = WIDER_TYPE_MAP[cnxType] || cType;
     const maxValue = CodeGenerator.TYPE_MAX[cnxType];
     const minValue = CodeGenerator.TYPE_MIN[cnxType];
 
@@ -8386,16 +8402,29 @@ export default class CodeGenerator {
 
     const isUnsigned = cnxType.startsWith("u");
 
+    // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
+    const useWiderArithmetic =
+      !isUnsigned && widerType !== cType && cnxType !== "i64";
+
     switch (operation) {
       case "add":
         if (isUnsigned) {
-          // Unsigned addition: check if result would wrap
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
-    if (a > ${maxValue} - b) return ${maxValue};
-    return a + b;
+          // Unsigned addition: use wider type for b to prevent truncation (Issue #94)
+          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
+    if (b > ${maxValue} - a) return ${maxValue};
+    return a + (${cType})b;
+}`;
+        } else if (useWiderArithmetic) {
+          // Signed addition: compute in wider type, then clamp (Issue #94)
+          // This avoids UB from casting out-of-range values
+          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
+    ${widerType} result = (${widerType})a + b;
+    if (result > ${maxValue}) return ${maxValue};
+    if (result < ${minValue}) return ${minValue};
+    return (${cType})result;
 }`;
         } else {
-          // Signed addition: check both overflow and underflow
+          // i64: already widest type, use original check logic
           return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
     if (b > 0 && a > ${maxValue} - b) return ${maxValue};
     if (b < 0 && a < ${minValue} - b) return ${minValue};
@@ -8405,13 +8434,22 @@ export default class CodeGenerator {
 
       case "sub":
         if (isUnsigned) {
-          // Unsigned subtraction: check if result would underflow
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
-    if (a < b) return 0;
-    return a - b;
+          // Unsigned subtraction: use wider type for b to prevent truncation (Issue #94)
+          // Cast a to wider type for comparison to handle b > type max
+          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
+    if (b >= (${widerType})a) return 0;
+    return a - (${cType})b;
+}`;
+        } else if (useWiderArithmetic) {
+          // Signed subtraction: compute in wider type, then clamp (Issue #94)
+          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
+    ${widerType} result = (${widerType})a - b;
+    if (result > ${maxValue}) return ${maxValue};
+    if (result < ${minValue}) return ${minValue};
+    return (${cType})result;
 }`;
         } else {
-          // Signed subtraction: check both overflow and underflow
+          // i64: already widest type, use original check logic
           return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
     if (b < 0 && a > ${maxValue} + b) return ${maxValue};
     if (b > 0 && a < ${minValue} + b) return ${minValue};
@@ -8421,13 +8459,21 @@ export default class CodeGenerator {
 
       case "mul":
         if (isUnsigned) {
-          // Unsigned multiplication
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+          // Unsigned multiplication: use wider type for b to prevent truncation (Issue #94)
+          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
     if (b != 0 && a > ${maxValue} / b) return ${maxValue};
-    return a * b;
+    return a * (${cType})b;
+}`;
+        } else if (useWiderArithmetic) {
+          // Signed multiplication: compute in wider type, then clamp (Issue #94)
+          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
+    ${widerType} result = (${widerType})a * b;
+    if (result > ${maxValue}) return ${maxValue};
+    if (result < ${minValue}) return ${minValue};
+    return (${cType})result;
 }`;
         } else {
-          // Signed multiplication: handle negative cases
+          // i64: already widest type, use original check logic
           return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
     if (a == 0 || b == 0) return 0;
     if (a > 0 && b > 0 && a > ${maxValue} / b) return ${maxValue};
@@ -8451,6 +8497,7 @@ export default class CodeGenerator {
     cnxType: string,
   ): string | null {
     const cType = TYPE_MAP[cnxType];
+    const widerType = WIDER_TYPE_MAP[cnxType] || cType;
     const maxValue = CodeGenerator.TYPE_MAX[cnxType];
     const minValue = CodeGenerator.TYPE_MIN[cnxType];
 
@@ -8466,17 +8513,33 @@ export default class CodeGenerator {
           ? "subtraction"
           : "multiplication";
 
+    // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
+    const useWiderArithmetic =
+      !isUnsigned && widerType !== cType && cnxType !== "i64";
+
     switch (operation) {
       case "add":
         if (isUnsigned) {
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
-    if (a > ${maxValue} - b) {
+          // Use wider type for b to prevent truncation (Issue #94)
+          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
+    if (b > ${maxValue} - a) {
         fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
         abort();
     }
-    return a + b;
+    return a + (${cType})b;
+}`;
+        } else if (useWiderArithmetic) {
+          // Signed addition: compute in wider type, check bounds (Issue #94)
+          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
+    ${widerType} result = (${widerType})a + b;
+    if (result > ${maxValue} || result < ${minValue}) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return (${cType})result;
 }`;
         } else {
+          // i64: already widest type, use original check logic
           return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
     if ((b > 0 && a > ${maxValue} - b) || (b < 0 && a < ${minValue} - b)) {
         fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
@@ -8488,14 +8551,26 @@ export default class CodeGenerator {
 
       case "sub":
         if (isUnsigned) {
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
-    if (a < b) {
+          // Use wider type for b to prevent truncation (Issue #94)
+          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
+    if (b >= (${widerType})a) {
         fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
         abort();
     }
-    return a - b;
+    return a - (${cType})b;
+}`;
+        } else if (useWiderArithmetic) {
+          // Signed subtraction: compute in wider type, check bounds (Issue #94)
+          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
+    ${widerType} result = (${widerType})a - b;
+    if (result > ${maxValue} || result < ${minValue}) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return (${cType})result;
 }`;
         } else {
+          // i64: already widest type, use original check logic
           return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
     if ((b < 0 && a > ${maxValue} + b) || (b > 0 && a < ${minValue} + b)) {
         fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
@@ -8507,14 +8582,26 @@ export default class CodeGenerator {
 
       case "mul":
         if (isUnsigned) {
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+          // Use wider type for b to prevent truncation (Issue #94)
+          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
     if (b != 0 && a > ${maxValue} / b) {
         fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
         abort();
     }
-    return a * b;
+    return a * (${cType})b;
+}`;
+        } else if (useWiderArithmetic) {
+          // Signed multiplication: compute in wider type, check bounds (Issue #94)
+          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
+    ${widerType} result = (${widerType})a * b;
+    if (result > ${maxValue} || result < ${minValue}) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return (${cType})result;
 }`;
         } else {
+          // i64: already widest type, use original check logic
           return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
     if (a != 0 && b != 0) {
         if ((a > 0 && b > 0 && a > ${maxValue} / b) ||

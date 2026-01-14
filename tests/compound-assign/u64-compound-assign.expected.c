@@ -9,18 +9,18 @@
 #include <limits.h>
 
 static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
-    if (a > UINT64_MAX - b) return UINT64_MAX;
-    return a + b;
+    if (b > UINT64_MAX - a) return UINT64_MAX;
+    return a + (uint64_t)b;
 }
 
 static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
     if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
-    return a * b;
+    return a * (uint64_t)b;
 }
 
 static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
-    if (a < b) return 0;
-    return a - b;
+    if (b >= (uint64_t)a) return 0;
+    return a - (uint64_t)b;
 }
 
 /* test-execution */

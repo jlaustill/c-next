@@ -8,10 +8,11 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline int32_t cnx_clamp_add_i32(int32_t a, int32_t b) {
-    if (b > 0 && a > INT32_MAX - b) return INT32_MAX;
-    if (b < 0 && a < INT32_MIN - b) return INT32_MIN;
-    return a + b;
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
 }
 
 /* test-execution */
