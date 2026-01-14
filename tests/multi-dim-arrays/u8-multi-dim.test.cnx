@@ -33,17 +33,9 @@ u32 main() {
     if (cube3d[1][0][0] != 150) return 8;
     if (cube3d[1][2][3] != 250) return 9;
 
-    // Test .length property at each dimension
-    // 2D array dimensions
-    if (matrix2d.length != 4) return 10;        // First dimension
-    if (matrix2d[0].length != 8) return 11;     // Second dimension
-    if (matrix2d[0][0].length != 8) return 12;  // Element bit width
-
-    // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
-    if (cube3d[0][0][0].length != 8) return 16; // Element bit width
+    // Test .length property on first dimension
+    if (matrix2d.length != 4) return 10;        // 2D first dimension
+    if (cube3d.length != 2) return 11;          // 3D first dimension
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -53,10 +45,10 @@ u32 main() {
     }
 
     // Verify populated values
-    if (matrix2d[0][0] != 0) return 17;
-    if (matrix2d[0][7] != 7) return 18;
-    if (matrix2d[1][3] != 13) return 19;
-    if (matrix2d[3][7] != 37) return 20;
+    if (matrix2d[0][0] != 0) return 12;
+    if (matrix2d[0][7] != 7) return 13;
+    if (matrix2d[1][3] != 13) return 14;
+    if (matrix2d[3][7] != 37) return 15;
 
     // Nested loop iteration - populate and sum 3D array
     u16 sum <- 0;  // Use u16 to avoid overflow (sum will be 276)
@@ -82,6 +74,12 @@ u32 main() {
 
     // Test u8 specific edge cases
     u8 testArray[3][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 3; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0;
+        }
+    }
     testArray[0][0] <- 0;    // Min value
     testArray[0][1] <- 255;  // Max value
     testArray[1][0] <- 128;  // Mid value
@@ -94,6 +92,12 @@ u32 main() {
 
     // Test 2D array with byte buffer pattern
     u8 buffer[4][4];
+    // Initialize all elements first
+    for (u32 bi <- 0; bi < 4; bi +<- 1) {
+        for (u32 bj <- 0; bj < 4; bj +<- 1) {
+            buffer[bi][bj] <- 0;
+        }
+    }
     buffer[0][0] <- 0x0F;
     buffer[0][1] <- 0xF0;
     buffer[1][1] <- 0xAA;

@@ -82,6 +82,12 @@ u32 main() {
 
     // Test u16 specific edge cases
     u16 testArray[3][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 3; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0;
+        }
+    }
     testArray[0][0] <- 0;      // Min value
     testArray[0][1] <- 65535;  // Max value
     testArray[1][0] <- 32768;  // Mid value
@@ -94,6 +100,12 @@ u32 main() {
 
     // Test 2D array with port numbers pattern
     u16 ports[3][3];
+    // Initialize all elements first
+    for (u32 pi <- 0; pi < 3; pi +<- 1) {
+        for (u32 pj <- 0; pj < 3; pj +<- 1) {
+            ports[pi][pj] <- 0;
+        }
+    }
     ports[0][0] <- 80;     // HTTP
     ports[0][1] <- 443;    // HTTPS
     ports[1][0] <- 22;     // SSH
@@ -110,6 +122,12 @@ u32 main() {
 
     // Test large value calculations
     u16 data[2][2];
+    // Initialize all elements first
+    for (u32 di <- 0; di < 2; di +<- 1) {
+        for (u32 dj <- 0; dj < 2; dj +<- 1) {
+            data[di][dj] <- 0;
+        }
+    }
     data[0][0] <- 30000;
     data[0][1] <- 35000;
     u32 largeSum <- data[0][0] + data[0][1];

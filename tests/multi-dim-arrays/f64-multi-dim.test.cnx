@@ -82,6 +82,12 @@ u32 main() {
 
     // Test f64 specific edge cases
     f64 testArray[4][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0.0;
+        }
+    }
     testArray[0][0] <- 0.0;                // Zero
     testArray[0][1] <- -0.0;               // Negative zero
     testArray[1][0] <- 1.0;                // One
@@ -98,6 +104,12 @@ u32 main() {
 
     // Test 2D array with scientific constants
     f64 constants[3][3];
+    // Initialize all elements first
+    for (u32 coi <- 0; coi < 3; coi +<- 1) {
+        for (u32 coj <- 0; coj < 3; coj +<- 1) {
+            constants[coi][coj] <- 0.0;
+        }
+    }
     constants[0][0] <- 3.14159265358979;   // Pi
     constants[0][1] <- 2.71828182845905;   // e
     constants[0][2] <- 1.61803398874989;   // Golden ratio
@@ -116,6 +128,12 @@ u32 main() {
 
     // Test high precision decimal calculations
     f64 precise[2][2];
+    // Initialize all elements first
+    for (u32 pi <- 0; pi < 2; pi +<- 1) {
+        for (u32 pj <- 0; pj < 2; pj +<- 1) {
+            precise[pi][pj] <- 0.0;
+        }
+    }
     precise[0][0] <- 0.123456789012345;
     precise[0][1] <- 0.000000000000001;
     precise[1][0] <- 999999.999999999;
@@ -128,6 +146,12 @@ u32 main() {
 
     // Test floating point arithmetic with high precision
     f64 calc[2][2];
+    // Initialize all elements first
+    for (u32 ci <- 0; ci < 2; ci +<- 1) {
+        for (u32 cj <- 0; cj < 2; cj +<- 1) {
+            calc[ci][cj] <- 0.0;
+        }
+    }
     calc[0][0] <- 10.123456789;
     calc[0][1] <- 5.987654321;
     f64 calcSum <- calc[0][0] + calc[0][1];
@@ -135,6 +159,12 @@ u32 main() {
 
     // Test astronomical distances (light-years to meters)
     f64 distances[2][3];
+    // Initialize all elements first
+    for (u32 di <- 0; di < 2; di +<- 1) {
+        for (u32 dj <- 0; dj < 3; dj +<- 1) {
+            distances[di][dj] <- 0.0;
+        }
+    }
     distances[0][0] <- 9.461e15;       // 1 light-year in meters
     distances[0][1] <- 1.496e11;       // 1 AU in meters
     distances[0][2] <- 3.086e16;       // 1 parsec in meters
@@ -148,6 +178,12 @@ u32 main() {
 
     // Test very small numbers (quantum scale)
     f64 quantum[2][2];
+    // Initialize all elements first
+    for (u32 qi <- 0; qi < 2; qi +<- 1) {
+        for (u32 qj <- 0; qj < 2; qj +<- 1) {
+            quantum[qi][qj] <- 0.0;
+        }
+    }
     quantum[0][0] <- 1.0e-35;   // Planck length
     quantum[0][1] <- 5.39e-44;  // Planck time
     quantum[1][0] <- 1.616e-35; // More precise Planck length

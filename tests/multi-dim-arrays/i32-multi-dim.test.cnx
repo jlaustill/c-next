@@ -82,6 +82,12 @@ u32 main() {
 
     // Test i32 specific edge cases
     i32 testArray[4][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0;
+        }
+    }
     testArray[0][0] <- -2147483648;  // Min value
     testArray[0][1] <- 2147483647;   // Max value
     testArray[1][0] <- 0;            // Zero
@@ -98,6 +104,12 @@ u32 main() {
 
     // Test 2D array with financial data pattern (cents)
     i32 balances[3][3];
+    // Initialize all elements first
+    for (u32 bi <- 0; bi < 3; bi +<- 1) {
+        for (u32 bj <- 0; bj < 3; bj +<- 1) {
+            balances[bi][bj] <- 0;
+        }
+    }
     balances[0][0] <- -50000;     // -$500.00 (debt)
     balances[0][1] <- 100000;     // $1000.00
     balances[1][0] <- 0;          // $0.00
@@ -114,6 +126,12 @@ u32 main() {
 
     // Test negative value calculations
     i32 deltas[2][2];
+    // Initialize all elements first
+    for (u32 di <- 0; di < 2; di +<- 1) {
+        for (u32 dj <- 0; dj < 2; dj +<- 1) {
+            deltas[di][dj] <- 0;
+        }
+    }
     deltas[0][0] <- -1000000;
     deltas[0][1] <- 750000;
     i64 deltaSum <- deltas[0][0] + deltas[0][1];
@@ -121,6 +139,12 @@ u32 main() {
 
     // Test with timestamp offsets (seconds from epoch)
     i32 offsets[2][3];
+    // Initialize all elements first
+    for (u32 oi <- 0; oi < 2; oi +<- 1) {
+        for (u32 oj <- 0; oj < 3; oj +<- 1) {
+            offsets[oi][oj] <- 0;
+        }
+    }
     offsets[0][0] <- -86400;      // -1 day
     offsets[0][1] <- 0;           // No offset
     offsets[0][2] <- 86400;       // +1 day

@@ -82,6 +82,12 @@ u32 main() {
 
     // Test i64 specific edge cases with very large values
     i64 testArray[4][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0;
+        }
+    }
     testArray[0][0] <- -9000000000000000000;  // Large negative
     testArray[0][1] <- 9000000000000000000;   // Large positive
     testArray[1][0] <- 0;                     // Zero
@@ -98,6 +104,12 @@ u32 main() {
 
     // Test 2D array with timestamp pattern (milliseconds since epoch)
     i64 timestamps[3][3];
+    // Initialize all elements first
+    for (u32 tsi <- 0; tsi < 3; tsi +<- 1) {
+        for (u32 tsj <- 0; tsj < 3; tsj +<- 1) {
+            timestamps[tsi][tsj] <- 0;
+        }
+    }
     timestamps[0][0] <- -2208988800000;    // Jan 1, 1900
     timestamps[0][1] <- 0;                 // Jan 1, 1970 (epoch)
     timestamps[0][2] <- 1609459200000;     // Jan 1, 2021
@@ -122,6 +134,12 @@ u32 main() {
 
     // Test with nano-precision timestamps (nanoseconds)
     i64 nanos[2][2];
+    // Initialize all elements first
+    for (u32 ni <- 0; ni < 2; ni +<- 1) {
+        for (u32 nj <- 0; nj < 2; nj +<- 1) {
+            nanos[ni][nj] <- 0;
+        }
+    }
     nanos[0][0] <- 1609459200000000000;   // Jan 1, 2021 in nanoseconds
     nanos[0][1] <- 1609459200123456789;   // With nanosecond precision
     nanos[1][0] <- -1000000000;           // -1 second in nanoseconds
@@ -134,6 +152,12 @@ u32 main() {
 
     // Test large financial calculations (atomic units, e.g., satoshis)
     i64 balances[2][2];
+    // Initialize all elements first
+    for (u32 bi <- 0; bi < 2; bi +<- 1) {
+        for (u32 bj <- 0; bj < 2; bj +<- 1) {
+            balances[bi][bj] <- 0;
+        }
+    }
     balances[0][0] <- 2100000000000000;   // 21 million BTC in satoshis
     balances[0][1] <- -100000000;         // -1 BTC debt
     i64 netBalance <- balances[0][0] + balances[0][1];

@@ -82,6 +82,12 @@ u32 main() {
 
     // Test i16 specific edge cases
     i16 testArray[4][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0;
+        }
+    }
     testArray[0][0] <- -32768;  // Min value
     testArray[0][1] <- 32767;   // Max value
     testArray[1][0] <- 0;       // Zero
@@ -98,6 +104,12 @@ u32 main() {
 
     // Test 2D array with coordinate system pattern
     i16 coords[3][3];
+    // Initialize all elements first
+    for (u32 ci <- 0; ci < 3; ci +<- 1) {
+        for (u32 cj <- 0; cj < 3; cj +<- 1) {
+            coords[ci][cj] <- 0;
+        }
+    }
     coords[0][0] <- -1000;  // X coordinate
     coords[0][1] <- 500;    // Y coordinate
     coords[1][0] <- 0;      // Origin X
@@ -114,6 +126,12 @@ u32 main() {
 
     // Test negative value calculations
     i16 deltas[2][2];
+    // Initialize all elements first
+    for (u32 di <- 0; di < 2; di +<- 1) {
+        for (u32 dj <- 0; dj < 2; dj +<- 1) {
+            deltas[di][dj] <- 0;
+        }
+    }
     deltas[0][0] <- -5000;
     deltas[0][1] <- 3000;
     i32 deltaSum <- deltas[0][0] + deltas[0][1];
@@ -121,6 +139,12 @@ u32 main() {
 
     // Test with altitude values (meters, can be negative)
     i16 altitudes[2][3];
+    // Initialize all elements first
+    for (u32 ai <- 0; ai < 2; ai +<- 1) {
+        for (u32 aj <- 0; aj < 3; aj +<- 1) {
+            altitudes[ai][aj] <- 0;
+        }
+    }
     altitudes[0][0] <- -400;   // Dead Sea
     altitudes[0][1] <- 0;      // Sea level
     altitudes[0][2] <- 8849;   // Mt. Everest

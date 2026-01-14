@@ -82,6 +82,12 @@ u32 main() {
 
     // Test i8 specific edge cases
     i8 testArray[4][2];
+    // Initialize all elements first
+    for (u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+            testArray[ti][tj] <- 0;
+        }
+    }
     testArray[0][0] <- -128;  // Min value
     testArray[0][1] <- 127;   // Max value
     testArray[1][0] <- 0;     // Zero
@@ -98,6 +104,12 @@ u32 main() {
 
     // Test 2D array with temperature sensor pattern (in Celsius)
     i8 temps[3][3];
+    // Initialize all elements first
+    for (u32 tei <- 0; tei < 3; tei +<- 1) {
+        for (u32 tej <- 0; tej < 3; tej +<- 1) {
+            temps[tei][tej] <- 0;
+        }
+    }
     temps[0][0] <- -40;  // Very cold
     temps[0][1] <- -10;  // Cold
     temps[1][0] <- 0;    // Freezing
@@ -114,6 +126,12 @@ u32 main() {
 
     // Test negative value calculations
     i8 deltas[2][2];
+    // Initialize all elements first
+    for (u32 di <- 0; di < 2; di +<- 1) {
+        for (u32 dj <- 0; dj < 2; dj +<- 1) {
+            deltas[di][dj] <- 0;
+        }
+    }
     deltas[0][0] <- -10;
     deltas[0][1] <- 5;
     i16 deltaSum <- deltas[0][0] + deltas[0][1];
