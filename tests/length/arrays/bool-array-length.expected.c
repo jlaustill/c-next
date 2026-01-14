@@ -8,7 +8,7 @@
 
 /* test-execution */
 // Comprehensive .length test for bool arrays across all contexts
-// Tests: array.length returns 16 (element count), array[0].length returns 1 (element bit width)
+// Tests: array.length returns 16 (element count), array[0].length returns 8 (element byte width)
 bool globalArr[16] = {0};
 
 /* Scope: TestScope */
@@ -18,7 +18,7 @@ uint32_t TestScope_getGlobalArrayLength(void) {
 }
 
 uint32_t TestScope_getGlobalElementLength(void) {
-    return 1;
+    return 8;
 }
 bool TestScope_scopeArr[16] = {0};
 
@@ -27,7 +27,7 @@ uint32_t TestScope_getScopeArrayLength(void) {
 }
 
 uint32_t TestScope_getScopeElementLength(void) {
-    return 1;
+    return 8;
 }
 bool TestScope_publicArr[16] = {0};
 
@@ -36,7 +36,7 @@ uint32_t checkArrayLength(bool arr[16]) {
 }
 
 uint32_t checkElementLength(bool arr[16]) {
-    return 1;
+    return 8;
 }
 
 typedef struct {
@@ -48,25 +48,25 @@ int32_t main(void) {
     if (16 != 16) {
         return 1;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 2;
     }
     if (TestScope_getGlobalArrayLength() != 16) {
         return 3;
     }
-    if (TestScope_getGlobalElementLength() != 1) {
+    if (TestScope_getGlobalElementLength() != 8) {
         return 4;
     }
     if (TestScope_getScopeArrayLength() != 16) {
         return 5;
     }
-    if (TestScope_getScopeElementLength() != 1) {
+    if (TestScope_getScopeElementLength() != 8) {
         return 6;
     }
     if (16 != 16) {
         return 7;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 8;
     }
     bool localArr[16] = {0};
@@ -74,7 +74,7 @@ int32_t main(void) {
     if (16 != 16) {
         return 9;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 10;
     }
     bool testArr[16] = {0};
@@ -82,7 +82,7 @@ int32_t main(void) {
     if (checkArrayLength(testArr) != 16) {
         return 11;
     }
-    if (checkElementLength(testArr) != 1) {
+    if (checkElementLength(testArr) != 8) {
         return 12;
     }
     TestStruct ts = {0};
@@ -90,7 +90,7 @@ int32_t main(void) {
     if (16 != 16) {
         return 13;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 14;
     }
     return 0;

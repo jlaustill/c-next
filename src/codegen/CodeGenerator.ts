@@ -6815,12 +6815,23 @@ export default class CodeGenerator {
                 subscriptDepth >= typeInfo.arrayDimensions.length
               ) {
                 // Array fully subscripted (arr[0][1].length) -> return element bit width from TYPE_WIDTH
-                const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
-                if (elementBitWidth > 0) {
-                  result = String(elementBitWidth);
+                // Issue #121: Check for enum arrays first
+                if (typeInfo.isEnum) {
+                  // ADR-017: Enum array element .length returns 32 (default enum size)
+                  result = "32";
                 } else {
-                  result = `/* .length: unsupported element type ${typeInfo.baseType} */0`;
+                  const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+                  if (elementBitWidth > 0) {
+                    result = String(elementBitWidth);
+                  } else {
+                    result = `/* .length: unsupported element type ${typeInfo.baseType} */0`;
+                  }
                 }
+              } else if (typeInfo.isEnum && !typeInfo.isArray) {
+                // ADR-017: Enum types default to 32-bit width like C
+                // Issue #121: Enums were previously returning 0 for .length
+                // Only applies to non-array enum variables
+                result = "32";
               } else if (!typeInfo.isArray) {
                 // Integer bit width - return the compile-time constant
                 result = String(typeInfo.bitWidth);

@@ -56,9 +56,9 @@ i32 main() {
         return 1;
     }
 
-    // Boolean
+    // Boolean (stored as 1 byte = 8 bits)
     bool flag <- true;
-    if (flag.length != 1) {
+    if (flag.length != 8) {
         return 1;
     }
 

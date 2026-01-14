@@ -87,6 +87,29 @@ class HeaderGenerator {
     const enums = exportedSymbols.filter((s) => s.kind === ESymbolKind.Enum);
     const types = exportedSymbols.filter((s) => s.kind === ESymbolKind.Type);
 
+    // Issue #121: Collect external type dependencies from function signatures
+    const localStructNames = new Set(structs.map((s) => s.name));
+    const localEnumNames = new Set(enums.map((s) => s.name));
+    const localTypeNames = new Set(types.map((s) => s.name));
+    const externalTypes = this.collectExternalTypes(
+      functions,
+      variables,
+      localStructNames,
+      localEnumNames,
+      localTypeNames,
+    );
+
+    // Emit forward declarations for external types
+    if (externalTypes.size > 0) {
+      lines.push(
+        "/* External type dependencies - include appropriate headers */",
+      );
+      for (const typeName of externalTypes) {
+        lines.push(`struct ${typeName};`);
+      }
+      lines.push("");
+    }
+
     // Forward declarations for structs
     if (structs.length > 0 || classes.length > 0) {
       lines.push("/* Forward declarations */");
@@ -272,6 +295,95 @@ class HeaderGenerator {
     }
 
     return `${returnType} ${sym.name}(${params});`;
+  }
+
+  /**
+   * Issue #121: Collect external type dependencies from function signatures and variables
+   * Returns types that are:
+   * - Not primitive types (not in TYPE_MAP)
+   * - Not locally defined structs, enums, or type aliases
+   */
+  private collectExternalTypes(
+    functions: ISymbol[],
+    variables: ISymbol[],
+    localStructs: Set<string>,
+    localEnums: Set<string>,
+    localTypes: Set<string>,
+  ): Set<string> {
+    const externalTypes = new Set<string>();
+
+    const isExternalType = (typeName: string): boolean => {
+      // Skip if it's a primitive type
+      if (TYPE_MAP[typeName]) {
+        return false;
+      }
+
+      // Skip if locally defined
+      if (localStructs.has(typeName)) {
+        return false;
+      }
+      if (localEnums.has(typeName)) {
+        return false;
+      }
+      if (localTypes.has(typeName)) {
+        return false;
+      }
+
+      // Skip pointer markers and array brackets
+      if (typeName === "" || typeName === "*") {
+        return false;
+      }
+
+      return true;
+    };
+
+    const extractBaseType = (type: string): string => {
+      // Remove pointer suffix
+      let baseType = type.replace(/\*+$/, "").trim();
+
+      // Remove array brackets
+      baseType = baseType.replace(/\[\d*\]$/, "").trim();
+
+      // Handle const prefix
+      baseType = baseType.replace(/^const\s+/, "").trim();
+
+      return baseType;
+    };
+
+    // Check function return types and parameters
+    for (const fn of functions) {
+      // Check return type
+      if (fn.type) {
+        const baseType = extractBaseType(fn.type);
+        if (isExternalType(baseType)) {
+          externalTypes.add(baseType);
+        }
+      }
+
+      // Check parameter types
+      if (fn.parameters) {
+        for (const param of fn.parameters) {
+          if (param.type) {
+            const baseType = extractBaseType(param.type);
+            if (isExternalType(baseType)) {
+              externalTypes.add(baseType);
+            }
+          }
+        }
+      }
+    }
+
+    // Check variable types
+    for (const v of variables) {
+      if (v.type) {
+        const baseType = extractBaseType(v.type);
+        if (isExternalType(baseType)) {
+          externalTypes.add(baseType);
+        }
+      }
+    }
+
+    return externalTypes;
   }
 }
 

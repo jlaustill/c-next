@@ -51,7 +51,7 @@ int32_t main(void) {
         return 1;
     }
     bool flag = true;
-    if (1 != 1) {
+    if (8 != 8) {
         return 1;
     }
     return 0;

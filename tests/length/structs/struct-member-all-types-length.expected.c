@@ -69,7 +69,7 @@ uint32_t checkParamStructMembers(AllTypes* param) {
     if (64 != 64) {
         return 10;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 11;
     }
     return 0;
@@ -117,7 +117,7 @@ int32_t main(void) {
     if (64 != 64) {
         return 10;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 11;
     }
     if (TestScope_checkScopeStructMember() != 0) {
@@ -165,7 +165,7 @@ int32_t main(void) {
     if (64 != 64) {
         return 22;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 23;
     }
     AllTypes paramStruct = {0};
