@@ -194,6 +194,9 @@ See [Testing Workflow](./TESTING-WORKFLOW.md) for comprehensive testing methodol
 # Run all tests
 npm test
 
+# Run all tests with minimal output (errors + summary only)
+npm test -- --quiet    # or: npm test -- -q
+
 # Run specific test category
 npm test -- tests/postfix-chains/
 

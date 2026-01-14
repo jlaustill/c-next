@@ -22,6 +22,7 @@
  * Usage:
  *   npm test                    # Run all tests with full validation
  *   npm test -- --update        # Update snapshots
+ *   npm test -- --quiet         # Minimal output (errors + summary only)
  *   npm test -- tests/enum      # Run specific directory
  */
 
@@ -551,6 +552,7 @@ function runTest(cnxFile, updateMode, tools) {
 function main() {
   const args = process.argv.slice(2);
   const updateMode = args.includes("--update") || args.includes("-u");
+  const quietMode = args.includes("--quiet") || args.includes("-q");
   const filterPath = args.find((arg) => !arg.startsWith("-"));
 
   // Determine test directory
@@ -579,24 +581,26 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
-  console.log(`${colors.dim}Test directory: ${testDir}${colors.reset}`);
-  if (updateMode) {
-    console.log(
-      `${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`,
-    );
-  }
+  if (!quietMode) {
+    console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
+    console.log(`${colors.dim}Test directory: ${testDir}${colors.reset}`);
+    if (updateMode) {
+      console.log(
+        `${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`,
+      );
+    }
 
-  // Show available validation tools
-  const toolList = [];
-  if (tools.gcc) toolList.push("gcc");
-  if (tools.cppcheck) toolList.push("cppcheck");
-  if (tools.clangTidy) toolList.push("clang-tidy");
-  if (tools.misra) toolList.push("MISRA");
-  console.log(
-    `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
-  );
-  console.log();
+    // Show available validation tools
+    const toolList = [];
+    if (tools.gcc) toolList.push("gcc");
+    if (tools.cppcheck) toolList.push("cppcheck");
+    if (tools.clangTidy) toolList.push("clang-tidy");
+    if (tools.misra) toolList.push("MISRA");
+    console.log(
+      `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
+    );
+    console.log();
+  }
 
   const cnxFiles = findCnxFiles(testDir);
 
@@ -616,14 +620,20 @@ function main() {
 
     if (result.passed) {
       if (result.updated) {
-        console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
+        if (!quietMode) {
+          console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
+        }
         updated++;
       } else if (result.skippedExec) {
-        console.log(
-          `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
-        );
+        if (!quietMode) {
+          console.log(
+            `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
+          );
+        }
       } else {
-        console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
+        if (!quietMode) {
+          console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
+        }
       }
       passed++;
     } else {
@@ -661,19 +671,32 @@ function main() {
     }
   }
 
-  console.log();
-  console.log(`${colors.cyan}Results:${colors.reset}`);
-  console.log(`  ${colors.green}Passed:${colors.reset}  ${passed}`);
-  if (failed > 0) {
-    console.log(`  ${colors.red}Failed:${colors.reset}  ${failed}`);
-  }
-  if (updated > 0) {
-    console.log(`  ${colors.yellow}Updated:${colors.reset} ${updated}`);
-  }
-  if (noSnapshot > 0) {
-    console.log(
-      `  ${colors.yellow}Skipped:${colors.reset} ${noSnapshot} (no snapshot)`,
-    );
+  if (quietMode) {
+    // Single-line summary for AI-friendly output
+    if (failed > 0) {
+      console.log(
+        `${passed}/${cnxFiles.length} tests passed, ${colors.red}${failed} failed${colors.reset}`,
+      );
+    } else {
+      console.log(
+        `${colors.green}${cnxFiles.length}/${cnxFiles.length} tests passed${colors.reset}`,
+      );
+    }
+  } else {
+    console.log();
+    console.log(`${colors.cyan}Results:${colors.reset}`);
+    console.log(`  ${colors.green}Passed:${colors.reset}  ${passed}`);
+    if (failed > 0) {
+      console.log(`  ${colors.red}Failed:${colors.reset}  ${failed}`);
+    }
+    if (updated > 0) {
+      console.log(`  ${colors.yellow}Updated:${colors.reset} ${updated}`);
+    }
+    if (noSnapshot > 0) {
+      console.log(
+        `  ${colors.yellow}Skipped:${colors.reset} ${noSnapshot} (no snapshot)`,
+      );
+    }
   }
 
   process.exit(failed > 0 ? 1 : 0);
