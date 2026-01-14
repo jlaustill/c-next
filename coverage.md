@@ -1268,14 +1268,14 @@ This document tracks test coverage for every language construct in every valid c
 
 | Context      | Status | Test File                               |
 | ------------ | ------ | --------------------------------------- |
-| u8 wrap      | [ ]    |                                         |
-| u16 wrap     | [ ]    |                                         |
+| u8 wrap      | [x]    | `overflow-modifiers/wrap-u8.test.cnx`   |
+| u16 wrap     | [x]    | `overflow-modifiers/wrap-u16.test.cnx`  |
 | u32 wrap     | [x]    | `primitives/wrap-declaration.test.cnx`  |
-| u64 wrap     | [ ]    |                                         |
-| i8 wrap      | [ ]    |                                         |
-| i16 wrap     | [ ]    |                                         |
+| u64 wrap     | [x]    | `overflow-modifiers/wrap-u64.test.cnx`  |
+| i8 wrap      | [x]    | `overflow-modifiers/wrap-i8.test.cnx`   |
+| i16 wrap     | [x]    | `overflow-modifiers/wrap-i16.test.cnx`  |
 | i32 wrap     | [x]    | `primitives/signed-overflow.test.cnx`   |
-| i64 wrap     | [ ]    |                                         |
+| i64 wrap     | [x]    | `overflow-modifiers/wrap-i64.test.cnx`  |
 | Compound add | [x]    | `primitives/wrap-compound-add.test.cnx` |
 | Compound sub | [ ]    |                                         |
 | Compound mul | [ ]    |                                         |
