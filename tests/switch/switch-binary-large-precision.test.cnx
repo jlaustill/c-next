@@ -1,0 +1,83 @@
+/* test-execution */
+// Issue #114: Test binary literal precision for values > 2^53
+// Tests: Large binary literals in switch case labels preserve precision
+// Coverage: Section 7 (Control Flow) - binary literal precision in case labels
+
+u32 result;
+
+// Test values around 2^53 boundary (JavaScript's MAX_SAFE_INTEGER is 2^53 - 1)
+// These values previously caused precision loss when converted to hex
+void testLargeBinaryPrecision(u64 val) {
+    switch (val) {
+        // 2^53 = 9007199254740992
+        case 0b100000000000000000000000000000000000000000000000000000 { result <- 1; }
+        // 2^53 + 1 = 9007199254740993 (first value that loses precision with parseInt)
+        case 0b100000000000000000000000000000000000000000000000000001 { result <- 2; }
+        // 2^53 + 2 = 9007199254740994
+        case 0b100000000000000000000000000000000000000000000000000010 { result <- 3; }
+        // 2^53 + 3 = 9007199254740995
+        case 0b100000000000000000000000000000000000000000000000000011 { result <- 4; }
+        default { result <- 99; }
+    }
+}
+
+// Test very large values (near u64 max)
+void testVeryLargeBinary(u64 val) {
+    switch (val) {
+        // 2^62 = 4611686018427387904
+        case 0b100000000000000000000000000000000000000000000000000000000000000 { result <- 10; }
+        // 2^62 + 1
+        case 0b100000000000000000000000000000000000000000000000000000000000001 { result <- 11; }
+        // 2^63 - 1 (max signed 64-bit, also largest safe u64 for most ops)
+        case 0b111111111111111111111111111111111111111111111111111111111111111 { result <- 12; }
+        default { result <- 99; }
+    }
+}
+
+u32 main() {
+    // === TEST 2^53 BOUNDARY (4 validations: codes 1-4) ===
+
+    // Test 2^53 exactly
+    u64 v53 <- 9007199254740992;
+    testLargeBinaryPrecision(v53);
+    if (result != 1) return 1;
+
+    // Test 2^53 + 1 (this value was incorrectly truncated before fix)
+    u64 v53_1 <- 9007199254740993;
+    testLargeBinaryPrecision(v53_1);
+    if (result != 2) return 2;
+
+    // Test 2^53 + 2
+    u64 v53_2 <- 9007199254740994;
+    testLargeBinaryPrecision(v53_2);
+    if (result != 3) return 3;
+
+    // Test 2^53 + 3
+    u64 v53_3 <- 9007199254740995;
+    testLargeBinaryPrecision(v53_3);
+    if (result != 4) return 4;
+
+    // Test default case
+    u64 vOther <- 9007199254740990;
+    testLargeBinaryPrecision(vOther);
+    if (result != 99) return 5;
+
+    // === TEST VERY LARGE VALUES (3 validations: codes 6-8) ===
+
+    // Test 2^62
+    u64 v62 <- 4611686018427387904;
+    testVeryLargeBinary(v62);
+    if (result != 10) return 6;
+
+    // Test 2^62 + 1
+    u64 v62_1 <- 4611686018427387905;
+    testVeryLargeBinary(v62_1);
+    if (result != 11) return 7;
+
+    // Test 2^63 - 1
+    u64 v63m1 <- 9223372036854775807;
+    testVeryLargeBinary(v63m1);
+    if (result != 12) return 8;
+
+    return 0;
+}
