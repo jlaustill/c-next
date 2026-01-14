@@ -47,12 +47,22 @@ class TypeResolver {
   }
 
   /**
-   * Check if a type is a user-defined struct
+   * Check if a type is a user-defined struct (C-Next or C header).
+   * Issue #103: Now checks both knownStructs AND SymbolTable.
    */
   isStructType(typeName: string): boolean {
-    // Access CodeGenerator's knownStructs set via reference
+    // Check C-Next structs first
     // eslint-disable-next-line @typescript-eslint/dot-notation
-    return this.codeGen["knownStructs"].has(typeName);
+    if (this.codeGen["knownStructs"].has(typeName)) {
+      return true;
+    }
+    // Check SymbolTable for C header structs
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const symbolTable = this.codeGen["symbolTable"];
+    if (symbolTable?.getStructFields(typeName)) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -340,11 +350,28 @@ class TypeResolver {
   /**
    * Get type info for a struct member field
    * Used to track types through member access chains like buf.data[0]
+   * Issue #103: Now checks SymbolTable first for C header structs
    */
   getMemberTypeInfo(
     structType: string,
     memberName: string,
   ): { isArray: boolean; baseType: string } | undefined {
+    // First check SymbolTable (C header structs) - Issue #103 fix
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const symbolTable = this.codeGen["symbolTable"];
+    if (symbolTable) {
+      const fieldInfo = symbolTable.getStructFieldInfo(structType, memberName);
+      if (fieldInfo) {
+        return {
+          isArray:
+            fieldInfo.arrayDimensions !== undefined &&
+            fieldInfo.arrayDimensions.length > 0,
+          baseType: fieldInfo.type,
+        };
+      }
+    }
+
+    // Fall back to local C-Next struct fields
     // eslint-disable-next-line @typescript-eslint/dot-notation
     const fieldType = this.codeGen["structFields"]
       .get(structType)
