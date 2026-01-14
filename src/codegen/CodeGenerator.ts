@@ -235,6 +235,9 @@ export default class CodeGenerator {
 
   private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
 
+  // Bug #8: Track compile-time const values for array size resolution at file scope
+  private constValues: Map<string, number> = new Map(); // constName -> numeric value
+
   // ADR-034: Bitmap types registry
   private knownBitmaps: Set<string> = new Set(); // Track bitmap type names
 
@@ -878,6 +881,15 @@ export default class CodeGenerator {
       if (decl.variableDeclaration()) {
         const varDecl = decl.variableDeclaration()!;
         this.trackVariableType(varDecl);
+
+        // Bug #8: Track const values for array size resolution at file scope
+        if (varDecl.constModifier() && varDecl.expression()) {
+          const constName = varDecl.IDENTIFIER().getText();
+          const constValue = this.tryEvaluateConstant(varDecl.expression()!);
+          if (constValue !== undefined) {
+            this.constValues.set(constName, constValue);
+          }
+        }
       }
 
       // Register scope member variable types
@@ -1035,6 +1047,7 @@ export default class CodeGenerator {
   /**
    * ADR-036: Try to evaluate an expression as a compile-time constant.
    * Returns the numeric value if constant, undefined if not evaluable.
+   * Bug #8: Extended to resolve const variable references for file-scope array sizes.
    */
   private tryEvaluateConstant(
     ctx: Parser.ExpressionContext,
@@ -1053,6 +1066,26 @@ export default class CodeGenerator {
     // Check if it's a binary literal
     if (/^0[bB][01]+$/.test(text)) {
       return parseInt(text.substring(2), 2);
+    }
+
+    // Bug #8: Check if it's a known const value (identifier)
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(text)) {
+      const constValue = this.constValues.get(text);
+      if (constValue !== undefined) {
+        return constValue;
+      }
+    }
+
+    // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
+    const addMatch = text.match(
+      /^([a-zA-Z_][a-zA-Z0-9_]*)\+([a-zA-Z_][a-zA-Z0-9_]*)$/,
+    );
+    if (addMatch) {
+      const left = this.constValues.get(addMatch[1]);
+      const right = this.constValues.get(addMatch[2]);
+      if (left !== undefined && right !== undefined) {
+        return left + right;
+      }
     }
 
     // For more complex expressions, we can't evaluate at compile time
@@ -1297,14 +1330,14 @@ export default class CodeGenerator {
 
     // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
     // arrayDim is now an array of ArrayDimensionContext
+    // Bug #8: Use tryEvaluateConstant to resolve const identifiers in array sizes
     if (arrayDim && arrayDim.length > 0) {
       isArray = true;
       for (const dim of arrayDim) {
         const sizeExpr = dim.expression();
         if (sizeExpr) {
-          const sizeText = sizeExpr.getText();
-          const size = parseInt(sizeText, 10);
-          if (!isNaN(size)) {
+          const size = this.tryEvaluateConstant(sizeExpr);
+          if (size !== undefined && size > 0) {
             arrayDimensions.push(size);
           }
         }
@@ -1487,14 +1520,14 @@ export default class CodeGenerator {
 
     // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
     // arrayDim is now an array of ArrayDimensionContext
+    // Bug #8: Use tryEvaluateConstant to resolve const identifiers in array sizes
     if (arrayDim && arrayDim.length > 0) {
       isArray = true;
       for (const dim of arrayDim) {
         const sizeExpr = dim.expression();
         if (sizeExpr) {
-          const sizeText = sizeExpr.getText();
-          const size = parseInt(sizeText, 10);
-          if (!isNaN(size)) {
+          const size = this.tryEvaluateConstant(sizeExpr);
+          if (size !== undefined && size > 0) {
             arrayDimensions.push(size);
           }
         }
@@ -3329,6 +3362,14 @@ export default class CodeGenerator {
 
   private generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
     if (ctx.expression()) {
+      // Bug #8: At file scope, resolve const values to numeric literals
+      // because C doesn't allow const variables as array sizes at file scope
+      if (!this.context.inFunctionBody) {
+        const constValue = this.tryEvaluateConstant(ctx.expression()!);
+        if (constValue !== undefined) {
+          return `[${constValue}]`;
+        }
+      }
       return `[${this.generateExpression(ctx.expression()!)}]`;
     }
     return "[]";
@@ -3376,6 +3417,14 @@ export default class CodeGenerator {
       this.trackVariableType(ctx);
       // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
       this.context.localVariables.add(name);
+
+      // Bug #8: Track local const values for array size and bit index resolution
+      if (ctx.constModifier() && ctx.expression()) {
+        const constValue = this.tryEvaluateConstant(ctx.expression()!);
+        if (constValue !== undefined) {
+          this.constValues.set(name, constValue);
+        }
+      }
     }
 
     // ADR-045: Handle bounded string type specially
@@ -4284,6 +4333,45 @@ export default class CodeGenerator {
             exprs,
             ctx.start?.line ?? 0,
           );
+
+          // Bug #8: Check for bit indexing on array element
+          // e.g., matrix[ROW][COL][FIELD_BIT] where matrix is u8[4][4]
+          const numDims = typeInfo.arrayDimensions.length;
+          const numSubscripts = exprs.length;
+
+          if (numSubscripts === numDims + 1) {
+            const elementType = typeInfo.baseType;
+            const isPrimitiveInt = [
+              "u8",
+              "u16",
+              "u32",
+              "u64",
+              "i8",
+              "i16",
+              "i32",
+              "i64",
+            ].includes(elementType);
+
+            if (isPrimitiveInt) {
+              // Compound operators not supported for bit field access
+              if (isCompound) {
+                throw new Error(
+                  `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+                );
+              }
+
+              // Generate array access for dimensions, then bit assignment
+              const arrayIndices = exprs
+                .slice(0, numDims)
+                .map((e) => `[${this.generateExpression(e)}]`)
+                .join("");
+              const bitIndex = this.generateExpression(exprs[numDims]);
+              const arrayElement = `${arrayName}${arrayIndices}`;
+
+              // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
+              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+            }
+          }
         }
 
         // Generate all subscript indices
@@ -4838,6 +4926,61 @@ export default class CodeGenerator {
         // Generate: name = (name & ~(mask << start)) | ((value & mask) << start)
         const mask = this.generateBitMask(width);
         return `${name} = (${name} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
+      }
+    }
+
+    // Bug #8: Handle bit assignment on multi-dimensional array elements
+    // e.g., matrix[ROW][COL][FIELD_BIT] <- false
+    // where matrix is u8[4][4] and FIELD_BIT is a bit index on the u8 element
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      const exprs = memberAccessCtx.expression();
+
+      // Check if first identifier is an array with known dimensions
+      if (identifiers.length === 1 && exprs.length > 0) {
+        const arrayName = identifiers[0].getText();
+        const typeInfo = this.context.typeRegistry.get(arrayName);
+
+        if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+          const numDims = typeInfo.arrayDimensions.length;
+          const numSubscripts = exprs.length;
+
+          // If we have more subscripts than dimensions, the extra one is a bit index
+          if (numSubscripts === numDims + 1) {
+            const elementType = typeInfo.baseType;
+            const isPrimitiveInt = [
+              "u8",
+              "u16",
+              "u32",
+              "u64",
+              "i8",
+              "i16",
+              "i32",
+              "i64",
+            ].includes(elementType);
+
+            if (isPrimitiveInt) {
+              // Compound operators not supported for bit field access
+              if (isCompound) {
+                throw new Error(
+                  `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+                );
+              }
+
+              // Generate array access for dimensions, then bit assignment
+              const arrayIndices = exprs
+                .slice(0, numDims)
+                .map((e) => `[${this.generateExpression(e)}]`)
+                .join("");
+              const bitIndex = this.generateExpression(exprs[numDims]);
+              const arrayElement = `${arrayName}${arrayIndices}`;
+
+              // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
+              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
+            }
+          }
+        }
       }
     }
 
