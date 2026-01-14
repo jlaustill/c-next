@@ -3601,6 +3601,12 @@ export default class CodeGenerator {
             );
           }
           decl += `[${this.context.lastArrayInitCount}]`;
+
+          // Update type registry with inferred size for .length support
+          const existingType = this.context.typeRegistry.get(name);
+          if (existingType) {
+            existingType.arrayDimensions = [this.context.lastArrayInitCount];
+          }
         } else {
           // ADR-036: Generate all explicit dimensions
           decl += this.generateArrayDimensions(arrayDims);
@@ -3617,7 +3623,23 @@ export default class CodeGenerator {
           }
         }
 
-        return `${decl} = ${initValue};`;
+        // ADR-035: For fill-all syntax with non-zero values, generate full initializer
+        // [0*] -> {0} is fine (C zero-initializes remaining elements)
+        // [1*] -> {1, 1, 1, ...} (must repeat value for all elements)
+        let finalInitValue = initValue;
+        if (
+          this.context.lastArrayFillValue !== undefined &&
+          declaredSize !== null
+        ) {
+          const fillVal = this.context.lastArrayFillValue;
+          // Only expand if the fill value is not "0" (C handles {0} correctly)
+          if (fillVal !== "0") {
+            const elements = Array(declaredSize).fill(fillVal);
+            finalInitValue = `{${elements.join(", ")}}`;
+          }
+        }
+
+        return `${decl} = ${finalInitValue};`;
       }
     }
 
@@ -4840,9 +4862,10 @@ export default class CodeGenerator {
       if (
         typeInfo &&
         typeInfo.overflowBehavior === "clamp" &&
-        TYPE_WIDTH[typeInfo.baseType]
+        TYPE_WIDTH[typeInfo.baseType] &&
+        !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic (overflow to infinity)
       ) {
-        // Clamp behavior: use helper function
+        // Clamp behavior: use helper function (integers only)
         const opMap: Record<string, string> = {
           "+=": "add",
           "-=": "sub",
@@ -4958,10 +4981,11 @@ export default class CodeGenerator {
     };
     const simpleOp = simpleOpMap[cOp] || "+";
 
-    // Handle clamp behavior for arithmetic operations
+    // Handle clamp behavior for arithmetic operations (integers only)
     if (
       typeInfo.overflowBehavior === "clamp" &&
-      TYPE_WIDTH[typeInfo.baseType]
+      TYPE_WIDTH[typeInfo.baseType] &&
+      !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
     ) {
       const opMap: Record<string, string> = {
         "+=": "add",
@@ -4976,7 +5000,7 @@ export default class CodeGenerator {
       }
     }
 
-    // For wrap behavior or non-clamp ops, use natural arithmetic
+    // For wrap behavior, floats, or non-clamp ops, use natural arithmetic
     return `__old ${simpleOp} ${value}`;
   }
 
@@ -5021,10 +5045,11 @@ export default class CodeGenerator {
     // Generate the actual assignment operation inside the critical section
     let assignment: string;
 
-    // Handle clamp behavior
+    // Handle clamp behavior (integers only)
     if (
       typeInfo.overflowBehavior === "clamp" &&
-      TYPE_WIDTH[typeInfo.baseType]
+      TYPE_WIDTH[typeInfo.baseType] &&
+      !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
     ) {
       const opMap: Record<string, string> = {
         "+=": "add",
@@ -6383,8 +6408,6 @@ export default class CodeGenerator {
 
     // Track the current resolved identifier for type lookups (fixes scope/parameter .length)
     let currentIdentifier = primaryId;
-    // Track if we've subscripted an array (arr[0] -> element type, not array type)
-    let isSubscripted = false;
     // Bug #8: Track remaining array dimensions for multi-dimensional arrays
     // e.g., matrix[4][4] starts with 2 dims; after matrix[0] there's still 1 dim left
     // Check both typeRegistry (for variables) and currentParameters (for function params)
@@ -6396,9 +6419,10 @@ export default class CodeGenerator {
       : undefined;
     let remainingArrayDims =
       primaryTypeInfo?.arrayDimensions?.length ??
-      primaryParamInfo?.arrayDimensions?.length ??
       // Fallback: if parameter is marked as array but no dimensions, assume at least 1
       (primaryParamInfo?.isArray ? 1 : 0);
+    // Track how many dimensions we've subscripted (arr[0] -> depth 1, arr[0][1] -> depth 2)
+    let subscriptDepth = 0;
 
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
@@ -6443,7 +6467,7 @@ export default class CodeGenerator {
 
                 if (dimensions && dimensions.length > 1 && isStringField) {
                   // String array field: string<64> arr[4]
-                  if (!isSubscripted) {
+                  if (subscriptDepth === 0) {
                     // ts.arr.length -> return element count (first dimension)
                     result = String(dimensions[0]);
                   } else {
@@ -6463,16 +6487,17 @@ export default class CodeGenerator {
                 } else if (
                   dimensions &&
                   dimensions.length > 0 &&
-                  !isSubscripted
+                  subscriptDepth < dimensions.length
                 ) {
-                  // Non-string array member without subscript -> return array length (first dimension)
-                  result = String(dimensions[0]);
+                  // Multi-dim array member with partial subscript
+                  // e.g., ts.arr.length -> dimensions[0], ts.arr[0].length -> dimensions[1]
+                  result = String(dimensions[subscriptDepth]);
                 } else if (
                   dimensions &&
                   dimensions.length > 0 &&
-                  isSubscripted
+                  subscriptDepth >= dimensions.length
                 ) {
-                  // Non-string array member with subscript (e.g., ts.arr[0].length) -> return element bit width
+                  // Array member fully subscripted (e.g., ts.arr[0][1].length) -> return element bit width
                   // Try C-Next types first, then C types
                   const bitWidth =
                     TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
@@ -6519,7 +6544,7 @@ export default class CodeGenerator {
                   typeInfo.arrayDimensions.length > 1
                 ) {
                   // String array: arrayDimensions: [4, 65]
-                  if (!isSubscripted) {
+                  if (subscriptDepth === 0) {
                     // arr.length -> return element count (first dimension)
                     result = String(typeInfo.arrayDimensions[0]);
                   } else {
@@ -6545,18 +6570,18 @@ export default class CodeGenerator {
                 typeInfo.isArray &&
                 typeInfo.arrayDimensions &&
                 typeInfo.arrayDimensions.length > 0 &&
-                !isSubscripted
+                subscriptDepth < typeInfo.arrayDimensions.length
               ) {
-                // ADR-036: Array length - return the first dimension
-                // For matrix.length -> first dimension
-                result = String(typeInfo.arrayDimensions[0]);
+                // ADR-036: Multi-dimensional array length
+                // matrix.length -> arrayDimensions[0], matrix[0].length -> arrayDimensions[1]
+                result = String(typeInfo.arrayDimensions[subscriptDepth]);
               } else if (
                 typeInfo.isArray &&
                 typeInfo.arrayDimensions &&
                 typeInfo.arrayDimensions.length > 0 &&
-                isSubscripted
+                subscriptDepth >= typeInfo.arrayDimensions.length
               ) {
-                // arr[0].length -> return element bit width from TYPE_WIDTH
+                // Array fully subscripted (arr[0][1].length) -> return element bit width from TYPE_WIDTH
                 const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
                 if (elementBitWidth > 0) {
                   result = String(elementBitWidth);
@@ -6870,13 +6895,13 @@ export default class CodeGenerator {
             // This is the most reliable indicator - we tracked it through member access
             result = `${result}[${index}]`;
             currentMemberIsArray = false; // After subscript, no longer array
-            isSubscripted = true; // Track for .length on element
+            subscriptDepth++; // Track dimension depth for .length
           } else if (remainingArrayDims > 0) {
             // Bug #8: Multi-dimensional array - still have dimensions to consume
             // e.g., matrix[0][0] where matrix is u8[4][4]
             result = `${result}[${index}]`;
             remainingArrayDims--;
-            isSubscripted = true;
+            subscriptDepth++; // Track dimension depth for .length
             // After consuming all array dimensions, set struct type if element is struct
             if (remainingArrayDims === 0 && primaryTypeInfo) {
               const elementType = primaryTypeInfo.baseType;
@@ -6892,7 +6917,7 @@ export default class CodeGenerator {
           } else if (isPrimaryArray) {
             // Primary identifier is an array (e.g., arr[0] or global.arr[0])
             result = `${result}[${index}]`;
-            isSubscripted = true; // Track for .length on element
+            subscriptDepth++; // Track dimension depth for .length
             // After subscripting an array, set currentStructType if the element is a struct
             if (identifierTypeInfo && !currentStructType) {
               const elementType = identifierTypeInfo.baseType;

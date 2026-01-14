@@ -286,6 +286,80 @@ This document maps each test file to the specific coverage.md sections and rows 
 
 ---
 
+## Multi-Dimensional Array Tests Coverage Map
+
+### 13. multi-dim-arrays/u8-multi-dim.test.cnx
+
+**Covers Section 1.1 - u8 (line 83):**
+
+- [x] Array element type (multi-dim) (global arrays: `u8 matrix2d[4][8]`, `u8 cube3d[2][3][4]`)
+- 32 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and u8-specific edge cases (0-255 range)
+
+---
+
+### 14. multi-dim-arrays/u16-multi-dim.test.cnx
+
+**Covers Section 1.1 - u16 (line 109):**
+
+- [x] Array element type (multi-dim) (global arrays: `u16 matrix2d[4][8]`, `u16 cube3d[2][3][4]`)
+- 34 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and u16-specific edge cases (0-65535 range)
+
+---
+
+### 15. multi-dim-arrays/i8-multi-dim.test.cnx
+
+**Covers Section 1.2 - i8 (line 189):**
+
+- [x] Array element type (multi-dim) (global arrays: `i8 matrix2d[4][8]`, `i8 cube3d[2][3][4]`)
+- 36 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and i8-specific edge cases including negative values (-128 to 127)
+
+---
+
+### 16. multi-dim-arrays/i16-multi-dim.test.cnx
+
+**Covers Section 1.2 - i16 (line 213):**
+
+- [x] Array element type (multi-dim) (global arrays: `i16 matrix2d[4][8]`, `i16 cube3d[2][3][4]`)
+- 39 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and i16-specific edge cases including negative values (-32768 to 32767)
+
+---
+
+### 17. multi-dim-arrays/i32-multi-dim.test.cnx
+
+**Covers Section 1.2 - i32 (line 237):**
+
+- [x] Array element type (multi-dim) (global arrays: `i32 matrix2d[4][8]`, `i32 cube3d[2][3][4]`)
+- 40 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and i32-specific edge cases including negative values and large integers
+
+---
+
+### 18. multi-dim-arrays/i64-multi-dim.test.cnx
+
+**Covers Section 1.2 - i64 (line 261):**
+
+- [x] Array element type (multi-dim) (global arrays: `i64 matrix2d[4][8]`, `i64 cube3d[2][3][4]`)
+- 42 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and i64-specific edge cases including very large positive/negative values and timestamps
+
+---
+
+### 19. multi-dim-arrays/f32-multi-dim.test.cnx
+
+**Covers Section 1.3 - f32 (line 287):**
+
+- [x] Array element type (multi-dim) (global arrays: `f32 matrix2d[4][8]`, `f32 cube3d[2][3][4]`)
+- 42 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and f32-specific edge cases including decimal precision and scientific notation
+
+---
+
+### 20. multi-dim-arrays/f64-multi-dim.test.cnx
+
+**Covers Section 1.3 - f64 (line 305):**
+
+- [x] Array element type (multi-dim) (global arrays: `f64 matrix2d[4][8]`, `f64 cube3d[2][3][4]`)
+- 47 validations covering 2D and 3D array operations, .length properties, nested loops, boundaries, and f64-specific edge cases including high-precision decimals, scientific constants, and astronomical/quantum scale values
+
+---
+
 ## Statistics Reconciliation
 
 **Test File Count Breakdown (from inventory):**
@@ -296,7 +370,7 @@ This document maps each test file to the specific coverage.md sections and rows 
 | scope                | 21      | 5           | **Comprehensive tests included**   |
 | casting              | 13      | 8           | Documented in coverage.md          |
 | arithmetic           | 12      | 3           | **Includes recent safe-div tests** |
-| multi-dim-arrays     | 11      | 1           | Documented in coverage.md          |
+| multi-dim-arrays     | 19      | 1           | **Updated with 8 new type tests**  |
 | **floats**           | **10**  | **2**       | **COMPLETELY MISSING FROM STATS**  |
 | switch               | 9       | 5           | Documented in coverage.md          |
 | null-check           | 9       | 5           | Documented in coverage.md          |
