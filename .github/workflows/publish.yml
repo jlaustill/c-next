@@ -33,7 +33,7 @@ jobs:
         run: npm test
 
       - name: Run linter
-        run: npm run eslint:check
+        run: npm run oxlint:check
 
       - name: Publish to npm
         run: npm publish --provenance --access public

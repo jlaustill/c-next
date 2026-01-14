@@ -29,9 +29,9 @@ jobs:
         run: npm run prettier:check
         continue-on-error: true
 
-      - name: Check linting (ESLint)
-        id: eslint
-        run: npm run eslint:check
+      - name: Check linting (oxlint)
+        id: oxlint
+        run: npm run oxlint:check
         continue-on-error: true
 
       - name: Generate parser files
@@ -68,10 +68,11 @@ jobs:
             echo "✅ Prettier formatting check passed"
           fi
 
-          if [ "${{ steps.eslint.outcome }}" != "success" ]; then
-            echo "⚠️  ESLint check failed (38 legacy errors - non-blocking)"
+          if [ "${{ steps.oxlint.outcome }}" != "success" ]; then
+            echo "❌ oxlint check failed"
+            FAILED=1
           else
-            echo "✅ ESLint check passed"
+            echo "✅ oxlint check passed"
           fi
 
           if [ "${{ steps.generate.outcome }}" != "success" ]; then
