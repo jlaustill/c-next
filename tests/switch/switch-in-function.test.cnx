@@ -1,0 +1,170 @@
+/* test-execution */
+// ADR-025: Switch in function context tests
+// Tests: functions that use switch to compute return values
+// Coverage: Section 7 (Control Flow) - switch in function
+
+// Direct return from switch cases
+u32 getValue(u32 code) {
+    switch (code) {
+        case 0 { return 100; }
+        case 1 { return 200; }
+        case 2 { return 300; }
+        default { return 999; }
+    }
+}
+
+// Multiple operations in switch before return
+u32 computeWithSwitch(u32 base, u32 operation) {
+    u32 result <- base;
+    switch (operation) {
+        case 0 { result +<- 10; }
+        case 1 { result *<- 2; }
+        case 2 { result -<- 5; }
+        default { result <- 0; }
+    }
+    return result;
+}
+
+// Switch with i8 return type (positive case labels only)
+i8 getSignedValue(i8 selector) {
+    switch (selector) {
+        case 0 { return 0; }
+        case 1 { return 127; }
+        case 50 { return -128; }
+        default { return -1; }
+    }
+}
+
+// Switch returning bool
+bool isSpecialValue(u16 val) {
+    bool special <- false;
+    switch (val) {
+        case 0 { special <- true; }
+        case 100 { special <- true; }
+        case 65535 { special <- true; }
+        default { special <- false; }
+    }
+    return special;
+}
+
+// Function with switch using u64
+u64 getLargeValue(u8 index) {
+    switch (index) {
+        case 0 { return 1000000000000; }
+        case 1 { return 2000000000000; }
+        case 2 { return 9000000000000000000; }
+        default { return 0; }
+    }
+}
+
+// Switch inside loop body
+u32 sumWithSwitchInLoop(u32 count, u32 mode) {
+    u32 sum <- 0;
+    for (u32 i <- 0; i < count; i +<- 1) {
+        switch (mode) {
+            case 0 { sum +<- 1; }
+            case 1 { sum +<- 2; }
+            default { sum +<- 10; }
+        }
+    }
+    return sum;
+}
+
+// Recursive function with switch
+u32 factorial(u32 n) {
+    switch (n) {
+        case 0 { return 1; }
+        case 1 { return 1; }
+        default { return n * factorial(n - 1); }
+    }
+}
+
+// Function that returns different types based on switch (positive case labels only)
+i16 categorize(i16 value) {
+    switch (value) {
+        case 0 { return 0; }
+        case 100 { return 1; }
+        case 200 { return 2; }
+        default { return 99; }
+    }
+}
+
+u32 main() {
+    // === DIRECT RETURN TESTS (4 validations: codes 1-4) ===
+    if (getValue(0) != 100) return 1;
+    if (getValue(1) != 200) return 2;
+    if (getValue(2) != 300) return 3;
+    if (getValue(99) != 999) return 4;
+
+    // === COMPUTE TESTS (4 validations: codes 5-8) ===
+    // base=100, operation=0: 100 + 10 = 110
+    if (computeWithSwitch(100, 0) != 110) return 5;
+    // base=100, operation=1: 100 * 2 = 200
+    if (computeWithSwitch(100, 1) != 200) return 6;
+    // base=100, operation=2: 100 - 5 = 95
+    if (computeWithSwitch(100, 2) != 95) return 7;
+    // base=100, operation=99: result = 0
+    if (computeWithSwitch(100, 99) != 0) return 8;
+
+    // === SIGNED RETURN TESTS (4 validations: codes 9-12) ===
+    // Note: Using positive case labels; negative selectors fall to default
+    i8 sel_zero <- 0;
+    i8 sel_one <- 1;
+    i8 sel_fifty <- 50;
+    i8 sel_neg <- -1;
+
+    if (getSignedValue(sel_zero) != 0) return 9;
+    if (getSignedValue(sel_one) != 127) return 10;
+    if (getSignedValue(sel_fifty) != -128) return 11;
+    if (getSignedValue(sel_neg) != -1) return 12;
+
+    // === BOOL RETURN TESTS (4 validations: codes 13-16) ===
+    u16 bval0 <- 0;
+    u16 bval100 <- 100;
+    u16 bvalMax <- 65535;
+    u16 bvalOther <- 5000;
+
+    if (!isSpecialValue(bval0)) return 13;
+    if (!isSpecialValue(bval100)) return 14;
+    if (!isSpecialValue(bvalMax)) return 15;
+    if (isSpecialValue(bvalOther)) return 16;
+
+    // === LARGE VALUE TESTS (4 validations: codes 17-20) ===
+    u8 idx0 <- 0;
+    u8 idx1 <- 1;
+    u8 idx2 <- 2;
+    u8 idxOther <- 99;
+
+    if (getLargeValue(idx0) != 1000000000000) return 17;
+    if (getLargeValue(idx1) != 2000000000000) return 18;
+    if (getLargeValue(idx2) != 9000000000000000000) return 19;
+    if (getLargeValue(idxOther) != 0) return 20;
+
+    // === LOOP TESTS (3 validations: codes 21-23) ===
+    // count=5, mode=0: 5 * 1 = 5
+    if (sumWithSwitchInLoop(5, 0) != 5) return 21;
+    // count=5, mode=1: 5 * 2 = 10
+    if (sumWithSwitchInLoop(5, 1) != 10) return 22;
+    // count=3, mode=99 (default): 3 * 10 = 30
+    if (sumWithSwitchInLoop(3, 99) != 30) return 23;
+
+    // === RECURSIVE TESTS (4 validations: codes 24-27) ===
+    if (factorial(0) != 1) return 24;
+    if (factorial(1) != 1) return 25;
+    if (factorial(5) != 120) return 26;
+    if (factorial(6) != 720) return 27;
+
+    // === CATEGORIZE TESTS (4 validations: codes 28-31) ===
+    // Note: Using positive case labels; negative values fall to default
+    i16 cat_zero <- 0;
+    i16 cat_100 <- 100;
+    i16 cat_200 <- 200;
+    i16 cat_neg <- -100;
+
+    if (categorize(cat_zero) != 0) return 28;
+    if (categorize(cat_100) != 1) return 29;
+    if (categorize(cat_200) != 2) return 30;
+    if (categorize(cat_neg) != 99) return 31;
+
+    return 0;
+}
