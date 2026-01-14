@@ -5966,7 +5966,7 @@ export default class CodeGenerator {
       const num = ctx.INTEGER_LITERAL()!.getText();
       // Check if minus token exists (first child would be '-')
       const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = parseInt(num, 10);
+      const value = BigInt(num);
       return String(hasNeg ? -value : value);
     }
     if (ctx.HEX_LITERAL()) {
@@ -5974,13 +5974,13 @@ export default class CodeGenerator {
       const hex = ctx.HEX_LITERAL()!.getText();
       // Check if minus token exists (first child would be '-')
       const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = parseInt(hex, 16);
+      const value = BigInt(hex); // BigInt handles 0x prefix natively
       return String(hasNeg ? -value : value);
     }
     if (ctx.BINARY_LITERAL()) {
       // Normalize binary to decimal for comparison
       const bin = ctx.BINARY_LITERAL()!.getText();
-      return String(parseInt(bin.replace(/0[bB]/, ""), 2));
+      return String(BigInt(bin)); // BigInt handles 0b prefix natively
     }
     if (ctx.CHAR_LITERAL()) {
       return ctx.CHAR_LITERAL()!.getText();
