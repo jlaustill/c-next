@@ -246,10 +246,17 @@ Comprehensive postfix chain test suite in `tests/postfix-chains/`:
 - ❌ mixed-access-ultimate.test.cnx
 - ❌ multi-bit-range-chain.test.cnx
 
-### Tests Blocked by Semantic Constraints (Expected)
+### Tests Blocked by Semantic Constraints (RESOLVED 2026-01-14)
 
-- ❌ scoped-register-bitmap-chain.test.cnx (scope self-reference)
-- ❌ write-only-register-chain.test.cnx (false to SET register)
+These skipped tests have been resolved by creating focused test files:
+
+- ✅ `scoped-register-bitmap-chain.test.cnx.skip` → Replaced by:
+  - `postfix-chains/scoped-register-global-access.test.cnx` (valid portions)
+  - `postfix-chains/mixed-access-ultimate.test.cnx` (error test - already existed)
+
+- ✅ `write-only-register-chain.test.cnx.skip` → Replaced by:
+  - `register/register-wo-operations.test.cnx` (valid portions)
+  - `register/register-wo-set-false-error.test.cnx` (error test - NEW)
 
 ---
 

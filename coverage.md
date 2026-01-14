@@ -999,23 +999,25 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 12. Register Declaration
 
-| Feature                    | Status | Test File                                     |
-| -------------------------- | ------ | --------------------------------------------- |
-| Basic register             | [x]    | `register/register-basic.test.cnx`            |
-| Multiple registers         | [x]    | `register/register-multiple.test.cnx`         |
-| With address offset        | [x]    | `register/register-offsets.test.cnx`          |
-| rw access modifier         | [x]    | `register/register-access-modifiers.test.cnx` |
-| ro access modifier         | [x]    |                                               |
-| wo access modifier         | [x]    |                                               |
-| w1c access modifier        | [ ]    |                                               |
-| w1s access modifier        | [ ]    |                                               |
-| Bit indexing               | [x]    | `register/register-bit-indexing.test.cnx`     |
-| Bit range access           | [ ]    |                                               |
-| Bitfield members           | [ ]    |                                               |
-| Scoped register            | [x]    | `scope/scoped-register-basic.test.cnx`        |
-| Scoped register bit access | [x]    | `scope/scoped-register-bit-access.test.cnx`   |
-| Write to ro **(ERROR)**    | [x]    | `register/register-write-ro-error.test.cnx`   |
-| Read from wo **(ERROR)**   | [x]    | `register/register-read-wo-error.test.cnx`    |
+| Feature                           | Status | Test File                                       |
+| --------------------------------- | ------ | ----------------------------------------------- |
+| Basic register                    | [x]    | `register/register-basic.test.cnx`              |
+| Multiple registers                | [x]    | `register/register-multiple.test.cnx`           |
+| With address offset               | [x]    | `register/register-offsets.test.cnx`            |
+| rw access modifier                | [x]    | `register/register-access-modifiers.test.cnx`   |
+| ro access modifier                | [x]    |                                                 |
+| wo access modifier                | [x]    |                                                 |
+| w1c access modifier               | [ ]    |                                                 |
+| w1s access modifier               | [ ]    |                                                 |
+| Bit indexing                      | [x]    | `register/register-bit-indexing.test.cnx`       |
+| Bit range access                  | [ ]    |                                                 |
+| Bitfield members                  | [ ]    |                                                 |
+| Scoped register                   | [x]    | `scope/scoped-register-basic.test.cnx`          |
+| Scoped register bit access        | [x]    | `scope/scoped-register-bit-access.test.cnx`     |
+| Write to ro **(ERROR)**           | [x]    | `register/register-write-ro-error.test.cnx`     |
+| Read from wo **(ERROR)**          | [x]    | `register/register-read-wo-error.test.cnx`      |
+| Write false to wo SET **(ERROR)** | [x]    | `register/register-wo-set-false-error.test.cnx` |
+| wo operations (various indices)   | [x]    | `register/register-wo-operations.test.cnx`      |
 
 ### 12.2 Register Bitfields (bits keyword)
 
@@ -1589,21 +1591,21 @@ _Note: Generic types are defined in grammar but implementation status unclear._
 
 **Comprehensive testing of lines 5850-6285 in CodeGenerator.ts (most complex code)**
 
-| Context                                       | Status | Test File                                              |
-| --------------------------------------------- | ------ | ------------------------------------------------------ |
-| 2-level chains: arr[i].field                  | [x]    | `postfix-chains/basic-two-level.test.cnx`              |
-| 3-level chains: arr[i].struct.field           | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`       |
-| 4-level chains: arr[i][j].struct.field        | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`       |
-| 5-level chains: arr[i][j].struct.field.member | [x]    | `postfix-chains/array-struct-chain.test.cnx`           |
-| 7-level chains: mega stress test              | [x]    | `postfix-chains/mixed-access-ultimate.test.cnx`        |
-| Register + bitmap + bit indexing              | [x]    | `postfix-chains/register-bitmap-bit-chain.test.cnx`    |
-| Scoped register + bitmap chains               | [x]    | `postfix-chains/scoped-register-bitmap-chain.test.cnx` |
-| Array + struct member chains                  | [x]    | `postfix-chains/array-struct-chain.test.cnx`           |
-| Function calls with chained params            | [x]    | `postfix-chains/function-call-chain.test.cnx`          |
-| Write-only register chains                    | [x]    | `postfix-chains/write-only-register-chain.test.cnx`    |
-| Multi-bit range chains [start, width]         | [x]    | `postfix-chains/multi-bit-range-chain.test.cnx`        |
-| Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`          |
-| Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`       |
+| Context                                       | Status | Test File                                               |
+| --------------------------------------------- | ------ | ------------------------------------------------------- |
+| 2-level chains: arr[i].field                  | [x]    | `postfix-chains/basic-two-level.test.cnx`               |
+| 3-level chains: arr[i].struct.field           | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`        |
+| 4-level chains: arr[i][j].struct.field        | [x]    | `postfix-chains/deep-three-plus-levels.test.cnx`        |
+| 5-level chains: arr[i][j].struct.field.member | [x]    | `postfix-chains/array-struct-chain.test.cnx`            |
+| 7-level chains: mega stress test              | [x]    | `postfix-chains/mixed-access-ultimate.test.cnx`         |
+| Register + bitmap + bit indexing              | [x]    | `postfix-chains/register-bitmap-bit-chain.test.cnx`     |
+| Scoped register + bitmap chains               | [x]    | `postfix-chains/scoped-register-global-access.test.cnx` |
+| Array + struct member chains                  | [x]    | `postfix-chains/array-struct-chain.test.cnx`            |
+| Function calls with chained params            | [x]    | `postfix-chains/function-call-chain.test.cnx`           |
+| Write-only register chains                    | [x]    | `register/register-wo-operations.test.cnx`              |
+| Multi-bit range chains [start, width]         | [x]    | `postfix-chains/multi-bit-range-chain.test.cnx`         |
+| Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`           |
+| Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`        |
 
 **Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in CNext.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
 

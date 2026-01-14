@@ -1,6 +1,7 @@
-// Postfix Chain Test: Scoped Register + Bitmap Access
-// Tests: Scope.Register.Bitmap.Field chains (HIGH RISK)
-// This tests the interaction between scope qualification, register access, and bitmap fields
+// Postfix Chain Test: Scoped Register Access from Global Context
+// Tests: Accessing scoped registers, bitmaps, and methods from outside the scope
+// Coverage: Section 13 - Scope Declaration (global context access)
+// Extracted from: scoped-register-bitmap-chain.test.cnx.skip (valid portions only)
 
 bitmap8 MotorFlags {
     Running,        // bit 0
@@ -20,20 +21,20 @@ scope MotorController {
     }
 
     void start() {
-        // Inside scope: accessing scoped register with bitmap
-        MotorController.MOTOR_REG.CTRL.Running <- true;
-        MotorController.MOTOR_REG.CTRL.Mode <- 3;
-        MotorController.MOTOR_REG.SPEED <- global.MotorController.DEFAULT_SPEED;
+        // Inside scope: must use 'this.' to access own members
+        this.MOTOR_REG.CTRL.Running <- true;
+        this.MOTOR_REG.CTRL.Mode <- 3;
+        this.MOTOR_REG.SPEED <- this.DEFAULT_SPEED;
     }
 
     bool isRunning() {
-        // Read through scoped register bitmap chain
-        return MotorController.MOTOR_REG.CTRL.Running;
+        // Read through scoped register bitmap chain using this.
+        return this.MOTOR_REG.CTRL.Running;
     }
 
     u8 getMode() {
         // Read multi-bit field through scoped register
-        return MotorController.MOTOR_REG.CTRL.Mode;
+        return this.MOTOR_REG.CTRL.Mode;
     }
 }
 
@@ -46,13 +47,13 @@ scope Board {
     const u32 LED_BIT <- 3;
 
     void toggleLed() {
-        // Scoped register with bit indexing
-        Board.GPIO.DR_SET[global.Board.LED_BIT] <- true;
+        // Scoped register with bit indexing using this.
+        this.GPIO.DR_SET[this.LED_BIT] <- true;
     }
 }
 
 void main() {
-    // Access scoped register from global context (4 levels)
+    // Access scoped register from global context (valid: 4 levels)
     MotorController.MOTOR_REG.CTRL.Running <- true;
     MotorController.MOTOR_REG.CTRL.Direction <- false;
     MotorController.MOTOR_REG.CTRL.Mode <- 5;
