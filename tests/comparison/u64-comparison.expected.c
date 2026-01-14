@@ -14,6 +14,7 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     return a + (uint64_t)b;
 }
 
+/* test-coverage: 1.1-u64-in-comparison */
 /* test-execution */
 // Tests: u64 comparison operations (<, >, <=, >=, =, !=)
 // Validates all comparison operators with u64 type

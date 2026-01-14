@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+/* test-coverage: 1.1-u8-with-atomic-modifier, 1.1-u16-with-atomic-modifier */
+/* test-coverage: 1.1-u32-with-atomic-modifier */
 // ADR-049: Atomic variables with all integer types
 // Tests: atomic works with u8, u16, u32, u64
 

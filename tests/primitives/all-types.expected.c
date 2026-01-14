@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* test-coverage: 1.1-u8-global-variable-declaration, 1.1-u16-global-variable-declaration */
+/* test-coverage: 1.1-u32-global-variable-declaration, 1.1-u64-global-variable-declaration */
+/* test-coverage: 1.2-i8-global-variable-declaration, 1.2-i16-global-variable-declaration */
+/* test-coverage: 1.2-i32-global-variable-declaration, 1.2-i64-global-variable-declaration */
 // ADR-044: Test all primitive types transpile correctly
 // Unsigned integers
 uint8_t byte = 255;
