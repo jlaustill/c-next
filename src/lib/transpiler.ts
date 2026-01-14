@@ -12,6 +12,7 @@ import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
 import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
+import FloatModuloAnalyzer from "../analysis/FloatModuloAnalyzer";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileError from "./types/ITranspileError";
 import ITranspileOptions from "./types/ITranspileOptions";
@@ -205,6 +206,30 @@ function transpile(
   }
 
   // If there are division by zero errors, fail compilation
+  if (errors.length > 0) {
+    return {
+      success: false,
+      code: "",
+      errors,
+      declarationCount,
+    };
+  }
+
+  // Run float modulo analysis (catch % with f32/f64 early)
+  const floatModAnalyzer = new FloatModuloAnalyzer();
+  const floatModErrors = floatModAnalyzer.analyze(tree);
+
+  // Convert float modulo errors to transpile errors
+  for (const floatModError of floatModErrors) {
+    errors.push({
+      line: floatModError.line,
+      column: floatModError.column,
+      message: `error[${floatModError.code}]: ${floatModError.message}`,
+      severity: "error",
+    });
+  }
+
+  // If there are float modulo errors, fail compilation
   if (errors.length > 0) {
     return {
       success: false,
