@@ -7,7 +7,7 @@
  * - E0802: Modulo by literal zero
  * - E0803: Modulo by const that evaluates to zero
  */
-export interface IDivisionByZeroError {
+interface IDivisionByZeroError {
   /** Error code (E0800-E0803) */
   code: string;
   /** Operator used ('/' or '%') */

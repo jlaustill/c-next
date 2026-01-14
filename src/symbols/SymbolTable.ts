@@ -6,16 +6,7 @@
 import ISymbol from "../types/ISymbol";
 import ESourceLanguage from "../types/ESourceLanguage";
 import IConflict from "./types/IConflict";
-
-/**
- * Struct field information
- */
-interface IStructFieldInfo {
-  /** Field type (e.g., "uint32_t", "uint16_t") */
-  type: string;
-  /** Array dimensions if field is an array */
-  arrayDimensions?: number[];
-}
+import IStructFieldInfo from "./types/IStructFieldInfo";
 
 /**
  * Central symbol table for cross-language interoperability
@@ -309,4 +300,3 @@ class SymbolTable {
 }
 
 export default SymbolTable;
-export type { IStructFieldInfo };

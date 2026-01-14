@@ -7,6 +7,7 @@ import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "../symbols/SymbolTable";
+import IHeaderOptions from "./types/IHeaderOptions";
 
 /**
  * Maps C-Next types to C types
@@ -26,20 +27,6 @@ const TYPE_MAP: Record<string, string> = {
   void: "void",
   ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
 };
-
-/**
- * Options for header generation
- */
-interface IHeaderOptions {
-  /** Guard prefix (default: derived from filename) */
-  guardPrefix?: string;
-
-  /** Include system headers in the output */
-  includeSystemHeaders?: boolean;
-
-  /** Only generate declarations for exported symbols */
-  exportedOnly?: boolean;
-}
 
 /**
  * Generates C header files from symbol information
@@ -289,4 +276,3 @@ class HeaderGenerator {
 }
 
 export default HeaderGenerator;
-export type { IHeaderOptions };

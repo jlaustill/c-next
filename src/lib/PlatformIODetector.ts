@@ -122,7 +122,7 @@ function findPlatformIOConfig(startDir: string): string | null {
  * // Returns "teensy41" if platformio.ini has board = teensy41
  * ```
  */
-export function detectPlatformIOTarget(startDir: string): string | undefined {
+function detectPlatformIOTarget(startDir: string): string | undefined {
   const configPath = findPlatformIOConfig(startDir);
   if (!configPath) {
     return undefined;

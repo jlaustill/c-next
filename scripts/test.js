@@ -40,7 +40,7 @@ import { fileURLToPath } from "url";
 import { execFileSync } from "child_process";
 import { tmpdir } from "os";
 import { randomBytes } from "crypto";
-import { transpile } from "../src/lib/transpiler";
+import transpile from "../src/lib/transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

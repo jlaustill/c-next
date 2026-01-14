@@ -1,16 +1,4 @@
-/**
- * Source location mapping from preprocessed output back to original file
- */
-interface ISourceMapping {
-  /** Line number in preprocessed output */
-  preprocessedLine: number;
-
-  /** Original file path */
-  originalFile: string;
-
-  /** Line number in original file */
-  originalLine: number;
-}
+import ISourceMapping from "./ISourceMapping";
 
 /**
  * Result of preprocessing a C/C++ file
@@ -36,4 +24,3 @@ interface IPreprocessResult {
 }
 
 export default IPreprocessResult;
-export type { ISourceMapping };

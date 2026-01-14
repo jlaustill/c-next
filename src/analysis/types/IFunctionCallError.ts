@@ -1,7 +1,7 @@
 /**
  * Error reported when a function is called before it's defined (ADR-030)
  */
-export interface IFunctionCallError {
+interface IFunctionCallError {
   /** Error code (E0422) */
   code: string;
   /** Name of the function that was called */
