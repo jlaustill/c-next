@@ -330,6 +330,23 @@ export default class CodeGenerator {
   }
 
   /**
+   * Check if a type name is a known struct (C-Next or C header).
+   * Issue #103: Must check both local knownStructs AND SymbolTable
+   * for proper type chain tracking through nested C header structs.
+   */
+  private isKnownStruct(typeName: string): boolean {
+    // Check C-Next structs first (local definitions)
+    if (this.knownStructs.has(typeName)) {
+      return true;
+    }
+    // Check SymbolTable for C header structs
+    if (this.symbolTable?.getStructFields(typeName)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Check if a function is a C-Next function (uses pass-by-reference semantics).
    * Checks both internal tracking and external symbol table.
    */
@@ -1896,7 +1913,7 @@ export default class CodeGenerator {
       );
     }
 
-    if (this.knownStructs.has(identifier)) {
+    if (this.isKnownStruct(identifier)) {
       throw new Error(
         `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${this.context.currentScope}'`,
       );
@@ -4147,7 +4164,7 @@ export default class CodeGenerator {
 
           // ADR-029: Validate callback field assignments with nominal typing
           const rootTypeInfo = this.context.typeRegistry.get(rootName);
-          if (rootTypeInfo && this.knownStructs.has(rootTypeInfo.baseType)) {
+          if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
             const structType = rootTypeInfo.baseType;
             const callbackFieldKey = `${structType}.${memberName}`;
             const expectedCallbackType =
@@ -4439,7 +4456,7 @@ export default class CodeGenerator {
           let _lastMemberStructType: string | undefined; // Struct type containing the last member (kept for future use)
           const firstTypeInfo = this.context.typeRegistry.get(firstId);
           if (firstTypeInfo) {
-            currentStructType = this.knownStructs.has(firstTypeInfo.baseType)
+            currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
               ? firstTypeInfo.baseType
               : undefined;
           }
@@ -4472,7 +4489,7 @@ export default class CodeGenerator {
                     this.structFieldArrays.get(currentStructType);
                   lastMemberIsArray = arrayFields?.has(memberName) ?? false;
                   // Check if this member is itself a struct
-                  if (lastMemberType && this.knownStructs.has(lastMemberType)) {
+                  if (lastMemberType && this.isKnownStruct(lastMemberType)) {
                     currentStructType = lastMemberType;
                   } else {
                     currentStructType = undefined;
@@ -4518,7 +4535,7 @@ export default class CodeGenerator {
                 if (firstTypeInfo?.isArray && exprIndex === 1) {
                   // First subscript on array - element type might be a struct
                   const elementType = firstTypeInfo.baseType;
-                  if (this.knownStructs.has(elementType)) {
+                  if (this.isKnownStruct(elementType)) {
                     currentStructType = elementType;
                   }
                 }
@@ -4543,10 +4560,7 @@ export default class CodeGenerator {
             const fieldName = identifiers[1].getText();
 
             const structTypeInfo = this.context.typeRegistry.get(structName);
-            if (
-              structTypeInfo &&
-              this.knownStructs.has(structTypeInfo.baseType)
-            ) {
+            if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
               const structType = structTypeInfo.baseType;
               const fieldDimensions =
                 this.structFieldDimensions.get(structType);
@@ -5084,7 +5098,7 @@ export default class CodeGenerator {
         const fieldName = identifiers[1].getText();
 
         const structTypeInfo = this.context.typeRegistry.get(structName);
-        if (structTypeInfo && this.knownStructs.has(structTypeInfo.baseType)) {
+        if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
           const structType = structTypeInfo.baseType;
 
           // Check if this field is a string array in the struct
@@ -6854,7 +6868,7 @@ export default class CodeGenerator {
             const resolvedTypeInfo = this.context.typeRegistry.get(result);
             if (
               resolvedTypeInfo &&
-              this.knownStructs.has(resolvedTypeInfo.baseType)
+              this.isKnownStruct(resolvedTypeInfo.baseType)
             ) {
               currentStructType = resolvedTypeInfo.baseType;
             }
@@ -6908,7 +6922,7 @@ export default class CodeGenerator {
                 this.context.typeRegistry.get(currentIdentifier);
               if (
                 identifierTypeInfo &&
-                this.knownStructs.has(identifierTypeInfo.baseType)
+                this.isKnownStruct(identifierTypeInfo.baseType)
               ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
@@ -6937,7 +6951,7 @@ export default class CodeGenerator {
                 this.context.typeRegistry.get(currentIdentifier);
               if (
                 identifierTypeInfo &&
-                this.knownStructs.has(identifierTypeInfo.baseType)
+                this.isKnownStruct(identifierTypeInfo.baseType)
               ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
@@ -6977,7 +6991,7 @@ export default class CodeGenerator {
               const resolvedTypeInfo = this.context.typeRegistry.get(result);
               if (
                 resolvedTypeInfo &&
-                this.knownStructs.has(resolvedTypeInfo.baseType)
+                this.isKnownStruct(resolvedTypeInfo.baseType)
               ) {
                 currentStructType = resolvedTypeInfo.baseType;
               }
@@ -7096,7 +7110,7 @@ export default class CodeGenerator {
             // After consuming all array dimensions, set struct type if element is struct
             if (remainingArrayDims === 0 && primaryTypeInfo) {
               const elementType = primaryTypeInfo.baseType;
-              if (this.knownStructs.has(elementType)) {
+              if (this.isKnownStruct(elementType)) {
                 currentStructType = elementType;
               }
             }
@@ -7112,7 +7126,7 @@ export default class CodeGenerator {
             // After subscripting an array, set currentStructType if the element is a struct
             if (identifierTypeInfo && !currentStructType) {
               const elementType = identifierTypeInfo.baseType;
-              if (this.knownStructs.has(elementType)) {
+              if (this.isKnownStruct(elementType)) {
                 currentStructType = elementType;
               }
             }
@@ -7450,7 +7464,7 @@ export default class CodeGenerator {
         }
 
         // Check if it's a known struct (actual type)
-        if (this.knownStructs.has(varName)) {
+        if (this.isKnownStruct(varName)) {
           return `sizeof(${varName})`;
         }
 
@@ -7725,7 +7739,7 @@ export default class CodeGenerator {
           let lastMemberIsArray = false; // Track if last accessed member is an array
           const firstTypeInfo = this.context.typeRegistry.get(firstPart);
           if (firstTypeInfo) {
-            currentStructType = this.knownStructs.has(firstTypeInfo.baseType)
+            currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
               ? firstTypeInfo.baseType
               : undefined;
           }
@@ -7754,7 +7768,7 @@ export default class CodeGenerator {
                     this.structFieldArrays.get(currentStructType);
                   lastMemberIsArray = arrayFields?.has(memberName) ?? false;
                   // Check if this member is itself a struct
-                  if (lastMemberType && this.knownStructs.has(lastMemberType)) {
+                  if (lastMemberType && this.isKnownStruct(lastMemberType)) {
                     currentStructType = lastMemberType;
                   } else {
                     currentStructType = undefined;
@@ -7795,7 +7809,7 @@ export default class CodeGenerator {
                 if (firstTypeInfo?.isArray && exprIndex === 1) {
                   // First subscript on array - element type might be a struct
                   const elementType = firstTypeInfo.baseType;
-                  if (this.knownStructs.has(elementType)) {
+                  if (this.isKnownStruct(elementType)) {
                     currentStructType = elementType;
                   }
                 }
