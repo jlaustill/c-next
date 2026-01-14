@@ -755,6 +755,7 @@ npm install  # Installs dependencies and Husky pre-commit hooks
 npm run antlr      # Regenerate parser from grammar
 npm run typecheck  # Type-check TypeScript (no build required)
 npm test           # Run all tests
+npm test -- --quiet   # Minimal output (errors + summary only)
 
 # Code quality (auto-run by pre-commit hooks)
 npm run prettier:fix   # Format all code
