@@ -1,0 +1,198 @@
+/* test-execution */
+// Tests: u64 compound assignment operators
+// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Coverage: Issue #22 - Complete compound assignment operator coverage
+
+u32 main() {
+    // ===== ADDITION (+<-) =====
+    u64 val <- 1000000000000;
+    val +<- 500000000000;  // 1T + 500B = 1.5T
+    if (val != 1500000000000) return 1;
+
+    val <- 9000000000000000000;
+    val +<- 1000000000000000000;  // Near max addition
+    if (val != 10000000000000000000) return 2;
+
+    val <- 5000000000000;
+    val +<- 0;  // Identity: add zero
+    if (val != 5000000000000) return 3;
+
+    val <- 0;
+    val +<- 18446744073709551614;  // 0 + near-max
+    if (val != 18446744073709551614) return 4;
+
+    // ===== SUBTRACTION (-<-) =====
+    val <- 1500000000000;
+    val -<- 500000000000;  // 1.5T - 500B = 1T
+    if (val != 1000000000000) return 10;
+
+    val <- 10000000000000000000;
+    val -<- 9000000000000000000;  // Large subtraction
+    if (val != 1000000000000000000) return 11;
+
+    val <- 5000000000000;
+    val -<- 0;  // Identity: subtract zero
+    if (val != 5000000000000) return 12;
+
+    val <- 18446744073709551615;
+    val -<- 18446744073709551614;  // Max - (max-1) = 1
+    if (val != 1) return 13;
+
+    val <- 1000;
+    val -<- 1000;  // Result zero
+    if (val != 0) return 14;
+
+    // ===== MULTIPLICATION (*<-) =====
+    val <- 1000000;
+    val *<- 1000000;  // 1M * 1M = 1T
+    if (val != 1000000000000) return 20;
+
+    val <- 5000000000000;
+    val *<- 1;  // Identity: multiply by one
+    if (val != 5000000000000) return 21;
+
+    val <- 100000000;
+    val *<- 10000;  // 100M * 10K = 1T
+    if (val != 1000000000000) return 22;
+
+    val <- 123456789;
+    val *<- 2;  // Simple double
+    if (val != 246913578) return 23;
+
+    val <- 4294967296;
+    val *<- 4294967296;  // 2^32 * 2^32 overflows - C-Next clamps to max
+    if (val != 18446744073709551615) return 24;  // Clamped to UINT64_MAX
+
+    // ===== DIVISION (/<-) =====
+    val <- 1000000000000;
+    val /<- 1000;  // 1T / 1K = 1B
+    if (val != 1000000000) return 30;
+
+    val <- 5000000000000;
+    val /<- 1;  // Identity: divide by one
+    if (val != 5000000000000) return 31;
+
+    val <- 1000000000000;
+    val /<- 2;  // 1T / 2 = 500B
+    if (val != 500000000000) return 32;
+
+    val <- 9000000000000000000;
+    val /<- 1000000;  // Large / million = 9T
+    if (val != 9000000000000) return 33;
+
+    val <- 100;
+    val /<- 100;  // Result one
+    if (val != 1) return 34;
+
+    // ===== MODULO (%<-) =====
+    val <- 1000000000007;
+    val %<- 1000000;  // Large mod
+    if (val != 7) return 40;
+
+    val <- 1609459200000;
+    val %<- 1000;  // Timestamp mod 1000 (common embedded)
+    if (val != 0) return 41;
+
+    val <- 12345;
+    val %<- 7;  // 12345 % 7 = 4
+    if (val != 4) return 42;
+
+    val <- 100;
+    val %<- 100;  // Result zero
+    if (val != 0) return 43;
+
+    val <- 9999999999999999999;
+    val %<- 10;  // Last digit
+    if (val != 9) return 44;
+
+    // ===== BITWISE AND (&<-) =====
+    val <- 0xFFFFFFFFFFFFFFFF;
+    val &<- 0x00000000FFFFFFFF;  // Keep low 32 bits
+    if (val != 0x00000000FFFFFFFF) return 50;
+
+    val <- 0xAAAAAAAAAAAAAAAA;
+    val &<- 0x5555555555555555;  // Alternating AND = 0
+    if (val != 0) return 51;
+
+    val <- 0x123456789ABCDEF0;
+    val &<- 0xFFFFFFFFFFFFFFFF;  // AND with all 1s = identity
+    if (val != 0x123456789ABCDEF0) return 52;
+
+    val <- 0xFFFF0000FFFF0000;
+    val &<- 0x0000FFFF0000FFFF;  // Checkerboard pattern
+    if (val != 0) return 53;
+
+    // ===== BITWISE OR (|<-) =====
+    val <- 0x00000000FFFFFFFF;
+    val |<- 0xFFFFFFFF00000000;  // Combine halves
+    if (val != 0xFFFFFFFFFFFFFFFF) return 60;
+
+    val <- 0x1234000000000000;
+    val |<- 0x0000000056789ABC;  // OR non-overlapping
+    if (val != 0x1234000056789ABC) return 61;
+
+    val <- 0x123456789ABCDEF0;
+    val |<- 0x0000000000000000;  // OR with zero = identity
+    if (val != 0x123456789ABCDEF0) return 62;
+
+    // ===== BITWISE XOR (^<-) =====
+    val <- 0xAAAAAAAAAAAAAAAA;
+    val ^<- 0x5555555555555555;  // Alternating XOR = all 1s
+    if (val != 0xFFFFFFFFFFFFFFFF) return 70;
+
+    val <- 0xFFFFFFFFFFFFFFFF;
+    val ^<- 0xFFFFFFFFFFFFFFFF;  // XOR with all 1s = invert (then all 0s)
+    if (val != 0) return 71;
+
+    val <- 0x123456789ABCDEF0;
+    val ^<- 0x123456789ABCDEF0;  // XOR with self = 0
+    if (val != 0) return 72;
+
+    val <- 0x0F0F0F0F0F0F0F0F;
+    val ^<- 0xF0F0F0F0F0F0F0F0;  // Complement nibbles
+    if (val != 0xFFFFFFFFFFFFFFFF) return 73;
+
+    // ===== LEFT SHIFT (<<<-) =====
+    val <- 1;
+    val <<<- 0;  // Shift by 0 = identity
+    if (val != 1) return 80;
+
+    val <- 1;
+    val <<<- 1;  // 1 << 1 = 2
+    if (val != 2) return 81;
+
+    val <- 1;
+    val <<<- 32;  // 1 << 32 = 4294967296 (2^32)
+    if (val != 4294967296) return 82;
+
+    val <- 1;
+    val <<<- 63;  // 1 << 63 = 2^63 (sign bit for signed, but valid for u64)
+    if (val != 9223372036854775808) return 83;
+
+    val <- 0xFF;
+    val <<<- 8;  // 255 << 8 = 65280
+    if (val != 65280) return 84;
+
+    // ===== RIGHT SHIFT (>><-) =====
+    val <- 256;
+    val >><- 0;  // Shift by 0 = identity
+    if (val != 256) return 90;
+
+    val <- 256;
+    val >><- 1;  // 256 >> 1 = 128
+    if (val != 128) return 91;
+
+    val <- 4294967296;
+    val >><- 32;  // 2^32 >> 32 = 1
+    if (val != 1) return 92;
+
+    val <- 9223372036854775808;
+    val >><- 63;  // 2^63 >> 63 = 1
+    if (val != 1) return 93;
+
+    val <- 0xFF00;
+    val >><- 8;  // 65280 >> 8 = 255
+    if (val != 255) return 94;
+
+    return 0;
+}

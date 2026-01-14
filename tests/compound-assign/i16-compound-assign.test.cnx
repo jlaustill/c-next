@@ -1,0 +1,219 @@
+/* test-execution */
+// Tests: i16 compound assignment operators
+// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Coverage: Issue #22 - Complete compound assignment operator coverage
+// Range: -32768 to 32767
+
+u32 main() {
+    // ===== ADDITION (+<-) =====
+    i16 val <- 10000;
+    val +<- 5000;  // pos + pos
+    if (val != 15000) return 1;
+
+    val <- -10000;
+    val +<- 5000;  // neg + pos
+    if (val != -5000) return 2;
+
+    val <- -10000;
+    val +<- -5000;  // neg + neg
+    if (val != -15000) return 3;
+
+    val <- 1000;
+    val +<- 0;  // Identity: add zero
+    if (val != 1000) return 4;
+
+    val <- -1000;
+    val +<- 1000;  // Cross zero
+    if (val != 0) return 5;
+
+    val <- 32766;
+    val +<- 1;  // Near max
+    if (val != 32767) return 6;
+
+    // ===== SUBTRACTION (-<-) =====
+    i16 sub <- 15000;
+    sub -<- 5000;  // pos - pos = pos
+    if (sub != 10000) return 10;
+
+    sub <- 5000;
+    sub -<- 10000;  // pos - pos = neg
+    if (sub != -5000) return 11;
+
+    sub <- -10000;
+    sub -<- 5000;  // neg - pos
+    if (sub != -15000) return 12;
+
+    sub <- -10000;
+    sub -<- -5000;  // neg - neg
+    if (sub != -5000) return 13;
+
+    sub <- 1000;
+    sub -<- 0;  // Identity: subtract zero
+    if (sub != 1000) return 14;
+
+    sub <- -32767;
+    sub -<- 1;  // Near min
+    if (sub != -32768) return 15;
+
+    // ===== MULTIPLICATION (*<-) =====
+    i16 mul <- 100;
+    mul *<- 100;  // pos * pos = 10000
+    if (mul != 10000) return 20;
+
+    mul <- -100;
+    mul *<- 100;  // neg * pos
+    if (mul != -10000) return 21;
+
+    mul <- -100;
+    mul *<- -100;  // neg * neg = pos
+    if (mul != 10000) return 22;
+
+    mul <- 1000;
+    mul *<- 1;  // Identity: multiply by one
+    if (mul != 1000) return 23;
+
+    mul <- 1000;
+    mul *<- -1;  // Negate
+    if (mul != -1000) return 24;
+
+    mul <- 123;
+    mul *<- 0;  // Multiply by zero
+    if (mul != 0) return 25;
+
+    // ===== DIVISION (/<-) =====
+    i16 div <- 10000;
+    div /<- 100;  // pos / pos
+    if (div != 100) return 30;
+
+    div <- -10000;
+    div /<- 100;  // neg / pos
+    if (div != -100) return 31;
+
+    div <- -10000;
+    div /<- -100;  // neg / neg
+    if (div != 100) return 32;
+
+    div <- 1000;
+    div /<- 1;  // Identity: divide by one
+    if (div != 1000) return 33;
+
+    div <- -1000;
+    div /<- -1;  // neg / neg = pos
+    if (div != 1000) return 34;
+
+    div <- 32767;
+    div /<- 32767;  // Max / max = 1
+    if (div != 1) return 35;
+
+    // ===== MODULO (%<-) =====
+    i16 mod <- 10007;
+    mod %<- 1000;  // pos % pos
+    if (mod != 7) return 40;
+
+    mod <- -10007;
+    mod %<- 1000;  // neg % pos (C semantics)
+    if (mod != -7) return 41;
+
+    mod <- 12345;
+    mod %<- 7;  // 12345 % 7 = 4
+    if (mod != 4) return 42;
+
+    mod <- -12345;
+    mod %<- 7;  // -12345 % 7 = -4
+    if (mod != -4) return 43;
+
+    mod <- 1000;
+    mod %<- 1000;  // Result zero
+    if (mod != 0) return 44;
+
+    // ===== BITWISE AND (&<-) =====
+    i16 and <- 0x7FFF;  // Max positive
+    and &<- 0x00FF;  // Keep low byte
+    if (and != 0x00FF) return 50;
+
+    and <- -1;  // All bits set
+    and &<- 0x00FF;
+    if (and != 0x00FF) return 51;
+
+    and <- 0x5555;
+    and &<- 0xAAAA;  // Non-overlapping = 0
+    if (and != 0) return 52;
+
+    and <- 0x0F0F;
+    and &<- 0xF0F0;  // Non-overlapping
+    if (and != 0) return 53;
+
+    // ===== BITWISE OR (|<-) =====
+    i16 or <- 0x00FF;
+    or |<- 0x7F00;  // Combine (keep sign clear)
+    if (or != 0x7FFF) return 60;
+
+    or <- 0x1200;
+    or |<- 0x0034;  // OR non-overlapping
+    if (or != 0x1234) return 61;
+
+    or <- 0x1234;
+    or |<- 0x0000;  // OR with zero = identity
+    if (or != 0x1234) return 62;
+
+    // ===== BITWISE XOR (^<-) =====
+    i16 xor <- 0x5555;
+    xor ^<- 0x5555;  // XOR with self = 0
+    if (xor != 0) return 70;
+
+    xor <- 0x0F0F;
+    xor ^<- 0x7070;  // Partial overlap
+    if (xor != 0x7F7F) return 71;
+
+    xor <- -1;
+    xor ^<- -1;  // -1 XOR -1 = 0
+    if (xor != 0) return 72;
+
+    xor <- 0x5555;
+    xor ^<- 0x2AAA;  // 0x5555 ^ 0x2AAA = 0x7FFF
+    if (xor != 0x7FFF) return 73;
+
+    // ===== LEFT SHIFT (<<<-) =====
+    i16 shl <- 1;
+    shl <<<- 0;  // Shift by 0 = identity
+    if (shl != 1) return 80;
+
+    shl <- 1;
+    shl <<<- 1;  // 1 << 1 = 2
+    if (shl != 2) return 81;
+
+    shl <- 1;
+    shl <<<- 8;  // 1 << 8 = 256
+    if (shl != 256) return 82;
+
+    shl <- 1;
+    shl <<<- 14;  // 1 << 14 = 16384
+    if (shl != 16384) return 83;
+
+    shl <- -1;
+    shl <<<- 4;  // -1 << 4 = -16
+    if (shl != -16) return 84;
+
+    // ===== RIGHT SHIFT (>><-) =====
+    i16 shr <- 256;
+    shr >><- 0;  // Shift by 0 = identity
+    if (shr != 256) return 90;
+
+    shr <- 256;
+    shr >><- 1;  // 256 >> 1 = 128
+    if (shr != 128) return 91;
+
+    shr <- 256;
+    shr >><- 8;  // 256 >> 8 = 1
+    if (shr != 1) return 92;
+
+    shr <- -16;
+    shr >><- 2;  // -16 >> 2 = -4 (arithmetic shift)
+    if (shr != -4) return 93;
+
+    shr <- -1;
+    shr >><- 10;  // -1 >> 10 = -1 (sign extends)
+    if (shr != -1) return 94;
+
+    return 0;
+}
