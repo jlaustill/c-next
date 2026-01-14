@@ -276,7 +276,7 @@ Build process:
 1. **Preprocessor strategy** ✅
    - **Decision:** Run system cpp and parse output
    - **Rationale:** `Preprocessor` class uses gcc/clang/arm-gcc to preprocess C headers before parsing
-   - **Implementation:** Already working in project mode
+   - **Implementation:** Working via unified parsing (always enabled)
 
 2. **Symbol conflicts** ✅
    - **Decision:** Symbol conflicts between C-Next and C/C++ are **ERRORS**

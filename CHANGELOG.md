@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Unified parsing is now the only mode - removed obsolete `--project` flag documentation (Issue #46)
+- CLI help now shows directory mode (`cnext src/`) instead of non-existent project mode
+
+### Added
+
+- E0503 error when `#include` references implementation files (.c, .cpp, etc.)
+
 ## [0.1.1] - 2026-01-13
 
 ### Fixed
@@ -20,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial npm registry release
 - C-Next transpiler with safety features (bounded strings, overflow protection)
 - Support for C/C++ interoperability via unified ANTLR parsing
-- CLI with project mode and single-file mode
+- CLI supporting single files, multiple files, and directory inputs
 - PlatformIO integration
 - 313 comprehensive test cases with validation pipeline
 - MISRA C compliance checking
@@ -28,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known Issues
 
-- Single-file mode doesn't parse C headers (Issue #45 partial - works in project mode)
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.1...HEAD
