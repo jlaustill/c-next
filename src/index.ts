@@ -4,9 +4,8 @@
  * A safer C for embedded systems development
  */
 
-import { transpile, ITranspileResult, ITranspileError } from "./lib/transpiler";
-import { IncludeDiscovery } from "./lib/IncludeDiscovery";
-import { InputExpansion } from "./lib/InputExpansion";
+import IncludeDiscovery from "./lib/IncludeDiscovery";
+import InputExpansion from "./lib/InputExpansion";
 import Project from "./project/Project";
 import {
   readFileSync,
@@ -50,7 +49,7 @@ function loadConfig(startDir: string): ICNextConfig {
         try {
           const content = readFileSync(configPath, "utf-8");
           return JSON.parse(content) as ICNextConfig;
-        } catch (err) {
+        } catch (_err) {
           console.error(`Warning: Failed to parse ${configPath}`);
           return {};
         }
@@ -62,8 +61,7 @@ function loadConfig(startDir: string): ICNextConfig {
   return {}; // No config found
 }
 
-// Re-export library for backwards compatibility
-export { transpile, ITranspileResult, ITranspileError };
+// Note: For library usage, import directly from './lib/transpiler' or './lib/types/*'
 
 // Read version dynamically from package.json
 const VERSION = packageJson.version as string;
@@ -246,29 +244,6 @@ async function runUnifiedMode(
   printProjectResult(result);
   process.exit(result.success ? 0 : 1);
 }
-
-/**
- * Legacy compile function for backwards compatibility
- * @deprecated Use transpile() from './lib/transpiler' instead
- */
-interface CompileResult {
-  errors: string[];
-  declarations: number;
-  code: string;
-}
-
-function compile(input: string, parseOnly: boolean = false): CompileResult {
-  const result = transpile(input, { parseOnly });
-  return {
-    errors: result.errors.map(
-      (e) => `Line ${e.line}:${e.column} - ${e.message}`,
-    ),
-    declarations: result.declarationCount,
-    code: result.code,
-  };
-}
-
-export { compile };
 
 /**
  * Setup PlatformIO integration

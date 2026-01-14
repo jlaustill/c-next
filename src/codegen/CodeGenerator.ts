@@ -11,15 +11,14 @@ import ESymbolKind from "../types/ESymbolKind";
 import CommentExtractor from "./CommentExtractor";
 import CommentFormatter from "./CommentFormatter";
 import IComment from "./types/IComment";
-import {
-  TYPE_WIDTH,
-  C_TYPE_WIDTH,
-  BITMAP_SIZE,
-  BITMAP_BACKING_TYPE,
-} from "./types/TTypeConstants";
+import TYPE_WIDTH from "./types/TYPE_WIDTH";
+import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
+import BITMAP_SIZE from "./types/BITMAP_SIZE";
+import BITMAP_BACKING_TYPE from "./types/BITMAP_BACKING_TYPE";
 import TTypeInfo from "./types/TTypeInfo";
 import TParameterInfo from "./types/TParameterInfo";
 import TOverflowBehavior from "./types/TOverflowBehavior";
+import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
 import * as fs from "fs";
 import * as path from "path";
@@ -177,18 +176,6 @@ interface GeneratorContext {
   lastArrayFillValue: string | undefined; // ADR-035: Track fill-all value
   lengthCache: Map<string, string> | null; // Cache: variable name -> temp variable name for strlen optimization
   targetCapabilities: TargetCapabilities; // ADR-049: Target platform for atomic code generation
-}
-
-/**
- * Options for the code generator
- */
-export interface ICodeGeneratorOptions {
-  /** ADR-044: When true, generate panic helpers instead of clamp helpers */
-  debugMode?: boolean;
-  /** ADR-049: CLI/config target override (takes priority over #pragma target) */
-  target?: string;
-  /** ADR-010: Source file path for validating includes */
-  sourcePath?: string;
 }
 
 /**

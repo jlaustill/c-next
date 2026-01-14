@@ -11,7 +11,7 @@ import { existsSync, statSync } from "fs";
  * Note: System paths (compiler defaults) not included to avoid dependencies.
  * Users can add system paths via --include flag if needed.
  */
-export class IncludeDiscovery {
+class IncludeDiscovery {
   /**
    * Discover include paths for a file
    *
@@ -129,3 +129,5 @@ export class IncludeDiscovery {
     return null;
   }
 }
+
+export default IncludeDiscovery;

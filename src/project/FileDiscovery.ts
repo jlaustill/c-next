@@ -5,46 +5,9 @@
 
 import { readdirSync, statSync, existsSync } from "fs";
 import { join, extname, resolve } from "path";
-
-/**
- * File types supported by the transpiler
- */
-enum EFileType {
-  CNext = "cnext",
-  CHeader = "c_header",
-  CppHeader = "cpp_header",
-  CSource = "c_source",
-  CppSource = "cpp_source",
-  Unknown = "unknown",
-}
-
-/**
- * Discovered source file
- */
-interface IDiscoveredFile {
-  /** Absolute path to the file */
-  path: string;
-
-  /** File type */
-  type: EFileType;
-
-  /** File extension */
-  extension: string;
-}
-
-/**
- * Options for file discovery
- */
-interface IDiscoveryOptions {
-  /** File extensions to include (default: all supported) */
-  extensions?: string[];
-
-  /** Whether to recurse into subdirectories */
-  recursive?: boolean;
-
-  /** Patterns to exclude */
-  excludePatterns?: RegExp[];
-}
+import EFileType from "./types/EFileType";
+import IDiscoveredFile from "./types/IDiscoveredFile";
+import IDiscoveryOptions from "./types/IDiscoveryOptions";
 
 /**
  * Default extensions for each file type
@@ -232,5 +195,3 @@ class FileDiscovery {
 }
 
 export default FileDiscovery;
-export { EFileType };
-export type { IDiscoveredFile, IDiscoveryOptions };

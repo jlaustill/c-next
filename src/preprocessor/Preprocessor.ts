@@ -9,27 +9,12 @@ import { writeFile, mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join, basename, dirname } from "path";
 import IToolchain from "./types/IToolchain";
-import IPreprocessResult, { ISourceMapping } from "./types/IPreprocessResult";
+import IPreprocessResult from "./types/IPreprocessResult";
+import ISourceMapping from "./types/ISourceMapping";
+import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
 
 const execAsync = promisify(exec);
-
-/**
- * Preprocessor options
- */
-interface IPreprocessOptions {
-  /** Additional include paths */
-  includePaths?: string[];
-
-  /** Preprocessor defines (-D flags) */
-  defines?: Record<string, string | boolean>;
-
-  /** Specific toolchain to use (auto-detect if not specified) */
-  toolchain?: IToolchain;
-
-  /** Keep #line directives for source mapping (default: true) */
-  keepLineDirectives?: boolean;
-}
 
 /**
  * Handles preprocessing of C/C++ files
@@ -213,6 +198,7 @@ class Preprocessor {
       const stderr = error.stderr ?? "";
       throw new Error(
         `Preprocessor failed for ${filePath}:\n${error.message}\n${stderr}`,
+        { cause: error },
       );
     }
   }
@@ -298,4 +284,3 @@ class Preprocessor {
 }
 
 export default Preprocessor;
-export type { IPreprocessOptions };

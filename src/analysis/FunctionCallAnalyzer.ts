@@ -13,9 +13,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import SymbolTable from "../symbols/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ESymbolKind from "../types/ESymbolKind";
-import { IFunctionCallError } from "./types/IFunctionCallError";
-
-export { IFunctionCallError };
+import IFunctionCallError from "./types/IFunctionCallError";
 
 /**
  * C-Next built-in functions
@@ -341,7 +339,7 @@ class FunctionCallListener extends CNextListener {
 /**
  * Analyzes C-Next AST for function calls before definition
  */
-export class FunctionCallAnalyzer {
+class FunctionCallAnalyzer {
   private errors: IFunctionCallError[] = [];
 
   /** Functions that have been defined (in order of appearance) */

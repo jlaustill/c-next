@@ -22,8 +22,11 @@ import CSymbolCollector from "../symbols/CSymbolCollector";
 import CppSymbolCollector from "../symbols/CppSymbolCollector";
 import Preprocessor from "../preprocessor/Preprocessor";
 
-import IProjectConfig, { IProjectResult } from "./types/IProjectConfig";
-import FileDiscovery, { EFileType, IDiscoveredFile } from "./FileDiscovery";
+import IProjectConfig from "./types/IProjectConfig";
+import IProjectResult from "./types/IProjectResult";
+import FileDiscovery from "./FileDiscovery";
+import EFileType from "./types/EFileType";
+import IDiscoveredFile from "./types/IDiscoveredFile";
 
 /**
  * Manages multi-file C-Next projects
