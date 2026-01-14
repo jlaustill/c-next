@@ -223,16 +223,10 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 - ✅ Phase 5: C++ grammar imported and working (with known limitations)
 - ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)
 - ✅ `Project` class for multi-file compilation
-- ✅ CLI `--project` mode for multi-file builds
-
-**Not Started:**
-
-- ❌ Remove `--project` flag (should always use unified parsing)
-- ❌ Make unified parsing the default behavior
+- ✅ Unified parsing is now the default behavior (removed `--project` flag - [Issue #46](https://github.com/jlaustill/c-next/issues/46))
 
 **Known Issues:**
 
-- Single-file mode (`cnext file.cnx`) doesn't parse C headers
 - Array indexing on C header structs broken (related to [Issue #8](https://github.com/jlaustill/c-next/issues/8))
 
 ---
@@ -282,7 +276,7 @@ Build process:
 1. **Preprocessor strategy** ✅
    - **Decision:** Run system cpp and parse output
    - **Rationale:** `Preprocessor` class uses gcc/clang/arm-gcc to preprocess C headers before parsing
-   - **Implementation:** Already working in project mode
+   - **Implementation:** Working via unified parsing (always enabled)
 
 2. **Symbol conflicts** ✅
    - **Decision:** Symbol conflicts between C-Next and C/C++ are **ERRORS**

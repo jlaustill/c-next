@@ -75,6 +75,12 @@ const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
 };
 
 /**
+ * ADR-010: Implementation file extensions that should NOT be #included
+ * These are source files, not headers - including them is an error
+ */
+const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
+
+/**
  * ADR-013: Function signature for const parameter tracking
  * Used to validate const-to-non-const errors at call sites
  */
@@ -517,10 +523,18 @@ export default class CodeGenerator {
     // Pass through #include directives from source
     // C-Next does NOT hardcode any libraries - all includes must be explicit
     // ADR-043: Comments before first include become file-level comments
-    // ADR-010: Transform .cnx includes to .h
+    // ADR-010: Transform .cnx includes to .h, reject implementation files
     for (const includeDir of tree.includeDirective()) {
       const leadingComments = this.getLeadingComments(includeDir);
       output.push(...this.formatLeadingComments(leadingComments));
+
+      // ADR-010: Validate no implementation files are included
+      const lineNumber = includeDir.start?.line ?? 0;
+      this.validateIncludeNotImplementationFile(
+        includeDir.getText(),
+        lineNumber,
+      );
+
       const transformedInclude = this.transformIncludeDirective(
         includeDir.getText(),
       );
@@ -700,6 +714,35 @@ export default class CodeGenerator {
 
     // Not a .cnx include - pass through unchanged
     return includeText;
+  }
+
+  /**
+   * ADR-010: Validate that #include does not reference an implementation file
+   * Implementation files (.c, .cpp, .cc, .cxx, .c++) should not be included
+   */
+  private validateIncludeNotImplementationFile(
+    includeText: string,
+    lineNumber: number,
+  ): void {
+    // Extract the file path from #include directive
+    // Match both <file> and "file" forms
+    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)>/);
+    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)"/);
+
+    const includePath = angleMatch?.[1] || quoteMatch?.[1];
+    if (!includePath) {
+      return; // Malformed include, let other validation handle it
+    }
+
+    // Get the file extension (lowercase for case-insensitive comparison)
+    const ext = path.extname(includePath).toLowerCase();
+
+    if (IMPLEMENTATION_EXTENSIONS.includes(ext)) {
+      throw new Error(
+        `E0503: Cannot #include implementation file '${includePath}'. ` +
+          `Only header files (.h, .hpp) are allowed. Line ${lineNumber}`,
+      );
+    }
   }
 
   /**

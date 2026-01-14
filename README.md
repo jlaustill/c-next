@@ -187,8 +187,8 @@ Your `.cnx` files and generated `.c` files remain untouched.
 If you prefer manual control, you can also run the transpiler explicitly:
 
 ```bash
-# Transpile all .cnx files in src/
-cnext --project src
+# Transpile all .cnx files in a directory (recursive)
+cnext src/
 
 # Or transpile specific files
 cnext src/ConfigStorage.cnx
