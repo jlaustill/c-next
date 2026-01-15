@@ -1,0 +1,73 @@
+// Coverage: Section 7.7 - Critical section inside if statements
+// Tests: critical sections inside if/else branches
+
+u32 sharedValue <- 0;
+bool flag <- false;
+
+void criticalInIfBranch() {
+    if (flag = true) {
+        critical {
+            sharedValue +<- 10;
+        }
+    }
+}
+
+void criticalInElseBranch() {
+    if (flag = true) {
+        sharedValue +<- 1;
+    } else {
+        critical {
+            sharedValue +<- 100;
+        }
+    }
+}
+
+void criticalInBothBranches() {
+    if (sharedValue > 50) {
+        critical {
+            sharedValue <- 0;
+        }
+    } else {
+        critical {
+            sharedValue +<- 25;
+        }
+    }
+}
+
+void criticalInNestedIf() {
+    bool condition <- true;
+    if (condition = true) {
+        if (sharedValue < 100) {
+            critical {
+                sharedValue *<- 2;
+            }
+        }
+    }
+}
+
+void criticalInIfElseChain() {
+    u32 mode <- 2;
+    if (mode = 1) {
+        critical {
+            sharedValue <- 1;
+        }
+    } else if (mode = 2) {
+        critical {
+            sharedValue <- 2;
+        }
+    } else {
+        critical {
+            sharedValue <- 0;
+        }
+    }
+}
+
+void main() {
+    flag <- false;
+    criticalInIfBranch();
+
+    criticalInElseBranch();
+    criticalInBothBranches();
+    criticalInNestedIf();
+    criticalInIfElseChain();
+}

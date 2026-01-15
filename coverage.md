@@ -789,24 +789,24 @@ This document tracks test coverage for every language construct in every valid c
 | if with block                     | [x]    |                                               |
 | if-else                           | [x]    |                                               |
 | if-else if-else                   | [x]    |                                               |
-| Nested if                         | [ ]    |                                               |
+| Nested if                         | [x]    | `control-flow/nested-if.test.cnx`             |
 | if inside loop                    | [x]    |                                               |
 | if inside scope                   | [x]    |                                               |
 | if inside critical                | [x]    | `critical/critical-with-conditional.test.cnx` |
-| Non-boolean condition **(ERROR)** | [ ]    |                                               |
+| Non-boolean condition **(ERROR)** | [x]    | `control-flow/if-error-non-boolean.test.cnx`  |
 
 ### 7.2 while Loop
 
-| Variant                           | Status | Test File                              |
-| --------------------------------- | ------ | -------------------------------------- |
-| Simple while                      | [x]    | `assignment/comparison-while.test.cnx` |
-| While with block                  | [x]    |                                        |
-| While with counter                | [x]    |                                        |
-| Nested while                      | [ ]    |                                        |
-| While inside if                   | [ ]    |                                        |
-| While inside scope                | [ ]    |                                        |
-| Non-boolean condition **(ERROR)** | [ ]    |                                        |
-| Infinite while (while true)       | [ ]    |                                        |
+| Variant                           | Status | Test File                                       |
+| --------------------------------- | ------ | ----------------------------------------------- |
+| Simple while                      | [x]    | `assignment/comparison-while.test.cnx`          |
+| While with block                  | [x]    |                                                 |
+| While with counter                | [x]    |                                                 |
+| Nested while                      | [x]    | `control-flow/nested-while.test.cnx`            |
+| While inside if                   | [x]    | `control-flow/while-inside-if.test.cnx`         |
+| While inside scope                | [x]    | `control-flow/while-inside-scope.test.cnx`      |
+| Non-boolean condition **(ERROR)** | [x]    | `control-flow/while-error-non-boolean.test.cnx` |
+| Infinite while (while true)       | [x]    | `control-flow/while-infinite.test.cnx`          |
 
 ### 7.3 do-while Loop
 
@@ -816,25 +816,25 @@ This document tracks test coverage for every language construct in every valid c
 | With equality condition           | [x]    | `do-while/do-while-equality.test.cnx`          |
 | With logical condition            | [x]    | `do-while/do-while-logical.test.cnx`           |
 | With boolean variable             | [x]    | `do-while/do-while-boolean-var.test.cnx`       |
-| Nested do-while                   | [ ]    |                                                |
-| do-while inside if                | [ ]    |                                                |
+| Nested do-while                   | [x]    | `do-while/do-while-nested.test.cnx`            |
+| do-while inside if                | [x]    | `do-while/do-while-inside-if.test.cnx`         |
 | Non-boolean condition **(ERROR)** | [x]    | `do-while/do-while-error-non-boolean.test.cnx` |
 
 ### 7.4 for Loop
 
-| Variant                           | Status | Test File                                |
-| --------------------------------- | ------ | ---------------------------------------- |
-| Basic for                         | [x]    | `for-loops/for-basic.test.cnx`           |
-| Array iteration                   | [x]    | `for-loops/for-array-iteration.test.cnx` |
-| Nested for                        | [x]    | `for-loops/for-nested.test.cnx`          |
-| For with compound update          | [ ]    |                                          |
-| For with multiple init            | [ ]    |                                          |
-| For with empty init               | [ ]    |                                          |
-| For with empty condition          | [ ]    |                                          |
-| For with empty update             | [ ]    |                                          |
-| For inside if                     | [ ]    |                                          |
-| For inside scope                  | [ ]    |                                          |
-| Non-boolean condition **(ERROR)** | [ ]    |                                          |
+| Variant                           | Status | Test File                                  |
+| --------------------------------- | ------ | ------------------------------------------ |
+| Basic for                         | [x]    | `for-loops/for-basic.test.cnx`             |
+| Array iteration                   | [x]    | `for-loops/for-array-iteration.test.cnx`   |
+| Nested for                        | [x]    | `for-loops/for-nested.test.cnx`            |
+| For with compound update          | [x]    | `for-loops/for-compound-update.test.cnx`   |
+| For with multiple init            | N/A    | Grammar only supports single init          |
+| For with empty init               | [x]    | `for-loops/for-empty-parts.test.cnx`       |
+| For with empty condition          | [x]    | `for-loops/for-empty-parts.test.cnx`       |
+| For with empty update             | [x]    | `for-loops/for-empty-parts.test.cnx`       |
+| For inside if                     | [x]    | `for-loops/for-inside-if.test.cnx`         |
+| For inside scope                  | [x]    | `for-loops/for-inside-scope.test.cnx`      |
+| Non-boolean condition **(ERROR)** | [x]    | `for-loops/for-error-non-boolean.test.cnx` |
 
 ### 7.5 switch Statement
 
@@ -853,7 +853,7 @@ This document tracks test coverage for every language construct in every valid c
 | Switch inside loop              | [x]    | `switch/switch-in-function.test.cnx`              |
 | Switch with return values       | [x]    | `switch/switch-in-function.test.cnx`              |
 | Recursive function with switch  | [x]    | `switch/switch-in-function.test.cnx`              |
-| Switch inside scope             | [ ]    |                                                   |
+| Switch inside scope             | [x]    | `switch/switch-inside-scope.test.cnx`             |
 | Boolean switch **(ERROR)**      | [x]    | `switch/switch-error-boolean.test.cnx`            |
 | Single case **(ERROR)**         | [x]    | `switch/switch-error-single-case.test.cnx`        |
 | Duplicate case **(ERROR)**      | [x]    | `switch/switch-error-duplicate-case.test.cnx`     |
@@ -881,9 +881,9 @@ This document tracks test coverage for every language construct in every valid c
 | Basic critical            | [x]    | `critical/basic.test.cnx`                     |
 | With conditional          | [x]    | `critical/critical-with-conditional.test.cnx` |
 | Multi-variable            | [x]    | `critical/multi-variable.test.cnx`            |
-| Nested critical           | [ ]    |                                               |
-| Critical in loop          | [ ]    |                                               |
-| Critical in if            | [ ]    |                                               |
+| Nested critical           | [x]    | `critical/nested-critical.test.cnx`           |
+| Critical in loop          | [x]    | `critical/critical-in-loop.test.cnx`          |
+| Critical in if            | [x]    | `critical/critical-in-if.test.cnx`            |
 | Return inside **(ERROR)** | [x]    | `critical/return-error.test.cnx`              |
 
 ### 7.8 break Statement

@@ -1,0 +1,59 @@
+// Coverage: Section 7.2 - while loop inside scope
+// Tests: while loops inside scope declarations
+
+u32 globalResult <- 0;
+
+scope Counter {
+    u32 value <- 0;
+
+    void countToFive() {
+        u32 i <- 0;
+        while (i < 5) {
+            this.value +<- 1;
+            i +<- 1;
+        }
+    }
+
+    void countWhileCondition(bool shouldCount) {
+        u32 i <- 0;
+        while (i < 3 && shouldCount = true) {
+            this.value +<- 10;
+            i +<- 1;
+        }
+    }
+
+    u32 getValue() {
+        return this.value;
+    }
+
+    void reset() {
+        this.value <- 0;
+    }
+}
+
+scope Accumulator {
+    u32 sum <- 0;
+
+    void sumRange(u32 limit) {
+        u32 i <- 1;
+        while (i <= limit) {
+            this.sum +<- i;
+            i +<- 1;
+        }
+    }
+
+    u32 getSum() {
+        return this.sum;
+    }
+}
+
+void main() {
+    // Test while loop inside scope method
+    Counter.countToFive();
+    globalResult <- Counter.getValue();
+
+    Counter.reset();
+    Counter.countWhileCondition(true);
+
+    Accumulator.sumRange(5);
+}

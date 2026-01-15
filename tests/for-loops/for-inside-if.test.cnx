@@ -1,0 +1,61 @@
+/* test-execution */
+// Coverage: Section 7.4 - for loop inside if statement
+// Tests: for loops nested inside if/else branches
+
+u32 main() {
+    u32 sum <- 0;
+    bool condition <- true;
+
+    // Test 1: for inside if (true branch)
+    if (condition = true) {
+        for (u32 i <- 0; i < 5; i <- i + 1) {
+            sum +<- i;
+        }
+    }
+    // 0+1+2+3+4 = 10
+    if (sum != 10) return 1;
+
+    // Test 2: for inside else branch
+    sum <- 0;
+    condition <- false;
+    if (condition = true) {
+        sum <- 100;
+    } else {
+        for (u32 i <- 0; i < 3; i <- i + 1) {
+            sum +<- 10;
+        }
+    }
+    if (sum != 30) return 2;
+
+    // Test 3: for in both branches
+    u32 resultA <- 0;
+    u32 resultB <- 0;
+    bool flag <- true;
+
+    if (flag = true) {
+        for (u32 i <- 0; i < 4; i <- i + 1) {
+            resultA +<- 1;
+        }
+    } else {
+        for (u32 i <- 0; i < 2; i <- i + 1) {
+            resultB +<- 1;
+        }
+    }
+    if (resultA != 4) return 3;
+    if (resultB != 0) return 4;
+
+    // Test 4: for inside nested if
+    sum <- 0;
+    condition <- true;
+    flag <- true;
+    if (condition = true) {
+        if (flag = true) {
+            for (u32 i <- 0; i < 5; i <- i + 1) {
+                sum +<- 2;
+            }
+        }
+    }
+    if (sum != 10) return 5;
+
+    return 0;
+}

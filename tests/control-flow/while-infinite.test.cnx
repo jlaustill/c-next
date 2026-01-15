@@ -1,0 +1,32 @@
+// Coverage: Section 7.2 - Infinite while loop (while true)
+// Tests: while(true) syntax compiles correctly
+// Note: Not an execution test since infinite loop would never terminate
+
+u32 counter <- 0;
+
+void runForever() {
+    while (true) {
+        counter +<- 1;
+
+        // In real code, would have a break condition
+        if (counter > 100) {
+            break;
+        }
+    }
+}
+
+void anotherInfinitePattern() {
+    bool running <- true;
+    while (running = true) {
+        counter +<- 1;
+
+        if (counter > 200) {
+            running <- false;
+        }
+    }
+}
+
+void main() {
+    runForever();
+    anotherInfinitePattern();
+}
