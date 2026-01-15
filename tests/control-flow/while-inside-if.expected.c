@@ -14,8 +14,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
+/* test-coverage: 33.2-while-inside-if */
 /* test-execution */
-// Coverage: Section 7.2 - while loop inside if statement
+// Coverage: Section 7.2, 33.2 - while loop inside if statement
 // Tests: while loops nested inside if/else branches
 uint32_t main(void) {
     uint32_t count = 0;

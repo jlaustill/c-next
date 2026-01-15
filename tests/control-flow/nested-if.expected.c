@@ -5,8 +5,9 @@
 
 #include <stdint.h>
 
+/* test-coverage: 33.2-if-inside-if */
 /* test-execution */
-// Coverage: Section 7.1 - Nested if statements
+// Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
 uint32_t main(void) {
     uint32_t a = 10;

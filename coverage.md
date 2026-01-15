@@ -1599,19 +1599,19 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 33.1 Nested/Complex Expressions
 
-| Context                            | Status | Test File                                          |
-| ---------------------------------- | ------ | -------------------------------------------------- |
-| Nested function calls              | [x]    | `forward-declarations/nested-calls-valid.test.cnx` |
-| Chained member access              | [x]    | `nested-structs/basic-nesting.test.cnx`            |
-| Array in array                     | [x]    | `multi-dim-arrays/nested-init.test.cnx`            |
-| Arithmetic in comparison           | [x]    |                                                    |
-| Comparison in logical              | [x]    |                                                    |
-| Function call in expression        | [x]    |                                                    |
-| Ternary in function arg            | [ ]    |                                                    |
-| Ternary in array index             | [ ]    |                                                    |
-| Ternary in return                  | [x]    |                                                    |
-| Multiple operators same precedence | [ ]    |                                                    |
-| Parenthesized sub-expressions      | [x]    |                                                    |
+| Context                            | Status | Test File                                             |
+| ---------------------------------- | ------ | ----------------------------------------------------- |
+| Nested function calls              | [x]    | `forward-declarations/nested-calls-valid.test.cnx`    |
+| Chained member access              | [x]    | `nested-structs/basic-nesting.test.cnx`               |
+| Array in array                     | [x]    | `multi-dim-arrays/nested-init.test.cnx`               |
+| Arithmetic in comparison           | [x]    |                                                       |
+| Comparison in logical              | [x]    |                                                       |
+| Function call in expression        | [x]    |                                                       |
+| Ternary in function arg            | [x]    | `expression-contexts/ternary-in-expressions.test.cnx` |
+| Ternary in array index             | [x]    | `expression-contexts/ternary-in-expressions.test.cnx` |
+| Ternary in return                  | [x]    |                                                       |
+| Multiple operators same precedence | [x]    | `expression-contexts/operator-precedence.test.cnx`    |
+| Parenthesized sub-expressions      | [x]    |                                                       |
 
 ### 34.3 Postfix Expression Chains
 
@@ -1637,20 +1637,20 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 33.2 Statement Nesting
 
-| Context              | Status | Test File                            |
-| -------------------- | ------ | ------------------------------------ |
-| if inside if         | [ ]    |                                      |
-| if inside while      | [x]    |                                      |
-| if inside for        | [x]    |                                      |
-| while inside if      | [ ]    |                                      |
-| while inside while   | [ ]    |                                      |
-| for inside for       | [x]    | `for-loops/for-nested.test.cnx`      |
-| for inside if        | [ ]    |                                      |
-| switch inside if     | [ ]    |                                      |
-| switch inside loop   | [x]    | `switch/switch-in-function.test.cnx` |
-| critical inside if   | [ ]    |                                      |
-| critical inside loop | [ ]    |                                      |
-| 3+ levels of nesting | [ ]    |                                      |
+| Context              | Status | Test File                                              |
+| -------------------- | ------ | ------------------------------------------------------ |
+| if inside if         | [x]    | `control-flow/nested-if.test.cnx`                      |
+| if inside while      | [x]    |                                                        |
+| if inside for        | [x]    |                                                        |
+| while inside if      | [x]    | `control-flow/while-inside-if.test.cnx`                |
+| while inside while   | [x]    | `control-flow/nested-while.test.cnx`                   |
+| for inside for       | [x]    | `for-loops/for-nested.test.cnx`                        |
+| for inside if        | [x]    | `for-loops/for-inside-if.test.cnx`                     |
+| switch inside if     | [x]    | `expression-contexts/switch-inside-if.test.cnx`        |
+| switch inside loop   | [x]    | `switch/switch-in-function.test.cnx`                   |
+| critical inside if   | [x]    | `critical/critical-in-if.test.cnx`                     |
+| critical inside loop | [x]    | `critical/critical-in-loop.test.cnx`                   |
+| 3+ levels of nesting | [x]    | `expression-contexts/nested-control-3-levels.test.cnx` |
 
 ---
 
