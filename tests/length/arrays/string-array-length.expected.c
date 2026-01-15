@@ -23,7 +23,7 @@ uint32_t TestScope_getScopeArrayLength(void) {
 }
 char TestScope_publicArr[4][65] = {0};
 
-uint32_t checkArrayLength(char* arr[4]) {
+uint32_t checkArrayLength(char arr[4][65]) {
     return 4;
 }
 

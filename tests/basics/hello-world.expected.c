@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     printf("What is your name in 50 characters or less? ");
     if (fgets(userName, 51, stdin) != NULL) {
         size_t _userName_len = strlen(userName);
-        if (_userName_len > 0 && userName[_userName_len - 1] == '\n') {
+        if (_userName_len > 0 && strcmp(userName[_userName_len - 1], '\n') == 0) {
             userName[_userName_len - 1] = '\0';
         }
     }
