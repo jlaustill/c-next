@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-coverage: 5.1-i8-and, 5.2-i8-or, 5.3-i8-xor, 5.4-i8-not */
 /* test-execution */
 // Test i8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i8 type (with sign extension)

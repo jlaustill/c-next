@@ -1,5 +1,6 @@
+/* test-coverage: 5.5-shift-negative-error */
 // Test negative shift amount - should be ERROR
-// Coverage: Additional validation for undefined behavior
+// Coverage: Section 5.5 error case - negative shift amount
 
 void testNegativeShift() {
     u32 a <- 255;

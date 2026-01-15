@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-coverage: 5.5-i8-left-shift, 5.6-i8-right-shift-arithmetic */
 /* test-execution */
 // Test i8 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i8 type

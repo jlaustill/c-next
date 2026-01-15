@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-coverage: 5.5-i16-left-shift, 5.6-i16-right-shift-arithmetic */
 /* test-execution */
 // Test i16 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i16 type

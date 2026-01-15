@@ -1,3 +1,4 @@
+/* test-coverage: 5.5-u8-left-shift, 5.6-u8-right-shift, 5.5-shift-by-variable */
 /* test-execution */
 // Test u8 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u8 type

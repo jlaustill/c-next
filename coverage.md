@@ -660,78 +660,99 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 5.1 AND (&)
 
-| Operand Types       | Status | Test File |
-| ------------------- | ------ | --------- |
-| u8 & u8             | [ ]    |           |
-| u16 & u16           | [ ]    |           |
-| u32 & u32           | [x]    |           |
-| u64 & u64           | [ ]    |           |
-| i8 & i8             | [ ]    |           |
-| i16 & i16           | [ ]    |           |
-| i32 & i32           | [ ]    |           |
-| i64 & i64           | [ ]    |           |
-| Integer & Literal   | [x]    |           |
-| With hex literal    | [ ]    |           |
-| With binary literal | [ ]    |           |
+| Operand Types       | Status | Test File                               |
+| ------------------- | ------ | --------------------------------------- |
+| u8 & u8             | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| u16 & u16           | [x]    | `bitwise/u16-bitwise-ops.test.cnx`      |
+| u32 & u32           | [x]    | `bitwise/complex-combinations.test.cnx` |
+| u64 & u64           | [x]    | `bitwise/u64-bitwise-ops.test.cnx`      |
+| i8 & i8             | [x]    | `bitwise/i8-bitwise-ops.test.cnx`       |
+| i16 & i16           | [x]    | `bitwise/i16-bitwise-ops.test.cnx`      |
+| i32 & i32           | [x]    | `bitwise/i32-bitwise-ops.test.cnx`      |
+| i64 & i64           | [x]    | `bitwise/i64-bitwise-ops.test.cnx`      |
+| Integer & Literal   | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| With hex literal    | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| With binary literal | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
 
 ### 5.2 OR (|)
 
-| Operand Types       | Status | Test File |
-| ------------------- | ------ | --------- |
-| u8 \| u8            | [ ]    |           |
-| u16 \| u16          | [ ]    |           |
-| u32 \| u32          | [x]    |           |
-| u64 \| u64          | [ ]    |           |
-| Integer \| Literal  | [x]    |           |
-| With hex literal    | [ ]    |           |
-| With binary literal | [ ]    |           |
+| Operand Types       | Status | Test File                               |
+| ------------------- | ------ | --------------------------------------- |
+| u8 \| u8            | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| u16 \| u16          | [x]    | `bitwise/u16-bitwise-ops.test.cnx`      |
+| u32 \| u32          | [x]    | `bitwise/complex-combinations.test.cnx` |
+| u64 \| u64          | [x]    | `bitwise/u64-bitwise-ops.test.cnx`      |
+| Integer \| Literal  | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| With hex literal    | [x]    | `bitwise/u16-bitwise-ops.test.cnx`      |
+| With binary literal | [x]    | `bitwise/u16-bitwise-ops.test.cnx`      |
 
 ### 5.3 XOR (^)
 
-| Operand Types     | Status | Test File |
-| ----------------- | ------ | --------- |
-| u8 ^ u8           | [ ]    |           |
-| u16 ^ u16         | [ ]    |           |
-| u32 ^ u32         | [x]    |           |
-| u64 ^ u64         | [ ]    |           |
-| Integer ^ Literal | [x]    |           |
+| Operand Types     | Status | Test File                               |
+| ----------------- | ------ | --------------------------------------- |
+| u8 ^ u8           | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| u16 ^ u16         | [x]    | `bitwise/u16-bitwise-ops.test.cnx`      |
+| u32 ^ u32         | [x]    | `bitwise/complex-combinations.test.cnx` |
+| u64 ^ u64         | [x]    | `bitwise/u64-bitwise-ops.test.cnx`      |
+| Integer ^ Literal | [x]    | `bitwise/complex-combinations.test.cnx` |
 
 ### 5.4 NOT (~)
 
-| Operand Types | Status | Test File |
-| ------------- | ------ | --------- |
-| ~u8           | [ ]    |           |
-| ~u16          | [ ]    |           |
-| ~u32          | [x]    |           |
-| ~u64          | [ ]    |           |
-| ~i8           | [ ]    |           |
-| ~i16          | [ ]    |           |
-| ~i32          | [ ]    |           |
-| ~i64          | [ ]    |           |
+| Operand Types | Status | Test File                               |
+| ------------- | ------ | --------------------------------------- |
+| ~u8           | [x]    | `bitwise/u8-bitwise-ops.test.cnx`       |
+| ~u16          | [x]    | `bitwise/u16-bitwise-ops.test.cnx`      |
+| ~u32          | [x]    | `bitwise/complex-combinations.test.cnx` |
+| ~u64          | [x]    | `bitwise/u64-bitwise-ops.test.cnx`      |
+| ~i8           | [x]    | `bitwise/i8-bitwise-ops.test.cnx`       |
+| ~i16          | [x]    | `bitwise/i16-bitwise-ops.test.cnx`      |
+| ~i32          | [x]    | `bitwise/i32-bitwise-ops.test.cnx`      |
+| ~i64          | [x]    | `bitwise/i64-bitwise-ops.test.cnx`      |
 
 ### 5.5 Left Shift (<<)
 
-| Operand Types                  | Status | Test File |
-| ------------------------------ | ------ | --------- |
-| u8 << amount                   | [ ]    |           |
-| u16 << amount                  | [ ]    |           |
-| u32 << amount                  | [x]    |           |
-| u64 << amount                  | [ ]    |           |
-| Shift by literal               | [x]    |           |
-| Shift by variable              | [ ]    |           |
-| Shift beyond width **(ERROR)** | [ ]    |           |
+| Operand Types                  | Status | Test File                                      |
+| ------------------------------ | ------ | ---------------------------------------------- |
+| u8 << amount                   | [x]    | `bitwise/u8-shift-ops.test.cnx`                |
+| u16 << amount                  | [x]    | `bitwise/u16-shift-ops.test.cnx`               |
+| u32 << amount                  | [x]    | `bitwise/complex-combinations.test.cnx`        |
+| u64 << amount                  | [x]    | `bitwise/u64-shift-ops.test.cnx`               |
+| i8 << amount                   | [x]    | `bitwise/i8-shift-ops.test.cnx`                |
+| i16 << amount                  | [x]    | `bitwise/i16-shift-ops.test.cnx`               |
+| i32 << amount                  | [x]    | `bitwise/i32-shift-ops.test.cnx`               |
+| i64 << amount                  | [x]    | `bitwise/i64-shift-ops.test.cnx`               |
+| Shift by literal               | [x]    | `bitwise/u8-shift-ops.test.cnx`                |
+| Shift by variable              | [x]    | `bitwise/u8-shift-ops.test.cnx`                |
+| Shift beyond width **(ERROR)** | [x]    | `bitwise/shift-beyond-width-u8-error.test.cnx` |
+| Shift negative **(ERROR)**     | [x]    | `bitwise/shift-negative-error.test.cnx`        |
 
 ### 5.6 Right Shift (>>)
 
-| Operand Types              | Status | Test File |
-| -------------------------- | ------ | --------- |
-| u8 >> amount               | [ ]    |           |
-| u16 >> amount              | [ ]    |           |
-| u32 >> amount              | [x]    |           |
-| u64 >> amount              | [ ]    |           |
-| i32 >> amount (arithmetic) | [ ]    |           |
-| Shift by literal           | [x]    |           |
-| Shift by variable          | [ ]    |           |
+| Operand Types              | Status | Test File                               |
+| -------------------------- | ------ | --------------------------------------- |
+| u8 >> amount               | [x]    | `bitwise/u8-shift-ops.test.cnx`         |
+| u16 >> amount              | [x]    | `bitwise/u16-shift-ops.test.cnx`        |
+| u32 >> amount              | [x]    | `bitwise/complex-combinations.test.cnx` |
+| u64 >> amount              | [x]    | `bitwise/u64-shift-ops.test.cnx`        |
+| i8 >> amount (arithmetic)  | [x]    | `bitwise/i8-shift-ops.test.cnx`         |
+| i16 >> amount (arithmetic) | [x]    | `bitwise/i16-shift-ops.test.cnx`        |
+| i32 >> amount (arithmetic) | [x]    | `bitwise/i32-shift-ops.test.cnx`        |
+| i64 >> amount (arithmetic) | [x]    | `bitwise/i64-shift-ops.test.cnx`        |
+| Shift by literal           | [x]    | `bitwise/u8-shift-ops.test.cnx`         |
+| Shift by variable          | [x]    | `bitwise/u8-shift-ops.test.cnx`         |
+
+### 5.7 Complex Combinations
+
+| Pattern                  | Status | Test File                               |
+| ------------------------ | ------ | --------------------------------------- |
+| Chained operations       | [x]    | `bitwise/complex-combinations.test.cnx` |
+| Shift + mask             | [x]    | `bitwise/complex-combinations.test.cnx` |
+| NOT + shift              | [x]    | `bitwise/complex-combinations.test.cnx` |
+| XOR chain (toggling)     | [x]    | `bitwise/complex-combinations.test.cnx` |
+| Byte extraction          | [x]    | `bitwise/complex-combinations.test.cnx` |
+| Mask creation (1 << pos) | [x]    | `bitwise/complex-combinations.test.cnx` |
+| Byte swap patterns       | [x]    | `bitwise/complex-combinations.test.cnx` |
+| Nested expressions       | [x]    | `bitwise/complex-combinations.test.cnx` |
 
 ---
 
@@ -1654,7 +1675,7 @@ _Last updated: 2026-01-11_
 | Assignment Operators | ~65% (array + struct compound ops now tested)         |
 | Comparison Operators | ~65% (float comparisons now tested)                   |
 | Arithmetic Operators | ~50% (float ops now tested)                           |
-| Bitwise Operators    | ~20% (only u32 well tested)                           |
+| Bitwise Operators    | ~100% (all 8 integer types + error cases)             |
 | Logical Operators    | ~80% (short-circuit now tested, chaining gaps remain) |
 | Control Flow         | ~95% (break/continue now fully tested)                |
 | Type Declarations    | ~75% (structs/enums good, bitmaps sparse)             |
