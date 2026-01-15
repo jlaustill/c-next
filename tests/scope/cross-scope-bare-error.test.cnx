@@ -1,0 +1,16 @@
+// Test: Bare scope access from inside another scope should error
+// ADR-016: Must use global. prefix for cross-scope access
+
+scope Counter {
+    i32 value <- 100;
+}
+
+scope Manager {
+    void test() {
+        // ERROR: Must use global.Counter.value instead of Counter.value
+        Counter.value <- 50;
+    }
+}
+
+void main() {
+}

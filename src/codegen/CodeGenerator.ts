@@ -4446,8 +4446,12 @@ export default class CodeGenerator {
           // Read-write: need read-modify-write
           return `${regName} = (${regName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
         }
+      } else if (this.symbols!.knownScopes.has(firstId)) {
+        // Scope member array access: global.Counter.data[0] -> Counter_data[0]
+        const scopedName = parts.join("_");
+        return `${scopedName}[${indexExpr}] ${cOp} ${value};`;
       } else {
-        // Non-register global array access - normal array indexing
+        // Non-register, non-scope global array access - normal array indexing
         if (parts.length === 1) {
           return `${parts[0]}[${indexExpr}] ${cOp} ${value};`;
         }
@@ -5220,13 +5224,18 @@ export default class CodeGenerator {
   ): string {
     const identifiers = ctx.IDENTIFIER();
     const parts = identifiers.map((id) => id.getText());
-    // Check if first identifier is a register
     const firstId = parts[0];
+    // Check if first identifier is a register
     if (this.symbols!.knownRegisters.has(firstId)) {
       // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
       return parts.join("_");
     }
-    // Non-register member access: obj.field
+    // Check if first identifier is a scope
+    if (this.symbols!.knownScopes.has(firstId)) {
+      // Scope member access: global.Counter.value -> Counter_value
+      return parts.join("_");
+    }
+    // Non-register, non-scope member access: obj.field
     return parts.join(".");
   }
 
@@ -5246,7 +5255,14 @@ export default class CodeGenerator {
       return `${regName}[${expr}]`;
     }
 
-    // Non-register array access
+    // Check if first identifier is a scope
+    if (this.symbols!.knownScopes.has(firstId)) {
+      // Scope array access: global.Counter.data[0] -> Counter_data[0]
+      const scopedName = parts.join("_");
+      return `${scopedName}[${expr}]`;
+    }
+
+    // Non-register, non-scope array access
     const baseName = parts.join(".");
     return `${baseName}[${expr}]`;
   }
@@ -6210,6 +6226,12 @@ export default class CodeGenerator {
                 `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
               );
             }
+            // ADR-016: Inside a scope, accessing another scope requires global. prefix
+            if (this.context.currentScope) {
+              throw new Error(
+                `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
+              );
+            }
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
@@ -6225,11 +6247,33 @@ export default class CodeGenerator {
           }
           // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
           else if (this.symbols!.knownEnums.has(result)) {
+            // ADR-016: Inside a scope, accessing global enum requires global. prefix
+            // Exception: if the enum belongs to the current scope (e.g., Motor_State in Motor scope),
+            // it's a scoped enum and access is allowed (via this.State transformation)
+            const belongsToCurrentScope =
+              this.context.currentScope &&
+              result.startsWith(this.context.currentScope + "_");
+            if (this.context.currentScope && !belongsToCurrentScope) {
+              throw new Error(
+                `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
+              );
+            }
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
           }
           // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
           else if (this.symbols!.knownRegisters.has(result)) {
+            // ADR-016: Inside a scope, accessing global register requires global. prefix
+            // Exception: if the register belongs to the current scope (e.g., Motor_GPIO in Motor scope),
+            // it's a scoped register and access is allowed (via this. transformation)
+            const registerBelongsToCurrentScope =
+              this.context.currentScope &&
+              result.startsWith(this.context.currentScope + "_");
+            if (this.context.currentScope && !registerBelongsToCurrentScope) {
+              throw new Error(
+                `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
+              );
+            }
             // ADR-013: Check for write-only register members (wo = cannot read)
             const fullName = `${result}_${memberName}`;
             const accessMod = this.symbols!.registerMemberAccess.get(fullName);
@@ -6393,13 +6437,39 @@ export default class CodeGenerator {
                 `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
               );
             }
+            // ADR-016: Inside a scope, accessing another scope requires global. prefix
+            if (this.context.currentScope) {
+              throw new Error(
+                `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
+              );
+            }
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
           } else if (this.symbols!.knownEnums.has(result)) {
+            // ADR-016: Inside a scope, accessing global enum requires global. prefix
+            // Exception: if the enum belongs to the current scope, access is allowed
+            const enumBelongsToCurrentScope =
+              this.context.currentScope &&
+              result.startsWith(this.context.currentScope + "_");
+            if (this.context.currentScope && !enumBelongsToCurrentScope) {
+              throw new Error(
+                `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
+              );
+            }
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
           } else if (this.symbols!.knownRegisters.has(result)) {
+            // ADR-016: Inside a scope, accessing global register requires global. prefix
+            // Exception: if the register belongs to the current scope, access is allowed
+            const registerBelongsToCurrentScope =
+              this.context.currentScope &&
+              result.startsWith(this.context.currentScope + "_");
+            if (this.context.currentScope && !registerBelongsToCurrentScope) {
+              throw new Error(
+                `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
+              );
+            }
             // Transform Register.member to Register_member (matching #define)
             result = `${result}_${memberName}`;
             isRegisterChain = true;
@@ -7195,6 +7265,20 @@ export default class CodeGenerator {
           // Check if first identifier is a scope for special handling
           const isCrossScope = this.symbols!.knownScopes.has(firstPart);
 
+          // ADR-016: Inside a scope, accessing another scope requires global. prefix
+          if (isCrossScope && this.context.currentScope) {
+            // Self-referential access should use 'this.'
+            if (firstPart === this.context.currentScope) {
+              throw new Error(
+                `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
+              );
+            }
+            // Cross-scope access should use 'global.'
+            throw new Error(
+              `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
+            );
+          }
+
           // Bug #8: Track struct types to detect bit access through chains
           // e.g., items[0].byte[7] where byte is u8 - final [7] is bit read
           let currentStructType: string | undefined;
@@ -7317,6 +7401,12 @@ export default class CodeGenerator {
 
     // Check if it's a register member access: GPIO7.DR -> GPIO7_DR
     if (this.symbols!.knownRegisters.has(firstPart)) {
+      // ADR-016: Inside a scope, accessing a global register requires global. prefix
+      if (this.context.currentScope) {
+        throw new Error(
+          `Error: Use 'global.${parts.join(".")}' to access register '${firstPart}' from inside scope '${this.context.currentScope}'`,
+        );
+      }
       // ADR-013: Check for write-only register members (wo = cannot read)
       // Skip check if we're in assignment target context (write operation)
       if (!this.inAssignmentTarget && parts.length >= 2) {
@@ -7335,6 +7425,19 @@ export default class CodeGenerator {
 
     // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
     if (this.symbols!.knownScopes.has(firstPart)) {
+      // ADR-016: Inside a scope, accessing another scope requires global. prefix
+      if (this.context.currentScope) {
+        // Self-referential access should use 'this.'
+        if (firstPart === this.context.currentScope) {
+          throw new Error(
+            `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
+          );
+        }
+        // Cross-scope access should use 'global.'
+        throw new Error(
+          `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
+        );
+      }
       return parts.join("_");
     }
 

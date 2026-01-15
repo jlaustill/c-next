@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Cannot reference own scope 'Counter' by name. Use 'this.value' instead of 'Counter.value'
