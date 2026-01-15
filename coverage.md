@@ -368,7 +368,7 @@ This document tracks test coverage for every language construct in every valid c
 | Array element           | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`                                                                |
 | Multi-dim array element | [x]    | `multi-dim-arrays/compound-assign-2d.test.cnx`, `compound-assign-3d.test.cnx`, `compound-assign-10d.test.cnx` |
 | Struct member           | [x]    | `multi-dim-arrays/struct-member-compound.test.cnx`                                                            |
-| Bit index               | [ ]    |                                                                                                               |
+| Bit index **(ERROR)**   | [x]    | `compound-assign/bit-index-compound.test.cnx` (not supported - error test)                                    |
 | this.member             | [x]    | `scope/scope-compound-assign.test.cnx`                                                                        |
 | global.member           | [x]    | `scope/global-compound-assign.test.cnx`                                                                       |
 | Cross-scope             | [x]    | `scope/cross-scope-compound.test.cnx`                                                                         |
@@ -381,8 +381,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.4 Compound Assignment (\*<-)
 
@@ -392,8 +392,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.5 Compound Assignment (/<-)
 
@@ -403,8 +403,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.6 Compound Assignment (%<-)
 
@@ -414,8 +414,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.7 Compound Assignment (&<-)
 
@@ -425,8 +425,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.8 Compound Assignment (|<-)
 
@@ -436,8 +436,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.9 Compound Assignment (^<-)
 
@@ -447,8 +447,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.10 Compound Assignment (<<<-)
 
@@ -458,8 +458,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ### 2.11 Compound Assignment (>><-)
 
@@ -469,8 +469,8 @@ This document tracks test coverage for every language construct in every valid c
 | Array element        | [x]    | `multi-dim-arrays/compound-assign-1d.test.cnx`    |
 | Struct member        | [x]    | `structs/struct-compound-all-ops.test.cnx`        |
 | Nested struct member | [x]    | `nested-structs/nested-compound-all-ops.test.cnx` |
-| this.member          | [ ]    |                                                   |
-| global.member        | [ ]    |                                                   |
+| this.member          | [x]    | `compound-assign/this-member-compound.test.cnx`   |
+| global.member        | [x]    | `compound-assign/global-member-compound.test.cnx` |
 
 ---
 
