@@ -13,6 +13,7 @@ import {
   existsSync,
   unlinkSync,
   statSync,
+  renameSync,
 } from "fs";
 import { dirname, resolve } from "path";
 
@@ -213,16 +214,30 @@ async function runUnifiedMode(
     }
   }
 
-  // Step 3: Determine output directory
+  // Step 3: Determine output directory and explicit filename
   let outDir: string;
+  let explicitOutputFile: string | null = null;
+
+  // Check if outputPath is an explicit file (ends with .c or .cpp)
+  const isExplicitFile =
+    outputPath && /\.(c|cpp)$/.test(outputPath) && !outputPath.endsWith("/");
+
   if (outputPath) {
     // User specified -o
     const stats = existsSync(outputPath) ? statSync(outputPath) : null;
     if (stats?.isDirectory() || outputPath.endsWith("/")) {
       outDir = outputPath;
-    } else if (files.length === 1) {
-      // Single file + explicit file path -> use directory
+    } else if (isExplicitFile) {
+      // Explicit output file path
+      if (files.length > 1) {
+        console.error(
+          "Error: Cannot use explicit output filename with multiple input files",
+        );
+        console.error("Use a directory path instead: -o <directory>/");
+        process.exit(1);
+      }
       outDir = dirname(outputPath);
+      explicitOutputFile = resolve(outputPath);
     } else {
       outDir = outputPath;
     }
@@ -245,6 +260,18 @@ async function runUnifiedMode(
 
   // Step 5: Compile
   const result = await project.compile();
+
+  // Step 6: Rename output file if explicit filename was specified
+  if (explicitOutputFile && result.success && result.outputFiles.length > 0) {
+    const generatedFile = result.outputFiles[0];
+    // Only rename if it's different from the desired path
+    if (generatedFile !== explicitOutputFile) {
+      renameSync(generatedFile, explicitOutputFile);
+      // Update the result to show the correct path
+      result.outputFiles[0] = explicitOutputFile;
+    }
+  }
+
   printProjectResult(result);
   process.exit(result.success ? 0 : 1);
 }
