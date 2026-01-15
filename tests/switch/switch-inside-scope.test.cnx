@@ -1,7 +1,49 @@
 // Coverage: Section 7.5 - switch statement inside scope
 // Tests: switch statements inside scope method declarations
+// Also tests: this.EnumName.VALUE syntax in case labels (Issue #147)
 
 u32 globalResult <- 0;
+
+scope StateMachine {
+    public enum EState {
+        IDLE,
+        RUNNING,
+        PAUSED,
+        STOPPED
+    }
+
+    this.EState currentState <- this.EState.IDLE;
+    u32 counter <- 0;
+
+    void processState() {
+        switch (this.currentState) {
+            case this.EState.IDLE {
+                this.counter <- 0;
+            }
+            case this.EState.RUNNING {
+                this.counter +<- 1;
+            }
+            case this.EState.PAUSED {
+                // Do nothing, keep counter
+            }
+            case this.EState.STOPPED {
+                this.counter <- 100;
+            }
+        }
+    }
+
+    void setRunning() {
+        this.currentState <- this.EState.RUNNING;
+    }
+
+    void setStopped() {
+        this.currentState <- this.EState.STOPPED;
+    }
+
+    u32 getCounter() {
+        return this.counter;
+    }
+}
 
 scope CommandProcessor {
     u32 lastCommand <- 0;
@@ -31,53 +73,13 @@ scope CommandProcessor {
     }
 }
 
-scope Calculator {
-    u32 mode <- 0;
-    u32 a <- 0;
-    u32 b <- 0;
-    u32 output <- 0;
-
-    void setOperands(u32 x, u32 y) {
-        this.a <- x;
-        this.b <- y;
-    }
-
-    void compute(u32 operation) {
-        this.mode <- operation;
-
-        switch (operation) {
-            case 0 {
-                // Add
-                this.output <- this.a + this.b;
-            }
-            case 1 {
-                // Subtract
-                this.output <- this.a - this.b;
-            }
-            case 2 {
-                // Multiply
-                this.output <- this.a * this.b;
-            }
-            default(1) {
-                this.output <- 0;
-            }
-        }
-    }
-
-    u32 getOutput() {
-        return this.output;
-    }
-}
-
 void main() {
-    // Test switch inside scope method
+    // Test 1: Switch with scoped enum inside scope method
+    StateMachine.setRunning();
+    StateMachine.processState();
+    globalResult <- StateMachine.getCounter();
+
+    // Test 2: Switch with integer cases inside scope
     CommandProcessor.execute(2);
     globalResult <- CommandProcessor.getResult();
-
-    Calculator.setOperands(10, 5);
-    Calculator.compute(0);  // Add: 10 + 5 = 15
-    globalResult <- Calculator.getOutput();
-
-    Calculator.compute(1);  // Subtract: 10 - 5 = 5
-    globalResult <- Calculator.getOutput();
 }

@@ -5813,6 +5813,29 @@ export default class CodeGenerator {
   }
 
   private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
+    // scopedEnumValue - for scoped enums like this.EState.IDLE
+    if (ctx.scopedEnumValue()) {
+      const sev = ctx.scopedEnumValue()!;
+      const parts = sev.IDENTIFIER();
+      const enumName = parts[0].getText();
+      const valueName = parts[1].getText();
+      // Inside a scope, this.EState.IDLE becomes ScopeName_EState_IDLE
+      if (!this.context.currentScope) {
+        throw new Error(
+          "Error: 'this.EnumName.VALUE' can only be used inside a scope",
+        );
+      }
+      return `${this.context.currentScope}_${enumName}_${valueName}`;
+    }
+
+    // globalEnumValue - for global enums accessed from scope like global.EState.IDLE
+    if (ctx.globalEnumValue()) {
+      const gev = ctx.globalEnumValue()!;
+      const parts = gev.IDENTIFIER();
+      // global.EState.IDLE becomes EState_IDLE (strip global prefix)
+      return parts.map((id) => id.getText()).join("_");
+    }
+
     // qualifiedType - for enum values like EState.IDLE
     if (ctx.qualifiedType()) {
       const qt = ctx.qualifiedType()!;
@@ -5996,6 +6019,20 @@ export default class CodeGenerator {
    * Get the string representation of a case label for duplicate checking
    */
   private getCaseLabelValue(ctx: Parser.CaseLabelContext): string {
+    if (ctx.scopedEnumValue()) {
+      const sev = ctx.scopedEnumValue()!;
+      return `this.${sev
+        .IDENTIFIER()
+        .map((id) => id.getText())
+        .join(".")}`;
+    }
+    if (ctx.globalEnumValue()) {
+      const gev = ctx.globalEnumValue()!;
+      return `global.${gev
+        .IDENTIFIER()
+        .map((id) => id.getText())
+        .join(".")}`;
+    }
     if (ctx.qualifiedType()) {
       const qt = ctx.qualifiedType()!;
       return qt

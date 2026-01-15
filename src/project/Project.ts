@@ -167,25 +167,37 @@ class Project {
    */
   private discoverFiles(): IDiscoveredFile[] {
     let files: IDiscoveredFile[] = [];
+    const hasExplicitFiles = this.config.files && this.config.files.length > 0;
 
     // If specific files are provided, use those
-    if (this.config.files && this.config.files.length > 0) {
+    if (hasExplicitFiles) {
       files = FileDiscovery.discoverFiles(this.config.files);
     }
 
-    // Also scan directories (especially includeDirs for headers)
-    // This ensures headers are discovered even when using explicit .cnx files (Issue #80)
-    const allDirs = [...this.config.srcDirs, ...this.config.includeDirs];
-    if (allDirs.length > 0) {
-      const discoveredFiles = FileDiscovery.discover(allDirs, {
-        // Don't pass extensions - we want ALL supported types (.cnx, .h, .hpp, etc.)
-        // Config extensions are only for limiting explicit files, not header discovery
+    // Scan srcDirs for source files (when no explicit files provided)
+    if (!hasExplicitFiles && this.config.srcDirs.length > 0) {
+      const discoveredFiles = FileDiscovery.discover(this.config.srcDirs, {
         recursive: true,
       });
+      files.push(...discoveredFiles);
+    }
+
+    // Scan includeDirs for headers only (Issue #80)
+    // When explicit files are provided, we only want headers from include dirs
+    // NOT additional .cnx files that would cause symbol conflicts
+    if (this.config.includeDirs.length > 0) {
+      const headerExtensions = [".h", ".hpp", ".hxx", ".hh"];
+      const discoveredHeaders = FileDiscovery.discover(
+        this.config.includeDirs,
+        {
+          extensions: headerExtensions,
+          recursive: true,
+        },
+      );
 
       // Merge with explicit files, avoiding duplicates
       const existingPaths = new Set(files.map((f) => f.path));
-      for (const file of discoveredFiles) {
+      for (const file of discoveredHeaders) {
         if (!existingPaths.has(file.path)) {
           files.push(file);
         }

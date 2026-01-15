@@ -343,12 +343,22 @@ switchCase
 // Case labels must be constant expressions (like C)
 // No || ambiguity: logical OR isn't valid in constant context
 caseLabel
-    : qualifiedType      // Enum value: EState.IDLE
+    : scopedEnumValue    // Scoped enum: this.EState.IDLE (ADR-016)
+    | globalEnumValue    // Global enum from scope: global.EState.IDLE
+    | qualifiedType      // Enum value: EState.IDLE
     | IDENTIFIER         // Const or enum member
     | '-'? INTEGER_LITERAL  // Allow negative integers
     | '-'? HEX_LITERAL      // Allow negative hex (e.g., -0x80)
     | BINARY_LITERAL
     | CHAR_LITERAL
+    ;
+
+scopedEnumValue
+    : 'this' '.' IDENTIFIER '.' IDENTIFIER
+    ;
+
+globalEnumValue
+    : 'global' '.' IDENTIFIER '.' IDENTIFIER
     ;
 
 defaultCase

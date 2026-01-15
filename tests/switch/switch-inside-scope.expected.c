@@ -5,9 +5,62 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > UINT32_MAX - a) return UINT32_MAX;
+    return a + (uint32_t)b;
+}
+
 // Coverage: Section 7.5 - switch statement inside scope
 // Tests: switch statements inside scope method declarations
+// Also tests: this.EnumName.VALUE syntax in case labels (Issue #147)
 uint32_t globalResult = 0;
+
+/* Scope: StateMachine */
+
+typedef enum {
+    StateMachine_EState_IDLE = 0,
+    StateMachine_EState_RUNNING = 1,
+    StateMachine_EState_PAUSED = 2,
+    StateMachine_EState_STOPPED = 3
+} StateMachine_EState;
+
+StateMachine_EState StateMachine_currentState = StateMachine_EState_IDLE;
+uint32_t StateMachine_counter = 0;
+
+void StateMachine_processState(void) {
+    switch (StateMachine_currentState) {
+        case StateMachine_EState_IDLE: {
+            StateMachine_counter = 0;
+            break;
+        }
+        case StateMachine_EState_RUNNING: {
+            StateMachine_counter = cnx_clamp_add_u32(StateMachine_counter, 1);
+            break;
+        }
+        case StateMachine_EState_PAUSED: {
+            break;
+        }
+        case StateMachine_EState_STOPPED: {
+            StateMachine_counter = 100;
+            break;
+        }
+    }
+}
+
+void StateMachine_setRunning(void) {
+    StateMachine_currentState = StateMachine_EState_RUNNING;
+}
+
+void StateMachine_setStopped(void) {
+    StateMachine_currentState = StateMachine_EState_STOPPED;
+}
+
+uint32_t StateMachine_getCounter(void) {
+    return StateMachine_counter;
+}
 
 /* Scope: CommandProcessor */
 uint32_t CommandProcessor_lastCommand = 0;
@@ -39,49 +92,10 @@ uint32_t CommandProcessor_getResult(void) {
     return CommandProcessor_result;
 }
 
-/* Scope: Calculator */
-uint32_t Calculator_mode = 0;
-uint32_t Calculator_a = 0;
-uint32_t Calculator_b = 0;
-uint32_t Calculator_output = 0;
-
-void Calculator_setOperands(uint32_t* x, uint32_t* y) {
-    Calculator_a = (*x);
-    Calculator_b = (*y);
-}
-
-void Calculator_compute(uint32_t* operation) {
-    Calculator_mode = (*operation);
-    switch ((*operation)) {
-        case 0: {
-            Calculator_output = Calculator_a + Calculator_b;
-            break;
-        }
-        case 1: {
-            Calculator_output = Calculator_a - Calculator_b;
-            break;
-        }
-        case 2: {
-            Calculator_output = Calculator_a * Calculator_b;
-            break;
-        }
-        default: {
-            Calculator_output = 0;
-            break;
-        }
-    }
-}
-
-uint32_t Calculator_getOutput(void) {
-    return Calculator_output;
-}
-
 void main(void) {
+    StateMachine_setRunning();
+    StateMachine_processState();
+    globalResult = StateMachine_getCounter();
     CommandProcessor_execute(&(uint32_t){2});
     globalResult = CommandProcessor_getResult();
-    Calculator_setOperands(&(uint32_t){10}, &(uint32_t){5});
-    Calculator_compute(&(uint32_t){0});
-    globalResult = Calculator_getOutput();
-    Calculator_compute(&(uint32_t){1});
-    globalResult = Calculator_getOutput();
 }
