@@ -1,0 +1,57 @@
+/* test-execution */
+/* test-coverage: 30-call-c-function-types */
+// Tests: Calling C functions with various integer types
+// ADR-010: Type compatibility between C-Next and C
+
+#include "c-interop/functions.h"
+
+u32 main() {
+    // Test unsigned integer types
+    // Test 1: u8
+    u8 result_u8 <- add_u8(100, 50);
+    if (result_u8 != 150) return 1;
+
+    // Test 2: u16
+    u16 result_u16 <- add_u16(1000, 2000);
+    if (result_u16 != 3000) return 2;
+
+    // Test 3: u32
+    u32 result_u32 <- add_u32(100000, 200000);
+    if (result_u32 != 300000) return 3;
+
+    // Test 4: u64
+    u64 result_u64 <- add_u64(1000000000, 2000000000);
+    if (result_u64 != 3000000000) return 4;
+
+    // Test signed integer types
+    // Test 5: i8
+    i8 result_i8 <- add_i8(50, 25);
+    if (result_i8 != 75) return 5;
+
+    // Test 6: i16
+    i16 result_i16 <- add_i16(1000, -500);
+    if (result_i16 != 500) return 6;
+
+    // Test 7: i32
+    i32 result_i32 <- add_i32(-100, 200);
+    if (result_i32 != 100) return 7;
+
+    // Test 8: i64
+    i64 result_i64 <- add_i64(-1000000000, 2000000000);
+    if (result_i64 != 1000000000) return 8;
+
+    // Test identity functions (pass through and return same value)
+    // Test 9: identity u8
+    u8 id_u8 <- identity_u8(255);
+    if (id_u8 != 255) return 9;
+
+    // Test 10: identity u32
+    u32 id_u32 <- identity_u32(0x12345678);
+    if (id_u32 != 0x12345678) return 10;
+
+    // Test 11: identity i32
+    i32 id_i32 <- identity_i32(-12345);
+    if (id_i32 != -12345) return 11;
+
+    return 0;  // All tests passed
+}

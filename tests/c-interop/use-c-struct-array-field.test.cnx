@@ -1,0 +1,51 @@
+/* test-execution */
+/* test-coverage: 30-use-c-struct-array-field */
+// Tests: Using C structs with array fields
+// ADR-010: Array field access in imported C structs
+
+#include "c-interop/structs.h"
+
+u32 main() {
+    // Test 1: DataBuffer with uint8_t array
+    DataBuffer buf;
+    buf.length <- 4;
+
+    // Write to array elements
+    for (u32 i <- 0; i < buf.length; i +<- 1) {
+        buf.data[i] <- i * 10;
+    }
+
+    // Verify array contents
+    if (buf.data[0] != 0) return 1;
+    if (buf.data[1] != 10) return 2;
+    if (buf.data[2] != 20) return 3;
+    if (buf.data[3] != 30) return 4;
+
+    // Test 2: ValueArray with uint32_t array
+    ValueArray va;
+    va.count <- 8;
+
+    // Initialize all values
+    for (u32 i <- 0; i < va.count; i +<- 1) {
+        va.values[i] <- i * 100;
+    }
+
+    // Verify
+    if (va.values[0] != 0) return 5;
+    if (va.values[1] != 100) return 6;
+    if (va.values[7] != 700) return 7;
+
+    // Test 3: Sum array elements
+    u32 sum <- 0;
+    for (u32 i <- 0; i < va.count; i +<- 1) {
+        sum +<- va.values[i];
+    }
+    // 0 + 100 + 200 + 300 + 400 + 500 + 600 + 700 = 2800
+    if (sum != 2800) return 8;
+
+    // Test 4: Array element .length property
+    if (buf.data[0].length != 8) return 9;
+    if (va.values[0].length != 32) return 10;
+
+    return 0;  // All tests passed
+}

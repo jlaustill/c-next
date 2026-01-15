@@ -178,6 +178,8 @@ function validateMisra(cFile: string): IValidationResult {
         "--suppress=missingIncludeSystem",
         "--suppress=unusedFunction",
         "--quiet",
+        "-I",
+        join(rootDir, "tests/include"),
         cFile,
       ],
       { encoding: "utf-8", timeout: 60000, stdio: "pipe" },

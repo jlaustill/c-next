@@ -1,0 +1,44 @@
+/* test-execution */
+/* test-coverage: 30-call-c-function */
+// Tests: Calling C functions from C-Next code
+// ADR-010: Unified ANTLR parsing for C interoperability
+
+#include "c-interop/functions.h"
+
+u32 main() {
+    // Test 1: Call C function returning int
+    i32 sum <- add_integers(10, 20);
+    if (sum != 30) return 1;
+
+    // Test 2: Call C function with subtraction
+    i32 diff <- subtract_integers(50, 20);
+    if (diff != 30) return 2;
+
+    // Test 3: Call function returning constant
+    i32 forty_two <- get_constant_42();
+    if (forty_two != 42) return 3;
+
+    // Test 4: Call function returning magic number
+    u32 magic <- get_magic_number();
+    if (magic != 0xDEADBEEF) return 4;
+
+    // Test 5: Call multiplication function
+    u32 product <- multiply_u32(6, 7);
+    if (product != 42) return 5;
+
+    // Test 6: Boolean function - is_positive
+    bool pos <- is_positive(42);
+    if (pos != true) return 6;
+
+    bool neg <- is_positive(-42);
+    if (neg != false) return 7;
+
+    // Test 7: Boolean function - is_even
+    bool even <- is_even(42);
+    if (even != true) return 8;
+
+    bool odd <- is_even(43);
+    if (odd != false) return 9;
+
+    return 0;  // All tests passed
+}
