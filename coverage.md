@@ -1129,9 +1129,12 @@ This document tracks test coverage for every language construct in every valid c
 | Basic callback type               | [x]    | `callbacks/callback-basic.test.cnx`         |
 | Callback assignment               | [x]    | `callbacks/callback-assign.test.cnx`        |
 | Callback as parameter             | [x]    | `callbacks/callback-param.test.cnx`         |
-| Callback invocation               | [x]    |                                             |
+| Callback invocation               | [x]    | `callbacks/callback-struct-member.test.cnx` |
+| Callback as struct member         | [x]    | `callbacks/callback-struct-member.test.cnx` |
+| Various parameter types           | [x]    | `callbacks/callback-param-types.test.cnx`   |
+| Multiple parameters               | [x]    | `callbacks/callback-multi-param.test.cnx`   |
+| Various return types              | [x]    | `callbacks/callback-return-types.test.cnx`  |
 | Array of callbacks                | [ ]    |                                             |
-| Callback as struct member         | [ ]    |                                             |
 | Nominal type mismatch **(ERROR)** | [x]    | `callbacks/callback-error-nominal.test.cnx` |
 
 ---

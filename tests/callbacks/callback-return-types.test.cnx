@@ -1,0 +1,87 @@
+/* test-execution */
+// Tests: Callbacks with different return types
+// Validates: u32, u8, bool, and i32 return types work correctly
+
+// Callback returning u32
+u32 getU32Value(u32 input) {
+    return input + 1000;
+}
+
+// Callback returning u8
+u8 getU8Value(u32 input) {
+    return 100;
+}
+
+// Callback returning bool
+bool checkThreshold(u32 value) {
+    if (value > 50) {
+        return true;
+    }
+    return false;
+}
+
+// Callback returning i32 (signed)
+i32 getSignedValue(u32 input) {
+    return 0 - input;
+}
+
+// Structs to hold callbacks
+struct U32Returner {
+    getU32Value handler;
+}
+
+struct U8Returner {
+    getU8Value handler;
+}
+
+struct BoolReturner {
+    checkThreshold handler;
+}
+
+struct I32Returner {
+    getSignedValue handler;
+}
+
+u32 main() {
+    // Test 1: u32 return type
+    U32Returner u32r;
+    u32 result <- u32r.handler(500);
+    if (result != 1500) return 1;
+
+    // Test 2: u32 with zero input
+    result <- u32r.handler(0);
+    if (result != 1000) return 2;
+
+    // Test 3: u8 return type
+    U8Returner u8r;
+    u8 smallResult <- u8r.handler(0);
+    if (smallResult != 100) return 3;
+
+    // Test 4: bool return - above threshold
+    BoolReturner br;
+    bool boolResult <- br.handler(100);
+    if (boolResult != true) return 4;
+
+    // Test 5: bool return - below threshold
+    boolResult <- br.handler(25);
+    if (boolResult != false) return 5;
+
+    // Test 6: bool return - at threshold
+    boolResult <- br.handler(50);
+    if (boolResult != false) return 6;
+
+    // Test 7: bool return - just above threshold
+    boolResult <- br.handler(51);
+    if (boolResult != true) return 7;
+
+    // Test 8: i32 return type (negative value)
+    I32Returner i32r;
+    i32 signedResult <- i32r.handler(10);
+    if (signedResult != -10) return 8;
+
+    // Test 9: i32 with larger value
+    signedResult <- i32r.handler(1000);
+    if (signedResult != -1000) return 9;
+
+    return 0;
+}
