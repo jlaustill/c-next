@@ -1,0 +1,75 @@
+/* test-execution */
+// Tests: Callbacks with multiple parameters
+// Validates: two-param and three-param callbacks work correctly
+
+// Two-parameter callback
+u32 addTwo(u32 a, u32 b) {
+    return a + b;
+}
+
+// Alternative two-param callback
+u32 multiplyTwo(u32 a, u32 b) {
+    return a * b;
+}
+
+// Three-parameter callback
+u32 addThree(u32 a, u32 b, u32 c) {
+    return a + b + c;
+}
+
+// Mixed type two-parameter callback
+u32 mixedParams(u32 val, bool flag) {
+    if (flag) {
+        return val * 2;
+    }
+    return val;
+}
+
+// Structs to hold callbacks
+struct TwoParamHandler {
+    addTwo handler;
+}
+
+struct ThreeParamHandler {
+    addThree handler;
+}
+
+struct MixedHandler {
+    mixedParams handler;
+}
+
+u32 main() {
+    // Test 1: Two-param addition
+    TwoParamHandler tph;
+    u32 result <- tph.handler(10, 20);
+    if (result != 30) return 1;
+
+    // Test 2: Two-param with larger values
+    result <- tph.handler(1000, 2000);
+    if (result != 3000) return 2;
+
+    // Test 3: Assign alternative implementation
+    tph.handler <- multiplyTwo;
+    result <- tph.handler(6, 7);
+    if (result != 42) return 3;
+
+    // Test 4: Three-param callback
+    ThreeParamHandler thph;
+    result <- thph.handler(10, 20, 30);
+    if (result != 60) return 4;
+
+    // Test 5: Three-param with different values
+    result <- thph.handler(100, 200, 300);
+    if (result != 600) return 5;
+
+    // Test 6: Mixed types - flag true
+    MixedHandler mh;
+    result <- mh.handler(50, true);
+    if (result != 100) return 6;
+
+    // Test 7: Mixed types - flag false
+    result <- mh.handler(50, false);
+    if (result != 50) return 7;
+
+    return 0;
+}
