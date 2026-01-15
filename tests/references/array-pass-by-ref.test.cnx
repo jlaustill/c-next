@@ -1,0 +1,98 @@
+/* test-coverage: 27-array-pass-by-ref */
+/* test-execution */
+// Tests: Array passed to function (pass-by-reference behavior)
+
+// Function that modifies an array element
+void setElement(u32 arr[10], u32 index, u32 value) {
+    arr[index] <- value;
+}
+
+// Function that sums array elements
+u32 sumArray(u32 arr[5], u32 count) {
+    u32 sum <- 0;
+    u32 i <- 0;
+    while (i < count) {
+        sum <- sum + arr[i];
+        i <- i + 1;
+    }
+    return sum;
+}
+
+// Function that zeroes an array
+void zeroArray(u32 arr[8], u32 count) {
+    u32 i <- 0;
+    while (i < count) {
+        arr[i] <- 0;
+        i <- i + 1;
+    }
+}
+
+// Function that copies arrays
+void copyArray(u32 src[4], u32 dst[4], u32 count) {
+    u32 i <- 0;
+    while (i < count) {
+        dst[i] <- src[i];
+        i <- i + 1;
+    }
+}
+
+u32 main() {
+    // Test setElement
+    u32 data[10];
+    data[0] <- 100;
+    data[5] <- 200;
+
+    setElement(data, 0, 999);
+    if (data[0] != 999) return 1;
+
+    setElement(data, 5, 888);
+    if (data[5] != 888) return 2;
+
+    // Test sumArray
+    u32 nums[5];
+    nums[0] <- 10;
+    nums[1] <- 20;
+    nums[2] <- 30;
+    nums[3] <- 40;
+    nums[4] <- 50;
+
+    u32 total <- sumArray(nums, 5);
+    if (total != 150) return 3;
+
+    // Sum partial array
+    total <- sumArray(nums, 3);
+    if (total != 60) return 4;
+
+    // Test zeroArray
+    u32 toZero[8];
+    toZero[0] <- 1;
+    toZero[1] <- 2;
+    toZero[2] <- 3;
+    toZero[3] <- 4;
+
+    zeroArray(toZero, 4);
+    if (toZero[0] != 0) return 5;
+    if (toZero[1] != 0) return 6;
+    if (toZero[2] != 0) return 7;
+    if (toZero[3] != 0) return 8;
+
+    // Test copyArray
+    u32 source[4];
+    u32 dest[4];
+    source[0] <- 11;
+    source[1] <- 22;
+    source[2] <- 33;
+    source[3] <- 44;
+    dest[0] <- 0;
+    dest[1] <- 0;
+    dest[2] <- 0;
+    dest[3] <- 0;
+
+    copyArray(source, dest, 4);
+    if (dest[0] != 11) return 9;
+    if (dest[1] != 22) return 10;
+    if (dest[2] != 33) return 11;
+    if (dest[3] != 44) return 12;
+
+    return 0;
+}

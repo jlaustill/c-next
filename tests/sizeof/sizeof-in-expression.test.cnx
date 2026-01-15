@@ -1,0 +1,64 @@
+/* test-coverage: 23-sizeof-in-expression */
+/* test-execution */
+// Tests: sizeof used in arithmetic expressions
+
+struct Header {
+    u32 magic;
+    u32 version;
+    u32 length;
+}
+
+u32 main() {
+    // sizeof in addition
+    u32 totalSize <- sizeof(u32) + sizeof(u16);
+    if (totalSize != 6) return 1;  // 4 + 2
+
+    // sizeof in subtraction
+    u32 diff <- sizeof(u64) - sizeof(u32);
+    if (diff != 4) return 2;  // 8 - 4
+
+    // sizeof in multiplication
+    u32 arrayCalc <- sizeof(u32) * 10;
+    if (arrayCalc != 40) return 3;  // 4 * 10
+
+    // sizeof in division
+    u32 elements <- 100 / sizeof(u32);
+    if (elements != 25) return 4;  // 100 / 4
+
+    // sizeof in complex expression
+    u32 complex <- sizeof(u32) + sizeof(u16) * 2;
+    if (complex != 8) return 5;  // 4 + (2 * 2)
+
+    // sizeof with parentheses for precedence
+    u32 paren <- (sizeof(u32) + sizeof(u16)) * 2;
+    if (paren != 12) return 6;  // (4 + 2) * 2
+
+    // sizeof of struct in expression
+    Header h;
+    u32 headerWithPadding <- sizeof(h) + 4;
+    if (headerWithPadding != 16) return 7;  // 12 + 4
+
+    // sizeof in comparison
+    if (sizeof(u64) != 8) return 8;
+    if (sizeof(u8) != 1) return 9;
+
+    // sizeof in ternary condition
+    u32 larger <- sizeof(u64) > sizeof(u32) ? 1 : 0;
+    if (larger != 1) return 10;
+
+    // Calculate array element count from sizes
+    u8 buffer[100];
+    u32 bufSize <- sizeof(buffer);
+    u32 elemSize <- sizeof(u8);
+    u32 elemCount <- bufSize / elemSize;
+    if (elemCount != 100) return 11;
+
+    // More complex: element count for u32 array
+    u32 intBuffer[25];
+    u32 intBufSize <- sizeof(intBuffer);
+    u32 intElemSize <- sizeof(u32);
+    u32 intElemCount <- intBufSize / intElemSize;
+    if (intElemCount != 25) return 12;
+
+    return 0;
+}

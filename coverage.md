@@ -989,9 +989,9 @@ This document tracks test coverage for every language construct in every valid c
 | Scoped enum                         | [x]    | `enum/scoped-enum.test.cnx`              |
 | Enum in switch                      | [x]    | `switch/switch-enum-exhaustive.test.cnx` |
 | Enum comparison (same type)         | [x]    |                                          |
-| Enum as function parameter          | [ ]    |                                          |
-| Enum as function return             | [ ]    |                                          |
-| Cast to integer                     | [ ]    |                                          |
+| Enum as function parameter          | [ ]    | Bug #143 - address-of on enum literal    |
+| Enum as function return             | [ ]    | Bug #143 - address-of on enum literal    |
+| Cast to integer                     | [x]    | `casting/enum-to-int-cast.test.cnx`      |
 | Compare different types **(ERROR)** | [x]    | `enum/enum-error-compare-types.test.cnx` |
 | Compare with int **(ERROR)**        | [x]    | `enum/enum-error-compare-int.test.cnx`   |
 | Assign int **(ERROR)**              | [x]    | `enum/enum-error-assign-int.test.cnx`    |
@@ -1001,19 +1001,19 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 11. Bitmap Declaration
 
-| Feature                         | Status | Test File                               |
-| ------------------------------- | ------ | --------------------------------------- |
-| bitmap8 basic                   | [x]    | `bitmap/basic-bitmap.test.cnx`          |
-| bitmap16                        | [x]    | `bitmap/bitmap-16.test.cnx`             |
-| bitmap24                        | [ ]    |                                         |
-| bitmap32                        | [ ]    |                                         |
-| Single-bit field                | [x]    |                                         |
-| Multi-bit field                 | [x]    |                                         |
-| In register                     | [x]    | `bitmap/bitmap-in-register.test.cnx`    |
-| As variable type                | [x]    |                                         |
-| As struct member                | [ ]    |                                         |
-| Bit overflow **(ERROR)**        | [x]    | `bitmap/bitmap-error-overflow.test.cnx` |
-| Total bits mismatch **(ERROR)** | [x]    | `bitmap/bitmap-error-bits.test.cnx`     |
+| Feature                         | Status | Test File                                |
+| ------------------------------- | ------ | ---------------------------------------- |
+| bitmap8 basic                   | [x]    | `bitmap/basic-bitmap.test.cnx`           |
+| bitmap16                        | [x]    | `bitmap/bitmap-16.test.cnx`              |
+| bitmap24                        | [x]    | `bitmap/bitmap-24.test.cnx`              |
+| bitmap32                        | [x]    | `bitmap/bitmap-32.test.cnx`              |
+| Single-bit field                | [x]    |                                          |
+| Multi-bit field                 | [x]    |                                          |
+| In register                     | [x]    | `bitmap/bitmap-in-register.test.cnx`     |
+| As variable type                | [x]    |                                          |
+| As struct member                | [ ]    | Bug #145 - bitmap field access on struct |
+| Bit overflow **(ERROR)**        | [x]    | `bitmap/bitmap-error-overflow.test.cnx`  |
+| Total bits mismatch **(ERROR)** | [x]    | `bitmap/bitmap-error-bits.test.cnx`      |
 
 ---
 
@@ -1027,11 +1027,11 @@ This document tracks test coverage for every language construct in every valid c
 | rw access modifier                | [x]    | `register/register-access-modifiers.test.cnx`   |
 | ro access modifier                | [x]    |                                                 |
 | wo access modifier                | [x]    |                                                 |
-| w1c access modifier               | [ ]    |                                                 |
-| w1s access modifier               | [ ]    |                                                 |
+| w1c access modifier               | [x]    | `register/register-w1c.test.cnx`                |
+| w1s access modifier               | [x]    | `register/register-w1s.test.cnx`                |
 | Bit indexing                      | [x]    | `register/register-bit-indexing.test.cnx`       |
-| Bit range access                  | [ ]    |                                                 |
-| Bitfield members                  | [ ]    |                                                 |
+| Bit range access                  | [x]    | `register/register-bit-range.test.cnx`          |
+| Bitfield members                  | [x]    | `register/register-bitfield.test.cnx`           |
 | Scoped register                   | [x]    | `scope/scoped-register-basic.test.cnx`          |
 | Scoped register bit access        | [x]    | `scope/scoped-register-bit-access.test.cnx`     |
 | Write to ro **(ERROR)**           | [x]    | `register/register-write-ro-error.test.cnx`     |
@@ -1260,17 +1260,17 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 20. Atomic Modifier
 
-| Context             | Status | Test File                             |
-| ------------------- | ------ | ------------------------------------- |
-| Basic atomic        | [x]    | `atomic/basic.test.cnx`               |
-| All integer types   | [x]    | `atomic/atomic-all-types.test.cnx`    |
-| Compound operations | [x]    | `atomic/atomic-compound-ops.test.cnx` |
-| PRIMASK fallback    | [x]    | `atomic/primask-fallback.test.cnx`    |
-| With clamp          | [ ]    |                                       |
-| With wrap           | [ ]    |                                       |
-| In scope            | [ ]    |                                       |
-| As struct member    | [ ]    |                                       |
-| In critical section | [ ]    |                                       |
+| Context             | Status | Test File                              |
+| ------------------- | ------ | -------------------------------------- |
+| Basic atomic        | [x]    | `atomic/basic.test.cnx`                |
+| All integer types   | [x]    | `atomic/atomic-all-types.test.cnx`     |
+| Compound operations | [x]    | `atomic/atomic-compound-ops.test.cnx`  |
+| PRIMASK fallback    | [x]    | `atomic/primask-fallback.test.cnx`     |
+| With clamp          | [x]    | `atomic/atomic-with-clamp.test.cnx`    |
+| With wrap           | [x]    | `atomic/atomic-with-wrap.test.cnx`     |
+| In scope            | [x]    | `atomic/atomic-in-scope.test.cnx`      |
+| As struct member    | [x]    | `atomic/atomic-struct-member.test.cnx` |
+| In critical section | [x]    | `atomic/atomic-in-critical.test.cnx`   |
 
 ---
 
@@ -1346,17 +1346,17 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 23. sizeof Operator
 
-| Context                     | Status | Test File                            |
-| --------------------------- | ------ | ------------------------------------ |
-| Primitive type              | [x]    | `sizeof/basic-type.test.cnx`         |
-| Variable                    | [x]    | `sizeof/basic-variable.test.cnx`     |
-| Struct type                 | [x]    | `sizeof/struct-type.test.cnx`        |
-| Local array                 | [ ]    |                                      |
-| Struct member               | [ ]    |                                      |
-| In expression               | [ ]    |                                      |
-| In array size               | [ ]    |                                      |
-| Array parameter **(ERROR)** | [x]    | `sizeof/array-param-error.test.cnx`  |
-| Side effects **(ERROR)**    | [x]    | `sizeof/side-effects-error.test.cnx` |
+| Context                     | Status | Test File                              |
+| --------------------------- | ------ | -------------------------------------- |
+| Primitive type              | [x]    | `sizeof/basic-type.test.cnx`           |
+| Variable                    | [x]    | `sizeof/basic-variable.test.cnx`       |
+| Struct type                 | [x]    | `sizeof/struct-type.test.cnx`          |
+| Local array                 | [x]    | `sizeof/sizeof-local-array.test.cnx`   |
+| Struct member               | [ ]    | Bug #144 - uses underscore not dot     |
+| In expression               | [x]    | `sizeof/sizeof-in-expression.test.cnx` |
+| In array size               | [ ]    | Bug #146 - invalid bitwise operators   |
+| Array parameter **(ERROR)** | [x]    | `sizeof/array-param-error.test.cnx`    |
+| Side effects **(ERROR)**    | [x]    | `sizeof/side-effects-error.test.cnx`   |
 
 ---
 
@@ -1370,7 +1370,7 @@ This document tracks test coverage for every language construct in every valid c
 | #ifdef / #endif            | [x]    | `preprocessor/conditional-compilation.test.cnx` |
 | #ifndef / #else / #endif   | [x]    |                                                 |
 | #pragma target             | [x]    | `platformio-detect/auto-detect.test.cnx`        |
-| Nested #ifdef              | [ ]    |                                                 |
+| Nested #ifdef              | [x]    | `preprocessor/nested-ifdef.test.cnx`            |
 | #define VALUE **(ERROR)**  | [x]    | `preprocessor/value-define-error.test.cnx`      |
 | #define FUNC() **(ERROR)** | [x]    | `preprocessor/function-macro-error.test.cnx`    |
 
@@ -1385,7 +1385,7 @@ This document tracks test coverage for every language construct in every valid c
 | Doc comment ///                 | [x]    | `comments/doc-comments.test.cnx`           |
 | URI exception                   | [x]    | `comments/uri-exception.test.cnx`          |
 | Multi-line block                | [x]    |                                            |
-| Comment in expression           | [ ]    |                                            |
+| Comment in expression           | [x]    | `comments/comment-in-expression.test.cnx`  |
 | MISRA 3.1 nested **(ERROR)**    | [x]    | `comments/misra-3-1-nested-block.test.cnx` |
 | MISRA 3.2 backslash **(ERROR)** | [x]    | `comments/misra-3-2-backslash.test.cnx`    |
 
@@ -1393,34 +1393,34 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 26. Initialization
 
-| Context                         | Status | Test File                                   |
-| ------------------------------- | ------ | ------------------------------------------- |
-| Zero-init global                | [x]    | `initialization/global-zero-init.test.cnx`  |
-| Zero-init array                 | [x]    | `initialization/array-zero-init.test.cnx`   |
-| Zero-init struct                | [x]    | `initialization/struct-zero-init.test.cnx`  |
-| Counter from zero               | [x]    | `initialization/counter-from-zero.test.cnx` |
-| Init then use                   | [x]    | `initialization/init-then-use.test.cnx`     |
-| If-else branches                | [x]    | `initialization/if-else-branches.test.cnx`  |
-| Namespace init                  | [x]    | `initialization/namespace-init.test.cnx`    |
-| Loop init                       | [ ]    |                                             |
-| Switch branch init              | [ ]    |                                             |
-| Use before init **(ERROR)**     | [x]    | `initialization/use-before-init.test.cnx`   |
-| Partial branch init **(ERROR)** | [ ]    |                                             |
+| Context                         | Status | Test File                                           |
+| ------------------------------- | ------ | --------------------------------------------------- |
+| Zero-init global                | [x]    | `initialization/global-zero-init.test.cnx`          |
+| Zero-init array                 | [x]    | `initialization/array-zero-init.test.cnx`           |
+| Zero-init struct                | [x]    | `initialization/struct-zero-init.test.cnx`          |
+| Counter from zero               | [x]    | `initialization/counter-from-zero.test.cnx`         |
+| Init then use                   | [x]    | `initialization/init-then-use.test.cnx`             |
+| If-else branches                | [x]    | `initialization/if-else-branches.test.cnx`          |
+| Namespace init                  | [x]    | `initialization/namespace-init.test.cnx`            |
+| Loop init                       | [x]    | `initialization/loop-init.test.cnx`                 |
+| Switch branch init              | [x]    | `initialization/switch-branch-init.test.cnx`        |
+| Use before init **(ERROR)**     | [x]    | `initialization/use-before-init.test.cnx`           |
+| Partial branch init **(ERROR)** | [x]    | `initialization/partial-branch-init-error.test.cnx` |
 
 ---
 
 ## 27. References (Pass-by-reference)
 
-| Feature                | Status | Test File                                |
-| ---------------------- | ------ | ---------------------------------------- |
-| Pass by reference      | [x]    | `references/pass-by-reference.test.cnx`  |
-| Output parameter       | [x]    | `references/output-parameter.test.cnx`   |
-| Struct pass by ref     | [x]    | `references/struct-pass-by-ref.test.cnx` |
-| Swap function          | [x]    | `references/swap-function.test.cnx`      |
-| Compound via ref       | [x]    | `references/compound-via-ref.test.cnx`   |
-| Array pass by ref      | [ ]    |                                          |
-| Multiple output params | [ ]    |                                          |
-| Ref in loop            | [ ]    |                                          |
+| Feature                | Status | Test File                                    |
+| ---------------------- | ------ | -------------------------------------------- |
+| Pass by reference      | [x]    | `references/pass-by-reference.test.cnx`      |
+| Output parameter       | [x]    | `references/output-parameter.test.cnx`       |
+| Struct pass by ref     | [x]    | `references/struct-pass-by-ref.test.cnx`     |
+| Swap function          | [x]    | `references/swap-function.test.cnx`          |
+| Compound via ref       | [x]    | `references/compound-via-ref.test.cnx`       |
+| Array pass by ref      | [x]    | `references/array-pass-by-ref.test.cnx`      |
+| Multiple output params | [x]    | `references/multiple-output-params.test.cnx` |
+| Ref in loop            | [x]    | `references/ref-in-loop.test.cnx`            |
 
 ---
 
@@ -1434,8 +1434,8 @@ This document tracks test coverage for every language construct in every valid c
 | fputs check                 | [x]    | `null-check/valid-fputs-check.test.cnx`   |
 | fgetc check                 | [x]    | `null-check/valid-fgetc-check.test.cnx`   |
 | != NULL variant             | [x]    | `null-check/null-neq-check.test.cnx`      |
-| NULL in while               | [ ]    |                                           |
-| NULL in ternary             | [ ]    |                                           |
+| NULL in while               | [x]    | `null-check/null-in-while.test.cnx`       |
+| NULL in ternary             | [x]    | `null-check/null-in-ternary.test.cnx`     |
 | Missing check **(ERROR)**   | [x]    | `null-check/missing-null-check.test.cnx`  |
 | Invalid usage **(ERROR)**   | [x]    | `null-check/invalid-null-usage.test.cnx`  |
 | fopen forbidden **(ERROR)** | [x]    | `null-check/forbidden-fopen.test.cnx`     |
@@ -1449,7 +1449,7 @@ This document tracks test coverage for every language construct in every valid c
 | Static array         | [x]    | `static-allocation/static-array.test.cnx`         |
 | Static counter       | [x]    | `static-allocation/static-counter.test.cnx`       |
 | Static struct buffer | [x]    | `static-allocation/static-struct-buffer.test.cnx` |
-| Static string buffer | [ ]    |                                                   |
+| Static string buffer | [ ]    | Bug #139 - string assignment in function body     |
 | malloc **(ERROR)**   | [x]    | `static-allocation/malloc-error.test.cnx`         |
 | calloc **(ERROR)**   | [x]    | `static-allocation/calloc-error.test.cnx`         |
 | realloc **(ERROR)**  | [x]    | `static-allocation/realloc-error.test.cnx`        |

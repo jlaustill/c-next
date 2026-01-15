@@ -1,0 +1,61 @@
+/* test-coverage: 29-static-string-buffer */
+/* test-execution */
+// Tests: Static string buffer allocation
+
+// Global string buffers (statically allocated)
+string<64> messageBuffer;
+string<128> logBuffer;
+string<32> nameBuffer;
+
+// Fixed-size string arrays
+string<16> tags[4];
+
+void setMessage(u32 code) {
+    if (code = 0) {
+        messageBuffer <- "OK";
+    }
+    if (code = 1) {
+        messageBuffer <- "Warning";
+    }
+    if (code = 2) {
+        messageBuffer <- "Error";
+    }
+}
+
+u32 main() {
+    // Test basic string buffer initialization
+    messageBuffer <- "Hello";
+    if (messageBuffer.length != 5) return 1;
+
+    // Test string assignment
+    nameBuffer <- "Test";
+    if (nameBuffer.length != 4) return 2;
+
+    // Test capacity
+    if (messageBuffer.capacity != 64) return 3;
+    if (logBuffer.capacity != 128) return 4;
+    if (nameBuffer.capacity != 32) return 5;
+
+    // Test function that modifies buffer
+    setMessage(0);
+    if (messageBuffer.length != 2) return 6;  // "OK"
+
+    setMessage(1);
+    if (messageBuffer.length != 7) return 7;  // "Warning"
+
+    // Test string array
+    tags[0] <- "tag1";
+    tags[1] <- "tag2";
+    tags[2] <- "tag3";
+    tags[3] <- "tag4";
+
+    if (tags[0].length != 4) return 8;
+    if (tags[3].length != 4) return 9;
+
+    // Test overwrite
+    logBuffer <- "Initial log entry";
+    logBuffer <- "New log entry";
+    if (logBuffer.length != 13) return 10;
+
+    return 0;
+}

@@ -1163,6 +1163,49 @@ export default class CodeGenerator {
       }
     }
 
+    // Handle sizeof(type) expressions for primitive types
+    const sizeofMatch = text.match(/^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)$/);
+    if (sizeofMatch) {
+      const typeName = sizeofMatch[1];
+      const bitWidth = TYPE_WIDTH[typeName];
+      if (bitWidth) {
+        return bitWidth / 8; // Convert bits to bytes
+      }
+      // Check if it's a known struct
+      if (this.isKnownStruct(typeName)) {
+        // For structs, we can't easily compute size at this point
+        // Just return undefined and let the array work without dimension tracking
+        // The generated C will still work because sizeof() is evaluated at C compile time
+        return undefined;
+      }
+    }
+
+    // Handle sizeof(type) * N expressions
+    const sizeofMulMatch = text.match(
+      /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\*(\d+)$/,
+    );
+    if (sizeofMulMatch) {
+      const typeName = sizeofMulMatch[1];
+      const multiplier = parseInt(sizeofMulMatch[2], 10);
+      const bitWidth = TYPE_WIDTH[typeName];
+      if (bitWidth && !isNaN(multiplier)) {
+        return (bitWidth / 8) * multiplier;
+      }
+    }
+
+    // Handle sizeof(type) + N expressions
+    const sizeofAddMatch = text.match(
+      /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\+(\d+)$/,
+    );
+    if (sizeofAddMatch) {
+      const typeName = sizeofAddMatch[1];
+      const addend = parseInt(sizeofAddMatch[2], 10);
+      const bitWidth = TYPE_WIDTH[typeName];
+      if (bitWidth && !isNaN(addend)) {
+        return bitWidth / 8 + addend;
+      }
+    }
+
     // For more complex expressions, we can't evaluate at compile time
     return undefined;
   }
@@ -3450,6 +3493,11 @@ export default class CodeGenerator {
       return `${constMod}${type} ${name}`;
     }
 
+    // ADR-017: Enum types use standard C pass-by-value semantics
+    if (this.knownEnums.has(typeName)) {
+      return `${constMod}${type} ${name}`;
+    }
+
     // ADR-006: Pass by reference for non-array types
     // Add pointer for primitive types to enable pass-by-reference semantics
     return `${constMod}${type}* ${name}`;
@@ -4330,6 +4378,57 @@ export default class CodeGenerator {
               throw new Error(
                 `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
               );
+            }
+          }
+        }
+
+        // ADR-034: Struct member bitmap field write: device.flags.Active <- true
+        // 3 identifiers: [structVar, bitmapMember, bitmapField], no subscripts
+        // Check if first identifier is a struct variable (not a register)
+        const structVarName = identifiers[0].getText();
+        const structMemberName = identifiers[1].getText();
+        if (!this.knownRegisters.has(structVarName)) {
+          // Check if structVarName is a struct variable
+          const structTypeInfo = this.context.typeRegistry.get(structVarName);
+          if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
+            // Check if the struct member is a bitmap type
+            const memberInfo = this.getMemberTypeInfo(
+              structTypeInfo.baseType,
+              structMemberName,
+            );
+            if (memberInfo) {
+              const memberBitmapType = memberInfo.baseType;
+              const structBitmapFields =
+                this.bitmapFields.get(memberBitmapType);
+              if (structBitmapFields && structBitmapFields.has(fieldName)) {
+                // This is a bitmap field access on a struct member
+                if (isCompound) {
+                  throw new Error(
+                    `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
+                  );
+                }
+
+                const structFieldInfo = structBitmapFields.get(fieldName)!;
+
+                // Validate compile-time literal overflow
+                this.validateBitmapFieldLiteral(
+                  ctx.expression(),
+                  structFieldInfo.width,
+                  fieldName,
+                );
+
+                const mask = (1 << structFieldInfo.width) - 1;
+                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+                const memberPath = `${structVarName}.${structMemberName}`;
+
+                if (structFieldInfo.width === 1) {
+                  // Single bit write: struct.member = (struct.member & ~(1 << offset)) | ((value ? 1 : 0) << offset)
+                  return `${memberPath} = (${memberPath} & ~(1 << ${structFieldInfo.offset})) | ((${value} ? 1 : 0) << ${structFieldInfo.offset});`;
+                } else {
+                  // Multi-bit write
+                  return `${memberPath} = (${memberPath} & ~(${maskHex} << ${structFieldInfo.offset})) | ((${value} & ${maskHex}) << ${structFieldInfo.offset});`;
+                }
+              }
             }
           }
         }
@@ -5501,6 +5600,10 @@ export default class CodeGenerator {
       }
       // Float types use pass-by-value, no dereference needed
       if (this.isFloatType(paramInfo.baseType)) {
+        return id;
+      }
+      // Enum types use pass-by-value, no dereference needed
+      if (this.knownEnums.has(paramInfo.baseType)) {
         return id;
       }
       // Parameter - allowed as bare identifier, but needs dereference
@@ -7111,6 +7214,26 @@ export default class CodeGenerator {
               }
             }
 
+            // ADR-034: Check if currentStructType is a bitmap - handle field access
+            // This handles structParam->bitmapMember.field -> bitwise access
+            const bitmapFieldsPtr = this.bitmapFields.get(
+              currentStructType || "",
+            );
+            if (bitmapFieldsPtr && bitmapFieldsPtr.has(memberName)) {
+              const fieldInfo = bitmapFieldsPtr.get(memberName)!;
+              if (fieldInfo.width === 1) {
+                // Single bit: ((value >> offset) & 1)
+                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
+              } else {
+                // Multi-bit: ((value >> offset) & mask)
+                const mask = (1 << fieldInfo.width) - 1;
+                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
+              }
+              // Bitmap fields don't have sub-members, clear struct type tracking
+              currentStructType = undefined;
+              continue;
+            }
+
             result = `${result}->${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
@@ -7138,6 +7261,24 @@ export default class CodeGenerator {
               ) {
                 currentStructType = identifierTypeInfo.baseType;
               }
+            }
+
+            // ADR-034: Check if currentStructType is a bitmap - handle field access
+            // This handles struct.bitmapMember.field -> bitwise access
+            const bitmapFields = this.bitmapFields.get(currentStructType || "");
+            if (bitmapFields && bitmapFields.has(memberName)) {
+              const fieldInfo = bitmapFields.get(memberName)!;
+              if (fieldInfo.width === 1) {
+                // Single bit: ((value >> offset) & 1)
+                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
+              } else {
+                // Multi-bit: ((value >> offset) & mask)
+                const mask = (1 << fieldInfo.width) - 1;
+                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
+              }
+              // Bitmap fields don't have sub-members, clear struct type tracking
+              currentStructType = undefined;
+              continue;
             }
 
             result = `${result}.${memberName}`;
@@ -7432,17 +7573,19 @@ export default class CodeGenerator {
               if (!isCNextFunc) {
                 return this.generateExpression(e);
               }
-              // C-Next function: check if target parameter is a float type
+              // C-Next function: check if target parameter is a pass-by-value type
               const sig = this.functionSignatures.get(result);
               const targetParam = sig?.parameters[idx];
               const isFloatParam =
                 targetParam && this.isFloatType(targetParam.baseType);
+              const isEnumParam =
+                targetParam && this.knownEnums.has(targetParam.baseType);
 
-              if (isFloatParam) {
-                // Target parameter is float (pass-by-value): pass value directly
+              if (isFloatParam || isEnumParam) {
+                // Target parameter is float or enum (pass-by-value): pass value directly
                 return this.generateExpression(e);
               } else {
-                // Target parameter is non-float (pass-by-reference): use & logic
+                // Target parameter is non-float/non-enum (pass-by-reference): use & logic
                 // Pass the target param type for proper literal handling
                 return this.generateFunctionArg(e, targetParam?.baseType);
               }
@@ -7520,6 +7663,10 @@ export default class CodeGenerator {
         }
         // Float types use pass-by-value, no dereference needed
         if (this.isFloatType(paramInfo.baseType)) {
+          return id;
+        }
+        // ADR-017: Enum types use pass-by-value, no dereference needed
+        if (this.knownEnums.has(paramInfo.baseType)) {
           return id;
         }
         // Parameter - allowed as bare identifier
@@ -7625,6 +7772,40 @@ export default class CodeGenerator {
     if (ctx.type()) {
       const typeCtx = ctx.type()!;
       const typeText = typeCtx.getText();
+
+      // Check if this "type" is actually a variable.member expression
+      // qualifiedType matches IDENTIFIER.IDENTIFIER, which could be struct.member
+      if (typeCtx.qualifiedType()) {
+        const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
+        const firstName = identifiers[0].getText();
+        const memberName = identifiers[1].getText();
+
+        // Check if first identifier is a local variable (struct instance)
+        if (this.context.localVariables.has(firstName)) {
+          return `sizeof(${firstName}.${memberName})`;
+        }
+
+        // Check if first identifier is a parameter (struct parameter)
+        const paramInfo = this.context.currentParameters.get(firstName);
+        if (paramInfo) {
+          // Struct parameters use -> in C
+          if (paramInfo.isStruct) {
+            return `sizeof(${firstName}->${memberName})`;
+          }
+          return `sizeof(${firstName}.${memberName})`;
+        }
+
+        // Check if first identifier is a global variable
+        // If not a scope or enum, it's likely a global struct variable
+        if (
+          !this.knownScopes.has(firstName) &&
+          !this.knownEnums.has(firstName)
+        ) {
+          return `sizeof(${firstName}.${memberName})`;
+        }
+
+        // Fall through to generateType for actual type references (Scope.Type)
+      }
 
       // Check if this "type" is actually a variable or parameter
       // userType is just IDENTIFIER, which could be a variable reference

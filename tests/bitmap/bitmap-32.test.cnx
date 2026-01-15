@@ -1,0 +1,98 @@
+/* test-coverage: 11-bitmap32 */
+/* test-execution */
+// Tests: 32-bit bitmap type
+
+// 32-bit bitmap for IP address representation
+bitmap32 IPv4Address {
+    Octet1[8],   // bits 0-7
+    Octet2[8],   // bits 8-15
+    Octet3[8],   // bits 16-23
+    Octet4[8]    // bits 24-31
+}
+
+// 32-bit bitmap for status register
+bitmap32 DeviceStatus {
+    Power,            // bit 0
+    Ready,            // bit 1
+    Error,            // bit 2
+    Warning,          // bit 3
+    Mode[4],          // bits 4-7
+    ErrorCode[8],     // bits 8-15
+    Version[8],       // bits 16-23
+    Reserved[8]       // bits 24-31
+}
+
+// 32-bit bitmap with larger fields
+bitmap32 Configuration {
+    Flags[8],         // bits 0-7
+    Address[16],      // bits 8-23
+    Checksum[8]       // bits 24-31
+}
+
+IPv4Address ip <- 0;
+DeviceStatus status <- 0;
+Configuration config <- 0;
+
+u32 main() {
+    // Test IPv4 octets
+    ip.Octet1 <- 192;
+    ip.Octet2 <- 168;
+    ip.Octet3 <- 1;
+    ip.Octet4 <- 100;
+
+    if (ip.Octet1 != 192) return 1;
+    if (ip.Octet2 != 168) return 2;
+    if (ip.Octet3 != 1) return 3;
+    if (ip.Octet4 != 100) return 4;
+
+    // Test device status single-bit fields
+    status.Power <- true;
+    status.Ready <- true;
+    status.Error <- false;
+    status.Warning <- true;
+
+    if (status.Power != true) return 5;
+    if (status.Ready != true) return 6;
+    if (status.Error != false) return 7;
+    if (status.Warning != true) return 8;
+
+    // Test device status multi-bit fields
+    status.Mode <- 7;
+    status.ErrorCode <- 0x5A;
+    status.Version <- 12;
+
+    if (status.Mode != 7) return 9;
+    if (status.ErrorCode != 0x5A) return 10;
+    if (status.Version != 12) return 11;
+
+    // Test 16-bit field in Configuration
+    config.Flags <- 0xFF;
+    config.Address <- 0x1234;
+    config.Checksum <- 0xAB;
+
+    if (config.Flags != 0xFF) return 12;
+    if (config.Address != 0x1234) return 13;
+    if (config.Checksum != 0xAB) return 14;
+
+    // Test reading into variables
+    u8 oct1 <- ip.Octet1;
+    if (oct1 != 192) return 15;
+
+    u16 addr <- config.Address;
+    if (addr != 0x1234) return 16;
+
+    // Test modifying preserves other fields
+    ip.Octet3 <- 0;
+    if (ip.Octet1 != 192) return 17;
+    if (ip.Octet2 != 168) return 18;
+    if (ip.Octet3 != 0) return 19;
+    if (ip.Octet4 != 100) return 20;
+
+    // Test max values
+    status.Mode <- 15;  // 4-bit max
+    status.ErrorCode <- 255;  // 8-bit max
+    if (status.Mode != 15) return 21;
+    if (status.ErrorCode != 255) return 22;
+
+    return 0;
+}

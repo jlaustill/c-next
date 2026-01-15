@@ -1,0 +1,40 @@
+/* test-coverage: 25-comment-in-expression */
+/* test-execution */
+// Tests: Comments within expressions
+
+u32 main() {
+    // Comment between operands
+    u32 a <- 10 /* first operand */ + 20 /* second operand */;
+    if (a != 30) return 1;
+
+    // Comment in middle of expression
+    u32 b <- (5 * /* multiplier */ 4) + 3;
+    if (b != 23) return 2;
+
+    // Comment in function call
+    u32 c <- a /* pass a */ + b /* pass b */;
+    if (c != 53) return 3;
+
+    // Comment in array index
+    u32 arr[5];
+    arr[0] <- 100;
+    arr[/* index */ 0] <- 200;
+    if (arr[0] != 200) return 4;
+
+    // Comment in ternary
+    u32 d <- a > b /* compare */ ? a /* true case */ : b /* false case */;
+    if (d != 30) return 5;
+
+    // Comment in comparison
+    bool test <- a /* left */ > /* op */ b /* right */;
+    if (test != true) return 6;
+
+    // Multi-line comment in expression
+    u32 e <- 1 +
+        /* this is a
+           multi-line comment */
+        2;
+    if (e != 3) return 7;
+
+    return 0;
+}

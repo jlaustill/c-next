@@ -1,0 +1,42 @@
+/* test-coverage: 20-atomic-struct-member */
+// Tests: atomic as struct member type
+// Note: Compilation test only - ARM-specific code
+
+#pragma target teensy41
+
+struct SharedState {
+    atomic u32 counter;
+    atomic u8 flags;
+    u32 regularValue;
+}
+
+struct DeviceState {
+    u32 id;
+    atomic u32 accessCount;
+    atomic wrap u16 sequence;
+}
+
+SharedState state;
+DeviceState device;
+
+void incrementStateCounter() {
+    state.counter +<- 1;
+}
+
+void setStateFlags(u8 f) {
+    state.flags <- f;
+}
+
+void accessDevice() {
+    device.accessCount +<- 1;
+    device.sequence +<- 1;
+}
+
+void main() {
+    state.regularValue <- 100;
+    incrementStateCounter();
+    setStateFlags(0xFF);
+
+    device.id <- 12345;
+    accessDevice();
+}

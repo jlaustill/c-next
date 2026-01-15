@@ -1,0 +1,22 @@
+/* test-coverage: 28-null-in-ternary */
+// Tests: NULL check in ternary condition
+#include <stdio.h>
+
+string<64> buffer;
+
+// Use ternary with NULL check
+u32 readWithFallback() {
+    u32 result <- fgets(buffer, buffer.size, stdin) != NULL ? 1 : 0;
+    return result;
+}
+
+// Another pattern: equality check
+bool isInputAvailable() {
+    bool available <- fgets(buffer, buffer.size, stdin) = NULL ? false : true;
+    return available;
+}
+
+void main() {
+    u32 success <- readWithFallback();
+    bool hasInput <- isInputAvailable();
+}

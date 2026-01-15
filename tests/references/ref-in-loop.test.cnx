@@ -1,0 +1,108 @@
+/* test-coverage: 27-ref-in-loop */
+/* test-execution */
+// Tests: Modifying reference parameter inside loops
+
+// Increments value N times
+void incrementN(u32 value, u32 times) {
+    u32 i <- 0;
+    while (i < times) {
+        value <- value + 1;
+        i <- i + 1;
+    }
+}
+
+// Doubles value N times
+void doubleN(u32 value, u32 times) {
+    u32 i <- 0;
+    while (i < times) {
+        value <- value * 2;
+        i <- i + 1;
+    }
+}
+
+// Accumulates sum using a loop
+void accumulate(u32 start, u32 end, u32 result) {
+    result <- 0;
+    u32 i <- start;
+    while (i <= end) {
+        result <- result + i;
+        i <- i + 1;
+    }
+}
+
+// Factorial via loop
+void factorial(u32 n, u32 result) {
+    result <- 1;
+    u32 i <- 1;
+    while (i <= n) {
+        result <- result * i;
+        i <- i + 1;
+    }
+}
+
+// Modifies multiple refs in same loop
+void parallelIncrement(u32 a, u32 b, u32 times) {
+    u32 i <- 0;
+    while (i < times) {
+        a <- a + 1;
+        b <- b + 2;
+        i <- i + 1;
+    }
+}
+
+u32 main() {
+    // Test incrementN
+    u32 val <- 10;
+    incrementN(val, 5);
+    if (val != 15) return 1;
+
+    val <- 0;
+    incrementN(val, 100);
+    if (val != 100) return 2;
+
+    // Test doubleN
+    val <- 1;
+    doubleN(val, 4);
+    if (val != 16) return 3;  // 1 * 2^4 = 16
+
+    val <- 3;
+    doubleN(val, 3);
+    if (val != 24) return 4;  // 3 * 2^3 = 24
+
+    // Test accumulate (sum from start to end)
+    u32 sum <- 999;
+    accumulate(1, 5, sum);
+    if (sum != 15) return 5;  // 1+2+3+4+5 = 15
+
+    accumulate(1, 10, sum);
+    if (sum != 55) return 6;  // 1+2+...+10 = 55
+
+    accumulate(5, 5, sum);
+    if (sum != 5) return 7;  // Just 5
+
+    // Test factorial
+    u32 fact <- 0;
+    factorial(5, fact);
+    if (fact != 120) return 8;  // 5! = 120
+
+    factorial(1, fact);
+    if (fact != 1) return 9;  // 1! = 1
+
+    factorial(6, fact);
+    if (fact != 720) return 10;  // 6! = 720
+
+    // Test parallel increment
+    u32 x <- 0;
+    u32 y <- 0;
+    parallelIncrement(x, y, 5);
+    if (x != 5) return 11;   // 0 + 5*1 = 5
+    if (y != 10) return 12;  // 0 + 5*2 = 10
+
+    x <- 10;
+    y <- 20;
+    parallelIncrement(x, y, 3);
+    if (x != 13) return 13;  // 10 + 3*1 = 13
+    if (y != 26) return 14;  // 20 + 3*2 = 26
+
+    return 0;
+}
