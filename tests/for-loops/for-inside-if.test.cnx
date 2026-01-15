@@ -1,5 +1,6 @@
+/* test-coverage: 33.2-for-inside-if */
 /* test-execution */
-// Coverage: Section 7.4 - for loop inside if statement
+// Coverage: Section 7.4, 33.2 - for loop inside if statement
 // Tests: for loops nested inside if/else branches
 
 u32 main() {

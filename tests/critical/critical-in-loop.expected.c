@@ -14,7 +14,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-// Coverage: Section 7.7 - Critical section inside loops
+/* test-coverage: 33.2-critical-inside-loop */
+// Coverage: Section 7.7, 33.2 - Critical section inside loops
 // Tests: critical sections inside for, while, and do-while loops
 uint32_t sharedData[10] = {0};
 
