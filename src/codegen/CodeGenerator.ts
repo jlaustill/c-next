@@ -7771,6 +7771,19 @@ export default class CodeGenerator {
       } else if (/[fF]64$/.test(literalText)) {
         literalText = literalText.replace(/[fF]64$/, "");
       }
+
+      // Issue #130: Transform C-Next integer suffixes to standard C syntax
+      // u8/u16/u32 and i8/i16/i32 suffixes are stripped (C infers from context)
+      // u64 -> ULL suffix for 64-bit unsigned
+      // i64 -> LL suffix for 64-bit signed
+      if (/[uU]64$/.test(literalText)) {
+        literalText = literalText.replace(/[uU]64$/, "ULL");
+      } else if (/[iI]64$/.test(literalText)) {
+        literalText = literalText.replace(/[iI]64$/, "LL");
+      } else if (/[uUiI](8|16|32)$/.test(literalText)) {
+        // Strip 8/16/32-bit suffixes - C handles these without explicit suffix
+        literalText = literalText.replace(/[uUiI](8|16|32)$/, "");
+      }
       return literalText;
     }
     if (ctx.expression()) {

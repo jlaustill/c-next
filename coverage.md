@@ -1534,23 +1534,23 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 32.1 Integer Literals
 
-| Format          | Context          | Status | Test File |
-| --------------- | ---------------- | ------ | --------- |
-| Decimal         | Variable init    | [x]    |           |
-| Decimal         | Array element    | [x]    |           |
-| Decimal         | Function arg     | [x]    |           |
-| Decimal         | Comparison       | [x]    |           |
-| Hex (0x)        | Variable init    | [x]    |           |
-| Hex (0x)        | Bitwise op       | [x]    |           |
-| Hex (0x)        | Register address | [x]    |           |
-| Binary (0b)     | Variable init    | [x]    |           |
-| Binary (0b)     | Bit mask         | [ ]    |           |
-| With u8 suffix  | [ ]              |        |
-| With u16 suffix | [ ]              |        |
-| With u32 suffix | [ ]              |        |
-| With i8 suffix  | [ ]              |        |
-| With i16 suffix | [ ]              |        |
-| With i32 suffix | [ ]              |        |
+| Format          | Context          | Status | Test File                                 |
+| --------------- | ---------------- | ------ | ----------------------------------------- |
+| Decimal         | Variable init    | [x]    |                                           |
+| Decimal         | Array element    | [x]    |                                           |
+| Decimal         | Function arg     | [x]    |                                           |
+| Decimal         | Comparison       | [x]    |                                           |
+| Hex (0x)        | Variable init    | [x]    |                                           |
+| Hex (0x)        | Bitwise op       | [x]    |                                           |
+| Hex (0x)        | Register address | [x]    |                                           |
+| Binary (0b)     | Variable init    | [x]    |                                           |
+| Binary (0b)     | Bit mask         | [ ]    |                                           |
+| With u8 suffix  | [x]              |        | `literals/integer-type-suffixes.test.cnx` |
+| With u16 suffix | [x]              |        | `literals/integer-type-suffixes.test.cnx` |
+| With u32 suffix | [x]              |        | `literals/integer-type-suffixes.test.cnx` |
+| With i8 suffix  | [x]              |        | `literals/integer-type-suffixes.test.cnx` |
+| With i16 suffix | [x]              |        | `literals/integer-type-suffixes.test.cnx` |
+| With i32 suffix | [x]              |        | `literals/integer-type-suffixes.test.cnx` |
 
 ### 32.2 Float Literals
 
@@ -1574,13 +1574,13 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 32.4 Character Literals
 
-| Context          | Status | Test File |
-| ---------------- | ------ | --------- |
-| Variable init    | [ ]    |           |
-| Array element    | [ ]    |           |
-| Comparison       | [ ]    |           |
-| In switch case   | [ ]    |           |
-| Escape sequences | [ ]    |           |
+| Context          | Status | Test File                                 |
+| ---------------- | ------ | ----------------------------------------- |
+| Variable init    | [x]    | `literals/char-contexts.test.cnx`         |
+| Array element    | [x]    | `literals/char-contexts.test.cnx`         |
+| Comparison       | [x]    | `literals/char-contexts.test.cnx`         |
+| In switch case   | [x]    | `literals/char-contexts.test.cnx`         |
+| Escape sequences | [x]    | `literals/char-escape-sequences.test.cnx` |
 
 ### 32.5 Boolean Literals
 
