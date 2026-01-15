@@ -1,0 +1,49 @@
+/* test-execution */
+// ADR-045: Validate string concatenation at runtime
+
+i32 main() {
+    // Test 1-3: Basic concatenation
+    string<32> first <- "Hello";
+    string<32> second <- " World";
+    string<64> result <- first + second;
+    if (result.length != 11) return 1;
+    if (result != "Hello World") return 2;
+    if (result.capacity != 64) return 3;
+
+    // Test 4-6: Concatenation with literal
+    string<64> withLit <- first + "!";
+    if (withLit.length != 6) return 4;
+    if (withLit != "Hello!") return 5;
+
+    // Test 7-9: Concatenation of short strings
+    string<8> a <- "AB";
+    string<8> b <- "CD";
+    string<16> ab <- a + b;
+    if (ab.length != 4) return 6;
+    if (ab != "ABCD") return 7;
+
+    // Test 8-10: Longer concatenation
+    string<32> part1 <- "The quick ";
+    string<32> part2 <- "brown fox";
+    string<64> sentence <- part1 + part2;
+    if (sentence.length != 19) return 8;
+    if (sentence != "The quick brown fox") return 9;
+
+    // Test 11-13: Concatenation with empty string
+    string<32> nonEmpty <- "Text";
+    string<32> empty;
+    string<64> withEmpty <- nonEmpty + empty;
+    if (withEmpty.length != 4) return 10;
+    if (withEmpty != "Text") return 11;
+
+    // Test 12: Empty + non-empty
+    string<64> emptyFirst <- empty + nonEmpty;
+    if (emptyFirst != "Text") return 12;
+
+    // Test 13: Literal + literal (both tight capacity)
+    string<11> litConcat <- "Hello" + " World";
+    if (litConcat.length != 11) return 13;
+    if (litConcat != "Hello World") return 14;
+
+    return 0;
+}

@@ -6,51 +6,52 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-coverage: 29-static-string-buffer */
 /* test-execution */
-// Tests: Static string buffer allocation
-// Global string buffers (statically allocated)
-char messageBuffer[65] = "";
+// ADR-003/ADR-045: Static string buffer allocation
+// Tests: global string buffers with known sizes are valid
+// Issues #138 and #139 fixed: string assignment now works correctly
+char messageBuffer[65] = "Initial";
 
-char logBuffer[129] = "";
+char logBuffer[129] = "Log entry one";
 
-char nameBuffer[33] = "";
+uint32_t getMessageLength(void) {
+    return strlen(messageBuffer);
+}
 
-// Fixed-size string arrays
-char tags[4][17] = {0};
+uint32_t getLogLength(void) {
+    return strlen(logBuffer);
+}
 
-void setMessage(uint32_t* code) {
-    if ((*code) == 0) {
-        strncpy(messageBuffer, "OK", 64); messageBuffer[64] = '\0';
-    }
-    if ((*code) == 1) {
-        strncpy(messageBuffer, "Warning", 64); messageBuffer[64] = '\0';
-    }
-    if ((*code) == 2) {
-        strncpy(messageBuffer, "Error", 64); messageBuffer[64] = '\0';
-    }
+// Issue #138 fixed: assignment from const parameter now generates valid C
+void copyMessage(const char* source) {
+    strncpy(messageBuffer, source, 64); messageBuffer[64] = '\0';
+}
+
+// Issue #139 fixed: string literal assignment in function body now works
+void setDefaultMessage(void) {
+    strncpy(messageBuffer, "DefaultValue", 64); messageBuffer[64] = '\0';
 }
 
 uint32_t main(void) {
-    strncpy(messageBuffer, "Hello", 64); messageBuffer[64] = '\0';
-    if (strlen(messageBuffer) != 5) return 1;
-    strncpy(nameBuffer, "Test", 32); nameBuffer[32] = '\0';
-    if (strlen(nameBuffer) != 4) return 2;
-    if (64 != 64) return 3;
-    if (128 != 128) return 4;
-    if (32 != 32) return 5;
-    setMessage(&(uint32_t){0});
-    if (strlen(messageBuffer) != 2) return 6;
-    setMessage(&(uint32_t){1});
-    if (strlen(messageBuffer) != 7) return 7;
-    strncpy(tags[0], "tag1", 16);
-    strncpy(tags[1], "tag2", 16);
-    strncpy(tags[2], "tag3", 16);
-    strncpy(tags[3], "tag4", 16);
-    if (strlen(tags[0]) != 4) return 8;
-    if (strlen(tags[3]) != 4) return 9;
-    strncpy(logBuffer, "Initial log entry", 128); logBuffer[128] = '\0';
-    strncpy(logBuffer, "New log entry", 128); logBuffer[128] = '\0';
-    if (strlen(logBuffer) != 13) return 10;
+    if (strlen(messageBuffer) != 7) return 1;
+    if (strlen(logBuffer) != 13) return 2;
+    if (strcmp(messageBuffer, "Initial") != 0) return 3;
+    if (strcmp(logBuffer, "Log entry one") != 0) return 4;
+    if (64 != 64) return 5;
+    if (128 != 128) return 6;
+    if (65 != 65) return 7;
+    if (129 != 129) return 8;
+    if (getMessageLength() != 7) return 9;
+    if (getLogLength() != 13) return 10;
+    strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
+    if (strlen(messageBuffer) != 8) return 11;
+    if (strcmp(messageBuffer, "Modified") != 0) return 12;
+    char source[65] = "FromParam";
+    copyMessage(&source);
+    if (strlen(messageBuffer) != 9) return 13;
+    if (strcmp(messageBuffer, "FromParam") != 0) return 14;
+    setDefaultMessage();
+    if (strlen(messageBuffer) != 12) return 15;
+    if (strcmp(messageBuffer, "DefaultValue") != 0) return 16;
     return 0;
 }

@@ -9,7 +9,7 @@
 // ADR-045: String as function parameter
 // Tests: passing bounded string to function
 void printMessage(const char* msg) {
-    uint32_t len = 0;
+    uint32_t len = strlen(msg);
 }
 
 void main(void) {

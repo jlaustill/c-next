@@ -1688,9 +1688,10 @@ export default class CodeGenerator {
       const isConst = param.constModifier() !== null; // ADR-013: Track const modifier
       const typeCtx = param.type();
 
-      // Determine if it's a struct type or callback type
+      // Determine if it's a struct type, callback type, or string type
       let isStruct = false;
       let isCallback = false;
+      let isString = false;
       let typeName = typeCtx.getText();
       if (typeCtx.primitiveType()) {
         // Primitive type (u8, i32, etc.)
@@ -1707,6 +1708,10 @@ export default class CodeGenerator {
           .IDENTIFIER()
           .map((id) => id.getText())
           .join("_");
+      } else if (typeCtx.stringType()) {
+        // ADR-045: String parameter
+        isString = true;
+        typeName = "string";
       }
 
       this.context.currentParameters.set(name, {
@@ -1716,6 +1721,7 @@ export default class CodeGenerator {
         isStruct,
         isConst,
         isCallback,
+        isString,
       });
 
       // ADR-025: Register parameter type for switch exhaustiveness checking
@@ -1738,6 +1744,19 @@ export default class CodeGenerator {
         }
       }
 
+      // ADR-045: Get string capacity if this is a string parameter
+      let stringCapacity: number | undefined;
+      if (isString && typeCtx.stringType()) {
+        const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
+        if (intLiteral) {
+          stringCapacity = parseInt(intLiteral.getText(), 10);
+          // For string arrays, add capacity+1 as second dimension for proper .length handling
+          if (isArray && stringCapacity !== undefined) {
+            arrayDimensions.push(stringCapacity + 1);
+          }
+        }
+      }
+
       this.context.typeRegistry.set(name, {
         baseType: typeName,
         bitWidth: isBitmap
@@ -1751,6 +1770,8 @@ export default class CodeGenerator {
         enumTypeName: isEnum ? typeName : undefined,
         isBitmap: isBitmap,
         bitmapTypeName: isBitmap ? typeName : undefined,
+        isString: isString,
+        stringCapacity: stringCapacity,
       });
     }
   }
@@ -2144,6 +2165,7 @@ export default class CodeGenerator {
   /**
    * ADR-045: Check if an expression represents a string type.
    * Used to detect string comparisons and generate strcmp().
+   * Issue #137: Extended to handle array element access (e.g., names[0])
    */
   private isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
     const text = ctx.getText();
@@ -2153,10 +2175,31 @@ export default class CodeGenerator {
       return true;
     }
 
-    // Check if it's a variable of string type
+    // Check if it's a simple variable of string type
     if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (typeInfo?.isString) {
+        return true;
+      }
+    }
+
+    // Issue #137: Check for array element access (e.g., names[0], arr[i])
+    // Pattern: identifier[expression] or identifier[expression][expression]...
+    // BUT NOT if accessing .length/.capacity/.size (those return numbers, not strings)
+    const arrayAccessMatch = text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[/);
+    if (arrayAccessMatch) {
+      // ADR-045: String properties return numeric values, not strings
+      if (
+        text.endsWith(".length") ||
+        text.endsWith(".capacity") ||
+        text.endsWith(".size")
+      ) {
+        return false;
+      }
+      const arrayName = arrayAccessMatch[1];
+      const typeInfo = this.context.typeRegistry.get(arrayName);
+      // Check if base type is a string type
+      if (typeInfo?.isString || typeInfo?.baseType?.startsWith("string<")) {
         return true;
       }
     }
@@ -2322,10 +2365,7 @@ export default class CodeGenerator {
     const op = ops[0];
     const exprs = op.expression();
 
-    // Check for [start, length] pattern (exactly 2 expressions)
-    if (exprs.length !== 2) return null;
-
-    // Get the source variable name
+    // Get the source variable name first
     const sourceId = primary.IDENTIFIER();
     if (!sourceId) return null;
 
@@ -2337,12 +2377,26 @@ export default class CodeGenerator {
       return null;
     }
 
-    return {
-      source: sourceName,
-      start: this.generateExpression(exprs[0]),
-      length: this.generateExpression(exprs[1]),
-      sourceCapacity: typeInfo.stringCapacity,
-    };
+    // Issue #140: Handle both [start, length] pattern (2 expressions)
+    // and single-character access [index] pattern (1 expression, treated as [index, 1])
+    if (exprs.length === 2) {
+      return {
+        source: sourceName,
+        start: this.generateExpression(exprs[0]),
+        length: this.generateExpression(exprs[1]),
+        sourceCapacity: typeInfo.stringCapacity,
+      };
+    } else if (exprs.length === 1) {
+      // Single-character access: source[i] is sugar for source[i, 1]
+      return {
+        source: sourceName,
+        start: this.generateExpression(exprs[0]),
+        length: "1",
+        sourceCapacity: typeInfo.stringCapacity,
+      };
+    }
+
+    return null;
   }
 
   // ========================================================================
@@ -3470,11 +3524,15 @@ export default class CodeGenerator {
 
     const type = this.generateType(ctx.type());
 
-    // Handle string[] - an array of strings should become char* name[]
-    // (string becomes char, but string[] means array of string pointers)
+    // ADR-045: Handle string<N>[] - array of bounded strings becomes 2D char array
+    // string<32> arr[5] -> char arr[5][33] (5 elements, each is capacity + 1 chars)
     if (ctx.type().stringType() && dims.length > 0) {
+      const stringType = ctx.type().stringType()!;
+      const capacity = stringType.INTEGER_LITERAL()
+        ? parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
+        : 256; // Default capacity
       const dimStr = dims.map((d) => this.generateArrayDimension(d)).join("");
-      return `${constMod}char* ${name}${dimStr}`;
+      return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
     }
 
     // Arrays pass naturally as pointers
@@ -7063,9 +7121,17 @@ export default class CodeGenerator {
               ) {
                 // Array fully subscripted (arr[0][1].length) -> return element bit width from TYPE_WIDTH
                 // Issue #121: Check for enum arrays first
+                // Issue #136: Check for string arrays - need strlen() for element length
                 if (typeInfo.isEnum) {
                   // ADR-017: Enum array element .length returns 32 (default enum size)
                   result = "32";
+                } else if (
+                  typeInfo.baseType.startsWith("string<") ||
+                  typeInfo.isString
+                ) {
+                  // ADR-045/Issue #136: String array element .length -> strlen(arr[index])
+                  this.needsString = true;
+                  result = `strlen(${result})`;
                 } else {
                   const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
                   if (elementBitWidth > 0) {
@@ -7667,6 +7733,10 @@ export default class CodeGenerator {
         }
         // ADR-017: Enum types use pass-by-value, no dereference needed
         if (this.knownEnums.has(paramInfo.baseType)) {
+          return id;
+        }
+        // ADR-045: String parameters are passed as char*, no dereference needed
+        if (paramInfo.isString) {
           return id;
         }
         // Parameter - allowed as bare identifier

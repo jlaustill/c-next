@@ -1,0 +1,20 @@
+// ADR-045: Test escape sequences in string literals
+// Tests: \n, \t, \r, \\, \"
+
+string<64> withNewline <- "Hello\nWorld";
+string<64> withTab <- "Hello\tWorld";
+string<64> withCarriageReturn <- "Hello\rWorld";
+string<64> withBackslash <- "Hello\\World";
+string<64> withQuote <- "Hello\"World";
+string<64> multipleEscapes <- "Line1\nLine2\tTabbed\\Path";
+
+// Test empty with just escape
+string<8> justNewline <- "\n";
+string<8> justTab <- "\t";
+
+// Test at beginning and end
+string<32> escapeAtStart <- "\nStartsWithNewline";
+string<32> escapeAtEnd <- "EndsWithNewline\n";
+
+// Combined in const string
+const string VERSION_INFO <- "v1.0.0\nBuild: 2024-01-01";
