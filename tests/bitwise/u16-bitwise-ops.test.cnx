@@ -1,3 +1,4 @@
+/* test-coverage: 5.1-u16-and, 5.2-u16-or, 5.3-u16-xor, 5.4-u16-not */
 /* test-execution */
 // Test u16 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u16 type

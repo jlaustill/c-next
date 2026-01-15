@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-coverage: 5.5-u16-left-shift, 5.6-u16-right-shift */
 /* test-execution */
 // Test u16 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u16 type

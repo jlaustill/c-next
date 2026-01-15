@@ -1,6 +1,7 @@
+/* test-coverage: 5.7-complex-combinations */
 /* test-execution */
 // Test complex bitwise combinations and expressions
-// Coverage: Section 5 - complex patterns, multiple operations, precedence
+// Coverage: Section 5.7 - complex patterns, multiple operations, precedence
 
 u32 main() {
     // Chained bitwise operations

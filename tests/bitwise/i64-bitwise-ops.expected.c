@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+/* test-coverage: 5.1-i64-and, 5.2-i64-or, 5.3-i64-xor, 5.4-i64-not */
 /* test-execution */
 // Test i64 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i64 type
