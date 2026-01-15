@@ -186,6 +186,7 @@ async function runUnifiedMode(
   generateHeaders: boolean,
   preprocess: boolean,
   verbose: boolean,
+  outputExtension: ".c" | ".cpp",
 ): Promise<void> {
   // Step 1: Expand directories to .cnx files
   let files: string[];
@@ -239,6 +240,7 @@ async function runUnifiedMode(
     generateHeaders,
     preprocess,
     defines,
+    outputExtension,
   });
 
   // Step 5: Compile
@@ -434,6 +436,7 @@ async function main(): Promise<void> {
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
   let cliGenerateHeaders: boolean | undefined;
+  let cliOutputExtension: ".c" | ".cpp" | undefined;
   let preprocess = true;
   let verbose = false;
 
@@ -448,6 +451,8 @@ async function main(): Promise<void> {
       verbose = true;
     } else if (arg === "--exclude-headers") {
       cliGenerateHeaders = false;
+    } else if (arg === "--cpp") {
+      cliOutputExtension = ".cpp";
     } else if (arg === "--no-preprocess") {
       preprocess = false;
     } else if (arg.startsWith("-D")) {
@@ -470,6 +475,7 @@ async function main(): Promise<void> {
 
   // Apply config defaults, CLI flags take precedence
   const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
+  const outputExtension = cliOutputExtension ?? config.outputExtension ?? ".c";
 
   // Unified mode - always use Project class with header discovery
   if (inputFiles.length === 0) {
@@ -486,6 +492,7 @@ async function main(): Promise<void> {
     generateHeaders,
     preprocess,
     verbose,
+    outputExtension,
   );
 }
 

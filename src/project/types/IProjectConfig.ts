@@ -28,6 +28,9 @@ interface IProjectConfig {
 
   /** Additional preprocessor defines */
   defines?: Record<string, string | boolean>;
+
+  /** Output file extension (default: ".c") */
+  outputExtension?: ".c" | ".cpp";
 }
 
 export default IProjectConfig;
