@@ -1,0 +1,335 @@
+/* test-execution */
+// Test: ADR-016 Cross-scope access with all primitive types
+// Verifies that scopes can correctly access each other's public members
+// Tests: all primitive types, cross-scope method calls, arrays, modifiers
+
+// ==========================================
+// SCOPE A: Provider scope with all primitive types
+// ==========================================
+scope Provider {
+    // Unsigned integers - public for cross-scope access
+    public u8 valU8 <- 255;
+    public u16 valU16 <- 65535;
+    public u32 valU32 <- 4294967295;
+    public u64 valU64 <- 18446744073709551615;
+
+    // Signed integers
+    public i8 valI8 <- -128;
+    public i16 valI16 <- -32768;
+    public i32 valI32 <- -2147483648;
+    public i64 valI64 <- -9223372036854775808;
+
+    // Floating point
+    public f32 valF32 <- 3.14;
+    public f64 valF64 <- 3.141592653589793;
+
+    // Boolean
+    public bool valBool <- true;
+
+    // Arrays
+    public u32 arrayU32[3];
+    public i16 arrayI16[3];
+
+    // Modifiers
+    public clamp u8 clampVal <- 200;
+    public wrap u8 wrapVal <- 250;
+
+    // Public getter methods for validation
+    public u8 getU8() {
+        return this.valU8;
+    }
+
+    public i32 getI32() {
+        return this.valI32;
+    }
+
+    public bool getBool() {
+        return this.valBool;
+    }
+
+    // Public setter methods
+    public void setU8(u8 val) {
+        this.valU8 <- val;
+    }
+
+    public void setI32(i32 val) {
+        this.valI32 <- val;
+    }
+
+    public void setBool(bool val) {
+        this.valBool <- val;
+    }
+}
+
+// ==========================================
+// SCOPE B: Consumer scope that accesses Provider
+// ==========================================
+scope Consumer {
+    // Internal state
+    public u32 result <- 0;
+    public i32 signedResult <- 0;
+    public bool boolResult <- false;
+
+    // Cross-scope read: unsigned integers via global.Provider.member
+    public u8 readProviderU8() {
+        return global.Provider.valU8;
+    }
+
+    public u16 readProviderU16() {
+        return global.Provider.valU16;
+    }
+
+    public u32 readProviderU32() {
+        return global.Provider.valU32;
+    }
+
+    public u64 readProviderU64() {
+        return global.Provider.valU64;
+    }
+
+    // Cross-scope read: signed integers
+    public i8 readProviderI8() {
+        return global.Provider.valI8;
+    }
+
+    public i16 readProviderI16() {
+        return global.Provider.valI16;
+    }
+
+    public i32 readProviderI32() {
+        return global.Provider.valI32;
+    }
+
+    public i64 readProviderI64() {
+        return global.Provider.valI64;
+    }
+
+    // Cross-scope read: floating point
+    public f32 readProviderF32() {
+        return global.Provider.valF32;
+    }
+
+    public f64 readProviderF64() {
+        return global.Provider.valF64;
+    }
+
+    // Cross-scope read: boolean
+    public bool readProviderBool() {
+        return global.Provider.valBool;
+    }
+
+    // Cross-scope write: modify Provider's public members
+    public void writeProviderU8(u8 val) {
+        global.Provider.valU8 <- val;
+    }
+
+    public void writeProviderI32(i32 val) {
+        global.Provider.valI32 <- val;
+    }
+
+    public void writeProviderBool(bool val) {
+        global.Provider.valBool <- val;
+    }
+
+    // Cross-scope method calls: call Provider's public methods
+    public u8 callProviderGetU8() {
+        return global.Provider.getU8();
+    }
+
+    public i32 callProviderGetI32() {
+        return global.Provider.getI32();
+    }
+
+    public bool callProviderGetBool() {
+        return global.Provider.getBool();
+    }
+
+    // Cross-scope array access
+    public void writeProviderArray(u32 index, u32 val) {
+        global.Provider.arrayU32[index] <- val;
+    }
+
+    public u32 readProviderArray(u32 index) {
+        return global.Provider.arrayU32[index];
+    }
+
+    // Cross-scope modifier access
+    public u8 readProviderClamp() {
+        return global.Provider.clampVal;
+    }
+
+    public u8 readProviderWrap() {
+        return global.Provider.wrapVal;
+    }
+
+    // Cross-scope modifier write (direct assignment, not compound)
+    public void setProviderClamp(u8 val) {
+        global.Provider.clampVal <- val;
+    }
+
+    public void setProviderWrap(u8 val) {
+        global.Provider.wrapVal <- val;
+    }
+
+    // Combined: read Provider, compute, store in own state
+    public void computeSum() {
+        this.result <- global.Provider.valU32;
+    }
+
+    public void computeSignedSum() {
+        this.signedResult <- global.Provider.valI32 + 100;
+    }
+}
+
+u32 main() {
+    // ==========================================
+    // SECTION 1: Cross-scope read - unsigned integers
+    // ==========================================
+
+    // Test 1: Read u8 from Provider via Consumer method
+    if (Consumer.readProviderU8() != 255) return 1;
+
+    // Test 2: Read u16 from Provider
+    if (Consumer.readProviderU16() != 65535) return 2;
+
+    // Test 3: Read u32 from Provider
+    if (Consumer.readProviderU32() != 4294967295) return 3;
+
+    // Test 4: Read u64 from Provider
+    if (Consumer.readProviderU64() != 18446744073709551615) return 4;
+
+    // ==========================================
+    // SECTION 2: Cross-scope read - signed integers
+    // ==========================================
+
+    // Test 5: Read i8 from Provider
+    if (Consumer.readProviderI8() != -128) return 5;
+
+    // Test 6: Read i16 from Provider
+    if (Consumer.readProviderI16() != -32768) return 6;
+
+    // Test 7: Read i32 from Provider
+    if (Consumer.readProviderI32() != -2147483648) return 7;
+
+    // Test 8: Read i64 from Provider
+    if (Consumer.readProviderI64() != -9223372036854775808) return 8;
+
+    // ==========================================
+    // SECTION 3: Cross-scope read - floating point
+    // ==========================================
+
+    // Test 9: Read f32 from Provider (using roundtrip to avoid literal issues)
+    f32 expectedF32 <- 3.14;
+    Provider.valF32 <- expectedF32;
+    if (Consumer.readProviderF32() != expectedF32) return 9;
+
+    // Test 10: Read f64 from Provider
+    f64 expectedF64 <- 3.141592653589793;
+    Provider.valF64 <- expectedF64;
+    if (Consumer.readProviderF64() != expectedF64) return 10;
+
+    // ==========================================
+    // SECTION 4: Cross-scope read - boolean
+    // ==========================================
+
+    // Test 11: Read bool from Provider
+    if (Consumer.readProviderBool() != true) return 11;
+
+    // ==========================================
+    // SECTION 5: Cross-scope write
+    // ==========================================
+
+    // Test 12: Write u8 to Provider and verify
+    Consumer.writeProviderU8(42);
+    if (Provider.valU8 != 42) return 12;
+
+    // Test 13: Write i32 to Provider and verify
+    Consumer.writeProviderI32(-999);
+    if (Provider.valI32 != -999) return 13;
+
+    // Test 14: Write bool to Provider and verify
+    Consumer.writeProviderBool(false);
+    if (Provider.valBool != false) return 14;
+
+    // ==========================================
+    // SECTION 6: Cross-scope method calls
+    // ==========================================
+
+    // Reset values for method call tests
+    Provider.valU8 <- 100;
+    Provider.valI32 <- -500;
+    Provider.valBool <- true;
+
+    // Test 15: Call Provider's getU8() via Consumer
+    if (Consumer.callProviderGetU8() != 100) return 15;
+
+    // Test 16: Call Provider's getI32() via Consumer
+    if (Consumer.callProviderGetI32() != -500) return 16;
+
+    // Test 17: Call Provider's getBool() via Consumer
+    if (Consumer.callProviderGetBool() != true) return 17;
+
+    // ==========================================
+    // SECTION 7: Cross-scope array access
+    // ==========================================
+
+    // Test 18: Write to Provider's array via Consumer
+    Consumer.writeProviderArray(0, 1000);
+    Consumer.writeProviderArray(1, 2000);
+    Consumer.writeProviderArray(2, 3000);
+
+    // Test 19: Read from Provider's array via Consumer
+    if (Consumer.readProviderArray(0) != 1000) return 19;
+    if (Consumer.readProviderArray(1) != 2000) return 20;
+    if (Consumer.readProviderArray(2) != 3000) return 21;
+
+    // ==========================================
+    // SECTION 8: Cross-scope modifier access
+    // ==========================================
+
+    // Test 22: Read clamp value from Provider
+    if (Consumer.readProviderClamp() != 200) return 22;
+
+    // Test 23: Read wrap value from Provider
+    if (Consumer.readProviderWrap() != 250) return 23;
+
+    // Test 24: Set Provider's clamp value via cross-scope write
+    Consumer.setProviderClamp(100);
+    if (Consumer.readProviderClamp() != 100) return 24;
+
+    // Test 25: Set Provider's wrap value via cross-scope write
+    Consumer.setProviderWrap(50);
+    if (Consumer.readProviderWrap() != 50) return 25;
+
+    // ==========================================
+    // SECTION 9: Direct cross-scope access from main
+    // ==========================================
+
+    // Test 26: Direct read of Provider's u8 from main
+    if (Provider.valU8 != 100) return 26;
+
+    // Test 27: Direct write to Provider from main
+    Provider.valU16 <- 12345;
+    if (Provider.valU16 != 12345) return 27;
+
+    // Test 28: Direct read of Consumer's result from main
+    Consumer.computeSum();
+    if (Consumer.result != 4294967295) return 28;
+
+    // Test 29: Direct read of Consumer's signedResult after computation
+    Consumer.computeSignedSum();
+    // Provider.valI32 = -500, -500 + 100 = -400
+    if (Consumer.signedResult != -400) return 29;
+
+    // ==========================================
+    // SECTION 10: Bidirectional cross-scope access
+    // ==========================================
+
+    // Test 30: Verify both scopes can read/write each other
+    // Write via Consumer, read via direct access
+    Consumer.writeProviderU8(77);
+    if (Provider.getU8() != 77) return 30;
+
+    // All 30 validations passed
+    return 0;
+}

@@ -1,0 +1,276 @@
+/* test-execution */
+// Test: ADR-016 Private method validation
+// Verifies that private methods work correctly within scopes
+// Tests: private calling private, private accessing this., private accessing global.
+// Note: Avoids passing computed expressions to functions (transpiler generates pointer params)
+
+// Global variables for private method global. access testing
+u32 globalCounter <- 100;
+bool globalFlag <- true;
+i32 globalOffset <- -50;
+
+scope PrivateMethodTest {
+    // Private state (default visibility)
+    u32 privateState <- 0;
+    bool privateFlag <- false;
+    i32 privateAccumulator <- 0;
+    u8 callCount <- 0;
+
+    // Public state for verification
+    public u32 publicResult <- 0;
+    public bool publicFlag <- false;
+    public i32 publicAccumulator <- 0;
+
+    // ==========================================
+    // PRIVATE METHODS - Basic this. access
+    // ==========================================
+
+    // Private method: read private state via this.
+    u32 getPrivateState() {
+        return this.privateState;
+    }
+
+    // Private method: read private bool via this.
+    bool getPrivateFlag() {
+        return this.privateFlag;
+    }
+
+    // Private method: read private signed via this.
+    i32 getPrivateAccumulator() {
+        return this.privateAccumulator;
+    }
+
+    // Private method: increment call count
+    void incrementCallCount() {
+        this.callCount <- this.callCount + 1;
+    }
+
+    u8 getCallCount() {
+        return this.callCount;
+    }
+
+    // ==========================================
+    // PRIVATE METHODS - global. access
+    // ==========================================
+
+    // Private method: read global counter
+    u32 readGlobalCounter() {
+        return global.globalCounter;
+    }
+
+    // Private method: read global flag
+    bool readGlobalFlag() {
+        return global.globalFlag;
+    }
+
+    // Private method: read global offset
+    i32 readGlobalOffset() {
+        return global.globalOffset;
+    }
+
+    // Private method: combine this. and global.
+    u32 combineStateAndGlobal() {
+        return this.privateState + global.globalCounter;
+    }
+
+    // Private method: check both flags
+    bool checkBothFlags() {
+        return this.privateFlag && global.globalFlag;
+    }
+
+    // ==========================================
+    // PRIVATE METHODS - Calling other private methods
+    // ==========================================
+
+    // Private method: calls another private method
+    u32 getStateViaHelper() {
+        return this.getPrivateState();
+    }
+
+    // Private method: chain of private calls
+    void performPrivateChain() {
+        this.incrementCallCount();
+        // Use direct assignment instead of passing to setter
+        this.privateState <- this.privateState + 10;
+        this.privateFlag <- !this.privateFlag;
+    }
+
+    // Private method: add to accumulator
+    void addValue(i32 amount) {
+        this.privateAccumulator <- this.privateAccumulator + amount;
+        this.incrementCallCount();
+    }
+
+    // ==========================================
+    // PUBLIC METHODS - Expose private functionality
+    // ==========================================
+
+    // Public: expose getPrivateState
+    public u32 exposePrivateState() {
+        return this.getPrivateState();
+    }
+
+    // Public: set private state directly
+    public void setPrivateState(u32 val) {
+        this.privateState <- val;
+    }
+
+    // Public: expose getPrivateFlag
+    public bool exposePrivateFlag() {
+        return this.getPrivateFlag();
+    }
+
+    // Public: set private flag directly
+    public void setPrivateFlag(bool val) {
+        this.privateFlag <- val;
+    }
+
+    // Public: expose getPrivateAccumulator
+    public i32 exposePrivateAccumulator() {
+        return this.getPrivateAccumulator();
+    }
+
+    // Public: add to accumulator via private method
+    public void addToAccumulator(i32 val) {
+        this.addValue(val);
+    }
+
+    // Public: expose global access via private method
+    public u32 exposeGlobalCounter() {
+        return this.readGlobalCounter();
+    }
+
+    // Public: expose combined this. + global.
+    public u32 exposeCombinedStateAndGlobal() {
+        return this.combineStateAndGlobal();
+    }
+
+    // Public: expose flag check
+    public bool exposeBothFlagsCheck() {
+        return this.checkBothFlags();
+    }
+
+    // Public: expose nested private call
+    public u32 exposeStateViaHelper() {
+        return this.getStateViaHelper();
+    }
+
+    // Public: expose call count
+    public u8 exposeCallCount() {
+        return this.getCallCount();
+    }
+
+    // Public: trigger private chain
+    public void triggerPrivateChain() {
+        this.performPrivateChain();
+    }
+
+    // Public: copy private state to public for verification
+    public void copyPrivateToPublic() {
+        this.publicResult <- this.getPrivateState();
+        this.publicFlag <- this.getPrivateFlag();
+        this.publicAccumulator <- this.getPrivateAccumulator();
+    }
+}
+
+u32 main() {
+    // ==========================================
+    // SECTION 1: Basic private state access via public wrappers
+    // ==========================================
+
+    // Test 1: Initial private state is 0
+    if (PrivateMethodTest.exposePrivateState() != 0) return 1;
+
+    // Test 2: Update private state and verify
+    PrivateMethodTest.setPrivateState(42);
+    if (PrivateMethodTest.exposePrivateState() != 42) return 2;
+
+    // Test 3: Initial private flag is false
+    if (PrivateMethodTest.exposePrivateFlag() != false) return 3;
+
+    // Test 4: Update private flag and verify
+    PrivateMethodTest.setPrivateFlag(true);
+    if (PrivateMethodTest.exposePrivateFlag() != true) return 4;
+
+    // Test 5: Initial private accumulator is 0
+    if (PrivateMethodTest.exposePrivateAccumulator() != 0) return 5;
+
+    // Test 6: Add to accumulator and verify
+    PrivateMethodTest.addToAccumulator(100);
+    if (PrivateMethodTest.exposePrivateAccumulator() != 100) return 6;
+
+    // Test 7: Add negative value to accumulator
+    PrivateMethodTest.addToAccumulator(-30);
+    if (PrivateMethodTest.exposePrivateAccumulator() != 70) return 7;
+
+    // ==========================================
+    // SECTION 2: Private methods accessing global.
+    // ==========================================
+
+    // Test 8: Private method reads global counter
+    if (PrivateMethodTest.exposeGlobalCounter() != 100) return 8;
+
+    // Test 9: Private method combines this. and global.
+    // privateState(42) + globalCounter(100) = 142
+    if (PrivateMethodTest.exposeCombinedStateAndGlobal() != 142) return 9;
+
+    // Test 10: Private method checks both flags
+    // privateFlag(true) && globalFlag(true) = true
+    if (PrivateMethodTest.exposeBothFlagsCheck() != true) return 10;
+
+    // Test 11: Change private flag and recheck
+    PrivateMethodTest.setPrivateFlag(false);
+    // privateFlag(false) && globalFlag(true) = false
+    if (PrivateMethodTest.exposeBothFlagsCheck() != false) return 11;
+
+    // ==========================================
+    // SECTION 3: Private methods calling other private methods
+    // ==========================================
+
+    // Test 12: Nested private call - getStateViaHelper calls getPrivateState
+    if (PrivateMethodTest.exposeStateViaHelper() != 42) return 12;
+
+    // Test 13: Set state to known value for chain test
+    PrivateMethodTest.setPrivateState(990);
+    if (PrivateMethodTest.exposePrivateState() != 990) return 13;
+
+    // Test 14: Initial call count from addToAccumulator calls
+    // addToAccumulator was called 2 times (tests 6 and 7)
+    if (PrivateMethodTest.exposeCallCount() != 2) return 14;
+
+    // Test 15: Trigger private chain - increments count, adds 10 to state, toggles flag
+    // Before: state=990, flag=false, count=2
+    PrivateMethodTest.triggerPrivateChain();
+    // After: state=1000, flag=true, count=3
+    if (PrivateMethodTest.exposePrivateState() != 1000) return 15;
+
+    // Test 16: Verify flag was toggled
+    if (PrivateMethodTest.exposePrivateFlag() != true) return 16;
+
+    // Test 17: Verify call count incremented
+    if (PrivateMethodTest.exposeCallCount() != 3) return 17;
+
+    // ==========================================
+    // SECTION 4: Private to public state synchronization
+    // ==========================================
+
+    // Set known state values
+    PrivateMethodTest.setPrivateState(777);
+    PrivateMethodTest.setPrivateFlag(true);
+    // Accumulator is 70 from previous tests
+
+    // Test 18: Copy private to public
+    PrivateMethodTest.copyPrivateToPublic();
+
+    // Verify public members match (direct access)
+    if (PrivateMethodTest.publicResult != 777) return 18;
+
+    // Test 19: Verify public flag matches
+    if (PrivateMethodTest.publicFlag != true) return 19;
+
+    // Test 20: Verify public accumulator matches
+    if (PrivateMethodTest.publicAccumulator != 70) return 20;
+
+    // All 20 validations passed
+    return 0;
+}
