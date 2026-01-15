@@ -1,0 +1,31 @@
+/* test-execution */
+// Issue #139: Test this.member string assignment in scopes (ADR-016)
+
+scope Logger {
+    string<64> message <- "";
+
+    void setMessage() {
+        this.message <- "Hello from scope";
+    }
+
+    void clear() {
+        this.message <- "";
+    }
+
+    void setCustom() {
+        this.message <- "Custom";
+    }
+}
+
+u32 main() {
+    Logger.setMessage();
+    if (Logger.message.length != 16) return 1;
+
+    Logger.clear();
+    if (Logger.message.length != 0) return 2;
+
+    Logger.setCustom();
+    if (Logger.message.length != 6) return 3;
+
+    return 0;
+}

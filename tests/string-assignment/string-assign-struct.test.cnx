@@ -1,0 +1,38 @@
+/* test-execution */
+// Issue #139: Test struct member string assignment
+
+struct Config {
+    string<32> name;
+    u32 value;
+}
+
+Config config;
+
+void setConfigName() {
+    config.name <- "TestConfig";
+}
+
+void updateConfigName() {
+    config.name <- "Updated";
+}
+
+void clearConfigName() {
+    config.name <- "";
+}
+
+u32 main() {
+    setConfigName();
+    if (config.name.length != 10) return 1;
+
+    updateConfigName();
+    if (config.name.length != 7) return 2;
+
+    clearConfigName();
+    if (config.name.length != 0) return 3;
+
+    // Direct assignment in main
+    config.name <- "DirectAssign";
+    if (config.name.length != 12) return 4;
+
+    return 0;
+}
