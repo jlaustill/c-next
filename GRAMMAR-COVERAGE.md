@@ -1,14 +1,14 @@
 # Grammar Rule Coverage Report
 
-> Generated: 2026-01-15T03:48:48.957Z
+> Generated: 2026-01-15T15:34:37.188Z
 
 ## Summary
 
 | Category     | Total | Covered | Percentage |
 | ------------ | ----- | ------- | ---------- |
-| Parser Rules | 91    | 88      | 96.7%      |
-| Lexer Rules  | 119   | 112     | 94.1%      |
-| **Combined** | 210   | 200     | **95.2%**  |
+| Parser Rules | 89    | 88      | 98.9%      |
+| Lexer Rules  | 117   | 112     | 95.7%      |
+| **Combined** | 206   | 200     | **97.1%**  |
 
 ## Parser Rules
 
@@ -16,40 +16,40 @@
 
 | Rule                     | Visit Count |
 | ------------------------ | ----------- |
-| unaryExpression          | 27,795      |
-| postfixExpression        | 26,889      |
-| primaryExpression        | 26,889      |
-| multiplicativeExpression | 26,648      |
-| additiveExpression       | 26,350      |
-| shiftExpression          | 26,242      |
-| bitwiseAndExpression     | 26,211      |
-| bitwiseXorExpression     | 26,200      |
-| bitwiseOrExpression      | 26,180      |
-| relationalExpression     | 25,551      |
-| equalityExpression       | 21,760      |
-| andExpression            | 21,544      |
-| orExpression             | 21,527      |
-| expression               | 21,372      |
-| ternaryExpression        | 21,372      |
-| literal                  | 17,978      |
-| statement                | 16,883      |
-| type                     | 5,591       |
-| postfixOp                | 4,954       |
-| primitiveType            | 4,396       |
-| returnStatement          | 4,155       |
-| assignmentTarget         | 4,140       |
-| assignmentOperator       | 4,140       |
-| assignmentStatement      | 3,915       |
-| ifStatement              | 3,760       |
-| variableDeclaration      | 3,225       |
-| block                    | 2,994       |
-| declaration              | 1,683       |
-| functionDeclaration      | 1,267       |
+| unaryExpression          | 28,730      |
+| postfixExpression        | 27,804      |
+| primaryExpression        | 27,804      |
+| multiplicativeExpression | 27,527      |
+| additiveExpression       | 27,197      |
+| shiftExpression          | 27,076      |
+| bitwiseAndExpression     | 27,045      |
+| bitwiseXorExpression     | 27,034      |
+| bitwiseOrExpression      | 27,014      |
+| relationalExpression     | 26,385      |
+| equalityExpression       | 22,424      |
+| andExpression            | 22,208      |
+| orExpression             | 22,191      |
+| expression               | 22,036      |
+| ternaryExpression        | 22,036      |
+| literal                  | 18,684      |
+| statement                | 17,537      |
+| type                     | 5,641       |
+| postfixOp                | 5,046       |
+| primitiveType            | 4,446       |
+| assignmentTarget         | 4,408       |
+| assignmentOperator       | 4,408       |
+| returnStatement          | 4,350       |
+| assignmentStatement      | 4,183       |
+| ifStatement              | 3,930       |
+| variableDeclaration      | 3,250       |
+| block                    | 3,019       |
+| declaration              | 1,693       |
+| functionDeclaration      | 1,292       |
 | memberAccess             | 951         |
 | argumentList             | 758         |
 | expressionStatement      | 749         |
-| program                  | 573         |
-| scopeMember              | 507         |
+| program                  | 579         |
+| scopeMember              | 528         |
 | arrayDimension           | 414         |
 | parameter                | 411         |
 | userType                 | 368         |
@@ -57,7 +57,7 @@
 | switchCase               | 319         |
 | parameterList            | 316         |
 | structMember             | 312         |
-| arrayAccess              | 259         |
+| arrayAccess              | 261         |
 | visibilityModifier       | 258         |
 | forStatement             | 222         |
 | forInit                  | 219         |
@@ -65,19 +65,20 @@
 | bitmapMember             | 215         |
 | forVarDecl               | 213         |
 | stringType               | 209         |
+| thisAccess               | 186         |
 | constModifier            | 165         |
 | structDeclaration        | 141         |
-| thisAccess               | 134         |
+| overflowModifier         | 116         |
 | arrayInitializerElement  | 115         |
-| overflowModifier         | 100         |
 | switchStatement          | 97          |
 | defaultCase              | 90          |
 | registerMember           | 78          |
 | accessModifier           | 78          |
+| scopeDeclaration         | 75          |
 | enumMember               | 74          |
-| scopeDeclaration         | 73          |
 | fieldInitializer         | 71          |
 | whileStatement           | 69          |
+| globalAccess             | 66          |
 | sizeofExpression         | 62          |
 | includeDirective         | 53          |
 | qualifiedType            | 42          |
@@ -95,7 +96,6 @@
 | enumDeclaration          | 22          |
 | volatileModifier         | 19          |
 | pragmaDirective          | 14          |
-| globalAccess             | 14          |
 | defineDirective          | 9           |
 | thisMemberAccess         | 7           |
 | forAssignment            | 6           |
@@ -110,8 +110,6 @@
 These parser rules were never executed during test runs. Consider adding tests for these language constructs.
 
 - [ ] `globalMemberAccess`
-- [ ] `genericType`
-- [ ] `typeArgument`
 
 ## Lexer Rules (Token Types)
 
@@ -119,89 +117,89 @@ These parser rules were never executed during test runs. Consider adding tests f
 
 | Rule              | Match Count |
 | ----------------- | ----------- |
-| IDENTIFIER        | 22,220      |
-| INTEGER_LITERAL   | 16,145      |
-| SEMI              | 12,788      |
-| LPAREN            | 6,929       |
-| RPAREN            | 6,929       |
-| ASSIGN            | 5,772       |
-| RETURN            | 4,155       |
-| IF                | 3,760       |
-| LBRACKET          | 3,530       |
-| RBRACKET          | 3,529       |
-| LBRACE            | 3,416       |
-| RBRACE            | 3,413       |
-| NEQ               | 3,349       |
-| DOT               | 3,309       |
-| U32               | 1,649       |
-| COMMA             | 1,028       |
-| MINUS             | 984         |
-| HEX_LITERAL       | 903         |
-| PLUS_ASSIGN       | 791         |
+| IDENTIFIER        | 22,757      |
+| INTEGER_LITERAL   | 16,793      |
+| SEMI              | 13,276      |
+| LPAREN            | 7,145       |
+| RPAREN            | 7,145       |
+| ASSIGN            | 5,936       |
+| RETURN            | 4,350       |
+| IF                | 3,930       |
+| LBRACKET          | 3,532       |
+| RBRACKET          | 3,532       |
+| NEQ               | 3,519       |
+| DOT               | 3,486       |
+| LBRACE            | 3,443       |
+| RBRACE            | 3,440       |
+| U32               | 1,661       |
+| COMMA             | 1,030       |
+| MINUS             | 1,019       |
+| HEX_LITERAL       | 961         |
+| PLUS_ASSIGN       | 792         |
 | LT                | 618         |
 | VOID              | 591         |
-| U8                | 559         |
+| U8                | 561         |
 | FLOAT_LITERAL     | 451         |
 | EQ                | 442         |
-| I32               | 362         |
+| THIS              | 423         |
+| I32               | 387         |
 | TRUE              | 360         |
-| THIS              | 336         |
 | GT                | 330         |
 | BOOL              | 322         |
 | CASE              | 319         |
 | STRING_LITERAL    | 294         |
-| U16               | 274         |
-| I8                | 269         |
+| U16               | 276         |
+| I8                | 271         |
 | PUBLIC            | 258         |
-| I16               | 248         |
-| MINUS_ASSIGN      | 247         |
+| MINUS_ASSIGN      | 251         |
+| I16               | 250         |
+| PLUS              | 234         |
 | COLON             | 227         |
 | FOR               | 222         |
-| PLUS              | 217         |
 | AND               | 216         |
-| I64               | 213         |
+| I64               | 215         |
+| U64               | 209         |
 | STRING            | 209         |
-| U64               | 206         |
+| GLOBAL            | 172         |
 | FALSE             | 167         |
 | CONST             | 165         |
 | F32               | 165         |
+| STAR_ASSIGN       | 147         |
 | STRUCT            | 141         |
-| STAR              | 116         |
+| STAR              | 135         |
 | F64               | 114         |
 | AT                | 110         |
 | WHILE             | 100         |
 | SWITCH            | 97          |
-| GLOBAL            | 94          |
 | CHAR_LITERAL      | 93          |
 | DEFAULT           | 90          |
 | BINARY_LITERAL    | 87          |
+| SLASH             | 84          |
 | T\_\_0            | 78          |
-| SCOPE             | 73          |
-| SLASH             | 70          |
-| STAR_ASSIGN       | 65          |
-| RSHIFT            | 62          |
+| SCOPE             | 75          |
+| RSHIFT            | 68          |
 | SIZEOF            | 62          |
-| CLAMP             | 53          |
+| CLAMP             | 61          |
+| SLASH_ASSIGN      | 56          |
+| WRAP              | 55          |
+| LSHIFT            | 53          |
+| PERCENT_ASSIGN    | 53          |
 | INCLUDE_DIRECTIVE | 53          |
+| LSHIFT_ASSIGN     | 52          |
+| RSHIFT_ASSIGN     | 52          |
 | OR                | 52          |
-| SLASH_ASSIGN      | 50          |
-| PERCENT_ASSIGN    | 47          |
-| WRAP              | 47          |
-| LSHIFT_ASSIGN     | 46          |
-| RSHIFT_ASSIGN     | 46          |
-| LSHIFT            | 46          |
+| BITAND_ASSIGN     | 46          |
 | NOT               | 46          |
+| BITXOR_ASSIGN     | 44          |
 | RW                | 43          |
 | GTE               | 43          |
 | CRITICAL          | 41          |
-| BITAND_ASSIGN     | 40          |
-| BITXOR_ASSIGN     | 38          |
-| PERCENT           | 37          |
+| PERCENT           | 40          |
+| BITOR_ASSIGN      | 38          |
 | ATOMIC            | 37          |
 | LTE               | 36          |
 | REGISTER          | 33          |
 | ELSE              | 33          |
-| BITOR_ASSIGN      | 32          |
 | BITAND            | 31          |
 | DO                | 31          |
 | SUFFIXED_DECIMAL  | 23          |
@@ -237,8 +235,6 @@ These parser rules were never executed during test runs. Consider adding tests f
 These token types were never matched during test runs. Some may be expected (comments, whitespace) while others may indicate missing test coverage.
 
 - [ ] `PRIVATE`
-- [ ] `NULL`
-- [ ] `DOTDOT`
 - [ ] `DOC_COMMENT`
 - [ ] `LINE_COMMENT`
 - [ ] `BLOCK_COMMENT`

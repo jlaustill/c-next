@@ -558,8 +558,7 @@ literal
     | CHAR_LITERAL
     | 'true'
     | 'false'
-    | 'null'
-    | 'NULL'      // ADR-047: C library NULL for interop
+    | 'NULL'      // ADR-047: C library NULL for interop (no lowercase 'null' - ADR-039)
     ;
 
 // ============================================================================
@@ -639,8 +638,7 @@ DEFAULT     : 'default';
 RETURN      : 'return';
 TRUE        : 'true';
 FALSE       : 'false';
-NULL        : 'null';
-C_NULL      : 'NULL';     // ADR-047: C library NULL for interop
+C_NULL      : 'NULL';     // ADR-047: C library NULL for interop (no lowercase 'null' - ADR-039)
 STRING      : 'string';   // ADR-045: Bounded string type
 SIZEOF      : 'sizeof';   // ADR-023: Sizeof operator
 
@@ -751,7 +749,6 @@ RBRACKET    : ']';
 SEMI        : ';';
 COMMA       : ',';
 DOT         : '.';
-DOTDOT      : '..';
 AT          : '@';
 COLON       : ':';
 
