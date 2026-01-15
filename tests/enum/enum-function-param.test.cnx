@@ -1,0 +1,65 @@
+/* test-coverage: 10-enum-function-param */
+/* test-execution */
+// Tests: Enum as function parameter
+
+enum Status {
+    OK <- 0,
+    WARNING <- 1,
+    ERROR <- 2,
+    CRITICAL <- 3
+}
+
+// Function that takes enum as parameter
+u32 getStatusCode(Status s) {
+    if (s = Status.OK) {
+        return 0;
+    }
+    if (s = Status.WARNING) {
+        return 1;
+    }
+    if (s = Status.ERROR) {
+        return 2;
+    }
+    if (s = Status.CRITICAL) {
+        return 3;
+    }
+    return 99;
+}
+
+// Function that takes enum and returns modified value
+u32 getStatusPriority(Status s) {
+    if (s = Status.CRITICAL) {
+        return 100;
+    }
+    if (s = Status.ERROR) {
+        return 50;
+    }
+    if (s = Status.WARNING) {
+        return 10;
+    }
+    return 0;
+}
+
+u32 main() {
+    // Test passing different enum values as parameters
+    if (getStatusCode(Status.OK) != 0) return 1;
+    if (getStatusCode(Status.WARNING) != 1) return 2;
+    if (getStatusCode(Status.ERROR) != 2) return 3;
+    if (getStatusCode(Status.CRITICAL) != 3) return 4;
+
+    // Test with enum variable
+    Status current <- Status.ERROR;
+    if (getStatusCode(current) != 2) return 5;
+
+    // Test priority function
+    if (getStatusPriority(Status.OK) != 0) return 6;
+    if (getStatusPriority(Status.WARNING) != 10) return 7;
+    if (getStatusPriority(Status.ERROR) != 50) return 8;
+    if (getStatusPriority(Status.CRITICAL) != 100) return 9;
+
+    // Test with variable
+    current <- Status.CRITICAL;
+    if (getStatusPriority(current) != 100) return 10;
+
+    return 0;
+}

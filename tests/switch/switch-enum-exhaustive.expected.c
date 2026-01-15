@@ -20,8 +20,8 @@ void onActive(void) {
 void onStopped(void) {
 }
 
-void handleState(EState* state) {
-    switch ((*state)) {
+void handleState(EState state) {
+    switch (state) {
         case EState_IDLE: {
             onIdle();
             break;

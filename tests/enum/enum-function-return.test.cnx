@@ -1,0 +1,85 @@
+/* test-coverage: 10-enum-function-return */
+/* test-execution */
+// Tests: Enum as function return type
+
+enum Color {
+    RED <- 0,
+    GREEN <- 1,
+    BLUE <- 2,
+    YELLOW <- 3
+}
+
+enum TrafficLight {
+    STOP <- 0,
+    CAUTION <- 1,
+    GO <- 2
+}
+
+// Function that returns enum based on input
+Color getColorByIndex(u32 index) {
+    if (index = 0) {
+        return Color.RED;
+    }
+    if (index = 1) {
+        return Color.GREEN;
+    }
+    if (index = 2) {
+        return Color.BLUE;
+    }
+    return Color.YELLOW;
+}
+
+// Function that returns enum based on condition
+TrafficLight getNextLight(TrafficLight current) {
+    if (current = TrafficLight.STOP) {
+        return TrafficLight.GO;
+    }
+    if (current = TrafficLight.GO) {
+        return TrafficLight.CAUTION;
+    }
+    return TrafficLight.STOP;
+}
+
+// Function that maps one enum to another
+TrafficLight colorToLight(Color c) {
+    if (c = Color.RED) {
+        return TrafficLight.STOP;
+    }
+    if (c = Color.GREEN) {
+        return TrafficLight.GO;
+    }
+    return TrafficLight.CAUTION;
+}
+
+u32 main() {
+    // Test getColorByIndex
+    Color c <- getColorByIndex(0);
+    if (c != Color.RED) return 1;
+
+    c <- getColorByIndex(1);
+    if (c != Color.GREEN) return 2;
+
+    c <- getColorByIndex(2);
+    if (c != Color.BLUE) return 3;
+
+    c <- getColorByIndex(99);
+    if (c != Color.YELLOW) return 4;
+
+    // Test getNextLight cycle
+    TrafficLight light <- TrafficLight.STOP;
+    light <- getNextLight(light);
+    if (light != TrafficLight.GO) return 5;
+
+    light <- getNextLight(light);
+    if (light != TrafficLight.CAUTION) return 6;
+
+    light <- getNextLight(light);
+    if (light != TrafficLight.STOP) return 7;
+
+    // Test colorToLight mapping
+    if (colorToLight(Color.RED) != TrafficLight.STOP) return 8;
+    if (colorToLight(Color.GREEN) != TrafficLight.GO) return 9;
+    if (colorToLight(Color.BLUE) != TrafficLight.CAUTION) return 10;
+
+    return 0;
+}

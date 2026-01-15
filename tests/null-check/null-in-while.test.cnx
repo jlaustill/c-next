@@ -1,0 +1,25 @@
+/* test-coverage: 28-null-in-while */
+// Tests: NULL check in while loop condition
+#include <stdio.h>
+
+string<64> buffer;
+
+// Read lines until fgets returns NULL (EOF)
+void readAllLines() {
+    while (fgets(buffer, buffer.size, stdin) != NULL) {
+        // Process each line
+        printf("Line: %s", buffer);
+    }
+}
+
+// Alternative pattern with = NULL check
+void readUntilEmpty() {
+    while (fgets(buffer, buffer.size, stdin) = NULL) {
+        // This pattern exits on first NULL
+        printf("Got NULL\n");
+    }
+}
+
+void main() {
+    readAllLines();
+}

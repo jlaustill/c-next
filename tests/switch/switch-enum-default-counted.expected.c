@@ -22,8 +22,8 @@ void handleCreated(void) {
 void handleOther(void) {
 }
 
-void handleStatus(EHttpStatus* status) {
-    switch ((*status)) {
+void handleStatus(EHttpStatus status) {
+    switch (status) {
         case EHttpStatus_OK: {
             handleSuccess();
             break;

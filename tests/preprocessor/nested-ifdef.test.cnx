@@ -1,0 +1,42 @@
+/* test-coverage: 24-nested-ifdef */
+// Tests: Nested #ifdef preprocessor directives
+
+#define DEBUG
+#define VERBOSE
+
+u32 level <- 0;
+
+#ifdef DEBUG
+    u32 debugEnabled <- 1;
+
+    #ifdef VERBOSE
+        u32 verboseEnabled <- 1;
+    #else
+        u32 verboseEnabled <- 0;
+    #endif
+
+    void debugLog() {
+        level <- 1;
+    }
+#else
+    u32 debugEnabled <- 0;
+    u32 verboseEnabled <- 0;
+
+    void debugLog() {
+        // No-op in release
+    }
+#endif
+
+#ifndef RELEASE
+    #ifdef DEBUG
+        u32 buildType <- 1;  // Debug build
+    #else
+        u32 buildType <- 2;  // Unknown build
+    #endif
+#else
+    u32 buildType <- 0;  // Release build
+#endif
+
+void main() {
+    debugLog();
+}

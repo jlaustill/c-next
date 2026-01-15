@@ -1,0 +1,82 @@
+/* test-coverage: 12-bitfield-members */
+// Tests: Register using bitmap types as bitfield members
+// This tests the pattern of defining structured bitfields via bitmap types
+
+// 8-bit control bitmap
+bitmap8 UARTControl {
+    Enable,      // bit 0
+    TxEnable,    // bit 1
+    RxEnable,    // bit 2
+    Parity,      // bit 3
+    StopBits,    // bit 4
+    DataBits[2], // bits 5-6
+    Reserved     // bit 7
+}
+
+// 8-bit status bitmap
+bitmap8 UARTStatus {
+    TxReady,     // bit 0
+    RxReady,     // bit 1
+    TxEmpty,     // bit 2
+    RxFull,      // bit 3
+    OverrunErr,  // bit 4
+    FrameErr,    // bit 5
+    ParityErr,   // bit 6
+    Busy         // bit 7
+}
+
+// 16-bit configuration bitmap
+bitmap16 TimerConfig {
+    Enable,          // bit 0
+    OneShot,         // bit 1
+    AutoReload,      // bit 2
+    Interrupt,       // bit 3
+    Prescaler[8],    // bits 4-11
+    Reserved[4]      // bits 12-15
+}
+
+// Register using multiple bitmap types as members
+register UART @ 0x40010000 {
+    CTRL:   UARTControl rw @ 0x00,
+    STATUS: UARTStatus  ro @ 0x04,
+    DATA:   u8          rw @ 0x08,
+}
+
+register TIMER @ 0x40020000 {
+    CONFIG: TimerConfig rw @ 0x00,
+    COUNT:  u32         ro @ 0x04,
+    RELOAD: u32         rw @ 0x08,
+}
+
+void configureUART() {
+    UART.CTRL.Enable <- true;
+    UART.CTRL.TxEnable <- true;
+    UART.CTRL.RxEnable <- true;
+    UART.CTRL.DataBits <- 3;  // 8-bit mode
+}
+
+bool isUARTReady() {
+    return UART.STATUS.TxReady;
+}
+
+void configureTimer(u8 prescale) {
+    TIMER.CONFIG.Enable <- false;
+    TIMER.CONFIG.Prescaler <- prescale;
+    TIMER.CONFIG.AutoReload <- true;
+    TIMER.CONFIG.Interrupt <- true;
+    TIMER.CONFIG.Enable <- true;
+}
+
+void main() {
+    configureUART();
+
+    if (isUARTReady()) {
+        UART.DATA <- 0x55;
+    }
+
+    configureTimer(100);
+
+    bool hasError <- UART.STATUS.OverrunErr;
+    bool isBusy <- UART.STATUS.Busy;
+    u8 dataBits <- UART.CTRL.DataBits;
+}
