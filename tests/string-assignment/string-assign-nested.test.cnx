@@ -1,0 +1,48 @@
+/* test-execution */
+// Issue #139: Test string assignment in deeply nested blocks
+
+string<32> nested <- "";
+
+void deepNest(u32 depth) {
+    if (depth > 0) {
+        if (depth > 1) {
+            if (depth > 2) {
+                nested <- "DeepNest";
+            }
+        }
+    }
+}
+
+void mixedNest(u32 count) {
+    if (count > 0) {
+        u32 i <- 0;
+        while (i < count) {
+            if (i = 0) {
+                nested <- "Mixed";
+            }
+            i +<- 1;
+        }
+    }
+}
+
+u32 main() {
+    // Three levels deep
+    deepNest(3);
+    if (nested.length != 8) return 1;
+
+    // Mixed nesting (if -> while -> if)
+    mixedNest(1);
+    if (nested.length != 5) return 2;
+
+    // Block scope nesting
+    {
+        {
+            {
+                nested <- "Blocks";
+            }
+        }
+    }
+    if (nested.length != 6) return 3;
+
+    return 0;
+}

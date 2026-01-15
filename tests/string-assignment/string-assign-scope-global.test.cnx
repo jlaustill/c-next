@@ -1,0 +1,31 @@
+/* test-execution */
+// Issue #139: Test global.member string assignment inside scope (ADR-016)
+
+string<64> globalBuffer <- "";
+
+scope Handler {
+    void updateGlobal() {
+        global.globalBuffer <- "FromScope";
+    }
+
+    void clearGlobal() {
+        global.globalBuffer <- "";
+    }
+
+    void setLongMessage() {
+        global.globalBuffer <- "This is a longer message from scope";
+    }
+}
+
+u32 main() {
+    Handler.updateGlobal();
+    if (globalBuffer.length != 9) return 1;
+
+    Handler.clearGlobal();
+    if (globalBuffer.length != 0) return 2;
+
+    Handler.setLongMessage();
+    if (globalBuffer.length != 35) return 3;
+
+    return 0;
+}

@@ -1,0 +1,21 @@
+/* test-execution */
+// Issue #139: Test local string variable reassignment in function body
+
+u32 main() {
+    string<32> local <- "Initial";
+    if (local.length != 7) return 1;
+
+    // Reassign local string
+    local <- "Updated";
+    if (local.length != 7) return 2;
+
+    // Reassign to shorter string
+    local <- "Short";
+    if (local.length != 5) return 3;
+
+    // Reassign to longer string
+    local <- "This is a longer string";
+    if (local.length != 23) return 4;
+
+    return 0;
+}

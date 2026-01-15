@@ -1,0 +1,29 @@
+/* test-execution */
+// Issue #139: Test string assignment inside while loop
+
+string<16> current <- "";
+
+u32 main() {
+    u32 count <- 0;
+
+    // Assignment inside while loop
+    while (count < 3) {
+        current <- "Loop";
+        count +<- 1;
+    }
+    if (current.length != 4) return 1;
+
+    // Multiple different assignments in loop
+    count <- 0;
+    while (count < 2) {
+        if (count = 0) {
+            current <- "First";
+        } else {
+            current <- "Second";
+        }
+        count +<- 1;
+    }
+    if (current.length != 6) return 2;
+
+    return 0;
+}

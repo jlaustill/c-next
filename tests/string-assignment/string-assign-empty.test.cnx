@@ -1,0 +1,30 @@
+/* test-execution */
+// Issue #139: Test empty string assignment
+
+string<32> msg <- "Initial";
+
+void clearMessage() {
+    msg <- "";
+}
+
+u32 main() {
+    if (msg.length != 7) return 1;
+
+    clearMessage();
+    if (msg.length != 0) return 2;
+
+    // Assign empty then non-empty
+    msg <- "";
+    if (msg.length != 0) return 3;
+
+    msg <- "Back";
+    if (msg.length != 4) return 4;
+
+    // Multiple empty assignments
+    msg <- "";
+    msg <- "";
+    msg <- "";
+    if (msg.length != 0) return 5;
+
+    return 0;
+}

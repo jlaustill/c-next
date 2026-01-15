@@ -1,0 +1,27 @@
+/* test-execution */
+// Issue #139: Test assigning string variable to another string variable
+
+string<64> source <- "Original";
+string<64> dest <- "";
+
+void copyString() {
+    dest <- source;
+}
+
+u32 main() {
+    copyString();
+    if (dest.length != 8) return 1;
+
+    // Change source and copy again
+    source <- "NewValue";
+    dest <- source;
+    if (dest.length != 8) return 2;
+
+    // Local variable to variable copy
+    string<32> localSrc <- "LocalSource";
+    string<32> localDst <- "";
+    localDst <- localSrc;
+    if (localDst.length != 11) return 3;
+
+    return 0;
+}

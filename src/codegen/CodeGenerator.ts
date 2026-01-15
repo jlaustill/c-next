@@ -5188,6 +5188,106 @@ export default class CodeGenerator {
       }
     }
 
+    // Issue #139: Handle simple string variable assignment
+    // Pattern: identifier <- stringValue (where identifier is a string type, not an array)
+    if (
+      targetCtx.IDENTIFIER() &&
+      !targetCtx.memberAccess() &&
+      !targetCtx.arrayAccess()
+    ) {
+      const id = targetCtx.IDENTIFIER()!.getText();
+      const typeInfo = this.context.typeRegistry.get(id);
+
+      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+        // String arrays are handled earlier (line ~4969), this handles simple string variables
+        // Check that this is not a string array (single dimension = just the capacity)
+        if (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1) {
+          if (cOp !== "=") {
+            throw new Error(
+              `Error: Compound operators not supported for string assignment: ${cnextOp}`,
+            );
+          }
+          this.needsString = true;
+          const capacity = typeInfo.stringCapacity;
+          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+        }
+      }
+    }
+
+    // Issue #139: Handle this.member string assignment (ADR-016 scopes)
+    if (targetCtx.thisAccess() && this.context.currentScope) {
+      const memberName = targetCtx.thisAccess()!.IDENTIFIER().getText();
+      const scopedName = `${this.context.currentScope}_${memberName}`;
+      const typeInfo = this.context.typeRegistry.get(scopedName);
+
+      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+        if (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1) {
+          if (cOp !== "=") {
+            throw new Error(
+              `Error: Compound operators not supported for string assignment: ${cnextOp}`,
+            );
+          }
+          this.needsString = true;
+          const capacity = typeInfo.stringCapacity;
+          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+        }
+      }
+    }
+
+    // Issue #139: Handle global.member string assignment (ADR-016 global accessor)
+    if (targetCtx.globalAccess()) {
+      const id = targetCtx.globalAccess()!.IDENTIFIER().getText();
+      const typeInfo = this.context.typeRegistry.get(id);
+
+      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+        if (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1) {
+          if (cOp !== "=") {
+            throw new Error(
+              `Error: Compound operators not supported for string assignment: ${cnextOp}`,
+            );
+          }
+          this.needsString = true;
+          const capacity = typeInfo.stringCapacity;
+          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+        }
+      }
+    }
+
+    // Issue #139: Handle struct.field string assignment (non-array string field)
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      const exprs = memberAccessCtx.expression();
+
+      // Pattern: struct.field (2 identifiers, 0 expressions) - non-array member
+      if (identifiers.length === 2 && exprs.length === 0) {
+        const structName = identifiers[0].getText();
+        const fieldName = identifiers[1].getText();
+
+        const structTypeInfo = this.context.typeRegistry.get(structName);
+        if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
+          const structType = structTypeInfo.baseType;
+          const structFields = this.structFields.get(structType);
+          const fieldType = structFields?.get(fieldName);
+
+          // Check if field is a string type (non-array)
+          if (fieldType && fieldType.startsWith("string<")) {
+            const match = fieldType.match(/^string<(\d+)>$/);
+            if (match) {
+              if (cOp !== "=") {
+                throw new Error(
+                  `Error: Compound operators not supported for string assignment: ${cnextOp}`,
+                );
+              }
+              const capacity = parseInt(match[1], 10);
+              this.needsString = true;
+              return `strncpy(${structName}.${fieldName}, ${value}, ${capacity}); ${structName}.${fieldName}[${capacity}] = '\\0';`;
+            }
+          }
+        }
+      }
+    }
+
     return `${target} ${cOp} ${value};`;
   }
 

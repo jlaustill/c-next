@@ -1,0 +1,28 @@
+/* test-execution */
+// Issue #139: Test string assignment inside for loop body
+
+string<16> result <- "";
+
+u32 main() {
+    u32 i;
+
+    // Assignment in for loop body
+    for (i <- 0; i < 3; i +<- 1) {
+        result <- "ForLoop";
+    }
+    if (result.length != 7) return 1;
+
+    // Different assignments based on iteration
+    for (i <- 0; i < 3; i +<- 1) {
+        if (i = 0) {
+            result <- "Zero";
+        } else if (i = 1) {
+            result <- "One";
+        } else {
+            result <- "Two";
+        }
+    }
+    if (result.length != 3) return 2;
+
+    return 0;
+}
