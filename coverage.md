@@ -1281,40 +1281,40 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 21.1 clamp (Saturating)
 
-| Context          | Status | Test File                                |
-| ---------------- | ------ | ---------------------------------------- |
-| u8 clamp         | [ ]    |                                          |
-| u16 clamp        | [ ]    |                                          |
-| u32 clamp        | [x]    | `primitives/clamp-declaration.test.cnx`  |
-| u64 clamp        | [ ]    |                                          |
-| i8 clamp         | [ ]    |                                          |
-| i16 clamp        | [ ]    |                                          |
-| i32 clamp        | [x]    | `primitives/signed-overflow.test.cnx`    |
-| i64 clamp        | [ ]    |                                          |
-| Compound add     | [x]    | `primitives/clamp-compound-add.test.cnx` |
-| Compound sub     | [ ]    |                                          |
-| Compound mul     | [ ]    |                                          |
-| With atomic      | [ ]    |                                          |
-| Overflow to max  | [x]    |                                          |
-| Underflow to min | [ ]    |                                          |
+| Context          | Status | Test File                                        |
+| ---------------- | ------ | ------------------------------------------------ |
+| u8 clamp         | [x]    | `overflow-modifiers/clamp-u8.test.cnx`           |
+| u16 clamp        | [x]    | `overflow-modifiers/clamp-u16.test.cnx`          |
+| u32 clamp        | [x]    | `primitives/clamp-declaration.test.cnx`          |
+| u64 clamp        | [x]    | `overflow-modifiers/clamp-u64.test.cnx`          |
+| i8 clamp         | [x]    | `overflow-modifiers/clamp-i8.test.cnx`           |
+| i16 clamp        | [x]    | `overflow-modifiers/clamp-i16.test.cnx`          |
+| i32 clamp        | [x]    | `primitives/signed-overflow.test.cnx`            |
+| i64 clamp        | [x]    | `overflow-modifiers/clamp-i64.test.cnx`          |
+| Compound add     | [x]    | `primitives/clamp-compound-add.test.cnx`         |
+| Compound sub     | [x]    | `overflow-modifiers/clamp-u8.test.cnx`           |
+| Compound mul     | [x]    | `overflow-modifiers/clamp-compound-mul.test.cnx` |
+| With atomic      | [x]    | `atomic/atomic-with-clamp.test.cnx`              |
+| Overflow to max  | [x]    | `overflow-modifiers/clamp-u8.test.cnx`           |
+| Underflow to min | [x]    | `overflow-modifiers/clamp-u8.test.cnx`           |
 
 ### 21.2 wrap (Wrapping)
 
-| Context      | Status | Test File                               |
-| ------------ | ------ | --------------------------------------- |
-| u8 wrap      | [x]    | `overflow-modifiers/wrap-u8.test.cnx`   |
-| u16 wrap     | [x]    | `overflow-modifiers/wrap-u16.test.cnx`  |
-| u32 wrap     | [x]    | `primitives/wrap-declaration.test.cnx`  |
-| u64 wrap     | [x]    | `overflow-modifiers/wrap-u64.test.cnx`  |
-| i8 wrap      | [x]    | `overflow-modifiers/wrap-i8.test.cnx`   |
-| i16 wrap     | [x]    | `overflow-modifiers/wrap-i16.test.cnx`  |
-| i32 wrap     | [x]    | `primitives/signed-overflow.test.cnx`   |
-| i64 wrap     | [x]    | `overflow-modifiers/wrap-i64.test.cnx`  |
-| Compound add | [x]    | `primitives/wrap-compound-add.test.cnx` |
-| Compound sub | [ ]    |                                         |
-| Compound mul | [ ]    |                                         |
-| With atomic  | [ ]    |                                         |
-| Wrap around  | [x]    |                                         |
+| Context      | Status | Test File                                       |
+| ------------ | ------ | ----------------------------------------------- |
+| u8 wrap      | [x]    | `overflow-modifiers/wrap-u8.test.cnx`           |
+| u16 wrap     | [x]    | `overflow-modifiers/wrap-u16.test.cnx`          |
+| u32 wrap     | [x]    | `primitives/wrap-declaration.test.cnx`          |
+| u64 wrap     | [x]    | `overflow-modifiers/wrap-u64.test.cnx`          |
+| i8 wrap      | [x]    | `overflow-modifiers/wrap-i8.test.cnx`           |
+| i16 wrap     | [x]    | `overflow-modifiers/wrap-i16.test.cnx`          |
+| i32 wrap     | [x]    | `primitives/signed-overflow.test.cnx`           |
+| i64 wrap     | [x]    | `overflow-modifiers/wrap-i64.test.cnx`          |
+| Compound add | [x]    | `primitives/wrap-compound-add.test.cnx`         |
+| Compound sub | [x]    | `overflow-modifiers/wrap-u8.test.cnx`           |
+| Compound mul | [x]    | `overflow-modifiers/wrap-compound-mul.test.cnx` |
+| With atomic  | [x]    | `atomic/atomic-with-wrap.test.cnx`              |
+| Wrap around  | [x]    | `overflow-modifiers/wrap-u8.test.cnx`           |
 
 ### 21.3 Mixed Overflow
 
