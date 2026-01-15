@@ -19,7 +19,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t globalResult = 0;
 
 /* Scope: Counter */
-uint32_t Counter_value = 0;
+static uint32_t Counter_value = 0;
 
 void Counter_countToFive(void) {
     uint32_t i = 0;
@@ -46,7 +46,7 @@ void Counter_reset(void) {
 }
 
 /* Scope: Accumulator */
-uint32_t Accumulator_sum = 0;
+static uint32_t Accumulator_sum = 0;
 
 void Accumulator_sumRange(uint32_t* limit) {
     uint32_t i = 1;

@@ -2424,7 +2424,7 @@ export default class CodeGenerator {
     lines.push(`/* Scope: ${name} */`);
 
     for (const member of ctx.scopeMember()) {
-      const visibility = member.visibilityModifier()?.getText() || "public";
+      const visibility = member.visibilityModifier()?.getText() || "private";
       const isPrivate = visibility === "private";
 
       if (member.variableDeclaration()) {

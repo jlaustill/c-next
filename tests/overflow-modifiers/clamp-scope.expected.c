@@ -23,7 +23,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // ADR-044 + ADR-016: Verifies clamp works with scope variables via this. accessor
 // This test exposes a BUG if clamp is ignored in scope contexts
 /* Scope: ClampScope */
-uint8_t ClampScope_brightness = 200;
+static uint8_t ClampScope_brightness = 200;
 
 void ClampScope_triggerOverflow(void) {
     ClampScope_brightness = cnx_clamp_add_u8(ClampScope_brightness, 100);

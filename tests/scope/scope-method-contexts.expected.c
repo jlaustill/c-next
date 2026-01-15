@@ -36,78 +36,78 @@ int16_t globalOffset = -25;
 float globalScale = 2.5;
 
 /* Scope: MethodContexts */
-uint8_t MethodContexts_privateValue = 10;
-uint8_t MethodContexts_privateClampValue = 200;
-uint8_t MethodContexts_privateWrapValue = 250;
-bool MethodContexts_privateFlag = false;
-int16_t MethodContexts_privateOffset = -50;
+static uint8_t MethodContexts_privateValue = 10;
+static uint8_t MethodContexts_privateClampValue = 200;
+static uint8_t MethodContexts_privateWrapValue = 250;
+static bool MethodContexts_privateFlag = false;
+static int16_t MethodContexts_privateOffset = -50;
 uint8_t MethodContexts_publicValue = 20;
 uint16_t MethodContexts_publicClampValue = 60000;
 uint16_t MethodContexts_publicWrapValue = 65530;
 bool MethodContexts_publicFlag = true;
 int32_t MethodContexts_publicOffset = -1000;
 
-uint8_t MethodContexts_getPrivateValue(void) {
+static uint8_t MethodContexts_getPrivateValue(void) {
     return MethodContexts_privateValue;
 }
 
-uint8_t MethodContexts_getPublicValueInternal(void) {
+static uint8_t MethodContexts_getPublicValueInternal(void) {
     return MethodContexts_publicValue;
 }
 
-uint8_t MethodContexts_getPrivateClampValue(void) {
+static uint8_t MethodContexts_getPrivateClampValue(void) {
     return MethodContexts_privateClampValue;
 }
 
-uint8_t MethodContexts_getPrivateWrapValue(void) {
+static uint8_t MethodContexts_getPrivateWrapValue(void) {
     return MethodContexts_privateWrapValue;
 }
 
-void MethodContexts_incrementPrivateClamp(void) {
+static void MethodContexts_incrementPrivateClamp(void) {
     MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 100);
 }
 
-void MethodContexts_incrementPrivateWrap(void) {
+static void MethodContexts_incrementPrivateWrap(void) {
     MethodContexts_privateWrapValue += 10;
 }
 
-bool MethodContexts_getPrivateFlag(void) {
+static bool MethodContexts_getPrivateFlag(void) {
     return MethodContexts_privateFlag;
 }
 
-int16_t MethodContexts_getPrivateOffset(void) {
+static int16_t MethodContexts_getPrivateOffset(void) {
     return MethodContexts_privateOffset;
 }
 
-uint8_t MethodContexts_getGlobalMaxInternal(void) {
+static uint8_t MethodContexts_getGlobalMaxInternal(void) {
     return GLOBAL_MAX;
 }
 
-uint8_t MethodContexts_getGlobalCounterInternal(void) {
+static uint8_t MethodContexts_getGlobalCounterInternal(void) {
     return globalCounter;
 }
 
-bool MethodContexts_getGlobalEnabledInternal(void) {
+static bool MethodContexts_getGlobalEnabledInternal(void) {
     return globalEnabled;
 }
 
-int16_t MethodContexts_getGlobalOffsetInternal(void) {
+static int16_t MethodContexts_getGlobalOffsetInternal(void) {
     return globalOffset;
 }
 
-float MethodContexts_getGlobalScaleInternal(void) {
+static float MethodContexts_getGlobalScaleInternal(void) {
     return globalScale;
 }
 
-uint8_t MethodContexts_computePrivateSum(void) {
+static uint8_t MethodContexts_computePrivateSum(void) {
     return MethodContexts_privateValue + globalCounter;
 }
 
-bool MethodContexts_privateValueBelowMax(void) {
+static bool MethodContexts_privateValueBelowMax(void) {
     return MethodContexts_privateValue < GLOBAL_MAX;
 }
 
-int16_t MethodContexts_computePrivateWithOffset(void) {
+static int16_t MethodContexts_computePrivateWithOffset(void) {
     return MethodContexts_privateOffset + globalOffset;
 }
 

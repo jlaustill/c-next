@@ -38,12 +38,12 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 }
 
 /* Scope: AtomicTest */
-uint8_t AtomicTest_counterU8 = 0;
-uint16_t AtomicTest_counterU16 = 0;
-uint32_t AtomicTest_counterU32 = 0;
-uint8_t AtomicTest_brightness = 100;
-uint16_t AtomicTest_position = 500;
-uint32_t AtomicTest_ticks = 0;
+static uint8_t AtomicTest_counterU8 = 0;
+static uint16_t AtomicTest_counterU16 = 0;
+static uint32_t AtomicTest_counterU32 = 0;
+static uint8_t AtomicTest_brightness = 100;
+static uint16_t AtomicTest_position = 500;
+static uint32_t AtomicTest_ticks = 0;
 
 uint8_t AtomicTest_getCounterU8(void) {
     return AtomicTest_counterU8;

@@ -8,7 +8,7 @@ scope Board {
         DR_SET: u32 wo @ 0x84,
     }
 
-    void toggleLed() {
+    public void toggleLed() {
         // Simpler test: direct access
         Board.GPIO.DR_SET[3] <- true;
     }

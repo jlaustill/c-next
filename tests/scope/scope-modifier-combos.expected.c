@@ -30,25 +30,25 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
 // work correctly with scope variables accessed via this. accessor
 /* Scope: ModifierCombos */
-uint8_t ModifierCombos_MAX_BRIGHTNESS = 255;
-uint16_t ModifierCombos_MAX_SENSOR = 65535;
-int8_t ModifierCombos_MIN_TEMP = -128;
-uint8_t ModifierCombos_COUNTER_START = 0;
-uint16_t ModifierCombos_TICK_START = 1000;
+static uint8_t ModifierCombos_MAX_BRIGHTNESS = 255;
+static uint16_t ModifierCombos_MAX_SENSOR = 65535;
+static int8_t ModifierCombos_MIN_TEMP = -128;
+static uint8_t ModifierCombos_COUNTER_START = 0;
+static uint16_t ModifierCombos_TICK_START = 1000;
 uint8_t ModifierCombos_publicClampByte = 200;
 uint16_t ModifierCombos_publicClampWord = 60000;
 int8_t ModifierCombos_publicClampSigned = 100;
-uint8_t ModifierCombos_privateClampByte = 50;
-uint16_t ModifierCombos_privateClampWord = 10000;
-int8_t ModifierCombos_privateClampSigned = -50;
+static uint8_t ModifierCombos_privateClampByte = 50;
+static uint16_t ModifierCombos_privateClampWord = 10000;
+static int8_t ModifierCombos_privateClampSigned = -50;
 uint8_t ModifierCombos_publicWrapByte = 250;
 uint16_t ModifierCombos_publicWrapWord = 65530;
-uint8_t ModifierCombos_privateWrapByte = 5;
-uint16_t ModifierCombos_privateWrapWord = 100;
+static uint8_t ModifierCombos_privateWrapByte = 5;
+static uint16_t ModifierCombos_privateWrapWord = 100;
 uint8_t ModifierCombos_PUBLIC_CONST = 42;
 bool ModifierCombos_PUBLIC_FLAG = true;
-uint8_t ModifierCombos_PRIVATE_CONST = 99;
-bool ModifierCombos_PRIVATE_FLAG = false;
+static uint8_t ModifierCombos_PRIVATE_CONST = 99;
+static bool ModifierCombos_PRIVATE_FLAG = false;
 
 uint8_t ModifierCombos_getMaxBrightness(void) {
     return ModifierCombos_MAX_BRIGHTNESS;
@@ -134,11 +134,11 @@ void ModifierCombos_decreasePublicClampSigned(void) {
     ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 50);
 }
 
-void ModifierCombos_increasePrivateClampByte(void) {
+static void ModifierCombos_increasePrivateClampByte(void) {
     ModifierCombos_privateClampByte = cnx_clamp_add_u8(ModifierCombos_privateClampByte, 220);
 }
 
-void ModifierCombos_decreasePrivateClampWord(void) {
+static void ModifierCombos_decreasePrivateClampWord(void) {
     ModifierCombos_privateClampWord = cnx_clamp_sub_u16(ModifierCombos_privateClampWord, 15000);
 }
 
@@ -150,11 +150,11 @@ void ModifierCombos_incrementPublicWrapWord(void) {
     ModifierCombos_publicWrapWord += 10;
 }
 
-void ModifierCombos_decrementPrivateWrapByte(void) {
+static void ModifierCombos_decrementPrivateWrapByte(void) {
     ModifierCombos_privateWrapByte -= 10;
 }
 
-void ModifierCombos_decrementPrivateWrapWord(void) {
+static void ModifierCombos_decrementPrivateWrapWord(void) {
     ModifierCombos_privateWrapWord -= 150;
 }
 

@@ -5,11 +5,11 @@ u8 globalCount;  // Global - uninitialized
 scope Counter {
     u8 count;    // Scope member - uninitialized
 
-    void init() {
+    public void init() {
         count <- 0;  // Initialize scope member
     }
 
-    void increment() {
+    public void increment() {
         // Should reference Counter.count (initialized by init())
         count <- count + 1;
     }

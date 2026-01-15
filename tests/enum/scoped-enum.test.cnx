@@ -12,21 +12,21 @@ scope Motor {
 
     const u8 defaultValue <- 1;
 
-    this.State current <- this.State.IDLE; // This is a default value
+    public this.State current <- this.State.IDLE; // This is a default value
 
-    u8 start() {
+    public u8 start() {
         this.current <- this.State.RUNNING;
 
         return this.defaultValue;
     }
 
-    u8 stop() {
+    public u8 stop() {
         this.current <- this.State.IDLE;
 
         return global.defaultValue;
     }
 
-    bool isRunning() {
+    public bool isRunning() {
         const this.State currentState <- this.current;
         if (currentState = this.State.RUNNING) {
             return true;

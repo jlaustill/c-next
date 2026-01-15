@@ -19,7 +19,7 @@ uint32_t TestScope_getGlobalArrayLength(void) {
 uint32_t TestScope_getGlobalElementLength(void) {
     return 64;
 }
-uint64_t TestScope_scopeArr[16] = {0};
+static uint64_t TestScope_scopeArr[16] = {0};
 
 uint32_t TestScope_getScopeArrayLength(void) {
     return 16;

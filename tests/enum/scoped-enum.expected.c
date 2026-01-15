@@ -18,7 +18,7 @@ typedef enum {
     Motor_State_STALLED = 2
 } Motor_State;
 
-uint8_t Motor_defaultValue = 1;
+static uint8_t Motor_defaultValue = 1;
 Motor_State Motor_current = Motor_State_IDLE;
 
 uint8_t Motor_start(void) {
