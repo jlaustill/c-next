@@ -67,7 +67,7 @@ void Visibility_setPrivateCounter(uint8_t* value) {
     Visibility_privateCounter = (*value);
 }
 
-uint32_t main(void) {
+int main(void) {
     if (Visibility_publicCounter != 10) return 1;
     if (Visibility_publicFlag != true) return 2;
     if (Visibility_getPrivateCounter() != 0) return 3;

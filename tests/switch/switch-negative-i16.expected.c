@@ -98,7 +98,7 @@ void testI16Hex(int16_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     int16_t minVal = -32768;
     int16_t minPlus1 = -32767;
     int16_t neg256 = -256;

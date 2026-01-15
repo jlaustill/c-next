@@ -50,7 +50,7 @@ void test_complex_expressions(void) {
     result_f32 = a - b / c;
 }
 
-void main(void) {
+int main(void) {
     test_f32_arithmetic();
     test_f64_arithmetic();
     test_complex_expressions();

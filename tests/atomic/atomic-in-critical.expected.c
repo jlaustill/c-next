@@ -96,7 +96,7 @@ void conditionalIncrement(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     criticalUpdate();
     enqueueWithCount(&(uint8_t){0xAB});
     batchUpdate(&(uint32_t){10});

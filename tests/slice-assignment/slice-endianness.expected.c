@@ -10,7 +10,7 @@
 // Tests: Byte order verification for slice assignment
 // Validates that bytes are copied in correct endianness
 // Embedded systems typically use little-endian
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[128] = {0};
     uint32_t value32 = 0x12345678;
     if (0 + 4 <= sizeof(buffer)) { memcpy(&buffer[0], &value32, 4); }

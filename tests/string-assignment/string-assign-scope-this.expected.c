@@ -23,7 +23,7 @@ void Logger_setCustom(void) {
     strncpy(Logger_message, "Custom", 64); Logger_message[64] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     Logger_setMessage();
     if (strlen(Logger_message) != 16) return 1;
     Logger_clear();

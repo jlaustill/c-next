@@ -19,7 +19,7 @@ typedef struct {
     uint8_t a;
 } Color;
 
-void main(void) {
+int main(void) {
     Point p = {0};
     Color c = {0};
 }

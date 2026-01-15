@@ -55,7 +55,7 @@ void Board_toggleLed(void) {
     Board_GPIO_DR_SET = (1 << Board_LED_BIT);
 }
 
-void main(void) {
+int main(void) {
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 1)) | ((false ? 1 : 0) << 1);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7 << 3)) | ((5 & 0x7) << 3);

@@ -9,6 +9,6 @@
 // Tests: wrap modifier with compound addition
 uint8_t counter = 250;
 
-void main(void) {
+int main(void) {
     counter += 10;
 }

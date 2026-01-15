@@ -8,7 +8,7 @@
 
 /* test-execution */
 // Issue #139: Test local string variable reassignment in function body
-uint32_t main(void) {
+int main(void) {
     char local[33] = "Initial";
     if (strlen(local) != 7) return 1;
     strncpy(local, "Updated", 32); local[32] = '\0';

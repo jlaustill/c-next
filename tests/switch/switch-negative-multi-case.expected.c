@@ -99,7 +99,7 @@ void testNegativeHexGroup(int32_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     int8_t neg1 = -1;
     int8_t neg2 = -2;
     int8_t neg3 = -3;

@@ -9,7 +9,7 @@
 /* test-execution */
 // Test complex bitwise combinations and expressions
 // Coverage: Section 5.7 - complex patterns, multiple operations, precedence
-uint32_t main(void) {
+int main(void) {
     uint32_t a = 0xFFFF0000;
     uint32_t b = 0x00FFFF00;
     uint32_t c = 0x0000FFFF;

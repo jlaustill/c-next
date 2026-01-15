@@ -32,7 +32,7 @@ void setDefaultMessage(void) {
     strncpy(messageBuffer, "DefaultValue", 64); messageBuffer[64] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     if (strlen(messageBuffer) != 7) return 1;
     if (strlen(logBuffer) != 13) return 2;
     if (strcmp(messageBuffer, "Initial") != 0) return 3;

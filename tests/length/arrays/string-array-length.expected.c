@@ -31,7 +31,7 @@ typedef struct {
     char arr[4][65];
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     strncpy(globalArr[0], "Hello", 64);
     strncpy(globalArr[1], "World", 64);
     if (4 != 4) {

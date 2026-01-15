@@ -32,7 +32,7 @@ typedef struct {
     bool member;
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     if (8 != 8) {
         return 1;
     }

@@ -24,7 +24,7 @@ void Handler_setLongMessage(void) {
     strncpy(globalBuffer, "This is a longer message from scope", 64); globalBuffer[64] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     Handler_updateGlobal();
     if (strlen(globalBuffer) != 9) return 1;
     Handler_clearGlobal();

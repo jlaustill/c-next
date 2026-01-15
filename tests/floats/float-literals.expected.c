@@ -40,7 +40,7 @@ void test_edge_case_literals(void) {
     float max_float = 3.402823466e38;
 }
 
-void main(void) {
+int main(void) {
     test_decimal_literals();
     test_scientific_notation();
     test_negative_literals();

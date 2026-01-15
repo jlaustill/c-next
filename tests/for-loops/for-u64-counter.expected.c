@@ -16,7 +16,7 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 /* test-execution */
 // For loop tests: u64 as loop counter
 // Tests: u64 type can be used as for-loop counter
-uint64_t main(void) {
+int main(void) {
     uint64_t sum = 0;
     for (uint64_t i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_u64(sum, i);

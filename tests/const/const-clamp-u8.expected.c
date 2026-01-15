@@ -12,7 +12,7 @@ const uint8_t MAX_VALUE = 255;
 
 const uint8_t MID_VALUE = 128;
 
-uint32_t main(void) {
+int main(void) {
     uint8_t maxVal = MAX_VALUE;
     if (maxVal != 255) return 1;
     uint8_t midVal = MID_VALUE;

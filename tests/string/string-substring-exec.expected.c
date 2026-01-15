@@ -9,7 +9,7 @@
 /* test-execution */
 // ADR-045: Validate substring extraction at runtime
 // Issue #140 fixed: Single-character substring source[i] now generates valid C
-int32_t main(void) {
+int main(void) {
     char source[65] = "Hello, World!";
     char hello[6] = "";
         strncpy(hello, source + 0, 5);

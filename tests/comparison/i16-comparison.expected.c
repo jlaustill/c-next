@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i16 comparison operations
 // Coverage: Section 3.1-3.6 for i16 type
-uint32_t main(void) {
+int main(void) {
     int16_t a = 5000;
     int16_t b = 3000;
     int16_t c = 5000;

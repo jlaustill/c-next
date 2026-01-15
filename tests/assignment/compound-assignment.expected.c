@@ -46,7 +46,7 @@ uint32_t testBitwise(void) {
     return flags;
 }
 
-uint32_t main(void) {
+int main(void) {
     if (testCompound() != 0) {
         return 1;
     }

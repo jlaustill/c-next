@@ -9,7 +9,7 @@
 /* test-execution */
 // Test u64 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u64 type
-uint32_t main(void) {
+int main(void) {
     uint64_t a = 0x0000000000000001;
     uint64_t left1 = a << 1;
     uint64_t left32 = a << 32;

@@ -16,7 +16,7 @@ uint64_t halfConstU64(const uint64_t* value) {
     return (*value) / 2;
 }
 
-uint32_t main(void) {
+int main(void) {
     uint64_t result = readConstU64(&(uint64_t){1000000});
     if (result != 1000000) return 1;
     uint64_t largeResult = readConstU64(&(uint64_t){4294967296});

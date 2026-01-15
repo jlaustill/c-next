@@ -11,7 +11,7 @@
 #define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 #define GPIO_PSR (*(volatile uint32_t const *)(0x40000000 + 0x08))
 
-void main(void) {
+int main(void) {
     GPIO_DR = 0xFF;
     uint32_t status = GPIO_PSR;
     uint32_t data = GPIO_DR;

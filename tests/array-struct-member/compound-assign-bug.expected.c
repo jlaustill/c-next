@@ -13,7 +13,7 @@ typedef struct {
 
 Counter counters[2] = {0};
 
-int32_t main(void) {
+int main(void) {
     counters[0].value = 100;
     counters[1].value = 200;
     counters[0].value += 10;

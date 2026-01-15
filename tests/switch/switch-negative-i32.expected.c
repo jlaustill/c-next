@@ -102,7 +102,7 @@ void testI32Hex(int32_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     int32_t minVal = -2147483648;
     int32_t minPlus1 = -2147483647;
     int32_t negMillion = -1000000;

@@ -35,7 +35,7 @@ void setFlags(uint32_t* flagMask) {
     CTRL_FLAGS = (*flagMask);
 }
 
-void main(void) {
+int main(void) {
     setGpioBit(&(uint8_t){0});
     setGpioBit(&(uint8_t){7});
     setGpioBit(&(uint8_t){15});

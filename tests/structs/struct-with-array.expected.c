@@ -12,7 +12,7 @@ typedef struct {
     uint32_t length;
 } Buffer;
 
-void main(void) {
+int main(void) {
     Buffer buf = {0};
     buf.length = 0;
     buf.data[0] = 0x41;

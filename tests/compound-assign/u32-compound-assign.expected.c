@@ -28,7 +28,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: 0 to 4294967295
-uint32_t main(void) {
+int main(void) {
     uint32_t val = 2000000000;
     val = cnx_clamp_add_u32(val, 1000000000);
     if (val != 3000000000) return 1;

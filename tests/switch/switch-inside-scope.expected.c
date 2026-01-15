@@ -76,7 +76,7 @@ uint32_t Calculator_getOutput(void) {
     return Calculator_output;
 }
 
-void main(void) {
+int main(void) {
     CommandProcessor_execute(&(uint32_t){2});
     globalResult = CommandProcessor_getResult();
     Calculator_setOperands(&(uint32_t){10}, &(uint32_t){5});

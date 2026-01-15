@@ -68,7 +68,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Tests: clamp with operands larger than target type range
 // Issue #94: Prevents silent truncation when operand exceeds type bounds
 // ADR-044: Per-variable overflow semantics
-uint32_t main(void) {
+int main(void) {
     uint8_t val8 = 200;
     val8 = cnx_clamp_sub_u8(val8, 300);
     if (val8 != 0) return 1;

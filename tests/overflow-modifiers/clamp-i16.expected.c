@@ -26,7 +26,7 @@ static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
 // Tests: clamp modifier for i16 type (-32768 to 32767)
 // Validates overflow clamps to 32767, underflow clamps to -32768
 // ADR-044: Per-variable overflow semantics
-uint32_t main(void) {
+int main(void) {
     int16_t val = 30000;
     val = cnx_clamp_add_i16(val, 5000);
     if (val != 32767) return 1;

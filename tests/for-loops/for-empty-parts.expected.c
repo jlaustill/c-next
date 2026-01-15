@@ -66,7 +66,7 @@ void testAllEmpty(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     testEmptyInit();
     testEmptyUpdate();
     testEmptyInitAndUpdate();

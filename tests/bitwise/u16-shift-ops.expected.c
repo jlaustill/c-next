@@ -9,7 +9,7 @@
 /* test-execution */
 // Test u16 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u16 type
-uint32_t main(void) {
+int main(void) {
     uint16_t a = 0x0001;
     uint16_t left1 = a << 1;
     uint16_t left8 = a << 8;

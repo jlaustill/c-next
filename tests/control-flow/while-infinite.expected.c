@@ -38,7 +38,7 @@ void anotherInfinitePattern(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     runForever();
     anotherInfinitePattern();
 }

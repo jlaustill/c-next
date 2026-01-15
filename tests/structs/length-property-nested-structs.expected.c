@@ -23,7 +23,7 @@ typedef struct {
     uint64_t timestamp;
 } DeepNest;
 
-uint32_t main(void) {
+int main(void) {
     Outer config = {0};
     config.inner.value = 0x12345678;
     config.inner.status = 100;

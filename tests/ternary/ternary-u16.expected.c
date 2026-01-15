@@ -16,7 +16,7 @@ uint16_t getMin(uint16_t* a, uint16_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-uint32_t main(void) {
+int main(void) {
     uint16_t a = 100;
     uint16_t b = 200;
     uint16_t c = 300;

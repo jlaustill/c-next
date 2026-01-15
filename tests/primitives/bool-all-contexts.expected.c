@@ -33,7 +33,7 @@ bool identity(bool* value) {
 }
 
 // 5. Main with validations (unique error codes)
-uint32_t main(void) {
+int main(void) {
     if (globalTrue != true) return 1;
     if (globalFalse != false) return 2;
     bool localTrue = true;

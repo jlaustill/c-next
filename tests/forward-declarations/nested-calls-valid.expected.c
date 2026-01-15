@@ -16,6 +16,6 @@ void level1(void) {
     level2();
 }
 
-void main(void) {
+int main(void) {
     level1();
 }

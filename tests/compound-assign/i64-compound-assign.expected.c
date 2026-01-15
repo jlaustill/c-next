@@ -33,7 +33,7 @@ static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
 // Tests: i64 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
-uint32_t main(void) {
+int main(void) {
     int64_t val = 1000000000000;
     val = cnx_clamp_add_i64(val, 500000000000);
     if (val != 1500000000000) return 1;

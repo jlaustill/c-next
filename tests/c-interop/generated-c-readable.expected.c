@@ -21,7 +21,7 @@ Point addPoints(Point* a, Point* b) {
     return result;
 }
 
-void main(void) {
+int main(void) {
     Point p1 = {0};
     p1.x = 10;
     p1.y = 20;

@@ -243,7 +243,7 @@ void testNestedSigned(int8_t* outer, int8_t* inner) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t o0 = 0;
     uint32_t o1 = 1;
     uint32_t o99 = 99;

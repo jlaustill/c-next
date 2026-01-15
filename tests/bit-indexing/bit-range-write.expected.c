@@ -7,7 +7,7 @@
 
 // ADR-007: Bit range write
 // Tests: writing multiple bits with [start, width] syntax
-void main(void) {
+int main(void) {
     uint8_t config = 0;
     config = (config & ~(((1U << 4) - 1) << 0)) | ((5 & ((1U << 4) - 1)) << 0);
     config = (config & ~(((1U << 4) - 1) << 4)) | ((15 & ((1U << 4) - 1)) << 4);

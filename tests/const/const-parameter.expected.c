@@ -12,7 +12,7 @@ void printValue(const int32_t* value, const uint8_t* flags) {
     uint8_t flagCopy = (*flags);
 }
 
-void main(void) {
+int main(void) {
     int32_t x = 42;
     uint8_t f = 0xFF;
     printValue(&x, &f);

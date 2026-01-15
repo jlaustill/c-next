@@ -32,7 +32,7 @@ float getCoeff(const Configuration* data, uint32_t* pos) {
     return data->tempInputs[(*pos)].coeffA;
 }
 
-uint32_t main(void) {
+int main(void) {
     Configuration cfg = {0};
     cfg.tempInputs[0].assignedSpn = 100;
     cfg.tempInputs[0].coeffA = 1.5;

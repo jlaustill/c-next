@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i64 comparison operations
 // Coverage: Section 3.1-3.6 for i64 type
-uint32_t main(void) {
+int main(void) {
     int64_t a = 5000000000;
     int64_t b = 3000000000;
     int64_t c = 5000000000;

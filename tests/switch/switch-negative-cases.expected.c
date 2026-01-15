@@ -57,7 +57,7 @@ void handleHex(int16_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     int8_t minI8 = -128;
     int8_t negOne = -1;
     int8_t zero = 0;

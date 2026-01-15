@@ -7,7 +7,7 @@
 
 // ADR-024: Test that valid literal values work correctly
 // This should compile successfully
-void main(void) {
+int main(void) {
     uint8_t byte = 255;
     uint8_t zero = 0;
     uint16_t word = 65535;

@@ -14,7 +14,7 @@ const int64_t MAX_TIMESTAMP = 2147483647;
 
 const int64_t EPOCH = 0;
 
-uint32_t main(void) {
+int main(void) {
     int64_t minTs = MIN_TIMESTAMP;
     if (minTs != -2147483648) return 1;
     int64_t maxTs = MAX_TIMESTAMP;

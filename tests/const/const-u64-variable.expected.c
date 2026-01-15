@@ -12,7 +12,7 @@ const uint64_t MAX_FILE_SIZE = 4294967296;
 
 const uint64_t CHUNK_SIZE = 1048576;
 
-uint32_t main(void) {
+int main(void) {
     uint64_t maxSize = MAX_FILE_SIZE;
     if (maxSize != 4294967296) return 1;
     uint64_t chunk = CHUNK_SIZE;

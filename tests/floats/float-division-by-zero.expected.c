@@ -37,7 +37,7 @@ void test_zero_divided_by_zero(void) {
     result_f64 = zero_d / zero_d;
 }
 
-void main(void) {
+int main(void) {
     test_f32_division_by_zero();
     test_f64_division_by_zero();
     test_zero_divided_by_zero();

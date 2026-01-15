@@ -13,7 +13,7 @@ void init(void) {
     matrix[3][7] = 255;
 }
 
-int32_t main(void) {
+int main(void) {
     init();
     return 0;
 }

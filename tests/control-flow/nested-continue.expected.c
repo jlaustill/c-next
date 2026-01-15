@@ -16,7 +16,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Tests: continue in nested loops
 // Validates: continue only skips to next iteration of innermost loop
-uint32_t main(void) {
+int main(void) {
     uint32_t outerSum = 0;
     uint32_t innerOddSum = 0;
     for (uint32_t i = 0; i < 3; i += 1) {

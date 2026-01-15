@@ -22,7 +22,7 @@ typedef enum {
     Flags_EXECUTE = 4
 } Flags;
 
-uint32_t main(void) {
+int main(void) {
     uint32_t lowVal = (uint32_t)Priority_LOW;
     if (lowVal != 1) return 1;
     uint32_t medVal = (uint32_t)Priority_MEDIUM;

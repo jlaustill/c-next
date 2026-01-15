@@ -9,7 +9,7 @@
 // Verifies fix for line 4073 in CodeGenerator.ts
 uint8_t matrix[4][4] = {0};
 
-int32_t main(void) {
+int main(void) {
     matrix[0][0] = 10;
     matrix[1][1] = 20;
     matrix[2][2] = 100;

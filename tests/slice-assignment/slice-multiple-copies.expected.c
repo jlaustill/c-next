@@ -18,7 +18,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Multiple sequential slice assignments to same buffer
 // Validates non-overlapping regions and advancing offset pattern
 // Simulates real-world buffer building (like crc32.cnx pattern)
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[256] = {0};
     uint32_t offset = 0;
     uint32_t magic = 0x50415255;

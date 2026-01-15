@@ -31,7 +31,7 @@ typedef struct {
 
 Scene scenes[2] = {0};
 
-void main(void) {
+int main(void) {
     scenes[0].objects[0].material.ambient.r = 255;
     scenes[0].objects[0].material.ambient.g = 128;
     scenes[0].objects[0].material.ambient.b = 64;

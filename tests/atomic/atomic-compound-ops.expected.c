@@ -24,7 +24,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 
 volatile uint32_t value = 100;
 
-void main(void) {
+int main(void) {
     do {
         uint32_t __old = __LDREXW(&value);
         uint32_t __new = cnx_clamp_add_u32(__old, 10);

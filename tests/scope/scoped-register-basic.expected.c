@@ -14,6 +14,6 @@
 #define Teensy4_GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
 
-void main(void) {
+int main(void) {
     Teensy4_GPIO7_DR_SET = 8;
 }

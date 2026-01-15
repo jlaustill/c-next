@@ -25,7 +25,7 @@ typedef struct {
     Item items[3];
 } Container;
 
-int32_t main(void) {
+int main(void) {
     Container cfg = {0};
     cfg.items[0].value = 100;
     cfg.items[0].flags = 0x01;

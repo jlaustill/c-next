@@ -14,7 +14,7 @@ const float GRAVITY = 9.81;
 
 const float ZERO = 0.0;
 
-uint32_t main(void) {
+int main(void) {
     float pi = PI;
     if (pi < 3.14) return 1;
     if (pi > 3.15) return 2;

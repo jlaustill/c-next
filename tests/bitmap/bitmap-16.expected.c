@@ -24,7 +24,7 @@ typedef uint16_t CANStatus;
 
 CANStatus status = 0;
 
-void main(void) {
+int main(void) {
     status = (status & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     status = (status & ~(1 << 1)) | ((false ? 1 : 0) << 1);
     status = (status & ~(0xFF << 8)) | ((255 & 0xFF) << 8);

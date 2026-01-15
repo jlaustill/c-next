@@ -16,7 +16,7 @@ uint8_t getMin(uint8_t* a, uint8_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-uint32_t main(void) {
+int main(void) {
     uint8_t a = 10;
     uint8_t b = 20;
     uint8_t c = 30;

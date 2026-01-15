@@ -34,7 +34,7 @@ RGBColor color = 0;
 
 SensorConfig sensor = 0;
 
-uint32_t main(void) {
+int main(void) {
     color = (color & ~(0xFF << 0)) | ((255 & 0xFF) << 0);
     color = (color & ~(0xFF << 8)) | ((128 & 0xFF) << 8);
     color = (color & ~(0xFF << 16)) | ((64 & 0xFF) << 16);

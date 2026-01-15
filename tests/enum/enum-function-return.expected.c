@@ -57,7 +57,7 @@ TrafficLight colorToLight(Color c) {
     return TrafficLight_CAUTION;
 }
 
-uint32_t main(void) {
+int main(void) {
     Color c = getColorByIndex(&(uint32_t){0});
     if (c != Color_RED) return 1;
     c = getColorByIndex(&(uint32_t){1});

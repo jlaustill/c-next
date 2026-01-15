@@ -10,7 +10,7 @@
 // Tests: Verify bit manipulation operations still work correctly
 // Ensures that slice assignment fix doesn't break existing bit-range operations
 // Bit operations on scalar integers should use bit manipulation, not memcpy
-uint32_t main(void) {
+int main(void) {
     uint32_t flags = 0;
     flags = (flags & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     if (flags != 0x00000001) return 1;

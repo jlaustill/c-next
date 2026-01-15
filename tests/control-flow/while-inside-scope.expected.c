@@ -60,7 +60,7 @@ uint32_t Accumulator_getSum(void) {
     return Accumulator_sum;
 }
 
-void main(void) {
+int main(void) {
     Counter_countToFive();
     globalResult = Counter_getValue();
     Counter_reset();

@@ -13,7 +13,7 @@ typedef struct {
     int32_t y;
 } Point;
 
-uint32_t main(void) {
+int main(void) {
     Point p = (Point){ .x = 10, .y = 20 };
     if (p.x != 10) {
         return 1;

@@ -37,6 +37,6 @@ void Timer_init(void) {
     Timer_SysTick_LOAD = 16000;
 }
 
-void main(void) {
+int main(void) {
     Timer_init();
 }

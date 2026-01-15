@@ -58,7 +58,7 @@ void Timer_adjustPeriod(uint16_t* delta) {
     Timer_period = cnx_clamp_add_u16(Timer_period, (*delta));
 }
 
-void main(void) {
+int main(void) {
     Counter_increment();
     Counter_incrementBy(&(uint32_t){10});
     Counter_reset();

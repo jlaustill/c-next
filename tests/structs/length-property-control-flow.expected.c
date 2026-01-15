@@ -24,7 +24,7 @@ typedef struct {
     uint64_t payload;
 } Packet;
 
-uint32_t main(void) {
+int main(void) {
     Packet pkt = {0};
     pkt.header = 0xDEADBEEF;
     pkt.length = 256;

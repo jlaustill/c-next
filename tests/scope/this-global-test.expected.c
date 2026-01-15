@@ -28,6 +28,6 @@ void Motor_setState(uint8_t* val) {
     Motor_state = (*val);
 }
 
-void main(void) {
+int main(void) {
     Motor_setState(&(uint8_t){42});
 }

@@ -9,7 +9,7 @@
 // Covers all compound operators: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
 uint32_t data[10] = {0};
 
-int32_t main(void) {
+int main(void) {
     data[0] = 100;
     data[1] = 50;
     data[2] = 10;

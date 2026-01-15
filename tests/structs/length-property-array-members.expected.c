@@ -20,7 +20,7 @@ typedef struct {
     uint8_t count;
 } Dataset;
 
-uint32_t main(void) {
+int main(void) {
     Dataset data = {0};
     data.id = 12345;
     data.count = 5;

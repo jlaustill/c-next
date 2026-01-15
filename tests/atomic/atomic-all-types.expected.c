@@ -35,7 +35,7 @@ volatile uint16_t word_counter = 0;
 
 volatile uint32_t dword_counter = 0;
 
-void main(void) {
+int main(void) {
     do {
         uint8_t __old = __LDREXB(&byte_counter);
         uint8_t __new = cnx_clamp_add_u8(__old, 1);

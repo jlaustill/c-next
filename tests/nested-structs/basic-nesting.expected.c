@@ -27,7 +27,7 @@ Line segment = (Line){ .start = (Point){ .x = 0, .y = 0 }, .end = (Point){ .x = 
 
 Rectangle bounds = (Rectangle){ .topLeft = (Point){ .x = 10, .y = 20 }, .bottomRight = (Point){ .x = 110, .y = 120 } };
 
-int32_t main(void) {
+int main(void) {
     int32_t startX = segment.start.x;
     int32_t startY = segment.start.y;
     int32_t endX = segment.end.x;

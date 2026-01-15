@@ -16,7 +16,7 @@ float doubleConstF32(const float value) {
     return value * 2.0;
 }
 
-uint32_t main(void) {
+int main(void) {
     float result = readConstF32(3.14);
     if (result < 3.13) return 1;
     if (result > 3.15) return 2;

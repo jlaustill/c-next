@@ -43,6 +43,6 @@ int32_t Counter_test(void) {
     return 0;
 }
 
-uint32_t main(void) {
+int main(void) {
     return Counter_test();
 }

@@ -16,7 +16,7 @@ void moveRight(Point* p) {
     p->x = p->x + 10;
 }
 
-void main(void) {
+int main(void) {
     Point cursor = (Point){ .x = 0, .y = 0 };
     moveRight(&cursor);
 }

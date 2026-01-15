@@ -11,7 +11,7 @@ void calculateSum(int32_t* a, int32_t* b, int32_t* result) {
     (*result) = (*a) + (*b);
 }
 
-void main(void) {
+int main(void) {
     int32_t x = 10;
     int32_t y = 20;
     int32_t sum = 0;

@@ -18,7 +18,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Coverage: Section 7.4, 33.2 - for loop inside if statement
 // Tests: for loops nested inside if/else branches
-uint32_t main(void) {
+int main(void) {
     uint32_t sum = 0;
     bool condition = true;
     if (condition == true) {

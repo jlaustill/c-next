@@ -86,7 +86,7 @@ void testConsecutiveNegatives(int8_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     int8_t minVal = -128;
     int8_t minPlus1 = -127;
     int8_t midNeg = -64;

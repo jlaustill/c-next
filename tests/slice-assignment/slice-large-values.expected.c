@@ -10,7 +10,7 @@
 // Tests: Large value copies with slice assignment
 // Validates copying maximum values and large data structures
 // Ensures no truncation or overflow in memory operations
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[256] = {0};
     uint64_t maxU64 = 0xFFFFFFFFFFFFFFFF;
     if (0 + 8 <= sizeof(buffer)) { memcpy(&buffer[0], &maxU64, 8); }

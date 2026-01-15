@@ -7,7 +7,7 @@
 
 // ADR-024: Test that bit indexing allows reinterpret for sign change
 // Using [start, width] syntax to explicitly extract and reinterpret bits
-void main(void) {
+int main(void) {
     int32_t signed_val = -5;
     uint32_t as_unsigned = ((signed_val) & 0xFFFFFFFFU);
     uint32_t unsigned_val = 0xFFFFFFFF;

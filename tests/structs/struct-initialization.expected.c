@@ -12,7 +12,7 @@ typedef struct {
     int32_t y;
 } Point;
 
-void main(void) {
+int main(void) {
     Point origin = (Point){ .x = 0, .y = 0 };
     Point p = (Point){ .x = 100, .y = 200 };
 }

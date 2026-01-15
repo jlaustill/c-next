@@ -8,6 +8,6 @@
 // ADR-036: Nested initialization syntax
 uint8_t data[2][3] = {{1, 2, 3}, {4, 5, 6}};
 
-int32_t main(void) {
+int main(void) {
     return 0;
 }

@@ -18,7 +18,7 @@ static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
 /* test-execution */
 // For loop tests: i16 as loop counter
 // Tests: i16 type can be used as for-loop counter
-int16_t main(void) {
+int main(void) {
     int16_t sum = 0;
     for (int16_t i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_i16(sum, i);

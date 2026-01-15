@@ -13,7 +13,7 @@ double matrix2d[4][8] = {0};
 
 double cube3d[2][3][4] = {0};
 
-uint32_t main(void) {
+int main(void) {
     matrix2d[0][0] = 3.14159265359;
     matrix2d[0][7] = -2.71828182846;
     matrix2d[1][3] = 1000.123456789;

@@ -42,7 +42,7 @@ bool Motor_isRunning(void) {
 // Usage from outside the scope
 Motor_State externalState = Motor_State_IDLE;
 
-void main(void) {
+int main(void) {
     Motor_start();
     if (Motor_current == Motor_State_RUNNING) {
         externalState = Motor_State_STALLED;

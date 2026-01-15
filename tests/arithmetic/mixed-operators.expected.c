@@ -10,7 +10,7 @@
 // Tests: Issue #152 - Mixed operators at same precedence level
 // Validates that + and - operators are transpiled correctly in mixed expressions
 // Previously, all operators would become - if any - was present in the expression
-uint32_t main(void) {
+int main(void) {
     uint32_t result = 50 + 30 - 20 + 10;
     if (result != 70) return 1;
     result = 10 + 20 + 30 + 40;

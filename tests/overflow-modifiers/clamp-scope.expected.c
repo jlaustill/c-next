@@ -41,7 +41,7 @@ void ClampScope_reset(uint8_t* value) {
     ClampScope_brightness = (*value);
 }
 
-uint32_t main(void) {
+int main(void) {
     uint8_t val = ClampScope_getBrightness();
     if (val != 200) return 1;
     ClampScope_triggerOverflow();

@@ -44,7 +44,7 @@ void recordRetry(void) {
     retryCount = cnx_clamp_add_u8(retryCount, 1);
 }
 
-uint32_t main(void) {
+int main(void) {
     recordEvent();
     recordEvent();
     recordEvent();

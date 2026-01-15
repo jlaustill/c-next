@@ -22,7 +22,7 @@ uint32_t result = 0;
 
 uint32_t counter = 0;
 
-uint32_t main(void) {
+int main(void) {
     bool a = true;
     bool b = true;
     bool c = true;

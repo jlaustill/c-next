@@ -19,7 +19,7 @@ void multiplyValue(int32_t* value, int32_t* factor) {
     (*value) *= (*factor);
 }
 
-int32_t main(void) {
+int main(void) {
     int32_t x = 100;
     int32_t amount = 50;
     addToValue(&x, &amount);

@@ -14,7 +14,7 @@ void clearMessage(void) {
     strncpy(msg, "", 32); msg[32] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     if (strlen(msg) != 7) return 1;
     clearMessage();
     if (strlen(msg) != 0) return 2;

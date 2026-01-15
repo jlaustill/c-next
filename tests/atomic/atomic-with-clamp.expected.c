@@ -94,7 +94,7 @@ void adjustTemperature(int8_t* delta) {
     } while (1);
 }
 
-void main(void) {
+int main(void) {
     adjustBrightness(&(uint8_t){50});
     decreaseBrightness(&(uint8_t){200});
     updateVolume(&(uint16_t){1000});

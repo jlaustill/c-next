@@ -16,6 +16,6 @@ void test_const_zero_float(void) {
     result_d = ZERO_D / ZERO_D;
 }
 
-void main(void) {
+int main(void) {
     test_const_zero_float();
 }

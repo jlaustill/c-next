@@ -24,7 +24,7 @@ void recordEvent(void) {
     eventCount = cnx_clamp_add_u32(eventCount, 1);
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t i = 0;
     while (i < maxEvents) {
         recordEvent();

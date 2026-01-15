@@ -14,7 +14,7 @@ const double E = 2.71828182845905;
 
 const double ZERO = 0.0;
 
-uint32_t main(void) {
+int main(void) {
     double pi = PI_PRECISE;
     if (pi < 3.141592) return 1;
     if (pi > 3.141593) return 2;

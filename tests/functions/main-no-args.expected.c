@@ -6,6 +6,6 @@
 #include <stdint.h>
 
 // Test: main function with no arguments (embedded style)
-int32_t main(void) {
+int main(void) {
     return 0;
 }

@@ -31,7 +31,7 @@ void setLevel(uint32_t* code) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     setLevel(&(uint32_t){0});
     if (strlen(level) != 3) return 1;
     setLevel(&(uint32_t){1});

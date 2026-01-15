@@ -58,7 +58,7 @@ void executeParamBoth(ISR first, ISR second) {
     (*second)();
 }
 
-uint32_t main(void) {
+int main(void) {
     paramCallCount = 0;
     paramLastHandler = 0;
     executeParamHandler(&paramHandler1);

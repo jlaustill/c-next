@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     Point p = {0};
     p.x = 5;
     return 0;

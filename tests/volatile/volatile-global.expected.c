@@ -25,7 +25,7 @@ volatile uint8_t byte_flag = 0;
 
 volatile bool ready_flag = false;
 
-uint32_t main(void) {
+int main(void) {
     status_flag = 0x12345678;
     if (status_flag != 0x12345678) return 1;
     status_flag = 100;

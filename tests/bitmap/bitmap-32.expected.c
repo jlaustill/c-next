@@ -48,7 +48,7 @@ DeviceStatus status = 0;
 
 Configuration config = 0;
 
-uint32_t main(void) {
+int main(void) {
     ip = (ip & ~(0xFF << 0)) | ((192 & 0xFF) << 0);
     ip = (ip & ~(0xFF << 8)) | ((168 & 0xFF) << 8);
     ip = (ip & ~(0xFF << 16)) | ((1 & 0xFF) << 16);

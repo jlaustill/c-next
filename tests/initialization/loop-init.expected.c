@@ -8,7 +8,7 @@
 /* test-coverage: 26-loop-init */
 /* test-execution */
 // Tests: Variable initialization inside loops
-uint32_t main(void) {
+int main(void) {
     uint32_t sum = 0;
     for (uint32_t i = 0; i < 5; i = i + 1) {
         sum = sum + i;

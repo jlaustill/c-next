@@ -12,7 +12,7 @@ const uint16_t MAX_PORT = 65535;
 
 const uint16_t DEFAULT_PORT = 8080;
 
-uint32_t main(void) {
+int main(void) {
     uint16_t port = MAX_PORT;
     if (port != 65535) return 1;
     uint16_t defPort = DEFAULT_PORT;

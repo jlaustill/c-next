@@ -14,7 +14,7 @@ typedef struct {
 
 Buffer buf = {0};
 
-int32_t main(void) {
+int main(void) {
     buf.data[0] = 50;
     buf.data[1] = 100;
     buf.counts[0] = 1000;

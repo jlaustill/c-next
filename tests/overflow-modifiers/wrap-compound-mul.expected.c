@@ -10,7 +10,7 @@
 // Tests: wrap modifier with compound multiplication (*<-)
 // Validates multiplication overflow wraps around
 // ADR-044: Per-variable overflow semantics
-uint32_t main(void) {
+int main(void) {
     uint8_t val8 = 20;
     val8 *= 20;
     if (val8 != 144) return 1;

@@ -60,7 +60,7 @@ void testVeryLargeBinary(uint64_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint64_t v53 = 9007199254740992;
     testLargeBinaryPrecision(&v53);
     if (result != 1) return 1;

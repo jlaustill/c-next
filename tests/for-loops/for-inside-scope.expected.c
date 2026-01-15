@@ -64,7 +64,7 @@ uint32_t ArrayOps_getSum(void) {
     return ArrayOps_sum;
 }
 
-void main(void) {
+int main(void) {
     Calculator_sumToN(&(uint32_t){5});
     globalSum = Calculator_getResult();
     Calculator_factorial(&(uint32_t){5});

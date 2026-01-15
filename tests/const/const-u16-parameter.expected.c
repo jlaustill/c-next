@@ -16,7 +16,7 @@ uint16_t doubleConstU16(const uint16_t* value) {
     return (*value) * 2;
 }
 
-uint32_t main(void) {
+int main(void) {
     uint16_t result = readConstU16(&(uint16_t){1000});
     if (result != 1000) return 1;
     uint16_t maxResult = readConstU16(&(uint16_t){65535});

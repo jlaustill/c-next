@@ -17,7 +17,7 @@ void movePoint(Point* p, int32_t* dx, int32_t* dy) {
     p->y += (*dy);
 }
 
-void main(void) {
+int main(void) {
     Point origin = (Point){ .x = 0, .y = 0 };
     int32_t deltaX = 10;
     int32_t deltaY = 20;

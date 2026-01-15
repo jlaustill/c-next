@@ -72,7 +72,7 @@ void criticalInNestedLoop(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     criticalInFor();
     criticalInWhile();
     criticalInDoWhile();

@@ -31,7 +31,7 @@ void test_explicit_cast(void) {
     float small = (float)big;
 }
 
-void main(void) {
+int main(void) {
     test_int_to_float();
     test_f32_to_f64();
     test_explicit_cast();

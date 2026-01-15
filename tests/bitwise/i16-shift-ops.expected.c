@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i16 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i16 type
-uint32_t main(void) {
+int main(void) {
     int16_t a = 1;
     int16_t left1 = a << 1;
     int16_t left8 = a << 8;

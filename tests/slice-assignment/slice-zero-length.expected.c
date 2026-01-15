@@ -10,7 +10,7 @@
 // Tests: Zero-length slice assignment edge case
 // Validates that zero-length copies are no-ops
 // Buffer should remain unchanged after zero-length assignment
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[64] = {0};
     uint32_t pattern = 0x12345678;
     if (0 + 4 <= sizeof(buffer)) { memcpy(&buffer[0], &pattern, 4); }

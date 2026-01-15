@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     Priority low = PRIORITY_LOW;
     Priority med = PRIORITY_MEDIUM;
     Priority high = PRIORITY_HIGH;

@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-023: sizeof on local variables
-void main(void) {
+int main(void) {
     uint32_t counter = 0;
     uint8_t buffer[256] = {0};
     uint32_t counterSize = sizeof(counter);

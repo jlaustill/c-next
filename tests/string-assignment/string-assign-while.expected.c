@@ -18,7 +18,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Issue #139: Test string assignment inside while loop
 char current[17] = "";
 
-uint32_t main(void) {
+int main(void) {
     uint32_t count = 0;
     while (count < 3) {
         strncpy(current, "Loop", 16); current[16] = '\0';

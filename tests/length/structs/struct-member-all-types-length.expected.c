@@ -75,7 +75,7 @@ uint32_t checkParamStructMembers(AllTypes* param) {
     return 0;
 }
 
-int32_t main(void) {
+int main(void) {
     globalStruct.u8Field = 42;
     globalStruct.u16Field = 1000;
     globalStruct.u32Field = 100000;

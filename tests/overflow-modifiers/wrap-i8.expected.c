@@ -9,7 +9,7 @@
 // Tests: wrap modifier for i8 type (-128 to 127)
 // Validates: overflow wraps to -128, underflow wraps to 127
 // Issue #19: Add wrap modifier tests for all integer types
-uint32_t main(void) {
+int main(void) {
     int8_t val = 127;
     val += 1;
     if (val != -128) return 1;

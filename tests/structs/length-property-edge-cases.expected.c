@@ -43,7 +43,7 @@ uint32_t testParam(AllTypes* data) {
     return 0;
 }
 
-uint32_t main(void) {
+int main(void) {
     AllTypes data = {0};
     data.field_u8 = 1;
     data.field_u16 = 2;

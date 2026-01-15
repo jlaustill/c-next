@@ -26,7 +26,7 @@ static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
 // Tests: clamp modifier for i8 type (-128 to 127)
 // Validates overflow clamps to 127, underflow clamps to -128
 // ADR-044: Per-variable overflow semantics
-uint32_t main(void) {
+int main(void) {
     int8_t val = 100;
     val = cnx_clamp_add_i8(val, 50);
     if (val != 127) return 1;

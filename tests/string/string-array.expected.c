@@ -20,7 +20,7 @@ uint32_t getElementLength(char arr[5][33], uint32_t* index) {
     return strlen(arr[(*index)]);
 }
 
-int32_t main(void) {
+int main(void) {
     strncpy(globalNames[0], "Alice", 32);
     strncpy(globalNames[1], "Bob", 32);
     strncpy(globalNames[2], "Charlie", 32);

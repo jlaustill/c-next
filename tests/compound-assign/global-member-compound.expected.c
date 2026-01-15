@@ -131,7 +131,7 @@ int32_t Worker_testRightShift(void) {
     return 0;
 }
 
-uint32_t main(void) {
+int main(void) {
     int32_t result = 0;
     result = Worker_testSubtraction();
     if (result != 0) return result;

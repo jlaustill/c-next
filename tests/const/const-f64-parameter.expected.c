@@ -16,7 +16,7 @@ double squareConstF64(const double value) {
     return value * value;
 }
 
-uint32_t main(void) {
+int main(void) {
     double result = readConstF64(3.14159265);
     if (result < 3.14159) return 1;
     if (result > 3.1416) return 2;

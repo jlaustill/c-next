@@ -10,7 +10,7 @@
 // Tests: Runtime bounds checking for slice assignment
 // Validates that out-of-bounds copies are prevented
 // Buffer should remain unchanged when bounds are violated
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[32] = {0};
     uint32_t pattern = 0x11111111;
     if (0 + 4 <= sizeof(buffer)) { memcpy(&buffer[0], &pattern, 4); }

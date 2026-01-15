@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i8 comparison operations
 // Coverage: Section 3.1-3.6 for i8 type
-uint32_t main(void) {
+int main(void) {
     int8_t a = 50;
     int8_t b = 30;
     int8_t c = 50;

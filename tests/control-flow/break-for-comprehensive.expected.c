@@ -17,7 +17,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Tests: comprehensive break scenarios in for loops
 // Validates: various break patterns and edge cases
-uint32_t main(void) {
+int main(void) {
     uint32_t breakPoint = 0;
     for (uint32_t i = 0; i < 100; i += 1) {
         if (i == 25) {

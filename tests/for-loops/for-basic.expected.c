@@ -16,7 +16,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // For loop tests: Basic for loop
 // Tests: standard for loop with all three parts
-uint32_t main(void) {
+int main(void) {
     uint32_t sum = 0;
     for (uint32_t i = 0; i < 10; i = i + 1) {
         sum = cnx_clamp_add_u32(sum, i);

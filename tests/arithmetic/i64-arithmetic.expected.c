@@ -8,7 +8,7 @@
 /* test-execution */
 // Test i64 arithmetic operations
 // Coverage: Section 4.1-4.5 for i64 type
-uint32_t main(void) {
+int main(void) {
     int64_t a = 5000000000;
     int64_t b = 3000000000;
     int64_t sum = a + b;
