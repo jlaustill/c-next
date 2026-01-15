@@ -3,7 +3,7 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
-import { CommonTokenStream } from "antlr4ng";
+import { CommonTokenStream, ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "../parser/grammar/CNextParser";
 import SymbolTable from "../symbols/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
@@ -6566,15 +6566,15 @@ export default class CodeGenerator {
     }
 
     // Build the expression, transforming = to ==
+    // Issue #152: Extract operators in order from parse tree children
+    const operators = this.getOperatorsFromChildren(ctx);
     let result = this.generateRelationalExpr(exprs[0]);
 
-    // Get the full text to find operators
-    const fullText = ctx.getText();
-
     for (let i = 1; i < exprs.length; i++) {
-      // Check if there's a != operator before this expression
-      // Simple heuristic: look for != in the text
-      const op = fullText.includes("!=") ? "!=" : "==";
+      // ADR-001: C-Next uses = for equality, transpile to ==
+      // C-Next uses != for inequality, keep as !=
+      const rawOp = operators[i - 1] || "=";
+      const op = rawOp === "=" ? "==" : rawOp;
       result += ` ${op} ${this.generateRelationalExpr(exprs[i])}`;
     }
 
@@ -6589,15 +6589,12 @@ export default class CodeGenerator {
       return this.generateBitwiseOrExpr(exprs[0]);
     }
 
+    // Issue #152: Extract operators in order from parse tree children
+    const operators = this.getOperatorsFromChildren(ctx);
     let result = this.generateBitwiseOrExpr(exprs[0]);
-    const text = ctx.getText();
 
     for (let i = 1; i < exprs.length; i++) {
-      let op = "<";
-      if (text.includes(">=")) op = ">=";
-      else if (text.includes("<=")) op = "<=";
-      else if (text.includes(">")) op = ">";
-
+      const op = operators[i - 1] || "<";
       result += ` ${op} ${this.generateBitwiseOrExpr(exprs[i])}`;
     }
 
@@ -6635,14 +6632,15 @@ export default class CodeGenerator {
       return this.generateAdditiveExpr(exprs[0]);
     }
 
+    // Issue #152: Extract operators in order from parse tree children
+    const operators = this.getOperatorsFromChildren(ctx);
     let result = this.generateAdditiveExpr(exprs[0]);
-    const text = ctx.getText();
 
     // Get type of left operand for shift validation
     const leftType = this.getAdditiveExpressionType(exprs[0]);
 
     for (let i = 1; i < exprs.length; i++) {
-      const op = text.includes("<<") ? "<<" : ">>";
+      const op = operators[i - 1] || "<<";
       const rightExpr = exprs[i];
 
       // Validate shift amount if we can determine the left operand type
@@ -6857,19 +6855,36 @@ export default class CodeGenerator {
     return this.getUnaryExpressionType(unaryExprs[0]);
   }
 
+  /**
+   * Extracts binary operators from a parse tree context in order.
+   * Issue #152: Fixes bug where mixed operators (e.g., + and -) were incorrectly
+   * detected using text.includes() which would use the same operator for all positions.
+   *
+   * @param ctx The parser rule context containing operands and operators as children
+   * @returns Array of operator strings in the order they appear
+   */
+  private getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+    const operators: string[] = [];
+    for (const child of ctx.children) {
+      if (child instanceof TerminalNode) {
+        operators.push(child.getText());
+      }
+    }
+    return operators;
+  }
+
   private generateAdditiveExpr(ctx: Parser.AdditiveExpressionContext): string {
     const exprs = ctx.multiplicativeExpression();
     if (exprs.length === 1) {
       return this.generateMultiplicativeExpr(exprs[0]);
     }
 
-    // Need to get operators - for now use simple approach
+    // Issue #152: Extract operators in order from parse tree children
+    const operators = this.getOperatorsFromChildren(ctx);
     let result = this.generateMultiplicativeExpr(exprs[0]);
-    const text = ctx.getText();
 
     for (let i = 1; i < exprs.length; i++) {
-      // Simple heuristic to determine operator
-      const op = text.includes("-") ? "-" : "+";
+      const op = operators[i - 1] || "+";
       result += ` ${op} ${this.generateMultiplicativeExpr(exprs[i])}`;
     }
 
@@ -6884,13 +6899,12 @@ export default class CodeGenerator {
       return this.generateUnaryExpr(exprs[0]);
     }
 
+    // Issue #152: Extract operators in order from parse tree children
+    const operators = this.getOperatorsFromChildren(ctx);
     let result = this.generateUnaryExpr(exprs[0]);
-    const text = ctx.getText();
 
     for (let i = 1; i < exprs.length; i++) {
-      let op = "*";
-      if (text.includes("/")) op = "/";
-      else if (text.includes("%")) op = "%";
+      const op = operators[i - 1] || "*";
       result += ` ${op} ${this.generateUnaryExpr(exprs[i])}`;
     }
 

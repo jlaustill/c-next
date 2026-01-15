@@ -1,0 +1,134 @@
+/* test-coverage: issue-152-mixed-operators */
+/* test-execution */
+// Tests: Issue #152 - Mixed operators at same precedence level
+// Validates that + and - operators are transpiled correctly in mixed expressions
+// Previously, all operators would become - if any - was present in the expression
+
+u32 main() {
+    // =====================================================
+    // ADDITIVE OPERATORS (+ and -)
+    // =====================================================
+
+    // Basic mixed add/sub - the original bug case
+    u32 result <- 50 + 30 - 20 + 10;  // 50+30=80, 80-20=60, 60+10=70
+    if (result != 70) return 1;
+
+    // All additions (control case)
+    result <- 10 + 20 + 30 + 40;  // = 100
+    if (result != 100) return 2;
+
+    // All subtractions (control case)
+    result <- 100 - 10 - 20 - 30;  // = 40
+    if (result != 40) return 3;
+
+    // Alternating + and -
+    result <- 100 + 50 - 30 + 20 - 10;  // 100+50=150, 150-30=120, 120+20=140, 140-10=130
+    if (result != 130) return 4;
+
+    // Starting with subtraction pattern
+    result <- 200 - 50 + 30 - 10 + 5;  // 200-50=150, 150+30=180, 180-10=170, 170+5=175
+    if (result != 175) return 5;
+
+    // =====================================================
+    // MULTIPLICATIVE OPERATORS (* and /)
+    // =====================================================
+
+    // Basic mixed mul/div - also affected by issue #152
+    result <- 100 * 2 / 4 * 3;  // 100*2=200, 200/4=50, 50*3=150
+    if (result != 150) return 6;
+
+    // All multiplications (control case)
+    result <- 2 * 3 * 4 * 5;  // = 120
+    if (result != 120) return 7;
+
+    // All divisions (control case)
+    result <- 1000 / 2 / 5 / 10;  // 1000/2=500, 500/5=100, 100/10=10
+    if (result != 10) return 8;
+
+    // Alternating * and /
+    result <- 24 * 2 / 3 * 5 / 4;  // 24*2=48, 48/3=16, 16*5=80, 80/4=20
+    if (result != 20) return 9;
+
+    // Division first, then multiplication
+    result <- 100 / 5 * 3 / 2 * 4;  // 100/5=20, 20*3=60, 60/2=30, 30*4=120
+    if (result != 120) return 10;
+
+    // =====================================================
+    // MULTIPLICATIVE WITH MODULO (*, /, %)
+    // =====================================================
+
+    // Mix of all three multiplicative operators
+    result <- 100 * 3 % 17 * 2;  // 100*3=300, 300%17=11, 11*2=22
+    if (result != 22) return 11;
+
+    // Division and modulo mix
+    result <- 100 / 3 % 10 * 2;  // 100/3=33, 33%10=3, 3*2=6
+    if (result != 6) return 12;
+
+    // All three operators in sequence
+    result <- 50 * 4 / 10 % 7;  // 50*4=200, 200/10=20, 20%7=6
+    if (result != 6) return 13;
+
+    // =====================================================
+    // SHIFT OPERATORS (<< and >>)
+    // =====================================================
+
+    // Mixed shift operators
+    result <- 1 << 4 >> 2 << 1;  // 1<<4=16, 16>>2=4, 4<<1=8
+    if (result != 8) return 14;
+
+    // All left shifts (control case)
+    result <- 1 << 1 << 1 << 1;  // = 8
+    if (result != 8) return 15;
+
+    // All right shifts (control case)
+    result <- 64 >> 1 >> 1 >> 1;  // = 8
+    if (result != 8) return 16;
+
+    // Alternating shifts
+    result <- 2 << 3 >> 1 << 2 >> 2;  // 2<<3=16, 16>>1=8, 8<<2=32, 32>>2=8
+    if (result != 8) return 17;
+
+    // =====================================================
+    // COMBINED PRECEDENCE TESTS
+    // =====================================================
+
+    // Add/sub with mul/div (precedence test)
+    result <- 10 + 5 * 4 - 8 / 2;  // 10 + 20 - 4 = 26
+    if (result != 26) return 18;
+
+    // Complex mixed expression
+    result <- 100 - 20 + 5 * 3 - 10 / 2;  // 100 - 20 + 15 - 5 = 90
+    if (result != 90) return 19;
+
+    // With parentheses to force evaluation order
+    result <- (50 + 30) * 2 - (40 - 10);  // 80 * 2 - 30 = 160 - 30 = 130
+    if (result != 130) return 20;
+
+    // =====================================================
+    // EDGE CASES WITH ZERO
+    // =====================================================
+
+    // Zero in mixed expression
+    result <- 10 + 0 - 5 + 0;  // = 5
+    if (result != 5) return 21;
+
+    // Zero multiplication in mixed
+    result <- 10 * 0 / 1 + 5;  // 0 / 1 + 5 = 5
+    if (result != 5) return 22;
+
+    // =====================================================
+    // LARGER VALUES (64-bit)
+    // =====================================================
+
+    u64 big <- 1000000000000 + 500000000000 - 200000000000 + 100000000000;
+    // 1000000000000 + 500000000000 = 1500000000000
+    // 1500000000000 - 200000000000 = 1300000000000
+    // 1300000000000 + 100000000000 = 1400000000000
+    if (big != 1400000000000) return 23;
+
+    big <- 1000000000000 * 2 / 4 * 3;  // 2000000000000 / 4 * 3 = 500000000000 * 3 = 1500000000000
+    if (big != 1500000000000) return 24;
+
+    return 0;
+}

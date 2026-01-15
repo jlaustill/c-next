@@ -39,7 +39,7 @@ void process(void) {
 // In arithmetic expression
 void arithmetic(void) {
     float x = 10.0;
-    float y = x - 5.0 - 2.0;
+    float y = x + 5.0 - 2.0;
 }
 
 // In comparison
