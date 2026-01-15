@@ -3,33 +3,6 @@
  * A safer C for embedded systems
  */
 
-// blink.cnx - LED Blink for Teensy 4.x (Scoped Register Demo)
-// Target: Teensy 4.x (NXP i.MX RT1062)
-// Built-in LED is on GPIO7, bit 3 (Arduino pin 13)
-//
-// Compile: cnx blink.cnx -o blink.c
-// Then use with Arduino/PlatformIO
-//
-// This example demonstrates SCOPED REGISTERS (ADR-016) with separation of concerns:
-//
-// Architecture:
-//   scope Teensy4 { ... }  - Platform layer: registers, bitmaps, enums, constants
-//   scope LED { ... }      - Application layer: high-level LED control functions
-//   global                 - Sketch config: BLINK_DELAY_MS, setup(), loop()
-//
-// Cross-scope access:
-//   LED.toggle()                                        - Call application function
-//   Teensy4.GPIO7.DataRegister_Set.LED_BUILTIN <- true  - Access platform register
-//
-// Why scoped registers?
-// - Avoids conflicts with HAL headers (Teensy's imxrt.h defines GPIO7_DR)
-// - Groups platform-specific types, registers, constants together
-// - Enables multi-platform codebases with clear organization
-//
-// See docs/README.md for GPIO7 pin mapping and register documentation.
-// =============================================================================
-// Includes - C-Next passes these through to generated C
-// =============================================================================
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -37,11 +10,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// =============================================================================
-// Teensy 4.x Platform Scope
-// =============================================================================
-// All platform-specific definitions are scoped to avoid HAL conflicts.
-// Generates: Teensy4_GPIO7_DR, Teensy4_GPIO7Pins, Teensy4_InterruptType, etc.
 /* Scope: Teensy4 */
 
 /* Bitmap: Teensy4_GPIO7Pins */
@@ -129,22 +97,18 @@ uint8_t Teensy4_doSomething(void) {
     uint8_t nextByte = someByte;
 }
 
-// =============================================================================
-// LED Control (Application-level, not platform-specific)
-// =============================================================================
-// LED functions use the Teensy4 platform scope for hardware access.
 /* Scope: LED */
 
 void LED_on(void) {
-    Teensy4_GPIO7_DataRegister_Set = ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_DataRegister_Set_LED_BUILTIN = true;
 }
 
 void LED_off(void) {
-    Teensy4_GPIO7_DataRegister_Clear = ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_DataRegister_Clear_LED_BUILTIN = true;
 }
 
 void LED_toggle(void) {
-    Teensy4_GPIO7_DataRegister_Toggle = ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_DataRegister_Toggle_LED_BUILTIN = true;
 }
 
 bool LED_isOn(void) {
@@ -152,22 +116,16 @@ bool LED_isOn(void) {
 }
 
 void LED_configureInterrupt(void) {
-    Teensy4_GPIO7_InterruptConfig1 = (Teensy4_GPIO7_InterruptConfig1 & ~(0x3 << 6)) | (((uint8_t)Teensy4_InterruptType_RISING_EDGE & 0x3) << 6);
-    Teensy4_GPIO7_InterruptMaskRegister = (Teensy4_GPIO7_InterruptMaskRegister & ~(1 << 3)) | ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_InterruptConfig1_LED_BUILTIN = (uint8_t)Teensy4_InterruptType_RISING_EDGE;
+    Teensy4_GPIO7_InterruptMaskRegister_LED_BUILTIN = true;
 }
 
 void LED_clearInterrupt(void) {
-    Teensy4_GPIO7_InterruptStatus = (Teensy4_GPIO7_InterruptStatus & ~(1 << 3)) | ((true ? 1 : 0) << 3);
+    Teensy4_GPIO7_InterruptStatus_LED_BUILTIN = true;
 }
 
-// =============================================================================
-// Sketch Configuration (user-level, not platform-specific)
-// =============================================================================
 const uint32_t BLINK_DELAY_MS = 1000;
 
-// =============================================================================
-// Arduino Entry Points
-// =============================================================================
 void setup(void) {
     pinMode(LED_BUILTIN, OUTPUT);
 }

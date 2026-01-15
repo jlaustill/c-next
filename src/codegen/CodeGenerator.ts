@@ -5975,6 +5975,8 @@ export default class CodeGenerator {
       (primaryParamInfo?.isArray ? 1 : 0);
     // Track how many dimensions we've subscripted (arr[0] -> depth 1, arr[0][1] -> depth 2)
     let subscriptDepth = 0;
+    // ADR-016: Track if we're in a global. access chain (skips scope/enum/register validation)
+    let isGlobalAccess = false;
 
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
@@ -5987,6 +5989,7 @@ export default class CodeGenerator {
         if (result === "__GLOBAL_PREFIX__") {
           result = memberName;
           currentIdentifier = memberName; // Track for .length lookups
+          isGlobalAccess = true; // Mark that we're in a global access chain
           // Check if this first identifier is a register
           if (this.symbols!.knownRegisters.has(memberName)) {
             isRegisterChain = true;
@@ -6220,17 +6223,20 @@ export default class CodeGenerator {
           }
           // Check if this is a scope member access: Scope.member (ADR-016)
           else if (this.symbols!.knownScopes.has(result)) {
-            // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
-            if (result === this.context.currentScope) {
-              throw new Error(
-                `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
-              );
-            }
-            // ADR-016: Inside a scope, accessing another scope requires global. prefix
-            if (this.context.currentScope) {
-              throw new Error(
-                `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
-              );
+            // ADR-016: Skip validation if we're already in a global. access chain
+            if (!isGlobalAccess) {
+              // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
+              if (result === this.context.currentScope) {
+                throw new Error(
+                  `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
+                );
+              }
+              // ADR-016: Inside a scope, accessing another scope requires global. prefix
+              if (this.context.currentScope) {
+                throw new Error(
+                  `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
+                );
+              }
             }
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
@@ -6250,13 +6256,16 @@ export default class CodeGenerator {
             // ADR-016: Inside a scope, accessing global enum requires global. prefix
             // Exception: if the enum belongs to the current scope (e.g., Motor_State in Motor scope),
             // it's a scoped enum and access is allowed (via this.State transformation)
-            const belongsToCurrentScope =
-              this.context.currentScope &&
-              result.startsWith(this.context.currentScope + "_");
-            if (this.context.currentScope && !belongsToCurrentScope) {
-              throw new Error(
-                `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
-              );
+            // Also skip if we're already in a global. access chain
+            if (!isGlobalAccess) {
+              const belongsToCurrentScope =
+                this.context.currentScope &&
+                result.startsWith(this.context.currentScope + "_");
+              if (this.context.currentScope && !belongsToCurrentScope) {
+                throw new Error(
+                  `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
+                );
+              }
             }
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
@@ -6266,13 +6275,16 @@ export default class CodeGenerator {
             // ADR-016: Inside a scope, accessing global register requires global. prefix
             // Exception: if the register belongs to the current scope (e.g., Motor_GPIO in Motor scope),
             // it's a scoped register and access is allowed (via this. transformation)
-            const registerBelongsToCurrentScope =
-              this.context.currentScope &&
-              result.startsWith(this.context.currentScope + "_");
-            if (this.context.currentScope && !registerBelongsToCurrentScope) {
-              throw new Error(
-                `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
-              );
+            // Also skip if we're already in a global. access chain
+            if (!isGlobalAccess) {
+              const registerBelongsToCurrentScope =
+                this.context.currentScope &&
+                result.startsWith(this.context.currentScope + "_");
+              if (this.context.currentScope && !registerBelongsToCurrentScope) {
+                throw new Error(
+                  `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
+                );
+              }
             }
             // ADR-013: Check for write-only register members (wo = cannot read)
             const fullName = `${result}_${memberName}`;
@@ -6431,17 +6443,20 @@ export default class CodeGenerator {
               }
             }
           } else if (this.symbols!.knownScopes.has(result)) {
-            // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
-            if (result === this.context.currentScope) {
-              throw new Error(
-                `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
-              );
-            }
-            // ADR-016: Inside a scope, accessing another scope requires global. prefix
-            if (this.context.currentScope) {
-              throw new Error(
-                `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
-              );
+            // ADR-016: Skip validation if we're already in a global. access chain
+            if (!isGlobalAccess) {
+              // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
+              if (result === this.context.currentScope) {
+                throw new Error(
+                  `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
+                );
+              }
+              // ADR-016: Inside a scope, accessing another scope requires global. prefix
+              if (this.context.currentScope) {
+                throw new Error(
+                  `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
+                );
+              }
             }
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
@@ -6449,26 +6464,32 @@ export default class CodeGenerator {
           } else if (this.symbols!.knownEnums.has(result)) {
             // ADR-016: Inside a scope, accessing global enum requires global. prefix
             // Exception: if the enum belongs to the current scope, access is allowed
-            const enumBelongsToCurrentScope =
-              this.context.currentScope &&
-              result.startsWith(this.context.currentScope + "_");
-            if (this.context.currentScope && !enumBelongsToCurrentScope) {
-              throw new Error(
-                `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
-              );
+            // Also skip if we're already in a global. access chain
+            if (!isGlobalAccess) {
+              const enumBelongsToCurrentScope =
+                this.context.currentScope &&
+                result.startsWith(this.context.currentScope + "_");
+              if (this.context.currentScope && !enumBelongsToCurrentScope) {
+                throw new Error(
+                  `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
+                );
+              }
             }
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
           } else if (this.symbols!.knownRegisters.has(result)) {
             // ADR-016: Inside a scope, accessing global register requires global. prefix
             // Exception: if the register belongs to the current scope, access is allowed
-            const registerBelongsToCurrentScope =
-              this.context.currentScope &&
-              result.startsWith(this.context.currentScope + "_");
-            if (this.context.currentScope && !registerBelongsToCurrentScope) {
-              throw new Error(
-                `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
-              );
+            // Also skip if we're already in a global. access chain
+            if (!isGlobalAccess) {
+              const registerBelongsToCurrentScope =
+                this.context.currentScope &&
+                result.startsWith(this.context.currentScope + "_");
+              if (this.context.currentScope && !registerBelongsToCurrentScope) {
+                throw new Error(
+                  `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
+                );
+              }
             }
             // Transform Register.member to Register_member (matching #define)
             result = `${result}_${memberName}`;
