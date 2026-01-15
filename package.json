@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx scripts/test.ts",
     "test:cli": "node scripts/test-cli.js",
+    "test:q": "tsx scripts/test.ts -q",
     "test:update": "tsx scripts/test.ts --update",
     "analyze": "./scripts/static-analysis.sh",
     "clean": "rm -rf src/parser",
