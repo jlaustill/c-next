@@ -32,7 +32,7 @@ typedef uint16_t ControlFlags;
 #define MOTOR_CONTROL (*(volatile ControlFlags*)(0x40001000 + 0x04))
 #define MOTOR_DATA (*(volatile uint32_t*)(0x40001000 + 0x08))
 
-void main(void) {
+int main(void) {
     MOTOR_STATUS = (MOTOR_STATUS & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     MOTOR_STATUS = (MOTOR_STATUS & ~(1 << 1)) | ((false ? 1 : 0) << 1);
     MOTOR_STATUS = (MOTOR_STATUS & ~(0x7 << 2)) | ((5 & 0x7) << 2);

@@ -9,7 +9,7 @@
 /* test-execution */
 // ADR-045: Test chained/nested string operations
 // Validates: operations on results of other operations
-int32_t main(void) {
+int main(void) {
     char a[33] = "Hello";
     char b[33] = " World";
     char concat[65] = "";

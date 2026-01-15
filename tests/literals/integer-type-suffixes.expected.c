@@ -9,7 +9,7 @@
 /* test-execution */
 // Tests: Integer literal suffixes for explicit type specification
 // Validates decimal, hex, and binary formats with u8/u16/u32/i8/i16/i32 suffixes
-uint32_t main(void) {
+int main(void) {
     uint8_t u8_dec = 42;
     if (u8_dec != 42) return 1;
     uint8_t u8_hex = 0xFF;

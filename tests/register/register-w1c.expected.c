@@ -33,7 +33,7 @@ void clearSingleBit(uint8_t* bit) {
     INT_STATUS = (1 << (*bit));
 }
 
-void main(void) {
+int main(void) {
     clearInterrupt(&(uint32_t){0x01});
     clearInterrupt(&(uint32_t){0xFF});
     clearPendingIRQ(&(uint8_t){5});

@@ -26,7 +26,7 @@ Point points[4] = {0};
 
 Line lines[2] = {0};
 
-void main(void) {
+int main(void) {
     lines[0].start.x = 10;
     lines[0].start.y = 20;
     lines[0].end.x = 30;

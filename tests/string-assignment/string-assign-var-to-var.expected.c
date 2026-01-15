@@ -16,7 +16,7 @@ void copyString(void) {
     strncpy(dest, source, 64); dest[64] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     copyString();
     if (strlen(dest) != 8) return 1;
     strncpy(source, "NewValue", 64); source[64] = '\0';

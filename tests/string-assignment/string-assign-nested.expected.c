@@ -40,7 +40,7 @@ void mixedNest(uint32_t* count) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     deepNest(&(uint32_t){3});
     if (strlen(nested) != 8) return 1;
     mixedNest(&(uint32_t){1});

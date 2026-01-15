@@ -12,7 +12,7 @@
 #define PERIPH_STATUS (*(volatile uint32_t const *)(0x50000000 + 0x04))
 #define PERIPH_CMD (*(volatile uint32_t*)(0x50000000 + 0x08))
 
-void main(void) {
+int main(void) {
     PERIPH_CTRL = 0x01;
     uint32_t ctrl = PERIPH_CTRL;
     uint32_t status = PERIPH_STATUS;

@@ -13,7 +13,7 @@ void swap(int32_t* a, int32_t* b) {
     (*b) = temp;
 }
 
-void main(void) {
+int main(void) {
     int32_t x = 5;
     int32_t y = 10;
     swap(&x, &y);

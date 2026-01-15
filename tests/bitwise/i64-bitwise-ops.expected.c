@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i64 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i64 type
-uint32_t main(void) {
+int main(void) {
     int64_t a = 0x7FFFFFFF00000000;
     int64_t b = 0x5555555555555555;
     int64_t and_result = a & b;

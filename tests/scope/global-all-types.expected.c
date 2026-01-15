@@ -97,7 +97,7 @@ void GlobalAccessTest_setGlobalF64(double val) {
     globalF64 = val;
 }
 
-int32_t main(void) {
+int main(void) {
     if (GlobalAccessTest_getGlobalU8() != 255) {
         return 1;
     }

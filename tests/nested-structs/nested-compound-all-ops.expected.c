@@ -32,7 +32,7 @@ typedef struct {
 
 Outer o = {0};
 
-int32_t main(void) {
+int main(void) {
     o.middle.inner.add_val = 100;
     o.middle.inner.sub_val = 50;
     o.middle.inner.mul_val = 10;

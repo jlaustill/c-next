@@ -170,7 +170,7 @@ void ModifierCombos_adjustAllWrap(void) {
     ModifierCombos_decrementPrivateWrapByte();
 }
 
-void main(void) {
+int main(void) {
     ModifierCombos_getMaxBrightness();
     ModifierCombos_getMaxSensor();
     ModifierCombos_getMinTemp();

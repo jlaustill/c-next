@@ -7,7 +7,7 @@
 
 // For loop tests: Array iteration with .length
 // Tests: using array .length property for loop bounds
-void main(void) {
+int main(void) {
     uint8_t buffer[16] = {0};
     buffer[0] = 0;
     for (uint32_t i = 0; i < 16; i = i + 1) {

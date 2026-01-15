@@ -16,7 +16,7 @@ const char EMPTY_CONST[1] = "";
 
 const char LONG_CONST[45] = "This is a longer constant string for testing";
 
-int32_t main(void) {
+int main(void) {
     if (strlen(VERSION) != 5) return 1;
     if (strcmp(VERSION, "1.0.0") != 0) return 2;
     if (5 != 5) return 3;

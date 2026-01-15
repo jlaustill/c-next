@@ -72,7 +72,7 @@ void subtractFromTick8(uint8_t* delta) {
     } while (1);
 }
 
-void main(void) {
+int main(void) {
     incrementTicks();
     nextSequence();
     nextFrame();

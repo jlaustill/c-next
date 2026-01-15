@@ -19,7 +19,7 @@ int16_t absConstI16(const int16_t* value) {
     return (*value);
 }
 
-uint32_t main(void) {
+int main(void) {
     int16_t result = readConstI16(&(int16_t){10000});
     if (result != 10000) return 1;
     int16_t negResult = readConstI16(&(int16_t){-5000});

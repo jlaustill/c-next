@@ -26,7 +26,7 @@ bool isPositive(int32_t* n) {
     return false;
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t zero = 0;
     uint32_t hundred = 100;
     uint32_t fifty = 50;

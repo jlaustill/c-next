@@ -24,7 +24,7 @@ Point origin = {0};
 
 Config settings = {0};
 
-uint32_t main(void) {
+int main(void) {
     if (origin.x == 0 && origin.y == 0) {
         if (settings.baudRate == 0 && settings.dataBits == 0 && settings.enabled == false) {
             return 0;

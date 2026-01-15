@@ -34,7 +34,7 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -2147483648 to 2147483647
-uint32_t main(void) {
+int main(void) {
     int32_t val = 1000000000;
     val = cnx_clamp_add_i32(val, 500000000);
     if (val != 1500000000) return 1;

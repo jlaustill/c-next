@@ -23,7 +23,7 @@ void clear(void) {
     strncpy(messageBuffer, "", 64); messageBuffer[64] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     reset();
     if (strlen(messageBuffer) != 6) return 1;
     setToHello();

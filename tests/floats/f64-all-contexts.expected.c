@@ -53,7 +53,7 @@ double min(double a, double b) {
     return (a < b) ? a : b;
 }
 
-void main(void) {
+int main(void) {
     calculate();
     arithmetic();
     compare();

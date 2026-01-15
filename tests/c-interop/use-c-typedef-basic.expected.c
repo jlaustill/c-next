@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     byte_t b = 255;
     if (b != 255) return 1;
     word_t w = 65535;

@@ -12,7 +12,7 @@ const uint16_t MAX_ADC = 4095;
 
 const uint16_t THRESHOLD = 2048;
 
-uint32_t main(void) {
+int main(void) {
     uint16_t maxAdc = MAX_ADC;
     if (maxAdc != 4095) return 1;
     uint16_t thresh = THRESHOLD;

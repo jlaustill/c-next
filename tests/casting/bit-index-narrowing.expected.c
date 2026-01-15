@@ -7,7 +7,7 @@
 
 // ADR-024: Test that bit indexing allows safe narrowing
 // Using [start, width] syntax to explicitly extract bits
-void main(void) {
+int main(void) {
     uint32_t large = 0xDEADBEEF;
     uint8_t low_byte = ((large) & 0xFFU);
     uint8_t high_byte = ((large >> 24) & 0xFFU);

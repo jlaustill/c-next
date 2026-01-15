@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 // ADR-023: sizeof on primitive types
-void main(void) {
+int main(void) {
     uint32_t intSize = sizeof(uint32_t);
     uint32_t ptrSize = sizeof(uint64_t);
     uint32_t byteSize = sizeof(uint8_t);

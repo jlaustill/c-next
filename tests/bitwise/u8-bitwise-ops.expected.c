@@ -9,7 +9,7 @@
 /* test-execution */
 // Test u8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u8 type
-uint32_t main(void) {
+int main(void) {
     uint8_t a = 0b11110000;
     uint8_t b = 0b10101010;
     uint8_t and_result = a & b;

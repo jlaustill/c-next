@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i64 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i64 type
-uint32_t main(void) {
+int main(void) {
     int64_t a = 1;
     int64_t left1 = a << 1;
     int64_t left32 = a << 32;

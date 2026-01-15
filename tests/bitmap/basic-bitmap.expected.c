@@ -22,7 +22,7 @@ typedef uint8_t MotorFlags;
 // Variable declaration
 MotorFlags flags = 0;
 
-void main(void) {
+int main(void) {
     flags = (flags & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     flags = (flags & ~(1 << 1)) | ((false ? 1 : 0) << 1);
     flags = (flags & ~(1 << 2)) | ((true ? 1 : 0) << 2);

@@ -28,7 +28,7 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: 0 to 65535
-uint32_t main(void) {
+int main(void) {
     uint16_t val = 30000;
     val = cnx_clamp_add_u16(val, 20000);
     if (val != 50000) return 1;

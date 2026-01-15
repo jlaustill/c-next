@@ -16,7 +16,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Coverage: Section 7.4 - for loop with compound update
 // Tests: for loops using compound assignment operators in update
-uint32_t main(void) {
+int main(void) {
     uint32_t sum = 0;
     uint32_t i = 0;
     sum = 0;

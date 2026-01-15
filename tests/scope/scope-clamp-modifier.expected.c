@@ -130,7 +130,7 @@ void ClampTest_setSensorValue(uint16_t* val) {
     ClampTest_sensorValue = (*val);
 }
 
-uint32_t main(void) {
+int main(void) {
     if (ClampTest_getBrightness() != 200) return 1;
     if (ClampTest_getSensorValue() != 60000) return 2;
     if (ClampTest_getCounter() != 4000000000) return 3;

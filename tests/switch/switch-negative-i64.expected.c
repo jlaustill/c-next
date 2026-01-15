@@ -104,7 +104,7 @@ void testI64Hex(int64_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     int64_t minSafe = -9007199254740991;
     int64_t negQuad = -1000000000000000;
     int64_t negTrillion = -1000000000000;

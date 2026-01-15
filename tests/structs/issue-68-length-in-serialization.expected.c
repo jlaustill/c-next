@@ -13,7 +13,7 @@ typedef struct {
     uint8_t version;
 } Config;
 
-uint32_t main(void) {
+int main(void) {
     Config config = {0};
     config.magic = 0x12345678;
     config.version = 0x42;

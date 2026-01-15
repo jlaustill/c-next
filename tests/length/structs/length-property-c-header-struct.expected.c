@@ -20,7 +20,7 @@ typedef struct {
     uint64_t timestamp;
 } CNextConfig;
 
-int32_t main(void) {
+int main(void) {
     CNextConfig localCfg = {0};
     localCfg.magic = 0x11111111;
     localCfg.version = 10;

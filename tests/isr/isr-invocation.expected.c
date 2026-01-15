@@ -43,7 +43,7 @@ void invokeHandler3(void) {
 // Global ISR variable
 ISR globalHandler = invokeHandler1;
 
-uint32_t main(void) {
+int main(void) {
     invokeCallCount = 0;
     invokeLastHandler = 0;
     globalHandler();

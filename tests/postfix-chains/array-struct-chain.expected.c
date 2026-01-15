@@ -37,7 +37,7 @@ typedef struct {
 
 Mesh meshes[3] = {0};
 
-void main(void) {
+int main(void) {
     grid[0][0].transform.position.x = 1.0;
     grid[0][0].transform.position.y = 2.0;
     grid[0][0].transform.position.z = 3.0;

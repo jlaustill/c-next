@@ -25,7 +25,7 @@ bool matchesLiteral(const char* s, const char* lit) {
     return strcmp(s, lit) == 0;
 }
 
-int32_t main(void) {
+int main(void) {
     char test[65] = "Hello";
     if (getLen(&test) != 5) return 1;
     if (getLen("World") != 5) return 2;

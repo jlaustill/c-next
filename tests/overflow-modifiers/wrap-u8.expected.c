@@ -9,7 +9,7 @@
 // Tests: wrap modifier for u8 type (0 to 255)
 // Validates: overflow wraps to 0, underflow wraps to 255
 // Issue #19: Add wrap modifier tests for all integer types
-uint32_t main(void) {
+int main(void) {
     uint8_t val = 255;
     val += 1;
     if (val != 0) return 1;

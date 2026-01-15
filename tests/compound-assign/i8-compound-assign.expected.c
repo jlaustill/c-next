@@ -34,7 +34,7 @@ static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -128 to 127
-uint32_t main(void) {
+int main(void) {
     int8_t val = 50;
     val = cnx_clamp_add_i8(val, 25);
     if (val != 75) return 1;

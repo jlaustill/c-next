@@ -62,7 +62,7 @@ void deeplyNestedCritical(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     nestedCriticalTest();
     deeplyNestedCritical();
 }

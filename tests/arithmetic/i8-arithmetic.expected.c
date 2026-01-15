@@ -8,7 +8,7 @@
 /* test-execution */
 // Test i8 arithmetic operations
 // Coverage: Section 4.1-4.5 for i8 type
-uint32_t main(void) {
+int main(void) {
     int8_t a = 50;
     int8_t b = 30;
     int8_t sum = a + b;

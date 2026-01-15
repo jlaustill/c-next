@@ -40,7 +40,7 @@ uint8_t readTimerFlags(void) {
     return ((TIMER_CTRL >> 4) & ((1U << 4) - 1));
 }
 
-void main(void) {
+int main(void) {
     setTimerPrescaler(&(uint8_t){100});
     setTimerMode(&(uint8_t){5});
     setTimerFlags(&(uint8_t){0x0F});

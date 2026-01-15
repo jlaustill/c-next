@@ -17,7 +17,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Tests: mixed break and continue in nested loops
 // Validates: break and continue work correctly together in complex scenarios
-uint32_t main(void) {
+int main(void) {
     uint32_t outerProcessed = 0;
     uint32_t innerBreaks = 0;
     for (uint32_t i = 0; i < 10; i += 1) {

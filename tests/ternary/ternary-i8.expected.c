@@ -20,7 +20,7 @@ int8_t getAbs(int8_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 
-uint32_t main(void) {
+int main(void) {
     int8_t a = 10;
     int8_t b = 20;
     int8_t c = -30;

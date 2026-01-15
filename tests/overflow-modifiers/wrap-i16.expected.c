@@ -9,7 +9,7 @@
 // Tests: wrap modifier for i16 type (-32768 to 32767)
 // Validates: overflow wraps to -32768, underflow wraps to 32767
 // Issue #19: Add wrap modifier tests for all integer types
-uint32_t main(void) {
+int main(void) {
     int16_t val = 32767;
     val += 1;
     if (val != -32768) return 1;

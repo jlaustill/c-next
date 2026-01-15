@@ -8,7 +8,7 @@
 /* test-execution */
 // Tests: f32 and f64 literal suffix syntax (ADR-024)
 // Validates that suffixed float literals work correctly
-uint32_t main(void) {
+int main(void) {
     float a = 3.14f;
     if (a < 3.13) return 1;
     if (a > 3.15) return 2;

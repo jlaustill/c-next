@@ -17,6 +17,6 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Tests: clamp modifier with compound addition
 uint8_t brightness = 200;
 
-void main(void) {
+int main(void) {
     brightness = cnx_clamp_add_u8(brightness, 100);
 }

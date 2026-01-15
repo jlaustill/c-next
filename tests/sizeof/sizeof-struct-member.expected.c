@@ -31,7 +31,7 @@ Sensor globalSensor = {0};
 
 DataBuffer globalBuffer = {0};
 
-uint32_t main(void) {
+int main(void) {
     Point p = {0};
     uint32_t pointSize = sizeof(p);
     if (pointSize != 8) return 1;

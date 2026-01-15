@@ -104,7 +104,7 @@ void AtomicTest_incrementAll(void) {
     AtomicTest_ticks = cnx_clamp_add_u32(AtomicTest_ticks, 1);
 }
 
-void main(void) {
+int main(void) {
     AtomicTest_getCounterU8();
     AtomicTest_getCounterU16();
     AtomicTest_getCounterU32();

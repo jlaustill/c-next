@@ -22,7 +22,7 @@ int64_t matrix2d[4][8] = {0};
 
 int64_t cube3d[2][3][4] = {0};
 
-uint32_t main(void) {
+int main(void) {
     matrix2d[0][0] = -9000000000000000000;
     matrix2d[0][7] = 9000000000000000000;
     matrix2d[1][3] = -5000000000000;

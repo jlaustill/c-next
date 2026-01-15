@@ -18,7 +18,7 @@ typedef struct {
 Data items[16] = {0};
 
 // Max reasonable array size for testing
-void main(void) {
+int main(void) {
     items[0].byte = 0xFF;
     items[0].byte = (items[0].byte & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     items[0].byte = (items[0].byte & ~(1 << 7)) | ((false ? 1 : 0) << 7);

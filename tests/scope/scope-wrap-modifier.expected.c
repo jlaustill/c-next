@@ -105,7 +105,7 @@ void WrapTest_setPosition(uint32_t* val) {
     WrapTest_position = (*val);
 }
 
-uint32_t main(void) {
+int main(void) {
     if (WrapTest_getByteCounter() != 250) return 1;
     if (WrapTest_getTickCount() != 65530) return 2;
     if (WrapTest_getCycleCounter() != 4294967290) return 3;

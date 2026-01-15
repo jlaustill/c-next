@@ -42,7 +42,7 @@ void copyArray(uint32_t src[4], uint32_t dst[4], uint32_t* count) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t data[10] = {0};
     data[0] = 100;
     data[5] = 200;

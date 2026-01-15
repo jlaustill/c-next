@@ -21,7 +21,7 @@ void updateValues(void) {
     flag = false;
 }
 
-uint32_t main(void) {
+int main(void) {
     updateValues();
     if (counter == 42 && offset == 100 && flag == false) {
         return 0;

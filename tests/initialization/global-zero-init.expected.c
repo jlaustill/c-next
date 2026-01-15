@@ -17,7 +17,7 @@ bool flag = false;
 
 uint8_t byte = 0;
 
-uint32_t main(void) {
+int main(void) {
     if (counter == 0 && offset == 0 && flag == false && byte == 0) {
         return 0;
     }

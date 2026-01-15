@@ -246,7 +246,7 @@ void CriticalTest_lockedEnqueue(uint8_t* data) {
     CriticalTest_internalUnlock();
 }
 
-void main(void) {
+int main(void) {
     CriticalTest_enqueue(&(uint8_t){42});
     CriticalTest_enqueue(&(uint8_t){84});
     CriticalTest_dequeue();

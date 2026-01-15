@@ -8,7 +8,7 @@
 /* test-coverage: 23-sizeof-in-array-size */
 /* test-execution */
 // Tests: sizeof used as array dimension
-uint32_t main(void) {
+int main(void) {
     uint8_t typeBuffer[sizeof(uint32_t)] = {0};
     uint32_t typeBufferSize = sizeof(typeBuffer);
     if (typeBufferSize != 4) return 1;

@@ -58,7 +58,7 @@ void invokeStructHolder(IsrHolder* hld) {
     hld->secondary();
 }
 
-uint32_t main(void) {
+int main(void) {
     IsrHolder holder = {0};
     holder.primary = structHandler1;
     holder.secondary = structHandler1;

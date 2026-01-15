@@ -30,7 +30,7 @@ typedef struct {
     uint16_t member;
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     if (16 != 16) {
         return 1;
     }

@@ -56,7 +56,7 @@ void parallelIncrement(uint32_t* a, uint32_t* b, uint32_t* times) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t val = 10;
     incrementN(&val, &(uint32_t){5});
     if (val != 15) return 1;

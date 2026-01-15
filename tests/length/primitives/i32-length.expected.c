@@ -30,7 +30,7 @@ typedef struct {
     int32_t member;
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     if (32 != 32) {
         return 1;
     }

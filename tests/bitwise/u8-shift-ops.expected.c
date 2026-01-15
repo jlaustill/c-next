@@ -9,7 +9,7 @@
 /* test-execution */
 // Test u8 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u8 type
-uint32_t main(void) {
+int main(void) {
     uint8_t a = 0b00000001;
     uint8_t left1 = a << 1;
     uint8_t left4 = a << 4;

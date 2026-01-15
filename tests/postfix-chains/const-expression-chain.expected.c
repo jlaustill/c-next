@@ -31,7 +31,7 @@ Sensor sensors[4] = {0};
 #define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 #define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
-void main(void) {
+int main(void) {
     sensors[INDEX_0].id = 100;
     sensors[INDEX_1].id = 200;
     sensors[INDEX_2].id = 300;

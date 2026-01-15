@@ -22,7 +22,7 @@ typedef struct {
 
 Data d = {0};
 
-int32_t main(void) {
+int main(void) {
     d.add_val = 100;
     d.sub_val = 50;
     d.mul_val = 10;

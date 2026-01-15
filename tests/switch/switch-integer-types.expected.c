@@ -175,7 +175,7 @@ void testSwitchI64(int64_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint8_t u8_zero = 0;
     uint8_t u8_ten = 10;
     uint8_t u8_max = 255;

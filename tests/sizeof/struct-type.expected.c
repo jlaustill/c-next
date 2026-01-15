@@ -11,6 +11,6 @@ typedef struct {
     int32_t y;
 } Point;
 
-void main(void) {
+int main(void) {
     uint32_t pointSize = sizeof(Point);
 }

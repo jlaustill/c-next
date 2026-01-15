@@ -12,7 +12,7 @@
 // Coverage: Section 33.2 - Statement Nesting
 uint32_t result = 0;
 
-uint32_t main(void) {
+int main(void) {
     bool cond = true;
     uint32_t selector = 1;
     if (cond == true) {

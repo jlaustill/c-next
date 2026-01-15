@@ -51,7 +51,7 @@ void setTransform(Transform* t, uint32_t* index) {
     transforms[(*index)] = (*t);
 }
 
-void main(void) {
+int main(void) {
     transforms[0].position.x = 1.0;
     transforms[0].position.y = 2.0;
     transforms[0].position.z = 3.0;

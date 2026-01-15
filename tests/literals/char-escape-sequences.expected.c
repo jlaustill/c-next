@@ -9,7 +9,7 @@
 /* test-execution */
 // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
-uint32_t main(void) {
+int main(void) {
     uint8_t newline = '\n';
     if (newline != 10) return 1;
     uint8_t tab = '\t';

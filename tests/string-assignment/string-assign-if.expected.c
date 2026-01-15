@@ -29,7 +29,7 @@ void setNested(uint32_t* level) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     setStatus(&(bool){true});
     if (strlen(status) != 7) return 1;
     setStatus(&(bool){false});

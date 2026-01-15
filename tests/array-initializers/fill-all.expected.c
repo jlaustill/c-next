@@ -19,7 +19,7 @@ uint16_t magic[10] = {0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0xDEAD, 0x
 
 int32_t negatives[5] = {-1, -1, -1, -1, -1};
 
-uint32_t main(void) {
+int main(void) {
     if (buffer[0] != 0) return 1;
     if (buffer[49] != 0) return 2;
     if (buffer[99] != 0) return 3;

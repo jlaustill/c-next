@@ -25,6 +25,6 @@ void readUntilEmpty(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     readAllLines();
 }

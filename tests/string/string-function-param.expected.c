@@ -12,7 +12,7 @@ void printMessage(const char* msg) {
     uint32_t len = strlen(msg);
 }
 
-void main(void) {
+int main(void) {
     char greeting[65] = "Hello, World!";
     printMessage(&greeting);
 }

@@ -82,7 +82,7 @@ void AllTypesTest_setF64(double val) {
     AllTypesTest_valF64 = val;
 }
 
-int32_t main(void) {
+int main(void) {
     if (AllTypesTest_getU8() != 255) {
         return 1;
     }

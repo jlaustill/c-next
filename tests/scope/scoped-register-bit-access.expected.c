@@ -19,7 +19,7 @@ void Board_toggleLed(void) {
     Board_GPIO_DR_SET = (1 << 3);
 }
 
-void main(void) {
+int main(void) {
     Board_toggleLed();
     Board_GPIO_DR = (Board_GPIO_DR & ~(1 << 0)) | ((true ? 1 : 0) << 0);
 }

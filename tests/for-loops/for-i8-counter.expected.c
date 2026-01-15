@@ -18,7 +18,7 @@ static inline int8_t cnx_clamp_add_i8(int8_t a, int32_t b) {
 /* test-execution */
 // For loop tests: i8 as loop counter
 // Tests: i8 type can be used as for-loop counter
-int8_t main(void) {
+int main(void) {
     int8_t sum = 0;
     for (int8_t i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_i8(sum, i);

@@ -11,6 +11,6 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     return 0;
 }

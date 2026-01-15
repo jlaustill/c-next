@@ -37,7 +37,7 @@ State currentState = State_IDLE;
 
 Command lastCmd = Command_READ;
 
-uint32_t main(void) {
+int main(void) {
     if ((uint32_t)State_IDLE != 0) {
         return 1;
     }

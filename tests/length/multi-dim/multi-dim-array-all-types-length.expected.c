@@ -34,7 +34,7 @@ typedef struct {
     uint8_t matrix[4][8];
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     globalU8Matrix[0][0] = 1;
     globalU32Matrix[0][0] = 100;
     globalF32Matrix[0][0] = 1.5;

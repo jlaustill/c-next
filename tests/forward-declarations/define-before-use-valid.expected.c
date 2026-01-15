@@ -8,6 +8,6 @@
 void helper(void) {
 }
 
-void main(void) {
+int main(void) {
     helper();
 }

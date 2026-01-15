@@ -19,7 +19,7 @@
 #define TIMER_CR (*(volatile uint32_t*)(0x40000000 + 0x00))
 #define TIMER_CNT (*(volatile uint32_t const *)(0x40000000 + 0x04))
 
-void main(void) {
+int main(void) {
     GPIOA_GDIR = 0xFF;
     GPIOA_DR = 0x01;
     GPIOB_GDIR = 0x00;

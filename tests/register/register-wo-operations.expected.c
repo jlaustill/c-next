@@ -22,7 +22,7 @@ const uint32_t BUTTON_BIT = 7;
 
 uint32_t dynamicBit = 5;
 
-void main(void) {
+int main(void) {
     GPIO_DR_SET = (1 << 0);
     GPIO_DR_SET = (1 << 31);
     GPIO_DR_SET = (1 << LED_BIT);

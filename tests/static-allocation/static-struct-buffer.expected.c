@@ -23,7 +23,7 @@ void addReading(uint8_t* index, uint32_t* ts, int16_t* val, uint8_t* id) {
     readings[(*index)].sensorId = (*id);
 }
 
-uint32_t main(void) {
+int main(void) {
     uint8_t idx0 = 0;
     uint8_t idx1 = 1;
     uint8_t idx2 = 2;

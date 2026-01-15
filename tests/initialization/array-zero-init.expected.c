@@ -20,7 +20,7 @@ uint8_t buffer[16] = {0};
 
 int32_t values[4] = {0};
 
-uint32_t main(void) {
+int main(void) {
     uint32_t i = 0;
     while (i < 16) {
         if (buffer[i] != 0) {

@@ -14,7 +14,7 @@ const int16_t MAX_ALTITUDE = 10000;
 
 const int16_t SEA_LEVEL = 0;
 
-uint32_t main(void) {
+int main(void) {
     int16_t minAlt = MIN_ALTITUDE;
     if (minAlt != -500) return 1;
     int16_t maxAlt = MAX_ALTITUDE;

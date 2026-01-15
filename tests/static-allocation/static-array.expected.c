@@ -28,7 +28,7 @@ void fillBuffer(void) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     fillBuffer();
     if (rxBuffer[0] == 0xAA && rxBuffer[255] == 0xAA) {
         return 0;

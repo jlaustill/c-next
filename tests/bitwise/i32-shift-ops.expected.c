@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i32 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i32 type (ADR-044)
-uint32_t main(void) {
+int main(void) {
     int32_t a = 1;
     int32_t left1 = a << 1;
     int32_t left16 = a << 16;

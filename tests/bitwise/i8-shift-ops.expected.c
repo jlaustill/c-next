@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i8 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i8 type
-uint32_t main(void) {
+int main(void) {
     int8_t a = 1;
     int8_t left1 = a << 1;
     int8_t left4 = a << 4;

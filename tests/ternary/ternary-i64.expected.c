@@ -20,7 +20,7 @@ int64_t getAbs(int64_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 
-uint32_t main(void) {
+int main(void) {
     int64_t a = 1000;
     int64_t b = 2000;
     int64_t c = -3000;

@@ -40,7 +40,7 @@ void rotate3(uint32_t* a, uint32_t* b, uint32_t* c) {
     (*c) = temp;
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t q = 0;
     uint32_t r = 0;
     divmod(&(uint32_t){17}, &(uint32_t){5}, &q, &r);

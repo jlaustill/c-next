@@ -28,7 +28,7 @@ double double_val = 3.14159265359;
 
 bool flag = true;
 
-uint32_t main(void) {
+int main(void) {
     if (byte == 255 && word == 65535 && sbyte == -128 && flag == true) {
         return 0;
     }

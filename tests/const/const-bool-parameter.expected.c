@@ -24,7 +24,7 @@ uint32_t selectByBool(const bool* flag, uint32_t* ifTrue, uint32_t* ifFalse) {
     return (*ifFalse);
 }
 
-uint32_t main(void) {
+int main(void) {
     bool result = readConstBool(&(bool){true});
     if (!result) return 1;
     bool falseResult = readConstBool(&(bool){false});

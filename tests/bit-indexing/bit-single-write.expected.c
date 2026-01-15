@@ -9,7 +9,7 @@
 /* test-execution */
 // ADR-007: Single bit write
 // Tests: setting individual bits in integer
-uint32_t main(void) {
+int main(void) {
     uint8_t flags = 0;
     flags = (flags & ~(1 << 0)) | ((true ? 1 : 0) << 0);
     flags = (flags & ~(1 << 3)) | ((true ? 1 : 0) << 3);

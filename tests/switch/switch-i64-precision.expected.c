@@ -63,7 +63,7 @@ void testHexPrecision(int64_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     testDecimalPrecision(&(int64_t){9223372036854775807});
     if (result != 1) return 1;
     testDecimalPrecision(&(int64_t){9223372036854775806});

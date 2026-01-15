@@ -27,7 +27,7 @@ void handleCommand(uint32_t* cmd) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t cmd0 = 0;
     uint32_t cmd1 = 1;
     uint32_t cmd99 = 99;

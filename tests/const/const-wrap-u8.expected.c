@@ -12,7 +12,7 @@ const uint8_t FULL_CYCLE = 255;
 
 const uint8_t HALF_CYCLE = 128;
 
-uint32_t main(void) {
+int main(void) {
     uint8_t full = FULL_CYCLE;
     if (full != 255) return 1;
     uint8_t half = HALF_CYCLE;

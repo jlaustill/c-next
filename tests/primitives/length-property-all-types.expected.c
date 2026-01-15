@@ -9,7 +9,7 @@
 /* test-execution */
 // ADR-044: Test .length property on all primitive types
 // The .length property should return the bit width of any type
-int32_t main(void) {
+int main(void) {
     uint8_t val8 = 1;
     if (8 != 8) {
         return 1;

@@ -44,7 +44,7 @@ Device device = {0};
 
 Controller ctrl = {0};
 
-uint32_t main(void) {
+int main(void) {
     device.id = 12345;
     device.value = 100;
     device.flags = (device.flags & ~(1 << 0)) | ((true ? 1 : 0) << 0);

@@ -16,7 +16,7 @@ int8_t negateConstI8(const int8_t* value) {
     return 0 - (*value);
 }
 
-uint32_t main(void) {
+int main(void) {
     int8_t result = readConstI8(&(int8_t){100});
     if (result != 100) return 1;
     int8_t negResult = readConstI8(&(int8_t){-50});

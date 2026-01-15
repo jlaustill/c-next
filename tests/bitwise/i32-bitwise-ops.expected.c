@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i32 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i32 type
-uint32_t main(void) {
+int main(void) {
     int32_t a = 0x7FFF0000;
     int32_t b = 0x55555555;
     int32_t and_result = a & b;

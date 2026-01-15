@@ -9,7 +9,7 @@
 /* test-execution */
 // ADR-007: Single bit read
 // Tests: reading individual bits from integer
-uint32_t main(void) {
+int main(void) {
     uint8_t flags = 0b01010101;
     bool b0 = ((flags >> 0) & 1);
     bool b1 = ((flags >> 1) & 1);

@@ -73,7 +73,7 @@ void test_in_control_flow(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     test_f32_comparison();
     test_f64_comparison();
     test_literal_comparison();

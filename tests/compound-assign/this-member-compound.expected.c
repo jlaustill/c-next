@@ -168,6 +168,6 @@ int32_t Calculator_runAllTests(void) {
     return 0;
 }
 
-uint32_t main(void) {
+int main(void) {
     return Calculator_runAllTests();
 }

@@ -10,7 +10,7 @@
 // Tests: Slice assignment with different array types
 // Validates that slice assignment works with u8[], u16[], u32[], u64[], and string buffers
 // Ensures type-agnostic byte copying behavior
-uint32_t main(void) {
+int main(void) {
     uint8_t arr8[32] = {0};
     uint32_t value1 = 0x11223344;
     if (0 + 4 <= sizeof(arr8)) { memcpy(&arr8[0], &value1, 4); }

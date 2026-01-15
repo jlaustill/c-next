@@ -109,7 +109,7 @@ void criticalInIfElseChain(void) {
     }
 }
 
-void main(void) {
+int main(void) {
     flag = false;
     criticalInIfBranch();
     criticalInElseBranch();

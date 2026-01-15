@@ -10,7 +10,7 @@
 // Tests: Slice assignment with runtime variable offsets and lengths
 // Validates that offset and length can be variables or expressions
 // Ensures the code generator handles non-literal indices correctly
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[128] = {0};
     uint32_t offset = 0;
     uint32_t value1 = 0x11223344;

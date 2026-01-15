@@ -9,7 +9,7 @@
 // Tests: wrap modifier for u64 type (0 to 18446744073709551615)
 // Validates: overflow wraps to 0, underflow wraps to max
 // Issue #19: Add wrap modifier tests for all integer types
-uint32_t main(void) {
+int main(void) {
     uint64_t val = 18446744073709551615;
     val += 1;
     if (val != 0) return 1;

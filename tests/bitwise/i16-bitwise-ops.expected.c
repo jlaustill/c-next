@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i16 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i16 type
-uint32_t main(void) {
+int main(void) {
     int16_t a = 0x7F00;
     int16_t b = 0x5555;
     int16_t and_result = a & b;

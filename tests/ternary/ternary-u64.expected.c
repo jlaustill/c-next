@@ -17,7 +17,7 @@ uint64_t getMin(uint64_t* a, uint64_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-uint32_t main(void) {
+int main(void) {
     uint64_t a = 1000;
     uint64_t b = 2000;
     uint64_t c = 3000;

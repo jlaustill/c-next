@@ -8,7 +8,7 @@
 /* test-execution */
 // Test i16 arithmetic operations
 // Coverage: Section 4.1-4.5 for i16 type
-uint32_t main(void) {
+int main(void) {
     int16_t a = 5000;
     int16_t b = 3000;
     int16_t sum = a + b;

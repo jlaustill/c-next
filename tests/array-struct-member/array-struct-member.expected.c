@@ -36,7 +36,7 @@ Point points[3] = {0};
 Sensor sensors[4] = {0};
 
 // Test function to verify array-of-struct assignment
-int32_t main(void) {
+int main(void) {
     int32_t errors = 0;
     points[0].x = 10;
     points[0].y = 20;

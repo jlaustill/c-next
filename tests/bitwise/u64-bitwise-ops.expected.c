@@ -9,7 +9,7 @@
 /* test-execution */
 // Test u64 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u64 type
-uint32_t main(void) {
+int main(void) {
     uint64_t a = 0xFFFFFFFF00000000;
     uint64_t b = 0xAAAAAAAAAAAAAAAA;
     uint64_t and_result = a & b;

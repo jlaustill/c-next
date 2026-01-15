@@ -30,7 +30,7 @@ typedef struct {
     float member;
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     if (32 != 32) {
         return 1;
     }

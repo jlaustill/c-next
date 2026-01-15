@@ -9,7 +9,7 @@
 /* test-execution */
 // Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
-uint32_t main(void) {
+int main(void) {
     uint32_t a = 10;
     uint32_t b = 20;
     uint32_t c = 30;

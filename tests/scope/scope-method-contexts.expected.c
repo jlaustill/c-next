@@ -231,7 +231,7 @@ bool MethodContexts_getAllFlags(void) {
     return MethodContexts_privateFlag && MethodContexts_publicFlag && globalEnabled;
 }
 
-void main(void) {
+int main(void) {
     MethodContexts_getPrivateValueExternal();
     MethodContexts_getPrivateSumViaInternal();
     MethodContexts_getGlobalCounterViaInternal();

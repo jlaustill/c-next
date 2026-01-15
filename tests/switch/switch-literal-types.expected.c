@@ -173,7 +173,7 @@ void testLargeHex(uint16_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint8_t h00 = 0x00;
     uint8_t h0F = 0x0F;
     uint8_t h10 = 0x10;

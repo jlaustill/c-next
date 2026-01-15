@@ -9,7 +9,7 @@
 // Covers all compound operators on deeply indexed array elements
 uint32_t cube[3][3][3] = {0};
 
-int32_t main(void) {
+int main(void) {
     cube[0][0][0] = 100;
     cube[1][1][1] = 50;
     cube[2][2][2] = 10;

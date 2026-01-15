@@ -25,7 +25,7 @@ typedef struct {
     uint64_t timestamp;
 } Config;
 
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[256] = {0};
     uint32_t offset = 0;
     uint8_t length = 0;

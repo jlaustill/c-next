@@ -27,7 +27,7 @@ void clearConfigName(void) {
     strncpy(config.name, "", 32); config.name[32] = '\0';
 }
 
-uint32_t main(void) {
+int main(void) {
     setConfigName();
     if (strlen(config.name) != 10) return 1;
     updateConfigName();

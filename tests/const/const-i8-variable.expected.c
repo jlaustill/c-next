@@ -14,7 +14,7 @@ const int8_t MAX_TEMP = 85;
 
 const int8_t ZERO_POINT = 0;
 
-uint32_t main(void) {
+int main(void) {
     int8_t minT = MIN_TEMP;
     if (minT != -40) return 1;
     int8_t maxT = MAX_TEMP;

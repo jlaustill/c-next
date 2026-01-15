@@ -39,7 +39,7 @@ void test_array_init(void) {
     double pi = precise[0];
 }
 
-void main(void) {
+int main(void) {
     test_f32_array();
     test_f64_array();
     test_array_init();

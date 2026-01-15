@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     uint32_t initial = extern_counter;
     if (initial != 0) return 1;
     extern_counter = 42;

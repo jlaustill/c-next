@@ -11,7 +11,7 @@ void increment(int32_t* value) {
     (*value) = (*value) + 1;
 }
 
-void main(void) {
+int main(void) {
     int32_t x = 5;
     increment(&x);
 }

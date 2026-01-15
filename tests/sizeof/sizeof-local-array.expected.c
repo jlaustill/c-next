@@ -9,7 +9,7 @@
 /* test-coverage: 23-sizeof-local-array */
 /* test-execution */
 // Tests: sizeof on local arrays
-uint32_t main(void) {
+int main(void) {
     uint8_t byteArray[10] = {0};
     uint32_t byteArraySize = sizeof(byteArray);
     if (byteArraySize != 10) return 1;

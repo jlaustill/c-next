@@ -23,7 +23,7 @@ void Worker_updateGlobalArray(void) {
     values[0] += 100;
 }
 
-uint32_t main(void) {
+int main(void) {
     values[0] = 0;
     Worker_updateGlobal();
     Worker_updateGlobalArray();

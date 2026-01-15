@@ -42,7 +42,7 @@ typedef struct {
     double arr[16];
 } TestStruct;
 
-int32_t main(void) {
+int main(void) {
     globalArr[0] = 3.14159;
     if (16 != 16) {
         return 1;

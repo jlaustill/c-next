@@ -12,7 +12,7 @@ const uint32_t MAX_SIZE = 100;
 
 const uint8_t FLAGS = 0x55;
 
-void main(void) {
+int main(void) {
     uint32_t size = MAX_SIZE;
     uint8_t f = FLAGS;
 }

@@ -46,7 +46,7 @@ uint32_t getStatusPriority(Status s) {
     return 0;
 }
 
-uint32_t main(void) {
+int main(void) {
     if (getStatusCode(Status_OK) != 0) return 1;
     if (getStatusCode(Status_WARNING) != 1) return 2;
     if (getStatusCode(Status_ERROR) != 2) return 3;

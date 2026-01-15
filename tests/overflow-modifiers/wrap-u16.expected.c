@@ -9,7 +9,7 @@
 // Tests: wrap modifier for u16 type (0 to 65535)
 // Validates: overflow wraps to 0, underflow wraps to 65535
 // Issue #19: Add wrap modifier tests for all integer types
-uint32_t main(void) {
+int main(void) {
     uint16_t val = 65535;
     val += 1;
     if (val != 0) return 1;

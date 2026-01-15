@@ -26,7 +26,7 @@ uint32_t sumUntilLimit(uint32_t* limit) {
     return sum;
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t five = 5;
     uint32_t zero = 0;
     uint32_t three = 3;

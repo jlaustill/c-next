@@ -3165,7 +3165,8 @@ export default class CodeGenerator {
       const argsParam = ctx.parameterList()!.parameter()[0];
       this.context.mainArgsName = argsParam.IDENTIFIER().getText();
     } else {
-      actualReturnType = returnType;
+      // For main() without args, always use int return type for C++ compatibility
+      actualReturnType = name === "main" ? "int" : returnType;
       params = ctx.parameterList()
         ? this.generateParameterList(ctx.parameterList()!)
         : "void";

@@ -10,7 +10,7 @@
 // Tests: Basic slice assignment functionality for multi-byte copies
 // Validates copying u8, u16, u32, u64 values into string buffers
 // Each byte is verified individually to ensure correct memory layout
-uint32_t main(void) {
+int main(void) {
     uint8_t buffer[64] = {0};
     uint32_t value32 = 0x12345678;
     if (0 + 4 <= sizeof(buffer)) { memcpy(&buffer[0], &value32, 4); }

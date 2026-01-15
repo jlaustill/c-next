@@ -9,7 +9,7 @@
 /* test-execution */
 // Tests: Character literal usage in various contexts
 // Character literals work with u8 type (which maps to uint8_t in C)
-uint32_t main(void) {
+int main(void) {
     uint8_t letter = 'A';
     if (letter != 65) return 1;
     uint8_t lower = 'z';

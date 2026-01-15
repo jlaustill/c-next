@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // Test: Initialize before use should be OK
-void main(void) {
+int main(void) {
     uint32_t x = 0;
     x = 5;
     uint32_t y = x + 1;

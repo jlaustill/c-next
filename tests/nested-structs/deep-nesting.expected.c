@@ -28,7 +28,7 @@ typedef struct {
 // 3-level deep initialization
 Mesh cube = (Mesh){ .material = (Material){ .ambient = (Color){ .r = 50, .g = 50, .b = 50 }, .diffuse = (Color){ .r = 200, .g = 100, .b = 50 }, .specular = (Color){ .r = 255, .g = 255, .b = 255 }, .shininess = 32.0 }, .vertexCount = 36 };
 
-int32_t main(void) {
+int main(void) {
     uint8_t ambientRed = cube.material.ambient.r;
     uint8_t diffuseGreen = cube.material.diffuse.g;
     uint8_t specularBlue = cube.material.specular.b;

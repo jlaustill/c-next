@@ -19,7 +19,7 @@ int64_t absConstI64(const int64_t* value) {
     return (*value);
 }
 
-uint32_t main(void) {
+int main(void) {
     int64_t result = readConstI64(&(int64_t){1000000000});
     if (result != 1000000000) return 1;
     int64_t negResult = readConstI64(&(int64_t){-500000000});

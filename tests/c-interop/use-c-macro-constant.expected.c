@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     uint32_t max = MAX_SIZE;
     if (max != 256) return 1;
     uint32_t min = MIN_SIZE;

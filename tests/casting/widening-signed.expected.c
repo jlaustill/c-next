@@ -7,7 +7,7 @@
 
 // ADR-024: Test that signed widening conversions are implicit and safe
 // i8 -> i16 -> i32 -> i64 should all work without explicit casts
-void main(void) {
+int main(void) {
     int8_t sbyte = -128;
     int16_t sword = sbyte;
     int32_t sdword = sword;

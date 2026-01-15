@@ -17,7 +17,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Tests: break statement in while loop
 // Validates: early loop termination with break in while loops
-uint32_t main(void) {
+int main(void) {
     uint32_t count = 0;
     uint32_t i = 0;
     while (i < 100) {

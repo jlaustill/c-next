@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-uint32_t main(void) {
+int main(void) {
     int32_t red = COLOR_RED;
     int32_t green = COLOR_GREEN;
     int32_t blue = COLOR_BLUE;

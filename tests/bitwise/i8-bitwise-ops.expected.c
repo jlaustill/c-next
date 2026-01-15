@@ -9,7 +9,7 @@
 /* test-execution */
 // Test i8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i8 type (with sign extension)
-uint32_t main(void) {
+int main(void) {
     int8_t a = 0b01111000;
     int8_t b = 0b01010101;
     int8_t and_result = a & b;

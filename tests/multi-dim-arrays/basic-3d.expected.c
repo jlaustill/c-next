@@ -13,7 +13,7 @@ void init(void) {
     voxels[3][3][3] = 255;
 }
 
-int32_t main(void) {
+int main(void) {
     init();
     return 0;
 }

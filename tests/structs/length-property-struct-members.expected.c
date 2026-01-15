@@ -14,7 +14,7 @@ typedef struct {
     uint8_t flags;
 } Config;
 
-int32_t main(void) {
+int main(void) {
     Config cfg = {0};
     cfg.magic = 0x12345678;
     cfg.version = 1;

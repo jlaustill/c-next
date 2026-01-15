@@ -16,7 +16,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* test-execution */
 // Coverage: Section 7.3 - Nested do-while loops
 // Tests: do-while loops nested inside other do-while loops
-uint32_t main(void) {
+int main(void) {
     uint32_t i = 0;
     uint32_t j = 0;
     uint32_t count = 0;

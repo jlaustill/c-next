@@ -9,7 +9,7 @@
 // Ensures transpiler correctly handles deeply nested array indexing
 uint32_t hyper[2][2][2][2][2][2][2][2][2][2] = {0};
 
-int32_t main(void) {
+int main(void) {
     hyper[0][0][0][0][0][0][0][0][0][0] = 100;
     hyper[1][1][1][1][1][1][1][1][1][1] = 50;
     hyper[0][1][0][1][0][1][0][1][0][1] = 10;

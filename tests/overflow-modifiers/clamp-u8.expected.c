@@ -22,7 +22,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Tests: clamp modifier for u8 type (0 to 255)
 // Validates overflow clamps to 255, underflow clamps to 0
 // ADR-044: Per-variable overflow semantics
-uint32_t main(void) {
+int main(void) {
     uint8_t val = 200;
     val = cnx_clamp_add_u8(val, 100);
     if (val != 255) return 1;

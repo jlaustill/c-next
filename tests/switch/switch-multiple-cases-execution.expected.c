@@ -135,7 +135,7 @@ void testManyMultiCases(uint16_t* val) {
     }
 }
 
-uint32_t main(void) {
+int main(void) {
     uint32_t val0 = 0;
     uint32_t val1 = 1;
     uint32_t val2 = 2;

@@ -12,7 +12,7 @@ const uint16_t MAX_COUNTER = 65535;
 
 const uint16_t START_VALUE = 1000;
 
-uint32_t main(void) {
+int main(void) {
     uint16_t maxCnt = MAX_COUNTER;
     if (maxCnt != 65535) return 1;
     uint16_t start = START_VALUE;

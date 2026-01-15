@@ -23,7 +23,7 @@ int16_t matrix2d[4][8] = {0};
 
 int16_t cube3d[2][3][4] = {0};
 
-uint32_t main(void) {
+int main(void) {
     matrix2d[0][0] = -32768;
     matrix2d[0][7] = 32767;
     matrix2d[1][3] = -10000;
