@@ -422,9 +422,6 @@ export default class CodeGenerator {
       this.commentExtractor = null;
     }
 
-    // Initialize type resolver for type classification and validation
-    this.typeResolver = new TypeResolver(this);
-
     // ADR-049: Determine target capabilities with priority: CLI > pragma > default
     const targetCapabilities = this.resolveTargetCapabilities(
       tree,
@@ -474,6 +471,14 @@ export default class CodeGenerator {
     for (const [scopeName, members] of this.symbols.scopeMembers) {
       this.context.scopeMembers.set(scopeName, members);
     }
+
+    // Issue #61: Initialize type resolver with clean dependencies
+    this.typeResolver = new TypeResolver({
+      symbols: this.symbols,
+      symbolTable: this.symbolTable,
+      typeRegistry: this.context.typeRegistry,
+      resolveIdentifier: (name: string) => this.resolveIdentifier(name),
+    });
 
     // Collect function/callback information (not yet extracted to SymbolCollector)
     this.collectFunctionsAndCallbacks(tree);

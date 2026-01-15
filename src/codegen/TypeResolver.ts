@@ -1,9 +1,13 @@
 /**
  * TypeResolver - Handles type inference, classification, and validation
  * Extracted from CodeGenerator for better separation of concerns
+ * Issue #61: Now independent of CodeGenerator
  */
 import * as Parser from "../parser/grammar/CNextParser";
-import CodeGenerator from "./CodeGenerator";
+import SymbolCollector from "./SymbolCollector";
+import SymbolTable from "../symbols/SymbolTable";
+import TTypeInfo from "./types/TTypeInfo";
+import ITypeResolverDeps from "./types/ITypeResolverDeps";
 import INTEGER_TYPES from "./types/INTEGER_TYPES";
 import FLOAT_TYPES from "./types/FLOAT_TYPES";
 import SIGNED_TYPES from "./types/SIGNED_TYPES";
@@ -12,10 +16,16 @@ import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 
 class TypeResolver {
-  private codeGen: CodeGenerator;
+  private symbols: SymbolCollector | null;
+  private symbolTable: SymbolTable | null;
+  private typeRegistry: Map<string, TTypeInfo>;
+  private resolveIdentifierFn: (name: string) => string;
 
-  constructor(codeGen: CodeGenerator) {
-    this.codeGen = codeGen;
+  constructor(deps: ITypeResolverDeps) {
+    this.symbols = deps.symbols;
+    this.symbolTable = deps.symbolTable;
+    this.typeRegistry = deps.typeRegistry;
+    this.resolveIdentifierFn = deps.resolveIdentifier;
   }
 
   /**
@@ -50,16 +60,15 @@ class TypeResolver {
    * Check if a type is a user-defined struct (C-Next or C header).
    * Issue #103: Now checks both knownStructs AND SymbolTable.
    * Issue #60: Uses SymbolCollector for C-Next structs.
+   * Issue #61: Uses injected dependencies instead of CodeGenerator.
    */
   isStructType(typeName: string): boolean {
     // Check C-Next structs first (Issue #60: use SymbolCollector)
-    if (this.codeGen.symbols?.knownStructs.has(typeName)) {
+    if (this.symbols?.knownStructs.has(typeName)) {
       return true;
     }
     // Check SymbolTable for C header structs
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const symbolTable = this.codeGen["symbolTable"];
-    if (symbolTable?.getStructFields(typeName)) {
+    if (this.symbolTable?.getStructFields(typeName)) {
       return true;
     }
     return false;
@@ -178,11 +187,11 @@ class TypeResolver {
   /**
    * ADR-024: Get the type of an expression for type checking.
    * Returns the inferred type or null if type cannot be determined.
+   * Issue #61: Uses local getPostfixExpression instead of CodeGenerator.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
     // Navigate through expression tree to get the actual value
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const postfix = this.codeGen["getPostfixExpression"](ctx);
+    const postfix = this.getPostfixExpression(ctx);
     if (postfix) {
       return this.getPostfixExpressionType(postfix);
     }
@@ -255,6 +264,7 @@ class TypeResolver {
 
   /**
    * ADR-024: Get the type of a primary expression.
+   * Issue #61: Uses injected dependencies instead of CodeGenerator.
    */
   getPrimaryExpressionType(
     ctx: Parser.PrimaryExpressionContext,
@@ -263,10 +273,8 @@ class TypeResolver {
     const id = ctx.IDENTIFIER();
     if (id) {
       const name = id.getText();
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      const scopedName = this.codeGen["resolveIdentifier"](name);
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      const typeInfo = this.codeGen["context"].typeRegistry.get(scopedName);
+      const scopedName = this.resolveIdentifierFn(name);
+      const typeInfo = this.typeRegistry.get(scopedName);
       if (typeInfo) {
         return typeInfo.baseType;
       }
@@ -351,16 +359,18 @@ class TypeResolver {
    * Get type info for a struct member field
    * Used to track types through member access chains like buf.data[0]
    * Issue #103: Now checks SymbolTable first for C header structs
+   * Issue #61: Uses injected dependencies instead of CodeGenerator.
    */
   getMemberTypeInfo(
     structType: string,
     memberName: string,
   ): { isArray: boolean; baseType: string } | undefined {
     // First check SymbolTable (C header structs) - Issue #103 fix
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const symbolTable = this.codeGen["symbolTable"];
-    if (symbolTable) {
-      const fieldInfo = symbolTable.getStructFieldInfo(structType, memberName);
+    if (this.symbolTable) {
+      const fieldInfo = this.symbolTable.getStructFieldInfo(
+        structType,
+        memberName,
+      );
       if (fieldInfo) {
         return {
           isArray:
@@ -372,16 +382,65 @@ class TypeResolver {
     }
 
     // Fall back to local C-Next struct fields (Issue #60: use SymbolCollector)
-    const fieldType = this.codeGen.symbols?.structFields
+    const fieldType = this.symbols?.structFields
       .get(structType)
       ?.get(memberName);
     if (!fieldType) return undefined;
 
     // Check if this field is marked as an array (Issue #60: use SymbolCollector)
-    const arrayFields = this.codeGen.symbols?.structFieldArrays.get(structType);
+    const arrayFields = this.symbols?.structFieldArrays.get(structType);
     const isArray = arrayFields?.has(memberName) ?? false;
 
     return { isArray, baseType: fieldType };
+  }
+
+  /**
+   * Navigate through expression layers to get to the postfix expression.
+   * Returns null if the expression has multiple terms at any level.
+   * Issue #61: Moved from CodeGenerator for TypeResolver independence.
+   */
+  private getPostfixExpression(
+    ctx: Parser.ExpressionContext,
+  ): Parser.PostfixExpressionContext | null {
+    const ternary = ctx.ternaryExpression();
+    const orExprs = ternary.orExpression();
+    // If it's a ternary (3 orExpressions), we can't get a single postfix
+    if (orExprs.length !== 1) return null;
+
+    const or = orExprs[0];
+    if (or.andExpression().length !== 1) return null;
+
+    const and = or.andExpression()[0];
+    if (and.equalityExpression().length !== 1) return null;
+
+    const eq = and.equalityExpression()[0];
+    if (eq.relationalExpression().length !== 1) return null;
+
+    const rel = eq.relationalExpression()[0];
+    if (rel.bitwiseOrExpression().length !== 1) return null;
+
+    const bor = rel.bitwiseOrExpression()[0];
+    if (bor.bitwiseXorExpression().length !== 1) return null;
+
+    const bxor = bor.bitwiseXorExpression()[0];
+    if (bxor.bitwiseAndExpression().length !== 1) return null;
+
+    const band = bxor.bitwiseAndExpression()[0];
+    if (band.shiftExpression().length !== 1) return null;
+
+    const shift = band.shiftExpression()[0];
+    if (shift.additiveExpression().length !== 1) return null;
+
+    const add = shift.additiveExpression()[0];
+    if (add.multiplicativeExpression().length !== 1) return null;
+
+    const mult = add.multiplicativeExpression()[0];
+    if (mult.unaryExpression().length !== 1) return null;
+
+    const unary = mult.unaryExpression()[0];
+    if (!unary.postfixExpression()) return null;
+
+    return unary.postfixExpression()!;
   }
 }
 
