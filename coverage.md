@@ -1470,7 +1470,6 @@ This document tracks test coverage for every language construct in every valid c
 | ------------------------ | ------ | -------------------------------------------- |
 | Global variable          | [x]    | `volatile/volatile-global.test.cnx`          |
 | Local variable           | [x]    | `volatile/volatile-local.test.cnx`           |
-| Struct member            | N/A    | Not supported in C-Next grammar              |
 | Register field (implied) | [x]    | `register/register-basic.test.cnx` (ADR-004) |
 | With const               | [x]    | `volatile/volatile-const.test.cnx`           |
 | With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx`      |
@@ -1486,10 +1485,6 @@ ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE
 - Volatile in for loops (loop counter pattern)
 - Atomic + volatile combination (ERROR case)
 - Register field implied volatile (ADR-004: `rw` → `volatile`, `ro` → `volatile const`)
-
-**Not tested (not implemented):**
-
-- Struct member volatile (not supported in C-Next grammar)
 
 See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and usage patterns.
 
