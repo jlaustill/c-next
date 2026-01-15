@@ -1,0 +1,42 @@
+// Coverage: Section 7.7 - Nested critical sections
+// Tests: critical sections nested inside other critical sections
+// Note: Nested critical is valid syntax - inner critical is redundant but allowed
+
+u32 sharedCounter <- 0;
+u32 buffer[10];
+u32 writeIdx <- 0;
+
+void nestedCriticalTest() {
+    critical {
+        sharedCounter +<- 1;
+
+        // Nested critical - redundant but valid
+        critical {
+            buffer[writeIdx] <- sharedCounter;
+            writeIdx +<- 1;
+        }
+
+        sharedCounter +<- 1;
+    }
+}
+
+void deeplyNestedCritical() {
+    critical {
+        u32 temp <- sharedCounter;
+
+        critical {
+            temp +<- 10;
+
+            critical {
+                buffer[0] <- temp;
+            }
+        }
+
+        sharedCounter <- temp;
+    }
+}
+
+void main() {
+    nestedCriticalTest();
+    deeplyNestedCritical();
+}

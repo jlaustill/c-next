@@ -1,0 +1,61 @@
+// Coverage: Section 7.4 - for loop with empty init/condition/update
+// Tests: for loops with optional parts omitted
+
+u32 globalCounter <- 0;
+
+// Test 1: Empty init (variable declared outside)
+void testEmptyInit() {
+    u32 i <- 0;
+    for (; i < 5; i <- i + 1) {
+        globalCounter +<- 1;
+    }
+}
+
+// Test 2: Empty update (update inside loop body)
+void testEmptyUpdate() {
+    for (u32 i <- 0; i < 5;) {
+        globalCounter +<- 1;
+        i <- i + 1;
+    }
+}
+
+// Test 3: Empty init and update
+void testEmptyInitAndUpdate() {
+    u32 i <- 0;
+    for (; i < 3;) {
+        globalCounter +<- 1;
+        i <- i + 1;
+    }
+}
+
+// Test 4: Empty condition (infinite loop with break)
+void testEmptyCondition() {
+    u32 count <- 0;
+    for (u32 i <- 0;; i <- i + 1) {
+        count +<- 1;
+        if (i >= 4) {
+            break;
+        }
+    }
+    globalCounter +<- count;
+}
+
+// Test 5: All empty (infinite loop with break)
+void testAllEmpty() {
+    u32 i <- 0;
+    for (;;) {
+        globalCounter +<- 1;
+        i +<- 1;
+        if (i >= 3) {
+            break;
+        }
+    }
+}
+
+void main() {
+    testEmptyInit();
+    testEmptyUpdate();
+    testEmptyInitAndUpdate();
+    testEmptyCondition();
+    testAllEmpty();
+}

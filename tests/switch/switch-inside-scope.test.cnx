@@ -1,0 +1,83 @@
+// Coverage: Section 7.5 - switch statement inside scope
+// Tests: switch statements inside scope method declarations
+
+u32 globalResult <- 0;
+
+scope CommandProcessor {
+    u32 lastCommand <- 0;
+    u32 result <- 0;
+
+    void execute(u32 command) {
+        this.lastCommand <- command;
+
+        switch (command) {
+            case 1 {
+                this.result <- 100;
+            }
+            case 2 {
+                this.result <- 200;
+            }
+            case 3 {
+                this.result <- 300;
+            }
+            default(1) {
+                this.result <- 0;
+            }
+        }
+    }
+
+    u32 getResult() {
+        return this.result;
+    }
+}
+
+scope Calculator {
+    u32 mode <- 0;
+    u32 a <- 0;
+    u32 b <- 0;
+    u32 output <- 0;
+
+    void setOperands(u32 x, u32 y) {
+        this.a <- x;
+        this.b <- y;
+    }
+
+    void compute(u32 operation) {
+        this.mode <- operation;
+
+        switch (operation) {
+            case 0 {
+                // Add
+                this.output <- this.a + this.b;
+            }
+            case 1 {
+                // Subtract
+                this.output <- this.a - this.b;
+            }
+            case 2 {
+                // Multiply
+                this.output <- this.a * this.b;
+            }
+            default(1) {
+                this.output <- 0;
+            }
+        }
+    }
+
+    u32 getOutput() {
+        return this.output;
+    }
+}
+
+void main() {
+    // Test switch inside scope method
+    CommandProcessor.execute(2);
+    globalResult <- CommandProcessor.getResult();
+
+    Calculator.setOperands(10, 5);
+    Calculator.compute(0);  // Add: 10 + 5 = 15
+    globalResult <- Calculator.getOutput();
+
+    Calculator.compute(1);  // Subtract: 10 - 5 = 5
+    globalResult <- Calculator.getOutput();
+}

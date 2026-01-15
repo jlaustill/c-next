@@ -1,0 +1,71 @@
+/* test-execution */
+// Coverage: Section 7.2 - while loop inside if statement
+// Tests: while loops nested inside if/else branches
+
+u32 main() {
+    u32 count <- 0;
+    u32 i <- 0;
+    bool condition <- true;
+
+    // Test 1: while inside if (true branch)
+    if (condition = true) {
+        i <- 0;
+        while (i < 5) {
+            count +<- 1;
+            i +<- 1;
+        }
+    }
+    if (count != 5) return 1;
+
+    // Test 2: while inside else branch
+    count <- 0;
+    condition <- false;
+    if (condition = true) {
+        count <- 100;
+    } else {
+        i <- 0;
+        while (i < 3) {
+            count +<- 10;
+            i +<- 1;
+        }
+    }
+    if (count != 30) return 2;
+
+    // Test 3: while in both if and else
+    u32 resultA <- 0;
+    u32 resultB <- 0;
+    bool flag <- true;
+
+    if (flag = true) {
+        i <- 0;
+        while (i < 4) {
+            resultA +<- 1;
+            i +<- 1;
+        }
+    } else {
+        i <- 0;
+        while (i < 2) {
+            resultB +<- 1;
+            i +<- 1;
+        }
+    }
+    if (resultA != 4) return 3;
+    if (resultB != 0) return 4;
+
+    // Test 4: while inside nested if (outer condition is true)
+    count <- 0;
+    condition <- true;
+    flag <- true;
+    if (condition = true) {
+        if (flag = true) {
+            i <- 0;
+            while (i < 10) {
+                count +<- 1;
+                i +<- 1;
+            }
+        }
+    }
+    if (count != 10) return 5;
+
+    return 0;
+}
