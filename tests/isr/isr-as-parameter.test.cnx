@@ -1,0 +1,86 @@
+/* test-execution */
+// ADR-040: ISR as function parameter
+// Tests: passing ISR to functions and invoking through parameter
+
+// Global to track which handler was called
+u32 paramCallCount <- 0;
+u32 paramLastHandler <- 0;
+
+// Handler functions (void() compatible with ISR)
+void paramHandler1() {
+    paramCallCount +<- 1;
+    paramLastHandler <- 1;
+}
+
+void paramHandler2() {
+    paramCallCount +<- 1;
+    paramLastHandler <- 2;
+}
+
+void paramHandler3() {
+    paramCallCount +<- 1;
+    paramLastHandler <- 3;
+}
+
+// Function that accepts ISR as parameter and invokes it
+void executeParamHandler(ISR cb) {
+    cb();
+}
+
+// Function that accepts ISR and invokes it multiple times
+void executeParamMultiple(ISR fn, u32 times) {
+    for (u32 i <- 0; i < times; i +<- 1) {
+        fn();
+    }
+}
+
+// Function that accepts two ISRs and invokes both
+void executeParamBoth(ISR first, ISR second) {
+    first();
+    second();
+}
+
+u32 main() {
+    // Test 1: Pass paramHandler1 as parameter and invoke
+    paramCallCount <- 0;
+    paramLastHandler <- 0;
+    executeParamHandler(paramHandler1);
+    if (paramCallCount != 1) return 1;
+    if (paramLastHandler != 1) return 2;
+
+    // Test 2: Pass paramHandler2 as parameter and invoke
+    paramCallCount <- 0;
+    paramLastHandler <- 0;
+    executeParamHandler(paramHandler2);
+    if (paramCallCount != 1) return 3;
+    if (paramLastHandler != 2) return 4;
+
+    // Test 3: Pass handler to executeParamMultiple
+    paramCallCount <- 0;
+    executeParamMultiple(paramHandler1, 5);
+    if (paramCallCount != 5) return 5;
+
+    // Test 4: Execute both handlers
+    paramCallCount <- 0;
+    paramLastHandler <- 0;
+    executeParamBoth(paramHandler1, paramHandler2);
+    if (paramCallCount != 2) return 6;
+    if (paramLastHandler != 2) return 7;  // paramHandler2 called last
+
+    // Test 5: Execute both in reverse order
+    paramCallCount <- 0;
+    paramLastHandler <- 0;
+    executeParamBoth(paramHandler2, paramHandler1);
+    if (paramCallCount != 2) return 8;
+    if (paramLastHandler != 1) return 9;  // paramHandler1 called last
+
+    // Test 6: Chain multiple executeParamHandler calls
+    paramCallCount <- 0;
+    executeParamHandler(paramHandler1);
+    executeParamHandler(paramHandler2);
+    executeParamHandler(paramHandler3);
+    if (paramCallCount != 3) return 10;
+    if (paramLastHandler != 3) return 11;
+
+    return 0;
+}

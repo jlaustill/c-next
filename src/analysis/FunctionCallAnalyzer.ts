@@ -230,6 +230,42 @@ class FunctionCallListener extends CNextListener {
   }
 
   // ========================================================================
+  // ISR/Callback Variable Tracking (ADR-040)
+  // ========================================================================
+
+  /**
+   * Track ISR-typed variables from variable declarations
+   * e.g., `ISR handler <- myFunction;`
+   */
+  override enterVariableDeclaration = (
+    ctx: Parser.VariableDeclarationContext,
+  ): void => {
+    const typeCtx = ctx.type();
+    const typeName = typeCtx.getText();
+
+    // Check if this is an ISR type or a callback type (function-as-type)
+    if (typeName === "ISR" || this.analyzer.isCallbackType(typeName)) {
+      const varName = ctx.IDENTIFIER().getText();
+      this.analyzer.defineCallableVariable(varName);
+    }
+  };
+
+  /**
+   * Track ISR-typed parameters in function declarations
+   * e.g., `void execute(ISR handler) { handler(); }`
+   */
+  override enterParameter = (ctx: Parser.ParameterContext): void => {
+    const typeCtx = ctx.type();
+    const typeName = typeCtx.getText();
+
+    // Check if this is an ISR type or a callback type (function-as-type)
+    if (typeName === "ISR" || this.analyzer.isCallbackType(typeName)) {
+      const paramName = ctx.IDENTIFIER().getText();
+      this.analyzer.defineCallableVariable(paramName);
+    }
+  };
+
+  // ========================================================================
   // Function Definitions
   // ========================================================================
 
@@ -357,6 +393,12 @@ class FunctionCallAnalyzer {
   /** Current function being defined (for self-recursion detection) */
   private currentFunctionName: string | null = null;
 
+  /** ADR-040: Variables of type ISR or callback types that can be invoked */
+  private callableVariables: Set<string> = new Set();
+
+  /** ADR-029: Callback types (function-as-type pattern) */
+  private callbackTypes: Set<string> = new Set();
+
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
@@ -373,10 +415,13 @@ class FunctionCallAnalyzer {
     this.includedHeaders = new Set();
     this.symbolTable = symbolTable ?? null;
     this.currentFunctionName = null;
+    this.callableVariables = new Set();
+    this.callbackTypes = new Set();
 
-    // First pass: collect scope names and included headers
+    // First pass: collect scope names, includes, and callback types
     this.collectScopes(tree);
     this.collectIncludes(tree);
+    this.collectCallbackTypes(tree);
 
     // Second pass: walk tree in order, tracking definitions and checking calls
     const listener = new FunctionCallListener(this);
@@ -422,6 +467,33 @@ class FunctionCallAnalyzer {
       }
     }
     return false;
+  }
+
+  /**
+   * ADR-029: Collect callback types (function-as-type pattern)
+   * Any function definition creates a type that can be used for callback fields/parameters
+   */
+  private collectCallbackTypes(tree: Parser.ProgramContext): void {
+    for (const decl of tree.declaration()) {
+      if (decl.functionDeclaration()) {
+        const name = decl.functionDeclaration()!.IDENTIFIER().getText();
+        this.callbackTypes.add(name);
+      }
+    }
+  }
+
+  /**
+   * ADR-029: Check if a type name is a callback type (function-as-type)
+   */
+  public isCallbackType(name: string): boolean {
+    return this.callbackTypes.has(name);
+  }
+
+  /**
+   * ADR-040: Register a variable that holds a callable (ISR or callback)
+   */
+  public defineCallableVariable(name: string): void {
+    this.callableVariables.add(name);
   }
 
   /**
@@ -486,6 +558,11 @@ class FunctionCallAnalyzer {
     // Check if function is external (from symbol table)
     if (this.isExternalFunction(name)) {
       return; // OK - external C/C++ function
+    }
+
+    // ADR-040: Check if this is an ISR or callback variable being invoked
+    if (this.callableVariables.has(name)) {
+      return; // OK - invoking a function pointer variable
     }
 
     // Not defined - report error

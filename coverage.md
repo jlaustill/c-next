@@ -1522,14 +1522,14 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ## 31. ISR Type
 
-| Feature          | Status | Test File                     |
-| ---------------- | ------ | ----------------------------- |
-| Basic ISR        | [x]    | `isr/isr-basic.test.cnx`      |
-| ISR assignment   | [x]    | `isr/isr-assignment.test.cnx` |
-| ISR array        | [x]    | `isr/isr-array.test.cnx`      |
-| ISR as parameter | [ ]    |                               |
-| ISR in struct    | [ ]    |                               |
-| ISR invocation   | [ ]    |                               |
+| Feature          | Status | Test File                       |
+| ---------------- | ------ | ------------------------------- |
+| Basic ISR        | [x]    | `isr/isr-basic.test.cnx`        |
+| ISR assignment   | [x]    | `isr/isr-assignment.test.cnx`   |
+| ISR array        | [x]    | `isr/isr-array.test.cnx`        |
+| ISR as parameter | [x]    | `isr/isr-as-parameter.test.cnx` |
+| ISR in struct    | [x]    | `isr/isr-in-struct.test.cnx`    |
+| ISR invocation   | [x]    | `isr/isr-invocation.test.cnx`   |
 
 ---
 
