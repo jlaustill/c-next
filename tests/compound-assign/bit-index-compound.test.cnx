@@ -1,0 +1,15 @@
+/* test-error */
+/* test-coverage: 2.2-bit-index */
+// Tests: Compound addition (+<-) on bit range is NOT supported
+// Expected: Transpiler error - compound assignment on bit fields not implemented
+// Note: This documents a current limitation of C-Next
+
+u32 main() {
+    u32 flags <- 0;
+    flags[0, 4] <- 5;
+
+    // This should produce an error: compound assignment on bit indexes not supported
+    flags[0, 4] +<- 3;
+
+    return 0;
+}
