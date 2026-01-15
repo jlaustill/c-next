@@ -1,3 +1,4 @@
+/* test-execution */
 // Test: ADR-016 Modifiers in public and private method contexts
 // Verifies that this. and global. accessors work correctly in all method contexts
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns
@@ -282,60 +283,210 @@ scope MethodContexts {
     }
 }
 
-void main() {
-    // Test private methods indirectly via public wrappers
-    MethodContexts.getPrivateValueExternal();
-    MethodContexts.getPrivateSumViaInternal();
-    MethodContexts.getGlobalCounterViaInternal();
-    MethodContexts.getPrivateClampViaInternal();
+u32 main() {
+    // ==========================================
+    // SECTION 1: Public methods accessing private members via this.
+    // ==========================================
 
-    // Test public methods - this. accessor (basic)
-    MethodContexts.getPublicValue();
-    MethodContexts.getPublicClampValue();
-    MethodContexts.getPublicWrapValue();
-    MethodContexts.getPublicFlag();
-    MethodContexts.getPublicOffset();
+    // Test 1: getPrivateValueExternal() returns initial private value (10)
+    if (MethodContexts.getPrivateValueExternal() != 10) return 1;
 
-    // Test public methods - global. accessor
-    MethodContexts.getGlobalMax();
-    MethodContexts.getGlobalThreshold();
-    MethodContexts.getGlobalCounter();
-    MethodContexts.getGlobalEnabled();
-    MethodContexts.getGlobalOffset();
-    MethodContexts.getGlobalScale();
+    // Test 2: getPrivateSumViaInternal() - private method called by public
+    // privateValue(10) + globalCounter(50) = 60
+    if (MethodContexts.getPrivateSumViaInternal() != 60) return 2;
 
-    // Test public methods - combined this. and global.
-    MethodContexts.computePublicSum();
-    MethodContexts.publicValueBelowMax();
-    MethodContexts.computePublicWithOffset();
+    // Test 3: getGlobalCounterViaInternal() - private method accessing global
+    if (MethodContexts.getGlobalCounterViaInternal() != 50) return 3;
 
-    // Test public methods - modify scope variables via this.
+    // Test 4: getPrivateClampViaInternal() - private method with clamp modifier
+    if (MethodContexts.getPrivateClampViaInternal() != 200) return 4;
+
+    // ==========================================
+    // SECTION 2: Public methods accessing public members via this.
+    // ==========================================
+
+    // Test 5: getPublicValue() returns initial public value (20)
+    if (MethodContexts.getPublicValue() != 20) return 5;
+
+    // Test 6: getPublicClampValue() - public clamp variable (60000)
+    if (MethodContexts.getPublicClampValue() != 60000) return 6;
+
+    // Test 7: getPublicWrapValue() - public wrap variable (65530)
+    if (MethodContexts.getPublicWrapValue() != 65530) return 7;
+
+    // Test 8: getPublicFlag() - public boolean (true)
+    if (MethodContexts.getPublicFlag() != true) return 8;
+
+    // Test 9: getPublicOffset() - public signed integer (-1000)
+    if (MethodContexts.getPublicOffset() != -1000) return 9;
+
+    // ==========================================
+    // SECTION 3: Public methods accessing global. values
+    // ==========================================
+
+    // Test 10: getGlobalMax() - const global (100)
+    if (MethodContexts.getGlobalMax() != 100) return 10;
+
+    // Test 11: getGlobalThreshold() - const global (1000)
+    if (MethodContexts.getGlobalThreshold() != 1000) return 11;
+
+    // Test 12: getGlobalCounter() - mutable global (50)
+    if (MethodContexts.getGlobalCounter() != 50) return 12;
+
+    // Test 13: getGlobalEnabled() - bool global (true)
+    if (MethodContexts.getGlobalEnabled() != true) return 13;
+
+    // Test 14: getGlobalOffset() - signed global (-25)
+    if (MethodContexts.getGlobalOffset() != -25) return 14;
+
+    // Test 15: getGlobalScale() - float global (2.5)
+    // Use variable comparison to avoid float literal issues
+    f32 expectedScale <- 2.5;
+    if (MethodContexts.getGlobalScale() != expectedScale) return 15;
+
+    // ==========================================
+    // SECTION 4: Combined this. and global. access
+    // ==========================================
+
+    // Test 16: computePublicSum() - publicValue(20) + globalCounter(50) = 70
+    if (MethodContexts.computePublicSum() != 70) return 16;
+
+    // Test 17: publicValueBelowMax() - publicValue(20) < GLOBAL_MAX(100) = true
+    if (MethodContexts.publicValueBelowMax() != true) return 17;
+
+    // Test 18: computePublicWithOffset() - publicOffset(-1000) + globalOffset(-25) = -1025
+    if (MethodContexts.computePublicWithOffset() != -1025) return 18;
+
+    // ==========================================
+    // SECTION 5: Setter methods modify state
+    // ==========================================
+
+    // Test 19-20: setPrivateValue and verify
     MethodContexts.setPrivateValue(42);
+    if (MethodContexts.getPrivateValueExternal() != 42) return 19;
+
+    // Test 20: Verify computePrivateSum updated - privateValue(42) + globalCounter(50) = 92
+    if (MethodContexts.getPrivateSumViaInternal() != 92) return 20;
+
+    // Test 21-22: setPublicValue and verify
     MethodContexts.setPublicValue(84);
+    if (MethodContexts.getPublicValue() != 84) return 21;
+
+    // Test 22: Verify computePublicSum updated - publicValue(84) + globalCounter(50) = 134
+    if (MethodContexts.computePublicSum() != 134) return 22;
+
+    // Test 23: setPrivateFlag and verify
     MethodContexts.setPrivateFlag(true);
+    // Note: getAllFlags needs privateFlag=true, publicFlag=true, globalEnabled=true
+    // Currently publicFlag=true (default), so this should work after setting privateFlag
+
+    // Test 24: setPublicFlag and verify
     MethodContexts.setPublicFlag(false);
+    if (MethodContexts.getPublicFlag() != false) return 24;
 
-    // Test public methods - modify clamp/wrap variables
+    // ==========================================
+    // SECTION 6: Modifier behavior (clamp/wrap)
+    // ==========================================
+
+    // Test 25: incrementPublicClamp - adds 10000 to 60000, clamps at 65535
     MethodContexts.incrementPublicClamp();
+    // 60000 + 10000 = 70000, clamped to 65535
+    if (MethodContexts.getPublicClampValue() != 65535) return 25;
+
+    // Test 26: incrementPublicWrap - adds 10 to 65530, wraps around
     MethodContexts.incrementPublicWrap();
+    // 65530 + 10 = 65540, wraps to 65540 - 65536 = 4
+    if (MethodContexts.getPublicWrapValue() != 4) return 26;
 
-    // Test comprehensive modification methods
+    // ==========================================
+    // SECTION 7: modifyAllPrivate comprehensive test
+    // ==========================================
+
+    // Before modifyAllPrivate:
+    // privateValue = 42, privateClampValue = 200, privateWrapValue = 250
+    // privateFlag = true, privateOffset = -50
+
+    // Test 27: Call modifyAllPrivate and verify privateValue incremented
     MethodContexts.modifyAllPrivate();
+    // privateValue <- privateValue + 1 -> 42 + 1 = 43
+    if (MethodContexts.getPrivateValueExternal() != 43) return 27;
+
+    // Test 28: privateClampValue +<- 10 -> 200 + 10 = 210
+    if (MethodContexts.getPrivateClampViaInternal() != 210) return 28;
+
+    // Test 29: privateWrapValue +<- 5 -> 250 + 5 = 255 (no wrap yet)
+    // Note: Can't directly access private wrap value, but we tested the method exists
+
+    // ==========================================
+    // SECTION 8: modifyAllPublic comprehensive test
+    // ==========================================
+
+    // Before modifyAllPublic:
+    // publicValue = 84, publicClampValue = 65535 (clamped), publicWrapValue = 4 (wrapped)
+    // publicFlag = false, publicOffset = -1000
+
+    // Test 30: Call modifyAllPublic and verify publicValue incremented
     MethodContexts.modifyAllPublic();
+    // publicValue <- publicValue + 1 -> 84 + 1 = 85
+    if (MethodContexts.getPublicValue() != 85) return 30;
 
-    // Test threshold checks (combined this. and global. in conditions)
-    MethodContexts.checkThresholds();
-    MethodContexts.getAllFlags();
+    // Test 31: publicClampValue +<- 100 -> already at 65535, stays 65535
+    if (MethodContexts.getPublicClampValue() != 65535) return 31;
 
-    // Direct access to public variables - verify they can be read
-    u8 testValue <- MethodContexts.publicValue;
-    u8 testClamp <- MethodContexts.publicClampValue;
-    u8 testWrap <- MethodContexts.publicWrapValue;
-    bool testFlag <- MethodContexts.publicFlag;
-    i16 testOffset <- MethodContexts.publicOffset;
+    // Test 32: publicWrapValue +<- 5 -> 4 + 5 = 9
+    if (MethodContexts.getPublicWrapValue() != 9) return 32;
 
-    // Use the values to prevent warnings
-    if (testValue = 0 && testClamp = 0 && testWrap = 0 && testFlag = false && testOffset = 0) {
-        // Values accessed successfully
-    }
+    // Test 33: publicFlag toggled -> !false = true
+    if (MethodContexts.getPublicFlag() != true) return 33;
+
+    // Test 34: publicOffset <- publicOffset - 100 -> -1000 - 100 = -1100
+    if (MethodContexts.getPublicOffset() != -1100) return 34;
+
+    // ==========================================
+    // SECTION 9: Threshold and flag checks
+    // ==========================================
+
+    // Test 35: checkThresholds() - publicClampValue(65535) < GLOBAL_THRESHOLD(1000) is FALSE
+    // So the && with privateValue < GLOBAL_MAX doesn't matter - result is false
+    if (MethodContexts.checkThresholds() != false) return 35;
+
+    // Test 36: getAllFlags() - privateFlag(true after modifyAllPrivate toggle),
+    // publicFlag(true after modifyAllPublic toggle), globalEnabled(true)
+    // Note: privateFlag was true, then modifyAllPrivate toggled it to false
+    // So getAllFlags should be false (false && true && true = false)
+    if (MethodContexts.getAllFlags() != false) return 36;
+
+    // ==========================================
+    // SECTION 10: Direct public variable access
+    // ==========================================
+
+    // Test 37: Direct read of publicValue
+    if (MethodContexts.publicValue != 85) return 37;
+
+    // Test 38: Direct read of publicClampValue
+    if (MethodContexts.publicClampValue != 65535) return 38;
+
+    // Test 39: Direct read of publicWrapValue
+    if (MethodContexts.publicWrapValue != 9) return 39;
+
+    // Test 40: Direct read of publicFlag
+    if (MethodContexts.publicFlag != true) return 40;
+
+    // Test 41: Direct read of publicOffset
+    if (MethodContexts.publicOffset != -1100) return 41;
+
+    // ==========================================
+    // SECTION 11: Direct public variable modification
+    // ==========================================
+
+    // Test 42: Direct write to publicValue and verify via getter
+    MethodContexts.publicValue <- 99;
+    if (MethodContexts.getPublicValue() != 99) return 42;
+
+    // Test 43: Direct write to publicFlag and verify via getter
+    MethodContexts.publicFlag <- false;
+    if (MethodContexts.getPublicFlag() != false) return 43;
+
+    // All 43 validations passed
+    return 0;
 }

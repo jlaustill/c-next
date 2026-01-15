@@ -19,6 +19,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return a + (uint8_t)b;
 }
 
+/* test-execution */
 // Test: ADR-016 Modifiers in public and private method contexts
 // Verifies that this. and global. accessors work correctly in all method contexts
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns
@@ -232,39 +233,57 @@ bool MethodContexts_getAllFlags(void) {
 }
 
 int main(void) {
-    MethodContexts_getPrivateValueExternal();
-    MethodContexts_getPrivateSumViaInternal();
-    MethodContexts_getGlobalCounterViaInternal();
-    MethodContexts_getPrivateClampViaInternal();
-    MethodContexts_getPublicValue();
-    MethodContexts_getPublicClampValue();
-    MethodContexts_getPublicWrapValue();
-    MethodContexts_getPublicFlag();
-    MethodContexts_getPublicOffset();
-    MethodContexts_getGlobalMax();
-    MethodContexts_getGlobalThreshold();
-    MethodContexts_getGlobalCounter();
-    MethodContexts_getGlobalEnabled();
-    MethodContexts_getGlobalOffset();
-    MethodContexts_getGlobalScale();
-    MethodContexts_computePublicSum();
-    MethodContexts_publicValueBelowMax();
-    MethodContexts_computePublicWithOffset();
+    if (MethodContexts_getPrivateValueExternal() != 10) return 1;
+    if (MethodContexts_getPrivateSumViaInternal() != 60) return 2;
+    if (MethodContexts_getGlobalCounterViaInternal() != 50) return 3;
+    if (MethodContexts_getPrivateClampViaInternal() != 200) return 4;
+    if (MethodContexts_getPublicValue() != 20) return 5;
+    if (MethodContexts_getPublicClampValue() != 60000) return 6;
+    if (MethodContexts_getPublicWrapValue() != 65530) return 7;
+    if (MethodContexts_getPublicFlag() != true) return 8;
+    if (MethodContexts_getPublicOffset() != -1000) return 9;
+    if (MethodContexts_getGlobalMax() != 100) return 10;
+    if (MethodContexts_getGlobalThreshold() != 1000) return 11;
+    if (MethodContexts_getGlobalCounter() != 50) return 12;
+    if (MethodContexts_getGlobalEnabled() != true) return 13;
+    if (MethodContexts_getGlobalOffset() != -25) return 14;
+    float expectedScale = 2.5;
+    if (MethodContexts_getGlobalScale() != expectedScale) return 15;
+    if (MethodContexts_computePublicSum() != 70) return 16;
+    if (MethodContexts_publicValueBelowMax() != true) return 17;
+    if (MethodContexts_computePublicWithOffset() != -1025) return 18;
     MethodContexts_setPrivateValue(&(uint8_t){42});
+    if (MethodContexts_getPrivateValueExternal() != 42) return 19;
+    if (MethodContexts_getPrivateSumViaInternal() != 92) return 20;
     MethodContexts_setPublicValue(&(uint8_t){84});
+    if (MethodContexts_getPublicValue() != 84) return 21;
+    if (MethodContexts_computePublicSum() != 134) return 22;
     MethodContexts_setPrivateFlag(&(bool){true});
     MethodContexts_setPublicFlag(&(bool){false});
+    if (MethodContexts_getPublicFlag() != false) return 24;
     MethodContexts_incrementPublicClamp();
+    if (MethodContexts_getPublicClampValue() != 65535) return 25;
     MethodContexts_incrementPublicWrap();
+    if (MethodContexts_getPublicWrapValue() != 4) return 26;
     MethodContexts_modifyAllPrivate();
+    if (MethodContexts_getPrivateValueExternal() != 43) return 27;
+    if (MethodContexts_getPrivateClampViaInternal() != 210) return 28;
     MethodContexts_modifyAllPublic();
-    MethodContexts_checkThresholds();
-    MethodContexts_getAllFlags();
-    uint8_t testValue = MethodContexts_publicValue;
-    uint8_t testClamp = MethodContexts_publicClampValue;
-    uint8_t testWrap = MethodContexts_publicWrapValue;
-    bool testFlag = MethodContexts_publicFlag;
-    int16_t testOffset = MethodContexts_publicOffset;
-    if (testValue == 0 && testClamp == 0 && testWrap == 0 && testFlag == false && testOffset == 0) {
-    }
+    if (MethodContexts_getPublicValue() != 85) return 30;
+    if (MethodContexts_getPublicClampValue() != 65535) return 31;
+    if (MethodContexts_getPublicWrapValue() != 9) return 32;
+    if (MethodContexts_getPublicFlag() != true) return 33;
+    if (MethodContexts_getPublicOffset() != -1100) return 34;
+    if (MethodContexts_checkThresholds() != false) return 35;
+    if (MethodContexts_getAllFlags() != false) return 36;
+    if (MethodContexts_publicValue != 85) return 37;
+    if (MethodContexts_publicClampValue != 65535) return 38;
+    if (MethodContexts_publicWrapValue != 9) return 39;
+    if (MethodContexts_publicFlag != true) return 40;
+    if (MethodContexts_publicOffset != -1100) return 41;
+    MethodContexts_publicValue = 99;
+    if (MethodContexts_getPublicValue() != 99) return 42;
+    MethodContexts_publicFlag = false;
+    if (MethodContexts_getPublicFlag() != false) return 43;
+    return 0;
 }
