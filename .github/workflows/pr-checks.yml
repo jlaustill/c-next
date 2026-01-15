@@ -44,6 +44,11 @@ jobs:
         run: npm test
         continue-on-error: true
 
+      - name: Run CLI integration tests
+        id: test_cli
+        run: npm run test:cli
+        continue-on-error: true
+
       - name: Verify transpiler CLI
         id: cli
         run: |
@@ -92,6 +97,13 @@ jobs:
             FAILED=1
           else
             echo "✅ Tests passed"
+          fi
+
+          if [ "${{ steps.test_cli.outcome }}" != "success" ]; then
+            echo "❌ CLI integration tests failed"
+            FAILED=1
+          else
+            echo "✅ CLI integration tests passed"
           fi
 
           if [ "${{ steps.cli.outcome }}" != "success" ]; then
