@@ -59,12 +59,12 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
 /* Scope: ClampTest */
-uint8_t ClampTest_brightness = 200;
-uint16_t ClampTest_sensorValue = 60000;
-uint32_t ClampTest_counter = 4000000000;
-int8_t ClampTest_temperature = -100;
-int16_t ClampTest_altitude = 30000;
-int32_t ClampTest_position = 2000000000;
+static uint8_t ClampTest_brightness = 200;
+static uint16_t ClampTest_sensorValue = 60000;
+static uint32_t ClampTest_counter = 4000000000;
+static int8_t ClampTest_temperature = -100;
+static int16_t ClampTest_altitude = 30000;
+static int32_t ClampTest_position = 2000000000;
 
 uint8_t ClampTest_getBrightness(void) {
     return ClampTest_brightness;

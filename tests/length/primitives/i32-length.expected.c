@@ -15,7 +15,7 @@ int32_t globalVar = -100000;
 uint32_t TestScope_getGlobalLength(void) {
     return 32;
 }
-int32_t TestScope_scopeMember = -100000;
+static int32_t TestScope_scopeMember = -100000;
 
 uint32_t TestScope_getMemberLength(void) {
     return 32;

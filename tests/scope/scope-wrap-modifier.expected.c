@@ -10,12 +10,12 @@
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
 /* Scope: WrapTest */
-uint8_t WrapTest_byteCounter = 250;
-uint16_t WrapTest_tickCount = 65530;
-uint32_t WrapTest_cycleCounter = 4294967290;
-uint8_t WrapTest_brightness = 10;
-uint16_t WrapTest_sensorValue = 100;
-uint32_t WrapTest_position = 50;
+static uint8_t WrapTest_byteCounter = 250;
+static uint16_t WrapTest_tickCount = 65530;
+static uint32_t WrapTest_cycleCounter = 4294967290;
+static uint8_t WrapTest_brightness = 10;
+static uint16_t WrapTest_sensorValue = 100;
+static uint32_t WrapTest_position = 50;
 
 uint8_t WrapTest_getByteCounter(void) {
     return WrapTest_byteCounter;

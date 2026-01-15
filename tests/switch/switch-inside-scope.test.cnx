@@ -7,7 +7,7 @@ scope CommandProcessor {
     u32 lastCommand <- 0;
     u32 result <- 0;
 
-    void execute(u32 command) {
+    public void execute(u32 command) {
         this.lastCommand <- command;
 
         switch (command) {
@@ -26,7 +26,7 @@ scope CommandProcessor {
         }
     }
 
-    u32 getResult() {
+    public u32 getResult() {
         return this.result;
     }
 }
@@ -37,12 +37,12 @@ scope Calculator {
     u32 b <- 0;
     u32 output <- 0;
 
-    void setOperands(u32 x, u32 y) {
+    public void setOperands(u32 x, u32 y) {
         this.a <- x;
         this.b <- y;
     }
 
-    void compute(u32 operation) {
+    public void compute(u32 operation) {
         this.mode <- operation;
 
         switch (operation) {
@@ -64,7 +64,7 @@ scope Calculator {
         }
     }
 
-    u32 getOutput() {
+    public u32 getOutput() {
         return this.output;
     }
 }

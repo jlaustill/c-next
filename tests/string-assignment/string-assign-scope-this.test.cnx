@@ -2,17 +2,17 @@
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 
 scope Logger {
-    string<64> message <- "";
+    public string<64> message <- "";
 
-    void setMessage() {
+    public void setMessage() {
         this.message <- "Hello from scope";
     }
 
-    void clear() {
+    public void clear() {
         this.message <- "";
     }
 
-    void setCustom() {
+    public void setCustom() {
         this.message <- "Custom";
     }
 }

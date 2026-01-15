@@ -3,17 +3,17 @@
 // Tests OtherScope.var +<- value pattern
 
 scope Counter {
-    i32 value <- 100;
-    i32 data[3];
+    public i32 value <- 100;
+    public i32 data[3];
 }
 
 scope Manager {
-    void incrementCounter() {
+    public void incrementCounter() {
         // Cross-scope compound assignment
         Counter.value +<- 50;  // Should be: Counter_value += 50
     }
 
-    void incrementCounterArray() {
+    public void incrementCounterArray() {
         Counter.data[0] <- 10;
         Counter.data[0] +<- 5;  // Should be: Counter_data[0] += 5
     }

@@ -20,19 +20,19 @@ scope MotorController {
         STATUS: u32 ro @ 0x08,
     }
 
-    void start() {
+    public void start() {
         // Inside scope: must use 'this.' to access own members
         this.MOTOR_REG.CTRL.Running <- true;
         this.MOTOR_REG.CTRL.Mode <- 3;
         this.MOTOR_REG.SPEED <- this.DEFAULT_SPEED;
     }
 
-    bool isRunning() {
+    public bool isRunning() {
         // Read through scoped register bitmap chain using this.
         return this.MOTOR_REG.CTRL.Running;
     }
 
-    u8 getMode() {
+    public u8 getMode() {
         // Read multi-bit field through scoped register
         return this.MOTOR_REG.CTRL.Mode;
     }
@@ -46,7 +46,7 @@ scope Board {
 
     const u32 LED_BIT <- 3;
 
-    void toggleLed() {
+    public void toggleLed() {
         // Scoped register with bit indexing using this.
         this.GPIO.DR_SET[this.LED_BIT] <- true;
     }

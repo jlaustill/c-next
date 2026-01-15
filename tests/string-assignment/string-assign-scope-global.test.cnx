@@ -4,15 +4,15 @@
 string<64> globalBuffer <- "";
 
 scope Handler {
-    void updateGlobal() {
+    public void updateGlobal() {
         global.globalBuffer <- "FromScope";
     }
 
-    void clearGlobal() {
+    public void clearGlobal() {
         global.globalBuffer <- "";
     }
 
-    void setLongMessage() {
+    public void setLongMessage() {
         global.globalBuffer <- "This is a longer message from scope";
     }
 }

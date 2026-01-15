@@ -158,7 +158,7 @@ scope Calculator {
     }
 
     // Run all tests
-    i32 runAllTests() {
+    public i32 runAllTests() {
         i32 result <- 0;
 
         result <- this.testSubtraction();

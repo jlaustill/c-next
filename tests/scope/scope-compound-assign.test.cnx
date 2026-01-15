@@ -17,7 +17,7 @@ scope Counter {
         this.values[0] +<- 25;  // Should be: Counter_values[0] += 25
     }
 
-    i32 test() {
+    public i32 test() {
         this.increment();
         this.incrementArray();
 

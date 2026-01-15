@@ -28,10 +28,10 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on scope-local members
 // Note: +<- is already tested in scope/scope-compound-assign.test.cnx
 /* Scope: Calculator */
-int32_t Calculator_value = 0;
-uint32_t Calculator_bits = 0;
+static int32_t Calculator_value = 0;
+static uint32_t Calculator_bits = 0;
 
-int32_t Calculator_testSubtraction(void) {
+static int32_t Calculator_testSubtraction(void) {
     Calculator_value = 100;
     Calculator_value = cnx_clamp_sub_i32(Calculator_value, 30);
     if (Calculator_value != 70) return 1;
@@ -41,7 +41,7 @@ int32_t Calculator_testSubtraction(void) {
     return 0;
 }
 
-int32_t Calculator_testMultiplication(void) {
+static int32_t Calculator_testMultiplication(void) {
     Calculator_value = 7;
     Calculator_value = cnx_clamp_mul_i32(Calculator_value, 6);
     if (Calculator_value != 42) return 10;
@@ -54,7 +54,7 @@ int32_t Calculator_testMultiplication(void) {
     return 0;
 }
 
-int32_t Calculator_testDivision(void) {
+static int32_t Calculator_testDivision(void) {
     Calculator_value = 100;
     Calculator_value /= 5;
     if (Calculator_value != 20) return 20;
@@ -67,7 +67,7 @@ int32_t Calculator_testDivision(void) {
     return 0;
 }
 
-int32_t Calculator_testModulo(void) {
+static int32_t Calculator_testModulo(void) {
     Calculator_value = 17;
     Calculator_value %= 5;
     if (Calculator_value != 2) return 30;
@@ -80,7 +80,7 @@ int32_t Calculator_testModulo(void) {
     return 0;
 }
 
-int32_t Calculator_testBitwiseAnd(void) {
+static int32_t Calculator_testBitwiseAnd(void) {
     Calculator_bits = 0xFF;
     Calculator_bits &= 0x0F;
     if (Calculator_bits != 0x0F) return 40;
@@ -93,7 +93,7 @@ int32_t Calculator_testBitwiseAnd(void) {
     return 0;
 }
 
-int32_t Calculator_testBitwiseOr(void) {
+static int32_t Calculator_testBitwiseOr(void) {
     Calculator_bits = 0xF0;
     Calculator_bits |= 0x0F;
     if (Calculator_bits != 0xFF) return 50;
@@ -106,7 +106,7 @@ int32_t Calculator_testBitwiseOr(void) {
     return 0;
 }
 
-int32_t Calculator_testBitwiseXor(void) {
+static int32_t Calculator_testBitwiseXor(void) {
     Calculator_bits = 0xFF;
     Calculator_bits ^= 0xFF;
     if (Calculator_bits != 0) return 60;
@@ -119,7 +119,7 @@ int32_t Calculator_testBitwiseXor(void) {
     return 0;
 }
 
-int32_t Calculator_testLeftShift(void) {
+static int32_t Calculator_testLeftShift(void) {
     Calculator_bits = 1;
     Calculator_bits <<= 4;
     if (Calculator_bits != 16) return 70;
@@ -132,7 +132,7 @@ int32_t Calculator_testLeftShift(void) {
     return 0;
 }
 
-int32_t Calculator_testRightShift(void) {
+static int32_t Calculator_testRightShift(void) {
     Calculator_bits = 256;
     Calculator_bits >>= 4;
     if (Calculator_bits != 16) return 80;

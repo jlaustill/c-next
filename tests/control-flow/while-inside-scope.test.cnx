@@ -6,7 +6,7 @@ u32 globalResult <- 0;
 scope Counter {
     u32 value <- 0;
 
-    void countToFive() {
+    public void countToFive() {
         u32 i <- 0;
         while (i < 5) {
             this.value +<- 1;
@@ -14,7 +14,7 @@ scope Counter {
         }
     }
 
-    void countWhileCondition(bool shouldCount) {
+    public void countWhileCondition(bool shouldCount) {
         u32 i <- 0;
         while (i < 3 && shouldCount = true) {
             this.value +<- 10;
@@ -22,11 +22,11 @@ scope Counter {
         }
     }
 
-    u32 getValue() {
+    public u32 getValue() {
         return this.value;
     }
 
-    void reset() {
+    public void reset() {
         this.value <- 0;
     }
 }
@@ -34,7 +34,7 @@ scope Counter {
 scope Accumulator {
     u32 sum <- 0;
 
-    void sumRange(u32 limit) {
+    public void sumRange(u32 limit) {
         u32 i <- 1;
         while (i <= limit) {
             this.sum +<- i;
@@ -42,7 +42,7 @@ scope Accumulator {
         }
     }
 
-    u32 getSum() {
+    public u32 getSum() {
         return this.sum;
     }
 }
