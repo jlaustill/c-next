@@ -21,6 +21,7 @@ import TOverflowBehavior from "./types/TOverflowBehavior";
 import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
 import SymbolCollector from "./SymbolCollector";
+import TypeValidator from "./TypeValidator";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -74,12 +75,6 @@ const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
   "<<<-": "<<=",
   ">><-": ">>=",
 };
-
-/**
- * ADR-010: Implementation file extensions that should NOT be #included
- * These are source files, not headers - including them is an error
- */
-const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
 
 /**
  * ADR-013: Function signature for const parameter tracking
@@ -280,6 +275,9 @@ export default class CodeGenerator {
 
   /** Symbol collection - Issue #60: Extracted from CodeGenerator */
   public symbols: SymbolCollector | null = null;
+
+  /** Type validation - Issue #63: Extracted from CodeGenerator */
+  private typeValidator: TypeValidator | null = null;
 
   /**
    * Get struct field type and dimensions, checking SymbolTable first (for C headers),
@@ -483,6 +481,24 @@ export default class CodeGenerator {
     // Collect function/callback information (not yet extracted to SymbolCollector)
     this.collectFunctionsAndCallbacks(tree);
 
+    // Issue #63: Initialize type validator with clean dependencies
+    this.typeValidator = new TypeValidator({
+      symbols: this.symbols,
+      symbolTable: this.symbolTable,
+      typeRegistry: this.context.typeRegistry,
+      typeResolver: this.typeResolver,
+      callbackTypes: this.callbackTypes,
+      knownFunctions: this.knownFunctions,
+      knownGlobals: new Set(), // TODO: Extract known globals if needed
+      getCurrentScope: () => this.context.currentScope,
+      getScopeMembers: () => this.context.scopeMembers,
+      getCurrentParameters: () => this.context.currentParameters,
+      getLocalVariables: () => this.context.localVariables,
+      resolveIdentifier: (name: string) => this.resolveIdentifier(name),
+      getExpressionType: (ctx: unknown) =>
+        this.getExpressionType(ctx as Parser.ExpressionContext),
+    });
+
     // Second pass: register all variable types in the type registry
     // This ensures .length and other type-dependent operations can resolve
     // variables regardless of declaration order
@@ -507,7 +523,7 @@ export default class CodeGenerator {
 
       // ADR-010: Validate no implementation files are included
       const lineNumber = includeDir.start?.line ?? 0;
-      this.validateIncludeNotImplementationFile(
+      this.typeValidator!.validateIncludeNotImplementationFile(
         includeDir.getText(),
         lineNumber,
       );
@@ -693,34 +709,7 @@ export default class CodeGenerator {
     return includeText;
   }
 
-  /**
-   * ADR-010: Validate that #include does not reference an implementation file
-   * Implementation files (.c, .cpp, .cc, .cxx, .c++) should not be included
-   */
-  private validateIncludeNotImplementationFile(
-    includeText: string,
-    lineNumber: number,
-  ): void {
-    // Extract the file path from #include directive
-    // Match both <file> and "file" forms
-    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)>/);
-    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)"/);
-
-    const includePath = angleMatch?.[1] || quoteMatch?.[1];
-    if (!includePath) {
-      return; // Malformed include, let other validation handle it
-    }
-
-    // Get the file extension (lowercase for case-insensitive comparison)
-    const ext = path.extname(includePath).toLowerCase();
-
-    if (IMPLEMENTATION_EXTENSIONS.includes(ext)) {
-      throw new Error(
-        `E0503: Cannot #include implementation file '${includePath}'. ` +
-          `Only header files (.h, .hpp) are allowed. Line ${lineNumber}`,
-      );
-    }
-  }
+  // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator
 
   /**
    * Collect function and callback information.
@@ -842,35 +831,7 @@ export default class CodeGenerator {
 
   // Issue #60: collectEnum and collectBitmap methods removed - now in SymbolCollector
 
-  /**
-   * ADR-034: Validate that a literal value fits in a bitmap field
-   */
-  private validateBitmapFieldLiteral(
-    expr: Parser.ExpressionContext,
-    width: number,
-    fieldName: string,
-  ): void {
-    const text = expr.getText().trim();
-    const maxValue = (1 << width) - 1;
-
-    // Check for integer literals
-    let value: number | null = null;
-
-    if (text.match(/^\d+$/)) {
-      value = parseInt(text, 10);
-    } else if (text.match(/^0[xX][0-9a-fA-F]+$/)) {
-      value = parseInt(text, 16);
-    } else if (text.match(/^0[bB][01]+$/)) {
-      value = parseInt(text.substring(2), 2);
-    }
-
-    if (value !== null && value > maxValue) {
-      throw new Error(
-        `Error: Value ${value} exceeds ${width}-bit field '${fieldName}' maximum of ${maxValue}`,
-      );
-    }
-  }
-
+  // Issue #63: validateBitmapFieldLiteral moved to TypeValidator
   // Issue #60: evaluateConstantExpression method removed - now in SymbolCollector
 
   /**
@@ -964,31 +925,7 @@ export default class CodeGenerator {
     return undefined;
   }
 
-  /**
-   * ADR-036: Check array bounds at compile time for constant indices.
-   * Throws an error if the constant index is out of bounds.
-   */
-  private checkArrayBounds(
-    arrayName: string,
-    dimensions: number[],
-    indexExprs: Parser.ExpressionContext[],
-    line: number,
-  ): void {
-    for (let i = 0; i < indexExprs.length && i < dimensions.length; i++) {
-      const constValue = this.tryEvaluateConstant(indexExprs[i]);
-      if (constValue !== undefined) {
-        if (constValue < 0) {
-          throw new Error(
-            `Array index out of bounds: ${constValue} is negative for '${arrayName}' dimension ${i + 1} (line ${line})`,
-          );
-        } else if (constValue >= dimensions[i]) {
-          throw new Error(
-            `Array index out of bounds: ${constValue} >= ${dimensions[i]} for '${arrayName}' dimension ${i + 1} (line ${line})`,
-          );
-        }
-      }
-    }
-  }
+  // Issue #63: checkArrayBounds moved to TypeValidator
 
   /**
    * Extract type info from a variable declaration and register it
@@ -1648,162 +1585,8 @@ export default class CodeGenerator {
     return false;
   }
 
-  /**
-   * ADR-029: Validate callback assignment with nominal typing
-   * - If value IS a callback type used as a field type: must match exactly (nominal typing)
-   * - If value is just a function (not used as a type): signature must match
-   */
-  private validateCallbackAssignment(
-    expectedType: string,
-    valueExpr: Parser.ExpressionContext,
-    fieldName: string,
-  ): void {
-    const valueText = valueExpr.getText();
-
-    // Check if the value is a known function
-    if (!this.knownFunctions.has(valueText)) {
-      // Not a function name - could be a variable holding a callback
-      // Skip validation for now (C compiler will catch type mismatches)
-      return;
-    }
-
-    const expectedInfo = this.callbackTypes.get(expectedType);
-    const valueInfo = this.callbackTypes.get(valueText);
-
-    if (!expectedInfo || !valueInfo) {
-      // Shouldn't happen, but guard against it
-      return;
-    }
-
-    // First check if signatures match
-    if (!this.callbackSignaturesMatch(expectedInfo, valueInfo)) {
-      throw new Error(
-        `Error: Function '${valueText}' signature does not match callback type '${expectedType}'`,
-      );
-    }
-
-    // Nominal typing: if the value function is used as a field type somewhere,
-    // it can only be assigned to fields of that same type
-    if (
-      this.isCallbackTypeUsedAsFieldType(valueText) &&
-      valueText !== expectedType
-    ) {
-      throw new Error(
-        `Error: Cannot assign '${valueText}' to callback field '${fieldName}' ` +
-          `(expected ${expectedType} type, got ${valueText} type - nominal typing)`,
-      );
-    }
-  }
-
-  /**
-   * ADR-029: Check if two callback signatures match
-   */
-  private callbackSignaturesMatch(
-    a: CallbackTypeInfo,
-    b: CallbackTypeInfo,
-  ): boolean {
-    if (a.returnType !== b.returnType) return false;
-    if (a.parameters.length !== b.parameters.length) return false;
-
-    for (let i = 0; i < a.parameters.length; i++) {
-      const pa = a.parameters[i];
-      const pb = b.parameters[i];
-      if (pa.type !== pb.type) return false;
-      if (pa.isConst !== pb.isConst) return false;
-      if (pa.isPointer !== pb.isPointer) return false;
-      if (pa.isArray !== pb.isArray) return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * ADR-013: Check if an argument is const (variable or parameter)
-   */
-  private isConstValue(identifier: string): boolean {
-    // Check if it's a const parameter
-    const paramInfo = this.context.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-      return true;
-    }
-
-    // Check if it's a const variable
-    const typeInfo = this.context.typeRegistry.get(identifier);
-    if (typeInfo?.isConst) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * ADR-016: Validate that bare identifiers inside scopes are only used for local variables.
-   * Throws an error if a bare identifier references a scope member or global.
-   *
-   * @param identifier The bare identifier to validate
-   * @param isLocalVariable Whether this identifier is a known local variable/parameter
-   */
-  private validateBareIdentifierInScope(
-    identifier: string,
-    isLocalVariable: boolean,
-  ): void {
-    // Only enforce inside scopes
-    if (!this.context.currentScope) {
-      return;
-    }
-
-    // Local variables and parameters are allowed as bare identifiers
-    if (isLocalVariable) {
-      return;
-    }
-
-    // Check if this identifier is a scope member
-    const scopeMembers = this.context.scopeMembers.get(
-      this.context.currentScope,
-    );
-    if (scopeMembers && scopeMembers.has(identifier)) {
-      throw new Error(
-        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${this.context.currentScope}'`,
-      );
-    }
-
-    // Check if this is a known global (register, function, enum, struct)
-    if (this.symbols!.knownRegisters.has(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${this.context.currentScope}'`,
-      );
-    }
-
-    if (
-      this.knownFunctions.has(identifier) &&
-      !identifier.startsWith(this.context.currentScope + "_")
-    ) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${this.context.currentScope}'`,
-      );
-    }
-
-    if (this.symbols!.knownEnums.has(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${this.context.currentScope}'`,
-      );
-    }
-
-    if (this.isKnownStruct(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${this.context.currentScope}'`,
-      );
-    }
-
-    // Check if this identifier exists as a global variable in the type registry
-    // (but not a scoped variable - those would have Scope_ prefix)
-    const typeInfo = this.context.typeRegistry.get(identifier);
-    if (typeInfo && !identifier.includes("_")) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${this.context.currentScope}'`,
-      );
-    }
-  }
+  // Issue #63: validateCallbackAssignment, callbackSignaturesMatch, isConstValue,
+  //            and validateBareIdentifierInScope moved to TypeValidator
 
   /**
    * ADR-017: Extract enum type from an expression.
@@ -2301,28 +2084,7 @@ export default class CodeGenerator {
     return identifier;
   }
 
-  /**
-   * ADR-013: Check if assigning to an identifier would violate const rules.
-   * Returns error message if const, null if mutable.
-   */
-  private checkConstAssignment(identifier: string): string | null {
-    // Check if it's a const parameter
-    const paramInfo = this.context.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-      return `cannot assign to const parameter '${identifier}'`;
-    }
-
-    // Resolve identifier to scoped name for proper lookup
-    const scopedName = this.resolveIdentifier(identifier);
-
-    // Check if it's a const variable
-    const typeInfo = this.context.typeRegistry.get(scopedName);
-    if (typeInfo?.isConst) {
-      return `cannot assign to const variable '${identifier}'`;
-    }
-
-    return null; // Mutable, assignment OK
-  }
+  // Issue #63: checkConstAssignment moved to TypeValidator
 
   /**
    * Navigate through expression layers to get to the postfix expression.
@@ -3949,7 +3711,7 @@ export default class CodeGenerator {
       !targetCtx.arrayAccess()
     ) {
       const id = targetCtx.IDENTIFIER()!.getText();
-      const constError = this.checkConstAssignment(id);
+      const constError = this.typeValidator!.checkConstAssignment(id);
       if (constError) {
         throw new Error(constError);
       }
@@ -4046,7 +3808,7 @@ export default class CodeGenerator {
     // Check array element assignment - validate the array is not const
     if (targetCtx.arrayAccess()) {
       const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
-      const constError = this.checkConstAssignment(arrayName);
+      const constError = this.typeValidator!.checkConstAssignment(arrayName);
       if (constError) {
         throw new Error(`${constError} (array element)`);
       }
@@ -4057,7 +3819,7 @@ export default class CodeGenerator {
       const identifiers = targetCtx.memberAccess()!.IDENTIFIER();
       if (identifiers.length > 0) {
         const rootName = identifiers[0].getText();
-        const constError = this.checkConstAssignment(rootName);
+        const constError = this.typeValidator!.checkConstAssignment(rootName);
         if (constError) {
           throw new Error(`${constError} (member access)`);
         }
@@ -4083,10 +3845,12 @@ export default class CodeGenerator {
               this.callbackFieldTypes.get(callbackFieldKey);
 
             if (expectedCallbackType) {
-              this.validateCallbackAssignment(
+              this.typeValidator!.validateCallbackAssignment(
                 expectedCallbackType,
                 ctx.expression(),
                 memberName,
+                (funcName: string) =>
+                  this.isCallbackTypeUsedAsFieldType(funcName),
               );
             }
           }
@@ -4120,7 +3884,7 @@ export default class CodeGenerator {
             const fieldInfo = fields.get(fieldName)!;
 
             // Validate compile-time literal overflow
-            this.validateBitmapFieldLiteral(
+            this.typeValidator!.validateBitmapFieldLiteral(
               ctx.expression(),
               fieldInfo.width,
               fieldName,
@@ -4170,7 +3934,7 @@ export default class CodeGenerator {
               const fieldInfo = fields.get(fieldName)!;
 
               // Validate compile-time literal overflow
-              this.validateBitmapFieldLiteral(
+              this.typeValidator!.validateBitmapFieldLiteral(
                 ctx.expression(),
                 fieldInfo.width,
                 fieldName,
@@ -4223,7 +3987,7 @@ export default class CodeGenerator {
                 const structFieldInfo = structBitmapFields.get(fieldName)!;
 
                 // Validate compile-time literal overflow
-                this.validateBitmapFieldLiteral(
+                this.typeValidator!.validateBitmapFieldLiteral(
                   ctx.expression(),
                   structFieldInfo.width,
                   fieldName,
@@ -4276,7 +4040,7 @@ export default class CodeGenerator {
                 const fieldInfo = fields.get(fieldName)!;
 
                 // Validate compile-time literal overflow
-                this.validateBitmapFieldLiteral(
+                this.typeValidator!.validateBitmapFieldLiteral(
                   ctx.expression(),
                   fieldInfo.width,
                   fieldName,
@@ -4330,11 +4094,12 @@ export default class CodeGenerator {
         // ADR-036: Compile-time bounds checking for constant indices
         const typeInfo = this.context.typeRegistry.get(arrayName);
         if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-          this.checkArrayBounds(
+          this.typeValidator!.checkArrayBounds(
             arrayName,
             typeInfo.arrayDimensions,
             exprs,
             ctx.start?.line ?? 0,
+            (expr) => this.tryEvaluateConstant(expr),
           );
 
           // Bug #8: Check for bit indexing on array element
@@ -4804,7 +4569,7 @@ export default class CodeGenerator {
               const fieldInfo = fields.get(fieldName)!;
 
               // Validate compile-time literal overflow
-              this.validateBitmapFieldLiteral(
+              this.typeValidator!.validateBitmapFieldLiteral(
                 ctx.expression(),
                 fieldInfo.width,
                 fieldName,
@@ -5440,7 +5205,11 @@ export default class CodeGenerator {
 
     // ADR-016: Enforce explicit qualification inside scopes
     // Bare identifiers are ONLY allowed for local variables and parameters
-    this.validateBareIdentifierInScope(id, isLocalVariable);
+    this.typeValidator!.validateBareIdentifierInScope(
+      id,
+      isLocalVariable,
+      (name: string) => this.isKnownStruct(name),
+    );
 
     return id;
   }
@@ -5595,7 +5364,7 @@ export default class CodeGenerator {
   // ADR-027: Do-while loops with MISRA-compliant boolean condition
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
     // Validate the condition is a boolean expression (E0701)
-    this.validateDoWhileCondition(ctx.expression());
+    this.typeValidator!.validateDoWhileCondition(ctx.expression());
 
     const body = this.generateBlock(ctx.block());
     const condition = this.generateExpression(ctx.expression());
@@ -5695,7 +5464,7 @@ export default class CodeGenerator {
     ctx: Parser.CriticalStatementContext,
   ): string {
     // Validate no early exits inside critical block
-    this.validateNoEarlyExits(ctx.block());
+    this.typeValidator!.validateNoEarlyExits(ctx.block());
 
     // Mark that we need CMSIS headers
     this.needsCMSIS = true;
@@ -5715,64 +5484,7 @@ export default class CodeGenerator {
 }`;
   }
 
-  /**
-   * ADR-050: Validate no early exits inside critical block
-   * return, break, continue would leave interrupts disabled
-   */
-  private validateNoEarlyExits(ctx: Parser.BlockContext): void {
-    for (const stmt of ctx.statement()) {
-      if (stmt.returnStatement()) {
-        throw new Error(
-          `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-        );
-      }
-      // Recursively check nested blocks
-      if (stmt.block()) {
-        this.validateNoEarlyExits(stmt.block()!);
-      }
-      // Check inside if statements
-      if (stmt.ifStatement()) {
-        for (const innerStmt of stmt.ifStatement()!.statement()) {
-          if (innerStmt.returnStatement()) {
-            throw new Error(
-              `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-            );
-          }
-          if (innerStmt.block()) {
-            this.validateNoEarlyExits(innerStmt.block()!);
-          }
-        }
-      }
-      // Check inside while/for/do-while loops for return (break/continue are already rejected by ADR-026)
-      if (stmt.whileStatement()) {
-        const loopStmt = stmt.whileStatement()!.statement();
-        if (loopStmt.returnStatement()) {
-          throw new Error(
-            `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-          );
-        }
-        if (loopStmt.block()) {
-          this.validateNoEarlyExits(loopStmt.block()!);
-        }
-      }
-      if (stmt.forStatement()) {
-        const loopStmt = stmt.forStatement()!.statement();
-        if (loopStmt.returnStatement()) {
-          throw new Error(
-            `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-          );
-        }
-        if (loopStmt.block()) {
-          this.validateNoEarlyExits(loopStmt.block()!);
-        }
-      }
-      if (stmt.doWhileStatement()) {
-        // do-while uses block directly, not statement
-        const loopBlock = stmt.doWhileStatement()!.block();
-        this.validateNoEarlyExits(loopBlock);
-      }
-    }
-  }
+  // Issue #63: validateNoEarlyExits moved to TypeValidator
 
   // ========================================================================
   // Switch Statements (ADR-025)
@@ -5783,7 +5495,7 @@ export default class CodeGenerator {
     const exprCode = this.generateExpression(switchExpr);
 
     // ADR-025: Semantic validation
-    this.validateSwitchStatement(ctx, switchExpr);
+    this.typeValidator!.validateSwitchStatement(ctx, switchExpr);
 
     // Build the switch statement
     const lines: string[] = [`switch (${exprCode}) {`];
@@ -5910,330 +5622,11 @@ export default class CodeGenerator {
     return lines.join("\n");
   }
 
-  /**
-   * ADR-025: Validate switch statement for MISRA compliance
-   */
-  private validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void {
-    const cases = ctx.switchCase();
-    const defaultCase = ctx.defaultCase();
-    const totalClauses = cases.length + (defaultCase ? 1 : 0);
+  // Issue #63: validateSwitchStatement, validateEnumExhaustiveness, getDefaultCount,
+  //            getCaseLabelValue moved to TypeValidator
 
-    // MISRA 16.7: No boolean switches (use if/else instead)
-    const exprType = this.getExpressionType(switchExpr);
-    if (exprType === "bool") {
-      throw new Error(
-        "Error: Cannot switch on boolean type (MISRA 16.7). Use if/else instead.",
-      );
-    }
-
-    // MISRA 16.6: Minimum 2 clauses required
-    if (totalClauses < 2) {
-      throw new Error(
-        "Error: Switch requires at least 2 clauses (MISRA 16.6). Use if statement for single case.",
-      );
-    }
-
-    // MISRA 16.5: Default must be last clause (checked by grammar order, but verify)
-    // Grammar ensures default comes after cases, so this is always satisfied
-
-    // Check for duplicate case values
-    const seenValues = new Set<string>();
-    for (const caseCtx of cases) {
-      for (const labelCtx of caseCtx.caseLabel()) {
-        const labelValue = this.getCaseLabelValue(labelCtx);
-        if (seenValues.has(labelValue)) {
-          throw new Error(
-            `Error: Duplicate case value '${labelValue}' in switch statement.`,
-          );
-        }
-        seenValues.add(labelValue);
-      }
-    }
-
-    // ADR-025: Enum exhaustiveness checking
-    if (exprType && this.symbols!.knownEnums.has(exprType)) {
-      this.validateEnumExhaustiveness(ctx, exprType, cases, defaultCase);
-    }
-  }
-
-  /**
-   * ADR-025: Validate enum switch exhaustiveness with default(n) counting
-   */
-  private validateEnumExhaustiveness(
-    ctx: Parser.SwitchStatementContext,
-    enumTypeName: string,
-    cases: Parser.SwitchCaseContext[],
-    defaultCase: Parser.DefaultCaseContext | null,
-  ): void {
-    const enumVariants = this.symbols!.enumMembers.get(enumTypeName);
-    if (!enumVariants) return; // Shouldn't happen if knownEnums has it
-
-    const totalVariants = enumVariants.size;
-
-    // Count explicit cases (each || alternative counts as 1)
-    let explicitCaseCount = 0;
-    for (const caseCtx of cases) {
-      explicitCaseCount += caseCtx.caseLabel().length;
-    }
-
-    if (defaultCase) {
-      // Check for default(n) syntax
-      const defaultCount = this.getDefaultCount(defaultCase);
-
-      if (defaultCount !== null) {
-        // default(n) mode: explicit + n must equal total variants
-        const covered = explicitCaseCount + defaultCount;
-        if (covered !== totalVariants) {
-          throw new Error(
-            `Error: switch covers ${covered} of ${totalVariants} ${enumTypeName} variants ` +
-              `(${explicitCaseCount} explicit + default(${defaultCount})). ` +
-              `Expected ${totalVariants}.`,
-          );
-        }
-      }
-      // Plain default: no exhaustiveness check needed
-    } else {
-      // No default: must cover all variants explicitly
-      if (explicitCaseCount !== totalVariants) {
-        const missing = totalVariants - explicitCaseCount;
-        throw new Error(
-          `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
-        );
-      }
-    }
-  }
-
-  /**
-   * Get the count from default(n) syntax, or null for plain default
-   */
-  private getDefaultCount(ctx: Parser.DefaultCaseContext): number | null {
-    const intLiteral = ctx.INTEGER_LITERAL();
-    if (intLiteral) {
-      return parseInt(intLiteral.getText(), 10);
-    }
-    return null;
-  }
-
-  /**
-   * Get the string representation of a case label for duplicate checking
-   */
-  private getCaseLabelValue(ctx: Parser.CaseLabelContext): string {
-    if (ctx.qualifiedType()) {
-      const qt = ctx.qualifiedType()!;
-      return qt
-        .IDENTIFIER()
-        .map((id) => id.getText())
-        .join(".");
-    }
-    if (ctx.IDENTIFIER()) {
-      return ctx.IDENTIFIER()!.getText();
-    }
-    if (ctx.INTEGER_LITERAL()) {
-      const num = ctx.INTEGER_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(num);
-      return String(hasNeg ? -value : value);
-    }
-    if (ctx.HEX_LITERAL()) {
-      // Normalize hex to decimal for comparison
-      const hex = ctx.HEX_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(hex); // BigInt handles 0x prefix natively
-      return String(hasNeg ? -value : value);
-    }
-    if (ctx.BINARY_LITERAL()) {
-      // Normalize binary to decimal for comparison
-      const bin = ctx.BINARY_LITERAL()!.getText();
-      return String(BigInt(bin)); // BigInt handles 0b prefix natively
-    }
-    if (ctx.CHAR_LITERAL()) {
-      return ctx.CHAR_LITERAL()!.getText();
-    }
-    return "";
-  }
-
-  // ========================================================================
-  // Ternary Validation (ADR-022)
-  // ========================================================================
-
-  /**
-   * ADR-022: Validate that ternary condition is a boolean expression
-   * Must be a comparison or logical operation, not just a value
-   */
-  private validateTernaryCondition(ctx: Parser.OrExpressionContext): void {
-    // Check if the condition contains a comparison or logical operator
-    // A valid boolean expression must have one of: =, !=, <, >, <=, >=, &&, ||
-    const text = ctx.getText();
-
-    // If it has && or ||, it's a logical expression (valid)
-    if (ctx.andExpression().length > 1) {
-      return; // Has || operator - valid
-    }
-
-    const andExpr = ctx.andExpression(0);
-    if (!andExpr) {
-      throw new Error(
-        `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-      );
-    }
-
-    if (andExpr.equalityExpression().length > 1) {
-      return; // Has && operator - valid
-    }
-
-    const equalityExpr = andExpr.equalityExpression(0);
-    if (!equalityExpr) {
-      throw new Error(
-        `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-      );
-    }
-
-    if (equalityExpr.relationalExpression().length > 1) {
-      return; // Has = or != operator - valid
-    }
-
-    const relationalExpr = equalityExpr.relationalExpression(0);
-    if (!relationalExpr) {
-      throw new Error(
-        `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-      );
-    }
-
-    if (relationalExpr.bitwiseOrExpression().length > 1) {
-      return; // Has <, >, <=, >= operator - valid
-    }
-
-    // No comparison or logical operators found - just a value
-    throw new Error(
-      `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-    );
-  }
-
-  /**
-   * ADR-022: Validate that expression does not contain a nested ternary
-   */
-  private validateNoNestedTernary(
-    ctx: Parser.OrExpressionContext,
-    branchName: string,
-  ): void {
-    const text = ctx.getText();
-    // Check for ternary pattern: something ? something : something
-    // This is a simple heuristic - the grammar would catch malformed ternaries
-    if (text.includes("?") && text.includes(":")) {
-      throw new Error(
-        `Error: Nested ternary not allowed in ${branchName}. Use if/else instead.`,
-      );
-    }
-  }
-
-  // ========================================================================
-  // Do-While Validation (ADR-027)
-  // ========================================================================
-
-  /**
-   * ADR-027: Validate that do-while condition is a boolean expression (E0701)
-   * Must be a comparison, logical operation, or boolean variable - not just a value.
-   * This enforces MISRA C:2012 Rule 14.4.
-   */
-  private validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
-    // Unwrap: ExpressionContext -> TernaryExpressionContext -> OrExpressionContext
-    const ternaryExpr = ctx.ternaryExpression();
-    const orExprs = ternaryExpr.orExpression();
-
-    // For do-while, we expect a non-ternary expression (single orExpression)
-    if (orExprs.length !== 1) {
-      throw new Error(
-        `Error E0701: do-while condition must be a boolean expression, not a ternary (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
-    const orExpr = orExprs[0];
-    const text = orExpr.getText();
-
-    // If it has || operator, it's valid (logical expression)
-    if (orExpr.andExpression().length > 1) {
-      return;
-    }
-
-    const andExpr = orExpr.andExpression(0);
-    if (!andExpr) {
-      throw new Error(
-        `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
-    // If it has && operator, it's valid
-    if (andExpr.equalityExpression().length > 1) {
-      return;
-    }
-
-    const equalityExpr = andExpr.equalityExpression(0);
-    if (!equalityExpr) {
-      throw new Error(
-        `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
-    // If it has = or != operator, it's valid
-    if (equalityExpr.relationalExpression().length > 1) {
-      return;
-    }
-
-    const relationalExpr = equalityExpr.relationalExpression(0);
-    if (!relationalExpr) {
-      throw new Error(
-        `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
-    // If it has <, >, <=, >= operator, it's valid
-    if (relationalExpr.bitwiseOrExpression().length > 1) {
-      return;
-    }
-
-    // Check if it's a unary ! (negation) expression - that's valid on booleans
-    // Need to drill down to check for unary not operator
-    const bitwiseOrExpr = relationalExpr.bitwiseOrExpression(0);
-    if (bitwiseOrExpr && this.isBooleanExpression(bitwiseOrExpr)) {
-      return;
-    }
-
-    // No comparison or logical operators found - just a value
-    throw new Error(
-      `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: use explicit comparison: ${text} > 0 or ${text} != 0`,
-    );
-  }
-
-  /**
-   * Check if an expression resolves to a boolean type.
-   * This includes: boolean literals, boolean variables, negation of booleans, function calls returning bool.
-   */
-  private isBooleanExpression(ctx: Parser.BitwiseOrExpressionContext): boolean {
-    const text = ctx.getText();
-
-    // Check for boolean literals
-    if (text === "true" || text === "false") {
-      return true;
-    }
-
-    // Check for negation (! operator) - valid for boolean expressions
-    if (text.startsWith("!")) {
-      return true;
-    }
-
-    // Check if it's a known boolean variable
-    const typeInfo = this.context.typeRegistry.get(text);
-    if (typeInfo && typeInfo.baseType === "bool") {
-      return true;
-    }
-
-    return false;
-  }
+  // Issue #63: validateTernaryCondition, validateNoNestedTernary,
+  //            validateDoWhileCondition, isBooleanExpression moved to TypeValidator
 
   // ========================================================================
   // Expressions
@@ -6258,9 +5651,9 @@ export default class CodeGenerator {
     const falseExpr = orExprs[2];
 
     // ADR-022: Validate ternary constraints
-    this.validateTernaryCondition(condition);
-    this.validateNoNestedTernary(trueExpr, "true branch");
-    this.validateNoNestedTernary(falseExpr, "false branch");
+    this.typeValidator!.validateTernaryCondition(condition);
+    this.typeValidator!.validateNoNestedTernary(trueExpr, "true branch");
+    this.typeValidator!.validateNoNestedTernary(falseExpr, "false branch");
 
     // Generate C output - parentheses already present from grammar
     const condCode = this.generateOrExpr(condition);
@@ -6409,7 +5802,7 @@ export default class CodeGenerator {
 
       // Validate shift amount if we can determine the left operand type
       if (leftType) {
-        this.validateShiftAmount(leftType, rightExpr, op, ctx);
+        this.typeValidator!.validateShiftAmount(leftType, rightExpr, op, ctx);
       }
 
       result += ` ${op} ${this.generateAdditiveExpr(exprs[i])}`;
@@ -6418,181 +5811,8 @@ export default class CodeGenerator {
     return result;
   }
 
-  /**
-   * Validate shift amount doesn't exceed type width (MISRA C:2012 Rule 12.2).
-   * Shifting by an amount >= type width is undefined behavior.
-   */
-  private validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void {
-    // Get type width in bits
-    const typeWidth = this.getTypeWidth(leftType);
-    if (!typeWidth) return; // Unknown type, skip validation
-
-    // Try to evaluate shift amount if it's a constant
-    const shiftAmount = this.evaluateShiftAmount(rightExpr);
-    if (shiftAmount === null) return; // Not a constant, skip validation
-
-    // Check for negative shift (undefined behavior)
-    if (shiftAmount < 0) {
-      throw new Error(
-        `Error: Negative shift amount (${shiftAmount}) is undefined behavior\n` +
-          `  Type: ${leftType}\n` +
-          `  Expression: ${ctx.getText()}\n` +
-          `  Shift amounts must be non-negative`,
-      );
-    }
-
-    // Check if shift amount >= type width (undefined behavior)
-    if (shiftAmount >= typeWidth) {
-      throw new Error(
-        `Error: Shift amount (${shiftAmount}) exceeds type width (${typeWidth} bits) for type '${leftType}'\n` +
-          `  Expression: ${ctx.getText()}\n` +
-          `  Shift amount must be < ${typeWidth} for ${typeWidth}-bit types\n` +
-          `  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior`,
-      );
-    }
-  }
-
-  /**
-   * Get the bit width of a primitive type.
-   */
-  private getTypeWidth(type: string): number | null {
-    switch (type) {
-      case "u8":
-      case "i8":
-        return 8;
-      case "u16":
-      case "i16":
-        return 16;
-      case "u32":
-      case "i32":
-        return 32;
-      case "u64":
-      case "i64":
-        return 64;
-      default:
-        return null; // Unknown type
-    }
-  }
-
-  /**
-   * Try to evaluate a shift amount expression to get its numeric value.
-   * Returns null if not a constant or cannot be evaluated.
-   */
-  private evaluateShiftAmount(
-    ctx: Parser.AdditiveExpressionContext,
-  ): number | null {
-    // For now, handle simple literals only
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length !== 1) return null; // Not a simple literal
-
-    const multExpr = multExprs[0];
-    const unaryExprs = multExpr.unaryExpression();
-    if (unaryExprs.length !== 1) return null;
-
-    const unaryExpr = unaryExprs[0];
-
-    // Check for unary minus (negative literal)
-    const unaryText = unaryExpr.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = unaryExpr.postfixExpression();
-    if (!postfixExpr) {
-      // Might be a nested unary expression like -(-5)
-      const nestedUnary = unaryExpr.unaryExpression();
-      if (nestedUnary) {
-        const nestedValue = this.evaluateUnaryExpression(nestedUnary);
-        if (nestedValue !== null) {
-          return isNegative ? -nestedValue : nestedValue;
-        }
-      }
-      return null;
-    }
-
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return null;
-
-    const literal = primaryExpr.literal();
-    if (!literal) return null;
-
-    const text = literal.getText();
-    let value: number | null = null;
-
-    // Handle different number formats
-    if (text.startsWith("0x") || text.startsWith("0X")) {
-      // Hex literal
-      value = parseInt(text.slice(2), 16);
-    } else if (text.startsWith("0b") || text.startsWith("0B")) {
-      // Binary literal
-      value = parseInt(text.slice(2), 2);
-    } else {
-      // Decimal literal (strip any type suffix)
-      const numMatch = text.match(/^\d+/);
-      if (numMatch) {
-        value = parseInt(numMatch[0], 10);
-      }
-    }
-
-    if (value !== null && isNegative) {
-      value = -value;
-    }
-
-    return value;
-  }
-
-  /**
-   * Helper to evaluate a unary expression recursively.
-   */
-  private evaluateUnaryExpression(
-    ctx: Parser.UnaryExpressionContext,
-  ): number | null {
-    const unaryText = ctx.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = ctx.postfixExpression();
-    if (postfixExpr) {
-      const primaryExpr = postfixExpr.primaryExpression();
-      if (!primaryExpr) return null;
-
-      const literal = primaryExpr.literal();
-      if (!literal) return null;
-
-      const text = literal.getText();
-      let value: number | null = null;
-
-      if (text.startsWith("0x") || text.startsWith("0X")) {
-        value = parseInt(text.slice(2), 16);
-      } else if (text.startsWith("0b") || text.startsWith("0B")) {
-        value = parseInt(text.slice(2), 2);
-      } else {
-        const numMatch = text.match(/^\d+/);
-        if (numMatch) {
-          value = parseInt(numMatch[0], 10);
-        }
-      }
-
-      if (value !== null && isNegative) {
-        value = -value;
-      }
-
-      return value;
-    }
-
-    // Recursive unary
-    const nestedUnary = ctx.unaryExpression();
-    if (nestedUnary) {
-      const nestedValue = this.evaluateUnaryExpression(nestedUnary);
-      if (nestedValue !== null) {
-        return isNegative ? -nestedValue : nestedValue;
-      }
-    }
-
-    return null;
-  }
+  // Issue #63: validateShiftAmount, getTypeWidth, evaluateShiftAmount,
+  //            evaluateUnaryExpression moved to TypeValidator
 
   /**
    * Get the type of an additive expression.
@@ -7400,7 +6620,7 @@ export default class CodeGenerator {
                 argIdx++
               ) {
                 const argId = this.getSimpleIdentifier(argExprs[argIdx]);
-                if (argId && this.isConstValue(argId)) {
+                if (argId && this.typeValidator!.isConstValue(argId)) {
                   const param = sig.parameters[argIdx];
                   if (!param.isConst) {
                     throw new Error(
@@ -7534,7 +6754,11 @@ export default class CodeGenerator {
 
       // ADR-016: Enforce explicit qualification inside scopes
       // Bare identifiers are ONLY allowed for local variables and parameters
-      this.validateBareIdentifierInScope(id, isLocalVariable);
+      this.typeValidator!.validateBareIdentifierInScope(
+        id,
+        isLocalVariable,
+        (name: string) => this.isKnownStruct(name),
+      );
 
       return id;
     }
@@ -7940,11 +7164,12 @@ export default class CodeGenerator {
         // Simple array access: matrix[i][j]
         const typeInfo = this.context.typeRegistry.get(firstPart);
         if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-          this.checkArrayBounds(
+          this.typeValidator!.checkArrayBounds(
             firstPart,
             typeInfo.arrayDimensions,
             expressions,
             ctx.start?.line ?? 0,
+            (expr) => this.tryEvaluateConstant(expr),
           );
         }
       }
@@ -8145,11 +7370,12 @@ export default class CodeGenerator {
       }
 
       if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-        this.checkArrayBounds(
+        this.typeValidator!.checkArrayBounds(
           name,
           typeInfo.arrayDimensions,
           exprs,
           ctx.start?.line ?? 0,
+          (expr) => this.tryEvaluateConstant(expr),
         );
       }
 
