@@ -397,28 +397,42 @@ Untested features (HIGH priority):
   ❌ 7-switch-nested
 ```
 
-### Phase 2: Grammar Rule Coverage (Week 2)
+### Phase 2: Grammar Rule Coverage (Week 2) ✅ IMPLEMENTED
 
-**Create:** `scripts/grammar-coverage.ts`
+> **Implemented:** Issue #35 - See `scripts/grammar-coverage.ts`
+
+**Commands:**
+
+```bash
+npm run coverage:grammar         # Generate GRAMMAR-COVERAGE.md
+npm run coverage:grammar:check   # CI check with 80% threshold
+npm run coverage:grammar:console # Console output only
+```
+
+**Current Status (95.2% combined coverage):**
+
+- 91 parser rules, 88 covered (96.7%)
+- 119 lexer rules, 112 covered (94.1%)
 
 **Features:**
 
-1. Instrument transpiler with rule visitor
-2. Track which grammar rules execute
-3. Generate report of covered/uncovered rules
+1. ✅ Instrument transpiler with ANTLR ParseTreeListener
+2. ✅ Track which parser and lexer rules execute
+3. ✅ Generate markdown and console reports
+4. ✅ CI integration with configurable threshold
 
 **Output:**
 
 ```
 Grammar Rule Coverage:
-  Total rules: 156
-  Executed: 142 (91%)
-  Never executed: 14 (9%)
+  Total rules: 210
+  Executed: 200 (95.2%)
+  Never executed: 10 (4.8%)
 
-Untested grammar rules:
-  ❌ inline_assembly
-  ❌ bitfield_range
-  ❌ scope_operator (rare usage)
+Never Visited Parser Rules:
+  ❌ globalMemberAccess
+  ❌ genericType
+  ❌ typeArgument
 ```
 
 ### Phase 3: FileCheck Integration (Week 3)

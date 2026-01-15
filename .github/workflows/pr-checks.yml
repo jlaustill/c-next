@@ -53,6 +53,11 @@ jobs:
           test -f examples/teensy4/blink.c || exit 1
         continue-on-error: true
 
+      - name: Check grammar coverage (Issue #35)
+        id: grammar_coverage
+        run: npm run coverage:grammar:check -- --threshold 80
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -94,6 +99,13 @@ jobs:
             FAILED=1
           else
             echo "✅ CLI smoke test passed"
+          fi
+
+          if [ "${{ steps.grammar_coverage.outcome }}" != "success" ]; then
+            echo "❌ Grammar coverage check failed (below 80%)"
+            FAILED=1
+          else
+            echo "✅ Grammar coverage check passed"
           fi
 
           echo ""
