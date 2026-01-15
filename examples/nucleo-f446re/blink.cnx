@@ -135,7 +135,7 @@ scope RCC {
         Reserved_31     // bit 31
     }
 
-    register RCC @ 0x40023800 {
+    public register RCC @ 0x40023800 {
         AHB1ENR:    AHB1Peripherals rw @ 0x30,
     }
 }
@@ -145,26 +145,26 @@ scope RCC {
 // =============================================================================
 
 scope STM32F446 {
-    enum GPIOMode {
+    public enum GPIOMode {
         INPUT <- 0b00,
         OUTPUT <- 0b01,
         ALTERNATE <- 0b10,
         ANALOG <- 0b11
     }
 
-    enum GPIOOutputType {
+    public enum GPIOOutputType {
         PUSH_PULL <- 0,
         OPEN_DRAIN <- 1
     }
 
-    enum GPIOSpeed {
+    public enum GPIOSpeed {
         LOW <- 0b00,
         MEDIUM <- 0b01,
         HIGH <- 0b10,
         VERY_HIGH <- 0b11
     }
 
-    enum GPIOPull {
+    public enum GPIOPull {
         NO_PULL <- 0b00,
         PULL_UP <- 0b01,
         PULL_DOWN <- 0b10,
@@ -181,7 +181,7 @@ scope STM32F446 {
         PA10_RESET, PA11_RESET, PA12_RESET, PA13_RESET, PA14_RESET, PA15_RESET
     }
 
-    register GPIOA @ 0x40020000 {
+    public register GPIOA @ 0x40020000 {
         ModeRegister:           u32 rw @ 0x00,
         OutputTypeRegister:     GPIOAPins rw @ 0x04,
         OutputSpeedRegister:    u32 rw @ 0x08,
@@ -202,31 +202,31 @@ scope STM32F446 {
 scope LED {
     public void init() {
         // Enable GPIOA clock
-        RCC.RCC.AHB1ENR.GPIOAEN <- true;
+        global.RCC.RCC.AHB1ENR.GPIOAEN <- true;
 
         // Configure PA5 as output
-        STM32F446.GPIOA.ModeRegister[10, 2] <- (u8)STM32F446.GPIOMode.OUTPUT;
+        global.STM32F446.GPIOA.ModeRegister[10, 2] <- (u8)global.STM32F446.GPIOMode.OUTPUT;
 
         // Set output type to push-pull
-        STM32F446.GPIOA.OutputTypeRegister.LD2 <- (bool)STM32F446.GPIOOutputType.PUSH_PULL;
+        global.STM32F446.GPIOA.OutputTypeRegister.LD2 <- (bool)global.STM32F446.GPIOOutputType.PUSH_PULL;
 
         // Set output speed to medium
-        STM32F446.GPIOA.OutputSpeedRegister[10, 2] <- (u8)STM32F446.GPIOSpeed.MEDIUM;
+        global.STM32F446.GPIOA.OutputSpeedRegister[10, 2] <- (u8)global.STM32F446.GPIOSpeed.MEDIUM;
 
         // No pull-up/pull-down
-        STM32F446.GPIOA.PullUpDownRegister[10, 2] <- (u8)STM32F446.GPIOPull.NO_PULL;
+        global.STM32F446.GPIOA.PullUpDownRegister[10, 2] <- (u8)global.STM32F446.GPIOPull.NO_PULL;
     }
 
     public void on() {
-        STM32F446.GPIOA.BitSetReset.LD2 <- true;
+        global.STM32F446.GPIOA.BitSetReset.LD2 <- true;
     }
 
     public void off() {
-        STM32F446.GPIOA.BitSetReset.LD2_RESET <- true;
+        global.STM32F446.GPIOA.BitSetReset.LD2_RESET <- true;
     }
 
     public void toggle() {
-        if (STM32F446.GPIOA.OutputData.LD2) {
+        if (global.STM32F446.GPIOA.OutputData.LD2) {
             this.off();
         } else {
             this.on();
@@ -234,7 +234,7 @@ scope LED {
     }
 
     public bool isOn() {
-        return STM32F446.GPIOA.OutputData.LD2;
+        return global.STM32F446.GPIOA.OutputData.LD2;
     }
 }
 

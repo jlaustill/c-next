@@ -121,7 +121,13 @@ class Project {
           result.filesProcessed++;
         } catch (err) {
           result.errors.push(`Failed to process ${file.path}: ${err}`);
+          result.success = false;
         }
+      }
+
+      // If there are parse errors, stop here
+      if (!result.success) {
+        return result;
       }
 
       // Phase 3: Check for conflicts
@@ -365,7 +371,7 @@ class Project {
       for (const err of errors) {
         result.errors.push(err);
       }
-      return;
+      throw new Error(`Parse errors in ${file.path}`);
     }
 
     const collector = new CNextSymbolCollector(file.path);

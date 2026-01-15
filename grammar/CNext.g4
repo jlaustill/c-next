@@ -281,7 +281,9 @@ globalMemberAccess
 
 globalArrayAccess
     : 'global' '.' IDENTIFIER '[' expression ']'                           // global.arr[i]
+    | 'global' '.' IDENTIFIER '[' expression ',' expression ']'            // global.arr[start, width]
     | 'global' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'         // global.GPIO7.DR_SET[i]
+    | 'global' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']'  // global.GPIO7.REG[start, width]
     ;
 
 expressionStatement

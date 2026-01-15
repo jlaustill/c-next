@@ -1,0 +1,14 @@
+// Test: Accessing private scope variable from another scope should error
+// This should fail with a visibility error per ADR-016
+
+scope Counter {
+    i32 privateValue <- 100;  // private by default
+}
+
+scope Manager {
+    public void test() {
+        global.Counter.privateValue <- 50;  // ERROR: accessing private member
+    }
+}
+
+void main() { }

@@ -92,7 +92,7 @@ typedef enum {
 #define Teensy4_GPIO7_DataRegister_Toggle (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x8C))
 
 
-uint8_t Teensy4_doSomething(void) {
+static uint8_t Teensy4_doSomething(void) {
     uint8_t someByte = 123;
     uint8_t nextByte = someByte;
 }

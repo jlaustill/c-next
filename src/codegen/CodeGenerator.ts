@@ -4020,6 +4020,8 @@ export default class CodeGenerator {
 
         // Check if first identifier is a scope
         if (this.symbols!.knownScopes.has(scopeName)) {
+          // ADR-016: Validate visibility before allowing cross-scope access
+          this.validateCrossScopeVisibility(scopeName, regName);
           const fullRegName = `${scopeName}_${regName}`;
           // Check if this is a scoped register
           if (this.symbols!.knownRegisters.has(fullRegName)) {
@@ -4411,9 +4413,19 @@ export default class CodeGenerator {
     if (globalArrayAccessCtx) {
       const identifiers = globalArrayAccessCtx.IDENTIFIER();
       const parts = identifiers.map((id) => id.getText());
-      const expr = globalArrayAccessCtx.expression();
-      const indexExpr = this.generateExpression(expr);
+      const expressions = globalArrayAccessCtx.expression();
       const firstId = parts[0];
+
+      // Handle single vs multi-expression (bit range) syntax
+      let indexExpr: string;
+      const isBitRange = expressions.length === 2;
+      if (isBitRange) {
+        const start = this.generateExpression(expressions[0]);
+        const width = this.generateExpression(expressions[1]);
+        indexExpr = `${start}, ${width}`;
+      } else {
+        indexExpr = this.generateExpression(expressions[0]);
+      }
 
       if (this.symbols!.knownRegisters.has(firstId)) {
         // Compound operators not supported for bit field access on registers
@@ -4447,7 +4459,11 @@ export default class CodeGenerator {
           return `${regName} = (${regName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
         }
       } else if (this.symbols!.knownScopes.has(firstId)) {
+        // ADR-016: Validate visibility before allowing cross-scope access
+        const memberName = parts[1];
+        this.validateCrossScopeVisibility(firstId, memberName);
         // Scope member array access: global.Counter.data[0] -> Counter_data[0]
+        // or bit range: global.Scope.reg[start, width] -> Scope_reg[start, width]
         const scopedName = parts.join("_");
         return `${scopedName}[${indexExpr}] ${cOp} ${value};`;
       } else {
@@ -5218,6 +5234,27 @@ export default class CodeGenerator {
     return id;
   }
 
+  // ADR-016: Validate cross-scope visibility (issue #165)
+  private validateCrossScopeVisibility(
+    scopeName: string,
+    memberName: string,
+  ): void {
+    // Skip if accessing own scope (via this.)
+    if (this.context.currentScope === scopeName) return;
+
+    const visibility =
+      this.symbols!.scopeMemberVisibility.get(scopeName)?.get(memberName);
+    if (visibility === "private") {
+      const context = this.context.currentScope
+        ? `from scope '${this.context.currentScope}'`
+        : "from outside the scope";
+      throw new Error(
+        `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +
+          `Only public members are accessible outside their scope.`,
+      );
+    }
+  }
+
   // ADR-016: Generate global member access for assignment targets
   private generateGlobalMemberAccess(
     ctx: Parser.GlobalMemberAccessContext,
@@ -5232,6 +5269,9 @@ export default class CodeGenerator {
     }
     // Check if first identifier is a scope
     if (this.symbols!.knownScopes.has(firstId)) {
+      // ADR-016: Validate visibility before allowing cross-scope access
+      const memberName = parts[1];
+      this.validateCrossScopeVisibility(firstId, memberName);
       // Scope member access: global.Counter.value -> Counter_value
       return parts.join("_");
     }
@@ -5245,26 +5285,40 @@ export default class CodeGenerator {
   ): string {
     const identifiers = ctx.IDENTIFIER();
     const parts = identifiers.map((id) => id.getText());
-    const expr = this.generateExpression(ctx.expression());
+    const expressions = ctx.expression();
     const firstId = parts[0];
+
+    // Handle single vs multi-expression (bit range) syntax
+    let indexExpr: string;
+    if (expressions.length === 1) {
+      indexExpr = this.generateExpression(expressions[0]);
+    } else {
+      // Bit range: [start, width]
+      const start = this.generateExpression(expressions[0]);
+      const width = this.generateExpression(expressions[1]);
+      indexExpr = `${start}, ${width}`;
+    }
 
     if (this.symbols!.knownRegisters.has(firstId)) {
       // Register bit access: GPIO7.DR_SET[idx] -> GPIO7_DR_SET |= (1 << idx) (handled elsewhere)
       // For assignment target, just generate the left-hand side representation
       const regName = parts.join("_");
-      return `${regName}[${expr}]`;
+      return `${regName}[${indexExpr}]`;
     }
 
     // Check if first identifier is a scope
     if (this.symbols!.knownScopes.has(firstId)) {
+      // ADR-016: Validate visibility before allowing cross-scope access
+      const memberName = parts[1];
+      this.validateCrossScopeVisibility(firstId, memberName);
       // Scope array access: global.Counter.data[0] -> Counter_data[0]
       const scopedName = parts.join("_");
-      return `${scopedName}[${expr}]`;
+      return `${scopedName}[${indexExpr}]`;
     }
 
     // Non-register, non-scope array access
     const baseName = parts.join(".");
-    return `${baseName}[${expr}]`;
+    return `${baseName}[${indexExpr}]`;
   }
 
   // ADR-016: Generate this.member.member for scope-local chained member access
@@ -6238,6 +6292,8 @@ export default class CodeGenerator {
                 );
               }
             }
+            // ADR-016: Validate visibility before allowing cross-scope access
+            this.validateCrossScopeVisibility(result, memberName);
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
@@ -6458,6 +6514,8 @@ export default class CodeGenerator {
                 );
               }
             }
+            // ADR-016: Validate visibility before allowing cross-scope access
+            this.validateCrossScopeVisibility(result, memberName);
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
@@ -7459,6 +7517,9 @@ export default class CodeGenerator {
           `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
         );
       }
+      // ADR-016: Validate visibility before allowing cross-scope access
+      const memberName = parts[1];
+      this.validateCrossScopeVisibility(firstPart, memberName);
       return parts.join("_");
     }
 
