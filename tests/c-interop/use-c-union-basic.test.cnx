@@ -1,0 +1,45 @@
+/* test-execution */
+/* test-coverage: 30-use-c-union-basic */
+// Tests: Using named C unions
+// ADR-010: Union import from C headers
+
+#include "c-interop/unions.h"
+
+u32 main() {
+    // Test 1: Use union IntBytes
+    union IntBytes ib;
+    ib.value <- 0x12345678;
+
+    // Verify value was set
+    if (ib.value != 0x12345678) return 1;
+
+    // Test 2: Access bytes array (type punning)
+    // Note: Byte order depends on endianness
+    // On little-endian: bytes[0] = 0x78, bytes[3] = 0x12
+    u8 first_byte <- ib.bytes[0];
+    u8 last_byte <- ib.bytes[3];
+
+    // On little-endian systems
+    if (first_byte != 0x78) return 2;
+    if (last_byte != 0x12) return 3;
+
+    // Test 3: Set via bytes, read via value
+    ib.bytes[0] <- 0xAA;
+    ib.bytes[1] <- 0xBB;
+    ib.bytes[2] <- 0xCC;
+    ib.bytes[3] <- 0xDD;
+
+    // On little-endian: value = 0xDDCCBBAA
+    if (ib.value != 0xDDCCBBAA) return 4;
+
+    // Test 4: MultiSize union
+    MultiSize ms;
+    ms.qword_val <- 0xFFFFFFFFFFFFFFFF;
+
+    // Smaller members should see lower bits
+    if (ms.dword_val != 0xFFFFFFFF) return 5;
+    if (ms.word_val != 0xFFFF) return 6;
+    if (ms.byte_val != 0xFF) return 7;
+
+    return 0;  // All tests passed
+}

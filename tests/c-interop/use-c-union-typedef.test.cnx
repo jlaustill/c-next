@@ -1,0 +1,39 @@
+/* test-execution */
+/* test-coverage: 30-use-c-union-typedef */
+// Tests: Using typedef'd C unions
+// ADR-010: Union typedef import from C headers
+
+#include "c-interop/unions.h"
+
+u32 main() {
+    // Test 1: FloatBits typedef union
+    FloatBits fb;
+    fb.u <- 0x40490FDB;  // IEEE 754 representation of ~3.14159
+
+    // Verify we can read it back as uint
+    if (fb.u != 0x40490FDB) return 1;
+
+    // Test 2: Set via float member
+    fb.f <- 1.0f;  // 0x3F800000 in IEEE 754
+    if (fb.u != 0x3F800000) return 2;
+
+    // Test 3: RegisterAccess union with nested structs
+    RegisterAccess reg;
+    reg.raw <- 0x12345678;
+
+    // Verify byte-level access (little-endian)
+    if (reg.bytes.low_byte != 0x78) return 3;
+    if (reg.bytes.mid_low != 0x56) return 4;
+    if (reg.bytes.mid_high != 0x34) return 5;
+    if (reg.bytes.high_byte != 0x12) return 6;
+
+    // Test 4: Verify word-level access
+    if (reg.words.low_word != 0x5678) return 7;
+    if (reg.words.high_word != 0x1234) return 8;
+
+    // Test 5: Modify via bytes, check raw
+    reg.bytes.low_byte <- 0xAA;
+    if (reg.raw != 0x123456AA) return 9;
+
+    return 0;  // All tests passed
+}

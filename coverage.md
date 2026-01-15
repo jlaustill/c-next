@@ -1437,39 +1437,59 @@ This document tracks test coverage for every language construct in every valid c
 
 ## 30. C Interoperability
 
-| Feature               | Status | Test File                                 |
-| --------------------- | ------ | ----------------------------------------- |
-| C types compatibility | [x]    | `c-interop/c-types-compat.test.cnx`       |
-| Generated C readable  | [x]    | `c-interop/generated-c-readable.test.cnx` |
-| Include passthrough   | [x]    | `c-interop/include-passthrough.test.cnx`  |
-| Call C function       | [ ]    |                                           |
-| Use C typedef         | [ ]    |                                           |
-| Use C macro constant  | [ ]    |                                           |
-| Volatile qualifier    | [ ]    |                                           |
+| Feature               | Status | Test File                                                                                                     |
+| --------------------- | ------ | ------------------------------------------------------------------------------------------------------------- |
+| C types compatibility | [x]    | `c-interop/c-types-compat.test.cnx`                                                                           |
+| Generated C readable  | [x]    | `c-interop/generated-c-readable.test.cnx`                                                                     |
+| Include passthrough   | [x]    | `c-interop/include-passthrough.test.cnx`                                                                      |
+| Call C function       | [x]    | `c-interop/call-c-function-basic.test.cnx`, `call-c-function-types.test.cnx`, `call-c-function-void.test.cnx` |
+| Use C typedef         | [x]    | `c-interop/use-c-typedef-basic.test.cnx`, `use-c-typedef-struct.test.cnx`                                     |
+| Use C macro constant  | [x]    | `c-interop/use-c-macro-constant.test.cnx`                                                                     |
+| Volatile qualifier    | [x]    | See Section 30a                                                                                               |
+
+**Additional C Interop Tests:**
+
+| Feature              | Test File                                     |
+| -------------------- | --------------------------------------------- |
+| Named C structs      | `c-interop/use-c-struct-named.test.cnx`       |
+| Anonymous structs    | `c-interop/use-c-struct-anonymous.test.cnx`   |
+| Nested structs       | `c-interop/use-c-struct-nested.test.cnx`      |
+| Struct array fields  | `c-interop/use-c-struct-array-field.test.cnx` |
+| Named enums          | `c-interop/use-c-enum-named.test.cnx`         |
+| Enum explicit values | `c-interop/use-c-enum-values.test.cnx`        |
+| Typedef enums        | `c-interop/use-c-enum-typedef.test.cnx`       |
+| Named unions         | `c-interop/use-c-union-basic.test.cnx`        |
+| Typedef unions       | `c-interop/use-c-union-typedef.test.cnx`      |
+| Extern variables     | `c-interop/use-c-extern-var.test.cnx`         |
 
 ---
 
 ## 30a. Volatile Modifier
 
-| Context                  | Status | Test File                               |
-| ------------------------ | ------ | --------------------------------------- |
-| Global variable          | [ ]    |                                         |
-| Local variable           | [ ]    |                                         |
-| Struct member            | [ ]    |                                         |
-| Register field (implied) | [ ]    |                                         |
-| With const               | [ ]    |                                         |
-| With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx` |
+| Context                  | Status | Test File                                |
+| ------------------------ | ------ | ---------------------------------------- |
+| Global variable          | [x]    | `volatile/volatile-global.test.cnx`      |
+| Local variable           | [x]    | `volatile/volatile-local.test.cnx`       |
+| Struct member            | N/A    | Not supported in C-Next grammar          |
+| Register field (implied) | N/A    | Not implemented yet (ADR-108 future)     |
+| With const               | [x]    | `volatile/volatile-const.test.cnx`       |
+| With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx`  |
+| In for loop              | [x]    | `volatile/volatile-in-for-loop.test.cnx` |
 
 **Implementation Note (ADR-108):**
 
-ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE, but test suite coverage is minimal. Currently only the error case is tested (volatile + atomic combination rejection).
+ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE. Test suite now covers:
 
-**Tests needed for comprehensive coverage:**
+- Global volatile variables
+- Local volatile variables (delay loop pattern)
+- Volatile + const combination (hardware status register pattern)
+- Volatile in for loops (loop counter pattern)
+- Atomic + volatile combination (ERROR case)
 
-- Basic volatile usage (global/local variables)
-- Hardware register patterns (memory-mapped I/O)
-- Delay loop patterns (optimization prevention)
-- Volatile + const combination
+**Not tested (not implemented):**
+
+- Struct member volatile (not supported in C-Next grammar)
+- Register field implied volatile (future enhancement per ADR-108)
 
 See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and usage patterns.
 
