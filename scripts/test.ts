@@ -120,20 +120,54 @@ function normalize(str: string): string {
 }
 
 /**
+ * Detect if a C file includes headers with C++11 features
+ * Checks for C++11 typed enums (enum Foo : type {)
+ */
+function requiresCpp11(cFile: string): boolean {
+  try {
+    const cCode = readFileSync(cFile, "utf-8");
+    const cFileDir = dirname(cFile);
+
+    // Find all #include "local_header.h" directives
+    const includePattern = /#include\s+"([^"]+)"/g;
+    let match;
+
+    while ((match = includePattern.exec(cCode)) !== null) {
+      const headerPath = join(cFileDir, match[1]);
+      if (existsSync(headerPath)) {
+        const headerContent = readFileSync(headerPath, "utf-8");
+        // Check for C++11 typed enum syntax: enum Name : type {
+        if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(headerContent)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Validate that a C file compiles without errors
  * Uses gcc with -fsyntax-only for fast syntax checking
+ * Auto-detects C++11 headers and uses g++ when needed
  */
 function validateCompilation(cFile: string): IValidationResult {
   try {
-    // Use gcc to check syntax only (no object file generated)
-    // -std=c99 for C99 features, -fsyntax-only for fast check
+    // Auto-detect C++11 headers and use g++ when needed
+    const useCpp = requiresCpp11(cFile);
+    const compiler = useCpp ? "g++" : "gcc";
+    const stdFlag = useCpp ? "-std=c++11" : "-std=c99";
+
+    // Use compiler to check syntax only (no object file generated)
     // Suppress warnings about unused variables and void main (common in tests)
     // -I tests/include for stub headers (e.g., cmsis_gcc.h for ARM intrinsics)
     execFileSync(
-      "gcc",
+      compiler,
       [
         "-fsyntax-only",
-        "-std=c99",
+        stdFlag,
         "-Wno-unused-variable",
         "-Wno-main",
         "-I",
@@ -294,12 +328,17 @@ function executeTest(
 ): IValidationResult {
   const execPath = getExecutablePath(cFile);
 
+  // Auto-detect C++11 headers and use g++ when needed
+  const useCpp = requiresCpp11(cFile);
+  const compiler = useCpp ? "g++" : "gcc";
+  const stdFlag = useCpp ? "-std=c++11" : "-std=c99";
+
   try {
     // Compile to executable
     execFileSync(
-      "gcc",
+      compiler,
       [
-        "-std=c99",
+        stdFlag,
         "-Wno-unused-variable",
         "-Wno-main",
         "-I",

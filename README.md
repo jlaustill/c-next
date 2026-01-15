@@ -699,6 +699,12 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-047](docs/decisions/adr-047-nullable-types.md)                  | NULL for C Interop      | `NULL` keyword for C stream function comparisons             |
 | [ADR-052](docs/decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals   | `type_MIN`/`type_MAX` constants + safe hex conversion        |
 
+### Accepted
+
+| ADR                                                                   | Title               | Description                                               |
+| --------------------------------------------------------------------- | ------------------- | --------------------------------------------------------- |
+| [ADR-053](docs/decisions/adr-053-transpiler-pipeline-architecture.md) | Transpiler Pipeline | Unified multi-pass pipeline with header symbol extraction |
+
 ### Research (v1 Roadmap)
 
 | ADR                                                          | Title                         | Description                             |

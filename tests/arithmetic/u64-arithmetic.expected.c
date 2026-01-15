@@ -10,7 +10,7 @@
 // Tests: u64 arithmetic operations (+, -, *, /, %)
 // Validates all basic arithmetic operations with u64 type
 // Includes edge cases with large values relevant to embedded systems
-uint32_t main(void) {
+int main(void) {
     uint64_t a = 1000000000000;
     uint64_t b = 500000000000;
     uint64_t result = a + b;
