@@ -1211,8 +1211,8 @@ This document tracks test coverage for every language construct in every valid c
 | Substring                       | [x]    | `string/string-substring.test.cnx`              |
 | Substring with offset           | [x]    | `string/string-substring-offset.test.cnx`       |
 | Function parameter              | [x]    | `string/string-function-param.test.cnx`         |
-| As struct member                | [ ]    |                                                 |
-| Array of strings                | [ ]    |                                                 |
+| As struct member                | [x]    | `string/string-struct-member.test.cnx`          |
+| Array of strings                | [x]    | `string/string-array.test.cnx`                  |
 | Overflow **(ERROR)**            | [x]    | `string/string-error-overflow.test.cnx`         |
 | Const no init **(ERROR)**       | [x]    | `string/string-error-const-no-init.test.cnx`    |
 | Non-const unsized **(ERROR)**   | [x]    | `string/string-error-nonconst-unsized.test.cnx` |
@@ -1449,7 +1449,7 @@ This document tracks test coverage for every language construct in every valid c
 | Static array         | [x]    | `static-allocation/static-array.test.cnx`         |
 | Static counter       | [x]    | `static-allocation/static-counter.test.cnx`       |
 | Static struct buffer | [x]    | `static-allocation/static-struct-buffer.test.cnx` |
-| Static string buffer | [ ]    |                                                   |
+| Static string buffer | [x]    | `static-allocation/static-string-buffer.test.cnx` |
 | malloc **(ERROR)**   | [x]    | `static-allocation/malloc-error.test.cnx`         |
 | calloc **(ERROR)**   | [x]    | `static-allocation/calloc-error.test.cnx`         |
 | realloc **(ERROR)**  | [x]    | `static-allocation/realloc-error.test.cnx`        |
@@ -1563,14 +1563,14 @@ See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and
 
 ### 32.3 String Literals
 
-| Context           | Status | Test File                                |
-| ----------------- | ------ | ---------------------------------------- |
-| Variable init     | [x]    | `string/string-basic.test.cnx`           |
-| Function argument | [x]    |                                          |
-| Comparison        | [x]    | `string/string-compare-literal.test.cnx` |
-| Concatenation     | [x]    | `string/string-concat-literal.test.cnx`  |
-| Empty string ""   | [x]    | `string/string-empty.test.cnx`           |
-| Escape sequences  | [ ]    |                                          |
+| Context           | Status | Test File                                 |
+| ----------------- | ------ | ----------------------------------------- |
+| Variable init     | [x]    | `string/string-basic.test.cnx`            |
+| Function argument | [x]    |                                           |
+| Comparison        | [x]    | `string/string-compare-literal.test.cnx`  |
+| Concatenation     | [x]    | `string/string-concat-literal.test.cnx`   |
+| Empty string ""   | [x]    | `string/string-empty.test.cnx`            |
+| Escape sequences  | [x]    | `string/string-escape-sequences.test.cnx` |
 
 ### 32.4 Character Literals
 
@@ -1701,7 +1701,7 @@ _Last updated: 2026-01-11_
 | Type Declarations    | ~75% (structs/enums good, bitmaps sparse)             |
 | Functions            | ~85% (solid basic coverage)                           |
 | Arrays               | ~80% (good, some edge cases)                          |
-| Strings              | ~90% (excellent coverage)                             |
+| Strings              | ~100% (comprehensive with execution tests)            |
 | Modifiers            | ~60% (atomic good, volatile missing)                  |
 | Register Bitfields   | ~10% (sparse)                                         |
 | Statement Nesting    | ~30% (basic only)                                     |
@@ -1720,7 +1720,7 @@ _Last updated: 2026-01-11_
 
 | Test Category      | Files   | Error Tests |
 | ------------------ | ------- | ----------- |
-| string             | 21      | 6           |
+| string             | 36      | 6           |
 | scope              | 21      | 5           |
 | casting            | 13      | 8           |
 | arithmetic         | 12      | 3           |

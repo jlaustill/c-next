@@ -1,0 +1,56 @@
+/* test-execution */
+// ADR-045: Validate string function parameters at runtime
+
+u32 getLen(const string<64> s) {
+    return s.length;
+}
+
+u32 getCap(const string<64> s) {
+    return s.capacity;
+}
+
+bool isEqual(const string<64> a, const string<64> b) {
+    return a = b;
+}
+
+bool matchesLiteral(const string<64> s, const string<64> lit) {
+    return s = lit;
+}
+
+i32 main() {
+    string<64> test <- "Hello";
+
+    // Test 1-3: Get length via function
+    if (getLen(test) != 5) return 1;
+    if (getLen("World") != 5) return 2;
+    if (getLen("") != 0) return 3;
+
+    // Test 4-5: Get capacity via function
+    if (getCap(test) != 64) return 4;
+    // Note: Literal passed to const string<64> param gets capacity 64
+    if (getCap("Hi") != 64) return 5;
+
+    // Test 6-8: Comparison via function
+    string<64> same <- "Hello";
+    if (!isEqual(test, same)) return 6;
+    if (!isEqual(test, "Hello")) return 7;
+
+    string<64> diff <- "World";
+    if (isEqual(test, diff)) return 8;
+
+    // Test 9-10: Literal matching
+    if (!matchesLiteral(test, "Hello")) return 9;
+    if (matchesLiteral(test, "World")) return 10;
+
+    // Test 11-12: Empty string as parameter
+    string<64> empty;
+    if (getLen(empty) != 0) return 11;
+    if (!isEqual(empty, "")) return 12;
+
+    // Test 13-14: Longer string parameter
+    string<64> longer <- "This is a longer string";
+    if (getLen(longer) != 23) return 13;
+    if (!matchesLiteral(longer, "This is a longer string")) return 14;
+
+    return 0;
+}

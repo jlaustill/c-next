@@ -1,0 +1,39 @@
+/* test-execution */
+// ADR-045: Validate empty string behavior at runtime
+
+i32 main() {
+    // Test 1-3: Default empty string
+    string<64> empty;
+    if (empty.length != 0) return 1;
+    if (empty.capacity != 64) return 2;
+    if (empty.size != 65) return 3;
+
+    // Test 4-5: Empty string comparison
+    if (empty != "") return 4;
+    string<32> alsoEmpty;
+    if (empty != alsoEmpty) return 5;
+
+    // Test 6-7: Empty string with explicit empty literal
+    string<32> explicitEmpty <- "";
+    if (explicitEmpty.length != 0) return 6;
+    if (explicitEmpty != "") return 7;
+
+    // Test 8-9: Concatenation with empty
+    string<32> text <- "Hello";
+    string<64> concatEmpty <- text + empty;
+    if (concatEmpty.length != 5) return 8;
+    if (concatEmpty != "Hello") return 9;
+
+    // Test 10-11: Empty + text
+    string<64> emptyPlusText <- empty + text;
+    if (emptyPlusText.length != 5) return 10;
+    if (emptyPlusText != "Hello") return 11;
+
+    // Test 12-13: Different capacity empty strings are equal
+    string<16> smallEmpty;
+    string<128> bigEmpty;
+    if (smallEmpty != bigEmpty) return 12;
+    if (smallEmpty != "") return 13;
+
+    return 0;
+}

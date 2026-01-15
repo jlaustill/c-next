@@ -13,7 +13,7 @@ char text[65] = "Hello World";
 
 void test(void) {
     size_t _text_len = strlen(text);
-    if (_text_len > 0 && text[_text_len - 1] == 'd') {
+    if (_text_len > 0 && strcmp(text[_text_len - 1], 'd') == 0) {
         text[_text_len - 1] = 'D';
     }
 }

@@ -1,0 +1,4 @@
+23:8 error[E0381]: use of uninitialized variable 'emptySmall'
+23:22 error[E0381]: use of uninitialized variable 'emptyLarge'
+24:8 error[E0381]: use of uninitialized variable 'emptySmall'
+25:8 error[E0381]: use of uninitialized variable 'emptyLarge'
