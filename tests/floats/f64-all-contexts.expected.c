@@ -36,7 +36,7 @@ void calculate(void) {
 // In arithmetic expression
 void arithmetic(void) {
     double x = 100.0;
-    double y = x / 2.5 / 5.0;
+    double y = x * 2.5 / 5.0;
 }
 
 // In comparison
