@@ -763,6 +763,11 @@ npm test -- tests/enum/my.test.cnx    # Run single test file
 # Code quality (auto-run by pre-commit hooks)
 npm run prettier:fix   # Format all code
 npm run eslint:check   # Check for lint errors
+
+# Coverage tracking
+npm run coverage:check           # Feature coverage report
+npm run coverage:grammar         # Grammar rule coverage (generates GRAMMAR-COVERAGE.md)
+npm run coverage:grammar:check   # Grammar coverage with threshold check (CI)
 ```
 
 **Note:** C-Next runs directly via `tsx` without a build step. The `typecheck` command validates types only and does not generate any output files.

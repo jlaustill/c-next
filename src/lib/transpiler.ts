@@ -3,7 +3,7 @@
  * Core transpilation API for use by CLI and VS Code extension
  */
 
-import { CharStream, CommonTokenStream } from "antlr4ng";
+import { CharStream, CommonTokenStream, ParseTreeWalker } from "antlr4ng";
 import { CNextLexer } from "../parser/grammar/CNextLexer";
 import { CNextParser } from "../parser/grammar/CNextParser";
 import CodeGenerator from "../codegen/CodeGenerator";
@@ -13,9 +13,11 @@ import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "../analysis/FloatModuloAnalyzer";
+import GrammarCoverageListener from "../analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileError from "./types/ITranspileError";
 import ITranspileOptions from "./types/ITranspileOptions";
+import IGrammarCoverageReport from "../analysis/types/IGrammarCoverageReport";
 
 /**
  * Transpile C-Next source code to C
@@ -40,8 +42,14 @@ function transpile(
   source: string,
   options: ITranspileOptions = {},
 ): ITranspileResult {
-  const { parseOnly = false, debugMode = false, target } = options;
+  const {
+    parseOnly = false,
+    debugMode = false,
+    target,
+    collectGrammarCoverage = false,
+  } = options;
   const errors: ITranspileError[] = [];
+  let grammarCoverage: IGrammarCoverageReport | undefined;
 
   // Create the lexer and parser
   const charStream = CharStream.fromString(source);
@@ -100,6 +108,16 @@ function transpile(
 
   const declarationCount = tree.declaration().length;
 
+  // Collect grammar coverage if requested (Issue #35)
+  if (collectGrammarCoverage) {
+    const coverageListener = new GrammarCoverageListener(
+      parser.ruleNames,
+      CNextLexer.ruleNames,
+    );
+    ParseTreeWalker.DEFAULT.walk(coverageListener, tree);
+    grammarCoverage = coverageListener.getReport();
+  }
+
   // If there are parse errors or parseOnly mode, return early
   if (errors.length > 0) {
     return {
@@ -107,6 +125,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -116,6 +135,7 @@ function transpile(
       code: "",
       errors: [],
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -140,6 +160,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -164,6 +185,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -188,6 +210,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -212,6 +235,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -236,6 +260,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -259,6 +284,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 
@@ -275,6 +301,7 @@ function transpile(
       code,
       errors: [],
       declarationCount,
+      grammarCoverage,
     };
   } catch (e) {
     // Handle code generation errors
@@ -290,6 +317,7 @@ function transpile(
       code: "",
       errors,
       declarationCount,
+      grammarCoverage,
     };
   }
 }

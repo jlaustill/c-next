@@ -30,7 +30,10 @@
     "coverage:check": "tsx scripts/coverage-checker.ts check",
     "coverage:report": "tsx scripts/coverage-checker.ts report",
     "coverage:gaps": "tsx scripts/coverage-checker.ts gaps",
-    "coverage:ids": "tsx scripts/coverage-checker.ts ids"
+    "coverage:ids": "tsx scripts/coverage-checker.ts ids",
+    "coverage:grammar": "tsx scripts/grammar-coverage.ts report",
+    "coverage:grammar:check": "tsx scripts/grammar-coverage.ts check",
+    "coverage:grammar:console": "tsx scripts/grammar-coverage.ts console"
   },
   "keywords": [
     "c",

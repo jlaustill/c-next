@@ -1,4 +1,5 @@
 import ITranspileError from "./ITranspileError";
+import IGrammarCoverageReport from "../../analysis/types/IGrammarCoverageReport";
 
 /**
  * Result of transpiling C-Next source to C
@@ -12,6 +13,8 @@ interface ITranspileResult {
   errors: ITranspileError[];
   /** Number of top-level declarations found */
   declarationCount: number;
+  /** Issue #35: Grammar coverage report (if collectGrammarCoverage was enabled) */
+  grammarCoverage?: IGrammarCoverageReport;
 }
 
 export default ITranspileResult;

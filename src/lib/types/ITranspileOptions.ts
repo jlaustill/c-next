@@ -8,6 +8,8 @@ interface ITranspileOptions {
   debugMode?: boolean;
   /** ADR-049: Target platform for atomic code generation (e.g., "teensy41", "cortex-m0") */
   target?: string;
+  /** Issue #35: Collect grammar rule coverage during parsing */
+  collectGrammarCoverage?: boolean;
 }
 
 export default ITranspileOptions;
