@@ -26,11 +26,11 @@ register GPIO7 @ 0x42004000 {
 }
 
 scope LED {
-    void on() {
+    public void on() {
         GPIO7.DR_SET[LED_BIT] <- true;
     }
 
-    void off() {
+    public void off() {
         GPIO7.DR_CLEAR[LED_BIT] <- true;
     }
 }

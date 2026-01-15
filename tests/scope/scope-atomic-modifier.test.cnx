@@ -16,63 +16,63 @@ scope AtomicTest {
     atomic u32 ticks <- 0;
 
     // Public getter methods using this. accessor for atomic variables
-    u8 getCounterU8() {
+    public u8 getCounterU8() {
         return this.counterU8;
     }
 
-    u16 getCounterU16() {
+    public u16 getCounterU16() {
         return this.counterU16;
     }
 
-    u32 getCounterU32() {
+    public u32 getCounterU32() {
         return this.counterU32;
     }
 
-    u8 getBrightness() {
+    public u8 getBrightness() {
         return this.brightness;
     }
 
-    u16 getPosition() {
+    public u16 getPosition() {
         return this.position;
     }
 
-    u32 getTicks() {
+    public u32 getTicks() {
         return this.ticks;
     }
 
     // Increment methods using atomic compound add (+<-)
-    void incrementU8() {
+    public void incrementU8() {
         this.counterU8 +<- 1;
     }
 
-    void incrementU16() {
+    public void incrementU16() {
         this.counterU16 +<- 1;
     }
 
-    void incrementU32() {
+    public void incrementU32() {
         this.counterU32 +<- 1;
     }
 
     // Decrement methods using atomic compound subtract (-<-)
-    void decrementBrightness() {
+    public void decrementBrightness() {
         this.brightness -<- 10;
     }
 
-    void decrementPosition() {
+    public void decrementPosition() {
         this.position -<- 50;
     }
 
     // Bitwise operations using atomic compound operators
-    void maskTicks() {
+    public void maskTicks() {
         this.ticks &<- 0xFFFF;
     }
 
-    void setTickFlag() {
+    public void setTickFlag() {
         this.ticks |<- 0x80000000;
     }
 
     // Combined increment of all counters
-    void incrementAll() {
+    public void incrementAll() {
         this.counterU8 +<- 1;
         this.counterU16 +<- 1;
         this.counterU32 +<- 1;

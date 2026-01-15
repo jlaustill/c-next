@@ -8,22 +8,22 @@ scope ClampScope {
     clamp u8 brightness <- 200;
 
     // Method that triggers overflow - should clamp to 255
-    void triggerOverflow() {
+    public void triggerOverflow() {
         this.brightness +<- 100;  // 200 + 100 = 300, should clamp to 255
     }
 
     // Method that triggers underflow - should clamp to 0
-    void triggerUnderflow() {
+    public void triggerUnderflow() {
         this.brightness -<- 255;  // From any value, subtract 255
     }
 
     // Getter for validation
-    u8 getBrightness() {
+    public u8 getBrightness() {
         return this.brightness;
     }
 
     // Reset for next test
-    void reset(u8 value) {
+    public void reset(u8 value) {
         this.brightness <- value;
     }
 }

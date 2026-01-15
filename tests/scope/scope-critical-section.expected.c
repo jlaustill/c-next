@@ -38,13 +38,13 @@ uint32_t globalReadIndex = 0;
 bool globalBufferLock = false;
 
 /* Scope: CriticalTest */
-uint8_t CriticalTest_buffer[32] = {0};
-uint32_t CriticalTest_writeIndex = 0;
-uint32_t CriticalTest_readIndex = 0;
-uint8_t CriticalTest_count = 0;
-bool CriticalTest_locked = false;
+static uint8_t CriticalTest_buffer[32] = {0};
+static uint32_t CriticalTest_writeIndex = 0;
+static uint32_t CriticalTest_readIndex = 0;
+static uint8_t CriticalTest_count = 0;
+static bool CriticalTest_locked = false;
 
-void CriticalTest_internalEnqueue(uint8_t* data) {
+static void CriticalTest_internalEnqueue(uint8_t* data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
@@ -55,7 +55,7 @@ void CriticalTest_internalEnqueue(uint8_t* data) {
     }
 }
 
-uint8_t CriticalTest_internalDequeue(void) {
+static uint8_t CriticalTest_internalDequeue(void) {
     uint8_t result = 0;
     {
         uint32_t __primask = __get_PRIMASK();
@@ -70,7 +70,7 @@ uint8_t CriticalTest_internalDequeue(void) {
     return result;
 }
 
-void CriticalTest_internalUpdateGlobal(void) {
+static void CriticalTest_internalUpdateGlobal(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
@@ -80,7 +80,7 @@ void CriticalTest_internalUpdateGlobal(void) {
     }
 }
 
-void CriticalTest_internalTransfer(void) {
+static void CriticalTest_internalTransfer(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
@@ -92,7 +92,7 @@ void CriticalTest_internalTransfer(void) {
     }
 }
 
-bool CriticalTest_internalTryLock(void) {
+static bool CriticalTest_internalTryLock(void) {
     bool acquired = false;
     {
         uint32_t __primask = __get_PRIMASK();
@@ -106,7 +106,7 @@ bool CriticalTest_internalTryLock(void) {
     return acquired;
 }
 
-void CriticalTest_internalUnlock(void) {
+static void CriticalTest_internalUnlock(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();

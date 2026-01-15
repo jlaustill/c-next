@@ -9,19 +9,19 @@ scope Counter {
     atomic u32 value <- 0;
     atomic u8 overflowCount <- 0;
 
-    void increment() {
+    public void increment() {
         this.value +<- 1;
     }
 
-    void incrementBy(u32 delta) {
+    public void incrementBy(u32 delta) {
         this.value +<- delta;
     }
 
-    void reset() {
+    public void reset() {
         this.value <- 0;
     }
 
-    u32 get() {
+    public u32 get() {
         return this.value;
     }
 }
@@ -30,15 +30,15 @@ scope Timer {
     atomic wrap u32 ticks <- 0;
     atomic clamp u16 period <- 1000;
 
-    void tick() {
+    public void tick() {
         this.ticks +<- 1;
     }
 
-    void setPeriod(u16 p) {
+    public void setPeriod(u16 p) {
         this.period <- p;
     }
 
-    void adjustPeriod(u16 delta) {
+    public void adjustPeriod(u16 delta) {
         this.period +<- delta;
     }
 }

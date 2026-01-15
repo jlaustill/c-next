@@ -10,7 +10,7 @@ u32 gBits <- 0;
 
 scope Worker {
     // ===== SUBTRACTION (-<-) =====
-    i32 testSubtraction() {
+    public i32 testSubtraction() {
         global.gValue <- 100;
         global.gValue -<- 30;
         if (global.gValue != 70) return 1;
@@ -23,7 +23,7 @@ scope Worker {
     }
 
     // ===== MULTIPLICATION (*<-) =====
-    i32 testMultiplication() {
+    public i32 testMultiplication() {
         global.gValue <- 7;
         global.gValue *<- 6;
         if (global.gValue != 42) return 10;
@@ -40,7 +40,7 @@ scope Worker {
     }
 
     // ===== DIVISION (/<-) =====
-    i32 testDivision() {
+    public i32 testDivision() {
         global.gValue <- 100;
         global.gValue /<- 5;
         if (global.gValue != 20) return 20;
@@ -57,7 +57,7 @@ scope Worker {
     }
 
     // ===== MODULO (%<-) =====
-    i32 testModulo() {
+    public i32 testModulo() {
         global.gValue <- 17;
         global.gValue %<- 5;
         if (global.gValue != 2) return 30;
@@ -74,7 +74,7 @@ scope Worker {
     }
 
     // ===== BITWISE AND (&<-) =====
-    i32 testBitwiseAnd() {
+    public i32 testBitwiseAnd() {
         global.gBits <- 0xFF;
         global.gBits &<- 0x0F;
         if (global.gBits != 0x0F) return 40;
@@ -91,7 +91,7 @@ scope Worker {
     }
 
     // ===== BITWISE OR (|<-) =====
-    i32 testBitwiseOr() {
+    public i32 testBitwiseOr() {
         global.gBits <- 0xF0;
         global.gBits |<- 0x0F;
         if (global.gBits != 0xFF) return 50;
@@ -108,7 +108,7 @@ scope Worker {
     }
 
     // ===== BITWISE XOR (^<-) =====
-    i32 testBitwiseXor() {
+    public i32 testBitwiseXor() {
         global.gBits <- 0xFF;
         global.gBits ^<- 0xFF;
         if (global.gBits != 0) return 60;
@@ -125,7 +125,7 @@ scope Worker {
     }
 
     // ===== LEFT SHIFT (<<<-) =====
-    i32 testLeftShift() {
+    public i32 testLeftShift() {
         global.gBits <- 1;
         global.gBits <<<- 4;
         if (global.gBits != 16) return 70;
@@ -142,7 +142,7 @@ scope Worker {
     }
 
     // ===== RIGHT SHIFT (>><-) =====
-    i32 testRightShift() {
+    public i32 testRightShift() {
         global.gBits <- 256;
         global.gBits >><- 4;
         if (global.gBits != 16) return 80;

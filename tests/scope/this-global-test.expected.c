@@ -9,8 +9,8 @@
 const uint8_t globalValue = 10;
 
 /* Scope: Motor */
-uint8_t Motor_localValue = 5;
-uint8_t Motor_state = 0;
+static uint8_t Motor_localValue = 5;
+static uint8_t Motor_state = 0;
 
 uint8_t Motor_getLocalValue(void) {
     return Motor_localValue;

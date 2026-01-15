@@ -10,17 +10,17 @@
 // Test: ADR-016 this. accessor with all primitive types
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */
-uint8_t AllTypesTest_valU8 = 255;
-uint16_t AllTypesTest_valU16 = 65535;
-uint32_t AllTypesTest_valU32 = 4294967295;
-uint64_t AllTypesTest_valU64 = 18446744073709551615;
-int8_t AllTypesTest_valI8 = -128;
-int16_t AllTypesTest_valI16 = -32768;
-int32_t AllTypesTest_valI32 = -2147483648;
-int64_t AllTypesTest_valI64 = -9223372036854775808;
-float AllTypesTest_valF32 = 3.14;
-double AllTypesTest_valF64 = 3.141592653589793;
-bool AllTypesTest_valBool = true;
+static uint8_t AllTypesTest_valU8 = 255;
+static uint16_t AllTypesTest_valU16 = 65535;
+static uint32_t AllTypesTest_valU32 = 4294967295;
+static uint64_t AllTypesTest_valU64 = 18446744073709551615;
+static int8_t AllTypesTest_valI8 = -128;
+static int16_t AllTypesTest_valI16 = -32768;
+static int32_t AllTypesTest_valI32 = -2147483648;
+static int64_t AllTypesTest_valI64 = -9223372036854775808;
+static float AllTypesTest_valF32 = 3.14;
+static double AllTypesTest_valF64 = 3.141592653589793;
+static bool AllTypesTest_valBool = true;
 
 uint8_t AllTypesTest_getU8(void) {
     return AllTypesTest_valU8;

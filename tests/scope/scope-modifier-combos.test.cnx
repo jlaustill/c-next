@@ -39,24 +39,24 @@ scope ModifierCombos {
     const bool PRIVATE_FLAG <- false;
 
     // Getter methods for const clamp variables
-    u8 getMaxBrightness() {
+    public u8 getMaxBrightness() {
         return this.MAX_BRIGHTNESS;
     }
 
-    u16 getMaxSensor() {
+    public u16 getMaxSensor() {
         return this.MAX_SENSOR;
     }
 
-    i8 getMinTemp() {
+    public i8 getMinTemp() {
         return this.MIN_TEMP;
     }
 
     // Getter methods for const wrap variables
-    u8 getCounterStart() {
+    public u8 getCounterStart() {
         return this.COUNTER_START;
     }
 
-    u16 getTickStart() {
+    public u16 getTickStart() {
         return this.TICK_START;
     }
 
@@ -74,15 +74,15 @@ scope ModifierCombos {
     }
 
     // Getter methods for private clamp variables
-    u8 getPrivateClampByte() {
+    public u8 getPrivateClampByte() {
         return this.privateClampByte;
     }
 
-    u16 getPrivateClampWord() {
+    public u16 getPrivateClampWord() {
         return this.privateClampWord;
     }
 
-    i8 getPrivateClampSigned() {
+    public i8 getPrivateClampSigned() {
         return this.privateClampSigned;
     }
 
@@ -96,11 +96,11 @@ scope ModifierCombos {
     }
 
     // Getter methods for private wrap variables
-    u8 getPrivateWrapByte() {
+    public u8 getPrivateWrapByte() {
         return this.privateWrapByte;
     }
 
-    u16 getPrivateWrapWord() {
+    public u16 getPrivateWrapWord() {
         return this.privateWrapWord;
     }
 
@@ -114,11 +114,11 @@ scope ModifierCombos {
     }
 
     // Getter methods for private const variables
-    u8 getPrivateConst() {
+    public u8 getPrivateConst() {
         return this.PRIVATE_CONST;
     }
 
-    bool getPrivateFlag() {
+    public bool getPrivateFlag() {
         return this.PRIVATE_FLAG;
     }
 
