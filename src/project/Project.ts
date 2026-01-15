@@ -85,8 +85,26 @@ class Project {
         mkdirSync(this.config.outDir, { recursive: true });
       }
 
-      // Phase 1: Collect symbols from all C/C++ headers
-      const headerFiles = FileDiscovery.getHeaderFiles(files);
+      // Get C-Next files first to identify generated headers to exclude
+      const cnextFiles = FileDiscovery.getCNextFiles(files);
+
+      // Build set of base names from C-Next files (e.g., "hello-world.test" from "hello-world.test.cnx")
+      // These are likely generated output headers that should not be parsed as input
+      const cnextBaseNames = new Set(
+        cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
+      );
+
+      // Phase 1: Collect symbols from all C/C++ headers (excluding generated headers)
+      const allHeaderFiles = FileDiscovery.getHeaderFiles(files);
+      const headerFiles = allHeaderFiles.filter((f) => {
+        const headerBaseName = basename(f.path).replace(
+          /\.h$|\.hpp$|\.hxx$|\.hh$/,
+          "",
+        );
+        // Skip headers that match C-Next file base names (likely generated outputs)
+        return !cnextBaseNames.has(headerBaseName);
+      });
+
       for (const file of headerFiles) {
         try {
           await this.collectHeaderSymbols(file, result);
@@ -97,7 +115,6 @@ class Project {
       }
 
       // Phase 2: Collect symbols from C-Next files
-      const cnextFiles = FileDiscovery.getCNextFiles(files);
       for (const file of cnextFiles) {
         try {
           this.collectCNextSymbols(file, result);
@@ -363,14 +380,15 @@ class Project {
    * @returns Output path for the generated C file
    */
   private getOutputPath(file: IDiscoveredFile): string {
-    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".c");
+    const ext = this.config.outputExtension ?? ".c";
+    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
 
     // If file is in a subdirectory of srcDir, preserve structure
     for (const srcDir of this.config.srcDirs) {
       const relativePath = relative(srcDir, file.path);
       if (!relativePath.startsWith("..")) {
         // File is under srcDir - preserve directory structure
-        const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".c");
+        const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
         const outputPath = join(this.config.outDir, outputRelative);
 
         // Ensure output directory exists

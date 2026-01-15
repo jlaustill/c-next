@@ -1,0 +1,17 @@
+// Test: Bare register access from inside a scope should error
+// ADR-016: Must use global. prefix for cross-scope register access
+
+register GPIO @ 0x40000000 {
+    DR:  u32 rw @ 0x00,
+    DIR: u32 rw @ 0x04,
+}
+
+scope Motor {
+    void test() {
+        // ERROR: Must use global.GPIO.DR instead of GPIO.DR
+        GPIO.DR <- 0x01;
+    }
+}
+
+void main() {
+}

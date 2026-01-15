@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Use 'global.GlobalState' to access global enum 'GlobalState' inside scope 'Motor'

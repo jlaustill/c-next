@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Use 'global.GPIO.DR' to access register 'GPIO' from inside scope 'Motor'

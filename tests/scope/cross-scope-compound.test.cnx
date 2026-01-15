@@ -1,6 +1,6 @@
 /* test-execution */
 // Test: Compound assignment with cross-scope access
-// Tests OtherScope.var +<- value pattern
+// Tests global.OtherScope.var +<- value pattern (ADR-016)
 
 scope Counter {
     public i32 value <- 100;
@@ -9,13 +9,13 @@ scope Counter {
 
 scope Manager {
     public void incrementCounter() {
-        // Cross-scope compound assignment
-        Counter.value +<- 50;  // Should be: Counter_value += 50
+        // Cross-scope compound assignment - requires global. prefix (ADR-016)
+        global.Counter.value +<- 50;  // Should be: Counter_value += 50
     }
 
     public void incrementCounterArray() {
-        Counter.data[0] <- 10;
-        Counter.data[0] +<- 5;  // Should be: Counter_data[0] += 5
+        global.Counter.data[0] <- 10;
+        global.Counter.data[0] +<- 5;  // Should be: Counter_data[0] += 5
     }
 }
 

@@ -7,7 +7,7 @@
 
 /* test-execution */
 // Test: Compound assignment with cross-scope access
-// Tests OtherScope.var +<- value pattern
+// Tests global.OtherScope.var +<- value pattern (ADR-016)
 /* Scope: Counter */
 int32_t Counter_value = 100;
 int32_t Counter_data[3] = {0};
