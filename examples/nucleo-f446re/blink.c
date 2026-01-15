@@ -3,25 +3,9 @@
  * A safer C for embedded systems
  */
 
-// =============================================================================
-// Includes - C-Next passes these through to generated C
-// =============================================================================
 #include <stdint.h>
 #include <stdbool.h>
 
-// blink_systick.cnx - LED Blink for Nucleo-F446RE with SysTick Timer
-// Target: Nucleo-F446RE (STM32F446RE - ARM Cortex-M4F @ 180 MHz max)
-// Built-in LED (LD2) is on GPIOA, Pin 5
-//
-// Compile: cnx blink_systick.cnx -o blink_systick.c
-// Then use with STM32CubeIDE, PlatformIO, or arm-none-eabi-gcc
-//
-// This example uses the SysTick hardware timer for accurate delays
-// instead of busy-wait loops. SysTick is a 24-bit countdown timer
-// built into all ARM Cortex-M processors.
-// =============================================================================
-// Target Platform (for atomic operations - ADR-049)
-// =============================================================================
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -30,16 +14,11 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > UINT32_MAX - a) return UINT32_MAX;
+    return a + (uint32_t)b;
 }
 
-// =============================================================================
-// SysTick Timer Scope (ARM Cortex-M System Timer)
-// =============================================================================
-// SysTick is a 24-bit countdown timer present in all Cortex-M processors
-// Base address: 0xE000E010 (part of System Control Space)
 /* Scope: SysTick */
 
 /* Bitmap: SysTick_ControlBits */
@@ -96,9 +75,6 @@ void SysTick_init(void) {
     SysTick_SysTick_CTRL = (SysTick_SysTick_CTRL & ~(1 << 0)) | ((true ? 1 : 0) << 0);
 }
 
-// =============================================================================
-// RCC (Reset and Clock Control) Scope
-// =============================================================================
 /* Scope: RCC */
 
 /* Bitmap: RCC_AHB1Peripherals */
@@ -143,9 +119,6 @@ typedef uint32_t RCC_AHB1Peripherals;
 #define RCC_RCC_AHB1ENR (*(volatile RCC_AHB1Peripherals*)(0x40023800 + 0x30))
 
 
-// =============================================================================
-// STM32F446 Platform Scope (Simplified for SysTick example)
-// =============================================================================
 /* Scope: STM32F446 */
 
 typedef enum {
@@ -229,25 +202,22 @@ typedef uint32_t STM32F446_GPIOAPins;
 #define STM32F446_GPIOA_AlternateFunctionHigh (*(volatile uint32_t*)(0x40020000 + 0x24))
 
 
-// =============================================================================
-// LED Control
-// =============================================================================
 /* Scope: LED */
 
 void LED_init(void) {
-    RCC_RCC_AHB1ENR = (RCC_RCC_AHB1ENR & ~(1 << 0)) | ((true ? 1 : 0) << 0);
-    STM32F446_GPIOA_ModeRegister = (STM32F446_GPIOA_ModeRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446_GPIOMode_OUTPUT & ((1U << 2) - 1)) << 10);
-    STM32F446_GPIOA_OutputTypeRegister = (STM32F446_GPIOA_OutputTypeRegister & ~(1 << 5)) | (((bool)STM32F446_GPIOOutputType_PUSH_PULL ? 1 : 0) << 5);
-    STM32F446_GPIOA_OutputSpeedRegister = (STM32F446_GPIOA_OutputSpeedRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446_GPIOSpeed_MEDIUM & ((1U << 2) - 1)) << 10);
-    STM32F446_GPIOA_PullUpDownRegister = (STM32F446_GPIOA_PullUpDownRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446_GPIOPull_NO_PULL & ((1U << 2) - 1)) << 10);
+    RCC_RCC_AHB1ENR_GPIOAEN = true;
+    STM32F446_GPIOA_ModeRegister[10, 2] = (uint8_t)STM32F446_GPIOMode_OUTPUT;
+    STM32F446_GPIOA_OutputTypeRegister_LD2 = (bool)STM32F446_GPIOOutputType_PUSH_PULL;
+    STM32F446_GPIOA_OutputSpeedRegister[10, 2] = (uint8_t)STM32F446_GPIOSpeed_MEDIUM;
+    STM32F446_GPIOA_PullUpDownRegister[10, 2] = (uint8_t)STM32F446_GPIOPull_NO_PULL;
 }
 
 void LED_on(void) {
-    STM32F446_GPIOA_BitSetReset = ((true ? 1 : 0) << 5);
+    STM32F446_GPIOA_BitSetReset_LD2 = true;
 }
 
 void LED_off(void) {
-    STM32F446_GPIOA_BitSetReset = ((true ? 1 : 0) << 21);
+    STM32F446_GPIOA_BitSetReset_LD2_RESET = true;
 }
 
 void LED_toggle(void) {
@@ -262,22 +232,10 @@ bool LED_isOn(void) {
     return ((STM32F446_GPIOA_OutputData >> 5) & 1);
 }
 
-// =============================================================================
-// Application Configuration
-// =============================================================================
 const uint32_t BLINK_DELAY_MS = 2000;
 
-// Millisecond counter incremented by SysTick ISR
-// Must be atomic since it's shared between main and ISR
 volatile uint32_t tick_count = 0;
 
-// =============================================================================
-// SysTick Interrupt Service Routine
-// =============================================================================
-/**
- * SysTick_Handler is called every 1ms by the hardware
- * This function name is defined by ARM Cortex-M vector table
- */
 void SysTick_Handler(void) {
     {
         uint32_t __primask = __get_PRIMASK();
@@ -287,9 +245,6 @@ void SysTick_Handler(void) {
     }
 }
 
-// =============================================================================
-// Main Entry Point
-// =============================================================================
 void setup(void) {
     SysTick_init();
     LED_init();
@@ -302,7 +257,7 @@ void loop(void) {
     }
 }
 
-int32_t main(void) {
+int main(void) {
     setup();
     while (true) {
         loop();

@@ -102,7 +102,7 @@ scope Teensy4 {
     // =========================================================================
 
     /// Interrupt trigger types for GPIO pins
-    enum InterruptType {
+    public enum InterruptType {
         LOW_LEVEL <- 0b00,      // Interrupt on low level
         HIGH_LEVEL <- 0b01,     // Interrupt on high level
         RISING_EDGE <- 0b10,    // Interrupt on rising edge
@@ -115,7 +115,7 @@ scope Teensy4 {
     // Scoped register generates: Teensy4_GPIO7_DataRegister, Teensy4_GPIO7_DataRegister_Set, etc.
     // This avoids conflicts with Teensy's imxrt.h which defines GPIO7_DR.
 
-    register GPIO7 @ 0x42004000 {
+    public register GPIO7 @ 0x42004000 {
         /// Data Register - Current pin output values
         DataRegister:           GPIO7Pins rw @ 0x00,
 
