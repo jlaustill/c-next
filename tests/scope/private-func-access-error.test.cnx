@@ -1,0 +1,10 @@
+// Test: Calling private scope function from outside should error
+// This should fail with a visibility error per ADR-016
+
+scope Service {
+    void internalHelper() { }  // private by default
+}
+
+void main() {
+    Service.internalHelper();  // ERROR: calling private function
+}

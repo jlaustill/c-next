@@ -4020,6 +4020,8 @@ export default class CodeGenerator {
 
         // Check if first identifier is a scope
         if (this.symbols!.knownScopes.has(scopeName)) {
+          // ADR-016: Validate visibility before allowing cross-scope access
+          this.validateCrossScopeVisibility(scopeName, regName);
           const fullRegName = `${scopeName}_${regName}`;
           // Check if this is a scoped register
           if (this.symbols!.knownRegisters.has(fullRegName)) {
@@ -4447,6 +4449,9 @@ export default class CodeGenerator {
           return `${regName} = (${regName} & ~(1 << ${bitIndex})) | ((${value} ? 1 : 0) << ${bitIndex});`;
         }
       } else if (this.symbols!.knownScopes.has(firstId)) {
+        // ADR-016: Validate visibility before allowing cross-scope access
+        const memberName = parts[1];
+        this.validateCrossScopeVisibility(firstId, memberName);
         // Scope member array access: global.Counter.data[0] -> Counter_data[0]
         const scopedName = parts.join("_");
         return `${scopedName}[${indexExpr}] ${cOp} ${value};`;
@@ -5218,6 +5223,27 @@ export default class CodeGenerator {
     return id;
   }
 
+  // ADR-016: Validate cross-scope visibility (issue #165)
+  private validateCrossScopeVisibility(
+    scopeName: string,
+    memberName: string,
+  ): void {
+    // Skip if accessing own scope (via this.)
+    if (this.context.currentScope === scopeName) return;
+
+    const visibility =
+      this.symbols!.scopeMemberVisibility.get(scopeName)?.get(memberName);
+    if (visibility === "private") {
+      const context = this.context.currentScope
+        ? `from scope '${this.context.currentScope}'`
+        : "from outside the scope";
+      throw new Error(
+        `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +
+          `Only public members are accessible outside their scope.`,
+      );
+    }
+  }
+
   // ADR-016: Generate global member access for assignment targets
   private generateGlobalMemberAccess(
     ctx: Parser.GlobalMemberAccessContext,
@@ -5232,6 +5258,9 @@ export default class CodeGenerator {
     }
     // Check if first identifier is a scope
     if (this.symbols!.knownScopes.has(firstId)) {
+      // ADR-016: Validate visibility before allowing cross-scope access
+      const memberName = parts[1];
+      this.validateCrossScopeVisibility(firstId, memberName);
       // Scope member access: global.Counter.value -> Counter_value
       return parts.join("_");
     }
@@ -5257,6 +5286,9 @@ export default class CodeGenerator {
 
     // Check if first identifier is a scope
     if (this.symbols!.knownScopes.has(firstId)) {
+      // ADR-016: Validate visibility before allowing cross-scope access
+      const memberName = parts[1];
+      this.validateCrossScopeVisibility(firstId, memberName);
       // Scope array access: global.Counter.data[0] -> Counter_data[0]
       const scopedName = parts.join("_");
       return `${scopedName}[${expr}]`;
@@ -6238,6 +6270,8 @@ export default class CodeGenerator {
                 );
               }
             }
+            // ADR-016: Validate visibility before allowing cross-scope access
+            this.validateCrossScopeVisibility(result, memberName);
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
@@ -6458,6 +6492,8 @@ export default class CodeGenerator {
                 );
               }
             }
+            // ADR-016: Validate visibility before allowing cross-scope access
+            this.validateCrossScopeVisibility(result, memberName);
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
@@ -7459,6 +7495,9 @@ export default class CodeGenerator {
           `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
         );
       }
+      // ADR-016: Validate visibility before allowing cross-scope access
+      const memberName = parts[1];
+      this.validateCrossScopeVisibility(firstPart, memberName);
       return parts.join("_");
     }
 

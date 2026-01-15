@@ -14,7 +14,7 @@ bitmap8 MotorFlags {
 scope MotorController {
     const u32 DEFAULT_SPEED <- 100;
 
-    register MOTOR_REG @ 0x40002000 {
+    public register MOTOR_REG @ 0x40002000 {
         CTRL:   MotorFlags rw @ 0x00,
         SPEED:  u32 rw @ 0x04,
         STATUS: u32 ro @ 0x08,
@@ -39,7 +39,7 @@ scope MotorController {
 }
 
 scope Board {
-    register GPIO @ 0x40000000 {
+    public register GPIO @ 0x40000000 {
         DR:     u32 rw @ 0x00,
         DR_SET: u32 wo @ 0x84,
     }

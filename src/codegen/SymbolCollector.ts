@@ -18,6 +18,11 @@ type TBitmapFieldInfo = {
 };
 
 /**
+ * Scope member visibility (ADR-016)
+ */
+type TScopeMemberVisibility = "public" | "private";
+
+/**
  * Collects symbols from a C-Next parse tree
  */
 class SymbolCollector {
@@ -29,6 +34,10 @@ class SymbolCollector {
   private _knownBitmaps: Set<string> = new Set();
 
   private _scopeMembers: Map<string, Set<string>> = new Map();
+  private _scopeMemberVisibility: Map<
+    string,
+    Map<string, TScopeMemberVisibility>
+  > = new Map();
   private _structFields: Map<string, Map<string, string>> = new Map();
   private _structFieldArrays: Map<string, Set<string>> = new Map();
   private _structFieldDimensions: Map<string, Map<string, number[]>> =
@@ -66,6 +75,13 @@ class SymbolCollector {
 
   get scopeMembers(): ReadonlyMap<string, Set<string>> {
     return this._scopeMembers;
+  }
+
+  get scopeMemberVisibility(): ReadonlyMap<
+    string,
+    Map<string, TScopeMemberVisibility>
+  > {
+    return this._scopeMemberVisibility;
   }
 
   get structFields(): ReadonlyMap<string, Map<string, string>> {
@@ -202,16 +218,24 @@ class SymbolCollector {
     this._collectingScope = name;
 
     const members = new Set<string>();
+    const memberVisibility = new Map<string, TScopeMemberVisibility>();
 
     for (const member of scopeDecl.scopeMember()) {
+      // ADR-016: Extract visibility (private by default)
+      const visibility = (member.visibilityModifier()?.getText() ||
+        "private") as TScopeMemberVisibility;
+
       if (member.variableDeclaration()) {
-        members.add(member.variableDeclaration()!.IDENTIFIER().getText());
+        const varName = member.variableDeclaration()!.IDENTIFIER().getText();
+        members.add(varName);
+        memberVisibility.set(varName, visibility);
       }
 
       if (member.functionDeclaration()) {
         const funcDecl = member.functionDeclaration()!;
         const funcName = funcDecl.IDENTIFIER().getText();
         members.add(funcName);
+        memberVisibility.set(funcName, visibility);
       }
 
       // ADR-017: Collect enums declared inside scopes
@@ -219,6 +243,7 @@ class SymbolCollector {
         const enumDecl = member.enumDeclaration()!;
         const enumName = enumDecl.IDENTIFIER().getText();
         members.add(enumName);
+        memberVisibility.set(enumName, visibility);
         this.collectEnum(enumDecl, name);
       }
 
@@ -227,6 +252,7 @@ class SymbolCollector {
         const bitmapDecl = member.bitmapDeclaration()!;
         const bitmapName = bitmapDecl.IDENTIFIER().getText();
         members.add(bitmapName);
+        memberVisibility.set(bitmapName, visibility);
       }
 
       // Handle registers declared inside scopes
@@ -235,6 +261,7 @@ class SymbolCollector {
         const regName = regDecl.IDENTIFIER().getText();
         const fullRegName = `${name}_${regName}`; // Scope_RegisterName
         members.add(regName);
+        memberVisibility.set(regName, visibility);
 
         this._knownRegisters.add(fullRegName);
         this._scopedRegisters.set(fullRegName, name);
@@ -259,6 +286,7 @@ class SymbolCollector {
     }
 
     this._scopeMembers.set(name, members);
+    this._scopeMemberVisibility.set(name, memberVisibility);
 
     // Clear collecting scope
     this._collectingScope = null;
