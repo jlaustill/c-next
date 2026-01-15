@@ -49,11 +49,11 @@ class TypeResolver {
   /**
    * Check if a type is a user-defined struct (C-Next or C header).
    * Issue #103: Now checks both knownStructs AND SymbolTable.
+   * Issue #60: Uses SymbolCollector for C-Next structs.
    */
   isStructType(typeName: string): boolean {
-    // Check C-Next structs first
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    if (this.codeGen["knownStructs"].has(typeName)) {
+    // Check C-Next structs first (Issue #60: use SymbolCollector)
+    if (this.codeGen.symbols?.knownStructs.has(typeName)) {
       return true;
     }
     // Check SymbolTable for C header structs
@@ -371,16 +371,14 @@ class TypeResolver {
       }
     }
 
-    // Fall back to local C-Next struct fields
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const fieldType = this.codeGen["structFields"]
+    // Fall back to local C-Next struct fields (Issue #60: use SymbolCollector)
+    const fieldType = this.codeGen.symbols?.structFields
       .get(structType)
       ?.get(memberName);
     if (!fieldType) return undefined;
 
-    // Check if this field is marked as an array
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const arrayFields = this.codeGen["structFieldArrays"].get(structType);
+    // Check if this field is marked as an array (Issue #60: use SymbolCollector)
+    const arrayFields = this.codeGen.symbols?.structFieldArrays.get(structType);
     const isArray = arrayFields?.has(memberName) ?? false;
 
     return { isArray, baseType: fieldType };

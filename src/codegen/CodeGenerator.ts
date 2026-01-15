@@ -14,12 +14,13 @@ import IComment from "./types/IComment";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
 import BITMAP_SIZE from "./types/BITMAP_SIZE";
-import BITMAP_BACKING_TYPE from "./types/BITMAP_BACKING_TYPE";
+// Issue #60: BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "./types/TTypeInfo";
 import TParameterInfo from "./types/TParameterInfo";
 import TOverflowBehavior from "./types/TOverflowBehavior";
 import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
+import SymbolCollector from "./SymbolCollector";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -228,46 +229,17 @@ export default class CodeGenerator {
     targetCapabilities: DEFAULT_TARGET, // ADR-049: Target platform capabilities
   };
 
-  private knownScopes: Set<string> = new Set(); // ADR-016: renamed from knownNamespaces
-
-  private knownStructs: Set<string> = new Set();
-
-  private structFields: Map<string, Map<string, string>> = new Map(); // struct -> (field -> type)
-
-  private structFieldArrays: Map<string, Set<string>> = new Map(); // struct -> set of array field names
-
-  private structFieldDimensions: Map<string, Map<string, number[]>> = new Map(); // struct -> (field -> dimensions)
-
-  private knownRegisters: Set<string> = new Set();
+  // Issue #60: Symbol fields moved to SymbolCollector
+  // Remaining fields not yet extracted:
 
   private inAssignmentTarget: boolean = false;
-
-  private scopedRegisters: Map<string, string> = new Map(); // fullRegName -> scopeName (for scoped registers)
 
   private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
 
   private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
 
-  private registerMemberAccess: Map<string, string> = new Map(); // "GPIO7_DR_SET" -> "wo"
-
-  private registerMemberTypes: Map<string, string> = new Map(); // "MOTOR_CTRL" -> "MotorControl" (for bitmap types)
-
-  private knownEnums: Set<string> = new Set(); // ADR-017: Track enum types
-
-  private enumMembers: Map<string, Map<string, number>> = new Map(); // ADR-017: enumName -> (memberName -> value)
-
   // Bug #8: Track compile-time const values for array size resolution at file scope
   private constValues: Map<string, number> = new Map(); // constName -> numeric value
-
-  // ADR-034: Bitmap types registry
-  private knownBitmaps: Set<string> = new Set(); // Track bitmap type names
-
-  private bitmapFields: Map<
-    string,
-    Map<string, { offset: number; width: number }>
-  > = new Map(); // bitmapName -> (fieldName -> info)
-
-  private bitmapBackingType: Map<string, string> = new Map(); // bitmapName -> C backing type
 
   // ADR-029: Callback types registry
   private callbackTypes: Map<string, CallbackTypeInfo> = new Map(); // funcName -> CallbackTypeInfo
@@ -306,6 +278,9 @@ export default class CodeGenerator {
   /** Type resolution and classification */
   private typeResolver: TypeResolver | null = null;
 
+  /** Symbol collection - Issue #60: Extracted from CodeGenerator */
+  public symbols: SymbolCollector | null = null;
+
   /**
    * Get struct field type and dimensions, checking SymbolTable first (for C headers),
    * then falling back to local structFields (for C-Next structs).
@@ -333,12 +308,13 @@ export default class CodeGenerator {
     }
 
     // Fall back to local C-Next struct fields
-    const localFields = this.structFields.get(structName);
+    const localFields = this.symbols!.structFields.get(structName);
     if (localFields) {
       const fieldType = localFields.get(fieldName);
       if (fieldType) {
         // Get dimensions from structFieldDimensions
-        const fieldDimensions = this.structFieldDimensions.get(structName);
+        const fieldDimensions =
+          this.symbols!.structFieldDimensions.get(structName);
         const dimensions = fieldDimensions?.get(fieldName);
         return {
           type: fieldType,
@@ -357,7 +333,7 @@ export default class CodeGenerator {
    */
   private isKnownStruct(typeName: string): boolean {
     // Check C-Next structs first (local definitions)
-    if (this.knownStructs.has(typeName)) {
+    if (this.symbols!.knownStructs.has(typeName)) {
       return true;
     }
     // Check SymbolTable for C header structs
@@ -477,22 +453,9 @@ export default class CodeGenerator {
       lengthCache: null, // strlen optimization: variable -> temp var name
       targetCapabilities, // ADR-049: Target platform capabilities
     };
-    this.knownScopes = new Set(); // ADR-016
-    this.knownStructs = new Set();
-    this.structFields = new Map();
-    this.structFieldArrays = new Map();
-    this.structFieldDimensions = new Map();
-    this.knownRegisters = new Set();
-    this.scopedRegisters = new Map(); // Scoped register tracking
+    // Issue #60: Symbol field resets removed - now handled by SymbolCollector
     this.knownFunctions = new Set();
     this.functionSignatures = new Map();
-    this.registerMemberAccess = new Map();
-    this.registerMemberTypes = new Map(); // ADR-034: Reset register member types (for bitmap in register)
-    this.knownEnums = new Set();
-    this.enumMembers = new Map();
-    this.knownBitmaps = new Set(); // ADR-034: Reset bitmap types
-    this.bitmapFields = new Map(); // ADR-034: Reset bitmap fields
-    this.bitmapBackingType = new Map(); // ADR-034: Reset bitmap backing types
     this.callbackTypes = new Map(); // ADR-029: Reset callback types
     this.callbackFieldTypes = new Map(); // ADR-029: Reset callback field tracking
     this.usedClampOps = new Set(); // ADR-044: Reset overflow helpers
@@ -504,7 +467,16 @@ export default class CodeGenerator {
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
 
     // First pass: collect namespace and class members
-    this.collectSymbols(tree);
+    // Issue #60: Create SymbolCollector (extracted from CodeGenerator)
+    this.symbols = new SymbolCollector(tree);
+
+    // Copy symbol data to context.scopeMembers (used by code generation)
+    for (const [scopeName, members] of this.symbols.scopeMembers) {
+      this.context.scopeMembers.set(scopeName, members);
+    }
+
+    // Collect function/callback information (not yet extracted to SymbolCollector)
+    this.collectFunctionsAndCallbacks(tree);
 
     // Second pass: register all variable types in the type registry
     // This ensures .length and other type-dependent operations can resolve
@@ -746,27 +718,23 @@ export default class CodeGenerator {
   }
 
   /**
-   * First pass: collect all scope member names (ADR-016)
+   * Collect function and callback information.
+   * Issue #60: Symbol collection extracted to SymbolCollector.
+   * This method handles function signatures and callback types (not yet extracted).
    */
-  private collectSymbols(tree: Parser.ProgramContext): void {
+  private collectFunctionsAndCallbacks(tree: Parser.ProgramContext): void {
     for (const decl of tree.declaration()) {
-      // ADR-016: Handle scope declarations (renamed from namespace)
+      // ADR-016: Handle scope declarations for function tracking
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const name = scopeDecl.IDENTIFIER().getText();
-        this.knownScopes.add(name);
+        const scopeName = scopeDecl.IDENTIFIER().getText();
 
-        const members = new Set<string>();
         for (const member of scopeDecl.scopeMember()) {
-          if (member.variableDeclaration()) {
-            members.add(member.variableDeclaration()!.IDENTIFIER().getText());
-          }
           if (member.functionDeclaration()) {
             const funcDecl = member.functionDeclaration()!;
             const funcName = funcDecl.IDENTIFIER().getText();
-            members.add(funcName);
             // Track fully qualified function name: Scope_function
-            const fullName = `${name}_${funcName}`;
+            const fullName = `${scopeName}_${funcName}`;
             this.knownFunctions.add(fullName);
             // ADR-013: Track function signature for const checking
             const sig = this.extractFunctionSignature(
@@ -777,152 +745,24 @@ export default class CodeGenerator {
             // ADR-029: Register scoped function as callback type
             this.registerCallbackType(fullName, funcDecl);
           }
-          // ADR-017: Collect enums declared inside scopes
-          if (member.enumDeclaration()) {
-            const enumDecl = member.enumDeclaration()!;
-            const enumName = enumDecl.IDENTIFIER().getText();
-            members.add(enumName);
-            // Collect enum with scope prefix (e.g., Motor_State)
-            this.collectEnum(enumDecl, name);
-          }
-          // ADR-034: Collect bitmaps declared inside scopes (before registers!)
-          if (member.bitmapDeclaration()) {
-            const bitmapDecl = member.bitmapDeclaration()!;
-            const bitmapName = bitmapDecl.IDENTIFIER().getText();
-            members.add(bitmapName);
-            // Collect bitmap with scope prefix (e.g., Teensy4_GPIO7Pins)
-            this.collectBitmap(bitmapDecl, name);
-          }
-          // Handle registers declared inside scopes
-          if (member.registerDeclaration()) {
-            const regDecl = member.registerDeclaration()!;
-            const regName = regDecl.IDENTIFIER().getText();
-            const fullRegName = `${name}_${regName}`; // Scope_RegisterName
-            members.add(regName);
-
-            // Track the prefixed register name
-            this.knownRegisters.add(fullRegName);
-            this.scopedRegisters.set(fullRegName, name);
-
-            // Track access modifiers and types for each register member
-            for (const regMember of regDecl.registerMember()) {
-              const memberName = regMember.IDENTIFIER().getText();
-              const accessMod = regMember.accessModifier().getText();
-              const fullMemberName = `${fullRegName}_${memberName}`; // Scope_Register_Member
-              this.registerMemberAccess.set(fullMemberName, accessMod);
-
-              // Track register member type (especially for bitmap types)
-              // Check both unscoped and scoped bitmap names
-              const typeName = this.getTypeName(regMember.type());
-              const scopedTypeName = `${name}_${typeName}`;
-              if (this.knownBitmaps.has(scopedTypeName)) {
-                this.registerMemberTypes.set(fullMemberName, scopedTypeName);
-              } else if (this.knownBitmaps.has(typeName)) {
-                this.registerMemberTypes.set(fullMemberName, typeName);
-              }
-            }
-          }
         }
-        this.context.scopeMembers.set(name, members);
       }
 
+      // ADR-029: Track callback field types in structs
       if (decl.structDeclaration()) {
         const structDecl = decl.structDeclaration()!;
-        const name = structDecl.IDENTIFIER().getText();
-        this.knownStructs.add(name);
+        const structName = structDecl.IDENTIFIER().getText();
 
-        // Track field types for inferred struct initializers
-        const fields = new Map<string, string>();
-        const arrayFields = new Set<string>();
-        const fieldDimensions = new Map<string, number[]>();
         for (const member of structDecl.structMember()) {
           const fieldName = member.IDENTIFIER().getText();
-          const typeCtx = member.type();
-          const fieldType = this.getTypeName(typeCtx);
-          fields.set(fieldName, fieldType);
+          const fieldType = this.getTypeName(member.type());
 
-          const arrayDims = member.arrayDimension();
-          const dimensions: number[] = [];
-
-          // Check if this is a string type
-          if (typeCtx.stringType()) {
-            const stringCtx = typeCtx.stringType()!;
-            const intLiteral = stringCtx.INTEGER_LITERAL();
-
-            if (intLiteral) {
-              const capacity = parseInt(intLiteral.getText(), 10);
-
-              // If there are array dimensions, they come BEFORE string capacity
-              if (arrayDims.length > 0) {
-                for (const dim of arrayDims) {
-                  const sizeExpr = dim.expression();
-                  if (sizeExpr) {
-                    const size = parseInt(sizeExpr.getText(), 10);
-                    if (!isNaN(size)) {
-                      dimensions.push(size);
-                    }
-                  }
-                }
-              }
-              // Always add string capacity as final dimension
-              dimensions.push(capacity + 1);
-              arrayFields.add(fieldName);
-            }
-          } else if (arrayDims.length > 0) {
-            // Non-string array (existing logic)
-            arrayFields.add(fieldName);
-            for (const dim of arrayDims) {
-              const sizeExpr = dim.expression();
-              if (sizeExpr) {
-                const size = parseInt(sizeExpr.getText(), 10);
-                if (!isNaN(size)) {
-                  dimensions.push(size);
-                }
-              }
-            }
-          }
-
-          if (dimensions.length > 0) {
-            fieldDimensions.set(fieldName, dimensions);
-          }
-
-          // ADR-029: Track callback field types during symbol collection
-          // (needed to know which functions need typedefs before generation)
+          // Track callback field types (needed for typedef generation)
           if (this.callbackTypes.has(fieldType)) {
-            this.callbackFieldTypes.set(`${name}.${fieldName}`, fieldType);
-          }
-        }
-        this.structFields.set(name, fields);
-        this.structFieldArrays.set(name, arrayFields);
-        this.structFieldDimensions.set(name, fieldDimensions);
-      }
-
-      // ADR-017: Handle enum declarations
-      if (decl.enumDeclaration()) {
-        this.collectEnum(decl.enumDeclaration()!);
-      }
-
-      // ADR-034: Handle bitmap declarations
-      if (decl.bitmapDeclaration()) {
-        this.collectBitmap(decl.bitmapDeclaration()!);
-      }
-
-      if (decl.registerDeclaration()) {
-        const regDecl = decl.registerDeclaration()!;
-        const regName = regDecl.IDENTIFIER().getText();
-        this.knownRegisters.add(regName);
-
-        // Track access modifiers and types for each register member
-        for (const member of regDecl.registerMember()) {
-          const memberName = member.IDENTIFIER().getText();
-          const accessMod = member.accessModifier().getText(); // rw, ro, wo, w1c, w1s
-          const fullName = `${regName}_${memberName}`;
-          this.registerMemberAccess.set(fullName, accessMod);
-
-          // ADR-034: Track register member type (especially for bitmap types)
-          const typeName = this.getTypeName(member.type());
-          if (this.knownBitmaps.has(typeName)) {
-            this.registerMemberTypes.set(fullName, typeName);
+            this.callbackFieldTypes.set(
+              `${structName}.${fieldName}`,
+              fieldType,
+            );
           }
         }
       }
@@ -995,80 +835,7 @@ export default class CodeGenerator {
     }
   }
 
-  /**
-   * ADR-017: Collect enum declaration and track members
-   */
-  private collectEnum(
-    enumDecl: Parser.EnumDeclarationContext,
-    scopeName?: string,
-  ): void {
-    const name = enumDecl.IDENTIFIER().getText();
-    const fullName = scopeName ? `${scopeName}_${name}` : name;
-    this.knownEnums.add(fullName);
-
-    // Collect member values
-    const members = new Map<string, number>();
-    let currentValue = 0;
-
-    for (const member of enumDecl.enumMember()) {
-      const memberName = member.IDENTIFIER().getText();
-
-      if (member.expression()) {
-        // Explicit value with <-
-        const valueText = member.expression()!.getText();
-        const value = this.evaluateConstantExpression(valueText);
-        if (value < 0) {
-          throw new Error(
-            `Error: Negative values not allowed in enum (found ${value} in ${fullName}.${memberName})`,
-          );
-        }
-        currentValue = value;
-      }
-
-      members.set(memberName, currentValue);
-      currentValue++;
-    }
-
-    this.enumMembers.set(fullName, members);
-  }
-
-  /**
-   * ADR-034: Collect bitmap declaration and validate total bits
-   */
-  private collectBitmap(
-    bitmapDecl: Parser.BitmapDeclarationContext,
-    scopeName?: string,
-  ): void {
-    const name = bitmapDecl.IDENTIFIER().getText();
-    const fullName = scopeName ? `${scopeName}_${name}` : name;
-    const bitmapType = bitmapDecl.bitmapType().getText();
-    const expectedBits = BITMAP_SIZE[bitmapType];
-
-    this.knownBitmaps.add(fullName);
-    this.bitmapBackingType.set(fullName, BITMAP_BACKING_TYPE[bitmapType]);
-
-    // Collect fields and validate total bits
-    const fields = new Map<string, { offset: number; width: number }>();
-    let totalBits = 0;
-
-    for (const member of bitmapDecl.bitmapMember()) {
-      const fieldName = member.IDENTIFIER().getText();
-      const widthLiteral = member.INTEGER_LITERAL();
-      const width = widthLiteral ? parseInt(widthLiteral.getText(), 10) : 1;
-
-      fields.set(fieldName, { offset: totalBits, width });
-      totalBits += width;
-    }
-
-    // Validate total bits equals bitmap size
-    if (totalBits !== expectedBits) {
-      throw new Error(
-        `Error: Bitmap '${fullName}' has ${totalBits} bits but ${bitmapType} requires exactly ${expectedBits} bits`,
-      );
-    }
-
-    this.bitmapFields.set(fullName, fields);
-  }
+  // Issue #60: collectEnum and collectBitmap methods removed - now in SymbolCollector
 
   /**
    * ADR-034: Validate that a literal value fits in a bitmap field
@@ -1099,25 +866,7 @@ export default class CodeGenerator {
     }
   }
 
-  /**
-   * ADR-017: Evaluate constant expression for enum values
-   */
-  private evaluateConstantExpression(expr: string): number {
-    // Handle hex literals
-    if (expr.startsWith("0x") || expr.startsWith("0X")) {
-      return parseInt(expr, 16);
-    }
-    // Handle binary literals
-    if (expr.startsWith("0b") || expr.startsWith("0B")) {
-      return parseInt(expr.substring(2), 2);
-    }
-    // Handle decimal
-    const value = parseInt(expr, 10);
-    if (isNaN(value)) {
-      throw new Error(`Error: Invalid constant expression in enum: ${expr}`);
-    }
-    return value;
-  }
+  // Issue #60: evaluateConstantExpression method removed - now in SymbolCollector
 
   /**
    * ADR-036: Try to evaluate an expression as a compile-time constant.
@@ -1329,7 +1078,7 @@ export default class CodeGenerator {
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(baseType)) {
+      if (this.symbols!.knownEnums.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: 0,
@@ -1344,7 +1093,7 @@ export default class CodeGenerator {
       }
 
       // ADR-034: Check if this is a bitmap type
-      if (this.knownBitmaps.has(baseType)) {
+      if (this.symbols!.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: 0,
@@ -1366,7 +1115,7 @@ export default class CodeGenerator {
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(baseType)) {
+      if (this.symbols!.knownEnums.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: 0,
@@ -1381,7 +1130,7 @@ export default class CodeGenerator {
       }
 
       // ADR-034: Check if this is a bitmap type
-      if (this.knownBitmaps.has(baseType)) {
+      if (this.symbols!.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: 0,
@@ -1400,7 +1149,7 @@ export default class CodeGenerator {
       bitWidth = 0; // User types don't have fixed bit width
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(baseType)) {
+      if (this.symbols!.knownEnums.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: 0,
@@ -1415,7 +1164,7 @@ export default class CodeGenerator {
       }
 
       // ADR-034: Check if this is a bitmap type
-      if (this.knownBitmaps.has(baseType)) {
+      if (this.symbols!.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: 0,
@@ -1515,7 +1264,7 @@ export default class CodeGenerator {
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(baseType)) {
+      if (this.symbols!.knownEnums.has(baseType)) {
         this.context.typeRegistry.set(registryName, {
           baseType,
           bitWidth: 0,
@@ -1537,7 +1286,7 @@ export default class CodeGenerator {
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(baseType)) {
+      if (this.symbols!.knownEnums.has(baseType)) {
         this.context.typeRegistry.set(registryName, {
           baseType,
           bitWidth: 0,
@@ -1555,7 +1304,7 @@ export default class CodeGenerator {
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(baseType)) {
+      if (this.symbols!.knownEnums.has(baseType)) {
         this.context.typeRegistry.set(registryName, {
           baseType,
           bitWidth: 0,
@@ -1725,8 +1474,8 @@ export default class CodeGenerator {
       });
 
       // ADR-025: Register parameter type for switch exhaustiveness checking
-      const isEnum = this.knownEnums.has(typeName);
-      const isBitmap = this.knownBitmaps.has(typeName);
+      const isEnum = this.symbols!.knownEnums.has(typeName);
+      const isBitmap = this.symbols!.knownBitmaps.has(typeName);
 
       // Extract array dimensions if this is an array parameter
       const arrayDimensions: number[] = [];
@@ -2014,7 +1763,7 @@ export default class CodeGenerator {
     }
 
     // Check if this is a known global (register, function, enum, struct)
-    if (this.knownRegisters.has(identifier)) {
+    if (this.symbols!.knownRegisters.has(identifier)) {
       throw new Error(
         `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${this.context.currentScope}'`,
       );
@@ -2029,7 +1778,7 @@ export default class CodeGenerator {
       );
     }
 
-    if (this.knownEnums.has(identifier)) {
+    if (this.symbols!.knownEnums.has(identifier)) {
       throw new Error(
         `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${this.context.currentScope}'`,
       );
@@ -2088,7 +1837,7 @@ export default class CodeGenerator {
       ) {
         const enumName = parts[1];
         const scopedEnumName = `${this.context.currentScope}_${enumName}`;
-        if (this.knownEnums.has(scopedEnumName)) {
+        if (this.symbols!.knownEnums.has(scopedEnumName)) {
           return scopedEnumName;
         }
       }
@@ -2109,7 +1858,7 @@ export default class CodeGenerator {
 
       // Check simple enum: State.IDLE
       const possibleEnum = parts[0];
-      if (this.knownEnums.has(possibleEnum)) {
+      if (this.symbols!.knownEnums.has(possibleEnum)) {
         return possibleEnum;
       }
 
@@ -2118,7 +1867,7 @@ export default class CodeGenerator {
         const scopeName = parts[0];
         const enumName = parts[1];
         const scopedEnumName = `${scopeName}_${enumName}`;
-        if (this.knownEnums.has(scopedEnumName)) {
+        if (this.symbols!.knownEnums.has(scopedEnumName)) {
           return scopedEnumName;
         }
       }
@@ -2983,20 +2732,18 @@ export default class CodeGenerator {
       }
 
       // ADR-017: Handle enum declarations inside scopes
+      // Issue #60: Symbol collection done by SymbolCollector
       if (member.enumDeclaration()) {
         const enumDecl = member.enumDeclaration()!;
-        // Collect the scoped enum (if not already collected)
-        this.collectEnum(enumDecl, name);
         const enumCode = this.generateEnum(enumDecl);
         lines.push("");
         lines.push(enumCode);
       }
 
       // ADR-034: Handle bitmap declarations inside scopes
+      // Issue #60: Symbol collection done by SymbolCollector
       if (member.bitmapDeclaration()) {
         const bitmapDecl = member.bitmapDeclaration()!;
-        // Collect the scoped bitmap (if not already collected)
-        this.collectBitmap(bitmapDecl, name);
         const bitmapCode = this.generateBitmap(bitmapDecl);
         lines.push("");
         lines.push(bitmapCode);
@@ -3075,7 +2822,7 @@ export default class CodeGenerator {
 
       // Check if the type is a scoped bitmap (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
       const scopedTypeName = `${scopeName}_${regType}`;
-      if (this.knownBitmaps.has(scopedTypeName)) {
+      if (this.symbols!.knownBitmaps.has(scopedTypeName)) {
         regType = scopedTypeName;
       }
 
@@ -3133,7 +2880,7 @@ export default class CodeGenerator {
         const type = this.generateType(member.type());
 
         // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
-        const trackedDimensions = this.structFieldDimensions.get(name);
+        const trackedDimensions = this.symbols!.structFieldDimensions.get(name);
         const fieldDims = trackedDimensions?.get(fieldName);
 
         if (fieldDims && fieldDims.length > 0) {
@@ -3205,7 +2952,7 @@ export default class CodeGenerator {
     const lines: string[] = [];
     lines.push(`typedef enum {`);
 
-    const members = this.enumMembers.get(fullName);
+    const members = this.symbols!.enumMembers.get(fullName);
     if (!members) {
       throw new Error(`Error: Enum ${fullName} not found in registry`);
     }
@@ -3237,7 +2984,7 @@ export default class CodeGenerator {
       : "";
     const fullName = `${prefix}${name}`;
 
-    const backingType = this.bitmapBackingType.get(fullName);
+    const backingType = this.symbols!.bitmapBackingType.get(fullName);
     if (!backingType) {
       throw new Error(`Error: Bitmap ${fullName} not found in registry`);
     }
@@ -3249,7 +2996,7 @@ export default class CodeGenerator {
     // Generate comment with field layout
     lines.push(`/* Bitmap: ${fullName} */`);
 
-    const fields = this.bitmapFields.get(fullName);
+    const fields = this.symbols!.bitmapFields.get(fullName);
     if (fields) {
       lines.push("/* Fields:");
       for (const [fieldName, info] of fields.entries()) {
@@ -3313,7 +3060,7 @@ export default class CodeGenerator {
     }
 
     // Get field type info for nested initializers
-    const structFieldTypes = this.structFields.get(typeName);
+    const structFieldTypes = this.symbols!.structFields.get(typeName);
 
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
@@ -3552,7 +3299,7 @@ export default class CodeGenerator {
     }
 
     // ADR-017: Enum types use standard C pass-by-value semantics
-    if (this.knownEnums.has(typeName)) {
+    if (this.symbols!.knownEnums.has(typeName)) {
       return `${constMod}${type} ${name}`;
     }
 
@@ -3908,7 +3655,7 @@ export default class CodeGenerator {
       this.context.expectedType = typeName;
 
       // ADR-017: Validate enum type for initialization
-      if (this.knownEnums.has(typeName)) {
+      if (this.symbols!.knownEnums.has(typeName)) {
         const valueEnumType = this.getExpressionEnumType(ctx.expression()!);
 
         // Check if assigning from a different enum type
@@ -4010,9 +3757,9 @@ export default class CodeGenerator {
       const typeName = typeCtx.userType()!.getText();
 
       // ADR-017: Check if this is an enum type
-      if (this.knownEnums.has(typeName)) {
+      if (this.symbols!.knownEnums.has(typeName)) {
         // Return the first member of the enum (which has value 0)
-        const members = this.enumMembers.get(typeName);
+        const members = this.symbols!.enumMembers.get(typeName);
         if (members) {
           // Find the member with value 0
           for (const [memberName, value] of members.entries()) {
@@ -4255,7 +4002,7 @@ export default class CodeGenerator {
               // Could be Enum.Member or variable.field
               if (
                 parts[0] !== targetEnumType &&
-                !this.knownEnums.has(parts[0])
+                !this.symbols!.knownEnums.has(parts[0])
               ) {
                 throw new Error(
                   `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
@@ -4313,7 +4060,7 @@ export default class CodeGenerator {
         if (identifiers.length >= 2) {
           const memberName = identifiers[1].getText();
           const fullName = `${rootName}_${memberName}`;
-          const accessMod = this.registerMemberAccess.get(fullName);
+          const accessMod = this.symbols!.registerMemberAccess.get(fullName);
           if (accessMod === "ro") {
             throw new Error(
               `cannot assign to read-only register member '${memberName}' ` +
@@ -4362,7 +4109,7 @@ export default class CodeGenerator {
           }
 
           const bitmapType = typeInfo.bitmapTypeName;
-          const fields = this.bitmapFields.get(bitmapType);
+          const fields = this.symbols!.bitmapFields.get(bitmapType);
           if (fields && fields.has(fieldName)) {
             const fieldInfo = fields.get(fieldName)!;
 
@@ -4399,9 +4146,10 @@ export default class CodeGenerator {
         const fieldName = identifiers[2].getText();
 
         // Check if first identifier is a register and second is a bitmap-typed member
-        if (this.knownRegisters.has(regName)) {
+        if (this.symbols!.knownRegisters.has(regName)) {
           const fullRegMember = `${regName}_${memberName}`;
-          const bitmapType = this.registerMemberTypes.get(fullRegMember);
+          const bitmapType =
+            this.symbols!.registerMemberTypes.get(fullRegMember);
 
           if (bitmapType) {
             // This is a bitmap field access on a register member
@@ -4411,7 +4159,7 @@ export default class CodeGenerator {
               );
             }
 
-            const fields = this.bitmapFields.get(bitmapType);
+            const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(fieldName)) {
               const fieldInfo = fields.get(fieldName)!;
 
@@ -4445,7 +4193,7 @@ export default class CodeGenerator {
         // Check if first identifier is a struct variable (not a register)
         const structVarName = identifiers[0].getText();
         const structMemberName = identifiers[1].getText();
-        if (!this.knownRegisters.has(structVarName)) {
+        if (!this.symbols!.knownRegisters.has(structVarName)) {
           // Check if structVarName is a struct variable
           const structTypeInfo = this.context.typeRegistry.get(structVarName);
           if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
@@ -4457,7 +4205,7 @@ export default class CodeGenerator {
             if (memberInfo) {
               const memberBitmapType = memberInfo.baseType;
               const structBitmapFields =
-                this.bitmapFields.get(memberBitmapType);
+                this.symbols!.bitmapFields.get(memberBitmapType);
               if (structBitmapFields && structBitmapFields.has(fieldName)) {
                 // This is a bitmap field access on a struct member
                 if (isCompound) {
@@ -4501,12 +4249,13 @@ export default class CodeGenerator {
         const fieldName = identifiers[3].getText();
 
         // Check if first identifier is a scope
-        if (this.knownScopes.has(scopeName)) {
+        if (this.symbols!.knownScopes.has(scopeName)) {
           const fullRegName = `${scopeName}_${regName}`;
           // Check if this is a scoped register
-          if (this.knownRegisters.has(fullRegName)) {
+          if (this.symbols!.knownRegisters.has(fullRegName)) {
             const fullRegMember = `${fullRegName}_${memberName}`;
-            const bitmapType = this.registerMemberTypes.get(fullRegMember);
+            const bitmapType =
+              this.symbols!.registerMemberTypes.get(fullRegMember);
 
             if (bitmapType) {
               // This is a bitmap field access on a scoped register member
@@ -4516,7 +4265,7 @@ export default class CodeGenerator {
                 );
               }
 
-              const fields = this.bitmapFields.get(bitmapType);
+              const fields = this.symbols!.bitmapFields.get(bitmapType);
               if (fields && fields.has(fieldName)) {
                 const fieldInfo = fields.get(fieldName)!;
 
@@ -4528,7 +4277,8 @@ export default class CodeGenerator {
                 );
 
                 // Check if this is a write-only register
-                const accessMod = this.registerMemberAccess.get(fullRegMember);
+                const accessMod =
+                  this.symbols!.registerMemberAccess.get(fullRegMember);
                 const isWriteOnly = accessMod === "wo";
 
                 const mask = (1 << fieldInfo.width) - 1;
@@ -4631,16 +4381,16 @@ export default class CodeGenerator {
       const firstId = identifiers[0].getText();
       // Check if this is a scoped register: Scope.Register.Member[bit]
       const scopedRegName =
-        identifiers.length >= 3 && this.knownScopes.has(firstId)
+        identifiers.length >= 3 && this.symbols!.knownScopes.has(firstId)
           ? `${firstId}_${identifiers[1].getText()}`
           : null;
       const isScopedRegister =
-        scopedRegName && this.knownRegisters.has(scopedRegName);
+        scopedRegName && this.symbols!.knownRegisters.has(scopedRegName);
 
       if (
         identifiers.length >= 2 &&
         exprs.length > 0 &&
-        !this.knownRegisters.has(firstId) &&
+        !this.symbols!.knownRegisters.has(firstId) &&
         !isScopedRegister
       ) {
         // Fix for Bug #2: Walk children in order to preserve operation sequence
@@ -4656,7 +4406,7 @@ export default class CodeGenerator {
           let exprIndex = 0;
 
           // Check if first identifier is a scope for special handling
-          const isCrossScope = this.knownScopes.has(firstId);
+          const isCrossScope = this.symbols!.knownScopes.has(firstId);
 
           // Bug #8: Track struct types to detect bit access through chains
           // e.g., items[0].byte[7] where byte is u8 - final [7] is bit access
@@ -4691,12 +4441,13 @@ export default class CodeGenerator {
 
                 // Update type tracking for the member we just accessed
                 if (currentStructType) {
-                  const fields = this.structFields.get(currentStructType);
+                  const fields =
+                    this.symbols!.structFields.get(currentStructType);
                   lastMemberType = fields?.get(memberName);
                   _lastMemberStructType = currentStructType;
                   // Check if this member is an array field
                   const arrayFields =
-                    this.structFieldArrays.get(currentStructType);
+                    this.symbols!.structFieldArrays.get(currentStructType);
                   lastMemberIsArray = arrayFields?.has(memberName) ?? false;
                   // Check if this member is itself a struct
                   if (lastMemberType && this.isKnownStruct(lastMemberType)) {
@@ -4773,11 +4524,12 @@ export default class CodeGenerator {
             if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
               const structType = structTypeInfo.baseType;
               const fieldDimensions =
-                this.structFieldDimensions.get(structType);
+                this.symbols!.structFieldDimensions.get(structType);
               const dimensions = fieldDimensions?.get(fieldName);
-              const fieldArrays = this.structFieldArrays.get(structType);
+              const fieldArrays =
+                this.symbols!.structFieldArrays.get(structType);
               const isArrayField = fieldArrays?.has(fieldName);
-              const structFields = this.structFields.get(structType);
+              const structFields = this.symbols!.structFields.get(structType);
               const fieldType = structFields?.get(fieldName);
 
               // String arrays: field type starts with "string<" and has multi-dimensional array
@@ -4823,7 +4575,10 @@ export default class CodeGenerator {
         // Pattern 2: Scope.GPIO7.DR_SET[bit] - 3 identifiers, first is scope
         let fullName: string;
         const leadingId = identifiers[0].getText();
-        if (this.knownScopes.has(leadingId) && identifiers.length >= 3) {
+        if (
+          this.symbols!.knownScopes.has(leadingId) &&
+          identifiers.length >= 3
+        ) {
           // Scoped register: Scope.Register.Member
           const scopeName = leadingId;
           const regName = identifiers[1].getText();
@@ -4837,7 +4592,7 @@ export default class CodeGenerator {
         }
 
         // Check if this is a write-only register
-        const accessMod = this.registerMemberAccess.get(fullName);
+        const accessMod = this.symbols!.registerMemberAccess.get(fullName);
         const isWriteOnly =
           accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
 
@@ -4889,7 +4644,7 @@ export default class CodeGenerator {
       const indexExpr = this.generateExpression(expr);
       const firstId = parts[0];
 
-      if (this.knownRegisters.has(firstId)) {
+      if (this.symbols!.knownRegisters.has(firstId)) {
         // Compound operators not supported for bit field access on registers
         if (isCompound) {
           throw new Error(
@@ -4901,7 +4656,7 @@ export default class CodeGenerator {
         const regName = parts.join("_");
 
         // Check if this is a write-only register
-        const accessMod = this.registerMemberAccess.get(regName);
+        const accessMod = this.symbols!.registerMemberAccess.get(regName);
         const isWriteOnly =
           accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
 
@@ -4943,7 +4698,7 @@ export default class CodeGenerator {
 
       // Check if first identifier is a scoped register
       const scopedRegName = `${scopeName}_${parts[0]}`;
-      if (this.knownRegisters.has(scopedRegName)) {
+      if (this.symbols!.knownRegisters.has(scopedRegName)) {
         // Compound operators not supported for bit field access on registers
         if (isCompound) {
           throw new Error(
@@ -4954,7 +4709,7 @@ export default class CodeGenerator {
         const regName = `${scopeName}_${parts.join("_")}`;
 
         // Check if this is a write-only register
-        const accessMod = this.registerMemberAccess.get(regName);
+        const accessMod = this.symbols!.registerMemberAccess.get(regName);
         const isWriteOnly =
           accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
 
@@ -5025,9 +4780,10 @@ export default class CodeGenerator {
         const fieldName = parts[2];
 
         const scopedRegName = `${scopeName}_${regName}`;
-        if (this.knownRegisters.has(scopedRegName)) {
+        if (this.symbols!.knownRegisters.has(scopedRegName)) {
           const fullRegMember = `${scopedRegName}_${memberName}`;
-          const bitmapType = this.registerMemberTypes.get(fullRegMember);
+          const bitmapType =
+            this.symbols!.registerMemberTypes.get(fullRegMember);
 
           if (bitmapType) {
             // This is a bitmap field access on a scoped register member
@@ -5037,7 +4793,7 @@ export default class CodeGenerator {
               );
             }
 
-            const fields = this.bitmapFields.get(bitmapType);
+            const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(fieldName)) {
               const fieldInfo = fields.get(fieldName)!;
 
@@ -5052,7 +4808,8 @@ export default class CodeGenerator {
               const maskHex = `0x${mask.toString(16).toUpperCase()}`;
 
               // Check if this is a write-only register
-              const accessMod = this.registerMemberAccess.get(fullRegMember);
+              const accessMod =
+                this.symbols!.registerMemberAccess.get(fullRegMember);
               const isWriteOnly =
                 accessMod === "wo" ||
                 accessMod === "w1s" ||
@@ -5312,13 +5069,14 @@ export default class CodeGenerator {
           const structType = structTypeInfo.baseType;
 
           // Check if this field is a string array in the struct
-          const fieldDimensions = this.structFieldDimensions.get(structType);
+          const fieldDimensions =
+            this.symbols!.structFieldDimensions.get(structType);
           const dimensions = fieldDimensions?.get(fieldName);
-          const fieldArrays = this.structFieldArrays.get(structType);
+          const fieldArrays = this.symbols!.structFieldArrays.get(structType);
           const isArrayField = fieldArrays?.has(fieldName);
 
           // Check if field type is string (stored as "string<N>" in C-Next)
-          const structFields = this.structFields.get(structType);
+          const structFields = this.symbols!.structFields.get(structType);
           const fieldType = structFields?.get(fieldName);
 
           // String arrays in structs: field type starts with "string<" and has multi-dimensional array
@@ -5424,7 +5182,7 @@ export default class CodeGenerator {
         const structTypeInfo = this.context.typeRegistry.get(structName);
         if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
           const structType = structTypeInfo.baseType;
-          const structFields = this.structFields.get(structType);
+          const structFields = this.symbols!.structFields.get(structType);
           const fieldType = structFields?.get(fieldName);
 
           // Check if field is a string type (non-array)
@@ -5661,7 +5419,7 @@ export default class CodeGenerator {
         return id;
       }
       // Enum types use pass-by-value, no dereference needed
-      if (this.knownEnums.has(paramInfo.baseType)) {
+      if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
         return id;
       }
       // Parameter - allowed as bare identifier, but needs dereference
@@ -5689,7 +5447,7 @@ export default class CodeGenerator {
     const parts = identifiers.map((id) => id.getText());
     // Check if first identifier is a register
     const firstId = parts[0];
-    if (this.knownRegisters.has(firstId)) {
+    if (this.symbols!.knownRegisters.has(firstId)) {
       // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
       return parts.join("_");
     }
@@ -5706,7 +5464,7 @@ export default class CodeGenerator {
     const expr = this.generateExpression(ctx.expression());
     const firstId = parts[0];
 
-    if (this.knownRegisters.has(firstId)) {
+    if (this.symbols!.knownRegisters.has(firstId)) {
       // Register bit access: GPIO7.DR_SET[idx] -> GPIO7_DR_SET |= (1 << idx) (handled elsewhere)
       // For assignment target, just generate the left-hand side representation
       const regName = parts.join("_");
@@ -5731,7 +5489,7 @@ export default class CodeGenerator {
 
     // Check if first identifier is a scoped register: this.GPIO7.DR_SET -> Teensy4_GPIO7_DR_SET
     const scopedRegName = `${scopeName}_${parts[0]}`;
-    if (this.knownRegisters.has(scopedRegName)) {
+    if (this.symbols!.knownRegisters.has(scopedRegName)) {
       // Scoped register member access: this.GPIO7.DR_SET -> Teensy4_GPIO7_DR_SET
       return `${scopeName}_${parts.join("_")}`;
     }
@@ -5752,12 +5510,12 @@ export default class CodeGenerator {
 
     // Check if first identifier is a scoped register
     const scopedRegName = `${scopeName}_${parts[0]}`;
-    if (this.knownRegisters.has(scopedRegName)) {
+    if (this.symbols!.knownRegisters.has(scopedRegName)) {
       // Scoped register bit access: this.GPIO7.DR_SET[idx] -> Teensy4_GPIO7_DR_SET[idx]
       const regName = `${scopeName}_${parts.join("_")}`;
 
       // Check if this register member has a bitmap type
-      const bitmapType = this.registerMemberTypes.get(regName);
+      const bitmapType = this.symbols!.registerMemberTypes.get(regName);
       if (bitmapType) {
         const line = ctx.start?.line ?? 0;
         throw new Error(
@@ -6190,7 +5948,7 @@ export default class CodeGenerator {
     }
 
     // ADR-025: Enum exhaustiveness checking
-    if (exprType && this.knownEnums.has(exprType)) {
+    if (exprType && this.symbols!.knownEnums.has(exprType)) {
       this.validateEnumExhaustiveness(ctx, exprType, cases, defaultCase);
     }
   }
@@ -6204,7 +5962,7 @@ export default class CodeGenerator {
     cases: Parser.SwitchCaseContext[],
     defaultCase: Parser.DefaultCaseContext | null,
   ): void {
-    const enumVariants = this.enumMembers.get(enumTypeName);
+    const enumVariants = this.symbols!.enumMembers.get(enumTypeName);
     if (!enumVariants) return; // Shouldn't happen if knownEnums has it
 
     const totalVariants = enumVariants.size;
@@ -6942,7 +6700,7 @@ export default class CodeGenerator {
 
     // ADR-016: Track if we've encountered a register in the access chain
     let isRegisterChain = primaryId
-      ? this.knownRegisters.has(primaryId)
+      ? this.symbols!.knownRegisters.has(primaryId)
       : false;
 
     // Track if current member is an array through member access chain
@@ -6988,7 +6746,7 @@ export default class CodeGenerator {
           result = memberName;
           currentIdentifier = memberName; // Track for .length lookups
           // Check if this first identifier is a register
-          if (this.knownRegisters.has(memberName)) {
+          if (this.symbols!.knownRegisters.has(memberName)) {
             isRegisterChain = true;
           }
           continue; // Skip further processing, this just sets the base identifier
@@ -7201,7 +6959,7 @@ export default class CodeGenerator {
           const typeInfo = this.context.typeRegistry.get(primaryId);
           if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
             const bitmapType = typeInfo.bitmapTypeName;
-            const fields = this.bitmapFields.get(bitmapType);
+            const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               if (fieldInfo.width === 1) {
@@ -7219,7 +6977,7 @@ export default class CodeGenerator {
             }
           }
           // Check if this is a scope member access: Scope.member (ADR-016)
-          else if (this.knownScopes.has(result)) {
+          else if (this.symbols!.knownScopes.has(result)) {
             // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
             if (result === this.context.currentScope) {
               throw new Error(
@@ -7240,15 +6998,15 @@ export default class CodeGenerator {
             }
           }
           // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
-          else if (this.knownEnums.has(result)) {
+          else if (this.symbols!.knownEnums.has(result)) {
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
           }
           // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
-          else if (this.knownRegisters.has(result)) {
+          else if (this.symbols!.knownRegisters.has(result)) {
             // ADR-013: Check for write-only register members (wo = cannot read)
             const fullName = `${result}_${memberName}`;
-            const accessMod = this.registerMemberAccess.get(fullName);
+            const accessMod = this.symbols!.registerMemberAccess.get(fullName);
             if (accessMod === "wo") {
               throw new Error(
                 `cannot read from write-only register member '${memberName}' ` +
@@ -7261,9 +7019,9 @@ export default class CodeGenerator {
           }
           // ADR-034: Check if result is a register member with bitmap type
           // Handle: MOTOR_CTRL.Running where MOTOR_CTRL has bitmap type MotorControl
-          else if (this.registerMemberTypes.has(result)) {
-            const bitmapType = this.registerMemberTypes.get(result)!;
-            const fields = this.bitmapFields.get(bitmapType);
+          else if (this.symbols!.registerMemberTypes.has(result)) {
+            const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
+            const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               if (fieldInfo.width === 1) {
@@ -7296,7 +7054,7 @@ export default class CodeGenerator {
 
             // ADR-034: Check if currentStructType is a bitmap - handle field access
             // This handles structParam->bitmapMember.field -> bitwise access
-            const bitmapFieldsPtr = this.bitmapFields.get(
+            const bitmapFieldsPtr = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
             if (bitmapFieldsPtr && bitmapFieldsPtr.has(memberName)) {
@@ -7345,7 +7103,9 @@ export default class CodeGenerator {
 
             // ADR-034: Check if currentStructType is a bitmap - handle field access
             // This handles struct.bitmapMember.field -> bitwise access
-            const bitmapFields = this.bitmapFields.get(currentStructType || "");
+            const bitmapFields = this.symbols!.bitmapFields.get(
+              currentStructType || "",
+            );
             if (bitmapFields && bitmapFields.has(memberName)) {
               const fieldInfo = bitmapFields.get(memberName)!;
               if (fieldInfo.width === 1) {
@@ -7391,7 +7151,7 @@ export default class CodeGenerator {
 
             // Set struct type for chained access, but ONLY if result is not an enum
             // This prevents treating enum types (like Motor_State) as struct variables
-            if (!this.knownEnums.has(result)) {
+            if (!this.symbols!.knownEnums.has(result)) {
               const resolvedTypeInfo = this.context.typeRegistry.get(result);
               if (
                 resolvedTypeInfo &&
@@ -7400,7 +7160,7 @@ export default class CodeGenerator {
                 currentStructType = resolvedTypeInfo.baseType;
               }
             }
-          } else if (this.knownScopes.has(result)) {
+          } else if (this.symbols!.knownScopes.has(result)) {
             // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
             if (result === this.context.currentScope) {
               throw new Error(
@@ -7410,18 +7170,18 @@ export default class CodeGenerator {
             // Transform Scope.member to Scope_member
             result = `${result}_${memberName}`;
             currentIdentifier = result; // Track for .length lookups
-          } else if (this.knownEnums.has(result)) {
+          } else if (this.symbols!.knownEnums.has(result)) {
             // Transform Enum.member to Enum_member
             result = `${result}_${memberName}`;
-          } else if (this.knownRegisters.has(result)) {
+          } else if (this.symbols!.knownRegisters.has(result)) {
             // Transform Register.member to Register_member (matching #define)
             result = `${result}_${memberName}`;
             isRegisterChain = true;
           }
           // ADR-034: Check if result is a register member with bitmap type (no primaryId case)
-          else if (this.registerMemberTypes.has(result)) {
-            const bitmapType = this.registerMemberTypes.get(result)!;
-            const fields = this.bitmapFields.get(bitmapType);
+          else if (this.symbols!.registerMemberTypes.has(result)) {
+            const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
+            const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               if (fieldInfo.width === 1) {
@@ -7464,8 +7224,8 @@ export default class CodeGenerator {
           const index = this.generateExpression(exprs[0]);
 
           // Check if result is a register member with bitmap type
-          if (this.registerMemberTypes.has(result)) {
-            const bitmapType = this.registerMemberTypes.get(result)!;
+          if (this.symbols!.registerMemberTypes.has(result)) {
+            const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const line = primary.start?.line ?? 0;
             throw new Error(
               `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
@@ -7476,7 +7236,7 @@ export default class CodeGenerator {
           // ADR-016: Use isRegisterChain to detect register access via global. prefix
           const isRegisterAccess =
             isRegisterChain ||
-            (primaryId ? this.knownRegisters.has(primaryId) : false);
+            (primaryId ? this.symbols!.knownRegisters.has(primaryId) : false);
 
           // Check if current identifier (which may have been updated by global./this./Scope. access) is an array
           // Use currentIdentifier if available (handles global.arr, this.arr, Scope.arr),
@@ -7659,7 +7419,8 @@ export default class CodeGenerator {
               const isFloatParam =
                 targetParam && this.isFloatType(targetParam.baseType);
               const isEnumParam =
-                targetParam && this.knownEnums.has(targetParam.baseType);
+                targetParam &&
+                this.symbols!.knownEnums.has(targetParam.baseType);
 
               if (isFloatParam || isEnumParam) {
                 // Target parameter is float or enum (pass-by-value): pass value directly
@@ -7746,7 +7507,7 @@ export default class CodeGenerator {
           return id;
         }
         // ADR-017: Enum types use pass-by-value, no dereference needed
-        if (this.knownEnums.has(paramInfo.baseType)) {
+        if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
           return id;
         }
         // ADR-045: String parameters are passed as char*, no dereference needed
@@ -7895,8 +7656,8 @@ export default class CodeGenerator {
         // Check if first identifier is a global variable
         // If not a scope or enum, it's likely a global struct variable
         if (
-          !this.knownScopes.has(firstName) &&
-          !this.knownEnums.has(firstName)
+          !this.symbols!.knownScopes.has(firstName) &&
+          !this.symbols!.knownEnums.has(firstName)
         ) {
           return `sizeof(${firstName}.${memberName})`;
         }
@@ -7938,7 +7699,7 @@ export default class CodeGenerator {
         }
 
         // Check if it's a known enum (actual type)
-        if (this.knownEnums.has(varName)) {
+        if (this.symbols!.knownEnums.has(varName)) {
           return `sizeof(${varName})`;
         }
 
@@ -8123,13 +7884,14 @@ export default class CodeGenerator {
       // Register bit access: GPIO7.DR[bit] or GPIO7.DR[start, width]
       // Also handle scoped registers: Board.GPIO.DR[bit]
       const isDirectRegister =
-        parts.length > 1 && this.knownRegisters.has(firstPart);
+        parts.length > 1 && this.symbols!.knownRegisters.has(firstPart);
       const scopedRegisterName =
-        parts.length > 2 && this.knownScopes.has(firstPart)
+        parts.length > 2 && this.symbols!.knownScopes.has(firstPart)
           ? `${parts[0]}_${parts[1]}`
           : null;
       const isScopedRegister =
-        scopedRegisterName && this.knownRegisters.has(scopedRegisterName);
+        scopedRegisterName &&
+        this.symbols!.knownRegisters.has(scopedRegisterName);
 
       if (isDirectRegister || isScopedRegister) {
         // This is register member bit access (handled elsewhere for assignment)
@@ -8139,7 +7901,8 @@ export default class CodeGenerator {
         // ADR-013: Check for write-only register members (wo = cannot read)
         // Skip check if we're in assignment target context (write operation)
         if (!this.inAssignmentTarget) {
-          const accessMod = this.registerMemberAccess.get(registerName);
+          const accessMod =
+            this.symbols!.registerMemberAccess.get(registerName);
           if (accessMod === "wo") {
             const displayName = isDirectRegister
               ? `${parts[0]}.${parts[1]}`
@@ -8199,7 +7962,7 @@ export default class CodeGenerator {
           let exprIndex = 0;
 
           // Check if first identifier is a scope for special handling
-          const isCrossScope = this.knownScopes.has(firstPart);
+          const isCrossScope = this.symbols!.knownScopes.has(firstPart);
 
           // Bug #8: Track struct types to detect bit access through chains
           // e.g., items[0].byte[7] where byte is u8 - final [7] is bit read
@@ -8230,11 +7993,12 @@ export default class CodeGenerator {
 
                 // Update type tracking for the member we just accessed
                 if (currentStructType) {
-                  const fields = this.structFields.get(currentStructType);
+                  const fields =
+                    this.symbols!.structFields.get(currentStructType);
                   lastMemberType = fields?.get(memberName);
                   // Check if this member is an array field
                   const arrayFields =
-                    this.structFieldArrays.get(currentStructType);
+                    this.symbols!.structFieldArrays.get(currentStructType);
                   lastMemberIsArray = arrayFields?.has(memberName) ?? false;
                   // Check if this member is itself a struct
                   if (lastMemberType && this.isKnownStruct(lastMemberType)) {
@@ -8321,13 +8085,13 @@ export default class CodeGenerator {
     const firstPart = parts[0];
 
     // Check if it's a register member access: GPIO7.DR -> GPIO7_DR
-    if (this.knownRegisters.has(firstPart)) {
+    if (this.symbols!.knownRegisters.has(firstPart)) {
       // ADR-013: Check for write-only register members (wo = cannot read)
       // Skip check if we're in assignment target context (write operation)
       if (!this.inAssignmentTarget && parts.length >= 2) {
         const memberName = parts[1];
         const fullName = `${firstPart}_${memberName}`;
-        const accessMod = this.registerMemberAccess.get(fullName);
+        const accessMod = this.symbols!.registerMemberAccess.get(fullName);
         if (accessMod === "wo") {
           throw new Error(
             `cannot read from write-only register member '${memberName}' ` +
@@ -8339,7 +8103,7 @@ export default class CodeGenerator {
     }
 
     // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
-    if (this.knownScopes.has(firstPart)) {
+    if (this.symbols!.knownScopes.has(firstPart)) {
       return parts.join("_");
     }
 
