@@ -22,7 +22,7 @@ int main(void) {
     if (rect.width != 100) return 3;
     if (rect.height != 50) return 4;
     if (0 != 32) return 5;
-    if (0 != 32) return 6;
+    if (32 != 32) return 6;
     uint32_t area = rect.width * rect.height;
     if (area != 5000) return 7;
     Rectangle rect2 = {0};

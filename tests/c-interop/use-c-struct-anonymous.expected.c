@@ -39,9 +39,9 @@ int main(void) {
     if (mt.word_val != 1000) return 8;
     if (mt.dword_val != 100000) return 9;
     if (mt.signed_val != -50000) return 10;
-    if (0 != 8) return 11;
-    if (0 != 16) return 12;
-    if (0 != 32) return 13;
-    if (0 != 32) return 14;
+    if (8 != 8) return 11;
+    if (16 != 16) return 12;
+    if (32 != 32) return 13;
+    if (32 != 32) return 14;
     return 0;
 }

@@ -31,9 +31,9 @@ int main(void) {
     if (sf.byte_field != 255) return 5;
     if (sf.word_field != 65535) return 6;
     if (sf.dword_field != 0xFFFFFFFF) return 7;
-    if (0 != 8) return 8;
-    if (0 != 16) return 9;
-    if (0 != 32) return 10;
-    if (0 != 64) return 11;
+    if (8 != 8) return 8;
+    if (16 != 16) return 9;
+    if (32 != 32) return 10;
+    if (64 != 64) return 11;
     return 0;
 }
