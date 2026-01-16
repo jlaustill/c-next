@@ -1,6 +1,12 @@
 /**
  * C-Next Transpiler Library
  * Core transpilation API for use by CLI and VS Code extension
+ *
+ * This module provides a synchronous transpile(source) function for in-memory
+ * transpilation without header parsing.
+ *
+ * For multi-file builds or file-based transpilation with header support,
+ * use Pipeline from '../pipeline/Pipeline' directly.
  */
 
 import { CharStream, CommonTokenStream, ParseTreeWalker } from "antlr4ng";
