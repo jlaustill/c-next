@@ -5,6 +5,7 @@
 
 import ISymbol from "../types/ISymbol";
 import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
 import IConflict from "./types/IConflict";
 import IStructFieldInfo from "./types/IStructFieldInfo";
 
@@ -204,6 +205,49 @@ class SymbolTable {
     structName: string,
   ): Map<string, IStructFieldInfo> | undefined {
     return this.structFields.get(structName);
+  }
+
+  /**
+   * Get all struct fields for cache serialization
+   * @returns Map of struct name -> (field name -> field info)
+   */
+  getAllStructFields(): Map<string, Map<string, IStructFieldInfo>> {
+    return this.structFields;
+  }
+
+  /**
+   * Restore struct fields from cache
+   * Merges cached fields into the existing structFields map
+   * @param fields Map of struct name -> (field name -> field info)
+   */
+  restoreStructFields(
+    fields: Map<string, Map<string, IStructFieldInfo>>,
+  ): void {
+    for (const [structName, fieldMap] of fields) {
+      // Get or create the struct's field map
+      let existingFields = this.structFields.get(structName);
+      if (!existingFields) {
+        existingFields = new Map();
+        this.structFields.set(structName, existingFields);
+      }
+
+      // Merge fields
+      for (const [fieldName, fieldInfo] of fieldMap) {
+        existingFields.set(fieldName, fieldInfo);
+      }
+    }
+  }
+
+  /**
+   * Get struct names defined in a specific source file
+   * @param file Source file path
+   * @returns Array of struct names defined in that file
+   */
+  getStructNamesByFile(file: string): string[] {
+    const fileSymbols = this.byFile.get(file) ?? [];
+    return fileSymbols
+      .filter((s) => s.kind === ESymbolKind.Struct)
+      .map((s) => s.name);
   }
 
   /**

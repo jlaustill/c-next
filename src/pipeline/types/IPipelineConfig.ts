@@ -37,6 +37,9 @@ interface IPipelineConfig {
 
   /** Issue #35: Collect grammar rule coverage during parsing */
   collectGrammarCoverage?: boolean;
+
+  /** Issue #183: Disable symbol caching (default: false = cache enabled) */
+  noCache?: boolean;
 }
 
 export default IPipelineConfig;

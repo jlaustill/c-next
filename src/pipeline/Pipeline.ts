@@ -42,6 +42,8 @@ import IPipelineConfig from "./types/IPipelineConfig";
 import IPipelineResult from "./types/IPipelineResult";
 import IFileResult from "./types/IFileResult";
 import runAnalyzers from "./runAnalyzers";
+import CacheManager from "./CacheManager";
+import IStructFieldInfo from "../symbols/types/IStructFieldInfo";
 
 /**
  * Unified transpilation pipeline
@@ -53,6 +55,7 @@ class Pipeline {
   private codeGenerator: CodeGenerator;
   private headerGenerator: HeaderGenerator;
   private warnings: string[];
+  private cacheManager: CacheManager | null;
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -68,6 +71,7 @@ class Pipeline {
       debugMode: config.debugMode ?? false,
       target: config.target ?? "",
       collectGrammarCoverage: config.collectGrammarCoverage ?? false,
+      noCache: config.noCache ?? false,
     };
 
     this.symbolTable = new SymbolTable();
@@ -75,6 +79,11 @@ class Pipeline {
     this.codeGenerator = new CodeGenerator();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
+
+    // Initialize cache manager if caching is enabled
+    this.cacheManager = this.config.noCache
+      ? null
+      : new CacheManager(this.determineProjectRoot());
   }
 
   /**
@@ -93,6 +102,11 @@ class Pipeline {
     };
 
     try {
+      // Initialize cache if enabled
+      if (this.cacheManager) {
+        await this.cacheManager.initialize();
+      }
+
       // Stage 1: Discover source files
       const { cnextFiles, headerFiles } = await this.discoverSources();
 
@@ -184,6 +198,11 @@ class Pipeline {
 
       result.symbolsCollected = this.symbolTable.size;
       result.warnings = [...result.warnings, ...this.warnings];
+
+      // Flush cache to disk
+      if (this.cacheManager) {
+        await this.cacheManager.flush();
+      }
     } catch (err) {
       result.errors.push({
         line: 1,
@@ -289,6 +308,17 @@ class Pipeline {
    * Stage 2: Collect symbols from C/C++ headers
    */
   private async collectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
+    // Check cache first
+    if (this.cacheManager?.isValid(file.path)) {
+      const cached = this.cacheManager.getSymbols(file.path);
+      if (cached) {
+        // Restore symbols and struct fields from cache
+        this.symbolTable.addSymbols(cached.symbols);
+        this.symbolTable.restoreStructFields(cached.structFields);
+        return; // Cache hit - skip parsing
+      }
+    }
+
     let content: string;
 
     // Preprocess if enabled
@@ -316,6 +346,13 @@ class Pipeline {
       this.parseCHeader(content, file.path);
     } else if (file.type === EFileType.CppHeader) {
       this.parseCppHeader(content, file.path);
+    }
+
+    // After parsing, cache the results
+    if (this.cacheManager) {
+      const symbols = this.symbolTable.getSymbolsByFile(file.path);
+      const structFields = this.extractStructFieldsForFile(file.path);
+      this.cacheManager.setSymbols(file.path, symbols, structFields);
     }
   }
 
@@ -642,6 +679,69 @@ class Pipeline {
    */
   getSymbolTable(): SymbolTable {
     return this.symbolTable;
+  }
+
+  /**
+   * Determine the project root directory for cache storage
+   * Uses first input's directory, walking up to find existing .cnx/ or config
+   */
+  private determineProjectRoot(): string {
+    // Start from first input
+    const firstInput = this.config.inputs[0];
+    if (!firstInput) {
+      return process.cwd();
+    }
+
+    const resolvedInput = resolve(firstInput);
+    let startDir: string;
+
+    // If input is a file, start from its directory
+    if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
+      startDir = dirname(resolvedInput);
+    } else {
+      startDir = resolvedInput;
+    }
+
+    // Walk up looking for existing .cnx/ or cnext.config.json
+    let dir = startDir;
+    while (dir !== dirname(dir)) {
+      // Check for existing .cnx directory
+      if (existsSync(join(dir, ".cnx"))) {
+        return dir;
+      }
+      // Check for config file
+      if (existsSync(join(dir, "cnext.config.json"))) {
+        return dir;
+      }
+      dir = dirname(dir);
+    }
+
+    // Fallback: use first input's directory
+    return startDir;
+  }
+
+  /**
+   * Extract struct fields for a specific file
+   * Returns only struct fields for structs defined in that file
+   */
+  private extractStructFieldsForFile(
+    filePath: string,
+  ): Map<string, Map<string, IStructFieldInfo>> {
+    const result = new Map<string, Map<string, IStructFieldInfo>>();
+
+    // Get struct names defined in this file
+    const structNames = this.symbolTable.getStructNamesByFile(filePath);
+
+    // Get fields for each struct
+    const allStructFields = this.symbolTable.getAllStructFields();
+    for (const structName of structNames) {
+      const fields = allStructFields.get(structName);
+      if (fields) {
+        result.set(structName, fields);
+      }
+    }
+
+    return result;
   }
 }
 
