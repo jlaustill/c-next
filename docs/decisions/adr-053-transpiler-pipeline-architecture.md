@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted**
+**Implemented**
 
 ## Critical Distinction: Transpiler vs Compiler
 
