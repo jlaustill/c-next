@@ -68,6 +68,9 @@ interface ISymbolInfo {
   /** Backing type for each bitmap: bitmapName -> typeName (e.g., "uint8_t") */
   readonly bitmapBackingType: ReadonlyMap<string, string>;
 
+  /** Bit width for each bitmap: bitmapName -> bitWidth (e.g., 8, 16, 24, 32) */
+  readonly bitmapBitWidth: ReadonlyMap<string, number>;
+
   // === Register Information (ADR-004) ===
 
   /** Scoped registers: "scopeName.registerName" -> address expression */

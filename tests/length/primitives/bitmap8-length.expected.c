@@ -6,8 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// NOTE: test-execution disabled due to bitmap .length bug (separate from Issue #196)
-/* test-coverage: bitmap8-length */
+/* test-execution */
 // Comprehensive .length test for bitmap8 type across all contexts
 // Tests: .length returns 8 for bitmap8 in every possible scope and access pattern
 // Define bitmap8 type
@@ -29,17 +28,17 @@ StatusFlags globalVar = {0};
 /* Scope: TestScope */
 
 uint32_t TestScope_getGlobalLength(void) {
-    return 0;
+    return 8;
 }
 static StatusFlags TestScope_scopeMember = {0};
 
 uint32_t TestScope_getMemberLength(void) {
-    return 0;
+    return 8;
 }
 StatusFlags TestScope_publicMember = {0};
 
 uint32_t checkParamLength(StatusFlags* param) {
-    return 0;
+    return 8;
 }
 
 typedef struct {
@@ -48,7 +47,7 @@ typedef struct {
 
 int main(void) {
     globalVar = (globalVar & ~(1 << 0)) | (1 << 0);
-    if (0 != 8) {
+    if (8 != 8) {
         return 1;
     }
     if (TestScope_getGlobalLength() != 8) {
@@ -57,12 +56,12 @@ int main(void) {
     if (TestScope_getMemberLength() != 8) {
         return 3;
     }
-    if (0 != 8) {
+    if (8 != 8) {
         return 4;
     }
     StatusFlags localVar = {0};
     localVar = (localVar & ~(1 << 0)) | (1 << 0);
-    if (0 != 8) {
+    if (8 != 8) {
         return 5;
     }
     StatusFlags testVal = {0};
@@ -71,7 +70,7 @@ int main(void) {
         return 6;
     }
     StatusFlags arr[4] = {0};
-    if (0 != 8) {
+    if (8 != 8) {
         return 8;
     }
     return 0;

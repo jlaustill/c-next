@@ -1,5 +1,4 @@
-// NOTE: test-execution disabled due to bitmap .length bug (separate from Issue #196)
-/* test-coverage: bitmap16-length */
+/* test-execution */
 // Comprehensive .length test for bitmap16 type across all contexts
 // Tests: .length returns 16 for bitmap16 in every possible scope and access pattern
 

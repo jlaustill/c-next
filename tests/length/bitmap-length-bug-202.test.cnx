@@ -1,0 +1,16 @@
+/* test-execution */
+// Minimal test for Issue #202: Bitmap .length returns 0 instead of bit width
+// Tests: bitmap8 variable .length should return 8
+
+bitmap8 Flags { bit0, bit1, bit2, bit3, bit4, bit5, bit6, bit7 }
+
+i32 main() {
+    Flags myVar;
+
+    // Bug: .length returns 0 instead of 8
+    if (myVar.length != 8) {
+        return 1;  // FAIL: expected 8, got something else (0)
+    }
+
+    return 0;
+}
