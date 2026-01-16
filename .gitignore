@@ -3,6 +3,9 @@ node_modules/
 dist/
 *.log
 
+# C-Next local cache (Pipeline symbol cache - Issue #183)
+.cnx/
+
 # Test builds
 test-teensy/
 
