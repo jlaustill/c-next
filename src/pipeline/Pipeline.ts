@@ -542,12 +542,19 @@ class Pipeline {
     const ext = this.config.outputExtension;
     const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
 
-    // Check if file is in any input directory
+    // Check if file is in any input directory (for preserving structure)
     for (const input of this.config.inputs) {
       const resolvedInput = resolve(input);
+
+      // Skip if input is a file (not a directory) - can't preserve structure
+      if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
+        continue;
+      }
+
       const relativePath = relative(resolvedInput, file.path);
 
-      if (!relativePath.startsWith("..") && relativePath !== file.path) {
+      // Check if file is under this input directory
+      if (relativePath && !relativePath.startsWith("..")) {
         // File is under this input directory - preserve structure
         const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
         const outputPath = join(this.config.outDir, outputRelative);
@@ -561,7 +568,7 @@ class Pipeline {
       }
     }
 
-    // Fallback: flat output
+    // Fallback: flat output in outDir
     return join(this.config.outDir, outputName);
   }
 
