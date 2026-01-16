@@ -15,6 +15,7 @@ import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import * as Parser from "../../parser/grammar/CNextParser";
+import { ParserRuleContext } from "antlr4ng";
 
 interface IOrchestrator {
   // === State Access ===
@@ -38,37 +39,41 @@ interface IOrchestrator {
   /** Resolve an identifier to its fully-scoped name */
   resolveIdentifier(name: string): string;
 
-  // === Code Generation Delegation ===
-  // These methods delegate to CodeGenerator or registry for child node generation
+  // === Expression Generation (ADR-053 A2) ===
+  // These methods allow extracted generators to call back into CodeGenerator
+  // for parts not yet extracted, enabling incremental "strangler fig" migration.
 
-  /** Generate C type from a type context */
-  generateType(ctx: Parser.TypeContext): string;
-
-  /** Generate C expression from an expression context */
+  /** Generate a C expression from any expression context */
   generateExpression(ctx: Parser.ExpressionContext): string;
 
-  /** Generate C block (statements in braces) from a block context */
-  generateBlock(ctx: Parser.BlockContext): string;
+  /** Generate type translation (C-Next type -> C type) */
+  generateType(ctx: Parser.TypeContext): string;
+
+  /** Generate a unary expression */
+  generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string;
+
+  /** Generate a postfix expression */
+  generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string;
+
+  /** Generate the full precedence chain from or-expression down */
+  generateOrExpr(ctx: Parser.OrExpressionContext): string;
+
+  // === Type Utilities ===
+
+  /** Check if a type name is a known struct */
+  isKnownStruct(typeName: string): boolean;
+
+  /** Check if a type is a float type (f32, f64, float, double) */
+  isFloatType(typeName: string): boolean;
+
+  /** Check if a type is an integer type */
+  isIntegerType(typeName: string): boolean;
+
+  /** Check if a function is defined in C-Next (vs C headers) */
+  isCNextFunction(name: string): boolean;
 
   /** Get the raw type name without C conversion */
   getTypeName(ctx: Parser.TypeContext): string;
-
-  /** Generate array dimension suffix (e.g., "[10]" or "[10][20]") */
-  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string;
-
-  /** Generate single array dimension */
-  generateArrayDimension(dim: Parser.ArrayDimensionContext): string;
-
-  /** Generate parameter list for function signature */
-  generateParameterList(ctx: Parser.ParameterListContext): string;
-
-  // === Type Helpers ===
-
-  /** Check if a type name is an integer type */
-  isIntegerType(typeName: string): boolean;
-
-  /** Check if a type name is a float type */
-  isFloatType(typeName: string): boolean;
 
   /** Try to evaluate a constant expression at compile time */
   tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
@@ -76,7 +81,50 @@ interface IOrchestrator {
   /** Get zero initializer for a type (e.g., "0", "{0}", "false") */
   getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string;
 
+  // === Expression Analysis ===
+
+  /** Get the enum type of an expression, if any */
+  getExpressionEnumType(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): string | null;
+
+  /** Check if an expression is an integer literal or variable */
+  isIntegerExpression(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): boolean;
+
+  /** Check if an expression is a string type */
+  isStringExpression(ctx: Parser.RelationalExpressionContext): boolean;
+
+  /** Get type of additive expression for shift validation */
+  getAdditiveExpressionType(
+    ctx: Parser.AdditiveExpressionContext,
+  ): string | null;
+
+  /** Extract operators from parse tree children in correct order */
+  getOperatorsFromChildren(ctx: ParserRuleContext): string[];
+
   // === Validation ===
+
+  /** Validate cross-scope member visibility (ADR-016) */
+  validateCrossScopeVisibility(scopeName: string, memberName: string): void;
+
+  /** Validate shift amount is within type bounds */
+  validateShiftAmount(
+    leftType: string,
+    rightExpr: Parser.AdditiveExpressionContext,
+    op: string,
+    ctx: Parser.ShiftExpressionContext,
+  ): void;
+
+  /** Validate ternary condition is a comparison (ADR-022) */
+  validateTernaryCondition(condition: Parser.OrExpressionContext): void;
+
+  /** Validate no nested ternary expressions (ADR-022) */
+  validateNoNestedTernary(
+    expr: Parser.OrExpressionContext,
+    branchName: string,
+  ): void;
 
   /** Validate that a literal value fits in the target type */
   validateLiteralFitsType(literal: string, typeName: string): void;
@@ -84,7 +132,83 @@ interface IOrchestrator {
   /** Validate type conversion is allowed */
   validateTypeConversion(targetType: string, sourceType: string | null): void;
 
-  // === String Helpers ===
+  // === Function Call Helpers (ADR-053 A2 Phase 5) ===
+
+  /** Get simple identifier from expression, or null if complex */
+  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
+
+  /** Generate function argument with pass-by-reference handling */
+  generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string;
+
+  /** Check if a value is const (for const-to-non-const validation) */
+  isConstValue(name: string): boolean;
+
+  /** Get known enums set for pass-by-value detection */
+  getKnownEnums(): ReadonlySet<string>;
+
+  // === Statement Generation (ADR-053 A3) ===
+
+  /** Generate a block (curly braces with statements) */
+  generateBlock(ctx: Parser.BlockContext): string;
+
+  /** Generate a single statement */
+  generateStatement(ctx: Parser.StatementContext): string;
+
+  /** Get indentation string for current level */
+  indent(text: string): string;
+
+  // === Statement Validation (ADR-053 A3) ===
+
+  /** Validate no early exits (return/break) in critical blocks (ADR-050) */
+  validateNoEarlyExits(ctx: Parser.BlockContext): void;
+
+  /** Validate switch statement (ADR-025) */
+  validateSwitchStatement(
+    ctx: Parser.SwitchStatementContext,
+    switchExpr: Parser.ExpressionContext,
+  ): void;
+
+  /** Validate do-while condition (ADR-027) */
+  validateDoWhileCondition(ctx: Parser.ExpressionContext): void;
+
+  // === Control Flow Helpers (ADR-053 A3) ===
+
+  /** Generate an assignment target */
+  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
+
+  /** Generate array dimensions */
+  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string;
+
+  /** Generate single array dimension */
+  generateArrayDimension(dim: Parser.ArrayDimensionContext): string;
+
+  // === strlen Optimization (ADR-053 A3) ===
+
+  /** Count string length accesses for caching */
+  countStringLengthAccesses(ctx: Parser.ExpressionContext): Map<string, number>;
+
+  /** Count block length accesses */
+  countBlockLengthAccesses(
+    ctx: Parser.BlockContext,
+    counts: Map<string, number>,
+  ): void;
+
+  /** Setup length cache and return declarations */
+  setupLengthCache(counts: Map<string, number>): string;
+
+  /** Clear length cache */
+  clearLengthCache(): void;
+
+  /** Register a local variable */
+  registerLocalVariable(name: string): void;
+
+  // === Declaration Generation (ADR-053 A4) ===
+
+  /** Generate parameter list for function signature */
+  generateParameterList(ctx: Parser.ParameterListContext): string;
 
   /** Get the length of a string literal (excluding quotes and null terminator) */
   getStringLiteralLength(literal: string): number;
@@ -107,9 +231,6 @@ interface IOrchestrator {
 
   /** Get the capacity of a string expression (for validation) */
   getStringExprCapacity(exprCode: string): number | null;
-
-  /** Check if expression is an integer expression */
-  isIntegerExpression(ctx: Parser.ExpressionContext): boolean;
 
   // === Parameter Management ===
 
@@ -137,9 +258,6 @@ interface IOrchestrator {
 
   /** Set the main function args parameter name for translation */
   setMainArgsName(name: string | null): void;
-
-  /** Generate parameter list string */
-  generateParameterList(ctx: Parser.ParameterListContext): string;
 
   /** Check if this is main function with args parameter */
   isMainFunctionWithArgs(

@@ -29,7 +29,16 @@ import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
-// ADR-053: Declaration generators
+// ADR-053: Expression generators (A2)
+import generateLiteral from "./generators/expressions/LiteralGenerator";
+import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
+import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
+import generateFunctionCall from "./generators/expressions/CallExprGenerator";
+import accessGenerators from "./generators/expressions/AccessExprGenerator";
+import expressionGenerators from "./generators/expressions/ExpressionGenerator";
+// ADR-053: Statement generators (A3)
+import statementGenerators from "./generators/statements";
+// ADR-053: Declaration generators (A4)
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
 import registerGenerator from "./generators/declarationGenerators/RegisterGenerator";
@@ -152,30 +161,6 @@ const DEFAULT_TARGET: TargetCapabilities = {
   wordSize: 32,
   hasLdrexStrex: false,
   hasBasepri: false,
-};
-
-/**
- * ADR-049: LDREX/STREX intrinsic map for atomic operations
- */
-const LDREX_MAP: Record<string, string> = {
-  u8: "__LDREXB",
-  i8: "__LDREXB",
-  u16: "__LDREXH",
-  i16: "__LDREXH",
-  u32: "__LDREXW",
-  i32: "__LDREXW",
-};
-
-/**
- * ADR-049: STREX intrinsic map for atomic operations
- */
-const STREX_MAP: Record<string, string> = {
-  u8: "__STREXB",
-  i8: "__STREXB",
-  u16: "__STREXH",
-  i16: "__STREXH",
-  u32: "__STREXW",
-  i32: "__STREXW",
 };
 
 /**
@@ -465,32 +450,324 @@ export default class CodeGenerator implements IOrchestrator {
     return this._resolveIdentifier(identifier);
   }
 
-  // === Code Generation Delegation (IOrchestrator) ===
+  // === Expression Generation (ADR-053 A2) ===
 
-  /** Generate C type from a type context */
-  generateType(ctx: Parser.TypeContext): string {
-    return this._generateType(ctx);
-  }
-
-  /** Generate C expression from an expression context */
+  /**
+   * Generate a C expression from any expression context.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
   generateExpression(ctx: Parser.ExpressionContext): string {
     return this._generateExpression(ctx);
   }
 
-  /** Generate C block from a block context */
+  /**
+   * Generate type translation (C-Next type -> C type).
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateType(ctx: Parser.TypeContext): string {
+    return this._generateType(ctx);
+  }
+
+  /**
+   * Generate a unary expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
+    return this._generateUnaryExpr(ctx);
+  }
+
+  /**
+   * Generate a postfix expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
+    return this._generatePostfixExpr(ctx);
+  }
+
+  /**
+   * Generate the full precedence chain from or-expression down.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateOrExpr(ctx: Parser.OrExpressionContext): string {
+    return this._generateOrExpr(ctx);
+  }
+
+  // === Type Utilities ===
+
+  /**
+   * Check if a type name is a known struct.
+   * Part of IOrchestrator interface.
+   */
+  isKnownStruct(typeName: string): boolean {
+    return this._isKnownStruct(typeName);
+  }
+
+  /**
+   * Check if a type is a float type.
+   * Part of IOrchestrator interface - delegates to TypeResolver.
+   */
+  isFloatType(typeName: string): boolean {
+    return this.typeResolver!.isFloatType(typeName);
+  }
+
+  /**
+   * Check if a type is an integer type.
+   * Part of IOrchestrator interface - delegates to TypeResolver.
+   */
+  isIntegerType(typeName: string): boolean {
+    return this.typeResolver!.isIntegerType(typeName);
+  }
+
+  /**
+   * Check if a function is defined in C-Next.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  isCNextFunction(name: string): boolean {
+    return this._isCNextFunction(name);
+  }
+
+  // === Expression Analysis ===
+
+  /**
+   * Get the enum type of an expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getExpressionEnumType(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): string | null {
+    return this._getExpressionEnumType(ctx);
+  }
+
+  /**
+   * Check if an expression is an integer literal or variable.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  isIntegerExpression(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): boolean {
+    return this._isIntegerExpression(ctx);
+  }
+
+  /**
+   * Check if an expression is a string type.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
+    return this._isStringExpression(ctx);
+  }
+
+  /**
+   * Get type of additive expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getAdditiveExpressionType(
+    ctx: Parser.AdditiveExpressionContext,
+  ): string | null {
+    return this._getAdditiveExpressionType(ctx);
+  }
+
+  /**
+   * Extract operators from parse tree children in correct order.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+    return this._getOperatorsFromChildren(ctx);
+  }
+
+  // === Validation ===
+
+  /**
+   * Validate cross-scope member visibility.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  validateCrossScopeVisibility(scopeName: string, memberName: string): void {
+    this._validateCrossScopeVisibility(scopeName, memberName);
+  }
+
+  /**
+   * Validate shift amount is within type bounds.
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  validateShiftAmount(
+    leftType: string,
+    rightExpr: Parser.AdditiveExpressionContext,
+    op: string,
+    ctx: Parser.ShiftExpressionContext,
+  ): void {
+    this.typeValidator!.validateShiftAmount(leftType, rightExpr, op, ctx);
+  }
+
+  /**
+   * Validate ternary condition is a comparison (ADR-022).
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  validateTernaryCondition(condition: Parser.OrExpressionContext): void {
+    this.typeValidator!.validateTernaryCondition(condition);
+  }
+
+  /**
+   * Validate no nested ternary expressions (ADR-022).
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  validateNoNestedTernary(
+    expr: Parser.OrExpressionContext,
+    branchName: string,
+  ): void {
+    this.typeValidator!.validateNoNestedTernary(expr, branchName);
+  }
+
+  // === Function Call Helpers (ADR-053 A2 Phase 5) ===
+
+  /**
+   * Get simple identifier from expression, or null if complex.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+    return this._getSimpleIdentifier(ctx);
+  }
+
+  /**
+   * Generate function argument with pass-by-reference handling.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string {
+    return this._generateFunctionArg(ctx, targetParamBaseType);
+  }
+
+  /**
+   * Check if a value is const.
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  isConstValue(name: string): boolean {
+    return this.typeValidator!.isConstValue(name);
+  }
+
+  /**
+   * Get known enums set for pass-by-value detection.
+   * Part of IOrchestrator interface.
+   */
+  getKnownEnums(): ReadonlySet<string> {
+    return this.symbols!.knownEnums;
+  }
+
+  /**
+   * Generate a block (curly braces with statements).
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
   generateBlock(ctx: Parser.BlockContext): string {
     return this._generateBlock(ctx);
   }
 
-  /** Get the raw type name without C conversion */
-  getTypeName(ctx: Parser.TypeContext): string {
-    return this._getTypeName(ctx);
+  /**
+   * Validate no early exits (return/break) in critical blocks.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateNoEarlyExits(ctx: Parser.BlockContext): void {
+    this.typeValidator!.validateNoEarlyExits(ctx);
   }
 
-  /** Generate array dimension suffix */
+  /**
+   * Generate a single statement.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  generateStatement(ctx: Parser.StatementContext): string {
+    return this._generateStatement(ctx);
+  }
+
+  /**
+   * Get indentation string for current level.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  indent(text: string): string {
+    return this._indent(text);
+  }
+
+  /**
+   * Validate switch statement.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateSwitchStatement(
+    ctx: Parser.SwitchStatementContext,
+    switchExpr: Parser.ExpressionContext,
+  ): void {
+    this.typeValidator!.validateSwitchStatement(ctx, switchExpr);
+  }
+
+  /**
+   * Validate do-while condition.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
+    this.typeValidator!.validateDoWhileCondition(ctx);
+  }
+
+  /**
+   * Generate an assignment target.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
+    return this._generateAssignmentTarget(ctx);
+  }
+
+  /**
+   * Generate array dimensions.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
   generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
     return this._generateArrayDimensions(dims);
   }
+
+  // === strlen Optimization (ADR-053 A3) ===
+
+  /**
+   * Count string length accesses for caching.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  countStringLengthAccesses(
+    ctx: Parser.ExpressionContext,
+  ): Map<string, number> {
+    return this._countStringLengthAccesses(ctx);
+  }
+
+  /**
+   * Count block length accesses.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  countBlockLengthAccesses(
+    ctx: Parser.BlockContext,
+    counts: Map<string, number>,
+  ): void {
+    this._countBlockLengthAccesses(ctx, counts);
+  }
+
+  /**
+   * Setup length cache and return declarations.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  setupLengthCache(counts: Map<string, number>): string {
+    return this._setupLengthCache(counts);
+  }
+
+  /**
+   * Clear length cache.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  clearLengthCache(): void {
+    this._clearLengthCache();
+  }
+
+  /**
+   * Register a local variable.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  registerLocalVariable(name: string): void {
+    this.context.localVariables.add(name);
+  }
+
+  // === Declaration Generation (ADR-053 A4) ===
 
   /** Generate single array dimension */
   generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
@@ -502,16 +779,9 @@ export default class CodeGenerator implements IOrchestrator {
     return this._generateParameterList(ctx);
   }
 
-  // === Type Helpers (IOrchestrator) ===
-
-  /** Check if a type name is an integer type */
-  isIntegerType(typeName: string): boolean {
-    return this._isIntegerType(typeName);
-  }
-
-  /** Check if a type name is a float type */
-  isFloatType(typeName: string): boolean {
-    return this._isFloatType(typeName);
+  /** Get the raw type name without C conversion */
+  getTypeName(ctx: Parser.TypeContext): string {
+    return this._getTypeName(ctx);
   }
 
   /** Try to evaluate a constant expression at compile time */
@@ -524,7 +794,7 @@ export default class CodeGenerator implements IOrchestrator {
     return this._getZeroInitializer(typeCtx, isArray);
   }
 
-  // === Validation (IOrchestrator) ===
+  // === Validation (IOrchestrator A4) ===
 
   /** Validate that a literal value fits in the target type */
   validateLiteralFitsType(literal: string, typeName: string): void {
@@ -536,7 +806,7 @@ export default class CodeGenerator implements IOrchestrator {
     this._validateTypeConversion(targetType, sourceType);
   }
 
-  // === String Helpers (IOrchestrator) ===
+  // === String Helpers (IOrchestrator A4) ===
 
   /** Get the length of a string literal */
   getStringLiteralLength(literal: string): number {
@@ -568,12 +838,7 @@ export default class CodeGenerator implements IOrchestrator {
     return this._getStringExprCapacity(exprCode);
   }
 
-  /** Check if expression is an integer expression */
-  isIntegerExpression(ctx: Parser.ExpressionContext): boolean {
-    return this._isIntegerExpression(ctx);
-  }
-
-  // === Parameter Management (IOrchestrator) ===
+  // === Parameter Management (IOrchestrator A4) ===
 
   /** Set current function parameters */
   setParameters(paramList: Parser.ParameterListContext | null): void {
@@ -590,13 +855,13 @@ export default class CodeGenerator implements IOrchestrator {
     return this._isCallbackTypeUsedAsFieldType(funcName);
   }
 
-  // === Scope Management ===
+  // === Scope Management (A4) ===
 
   setCurrentScope(name: string | null): void {
     this.context.currentScope = name;
   }
 
-  // === Function Body Management ===
+  // === Function Body Management (A4) ===
 
   enterFunctionBody(): void {
     this.context.localVariables.clear();
@@ -678,7 +943,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #103: Must check both local knownStructs AND SymbolTable
    * for proper type chain tracking through nested C header structs.
    */
-  private isKnownStruct(typeName: string): boolean {
+  private _isKnownStruct(typeName: string): boolean {
     // Check C-Next structs first (local definitions)
     if (this.symbols!.knownStructs.has(typeName)) {
       return true;
@@ -694,7 +959,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Check if a function is a C-Next function (uses pass-by-reference semantics).
    * Checks both internal tracking and external symbol table.
    */
-  private isCNextFunction(name: string): boolean {
+  private _isCNextFunction(name: string): boolean {
     // First check internal tracking (for current file)
     if (this.knownFunctions.has(name)) {
       return true;
@@ -1954,7 +2219,7 @@ export default class CodeGenerator implements IOrchestrator {
    * - ADR-016: this.State.IDLE -> 'CurrentScope_State'
    * - ADR-016: this.variable -> enum type if variable is of enum type
    */
-  private getExpressionEnumType(
+  private _getExpressionEnumType(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
     // Get the text representation to analyze
@@ -2059,7 +2324,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Used to detect string comparisons and generate strcmp().
    * Issue #137: Extended to handle array element access (e.g., names[0])
    */
-  private isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
+  private _isStringExpression(
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
     const text = ctx.getText();
 
     // Check for string literals
@@ -2309,16 +2576,12 @@ export default class CodeGenerator implements IOrchestrator {
     return this.typeResolver!.isSignedType(typeName);
   }
 
-  /**
-   * ADR-024: Check if a type is any integer (signed or unsigned)
-   */
+  // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface (ADR-053 A2)
+  // Private versions kept for internal use
   private _isIntegerType(typeName: string): boolean {
     return this.typeResolver!.isIntegerType(typeName);
   }
 
-  /**
-   * ADR-024: Check if a type is a floating point type
-   */
   private _isFloatType(typeName: string): boolean {
     return this.typeResolver!.isFloatType(typeName);
   }
@@ -2493,7 +2756,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Extract a simple identifier from an expression, if it is one.
    * Returns null for complex expressions.
    */
-  private getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+  private _getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
     const postfix = this.getPostfixExpression(ctx);
     if (!postfix) return null;
 
@@ -2681,11 +2944,11 @@ export default class CodeGenerator implements IOrchestrator {
    * @param ctx The expression context
    * @param targetParamBaseType Optional: the C-Next type of the target parameter (e.g., 'u32')
    */
-  private generateFunctionArg(
+  private _generateFunctionArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    const id = this.getSimpleIdentifier(ctx);
+    const id = this._getSimpleIdentifier(ctx);
 
     if (id) {
       // Check if it's a parameter (already a pointer for non-floats)
@@ -3996,7 +4259,7 @@ export default class CodeGenerator implements IOrchestrator {
     for (const stmt of ctx.statement()) {
       // Temporarily increment for any nested context that needs absolute level
       this.context.indentLevel++;
-      const stmtCode = this.generateStatement(stmt);
+      const stmtCode = this._generateStatement(stmt);
       this.context.indentLevel--;
 
       if (stmtCode) {
@@ -4013,7 +4276,7 @@ export default class CodeGenerator implements IOrchestrator {
     return lines.join("\n");
   }
 
-  private generateStatement(ctx: Parser.StatementContext): string {
+  private _generateStatement(ctx: Parser.StatementContext): string {
     if (ctx.variableDeclaration()) {
       return this.generateVariableDecl(ctx.variableDeclaration()!);
     }
@@ -5400,141 +5663,18 @@ export default class CodeGenerator implements IOrchestrator {
     value: string,
     typeInfo: TTypeInfo,
   ): string {
-    const caps = this.context.targetCapabilities;
-    const baseType = typeInfo.baseType;
-
-    // Generate the inner operation (handles clamp/wrap)
-    const innerOp = this.generateInnerAtomicOp(cOp, value, typeInfo);
-
-    // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
-    if (caps.hasLdrexStrex && LDREX_MAP[baseType]) {
-      return this.generateLdrexStrexLoop(target, innerOp, typeInfo);
-    } else {
-      return this.generatePrimaskWrapper(target, cOp, value, typeInfo);
-    }
+    const result = statementGenerators.generateAtomicRMW(
+      target,
+      cOp,
+      value,
+      typeInfo,
+      this.context.targetCapabilities,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  /**
-   * ADR-049: Generate the inner operation for atomic RMW
-   * Handles clamp/wrap behavior for arithmetic operations
-   */
-  private generateInnerAtomicOp(
-    cOp: string,
-    value: string,
-    typeInfo: TTypeInfo,
-  ): string {
-    // Map compound operators to simple operators
-    const simpleOpMap: Record<string, string> = {
-      "+=": "+",
-      "-=": "-",
-      "*=": "*",
-      "/=": "/",
-      "%=": "%",
-      "&=": "&",
-      "|=": "|",
-      "^=": "^",
-      "<<=": "<<",
-      ">>=": ">>",
-    };
-    const simpleOp = simpleOpMap[cOp] || "+";
-
-    // Handle clamp behavior for arithmetic operations (integers only)
-    if (
-      typeInfo.overflowBehavior === "clamp" &&
-      TYPE_WIDTH[typeInfo.baseType] &&
-      !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-    ) {
-      const opMap: Record<string, string> = {
-        "+=": "add",
-        "-=": "sub",
-        "*=": "mul",
-      };
-      const helperOp = opMap[cOp];
-
-      if (helperOp) {
-        this.markClampOpUsed(helperOp, typeInfo.baseType);
-        return `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`;
-      }
-    }
-
-    // For wrap behavior, floats, or non-clamp ops, use natural arithmetic
-    return `__old ${simpleOp} ${value}`;
-  }
-
-  /**
-   * ADR-049: Generate LDREX/STREX retry loop for atomic RMW
-   * Uses ARM exclusive access instructions for lock-free atomics
-   */
-  private generateLdrexStrexLoop(
-    target: string,
-    innerOp: string,
-    typeInfo: TTypeInfo,
-  ): string {
-    const ldrex = LDREX_MAP[typeInfo.baseType];
-    const strex = STREX_MAP[typeInfo.baseType];
-    const cType = TYPE_MAP[typeInfo.baseType];
-
-    // Mark that we need CMSIS headers
-    this.needsCMSIS = true;
-
-    // Generate LDREX/STREX retry loop
-    // Uses do-while because we always need at least one attempt
-    return `do {
-    ${cType} __old = ${ldrex}(&${target});
-    ${cType} __new = ${innerOp};
-    if (${strex}(__new, &${target}) == 0) break;
-} while (1);`;
-  }
-
-  /**
-   * ADR-049: Generate PRIMASK-based atomic wrapper
-   * Disables all interrupts during the RMW operation
-   */
-  private generatePrimaskWrapper(
-    target: string,
-    cOp: string,
-    value: string,
-    typeInfo: TTypeInfo,
-  ): string {
-    // Mark that we need CMSIS headers
-    this.needsCMSIS = true;
-
-    // Generate the actual assignment operation inside the critical section
-    let assignment: string;
-
-    // Handle clamp behavior (integers only)
-    if (
-      typeInfo.overflowBehavior === "clamp" &&
-      TYPE_WIDTH[typeInfo.baseType] &&
-      !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-    ) {
-      const opMap: Record<string, string> = {
-        "+=": "add",
-        "-=": "sub",
-        "*=": "mul",
-      };
-      const helperOp = opMap[cOp];
-
-      if (helperOp) {
-        this.markClampOpUsed(helperOp, typeInfo.baseType);
-        assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
-      } else {
-        assignment = `${target} ${cOp} ${value};`;
-      }
-    } else {
-      assignment = `${target} ${cOp} ${value};`;
-    }
-
-    // Generate PRIMASK save/restore wrapper
-    return `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
-    ${assignment}
-    __set_PRIMASK(__primask);
-}`;
-  }
-
-  private generateAssignmentTarget(
+  private _generateAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
   ): string {
     // Set flag to indicate we're generating an assignment target (write context)
@@ -5628,7 +5768,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   // ADR-016: Validate cross-scope visibility (issue #165)
-  private validateCrossScopeVisibility(
+  private _validateCrossScopeVisibility(
     scopeName: string,
     memberName: string,
   ): void {
@@ -5782,137 +5922,58 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateIf(ctx: Parser.IfStatementContext): string {
-    const statements = ctx.statement();
-
-    // Analyze condition and body for repeated .length accesses (strlen optimization)
-    const lengthCounts = this.countStringLengthAccesses(ctx.expression());
-
-    // Also count in the then branch if it's a block
-    const thenStmt = statements[0];
-    if (thenStmt.block()) {
-      this.countBlockLengthAccesses(thenStmt.block()!, lengthCounts);
-    }
-
-    // Set up cache and generate declarations
-    const cacheDecls = this.setupLengthCache(lengthCounts);
-
-    // Generate with cache enabled
-    const condition = this._generateExpression(ctx.expression());
-    const thenBranch = this.generateStatement(thenStmt);
-
-    let result = `if (${condition}) ${thenBranch}`;
-
-    if (statements.length > 1) {
-      const elseBranch = this.generateStatement(statements[1]);
-      result += ` else ${elseBranch}`;
-    }
-
-    // Clear cache after generating
-    this.clearLengthCache();
-
-    // Prepend cache declarations if any
-    if (cacheDecls) {
-      return cacheDecls + result;
-    }
-
-    return result;
+    const result = statementGenerators.generateIf(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateWhile(ctx: Parser.WhileStatementContext): string {
-    const condition = this._generateExpression(ctx.expression());
-    const body = this.generateStatement(ctx.statement());
-    return `while (${condition}) ${body}`;
+    const result = statementGenerators.generateWhile(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  // ADR-027: Do-while loops with MISRA-compliant boolean condition
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    // Validate the condition is a boolean expression (E0701)
-    this.typeValidator!.validateDoWhileCondition(ctx.expression());
-
-    const body = this._generateBlock(ctx.block());
-    const condition = this._generateExpression(ctx.expression());
-    return `do ${body} while (${condition});`;
+    const result = statementGenerators.generateDoWhile(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateFor(ctx: Parser.ForStatementContext): string {
-    let init = "";
-    const forInit = ctx.forInit();
-    if (forInit) {
-      if (forInit.forVarDecl()) {
-        // Generate variable declaration for for loop init
-        init = this.generateForVarDecl(forInit.forVarDecl()!);
-      } else if (forInit.forAssignment()) {
-        // Generate assignment for for loop init
-        init = this.generateForAssignment(forInit.forAssignment()!);
-      }
-    }
-
-    let condition = "";
-    if (ctx.expression()) {
-      condition = this._generateExpression(ctx.expression()!);
-    }
-
-    let update = "";
-    const forUpdate = ctx.forUpdate();
-    if (forUpdate) {
-      // forUpdate has same structure as forAssignment
-      const target = this.generateAssignmentTarget(
-        forUpdate.assignmentTarget(),
-      );
-      const value = this._generateExpression(forUpdate.expression());
-      const operatorCtx = forUpdate.assignmentOperator();
-      const cnextOp = operatorCtx.getText();
-      const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
-      update = `${target} ${cOp} ${value}`;
-    }
-
-    const body = this.generateStatement(ctx.statement());
-
-    return `for (${init}; ${condition}; ${update}) ${body}`;
-  }
-
-  // Generate variable declaration for for loop init (no trailing semicolon)
-  private generateForVarDecl(ctx: Parser.ForVarDeclContext): string {
-    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
-    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
-    const typeName = this._generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-
-    // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
-    this.context.localVariables.add(name);
-
-    let result = `${atomicMod}${volatileMod}${typeName} ${name}`;
-
-    // ADR-036: Handle array dimensions (now returns array for multi-dim support)
-    const arrayDims = ctx.arrayDimension();
-    if (arrayDims.length > 0) {
-      result = `${typeName} ${name}${this._generateArrayDimensions(arrayDims)}`;
-    }
-
-    // Handle initialization
-    if (ctx.expression()) {
-      const value = this._generateExpression(ctx.expression()!);
-      result += ` = ${value}`;
-    }
-
-    return result;
-  }
-
-  // Generate assignment for for loop init/update (no trailing semicolon)
-  private generateForAssignment(ctx: Parser.ForAssignmentContext): string {
-    const target = this.generateAssignmentTarget(ctx.assignmentTarget());
-    const value = this._generateExpression(ctx.expression());
-    const operatorCtx = ctx.assignmentOperator();
-    const cnextOp = operatorCtx.getText();
-    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
-    return `${target} ${cOp} ${value}`;
+    const result = statementGenerators.generateFor(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    if (ctx.expression()) {
-      return `return ${this._generateExpression(ctx.expression()!)};`;
-    }
-    return "return;";
+    const result = statementGenerators.generateReturn(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // ========================================================================
@@ -5926,25 +5987,14 @@ export default class CodeGenerator implements IOrchestrator {
   private generateCriticalStatement(
     ctx: Parser.CriticalStatementContext,
   ): string {
-    // Validate no early exits inside critical block
-    this.typeValidator!.validateNoEarlyExits(ctx.block());
-
-    // Mark that we need CMSIS headers
-    this.needsCMSIS = true;
-
-    // Generate the block contents
-    const blockCode = this._generateBlock(ctx.block());
-
-    // Remove outer braces from block since we're wrapping
-    const innerCode = blockCode.slice(1, -1).trim();
-
-    // Generate PRIMASK save/restore wrapper
-    return `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
-    ${innerCode}
-    __set_PRIMASK(__primask);
-}`;
+    const result = statementGenerators.generateCriticalStatement(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // Issue #63: validateNoEarlyExits moved to TypeValidator
@@ -5954,181 +6004,88 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    const switchExpr = ctx.expression();
-    const exprCode = this._generateExpression(switchExpr);
-
-    // ADR-025: Semantic validation
-    this.typeValidator!.validateSwitchStatement(ctx, switchExpr);
-
-    // Build the switch statement
-    const lines: string[] = [`switch (${exprCode}) {`];
-
-    // Generate cases
-    for (const caseCtx of ctx.switchCase()) {
-      lines.push(this.generateSwitchCase(caseCtx));
-    }
-
-    // Generate default if present
-    const defaultCtx = ctx.defaultCase();
-    if (defaultCtx) {
-      lines.push(this.generateDefaultCase(defaultCtx));
-    }
-
-    lines.push("}");
-
-    return lines.join("\n");
+    const result = statementGenerators.generateSwitch(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
-    const labels = ctx.caseLabel();
-    const block = ctx.block();
-    const lines: string[] = [];
-
-    // Generate case labels - expand || to multiple C case labels
-    for (let i = 0; i < labels.length; i++) {
-      const labelCode = this.generateCaseLabel(labels[i]);
-      if (i < labels.length - 1) {
-        // Multiple labels: just the label without body
-        lines.push(this.indent(`case ${labelCode}:`));
-      } else {
-        // Last label: attach the block
-        lines.push(this.indent(`case ${labelCode}: {`));
-      }
-    }
-
-    // Generate block contents (without the outer braces - we added them above)
-    const statements = block.statement();
-    for (const stmt of statements) {
-      const stmtCode = this.generateStatement(stmt);
-      if (stmtCode) {
-        lines.push(this.indent(this.indent(stmtCode)));
-      }
-    }
-
-    // Add break and close block
-    lines.push(this.indent(this.indent("break;")));
-    lines.push(this.indent("}"));
-
-    return lines.join("\n");
+    const result = statementGenerators.generateSwitchCase(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
-    // qualifiedType - for enum values like EState.IDLE
-    if (ctx.qualifiedType()) {
-      const qt = ctx.qualifiedType()!;
-      // Convert EState.IDLE to EState_IDLE for C
-      const parts = qt.IDENTIFIER();
-      return parts.map((id) => id.getText()).join("_");
-    }
-
-    // IDENTIFIER - const variable or plain enum member
-    if (ctx.IDENTIFIER()) {
-      return ctx.IDENTIFIER()!.getText();
-    }
-
-    // Numeric literals (may have optional minus prefix)
-    if (ctx.INTEGER_LITERAL()) {
-      const num = ctx.INTEGER_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      return hasNeg ? `-${num}` : num;
-    }
-
-    if (ctx.HEX_LITERAL()) {
-      const hex = ctx.HEX_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      return hasNeg ? `-${hex}` : hex;
-    }
-
-    if (ctx.BINARY_LITERAL()) {
-      // Convert binary to hex for cleaner C output
-      // Issue #114: Use BigInt to preserve precision for values > 2^53
-      const binText = ctx.BINARY_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(binText); // BigInt handles 0b prefix natively
-      const hexStr = (hasNeg ? -value : value).toString(16).toUpperCase();
-      // Add ULL suffix for values that exceed 32-bit range
-      const needsULL = value > 0xffffffffn;
-      return `${hasNeg ? "-" : ""}0x${hexStr}${needsULL ? "ULL" : ""}`;
-    }
-
-    if (ctx.CHAR_LITERAL()) {
-      return ctx.CHAR_LITERAL()!.getText();
-    }
-
-    return "";
+    const result = statementGenerators.generateCaseLabel(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateDefaultCase(ctx: Parser.DefaultCaseContext): string {
-    const block = ctx.block();
-    const lines: string[] = [];
-
-    // Note: default(n) count is for compile-time validation only,
-    // not included in generated C
-    lines.push(this.indent("default: {"));
-
-    // Generate block contents
-    const statements = block.statement();
-    for (const stmt of statements) {
-      const stmtCode = this.generateStatement(stmt);
-      if (stmtCode) {
-        lines.push(this.indent(this.indent(stmtCode)));
-      }
-    }
-
-    // Add break and close block
-    lines.push(this.indent(this.indent("break;")));
-    lines.push(this.indent("}"));
-
-    return lines.join("\n");
+    const result = statementGenerators.generateDefaultCase(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
-
-  // Issue #63: validateSwitchStatement, validateEnumExhaustiveness, getDefaultCount,
-  //            getCaseLabelValue moved to TypeValidator
-
-  // Issue #63: validateTernaryCondition, validateNoNestedTernary,
-  //            validateDoWhileCondition, isBooleanExpression moved to TypeValidator
 
   // ========================================================================
   // Expressions
   // ========================================================================
 
+  // ADR-053 A2 Phase 7: Use extracted expression generator
   private _generateExpression(ctx: Parser.ExpressionContext): string {
-    return this.generateTernaryExpr(ctx.ternaryExpression());
+    const result = expressionGenerators.generateExpression(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // ADR-022: Ternary operator with safety constraints
+  // ADR-053 A2 Phase 7: Use extracted ternary generator
   private generateTernaryExpr(ctx: Parser.TernaryExpressionContext): string {
-    const orExprs = ctx.orExpression();
-
-    // Non-ternary path: just one orExpression
-    if (orExprs.length === 1) {
-      return this.generateOrExpr(orExprs[0]);
-    }
-
-    // Ternary path: 3 orExpressions (condition, true branch, false branch)
-    const condition = orExprs[0];
-    const trueExpr = orExprs[1];
-    const falseExpr = orExprs[2];
-
-    // ADR-022: Validate ternary constraints
-    this.typeValidator!.validateTernaryCondition(condition);
-    this.typeValidator!.validateNoNestedTernary(trueExpr, "true branch");
-    this.typeValidator!.validateNoNestedTernary(falseExpr, "false branch");
-
-    // Generate C output - parentheses already present from grammar
-    const condCode = this.generateOrExpr(condition);
-    const trueCode = this.generateOrExpr(trueExpr);
-    const falseCode = this.generateOrExpr(falseExpr);
-
-    return `(${condCode}) ? ${trueCode} : ${falseCode}`;
+    const result = expressionGenerators.generateTernaryExpr(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  private generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    const parts = ctx.andExpression().map((e) => this.generateAndExpr(e));
-    return parts.join(" || ");
+  private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
+    // ADR-053 A2: Use extracted binary expression generator
+    const result = binaryExprGenerators.generateOrExpr(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateAndExpr(ctx: Parser.AndExpressionContext): string {
@@ -6280,7 +6237,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Get the type of an additive expression.
    */
-  private getAdditiveExpressionType(
+  private _getAdditiveExpressionType(
     ctx: Parser.AdditiveExpressionContext,
   ): string | null {
     // For simple case, get type from first multiplicative expression
@@ -6310,7 +6267,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @param ctx The parser rule context containing operands and operators as children
    * @returns Array of operator strings in the order they appear
    */
-  private getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+  private _getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
     const operators: string[] = [];
     for (const child of ctx.children) {
       if (child instanceof TerminalNode) {
@@ -6358,23 +6315,19 @@ export default class CodeGenerator implements IOrchestrator {
     return result;
   }
 
-  private generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
-    if (ctx.postfixExpression()) {
-      return this.generatePostfixExpr(ctx.postfixExpression()!);
-    }
-
-    const inner = this.generateUnaryExpr(ctx.unaryExpression()!);
-    const text = ctx.getText();
-
-    if (text.startsWith("!")) return `!${inner}`;
-    if (text.startsWith("-")) return `-${inner}`;
-    if (text.startsWith("~")) return `~${inner}`;
-    if (text.startsWith("&")) return `&${inner}`;
-
-    return inner;
+  private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
+    // ADR-053 A2: Use extracted unary expression generator
+    const result = generateUnaryExpr(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  private generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
+  private _generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
     const primary = ctx.primaryExpression();
     const ops = ctx.postfixOp();
 
@@ -6620,33 +6573,27 @@ export default class CodeGenerator implements IOrchestrator {
           }
         }
         // ADR-045: Handle .capacity property for strings
+        // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
         else if (memberName === "capacity") {
           const typeInfo = primaryId
             ? this.context.typeRegistry.get(primaryId)
             : undefined;
-          if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-            // Return compile-time constant capacity (max string length)
-            result = String(typeInfo.stringCapacity);
-          } else {
-            throw new Error(
-              `Error: .capacity is only available on string types`,
-            );
-          }
+          const capResult = accessGenerators.generateCapacityProperty(typeInfo);
+          this.applyEffects(capResult.effects);
+          result = capResult.code;
         }
         // ADR-045: Handle .size property for strings (buffer size = capacity + 1)
-        // Use .size with functions like fgets that need buffer size, not max length
+        // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
         else if (memberName === "size") {
           const typeInfo = primaryId
             ? this.context.typeRegistry.get(primaryId)
             : undefined;
-          if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-            // Return buffer size (capacity + 1 for null terminator)
-            result = String(typeInfo.stringCapacity + 1);
-          } else {
-            throw new Error(`Error: .size is only available on string types`);
-          }
+          const sizeResult = accessGenerators.generateSizeProperty(typeInfo);
+          this.applyEffects(sizeResult.effects);
+          result = sizeResult.code;
         }
         // ADR-034: Handle bitmap field read access: flags.Running -> ((flags >> 0) & 1)
+        // Partially extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
         else if (primaryId) {
           const typeInfo = this.context.typeRegistry.get(primaryId);
           if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
@@ -6654,14 +6601,13 @@ export default class CodeGenerator implements IOrchestrator {
             const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              // Use extracted generator for bitmap field access
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
             } else {
               throw new Error(
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
@@ -6750,19 +6696,18 @@ export default class CodeGenerator implements IOrchestrator {
           }
           // ADR-034: Check if result is a register member with bitmap type
           // Handle: MOTOR_CTRL.Running where MOTOR_CTRL has bitmap type MotorControl
+          // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
             } else {
               throw new Error(
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
@@ -6785,19 +6730,18 @@ export default class CodeGenerator implements IOrchestrator {
 
             // ADR-034: Check if currentStructType is a bitmap - handle field access
             // This handles structParam->bitmapMember.field -> bitwise access
+            // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
             const bitmapFieldsPtr = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
             if (bitmapFieldsPtr && bitmapFieldsPtr.has(memberName)) {
               const fieldInfo = bitmapFieldsPtr.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
               // Bitmap fields don't have sub-members, clear struct type tracking
               currentStructType = undefined;
               continue;
@@ -6834,19 +6778,18 @@ export default class CodeGenerator implements IOrchestrator {
 
             // ADR-034: Check if currentStructType is a bitmap - handle field access
             // This handles struct.bitmapMember.field -> bitwise access
+            // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
             const bitmapFields = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
             if (bitmapFields && bitmapFields.has(memberName)) {
               const fieldInfo = bitmapFields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
               // Bitmap fields don't have sub-members, clear struct type tracking
               currentStructType = undefined;
               continue;
@@ -6947,17 +6890,18 @@ export default class CodeGenerator implements IOrchestrator {
             isRegisterChain = true;
           }
           // ADR-034: Check if result is a register member with bitmap type (no primaryId case)
+          // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
             } else {
               throw new Error(
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
@@ -7092,120 +7036,19 @@ export default class CodeGenerator implements IOrchestrator {
           }
         }
       }
-      // Function call
-      else if (op.argumentList()) {
-        // Check if this is a C-Next function (uses pass-by-reference)
-        // C/C++ functions use pass-by-value
-        // Uses both internal tracking and symbol table for cross-language interop
-        const isCNextFunc = this.isCNextFunction(result);
-
-        const argExprs = op.argumentList()!.expression();
-
-        // ADR-051: Handle safe_div() and safe_mod() built-in functions
-        if (result === "safe_div" || result === "safe_mod") {
-          if (argExprs.length !== 4) {
-            throw new Error(
-              `${result} requires exactly 4 arguments: output, numerator, divisor, defaultValue`,
-            );
-          }
-
-          // Get the output parameter (first argument) to determine type
-          const outputArgId = this.getSimpleIdentifier(argExprs[0]);
-          if (!outputArgId) {
-            throw new Error(
-              `${result} requires a variable as the first argument (output parameter)`,
-            );
-          }
-
-          // Look up the type of the output parameter
-          const typeInfo = this.context.typeRegistry.get(outputArgId);
-          if (!typeInfo) {
-            throw new Error(
-              `Cannot determine type of output parameter '${outputArgId}' for ${result}`,
-            );
-          }
-
-          // Map C-Next type to helper function suffix
-          const cnxType = typeInfo.baseType; // e.g., "u32", "i16", etc.
-          if (!cnxType) {
-            throw new Error(
-              `Output parameter '${outputArgId}' has no C-Next type for ${result}`,
-            );
-          }
-
-          // Generate arguments: &output, numerator, divisor, defaultValue
-          const outputArg = `&${this._generateExpression(argExprs[0])}`;
-          const numeratorArg = this._generateExpression(argExprs[1]);
-          const divisorArg = this._generateExpression(argExprs[2]);
-          const defaultArg = this._generateExpression(argExprs[3]);
-
-          const helperName =
-            result === "safe_div"
-              ? `cnx_safe_div_${cnxType}`
-              : `cnx_safe_mod_${cnxType}`;
-
-          // Track that this operation is used for helper generation
-          const opType = result === "safe_div" ? "div" : "mod";
-          this.usedSafeDivOps.add(`${opType}_${cnxType}`);
-
-          result = `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`;
-        }
-        // Regular function call handling
-        else {
-          // ADR-013: Check const-to-non-const before generating arguments
-          if (isCNextFunc) {
-            const sig = this.functionSignatures.get(result);
-            if (sig) {
-              for (
-                let argIdx = 0;
-                argIdx < argExprs.length && argIdx < sig.parameters.length;
-                argIdx++
-              ) {
-                const argId = this.getSimpleIdentifier(argExprs[argIdx]);
-                if (argId && this.typeValidator!.isConstValue(argId)) {
-                  const param = sig.parameters[argIdx];
-                  if (!param.isConst) {
-                    throw new Error(
-                      `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
-                        `of function '${result}'`,
-                    );
-                  }
-                }
-              }
-            }
-          }
-
-          const args = argExprs
-            // eslint-disable-next-line @typescript-eslint/no-loop-func
-            .map((e, idx) => {
-              if (!isCNextFunc) {
-                return this._generateExpression(e);
-              }
-              // C-Next function: check if target parameter is a pass-by-value type
-              const sig = this.functionSignatures.get(result);
-              const targetParam = sig?.parameters[idx];
-              const isFloatParam =
-                targetParam && this._isFloatType(targetParam.baseType);
-              const isEnumParam =
-                targetParam &&
-                this.symbols!.knownEnums.has(targetParam.baseType);
-
-              if (isFloatParam || isEnumParam) {
-                // Target parameter is float or enum (pass-by-value): pass value directly
-                return this._generateExpression(e);
-              } else {
-                // Target parameter is non-float/non-enum (pass-by-reference): use & logic
-                // Pass the target param type for proper literal handling
-                return this.generateFunctionArg(e, targetParam?.baseType);
-              }
-            })
-            .join(", ");
-          result = `${result}(${args})`;
-        }
-      }
-      // Empty function call
+      // Function call (extracted to CallExprGenerator - ADR-053 A2 Phase 5)
+      // Handles both argumentList() case and empty function call ()
       else {
-        result = `${result}()`;
+        // Delegate to extracted function call generator
+        const callResult = generateFunctionCall(
+          result,
+          op.argumentList() || null,
+          this.getInput(),
+          this.getState(),
+          this,
+        );
+        this.applyEffects(callResult.effects);
+        result = callResult.code;
       }
     }
 
@@ -7305,33 +7148,15 @@ export default class CodeGenerator implements IOrchestrator {
       return id;
     }
     if (ctx.literal()) {
-      let literalText = ctx.literal()!.getText();
-      // Track boolean literal usage to include stdbool.h
-      if (literalText === "true" || literalText === "false") {
-        this.needsStdbool = true;
-      }
-      // ADR-024: Transform C-Next float suffixes to standard C syntax
-      // 3.14f32 -> 3.14f (C float)
-      // 3.14f64 -> 3.14 (C double, no suffix needed)
-      if (/[fF]32$/.test(literalText)) {
-        literalText = literalText.replace(/[fF]32$/, "f");
-      } else if (/[fF]64$/.test(literalText)) {
-        literalText = literalText.replace(/[fF]64$/, "");
-      }
-
-      // Issue #130: Transform C-Next integer suffixes to standard C syntax
-      // u8/u16/u32 and i8/i16/i32 suffixes are stripped (C infers from context)
-      // u64 -> ULL suffix for 64-bit unsigned
-      // i64 -> LL suffix for 64-bit signed
-      if (/[uU]64$/.test(literalText)) {
-        literalText = literalText.replace(/[uU]64$/, "ULL");
-      } else if (/[iI]64$/.test(literalText)) {
-        literalText = literalText.replace(/[iI]64$/, "LL");
-      } else if (/[uUiI](8|16|32)$/.test(literalText)) {
-        // Strip 8/16/32-bit suffixes - C handles these without explicit suffix
-        literalText = literalText.replace(/[uUiI](8|16|32)$/, "");
-      }
-      return literalText;
+      // ADR-053 A2: Use extracted literal generator
+      const result = generateLiteral(
+        ctx.literal()!,
+        this.getInput(),
+        this.getState(),
+        this,
+      );
+      this.applyEffects(result.effects);
+      return result.code;
     }
     if (ctx.expression()) {
       return `(${this._generateExpression(ctx.expression()!)})`;
@@ -8065,7 +7890,7 @@ export default class CodeGenerator implements IOrchestrator {
   // Helpers
   // ========================================================================
 
-  private indent(text: string): string {
+  private _indent(text: string): string {
     const spaces = "    ".repeat(this.context.indentLevel);
     return text
       .split("\n")
@@ -8081,7 +7906,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Analyze an expression tree and count .length accesses per string variable.
    * Returns a map of variable name -> access count.
    */
-  private countStringLengthAccesses(
+  private _countStringLengthAccesses(
     ctx: Parser.ExpressionContext,
   ): Map<string, number> {
     const counts = new Map<string, number>();
@@ -8253,7 +8078,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Count .length accesses in a block's statements.
    */
-  private countBlockLengthAccesses(
+  private _countBlockLengthAccesses(
     ctx: Parser.BlockContext,
     counts: Map<string, number>,
   ): void {
@@ -8298,7 +8123,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // Nested if/while/for would need recursion, but for now keep it simple
     if (ctx.block()) {
-      this.countBlockLengthAccesses(ctx.block()!, counts);
+      this._countBlockLengthAccesses(ctx.block()!, counts);
     }
   }
 
@@ -8306,7 +8131,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Generate temp variable declarations for string lengths that are accessed 2+ times.
    * Returns the declarations as a string and populates the lengthCache.
    */
-  private setupLengthCache(counts: Map<string, number>): string {
+  private _setupLengthCache(counts: Map<string, number>): string {
     const declarations: string[] = [];
     const cache = new Map<string, string>();
 
@@ -8329,7 +8154,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Clear the length cache after generating a statement.
    */
-  private clearLengthCache(): void {
+  private _clearLengthCache(): void {
     this.context.lengthCache = null;
   }
 

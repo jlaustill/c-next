@@ -1,0 +1,53 @@
+// Tests: Memory access width must match bit-range width
+// BUG: Currently generates uint32_t* for 16-bit writes - WRONG!
+// For embedded systems, the memory access WIDTH matters for hardware behavior
+
+// u32 register with different access widths
+register REG32 @ 0x40000000 {
+    DR: u32 wo @ 0x00,
+}
+
+// Write full 32 bits - should use uint32_t*
+void write32(u32 data) {
+    REG32.DR <- data;
+}
+
+// Write lower 16 bits - MUST use uint16_t* for correct hardware behavior
+void write16_at_0(u16 data) {
+    REG32.DR[0, 16] <- data;
+}
+
+// Write upper 16 bits - MUST use uint16_t* at offset +2
+void write16_at_16(u16 data) {
+    REG32.DR[16, 16] <- data;
+}
+
+// Write lower 8 bits - MUST use uint8_t*
+void write8_at_0(u8 data) {
+    REG32.DR[0, 8] <- data;
+}
+
+// Write byte at offset 1 - MUST use uint8_t* at offset +1
+void write8_at_8(u8 data) {
+    REG32.DR[8, 8] <- data;
+}
+
+// Write byte at offset 2 - MUST use uint8_t* at offset +2
+void write8_at_16(u8 data) {
+    REG32.DR[16, 8] <- data;
+}
+
+// Write byte at offset 3 - MUST use uint8_t* at offset +3
+void write8_at_24(u8 data) {
+    REG32.DR[24, 8] <- data;
+}
+
+void main() {
+    write32(0x12345678);
+    write16_at_0(0x1234);
+    write16_at_16(0x5678);
+    write8_at_0(0x12);
+    write8_at_8(0x34);
+    write8_at_16(0x56);
+    write8_at_24(0x78);
+}
