@@ -1,0 +1,169 @@
+/* test-execution */
+// Tests: All bit range widths 1-32 on u32 type
+// Verifies correct mask generation and bit operations for every width
+
+u32 main() {
+    u32 value <- 0;
+
+    // Width 1: mask 0x1
+    value <- 0;
+    value[0, 1] <- 1;
+    if (value != 0x00000001) return 1;
+
+    // Width 2: mask 0x3
+    value <- 0;
+    value[0, 2] <- 3;
+    if (value != 0x00000003) return 2;
+
+    // Width 3: mask 0x7
+    value <- 0;
+    value[0, 3] <- 7;
+    if (value != 0x00000007) return 3;
+
+    // Width 4: mask 0xF
+    value <- 0;
+    value[0, 4] <- 15;
+    if (value != 0x0000000F) return 4;
+
+    // Width 5: mask 0x1F
+    value <- 0;
+    value[0, 5] <- 31;
+    if (value != 0x0000001F) return 5;
+
+    // Width 6: mask 0x3F
+    value <- 0;
+    value[0, 6] <- 63;
+    if (value != 0x0000003F) return 6;
+
+    // Width 7: mask 0x7F
+    value <- 0;
+    value[0, 7] <- 127;
+    if (value != 0x0000007F) return 7;
+
+    // Width 8: mask 0xFF
+    value <- 0;
+    value[0, 8] <- 255;
+    if (value != 0x000000FF) return 8;
+
+    // Width 9: mask 0x1FF
+    value <- 0;
+    value[0, 9] <- 511;
+    if (value != 0x000001FF) return 9;
+
+    // Width 10: mask 0x3FF
+    value <- 0;
+    value[0, 10] <- 1023;
+    if (value != 0x000003FF) return 10;
+
+    // Width 11: mask 0x7FF
+    value <- 0;
+    value[0, 11] <- 2047;
+    if (value != 0x000007FF) return 11;
+
+    // Width 12: mask 0xFFF
+    value <- 0;
+    value[0, 12] <- 4095;
+    if (value != 0x00000FFF) return 12;
+
+    // Width 13: mask 0x1FFF
+    value <- 0;
+    value[0, 13] <- 8191;
+    if (value != 0x00001FFF) return 13;
+
+    // Width 14: mask 0x3FFF
+    value <- 0;
+    value[0, 14] <- 16383;
+    if (value != 0x00003FFF) return 14;
+
+    // Width 15: mask 0x7FFF
+    value <- 0;
+    value[0, 15] <- 32767;
+    if (value != 0x00007FFF) return 15;
+
+    // Width 16: mask 0xFFFF
+    value <- 0;
+    value[0, 16] <- 65535;
+    if (value != 0x0000FFFF) return 16;
+
+    // Width 17: mask 0x1FFFF
+    value <- 0;
+    value[0, 17] <- 131071;
+    if (value != 0x0001FFFF) return 17;
+
+    // Width 18: mask 0x3FFFF
+    value <- 0;
+    value[0, 18] <- 262143;
+    if (value != 0x0003FFFF) return 18;
+
+    // Width 19: mask 0x7FFFF
+    value <- 0;
+    value[0, 19] <- 524287;
+    if (value != 0x0007FFFF) return 19;
+
+    // Width 20: mask 0xFFFFF
+    value <- 0;
+    value[0, 20] <- 1048575;
+    if (value != 0x000FFFFF) return 20;
+
+    // Width 21: mask 0x1FFFFF
+    value <- 0;
+    value[0, 21] <- 2097151;
+    if (value != 0x001FFFFF) return 21;
+
+    // Width 22: mask 0x3FFFFF
+    value <- 0;
+    value[0, 22] <- 4194303;
+    if (value != 0x003FFFFF) return 22;
+
+    // Width 23: mask 0x7FFFFF
+    value <- 0;
+    value[0, 23] <- 8388607;
+    if (value != 0x007FFFFF) return 23;
+
+    // Width 24: mask 0xFFFFFF
+    value <- 0;
+    value[0, 24] <- 16777215;
+    if (value != 0x00FFFFFF) return 24;
+
+    // Width 25: mask 0x1FFFFFF
+    value <- 0;
+    value[0, 25] <- 33554431;
+    if (value != 0x01FFFFFF) return 25;
+
+    // Width 26: mask 0x3FFFFFF
+    value <- 0;
+    value[0, 26] <- 67108863;
+    if (value != 0x03FFFFFF) return 26;
+
+    // Width 27: mask 0x7FFFFFF
+    value <- 0;
+    value[0, 27] <- 134217727;
+    if (value != 0x07FFFFFF) return 27;
+
+    // Width 28: mask 0xFFFFFFF
+    value <- 0;
+    value[0, 28] <- 268435455;
+    if (value != 0x0FFFFFFF) return 28;
+
+    // Width 29: mask 0x1FFFFFFF
+    value <- 0;
+    value[0, 29] <- 536870911;
+    if (value != 0x1FFFFFFF) return 29;
+
+    // Width 30: mask 0x3FFFFFFF
+    value <- 0;
+    value[0, 30] <- 1073741823;
+    if (value != 0x3FFFFFFF) return 30;
+
+    // Width 31: mask 0x7FFFFFFF
+    value <- 0;
+    value[0, 31] <- 2147483647;
+    if (value != 0x7FFFFFFF) return 31;
+
+    // Width 32: mask 0xFFFFFFFF (full register)
+    value <- 0;
+    value[0, 32] <- 4294967295;
+    if (value != 0xFFFFFFFF) return 32;
+
+    return 0;  // All tests passed
+}

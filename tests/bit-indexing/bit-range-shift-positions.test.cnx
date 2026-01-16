@@ -1,0 +1,195 @@
+/* test-execution */
+// Tests: Verify correct shift amounts for all start positions
+// Pattern: Write a known value at each position and verify it lands at correct bits
+
+u32 main() {
+    u32 value <- 0;
+
+    // ========================================================
+    // Part 1: Single-bit writes at each position on u32
+    // Writing 1 at position N should result in 1 << N
+    // ========================================================
+
+    value <- 0; value[0] <- true;
+    if (value != 0x00000001) return 1;
+
+    value <- 0; value[1] <- true;
+    if (value != 0x00000002) return 2;
+
+    value <- 0; value[2] <- true;
+    if (value != 0x00000004) return 3;
+
+    value <- 0; value[3] <- true;
+    if (value != 0x00000008) return 4;
+
+    value <- 0; value[4] <- true;
+    if (value != 0x00000010) return 5;
+
+    value <- 0; value[5] <- true;
+    if (value != 0x00000020) return 6;
+
+    value <- 0; value[6] <- true;
+    if (value != 0x00000040) return 7;
+
+    value <- 0; value[7] <- true;
+    if (value != 0x00000080) return 8;
+
+    value <- 0; value[8] <- true;
+    if (value != 0x00000100) return 9;
+
+    value <- 0; value[9] <- true;
+    if (value != 0x00000200) return 10;
+
+    value <- 0; value[10] <- true;
+    if (value != 0x00000400) return 11;
+
+    value <- 0; value[11] <- true;
+    if (value != 0x00000800) return 12;
+
+    value <- 0; value[12] <- true;
+    if (value != 0x00001000) return 13;
+
+    value <- 0; value[13] <- true;
+    if (value != 0x00002000) return 14;
+
+    value <- 0; value[14] <- true;
+    if (value != 0x00004000) return 15;
+
+    value <- 0; value[15] <- true;
+    if (value != 0x00008000) return 16;
+
+    value <- 0; value[16] <- true;
+    if (value != 0x00010000) return 17;
+
+    value <- 0; value[17] <- true;
+    if (value != 0x00020000) return 18;
+
+    value <- 0; value[18] <- true;
+    if (value != 0x00040000) return 19;
+
+    value <- 0; value[19] <- true;
+    if (value != 0x00080000) return 20;
+
+    value <- 0; value[20] <- true;
+    if (value != 0x00100000) return 21;
+
+    value <- 0; value[21] <- true;
+    if (value != 0x00200000) return 22;
+
+    value <- 0; value[22] <- true;
+    if (value != 0x00400000) return 23;
+
+    value <- 0; value[23] <- true;
+    if (value != 0x00800000) return 24;
+
+    value <- 0; value[24] <- true;
+    if (value != 0x01000000) return 25;
+
+    value <- 0; value[25] <- true;
+    if (value != 0x02000000) return 26;
+
+    value <- 0; value[26] <- true;
+    if (value != 0x04000000) return 27;
+
+    value <- 0; value[27] <- true;
+    if (value != 0x08000000) return 28;
+
+    value <- 0; value[28] <- true;
+    if (value != 0x10000000) return 29;
+
+    value <- 0; value[29] <- true;
+    if (value != 0x20000000) return 30;
+
+    value <- 0; value[30] <- true;
+    if (value != 0x40000000) return 31;
+
+    value <- 0; value[31] <- true;
+    if (value != 0x80000000) return 32;
+
+    // ========================================================
+    // Part 2: 4-bit value (0xF) at each nibble position
+    // ========================================================
+
+    value <- 0; value[0, 4] <- 0xF;
+    if (value != 0x0000000F) return 33;
+
+    value <- 0; value[4, 4] <- 0xF;
+    if (value != 0x000000F0) return 34;
+
+    value <- 0; value[8, 4] <- 0xF;
+    if (value != 0x00000F00) return 35;
+
+    value <- 0; value[12, 4] <- 0xF;
+    if (value != 0x0000F000) return 36;
+
+    value <- 0; value[16, 4] <- 0xF;
+    if (value != 0x000F0000) return 37;
+
+    value <- 0; value[20, 4] <- 0xF;
+    if (value != 0x00F00000) return 38;
+
+    value <- 0; value[24, 4] <- 0xF;
+    if (value != 0x0F000000) return 39;
+
+    value <- 0; value[28, 4] <- 0xF;
+    if (value != 0xF0000000) return 40;
+
+    // ========================================================
+    // Part 3: 8-bit value (0xFF) at each byte position
+    // ========================================================
+
+    value <- 0; value[0, 8] <- 0xFF;
+    if (value != 0x000000FF) return 41;
+
+    value <- 0; value[8, 8] <- 0xFF;
+    if (value != 0x0000FF00) return 42;
+
+    value <- 0; value[16, 8] <- 0xFF;
+    if (value != 0x00FF0000) return 43;
+
+    value <- 0; value[24, 8] <- 0xFF;
+    if (value != 0xFF000000) return 44;
+
+    // ========================================================
+    // Part 4: 16-bit value (0xFFFF) at half-word positions
+    // ========================================================
+
+    value <- 0; value[0, 16] <- 0xFFFF;
+    if (value != 0x0000FFFF) return 45;
+
+    value <- 0; value[16, 16] <- 0xFFFF;
+    if (value != 0xFFFF0000) return 46;
+
+    // ========================================================
+    // Part 5: Non-aligned positions with specific values
+    // ========================================================
+
+    // Write 0xAB (10101011) at position 3 - should shift left by 3
+    value <- 0; value[3, 8] <- 0xAB;
+    if (value != 0x00000558) return 47;  // 0xAB << 3 = 0x558
+
+    // Write 0x5A (01011010) at position 11 - should shift left by 11
+    value <- 0; value[11, 8] <- 0x5A;
+    if (value != 0x0002D000) return 48;  // 0x5A << 11 = 0x2D000
+
+    // Write 0x7 (111) at position 17 - should shift left by 17
+    value <- 0; value[17, 3] <- 0x7;
+    if (value != 0x000E0000) return 49;  // 0x7 << 17 = 0xE0000
+
+    // NOTE: u64 shift positions at bits >= 32 are tested in a separate file
+    // due to code generation issues with 64-bit literals (see GitHub issue #187)
+
+    // ========================================================
+    // Part 6: Boundary cases
+    // ========================================================
+
+    // Write spanning byte boundaries: 5 bits at position 6
+    value <- 0; value[6, 5] <- 0x1F;  // 11111
+    if (value != 0x000007C0) return 50;  // 0x1F << 6 = 0x7C0
+
+    // Write spanning word boundaries: 8 bits at position 12
+    value <- 0; value[12, 8] <- 0xAA;
+    if (value != 0x000AA000) return 51;  // 0xAA << 12 = 0xAA000
+
+    return 0;  // All tests passed
+}

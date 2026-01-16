@@ -1,0 +1,200 @@
+/* test-execution */
+// Tests: Writing to bit ranges must NOT affect other bits
+// Verifies correct mask generation for read-modify-write operations
+// Pattern: Start with all 1s, write 0s to a range, verify only target bits change
+
+u32 main() {
+    u32 value <- 0;
+
+    // ========================================================
+    // Part 1: 8-bit writes at all byte boundaries on u32
+    // ========================================================
+
+    // Write 0x00 to bits [0, 8] - should clear only lower byte
+    value <- 0xFFFFFFFF;
+    value[0, 8] <- 0x00;
+    if (value != 0xFFFFFF00) return 1;
+
+    // Write 0x00 to bits [8, 8] - should clear only second byte
+    value <- 0xFFFFFFFF;
+    value[8, 8] <- 0x00;
+    if (value != 0xFFFF00FF) return 2;
+
+    // Write 0x00 to bits [16, 8] - should clear only third byte
+    value <- 0xFFFFFFFF;
+    value[16, 8] <- 0x00;
+    if (value != 0xFF00FFFF) return 3;
+
+    // Write 0x00 to bits [24, 8] - should clear only upper byte
+    value <- 0xFFFFFFFF;
+    value[24, 8] <- 0x00;
+    if (value != 0x00FFFFFF) return 4;
+
+    // ========================================================
+    // Part 2: 16-bit writes at word boundaries on u32
+    // ========================================================
+
+    // Write 0x0000 to bits [0, 16] - should clear lower half
+    value <- 0xFFFFFFFF;
+    value[0, 16] <- 0x0000;
+    if (value != 0xFFFF0000) return 5;
+
+    // Write 0x0000 to bits [16, 16] - should clear upper half
+    value <- 0xFFFFFFFF;
+    value[16, 16] <- 0x0000;
+    if (value != 0x0000FFFF) return 6;
+
+    // ========================================================
+    // Part 3: Non-aligned positions (critical for shift correctness)
+    // ========================================================
+
+    // Write 4 bits at position 4 (nibble boundary)
+    value <- 0xFFFFFFFF;
+    value[4, 4] <- 0x0;
+    if (value != 0xFFFFFF0F) return 7;
+
+    // Write 4 bits at position 12
+    value <- 0xFFFFFFFF;
+    value[12, 4] <- 0x0;
+    if (value != 0xFFFF0FFF) return 8;
+
+    // Write 4 bits at position 20
+    value <- 0xFFFFFFFF;
+    value[20, 4] <- 0x0;
+    if (value != 0xFF0FFFFF) return 9;
+
+    // Write 4 bits at position 28
+    value <- 0xFFFFFFFF;
+    value[28, 4] <- 0x0;
+    if (value != 0x0FFFFFFF) return 10;
+
+    // ========================================================
+    // Part 4: Single bit at each position (tests shift for each bit)
+    // ========================================================
+
+    // Clear bit 0
+    value <- 0xFFFFFFFF;
+    value[0] <- false;
+    if (value != 0xFFFFFFFE) return 11;
+
+    // Clear bit 1
+    value <- 0xFFFFFFFF;
+    value[1] <- false;
+    if (value != 0xFFFFFFFD) return 12;
+
+    // Clear bit 7 (last of first byte)
+    value <- 0xFFFFFFFF;
+    value[7] <- false;
+    if (value != 0xFFFFFF7F) return 13;
+
+    // Clear bit 8 (first of second byte)
+    value <- 0xFFFFFFFF;
+    value[8] <- false;
+    if (value != 0xFFFFFEFF) return 14;
+
+    // Clear bit 15
+    value <- 0xFFFFFFFF;
+    value[15] <- false;
+    if (value != 0xFFFF7FFF) return 15;
+
+    // Clear bit 16
+    value <- 0xFFFFFFFF;
+    value[16] <- false;
+    if (value != 0xFFFEFFFF) return 16;
+
+    // Clear bit 23
+    value <- 0xFFFFFFFF;
+    value[23] <- false;
+    if (value != 0xFF7FFFFF) return 17;
+
+    // Clear bit 24
+    value <- 0xFFFFFFFF;
+    value[24] <- false;
+    if (value != 0xFEFFFFFF) return 18;
+
+    // Clear bit 31 (highest bit)
+    value <- 0xFFFFFFFF;
+    value[31] <- false;
+    if (value != 0x7FFFFFFF) return 19;
+
+    // ========================================================
+    // Part 5: Odd-width ranges (tests mask calculation)
+    // ========================================================
+
+    // 3-bit field at position 5
+    value <- 0xFFFFFFFF;
+    value[5, 3] <- 0x0;
+    if (value != 0xFFFFFF1F) return 20;
+
+    // 5-bit field at position 10
+    value <- 0xFFFFFFFF;
+    value[10, 5] <- 0x0;
+    if (value != 0xFFFF83FF) return 21;
+
+    // 7-bit field at position 17
+    value <- 0xFFFFFFFF;
+    value[17, 7] <- 0x0;
+    if (value != 0xFF01FFFF) return 22;
+
+    // 11-bit field at position 3
+    value <- 0xFFFFFFFF;
+    value[3, 11] <- 0x0;
+    if (value != 0xFFFFC007) return 23;
+
+    // 13-bit field at position 11
+    value <- 0xFFFFFFFF;
+    value[11, 13] <- 0x0;
+    if (value != 0xFF0007FF) return 24;
+
+    // ========================================================
+    // Part 6: u64 specific tests (small widths only)
+    // NOTE: u64 tests with 32-bit+ masks or positions >= 32 are deferred
+    // due to code generation issues with 64-bit literals (see #187)
+    // ========================================================
+
+    u64 big <- 0;
+
+    // 16-bit write at position 0 on u64
+    big <- 0xFFFFFFFFFFFFFFFF;
+    big[0, 16] <- 0x0000;
+    if (big != 0xFFFFFFFFFFFF0000) return 25;
+
+    // 8-bit write at position 0 on u64
+    big <- 0xFFFFFFFFFFFFFFFF;
+    big[0, 8] <- 0x00;
+    if (big != 0xFFFFFFFFFFFFFF00) return 26;
+
+    // 8-bit write at position 8 on u64
+    big <- 0xFFFFFFFFFFFFFFFF;
+    big[8, 8] <- 0x00;
+    if (big != 0xFFFFFFFFFFFF00FF) return 27;
+
+    // 8-bit write at position 16 on u64
+    big <- 0xFFFFFFFFFFFFFFFF;
+    big[16, 8] <- 0x00;
+    if (big != 0xFFFFFFFFFF00FFFF) return 28;
+
+    // ========================================================
+    // Part 7: Write non-zero patterns and verify preservation
+    // ========================================================
+
+    // Pattern: 0xAA in lower byte, rest should stay 0x55
+    value <- 0x55555555;
+    value[0, 8] <- 0xAA;
+    if (value != 0x555555AA) return 29;
+
+    // Pattern: 0x12 in second byte, rest should stay as-is
+    value <- 0xABCDEF00;
+    value[8, 8] <- 0x12;
+    if (value != 0xABCD1200) return 30;
+
+    // Multiple non-adjacent writes
+    value <- 0x00000000;
+    value[0, 4] <- 0xF;
+    value[8, 4] <- 0xF;
+    value[16, 4] <- 0xF;
+    value[24, 4] <- 0xF;
+    if (value != 0x0F0F0F0F) return 31;
+
+    return 0;  // All tests passed
+}
