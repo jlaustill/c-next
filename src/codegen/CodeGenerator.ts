@@ -35,6 +35,7 @@ import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
 import generateFunctionCall from "./generators/expressions/CallExprGenerator";
 import accessGenerators from "./generators/expressions/AccessExprGenerator";
 import expressionGenerators from "./generators/expressions/ExpressionGenerator";
+import statementGenerators from "./generators/statements";
 
 /**
  * Maps C-Next types to C types
@@ -150,30 +151,6 @@ const DEFAULT_TARGET: TargetCapabilities = {
   wordSize: 32,
   hasLdrexStrex: false,
   hasBasepri: false,
-};
-
-/**
- * ADR-049: LDREX/STREX intrinsic map for atomic operations
- */
-const LDREX_MAP: Record<string, string> = {
-  u8: "__LDREXB",
-  i8: "__LDREXB",
-  u16: "__LDREXH",
-  i16: "__LDREXH",
-  u32: "__LDREXW",
-  i32: "__LDREXW",
-};
-
-/**
- * ADR-049: STREX intrinsic map for atomic operations
- */
-const STREX_MAP: Record<string, string> = {
-  u8: "__STREXB",
-  i8: "__STREXB",
-  u16: "__STREXH",
-  i16: "__STREXH",
-  u32: "__STREXW",
-  i32: "__STREXW",
 };
 
 /**
@@ -594,6 +571,118 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getKnownEnums(): ReadonlySet<string> {
     return this.symbols!.knownEnums;
+  }
+
+  /**
+   * Generate a block (curly braces with statements).
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  generateBlock(ctx: Parser.BlockContext): string {
+    return this._generateBlock(ctx);
+  }
+
+  /**
+   * Validate no early exits (return/break) in critical blocks.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateNoEarlyExits(ctx: Parser.BlockContext): void {
+    this.typeValidator!.validateNoEarlyExits(ctx);
+  }
+
+  /**
+   * Generate a single statement.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  generateStatement(ctx: Parser.StatementContext): string {
+    return this._generateStatement(ctx);
+  }
+
+  /**
+   * Get indentation string for current level.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  indent(text: string): string {
+    return this._indent(text);
+  }
+
+  /**
+   * Validate switch statement.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateSwitchStatement(
+    ctx: Parser.SwitchStatementContext,
+    switchExpr: Parser.ExpressionContext,
+  ): void {
+    this.typeValidator!.validateSwitchStatement(ctx, switchExpr);
+  }
+
+  /**
+   * Validate do-while condition.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
+    this.typeValidator!.validateDoWhileCondition(ctx);
+  }
+
+  /**
+   * Generate an assignment target.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
+    return this._generateAssignmentTarget(ctx);
+  }
+
+  /**
+   * Generate array dimensions.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
+    return this._generateArrayDimensions(dims);
+  }
+
+  /**
+   * Count string length accesses for caching.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  countStringLengthAccesses(
+    ctx: Parser.ExpressionContext,
+  ): Map<string, number> {
+    return this._countStringLengthAccesses(ctx);
+  }
+
+  /**
+   * Count block length accesses.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  countBlockLengthAccesses(
+    ctx: Parser.BlockContext,
+    counts: Map<string, number>,
+  ): void {
+    this._countBlockLengthAccesses(ctx, counts);
+  }
+
+  /**
+   * Setup length cache and return declarations.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  setupLengthCache(counts: Map<string, number>): string {
+    return this._setupLengthCache(counts);
+  }
+
+  /**
+   * Clear length cache.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  clearLengthCache(): void {
+    this._clearLengthCache();
+  }
+
+  /**
+   * Register a local variable.
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  registerLocalVariable(name: string): void {
+    this.context.localVariables.add(name);
   }
 
   // ===========================================================================
@@ -2752,7 +2841,7 @@ export default class CodeGenerator implements IOrchestrator {
         const isArray = arrayDims.length > 0;
         let decl = `${prefix}${type} ${fullName}`;
         if (isArray) {
-          decl += this.generateArrayDimensions(arrayDims);
+          decl += this._generateArrayDimensions(arrayDims);
         }
         // ADR-045: Add string capacity dimension for string arrays
         if (varDecl.type().stringType()) {
@@ -2790,7 +2879,7 @@ export default class CodeGenerator implements IOrchestrator {
           ? this.generateParameterList(funcDecl.parameterList()!)
           : "void";
 
-        const body = this.generateBlock(funcDecl.block());
+        const body = this._generateBlock(funcDecl.block());
 
         // ADR-016: Clear local variables and mark that we're no longer in a function body
         this.context.inFunctionBody = false;
@@ -2948,7 +3037,7 @@ export default class CodeGenerator implements IOrchestrator {
         this.callbackFieldTypes.set(`${name}.${fieldName}`, typeName);
 
         if (isArray) {
-          const dims = this.generateArrayDimensions(arrayDims);
+          const dims = this._generateArrayDimensions(arrayDims);
           lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dims};`);
         } else {
           lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
@@ -2967,7 +3056,7 @@ export default class CodeGenerator implements IOrchestrator {
           lines.push(`    ${type} ${fieldName}${dimsStr};`);
         } else if (isArray) {
           // Fall back to AST dimensions for non-string arrays
-          const dims = this.generateArrayDimensions(arrayDims);
+          const dims = this._generateArrayDimensions(arrayDims);
           lines.push(`    ${type} ${fieldName}${dims};`);
         } else {
           lines.push(`    ${type} ${fieldName};`);
@@ -3245,7 +3334,7 @@ export default class CodeGenerator implements IOrchestrator {
         : "void";
     }
 
-    const body = this.generateBlock(ctx.block());
+    const body = this._generateBlock(ctx.block());
 
     // ADR-016: Clear local variables and mark that we're no longer in a function body
     this.context.inFunctionBody = false;
@@ -3406,7 +3495,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-036: Generate all array dimensions for multi-dimensional arrays
    * Converts array of ArrayDimensionContext to string like "[4][8]"
    */
-  private generateArrayDimensions(
+  private _generateArrayDimensions(
     dims: Parser.ArrayDimensionContext[],
   ): string {
     return dims.map((d) => this.generateArrayDimension(d)).join("");
@@ -3466,7 +3555,7 @@ export default class CodeGenerator implements IOrchestrator {
         // Check for string arrays: string<64> arr[4] -> char arr[4][65] = {0};
         if (arrayDims.length > 0) {
           let decl = `${constMod}${atomicMod}${volatileMod}char ${name}`;
-          decl += this.generateArrayDimensions(arrayDims); // [4]
+          decl += this._generateArrayDimensions(arrayDims); // [4]
           decl += `[${capacity + 1}]`; // [65]
 
           if (ctx.expression()) {
@@ -3685,7 +3774,7 @@ export default class CodeGenerator implements IOrchestrator {
           }
         } else {
           // ADR-036: Generate all explicit dimensions
-          decl += this.generateArrayDimensions(arrayDims);
+          decl += this._generateArrayDimensions(arrayDims);
 
           if (
             declaredSize !== null &&
@@ -3721,7 +3810,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     if (isArray) {
       // ADR-036: Generate all dimensions
-      decl += this.generateArrayDimensions(arrayDims);
+      decl += this._generateArrayDimensions(arrayDims);
       // ADR-006: Track local arrays (they don't need & when passed to functions)
       this.context.localArrays.add(name);
     }
@@ -3911,14 +4000,14 @@ export default class CodeGenerator implements IOrchestrator {
   // Statements
   // ========================================================================
 
-  private generateBlock(ctx: Parser.BlockContext): string {
+  private _generateBlock(ctx: Parser.BlockContext): string {
     const lines: string[] = ["{"];
     const innerIndent = "    "; // One level of relative indentation
 
     for (const stmt of ctx.statement()) {
       // Temporarily increment for any nested context that needs absolute level
       this.context.indentLevel++;
-      const stmtCode = this.generateStatement(stmt);
+      const stmtCode = this._generateStatement(stmt);
       this.context.indentLevel--;
 
       if (stmtCode) {
@@ -3935,7 +4024,7 @@ export default class CodeGenerator implements IOrchestrator {
     return lines.join("\n");
   }
 
-  private generateStatement(ctx: Parser.StatementContext): string {
+  private _generateStatement(ctx: Parser.StatementContext): string {
     if (ctx.variableDeclaration()) {
       return this.generateVariableDecl(ctx.variableDeclaration()!);
     }
@@ -3970,7 +4059,7 @@ export default class CodeGenerator implements IOrchestrator {
       return this.generateCriticalStatement(ctx.criticalStatement()!);
     }
     if (ctx.block()) {
-      return this.generateBlock(ctx.block()!);
+      return this._generateBlock(ctx.block()!);
     }
     return "";
   }
@@ -5318,141 +5407,18 @@ export default class CodeGenerator implements IOrchestrator {
     value: string,
     typeInfo: TTypeInfo,
   ): string {
-    const caps = this.context.targetCapabilities;
-    const baseType = typeInfo.baseType;
-
-    // Generate the inner operation (handles clamp/wrap)
-    const innerOp = this.generateInnerAtomicOp(cOp, value, typeInfo);
-
-    // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
-    if (caps.hasLdrexStrex && LDREX_MAP[baseType]) {
-      return this.generateLdrexStrexLoop(target, innerOp, typeInfo);
-    } else {
-      return this.generatePrimaskWrapper(target, cOp, value, typeInfo);
-    }
+    const result = statementGenerators.generateAtomicRMW(
+      target,
+      cOp,
+      value,
+      typeInfo,
+      this.context.targetCapabilities,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  /**
-   * ADR-049: Generate the inner operation for atomic RMW
-   * Handles clamp/wrap behavior for arithmetic operations
-   */
-  private generateInnerAtomicOp(
-    cOp: string,
-    value: string,
-    typeInfo: TTypeInfo,
-  ): string {
-    // Map compound operators to simple operators
-    const simpleOpMap: Record<string, string> = {
-      "+=": "+",
-      "-=": "-",
-      "*=": "*",
-      "/=": "/",
-      "%=": "%",
-      "&=": "&",
-      "|=": "|",
-      "^=": "^",
-      "<<=": "<<",
-      ">>=": ">>",
-    };
-    const simpleOp = simpleOpMap[cOp] || "+";
-
-    // Handle clamp behavior for arithmetic operations (integers only)
-    if (
-      typeInfo.overflowBehavior === "clamp" &&
-      TYPE_WIDTH[typeInfo.baseType] &&
-      !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-    ) {
-      const opMap: Record<string, string> = {
-        "+=": "add",
-        "-=": "sub",
-        "*=": "mul",
-      };
-      const helperOp = opMap[cOp];
-
-      if (helperOp) {
-        this.markClampOpUsed(helperOp, typeInfo.baseType);
-        return `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`;
-      }
-    }
-
-    // For wrap behavior, floats, or non-clamp ops, use natural arithmetic
-    return `__old ${simpleOp} ${value}`;
-  }
-
-  /**
-   * ADR-049: Generate LDREX/STREX retry loop for atomic RMW
-   * Uses ARM exclusive access instructions for lock-free atomics
-   */
-  private generateLdrexStrexLoop(
-    target: string,
-    innerOp: string,
-    typeInfo: TTypeInfo,
-  ): string {
-    const ldrex = LDREX_MAP[typeInfo.baseType];
-    const strex = STREX_MAP[typeInfo.baseType];
-    const cType = TYPE_MAP[typeInfo.baseType];
-
-    // Mark that we need CMSIS headers
-    this.needsCMSIS = true;
-
-    // Generate LDREX/STREX retry loop
-    // Uses do-while because we always need at least one attempt
-    return `do {
-    ${cType} __old = ${ldrex}(&${target});
-    ${cType} __new = ${innerOp};
-    if (${strex}(__new, &${target}) == 0) break;
-} while (1);`;
-  }
-
-  /**
-   * ADR-049: Generate PRIMASK-based atomic wrapper
-   * Disables all interrupts during the RMW operation
-   */
-  private generatePrimaskWrapper(
-    target: string,
-    cOp: string,
-    value: string,
-    typeInfo: TTypeInfo,
-  ): string {
-    // Mark that we need CMSIS headers
-    this.needsCMSIS = true;
-
-    // Generate the actual assignment operation inside the critical section
-    let assignment: string;
-
-    // Handle clamp behavior (integers only)
-    if (
-      typeInfo.overflowBehavior === "clamp" &&
-      TYPE_WIDTH[typeInfo.baseType] &&
-      !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-    ) {
-      const opMap: Record<string, string> = {
-        "+=": "add",
-        "-=": "sub",
-        "*=": "mul",
-      };
-      const helperOp = opMap[cOp];
-
-      if (helperOp) {
-        this.markClampOpUsed(helperOp, typeInfo.baseType);
-        assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
-      } else {
-        assignment = `${target} ${cOp} ${value};`;
-      }
-    } else {
-      assignment = `${target} ${cOp} ${value};`;
-    }
-
-    // Generate PRIMASK save/restore wrapper
-    return `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
-    ${assignment}
-    __set_PRIMASK(__primask);
-}`;
-  }
-
-  private generateAssignmentTarget(
+  private _generateAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
   ): string {
     // Set flag to indicate we're generating an assignment target (write context)
@@ -5700,137 +5666,58 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateIf(ctx: Parser.IfStatementContext): string {
-    const statements = ctx.statement();
-
-    // Analyze condition and body for repeated .length accesses (strlen optimization)
-    const lengthCounts = this.countStringLengthAccesses(ctx.expression());
-
-    // Also count in the then branch if it's a block
-    const thenStmt = statements[0];
-    if (thenStmt.block()) {
-      this.countBlockLengthAccesses(thenStmt.block()!, lengthCounts);
-    }
-
-    // Set up cache and generate declarations
-    const cacheDecls = this.setupLengthCache(lengthCounts);
-
-    // Generate with cache enabled
-    const condition = this.generateExpression(ctx.expression());
-    const thenBranch = this.generateStatement(thenStmt);
-
-    let result = `if (${condition}) ${thenBranch}`;
-
-    if (statements.length > 1) {
-      const elseBranch = this.generateStatement(statements[1]);
-      result += ` else ${elseBranch}`;
-    }
-
-    // Clear cache after generating
-    this.clearLengthCache();
-
-    // Prepend cache declarations if any
-    if (cacheDecls) {
-      return cacheDecls + result;
-    }
-
-    return result;
+    const result = statementGenerators.generateIf(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateWhile(ctx: Parser.WhileStatementContext): string {
-    const condition = this.generateExpression(ctx.expression());
-    const body = this.generateStatement(ctx.statement());
-    return `while (${condition}) ${body}`;
+    const result = statementGenerators.generateWhile(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  // ADR-027: Do-while loops with MISRA-compliant boolean condition
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    // Validate the condition is a boolean expression (E0701)
-    this.typeValidator!.validateDoWhileCondition(ctx.expression());
-
-    const body = this.generateBlock(ctx.block());
-    const condition = this.generateExpression(ctx.expression());
-    return `do ${body} while (${condition});`;
+    const result = statementGenerators.generateDoWhile(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateFor(ctx: Parser.ForStatementContext): string {
-    let init = "";
-    const forInit = ctx.forInit();
-    if (forInit) {
-      if (forInit.forVarDecl()) {
-        // Generate variable declaration for for loop init
-        init = this.generateForVarDecl(forInit.forVarDecl()!);
-      } else if (forInit.forAssignment()) {
-        // Generate assignment for for loop init
-        init = this.generateForAssignment(forInit.forAssignment()!);
-      }
-    }
-
-    let condition = "";
-    if (ctx.expression()) {
-      condition = this.generateExpression(ctx.expression()!);
-    }
-
-    let update = "";
-    const forUpdate = ctx.forUpdate();
-    if (forUpdate) {
-      // forUpdate has same structure as forAssignment
-      const target = this.generateAssignmentTarget(
-        forUpdate.assignmentTarget(),
-      );
-      const value = this.generateExpression(forUpdate.expression());
-      const operatorCtx = forUpdate.assignmentOperator();
-      const cnextOp = operatorCtx.getText();
-      const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
-      update = `${target} ${cOp} ${value}`;
-    }
-
-    const body = this.generateStatement(ctx.statement());
-
-    return `for (${init}; ${condition}; ${update}) ${body}`;
-  }
-
-  // Generate variable declaration for for loop init (no trailing semicolon)
-  private generateForVarDecl(ctx: Parser.ForVarDeclContext): string {
-    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
-    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
-    const typeName = this.generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-
-    // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
-    this.context.localVariables.add(name);
-
-    let result = `${atomicMod}${volatileMod}${typeName} ${name}`;
-
-    // ADR-036: Handle array dimensions (now returns array for multi-dim support)
-    const arrayDims = ctx.arrayDimension();
-    if (arrayDims.length > 0) {
-      result = `${typeName} ${name}${this.generateArrayDimensions(arrayDims)}`;
-    }
-
-    // Handle initialization
-    if (ctx.expression()) {
-      const value = this.generateExpression(ctx.expression()!);
-      result += ` = ${value}`;
-    }
-
-    return result;
-  }
-
-  // Generate assignment for for loop init/update (no trailing semicolon)
-  private generateForAssignment(ctx: Parser.ForAssignmentContext): string {
-    const target = this.generateAssignmentTarget(ctx.assignmentTarget());
-    const value = this.generateExpression(ctx.expression());
-    const operatorCtx = ctx.assignmentOperator();
-    const cnextOp = operatorCtx.getText();
-    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
-    return `${target} ${cOp} ${value}`;
+    const result = statementGenerators.generateFor(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    if (ctx.expression()) {
-      return `return ${this.generateExpression(ctx.expression()!)};`;
-    }
-    return "return;";
+    const result = statementGenerators.generateReturn(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // ========================================================================
@@ -5844,25 +5731,14 @@ export default class CodeGenerator implements IOrchestrator {
   private generateCriticalStatement(
     ctx: Parser.CriticalStatementContext,
   ): string {
-    // Validate no early exits inside critical block
-    this.typeValidator!.validateNoEarlyExits(ctx.block());
-
-    // Mark that we need CMSIS headers
-    this.needsCMSIS = true;
-
-    // Generate the block contents
-    const blockCode = this.generateBlock(ctx.block());
-
-    // Remove outer braces from block since we're wrapping
-    const innerCode = blockCode.slice(1, -1).trim();
-
-    // Generate PRIMASK save/restore wrapper
-    return `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
-    ${innerCode}
-    __set_PRIMASK(__primask);
-}`;
+    const result = statementGenerators.generateCriticalStatement(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // Issue #63: validateNoEarlyExits moved to TypeValidator
@@ -5872,142 +5748,48 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    const switchExpr = ctx.expression();
-    const exprCode = this.generateExpression(switchExpr);
-
-    // ADR-025: Semantic validation
-    this.typeValidator!.validateSwitchStatement(ctx, switchExpr);
-
-    // Build the switch statement
-    const lines: string[] = [`switch (${exprCode}) {`];
-
-    // Generate cases
-    for (const caseCtx of ctx.switchCase()) {
-      lines.push(this.generateSwitchCase(caseCtx));
-    }
-
-    // Generate default if present
-    const defaultCtx = ctx.defaultCase();
-    if (defaultCtx) {
-      lines.push(this.generateDefaultCase(defaultCtx));
-    }
-
-    lines.push("}");
-
-    return lines.join("\n");
+    const result = statementGenerators.generateSwitch(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
-    const labels = ctx.caseLabel();
-    const block = ctx.block();
-    const lines: string[] = [];
-
-    // Generate case labels - expand || to multiple C case labels
-    for (let i = 0; i < labels.length; i++) {
-      const labelCode = this.generateCaseLabel(labels[i]);
-      if (i < labels.length - 1) {
-        // Multiple labels: just the label without body
-        lines.push(this.indent(`case ${labelCode}:`));
-      } else {
-        // Last label: attach the block
-        lines.push(this.indent(`case ${labelCode}: {`));
-      }
-    }
-
-    // Generate block contents (without the outer braces - we added them above)
-    const statements = block.statement();
-    for (const stmt of statements) {
-      const stmtCode = this.generateStatement(stmt);
-      if (stmtCode) {
-        lines.push(this.indent(this.indent(stmtCode)));
-      }
-    }
-
-    // Add break and close block
-    lines.push(this.indent(this.indent("break;")));
-    lines.push(this.indent("}"));
-
-    return lines.join("\n");
+    const result = statementGenerators.generateSwitchCase(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
-    // qualifiedType - for enum values like EState.IDLE
-    if (ctx.qualifiedType()) {
-      const qt = ctx.qualifiedType()!;
-      // Convert EState.IDLE to EState_IDLE for C
-      const parts = qt.IDENTIFIER();
-      return parts.map((id) => id.getText()).join("_");
-    }
-
-    // IDENTIFIER - const variable or plain enum member
-    if (ctx.IDENTIFIER()) {
-      return ctx.IDENTIFIER()!.getText();
-    }
-
-    // Numeric literals (may have optional minus prefix)
-    if (ctx.INTEGER_LITERAL()) {
-      const num = ctx.INTEGER_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      return hasNeg ? `-${num}` : num;
-    }
-
-    if (ctx.HEX_LITERAL()) {
-      const hex = ctx.HEX_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      return hasNeg ? `-${hex}` : hex;
-    }
-
-    if (ctx.BINARY_LITERAL()) {
-      // Convert binary to hex for cleaner C output
-      // Issue #114: Use BigInt to preserve precision for values > 2^53
-      const binText = ctx.BINARY_LITERAL()!.getText();
-      // Check if minus token exists (first child would be '-')
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(binText); // BigInt handles 0b prefix natively
-      const hexStr = (hasNeg ? -value : value).toString(16).toUpperCase();
-      // Add ULL suffix for values that exceed 32-bit range
-      const needsULL = value > 0xffffffffn;
-      return `${hasNeg ? "-" : ""}0x${hexStr}${needsULL ? "ULL" : ""}`;
-    }
-
-    if (ctx.CHAR_LITERAL()) {
-      return ctx.CHAR_LITERAL()!.getText();
-    }
-
-    return "";
+    const result = statementGenerators.generateCaseLabel(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateDefaultCase(ctx: Parser.DefaultCaseContext): string {
-    const block = ctx.block();
-    const lines: string[] = [];
-
-    // Note: default(n) count is for compile-time validation only,
-    // not included in generated C
-    lines.push(this.indent("default: {"));
-
-    // Generate block contents
-    const statements = block.statement();
-    for (const stmt of statements) {
-      const stmtCode = this.generateStatement(stmt);
-      if (stmtCode) {
-        lines.push(this.indent(this.indent(stmtCode)));
-      }
-    }
-
-    // Add break and close block
-    lines.push(this.indent(this.indent("break;")));
-    lines.push(this.indent("}"));
-
-    return lines.join("\n");
+    const result = statementGenerators.generateDefaultCase(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
-
-  // Issue #63: validateSwitchStatement, validateEnumExhaustiveness, getDefaultCount,
-  //            getCaseLabelValue moved to TypeValidator
-
-  // Issue #63: validateTernaryCondition, validateNoNestedTernary,
-  //            validateDoWhileCondition, isBooleanExpression moved to TypeValidator
 
   // ========================================================================
   // Expressions
@@ -7852,7 +7634,7 @@ export default class CodeGenerator implements IOrchestrator {
   // Helpers
   // ========================================================================
 
-  private indent(text: string): string {
+  private _indent(text: string): string {
     const spaces = "    ".repeat(this.context.indentLevel);
     return text
       .split("\n")
@@ -7868,7 +7650,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Analyze an expression tree and count .length accesses per string variable.
    * Returns a map of variable name -> access count.
    */
-  private countStringLengthAccesses(
+  private _countStringLengthAccesses(
     ctx: Parser.ExpressionContext,
   ): Map<string, number> {
     const counts = new Map<string, number>();
@@ -8040,7 +7822,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Count .length accesses in a block's statements.
    */
-  private countBlockLengthAccesses(
+  private _countBlockLengthAccesses(
     ctx: Parser.BlockContext,
     counts: Map<string, number>,
   ): void {
@@ -8085,7 +7867,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // Nested if/while/for would need recursion, but for now keep it simple
     if (ctx.block()) {
-      this.countBlockLengthAccesses(ctx.block()!, counts);
+      this._countBlockLengthAccesses(ctx.block()!, counts);
     }
   }
 
@@ -8093,7 +7875,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Generate temp variable declarations for string lengths that are accessed 2+ times.
    * Returns the declarations as a string and populates the lengthCache.
    */
-  private setupLengthCache(counts: Map<string, number>): string {
+  private _setupLengthCache(counts: Map<string, number>): string {
     const declarations: string[] = [];
     const cache = new Map<string, string>();
 
@@ -8116,7 +7898,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Clear the length cache after generating a statement.
    */
-  private clearLengthCache(): void {
+  private _clearLengthCache(): void {
     this.context.lengthCache = null;
   }
 
