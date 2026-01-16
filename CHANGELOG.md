@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-01-16
+
+### Added
+
+- C++14 typed enum support for `.length` property resolution (Issue #208)
+- `detectCppSyntax.ts` utility for heuristic C++ syntax detection in headers
+- Enum bit width storage in SymbolTable with cache persistence
+
+### Changed
+
+- Refactored header parsing from dual-parse (both C and C++ parsers) to single-parser strategy based on content detection
+- Cache version bumped to 2 for enum bit width support
+- Test infrastructure now detects C++14 headers and uses g++ appropriately
+- Renamed test directory from `c-11-header` to `cpp14-header`
+
+### Fixed
+
+- `.length` property now correctly resolves typed enum widths (e.g., `enum EPressureType : uint8_t` → 8 bits)
+
+## [0.1.6] - 2026-01-15
+
+### Fixed
+
+- Bitmap array element field access now generates valid C (Issue #201)
+
+## [0.1.5] - 2026-01-14
+
 ### Changed
 
 - Unified parsing is now the only mode - removed obsolete `--project` flag documentation (Issue #46)
@@ -39,6 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/jlaustill/c-next/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/jlaustill/c-next/compare/v0.1.5...v0.1.6
+[0.1.5]: https://github.com/jlaustill/c-next/compare/v0.1.1...v0.1.5
 [0.1.1]: https://github.com/jlaustill/c-next/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jlaustill/c-next/releases/tag/v0.1.0
