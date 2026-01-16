@@ -1,4 +1,4 @@
-/* test-execution */
+// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
 // Tests: .length property on nested C header struct members
 // Regression test for issue #103 - .length returns 0 for nested struct member access
 

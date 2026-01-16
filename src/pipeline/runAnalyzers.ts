@@ -16,20 +16,39 @@ import CommentExtractor from "../codegen/CommentExtractor";
 import ITranspileError from "../lib/types/ITranspileError";
 
 /**
+ * Options for running analyzers
+ */
+interface IAnalyzerOptions {
+  /**
+   * External struct field information from C/C++ headers
+   * Maps struct name -> Set of field names
+   */
+  externalStructFields?: Map<string, Set<string>>;
+}
+
+/**
  * Run all semantic analyzers on a parsed program
  *
  * @param tree - The parsed program AST
  * @param tokenStream - Token stream for comment validation
+ * @param options - Optional configuration including external struct info
  * @returns Array of errors (empty if all pass)
  */
 function runAnalyzers(
   tree: ProgramContext,
   tokenStream: CommonTokenStream,
+  options?: IAnalyzerOptions,
 ): ITranspileError[] {
   const errors: ITranspileError[] = [];
 
   // 1. Initialization analysis (Rust-style use-before-init detection)
   const initAnalyzer = new InitializationAnalyzer();
+
+  // Register external struct fields from C/C++ headers if provided
+  if (options?.externalStructFields) {
+    initAnalyzer.registerExternalStructFields(options.externalStructFields);
+  }
+
   const initErrors = initAnalyzer.analyze(tree);
 
   for (const initError of initErrors) {

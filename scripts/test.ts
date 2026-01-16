@@ -42,7 +42,8 @@ import { fileURLToPath } from "url";
 import { execFileSync, fork, ChildProcess } from "child_process";
 import { tmpdir, cpus } from "os";
 import { randomBytes } from "crypto";
-import transpile from "../src/lib/transpiler";
+import Pipeline from "../src/pipeline/Pipeline";
+import IFileResult from "../src/pipeline/types/IFileResult";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -445,17 +446,27 @@ function checkValidationTools(): ITools {
  * Run a single test (sequential mode)
  * Always validates: transpile -> snapshot match -> gcc -> cppcheck -> clang-tidy -> MISRA
  */
-function runTest(
+async function runTest(
   cnxFile: string,
   updateMode: boolean,
   tools: ITools,
-): ITestResult {
+): Promise<ITestResult> {
   const source = readFileSync(cnxFile, "utf-8");
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
 
-  const result = transpile(source);
+  // Use Pipeline for transpilation with header parsing support
+  const pipeline = new Pipeline({
+    inputs: [],
+    includeDirs: [join(rootDir, "tests/include")],
+    noCache: false,
+  });
+
+  const result: IFileResult = await pipeline.transpileSource(source, {
+    workingDir: dirname(cnxFile),
+    sourcePath: cnxFile,
+  });
 
   // Check if this is an error test (no validation needed for error tests)
   if (existsSync(expectedErrorFile)) {
@@ -886,12 +897,17 @@ async function runTestsParallel(
 /**
  * Run tests sequentially (original behavior)
  */
-function runTestsSequential(
+async function runTestsSequential(
   cnxFiles: string[],
   updateMode: boolean,
   quietMode: boolean,
   tools: ITools,
-): { passed: number; failed: number; updated: number; noSnapshot: number } {
+): Promise<{
+  passed: number;
+  failed: number;
+  updated: number;
+  noSnapshot: number;
+}> {
   let passed = 0;
   let failed = 0;
   let updated = 0;
@@ -899,7 +915,7 @@ function runTestsSequential(
 
   for (const cnxFile of cnxFiles) {
     const relativePath = cnxFile.replace(rootDir + "/", "");
-    const result = runTest(cnxFile, updateMode, tools);
+    const result = await runTest(cnxFile, updateMode, tools);
 
     printResult(relativePath, result, quietMode);
 
@@ -1035,7 +1051,7 @@ async function main(): Promise<void> {
       numJobs,
     );
   } else {
-    results = runTestsSequential(cnxFiles, updateMode, quietMode, tools);
+    results = await runTestsSequential(cnxFiles, updateMode, quietMode, tools);
   }
 
   const { passed, failed, updated, noSnapshot } = results;

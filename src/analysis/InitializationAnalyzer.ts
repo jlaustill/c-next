@@ -31,6 +31,8 @@ interface IVariableState {
   initializedFields: Set<string>;
   /** Is this a struct type? */
   isStruct: boolean;
+  /** Is this a string type? (string<N> or string) */
+  isStringType: boolean;
 }
 
 /**
@@ -132,7 +134,17 @@ class InitializationListener extends CNextListener {
       typeName = typeCtx.userType()!.IDENTIFIER().getText();
     }
 
-    this.analyzer.declareVariable(name, line, column, hasInitializer, typeName);
+    // Check if this is a string type (string<N> or string)
+    const isStringType = typeCtx.stringType() !== null;
+
+    this.analyzer.declareVariable(
+      name,
+      line,
+      column,
+      hasInitializer,
+      typeName,
+      isStringType,
+    );
   };
 
   // ========================================================================
@@ -265,6 +277,21 @@ class InitializationListener extends CNextListener {
       const name = ctx.IDENTIFIER()!.getText();
       const line = ctx.start?.line ?? 0;
       const column = ctx.start?.column ?? 0;
+
+      // Check if this is part of a postfixExpression with member access
+      const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
+      if (parent?.postfixOp && parent.postfixOp().length > 0) {
+        const firstOp = parent.postfixOp()[0];
+        const opText = firstOp.getText();
+        // If the first postfixOp is a member access (has '.'), check the field
+        if (opText.startsWith(".")) {
+          // Extract field name (remove the leading '.')
+          const fieldName = opText.slice(1);
+          // Check field-level initialization instead of whole variable
+          this.analyzer.checkRead(name, line, column, fieldName);
+          return;
+        }
+      }
 
       this.analyzer.checkRead(name, line, column);
     }
@@ -416,6 +443,20 @@ class InitializationAnalyzer {
   private inWriteContext: boolean = false;
 
   /**
+   * Register external struct fields from C/C++ headers
+   * This allows the analyzer to recognize types defined in headers
+   *
+   * @param externalFields Map of struct name -> Set of field names
+   */
+  public registerExternalStructFields(
+    externalFields: Map<string, Set<string>>,
+  ): void {
+    for (const [structName, fields] of externalFields) {
+      this.structFields.set(structName, fields);
+    }
+  }
+
+  /**
    * Analyze a parsed program for initialization errors
    * @param tree The parsed program AST
    * @returns Array of initialization errors
@@ -423,7 +464,7 @@ class InitializationAnalyzer {
   public analyze(tree: Parser.ProgramContext): IInitializationError[] {
     this.errors = [];
     this.currentScope = null;
-    this.structFields.clear();
+    // Don't clear structFields - external fields may have been registered
 
     // First pass: collect struct definitions
     this.collectStructDefinitions(tree);
@@ -548,6 +589,7 @@ class InitializationAnalyzer {
     column: number,
     hasInitializer: boolean,
     typeName: string | null,
+    isStringType: boolean = false,
   ): void {
     if (!this.currentScope) {
       // Global scope - create implicit scope
@@ -564,6 +606,7 @@ class InitializationAnalyzer {
       initialized: hasInitializer,
       typeName,
       isStruct,
+      isStringType,
       // If initialized with full struct initializer, all fields are initialized
       initializedFields: hasInitializer ? new Set(fields) : new Set(),
     };
@@ -624,16 +667,41 @@ class InitializationAnalyzer {
     }
 
     if (field) {
-      // Reading a specific field
-      if (!state.initializedFields.has(field)) {
-        this.addError(
-          `${name}.${field}`,
-          line,
-          column,
-          state.declaration,
-          false, // Definitely uninitialized
-        );
+      // Reading a specific field/property
+      if (state.isStruct && state.typeName) {
+        // Struct type: check if this is a real field
+        const structFields = this.structFields.get(state.typeName);
+        if (structFields && structFields.has(field)) {
+          // This is a real struct field - check initialization
+          if (!state.initializedFields.has(field)) {
+            this.addError(
+              `${name}.${field}`,
+              line,
+              column,
+              state.declaration,
+              false, // Definitely uninitialized
+            );
+          }
+        }
+        // else: field doesn't exist in struct, could be a type property like .length
+        // Skip check - let code generator handle unknown field errors
+      } else if (state.isStringType) {
+        // String type: .length, .capacity, and .size are runtime properties that require initialization
+        if (
+          (field === "length" || field === "capacity" || field === "size") &&
+          !state.initialized
+        ) {
+          this.addError(
+            name,
+            line,
+            column,
+            state.declaration,
+            false, // Definitely uninitialized
+          );
+        }
       }
+      // Other types (primitives): .field access is a type property (like .length for bit width)
+      // which is always available at compile time, no init check needed
     } else if (!state.initialized) {
       // Reading the whole variable
       this.addError(
@@ -787,6 +855,7 @@ class InitializationAnalyzer {
       initialized: true, // Parameters are always initialized by caller
       typeName,
       isStruct,
+      isStringType: false, // Not tracked for parameters since they're always initialized
       initializedFields: new Set(fields), // All fields initialized
     };
 
