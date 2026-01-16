@@ -1,5 +1,4 @@
-// NOTE: test-execution disabled due to bitmap .length bug (separate from Issue #196)
-/* test-coverage: bitmap8-length */
+/* test-execution */
 // Comprehensive .length test for bitmap8 type across all contexts
 // Tests: .length returns 8 for bitmap8 in every possible scope and access pattern
 

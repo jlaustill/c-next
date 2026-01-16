@@ -14,8 +14,7 @@ import IComment from "./types/IComment";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
-import BITMAP_SIZE from "./types/BITMAP_SIZE";
-// Issue #60: BITMAP_BACKING_TYPE moved to SymbolCollector
+// Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "./types/TTypeInfo";
 import TParameterInfo from "./types/TParameterInfo";
 import TOverflowBehavior from "./types/TOverflowBehavior";
@@ -1613,7 +1612,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.symbols!.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: 0,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1650,7 +1649,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.symbols!.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: 0,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1684,7 +1683,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.symbols!.knownBitmaps.has(baseType)) {
         this.context.typeRegistry.set(name, {
           baseType,
-          bitWidth: 0,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
           isArray: false,
           isConst,
           isBitmap: true,
@@ -1794,6 +1793,21 @@ export default class CodeGenerator implements IOrchestrator {
         });
         return; // Early return, we've handled this case
       }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
     } else if (typeCtx.qualifiedType()) {
       // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
@@ -1816,6 +1830,21 @@ export default class CodeGenerator implements IOrchestrator {
         });
         return; // Early return, we've handled this case
       }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
     } else if (typeCtx.userType()) {
       baseType = typeCtx.userType()!.getText();
       bitWidth = 0;
@@ -1829,6 +1858,21 @@ export default class CodeGenerator implements IOrchestrator {
           isConst,
           isEnum: true,
           enumTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
           overflowBehavior, // ADR-044
           isAtomic, // ADR-049
         });
@@ -2026,7 +2070,7 @@ export default class CodeGenerator implements IOrchestrator {
       this.context.typeRegistry.set(name, {
         baseType: typeName,
         bitWidth: isBitmap
-          ? BITMAP_SIZE[typeName] || 0
+          ? this.symbols!.bitmapBitWidth.get(typeName) || 0
           : TYPE_WIDTH[typeName] || 0,
         isArray: isArray,
         arrayDimensions:

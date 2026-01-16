@@ -45,6 +45,7 @@ class SymbolCollector {
   private _enumMembers: Map<string, Map<string, number>> = new Map();
   private _bitmapFields: Map<string, Map<string, TBitmapFieldInfo>> = new Map();
   private _bitmapBackingType: Map<string, string> = new Map();
+  private _bitmapBitWidth: Map<string, number> = new Map();
   private _scopedRegisters: Map<string, string> = new Map();
   private _registerMemberAccess: Map<string, string> = new Map();
   private _registerMemberTypes: Map<string, string> = new Map();
@@ -111,6 +112,10 @@ class SymbolCollector {
 
   get bitmapBackingType(): ReadonlyMap<string, string> {
     return this._bitmapBackingType;
+  }
+
+  get bitmapBitWidth(): ReadonlyMap<string, number> {
+    return this._bitmapBitWidth;
   }
 
   get scopedRegisters(): ReadonlyMap<string, string> {
@@ -490,6 +495,7 @@ class SymbolCollector {
 
     this._knownBitmaps.add(fullName);
     this._bitmapBackingType.set(fullName, BITMAP_BACKING_TYPE[bitmapType]);
+    this._bitmapBitWidth.set(fullName, expectedBits);
 
     // Collect fields and validate total bits
     const fields = new Map<string, TBitmapFieldInfo>();
