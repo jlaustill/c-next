@@ -1622,7 +1622,36 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-034: Check if this is a bitmap type
+      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
       if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(name, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
@@ -1659,7 +1688,36 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-034: Check if this is a bitmap type
+      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
       if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(name, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
@@ -1693,7 +1751,36 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-034: Check if this is a bitmap type
+      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
       if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(name, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
         this.context.typeRegistry.set(name, {
           baseType,
           bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
@@ -1808,7 +1895,36 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-034: Check if this is a bitmap type
+      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
       if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(registryName, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
         this.context.typeRegistry.set(registryName, {
           baseType,
           bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
@@ -1845,7 +1961,36 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-034: Check if this is a bitmap type
+      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
       if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(registryName, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
         this.context.typeRegistry.set(registryName, {
           baseType,
           bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
@@ -1878,7 +2023,36 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-034: Check if this is a bitmap type
+      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
       if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(registryName, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
         this.context.typeRegistry.set(registryName, {
           baseType,
           bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
@@ -4992,6 +5166,51 @@ export default class CodeGenerator implements IOrchestrator {
             }
           }
 
+          // Issue #201: Check if this is a bitmap array element field assignment
+          // Pattern: arr[index].field where arr is a bitmap array
+          if (identifiers.length === 2 && exprs.length === 1) {
+            const arrayName = firstId;
+            const fieldName = identifiers[1].getText();
+
+            // Check if this is a bitmap array
+            if (firstTypeInfo?.isBitmap && firstTypeInfo?.isArray) {
+              const bitmapType = firstTypeInfo.bitmapTypeName;
+              if (bitmapType) {
+                const fields = this.symbols!.bitmapFields.get(bitmapType);
+                if (fields && fields.has(fieldName)) {
+                  const fieldInfo = fields.get(fieldName)!;
+
+                  // Compound operators not supported for bitmap field access
+                  if (isCompound) {
+                    throw new Error(
+                      `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
+                    );
+                  }
+
+                  // Validate compile-time literal overflow
+                  this.typeValidator!.validateBitmapFieldLiteral(
+                    ctx.expression(),
+                    fieldInfo.width,
+                    fieldName,
+                  );
+
+                  const mask = (1 << fieldInfo.width) - 1;
+                  const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+                  const index = this._generateExpression(exprs[0]);
+                  const arrayElement = `${arrayName}[${index}]`;
+
+                  if (fieldInfo.width === 1) {
+                    // Single bit write: arr[i] = (arr[i] & ~(1 << offset)) | ((value ? 1 : 0) << offset)
+                    return `${arrayElement} = (${arrayElement} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                  } else {
+                    // Multi-bit write: arr[i] = (arr[i] & ~(mask << offset)) | ((value & mask) << offset)
+                    return `${arrayElement} = (${arrayElement} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                  }
+                }
+              }
+            }
+          }
+
           return `${result} ${cOp} ${value};`;
         }
 
@@ -6627,7 +6846,19 @@ export default class CodeGenerator implements IOrchestrator {
                   this.needsString = true;
                   result = `strlen(${result})`;
                 } else {
-                  const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+                  // Try primitive type first
+                  let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+                  // Issue #201: Also check bitmap types
+                  if (
+                    elementBitWidth === 0 &&
+                    typeInfo.isBitmap &&
+                    typeInfo.bitmapTypeName
+                  ) {
+                    elementBitWidth =
+                      this.symbols!.bitmapBitWidth.get(
+                        typeInfo.bitmapTypeName,
+                      ) || 0;
+                  }
                   if (elementBitWidth > 0) {
                     result = String(elementBitWidth);
                   } else {

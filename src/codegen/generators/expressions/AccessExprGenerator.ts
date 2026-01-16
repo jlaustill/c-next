@@ -69,6 +69,8 @@ interface PropertyContext {
     structType: string,
     fieldName: string,
   ) => { type: string; dimensions?: number[] } | undefined;
+  /** Issue #201: Bitmap bit width lookup function */
+  getBitmapBitWidth?: (bitmapTypeName: string) => number | undefined;
 }
 
 /**
@@ -248,7 +250,17 @@ const generateLengthProperty = (ctx: PropertyContext): PropertyResult => {
       effects.push({ type: "include", header: "string" });
       return { code: `strlen(${ctx.result})`, effects, skipContinue: false };
     } else {
-      const elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+      // Try primitive type first
+      let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+      // Issue #201: Also check bitmap types
+      if (
+        elementBitWidth === 0 &&
+        typeInfo.isBitmap &&
+        typeInfo.bitmapTypeName &&
+        ctx.getBitmapBitWidth
+      ) {
+        elementBitWidth = ctx.getBitmapBitWidth(typeInfo.bitmapTypeName) || 0;
+      }
       if (elementBitWidth > 0) {
         return { code: String(elementBitWidth), effects, skipContinue: false };
       } else {
