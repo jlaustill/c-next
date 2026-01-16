@@ -24,6 +24,11 @@ import SymbolCollector from "./SymbolCollector";
 import TypeValidator from "./TypeValidator";
 import * as fs from "fs";
 import * as path from "path";
+import IOrchestrator from "./generators/IOrchestrator";
+import IGeneratorInput from "./generators/IGeneratorInput";
+import IGeneratorState from "./generators/IGeneratorState";
+import TGeneratorEffect from "./generators/TGeneratorEffect";
+import GeneratorRegistry from "./generators/GeneratorRegistry";
 
 /**
  * Maps C-Next types to C types
@@ -197,8 +202,10 @@ interface GeneratorContext {
 
 /**
  * Code Generator - Transpiles C-Next to C
+ *
+ * Implements IOrchestrator to support modular generator extraction (ADR-053).
  */
-export default class CodeGenerator {
+export default class CodeGenerator implements IOrchestrator {
   /** ADR-044: Debug mode generates panic-on-overflow helpers */
   private debugMode: boolean = false;
 
@@ -278,6 +285,111 @@ export default class CodeGenerator {
 
   /** Type validation - Issue #63: Extracted from CodeGenerator */
   private typeValidator: TypeValidator | null = null;
+
+  /** Generator registry for modular code generation (ADR-053) */
+  private registry: GeneratorRegistry = new GeneratorRegistry();
+
+  // ===========================================================================
+  // IOrchestrator Implementation (ADR-053)
+  // ===========================================================================
+
+  /**
+   * Get read-only input context for generators.
+   * Contains all the information generators need to produce code.
+   */
+  getInput(): IGeneratorInput {
+    return {
+      symbolTable: this.symbolTable,
+      typeRegistry: this.context.typeRegistry,
+      functionSignatures: this.functionSignatures,
+      knownFunctions: this.knownFunctions,
+      knownStructs: this.symbols?.knownStructs ?? new Set(),
+      constValues: this.constValues,
+      callbackTypes: this.callbackTypes,
+      targetCapabilities: this.context.targetCapabilities,
+      debugMode: this.debugMode,
+    };
+  }
+
+  /**
+   * Get a snapshot of the current generation state.
+   * Represents where we are in the AST traversal.
+   */
+  getState(): IGeneratorState {
+    return {
+      currentScope: this.context.currentScope,
+      indentLevel: this.context.indentLevel,
+      inFunctionBody: this.context.inFunctionBody,
+      currentParameters: this.context.currentParameters,
+      localVariables: this.context.localVariables,
+      localArrays: this.context.localArrays,
+      expectedType: this.context.expectedType,
+    };
+  }
+
+  /**
+   * Process effects returned by generators, updating internal state.
+   * This centralizes all side-effect handling.
+   */
+  applyEffects(effects: readonly TGeneratorEffect[]): void {
+    for (const effect of effects) {
+      switch (effect.type) {
+        case "include":
+          switch (effect.header) {
+            case "stdint":
+              this.needsStdint = true;
+              break;
+            case "stdbool":
+              this.needsStdbool = true;
+              break;
+            case "string":
+              this.needsString = true;
+              break;
+            case "cmsis":
+              this.needsCMSIS = true;
+              break;
+          }
+          break;
+        case "isr":
+          this.needsISR = true;
+          break;
+        case "helper":
+          this.usedClampOps.add(`${effect.operation}_${effect.cnxType}`);
+          break;
+        case "safe-div":
+          this.usedSafeDivOps.add(`${effect.operation}_${effect.cnxType}`);
+          break;
+        case "register-type":
+          this.context.typeRegistry.set(effect.name, effect.info);
+          break;
+        case "register-local":
+          this.context.localVariables.add(effect.name);
+          if (effect.isArray) {
+            this.context.localArrays.add(effect.name);
+          }
+          break;
+      }
+    }
+  }
+
+  /**
+   * Get the current indentation string.
+   */
+  getIndent(): string {
+    return "    ".repeat(this.context.indentLevel);
+  }
+
+  /**
+   * Resolve an identifier to its fully-scoped name.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  resolveIdentifier(identifier: string): string {
+    return this._resolveIdentifier(identifier);
+  }
+
+  // ===========================================================================
+  // End IOrchestrator Implementation
+  // ===========================================================================
 
   /**
    * Get struct field type and dimensions, checking SymbolTable first (for C headers),
@@ -2066,12 +2178,12 @@ export default class CodeGenerator {
   }
 
   /**
-   * Resolve an identifier to its scoped name.
+   * Internal implementation of identifier resolution.
    * Inside a scope, checks if the identifier is a scope member first.
    * Otherwise returns the identifier unchanged (global scope).
    * ADR-016: Renamed from namespace-based resolution
    */
-  private resolveIdentifier(identifier: string): string {
+  private _resolveIdentifier(identifier: string): string {
     // Check current scope first (inner scope shadows outer)
     if (this.context.currentScope) {
       const members = this.context.scopeMembers.get(this.context.currentScope);
