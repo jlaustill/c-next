@@ -16,6 +16,8 @@ interface ICachedFileEntry {
   structFields: Record<string, Record<string, IStructFieldInfo>>;
   /** Issue #196 Bug 3: Struct names requiring 'struct' keyword in C */
   needsStructKeyword?: string[];
+  /** Issue #208: Enum bit widths from typed enums (enum name -> bit width) */
+  enumBitWidth?: Record<string, number>;
 }
 
 export default ICachedFileEntry;

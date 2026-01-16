@@ -6749,9 +6749,15 @@ export default class CodeGenerator implements IOrchestrator {
                   subscriptDepth >= dimensions.length
                 ) {
                   // Array member fully subscripted (e.g., ts.arr[0][1].length) -> return element bit width
-                  // Try C-Next types first, then C types
-                  const bitWidth =
+                  // Try C-Next types first, then C types, then enum types
+                  let bitWidth =
                     TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
+                  // Issue #208: Check if it's a typed enum
+                  if (bitWidth === 0 && this.symbolTable) {
+                    const enumWidth =
+                      this.symbolTable.getEnumBitWidth(memberType);
+                    if (enumWidth) bitWidth = enumWidth;
+                  }
                   if (bitWidth > 0) {
                     result = String(bitWidth);
                   } else {
@@ -6759,9 +6765,15 @@ export default class CodeGenerator implements IOrchestrator {
                   }
                 } else {
                   // Non-array member -> return bit width
-                  // Try C-Next types first, then C types
-                  const bitWidth =
+                  // Try C-Next types first, then C types, then enum types
+                  let bitWidth =
                     TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
+                  // Issue #208: Check if it's a typed enum
+                  if (bitWidth === 0 && this.symbolTable) {
+                    const enumWidth =
+                      this.symbolTable.getEnumBitWidth(memberType);
+                    if (enumWidth) bitWidth = enumWidth;
+                  }
                   if (bitWidth > 0) {
                     result = String(bitWidth);
                   } else {

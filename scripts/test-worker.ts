@@ -69,15 +69,49 @@ function normalize(str: string): string {
 }
 
 /**
+ * Issue #208: Check if a C file includes headers requiring C++14 support
+ * Detects typed enums: enum Name : type { ... }
+ */
+function requiresCpp14(cFile: string): boolean {
+  try {
+    const cCode = readFileSync(cFile, "utf-8");
+    const cFileDir = dirname(cFile);
+
+    // Find all #include "local_header.h" directives
+    const includePattern = /#include\s+"([^"]+)"/g;
+    let match;
+
+    while ((match = includePattern.exec(cCode)) !== null) {
+      const headerPath = join(cFileDir, match[1]);
+      if (existsSync(headerPath)) {
+        const headerContent = readFileSync(headerPath, "utf-8");
+        // Check for C++14 typed enum syntax: enum Name : type {
+        if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(headerContent)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Validate that a C file compiles without errors
+ * Issue #208: Detects C++14 headers and uses g++ when needed
  */
 function validateCompilation(cFile: string): IValidationResult {
+  const useCpp = requiresCpp14(cFile);
+  const compiler = useCpp ? "g++" : "gcc";
+  const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
+
   try {
     execFileSync(
-      "gcc",
+      compiler,
       [
         "-fsyntax-only",
-        "-std=c99",
+        stdFlag,
         "-Wno-unused-variable",
         "-Wno-main",
         "-I",
@@ -227,18 +261,22 @@ function requiresArmRuntime(cCode: string): boolean {
 
 /**
  * Compile and execute a C file
+ * Issue #208: Detects C++14 headers and uses g++ when needed
  */
 function executeTest(
   cFile: string,
   expectedExitCode: number = 0,
 ): IValidationResult {
   const execPath = getExecutablePath(cFile);
+  const useCpp = requiresCpp14(cFile);
+  const compiler = useCpp ? "g++" : "gcc";
+  const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
 
   try {
     execFileSync(
-      "gcc",
+      compiler,
       [
-        "-std=c99",
+        stdFlag,
         "-Wno-unused-variable",
         "-Wno-main",
         "-I",

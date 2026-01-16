@@ -384,6 +384,66 @@ class CppSymbolCollector {
       isExported: true,
       parent: this.currentNamespace,
     });
+
+    // Issue #208: Extract enum backing type for typed enums (e.g., enum EPressureType : uint8_t)
+    if (this.symbolTable) {
+      const enumbase = enumHead.enumbase?.();
+      if (enumbase) {
+        const typeSpecSeq = enumbase.typeSpecifierSeq?.();
+        if (typeSpecSeq) {
+          const typeName = typeSpecSeq.getText();
+          const bitWidth = this.getTypeWidth(typeName);
+          if (bitWidth > 0) {
+            this.symbolTable.addEnumBitWidth(fullName, bitWidth);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Issue #208: Map C/C++ type names to their bit widths
+   * Supports standard integer types used as enum backing types
+   */
+  private getTypeWidth(typeName: string): number {
+    const typeWidths: Record<string, number> = {
+      // stdint.h types
+      uint8_t: 8,
+      int8_t: 8,
+      uint16_t: 16,
+      int16_t: 16,
+      uint32_t: 32,
+      int32_t: 32,
+      uint64_t: 64,
+      int64_t: 64,
+      // Standard C types (common sizes)
+      char: 8,
+      "signed char": 8,
+      "unsigned char": 8,
+      short: 16,
+      "short int": 16,
+      "signed short": 16,
+      "signed short int": 16,
+      "unsigned short": 16,
+      "unsigned short int": 16,
+      int: 32,
+      "signed int": 32,
+      unsigned: 32,
+      "unsigned int": 32,
+      long: 32,
+      "long int": 32,
+      "signed long": 32,
+      "signed long int": 32,
+      "unsigned long": 32,
+      "unsigned long int": 32,
+      "long long": 64,
+      "long long int": 64,
+      "signed long long": 64,
+      "signed long long int": 64,
+      "unsigned long long": 64,
+      "unsigned long long int": 64,
+    };
+    return typeWidths[typeName] ?? 0;
   }
 
   // Helper methods

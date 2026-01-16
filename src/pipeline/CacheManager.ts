@@ -27,7 +27,7 @@ import ICachedFileEntry from "./types/ICachedFileEntry";
 import ISerializedSymbol from "./types/ISerializedSymbol";
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2; // Issue #208: Added enumBitWidth
 
 // Read version from package.json
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -109,6 +109,7 @@ class CacheManager {
     symbols: ISymbol[];
     structFields: Map<string, Map<string, IStructFieldInfo>>;
     needsStructKeyword: string[];
+    enumBitWidth: Map<string, number>;
   } | null {
     const entry = this.entries.get(filePath);
     if (!entry) {
@@ -128,10 +129,19 @@ class CacheManager {
       structFields.set(structName, fieldMap);
     }
 
+    // Issue #208: Convert enum bit widths from plain object to Map
+    const enumBitWidth = new Map<string, number>();
+    if (entry.enumBitWidth) {
+      for (const [enumName, width] of Object.entries(entry.enumBitWidth)) {
+        enumBitWidth.set(enumName, width);
+      }
+    }
+
     return {
       symbols,
       structFields,
       needsStructKeyword: entry.needsStructKeyword ?? [],
+      enumBitWidth,
     };
   }
 
@@ -143,6 +153,7 @@ class CacheManager {
     symbols: ISymbol[],
     structFields: Map<string, Map<string, IStructFieldInfo>>,
     needsStructKeyword?: string[],
+    enumBitWidth?: Map<string, number>,
   ): void {
     // Get current mtime
     let mtime: number;
@@ -169,6 +180,14 @@ class CacheManager {
       }
     }
 
+    // Issue #208: Convert enum bit widths from Map to plain object
+    const serializedEnumBitWidth: Record<string, number> = {};
+    if (enumBitWidth) {
+      for (const [enumName, width] of enumBitWidth) {
+        serializedEnumBitWidth[enumName] = width;
+      }
+    }
+
     // Create entry
     const entry: ICachedFileEntry = {
       filePath,
@@ -176,6 +195,7 @@ class CacheManager {
       symbols: serializedSymbols,
       structFields: serializedFields,
       needsStructKeyword,
+      enumBitWidth: serializedEnumBitWidth,
     };
 
     this.entries.set(filePath, entry);
