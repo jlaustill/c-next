@@ -50,6 +50,7 @@ class Project {
       preprocess: this.config.preprocess,
       generateHeaders: this.config.generateHeaders,
       outputExtension: this.config.outputExtension,
+      noCache: this.config.noCache,
     });
   }
 

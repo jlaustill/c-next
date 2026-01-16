@@ -31,6 +31,9 @@ interface IProjectConfig {
 
   /** Output file extension (default: ".c") */
   outputExtension?: ".c" | ".cpp";
+
+  /** Issue #183: Disable symbol caching (default: false = cache enabled) */
+  noCache?: boolean;
 }
 
 export default IProjectConfig;

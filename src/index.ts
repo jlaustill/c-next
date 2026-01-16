@@ -105,6 +105,7 @@ function showHelp(): void {
     "  --exclude-headers  Don't generate header files (default: generate)",
   );
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
+  console.log("  --no-cache         Disable symbol cache (.cnx/ directory)");
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --pio-install      Setup PlatformIO integration");
   console.log("  --pio-uninstall    Remove PlatformIO integration");
@@ -188,6 +189,7 @@ async function runUnifiedMode(
   preprocess: boolean,
   verbose: boolean,
   outputExtension: ".c" | ".cpp",
+  noCache: boolean,
 ): Promise<void> {
   // Step 1: Expand directories to .cnx files
   let files: string[];
@@ -256,6 +258,7 @@ async function runUnifiedMode(
     preprocess,
     defines,
     outputExtension,
+    noCache,
   });
 
   // Step 5: Compile
@@ -466,6 +469,7 @@ async function main(): Promise<void> {
   let cliOutputExtension: ".c" | ".cpp" | undefined;
   let preprocess = true;
   let verbose = false;
+  let noCache = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -482,6 +486,8 @@ async function main(): Promise<void> {
       cliOutputExtension = ".cpp";
     } else if (arg === "--no-preprocess") {
       preprocess = false;
+    } else if (arg === "--no-cache") {
+      noCache = true;
     } else if (arg.startsWith("-D")) {
       const define = arg.slice(2);
       const eqIndex = define.indexOf("=");
@@ -520,6 +526,7 @@ async function main(): Promise<void> {
     preprocess,
     verbose,
     outputExtension,
+    noCache,
   );
 }
 
