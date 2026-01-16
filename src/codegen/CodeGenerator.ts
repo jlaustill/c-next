@@ -29,6 +29,7 @@ import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
+import generateLiteral from "./generators/expressions/LiteralGenerator";
 
 /**
  * Maps C-Next types to C types
@@ -387,6 +388,140 @@ export default class CodeGenerator implements IOrchestrator {
     return this._resolveIdentifier(identifier);
   }
 
+  // === Expression Generation (ADR-053 A2) ===
+
+  /**
+   * Generate a C expression from any expression context.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateExpression(ctx: Parser.ExpressionContext): string {
+    return this._generateExpression(ctx);
+  }
+
+  /**
+   * Generate type translation (C-Next type -> C type).
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateType(ctx: Parser.TypeContext): string {
+    return this._generateType(ctx);
+  }
+
+  /**
+   * Generate a unary expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
+    return this._generateUnaryExpr(ctx);
+  }
+
+  /**
+   * Generate a postfix expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
+    return this._generatePostfixExpr(ctx);
+  }
+
+  /**
+   * Generate the full precedence chain from or-expression down.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateOrExpr(ctx: Parser.OrExpressionContext): string {
+    return this._generateOrExpr(ctx);
+  }
+
+  // === Type Utilities ===
+
+  /**
+   * Check if a type name is a known struct.
+   * Part of IOrchestrator interface.
+   */
+  isKnownStruct(typeName: string): boolean {
+    return this._isKnownStruct(typeName);
+  }
+
+  /**
+   * Check if a type is a float type.
+   * Part of IOrchestrator interface - delegates to TypeResolver.
+   */
+  isFloatType(typeName: string): boolean {
+    return this.typeResolver!.isFloatType(typeName);
+  }
+
+  /**
+   * Check if a type is an integer type.
+   * Part of IOrchestrator interface - delegates to TypeResolver.
+   */
+  isIntegerType(typeName: string): boolean {
+    return this.typeResolver!.isIntegerType(typeName);
+  }
+
+  /**
+   * Check if a function is defined in C-Next.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  isCNextFunction(name: string): boolean {
+    return this._isCNextFunction(name);
+  }
+
+  // === Expression Analysis ===
+
+  /**
+   * Get the enum type of an expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getExpressionEnumType(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): string | null {
+    return this._getExpressionEnumType(ctx);
+  }
+
+  /**
+   * Check if an expression is an integer literal or variable.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  isIntegerExpression(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): boolean {
+    return this._isIntegerExpression(ctx);
+  }
+
+  /**
+   * Check if an expression is a string type.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
+    return this._isStringExpression(ctx);
+  }
+
+  /**
+   * Get type of additive expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getAdditiveExpressionType(
+    ctx: Parser.AdditiveExpressionContext,
+  ): string | null {
+    return this._getAdditiveExpressionType(ctx);
+  }
+
+  /**
+   * Extract operators from parse tree children in correct order.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+    return this._getOperatorsFromChildren(ctx);
+  }
+
+  // === Validation ===
+
+  /**
+   * Validate cross-scope member visibility.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  validateCrossScopeVisibility(scopeName: string, memberName: string): void {
+    this._validateCrossScopeVisibility(scopeName, memberName);
+  }
+
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================
@@ -441,7 +576,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #103: Must check both local knownStructs AND SymbolTable
    * for proper type chain tracking through nested C header structs.
    */
-  private isKnownStruct(typeName: string): boolean {
+  private _isKnownStruct(typeName: string): boolean {
     // Check C-Next structs first (local definitions)
     if (this.symbols!.knownStructs.has(typeName)) {
       return true;
@@ -457,7 +592,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Check if a function is a C-Next function (uses pass-by-reference semantics).
    * Checks both internal tracking and external symbol table.
    */
-  private isCNextFunction(name: string): boolean {
+  private _isCNextFunction(name: string): boolean {
     // First check internal tracking (for current file)
     if (this.knownFunctions.has(name)) {
       return true;
@@ -1711,7 +1846,7 @@ export default class CodeGenerator implements IOrchestrator {
    * - ADR-016: this.State.IDLE -> 'CurrentScope_State'
    * - ADR-016: this.variable -> enum type if variable is of enum type
    */
-  private getExpressionEnumType(
+  private _getExpressionEnumType(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
     // Get the text representation to analyze
@@ -1780,7 +1915,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-017: Check if an expression represents an integer literal or numeric type.
    * Used to detect comparisons between enums and integers.
    */
-  private isIntegerExpression(
+  private _isIntegerExpression(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): boolean {
     const text = ctx.getText();
@@ -1816,7 +1951,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Used to detect string comparisons and generate strcmp().
    * Issue #137: Extended to handle array element access (e.g., names[0])
    */
-  private isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
+  private _isStringExpression(
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
     const text = ctx.getText();
 
     // Check for string literals
@@ -2066,19 +2203,7 @@ export default class CodeGenerator implements IOrchestrator {
     return this.typeResolver!.isSignedType(typeName);
   }
 
-  /**
-   * ADR-024: Check if a type is any integer (signed or unsigned)
-   */
-  private isIntegerType(typeName: string): boolean {
-    return this.typeResolver!.isIntegerType(typeName);
-  }
-
-  /**
-   * ADR-024: Check if a type is a floating point type
-   */
-  private isFloatType(typeName: string): boolean {
-    return this.typeResolver!.isFloatType(typeName);
-  }
+  // NOTE: isIntegerType and isFloatType moved to IOrchestrator interface (ADR-053 A2)
 
   /**
    * Get type info for a struct member field
@@ -5347,7 +5472,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   // ADR-016: Validate cross-scope visibility (issue #165)
-  private validateCrossScopeVisibility(
+  private _validateCrossScopeVisibility(
     scopeName: string,
     memberName: string,
   ): void {
@@ -5814,7 +5939,7 @@ export default class CodeGenerator implements IOrchestrator {
   // Expressions
   // ========================================================================
 
-  private generateExpression(ctx: Parser.ExpressionContext): string {
+  private _generateExpression(ctx: Parser.ExpressionContext): string {
     return this.generateTernaryExpr(ctx.ternaryExpression());
   }
 
@@ -5845,7 +5970,7 @@ export default class CodeGenerator implements IOrchestrator {
     return `(${condCode}) ? ${trueCode} : ${falseCode}`;
   }
 
-  private generateOrExpr(ctx: Parser.OrExpressionContext): string {
+  private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
     const parts = ctx.andExpression().map((e) => this.generateAndExpr(e));
     return parts.join(" || ");
   }
@@ -5999,7 +6124,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Get the type of an additive expression.
    */
-  private getAdditiveExpressionType(
+  private _getAdditiveExpressionType(
     ctx: Parser.AdditiveExpressionContext,
   ): string | null {
     // For simple case, get type from first multiplicative expression
@@ -6029,7 +6154,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @param ctx The parser rule context containing operands and operators as children
    * @returns Array of operator strings in the order they appear
    */
-  private getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+  private _getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
     const operators: string[] = [];
     for (const child of ctx.children) {
       if (child instanceof TerminalNode) {
@@ -6077,7 +6202,7 @@ export default class CodeGenerator implements IOrchestrator {
     return result;
   }
 
-  private generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
+  private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
     if (ctx.postfixExpression()) {
       return this.generatePostfixExpr(ctx.postfixExpression()!);
     }
@@ -6093,7 +6218,7 @@ export default class CodeGenerator implements IOrchestrator {
     return inner;
   }
 
-  private generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
+  private _generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
     const primary = ctx.primaryExpression();
     const ops = ctx.postfixOp();
 
@@ -7024,33 +7149,15 @@ export default class CodeGenerator implements IOrchestrator {
       return id;
     }
     if (ctx.literal()) {
-      let literalText = ctx.literal()!.getText();
-      // Track boolean literal usage to include stdbool.h
-      if (literalText === "true" || literalText === "false") {
-        this.needsStdbool = true;
-      }
-      // ADR-024: Transform C-Next float suffixes to standard C syntax
-      // 3.14f32 -> 3.14f (C float)
-      // 3.14f64 -> 3.14 (C double, no suffix needed)
-      if (/[fF]32$/.test(literalText)) {
-        literalText = literalText.replace(/[fF]32$/, "f");
-      } else if (/[fF]64$/.test(literalText)) {
-        literalText = literalText.replace(/[fF]64$/, "");
-      }
-
-      // Issue #130: Transform C-Next integer suffixes to standard C syntax
-      // u8/u16/u32 and i8/i16/i32 suffixes are stripped (C infers from context)
-      // u64 -> ULL suffix for 64-bit unsigned
-      // i64 -> LL suffix for 64-bit signed
-      if (/[uU]64$/.test(literalText)) {
-        literalText = literalText.replace(/[uU]64$/, "ULL");
-      } else if (/[iI]64$/.test(literalText)) {
-        literalText = literalText.replace(/[iI]64$/, "LL");
-      } else if (/[uUiI](8|16|32)$/.test(literalText)) {
-        // Strip 8/16/32-bit suffixes - C handles these without explicit suffix
-        literalText = literalText.replace(/[uUiI](8|16|32)$/, "");
-      }
-      return literalText;
+      // ADR-053 A2: Use extracted literal generator
+      const result = generateLiteral(
+        ctx.literal()!,
+        this.getInput(),
+        this.getState(),
+        this,
+      );
+      this.applyEffects(result.effects);
+      return result.code;
     }
     if (ctx.expression()) {
       return `(${this.generateExpression(ctx.expression()!)})`;
@@ -7726,7 +7833,7 @@ export default class CodeGenerator implements IOrchestrator {
     return ctx.getText();
   }
 
-  private generateType(ctx: Parser.TypeContext): string {
+  private _generateType(ctx: Parser.TypeContext): string {
     if (ctx.primitiveType()) {
       const type = ctx.primitiveType()!.getText();
       // Track required includes based on type usage
