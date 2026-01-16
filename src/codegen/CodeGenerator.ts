@@ -5054,7 +5054,45 @@ export default class CodeGenerator implements IOrchestrator {
                   `Use the corresponding CLEAR register to clear bits.`,
               );
             }
-            // Write-only: just write the value shifted to position
+
+            // Issue #187: Check if we can use width-appropriate memory access
+            const startConst = this._tryEvaluateConstant(exprs[0]);
+            const widthConst = this._tryEvaluateConstant(exprs[1]);
+
+            if (
+              startConst !== undefined &&
+              widthConst !== undefined &&
+              startConst % 8 === 0 && // byte-aligned
+              [8, 16, 32].includes(widthConst) // standard width
+            ) {
+              // Issue #187: Generate width-appropriate memory access
+              // Determine register name for base address lookup
+              let regName: string;
+              if (
+                this.symbols!.knownScopes.has(leadingId) &&
+                identifiers.length >= 3
+              ) {
+                regName = `${leadingId}_${identifiers[1].getText()}`;
+              } else {
+                regName = leadingId;
+              }
+
+              const baseAddr = this.symbols!.registerBaseAddresses.get(regName);
+              const memberOffset =
+                this.symbols!.registerMemberOffsets.get(fullName);
+              const byteOffset = startConst / 8;
+
+              if (baseAddr !== undefined && memberOffset !== undefined) {
+                const accessType = `uint${widthConst}_t`;
+                const totalOffset =
+                  byteOffset === 0
+                    ? memberOffset
+                    : `${memberOffset} + ${byteOffset}`;
+                return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
+              }
+            }
+
+            // Fallback: write the value shifted to position
             return `${fullName} = ((${value} & ${mask}) << ${start});`;
           } else {
             // Read-write: need read-modify-write
@@ -5174,7 +5212,34 @@ export default class CodeGenerator implements IOrchestrator {
                   `Use the corresponding CLEAR register to clear bits.`,
               );
             }
-            // Write-only: just write the value shifted to position
+
+            // Issue #187: Check if we can use width-appropriate memory access
+            const startConst = this._tryEvaluateConstant(expressions[0]);
+            const widthConst = this._tryEvaluateConstant(expressions[1]);
+
+            if (
+              startConst !== undefined &&
+              widthConst !== undefined &&
+              startConst % 8 === 0 && // byte-aligned
+              [8, 16, 32].includes(widthConst) // standard width
+            ) {
+              const baseAddr =
+                this.symbols!.registerBaseAddresses.get(scopedRegName);
+              const memberOffset =
+                this.symbols!.registerMemberOffsets.get(regName);
+              const byteOffset = startConst / 8;
+
+              if (baseAddr !== undefined && memberOffset !== undefined) {
+                const accessType = `uint${widthConst}_t`;
+                const totalOffset =
+                  byteOffset === 0
+                    ? memberOffset
+                    : `${memberOffset} + ${byteOffset}`;
+                return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
+              }
+            }
+
+            // Fallback: write the value shifted to position
             return `${regName} = ((${value} & ${mask}) << ${start});`;
           } else {
             // Read-write: need read-modify-write
