@@ -134,6 +134,59 @@ interface IOrchestrator {
 
   /** Get known enums set for pass-by-value detection */
   getKnownEnums(): ReadonlySet<string>;
+
+  // === Statement Generation (ADR-053 A3) ===
+
+  /** Generate a block (curly braces with statements) */
+  generateBlock(ctx: Parser.BlockContext): string;
+
+  /** Generate a single statement */
+  generateStatement(ctx: Parser.StatementContext): string;
+
+  /** Get indentation string for current level */
+  indent(text: string): string;
+
+  // === Statement Validation (ADR-053 A3) ===
+
+  /** Validate no early exits (return/break) in critical blocks (ADR-050) */
+  validateNoEarlyExits(ctx: Parser.BlockContext): void;
+
+  /** Validate switch statement (ADR-025) */
+  validateSwitchStatement(
+    ctx: Parser.SwitchStatementContext,
+    switchExpr: Parser.ExpressionContext,
+  ): void;
+
+  /** Validate do-while condition (ADR-027) */
+  validateDoWhileCondition(ctx: Parser.ExpressionContext): void;
+
+  // === Control Flow Helpers (ADR-053 A3) ===
+
+  /** Generate an assignment target */
+  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
+
+  /** Generate array dimensions */
+  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string;
+
+  // === strlen Optimization (ADR-053 A3) ===
+
+  /** Count string length accesses for caching */
+  countStringLengthAccesses(ctx: Parser.ExpressionContext): Map<string, number>;
+
+  /** Count block length accesses */
+  countBlockLengthAccesses(
+    ctx: Parser.BlockContext,
+    counts: Map<string, number>,
+  ): void;
+
+  /** Setup length cache and return declarations */
+  setupLengthCache(counts: Map<string, number>): string;
+
+  /** Clear length cache */
+  clearLengthCache(): void;
+
+  /** Register a local variable */
+  registerLocalVariable(name: string): void;
 }
 
 export default IOrchestrator;
