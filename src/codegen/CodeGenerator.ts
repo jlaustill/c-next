@@ -32,6 +32,9 @@ import GeneratorRegistry from "./generators/GeneratorRegistry";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
 import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
+import generateFunctionCall from "./generators/expressions/CallExprGenerator";
+import accessGenerators from "./generators/expressions/AccessExprGenerator";
+import expressionGenerators from "./generators/expressions/ExpressionGenerator";
 
 /**
  * Maps C-Next types to C types
@@ -535,6 +538,62 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ShiftExpressionContext,
   ): void {
     this.typeValidator!.validateShiftAmount(leftType, rightExpr, op, ctx);
+  }
+
+  /**
+   * Validate ternary condition is a comparison (ADR-022).
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  validateTernaryCondition(condition: Parser.OrExpressionContext): void {
+    this.typeValidator!.validateTernaryCondition(condition);
+  }
+
+  /**
+   * Validate no nested ternary expressions (ADR-022).
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  validateNoNestedTernary(
+    expr: Parser.OrExpressionContext,
+    branchName: string,
+  ): void {
+    this.typeValidator!.validateNoNestedTernary(expr, branchName);
+  }
+
+  // === Function Call Helpers (ADR-053 A2 Phase 5) ===
+
+  /**
+   * Get simple identifier from expression, or null if complex.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+    return this._getSimpleIdentifier(ctx);
+  }
+
+  /**
+   * Generate function argument with pass-by-reference handling.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string {
+    return this._generateFunctionArg(ctx, targetParamBaseType);
+  }
+
+  /**
+   * Check if a value is const.
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  isConstValue(name: string): boolean {
+    return this.typeValidator!.isConstValue(name);
+  }
+
+  /**
+   * Get known enums set for pass-by-value detection.
+   * Part of IOrchestrator interface.
+   */
+  getKnownEnums(): ReadonlySet<string> {
+    return this.symbols!.knownEnums;
   }
 
   // ===========================================================================
@@ -2390,7 +2449,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Extract a simple identifier from an expression, if it is one.
    * Returns null for complex expressions.
    */
-  private getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+  private _getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
     const postfix = this.getPostfixExpression(ctx);
     if (!postfix) return null;
 
@@ -2578,11 +2637,11 @@ export default class CodeGenerator implements IOrchestrator {
    * @param ctx The expression context
    * @param targetParamBaseType Optional: the C-Next type of the target parameter (e.g., 'u32')
    */
-  private generateFunctionArg(
+  private _generateFunctionArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    const id = this.getSimpleIdentifier(ctx);
+    const id = this._getSimpleIdentifier(ctx);
 
     if (id) {
       // Check if it's a parameter (already a pointer for non-floats)
@@ -5954,35 +6013,29 @@ export default class CodeGenerator implements IOrchestrator {
   // Expressions
   // ========================================================================
 
+  // ADR-053 A2 Phase 7: Use extracted expression generator
   private _generateExpression(ctx: Parser.ExpressionContext): string {
-    return this.generateTernaryExpr(ctx.ternaryExpression());
+    const result = expressionGenerators.generateExpression(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // ADR-022: Ternary operator with safety constraints
+  // ADR-053 A2 Phase 7: Use extracted ternary generator
   private generateTernaryExpr(ctx: Parser.TernaryExpressionContext): string {
-    const orExprs = ctx.orExpression();
-
-    // Non-ternary path: just one orExpression
-    if (orExprs.length === 1) {
-      return this.generateOrExpr(orExprs[0]);
-    }
-
-    // Ternary path: 3 orExpressions (condition, true branch, false branch)
-    const condition = orExprs[0];
-    const trueExpr = orExprs[1];
-    const falseExpr = orExprs[2];
-
-    // ADR-022: Validate ternary constraints
-    this.typeValidator!.validateTernaryCondition(condition);
-    this.typeValidator!.validateNoNestedTernary(trueExpr, "true branch");
-    this.typeValidator!.validateNoNestedTernary(falseExpr, "false branch");
-
-    // Generate C output - parentheses already present from grammar
-    const condCode = this.generateOrExpr(condition);
-    const trueCode = this.generateOrExpr(trueExpr);
-    const falseCode = this.generateOrExpr(falseExpr);
-
-    return `(${condCode}) ? ${trueCode} : ${falseCode}`;
+    const result = expressionGenerators.generateTernaryExpr(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
@@ -6482,33 +6535,27 @@ export default class CodeGenerator implements IOrchestrator {
           }
         }
         // ADR-045: Handle .capacity property for strings
+        // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
         else if (memberName === "capacity") {
           const typeInfo = primaryId
             ? this.context.typeRegistry.get(primaryId)
             : undefined;
-          if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-            // Return compile-time constant capacity (max string length)
-            result = String(typeInfo.stringCapacity);
-          } else {
-            throw new Error(
-              `Error: .capacity is only available on string types`,
-            );
-          }
+          const capResult = accessGenerators.generateCapacityProperty(typeInfo);
+          this.applyEffects(capResult.effects);
+          result = capResult.code;
         }
         // ADR-045: Handle .size property for strings (buffer size = capacity + 1)
-        // Use .size with functions like fgets that need buffer size, not max length
+        // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
         else if (memberName === "size") {
           const typeInfo = primaryId
             ? this.context.typeRegistry.get(primaryId)
             : undefined;
-          if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-            // Return buffer size (capacity + 1 for null terminator)
-            result = String(typeInfo.stringCapacity + 1);
-          } else {
-            throw new Error(`Error: .size is only available on string types`);
-          }
+          const sizeResult = accessGenerators.generateSizeProperty(typeInfo);
+          this.applyEffects(sizeResult.effects);
+          result = sizeResult.code;
         }
         // ADR-034: Handle bitmap field read access: flags.Running -> ((flags >> 0) & 1)
+        // Partially extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
         else if (primaryId) {
           const typeInfo = this.context.typeRegistry.get(primaryId);
           if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
@@ -6516,14 +6563,13 @@ export default class CodeGenerator implements IOrchestrator {
             const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              // Use extracted generator for bitmap field access
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
             } else {
               throw new Error(
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
@@ -6612,19 +6658,18 @@ export default class CodeGenerator implements IOrchestrator {
           }
           // ADR-034: Check if result is a register member with bitmap type
           // Handle: MOTOR_CTRL.Running where MOTOR_CTRL has bitmap type MotorControl
+          // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
             } else {
               throw new Error(
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
@@ -6647,19 +6692,18 @@ export default class CodeGenerator implements IOrchestrator {
 
             // ADR-034: Check if currentStructType is a bitmap - handle field access
             // This handles structParam->bitmapMember.field -> bitwise access
+            // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
             const bitmapFieldsPtr = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
             if (bitmapFieldsPtr && bitmapFieldsPtr.has(memberName)) {
               const fieldInfo = bitmapFieldsPtr.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
               // Bitmap fields don't have sub-members, clear struct type tracking
               currentStructType = undefined;
               continue;
@@ -6696,19 +6740,18 @@ export default class CodeGenerator implements IOrchestrator {
 
             // ADR-034: Check if currentStructType is a bitmap - handle field access
             // This handles struct.bitmapMember.field -> bitwise access
+            // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
             const bitmapFields = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
             if (bitmapFields && bitmapFields.has(memberName)) {
               const fieldInfo = bitmapFields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                // Single bit: ((value >> offset) & 1)
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                // Multi-bit: ((value >> offset) & mask)
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
               // Bitmap fields don't have sub-members, clear struct type tracking
               currentStructType = undefined;
               continue;
@@ -6809,17 +6852,18 @@ export default class CodeGenerator implements IOrchestrator {
             isRegisterChain = true;
           }
           // ADR-034: Check if result is a register member with bitmap type (no primaryId case)
+          // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
             if (fields && fields.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
-              if (fieldInfo.width === 1) {
-                result = `((${result} >> ${fieldInfo.offset}) & 1)`;
-              } else {
-                const mask = (1 << fieldInfo.width) - 1;
-                result = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
-              }
+              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+                result,
+                fieldInfo,
+              );
+              this.applyEffects(bitmapResult.effects);
+              result = bitmapResult.code;
             } else {
               throw new Error(
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
@@ -6954,120 +6998,19 @@ export default class CodeGenerator implements IOrchestrator {
           }
         }
       }
-      // Function call
-      else if (op.argumentList()) {
-        // Check if this is a C-Next function (uses pass-by-reference)
-        // C/C++ functions use pass-by-value
-        // Uses both internal tracking and symbol table for cross-language interop
-        const isCNextFunc = this.isCNextFunction(result);
-
-        const argExprs = op.argumentList()!.expression();
-
-        // ADR-051: Handle safe_div() and safe_mod() built-in functions
-        if (result === "safe_div" || result === "safe_mod") {
-          if (argExprs.length !== 4) {
-            throw new Error(
-              `${result} requires exactly 4 arguments: output, numerator, divisor, defaultValue`,
-            );
-          }
-
-          // Get the output parameter (first argument) to determine type
-          const outputArgId = this.getSimpleIdentifier(argExprs[0]);
-          if (!outputArgId) {
-            throw new Error(
-              `${result} requires a variable as the first argument (output parameter)`,
-            );
-          }
-
-          // Look up the type of the output parameter
-          const typeInfo = this.context.typeRegistry.get(outputArgId);
-          if (!typeInfo) {
-            throw new Error(
-              `Cannot determine type of output parameter '${outputArgId}' for ${result}`,
-            );
-          }
-
-          // Map C-Next type to helper function suffix
-          const cnxType = typeInfo.baseType; // e.g., "u32", "i16", etc.
-          if (!cnxType) {
-            throw new Error(
-              `Output parameter '${outputArgId}' has no C-Next type for ${result}`,
-            );
-          }
-
-          // Generate arguments: &output, numerator, divisor, defaultValue
-          const outputArg = `&${this.generateExpression(argExprs[0])}`;
-          const numeratorArg = this.generateExpression(argExprs[1]);
-          const divisorArg = this.generateExpression(argExprs[2]);
-          const defaultArg = this.generateExpression(argExprs[3]);
-
-          const helperName =
-            result === "safe_div"
-              ? `cnx_safe_div_${cnxType}`
-              : `cnx_safe_mod_${cnxType}`;
-
-          // Track that this operation is used for helper generation
-          const opType = result === "safe_div" ? "div" : "mod";
-          this.usedSafeDivOps.add(`${opType}_${cnxType}`);
-
-          result = `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`;
-        }
-        // Regular function call handling
-        else {
-          // ADR-013: Check const-to-non-const before generating arguments
-          if (isCNextFunc) {
-            const sig = this.functionSignatures.get(result);
-            if (sig) {
-              for (
-                let argIdx = 0;
-                argIdx < argExprs.length && argIdx < sig.parameters.length;
-                argIdx++
-              ) {
-                const argId = this.getSimpleIdentifier(argExprs[argIdx]);
-                if (argId && this.typeValidator!.isConstValue(argId)) {
-                  const param = sig.parameters[argIdx];
-                  if (!param.isConst) {
-                    throw new Error(
-                      `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
-                        `of function '${result}'`,
-                    );
-                  }
-                }
-              }
-            }
-          }
-
-          const args = argExprs
-            // eslint-disable-next-line @typescript-eslint/no-loop-func
-            .map((e, idx) => {
-              if (!isCNextFunc) {
-                return this.generateExpression(e);
-              }
-              // C-Next function: check if target parameter is a pass-by-value type
-              const sig = this.functionSignatures.get(result);
-              const targetParam = sig?.parameters[idx];
-              const isFloatParam =
-                targetParam && this.isFloatType(targetParam.baseType);
-              const isEnumParam =
-                targetParam &&
-                this.symbols!.knownEnums.has(targetParam.baseType);
-
-              if (isFloatParam || isEnumParam) {
-                // Target parameter is float or enum (pass-by-value): pass value directly
-                return this.generateExpression(e);
-              } else {
-                // Target parameter is non-float/non-enum (pass-by-reference): use & logic
-                // Pass the target param type for proper literal handling
-                return this.generateFunctionArg(e, targetParam?.baseType);
-              }
-            })
-            .join(", ");
-          result = `${result}(${args})`;
-        }
-      }
-      // Empty function call
+      // Function call (extracted to CallExprGenerator - ADR-053 A2 Phase 5)
+      // Handles both argumentList() case and empty function call ()
       else {
-        result = `${result}()`;
+        // Delegate to extracted function call generator
+        const callResult = generateFunctionCall(
+          result,
+          op.argumentList() || null,
+          this.getInput(),
+          this.getState(),
+          this,
+        );
+        this.applyEffects(callResult.effects);
+        result = callResult.code;
       }
     }
 

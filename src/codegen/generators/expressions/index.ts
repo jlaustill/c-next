@@ -16,12 +16,18 @@
 import generateLiteral from "./LiteralGenerator";
 import binaryExprGenerators from "./BinaryExprGenerator";
 import generateUnaryExpr from "./UnaryExprGenerator";
+import generateFunctionCall from "./CallExprGenerator";
+import accessGenerators from "./AccessExprGenerator";
+import expressionGenerators from "./ExpressionGenerator";
 
 // Export all generators as a single object
 const generators = {
   generateLiteral,
   generateUnaryExpr,
+  generateFunctionCall,
   ...binaryExprGenerators,
+  ...accessGenerators,
+  ...expressionGenerators,
 };
 
 export default generators;

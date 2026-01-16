@@ -108,6 +108,32 @@ interface IOrchestrator {
     op: string,
     ctx: Parser.ShiftExpressionContext,
   ): void;
+
+  /** Validate ternary condition is a comparison (ADR-022) */
+  validateTernaryCondition(condition: Parser.OrExpressionContext): void;
+
+  /** Validate no nested ternary expressions (ADR-022) */
+  validateNoNestedTernary(
+    expr: Parser.OrExpressionContext,
+    branchName: string,
+  ): void;
+
+  // === Function Call Helpers (ADR-053 A2 Phase 5) ===
+
+  /** Get simple identifier from expression, or null if complex */
+  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
+
+  /** Generate function argument with pass-by-reference handling */
+  generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string;
+
+  /** Check if a value is const (for const-to-non-const validation) */
+  isConstValue(name: string): boolean;
+
+  /** Get known enums set for pass-by-value detection */
+  getKnownEnums(): ReadonlySet<string>;
 }
 
 export default IOrchestrator;
