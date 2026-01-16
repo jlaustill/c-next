@@ -126,7 +126,7 @@ class CSymbolCollector {
         }
       }
 
-      this.collectStructOrUnion(structSpec, line, typedefName);
+      this.collectStructOrUnion(structSpec, line, typedefName, isTypedef);
     }
 
     // Check for enum
@@ -206,6 +206,7 @@ class CSymbolCollector {
     structSpec: StructOrUnionSpecifierContext,
     line: number,
     typedefName?: string,
+    isTypedef?: boolean,
   ): void {
     const identifier = structSpec.Identifier();
 
@@ -224,6 +225,14 @@ class CSymbolCollector {
       sourceLanguage: ESourceLanguage.C,
       isExported: true,
     });
+
+    // Issue #196 Bug 3: Mark named structs that are not typedef'd
+    // These require 'struct' keyword when referenced in C
+    // Example: "struct NamedPoint { ... };" -> needs "struct NamedPoint var"
+    // But "typedef struct { ... } Rectangle;" -> just "Rectangle var"
+    if (this.symbolTable && identifier && !isTypedef) {
+      this.symbolTable.markNeedsStructKeyword(name);
+    }
 
     // Extract struct field information if SymbolTable is available
     if (this.symbolTable) {
@@ -311,6 +320,8 @@ class CSymbolCollector {
 
   /**
    * Extract type from specifierQualifierList (for struct fields)
+   * Issue #196 Bug 1 Fix: For struct/union field types, extract just the
+   * identifier (e.g., "InnerConfig") not the concatenated text ("structInnerConfig")
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private extractTypeFromSpecQualList(specQualList: any): string {
@@ -321,7 +332,20 @@ class CSymbolCollector {
     while (current) {
       const typeSpec = current.typeSpecifier?.();
       if (typeSpec) {
-        parts.push(typeSpec.getText());
+        // Check for struct/union specifier - need to extract just the identifier
+        const structSpec = typeSpec.structOrUnionSpecifier?.();
+        if (structSpec) {
+          const identifier = structSpec.Identifier?.();
+          if (identifier) {
+            // Use just the struct/union name, not "structName" concatenated
+            parts.push(identifier.getText());
+          } else {
+            // Anonymous struct - use full text
+            parts.push(typeSpec.getText());
+          }
+        } else {
+          parts.push(typeSpec.getText());
+        }
       }
 
       const typeQual = current.typeQualifier?.();

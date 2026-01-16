@@ -1,6 +1,6 @@
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+/* test-execution */
 /* test-coverage: 30-use-c-struct-nested */
-// Tests: Using C structs with nested struct members
+// Tests: Using C structs with nested struct members (Issue #196 fix)
 // ADR-010: Nested struct member access from C headers
 
 #include "c-interop/structs.h"

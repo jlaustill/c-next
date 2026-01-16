@@ -281,8 +281,34 @@ class InitializationListener extends CNextListener {
       // Check if this is part of a postfixExpression with member access
       const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
       if (parent?.postfixOp && parent.postfixOp().length > 0) {
-        const firstOp = parent.postfixOp()[0];
+        const ops = parent.postfixOp();
+        const firstOp = ops[0];
         const opText = firstOp.getText();
+
+        // Issue #196 Bug 2: Skip init check for .length on non-string types
+        // .length is a compile-time type property that doesn't read runtime values
+        // BUT: struct.field.length where field is a string DOES need init check
+        const varState = this.analyzer.lookupVariableState(name);
+        const isStringType = varState?.isStringType ?? false;
+
+        // Check if chain ends with .length on non-string type
+        if (!isStringType) {
+          const lastOp = ops[ops.length - 1].getText();
+          if (lastOp === ".length") {
+            const firstOpText = ops[0].getText();
+            // Only skip if:
+            // 1. Direct .length access on non-string variable (ops = [".length"])
+            // 2. Array element .length access (ops = ["[...]", ".length"])
+            // Do NOT skip for struct member access (ops = [".field", ".length"])
+            // because the field might be a string type that needs init check
+            if (ops.length === 1 || firstOpText.startsWith("[")) {
+              // .length on non-string base or array element - compile-time, skip
+              return;
+            }
+            // Fall through for struct member access - the member might be a string
+          }
+        }
+
         // If the first postfixOp is a member access (has '.'), check the field
         if (opText.startsWith(".")) {
           // Extract field name (remove the leading '.')
@@ -726,6 +752,14 @@ class InitializationAnalyzer {
       scope = scope.parent;
     }
     return null;
+  }
+
+  /**
+   * Public method to look up variable state
+   * Issue #196 Bug 2: Used by visitor to check if variable is string type
+   */
+  public lookupVariableState(name: string): IVariableState | null {
+    return this.lookupVariable(name);
   }
 
   // ========================================================================

@@ -3,9 +3,9 @@
  * A safer C for embedded systems
  */
 
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+/* test-execution */
 /* test-coverage: 30-use-c-struct-nested */
-// Tests: Using C structs with nested struct members
+// Tests: Using C structs with nested struct members (Issue #196 fix)
 // ADR-010: Nested struct member access from C headers
 #include "c-interop/structs.h"
 
@@ -21,7 +21,7 @@ int main(void) {
     if (rect.origin.y != 20) return 2;
     if (rect.width != 100) return 3;
     if (rect.height != 50) return 4;
-    if (0 != 32) return 5;
+    if (32 != 32) return 5;
     if (32 != 32) return 6;
     uint32_t area = rect.width * rect.height;
     if (area != 5000) return 7;

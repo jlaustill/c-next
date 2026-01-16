@@ -1,20 +1,24 @@
 /* test-execution */
-/* test-coverage: 30-use-c-struct-named */
-// Tests: Using named C structs (struct keyword required)
+/* test-coverage: 31-use-c-struct-named */
+// Tests: Using non-typedef'd C structs (Issue #196 Bug 3)
+// In C, 'struct NamedPoint' is declared but not typedef'd
+// Generated C must emit 'struct NamedPoint' not just 'NamedPoint'
 // ADR-010: Named struct import from C headers
 
 #include "c-interop/structs.h"
 
 u32 main() {
-    // Test 1: Use struct NamedPoint
-    struct NamedPoint pt;
+    // Test 1: Use NamedPoint (declared as 'struct NamedPoint' in C header)
+    // Generated C must have: struct NamedPoint pt = {0};
+    NamedPoint pt;
     pt.x <- 100;
     pt.y <- 200;
     if (pt.x != 100) return 1;
     if (pt.y != 200) return 2;
 
-    // Test 2: Use struct NamedConfig
-    struct NamedConfig cfg;
+    // Test 2: Use NamedConfig (declared as 'struct NamedConfig' in C header)
+    // Generated C must have: struct NamedConfig cfg = {0};
+    NamedConfig cfg;
     cfg.magic <- 0xCAFEBABE;
     cfg.version <- 0x0102;
     cfg.flags <- 0xFF;
@@ -32,7 +36,7 @@ u32 main() {
     if (cfg.flags.length != 8) return 10;
 
     // Test 4: Field assignment from another field
-    struct NamedPoint pt2;
+    NamedPoint pt2;
     pt2.x <- pt.x;
     pt2.y <- pt.y;
     if (pt2.x != 100) return 11;

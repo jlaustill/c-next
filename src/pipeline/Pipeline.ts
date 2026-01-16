@@ -312,9 +312,10 @@ class Pipeline {
     if (this.cacheManager?.isValid(file.path)) {
       const cached = this.cacheManager.getSymbols(file.path);
       if (cached) {
-        // Restore symbols and struct fields from cache
+        // Restore symbols, struct fields, and needsStructKeyword from cache
         this.symbolTable.addSymbols(cached.symbols);
         this.symbolTable.restoreStructFields(cached.structFields);
+        this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
         return; // Cache hit - skip parsing
       }
     }
@@ -352,7 +353,15 @@ class Pipeline {
     if (this.cacheManager) {
       const symbols = this.symbolTable.getSymbolsByFile(file.path);
       const structFields = this.extractStructFieldsForFile(file.path);
-      this.cacheManager.setSymbols(file.path, symbols, structFields);
+      const needsStructKeyword = this.extractNeedsStructKeywordForFile(
+        file.path,
+      );
+      this.cacheManager.setSymbols(
+        file.path,
+        symbols,
+        structFields,
+        needsStructKeyword,
+      );
     }
   }
 
@@ -938,6 +947,19 @@ class Pipeline {
     }
 
     return result;
+  }
+
+  /**
+   * Issue #196 Bug 3: Extract struct names requiring 'struct' keyword for a specific file
+   * Returns struct names from this file that need the 'struct' keyword in C
+   */
+  private extractNeedsStructKeywordForFile(filePath: string): string[] {
+    // Get struct names defined in this file
+    const structNames = this.symbolTable.getStructNamesByFile(filePath);
+
+    // Filter to only those that need struct keyword
+    const allNeedsKeyword = this.symbolTable.getAllNeedsStructKeyword();
+    return structNames.filter((name) => allNeedsKeyword.includes(name));
   }
 }
 

@@ -7886,7 +7886,12 @@ export default class CodeGenerator implements IOrchestrator {
       return `${scopeName}_${typeName}`;
     }
     if (ctx.userType()) {
-      return ctx.userType()!.getText();
+      const typeName = ctx.userType()!.getText();
+      // Issue #196 Bug 3: Check if this C struct needs 'struct' keyword
+      if (this.symbolTable?.checkNeedsStructKeyword(typeName)) {
+        return `struct ${typeName}`;
+      }
+      return typeName;
     }
     if (ctx.arrayType()) {
       const arrCtx = ctx.arrayType()!;
@@ -7896,7 +7901,13 @@ export default class CodeGenerator implements IOrchestrator {
           TYPE_MAP[arrCtx.primitiveType()!.getText()] ||
           arrCtx.primitiveType()!.getText();
       } else {
-        baseType = arrCtx.userType()!.getText();
+        const typeName = arrCtx.userType()!.getText();
+        // Issue #196 Bug 3: Check if this C struct needs 'struct' keyword
+        if (this.symbolTable?.checkNeedsStructKeyword(typeName)) {
+          baseType = `struct ${typeName}`;
+        } else {
+          baseType = typeName;
+        }
       }
       return baseType;
     }

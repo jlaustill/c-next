@@ -14,6 +14,8 @@ interface ICachedFileEntry {
   symbols: ISerializedSymbol[];
   /** Struct fields: struct name -> (field name -> field info) */
   structFields: Record<string, Record<string, IStructFieldInfo>>;
+  /** Issue #196 Bug 3: Struct names requiring 'struct' keyword in C */
+  needsStructKeyword?: string[];
 }
 
 export default ICachedFileEntry;
