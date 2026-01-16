@@ -1,0 +1,23 @@
+/* test-execution */
+// Tests: Constant-folding of literal boolean values in bitmap assignments
+
+bitmap8 Flags { bit0, bit1, bit2, bit3, bit4, bit5, bit6, bit7 }
+
+u32 main() {
+    Flags f;
+
+    // Literal true - should generate: | (1 << 0)
+    f.bit0 <- true;
+    if (f.bit0 != true) return 1;
+
+    // Literal false - should generate: | (0 << 1)
+    f.bit1 <- false;
+    if (f.bit1 != false) return 2;
+
+    // Variable (should keep ternary)
+    bool val <- true;
+    f.bit2 <- val;
+    if (f.bit2 != true) return 3;
+
+    return 0;
+}

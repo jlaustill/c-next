@@ -25,8 +25,8 @@ typedef uint16_t CANStatus;
 CANStatus status = 0;
 
 int main(void) {
-    status = (status & ~(1 << 0)) | ((true ? 1 : 0) << 0);
-    status = (status & ~(1 << 1)) | ((false ? 1 : 0) << 1);
+    status = (status & ~(1 << 0)) | (1 << 0);
+    status = (status & ~(1 << 1)) | (0 << 1);
     status = (status & ~(0xFF << 8)) | ((255 & 0xFF) << 8);
     bool isReady = ((status >> 0) & 1);
     uint8_t count = ((status >> 8) & 0xFF);

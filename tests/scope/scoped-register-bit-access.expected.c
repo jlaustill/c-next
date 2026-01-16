@@ -21,5 +21,5 @@ void Board_toggleLed(void) {
 
 int main(void) {
     Board_toggleLed();
-    Board_GPIO_DR = (Board_GPIO_DR & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    Board_GPIO_DR = (Board_GPIO_DR & ~(1 << 0)) | (1 << 0);
 }

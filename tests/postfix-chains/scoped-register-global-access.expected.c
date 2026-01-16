@@ -30,7 +30,7 @@ static uint32_t MotorController_DEFAULT_SPEED = 100;
 
 
 void MotorController_start(void) {
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | (1 << 0);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7 << 3)) | ((3 & 0x7) << 3);
     MotorController_MOTOR_REG_SPEED = MotorController_DEFAULT_SPEED;
 }
@@ -56,12 +56,12 @@ void Board_toggleLed(void) {
 }
 
 int main(void) {
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | ((true ? 1 : 0) << 0);
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 1)) | ((false ? 1 : 0) << 1);
+    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | (1 << 0);
+    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 1)) | (0 << 1);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7 << 3)) | ((5 & 0x7) << 3);
     bool running = ((MotorController_MOTOR_REG_CTRL >> 0) & 1);
     uint8_t mode = ((MotorController_MOTOR_REG_CTRL >> 3) & 0x7);
-    Board_GPIO_DR = (Board_GPIO_DR & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    Board_GPIO_DR = (Board_GPIO_DR & ~(1 << 0)) | (1 << 0);
     bool ledState = ((Board_GPIO_DR >> 3) & 1);
     MotorController_start();
     bool isRun = MotorController_isRunning();

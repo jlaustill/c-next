@@ -12,13 +12,13 @@
 // Bit operations on scalar integers should use bit manipulation, not memcpy
 int main(void) {
     uint32_t flags = 0;
-    flags = (flags & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    flags = (flags & ~(1 << 0)) | (1 << 0);
     if (flags != 0x00000001) return 1;
-    flags = (flags & ~(1 << 7)) | ((true ? 1 : 0) << 7);
+    flags = (flags & ~(1 << 7)) | (1 << 7);
     if (flags != 0x00000081) return 2;
-    flags = (flags & ~(1 << 0)) | ((false ? 1 : 0) << 0);
+    flags = (flags & ~(1 << 0)) | (0 << 0);
     if (flags != 0x00000080) return 3;
-    flags = (flags & ~(1 << 15)) | ((true ? 1 : 0) << 15);
+    flags = (flags & ~(1 << 15)) | (1 << 15);
     if (flags != 0x00008080) return 4;
     uint32_t value = 0;
     value = (value & ~(((1U << 3) - 1) << 0)) | ((5 & ((1U << 3) - 1)) << 0);
@@ -35,7 +35,7 @@ int main(void) {
     uint8_t smallFlags = 0;
     smallFlags = (smallFlags & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0);
     if (smallFlags != 0x0F) return 10;
-    smallFlags = (smallFlags & ~(1 << 7)) | ((true ? 1 : 0) << 7);
+    smallFlags = (smallFlags & ~(1 << 7)) | (1 << 7);
     if (smallFlags != 0x8F) return 11;
     uint16_t mediumFlags = 0;
     mediumFlags = (mediumFlags & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0);

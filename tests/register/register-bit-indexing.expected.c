@@ -13,8 +13,8 @@
 #define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 int main(void) {
-    GPIO_DR = (GPIO_DR & ~(1 << 0)) | ((true ? 1 : 0) << 0);
-    GPIO_DR = (GPIO_DR & ~(1 << 7)) | ((true ? 1 : 0) << 7);
+    GPIO_DR = (GPIO_DR & ~(1 << 0)) | (1 << 0);
+    GPIO_DR = (GPIO_DR & ~(1 << 7)) | (1 << 7);
     bool bit3 = ((GPIO_DR >> 3) & 1);
     GPIO_DR_SET = (1 << 4);
 }

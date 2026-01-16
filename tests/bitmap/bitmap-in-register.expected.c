@@ -25,8 +25,8 @@ typedef uint8_t MotorControl;
 #define MOTOR_STATUS (*(volatile uint8_t const *)(0x40001000 + 0x04))
 
 int main(void) {
-    MOTOR_CTRL = (MOTOR_CTRL & ~(1 << 0)) | ((true ? 1 : 0) << 0);
-    MOTOR_CTRL = (MOTOR_CTRL & ~(1 << 1)) | ((false ? 1 : 0) << 1);
+    MOTOR_CTRL = (MOTOR_CTRL & ~(1 << 0)) | (1 << 0);
+    MOTOR_CTRL = (MOTOR_CTRL & ~(1 << 1)) | (0 << 1);
     MOTOR_CTRL = (MOTOR_CTRL & ~(0x7 << 3)) | ((5 & 0x7) << 3);
     bool isRunning = ((MOTOR_CTRL >> 0) & 1);
     uint8_t mode = ((MOTOR_CTRL >> 3) & 0x7);
