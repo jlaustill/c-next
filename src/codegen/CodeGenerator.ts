@@ -13,6 +13,7 @@ import CommentFormatter from "./CommentFormatter";
 import IComment from "./types/IComment";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
+import TYPE_MAP from "./types/TYPE_MAP";
 import BITMAP_SIZE from "./types/BITMAP_SIZE";
 // Issue #60: BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "./types/TTypeInfo";
@@ -22,8 +23,6 @@ import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
 import SymbolCollector from "./SymbolCollector";
 import TypeValidator from "./TypeValidator";
-import * as fs from "fs";
-import * as path from "path";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
@@ -46,40 +45,27 @@ import scopedRegisterGenerator from "./generators/declarationGenerators/ScopedRe
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
+// ADR-053: Support generators (A5)
+import helperGenerators from "./generators/support/HelperGenerator";
+import includeGenerators from "./generators/support/IncludeGenerator";
+import commentUtils from "./generators/support/CommentUtils";
 
-/**
- * Maps C-Next types to C types
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-  void: "void",
-  ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
-};
+const {
+  generateOverflowHelpers: helperGenerateOverflowHelpers,
+  generateSafeDivHelpers: helperGenerateSafeDivHelpers,
+} = helperGenerators;
 
-/**
- * Maps C-Next types to wider C types for clamp helper operands
- * Issue #94: Prevents silent truncation when operand exceeds target type range
- */
-const WIDER_TYPE_MAP: Record<string, string> = {
-  u8: "uint32_t",
-  u16: "uint32_t",
-  u32: "uint64_t",
-  u64: "uint64_t", // Already widest
-  i8: "int32_t",
-  i16: "int32_t",
-  i32: "int64_t",
-  i64: "int64_t", // Already widest
-};
+const {
+  transformIncludeDirective: includeTransformIncludeDirective,
+  processPreprocessorDirective: includeProcessPreprocessorDirective,
+} = includeGenerators;
+
+const {
+  getLeadingComments: commentGetLeadingComments,
+  getTrailingComments: commentGetTrailingComments,
+  formatLeadingComments: commentFormatLeadingComments,
+  formatTrailingComment: commentFormatTrailingComment,
+} = commentUtils;
 
 /**
  * Maps C-Next assignment operators to C assignment operators
@@ -1292,41 +1278,10 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * ADR-010: Transform #include directives, converting .cnx to .h
-   * Validates that .cnx files exist if sourcePath is available
-   * Supports both <file.cnx> and "file.cnx" forms
+   * ADR-053 A5: Delegates to IncludeGenerator
    */
   private transformIncludeDirective(includeText: string): string {
-    // Match: #include <file.cnx> or #include "file.cnx"
-    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)\.cnx>/);
-    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)\.cnx"/);
-
-    if (angleMatch) {
-      const filename = angleMatch[1];
-      // Angle brackets: system/library includes - no validation needed
-      return includeText.replace(`<${filename}.cnx>`, `<${filename}.h>`);
-    } else if (quoteMatch) {
-      const filepath = quoteMatch[1];
-
-      // Validate .cnx file exists if we have source path
-      if (this.sourcePath) {
-        const sourceDir = path.dirname(this.sourcePath);
-        const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
-
-        if (!fs.existsSync(cnxPath)) {
-          throw new Error(
-            `Error: Included C-Next file not found: ${filepath}.cnx\n` +
-              `  Searched at: ${cnxPath}\n` +
-              `  Referenced in: ${this.sourcePath}`,
-          );
-        }
-      }
-
-      // Transform to .h
-      return includeText.replace(`"${filepath}.cnx"`, `"${filepath}.h"`);
-    }
-
-    // Not a .cnx include - pass through unchanged
-    return includeText;
+    return includeTransformIncludeDirective(includeText, this.sourcePath);
   }
 
   // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator
@@ -8163,308 +8118,11 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   /**
-   * Maps C-Next types to C max value macros from limits.h
-   */
-  private static readonly TYPE_MAX: Record<string, string> = {
-    u8: "UINT8_MAX",
-    u16: "UINT16_MAX",
-    u32: "UINT32_MAX",
-    u64: "UINT64_MAX",
-    i8: "INT8_MAX",
-    i16: "INT16_MAX",
-    i32: "INT32_MAX",
-    i64: "INT64_MAX",
-  };
-
-  /**
-   * Maps C-Next types to C min value macros from limits.h
-   */
-  private static readonly TYPE_MIN: Record<string, string> = {
-    u8: "0",
-    u16: "0",
-    u32: "0",
-    u64: "0",
-    i8: "INT8_MIN",
-    i16: "INT16_MIN",
-    i32: "INT32_MIN",
-    i64: "INT64_MIN",
-  };
-
-  /**
    * Generate all needed overflow helper functions
+   * ADR-053 A5: Delegates to HelperGenerator
    */
   private generateOverflowHelpers(): string[] {
-    if (this.usedClampOps.size === 0) {
-      return [];
-    }
-
-    const lines: string[] = [];
-
-    if (this.debugMode) {
-      lines.push(
-        "// ADR-044: Debug overflow helper functions (panic on overflow)",
-      );
-      lines.push("#include <limits.h>");
-      lines.push("#include <stdio.h>");
-      lines.push("#include <stdlib.h>");
-    } else {
-      lines.push("// ADR-044: Overflow helper functions");
-      lines.push("#include <limits.h>");
-    }
-    lines.push("");
-
-    // Sort for deterministic output
-    const sortedOps = Array.from(this.usedClampOps).sort();
-
-    for (const op of sortedOps) {
-      const [operation, cnxType] = op.split("_");
-      const helper = this.debugMode
-        ? this.generateDebugHelper(operation, cnxType)
-        : this.generateSingleHelper(operation, cnxType);
-      if (helper) {
-        lines.push(helper);
-        lines.push("");
-      }
-    }
-
-    return lines;
-  }
-
-  /**
-   * Generate a single overflow helper function
-   */
-  private generateSingleHelper(
-    operation: string,
-    cnxType: string,
-  ): string | null {
-    const cType = TYPE_MAP[cnxType];
-    const widerType = WIDER_TYPE_MAP[cnxType] || cType;
-    const maxValue = CodeGenerator.TYPE_MAX[cnxType];
-    const minValue = CodeGenerator.TYPE_MIN[cnxType];
-
-    if (!cType || !maxValue) {
-      return null;
-    }
-
-    const isUnsigned = cnxType.startsWith("u");
-
-    // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
-    const useWiderArithmetic =
-      !isUnsigned && widerType !== cType && cnxType !== "i64";
-
-    switch (operation) {
-      case "add":
-        if (isUnsigned) {
-          // Unsigned addition: use wider type for b to prevent truncation (Issue #94)
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
-    if (b > ${maxValue} - a) return ${maxValue};
-    return a + (${cType})b;
-}`;
-        } else if (useWiderArithmetic) {
-          // Signed addition: compute in wider type, then clamp (Issue #94)
-          // This avoids UB from casting out-of-range values
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
-    ${widerType} result = (${widerType})a + b;
-    if (result > ${maxValue}) return ${maxValue};
-    if (result < ${minValue}) return ${minValue};
-    return (${cType})result;
-}`;
-        } else {
-          // i64: already widest type, use original check logic
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
-    if (b > 0 && a > ${maxValue} - b) return ${maxValue};
-    if (b < 0 && a < ${minValue} - b) return ${minValue};
-    return a + b;
-}`;
-        }
-
-      case "sub":
-        if (isUnsigned) {
-          // Unsigned subtraction: use wider type for b to prevent truncation (Issue #94)
-          // Cast a to wider type for comparison to handle b > type max
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
-    if (b >= (${widerType})a) return 0;
-    return a - (${cType})b;
-}`;
-        } else if (useWiderArithmetic) {
-          // Signed subtraction: compute in wider type, then clamp (Issue #94)
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
-    ${widerType} result = (${widerType})a - b;
-    if (result > ${maxValue}) return ${maxValue};
-    if (result < ${minValue}) return ${minValue};
-    return (${cType})result;
-}`;
-        } else {
-          // i64: already widest type, use original check logic
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
-    if (b < 0 && a > ${maxValue} + b) return ${maxValue};
-    if (b > 0 && a < ${minValue} + b) return ${minValue};
-    return a - b;
-}`;
-        }
-
-      case "mul":
-        if (isUnsigned) {
-          // Unsigned multiplication: use wider type for b to prevent truncation (Issue #94)
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
-    if (b != 0 && a > ${maxValue} / b) return ${maxValue};
-    return a * (${cType})b;
-}`;
-        } else if (useWiderArithmetic) {
-          // Signed multiplication: compute in wider type, then clamp (Issue #94)
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
-    ${widerType} result = (${widerType})a * b;
-    if (result > ${maxValue}) return ${maxValue};
-    if (result < ${minValue}) return ${minValue};
-    return (${cType})result;
-}`;
-        } else {
-          // i64: already widest type, use original check logic
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
-    if (a == 0 || b == 0) return 0;
-    if (a > 0 && b > 0 && a > ${maxValue} / b) return ${maxValue};
-    if (a < 0 && b < 0 && a < ${maxValue} / b) return ${maxValue};
-    if (a > 0 && b < 0 && b < ${minValue} / a) return ${minValue};
-    if (a < 0 && b > 0 && a < ${minValue} / b) return ${minValue};
-    return a * b;
-}`;
-        }
-
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * Generate a single debug helper function (panics on overflow)
-   */
-  private generateDebugHelper(
-    operation: string,
-    cnxType: string,
-  ): string | null {
-    const cType = TYPE_MAP[cnxType];
-    const widerType = WIDER_TYPE_MAP[cnxType] || cType;
-    const maxValue = CodeGenerator.TYPE_MAX[cnxType];
-    const minValue = CodeGenerator.TYPE_MIN[cnxType];
-
-    if (!cType || !maxValue) {
-      return null;
-    }
-
-    const isUnsigned = cnxType.startsWith("u");
-    const opName =
-      operation === "add"
-        ? "addition"
-        : operation === "sub"
-          ? "subtraction"
-          : "multiplication";
-
-    // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
-    const useWiderArithmetic =
-      !isUnsigned && widerType !== cType && cnxType !== "i64";
-
-    switch (operation) {
-      case "add":
-        if (isUnsigned) {
-          // Use wider type for b to prevent truncation (Issue #94)
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
-    if (b > ${maxValue} - a) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return a + (${cType})b;
-}`;
-        } else if (useWiderArithmetic) {
-          // Signed addition: compute in wider type, check bounds (Issue #94)
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
-    ${widerType} result = (${widerType})a + b;
-    if (result > ${maxValue} || result < ${minValue}) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return (${cType})result;
-}`;
-        } else {
-          // i64: already widest type, use original check logic
-          return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
-    if ((b > 0 && a > ${maxValue} - b) || (b < 0 && a < ${minValue} - b)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return a + b;
-}`;
-        }
-
-      case "sub":
-        if (isUnsigned) {
-          // Use wider type for b to prevent truncation (Issue #94)
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
-    if (b >= (${widerType})a) {
-        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return a - (${cType})b;
-}`;
-        } else if (useWiderArithmetic) {
-          // Signed subtraction: compute in wider type, check bounds (Issue #94)
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
-    ${widerType} result = (${widerType})a - b;
-    if (result > ${maxValue} || result < ${minValue}) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return (${cType})result;
-}`;
-        } else {
-          // i64: already widest type, use original check logic
-          return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
-    if ((b < 0 && a > ${maxValue} + b) || (b > 0 && a < ${minValue} + b)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return a - b;
-}`;
-        }
-
-      case "mul":
-        if (isUnsigned) {
-          // Use wider type for b to prevent truncation (Issue #94)
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
-    if (b != 0 && a > ${maxValue} / b) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return a * (${cType})b;
-}`;
-        } else if (useWiderArithmetic) {
-          // Signed multiplication: compute in wider type, check bounds (Issue #94)
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
-    ${widerType} result = (${widerType})a * b;
-    if (result > ${maxValue} || result < ${minValue}) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-        abort();
-    }
-    return (${cType})result;
-}`;
-        } else {
-          // i64: already widest type, use original check logic
-          return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
-    if (a != 0 && b != 0) {
-        if ((a > 0 && b > 0 && a > ${maxValue} / b) ||
-            (a < 0 && b < 0 && a < ${maxValue} / b) ||
-            (a > 0 && b < 0 && b < ${minValue} / a) ||
-            (a < 0 && b > 0 && a < ${minValue} / b)) {
-            fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
-            abort();
-        }
-    }
-    return a * b;
-}`;
-        }
-
-      default:
-        return null;
-    }
+    return helperGenerateOverflowHelpers(this.usedClampOps, this.debugMode);
   }
 
   /**
@@ -8483,80 +8141,17 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Process a preprocessor directive
-   * - Flag-only defines (#define FLAG): pass through
-   * - Value defines (#define FLAG value): ERROR E0502
-   * - Function macros (#define NAME(args)): ERROR E0501
-   * - Conditional directives: pass through
+   * ADR-053 A5: Delegates to IncludeGenerator
    */
   private processPreprocessorDirective(
     ctx: Parser.PreprocessorDirectiveContext,
   ): string | null {
-    if (ctx.defineDirective()) {
-      return this.processDefineDirective(ctx.defineDirective()!);
-    }
-    if (ctx.conditionalDirective()) {
-      return this.processConditionalDirective(ctx.conditionalDirective()!);
-    }
-    return null;
-  }
-
-  /**
-   * Process a #define directive
-   * Only flag-only defines are allowed; value and function macros produce errors
-   */
-  private processDefineDirective(
-    ctx: Parser.DefineDirectiveContext,
-  ): string | null {
-    const text = ctx.getText();
-
-    // Check for function-like macro: #define NAME(
-    if (ctx.DEFINE_FUNCTION()) {
-      const name = this.extractDefineName(text);
-      const line = ctx.start?.line ?? 0;
-      throw new Error(
-        `E0501: Function-like macro '${name}' is not allowed. ` +
-          `Use inline functions instead. Line ${line}`,
-      );
-    }
-
-    // Check for value define: #define NAME value
-    if (ctx.DEFINE_WITH_VALUE()) {
-      const name = this.extractDefineName(text);
-      const line = ctx.start?.line ?? 0;
-      throw new Error(
-        `E0502: #define with value '${name}' is not allowed. ` +
-          `Use 'const' instead: const u32 ${name} <- value; Line ${line}`,
-      );
-    }
-
-    // Flag-only define: pass through
-    if (ctx.DEFINE_FLAG()) {
-      return text.trim();
-    }
-
-    return null;
-  }
-
-  /**
-   * Process a conditional compilation directive (#ifdef, #ifndef, #else, #endif)
-   * These are passed through unchanged
-   */
-  private processConditionalDirective(
-    ctx: Parser.ConditionalDirectiveContext,
-  ): string {
-    return ctx.getText().trim();
-  }
-
-  /**
-   * Extract the macro name from a #define directive
-   */
-  private extractDefineName(text: string): string {
-    const match = text.match(/#\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-    return match ? match[1] : "unknown";
+    return includeProcessPreprocessorDirective(ctx);
   }
 
   // ========================================================================
   // Comment Handling (ADR-043)
+  // ADR-053 A5: Delegates to CommentUtils
   // ========================================================================
 
   /**
@@ -8565,8 +8160,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getLeadingComments(ctx: {
     start?: { tokenIndex: number } | null;
   }): IComment[] {
-    if (!this.commentExtractor || !ctx.start) return [];
-    return this.commentExtractor.getCommentsBefore(ctx.start.tokenIndex);
+    return commentGetLeadingComments(ctx, this.commentExtractor);
   }
 
   /**
@@ -8575,85 +8169,33 @@ export default class CodeGenerator implements IOrchestrator {
   private getTrailingComments(ctx: {
     stop?: { tokenIndex: number } | null;
   }): IComment[] {
-    if (!this.commentExtractor || !ctx.stop) return [];
-    return this.commentExtractor.getCommentsAfter(ctx.stop.tokenIndex);
+    return commentGetTrailingComments(ctx, this.commentExtractor);
   }
 
   /**
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
-    if (comments.length === 0) return [];
     const indent = "    ".repeat(this.context.indentLevel);
-    return this.commentFormatter.formatLeadingComments(comments, indent);
+    return commentFormatLeadingComments(
+      comments,
+      this.commentFormatter,
+      indent,
+    );
   }
 
   /**
    * Format a trailing/inline comment
    */
   private formatTrailingComment(comments: IComment[]): string {
-    if (comments.length === 0) return "";
-    // Only use the first comment for inline
-    return this.commentFormatter.formatTrailingComment(comments[0]);
+    return commentFormatTrailingComment(comments, this.commentFormatter);
   }
 
   /**
    * ADR-051: Generate safe division helper functions for used integer types only
+   * ADR-053 A5: Delegates to HelperGenerator
    */
   private generateSafeDivHelpers(): string[] {
-    if (this.usedSafeDivOps.size === 0) {
-      return [];
-    }
-
-    const lines: string[] = [];
-
-    lines.push("// ADR-051: Safe division helper functions");
-    lines.push("#include <stdbool.h>");
-    lines.push("");
-
-    const integerTypes = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"];
-
-    for (const cnxType of integerTypes) {
-      const needsDiv = this.usedSafeDivOps.has(`div_${cnxType}`);
-      const needsMod = this.usedSafeDivOps.has(`mod_${cnxType}`);
-
-      if (!needsDiv && !needsMod) {
-        continue; // Skip types that aren't used
-      }
-
-      const cType = TYPE_MAP[cnxType];
-
-      // Generate safe_div helper if needed
-      if (needsDiv) {
-        lines.push(
-          `static inline bool cnx_safe_div_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
-        );
-        lines.push(`    if (divisor == 0) {`);
-        lines.push(`        *output = defaultValue;`);
-        lines.push(`        return true;  // Error occurred`);
-        lines.push(`    }`);
-        lines.push(`    *output = numerator / divisor;`);
-        lines.push(`    return false;  // Success`);
-        lines.push(`}`);
-        lines.push("");
-      }
-
-      // Generate safe_mod helper if needed
-      if (needsMod) {
-        lines.push(
-          `static inline bool cnx_safe_mod_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
-        );
-        lines.push(`    if (divisor == 0) {`);
-        lines.push(`        *output = defaultValue;`);
-        lines.push(`        return true;  // Error occurred`);
-        lines.push(`    }`);
-        lines.push(`    *output = numerator % divisor;`);
-        lines.push(`    return false;  // Success`);
-        lines.push(`}`);
-        lines.push("");
-      }
-    }
-
-    return lines;
+    return helperGenerateSafeDivHelpers(this.usedSafeDivOps);
   }
 }
