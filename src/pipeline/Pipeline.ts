@@ -675,6 +675,202 @@ class Pipeline {
   }
 
   /**
+   * Transpile source code provided as a string
+   *
+   * This method enables string-based transpilation while still parsing headers.
+   * Useful for test frameworks that need header type information without reading
+   * the source file from disk.
+   *
+   * @param source - The C-Next source code as a string
+   * @param options - Options for transpilation
+   * @returns Promise<IFileResult> with generated code or errors
+   */
+  async transpileSource(
+    source: string,
+    options?: {
+      workingDir?: string; // For resolving relative #includes
+      includeDirs?: string[]; // Additional include paths
+      sourcePath?: string; // Optional source path for error messages
+    },
+  ): Promise<IFileResult> {
+    const workingDir = options?.workingDir ?? process.cwd();
+    const additionalIncludeDirs = options?.includeDirs ?? [];
+    const sourcePath = options?.sourcePath ?? "<string>";
+
+    try {
+      // Initialize cache if enabled
+      if (this.cacheManager) {
+        await this.cacheManager.initialize();
+      }
+
+      // Step 1: Extract #include directives from source
+      const includes = IncludeDiscovery.extractIncludes(source);
+
+      // Step 2: Build search paths for header discovery
+      const searchPaths = [
+        workingDir,
+        ...additionalIncludeDirs,
+        ...this.config.includeDirs,
+      ];
+
+      // Add project-level include paths
+      const projectRoot = IncludeDiscovery.findProjectRoot(workingDir);
+      if (projectRoot) {
+        const commonDirs = ["include", "src", "lib"];
+        for (const dir of commonDirs) {
+          const includePath = join(projectRoot, dir);
+          if (existsSync(includePath) && statSync(includePath).isDirectory()) {
+            searchPaths.push(includePath);
+          }
+        }
+      }
+
+      // Step 3: Resolve and collect header files
+      const headerFiles: IDiscoveredFile[] = [];
+      for (const includePath of includes) {
+        const resolved = IncludeDiscovery.resolveInclude(
+          includePath,
+          searchPaths,
+        );
+        if (resolved) {
+          const file = FileDiscovery.discoverFile(resolved);
+          if (
+            file &&
+            (file.type === EFileType.CHeader ||
+              file.type === EFileType.CppHeader)
+          ) {
+            headerFiles.push(file);
+          }
+        }
+      }
+
+      // Step 4: Parse headers to populate symbol table
+      for (const file of headerFiles) {
+        try {
+          await this.collectHeaderSymbols(file);
+        } catch (err) {
+          this.warnings.push(`Failed to process header ${file.path}: ${err}`);
+        }
+      }
+
+      // Step 5: Parse C-Next source from string
+      const charStream = CharStream.fromString(source);
+      const lexer = new CNextLexer(charStream);
+      const tokenStream = new CommonTokenStream(lexer);
+      const parser = new CNextParser(tokenStream);
+
+      const errors: ITranspileError[] = [];
+      parser.removeErrorListeners();
+      parser.addErrorListener({
+        syntaxError(
+          _recognizer,
+          _offendingSymbol,
+          line,
+          charPositionInLine,
+          msg,
+        ) {
+          errors.push({
+            line,
+            column: charPositionInLine,
+            message: msg,
+            severity: "error",
+          });
+        },
+        reportAmbiguity() {},
+        reportAttemptingFullContext() {},
+        reportContextSensitivity() {},
+      });
+
+      const tree = parser.program();
+      const declarationCount = tree.declaration().length;
+
+      // Check for parse errors
+      if (errors.length > 0) {
+        return {
+          sourcePath,
+          code: "",
+          success: false,
+          errors,
+          declarationCount,
+        };
+      }
+
+      // Parse only mode
+      if (this.config.parseOnly) {
+        return {
+          sourcePath,
+          code: "",
+          success: true,
+          errors: [],
+          declarationCount,
+        };
+      }
+
+      // Step 6: Run analyzers with struct field info from C/C++ headers
+      // Convert struct fields from IStructFieldInfo map to Set<string> for analyzer
+      const externalStructFields = new Map<string, Set<string>>();
+      const allStructFields = this.symbolTable.getAllStructFields();
+      for (const [structName, fieldMap] of allStructFields) {
+        externalStructFields.set(structName, new Set(fieldMap.keys()));
+      }
+
+      const analyzerErrors = runAnalyzers(tree, tokenStream, {
+        externalStructFields,
+      });
+      if (analyzerErrors.length > 0) {
+        return {
+          sourcePath,
+          code: "",
+          success: false,
+          errors: analyzerErrors,
+          declarationCount,
+        };
+      }
+
+      // Step 7: Generate code with symbol table
+      const code = this.codeGenerator.generate(
+        tree,
+        this.symbolTable,
+        tokenStream,
+        {
+          debugMode: this.config.debugMode,
+          target: this.config.target,
+        },
+      );
+
+      // Flush cache to disk
+      if (this.cacheManager) {
+        await this.cacheManager.flush();
+      }
+
+      return {
+        sourcePath,
+        code,
+        success: true,
+        errors: [],
+        declarationCount,
+      };
+    } catch (err) {
+      // Match error format from original transpile function
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return {
+        sourcePath,
+        code: "",
+        success: false,
+        errors: [
+          {
+            line: 1,
+            column: 0,
+            message: `Code generation failed: ${errorMessage}`,
+            severity: "error",
+          },
+        ],
+        declarationCount: 0,
+      };
+    }
+  }
+
+  /**
    * Get the symbol table (for testing/inspection)
    */
   getSymbolTable(): SymbolTable {

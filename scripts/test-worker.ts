@@ -6,11 +6,12 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
-import { join, basename } from "path";
+import { join, basename, dirname } from "path";
 import { execFileSync } from "child_process";
 import { tmpdir } from "os";
 import { randomBytes } from "crypto";
-import transpile from "../src/lib/transpiler";
+import Pipeline from "../src/pipeline/Pipeline";
+import IFileResult from "../src/pipeline/types/IFileResult";
 
 interface ITools {
   gcc: boolean;
@@ -297,13 +298,26 @@ function executeTest(
 /**
  * Run a single test
  */
-function runTest(cnxFile: string, updateMode: boolean): ITestResult {
+async function runTest(
+  cnxFile: string,
+  updateMode: boolean,
+): Promise<ITestResult> {
   const source = readFileSync(cnxFile, "utf-8");
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
 
-  const result = transpile(source);
+  // Use Pipeline for transpilation with header parsing support
+  const pipeline = new Pipeline({
+    inputs: [],
+    includeDirs: [join(rootDir, "tests/include")],
+    noCache: false,
+  });
+
+  const result: IFileResult = await pipeline.transpileSource(source, {
+    workingDir: dirname(cnxFile),
+    sourcePath: cnxFile,
+  });
 
   // Check if this is an error test
   if (existsSync(expectedErrorFile)) {
@@ -483,7 +497,7 @@ function runTest(cnxFile: string, updateMode: boolean): ITestResult {
 }
 
 // Listen for messages from parent process via IPC
-process.on("message", (message: TWorkerMessage) => {
+process.on("message", async (message: TWorkerMessage) => {
   if (message.type === "init") {
     rootDir = message.rootDir;
     tools = message.tools;
@@ -491,7 +505,7 @@ process.on("message", (message: TWorkerMessage) => {
   } else if (message.type === "test") {
     const { cnxFile, updateMode } = message;
     try {
-      const result = runTest(cnxFile, updateMode);
+      const result = await runTest(cnxFile, updateMode);
       process.send!({ type: "result", cnxFile, result });
     } catch (error: unknown) {
       const err = error as Error;
