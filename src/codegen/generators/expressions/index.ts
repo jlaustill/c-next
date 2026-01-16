@@ -15,10 +15,12 @@
 
 import generateLiteral from "./LiteralGenerator";
 import binaryExprGenerators from "./BinaryExprGenerator";
+import generateUnaryExpr from "./UnaryExprGenerator";
 
 // Export all generators as a single object
 const generators = {
   generateLiteral,
+  generateUnaryExpr,
   ...binaryExprGenerators,
 };
 

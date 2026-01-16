@@ -31,6 +31,7 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
+import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
 
 /**
  * Maps C-Next types to C types
@@ -6224,19 +6225,15 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
-    if (ctx.postfixExpression()) {
-      return this.generatePostfixExpr(ctx.postfixExpression()!);
-    }
-
-    const inner = this.generateUnaryExpr(ctx.unaryExpression()!);
-    const text = ctx.getText();
-
-    if (text.startsWith("!")) return `!${inner}`;
-    if (text.startsWith("-")) return `-${inner}`;
-    if (text.startsWith("~")) return `~${inner}`;
-    if (text.startsWith("&")) return `&${inner}`;
-
-    return inner;
+    // ADR-053 A2: Use extracted unary expression generator
+    const result = generateUnaryExpr(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private _generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
