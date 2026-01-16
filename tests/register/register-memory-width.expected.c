@@ -5,8 +5,7 @@
 
 #include <stdint.h>
 
-// Tests: Memory access width must match bit-range width
-// BUG: Currently generates uint32_t* for 16-bit writes - WRONG!
+// Tests: Memory access width must match bit-range width (Issue #187)
 // For embedded systems, the memory access WIDTH matters for hardware behavior
 // u32 register with different access widths
 /* Register: REG32 @ 0x40000000 */
@@ -19,32 +18,32 @@ void write32(uint32_t* data) {
 
 // Write lower 16 bits - MUST use uint16_t* for correct hardware behavior
 void write16_at_0(uint16_t* data) {
-    REG32_DR = (((*data) & 0xFFFFU) << 0);
+    *((volatile uint16_t*)(0x40000000 + 0x00)) = ((*data));
 }
 
 // Write upper 16 bits - MUST use uint16_t* at offset +2
 void write16_at_16(uint16_t* data) {
-    REG32_DR = (((*data) & 0xFFFFU) << 16);
+    *((volatile uint16_t*)(0x40000000 + 0x00 + 2)) = ((*data));
 }
 
 // Write lower 8 bits - MUST use uint8_t*
 void write8_at_0(uint8_t* data) {
-    REG32_DR = (((*data) & 0xFFU) << 0);
+    *((volatile uint8_t*)(0x40000000 + 0x00)) = ((*data));
 }
 
 // Write byte at offset 1 - MUST use uint8_t* at offset +1
 void write8_at_8(uint8_t* data) {
-    REG32_DR = (((*data) & 0xFFU) << 8);
+    *((volatile uint8_t*)(0x40000000 + 0x00 + 1)) = ((*data));
 }
 
 // Write byte at offset 2 - MUST use uint8_t* at offset +2
 void write8_at_16(uint8_t* data) {
-    REG32_DR = (((*data) & 0xFFU) << 16);
+    *((volatile uint8_t*)(0x40000000 + 0x00 + 2)) = ((*data));
 }
 
 // Write byte at offset 3 - MUST use uint8_t* at offset +3
 void write8_at_24(uint8_t* data) {
-    REG32_DR = (((*data) & 0xFFU) << 24);
+    *((volatile uint8_t*)(0x40000000 + 0x00 + 3)) = ((*data));
 }
 
 int main(void) {

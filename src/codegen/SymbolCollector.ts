@@ -49,6 +49,11 @@ class SymbolCollector {
   private _registerMemberAccess: Map<string, string> = new Map();
   private _registerMemberTypes: Map<string, string> = new Map();
 
+  // Issue #187: Track register address info for width-appropriate memory access
+  private _registerBaseAddresses: Map<string, string> = new Map();
+  private _registerMemberOffsets: Map<string, string> = new Map();
+  private _registerMemberCTypes: Map<string, string> = new Map();
+
   // For scope context during collection (used by getTypeName)
   private _collectingScope: string | null = null;
 
@@ -118,6 +123,19 @@ class SymbolCollector {
 
   get registerMemberTypes(): ReadonlyMap<string, string> {
     return this._registerMemberTypes;
+  }
+
+  // Issue #187: Getters for register address info
+  get registerBaseAddresses(): ReadonlyMap<string, string> {
+    return this._registerBaseAddresses;
+  }
+
+  get registerMemberOffsets(): ReadonlyMap<string, string> {
+    return this._registerMemberOffsets;
+  }
+
+  get registerMemberCTypes(): ReadonlyMap<string, string> {
+    return this._registerMemberCTypes;
   }
 
   /**
@@ -266,6 +284,10 @@ class SymbolCollector {
         this._knownRegisters.add(fullRegName);
         this._scopedRegisters.set(fullRegName, name);
 
+        // Issue #187: Store base address for scoped register
+        const baseAddressExpr = regDecl.expression().getText();
+        this._registerBaseAddresses.set(fullRegName, baseAddressExpr);
+
         // Track access modifiers and types for each register member
         for (const regMember of regDecl.registerMember()) {
           const memberName = regMember.IDENTIFIER().getText();
@@ -273,8 +295,15 @@ class SymbolCollector {
           const fullMemberName = `${fullRegName}_${memberName}`; // Scope_Register_Member
           this._registerMemberAccess.set(fullMemberName, accessMod);
 
-          // Track register member type (especially for bitmap types)
+          // Issue #187: Store member offset and C type for scoped register
+          const offsetExpr = regMember.expression().getText();
+          this._registerMemberOffsets.set(fullMemberName, offsetExpr);
+
           const typeName = this.getTypeName(regMember.type());
+          const cType = this.cnextTypeToCType(typeName);
+          this._registerMemberCTypes.set(fullMemberName, cType);
+
+          // Track register member type (especially for bitmap types)
           const scopedTypeName = `${name}_${typeName}`;
           if (this._knownBitmaps.has(scopedTypeName)) {
             this._registerMemberTypes.set(fullMemberName, scopedTypeName);
@@ -367,6 +396,10 @@ class SymbolCollector {
     const regName = regDecl.IDENTIFIER().getText();
     this._knownRegisters.add(regName);
 
+    // Issue #187: Store base address for width-appropriate memory access
+    const baseAddressExpr = regDecl.expression().getText();
+    this._registerBaseAddresses.set(regName, baseAddressExpr);
+
     // Track access modifiers and types for each register member
     for (const member of regDecl.registerMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -374,12 +407,36 @@ class SymbolCollector {
       const fullName = `${regName}_${memberName}`;
       this._registerMemberAccess.set(fullName, accessMod);
 
-      // ADR-034: Track register member type (especially for bitmap types)
+      // Issue #187: Store member offset and C type
+      const offsetExpr = member.expression().getText();
+      this._registerMemberOffsets.set(fullName, offsetExpr);
+
       const typeName = this.getTypeName(member.type());
+      const cType = this.cnextTypeToCType(typeName);
+      this._registerMemberCTypes.set(fullName, cType);
+
+      // ADR-034: Track register member type (especially for bitmap types)
       if (this._knownBitmaps.has(typeName)) {
         this._registerMemberTypes.set(fullName, typeName);
       }
     }
+  }
+
+  /**
+   * Issue #187: Convert C-Next type to C type string
+   */
+  private cnextTypeToCType(typeName: string): string {
+    const typeMap: Record<string, string> = {
+      u8: "uint8_t",
+      u16: "uint16_t",
+      u32: "uint32_t",
+      u64: "uint64_t",
+      i8: "int8_t",
+      i16: "int16_t",
+      i32: "int32_t",
+      i64: "int64_t",
+    };
+    return typeMap[typeName] || typeName;
   }
 
   /**

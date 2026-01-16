@@ -1,5 +1,4 @@
-// Tests: Memory access width must match bit-range width
-// BUG: Currently generates uint32_t* for 16-bit writes - WRONG!
+// Tests: Memory access width must match bit-range width (Issue #187)
 // For embedded systems, the memory access WIDTH matters for hardware behavior
 
 // u32 register with different access widths
