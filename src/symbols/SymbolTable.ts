@@ -5,7 +5,6 @@
 
 import ISymbol from "../types/ISymbol";
 import ESourceLanguage from "../types/ESourceLanguage";
-import ESymbolKind from "../types/ESymbolKind";
 import IConflict from "./types/IConflict";
 import IStructFieldInfo from "./types/IStructFieldInfo";
 
@@ -26,6 +25,13 @@ class SymbolTable {
 
   /** Struct field information: struct name -> (field name -> field info) */
   private structFields: Map<string, Map<string, IStructFieldInfo>> = new Map();
+
+  /**
+   * Issue #196 Bug 3: Track C struct names that need the 'struct' keyword
+   * These are structs defined as 'struct Name { ... }' without typedef
+   * In C, they must be referred to as 'struct Name', not just 'Name'
+   */
+  private needsStructKeyword: Set<string> = new Set();
 
   /**
    * Add a symbol to the table
@@ -197,6 +203,41 @@ class SymbolTable {
   }
 
   /**
+   * Issue #196 Bug 3: Mark a struct as requiring 'struct' keyword in C
+   * @param structName Name of the struct (e.g., "NamedPoint")
+   */
+  markNeedsStructKeyword(structName: string): void {
+    this.needsStructKeyword.add(structName);
+  }
+
+  /**
+   * Issue #196 Bug 3: Check if a struct requires 'struct' keyword in C
+   * @param structName Name of the struct
+   * @returns true if the struct was defined as 'struct Name { ... }' without typedef
+   */
+  checkNeedsStructKeyword(structName: string): boolean {
+    return this.needsStructKeyword.has(structName);
+  }
+
+  /**
+   * Issue #196 Bug 3: Get all struct names requiring 'struct' keyword
+   * @returns Array of struct names
+   */
+  getAllNeedsStructKeyword(): string[] {
+    return Array.from(this.needsStructKeyword);
+  }
+
+  /**
+   * Issue #196 Bug 3: Restore needsStructKeyword from cache
+   * @param structNames Array of struct names requiring 'struct' keyword
+   */
+  restoreNeedsStructKeyword(structNames: string[]): void {
+    for (const name of structNames) {
+      this.needsStructKeyword.add(name);
+    }
+  }
+
+  /**
    * Get all fields for a struct
    * @param structName Name of the struct
    * @returns Map of field names to field info, or undefined if struct not found
@@ -245,9 +286,12 @@ class SymbolTable {
    */
   getStructNamesByFile(file: string): string[] {
     const fileSymbols = this.byFile.get(file) ?? [];
-    return fileSymbols
-      .filter((s) => s.kind === ESymbolKind.Struct)
-      .map((s) => s.name);
+    // Issue #196: Include any symbol that has struct fields registered
+    // The dual-parse strategy may register typedef'd anonymous structs as variables
+    // (e.g., "typedef struct { ... } Rectangle;" -> Rectangle has kind=variable)
+    // But the C parser still adds struct fields for it
+    const symbolNames = fileSymbols.map((s) => s.name);
+    return symbolNames.filter((name) => this.structFields.has(name));
   }
 
   /**

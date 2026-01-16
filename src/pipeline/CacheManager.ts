@@ -108,6 +108,7 @@ class CacheManager {
   getSymbols(filePath: string): {
     symbols: ISymbol[];
     structFields: Map<string, Map<string, IStructFieldInfo>>;
+    needsStructKeyword: string[];
   } | null {
     const entry = this.entries.get(filePath);
     if (!entry) {
@@ -127,7 +128,11 @@ class CacheManager {
       structFields.set(structName, fieldMap);
     }
 
-    return { symbols, structFields };
+    return {
+      symbols,
+      structFields,
+      needsStructKeyword: entry.needsStructKeyword ?? [],
+    };
   }
 
   /**
@@ -137,6 +142,7 @@ class CacheManager {
     filePath: string,
     symbols: ISymbol[],
     structFields: Map<string, Map<string, IStructFieldInfo>>,
+    needsStructKeyword?: string[],
   ): void {
     // Get current mtime
     let mtime: number;
@@ -169,6 +175,7 @@ class CacheManager {
       mtime,
       symbols: serializedSymbols,
       structFields: serializedFields,
+      needsStructKeyword,
     };
 
     this.entries.set(filePath, entry);
