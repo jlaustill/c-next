@@ -1,0 +1,71 @@
+/* test-execution */
+// Tests: Computed expressions in loops should NOT be constant-folded
+// Issue #200: Only literal true/false should fold to 1/0
+//
+// Usage: ./test [iterations] [threshold]
+//   iterations: number of loop iterations (default: 8)
+//   threshold:  comparison threshold for bit1 (default: 3)
+// Example: ./test 10 5
+
+#include <stdlib.h>
+
+bitmap8 Flags { bit0, bit1, bit2, bit3, bit4, bit5, bit6, bit7 }
+
+u32 main(string args[]) {
+    Flags f <- 0;
+    u8 count <- 0;
+
+    // Parse arguments or use defaults
+    u8 iterations <- 8;
+    u8 threshold <- 3;
+
+    if (args.length > 1) {
+        iterations <- atoi(args[1]);
+    }
+    if (args.length > 2) {
+        threshold <- atoi(args[2]);
+    }
+
+    // Loop with computed bitmap assignments
+    for (u8 i <- 0; i < iterations; i +<- 1) {
+        // Computed: i % 2 - alternates true/false
+        f.bit0 <- (i % 2) = 0;
+
+        // Computed: comparison against threshold (from args)
+        f.bit1 <- i > threshold;
+
+        // Conditional based on computed bitmap read
+        if (f.bit0 = true) {
+            f.bit2 <- false;  // Literal - should fold to 0
+        } else {
+            f.bit2 <- true;   // Literal - should fold to 1
+        }
+
+        // Count iterations where bit0 is true (even i values)
+        if (f.bit0 = true) {
+            count +<- 1;
+        }
+    }
+
+    // Validate with defaults (iterations=8, threshold=3):
+    // After loop: i=7 (last iteration)
+    // i % 2 = 1, so bit0 should be false (7 is odd)
+    if (f.bit0 != false) return 1;
+
+    // i > threshold (7 > 3) is true for i=7
+    if (f.bit1 != true) return 2;
+
+    // bit2 should be true (since bit0 was false on last iteration)
+    if (f.bit2 != true) return 3;
+
+    // count should be iterations/2 = 4 (i=0,2,4,6 are even)
+    if (count != (iterations / 2)) return 4;
+
+    // Final check: literals still fold correctly
+    f.bit5 <- true;   // Should fold to 1
+    f.bit6 <- false;  // Should fold to 0
+    if (f.bit5 != true) return 5;
+    if (f.bit6 != false) return 6;
+
+    return 0;
+}
