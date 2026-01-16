@@ -8,10 +8,14 @@ import IFunctionSignature from "../types/IFunctionSignature";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
 import ITargetCapabilities from "../types/ITargetCapabilities";
 import SymbolTable from "../../symbols/SymbolTable";
+import ISymbolInfo from "./ISymbolInfo";
 
 interface IGeneratorInput {
   /** Symbol table from parsed C/C++ headers (may be null for single-file transpilation) */
   readonly symbolTable: SymbolTable | null;
+
+  /** C-Next symbols collected from the parse tree (enums, structs, scopes, etc.) */
+  readonly symbols: ISymbolInfo | null;
 
   /** Variable type information indexed by scoped name */
   readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
@@ -30,6 +34,9 @@ interface IGeneratorInput {
 
   /** Callback/function-as-type definitions */
   readonly callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
+
+  /** Callback types used as struct field types: "StructName.fieldName" -> callback type name */
+  readonly callbackFieldTypes: ReadonlyMap<string, string>;
 
   /** Target platform capabilities (affects atomic operations, etc.) */
   readonly targetCapabilities: ITargetCapabilities;

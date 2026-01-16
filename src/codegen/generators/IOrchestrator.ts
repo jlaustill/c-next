@@ -5,6 +5,7 @@
  * - Access to read-only input and current state
  * - Effect processing to update mutable state
  * - Utility methods needed by generators
+ * - Code generation delegation methods
  *
  * This abstraction enables:
  * - Testing generators with mock orchestrators
@@ -13,8 +14,6 @@
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
-
-// Import parser context types for expression generation methods
 import * as Parser from "../../parser/grammar/CNextParser";
 import { ParserRuleContext } from "antlr4ng";
 
@@ -73,6 +72,15 @@ interface IOrchestrator {
   /** Check if a function is defined in C-Next (vs C headers) */
   isCNextFunction(name: string): boolean;
 
+  /** Get the raw type name without C conversion */
+  getTypeName(ctx: Parser.TypeContext): string;
+
+  /** Try to evaluate a constant expression at compile time */
+  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
+
+  /** Get zero initializer for a type (e.g., "0", "{0}", "false") */
+  getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string;
+
   // === Expression Analysis ===
 
   /** Get the enum type of an expression, if any */
@@ -117,6 +125,12 @@ interface IOrchestrator {
     expr: Parser.OrExpressionContext,
     branchName: string,
   ): void;
+
+  /** Validate that a literal value fits in the target type */
+  validateLiteralFitsType(literal: string, typeName: string): void;
+
+  /** Validate type conversion is allowed */
+  validateTypeConversion(targetType: string, sourceType: string | null): void;
 
   // === Function Call Helpers (ADR-053 A2 Phase 5) ===
 
@@ -168,6 +182,9 @@ interface IOrchestrator {
   /** Generate array dimensions */
   generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string;
 
+  /** Generate single array dimension */
+  generateArrayDimension(dim: Parser.ArrayDimensionContext): string;
+
   // === strlen Optimization (ADR-053 A3) ===
 
   /** Count string length accesses for caching */
@@ -187,6 +204,69 @@ interface IOrchestrator {
 
   /** Register a local variable */
   registerLocalVariable(name: string): void;
+
+  // === Declaration Generation (ADR-053 A4) ===
+
+  /** Generate parameter list for function signature */
+  generateParameterList(ctx: Parser.ParameterListContext): string;
+
+  /** Get the length of a string literal (excluding quotes and null terminator) */
+  getStringLiteralLength(literal: string): number;
+
+  /** Get string concatenation operands if expression is a concat */
+  getStringConcatOperands(ctx: Parser.ExpressionContext): {
+    left: string;
+    right: string;
+    leftCapacity: number;
+    rightCapacity: number;
+  } | null;
+
+  /** Get substring operands if expression is a substring call */
+  getSubstringOperands(ctx: Parser.ExpressionContext): {
+    source: string;
+    start: string;
+    length: string;
+    sourceCapacity: number;
+  } | null;
+
+  /** Get the capacity of a string expression (for validation) */
+  getStringExprCapacity(exprCode: string): number | null;
+
+  // === Parameter Management ===
+
+  /** Set current function parameters for pointer semantics (ADR-006) */
+  setParameters(paramList: Parser.ParameterListContext | null): void;
+
+  /** Clear current function parameters */
+  clearParameters(): void;
+
+  /** Check if a callback type is used as a struct field type */
+  isCallbackTypeUsedAsFieldType(funcName: string): boolean;
+
+  // === Scope Management ===
+
+  /** Set the current scope name for prefixing */
+  setCurrentScope(name: string | null): void;
+
+  // === Function Body Management ===
+
+  /** Enter function body - clears local variables and sets inFunctionBody flag */
+  enterFunctionBody(): void;
+
+  /** Exit function body - clears local variables and inFunctionBody flag */
+  exitFunctionBody(): void;
+
+  /** Set the main function args parameter name for translation */
+  setMainArgsName(name: string | null): void;
+
+  /** Check if this is main function with args parameter */
+  isMainFunctionWithArgs(
+    name: string,
+    paramList: Parser.ParameterListContext | null,
+  ): boolean;
+
+  /** Generate callback typedef for a function */
+  generateCallbackTypedef(funcName: string): string | null;
 }
 
 export default IOrchestrator;
