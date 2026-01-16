@@ -100,6 +100,14 @@ interface IOrchestrator {
 
   /** Validate cross-scope member visibility (ADR-016) */
   validateCrossScopeVisibility(scopeName: string, memberName: string): void;
+
+  /** Validate shift amount is within type bounds */
+  validateShiftAmount(
+    leftType: string,
+    rightExpr: Parser.AdditiveExpressionContext,
+    op: string,
+    ctx: Parser.ShiftExpressionContext,
+  ): void;
 }
 
 export default IOrchestrator;

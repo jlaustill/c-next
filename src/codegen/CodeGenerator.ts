@@ -30,6 +30,7 @@ import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
+import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
 
 /**
  * Maps C-Next types to C types
@@ -520,6 +521,19 @@ export default class CodeGenerator implements IOrchestrator {
    */
   validateCrossScopeVisibility(scopeName: string, memberName: string): void {
     this._validateCrossScopeVisibility(scopeName, memberName);
+  }
+
+  /**
+   * Validate shift amount is within type bounds.
+   * Part of IOrchestrator interface - delegates to TypeValidator.
+   */
+  validateShiftAmount(
+    leftType: string,
+    rightExpr: Parser.AdditiveExpressionContext,
+    op: string,
+    ctx: Parser.ShiftExpressionContext,
+  ): void {
+    this.typeValidator!.validateShiftAmount(leftType, rightExpr, op, ctx);
   }
 
   // ===========================================================================
@@ -5971,8 +5985,15 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    const parts = ctx.andExpression().map((e) => this.generateAndExpr(e));
-    return parts.join(" || ");
+    // ADR-053 A2: Use extracted binary expression generator
+    const result = binaryExprGenerators.generateOrExpr(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   private generateAndExpr(ctx: Parser.AndExpressionContext): string {
