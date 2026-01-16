@@ -54,7 +54,7 @@ typedef struct {
 } TestStruct;
 
 int main(void) {
-    globalVar = (globalVar & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    globalVar = (globalVar & ~(1 << 0)) | (1 << 0);
     if (16 != 16) {
         return 1;
     }
@@ -68,12 +68,12 @@ int main(void) {
         return 4;
     }
     StatusFlags localVar = {0};
-    localVar = (localVar & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    localVar = (localVar & ~(1 << 0)) | (1 << 0);
     if (16 != 16) {
         return 5;
     }
     StatusFlags testVal = {0};
-    testVal = (testVal & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    testVal = (testVal & ~(1 << 0)) | (1 << 0);
     if (checkParamLength(&testVal) != 16) {
         return 6;
     }

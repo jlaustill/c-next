@@ -31,9 +31,9 @@ typedef uint8_t Timer_ControlBits;
 
 
 void Timer_init(void) {
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 0)) | ((false ? 1 : 0) << 0);
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 1)) | ((true ? 1 : 0) << 1);
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 2)) | ((true ? 1 : 0) << 2);
+    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 0)) | (0 << 0);
+    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 1)) | (1 << 1);
+    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 2)) | (1 << 2);
     Timer_SysTick_LOAD = 16000;
 }
 

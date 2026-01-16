@@ -60,9 +60,9 @@ typedef uint16_t TimerConfig;
 #define TIMER_RELOAD (*(volatile uint32_t*)(0x40020000 + 0x08))
 
 void configureUART(void) {
-    UART_CTRL = (UART_CTRL & ~(1 << 0)) | ((true ? 1 : 0) << 0);
-    UART_CTRL = (UART_CTRL & ~(1 << 1)) | ((true ? 1 : 0) << 1);
-    UART_CTRL = (UART_CTRL & ~(1 << 2)) | ((true ? 1 : 0) << 2);
+    UART_CTRL = (UART_CTRL & ~(1 << 0)) | (1 << 0);
+    UART_CTRL = (UART_CTRL & ~(1 << 1)) | (1 << 1);
+    UART_CTRL = (UART_CTRL & ~(1 << 2)) | (1 << 2);
     UART_CTRL = (UART_CTRL & ~(0x3 << 5)) | ((3 & 0x3) << 5);
 }
 
@@ -71,11 +71,11 @@ bool isUARTReady(void) {
 }
 
 void configureTimer(uint8_t* prescale) {
-    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | ((false ? 1 : 0) << 0);
+    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | (0 << 0);
     TIMER_CONFIG = (TIMER_CONFIG & ~(0xFF << 4)) | (((*prescale) & 0xFF) << 4);
-    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 2)) | ((true ? 1 : 0) << 2);
-    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 3)) | ((true ? 1 : 0) << 3);
-    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | ((true ? 1 : 0) << 0);
+    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 2)) | (1 << 2);
+    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 3)) | (1 << 3);
+    TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | (1 << 0);
 }
 
 int main(void) {
