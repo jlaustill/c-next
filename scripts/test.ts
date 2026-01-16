@@ -121,10 +121,10 @@ function normalize(str: string): string {
 }
 
 /**
- * Detect if a C file includes headers with C++11 features
- * Checks for C++11 typed enums (enum Foo : type {)
+ * Detect if a C file includes headers with C++14 features
+ * Checks for typed enums (enum Foo : type {) which require C++14 parser
  */
-function requiresCpp11(cFile: string): boolean {
+function requiresCpp14(cFile: string): boolean {
   try {
     const cCode = readFileSync(cFile, "utf-8");
     const cFileDir = dirname(cFile);
@@ -137,7 +137,7 @@ function requiresCpp11(cFile: string): boolean {
       const headerPath = join(cFileDir, match[1]);
       if (existsSync(headerPath)) {
         const headerContent = readFileSync(headerPath, "utf-8");
-        // Check for C++11 typed enum syntax: enum Name : type {
+        // Check for C++14 typed enum syntax: enum Name : type {
         if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(headerContent)) {
           return true;
         }
@@ -152,14 +152,14 @@ function requiresCpp11(cFile: string): boolean {
 /**
  * Validate that a C file compiles without errors
  * Uses gcc with -fsyntax-only for fast syntax checking
- * Auto-detects C++11 headers and uses g++ when needed
+ * Auto-detects C++14 headers and uses g++ when needed
  */
 function validateCompilation(cFile: string): IValidationResult {
   try {
-    // Auto-detect C++11 headers and use g++ when needed
-    const useCpp = requiresCpp11(cFile);
+    // Auto-detect C++14 headers and use g++ when needed
+    const useCpp = requiresCpp14(cFile);
     const compiler = useCpp ? "g++" : "gcc";
-    const stdFlag = useCpp ? "-std=c++11" : "-std=c99";
+    const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
 
     // Use compiler to check syntax only (no object file generated)
     // Suppress warnings about unused variables and void main (common in tests)
@@ -329,10 +329,10 @@ function executeTest(
 ): IValidationResult {
   const execPath = getExecutablePath(cFile);
 
-  // Auto-detect C++11 headers and use g++ when needed
-  const useCpp = requiresCpp11(cFile);
+  // Auto-detect C++14 headers and use g++ when needed
+  const useCpp = requiresCpp14(cFile);
   const compiler = useCpp ? "g++" : "gcc";
-  const stdFlag = useCpp ? "-std=c++11" : "-std=c99";
+  const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
 
   try {
     // Compile to executable

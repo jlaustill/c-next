@@ -34,6 +34,12 @@ class SymbolTable {
   private needsStructKeyword: Set<string> = new Set();
 
   /**
+   * Issue #208: Track enum backing type bit widths
+   * C++14 typed enums: enum Name : uint8_t { ... } have explicit bit widths
+   */
+  private enumBitWidth: Map<string, number> = new Map();
+
+  /**
    * Add a symbol to the table
    */
   addSymbol(symbol: ISymbol): void {
@@ -238,6 +244,42 @@ class SymbolTable {
   }
 
   /**
+   * Issue #208: Add enum bit width for a typed enum
+   * @param enumName Name of the enum (e.g., "EPressureType")
+   * @param bitWidth Bit width from backing type (e.g., 8 for uint8_t)
+   */
+  addEnumBitWidth(enumName: string, bitWidth: number): void {
+    this.enumBitWidth.set(enumName, bitWidth);
+  }
+
+  /**
+   * Issue #208: Get enum bit width for a typed enum
+   * @param enumName Name of the enum
+   * @returns Bit width or undefined if not a typed enum
+   */
+  getEnumBitWidth(enumName: string): number | undefined {
+    return this.enumBitWidth.get(enumName);
+  }
+
+  /**
+   * Issue #208: Get all enum bit widths for cache serialization
+   * @returns Map of enum name -> bit width
+   */
+  getAllEnumBitWidths(): Map<string, number> {
+    return this.enumBitWidth;
+  }
+
+  /**
+   * Issue #208: Restore enum bit widths from cache
+   * @param bitWidths Map of enum name -> bit width
+   */
+  restoreEnumBitWidths(bitWidths: Map<string, number>): void {
+    for (const [enumName, width] of bitWidths) {
+      this.enumBitWidth.set(enumName, width);
+    }
+  }
+
+  /**
    * Get all fields for a struct
    * @param structName Name of the struct
    * @returns Map of field names to field info, or undefined if struct not found
@@ -301,6 +343,8 @@ class SymbolTable {
     this.symbols.clear();
     this.byFile.clear();
     this.structFields.clear();
+    this.needsStructKeyword.clear();
+    this.enumBitWidth.clear();
   }
 
   /**

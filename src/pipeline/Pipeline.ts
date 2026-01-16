@@ -26,7 +26,6 @@ import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
 import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
 import SymbolTable from "../symbols/SymbolTable";
-import ISymbol from "../types/ISymbol";
 import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
 import CSymbolCollector from "../symbols/CSymbolCollector";
 import CppSymbolCollector from "../symbols/CppSymbolCollector";
@@ -44,6 +43,7 @@ import IFileResult from "./types/IFileResult";
 import runAnalyzers from "./runAnalyzers";
 import CacheManager from "./CacheManager";
 import IStructFieldInfo from "../symbols/types/IStructFieldInfo";
+import detectCppSyntax from "./detectCppSyntax";
 
 /**
  * Unified transpilation pipeline
@@ -312,10 +312,11 @@ class Pipeline {
     if (this.cacheManager?.isValid(file.path)) {
       const cached = this.cacheManager.getSymbols(file.path);
       if (cached) {
-        // Restore symbols, struct fields, and needsStructKeyword from cache
+        // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
         this.symbolTable.addSymbols(cached.symbols);
         this.symbolTable.restoreStructFields(cached.structFields);
         this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
+        this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
         return; // Cache hit - skip parsing
       }
     }
@@ -356,23 +357,35 @@ class Pipeline {
       const needsStructKeyword = this.extractNeedsStructKeywordForFile(
         file.path,
       );
+      const enumBitWidth = this.extractEnumBitWidthsForFile(file.path);
       this.cacheManager.setSymbols(
         file.path,
         symbols,
         structFields,
         needsStructKeyword,
+        enumBitWidth,
       );
     }
   }
 
   /**
-   * Parse a C header using dual-parse strategy
+   * Issue #208: Parse a C header using single-parser strategy
+   * Uses heuristic detection to choose the appropriate parser
    */
   private parseCHeader(content: string, filePath: string): void {
-    let cSymbols: ISymbol[] = [];
-    let cppSymbols: ISymbol[] = [];
+    if (detectCppSyntax(content)) {
+      // Use C++14 parser for headers with C++ syntax (typed enums, classes, etc.)
+      this.parseCppHeader(content, filePath);
+    } else {
+      // Use C parser for pure C headers
+      this.parsePureCHeader(content, filePath);
+    }
+  }
 
-    // Try C parser first
+  /**
+   * Issue #208: Parse a pure C header (no C++ syntax detected)
+   */
+  private parsePureCHeader(content: string, filePath: string): void {
     try {
       const charStream = CharStream.fromString(content);
       const lexer = new CLexer(charStream);
@@ -382,36 +395,12 @@ class Pipeline {
 
       const tree = parser.compilationUnit();
       const collector = new CSymbolCollector(filePath, this.symbolTable);
-      cSymbols = collector.collect(tree);
+      const symbols = collector.collect(tree);
+      if (symbols.length > 0) {
+        this.symbolTable.addSymbols(symbols);
+      }
     } catch {
-      // C parser failed
-    }
-
-    // Also try C++ parser for better C++11 support
-    try {
-      const cppCharStream = CharStream.fromString(content);
-      const cppLexer = new CPP14Lexer(cppCharStream);
-      const cppTokenStream = new CommonTokenStream(cppLexer);
-      const cppParser = new CPP14Parser(cppTokenStream);
-      cppParser.removeErrorListeners();
-
-      const cppTree = cppParser.translationUnit();
-      const cppCollector = new CppSymbolCollector(filePath, this.symbolTable);
-      cppSymbols = cppCollector.collect(cppTree);
-    } catch {
-      // C++ parser failed
-    }
-
-    // Merge symbols: prefer C++ but supplement with C-only symbols
-    const cppSymbolNames = new Set(cppSymbols.map((s) => s.name));
-    const additionalSymbols = cSymbols.filter(
-      (s) => !cppSymbolNames.has(s.name),
-    );
-
-    const allSymbols = [...cppSymbols, ...additionalSymbols];
-
-    if (allSymbols.length > 0) {
-      this.symbolTable.addSymbols(allSymbols);
+      // Silently ignore parse errors in headers
     }
   }
 
@@ -960,6 +949,31 @@ class Pipeline {
     // Filter to only those that need struct keyword
     const allNeedsKeyword = this.symbolTable.getAllNeedsStructKeyword();
     return structNames.filter((name) => allNeedsKeyword.includes(name));
+  }
+
+  /**
+   * Issue #208: Extract enum bit widths for a specific file
+   * Returns enum bit widths for enums defined in that file
+   */
+  private extractEnumBitWidthsForFile(filePath: string): Map<string, number> {
+    const result = new Map<string, number>();
+
+    // Get enum names defined in this file
+    const fileSymbols = this.symbolTable.getSymbolsByFile(filePath);
+    const enumNames = fileSymbols
+      .filter((s) => s.kind === "enum")
+      .map((s) => s.name);
+
+    // Get bit widths for each enum
+    const allBitWidths = this.symbolTable.getAllEnumBitWidths();
+    for (const enumName of enumNames) {
+      const width = allBitWidths.get(enumName);
+      if (width !== undefined) {
+        result.set(enumName, width);
+      }
+    }
+
+    return result;
   }
 }
 
