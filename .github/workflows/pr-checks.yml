@@ -39,6 +39,11 @@ jobs:
         run: npm run antlr:all
         continue-on-error: true
 
+      - name: Check TypeScript types
+        id: typecheck
+        run: npm run typecheck
+        continue-on-error: true
+
       - name: Run tests
         id: test
         run: npm test
@@ -90,6 +95,13 @@ jobs:
             FAILED=1
           else
             echo "✅ Parser generation passed"
+          fi
+
+          if [ "${{ steps.typecheck.outcome }}" != "success" ]; then
+            echo "❌ TypeScript type check failed"
+            FAILED=1
+          else
+            echo "✅ TypeScript type check passed"
           fi
 
           if [ "${{ steps.test.outcome }}" != "success" ]; then

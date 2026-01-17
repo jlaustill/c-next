@@ -268,7 +268,7 @@ function generateScopedBitmapInline(
     lines.push(" */");
   } else {
     // Fall back to AST parsing
-    const fields = node.bitmapField();
+    const fields = node.bitmapMember();
     if (fields.length > 0) {
       lines.push("/* Fields:");
       let bitOffset = 0;
