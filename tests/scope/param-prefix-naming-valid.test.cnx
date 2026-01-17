@@ -1,0 +1,40 @@
+// Test: Valid parameter names that should NOT trigger the prefix error
+// Issue #227: Only parameters starting with {functionName}_ are invalid
+//
+// These are all valid parameter names:
+// - "value" does not start with "calculate_"
+// - "calculate" without underscore is allowed
+// - "calc_value" does not start with "calculate_"
+
+void calculate(u32 value) {
+    // "value" is valid - doesn't start with "calculate_"
+}
+
+void process(u32 process) {
+    // "process" is valid - no underscore suffix
+}
+
+void update(u32 upd_value) {
+    // "upd_value" is valid - doesn't start with "update_"
+}
+
+// Scope functions should also work correctly
+scope Math {
+    public f32 add(f32 x, f32 y) {
+        // Parameters "x" and "y" don't start with "add_"
+        return x + y;
+    }
+
+    public f32 multiply(f32 mult_factor, f32 value) {
+        // "mult_factor" doesn't start with "multiply_"
+        return mult_factor * value;
+    }
+}
+
+void main() {
+    calculate(42);
+    process(10);
+    update(5);
+    f32 result <- Math_add(1.0, 2.0);
+    result <- Math_multiply(3.0, 4.0);
+}

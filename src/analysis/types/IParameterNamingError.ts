@@ -15,6 +15,8 @@ interface IParameterNamingError {
   column: number;
   /** Human-readable error message */
   message: string;
+  /** Optional help text with suggested fix */
+  helpText?: string;
 }
 
 export default IParameterNamingError;

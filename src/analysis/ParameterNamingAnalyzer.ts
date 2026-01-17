@@ -113,14 +113,8 @@ class ParameterNamingAnalyzer {
       line,
       column,
       message: formatParameterNamingError(parameterName, functionName),
+      helpText: `Consider renaming to a name that doesn't start with '${functionName}_'`,
     });
-  }
-
-  /**
-   * Get all errors found during analysis
-   */
-  public getErrors(): IParameterNamingError[] {
-    return this.errors;
   }
 }
 
