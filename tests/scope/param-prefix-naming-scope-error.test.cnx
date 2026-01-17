@@ -1,0 +1,17 @@
+// Test: Scoped function parameters cannot start with function name prefix
+// Issue #227: Validation uses bare function name, not mangled name
+//
+// The function "add" in scope "Math" has a parameter "add_value"
+// which starts with "add_" - this should be an error
+
+scope Math {
+    public f32 add(f32 add_value, f32 y) {
+        // Parameter "add_value" starts with "add_"
+        // This should produce an error
+        return add_value + y;
+    }
+}
+
+void main() {
+    f32 result <- Math_add(1.0, 2.0);
+}

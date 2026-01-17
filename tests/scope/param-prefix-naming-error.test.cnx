@@ -1,0 +1,15 @@
+// Test: Function parameters cannot start with function name prefix
+// Issue #227: Edge case where parameter named {functionName}_* bypasses conflict filtering
+//
+// A parameter named "calculate_value" in function "calculate" would be
+// incorrectly classified as a scope-level variable by the conflict detection
+// heuristic. This validation prevents that edge case.
+
+void calculate(u32 calculate_value) {
+    // Parameter "calculate_value" starts with "calculate_"
+    // This should produce an error
+}
+
+void main() {
+    calculate(42);
+}
