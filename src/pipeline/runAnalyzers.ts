@@ -2,11 +2,12 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 5 analyzers run in sequence, each returning errors that block compilation.
+ * All 7 analyzers run in sequence, each returning errors that block compilation.
  */
 
 import { CommonTokenStream } from "antlr4ng";
 import { ProgramContext } from "../parser/grammar/CNextParser";
+import ParameterNamingAnalyzer from "../analysis/ParameterNamingAnalyzer";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
 import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
@@ -41,7 +42,24 @@ function runAnalyzers(
 ): ITranspileError[] {
   const errors: ITranspileError[] = [];
 
-  // 1. Initialization analysis (Rust-style use-before-init detection)
+  // 1. Parameter naming validation (Issue #227: reserved naming patterns)
+  const paramNamingAnalyzer = new ParameterNamingAnalyzer();
+  const paramNamingErrors = paramNamingAnalyzer.analyze(tree);
+
+  for (const paramError of paramNamingErrors) {
+    errors.push({
+      line: paramError.line,
+      column: paramError.column,
+      message: paramError.message,
+      severity: "error",
+    });
+  }
+
+  if (errors.length > 0) {
+    return errors;
+  }
+
+  // 2. Initialization analysis (Rust-style use-before-init detection)
   const initAnalyzer = new InitializationAnalyzer();
 
   // Register external struct fields from C/C++ headers if provided
@@ -64,7 +82,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 2. Call analysis (ADR-030: define-before-use)
+  // 3. Call analysis (ADR-030: define-before-use)
   const funcAnalyzer = new FunctionCallAnalyzer();
   const funcErrors = funcAnalyzer.analyze(tree);
 
@@ -81,7 +99,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 3. NULL check analysis (ADR-047: C library interop)
+  // 4. NULL check analysis (ADR-047: C library interop)
   const nullAnalyzer = new NullCheckAnalyzer();
   const nullErrors = nullAnalyzer.analyze(tree);
 
@@ -98,7 +116,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 4. Division by zero analysis (ADR-051: compile-time detection)
+  // 5. Division by zero analysis (ADR-051: compile-time detection)
   const divZeroAnalyzer = new DivisionByZeroAnalyzer();
   const divZeroErrors = divZeroAnalyzer.analyze(tree);
 
@@ -115,7 +133,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 5. Float modulo analysis (catch % with f32/f64 early)
+  // 6. Float modulo analysis (catch % with f32/f64 early)
   const floatModAnalyzer = new FloatModuloAnalyzer();
   const floatModErrors = floatModAnalyzer.analyze(tree);
 
@@ -132,7 +150,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 6. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 7. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   const commentErrors = commentExtractor.validate();
 
