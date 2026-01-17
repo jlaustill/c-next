@@ -1,26 +1,20 @@
-/* test-coverage: 20-atomic-in-scope */
-// Tests: atomic variables inside scope declarations
+/* test-coverage: 20-atomic-in-scope */ // Tests: atomic variables inside scope declarations
 // Note: Compilation test only - ARM-specific code
-
 #pragma target teensy41
 
 scope Counter {
     // Atomic variables within scope
     atomic u32 value <- 0;
     atomic u8 overflowCount <- 0;
-
     public void increment() {
         this.value +<- 1;
     }
-
     public void incrementBy(u32 delta) {
         this.value +<- delta;
     }
-
     public void reset() {
         this.value <- 0;
     }
-
     public u32 get() {
         return this.value;
     }
@@ -29,15 +23,12 @@ scope Counter {
 scope Timer {
     atomic wrap u32 ticks <- 0;
     atomic clamp u16 period <- 1000;
-
     public void tick() {
         this.ticks +<- 1;
     }
-
     public void setPeriod(u16 p) {
         this.period <- p;
     }
-
     public void adjustPeriod(u16 delta) {
         this.period +<- delta;
     }

@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: Callbacks with various parameter types
+/* test-execution */ // Tests: Callbacks with various parameter types
 // Validates: u8, u32, bool, and struct parameters work correctly
-
 // Callback with u8 parameter
 u32 processU8(u8 val) {
     return val + 100;

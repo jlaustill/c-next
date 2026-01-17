@@ -1,8 +1,7 @@
 // ADR-013: Error - assigning to const u16 variable
 // Tests: cannot assign to const variable
-
 const u16 PORT <- 8080;
 
 void main() {
-    PORT <- 9090;  // ERROR: cannot assign to const variable
+    PORT <- 9090; // ERROR: cannot assign to const variable
 }

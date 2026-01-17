@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-003: Static struct buffer allocation
+/* test-execution */ // ADR-003: Static struct buffer allocation
 // Tests: array of structs with member access
-
 struct SensorReading {
     u32 timestamp;
     i16 value;

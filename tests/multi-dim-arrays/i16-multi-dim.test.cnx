@@ -1,9 +1,8 @@
-/* test-execution */
-// Tests: multi-dimensional i16 arrays (2D and 3D)
+/* test-execution */ // Tests: multi-dimensional i16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, coordinate systems, signed offsets
-
 i16 matrix2d[4][8];
+
 i16 cube3d[2][3][4];
 
 u32 main() {
@@ -35,14 +34,14 @@ u32 main() {
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10;        // First dimension
-    if (matrix2d[0].length != 8) return 11;     // Second dimension
+    if (matrix2d.length != 4) return 10; // First dimension
+    if (matrix2d[0].length != 8) return 11; // Second dimension
     if (matrix2d[0][0].length != 16) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
+    if (cube3d.length != 2) return 13; // First dimension
+    if (cube3d[0].length != 3) return 14; // Second dimension
+    if (cube3d[0][0].length != 4) return 15; // Third dimension
     if (cube3d[0][0][0].length != 16) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array
@@ -82,18 +81,19 @@ u32 main() {
 
     // Test i16 specific edge cases
     i16 testArray[4][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
-    testArray[0][0] <- -32768;  // Min value
-    testArray[0][1] <- 32767;   // Max value
-    testArray[1][0] <- 0;       // Zero
-    testArray[1][1] <- -1;      // Negative
-    testArray[2][0] <- 1;       // Positive
-    testArray[3][1] <- -15000;  // Mid negative
+    testArray[0][0] <- -32768; // Min value
+    testArray[0][1] <- 32767; // Max value
+    testArray[1][0] <- 0; // Zero
+    testArray[1][1] <- -1; // Negative
+    testArray[2][0] <- 1; // Positive
+    testArray[3][1] <- -15000; // Mid negative
 
     if (testArray[0][0] != -32768) return 24;
     if (testArray[0][1] != 32767) return 25;
@@ -104,18 +104,19 @@ u32 main() {
 
     // Test 2D array with coordinate system pattern
     i16 coords[3][3];
+
     // Initialize all elements first
     for (u32 ci <- 0; ci < 3; ci +<- 1) {
         for (u32 cj <- 0; cj < 3; cj +<- 1) {
             coords[ci][cj] <- 0;
         }
     }
-    coords[0][0] <- -1000;  // X coordinate
-    coords[0][1] <- 500;    // Y coordinate
-    coords[1][0] <- 0;      // Origin X
-    coords[1][1] <- 0;      // Origin Y
-    coords[2][0] <- 2000;   // Positive X
-    coords[2][1] <- -3000;  // Negative Y
+    coords[0][0] <- -1000; // X coordinate
+    coords[0][1] <- 500; // Y coordinate
+    coords[1][0] <- 0; // Origin X
+    coords[1][1] <- 0; // Origin Y
+    coords[2][0] <- 2000; // Positive X
+    coords[2][1] <- -3000; // Negative Y
 
     if (coords[0][0] != -1000) return 30;
     if (coords[0][1] != 500) return 31;
@@ -126,6 +127,7 @@ u32 main() {
 
     // Test negative value calculations
     i16 deltas[2][2];
+
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
         for (u32 dj <- 0; dj < 2; dj +<- 1) {
@@ -139,18 +141,19 @@ u32 main() {
 
     // Test with altitude values (meters, can be negative)
     i16 altitudes[2][3];
+
     // Initialize all elements first
     for (u32 ai <- 0; ai < 2; ai +<- 1) {
         for (u32 aj <- 0; aj < 3; aj +<- 1) {
             altitudes[ai][aj] <- 0;
         }
     }
-    altitudes[0][0] <- -400;   // Dead Sea
-    altitudes[0][1] <- 0;      // Sea level
-    altitudes[0][2] <- 8849;   // Mt. Everest
+    altitudes[0][0] <- -400; // Dead Sea
+    altitudes[0][1] <- 0; // Sea level
+    altitudes[0][2] <- 8849; // Mt. Everest
     altitudes[1][0] <- -10994; // Mariana Trench
-    altitudes[1][1] <- 5895;   // Kilimanjaro
-    altitudes[1][2] <- 1000;   // Hills
+    altitudes[1][1] <- 5895; // Kilimanjaro
+    altitudes[1][2] <- 1000; // Hills
 
     if (altitudes[0][0] != -400) return 37;
     if (altitudes[0][2] != 8849) return 38;

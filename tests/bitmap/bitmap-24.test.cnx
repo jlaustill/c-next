@@ -1,25 +1,23 @@
-/* test-coverage: 11-bitmap24 */
-/* test-execution */
-// Tests: 24-bit bitmap type
-
+/* test-coverage: 11-bitmap24 */ /* test-execution */ // Tests: 24-bit bitmap type
 // 24-bit bitmap for RGB color
 bitmap24 RGBColor {
-    Red[8],      // bits 0-7 (8 bits)
-    Green[8],    // bits 8-15 (8 bits)
-    Blue[8]      // bits 16-23 (8 bits)
+    Red[8], // bits 0-7 (8 bits)
+    Green[8], // bits 8-15 (8 bits)
+    Blue[8] // bits 16-23 (8 bits)
 }
 
 // 24-bit bitmap for sensor status
 bitmap24 SensorConfig {
-    Enabled,           // bit 0
-    AutoCalibrate,     // bit 1
-    HighPrecision,     // bit 2
-    Reserved1[5],      // bits 3-7
-    SampleRate[8],     // bits 8-15
-    Threshold[8]       // bits 16-23
+    Enabled, // bit 0
+    AutoCalibrate, // bit 1
+    HighPrecision, // bit 2
+    Reserved1[5], // bits 3-7
+    SampleRate[8], // bits 8-15
+    Threshold[8] // bits 16-23
 }
 
 RGBColor color <- 0;
+
 SensorConfig sensor <- 0;
 
 u32 main() {
@@ -35,8 +33,8 @@ u32 main() {
     // Modify single channel
     color.Red <- 0;
     if (color.Red != 0) return 4;
-    if (color.Green != 128) return 5;  // Unchanged
-    if (color.Blue != 64) return 6;    // Unchanged
+    if (color.Green != 128) return 5; // Unchanged
+    if (color.Blue != 64) return 6; // Unchanged
 
     // Test sensor config single-bit fields
     sensor.Enabled <- true;
@@ -64,7 +62,7 @@ u32 main() {
     // Test modifying multi-bit fields
     sensor.SampleRate <- 200;
     if (sensor.SampleRate != 200) return 14;
-    if (sensor.Threshold != 50) return 15;  // Unchanged
+    if (sensor.Threshold != 50) return 15; // Unchanged
 
     // Test max value for 8-bit field
     color.Red <- 255;

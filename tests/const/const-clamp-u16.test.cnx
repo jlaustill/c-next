@@ -1,8 +1,7 @@
-/* test-execution */
-// ADR-013 + ADR-044: Const clamp u16 combination
+/* test-execution */ // ADR-013 + ADR-044: Const clamp u16 combination
 // Tests: const clamp u16 declaration and read access
-
 const clamp u16 MAX_ADC <- 4095;
+
 const clamp u16 THRESHOLD <- 2048;
 
 u32 main() {

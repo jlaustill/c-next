@@ -1,10 +1,9 @@
 // ADR-004: Error test - writing to read-only register
 // Tests: compile error when attempting to write to ro register
-
 register STATUS_REG @ 0x40000000 {
     FLAGS: u32 ro @ 0x00,
 }
 
 void main() {
-    STATUS_REG.FLAGS <- 0xFF;  // ERROR: cannot assign to read-only
+    STATUS_REG.FLAGS <- 0xFF; // ERROR: cannot assign to read-only
 }

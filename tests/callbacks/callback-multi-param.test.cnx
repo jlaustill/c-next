@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: Callbacks with multiple parameters
+/* test-execution */ // Tests: Callbacks with multiple parameters
 // Validates: two-param and three-param callbacks work correctly
-
 // Two-parameter callback
 u32 addTwo(u32 a, u32 b) {
     return a + b;

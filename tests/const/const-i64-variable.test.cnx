@@ -1,9 +1,9 @@
-/* test-execution */
-// ADR-013: Const i64 variable
+/* test-execution */ // ADR-013: Const i64 variable
 // Tests: const i64 declaration and read access with negative values
-
 const i64 MIN_TIMESTAMP <- -2147483648;
+
 const i64 MAX_TIMESTAMP <- 2147483647;
+
 const i64 EPOCH <- 0;
 
 u32 main() {

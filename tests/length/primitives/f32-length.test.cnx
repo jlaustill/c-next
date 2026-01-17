@@ -1,20 +1,15 @@
-/* test-execution */
-// Comprehensive .length test for f32 type across all contexts
+/* test-execution */ // Comprehensive .length test for f32 type across all contexts
 // Tests: .length returns 32 for f32 in every possible scope and access pattern
-
 f32 globalVar <- 3.14;
 
 scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-
     f32 scopeMember <- 3.14;
-
     public u32 getMemberLength() {
         return this.scopeMember.length;
     }
-
     public f32 publicMember <- 3.14;
 }
 

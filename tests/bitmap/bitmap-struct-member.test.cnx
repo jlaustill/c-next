@@ -1,20 +1,17 @@
-/* test-coverage: 11-bitmap-struct-member */
-/* test-execution */
-// Tests: Bitmap as struct member
-
+/* test-coverage: 11-bitmap-struct-member */ /* test-execution */ // Tests: Bitmap as struct member
 bitmap8 Flags {
-    Active,       // bit 0
-    Ready,        // bit 1
-    Error,        // bit 2
-    Mode[5]       // bits 3-7
+    Active, // bit 0
+    Ready, // bit 1
+    Error, // bit 2
+    Mode[5] // bits 3-7
 }
 
 bitmap16 Status {
-    Running,          // bit 0
-    Paused,           // bit 1
-    Complete,         // bit 2
-    Reserved[5],      // bits 3-7
-    Progress[8]       // bits 8-15
+    Running, // bit 0
+    Paused, // bit 1
+    Complete, // bit 2
+    Reserved[5], // bits 3-7
+    Progress[8] // bits 8-15
 }
 
 struct Device {
@@ -30,6 +27,7 @@ struct Controller {
 }
 
 Device device;
+
 Controller ctrl;
 
 u32 main() {
@@ -79,7 +77,7 @@ u32 main() {
 
     if (device.status.Progress != 100) return 13;
     if (device.status.Complete != true) return 14;
-    if (device.status.Running != true) return 15;  // Unchanged
+    if (device.status.Running != true) return 15; // Unchanged
 
     // Read bitmap fields into variables
     bool isActive <- device.flags.Active;

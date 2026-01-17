@@ -1,7 +1,9 @@
 // ADR-017: Type safety test - should fail
 // Error: Cannot assign integer to enum
-
-enum State { IDLE, RUNNING }
+enum State {
+    IDLE,
+    RUNNING
+}
 
 void main() {
     State s <- State.IDLE;

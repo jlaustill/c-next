@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: break in nested loops
+/* test-execution */ // Tests: break in nested loops
 // Validates: break only exits innermost loop
-
 u32 main() {
     // Test 1: Break inner for loop
     u32 outerCount <- 0;
@@ -11,10 +9,11 @@ u32 main() {
         for (u32 j <- 0; j < 10; j +<- 1) {
             if (j = 3) {
                 innerBreaks +<- 1;
-                break;  // Only breaks inner loop
+                break; // Only breaks inner loop
             }
         }
     }
+
     // Outer runs 5 times, inner breaks at j=3 each time
     if (outerCount != 5) return 1;
     if (innerBreaks != 5) return 2;
@@ -35,8 +34,10 @@ u32 main() {
         }
         a +<- 1;
     }
+
     // Outer runs 3 times
     if (outerIter != 3) return 3;
+
     // Inner sums 0+1+2+3+4 = 10 per outer iteration = 30 total
     if (innerSum != 30) return 4;
 
@@ -104,6 +105,7 @@ u32 main() {
             }
         }
     }
+
     // level1 = 2, level2 = 2*3 = 6, level3Breaks = 6
     if (level1 != 2) return 10;
     if (level2 != 6) return 11;

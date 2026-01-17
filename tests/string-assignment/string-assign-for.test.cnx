@@ -1,6 +1,4 @@
-/* test-execution */
-// Issue #139: Test string assignment inside for loop body
-
+/* test-execution */ // Issue #139: Test string assignment inside for loop body
 string<16> result <- "";
 
 u32 main() {

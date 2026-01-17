@@ -1,11 +1,10 @@
-/* test-execution */
-/* test-coverage: 30a-global-volatile */
-// Tests: Global volatile variable declaration and access
+/* test-execution */ /* test-coverage: 30a-global-volatile */ // Tests: Global volatile variable declaration and access
 // ADR-108: Volatile keyword for optimization prevention
-
 // Global volatile variable - prevents compiler from caching value
 volatile u32 status_flag <- 0;
+
 volatile u8 byte_flag <- 0;
+
 volatile bool ready_flag <- false;
 
 u32 main() {
@@ -40,5 +39,5 @@ u32 main() {
     status_flag +<- 5;
     if (status_flag != 15) return 7;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

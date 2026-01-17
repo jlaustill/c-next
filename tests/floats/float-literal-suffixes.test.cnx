@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: f32 and f64 literal suffix syntax (ADR-024)
+/* test-execution */ // Tests: f32 and f64 literal suffix syntax (ADR-024)
 // Validates that suffixed float literals work correctly
-
 u32 main() {
     // Test f32 suffix - decimal notation
     f32 a <- 3.14f32;
@@ -53,5 +51,5 @@ u32 main() {
     if (j < 0.0000000009) return 19;
     if (j > 0.0000000011) return 20;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

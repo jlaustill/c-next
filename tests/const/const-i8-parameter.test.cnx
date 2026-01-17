@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-013: Const i8 parameter
+/* test-execution */ // ADR-013: Const i8 parameter
 // Tests: const i8 parameter read access with negative values
-
 i8 readConstI8(const i8 value) {
     return value;
 }

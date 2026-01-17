@@ -1,6 +1,5 @@
 // ADR-032: Nested Structs with Function Parameters
 // Tests: passing and accessing nested struct members via function params
-
 struct Point {
     i32 x;
     i32 y;
@@ -36,7 +35,4 @@ void moveRect(Rectangle rect, i32 dx, i32 dy) {
 }
 
 // Test instance
-Rectangle bounds <- {
-    topLeft: { x: 10, y: 20 },
-    bottomRight: { x: 60, y: 70 }
-};
+Rectangle bounds <- {topLeft: {x: 10, y: 20}, bottomRight: {x: 60, y: 70}};

@@ -1,7 +1,5 @@
-/* test-execution */
-// Test .length property on struct member access
+/* test-execution */ // Test .length property on struct member access
 // Bug: config.magic.length evaluates to 0 instead of 32
-
 struct Config {
     u32 magic;
     u16 version;

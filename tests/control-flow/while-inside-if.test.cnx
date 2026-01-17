@@ -1,8 +1,5 @@
-/* test-coverage: 33.2-while-inside-if */
-/* test-execution */
-// Coverage: Section 7.2, 33.2 - while loop inside if statement
+/* test-coverage: 33.2-while-inside-if */ /* test-execution */ // Coverage: Section 7.2, 33.2 - while loop inside if statement
 // Tests: while loops nested inside if/else branches
-
 u32 main() {
     u32 count <- 0;
     u32 i <- 0;

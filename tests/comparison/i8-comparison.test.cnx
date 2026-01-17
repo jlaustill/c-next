@@ -1,51 +1,49 @@
-/* test-execution */
-// Test i8 comparison operations
+/* test-execution */ // Test i8 comparison operations
 // Coverage: Section 3.1-3.6 for i8 type
-
 u32 main() {
     i8 a <- 50;
     i8 b <- 30;
-    i8 c <- 50;  // Equal to a
+    i8 c <- 50; // Equal to a
     i8 d <- -20;
     i8 e <- -50;
 
     // Equality (=)
-    bool eq1 <- a = c;  // true
-    bool eq2 <- a = b;  // false
-    bool eq3 <- d = -20;  // true (literal)
+    bool eq1 <- a = c; // true
+    bool eq2 <- a = b; // false
+    bool eq3 <- d = -20; // true (literal)
 
     // Not Equal (!=)
-    bool neq1 <- a != b;  // true
-    bool neq2 <- a != c;  // false
-    bool neq3 <- d != 0;  // true
+    bool neq1 <- a != b; // true
+    bool neq2 <- a != c; // false
+    bool neq3 <- d != 0; // true
 
     // Less Than (<)
-    bool lt1 <- b < a;  // true (30 < 50)
-    bool lt2 <- a < b;  // false
-    bool lt3 <- d < 0;  // true (negative < 0)
-    bool lt4 <- e < d;  // true (-50 < -20)
+    bool lt1 <- b < a; // true (30 < 50)
+    bool lt2 <- a < b; // false
+    bool lt3 <- d < 0; // true (negative < 0)
+    bool lt4 <- e < d; // true (-50 < -20)
 
     // Greater Than (>)
-    bool gt1 <- a > b;  // true (50 > 30)
-    bool gt2 <- b > a;  // false
-    bool gt3 <- 0 > d;  // true (0 > negative)
-    bool gt4 <- d > e;  // true (-20 > -50)
+    bool gt1 <- a > b; // true (50 > 30)
+    bool gt2 <- b > a; // false
+    bool gt3 <- 0 > d; // true (0 > negative)
+    bool gt4 <- d > e; // true (-20 > -50)
 
     // Less Than or Equal (<=)
-    bool lte1 <- b <= a;  // true (30 <= 50)
-    bool lte2 <- a <= c;  // true (50 <= 50)
-    bool lte3 <- a <= b;  // false
+    bool lte1 <- b <= a; // true (30 <= 50)
+    bool lte2 <- a <= c; // true (50 <= 50)
+    bool lte3 <- a <= b; // false
 
     // Greater Than or Equal (>=)
-    bool gte1 <- a >= b;  // true (50 >= 30)
-    bool gte2 <- a >= c;  // true (50 >= 50)
-    bool gte3 <- b >= a;  // false
+    bool gte1 <- a >= b; // true (50 >= 30)
+    bool gte2 <- a >= c; // true (50 >= 50)
+    bool gte3 <- b >= a; // false
 
     // Edge cases - max/min
     i8 max_val <- 127;
     i8 min_val <- -128;
-    bool max_gt_min <- max_val > min_val;  // true
-    bool min_lt_max <- min_val < max_val;  // true
+    bool max_gt_min <- max_val > min_val; // true
+    bool min_lt_max <- min_val < max_val; // true
 
     // Verify all results
     if (eq1 && !eq2 && eq3) {
@@ -55,7 +53,7 @@ u32 main() {
                     if (lte1 && lte2 && !lte3) {
                         if (gte1 && gte2 && !gte3) {
                             if (max_gt_min && min_lt_max) {
-                                return 0;  // All tests passed
+                                return 0; // All tests passed
                             }
                         }
                     }
@@ -63,5 +61,5 @@ u32 main() {
             }
         }
     }
-    return 1;  // Test failed
+    return 1; // Test failed
 }

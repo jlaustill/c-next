@@ -1,11 +1,11 @@
 // ADR-051 Phase 3: Division by const non-zero
 // Should compile successfully
-
 const u32 TEN <- 10;
+
 const u32 FIVE <- 5;
 
 void testDivisionByConstNonZero() {
-    u32 result1 <- 100 / TEN;   // Valid: 100 / 10 = 10
-    u32 result2 <- 25 / FIVE;   // Valid: 25 / 5 = 5
-    u32 result3 <- result1 % TEN;  // Valid: modulo by non-zero
+    u32 result1 <- 100 / TEN; // Valid: 100 / 10 = 10
+    u32 result2 <- 25 / FIVE; // Valid: 25 / 5 = 5
+    u32 result3 <- result1 % TEN; // Valid: modulo by non-zero
 }

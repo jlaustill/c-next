@@ -1,7 +1,6 @@
 // Coverage: Section 7.2 - Infinite while loop (while true)
 // Tests: while(true) syntax compiles correctly
 // Note: Not an execution test since infinite loop would never terminate
-
 u32 counter <- 0;
 
 void runForever() {

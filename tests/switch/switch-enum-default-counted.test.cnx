@@ -1,10 +1,17 @@
 // ADR-025: Counted Default Test
 // Tests default(n) syntax for large enums
-
-enum EHttpStatus { OK, CREATED, BAD_REQUEST, UNAUTHORIZED, NOT_FOUND }
+enum EHttpStatus {
+    OK,
+    CREATED,
+    BAD_REQUEST,
+    UNAUTHORIZED,
+    NOT_FOUND
+}
 
 void handleSuccess() {}
+
 void handleCreated() {}
+
 void handleOther() {}
 
 void handleStatus(EHttpStatus status) {
@@ -15,7 +22,7 @@ void handleStatus(EHttpStatus status) {
         case EHttpStatus.CREATED {
             handleCreated();
         }
-        default(3) {
+    default(3) {
             handleOther();
         }
     }

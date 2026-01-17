@@ -1,16 +1,14 @@
-/* test-coverage: 26-partial-branch-init */
-// Tests: Error when variable only initialized in some branches
+/* test-coverage: 26-partial-branch-init */ // Tests: Error when variable only initialized in some branches
 // Should produce an error for using potentially uninitialized variable
-
 u32 getValue(bool condition) {
-    u32 result;  // Not initialized
+    u32 result; // Not initialized
 
     if (condition) {
-        result <- 100;  // Only initialized in true branch
+        result <- 100; // Only initialized in true branch
     }
-    // No else branch - result might be uninitialized
 
-    return result;  // ERROR: potentially uninitialized
+    // No else branch - result might be uninitialized
+    return result; // ERROR: potentially uninitialized
 }
 
 void main() {

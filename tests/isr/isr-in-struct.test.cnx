@@ -1,9 +1,8 @@
-/* test-execution */
-// ADR-040: ISR as struct field
+/* test-execution */ // ADR-040: ISR as struct field
 // Tests: storing ISR in struct, retrieving and invoking
-
 // Global to track which handler was called
 u32 structCallCount <- 0;
+
 u32 structLastHandler <- 0;
 
 // Handler functions
@@ -42,6 +41,7 @@ void invokeStructHolder(IsrHolder hld) {
 
 u32 main() {
     IsrHolder holder;
+
     // Initialize both fields before use
     holder.primary <- structHandler1;
     holder.secondary <- structHandler1;
@@ -68,7 +68,7 @@ u32 main() {
     initStructHolder(holder, structHandler1, structHandler3);
     invokeStructHolder(holder);
     if (structCallCount != 2) return 5;
-    if (structLastHandler != 3) return 6;  // secondary (structHandler3) called last
+    if (structLastHandler != 3) return 6; // secondary (structHandler3) called last
 
     // Test 4: Swap handlers and verify
     structCallCount <- 0;
@@ -76,7 +76,7 @@ u32 main() {
     holder.secondary <- structHandler1;
     invokeStructHolder(holder);
     if (structCallCount != 2) return 7;
-    if (structLastHandler != 1) return 8;  // secondary (structHandler1) called last
+    if (structLastHandler != 1) return 8; // secondary (structHandler1) called last
 
     // Test 5: Direct struct field invocation
     structCallCount <- 0;

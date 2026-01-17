@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: Callbacks as struct members with invocation and validation
+/* test-execution */ // Tests: Callbacks as struct members with invocation and validation
 // Validates: default callback, assignment, invocation via struct field
-
 // Callback that returns a computed value (used as a type)
 u32 computeValue(u32 input) {
     return input * 2;

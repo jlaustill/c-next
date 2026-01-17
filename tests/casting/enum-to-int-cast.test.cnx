@@ -1,7 +1,4 @@
-/* test-coverage: 22-enum-to-int-cast */
-/* test-execution */
-// Tests: Explicit enum to integer cast
-
+/* test-coverage: 22-enum-to-int-cast */ /* test-execution */ // Tests: Explicit enum to integer cast
 enum Priority {
     LOW <- 1,
     MEDIUM <- 5,

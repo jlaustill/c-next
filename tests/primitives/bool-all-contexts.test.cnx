@@ -1,9 +1,8 @@
-/* test-execution */
-// Tests: Boolean type in all language contexts
+/* test-execution */ // Tests: Boolean type in all language contexts
 // Covers: function params, return types, struct members, arrays
-
 // 1. Global variables
 bool globalTrue <- true;
+
 bool globalFalse <- false;
 
 // 2. Struct with bool members

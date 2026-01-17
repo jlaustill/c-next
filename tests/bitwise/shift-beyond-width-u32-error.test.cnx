@@ -1,10 +1,8 @@
-/* test-coverage: 5.5-shift-beyond-width-error */
-// Test u32 shift beyond width - should be ERROR
+/* test-coverage: 5.5-shift-beyond-width-error */ // Test u32 shift beyond width - should be ERROR
 // Coverage: Section 5.5-5.6 error case - shift beyond type width
-
 void testU32ShiftBeyondWidth() {
     u32 a <- 1;
 
     // u32 is 32 bits, so shifting by 32 or more is undefined/error
-    u32 bad_shift <- a << 32;  // ERROR: shift amount >= type width
+    u32 bad_shift <- a << 32; // ERROR: shift amount >= type width
 }

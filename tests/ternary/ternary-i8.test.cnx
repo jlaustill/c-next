@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-022: Ternary operator test for i8
+/* test-execution */ // ADR-022: Ternary operator test for i8
 // Tests: ternary with i8 in conditions and branches, including negative values
-
 i8 getMax(i8 a, i8 b) {
     return (a > b) ? a : b;
 }

@@ -1,8 +1,7 @@
 // ADR-003: free is forbidden
 // Tests: dynamic allocation not allowed
-
 #include <stdlib.h>
 
 void freeMemory() {
-    free(0);  // ERROR: forbidden function
+    free(0); // ERROR: forbidden function
 }

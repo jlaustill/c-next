@@ -1,10 +1,11 @@
-/* test-execution */
-// ADR-015: Global zero initialization
+/* test-execution */ // ADR-015: Global zero initialization
 // Tests: globals are automatically zero-initialized
-
 u32 counter;
+
 i32 offset;
+
 bool flag;
+
 u8 byte;
 
 u32 main() {

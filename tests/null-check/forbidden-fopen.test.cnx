@@ -2,5 +2,5 @@
 #include <stdio.h>
 
 void openFile() {
-    fopen("test.txt", "r");  // ERROR: forbidden function
+    fopen("test.txt", "r"); // ERROR: forbidden function
 }

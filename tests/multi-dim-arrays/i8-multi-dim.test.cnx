@@ -1,9 +1,8 @@
-/* test-execution */
-// Tests: multi-dimensional i8 arrays (2D and 3D)
+/* test-execution */ // Tests: multi-dimensional i8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: temperature sensors, small signed offsets, delta values
-
 i8 matrix2d[4][8];
+
 i8 cube3d[2][3][4];
 
 u32 main() {
@@ -35,14 +34,14 @@ u32 main() {
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10;       // First dimension
-    if (matrix2d[0].length != 8) return 11;    // Second dimension
+    if (matrix2d.length != 4) return 10; // First dimension
+    if (matrix2d[0].length != 8) return 11; // Second dimension
     if (matrix2d[0][0].length != 8) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
+    if (cube3d.length != 2) return 13; // First dimension
+    if (cube3d[0].length != 3) return 14; // Second dimension
+    if (cube3d[0][0].length != 4) return 15; // Third dimension
     if (cube3d[0][0][0].length != 8) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array with small values
@@ -59,7 +58,7 @@ u32 main() {
     if (matrix2d[3][7] != 22) return 20;
 
     // Nested loop iteration - populate and sum 3D array
-    i16 sum <- 0;  // Use i16 for sum accumulator
+    i16 sum <- 0; // Use i16 for sum accumulator
     for (u32 i <- 0; i < 2; i +<- 1) {
         for (u32 j <- 0; j < 3; j +<- 1) {
             for (u32 k <- 0; k < 4; k +<- 1) {
@@ -82,18 +81,19 @@ u32 main() {
 
     // Test i8 specific edge cases
     i8 testArray[4][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
-    testArray[0][0] <- -128;  // Min value
-    testArray[0][1] <- 127;   // Max value
-    testArray[1][0] <- 0;     // Zero
-    testArray[1][1] <- -1;    // Negative
-    testArray[2][0] <- 1;     // Positive
-    testArray[3][1] <- -50;   // Mid negative
+    testArray[0][0] <- -128; // Min value
+    testArray[0][1] <- 127; // Max value
+    testArray[1][0] <- 0; // Zero
+    testArray[1][1] <- -1; // Negative
+    testArray[2][0] <- 1; // Positive
+    testArray[3][1] <- -50; // Mid negative
 
     if (testArray[0][0] != -128) return 24;
     if (testArray[0][1] != 127) return 25;
@@ -104,18 +104,19 @@ u32 main() {
 
     // Test 2D array with temperature sensor pattern (in Celsius)
     i8 temps[3][3];
+
     // Initialize all elements first
     for (u32 tei <- 0; tei < 3; tei +<- 1) {
         for (u32 tej <- 0; tej < 3; tej +<- 1) {
             temps[tei][tej] <- 0;
         }
     }
-    temps[0][0] <- -40;  // Very cold
-    temps[0][1] <- -10;  // Cold
-    temps[1][0] <- 0;    // Freezing
-    temps[1][1] <- 20;   // Room temp
-    temps[2][0] <- 37;   // Body temp
-    temps[2][1] <- 100;  // Boiling
+    temps[0][0] <- -40; // Very cold
+    temps[0][1] <- -10; // Cold
+    temps[1][0] <- 0; // Freezing
+    temps[1][1] <- 20; // Room temp
+    temps[2][0] <- 37; // Body temp
+    temps[2][1] <- 100; // Boiling
 
     if (temps[0][0] != -40) return 30;
     if (temps[0][1] != -10) return 31;
@@ -126,6 +127,7 @@ u32 main() {
 
     // Test negative value calculations
     i8 deltas[2][2];
+
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
         for (u32 dj <- 0; dj < 2; dj +<- 1) {

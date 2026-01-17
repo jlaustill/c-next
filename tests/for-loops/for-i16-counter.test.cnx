@@ -1,7 +1,5 @@
-/* test-execution */
-// For loop tests: i16 as loop counter
+/* test-execution */ // For loop tests: i16 as loop counter
 // Tests: i16 type can be used as for-loop counter
-
 i16 main() {
     i16 sum <- 0;
     for (i16 i <- 0; i < 10; i +<- 1) {

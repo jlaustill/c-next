@@ -1,23 +1,21 @@
-/* test-coverage: 12-w1c-access-modifier */
-// Tests: Write-1-to-Clear register access modifier
+/* test-coverage: 12-w1c-access-modifier */ // Tests: Write-1-to-Clear register access modifier
 // Writing 1 to a bit clears it, writing 0 has no effect
-
 register INT @ 0x40001000 {
-    STATUS:  u32 w1c @ 0x00,  // Write-1-to-clear status register
-    PENDING: u32 w1c @ 0x04,  // Write-1-to-clear pending register
+    STATUS: u32 w1c @ 0x00, // Write-1-to-clear status register
+    PENDING: u32 w1c @ 0x04, // Write-1-to-clear pending register
 }
 
 register GPIO @ 0x40002000 {
-    DR:      u32 rw  @ 0x00,
-    INTSTAT: u32 w1c @ 0x10,  // Interrupt status (w1c)
+    DR: u32 rw @ 0x00,
+    INTSTAT: u32 w1c @ 0x10, // Interrupt status (w1c)
 }
 
 void clearInterrupt(u32 mask) {
-    INT.STATUS <- mask;  // Write 1s to clear those bits
+    INT.STATUS <- mask; // Write 1s to clear those bits
 }
 
 void clearPendingIRQ(u8 irqNum) {
-    INT.PENDING[irqNum] <- true;  // Clear specific pending IRQ
+    INT.PENDING[irqNum] <- true; // Clear specific pending IRQ
 }
 
 void clearGpioInterrupt(u32 bitMask) {
@@ -25,14 +23,14 @@ void clearGpioInterrupt(u32 bitMask) {
 }
 
 void clearSingleBit(u8 bit) {
-    INT.STATUS[bit] <- true;  // Clear single bit
+    INT.STATUS[bit] <- true; // Clear single bit
 }
 
 void main() {
     // Clear specific interrupt bits
-    clearInterrupt(0x01);    // Clear bit 0
-    clearInterrupt(0xFF);    // Clear bits 0-7
-    clearPendingIRQ(5);      // Clear IRQ 5
+    clearInterrupt(0x01); // Clear bit 0
+    clearInterrupt(0xFF); // Clear bits 0-7
+    clearPendingIRQ(5); // Clear IRQ 5
     clearGpioInterrupt(0x0F); // Clear GPIO interrupts 0-3
-    clearSingleBit(7);       // Clear bit 7
+    clearSingleBit(7); // Clear bit 7
 }

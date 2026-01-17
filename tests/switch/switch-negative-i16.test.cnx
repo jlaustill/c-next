@@ -1,26 +1,24 @@
-/* test-execution */
-// Issue #107: Negative Case Labels - i16 Type
+/* test-execution */ // Issue #107: Negative Case Labels - i16 Type
 // Tests: negative literals with i16 switch expressions
-
 i32 result;
 
 // Test i16 boundary values
 void testI16Boundaries(i16 val) {
     switch (val) {
         case -32768 {
-            result <- 1;   // INT16_MIN
+            result <- 1; // INT16_MIN
         }
         case -32767 {
-            result <- 2;   // INT16_MIN + 1
+            result <- 2; // INT16_MIN + 1
         }
         case -256 {
-            result <- 3;   // Beyond i8 range
+            result <- 3; // Beyond i8 range
         }
         case -129 {
-            result <- 4;   // Just beyond i8 min
+            result <- 4; // Just beyond i8 min
         }
         case -128 {
-            result <- 5;   // i8 min boundary
+            result <- 5; // i8 min boundary
         }
         case -1 {
             result <- 6;
@@ -29,18 +27,18 @@ void testI16Boundaries(i16 val) {
             result <- 7;
         }
         case 127 {
-            result <- 8;   // i8 max boundary
+            result <- 8; // i8 max boundary
         }
         case 128 {
-            result <- 9;   // Just beyond i8 max
+            result <- 9; // Just beyond i8 max
         }
         case 32766 {
-            result <- 10;  // INT16_MAX - 1
+            result <- 10; // INT16_MAX - 1
         }
         case 32767 {
-            result <- 11;  // INT16_MAX
+            result <- 11; // INT16_MAX
         }
-        default {
+    default {
             result <- 99;
         }
     }
@@ -50,24 +48,24 @@ void testI16Boundaries(i16 val) {
 void testI16Hex(i16 val) {
     switch (val) {
         case -0x8000 {
-            result <- 20;  // -32768
+            result <- 20; // -32768
         }
         case -0x100 {
-            result <- 21;  // -256
+            result <- 21; // -256
         }
         case -0x80 {
-            result <- 22;  // -128
+            result <- 22; // -128
         }
         case -0x01 {
-            result <- 23;  // -1
+            result <- 23; // -1
         }
         case 0x00 {
-            result <- 24;  // 0
+            result <- 24; // 0
         }
         case 0x7FFF {
-            result <- 25;  // 32767
+            result <- 25; // 32767
         }
-        default {
+    default {
             result <- 99;
         }
     }

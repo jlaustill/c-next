@@ -1,9 +1,8 @@
-/* test-execution */
-// ADR-040: ISR as function parameter
+/* test-execution */ // ADR-040: ISR as function parameter
 // Tests: passing ISR to functions and invoking through parameter
-
 // Global to track which handler was called
 u32 paramCallCount <- 0;
+
 u32 paramLastHandler <- 0;
 
 // Handler functions (void() compatible with ISR)
@@ -65,14 +64,14 @@ u32 main() {
     paramLastHandler <- 0;
     executeParamBoth(paramHandler1, paramHandler2);
     if (paramCallCount != 2) return 6;
-    if (paramLastHandler != 2) return 7;  // paramHandler2 called last
+    if (paramLastHandler != 2) return 7; // paramHandler2 called last
 
     // Test 5: Execute both in reverse order
     paramCallCount <- 0;
     paramLastHandler <- 0;
     executeParamBoth(paramHandler2, paramHandler1);
     if (paramCallCount != 2) return 8;
-    if (paramLastHandler != 1) return 9;  // paramHandler1 called last
+    if (paramLastHandler != 1) return 9; // paramHandler1 called last
 
     // Test 6: Chain multiple executeParamHandler calls
     paramCallCount <- 0;

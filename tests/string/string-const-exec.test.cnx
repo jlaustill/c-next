@@ -1,16 +1,17 @@
-/* test-execution */
-// ADR-045: Validate const string inference at runtime
-
+/* test-execution */ // ADR-045: Validate const string inference at runtime
 const string VERSION <- "1.0.0";
+
 const string APP_NAME <- "TestApp";
+
 const string EMPTY_CONST <- "";
+
 const string LONG_CONST <- "This is a longer constant string for testing";
 
 i32 main() {
     // Test 1-3: Basic const string
     if (VERSION.length != 5) return 1;
     if (VERSION != "1.0.0") return 2;
-    if (VERSION.capacity != 5) return 3;  // Auto-inferred from literal
+    if (VERSION.capacity != 5) return 3; // Auto-inferred from literal
 
     // Test 4-6: Another const string
     if (APP_NAME.length != 7) return 4;
@@ -33,7 +34,7 @@ i32 main() {
     if (local != VERSION) return 14;
 
     // Test 15: Const comparison
-    if (VERSION = APP_NAME) return 15;  // Should be different
+    if (VERSION = APP_NAME) return 15; // Should be different
 
     return 0;
 }

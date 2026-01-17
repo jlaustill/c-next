@@ -1,83 +1,139 @@
-/* test-execution */
-// ADR-025: Switch statement test for all integer types
+/* test-execution */ // ADR-025: Switch statement test for all integer types
 // Tests: u8, u16, u32, u64, i8, i16, i32, i64 switch expressions
 // Coverage: Section 7 (Control Flow) - switch with all integer types
-
 u32 result;
 
 // === UNSIGNED TYPE HELPERS ===
-
 void testSwitchU8(u8 val) {
     switch (val) {
-        case 0 { result <- 100; }
-        case 10 { result <- 110; }
-        case 255 { result <- 355; }
-        default { result <- 999; }
+        case 0 {
+            result <- 100;
+        }
+        case 10 {
+            result <- 110;
+        }
+        case 255 {
+            result <- 355;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 void testSwitchU16(u16 val) {
     switch (val) {
-        case 0 { result <- 200; }
-        case 1000 { result <- 1200; }
-        case 65535 { result <- 65735; }
-        default { result <- 999; }
+        case 0 {
+            result <- 200;
+        }
+        case 1000 {
+            result <- 1200;
+        }
+        case 65535 {
+            result <- 65735;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 void testSwitchU32(u32 val) {
     switch (val) {
-        case 0 { result <- 300; }
-        case 1000000 { result <- 1000300; }
-        default { result <- 999; }
+        case 0 {
+            result <- 300;
+        }
+        case 1000000 {
+            result <- 1000300;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 void testSwitchU64(u64 val) {
     switch (val) {
-        case 0 { result <- 400; }
-        case 1000000000000 { result <- 401; }
-        default { result <- 999; }
+        case 0 {
+            result <- 400;
+        }
+        case 1000000000000 {
+            result <- 401;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 // === SIGNED TYPE HELPERS ===
 // Note: Case labels must use positive literals (grammar limitation).
 // Signed types are still tested - negative values fall to default.
-
 void testSwitchI8(i8 val) {
     switch (val) {
-        case 0 { result <- 500; }
-        case 50 { result <- 501; }
-        case 127 { result <- 502; }
-        default { result <- 999; }
+        case 0 {
+            result <- 500;
+        }
+        case 50 {
+            result <- 501;
+        }
+        case 127 {
+            result <- 502;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 void testSwitchI16(i16 val) {
     switch (val) {
-        case 0 { result <- 600; }
-        case 5000 { result <- 601; }
-        case 32767 { result <- 602; }
-        default { result <- 999; }
+        case 0 {
+            result <- 600;
+        }
+        case 5000 {
+            result <- 601;
+        }
+        case 32767 {
+            result <- 602;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 void testSwitchI32(i32 val) {
     switch (val) {
-        case 0 { result <- 700; }
-        case 1000000 { result <- 701; }
-        case 2000000 { result <- 702; }
-        default { result <- 999; }
+        case 0 {
+            result <- 700;
+        }
+        case 1000000 {
+            result <- 701;
+        }
+        case 2000000 {
+            result <- 702;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 void testSwitchI64(i64 val) {
     switch (val) {
-        case 0 { result <- 800; }
-        case 5000000000 { result <- 801; }
-        case 9000000000 { result <- 802; }
-        default { result <- 999; }
+        case 0 {
+            result <- 800;
+        }
+        case 5000000000 {
+            result <- 801;
+        }
+        case 9000000000 {
+            result <- 802;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 

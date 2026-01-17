@@ -1,8 +1,7 @@
 // ADR-013: Error - compound assignment to const i16
 // Tests: cannot use compound division on const i16 variable
-
 const i16 DIVISOR <- 100;
 
 void main() {
-    DIVISOR /<- 2;  // ERROR: cannot assign to const variable
+    DIVISOR /<- 2; // ERROR: cannot assign to const variable
 }

@@ -1,9 +1,9 @@
-/* test-execution */
-// ADR-013: Const i16 variable
+/* test-execution */ // ADR-013: Const i16 variable
 // Tests: const i16 declaration and read access with negative values
-
 const i16 MIN_ALTITUDE <- -500;
+
 const i16 MAX_ALTITUDE <- 10000;
+
 const i16 SEA_LEVEL <- 0;
 
 u32 main() {

@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-045: Test strings in control flow structures
+/* test-execution */ // ADR-045: Test strings in control flow structures
 // Validates: string operations in if, while, for conditions
-
 i32 main() {
     // Test 1-3: String comparison in if condition
     string<32> name <- "Alice";
@@ -15,7 +13,7 @@ i32 main() {
     if (name = "Bob") {
         result <- 2;
     }
-    if (result != 1) return 2;  // Should still be 1
+    if (result != 1) return 2; // Should still be 1
 
     // Test 4-5: String inequality in if
     if (name != "Bob") {
@@ -48,6 +46,7 @@ i32 main() {
         totalLen <- totalLen + items[i].length;
         i <- i + 1;
     }
+
     // 3 + 3 + 5 + 4 = 15
     if (totalLen != 15) return 6;
 

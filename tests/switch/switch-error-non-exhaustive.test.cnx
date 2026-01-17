@@ -1,13 +1,14 @@
 // ADR-025: Error Test - Non-Exhaustive Enum Switch
 // Should error: missing enum variants without default
-
-enum EState { IDLE, RUNNING, STOPPED }
+enum EState {
+    IDLE,
+    RUNNING,
+    STOPPED
+}
 
 void handleState(EState state) {
     switch (state) {
-        case EState.IDLE {
-        }
-        case EState.RUNNING {
-        }
+        case EState.IDLE {}
+        case EState.RUNNING {}
     }
 }

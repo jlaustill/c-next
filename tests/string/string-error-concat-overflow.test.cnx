@@ -1,5 +1,7 @@
 // ADR-045: Test concatenation overflow error
 // ERROR: String concatenation requires capacity 64, but string<50> only has 50
 string<32> first <- "Hello";
+
 string<32> second <- " World";
+
 string<50> result <- first + second;

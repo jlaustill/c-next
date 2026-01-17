@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: continue in nested loops
+/* test-execution */ // Tests: continue in nested loops
 // Validates: continue only skips to next iteration of innermost loop
-
 u32 main() {
     // Test 1: Continue inner for loop
     u32 outerSum <- 0;
@@ -10,13 +8,15 @@ u32 main() {
         outerSum +<- i;
         for (u32 j <- 0; j < 6; j +<- 1) {
             if (j % 2 = 0) {
-                continue;  // Skip even in inner loop
+                continue; // Skip even in inner loop
             }
             innerOddSum +<- j;
         }
     }
+
     // outerSum = 0+1+2 = 3
     if (outerSum != 3) return 1;
+
     // innerOddSum = (1+3+5) * 3 = 27
     if (innerOddSum != 27) return 2;
 
@@ -38,6 +38,7 @@ u32 main() {
         a +<- 1;
     }
     if (outerCount != 4) return 3;
+
     // Inner skips 0,2,4 = 3 per outer = 12 total
     if (innerSkipped != 12) return 4;
 
@@ -48,12 +49,13 @@ u32 main() {
         outerRuns +<- 1;
         for (u32 d <- 0; d < 10; d +<- 1) {
             if (d < 7) {
-                continue;  // Skip first 7
+                continue; // Skip first 7
             }
             innerProcessed +<- 1;
         }
     }
     if (outerRuns != 3) return 5;
+
     // Inner processes d=7,8,9 = 3 per outer = 9 total
     if (innerProcessed != 9) return 6;
 
@@ -72,8 +74,10 @@ u32 main() {
             doProcessed +<- 1;
         } while (f < 6);
     }
+
     // Skipped: 0,3 = 2 per outer = 4 total
     if (doSkipped != 4) return 7;
+
     // Processed: 1,2,4,5 = 4 per outer = 8 total
     if (doProcessed != 8) return 8;
 
@@ -97,8 +101,10 @@ u32 main() {
     }
     if (l1 != 2) return 9;
     if (l2 != 4) return 10;
+
     // l3Skipped = 2 per l2 iteration = 2*4 = 8
     if (l3Skipped != 8) return 11;
+
     // l3Processed = 2 per l2 iteration = 2*4 = 8
     if (l3Processed != 8) return 12;
 

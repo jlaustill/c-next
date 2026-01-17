@@ -1,9 +1,8 @@
 // ADR-004 + ADR-007: Bit indexing on registers
 // Tests: single bit access on register members
-
 register GPIO @ 0x40000000 {
-    DR:      u32 rw @ 0x00,
-    DR_SET:  u32 wo @ 0x84,
+    DR: u32 rw @ 0x00,
+    DR_SET: u32 wo @ 0x84,
 }
 
 void main() {

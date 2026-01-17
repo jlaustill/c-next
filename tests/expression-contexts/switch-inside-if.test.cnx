@@ -1,23 +1,27 @@
-/* test-coverage: 33.2-switch-inside-if */
-/* test-execution */
-// Tests: switch statements nested inside if/else branches
+/* test-coverage: 33.2-switch-inside-if */ /* test-execution */ // Tests: switch statements nested inside if/else branches
 // Coverage: Section 33.2 - Statement Nesting
-
 u32 result;
 
 u32 main() {
     // === SWITCH IN IF-TRUE BRANCH ===
-
     // Test 1: Switch in simple if (true condition)
     bool cond <- true;
     u32 selector <- 1;
 
     if (cond = true) {
         switch (selector) {
-            case 0 { result <- 100; }
-            case 1 { result <- 101; }
-            case 2 { result <- 102; }
-            default { result <- 199; }
+            case 0 {
+                result <- 100;
+            }
+            case 1 {
+                result <- 101;
+            }
+            case 2 {
+                result <- 102;
+            }
+        default {
+                result <- 199;
+            }
         }
     }
     if (result != 101) return 1;
@@ -27,15 +31,20 @@ u32 main() {
     cond <- false;
     if (cond = true) {
         switch (selector) {
-            case 0 { result <- 200; }
-            case 1 { result <- 201; }
-            default { result <- 299; }
+            case 0 {
+                result <- 200;
+            }
+            case 1 {
+                result <- 201;
+            }
+        default {
+                result <- 299;
+            }
         }
     }
     if (result != 0) return 2;
 
     // === SWITCH IN ELSE BRANCH ===
-
     // Test 3: Switch in else branch
     cond <- false;
     selector <- 2;
@@ -43,10 +52,18 @@ u32 main() {
         result <- 300;
     } else {
         switch (selector) {
-            case 0 { result <- 400; }
-            case 1 { result <- 401; }
-            case 2 { result <- 402; }
-            default { result <- 499; }
+            case 0 {
+                result <- 400;
+            }
+            case 1 {
+                result <- 401;
+            }
+            case 2 {
+                result <- 402;
+            }
+        default {
+                result <- 499;
+            }
         }
     }
     if (result != 402) return 3;
@@ -56,9 +73,15 @@ u32 main() {
     selector <- 0;
     if (cond = true) {
         switch (selector) {
-            case 0 { result <- 500; }
-            case 1 { result <- 501; }
-            default { result <- 599; }
+            case 0 {
+                result <- 500;
+            }
+            case 1 {
+                result <- 501;
+            }
+        default {
+                result <- 599;
+            }
         }
     } else {
         result <- 999;
@@ -66,7 +89,6 @@ u32 main() {
     if (result != 500) return 4;
 
     // === SWITCH IN BOTH BRANCHES ===
-
     // Test 5: Switch in both if and else branches
     cond <- true;
     u32 selA <- 1;
@@ -74,16 +96,30 @@ u32 main() {
 
     if (cond = true) {
         switch (selA) {
-            case 0 { result <- 600; }
-            case 1 { result <- 601; }
-            default { result <- 699; }
+            case 0 {
+                result <- 600;
+            }
+            case 1 {
+                result <- 601;
+            }
+        default {
+                result <- 699;
+            }
         }
     } else {
         switch (selB) {
-            case 0 { result <- 700; }
-            case 1 { result <- 701; }
-            case 2 { result <- 702; }
-            default { result <- 799; }
+            case 0 {
+                result <- 700;
+            }
+            case 1 {
+                result <- 701;
+            }
+            case 2 {
+                result <- 702;
+            }
+        default {
+                result <- 799;
+            }
         }
     }
     if (result != 601) return 5;
@@ -92,22 +128,35 @@ u32 main() {
     cond <- false;
     if (cond = true) {
         switch (selA) {
-            case 0 { result <- 600; }
-            case 1 { result <- 601; }
-            default { result <- 699; }
+            case 0 {
+                result <- 600;
+            }
+            case 1 {
+                result <- 601;
+            }
+        default {
+                result <- 699;
+            }
         }
     } else {
         switch (selB) {
-            case 0 { result <- 700; }
-            case 1 { result <- 701; }
-            case 2 { result <- 702; }
-            default { result <- 799; }
+            case 0 {
+                result <- 700;
+            }
+            case 1 {
+                result <- 701;
+            }
+            case 2 {
+                result <- 702;
+            }
+        default {
+                result <- 799;
+            }
         }
     }
     if (result != 702) return 6;
 
     // === SWITCH IN NESTED IF ===
-
     // Test 7: Switch in nested if
     bool outer <- true;
     bool inner <- true;
@@ -116,9 +165,15 @@ u32 main() {
     if (outer = true) {
         if (inner = true) {
             switch (selector) {
-                case 0 { result <- 800; }
-                case 1 { result <- 801; }
-                default { result <- 899; }
+                case 0 {
+                    result <- 800;
+                }
+                case 1 {
+                    result <- 801;
+                }
+            default {
+                    result <- 899;
+                }
             }
         }
     }
@@ -134,31 +189,41 @@ u32 main() {
     } else {
         if (inner = true) {
             switch (selector) {
-                case 0 { result <- 901; }
-                case 1 { result <- 902; }
-                default { result <- 999; }
+                case 0 {
+                    result <- 901;
+                }
+                case 1 {
+                    result <- 902;
+                }
+            default {
+                    result <- 999;
+                }
             }
         }
     }
     if (result != 901) return 8;
 
     // === SWITCH WITH ENUM IN IF ===
-
     // Test 9: Switch with default case in nested if
     outer <- true;
     selector <- 99;
 
     if (outer = true) {
         switch (selector) {
-            case 0 { result <- 1000; }
-            case 1 { result <- 1001; }
-            default { result <- 1099; }
+            case 0 {
+                result <- 1000;
+            }
+            case 1 {
+                result <- 1001;
+            }
+        default {
+                result <- 1099;
+            }
         }
     }
     if (result != 1099) return 9;
 
     // === MULTIPLE SWITCHES IN SEQUENCE INSIDE IF ===
-
     // Test 10: Multiple switches inside one if block
     cond <- true;
     u32 first <- 0;
@@ -168,31 +233,50 @@ u32 main() {
 
     if (cond = true) {
         switch (first) {
-            case 0 { resultA <- 10; }
-            case 1 { resultA <- 11; }
-            default { resultA <- 19; }
+            case 0 {
+                resultA <- 10;
+            }
+            case 1 {
+                resultA <- 11;
+            }
+        default {
+                resultA <- 19;
+            }
         }
         switch (second) {
-            case 0 { resultB <- 20; }
-            case 1 { resultB <- 21; }
-            default { resultB <- 29; }
+            case 0 {
+                resultB <- 20;
+            }
+            case 1 {
+                resultB <- 21;
+            }
+        default {
+                resultB <- 29;
+            }
         }
     }
     if (resultA != 10) return 10;
     if (resultB != 21) return 11;
 
     // === SWITCH WITH SIGNED TYPES IN IF ===
-
     // Test 12: Switch with i8 inside if
     i8 signedSel <- 1;
     cond <- true;
 
     if (cond = true) {
         switch (signedSel) {
-            case 0 { result <- 1200; }
-            case 1 { result <- 1201; }
-            case 2 { result <- 1202; }
-            default { result <- 1299; }
+            case 0 {
+                result <- 1200;
+            }
+            case 1 {
+                result <- 1201;
+            }
+            case 2 {
+                result <- 1202;
+            }
+        default {
+                result <- 1299;
+            }
         }
     }
     if (result != 1201) return 12;

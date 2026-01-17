@@ -1,6 +1,5 @@
 // Coverage: Section 7.1 - if statement non-boolean condition error
 // Tests: Error when using non-boolean expression as if condition
-
 void test() {
     u32 value <- 5;
 

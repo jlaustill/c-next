@@ -1,6 +1,5 @@
 // ADR-013: Logical AND (&&) must short-circuit
 // If left operand is false, right operand must NOT be evaluated
-
 u32 sideEffectCounter <- 0;
 
 bool causeSideEffect() {
@@ -15,7 +14,6 @@ void testAndShortCircuit() {
 
     // If short-circuit works: sideEffectCounter should still be 0
     // If it doesn't work: sideEffectCounter would be 1 (BUG!)
-
     // Case 2: Left is true - right SHOULD execute
     sideEffectCounter <- 0;
     bool result2 <- true && causeSideEffect();

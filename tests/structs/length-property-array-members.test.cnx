@@ -1,7 +1,5 @@
-/* test-execution */
-// Regression test: .length on struct members that are arrays
+/* test-execution */ // Regression test: .length on struct members that are arrays
 // Tests both array.length (element count) and array[i].field.length
-
 struct DataPoint {
     u32 timestamp;
     u16 value;

@@ -2,15 +2,15 @@
 // Tests: Valid write-only register bit operations with various index types
 // Coverage: Section 12 - Register Declaration (write-only bit access)
 // Extracted from: write-only-register-chain.test.cnx.skip
-
 register GPIO @ 0x42000000 {
-    DR:         u32 rw @ 0x00,
-    DR_SET:     u32 wo @ 0x84,
-    DR_CLEAR:   u32 wo @ 0x88,
-    DR_TOGGLE:  u32 wo @ 0x8C,
+    DR: u32 rw @ 0x00,
+    DR_SET: u32 wo @ 0x84,
+    DR_CLEAR: u32 wo @ 0x88,
+    DR_TOGGLE: u32 wo @ 0x8C,
 }
 
 const u32 LED_BIT <- 3;
+
 const u32 BUTTON_BIT <- 7;
 
 u32 dynamicBit <- 5;

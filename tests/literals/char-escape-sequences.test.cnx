@@ -1,11 +1,7 @@
-/* test-coverage: 32.4-escape-sequences */
-/* test-execution */
-// Tests: Character literal escape sequences
+/* test-coverage: 32.4-escape-sequences */ /* test-execution */ // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
-
 u32 main() {
     // ===== Standard escape sequences =====
-
     // Test newline escape
     u8 newline <- '\n';
     if (newline != 10) return 1;
@@ -35,19 +31,17 @@ u32 main() {
     if (dquote != 34) return 7;
 
     // ===== Escape sequences in arrays =====
-
     // Test escape sequences as array elements
     u8 escapes[7] <- ['\n', '\t', '\r', '\0', '\\', '\'', '\"'];
-    if (escapes[0] != 10) return 8;   // newline
-    if (escapes[1] != 9) return 9;    // tab
-    if (escapes[2] != 13) return 10;  // carriage return
-    if (escapes[3] != 0) return 11;   // null
-    if (escapes[4] != 92) return 12;  // backslash
-    if (escapes[5] != 39) return 13;  // single quote
-    if (escapes[6] != 34) return 14;  // double quote
+    if (escapes[0] != 10) return 8; // newline
+    if (escapes[1] != 9) return 9; // tab
+    if (escapes[2] != 13) return 10; // carriage return
+    if (escapes[3] != 0) return 11; // null
+    if (escapes[4] != 92) return 12; // backslash
+    if (escapes[5] != 39) return 13; // single quote
+    if (escapes[6] != 34) return 14; // double quote
 
     // ===== Escape sequences in comparisons =====
-
     // Test newline comparison
     u8 c <- '\n';
     if (c != '\n') return 15;
@@ -61,24 +55,23 @@ u32 main() {
     if (c != '\0') return 17;
 
     // ===== Escape sequences in switch =====
-
     u8 whitespace <- '\t';
     u32 wsType <- 0;
 
     switch (whitespace) {
         case ' ' {
-            wsType <- 1;  // space
+            wsType <- 1; // space
         }
         case '\t' {
-            wsType <- 2;  // tab
+            wsType <- 2; // tab
         }
         case '\n' {
-            wsType <- 3;  // newline
+            wsType <- 3; // newline
         }
         case '\r' {
-            wsType <- 4;  // carriage return
+            wsType <- 4; // carriage return
         }
-        default {
+    default {
             wsType <- 0;
         }
     }
@@ -99,11 +92,11 @@ u32 main() {
         case '\r' {
             wsType <- 4;
         }
-        default {
+    default {
             wsType <- 0;
         }
     }
     if (wsType != 3) return 19;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

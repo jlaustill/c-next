@@ -1,7 +1,4 @@
-/* test-coverage: 10-enum-function-param */
-/* test-execution */
-// Tests: Enum as function parameter
-
+/* test-coverage: 10-enum-function-param */ /* test-execution */ // Tests: Enum as function parameter
 enum Status {
     OK <- 0,
     WARNING <- 1,

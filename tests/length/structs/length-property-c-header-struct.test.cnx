@@ -1,7 +1,5 @@
-/* test-execution */
-// Test .length property on struct members from C headers
+/* test-execution */ // Test .length property on struct members from C headers
 // This is the core test for issue #45 - verifies SymbolTable integration
-
 // TestConfig.h defines: typedef struct { uint32_t magic; uint16_t version; uint8_t flags; uint64_t timestamp; } AppConfig;
 #include "../../include/TestConfig.h"
 
@@ -44,5 +42,5 @@ i32 main() {
         return 5;
     }
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

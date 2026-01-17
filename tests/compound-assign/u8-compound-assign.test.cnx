@@ -1,198 +1,196 @@
-/* test-execution */
-// Tests: u8 compound assignment operators
+/* test-execution */ // Tests: u8 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: 0 to 255
-
 u32 main() {
     // ===== ADDITION (+<-) =====
     u8 val <- 100;
-    val +<- 50;  // Basic addition
+    val +<- 50; // Basic addition
     if (val != 150) return 1;
 
     val <- 200;
-    val +<- 0;  // Identity: add zero
+    val +<- 0; // Identity: add zero
     if (val != 200) return 2;
 
     val <- 0;
-    val +<- 255;  // 0 + max
+    val +<- 255; // 0 + max
     if (val != 255) return 3;
 
     val <- 254;
-    val +<- 1;  // Near max
+    val +<- 1; // Near max
     if (val != 255) return 4;
 
     // ===== SUBTRACTION (-<-) =====
     u8 sub <- 200;
-    sub -<- 50;  // Basic subtraction
+    sub -<- 50; // Basic subtraction
     if (sub != 150) return 10;
 
     sub <- 100;
-    sub -<- 0;  // Identity: subtract zero
+    sub -<- 0; // Identity: subtract zero
     if (sub != 100) return 11;
 
     sub <- 255;
-    sub -<- 254;  // Max - (max-1) = 1
+    sub -<- 254; // Max - (max-1) = 1
     if (sub != 1) return 12;
 
     sub <- 100;
-    sub -<- 100;  // Result zero
+    sub -<- 100; // Result zero
     if (sub != 0) return 13;
 
     sub <- 1;
-    sub -<- 1;  // Near min
+    sub -<- 1; // Near min
     if (sub != 0) return 14;
 
     // ===== MULTIPLICATION (*<-) =====
     u8 mul <- 10;
-    mul *<- 10;  // 10 * 10 = 100
+    mul *<- 10; // 10 * 10 = 100
     if (mul != 100) return 20;
 
     mul <- 50;
-    mul *<- 1;  // Identity: multiply by one
+    mul *<- 1; // Identity: multiply by one
     if (mul != 50) return 21;
 
     mul <- 17;
-    mul *<- 15;  // 17 * 15 = 255
+    mul *<- 15; // 17 * 15 = 255
     if (mul != 255) return 22;
 
     mul <- 128;
-    mul *<- 2;  // 128 * 2 = 256, clamped to 255
+    mul *<- 2; // 128 * 2 = 256, clamped to 255
     if (mul != 255) return 23;
 
     mul <- 100;
-    mul *<- 0;  // Multiply by zero
+    mul *<- 0; // Multiply by zero
     if (mul != 0) return 24;
 
     // ===== DIVISION (/<-) =====
     u8 div <- 200;
-    div /<- 10;  // 200 / 10 = 20
+    div /<- 10; // 200 / 10 = 20
     if (div != 20) return 30;
 
     div <- 50;
-    div /<- 1;  // Identity: divide by one
+    div /<- 1; // Identity: divide by one
     if (div != 50) return 31;
 
     div <- 255;
-    div /<- 255;  // Max / max = 1
+    div /<- 255; // Max / max = 1
     if (div != 1) return 32;
 
     div <- 100;
-    div /<- 3;  // 100 / 3 = 33 (integer division)
+    div /<- 3; // 100 / 3 = 33 (integer division)
     if (div != 33) return 33;
 
     div <- 0;
-    div /<- 10;  // 0 / x = 0
+    div /<- 10; // 0 / x = 0
     if (div != 0) return 34;
 
     // ===== MODULO (%<-) =====
     u8 mod <- 107;
-    mod %<- 10;  // 107 % 10 = 7
+    mod %<- 10; // 107 % 10 = 7
     if (mod != 7) return 40;
 
     mod <- 200;
-    mod %<- 100;  // 200 % 100 = 0
+    mod %<- 100; // 200 % 100 = 0
     if (mod != 0) return 41;
 
     mod <- 17;
-    mod %<- 5;  // 17 % 5 = 2
+    mod %<- 5; // 17 % 5 = 2
     if (mod != 2) return 42;
 
     mod <- 255;
-    mod %<- 16;  // 255 % 16 = 15
+    mod %<- 16; // 255 % 16 = 15
     if (mod != 15) return 43;
 
     mod <- 1;
-    mod %<- 2;  // 1 % 2 = 1
+    mod %<- 2; // 1 % 2 = 1
     if (mod != 1) return 44;
 
     // ===== BITWISE AND (&<-) =====
     u8 and <- 0xFF;
-    and &<- 0x0F;  // Keep low nibble
+    and &<- 0x0F; // Keep low nibble
     if (and != 0x0F) return 50;
 
     and <- 0xAA;
-    and &<- 0x55;  // Non-overlapping = 0
+    and &<- 0x55; // Non-overlapping = 0
     if (and != 0) return 51;
 
     and <- 0x55;
-    and &<- 0xFF;  // AND with all 1s = identity
+    and &<- 0xFF; // AND with all 1s = identity
     if (and != 0x55) return 52;
 
     and <- 0xF0;
-    and &<- 0x0F;  // High/low nibble AND = 0
+    and &<- 0x0F; // High/low nibble AND = 0
     if (and != 0) return 53;
 
     // ===== BITWISE OR (|<-) =====
     u8 or <- 0x0F;
-    or |<- 0xF0;  // Combine nibbles
+    or |<- 0xF0; // Combine nibbles
     if (or != 0xFF) return 60;
 
     or <- 0x55;
-    or |<- 0x00;  // OR with zero = identity
+    or |<- 0x00; // OR with zero = identity
     if (or != 0x55) return 61;
 
     or <- 0xAA;
-    or |<- 0x55;  // Alternating OR = all 1s
+    or |<- 0x55; // Alternating OR = all 1s
     if (or != 0xFF) return 62;
 
     // ===== BITWISE XOR (^<-) =====
     u8 xor <- 0xAA;
-    xor ^<- 0x55;  // Alternating XOR = all 1s
+    xor ^<- 0x55; // Alternating XOR = all 1s
     if (xor != 0xFF) return 70;
 
     xor <- 0xFF;
-    xor ^<- 0xFF;  // XOR with self = 0
+    xor ^<- 0xFF; // XOR with self = 0
     if (xor != 0) return 71;
 
     xor <- 0x55;
-    xor ^<- 0x55;  // XOR with self = 0
+    xor ^<- 0x55; // XOR with self = 0
     if (xor != 0) return 72;
 
     xor <- 0x0F;
-    xor ^<- 0xF0;  // Non-overlapping XOR = all 1s
+    xor ^<- 0xF0; // Non-overlapping XOR = all 1s
     if (xor != 0xFF) return 73;
 
     // ===== LEFT SHIFT (<<<-) =====
     u8 shl <- 1;
-    shl <<<- 0;  // Shift by 0 = identity
+    shl <<<- 0; // Shift by 0 = identity
     if (shl != 1) return 80;
 
     shl <- 1;
-    shl <<<- 1;  // 1 << 1 = 2
+    shl <<<- 1; // 1 << 1 = 2
     if (shl != 2) return 81;
 
     shl <- 1;
-    shl <<<- 4;  // 1 << 4 = 16
+    shl <<<- 4; // 1 << 4 = 16
     if (shl != 16) return 82;
 
     shl <- 1;
-    shl <<<- 7;  // 1 << 7 = 128
+    shl <<<- 7; // 1 << 7 = 128
     if (shl != 128) return 83;
 
     shl <- 0x0F;
-    shl <<<- 4;  // 0x0F << 4 = 0xF0
+    shl <<<- 4; // 0x0F << 4 = 0xF0
     if (shl != 0xF0) return 84;
 
     // ===== RIGHT SHIFT (>><-) =====
     u8 shr <- 128;
-    shr >><- 0;  // Shift by 0 = identity
+    shr >><- 0; // Shift by 0 = identity
     if (shr != 128) return 90;
 
     shr <- 128;
-    shr >><- 1;  // 128 >> 1 = 64
+    shr >><- 1; // 128 >> 1 = 64
     if (shr != 64) return 91;
 
     shr <- 128;
-    shr >><- 7;  // 128 >> 7 = 1
+    shr >><- 7; // 128 >> 7 = 1
     if (shr != 1) return 92;
 
     shr <- 0xF0;
-    shr >><- 4;  // 0xF0 >> 4 = 0x0F
+    shr >><- 4; // 0xF0 >> 4 = 0x0F
     if (shr != 0x0F) return 93;
 
     shr <- 255;
-    shr >><- 4;  // 255 >> 4 = 15
+    shr >><- 4; // 255 >> 4 = 15
     if (shr != 15) return 94;
 
     return 0;

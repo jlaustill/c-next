@@ -1,7 +1,5 @@
-/* test-execution */
-// Edge case tests for .length property on struct members
+/* test-execution */ // Edge case tests for .length property on struct members
 // Tests const parameters, all primitive types, and nested expressions
-
 struct AllTypes {
     u8 field_u8;
     u16 field_u16;
@@ -66,11 +64,11 @@ u32 main() {
 
     // Test nested expression
     u32 totalBits <- data.field_u32.length + data.field_u16.length + data.field_u8.length;
-    if (totalBits != 56) return 100;  // 32 + 16 + 8 = 56
+    if (totalBits != 56) return 100; // 32 + 16 + 8 = 56
 
     // Test byte calculation in nested expression
     u32 totalBytes <- (data.field_u32.length + data.field_u16.length) / 8;
-    if (totalBytes != 6) return 101;  // (32 + 16) / 8 = 6
+    if (totalBytes != 6) return 101; // (32 + 16) / 8 = 6
 
     // Test multiple field accesses in sequence
     u32 len1 <- data.field_u32.length;
@@ -80,5 +78,5 @@ u32 main() {
     if (len2 != 16) return 111;
     if (len3 != 8) return 112;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

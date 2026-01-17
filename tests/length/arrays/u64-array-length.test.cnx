@@ -1,28 +1,21 @@
-/* test-execution */
-// Comprehensive .length test for u64 arrays across all contexts
+/* test-execution */ // Comprehensive .length test for u64 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 64 (element bit width)
-
 u64 globalArr[16];
 
 scope TestScope {
     public u32 getGlobalArrayLength() {
         return global.globalArr.length;
     }
-
     public u32 getGlobalElementLength() {
         return global.globalArr[0].length;
     }
-
     u64 scopeArr[16];
-
     public u32 getScopeArrayLength() {
         return this.scopeArr.length;
     }
-
     public u32 getScopeElementLength() {
         return this.scopeArr[0].length;
     }
-
     public u64 publicArr[16];
 }
 

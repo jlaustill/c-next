@@ -1,10 +1,13 @@
-/* test-execution */
-// Tests: u64 array initialization, access, and modification
+/* test-execution */ // Tests: u64 array initialization, access, and modification
 // Validates array operations with u64 element type
 // Includes typical embedded use cases (timestamps, counters, buffers)
-
 // Fixed size with explicit values (typical timestamps)
-u64 timestamps[4] <- [1000000000000, 2000000000000, 3000000000000, 4000000000000];
+u64 timestamps[4] <- [
+    1000000000000,
+    2000000000000,
+    3000000000000,
+    4000000000000
+];
 
 // Size inference
 u64 counters[] <- [100, 200, 300, 400, 500];
@@ -44,7 +47,7 @@ u32 main() {
     u64 mutable[5] <- [10, 20, 30, 40, 50];
     mutable[2] <- 999;
     if (mutable[2] != 999) return 14;
-    if (mutable[0] != 10) return 15;  // Verify other elements unchanged
+    if (mutable[0] != 10) return 15; // Verify other elements unchanged
     if (mutable[4] != 50) return 16;
 
     // Test iteration and accumulation
@@ -52,7 +55,7 @@ u32 main() {
     for (u32 i <- 0; i < 5; i +<- 1) {
         sum +<- counters[i];
     }
-    if (sum != 1500) return 17;  // 100+200+300+400+500
+    if (sum != 1500) return 17; // 100+200+300+400+500
 
     // Test const table access
     if (factorials[0] != 1) return 18;
@@ -60,7 +63,11 @@ u32 main() {
     if (factorials[9] != 362880) return 20;
 
     // Test array with large values
-    u64 large_vals[3] <- [9000000000000000000, 8000000000000000000, 7000000000000000000];
+    u64 large_vals[3] <- [
+        9000000000000000000,
+        8000000000000000000,
+        7000000000000000000
+    ];
     if (large_vals[0] != 9000000000000000000) return 21;
     if (large_vals[2] != 7000000000000000000) return 22;
 
@@ -84,8 +91,8 @@ u32 main() {
 
     // Test array assignment from computation
     u64 computed[3];
-    computed[0] <- 1000 * 1000;      // 1 million
-    computed[1] <- 1000 * 1000000;   // 1 billion
+    computed[0] <- 1000 * 1000; // 1 million
+    computed[1] <- 1000 * 1000000; // 1 billion
     computed[2] <- computed[0] + computed[1];
     if (computed[2] != 1001000000) return 31;
 

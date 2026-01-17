@@ -1,8 +1,6 @@
 // Issue #139: Test that compound operators are rejected for this.member string assignment
-
 scope Logger {
     string<64> message <- "";
-
     void bad() {
         this.message +<- " appended";
     }

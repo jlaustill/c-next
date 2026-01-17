@@ -1,7 +1,6 @@
 // Test: Initialize before use should be OK
-
 void main() {
-    u32 x;              // Declared but not initialized
-    x <- 5;             // Now initialized
-    u32 y <- x + 1;     // OK: x is now initialized
+    u32 x; // Declared but not initialized
+    x <- 5; // Now initialized
+    u32 y <- x + 1; // OK: x is now initialized
 }

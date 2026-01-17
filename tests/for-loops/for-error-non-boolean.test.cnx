@@ -1,6 +1,5 @@
 // Coverage: Section 7.4 - for loop non-boolean condition error
 // Tests: Error when using non-boolean expression as for condition
-
 void test() {
     u32 count <- 0;
 

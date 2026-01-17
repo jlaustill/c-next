@@ -1,7 +1,5 @@
-/* test-execution */
-// Regression test: .length on nested struct members
+/* test-execution */ // Regression test: .length on nested struct members
 // Ensures the fix handles deep member chains correctly
-
 struct Inner {
     u32 value;
     u16 status;
@@ -50,7 +48,7 @@ u32 main() {
 
     // Test multiple nested .length in expression
     u32 total <- deep.outer.inner.value.length + deep.outer.flags.length;
-    if (total != 40) return 9;  // 32 + 8 = 40
+    if (total != 40) return 9; // 32 + 8 = 40
 
     return 0;
 }

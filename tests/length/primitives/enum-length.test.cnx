@@ -1,8 +1,6 @@
-/* test-execution */
-// Comprehensive .length test for enum type across all contexts
+/* test-execution */ // Comprehensive .length test for enum type across all contexts
 // Tests: .length returns 32 for enum in every possible scope and access pattern
 // Issue #121: Enums were previously returning 0 for .length
-
 enum State {
     IDLE,
     RUNNING,
@@ -15,13 +13,10 @@ scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-
     State scopeMember <- State.IDLE;
-
     public u32 getMemberLength() {
         return this.scopeMember.length;
     }
-
     public State publicMember <- State.IDLE;
 }
 

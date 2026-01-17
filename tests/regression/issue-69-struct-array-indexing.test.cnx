@@ -1,5 +1,4 @@
-/* test-execution */
-// Regression test for issue #69: Array indexing transpiles as bitshift operation
+/* test-execution */ // Regression test for issue #69: Array indexing transpiles as bitshift operation
 //
 // Bug: Array indexing on struct array members like config.tempInputs[index].assignedSpn
 // was incorrectly transpiling as bitshift: ((config.tempInputs >> index) & 1).assignedSpn
@@ -7,7 +6,6 @@
 // Expected: config->tempInputs[index].assignedSpn
 //
 // This test ensures the bug does not regress in future changes.
-
 struct InputData {
     u16 assignedSpn;
     f32 coeffA;

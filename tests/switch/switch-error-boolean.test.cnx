@@ -1,12 +1,9 @@
 // ADR-025: Error Test - Boolean Switch
 // Should error: MISRA 16.7 prohibits switch on boolean expression
-
 void test() {
     u32 x <- 5;
     switch (x > 0) {
-        case 0 {
-        }
-        case 1 {
-        }
+        case 0 {}
+        case 1 {}
     }
 }

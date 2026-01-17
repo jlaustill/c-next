@@ -1,66 +1,60 @@
-/* test-execution */
-// Tests: clamp modifier for i64 type (-9223372036854775808 to 9223372036854775807)
+/* test-execution */ // Tests: clamp modifier for i64 type (-9223372036854775808 to 9223372036854775807)
 // Validates overflow clamps to INT64_MAX, underflow clamps to INT64_MIN
 // ADR-044: Per-variable overflow semantics
-
 u32 main() {
     // === OVERFLOW TESTS (clamp to INT64_MAX) ===
-
     // Test 1: Basic overflow - add past max
-    clamp i64 val <- 9223372036854775800;  // INT64_MAX - 7
-    val +<- 10;  // Would overflow, should clamp to INT64_MAX
+    clamp i64 val <- 9223372036854775800; // INT64_MAX - 7
+    val +<- 10; // Would overflow, should clamp to INT64_MAX
     if (val != 9223372036854775807) return 1;
 
     // Test 2: Overflow from max value
-    val <- 9223372036854775807;  // INT64_MAX
-    val +<- 1;  // Would overflow, should clamp to INT64_MAX
+    val <- 9223372036854775807; // INT64_MAX
+    val +<- 1; // Would overflow, should clamp to INT64_MAX
     if (val != 9223372036854775807) return 2;
 
     // Test 3: Large addition near max
     val <- 9223372036854775700;
-    val +<- 200;  // Would overflow
+    val +<- 200; // Would overflow
     if (val != 9223372036854775807) return 3;
 
     // Test 4: Multiple overflows stay clamped
     val <- 9223372036854775800;
-    val +<- 100;  // Clamps to max
+    val +<- 100; // Clamps to max
     if (val != 9223372036854775807) return 4;
-    val +<- 1000;  // Still at max
+    val +<- 1000; // Still at max
     if (val != 9223372036854775807) return 5;
 
     // === UNDERFLOW TESTS (clamp to INT64_MIN) ===
-
     // Test 6: Basic underflow - subtract below min
-    clamp i64 val2 <- -9223372036854775800;  // Near INT64_MIN
-    val2 -<- 100;  // Would underflow, should clamp to INT64_MIN
+    clamp i64 val2 <- -9223372036854775800; // Near INT64_MIN
+    val2 -<- 100; // Would underflow, should clamp to INT64_MIN
     if (val2 != -9223372036854775808) return 6;
 
     // Test 7: Underflow from min value
-    val2 <- -9223372036854775808;  // INT64_MIN
-    val2 -<- 1;  // Would underflow, should clamp to INT64_MIN
+    val2 <- -9223372036854775808; // INT64_MIN
+    val2 -<- 1; // Would underflow, should clamp to INT64_MIN
     if (val2 != -9223372036854775808) return 7;
 
     // Test 8: Multiple underflows stay clamped
     val2 <- -9223372036854775800;
-    val2 -<- 100;  // Clamps to min
+    val2 -<- 100; // Clamps to min
     if (val2 != -9223372036854775808) return 8;
-    val2 -<- 1000;  // Still at min
+    val2 -<- 1000; // Still at min
     if (val2 != -9223372036854775808) return 9;
 
     // === CROSSING ZERO TESTS ===
-
     // Test 10: Positive to negative (no clamp)
     val <- 1000000000000;
-    val -<- 2000000000000;  // -1 trillion
+    val -<- 2000000000000; // -1 trillion
     if (val != -1000000000000) return 10;
 
     // Test 11: Negative to positive (no clamp)
     val <- -1000000000000;
-    val +<- 2000000000000;  // +1 trillion
+    val +<- 2000000000000; // +1 trillion
     if (val != 1000000000000) return 11;
 
     // === NORMAL OPERATIONS ===
-
     // Test 12: Normal addition within bounds
     val <- 1000000000000;
     val +<- 500000000000;
@@ -73,7 +67,7 @@ u32 main() {
 
     // Test 14: Add to zero
     val <- 0;
-    val +<- 4611686018427387904;  // INT64_MAX / 2 (approx)
+    val +<- 4611686018427387904; // INT64_MAX / 2 (approx)
     if (val != 4611686018427387904) return 14;
 
     // Test 15: Subtract to zero exactly
@@ -82,7 +76,6 @@ u32 main() {
     if (val != 0) return 15;
 
     // === BOUNDARY TESTS ===
-
     // Test 16: Add 0 (no change)
     val <- 9999999999999;
     val +<- 0;
@@ -94,14 +87,13 @@ u32 main() {
     if (val != -9999999999999) return 17;
 
     // === SEQUENTIAL OPERATIONS ===
-
     // Test 18: Multiple operations
     val <- 9223372036854775800;
-    val +<- 100;  // Clamp to max
+    val +<- 100; // Clamp to max
     if (val != 9223372036854775807) return 18;
-    val -<- 9223372036854775807;  // max - max = 0
+    val -<- 9223372036854775807; // max - max = 0
     if (val != 0) return 19;
-    val +<- 1000;  // 0 + 1000 = 1000
+    val +<- 1000; // 0 + 1000 = 1000
     if (val != 1000) return 20;
 
     // All tests passed

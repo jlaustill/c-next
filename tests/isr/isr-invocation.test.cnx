@@ -1,9 +1,8 @@
-/* test-execution */
-// ADR-040: ISR direct invocation
+/* test-execution */ // ADR-040: ISR direct invocation
 // Tests: invoking ISR through variables (global and local)
-
 // Global to track handler execution
 u32 invokeCallCount <- 0;
+
 u32 invokeLastHandler <- 0;
 
 // Handler functions
@@ -69,11 +68,11 @@ u32 main() {
     // Test 6: Chain of reassignments
     invokeCallCount <- 0;
     localHandler <- invokeHandler1;
-    localHandler();  // count = 1
+    localHandler(); // count = 1
     localHandler <- invokeHandler2;
-    localHandler();  // count = 2
+    localHandler(); // count = 2
     localHandler <- invokeHandler3;
-    localHandler();  // count = 3
+    localHandler(); // count = 3
     if (invokeCallCount != 3) return 11;
     if (invokeLastHandler != 3) return 12;
 

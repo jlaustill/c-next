@@ -1,5 +1,4 @@
 // ADR-051: Division by literal zero should fail at compile time
-
 void testLiteralZero() {
     // Literal zero division
     u32 result <- 10 / 0;

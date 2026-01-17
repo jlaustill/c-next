@@ -1,7 +1,4 @@
-/* test-coverage: 23-sizeof-in-array-size */
-/* test-execution */
-// Tests: sizeof used as array dimension
-
+/* test-coverage: 23-sizeof-in-array-size */ /* test-execution */ // Tests: sizeof used as array dimension
 u32 main() {
     // sizeof(type) as array dimension
     u8 typeBuffer[sizeof(u32)];
@@ -17,12 +14,12 @@ u32 main() {
     // Note: Direct sizeof(struct) works but triggers MISRA config warnings
     u8 recordBuffer[sizeof(u32) + sizeof(u32)];
     u32 recordBufferSize <- sizeof(recordBuffer);
-    if (recordBufferSize != 8) return 3;  // 4 + 4 = 8 bytes
+    if (recordBufferSize != 8) return 3; // 4 + 4 = 8 bytes
 
     // sizeof in expression as dimension
     u8 doubleBuffer[sizeof(u32) * 2];
     u32 doubleBufferSize <- sizeof(doubleBuffer);
-    if (doubleBufferSize != 8) return 4;  // 4 * 2
+    if (doubleBufferSize != 8) return 4; // 4 * 2
 
     // Verify we can use the arrays normally
     typeBuffer[0] <- 0xAB;
@@ -43,7 +40,7 @@ u32 main() {
     // sizeof with addition as dimension
     u8 paddedBuffer[sizeof(u32) + 4];
     u32 paddedSize <- sizeof(paddedBuffer);
-    if (paddedSize != 8) return 9;  // 4 + 4
+    if (paddedSize != 8) return 9; // 4 + 4
 
     return 0;
 }

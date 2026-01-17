@@ -1,9 +1,8 @@
 // For loop tests: Array iteration with .length
 // Tests: using array .length property for loop bounds
-
 void main() {
     u8 buffer[16];
-    buffer[0] <- 0;  // Initialize for use-before-init check
+    buffer[0] <- 0; // Initialize for use-before-init check
 
     for (u32 i <- 0; i < buffer.length; i <- i + 1) {
         buffer[i] <- 0;

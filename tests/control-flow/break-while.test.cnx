@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: break statement in while loop
+/* test-execution */ // Tests: break statement in while loop
 // Validates: early loop termination with break in while loops
-
 u32 main() {
     // Test 1: Basic break in while loop
     u32 count <- 0;
@@ -13,6 +11,7 @@ u32 main() {
         }
         i +<- 1;
     }
+
     // Should have counted 0-9 (10 iterations), but i stays at 9 after break
     if (count != 10) return 1;
     if (i != 9) return 2;
@@ -27,6 +26,7 @@ u32 main() {
         sum +<- j;
         j +<- 1;
     }
+
     // sum = 0 + 1 + 2 + 3 + 4 = 10
     if (sum != 10) return 3;
     if (j != 5) return 4;
@@ -50,11 +50,13 @@ u32 main() {
     while (m < 5) {
         total +<- m;
         m +<- 1;
+
         // break condition never true
         if (m = 999) {
             break;
         }
     }
+
     // total = 0 + 1 + 2 + 3 + 4 = 10
     if (total != 10) return 7;
     if (m != 5) return 8;

@@ -1,3 +1,9 @@
+// =============================================================================
+// Includes - C-Next passes these through to generated C
+// =============================================================================
+#include <stdint.h>
+#include <stdbool.h>
+
 // blink_systick.cnx - LED Blink for Nucleo-F446RE with SysTick Timer
 // Target: Nucleo-F446RE (STM32F446RE - ARM Cortex-M4F @ 180 MHz max)
 // Built-in LED (LD2) is on GPIOA, Pin 5
@@ -8,69 +14,59 @@
 // This example uses the SysTick hardware timer for accurate delays
 // instead of busy-wait loops. SysTick is a 24-bit countdown timer
 // built into all ARM Cortex-M processors.
-
 // =============================================================================
 // Target Platform (for atomic operations - ADR-049)
 // =============================================================================
 #pragma target stm32f4
 
 // =============================================================================
-// Includes - C-Next passes these through to generated C
-// =============================================================================
-#include <stdint.h>
-#include <stdbool.h>
-
-// =============================================================================
 // SysTick Timer Scope (ARM Cortex-M System Timer)
 // =============================================================================
 // SysTick is a 24-bit countdown timer present in all Cortex-M processors
 // Base address: 0xE000E010 (part of System Control Space)
-
 scope SysTick {
     // SysTick Control and Status Register bits
     bitmap32 ControlBits {
-        ENABLE,         // bit 0  - Counter enable
-        TICKINT,        // bit 1  - Counting down to zero triggers SysTick interrupt
-        CLKSOURCE,      // bit 2  - 0=external clock, 1=processor clock
-        Reserved_3,     // bit 3
-        Reserved_4,     // bit 4
-        Reserved_5,     // bit 5
-        Reserved_6,     // bit 6
-        Reserved_7,     // bit 7
-        Reserved_8,     // bit 8
-        Reserved_9,     // bit 9
-        Reserved_10,    // bit 10
-        Reserved_11,    // bit 11
-        Reserved_12,    // bit 12
-        Reserved_13,    // bit 13
-        Reserved_14,    // bit 14
-        Reserved_15,    // bit 15
-        COUNTFLAG,      // bit 16 - Returns 1 if timer counted to 0 since last read
-        Reserved_17,    // bit 17
-        Reserved_18,    // bit 18
-        Reserved_19,    // bit 19
-        Reserved_20,    // bit 20
-        Reserved_21,    // bit 21
-        Reserved_22,    // bit 22
-        Reserved_23,    // bit 23
-        Reserved_24,    // bit 24
-        Reserved_25,    // bit 25
-        Reserved_26,    // bit 26
-        Reserved_27,    // bit 27
-        Reserved_28,    // bit 28
-        Reserved_29,    // bit 29
-        Reserved_30,    // bit 30
-        Reserved_31     // bit 31
+        ENABLE, // bit 0  - Counter enable
+        TICKINT, // bit 1  - Counting down to zero triggers SysTick interrupt
+        CLKSOURCE, // bit 2  - 0=external clock, 1=processor clock
+        Reserved_3, // bit 3
+        Reserved_4, // bit 4
+        Reserved_5, // bit 5
+        Reserved_6, // bit 6
+        Reserved_7, // bit 7
+        Reserved_8, // bit 8
+        Reserved_9, // bit 9
+        Reserved_10, // bit 10
+        Reserved_11, // bit 11
+        Reserved_12, // bit 12
+        Reserved_13, // bit 13
+        Reserved_14, // bit 14
+        Reserved_15, // bit 15
+        COUNTFLAG, // bit 16 - Returns 1 if timer counted to 0 since last read
+        Reserved_17, // bit 17
+        Reserved_18, // bit 18
+        Reserved_19, // bit 19
+        Reserved_20, // bit 20
+        Reserved_21, // bit 21
+        Reserved_22, // bit 22
+        Reserved_23, // bit 23
+        Reserved_24, // bit 24
+        Reserved_25, // bit 25
+        Reserved_26, // bit 26
+        Reserved_27, // bit 27
+        Reserved_28, // bit 28
+        Reserved_29, // bit 29
+        Reserved_30, // bit 30
+        Reserved_31 // bit 31
     }
-
     // SysTick registers
     register SysTick @ 0xE000E010 {
-        CTRL:   ControlBits rw @ 0x00,  // Control and Status
-        LOAD:   u32 rw @ 0x04,          // Reload value (24-bit)
-        VAL:    u32 rw @ 0x08,          // Current value (24-bit, write clears)
-        CALIB:  u32 ro @ 0x0C,          // Calibration value
+        CTRL: ControlBits rw @ 0x00, // Control and Status
+        LOAD: u32 rw @ 0x04, // Reload value (24-bit)
+        VAL: u32 rw @ 0x08, // Current value (24-bit, write clears)
+        CALIB: u32 ro @ 0x0C, // Calibration value
     }
-
     /// Initialize SysTick for 1ms interrupt ticks
     /// Assumes 16 MHz HSI clock (default after reset)
     public void init() {
@@ -80,7 +76,7 @@ scope SysTick {
         // Set reload value for 1ms at 16 MHz
         // 16,000,000 Hz / 1,000 = 16,000 ticks per millisecond
         // Reload register is 24-bit max (16,777,215), so 16,000 fits easily
-        this.SysTick.LOAD <- 16000 - 1;  // -1 because countdown includes zero
+        this.SysTick.LOAD <- 16000 - 1; // -1 because countdown includes zero
 
         // Clear current value
         this.SysTick.VAL <- 0;
@@ -90,7 +86,7 @@ scope SysTick {
         // - Enable SysTick interrupt (TICKINT = bit 1)
         // - Enable counter (ENABLE = bit 0)
         this.SysTick.CTRL.CLKSOURCE <- true;
-        this.SysTick.CTRL.TICKINT <- true;   // Enable interrupt
+        this.SysTick.CTRL.TICKINT <- true; // Enable interrupt
         this.SysTick.CTRL.ENABLE <- true;
     }
 }
@@ -98,52 +94,49 @@ scope SysTick {
 // =============================================================================
 // RCC (Reset and Clock Control) Scope
 // =============================================================================
-
 scope RCC {
     bitmap32 AHB1Peripherals {
-        GPIOAEN,        // bit 0  - GPIOA clock enable
-        GPIOBEN,        // bit 1  - GPIOB clock enable
-        GPIOCEN,        // bit 2  - GPIOC clock enable
-        GPIODEN,        // bit 3  - GPIOD clock enable
-        GPIOEEN,        // bit 4  - GPIOE clock enable
-        GPIOFEN,        // bit 5  - GPIOF clock enable
-        GPIOGEN,        // bit 6  - GPIOG clock enable
-        GPIOHEN,        // bit 7  - GPIOH clock enable
-        Reserved_8,     // bit 8
-        Reserved_9,     // bit 9
-        Reserved_10,    // bit 10
-        Reserved_11,    // bit 11
-        CRCEN,          // bit 12 - CRC clock enable
-        Reserved_13,    // bit 13
-        Reserved_14,    // bit 14
-        Reserved_15,    // bit 15
-        Reserved_16,    // bit 16
-        Reserved_17,    // bit 17
-        Reserved_18,    // bit 18
-        Reserved_19,    // bit 19
-        Reserved_20,    // bit 20
-        DMA1EN,         // bit 21 - DMA1 clock enable
-        DMA2EN,         // bit 22 - DMA2 clock enable
-        Reserved_23,    // bit 23
-        Reserved_24,    // bit 24
-        Reserved_25,    // bit 25
-        Reserved_26,    // bit 26
-        Reserved_27,    // bit 27
-        Reserved_28,    // bit 28
-        Reserved_29,    // bit 29
-        Reserved_30,    // bit 30
-        Reserved_31     // bit 31
+        GPIOAEN, // bit 0  - GPIOA clock enable
+        GPIOBEN, // bit 1  - GPIOB clock enable
+        GPIOCEN, // bit 2  - GPIOC clock enable
+        GPIODEN, // bit 3  - GPIOD clock enable
+        GPIOEEN, // bit 4  - GPIOE clock enable
+        GPIOFEN, // bit 5  - GPIOF clock enable
+        GPIOGEN, // bit 6  - GPIOG clock enable
+        GPIOHEN, // bit 7  - GPIOH clock enable
+        Reserved_8, // bit 8
+        Reserved_9, // bit 9
+        Reserved_10, // bit 10
+        Reserved_11, // bit 11
+        CRCEN, // bit 12 - CRC clock enable
+        Reserved_13, // bit 13
+        Reserved_14, // bit 14
+        Reserved_15, // bit 15
+        Reserved_16, // bit 16
+        Reserved_17, // bit 17
+        Reserved_18, // bit 18
+        Reserved_19, // bit 19
+        Reserved_20, // bit 20
+        DMA1EN, // bit 21 - DMA1 clock enable
+        DMA2EN, // bit 22 - DMA2 clock enable
+        Reserved_23, // bit 23
+        Reserved_24, // bit 24
+        Reserved_25, // bit 25
+        Reserved_26, // bit 26
+        Reserved_27, // bit 27
+        Reserved_28, // bit 28
+        Reserved_29, // bit 29
+        Reserved_30, // bit 30
+        Reserved_31 // bit 31
     }
-
     public register RCC @ 0x40023800 {
-        AHB1ENR:    AHB1Peripherals rw @ 0x30,
+        AHB1ENR: AHB1Peripherals rw @ 0x30,
     }
 }
 
 // =============================================================================
 // STM32F446 Platform Scope (Simplified for SysTick example)
 // =============================================================================
-
 scope STM32F446 {
     public enum GPIOMode {
         INPUT <- 0b00,
@@ -151,54 +144,73 @@ scope STM32F446 {
         ALTERNATE <- 0b10,
         ANALOG <- 0b11
     }
-
     public enum GPIOOutputType {
         PUSH_PULL <- 0,
         OPEN_DRAIN <- 1
     }
-
     public enum GPIOSpeed {
         LOW <- 0b00,
         MEDIUM <- 0b01,
         HIGH <- 0b10,
         VERY_HIGH <- 0b11
     }
-
     public enum GPIOPull {
         NO_PULL <- 0b00,
         PULL_UP <- 0b01,
         PULL_DOWN <- 0b10,
         RESERVED <- 0b11
     }
-
     bitmap32 GPIOAPins {
-        PA0, PA1, PA2, PA3, PA4,
-        LD2,        // bit 5  - User LED (Green) on PA5
-        PA6, PA7, PA8, PA9, PA10, PA11, PA12, PA13, PA14, PA15,
-        PA0_RESET, PA1_RESET, PA2_RESET, PA3_RESET, PA4_RESET,
-        LD2_RESET,  // bit 21
-        PA6_RESET, PA7_RESET, PA8_RESET, PA9_RESET,
-        PA10_RESET, PA11_RESET, PA12_RESET, PA13_RESET, PA14_RESET, PA15_RESET
+        PA0,
+        PA1,
+        PA2,
+        PA3,
+        PA4,
+        LD2, // bit 5  - User LED (Green) on PA5
+        PA6,
+        PA7,
+        PA8,
+        PA9,
+        PA10,
+        PA11,
+        PA12,
+        PA13,
+        PA14,
+        PA15,
+        PA0_RESET,
+        PA1_RESET,
+        PA2_RESET,
+        PA3_RESET,
+        PA4_RESET,
+        LD2_RESET, // bit 21
+        PA6_RESET,
+        PA7_RESET,
+        PA8_RESET,
+        PA9_RESET,
+        PA10_RESET,
+        PA11_RESET,
+        PA12_RESET,
+        PA13_RESET,
+        PA14_RESET,
+        PA15_RESET
     }
-
     public register GPIOA @ 0x40020000 {
-        ModeRegister:           u32 rw @ 0x00,
-        OutputTypeRegister:     GPIOAPins rw @ 0x04,
-        OutputSpeedRegister:    u32 rw @ 0x08,
-        PullUpDownRegister:     u32 rw @ 0x0C,
-        InputData:              GPIOAPins ro @ 0x10,
-        OutputData:             GPIOAPins rw @ 0x14,
-        BitSetReset:            GPIOAPins wo @ 0x18,
-        LockRegister:           GPIOAPins rw @ 0x1C,
-        AlternateFunctionLow:   u32 rw @ 0x20,
-        AlternateFunctionHigh:  u32 rw @ 0x24,
+        ModeRegister: u32 rw @ 0x00,
+        OutputTypeRegister: GPIOAPins rw @ 0x04,
+        OutputSpeedRegister: u32 rw @ 0x08,
+        PullUpDownRegister: u32 rw @ 0x0C,
+        InputData: GPIOAPins ro @ 0x10,
+        OutputData: GPIOAPins rw @ 0x14,
+        BitSetReset: GPIOAPins wo @ 0x18,
+        LockRegister: GPIOAPins rw @ 0x1C,
+        AlternateFunctionLow: u32 rw @ 0x20,
+        AlternateFunctionHigh: u32 rw @ 0x24,
     }
 }
 
 // =============================================================================
 // LED Control
 // =============================================================================
-
 scope LED {
     public void init() {
         // Enable GPIOA clock
@@ -216,15 +228,12 @@ scope LED {
         // No pull-up/pull-down
         global.STM32F446.GPIOA.PullUpDownRegister[10, 2] <- (u8)global.STM32F446.GPIOPull.NO_PULL;
     }
-
     public void on() {
         global.STM32F446.GPIOA.BitSetReset.LD2 <- true;
     }
-
     public void off() {
         global.STM32F446.GPIOA.BitSetReset.LD2_RESET <- true;
     }
-
     public void toggle() {
         if (global.STM32F446.GPIOA.OutputData.LD2) {
             this.off();
@@ -232,7 +241,6 @@ scope LED {
             this.on();
         }
     }
-
     public bool isOn() {
         return global.STM32F446.GPIOA.OutputData.LD2;
     }
@@ -241,7 +249,6 @@ scope LED {
 // =============================================================================
 // Application Configuration
 // =============================================================================
-
 const u32 BLINK_DELAY_MS <- 2000;
 
 // Millisecond counter incremented by SysTick ISR
@@ -251,7 +258,6 @@ atomic u32 tick_count <- 0;
 // =============================================================================
 // SysTick Interrupt Service Routine
 // =============================================================================
-
 /// SysTick_Handler is called every 1ms by the hardware
 /// This function name is defined by ARM Cortex-M vector table
 void SysTick_Handler() {
@@ -261,7 +267,6 @@ void SysTick_Handler() {
 // =============================================================================
 // Main Entry Point
 // =============================================================================
-
 void setup() {
     // Initialize SysTick timer for 1ms interrupt ticks
     SysTick.init();

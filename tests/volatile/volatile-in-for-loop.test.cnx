@@ -1,14 +1,12 @@
-/* test-execution */
-/* test-coverage: 30a-volatile-for-loop */
-// Tests: Volatile variable in for loop (iteration variable)
+/* test-execution */ /* test-coverage: 30a-volatile-for-loop */ // Tests: Volatile variable in for loop (iteration variable)
 // ADR-108: Prevent loop optimization in timing-critical code
-
 u32 main() {
     // Test 1: Volatile loop counter - basic pattern
     u32 sum <- 0;
     for (volatile u32 i <- 0; i < 5; i +<- 1) {
         sum +<- i;
     }
+
     // 0 + 1 + 2 + 3 + 4 = 10
     if (sum != 10) return 1;
 
@@ -26,6 +24,7 @@ u32 main() {
             total +<- 1;
         }
     }
+
     // 3 * 4 = 12
     if (total != 12) return 3;
 
@@ -35,8 +34,9 @@ u32 main() {
     for (volatile u32 k <- 0; k < 10; k +<- step) {
         count +<- 1;
     }
+
     // 0, 2, 4, 6, 8 = 5 iterations
     if (count != 5) return 4;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

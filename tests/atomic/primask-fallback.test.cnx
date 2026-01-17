@@ -1,6 +1,7 @@
 #pragma target cortex-m0
 
 atomic u32 counter <- 0;
+
 atomic wrap u16 ticks <- 0;
 
 void increment() {

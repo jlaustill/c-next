@@ -1,6 +1,4 @@
-/* test-execution */
-// Issue #139: Test local string variable reassignment in function body
-
+/* test-execution */ // Issue #139: Test local string variable reassignment in function body
 u32 main() {
     string<32> local <- "Initial";
     if (local.length != 7) return 1;

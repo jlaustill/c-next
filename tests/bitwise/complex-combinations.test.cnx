@@ -1,49 +1,46 @@
-/* test-coverage: 5.7-complex-combinations */
-/* test-execution */
-// Test complex bitwise combinations and expressions
+/* test-coverage: 5.7-complex-combinations */ /* test-execution */ // Test complex bitwise combinations and expressions
 // Coverage: Section 5.7 - complex patterns, multiple operations, precedence
-
 u32 main() {
     // Chained bitwise operations
     u32 a <- 0xFFFF0000;
     u32 b <- 0x00FFFF00;
     u32 c <- 0x0000FFFF;
-    u32 chain <- (a & b) | c;  // (0x00FF0000) | 0x0000FFFF = 0x00FFFFFF
+    u32 chain <- (a & b) | c; // (0x00FF0000) | 0x0000FFFF = 0x00FFFFFF
 
     // Mixed operations with shifts
     u16 d <- 0xFF;
-    u16 shift_and_mask <- (d << 8) & 0xF000;  // 0xFF00 & 0xF000 = 0xF000
+    u16 shift_and_mask <- (d << 8) & 0xF000; // 0xFF00 & 0xF000 = 0xF000
 
     // NOT with other operations
     u8 e <- 0b11110000;
-    u8 not_and_shift <- (~e) << 2;  // 0b00001111 << 2 = 0b00111100 = 60
+    u8 not_and_shift <- (~e) << 2; // 0b00001111 << 2 = 0b00111100 = 60
 
     // XOR chain (useful for toggling)
     u32 flags <- 0b11001100;
-    u32 toggle <- flags ^ 0b00110011;  // 0b11111111 = 255
-    u32 toggle_back <- toggle ^ 0b00110011;  // 0b11001100 = 204 (back to original)
+    u32 toggle <- flags ^ 0b00110011; // 0b11111111 = 255
+    u32 toggle_back <- toggle ^ 0b00110011; // 0b11001100 = 204 (back to original)
 
     // Complex shift patterns
     u32 f <- 0xABCD;
-    u32 extract_byte <- (f >> 8) & 0xFF;  // Extract high byte: 0xAB = 171
+    u32 extract_byte <- (f >> 8) & 0xFF; // Extract high byte: 0xAB = 171
 
     // Mask creation pattern
     u16 bit_pos <- 5;
-    u16 mask <- 1 << bit_pos;  // Create mask for bit 5: 0x0020 = 32
+    u16 mask <- 1 << bit_pos; // Create mask for bit 5: 0x0020 = 32
     u16 test_val <- 0b00100101;
-    u16 bit_test <- (test_val & mask) >> bit_pos;  // Test bit 5: 1
+    u16 bit_test <- (test_val & mask) >> bit_pos; // Test bit 5: 1
 
     // Multi-level operations
     u32 g <- 0x12345678;
     u32 swap_bytes <- ((g & 0xFF00FF00) >> 8) | ((g & 0x00FF00FF) << 8);
-    // Swaps adjacent bytes: 0x21436587
 
+    // Swaps adjacent bytes: 0x21436587
     // Bitwise with comparison context
     u8 status <- 0b10101010;
-    u8 check_bit <- (status & 0b10000000) >> 7;  // Check bit 7: 1
+    u8 check_bit <- (status & 0b10000000) >> 7; // Check bit 7: 1
 
     // Nested expressions
-    u32 nested <- ((0xFF << 16) | (0xAA << 8)) | 0x55;  // 0x00FFAA55
+    u32 nested <- ((0xFF << 16) | (0xAA << 8)) | 0x55; // 0x00FFAA55
 
     // Verify results
     if (chain = 0x00FFFFFF && shift_and_mask = 0xF000 && not_and_shift = 60) {

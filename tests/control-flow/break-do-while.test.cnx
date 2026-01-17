@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: break statement in do-while loop
+/* test-execution */ // Tests: break statement in do-while loop
 // Validates: early loop termination with break in do-while loops
-
 u32 main() {
     // Test 1: Basic break in do-while loop
     u32 count <- 0;
@@ -13,6 +11,7 @@ u32 main() {
         }
         i +<- 1;
     } while (i < 100);
+
     // Should have executed 6 times (i = 0,1,2,3,4,5), break on i=5
     if (count != 6) return 1;
     if (i != 5) return 2;
@@ -23,6 +22,7 @@ u32 main() {
         firstOnly +<- 1;
         break;
     } while (true);
+
     // Should execute exactly once
     if (firstOnly != 1) return 3;
 
@@ -46,6 +46,7 @@ u32 main() {
             break;
         }
     } while (j < 100);
+
     // sum = 0 + 1 + 2 + ... + 9 = 45
     if (sum != 45) return 5;
     if (j != 10) return 6;
@@ -64,6 +65,7 @@ u32 main() {
             break;
         }
     } while (k < 20);
+
     // First break at k=3
     if (val != 30) return 7;
     if (k != 3) return 8;

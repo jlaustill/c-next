@@ -1,56 +1,92 @@
-/* test-execution */
-// ADR-025: Multiple cases execution test
+/* test-execution */ // ADR-025: Multiple cases execution test
 // Tests: case A || B syntax with result validation
 // Coverage: Section 7 (Control Flow) - multiple cases per block
-
 u32 result;
 
 // Basic multiple case syntax
 void testMultiCase(u32 val) {
     switch (val) {
-        case 0 || 1 || 2 { result <- 100; }
-        case 10 || 20 { result <- 200; }
-        case 100 { result <- 300; }
-        default { result <- 999; }
+        case 0 || 1 || 2 {
+            result <- 100;
+        }
+        case 10 || 20 {
+            result <- 200;
+        }
+        case 100 {
+            result <- 300;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 
 // Multiple cases with hex literals
 void testMultiCaseHex(u8 val) {
     switch (val) {
-        case 0x00 || 0x01 { result <- 10; }
-        case 0x0A || 0x0B { result <- 20; }
-        case 0xFF { result <- 30; }
-        default { result <- 99; }
+        case 0x00 || 0x01 {
+            result <- 10;
+        }
+        case 0x0A || 0x0B {
+            result <- 20;
+        }
+        case 0xFF {
+            result <- 30;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Multiple cases with binary literals
 void testMultiCaseBinary(u8 val) {
     switch (val) {
-        case 0b00000000 || 0b00000001 { result <- 40; }
-        case 0b00001010 || 0b00001011 { result <- 50; }
-        case 0b11111111 { result <- 60; }
-        default { result <- 99; }
+        case 0b00000000 || 0b00000001 {
+            result <- 40;
+        }
+        case 0b00001010 || 0b00001011 {
+            result <- 50;
+        }
+        case 0b11111111 {
+            result <- 60;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Multiple cases with signed values (positive case labels only)
 void testMultiCaseSigned(i8 val) {
     switch (val) {
-        case 0 || 1 || 2 { result <- 1; }
-        case 50 || 51 || 52 { result <- 2; }
-        case 126 || 127 { result <- 3; }
-        default { result <- 9; }
+        case 0 || 1 || 2 {
+            result <- 1;
+        }
+        case 50 || 51 || 52 {
+            result <- 2;
+        }
+        case 126 || 127 {
+            result <- 3;
+        }
+    default {
+            result <- 9;
+        }
     }
 }
 
 // Many cases combined (5 alternatives)
 void testManyMultiCases(u16 val) {
     switch (val) {
-        case 1 || 2 || 3 || 4 || 5 { result <- 500; }
-        case 100 || 200 || 300 { result <- 600; }
-        default { result <- 999; }
+        case 1 || 2 || 3 || 4 || 5 {
+            result <- 500;
+        }
+        case 100 || 200 || 300 {
+            result <- 600;
+        }
+    default {
+            result <- 999;
+        }
     }
 }
 

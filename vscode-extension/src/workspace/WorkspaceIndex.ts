@@ -10,7 +10,8 @@ import * as path from "path";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import SymbolCache from "./SymbolCache";
 import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types";
-import { parseWithSymbols, ISymbolInfo } from "../../../src/lib/transpiler";
+import parseWithSymbols from "../../../src/lib/parseWithSymbols";
+import ISymbolInfo from "../../../src/lib/types/ISymbolInfo";
 import IncludeResolver from "./IncludeResolver";
 import { CLexer } from "../../../src/parser/c/grammar/CLexer";
 import { CParser } from "../../../src/parser/c/grammar/CParser";
@@ -149,7 +150,7 @@ export default class WorkspaceIndex {
           await this.indexFile(vscode.Uri.file(fullPath));
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore permission errors, etc.
     }
   }
@@ -201,7 +202,7 @@ export default class WorkspaceIndex {
 
       // Store dependency graph
       this.includeDependencies.set(uri.fsPath, resolvedHeaders);
-    } catch (error) {
+    } catch (_error) {
       // File read error - skip
     }
   }
@@ -250,7 +251,7 @@ export default class WorkspaceIndex {
       }));
 
       this.headerCache.set(uri, symbolsWithFile, stat.mtimeMs, false);
-    } catch (error) {
+    } catch (_error) {
       // Parse error - skip silently (headers can be complex)
     }
   }

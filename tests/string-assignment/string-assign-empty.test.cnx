@@ -1,6 +1,4 @@
-/* test-execution */
-// Issue #139: Test empty string assignment
-
+/* test-execution */ // Issue #139: Test empty string assignment
 string<32> msg <- "Initial";
 
 void clearMessage() {

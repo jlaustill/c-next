@@ -1,13 +1,12 @@
 // ADR-034: Basic Bitmap Test
 // Tests bitmap declaration, field access, and code generation
-
 // 8-bit bitmap with various field widths
 bitmap8 MotorFlags {
-    Running,       // bit 0 (1 bit)
-    Direction,     // bit 1 (1 bit)
-    Fault,         // bit 2 (1 bit)
-    Mode[3],       // bits 3-5 (3 bits)
-    Reserved[2]    // bits 6-7 (2 bits)
+    Running, // bit 0 (1 bit)
+    Direction, // bit 1 (1 bit)
+    Fault, // bit 2 (1 bit)
+    Mode[3], // bits 3-5 (3 bits)
+    Reserved[2] // bits 6-7 (2 bits)
 }
 
 // Variable declaration

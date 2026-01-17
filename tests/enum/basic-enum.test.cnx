@@ -1,8 +1,5 @@
-/* test-coverage: 3.1-enum-enum-same-type */
-/* test-execution */
-// ADR-017: Basic Enum Test
+/* test-coverage: 3.1-enum-enum-same-type */ /* test-execution */ // ADR-017: Basic Enum Test
 // Tests basic enum declaration, usage, and code generation
-
 // Simple enum with auto-incrementing values
 enum State {
     IDLE,
@@ -13,7 +10,7 @@ enum State {
 
 // Enum with explicit values
 enum Command {
-    READ  <- 0x01,
+    READ <- 0x01,
     WRITE <- 0x02,
     ERASE <- 0x04,
     RESET <- 0xFF
@@ -21,13 +18,14 @@ enum Command {
 
 // Enum with bit flag pattern
 enum Flags {
-    NONE       <- 0,
-    READABLE   <- 1,
-    WRITABLE   <- 2,
+    NONE <- 0,
+    READABLE <- 1,
+    WRITABLE <- 2,
     EXECUTABLE <- 4
 }
 
 State currentState <- State.IDLE;
+
 Command lastCmd <- Command.READ;
 
 u32 main() {

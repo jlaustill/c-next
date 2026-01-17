@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-022: Basic ternary operator test
+/* test-execution */ // ADR-022: Basic ternary operator test
 // Tests: simple relational conditions with parentheses
-
 u32 getMax(u32 a, u32 b) {
     return (a > b) ? a : b;
 }

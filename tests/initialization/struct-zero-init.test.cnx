@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-015: Struct zero initialization
+/* test-execution */ // ADR-015: Struct zero initialization
 // Tests: struct members are automatically zero-initialized
-
 struct Point {
     i32 x;
     i32 y;
@@ -14,6 +12,7 @@ struct Config {
 }
 
 Point origin;
+
 Config settings;
 
 u32 main() {

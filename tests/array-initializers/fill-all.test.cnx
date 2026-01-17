@@ -1,14 +1,14 @@
-/* test-execution */
-// ADR-035: Fill-All Syntax Test
+/* test-execution */ // ADR-035: Fill-All Syntax Test
 // Tests: [value*] fills all elements with the specified value
 // Validates that all array elements are properly initialized
-
 // Zero fill
 u8 buffer[100] <- [0*];
 
 // Fill with other values
 u8 ones[50] <- [1*];
+
 u16 magic[10] <- [0xDEAD*];
+
 i32 negatives[5] <- [-1*];
 
 u32 main() {
@@ -35,13 +35,13 @@ u32 main() {
     // Test modification after fill
     buffer[50] <- 42;
     if (buffer[50] != 42) return 13;
-    if (buffer[49] != 0) return 14;  // Adjacent unchanged
-    if (buffer[51] != 0) return 15;  // Adjacent unchanged
+    if (buffer[49] != 0) return 14; // Adjacent unchanged
+    if (buffer[51] != 0) return 15; // Adjacent unchanged
 
     ones[25] <- 255;
     if (ones[25] != 255) return 16;
-    if (ones[24] != 1) return 17;  // Adjacent unchanged
-    if (ones[26] != 1) return 18;  // Adjacent unchanged
+    if (ones[24] != 1) return 17; // Adjacent unchanged
+    if (ones[26] != 1) return 18; // Adjacent unchanged
 
     return 0;
 }

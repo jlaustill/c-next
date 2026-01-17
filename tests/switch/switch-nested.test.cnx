@@ -1,8 +1,6 @@
-/* test-execution */
-// ADR-025: Nested switch statement tests
+/* test-execution */ // ADR-025: Nested switch statement tests
 // Tests: switch statements nested inside other switch statements
 // Coverage: Section 7 (Control Flow) - nested switch
-
 u32 result;
 
 // Basic nested switch: outer and inner both u32
@@ -10,23 +8,41 @@ void testNestedBasic(u32 outer, u32 inner) {
     switch (outer) {
         case 0 {
             switch (inner) {
-                case 0 { result <- 100; }
-                case 1 { result <- 101; }
-                default { result <- 199; }
+                case 0 {
+                    result <- 100;
+                }
+                case 1 {
+                    result <- 101;
+                }
+            default {
+                    result <- 199;
+                }
             }
         }
         case 1 {
             switch (inner) {
-                case 0 { result <- 200; }
-                case 1 { result <- 201; }
-                default { result <- 299; }
+                case 0 {
+                    result <- 200;
+                }
+                case 1 {
+                    result <- 201;
+                }
+            default {
+                    result <- 299;
+                }
             }
         }
-        default {
+    default {
             switch (inner) {
-                case 0 { result <- 900; }
-                case 1 { result <- 901; }
-                default { result <- 999; }
+                case 0 {
+                    result <- 900;
+                }
+                case 1 {
+                    result <- 901;
+                }
+            default {
+                    result <- 999;
+                }
             }
         }
     }
@@ -37,18 +53,28 @@ void testNestedMixedTypes(u8 outer, u16 inner) {
     switch (outer) {
         case 0 {
             switch (inner) {
-                case 0 { result <- 1000; }
-                case 1000 { result <- 1001; }
-                default { result <- 1099; }
+                case 0 {
+                    result <- 1000;
+                }
+                case 1000 {
+                    result <- 1001;
+                }
+            default {
+                    result <- 1099;
+                }
             }
         }
         case 255 {
             switch (inner) {
-                case 65535 { result <- 2000; }
-                default { result <- 2099; }
+                case 65535 {
+                    result <- 2000;
+                }
+            default {
+                    result <- 2099;
+                }
             }
         }
-        default {
+    default {
             result <- 9999;
         }
     }
@@ -61,27 +87,45 @@ void testTripleNested(u8 a, u8 b, u8 c) {
             switch (b) {
                 case 0 {
                     switch (c) {
-                        case 0 { result <- 111; }
-                        case 1 { result <- 112; }
-                        default { result <- 119; }
+                        case 0 {
+                            result <- 111;
+                        }
+                        case 1 {
+                            result <- 112;
+                        }
+                    default {
+                            result <- 119;
+                        }
                     }
                 }
                 case 1 {
                     switch (c) {
-                        case 0 { result <- 121; }
-                        default { result <- 129; }
+                        case 0 {
+                            result <- 121;
+                        }
+                    default {
+                            result <- 129;
+                        }
                     }
                 }
-                default { result <- 190; }
+            default {
+                    result <- 190;
+                }
             }
         }
         case 1 {
             switch (b) {
-                case 0 { result <- 210; }
-                default { result <- 290; }
+                case 0 {
+                    result <- 210;
+                }
+            default {
+                    result <- 290;
+                }
             }
         }
-        default { result <- 900; }
+    default {
+            result <- 900;
+        }
     }
 }
 
@@ -90,29 +134,55 @@ void testNestedSigned(i8 outer, i8 inner) {
     switch (outer) {
         case 0 {
             switch (inner) {
-                case 0 { result <- 11; }
-                case 1 { result <- 12; }
-                case 50 { result <- 13; }
-                default { result <- 19; }
+                case 0 {
+                    result <- 11;
+                }
+                case 1 {
+                    result <- 12;
+                }
+                case 50 {
+                    result <- 13;
+                }
+            default {
+                    result <- 19;
+                }
             }
         }
         case 1 {
             switch (inner) {
-                case 0 { result <- 21; }
-                case 1 { result <- 22; }
-                case 50 { result <- 23; }
-                default { result <- 29; }
+                case 0 {
+                    result <- 21;
+                }
+                case 1 {
+                    result <- 22;
+                }
+                case 50 {
+                    result <- 23;
+                }
+            default {
+                    result <- 29;
+                }
             }
         }
         case 50 {
             switch (inner) {
-                case 0 { result <- 31; }
-                case 1 { result <- 32; }
-                case 50 { result <- 33; }
-                default { result <- 39; }
+                case 0 {
+                    result <- 31;
+                }
+                case 1 {
+                    result <- 32;
+                }
+                case 50 {
+                    result <- 33;
+                }
+            default {
+                    result <- 39;
+                }
             }
         }
-        default { result <- 99; }
+    default {
+            result <- 99;
+        }
     }
 }
 

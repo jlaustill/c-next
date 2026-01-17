@@ -1,8 +1,7 @@
-/* test-execution */
-// ADR-013: Const u64 variable
+/* test-execution */ // ADR-013: Const u64 variable
 // Tests: const u64 declaration and read access
-
 const u64 MAX_FILE_SIZE <- 4294967296;
+
 const u64 CHUNK_SIZE <- 1048576;
 
 u32 main() {

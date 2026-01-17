@@ -1,9 +1,9 @@
-/* test-execution */
-// ADR-013: Const i8 variable
+/* test-execution */ // ADR-013: Const i8 variable
 // Tests: const i8 declaration and read access with negative values
-
 const i8 MIN_TEMP <- -40;
+
 const i8 MAX_TEMP <- 85;
+
 const i8 ZERO_POINT <- 0;
 
 u32 main() {

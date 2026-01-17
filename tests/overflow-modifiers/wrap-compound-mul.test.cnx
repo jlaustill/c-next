@@ -1,30 +1,26 @@
-/* test-execution */
-/* test-coverage: 21.2-compound-mul */
-// Tests: wrap modifier with compound multiplication (*<-)
+/* test-execution */ /* test-coverage: 21.2-compound-mul */ // Tests: wrap modifier with compound multiplication (*<-)
 // Validates multiplication overflow wraps around
 // ADR-044: Per-variable overflow semantics
-
 u32 main() {
     // === U8 WRAP MULTIPLICATION (wraps at 256) ===
-
     // Test 1: Basic wrap - product wraps around
     wrap u8 val8 <- 20;
-    val8 *<- 20;  // 20 * 20 = 400, wraps to 400 % 256 = 144
+    val8 *<- 20; // 20 * 20 = 400, wraps to 400 % 256 = 144
     if (val8 != 144) return 1;
 
     // Test 2: Multiply by 2 causing wrap
     val8 <- 200;
-    val8 *<- 2;  // 200 * 2 = 400, wraps to 144
+    val8 *<- 2; // 200 * 2 = 400, wraps to 144
     if (val8 != 144) return 2;
 
     // Test 3: Larger wrap
     val8 <- 10;
-    val8 *<- 100;  // 10 * 100 = 1000, wraps to 1000 % 256 = 232
+    val8 *<- 100; // 10 * 100 = 1000, wraps to 1000 % 256 = 232
     if (val8 != 232) return 3;
 
     // Test 4: Normal multiplication (no wrap)
     val8 <- 10;
-    val8 *<- 10;  // 10 * 10 = 100, no wrap needed
+    val8 *<- 10; // 10 * 10 = 100, no wrap needed
     if (val8 != 100) return 4;
 
     // Test 5: Multiply by 1 (identity)
@@ -44,127 +40,121 @@ u32 main() {
 
     // Test 8: Just over boundary
     val8 <- 128;
-    val8 *<- 2;  // 128 * 2 = 256, wraps to 0
+    val8 *<- 2; // 128 * 2 = 256, wraps to 0
     if (val8 != 0) return 8;
 
     // Test 9: Power of 2 wrapping
     val8 <- 64;
-    val8 *<- 8;  // 64 * 8 = 512, wraps to 512 % 256 = 0
+    val8 *<- 8; // 64 * 8 = 512, wraps to 512 % 256 = 0
     if (val8 != 0) return 9;
 
     // === U16 WRAP MULTIPLICATION (wraps at 65536) ===
-
     // Test 10: Basic wrap
     wrap u16 val16 <- 300;
-    val16 *<- 300;  // 300 * 300 = 90000, wraps to 90000 % 65536 = 24464
+    val16 *<- 300; // 300 * 300 = 90000, wraps to 90000 % 65536 = 24464
     if (val16 != 24464) return 10;
 
     // Test 11: Normal multiplication
     val16 <- 100;
-    val16 *<- 100;  // 100 * 100 = 10000
+    val16 *<- 100; // 100 * 100 = 10000
     if (val16 != 10000) return 11;
 
     // Test 12: Wrap exactly at boundary
     val16 <- 256;
-    val16 *<- 256;  // 256 * 256 = 65536, wraps to 0
+    val16 *<- 256; // 256 * 256 = 65536, wraps to 0
     if (val16 != 0) return 12;
 
     // Test 13: Multiple of boundary
     val16 <- 512;
-    val16 *<- 128;  // 512 * 128 = 65536, wraps to 0
+    val16 *<- 128; // 512 * 128 = 65536, wraps to 0
     if (val16 != 0) return 13;
 
     // === U32 WRAP MULTIPLICATION (wraps at 2^32) ===
-
     // Test 14: Normal multiplication
     wrap u32 val32 <- 1000;
-    val32 *<- 1000;  // 1000 * 1000 = 1000000
+    val32 *<- 1000; // 1000 * 1000 = 1000000
     if (val32 != 1000000) return 14;
 
     // Test 15: Wrap at boundary
     val32 <- 65536;
-    val32 *<- 65536;  // 65536 * 65536 = 2^32, wraps to 0
+    val32 *<- 65536; // 65536 * 65536 = 2^32, wraps to 0
     if (val32 != 0) return 15;
 
     // Test 16: Large wrap
     val32 <- 100000;
-    val32 *<- 100000;  // 100000 * 100000 = 10 billion, wraps to 10B % 2^32
+    val32 *<- 100000; // 100000 * 100000 = 10 billion, wraps to 10B % 2^32
+
     // 10000000000 % 4294967296 = 1410065408
     if (val32 != 1410065408) return 16;
 
     // === U64 WRAP MULTIPLICATION ===
-
     // Test 17: Normal multiplication (u64 has huge range)
-    wrap u64 val64 <- 1000000000;  // 1 billion
-    val64 *<- 1000;  // 1 trillion
+    wrap u64 val64 <- 1000000000; // 1 billion
+    val64 *<- 1000; // 1 trillion
     if (val64 != 1000000000000) return 17;
 
     // Test 18: Multiply by 1
-    val64 <- 9223372036854775807;  // Half of max
+    val64 <- 9223372036854775807; // Half of max
     val64 *<- 1;
     if (val64 != 9223372036854775807) return 18;
 
     // === I8 WRAP MULTIPLICATION (wraps at 256, signed) ===
-
     // Test 19: Positive wrap to negative
     wrap i8 vali8 <- 16;
-    vali8 *<- 16;  // 16 * 16 = 256, wraps to 0 (as signed: 0)
+    vali8 *<- 16; // 16 * 16 = 256, wraps to 0 (as signed: 0)
     if (vali8 != 0) return 19;
 
     // Test 20: Positive wrap
     vali8 <- 10;
-    vali8 *<- 20;  // 10 * 20 = 200, wraps in signed: 200 - 256 = -56
+    vali8 *<- 20; // 10 * 20 = 200, wraps in signed: 200 - 256 = -56
     if (vali8 != -56) return 20;
 
     // Test 21: Negative * positive
     vali8 <- -10;
-    vali8 *<- 5;  // -10 * 5 = -50 (no wrap needed)
+    vali8 *<- 5; // -10 * 5 = -50 (no wrap needed)
     if (vali8 != -50) return 21;
 
     // Test 22: Negative * negative wrap to positive
     vali8 <- -16;
-    vali8 *<- -16;  // -16 * -16 = 256, wraps to 0
+    vali8 *<- -16; // -16 * -16 = 256, wraps to 0
     if (vali8 != 0) return 22;
 
     // Test 23: Normal positive multiplication
     vali8 <- 5;
-    vali8 *<- 5;  // 5 * 5 = 25
+    vali8 *<- 5; // 5 * 5 = 25
     if (vali8 != 25) return 23;
 
     // === I16 WRAP MULTIPLICATION (wraps at 65536, signed) ===
-
     // Test 24: Positive wrap
     wrap i16 vali16 <- 200;
-    vali16 *<- 200;  // 200 * 200 = 40000, wraps: 40000 - 65536 = -25536
+    vali16 *<- 200; // 200 * 200 = 40000, wraps: 40000 - 65536 = -25536
     if (vali16 != -25536) return 24;
 
     // Test 25: Boundary wrap
     vali16 <- 256;
-    vali16 *<- 256;  // 256 * 256 = 65536, wraps to 0
+    vali16 *<- 256; // 256 * 256 = 65536, wraps to 0
     if (vali16 != 0) return 25;
 
     // Test 26: Normal multiplication
     vali16 <- 100;
-    vali16 *<- 100;  // 100 * 100 = 10000
+    vali16 *<- 100; // 100 * 100 = 10000
     if (vali16 != 10000) return 26;
 
     // === I32 WRAP MULTIPLICATION ===
-
     // Test 27: Normal multiplication
     wrap i32 vali32 <- 1000;
-    vali32 *<- 1000;  // 1000 * 1000 = 1000000
+    vali32 *<- 1000; // 1000 * 1000 = 1000000
     if (vali32 != 1000000) return 27;
 
     // Test 28: Boundary wrap
     vali32 <- 65536;
-    vali32 *<- 65536;  // 65536 * 65536 = 2^32, wraps to 0
+    vali32 *<- 65536; // 65536 * 65536 = 2^32, wraps to 0
     if (vali32 != 0) return 28;
 
     // === I64 WRAP MULTIPLICATION ===
-
     // Test 29: Normal multiplication
     wrap i64 vali64 <- 1000000;
-    vali64 *<- 1000000;  // 1 trillion
+    vali64 *<- 1000000; // 1 trillion
     if (vali64 != 1000000000000) return 29;
 
     // Test 30: Multiply by -1
@@ -173,24 +163,23 @@ u32 main() {
     if (vali64 != -100) return 30;
 
     // === EDGE CASES ===
-
     // Test 31: Repeated multiplications with wrap
     val8 <- 2;
-    val8 *<- 2;  // 4
+    val8 *<- 2; // 4
     if (val8 != 4) return 31;
-    val8 *<- 2;  // 8
+    val8 *<- 2; // 8
     if (val8 != 8) return 32;
-    val8 *<- 2;  // 16
+    val8 *<- 2; // 16
     if (val8 != 16) return 33;
-    val8 *<- 2;  // 32
+    val8 *<- 2; // 32
     if (val8 != 32) return 34;
-    val8 *<- 2;  // 64
+    val8 *<- 2; // 64
     if (val8 != 64) return 35;
-    val8 *<- 2;  // 128
+    val8 *<- 2; // 128
     if (val8 != 128) return 36;
-    val8 *<- 2;  // 256 -> wraps to 0
+    val8 *<- 2; // 256 -> wraps to 0
     if (val8 != 0) return 37;
-    val8 *<- 2;  // 0 * 2 = 0
+    val8 *<- 2; // 0 * 2 = 0
     if (val8 != 0) return 38;
 
     // All tests passed

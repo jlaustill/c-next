@@ -1,11 +1,7 @@
-/* test-coverage: 32.1-with-u8-suffix, 32.1-with-u16-suffix, 32.1-with-u32-suffix, 32.1-with-i8-suffix, 32.1-with-i16-suffix, 32.1-with-i32-suffix */
-/* test-execution */
-// Tests: Integer literal suffixes for explicit type specification
+/* test-coverage: 32.1-with-u8-suffix, 32.1-with-u16-suffix, 32.1-with-u32-suffix, 32.1-with-i8-suffix, 32.1-with-i16-suffix, 32.1-with-i32-suffix */ /* test-execution */ // Tests: Integer literal suffixes for explicit type specification
 // Validates decimal, hex, and binary formats with u8/u16/u32/i8/i16/i32 suffixes
-
 u32 main() {
     // ===== u8 suffix tests =====
-
     // Test u8 decimal
     u8 u8_dec <- 42u8;
     if (u8_dec != 42) return 1;
@@ -31,7 +27,6 @@ u32 main() {
     if (u8_upper != 100) return 6;
 
     // ===== u16 suffix tests =====
-
     // Test u16 decimal
     u16 u16_dec <- 1000u16;
     if (u16_dec != 1000) return 7;
@@ -53,7 +48,6 @@ u32 main() {
     if (u16_upper != 5000) return 11;
 
     // ===== u32 suffix tests =====
-
     // Test u32 decimal
     u32 u32_dec <- 100000u32;
     if (u32_dec != 100000) return 12;
@@ -75,7 +69,6 @@ u32 main() {
     if (u32_upper != 999999) return 16;
 
     // ===== i8 suffix tests =====
-
     // Test i8 decimal positive
     i8 i8_pos <- 42i8;
     if (i8_pos != 42) return 17;
@@ -97,7 +90,6 @@ u32 main() {
     if (i8_upper != 50) return 21;
 
     // ===== i16 suffix tests =====
-
     // Test i16 decimal positive
     i16 i16_pos <- 1000i16;
     if (i16_pos != 1000) return 22;
@@ -119,7 +111,6 @@ u32 main() {
     if (i16_upper != 500) return 26;
 
     // ===== i32 suffix tests =====
-
     // Test i32 decimal positive
     i32 i32_pos <- 100000i32;
     if (i32_pos != 100000) return 27;
@@ -141,7 +132,6 @@ u32 main() {
     if (i32_upper != 999999) return 31;
 
     // ===== Mixed format tests =====
-
     // Test hex with uppercase X and lowercase suffix
     u8 mix1 <- 0XAAu8;
     if (mix1 != 170) return 32;
@@ -151,7 +141,6 @@ u32 main() {
     if (mix2 != 43690) return 33;
 
     // ===== Arithmetic with suffixed literals =====
-
     // Test addition with u8 literals
     u8 arith1 <- 10u8 + 20u8;
     if (arith1 != 30) return 34;
@@ -160,5 +149,5 @@ u32 main() {
     u16 arith2 <- 100u16 * 10u16;
     if (arith2 != 1000) return 35;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

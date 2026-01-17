@@ -1,7 +1,6 @@
 // ADR-024: Test that sign-changing assignment produces error
 // Assigning i32 to u32 should produce a compiler error
-
 void main() {
     i32 signed_val <- -5;
-    u32 unsigned_val <- signed_val;  // ERROR: i32 to u32 is sign change
+    u32 unsigned_val <- signed_val; // ERROR: i32 to u32 is sign change
 }

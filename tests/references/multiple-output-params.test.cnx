@@ -1,7 +1,4 @@
-/* test-coverage: 27-multiple-output-params */
-/* test-execution */
-// Tests: Function with multiple output parameters
-
+/* test-coverage: 27-multiple-output-params */ /* test-execution */ // Tests: Function with multiple output parameters
 // Divides a by b, returns quotient and remainder via output params
 void divmod(u32 a, u32 b, u32 quotient, u32 remainder) {
     quotient <- a / b;

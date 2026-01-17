@@ -1,6 +1,5 @@
 // ADR-022: Ternary with logical operators
 // && and || in condition
-
 void test() {
     u32 a <- 5;
     u32 b <- 10;

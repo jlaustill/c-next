@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-022: Ternary operator test for i16
+/* test-execution */ // ADR-022: Ternary operator test for i16
 // Tests: ternary with i16 in conditions and branches, including negative values
-
 i16 getMax(i16 a, i16 b) {
     return (a > b) ? a : b;
 }

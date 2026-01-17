@@ -1,9 +1,8 @@
-/* test-execution */
-// Tests: multi-dimensional u8 arrays (2D and 3D)
+/* test-execution */ // Tests: multi-dimensional u8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: small data buffers, pixel data, byte arrays
-
 u8 matrix2d[4][8];
+
 u8 cube3d[2][3][4];
 
 u32 main() {
@@ -34,8 +33,8 @@ u32 main() {
     if (cube3d[1][2][3] != 250) return 9;
 
     // Test .length property on first dimension
-    if (matrix2d.length != 4) return 10;        // 2D first dimension
-    if (cube3d.length != 2) return 11;          // 3D first dimension
+    if (matrix2d.length != 4) return 10; // 2D first dimension
+    if (cube3d.length != 2) return 11; // 3D first dimension
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -51,7 +50,7 @@ u32 main() {
     if (matrix2d[3][7] != 37) return 15;
 
     // Nested loop iteration - populate and sum 3D array
-    u16 sum <- 0;  // Use u16 to avoid overflow (sum will be 276)
+    u16 sum <- 0; // Use u16 to avoid overflow (sum will be 276)
     for (u32 i <- 0; i < 2; i +<- 1) {
         for (u32 j <- 0; j < 3; j +<- 1) {
             for (u32 k <- 0; k < 4; k +<- 1) {
@@ -74,16 +73,17 @@ u32 main() {
 
     // Test u8 specific edge cases
     u8 testArray[3][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 3; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
-    testArray[0][0] <- 0;    // Min value
-    testArray[0][1] <- 255;  // Max value
-    testArray[1][0] <- 128;  // Mid value
-    testArray[2][1] <- 1;    // Small value
+    testArray[0][0] <- 0; // Min value
+    testArray[0][1] <- 255; // Max value
+    testArray[1][0] <- 128; // Mid value
+    testArray[2][1] <- 1; // Small value
 
     if (testArray[0][0] != 0) return 24;
     if (testArray[0][1] != 255) return 25;
@@ -92,6 +92,7 @@ u32 main() {
 
     // Test 2D array with byte buffer pattern
     u8 buffer[4][4];
+
     // Initialize all elements first
     for (u32 bi <- 0; bi < 4; bi +<- 1) {
         for (u32 bj <- 0; bj < 4; bj +<- 1) {
@@ -104,11 +105,11 @@ u32 main() {
     buffer[2][2] <- 0x55;
     buffer[3][3] <- 0xFF;
 
-    if (buffer[0][0] != 15) return 28;   // 0x0F = 15
-    if (buffer[0][1] != 240) return 29;  // 0xF0 = 240
-    if (buffer[1][1] != 170) return 30;  // 0xAA = 170
-    if (buffer[2][2] != 85) return 31;   // 0x55 = 85
-    if (buffer[3][3] != 255) return 32;  // 0xFF = 255
+    if (buffer[0][0] != 15) return 28; // 0x0F = 15
+    if (buffer[0][1] != 240) return 29; // 0xF0 = 240
+    if (buffer[1][1] != 170) return 30; // 0xAA = 170
+    if (buffer[2][2] != 85) return 31; // 0x55 = 85
+    if (buffer[3][3] != 255) return 32; // 0xFF = 255
 
     return 0;
 }

@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: continue statement in do-while loop
+/* test-execution */ // Tests: continue statement in do-while loop
 // Validates: skipping iterations with continue in do-while loops
-
 u32 main() {
     // Test 1: Skip even numbers, sum odd numbers
     u32 oddSum <- 0;
@@ -14,6 +12,7 @@ u32 main() {
         }
         oddSum +<- current;
     } while (i < 10);
+
     // oddSum = 1 + 3 + 5 + 7 + 9 = 25
     if (oddSum != 25) return 1;
 
@@ -28,6 +27,7 @@ u32 main() {
         }
         sumExcept3 +<- curr;
     } while (j < 7);
+
     // sum = 0+1+2+4+5+6 = 18
     if (sumExcept3 != 18) return 2;
 
@@ -44,8 +44,10 @@ u32 main() {
         }
         processed +<- 1;
     } while (k < 10);
+
     // Even numbers in 0-9: 0,2,4,6,8 = 5 skipped
     if (skipped != 5) return 3;
+
     // Odd numbers: 1,3,5,7,9 = 5 processed
     if (processed != 5) return 4;
 
@@ -55,10 +57,11 @@ u32 main() {
     do {
         m +<- 1;
         if (m <= 3) {
-            continue;  // Skip first 3
+            continue; // Skip first 3
         }
         earlySum +<- m;
     } while (m < 7);
+
     // earlySum = 4+5+6+7 = 22
     if (earlySum != 22) return 5;
 
@@ -69,9 +72,10 @@ u32 main() {
         fullSum +<- n;
         n +<- 1;
         if (n = 999) {
-            continue;  // Never true
+            continue; // Never true
         }
     } while (n < 5);
+
     // fullSum = 0+1+2+3+4 = 10
     if (fullSum != 10) return 6;
 
@@ -82,13 +86,14 @@ u32 main() {
         u32 v <- p;
         p +<- 1;
         if (v % 3 = 0) {
-            continue;  // Skip multiples of 3
+            continue; // Skip multiples of 3
         }
         if (v % 5 = 0) {
-            continue;  // Skip multiples of 5
+            continue; // Skip multiples of 5
         }
         multiSum +<- v;
     } while (p < 16);
+
     // Skip: 0,3,5,6,9,10,12,15 (multiples of 3 or 5)
     // Keep: 1,2,4,7,8,11,13,14 = 60
     if (multiSum != 60) return 7;

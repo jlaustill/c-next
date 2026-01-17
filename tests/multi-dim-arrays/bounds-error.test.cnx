@@ -2,6 +2,6 @@
 u8 matrix[4][8];
 
 i32 main() {
-    matrix[5][0] <- 1;  // Error: index 5 >= dimension 4
+    matrix[5][0] <- 1; // Error: index 5 >= dimension 4
     return 0;
 }

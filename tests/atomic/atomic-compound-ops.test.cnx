@@ -1,6 +1,5 @@
 // ADR-049: Atomic compound operations
 // Tests: various compound assignment operators with atomic
-
 #pragma target teensy41
 
 atomic u32 value <- 100;

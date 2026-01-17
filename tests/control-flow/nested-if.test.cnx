@@ -1,8 +1,5 @@
-/* test-coverage: 33.2-if-inside-if */
-/* test-execution */
-// Coverage: Section 7.1, 33.2 - Nested if statements
+/* test-coverage: 33.2-if-inside-if */ /* test-execution */ // Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
-
 u32 main() {
     u32 a <- 10;
     u32 b <- 20;

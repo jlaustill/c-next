@@ -1,24 +1,23 @@
 // ADR-051: Safe division - all integer types
 // Verifies safe_div() and safe_mod() work with all integer types
-
 void testSafeDivUnsignedTypes() {
     bool err <- false;
 
     // u8
     u8 result_u8 <- 0;
     err <- safe_div(result_u8, 10, 2, 0);
-    // Expected: result_u8 = 5
 
+    // Expected: result_u8 = 5
     // u16
     u16 result_u16 <- 0;
     err <- safe_div(result_u16, 1000, 10, 0);
-    // Expected: result_u16 = 100
 
+    // Expected: result_u16 = 100
     // u32
     u32 result_u32 <- 0;
     err <- safe_div(result_u32, 100000, 1000, 0);
-    // Expected: result_u32 = 100
 
+    // Expected: result_u32 = 100
     // u64
     u64 result_u64 <- 0;
     err <- safe_div(result_u64, 10000000, 1000, 0);
@@ -31,18 +30,18 @@ void testSafeDivSignedTypes() {
     // i8
     i8 result_i8 <- 0;
     err <- safe_div(result_i8, -10, 2, 0);
-    // Expected: result_i8 = -5
 
+    // Expected: result_i8 = -5
     // i16
     i16 result_i16 <- 0;
     err <- safe_div(result_i16, -1000, 10, 0);
-    // Expected: result_i16 = -100
 
+    // Expected: result_i16 = -100
     // i32
     i32 result_i32 <- 0;
     err <- safe_div(result_i32, -100000, 1000, 0);
-    // Expected: result_i32 = -100
 
+    // Expected: result_i32 = -100
     // i64
     i64 result_i64 <- 0;
     err <- safe_div(result_i64, -10000000, 1000, 0);
@@ -55,18 +54,18 @@ void testSafeModAllTypes() {
     // u8
     u8 mod_u8 <- 0;
     err <- safe_mod(mod_u8, 10, 3, 0);
-    // Expected: mod_u8 = 1
 
+    // Expected: mod_u8 = 1
     // u16
     u16 mod_u16 <- 0;
     err <- safe_mod(mod_u16, 1000, 7, 0);
-    // Expected: mod_u16 = 6
 
+    // Expected: mod_u16 = 6
     // u32
     u32 mod_u32 <- 0;
     err <- safe_mod(mod_u32, 100000, 97, 0);
-    // Expected: mod_u32 = 91
 
+    // Expected: mod_u32 = 91
     // i32
     i32 mod_i32 <- 0;
     err <- safe_mod(mod_i32, -10, 3, 0);
@@ -79,16 +78,16 @@ void testSafeDivZeroAllTypes() {
     // Verify all types handle division by zero correctly
     u8 r8 <- 1;
     err <- safe_div(r8, 10, 0, r8);
-    // Expected: r8 = 1 (preserved), err = true
 
+    // Expected: r8 = 1 (preserved), err = true
     u16 r16 <- 2;
     err <- safe_div(r16, 10, 0, r16);
-    // Expected: r16 = 2 (preserved), err = true
 
+    // Expected: r16 = 2 (preserved), err = true
     u32 r32 <- 3;
     err <- safe_div(r32, 10, 0, r32);
-    // Expected: r32 = 3 (preserved), err = true
 
+    // Expected: r32 = 3 (preserved), err = true
     u64 r64 <- 4;
     err <- safe_div(r64, 10, 0, r64);
     // Expected: r64 = 4 (preserved), err = true

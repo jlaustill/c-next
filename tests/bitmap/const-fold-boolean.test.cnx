@@ -1,7 +1,14 @@
-/* test-execution */
-// Tests: Constant-folding of literal boolean values in bitmap assignments
-
-bitmap8 Flags { bit0, bit1, bit2, bit3, bit4, bit5, bit6, bit7 }
+/* test-execution */ // Tests: Constant-folding of literal boolean values in bitmap assignments
+bitmap8 Flags {
+    bit0,
+    bit1,
+    bit2,
+    bit3,
+    bit4,
+    bit5,
+    bit6,
+    bit7
+}
 
 u32 main() {
     Flags f;

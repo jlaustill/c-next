@@ -1,8 +1,5 @@
-/* test-coverage: 33.1-ternary-in-function-arg, 33.1-ternary-in-array-index */
-/* test-execution */
-// Tests: ternary expressions in complex contexts (function args, array indices)
+/* test-coverage: 33.1-ternary-in-function-arg, 33.1-ternary-in-array-index */ /* test-execution */ // Tests: ternary expressions in complex contexts (function args, array indices)
 // Coverage: Section 33.1 - Nested/Complex Expressions
-
 u32 result;
 
 // Helper function to receive ternary result
@@ -21,7 +18,6 @@ u32 max(u32 a, u32 b) {
 
 u32 main() {
     // === TERNARY IN FUNCTION ARGUMENT TESTS ===
-
     // Test 1: Simple ternary as function argument
     u32 a <- 10;
     u32 b <- 20;
@@ -54,7 +50,6 @@ u32 main() {
     if (result != 20) return 7;
 
     // === TERNARY IN ARRAY INDEX TESTS ===
-
     u32 arr[5];
     arr[0] <- 100;
     arr[1] <- 200;

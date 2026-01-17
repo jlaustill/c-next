@@ -1,9 +1,9 @@
 // ADR-035: Size Inference Test
 // Tests: u8 data[] <- [1, 2, 3] infers size 3
-
 // Inferred size from element count
 u8 data[] <- [1, 2, 3, 4, 5];
 
 // Different types with inference
 u16 words[] <- [100, 200, 300];
+
 i32 nums[] <- [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];

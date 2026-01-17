@@ -1,6 +1,5 @@
 // ADR-034: Bitmap literal overflow error
 // Value 10 exceeds 3-bit field maximum (7)
-
 bitmap8 Flags {
     Mode[3],
     Reserved[5]
@@ -9,5 +8,5 @@ bitmap8 Flags {
 Flags f <- 0;
 
 void main() {
-    f.Mode <- 10;  // ERROR: 10 > 7 (3-bit max)
+    f.Mode <- 10; // ERROR: 10 > 7 (3-bit max)
 }

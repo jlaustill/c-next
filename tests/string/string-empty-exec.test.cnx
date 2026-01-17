@@ -1,6 +1,4 @@
-/* test-execution */
-// ADR-045: Validate empty string behavior at runtime
-
+/* test-execution */ // ADR-045: Validate empty string behavior at runtime
 i32 main() {
     // Test 1-3: Default empty string
     string<64> empty;

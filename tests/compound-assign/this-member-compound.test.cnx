@@ -1,13 +1,9 @@
-/* test-execution */
-/* test-coverage: 2.3-this-member, 2.4-this-member, 2.5-this-member, 2.6-this-member, 2.7-this-member, 2.8-this-member, 2.9-this-member, 2.10-this-member, 2.11-this-member */
-// Tests: All compound assignment operators with this.member syntax
+/* test-execution */ /* test-coverage: 2.3-this-member, 2.4-this-member, 2.5-this-member, 2.6-this-member, 2.7-this-member, 2.8-this-member, 2.9-this-member, 2.10-this-member, 2.11-this-member */ // Tests: All compound assignment operators with this.member syntax
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on scope-local members
 // Note: +<- is already tested in scope/scope-compound-assign.test.cnx
-
 scope Calculator {
     i32 value <- 0;
     u32 bits <- 0;
-
     // ===== SUBTRACTION (-<-) =====
     i32 testSubtraction() {
         this.value <- 100;
@@ -20,7 +16,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== MULTIPLICATION (*<-) =====
     i32 testMultiplication() {
         this.value <- 7;
@@ -37,7 +32,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== DIVISION (/<-) =====
     i32 testDivision() {
         this.value <- 100;
@@ -54,7 +48,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== MODULO (%<-) =====
     i32 testModulo() {
         this.value <- 17;
@@ -71,7 +64,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== BITWISE AND (&<-) =====
     i32 testBitwiseAnd() {
         this.bits <- 0xFF;
@@ -88,7 +80,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== BITWISE OR (|<-) =====
     i32 testBitwiseOr() {
         this.bits <- 0xF0;
@@ -105,7 +96,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== BITWISE XOR (^<-) =====
     i32 testBitwiseXor() {
         this.bits <- 0xFF;
@@ -122,7 +112,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== LEFT SHIFT (<<<-) =====
     i32 testLeftShift() {
         this.bits <- 1;
@@ -139,7 +128,6 @@ scope Calculator {
 
         return 0;
     }
-
     // ===== RIGHT SHIFT (>><-) =====
     i32 testRightShift() {
         this.bits <- 256;
@@ -156,7 +144,6 @@ scope Calculator {
 
         return 0;
     }
-
     // Run all tests
     public i32 runAllTests() {
         i32 result <- 0;

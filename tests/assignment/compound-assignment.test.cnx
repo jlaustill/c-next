@@ -1,15 +1,13 @@
-/* test-execution */
-// ADR-001: Compound assignment operators
+/* test-execution */ // ADR-001: Compound assignment operators
 // Tests: compound assignment with <- syntax
-
 u32 testCompound() {
     u32 val <- 10;
 
-    val +<- 5;    // val = 15
-    val -<- 3;    // val = 12
-    val *<- 2;    // val = 24
-    val /<- 4;    // val = 6
-    val %<- 3;    // val = 0
+    val +<- 5; // val = 15
+    val -<- 3; // val = 12
+    val *<- 2; // val = 24
+    val /<- 4; // val = 6
+    val %<- 3; // val = 0
 
     return val;
 }
@@ -17,11 +15,11 @@ u32 testCompound() {
 u32 testBitwise() {
     u32 flags <- 0xFF;
 
-    flags &<- 0x0F;   // flags = 0x0F
-    flags |<- 0xF0;   // flags = 0xFF
-    flags ^<- 0x55;   // flags = 0xAA
-    flags <<<- 2;     // flags = 0x2A8
-    flags >><- 1;     // flags = 0x154
+    flags &<- 0x0F; // flags = 0x0F
+    flags |<- 0xF0; // flags = 0xFF
+    flags ^<- 0x55; // flags = 0xAA
+    flags <<<- 2; // flags = 0x2A8
+    flags >><- 1; // flags = 0x154
 
     return flags;
 }

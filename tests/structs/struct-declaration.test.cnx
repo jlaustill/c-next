@@ -1,6 +1,5 @@
 // ADR-014: Basic struct declaration
 // Tests: struct definition and declaration
-
 struct Point {
     i32 x;
     i32 y;

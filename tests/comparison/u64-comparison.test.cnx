@@ -1,9 +1,6 @@
-/* test-coverage: 1.1-u64-in-comparison */
-/* test-execution */
-// Tests: u64 comparison operations (<, >, <=, >=, =, !=)
+/* test-coverage: 1.1-u64-in-comparison */ /* test-execution */ // Tests: u64 comparison operations (<, >, <=, >=, =, !=)
 // Validates all comparison operators with u64 type
 // Includes edge cases with zero, max values, and typical embedded use cases
-
 u32 main() {
     // Test equality
     u64 a <- 1000000000000;
@@ -106,8 +103,8 @@ u32 main() {
     if ((near_max <= max) != true) return 43;
 
     // Large values (embedded timestamps)
-    u64 timestamp_2020 <- 1577836800000;  // Jan 1, 2020
-    u64 timestamp_2021 <- 1609459200000;  // Jan 1, 2021
+    u64 timestamp_2020 <- 1577836800000; // Jan 1, 2020
+    u64 timestamp_2021 <- 1609459200000; // Jan 1, 2021
     if ((timestamp_2021 > timestamp_2020) != true) return 44;
     if ((timestamp_2021 != timestamp_2020) != true) return 45;
 

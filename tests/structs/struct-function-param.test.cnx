@@ -1,6 +1,5 @@
 // ADR-014 + ADR-006: Struct as function parameter
 // Tests: pass-by-reference for struct parameters
-
 struct Point {
     i32 x;
     i32 y;
@@ -12,7 +11,7 @@ void movePoint(Point p, i32 dx, i32 dy) {
 }
 
 void main() {
-    Point origin <- { x: 0, y: 0 };
+    Point origin <- {x: 0, y: 0};
     i32 deltaX <- 10;
     i32 deltaY <- 20;
     movePoint(origin, deltaX, deltaY);

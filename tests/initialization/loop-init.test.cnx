@@ -1,23 +1,20 @@
-/* test-coverage: 26-loop-init */
-/* test-execution */
-// Tests: Variable initialization inside loops
-
+/* test-coverage: 26-loop-init */ /* test-execution */ // Tests: Variable initialization inside loops
 u32 main() {
     // Variable declared and initialized in for loop init
     u32 sum <- 0;
     for (u32 i <- 0; i < 5; i <- i + 1) {
         sum <- sum + i;
     }
-    if (sum != 10) return 1;  // 0+1+2+3+4 = 10
+    if (sum != 10) return 1; // 0+1+2+3+4 = 10
 
     // Variable initialized before while, used after
     u32 count <- 0;
     while (count < 3) {
-        u32 temp <- count * 2;  // Local init in loop body
+        u32 temp <- count * 2; // Local init in loop body
         sum <- sum + temp;
         count <- count + 1;
     }
-    if (sum != 16) return 2;  // 10 + 0 + 2 + 4 = 16
+    if (sum != 16) return 2; // 10 + 0 + 2 + 4 = 16
 
     // Nested loop with inner init
     u32 product <- 1;
@@ -27,15 +24,16 @@ u32 main() {
             product <- product * factor;
         }
     }
+
     // 1*1 * 1*2 * 2*1 * 2*2 * 3*1 * 3*2 = 1*2*2*4*3*6 = 288
     if (product != 288) return 3;
 
     // Re-init same variable in different iterations
     for (u32 i <- 0; i < 3; i <- i + 1) {
         u32 value <- i * 10;
-        sum <- sum + value;  // 0 + 10 + 20 = 30
+        sum <- sum + value; // 0 + 10 + 20 = 30
     }
-    if (sum != 46) return 4;  // 16 + 30 = 46
+    if (sum != 46) return 4; // 16 + 30 = 46
 
     return 0;
 }

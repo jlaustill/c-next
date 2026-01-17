@@ -1,40 +1,38 @@
-/* test-execution */
-// Issue #107: Negative Case Labels - i8 Edge Cases
+/* test-execution */ // Issue #107: Negative Case Labels - i8 Edge Cases
 // Tests: boundary values and edge cases for i8 switch
-
 i32 result;
 
 // Test all critical i8 boundary values
 void testI8Boundaries(i8 val) {
     switch (val) {
         case -128 {
-            result <- 1;   // INT8_MIN
+            result <- 1; // INT8_MIN
         }
         case -127 {
-            result <- 2;   // INT8_MIN + 1
+            result <- 2; // INT8_MIN + 1
         }
         case -64 {
-            result <- 3;   // Mid-negative
+            result <- 3; // Mid-negative
         }
         case -1 {
-            result <- 4;   // Just below zero
+            result <- 4; // Just below zero
         }
         case 0 {
-            result <- 5;   // Zero
+            result <- 5; // Zero
         }
         case 1 {
-            result <- 6;   // Just above zero
+            result <- 6; // Just above zero
         }
         case 64 {
-            result <- 7;   // Mid-positive
+            result <- 7; // Mid-positive
         }
         case 126 {
-            result <- 8;   // INT8_MAX - 1
+            result <- 8; // INT8_MAX - 1
         }
         case 127 {
-            result <- 9;   // INT8_MAX
+            result <- 9; // INT8_MAX
         }
-        default {
+    default {
             result <- 99;
         }
     }
@@ -58,7 +56,7 @@ void testConsecutiveNegatives(i8 val) {
         case -1 {
             result <- 14;
         }
-        default {
+    default {
             result <- 99;
         }
     }

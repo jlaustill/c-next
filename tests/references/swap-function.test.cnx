@@ -1,6 +1,5 @@
 // ADR-006: Classic swap pattern
 // Tests: swap works without pointer syntax
-
 void swap(i32 a, i32 b) {
     i32 temp <- a;
     a <- b;

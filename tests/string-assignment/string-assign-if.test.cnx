@@ -1,6 +1,4 @@
-/* test-execution */
-// Issue #139: Test string assignment inside if/else blocks
-
+/* test-execution */ // Issue #139: Test string assignment inside if/else blocks
 string<32> status <- "Unknown";
 
 void setStatus(bool ok) {

@@ -1,8 +1,9 @@
 // ADR-044: Test clamp keyword in variable declarations
-
 // Explicit clamp modifier
 clamp u8 brightness <- 100;
+
 clamp u16 sensorValue <- 0;
+
 clamp u32 temperature <- 2500;
 
 // Clamp with const

@@ -1,27 +1,28 @@
 // bit_test.cnx - Test bit access and .length syntax
-
 #include <stdint.h>
 #include <stdbool.h>
 
 u8 flags <- 0;
+
 u8 buffer[16];
+
 u32 counter <- 0;
 
 void test_bits() {
     // Single bit operations
-    flags[0] <- true;       // Set bit 0
-    flags[3] <- true;       // Set bit 3
-    flags[7] <- false;      // Clear bit 7
+    flags[0] <- true; // Set bit 0
+    flags[3] <- true; // Set bit 3
+    flags[7] <- false; // Clear bit 7
 
     // Bit range operations
-    flags[4, 3] <- 5;       // Set 3 bits starting at bit 4 to value 5
+    flags[4][3] <- 5; // Set 3 bits starting at bit 4 to value 5
 
     // Read bits
     bool bit3 <- flags[3];
     u8 field <- flags[4, 3];
 
     // .length property
-    u32 arrLen <- buffer.length;    // Should be 16 (array element count)
-    u32 flagBits <- flags.length;   // Should be 8 (u8 bit width)
+    u32 arrLen <- buffer.length; // Should be 16 (array element count)
+    u32 flagBits <- flags.length; // Should be 8 (u8 bit width)
     u32 counterBits <- counter.length; // Should be 32 (u32 bit width)
 }

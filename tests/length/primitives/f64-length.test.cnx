@@ -1,20 +1,15 @@
-/* test-execution */
-// Comprehensive .length test for f64 type across all contexts
+/* test-execution */ // Comprehensive .length test for f64 type across all contexts
 // Tests: .length returns 64 for f64 in every possible scope and access pattern
-
 f64 globalVar <- 3.14159;
 
 scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-
     f64 scopeMember <- 3.14159;
-
     public u32 getMemberLength() {
         return this.scopeMember.length;
     }
-
     public f64 publicMember <- 3.14159;
 }
 

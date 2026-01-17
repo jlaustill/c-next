@@ -1,8 +1,7 @@
-/* test-execution */
-// ADR-013 + ADR-044: Const wrap u8 combination
+/* test-execution */ // ADR-013 + ADR-044: Const wrap u8 combination
 // Tests: const wrap u8 declaration and read access
-
 const wrap u8 FULL_CYCLE <- 255;
+
 const wrap u8 HALF_CYCLE <- 128;
 
 u32 main() {

@@ -1,6 +1,5 @@
 // Doc Comments Test (ADR-043)
 // Tests that triple-slash converts to Doxygen format
-
 #include <stdint.h>
 
 /// Doubles the input value

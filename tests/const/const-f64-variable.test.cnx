@@ -1,9 +1,9 @@
-/* test-execution */
-// ADR-013: Const f64 variable
+/* test-execution */ // ADR-013: Const f64 variable
 // Tests: const f64 declaration and read access
-
 const f64 PI_PRECISE <- 3.14159265358979;
+
 const f64 E <- 2.71828182845905;
+
 const f64 ZERO <- 0.0;
 
 u32 main() {

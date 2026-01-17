@@ -1,5 +1,4 @@
 // Issue #139: Test that compound operators are rejected for struct.field string assignment
-
 struct Config {
     string<32> name;
 }

@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-013: Const f32 parameter
+/* test-execution */ // ADR-013: Const f32 parameter
 // Tests: const f32 parameter read access
-
 f32 readConstF32(const f32 value) {
     return value;
 }

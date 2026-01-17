@@ -1,27 +1,21 @@
-/* test-execution */
-// Tests: clamp modifier behavior inside scopes
+/* test-execution */ // Tests: clamp modifier behavior inside scopes
 // ADR-044 + ADR-016: Verifies clamp works with scope variables via this. accessor
 // This test exposes a BUG if clamp is ignored in scope contexts
-
 scope ClampScope {
     // Clamp scope variables - test u8 overflow/underflow
     clamp u8 brightness <- 200;
-
     // Method that triggers overflow - should clamp to 255
     public void triggerOverflow() {
-        this.brightness +<- 100;  // 200 + 100 = 300, should clamp to 255
+        this.brightness +<- 100; // 200 + 100 = 300, should clamp to 255
     }
-
     // Method that triggers underflow - should clamp to 0
     public void triggerUnderflow() {
-        this.brightness -<- 255;  // From any value, subtract 255
+        this.brightness -<- 255; // From any value, subtract 255
     }
-
     // Getter for validation
     public u8 getBrightness() {
         return this.brightness;
     }
-
     // Reset for next test
     public void reset(u8 value) {
         this.brightness <- value;
@@ -34,23 +28,23 @@ u32 main() {
     if (val != 200) return 1;
 
     // Test 2: Trigger overflow - should clamp to 255
-    ClampScope.triggerOverflow();  // 200 + 100 = 300 -> clamp to 255
+    ClampScope.triggerOverflow(); // 200 + 100 = 300 -> clamp to 255
     val <- ClampScope.getBrightness();
-    if (val != 255) return 2;  // BUG: If this fails, clamp is ignored in scopes!
+    if (val != 255) return 2; // BUG: If this fails, clamp is ignored in scopes!
 
     // Test 3: Reset and trigger underflow
     ClampScope.reset(50);
-    ClampScope.triggerUnderflow();  // 50 - 255 = -205 -> clamp to 0
+    ClampScope.triggerUnderflow(); // 50 - 255 = -205 -> clamp to 0
     val <- ClampScope.getBrightness();
-    if (val != 0) return 3;  // BUG: If this fails, clamp is ignored in scopes!
+    if (val != 0) return 3; // BUG: If this fails, clamp is ignored in scopes!
 
     // Test 4: Multiple operations
     ClampScope.reset(250);
-    ClampScope.triggerOverflow();  // 250 + 100 = 350 -> clamp to 255
+    ClampScope.triggerOverflow(); // 250 + 100 = 350 -> clamp to 255
     val <- ClampScope.getBrightness();
     if (val != 255) return 4;
 
-    ClampScope.triggerUnderflow();  // 255 - 255 = 0
+    ClampScope.triggerUnderflow(); // 255 - 255 = 0
     val <- ClampScope.getBrightness();
     if (val != 0) return 5;
 

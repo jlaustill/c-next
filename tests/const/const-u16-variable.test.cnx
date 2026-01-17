@@ -1,8 +1,7 @@
-/* test-execution */
-// ADR-013: Const u16 variable
+/* test-execution */ // ADR-013: Const u16 variable
 // Tests: const u16 declaration and read access
-
 const u16 MAX_PORT <- 65535;
+
 const u16 DEFAULT_PORT <- 8080;
 
 u32 main() {

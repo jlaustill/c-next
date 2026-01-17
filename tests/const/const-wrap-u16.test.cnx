@@ -1,8 +1,7 @@
-/* test-execution */
-// ADR-013 + ADR-044: Const wrap u16 combination
+/* test-execution */ // ADR-013 + ADR-044: Const wrap u16 combination
 // Tests: const wrap u16 declaration and read access
-
 const wrap u16 MAX_COUNTER <- 65535;
+
 const wrap u16 START_VALUE <- 1000;
 
 u32 main() {

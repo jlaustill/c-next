@@ -1,6 +1,5 @@
 // Coverage: Section 7.2 - while loop non-boolean condition error
 // Tests: Error when using non-boolean expression as while condition
-
 void test() {
     u32 count <- 5;
 

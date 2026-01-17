@@ -1,14 +1,12 @@
-/* test-execution */
-// ADR-014: Struct member access
+/* test-execution */ // ADR-014: Struct member access
 // Tests: reading and writing struct members
-
 struct Point {
     i32 x;
     i32 y;
 }
 
 u32 main() {
-    Point p <- { x: 10, y: 20 };
+    Point p <- {x: 10, y: 20};
 
     // Test initial values
     if (p.x != 10) {

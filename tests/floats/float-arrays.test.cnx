@@ -1,6 +1,6 @@
 // Test float arrays
-
 f32 samples_f32[10];
+
 f64 measurements_f64[5];
 
 void test_f32_array() {

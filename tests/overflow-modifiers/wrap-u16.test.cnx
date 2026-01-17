@@ -1,72 +1,67 @@
-/* test-execution */
-// Tests: wrap modifier for u16 type (0 to 65535)
+/* test-execution */ // Tests: wrap modifier for u16 type (0 to 65535)
 // Validates: overflow wraps to 0, underflow wraps to 65535
 // Issue #19: Add wrap modifier tests for all integer types
-
 u32 main() {
     // === OVERFLOW WRAPPING (wraps to 0) ===
-
     // Test 1: Basic overflow - add past max
     wrap u16 val <- 65535;
-    val +<- 1;  // 65535 + 1 = 65536, should wrap to 0
+    val +<- 1; // 65535 + 1 = 65536, should wrap to 0
     if (val != 0) return 1;
 
     // Test 2: Overflow with larger addition
     wrap u16 val2 <- 65530;
-    val2 +<- 10;  // 65530 + 10 = 65540, should wrap to 4
+    val2 +<- 10; // 65530 + 10 = 65540, should wrap to 4
     if (val2 != 4) return 2;
 
     // Test 3: Large overflow
     val <- 60000;
-    val +<- 10000;  // 60000 + 10000 = 70000, should wrap to 4464
+    val +<- 10000; // 60000 + 10000 = 70000, should wrap to 4464
     if (val != 4464) return 3;
 
     // Test 4: Overflow from half range
     val <- 32768;
-    val +<- 40000;  // 32768 + 40000 = 72768, should wrap to 7232
+    val +<- 40000; // 32768 + 40000 = 72768, should wrap to 7232
     if (val != 7232) return 4;
 
     // Test 5: Multiple overflows in sequence
     val <- 65530;
-    val +<- 10;  // 65540 -> 4
+    val +<- 10; // 65540 -> 4
     if (val != 4) return 5;
-    val +<- 65535;  // 4 + 65535 = 65539 -> 3
+    val +<- 65535; // 4 + 65535 = 65539 -> 3
     if (val != 3) return 6;
 
     // === UNDERFLOW WRAPPING (wraps to 65535) ===
-
     // Test 7: Basic underflow - subtract below zero
     val <- 0;
-    val -<- 1;  // 0 - 1 = -1, should wrap to 65535
+    val -<- 1; // 0 - 1 = -1, should wrap to 65535
     if (val != 65535) return 7;
 
     // Test 8: Underflow with larger subtraction
     val <- 5;
-    val -<- 10;  // 5 - 10 = -5, should wrap to 65531
+    val -<- 10; // 5 - 10 = -5, should wrap to 65531
     if (val != 65531) return 8;
 
     // Test 9: Large underflow
     val <- 100;
-    val -<- 1000;  // 100 - 1000 = -900, should wrap to 64636
+    val -<- 1000; // 100 - 1000 = -900, should wrap to 64636
     if (val != 64636) return 9;
 
     // Test 10: Multiple underflows in sequence
     val <- 5;
-    val -<- 10;  // -5 -> 65531
+    val -<- 10; // -5 -> 65531
     if (val != 65531) return 10;
-    val -<- 65535;  // 65531 - 65535 = -4 -> 65532
+    val -<- 65535; // 65531 - 65535 = -4 -> 65532
     if (val != 65532) return 11;
 
     // === NORMAL OPERATIONS (no wrapping needed) ===
-
     // Test 12: Normal addition within bounds
     val <- 30000;
-    val +<- 20000;  // 50000, no wrapping
+    val +<- 20000; // 50000, no wrapping
     if (val != 50000) return 12;
 
     // Test 13: Normal subtraction within bounds
     val <- 50000;
-    val -<- 20000;  // 30000, no wrapping
+    val -<- 20000; // 30000, no wrapping
     if (val != 30000) return 13;
 
     // Test 14: Add to zero
@@ -76,11 +71,10 @@ u32 main() {
 
     // Test 15: Subtract to zero exactly
     val <- 10000;
-    val -<- 10000;  // Exactly 0
+    val -<- 10000; // Exactly 0
     if (val != 0) return 15;
 
     // === BOUNDARY TESTS ===
-
     // Test 16: Add 1 to 65534 (just under max, no wrap)
     val <- 65534;
     val +<- 1;
@@ -102,14 +96,13 @@ u32 main() {
     if (val != 32768) return 19;
 
     // === WRAP-AROUND CYCLES ===
-
     // Test 20: Full wrap cycle (0 -> 65535 -> 0)
     val <- 1;
-    val -<- 1;  // 0
+    val -<- 1; // 0
     if (val != 0) return 20;
-    val -<- 1;  // 65535
+    val -<- 1; // 65535
     if (val != 65535) return 21;
-    val +<- 1;  // 0
+    val +<- 1; // 0
     if (val != 0) return 22;
 
     // All tests passed

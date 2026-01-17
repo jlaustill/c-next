@@ -1,7 +1,5 @@
-/* test-execution */
-// Comprehensive .length test for struct members of all primitive types
+/* test-execution */ // Comprehensive .length test for struct members of all primitive types
 // Tests: .length returns correct bit width for each struct member type
-
 struct AllTypes {
     u8 u8Field;
     u16 u16Field;
@@ -22,7 +20,6 @@ AllTypes globalStruct;
 // Test in scope context
 scope TestScope {
     AllTypes scopeStruct;
-
     public u32 checkScopeStructMember() {
         // Test one member to verify scope access works
         if (this.scopeStruct.u32Field.length != 32) {

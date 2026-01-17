@@ -1,6 +1,4 @@
-/* test-execution */
-// Issue #139: Test struct member string assignment
-
+/* test-execution */ // Issue #139: Test struct member string assignment
 struct Config {
     string<32> name;
     u32 value;

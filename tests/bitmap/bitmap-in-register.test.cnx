@@ -1,18 +1,17 @@
 // ADR-034 + ADR-004: Bitmap inside Register Test
 // This is the "million dollar feature" - using bitmaps for type-safe hardware registers
-
 // Define a bitmap for motor control register
 bitmap8 MotorControl {
-    Running,       // bit 0 (1 bit)
-    Direction,     // bit 1 (1 bit)
-    Fault,         // bit 2 (1 bit)
-    Mode[3],       // bits 3-5 (3 bits)
-    Reserved[2]    // bits 6-7 (2 bits)
+    Running, // bit 0 (1 bit)
+    Direction, // bit 1 (1 bit)
+    Fault, // bit 2 (1 bit)
+    Mode[3], // bits 3-5 (3 bits)
+    Reserved[2] // bits 6-7 (2 bits)
 }
 
 // Use bitmap type inside a register definition
 register MOTOR @ 0x40001000 {
-    CTRL: MotorControl rw @ 0x00,  // Bitmap as register type!
+    CTRL: MotorControl rw @ 0x00, // Bitmap as register type!
     STATUS: u8 ro @ 0x04,
 }
 
@@ -28,6 +27,6 @@ void main() {
 
     // Conditional based on register bitmap field
     if (MOTOR.CTRL.Fault = true) {
-        MOTOR.CTRL.Mode <- 0;  // Safe mode
+        MOTOR.CTRL.Mode <- 0; // Safe mode
     }
 }

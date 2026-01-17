@@ -1,8 +1,7 @@
 // ADR-003: realloc is forbidden
 // Tests: dynamic allocation not allowed
-
 #include <stdlib.h>
 
 void resizeMemory() {
-    realloc(0, 200);  // ERROR: forbidden function
+    realloc(0, 200); // ERROR: forbidden function
 }

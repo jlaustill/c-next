@@ -1,9 +1,6 @@
-/* test-coverage: 33.1-multiple-operators-same-precedence */
-/* test-execution */
-// Tests: multiple operators with same precedence (left-to-right associativity)
+/* test-coverage: 33.1-multiple-operators-same-precedence */ /* test-execution */ // Tests: multiple operators with same precedence (left-to-right associativity)
 // Coverage: Section 33.1 - Nested/Complex Expressions
 // Note: Mixed operator tests (a + b - c) deferred due to bug #152
-
 // Helper functions to get boolean values (prevents static analysis false positives)
 bool getTrue(u32 x) {
     return x > 0;
@@ -15,7 +12,6 @@ bool getFalse(u32 x) {
 
 u32 main() {
     // === ADDITION CHAINS ===
-
     // Test 1: Simple addition chain
     u32 a <- 10;
     u32 b <- 20;
@@ -25,7 +21,6 @@ u32 main() {
     if (result != 100) return 1;
 
     // === SUBTRACTION CHAINS ===
-
     // Test 2: Subtraction chain (verifies left-to-right)
     // 100 - 30 - 20 - 10 = 70 - 20 - 10 = 50 - 10 = 40
     result <- 100 - 30 - 20 - 10;
@@ -38,13 +33,11 @@ u32 main() {
     if (result != 10) return 3;
 
     // === MULTIPLICATION CHAINS ===
-
     // Test 4: Simple multiplication chain
     result <- 2 * 3 * 4 * 5;
     if (result != 120) return 4;
 
     // === DIVISION CHAINS ===
-
     // Test 5: Division chain (verifies left-to-right)
     // 120 / 2 / 3 / 4 = 60 / 3 / 4 = 20 / 4 = 5
     result <- 120 / 2 / 3 / 4;
@@ -57,14 +50,12 @@ u32 main() {
     if (result != 5) return 6;
 
     // === MODULO CHAINS ===
-
     // Test 7: Modulo chain
     // 100 % 30 % 7 = 10 % 7 = 3
     result <- 100 % 30 % 7;
     if (result != 3) return 7;
 
     // === BITWISE OPERATORS ===
-
     // Test 8: Bitwise AND chain
     u32 x <- 0xFF;
     u32 y <- 0x0F;
@@ -82,7 +73,6 @@ u32 main() {
     if (result != 0xF3) return 10;
 
     // === SHIFT OPERATORS ===
-
     // Test 11: Left shift chain
     // 1 << 2 << 3 = 4 << 3 = 32
     result <- 1 << 2 << 3;
@@ -94,7 +84,6 @@ u32 main() {
     if (result != 8) return 12;
 
     // === COMPARISON OPERATORS ===
-
     // Test 13: Chained comparisons (each produces bool, then combined)
     bool cmp1 <- 5 < 10;
     bool cmp2 <- 10 < 15;
@@ -110,7 +99,6 @@ u32 main() {
     if (eq3 != true) return 16;
 
     // === LOGICAL OPERATORS ===
-
     // Test 17: AND chain (use function calls to avoid static analysis warnings)
     bool t1 <- getTrue(1);
     bool t2 <- getTrue(2);
@@ -136,7 +124,6 @@ u32 main() {
     if (orResult != false) return 20;
 
     // === PARENTHESES OVERRIDE PRECEDENCE ===
-
     // Test 21: Parentheses with multiplication
     // (10 + 20) * 3 = 30 * 3 = 90
     result <- (10 + 20) * 3;

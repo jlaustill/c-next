@@ -1,14 +1,11 @@
 // Test: Initialization tracking with scopes (ADR-016)
-
-u8 globalCount;  // Global - uninitialized
+u8 globalCount; // Global - uninitialized
 
 scope Counter {
-    u8 count;    // Scope member - uninitialized
-
+    u8 count; // Scope member - uninitialized
     public void init() {
-        count <- 0;  // Initialize scope member
+        count <- 0; // Initialize scope member
     }
-
     public void increment() {
         // Should reference Counter.count (initialized by init())
         count <- count + 1;

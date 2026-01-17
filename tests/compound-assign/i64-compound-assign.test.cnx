@@ -1,209 +1,207 @@
-/* test-execution */
-// Tests: i64 compound assignment operators
+/* test-execution */ // Tests: i64 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
-
 u32 main() {
     // ===== ADDITION (+<-) =====
     i64 val <- 1000000000000;
-    val +<- 500000000000;  // pos + pos
+    val +<- 500000000000; // pos + pos
     if (val != 1500000000000) return 1;
 
     val <- -1000000000000;
-    val +<- 500000000000;  // neg + pos
+    val +<- 500000000000; // neg + pos
     if (val != -500000000000) return 2;
 
     val <- -1000000000000;
-    val +<- -500000000000;  // neg + neg
+    val +<- -500000000000; // neg + neg
     if (val != -1500000000000) return 3;
 
     val <- 5000000000000;
-    val +<- 0;  // Identity: add zero
+    val +<- 0; // Identity: add zero
     if (val != 5000000000000) return 4;
 
     val <- -5000000000000;
-    val +<- 5000000000000;  // Cross zero: neg + pos = 0
+    val +<- 5000000000000; // Cross zero: neg + pos = 0
     if (val != 0) return 5;
 
     // ===== SUBTRACTION (-<-) =====
     val <- 1500000000000;
-    val -<- 500000000000;  // pos - pos = pos
+    val -<- 500000000000; // pos - pos = pos
     if (val != 1000000000000) return 10;
 
     val <- 500000000000;
-    val -<- 1000000000000;  // pos - pos = neg
+    val -<- 1000000000000; // pos - pos = neg
     if (val != -500000000000) return 11;
 
     val <- -1000000000000;
-    val -<- 500000000000;  // neg - pos
+    val -<- 500000000000; // neg - pos
     if (val != -1500000000000) return 12;
 
     val <- -1000000000000;
-    val -<- -500000000000;  // neg - neg = neg + pos
+    val -<- -500000000000; // neg - neg = neg + pos
     if (val != -500000000000) return 13;
 
     val <- 5000000000000;
-    val -<- 0;  // Identity: subtract zero
+    val -<- 0; // Identity: subtract zero
     if (val != 5000000000000) return 14;
 
     val <- 0;
-    val -<- 1000;  // 0 - pos = neg
+    val -<- 1000; // 0 - pos = neg
     if (val != -1000) return 15;
 
     // ===== MULTIPLICATION (*<-) =====
     val <- 1000000;
-    val *<- 1000000;  // pos * pos
+    val *<- 1000000; // pos * pos
     if (val != 1000000000000) return 20;
 
     val <- -1000000;
-    val *<- 1000000;  // neg * pos
+    val *<- 1000000; // neg * pos
     if (val != -1000000000000) return 21;
 
     val <- -1000000;
-    val *<- -1000000;  // neg * neg = pos
+    val *<- -1000000; // neg * neg = pos
     if (val != 1000000000000) return 22;
 
     val <- 5000000000000;
-    val *<- 1;  // Identity: multiply by one
+    val *<- 1; // Identity: multiply by one
     if (val != 5000000000000) return 23;
 
     val <- 5000000000000;
-    val *<- -1;  // Negate via multiply
+    val *<- -1; // Negate via multiply
     if (val != -5000000000000) return 24;
 
     val <- 123456789;
-    val *<- 0;  // Multiply by zero
+    val *<- 0; // Multiply by zero
     if (val != 0) return 25;
 
     // ===== DIVISION (/<-) =====
     val <- 1000000000000;
-    val /<- 1000;  // pos / pos
+    val /<- 1000; // pos / pos
     if (val != 1000000000) return 30;
 
     val <- -1000000000000;
-    val /<- 1000;  // neg / pos = neg
+    val /<- 1000; // neg / pos = neg
     if (val != -1000000000) return 31;
 
     val <- -1000000000000;
-    val /<- -1000;  // neg / neg = pos
+    val /<- -1000; // neg / neg = pos
     if (val != 1000000000) return 32;
 
     val <- 5000000000000;
-    val /<- 1;  // Identity: divide by one
+    val /<- 1; // Identity: divide by one
     if (val != 5000000000000) return 33;
 
     val <- -5000000000000;
-    val /<- -1;  // neg / neg = pos
+    val /<- -1; // neg / neg = pos
     if (val != 5000000000000) return 34;
 
     // ===== MODULO (%<-) =====
     val <- 1000000007;
-    val %<- 1000000;  // pos % pos
+    val %<- 1000000; // pos % pos
     if (val != 7) return 40;
 
     val <- -1000000007;
-    val %<- 1000000;  // neg % pos (C semantics: sign of dividend)
+    val %<- 1000000; // neg % pos (C semantics: sign of dividend)
     if (val != -7) return 41;
 
     val <- 12345;
-    val %<- 7;  // 12345 % 7 = 4
+    val %<- 7; // 12345 % 7 = 4
     if (val != 4) return 42;
 
     val <- -12345;
-    val %<- 7;  // -12345 % 7 = -4 (C semantics)
+    val %<- 7; // -12345 % 7 = -4 (C semantics)
     if (val != -4) return 43;
 
     val <- 100;
-    val %<- 100;  // Result zero
+    val %<- 100; // Result zero
     if (val != 0) return 44;
 
     // ===== BITWISE AND (&<-) =====
-    val <- 0x7FFFFFFFFFFFFFFF;  // Max positive
-    val &<- 0x00000000FFFFFFFF;  // Keep low 32 bits
+    val <- 0x7FFFFFFFFFFFFFFF; // Max positive
+    val &<- 0x00000000FFFFFFFF; // Keep low 32 bits
     if (val != 0x00000000FFFFFFFF) return 50;
 
-    val <- -1;  // All bits set (0xFFFFFFFFFFFFFFFF in two's complement)
+    val <- -1; // All bits set (0xFFFFFFFFFFFFFFFF in two's complement)
     val &<- 0x00000000FFFFFFFF;
     if (val != 0x00000000FFFFFFFF) return 51;
 
     val <- 0x123456789ABCDEF0;
-    val &<- 0x7FFFFFFFFFFFFFFF;  // Clear sign bit
+    val &<- 0x7FFFFFFFFFFFFFFF; // Clear sign bit
     if (val != 0x123456789ABCDEF0) return 52;
 
     val <- 0x0F0F0F0F0F0F0F0F;
-    val &<- 0xF0F0F0F0F0F0F0F0;  // Non-overlapping
+    val &<- 0xF0F0F0F0F0F0F0F0; // Non-overlapping
     if (val != 0) return 53;
 
     // ===== BITWISE OR (|<-) =====
     val <- 0x00000000FFFFFFFF;
-    val |<- 0x7FFFFFFF00000000;  // Combine halves (keeping sign bit clear)
+    val |<- 0x7FFFFFFF00000000; // Combine halves (keeping sign bit clear)
     if (val != 0x7FFFFFFFFFFFFFFF) return 60;
 
     val <- 0x1234000000000000;
-    val |<- 0x0000000056789ABC;  // OR non-overlapping
+    val |<- 0x0000000056789ABC; // OR non-overlapping
     if (val != 0x1234000056789ABC) return 61;
 
     val <- 0x123456789ABCDEF0;
-    val |<- 0x0000000000000000;  // OR with zero = identity
+    val |<- 0x0000000000000000; // OR with zero = identity
     if (val != 0x123456789ABCDEF0) return 62;
 
     // ===== BITWISE XOR (^<-) =====
     val <- 0x5555555555555555;
-    val ^<- 0x5555555555555555;  // XOR with self = 0
+    val ^<- 0x5555555555555555; // XOR with self = 0
     if (val != 0) return 70;
 
     val <- 0x0F0F0F0F0F0F0F0F;
-    val ^<- 0xF0F0F0F0F0F0F0F0;  // Complement nibbles
-    if (val != -1) return 71;  // All 1s = -1 in signed
+    val ^<- 0xF0F0F0F0F0F0F0F0; // Complement nibbles
+    if (val != -1) return 71; // All 1s = -1 in signed
 
     val <- -1;
-    val ^<- -1;  // -1 XOR -1 = 0
+    val ^<- -1; // -1 XOR -1 = 0
     if (val != 0) return 72;
 
     val <- 0x7FFFFFFFFFFFFFFF;
-    val ^<- 0x7FFFFFFFFFFFFFFF;  // Max pos XOR self = 0
+    val ^<- 0x7FFFFFFFFFFFFFFF; // Max pos XOR self = 0
     if (val != 0) return 73;
 
     // ===== LEFT SHIFT (<<<-) =====
     val <- 1;
-    val <<<- 0;  // Shift by 0 = identity
+    val <<<- 0; // Shift by 0 = identity
     if (val != 1) return 80;
 
     val <- 1;
-    val <<<- 1;  // 1 << 1 = 2
+    val <<<- 1; // 1 << 1 = 2
     if (val != 2) return 81;
 
     val <- 1;
-    val <<<- 32;  // 1 << 32 = 4294967296
+    val <<<- 32; // 1 << 32 = 4294967296
     if (val != 4294967296) return 82;
 
     val <- 1;
-    val <<<- 62;  // 1 << 62 = 4611686018427387904 (max safe for signed)
+    val <<<- 62; // 1 << 62 = 4611686018427387904 (max safe for signed)
     if (val != 4611686018427387904) return 83;
 
     val <- -1;
-    val <<<- 4;  // -1 << 4 = -16
+    val <<<- 4; // -1 << 4 = -16
     if (val != -16) return 84;
 
     // ===== RIGHT SHIFT (>><-) =====
     val <- 256;
-    val >><- 0;  // Shift by 0 = identity
+    val >><- 0; // Shift by 0 = identity
     if (val != 256) return 90;
 
     val <- 256;
-    val >><- 1;  // 256 >> 1 = 128
+    val >><- 1; // 256 >> 1 = 128
     if (val != 128) return 91;
 
     val <- 4294967296;
-    val >><- 32;  // 2^32 >> 32 = 1
+    val >><- 32; // 2^32 >> 32 = 1
     if (val != 1) return 92;
 
     val <- -16;
-    val >><- 2;  // -16 >> 2 = -4 (arithmetic shift preserves sign)
+    val >><- 2; // -16 >> 2 = -4 (arithmetic shift preserves sign)
     if (val != -4) return 93;
 
     val <- -1;
-    val >><- 10;  // -1 >> 10 = -1 (all bits are 1, sign extends)
+    val >><- 10; // -1 >> 10 = -1 (all bits are 1, sign extends)
     if (val != -1) return 94;
 
     return 0;

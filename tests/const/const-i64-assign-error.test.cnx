@@ -1,8 +1,7 @@
 // ADR-013: Error - assigning to const i64 variable
 // Tests: cannot assign to const variable
-
 const i64 TIMESTAMP <- -2147483648;
 
 void main() {
-    TIMESTAMP <- 0;  // ERROR: cannot assign to const variable
+    TIMESTAMP <- 0; // ERROR: cannot assign to const variable
 }

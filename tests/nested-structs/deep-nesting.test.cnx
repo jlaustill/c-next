@@ -1,6 +1,5 @@
 // ADR-032: Deep Nested Struct Test
 // Tests: 3+ levels of nesting
-
 struct Color {
     u8 r;
     u8 g;
@@ -22,9 +21,9 @@ struct Mesh {
 // 3-level deep initialization
 Mesh cube <- {
     material: {
-        ambient: { r: 50, g: 50, b: 50 },
-        diffuse: { r: 200, g: 100, b: 50 },
-        specular: { r: 255, g: 255, b: 255 },
+        ambient: {r: 50, g: 50, b: 50},
+        diffuse: {r: 200, g: 100, b: 50},
+        specular: {r: 255, g: 255, b: 255},
         shininess: 32.0
     },
     vertexCount: 36

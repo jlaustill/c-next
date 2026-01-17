@@ -1,5 +1,4 @@
 // Test conversions between float and integer types
-
 void test_int_to_float() {
     // Integer to f32
     i32 int_val <- 42;

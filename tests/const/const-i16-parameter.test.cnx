@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-013: Const i16 parameter
+/* test-execution */ // ADR-013: Const i16 parameter
 // Tests: const i16 parameter read access with negative values
-
 i16 readConstI16(const i16 value) {
     return value;
 }

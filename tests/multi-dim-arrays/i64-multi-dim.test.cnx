@@ -1,9 +1,8 @@
-/* test-execution */
-// Tests: multi-dimensional i64 arrays (2D and 3D)
+/* test-execution */ // Tests: multi-dimensional i64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: timestamps, large counters, high-precision measurements
-
 i64 matrix2d[4][8];
+
 i64 cube3d[2][3][4];
 
 u32 main() {
@@ -35,14 +34,14 @@ u32 main() {
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10;        // First dimension
-    if (matrix2d[0].length != 8) return 11;     // Second dimension
+    if (matrix2d.length != 4) return 10; // First dimension
+    if (matrix2d[0].length != 8) return 11; // Second dimension
     if (matrix2d[0][0].length != 64) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
+    if (cube3d.length != 2) return 13; // First dimension
+    if (cube3d[0].length != 3) return 14; // Second dimension
+    if (cube3d[0][0].length != 4) return 15; // Third dimension
     if (cube3d[0][0][0].length != 64) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array
@@ -82,18 +81,19 @@ u32 main() {
 
     // Test i64 specific edge cases with very large values
     i64 testArray[4][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
-    testArray[0][0] <- -9000000000000000000;  // Large negative
-    testArray[0][1] <- 9000000000000000000;   // Large positive
-    testArray[1][0] <- 0;                     // Zero
-    testArray[1][1] <- -1;                    // Negative
-    testArray[2][0] <- 1;                     // Positive
-    testArray[3][1] <- -1000000000000;        // Medium negative
+    testArray[0][0] <- -9000000000000000000; // Large negative
+    testArray[0][1] <- 9000000000000000000; // Large positive
+    testArray[1][0] <- 0; // Zero
+    testArray[1][1] <- -1; // Negative
+    testArray[2][0] <- 1; // Positive
+    testArray[3][1] <- -1000000000000; // Medium negative
 
     if (testArray[0][0] != -9000000000000000000) return 24;
     if (testArray[0][1] != 9000000000000000000) return 25;
@@ -104,18 +104,19 @@ u32 main() {
 
     // Test 2D array with timestamp pattern (milliseconds since epoch)
     i64 timestamps[3][3];
+
     // Initialize all elements first
     for (u32 tsi <- 0; tsi < 3; tsi +<- 1) {
         for (u32 tsj <- 0; tsj < 3; tsj +<- 1) {
             timestamps[tsi][tsj] <- 0;
         }
     }
-    timestamps[0][0] <- -2208988800000;    // Jan 1, 1900
-    timestamps[0][1] <- 0;                 // Jan 1, 1970 (epoch)
-    timestamps[0][2] <- 1609459200000;     // Jan 1, 2021
-    timestamps[1][0] <- 1640995200000;     // Jan 1, 2022
-    timestamps[1][1] <- 1672531200000;     // Jan 1, 2023
-    timestamps[1][2] <- 2524608000000;     // Jan 1, 2050
+    timestamps[0][0] <- -2208988800000; // Jan 1, 1900
+    timestamps[0][1] <- 0; // Jan 1, 1970 (epoch)
+    timestamps[0][2] <- 1609459200000; // Jan 1, 2021
+    timestamps[1][0] <- 1640995200000; // Jan 1, 2022
+    timestamps[1][1] <- 1672531200000; // Jan 1, 2023
+    timestamps[1][2] <- 2524608000000; // Jan 1, 2050
 
     if (timestamps[0][0] != -2208988800000) return 30;
     if (timestamps[0][1] != 0) return 31;
@@ -134,16 +135,17 @@ u32 main() {
 
     // Test with nano-precision timestamps (nanoseconds)
     i64 nanos[2][2];
+
     // Initialize all elements first
     for (u32 ni <- 0; ni < 2; ni +<- 1) {
         for (u32 nj <- 0; nj < 2; nj +<- 1) {
             nanos[ni][nj] <- 0;
         }
     }
-    nanos[0][0] <- 1609459200000000000;   // Jan 1, 2021 in nanoseconds
-    nanos[0][1] <- 1609459200123456789;   // With nanosecond precision
-    nanos[1][0] <- -1000000000;           // -1 second in nanoseconds
-    nanos[1][1] <- 1000000000;            // +1 second in nanoseconds
+    nanos[0][0] <- 1609459200000000000; // Jan 1, 2021 in nanoseconds
+    nanos[0][1] <- 1609459200123456789; // With nanosecond precision
+    nanos[1][0] <- -1000000000; // -1 second in nanoseconds
+    nanos[1][1] <- 1000000000; // +1 second in nanoseconds
 
     if (nanos[0][0] != 1609459200000000000) return 38;
     if (nanos[0][1] != 1609459200123456789) return 39;
@@ -152,14 +154,15 @@ u32 main() {
 
     // Test large financial calculations (atomic units, e.g., satoshis)
     i64 balances[2][2];
+
     // Initialize all elements first
     for (u32 bi <- 0; bi < 2; bi +<- 1) {
         for (u32 bj <- 0; bj < 2; bj +<- 1) {
             balances[bi][bj] <- 0;
         }
     }
-    balances[0][0] <- 2100000000000000;   // 21 million BTC in satoshis
-    balances[0][1] <- -100000000;         // -1 BTC debt
+    balances[0][0] <- 2100000000000000; // 21 million BTC in satoshis
+    balances[0][1] <- -100000000; // -1 BTC debt
     i64 netBalance <- balances[0][0] + balances[0][1];
     if (netBalance != 2099999900000000) return 42;
 

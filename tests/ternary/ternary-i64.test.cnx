@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-022: Ternary operator test for i64
+/* test-execution */ // ADR-022: Ternary operator test for i64
 // Tests: ternary with i64 in conditions and branches, including negative values
-
 i64 getMax(i64 a, i64 b) {
     return (a > b) ? a : b;
 }

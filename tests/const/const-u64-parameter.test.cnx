@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-013: Const u64 parameter
+/* test-execution */ // ADR-013: Const u64 parameter
 // Tests: const u64 parameter read access
-
 u64 readConstU64(const u64 value) {
     return value;
 }

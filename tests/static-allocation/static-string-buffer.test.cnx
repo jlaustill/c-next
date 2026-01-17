@@ -1,9 +1,8 @@
-/* test-execution */
-// ADR-003/ADR-045: Static string buffer allocation
+/* test-execution */ // ADR-003/ADR-045: Static string buffer allocation
 // Tests: global string buffers with known sizes are valid
 // Issues #138 and #139 fixed: string assignment now works correctly
-
 string<64> messageBuffer <- "Initial";
+
 string<128> logBuffer <- "Log entry one";
 
 u32 getMessageLength() {
@@ -26,8 +25,8 @@ void setDefaultMessage() {
 
 u32 main() {
     // Test 1: Global string buffers are initialized correctly
-    if (messageBuffer.length != 7) return 1;  // "Initial"
-    if (logBuffer.length != 13) return 2;     // "Log entry one"
+    if (messageBuffer.length != 7) return 1; // "Initial"
+    if (logBuffer.length != 13) return 2; // "Log entry one"
 
     // Test 2: Content comparison
     if (messageBuffer != "Initial") return 3;

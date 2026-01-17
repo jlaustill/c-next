@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-001: Comparison in if statements
+/* test-execution */ // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
-
 u32 checkValue(u32 x) {
     if (x = 0) {
         return 0;

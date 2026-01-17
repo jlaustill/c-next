@@ -2,7 +2,6 @@
 // TODO: Future optimization - cache strlen() when .length is used multiple times
 // Current behavior: each .length generates a separate strlen() call
 // Optimized behavior: generate a temp variable to cache the length
-
 string<64> text <- "Hello World";
 
 void test() {

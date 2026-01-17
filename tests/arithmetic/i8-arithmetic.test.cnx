@@ -1,86 +1,84 @@
-/* test-execution */
-// Test i8 arithmetic operations
+/* test-execution */ // Test i8 arithmetic operations
 // Coverage: Section 4.1-4.5 for i8 type
-
 u32 main() {
     // Addition - basic
     i8 a <- 50;
     i8 b <- 30;
-    i8 sum <- a + b;  // 80
+    i8 sum <- a + b; // 80
 
     // Addition - negative + positive
     i8 c <- -50;
     i8 d <- 30;
-    i8 sum_neg <- c + d;  // -20
+    i8 sum_neg <- c + d; // -20
 
     // Addition - negative + negative
     i8 e <- -40;
     i8 f <- -20;
-    i8 sum_both_neg <- e + f;  // -60
+    i8 sum_both_neg <- e + f; // -60
 
     // Subtraction - basic
     i8 g <- 50;
     i8 h <- 30;
-    i8 diff <- g - h;  // 20
+    i8 diff <- g - h; // 20
 
     // Subtraction - negative result
     i8 i <- 30;
     i8 j <- 50;
-    i8 diff_neg <- i - j;  // -20
+    i8 diff_neg <- i - j; // -20
 
     // Subtraction - with negatives
     i8 k <- -30;
     i8 l <- 20;
-    i8 diff_mixed <- k - l;  // -50
+    i8 diff_mixed <- k - l; // -50
 
     // Multiplication - basic
     i8 m <- 10;
     i8 n <- 5;
-    i8 product <- m * n;  // 50
+    i8 product <- m * n; // 50
 
     // Multiplication - negative
     i8 o <- -10;
     i8 p <- 5;
-    i8 product_neg <- o * p;  // -50
+    i8 product_neg <- o * p; // -50
 
     // Multiplication - negative * negative
     i8 q <- -10;
     i8 r <- -5;
-    i8 product_pos <- q * r;  // 50
+    i8 product_pos <- q * r; // 50
 
     // Division - basic
     i8 s <- 60;
     i8 t <- 3;
-    i8 quotient <- s / t;  // 20
+    i8 quotient <- s / t; // 20
 
     // Division - negative
     i8 u <- -60;
     i8 v <- 3;
-    i8 quotient_neg <- u / v;  // -20
+    i8 quotient_neg <- u / v; // -20
 
     // Division - negative divisor
     i8 w <- 60;
     i8 x <- -3;
-    i8 quotient_neg_div <- w / x;  // -20
+    i8 quotient_neg_div <- w / x; // -20
 
     // Modulo - basic
     i8 y <- 23;
     i8 z <- 5;
-    i8 remainder <- y % z;  // 3
+    i8 remainder <- y % z; // 3
 
     // Modulo - negative (C semantics: result has sign of dividend)
     i8 aa <- -23;
     i8 bb <- 5;
-    i8 remainder_neg <- aa % bb;  // -3
+    i8 remainder_neg <- aa % bb; // -3
 
     // Edge cases - max positive
     i8 max_val <- 127;
     i8 one <- 1;
-    i8 max_minus_one <- max_val - one;  // 126
+    i8 max_minus_one <- max_val - one; // 126
 
     // Edge cases - min negative
     i8 min_val <- -128;
-    i8 min_plus_one <- min_val + one;  // -127
+    i8 min_plus_one <- min_val + one; // -127
 
     // Verify all results
     if (sum = 80 && sum_neg = -20 && sum_both_neg = -60) {
@@ -89,12 +87,12 @@ u32 main() {
                 if (quotient = 20 && quotient_neg = -20 && quotient_neg_div = -20) {
                     if (remainder = 3 && remainder_neg = -3) {
                         if (max_minus_one = 126 && min_plus_one = -127) {
-                            return 0;  // All tests passed
+                            return 0; // All tests passed
                         }
                     }
                 }
             }
         }
     }
-    return 1;  // Test failed
+    return 1; // Test failed
 }

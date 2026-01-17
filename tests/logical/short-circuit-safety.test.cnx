@@ -1,7 +1,7 @@
 // ADR-013: Short-circuit evaluation prevents unsafe operations
 // Critical for embedded systems where bounds checking and validation matter
-
 u32 accessCount <- 0;
+
 u32 dangerousValue <- 0;
 
 bool isIndexSafe(u32 index) {

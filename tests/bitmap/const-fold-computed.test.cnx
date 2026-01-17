@@ -1,15 +1,22 @@
-/* test-execution */
-// Tests: Computed expressions in loops should NOT be constant-folded
+/* test-execution */ // Tests: Computed expressions in loops should NOT be constant-folded
 // Issue #200: Only literal true/false should fold to 1/0
 //
 // Usage: ./test [iterations] [threshold]
 //   iterations: number of loop iterations (default: 8)
 //   threshold:  comparison threshold for bit1 (default: 3)
 // Example: ./test 10 5
-
 #include <stdlib.h>
 
-bitmap8 Flags { bit0, bit1, bit2, bit3, bit4, bit5, bit6, bit7 }
+bitmap8 Flags {
+    bit0,
+    bit1,
+    bit2,
+    bit3,
+    bit4,
+    bit5,
+    bit6,
+    bit7
+}
 
 u32 main(string args[]) {
     Flags f <- 0;
@@ -36,9 +43,9 @@ u32 main(string args[]) {
 
         // Conditional based on computed bitmap read
         if (f.bit0 = true) {
-            f.bit2 <- false;  // Literal - should fold to 0
+            f.bit2 <- false; // Literal - should fold to 0
         } else {
-            f.bit2 <- true;   // Literal - should fold to 1
+            f.bit2 <- true; // Literal - should fold to 1
         }
 
         // Count iterations where bit0 is true (even i values)
@@ -62,8 +69,8 @@ u32 main(string args[]) {
     if (count != (iterations / 2)) return 4;
 
     // Final check: literals still fold correctly
-    f.bit5 <- true;   // Should fold to 1
-    f.bit6 <- false;  // Should fold to 0
+    f.bit5 <- true; // Should fold to 1
+    f.bit6 <- false; // Should fold to 0
     if (f.bit5 != true) return 5;
     if (f.bit6 != false) return 6;
 

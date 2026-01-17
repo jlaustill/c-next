@@ -1,7 +1,5 @@
-/* test-execution */
-// Comprehensive .length test for u8 type across all contexts
+/* test-execution */ // Comprehensive .length test for u8 type across all contexts
 // Tests: .length returns 8 for u8 in every possible scope and access pattern
-
 // Context 1: Global variable
 u8 globalVar <- 42;
 
@@ -10,14 +8,11 @@ scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-
     // Context 3: Scope member
     u8 scopeMember <- 42;
-
     public u32 getMemberLength() {
         return this.scopeMember.length;
     }
-
     // Context 4: Public scope member (cross-scope access)
     public u8 publicMember <- 42;
 }

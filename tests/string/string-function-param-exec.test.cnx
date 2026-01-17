@@ -1,6 +1,4 @@
-/* test-execution */
-// ADR-045: Validate string function parameters at runtime
-
+/* test-execution */ // ADR-045: Validate string function parameters at runtime
 u32 getLen(const string<64> s) {
     return s.length;
 }
@@ -27,6 +25,7 @@ i32 main() {
 
     // Test 4-5: Get capacity via function
     if (getCap(test) != 64) return 4;
+
     // Note: Literal passed to const string<64> param gets capacity 64
     if (getCap("Hi") != 64) return 5;
 

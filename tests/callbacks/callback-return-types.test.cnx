@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: Callbacks with different return types
+/* test-execution */ // Tests: Callbacks with different return types
 // Validates: u32, u8, bool, and i32 return types work correctly
-
 // Callback returning u32
 u32 getU32Value(u32 input) {
     return input + 1000;

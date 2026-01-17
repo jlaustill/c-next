@@ -1,5 +1,4 @@
 // ADR-023: sizeof on primitive types
-
 void main() {
     u32 intSize <- sizeof(u32);
     u32 ptrSize <- sizeof(u64);

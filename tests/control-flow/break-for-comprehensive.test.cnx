@@ -1,7 +1,5 @@
-/* test-execution */
-// Tests: comprehensive break scenarios in for loops
+/* test-execution */ // Tests: comprehensive break scenarios in for loops
 // Validates: various break patterns and edge cases
-
 u32 main() {
     // Test 1: Break at specific value
     u32 breakPoint <- 0;
@@ -31,6 +29,7 @@ u32 main() {
             break;
         }
     }
+
     // 1+2+3+4+5+6+7+8+9+10 = 55 (first sum >= 50)
     if (sum != 55) return 3;
 
@@ -42,6 +41,7 @@ u32 main() {
             break;
         }
     }
+
     // Counts 100,99,98,97,96,95,94,93,92,91,90 = 11 iterations
     if (countdown != 11) return 4;
 
@@ -53,6 +53,7 @@ u32 main() {
             break;
         }
     }
+
     // 0 + 2 + 4 + 6 + 8 + 10 = 30
     if (evenSum != 30) return 5;
 
@@ -66,6 +67,7 @@ u32 main() {
             }
         }
     }
+
     // First multiple of 7 greater than 10 is 14
     if (found != 14) return 6;
 
@@ -81,6 +83,7 @@ u32 main() {
             break;
         }
     }
+
     // Breaks after q becomes 15 and shouldBreak is set
     if (iterCount != 16) return 7;
 
@@ -92,6 +95,7 @@ u32 main() {
             break;
         }
     }
+
     // Should break immediately on first iteration
     if (emptyCount != 1) return 8;
 

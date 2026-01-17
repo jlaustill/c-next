@@ -1,10 +1,17 @@
 // ADR-025: Multiple Cases Test
 // Tests case A || B syntax
-
-enum ECommand { READ, WRITE, PEEK, POKE, ERASE }
+enum ECommand {
+    READ,
+    WRITE,
+    PEEK,
+    POKE,
+    ERASE
+}
 
 void doRead() {}
+
 void doWrite() {}
+
 void doOther() {}
 
 void handleCommand(ECommand cmd) {
@@ -15,7 +22,7 @@ void handleCommand(ECommand cmd) {
         case ECommand.WRITE || ECommand.POKE {
             doWrite();
         }
-        default {
+    default {
             doOther();
         }
     }

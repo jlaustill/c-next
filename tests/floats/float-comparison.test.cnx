@@ -1,5 +1,4 @@
 // Test all float comparison operations
-
 bool result;
 
 void test_f32_comparison() {

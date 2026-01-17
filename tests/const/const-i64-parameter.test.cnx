@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-013: Const i64 parameter
+/* test-execution */ // ADR-013: Const i64 parameter
 // Tests: const i64 parameter read access with negative values
-
 i64 readConstI64(const i64 value) {
     return value;
 }

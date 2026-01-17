@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-022: Ternary operator test for u8
+/* test-execution */ // ADR-022: Ternary operator test for u8
 // Tests: ternary with u8 in conditions and branches
-
 u8 getMax(u8 a, u8 b) {
     return (a > b) ? a : b;
 }

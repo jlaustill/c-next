@@ -1,7 +1,5 @@
-/* test-execution */
-// ADR-045: Test string as struct member
+/* test-execution */ // ADR-045: Test string as struct member
 // Validates: declaration, initialization, properties, comparison, function passing
-
 struct Person {
     string<64> name;
     string<128> bio;
@@ -53,12 +51,12 @@ i32 main() {
     if (bob.name != "Bob") return 10;
 
     // Test 6: Compare struct members between instances
-    if (alice.name = bob.name) return 11;  // Should be different
+    if (alice.name = bob.name) return 11; // Should be different
 
     // Test 7: Assign same value, compare
     Person charlie;
-    charlie.name <- "Alice";  // Same as alice
-    if (alice.name != charlie.name) return 12;  // Should be equal
+    charlie.name <- "Alice"; // Same as alice
+    if (alice.name != charlie.name) return 12; // Should be equal
 
     // Test 8: Pass struct to function, access member
     if (getNameLength(alice) != 5) return 13;
@@ -66,7 +64,7 @@ i32 main() {
 
     // Test 9: Function with comparison
     if (!compareName(alice, "Alice")) return 15;
-    if (compareName(alice, "Bob")) return 16;  // Should not match
+    if (compareName(alice, "Bob")) return 16; // Should not match
 
     // Test 10: Config struct (different capacities)
     Config cfg;

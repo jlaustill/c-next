@@ -1,5 +1,4 @@
 // ADR-023: E0601 - sizeof on array parameter is error
-
 void process(u8 data[]) {
-    u32 bad <- sizeof(data);  // ERROR: returns pointer size, not array size
+    u32 bad <- sizeof(data); // ERROR: returns pointer size, not array size
 }

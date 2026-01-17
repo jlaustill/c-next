@@ -1,20 +1,18 @@
-/* test-execution */
-// Comprehensive .length test for multi-dimensional arrays
+/* test-execution */ // Comprehensive .length test for multi-dimensional arrays
 // Tests: array.length returns first dimension only (ADR-036)
-
 // Global multi-dim arrays
 u8 globalU8Matrix[4][8];
+
 u32 globalU32Matrix[3][5];
+
 f32 globalF32Matrix[2][10];
 
 // Scope with multi-dim arrays
 scope TestScope {
     u8 scopeMatrix[4][8];
-
     public u32 getScopeMatrixLength() {
         return this.scopeMatrix.length;
     }
-
     public u8 publicMatrix[3][5];
 }
 

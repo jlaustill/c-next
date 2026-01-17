@@ -1,6 +1,6 @@
 // Test float division by zero (should produce infinity, not error)
-
 f32 result_f32;
+
 f64 result_f64;
 
 void test_f32_division_by_zero() {
