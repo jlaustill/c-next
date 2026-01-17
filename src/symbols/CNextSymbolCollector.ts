@@ -59,6 +59,11 @@ class CNextSymbolCollector {
     if (decl.bitmapDeclaration()) {
       this.collectBitmap(decl.bitmapDeclaration()!, undefined);
     }
+
+    // Issue #220: Handle enum declarations for header generation
+    if (decl.enumDeclaration()) {
+      this.collectEnum(decl.enumDeclaration()!, undefined);
+    }
   }
 
   // ADR-016: Collect scope declarations (renamed from namespace)
@@ -99,6 +104,10 @@ class CNextSymbolCollector {
           name,
           isPublic,
         );
+      }
+      // Issue #220: Handle enum declarations in scopes
+      if (member.enumDeclaration()) {
+        this.collectEnum(member.enumDeclaration()!, name, isPublic);
       }
     }
   }
@@ -250,6 +259,27 @@ class CNextSymbolCollector {
 
       bitOffset += width;
     }
+  }
+
+  // Issue #220: Collect enum declarations for header generation
+  private collectEnum(
+    enumDecl: Parser.EnumDeclarationContext,
+    parent: string | undefined,
+    isPublic: boolean = true,
+  ): void {
+    const name = enumDecl.IDENTIFIER().getText();
+    const line = enumDecl.start?.line ?? 0;
+    const fullName = parent ? `${parent}_${name}` : name;
+
+    this.symbols.push({
+      name: fullName,
+      kind: ESymbolKind.Enum,
+      sourceFile: this.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: isPublic,
+      parent,
+    });
   }
 
   // Issue #218: isPublic parameter controls header export

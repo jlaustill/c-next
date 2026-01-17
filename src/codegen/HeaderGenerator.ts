@@ -8,25 +8,13 @@ import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "../symbols/SymbolTable";
 import IHeaderOptions from "./types/IHeaderOptions";
+import IHeaderTypeInput from "./headerGenerators/IHeaderTypeInput";
+import typeUtils from "./headerGenerators/mapType";
+import generateEnumHeader from "./headerGenerators/generateEnumHeader";
+import generateStructHeader from "./headerGenerators/generateStructHeader";
+import generateBitmapHeader from "./headerGenerators/generateBitmapHeader";
 
-/**
- * Maps C-Next types to C types
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-  void: "void",
-  ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
-};
+const { TYPE_MAP, mapType } = typeUtils;
 
 /**
  * Generates C header files from symbol information
@@ -34,11 +22,17 @@ const TYPE_MAP: Record<string, string> = {
 class HeaderGenerator {
   /**
    * Generate a header file from symbols
+   *
+   * @param symbols - Array of symbols to include in header
+   * @param filename - Output filename (used for include guard)
+   * @param options - Header generation options
+   * @param typeInput - Optional type information for full definitions (enums, structs, bitmaps)
    */
   generate(
     symbols: ISymbol[],
     filename: string,
     options: IHeaderOptions = {},
+    typeInput?: IHeaderTypeInput,
   ): string {
     const lines: string[] = [];
     const guard = this.makeGuard(filename, options.guardPrefix);
@@ -86,17 +80,22 @@ class HeaderGenerator {
     );
     const enums = exportedSymbols.filter((s) => s.kind === ESymbolKind.Enum);
     const types = exportedSymbols.filter((s) => s.kind === ESymbolKind.Type);
+    const bitmaps = exportedSymbols.filter(
+      (s) => s.kind === ESymbolKind.Bitmap,
+    );
 
     // Issue #121: Collect external type dependencies from function signatures
     const localStructNames = new Set(structs.map((s) => s.name));
     const localEnumNames = new Set(enums.map((s) => s.name));
     const localTypeNames = new Set(types.map((s) => s.name));
+    const localBitmapNames = new Set(bitmaps.map((s) => s.name));
     const externalTypes = this.collectExternalTypes(
       functions,
       variables,
       localStructNames,
       localEnumNames,
       localTypeNames,
+      localBitmapNames,
     );
 
     // Emit forward declarations for external types
@@ -110,25 +109,52 @@ class HeaderGenerator {
       lines.push("");
     }
 
-    // Forward declarations for structs
+    // Struct definitions or forward declarations
     if (structs.length > 0 || classes.length > 0) {
-      lines.push("/* Forward declarations */");
-      for (const sym of structs) {
-        lines.push(`typedef struct ${sym.name} ${sym.name};`);
-      }
-      for (const sym of classes) {
-        // Classes become typedefs to structs
-        lines.push(`typedef struct ${sym.name} ${sym.name};`);
+      if (typeInput) {
+        lines.push("/* Struct definitions */");
+        for (const sym of structs) {
+          lines.push(generateStructHeader(sym.name, typeInput));
+        }
+        for (const sym of classes) {
+          lines.push(generateStructHeader(sym.name, typeInput));
+        }
+      } else {
+        lines.push("/* Forward declarations */");
+        for (const sym of structs) {
+          lines.push(`typedef struct ${sym.name} ${sym.name};`);
+        }
+        for (const sym of classes) {
+          lines.push(`typedef struct ${sym.name} ${sym.name};`);
+        }
       }
       lines.push("");
     }
 
-    // Enum declarations
+    // Enum definitions or comments
     if (enums.length > 0) {
       lines.push("/* Enumerations */");
       for (const sym of enums) {
-        // For now, just forward declare - full definition would require enum values
-        lines.push(`/* Enum: ${sym.name} (see implementation for values) */`);
+        if (typeInput) {
+          lines.push(generateEnumHeader(sym.name, typeInput));
+        } else {
+          lines.push(`/* Enum: ${sym.name} (see implementation for values) */`);
+        }
+      }
+      lines.push("");
+    }
+
+    // Bitmap definitions (only when typeInput is available)
+    if (bitmaps.length > 0) {
+      lines.push("/* Bitmaps */");
+      for (const sym of bitmaps) {
+        if (typeInput) {
+          lines.push(generateBitmapHeader(sym.name, typeInput));
+        } else {
+          lines.push(
+            `/* Bitmap: ${sym.name} (see implementation for layout) */`,
+          );
+        }
       }
       lines.push("");
     }
@@ -138,7 +164,7 @@ class HeaderGenerator {
       lines.push("/* Type aliases */");
       for (const sym of types) {
         if (sym.type) {
-          const cType = this.mapType(sym.type);
+          const cType = mapType(sym.type);
           lines.push(`typedef ${cType} ${sym.name};`);
         }
       }
@@ -149,7 +175,7 @@ class HeaderGenerator {
     if (variables.length > 0) {
       lines.push("/* External variables */");
       for (const sym of variables) {
-        const cType = sym.type ? this.mapType(sym.type) : "int";
+        const cType = sym.type ? mapType(sym.type) : "int";
         lines.push(`extern ${cType} ${sym.name};`);
       }
       lines.push("");
@@ -225,46 +251,19 @@ class HeaderGenerator {
   }
 
   /**
-   * Map a C-Next type to C type
-   */
-  private mapType(type: string): string {
-    // Check direct mapping first
-    if (TYPE_MAP[type]) {
-      return TYPE_MAP[type];
-    }
-
-    // Handle pointer types
-    if (type.endsWith("*")) {
-      const baseType = type.slice(0, -1).trim();
-      return `${this.mapType(baseType)}*`;
-    }
-
-    // Handle array types (simplified)
-    const arrayMatch = type.match(/^(\w+)\[(\d*)\]$/);
-    if (arrayMatch) {
-      const baseType = this.mapType(arrayMatch[1]);
-      const size = arrayMatch[2] || "";
-      return `${baseType}[${size}]`;
-    }
-
-    // User-defined types pass through
-    return type;
-  }
-
-  /**
    * Generate a function prototype from symbol info
    * Handles all parameter edge cases per ADR-006, ADR-029, and ADR-040
    */
   private generateFunctionPrototype(sym: ISymbol): string | null {
     // Map return type from C-Next to C
-    const returnType = sym.type ? this.mapType(sym.type) : "void";
+    const returnType = sym.type ? mapType(sym.type) : "void";
 
     // Build parameter list with proper C semantics
     let params = "void"; // Default for no parameters
 
     if (sym.parameters && sym.parameters.length > 0) {
       const translatedParams = sym.parameters.map((p) => {
-        const baseType = this.mapType(p.type);
+        const baseType = mapType(p.type);
         const constMod = p.isConst ? "const " : "";
 
         // Handle array parameters (pass naturally as pointers per C semantics)
@@ -301,7 +300,7 @@ class HeaderGenerator {
    * Issue #121: Collect external type dependencies from function signatures and variables
    * Returns types that are:
    * - Not primitive types (not in TYPE_MAP)
-   * - Not locally defined structs, enums, or type aliases
+   * - Not locally defined structs, enums, bitmaps, or type aliases
    */
   private collectExternalTypes(
     functions: ISymbol[],
@@ -309,6 +308,7 @@ class HeaderGenerator {
     localStructs: Set<string>,
     localEnums: Set<string>,
     localTypes: Set<string>,
+    localBitmaps: Set<string>,
   ): Set<string> {
     const externalTypes = new Set<string>();
 
@@ -326,6 +326,9 @@ class HeaderGenerator {
         return false;
       }
       if (localTypes.has(typeName)) {
+        return false;
+      }
+      if (localBitmaps.has(typeName)) {
         return false;
       }
 

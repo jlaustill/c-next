@@ -1,0 +1,10 @@
+// Issue #220: Enum-only file header generation test
+// This file contains only an enum declaration - no functions.
+// The generated header should contain the full typedef enum definition.
+
+enum ESensorType {
+    SENSOR_DISABLED <- 0,
+    PRESSURE_0_100PSI <- 1,
+    PRESSURE_0_500PSI <- 2,
+    TEMPERATURE_TYPE_K <- 3
+}

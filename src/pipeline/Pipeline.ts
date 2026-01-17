@@ -25,6 +25,7 @@ import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
 
 import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
+import SymbolCollector from "../codegen/SymbolCollector";
 import SymbolTable from "../symbols/SymbolTable";
 import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
 import CSymbolCollector from "../symbols/CSymbolCollector";
@@ -58,6 +59,8 @@ class Pipeline {
   private cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
+  /** Issue #220: Store SymbolCollector per file for header generation */
+  private symbolCollectors: Map<string, SymbolCollector> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -565,6 +568,11 @@ class Pipeline {
         },
       );
 
+      // Issue #220: Store SymbolCollector for header generation
+      if (this.codeGenerator.symbols) {
+        this.symbolCollectors.set(file.path, this.codeGenerator.symbols);
+      }
+
       // Write to file if output directory specified
       let outputPath: string | undefined;
       if (this.config.outDir) {
@@ -650,10 +658,14 @@ class Pipeline {
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
     const headerPath = this.getHeaderOutputPath(file);
 
+    // Issue #220: Get SymbolCollector for full type definitions
+    const typeInput = this.symbolCollectors.get(file.path);
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
       { exportedOnly: true },
+      typeInput,
     );
 
     writeFileSync(headerPath, headerContent, "utf-8");
