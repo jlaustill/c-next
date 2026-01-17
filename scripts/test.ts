@@ -594,7 +594,7 @@ async function runTest(
         }
       }
 
-      // Step 5: Execution test (if /* test-execution */ marker present)
+      // Step 5: Execution test (if // test-execution marker present)
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (requiresArmRuntime(result.code)) {
           return { passed: true, skippedExec: true };
