@@ -4,7 +4,7 @@
  */
 
 // NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
-/* test-coverage: 30-use-c-struct-anonymous */
+// test-coverage: 30-use-c-struct-anonymous
 // Tests: Using anonymous C structs with typedef
 // ADR-010: Anonymous struct typedef import from C headers
 #include "c-interop/structs.h"

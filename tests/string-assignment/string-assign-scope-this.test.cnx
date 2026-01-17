@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #139: Test this.member string assignment in scopes (ADR-016)
+// test-execution
+// Issue #139: Test this.member string assignment in scopes (ADR-016)
 scope Logger {
     public string<64> message <- "";
     public void setMessage() {

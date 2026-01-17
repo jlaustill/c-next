@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for f64 type across all contexts
 // Tests: .length returns 64 for f64 in every possible scope and access pattern
 double globalVar = 3.14159;

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional f64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: scientific calculations, high-precision measurements, astronomy

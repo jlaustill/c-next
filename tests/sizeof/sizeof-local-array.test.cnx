@@ -1,36 +1,45 @@
-/* test-coverage: 23-sizeof-local-array */ /* test-execution */ // Tests: sizeof on local arrays
+// test-coverage: 23-sizeof-local-array
+// test-execution
+// Tests: sizeof on local arrays
 u32 main() {
-    // Test sizeof on u8 array
+   
+// Test sizeof on u8 array
     u8 byteArray[10];
     u32 byteArraySize <- sizeof(byteArray);
     if (byteArraySize != 10) return 1;
 
-    // Test sizeof on u16 array
+   
+// Test sizeof on u16 array
     u16 shortArray[5];
     u32 shortArraySize <- sizeof(shortArray);
     if (shortArraySize != 10) return 2; // 5 * 2 bytes
 
-    // Test sizeof on u32 array
+   
+// Test sizeof on u32 array
     u32 intArray[8];
     u32 intArraySize <- sizeof(intArray);
     if (intArraySize != 32) return 3; // 8 * 4 bytes
 
-    // Test sizeof on u64 array
+   
+// Test sizeof on u64 array
     u64 longArray[4];
     u32 longArraySize <- sizeof(longArray);
     if (longArraySize != 32) return 4; // 4 * 8 bytes
 
-    // Test sizeof on bool array
+   
+// Test sizeof on bool array
     bool boolArray[16];
     u32 boolArraySize <- sizeof(boolArray);
     if (boolArraySize != 16) return 5; // 16 * 1 byte (bool is 1 byte)
 
-    // Test sizeof on f32 array
+   
+// Test sizeof on f32 array
     f32 floatArray[3];
     u32 floatArraySize <- sizeof(floatArray);
     if (floatArraySize != 12) return 6; // 3 * 4 bytes
 
-    // Test sizeof on f64 array
+   
+// Test sizeof on f64 array
     f64 doubleArray[2];
     u32 doubleArraySize <- sizeof(doubleArray);
     if (doubleArraySize != 16) return 7; // 2 * 8 bytes

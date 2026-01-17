@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const u64 parameter
 // Tests: const u64 parameter read access
 uint64_t readConstU64(const uint64_t* value) {

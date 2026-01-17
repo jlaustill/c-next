@@ -6,22 +6,26 @@ scope Motor {
     const u8 localValue <- 5;
     u8 state <- 0;
 
-    // Test this. for scope member access
+   
+// Test this. for scope member access
     public u8 getLocalValue() {
         return this.localValue;
     }
 
-    // Test global. for global access
+   
+// Test global. for global access
     public u8 getGlobalValue() {
         return global.globalValue;
     }
 
-    // Test both in same function
+   
+// Test both in same function
     public u8 getSum() {
         return this.localValue + global.globalValue;
     }
 
-    // Test this. in assignment
+   
+// Test this. in assignment
     public void setState(u8 val) {
         this.state <- val;
     }

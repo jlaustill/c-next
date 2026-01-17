@@ -41,7 +41,8 @@ scope Accumulator {
 }
 
 void main() {
-    // Test while loop inside scope method
+   
+// Test while loop inside scope method
     Counter.countToFive();
     globalResult <- Counter.getValue();
 

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 1.1-u64-in-arithmetic-expression */
-/* test-execution */
+// test-coverage: 1.1-u64-in-arithmetic-expression
+// test-execution
 // Tests: u64 arithmetic operations (+, -, *, /, %)
 // Validates all basic arithmetic operations with u64 type
 // Includes edge cases with large values relevant to embedded systems

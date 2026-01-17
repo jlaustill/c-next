@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const u16 parameter
 // Tests: const u16 parameter read access
 uint16_t readConstU16(const uint16_t* value) {

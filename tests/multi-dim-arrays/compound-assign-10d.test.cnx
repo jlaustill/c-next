@@ -15,7 +15,8 @@ i32 main() {
     hyper[0][0][0][0][1][1][1][1][0][0] <- 8;
     hyper[1][1][1][1][0][0][0][0][1][1] <- 128;
 
-    // Test all compound assignment operators on 10D array elements
+   
+// Test all compound assignment operators on 10D array elements
     hyper[0][0][0][0][0][0][0][0][0][0] +<- 25; // 100 + 25 = 125
     hyper[1][1][1][1][1][1][1][1][1][1] -<- 15; // 50 - 15 = 35
     hyper[0][1][0][1][0][1][0][1][0][1] *<- 7; // 10 * 7 = 70

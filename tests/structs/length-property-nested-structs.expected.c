@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Regression test: .length on nested struct members
 // Ensures the fix handles deep member chains correctly
 typedef struct {

@@ -18,7 +18,7 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
     return a - (uint16_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: clamp modifier for u16 type (0 to 65535)
 // Validates overflow clamps to 65535, underflow clamps to 0
 // ADR-044: Per-variable overflow semantics

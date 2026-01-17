@@ -1,4 +1,5 @@
-/* test-coverage: 20-atomic-with-clamp */ // Tests: atomic combined with clamp modifier
+// test-coverage: 20-atomic-with-clamp
+// Tests: atomic combined with clamp modifier
 // Note: Compilation test only - ARM-specific code
 #pragma target teensy41
 
@@ -37,7 +38,8 @@ void adjustTemperature(i8 delta) {
 }
 
 void main() {
-    // Test various operations
+   
+// Test various operations
     adjustBrightness(50);
     decreaseBrightness(200); // Would clamp to 0
     updateVolume(1000);

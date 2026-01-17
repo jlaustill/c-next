@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for u16
 // Tests: ternary with u16 in conditions and branches
 uint16_t getMax(uint16_t* a, uint16_t* b) {

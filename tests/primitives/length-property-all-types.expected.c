@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-044: Test .length property on all primitive types
 // The .length property should return the bit width of any type
 int main(void) {

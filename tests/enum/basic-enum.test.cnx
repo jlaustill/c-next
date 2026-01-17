@@ -1,4 +1,6 @@
-/* test-coverage: 3.1-enum-enum-same-type */ /* test-execution */ // ADR-017: Basic Enum Test
+// test-coverage: 3.1-enum-enum-same-type
+// test-execution
+// ADR-017: Basic Enum Test
 // Tests basic enum declaration, usage, and code generation
 // Simple enum with auto-incrementing values
 enum State {
@@ -29,7 +31,8 @@ State currentState <- State.IDLE;
 Command lastCmd <- Command.READ;
 
 u32 main() {
-    // Test auto-increment values
+   
+// Test auto-increment values
     if ((u32)State.IDLE != 0) {
         return 1;
     }
@@ -37,7 +40,8 @@ u32 main() {
         return 2;
     }
 
-    // Test explicit values
+   
+// Test explicit values
     if ((u32)Command.ERASE != 0x04) {
         return 3;
     }
@@ -45,7 +49,8 @@ u32 main() {
         return 4;
     }
 
-    // Test assignment and comparison
+   
+// Test assignment and comparison
     currentState <- State.RUNNING;
     if (currentState != State.RUNNING) {
         return 5;

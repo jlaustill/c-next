@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: issue-152-mixed-operators */
-/* test-execution */
+// test-coverage: issue-152-mixed-operators
+// test-execution
 // Tests: Issue #152 - Mixed operators at same precedence level
 // Validates that + and - operators are transpiled correctly in mixed expressions
 // Previously, all operators would become - if any - was present in the expression

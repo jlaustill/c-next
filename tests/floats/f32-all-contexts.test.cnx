@@ -1,4 +1,8 @@
-/* test-coverage: 1.3-f32-global-variable-declaration, 1.3-f32-global-variable-with-init */ /* test-coverage: 1.3-f32-local-variable-declaration, 1.3-f32-local-variable-with-init */ /* test-coverage: 1.3-f32-function-parameter, 1.3-f32-function-return-type */ /* test-coverage: 1.3-f32-struct-member, 1.3-f32-array-element-type */ // Test f32 in all language contexts
+// test-coverage: 1.3-f32-global-variable-declaration, 1.3-f32-global-variable-with-init
+// test-coverage: 1.3-f32-local-variable-declaration, 1.3-f32-local-variable-with-init
+// test-coverage: 1.3-f32-function-parameter, 1.3-f32-function-return-type
+// test-coverage: 1.3-f32-struct-member, 1.3-f32-array-element-type
+// Test f32 in all language contexts
 // Global variable declarations
 f32 global_f <- 3.14;
 

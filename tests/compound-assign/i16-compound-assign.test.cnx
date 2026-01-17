@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: i16 compound assignment operators
+// test-execution
+// Tests: i16 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -32768 to 32767

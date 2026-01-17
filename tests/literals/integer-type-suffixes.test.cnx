@@ -1,151 +1,188 @@
-/* test-coverage: 32.1-with-u8-suffix, 32.1-with-u16-suffix, 32.1-with-u32-suffix, 32.1-with-i8-suffix, 32.1-with-i16-suffix, 32.1-with-i32-suffix */ /* test-execution */ // Tests: Integer literal suffixes for explicit type specification
+// test-coverage: 32.1-with-u8-suffix, 32.1-with-u16-suffix, 32.1-with-u32-suffix, 32.1-with-i8-suffix, 32.1-with-i16-suffix, 32.1-with-i32-suffix
+// test-execution
+// Tests: Integer literal suffixes for explicit type specification
 // Validates decimal, hex, and binary formats with u8/u16/u32/i8/i16/i32 suffixes
 u32 main() {
     // ===== u8 suffix tests =====
-    // Test u8 decimal
+   
+// Test u8 decimal
     u8 u8_dec <- 42u8;
     if (u8_dec != 42) return 1;
 
-    // Test u8 hex
+   
+// Test u8 hex
     u8 u8_hex <- 0xFFu8;
     if (u8_hex != 255) return 2;
 
-    // Test u8 binary
+   
+// Test u8 binary
     u8 u8_bin <- 0b11110000u8;
     if (u8_bin != 240) return 3;
 
-    // Test u8 edge case - max value
+   
+// Test u8 edge case - max value
     u8 u8_max <- 255u8;
     if (u8_max != 255) return 4;
 
-    // Test u8 edge case - zero
+   
+// Test u8 edge case - zero
     u8 u8_zero <- 0u8;
     if (u8_zero != 0) return 5;
 
-    // Test uppercase U8 suffix
+   
+// Test uppercase U8 suffix
     u8 u8_upper <- 100U8;
     if (u8_upper != 100) return 6;
 
     // ===== u16 suffix tests =====
-    // Test u16 decimal
+   
+// Test u16 decimal
     u16 u16_dec <- 1000u16;
     if (u16_dec != 1000) return 7;
 
-    // Test u16 hex
+   
+// Test u16 hex
     u16 u16_hex <- 0xABCDu16;
     if (u16_hex != 43981) return 8;
 
-    // Test u16 binary
+   
+// Test u16 binary
     u16 u16_bin <- 0b1111111100000000u16;
     if (u16_bin != 65280) return 9;
 
-    // Test u16 edge case - max value
+   
+// Test u16 edge case - max value
     u16 u16_max <- 65535u16;
     if (u16_max != 65535) return 10;
 
-    // Test uppercase U16 suffix
+   
+// Test uppercase U16 suffix
     u16 u16_upper <- 5000U16;
     if (u16_upper != 5000) return 11;
 
     // ===== u32 suffix tests =====
-    // Test u32 decimal
+   
+// Test u32 decimal
     u32 u32_dec <- 100000u32;
     if (u32_dec != 100000) return 12;
 
-    // Test u32 hex
+   
+// Test u32 hex
     u32 u32_hex <- 0xDEADBEEFu32;
     if (u32_hex != 3735928559) return 13;
 
-    // Test u32 binary
+   
+// Test u32 binary
     u32 u32_bin <- 0b11111111000000001111111100000000u32;
     if (u32_bin != 4278255360) return 14;
 
-    // Test u32 edge case - max value
+   
+// Test u32 edge case - max value
     u32 u32_max <- 4294967295u32;
     if (u32_max != 4294967295) return 15;
 
-    // Test uppercase U32 suffix
+   
+// Test uppercase U32 suffix
     u32 u32_upper <- 999999U32;
     if (u32_upper != 999999) return 16;
 
     // ===== i8 suffix tests =====
-    // Test i8 decimal positive
+   
+// Test i8 decimal positive
     i8 i8_pos <- 42i8;
     if (i8_pos != 42) return 17;
 
-    // Test i8 hex
+   
+// Test i8 hex
     i8 i8_hex <- 0x7Fi8;
     if (i8_hex != 127) return 18;
 
-    // Test i8 binary
+   
+// Test i8 binary
     i8 i8_bin <- 0b01111111i8;
     if (i8_bin != 127) return 19;
 
-    // Test i8 edge case - max value
+   
+// Test i8 edge case - max value
     i8 i8_max <- 127i8;
     if (i8_max != 127) return 20;
 
-    // Test uppercase I8 suffix
+   
+// Test uppercase I8 suffix
     i8 i8_upper <- 50I8;
     if (i8_upper != 50) return 21;
 
     // ===== i16 suffix tests =====
-    // Test i16 decimal positive
+   
+// Test i16 decimal positive
     i16 i16_pos <- 1000i16;
     if (i16_pos != 1000) return 22;
 
-    // Test i16 hex
+   
+// Test i16 hex
     i16 i16_hex <- 0x7FFFi16;
     if (i16_hex != 32767) return 23;
 
-    // Test i16 binary
+   
+// Test i16 binary
     i16 i16_bin <- 0b0111111111111111i16;
     if (i16_bin != 32767) return 24;
 
-    // Test i16 edge case - max value
+   
+// Test i16 edge case - max value
     i16 i16_max <- 32767i16;
     if (i16_max != 32767) return 25;
 
-    // Test uppercase I16 suffix
+   
+// Test uppercase I16 suffix
     i16 i16_upper <- 500I16;
     if (i16_upper != 500) return 26;
 
     // ===== i32 suffix tests =====
-    // Test i32 decimal positive
+   
+// Test i32 decimal positive
     i32 i32_pos <- 100000i32;
     if (i32_pos != 100000) return 27;
 
-    // Test i32 hex
+   
+// Test i32 hex
     i32 i32_hex <- 0x7FFFFFFFi32;
     if (i32_hex != 2147483647) return 28;
 
-    // Test i32 binary (using a smaller value for readability)
+   
+// Test i32 binary (using a smaller value for readability)
     i32 i32_bin <- 0b01111111111111110000000000000000i32;
     if (i32_bin != 2147418112) return 29;
 
-    // Test i32 edge case - max value
+   
+// Test i32 edge case - max value
     i32 i32_max <- 2147483647i32;
     if (i32_max != 2147483647) return 30;
 
-    // Test uppercase I32 suffix
+   
+// Test uppercase I32 suffix
     i32 i32_upper <- 999999I32;
     if (i32_upper != 999999) return 31;
 
     // ===== Mixed format tests =====
-    // Test hex with uppercase X and lowercase suffix
+   
+// Test hex with uppercase X and lowercase suffix
     u8 mix1 <- 0XAAu8;
     if (mix1 != 170) return 32;
 
-    // Test binary with uppercase B
+   
+// Test binary with uppercase B
     u16 mix2 <- 0B1010101010101010u16;
     if (mix2 != 43690) return 33;
 
     // ===== Arithmetic with suffixed literals =====
-    // Test addition with u8 literals
+   
+// Test addition with u8 literals
     u8 arith1 <- 10u8 + 20u8;
     if (arith1 != 30) return 34;
 
-    // Test multiplication with u16 literals
+   
+// Test multiplication with u16 literals
     u16 arith2 <- 100u16 * 10u16;
     if (arith2 != 1000) return 35;
 

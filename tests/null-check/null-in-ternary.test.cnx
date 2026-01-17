@@ -1,4 +1,4 @@
-/* test-coverage: 28-null-in-ternary */
+// test-coverage: 28-null-in-ternary
 // Tests: NULL check in ternary condition
 #include <stdio.h>
 

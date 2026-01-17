@@ -64,7 +64,8 @@ scope Calculator {
 }
 
 void main() {
-    // Test switch inside scope method
+   
+// Test switch inside scope method
     CommandProcessor.execute(2);
     globalResult <- CommandProcessor.getResult();
 

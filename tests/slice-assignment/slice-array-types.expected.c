@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Slice assignment with different array types
 // Validates that slice assignment works with u8[], u16[], u32[], u64[], and string buffers
 // Ensures type-agnostic byte copying behavior

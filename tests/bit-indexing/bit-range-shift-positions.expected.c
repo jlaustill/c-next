@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Verify correct shift amounts for all start positions
 // Pattern: Write a known value at each position and verify it lands at correct bits
 int main(void) {

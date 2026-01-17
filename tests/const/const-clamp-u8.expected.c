@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013 + ADR-044: Const clamp u8 combination
 // Tests: const clamp u8 declaration and read access
 const uint8_t MAX_VALUE = 255;

@@ -1,29 +1,35 @@
-/* test-execution */ // Tests: wrap modifier for i8 type (-128 to 127)
+// test-execution
+// Tests: wrap modifier for i8 type (-128 to 127)
 // Validates: overflow wraps to -128, underflow wraps to 127
 // Issue #19: Add wrap modifier tests for all integer types
 u32 main() {
     // === OVERFLOW WRAPPING (wraps to negative) ===
-    // Test 1: Basic overflow - add past max
+   
+// Test 1: Basic overflow - add past max
     wrap i8 val <- 127;
     val +<- 1; // 127 + 1 = 128, should wrap to -128
     if (val != -128) return 1;
 
-    // Test 2: Overflow with larger addition
+   
+// Test 2: Overflow with larger addition
     wrap i8 val2 <- 120;
     val2 +<- 10; // 120 + 10 = 130, should wrap to -126
     if (val2 != -126) return 2;
 
-    // Test 3: Large overflow
+   
+// Test 3: Large overflow
     val <- 100;
     val +<- 100; // 100 + 100 = 200, should wrap to -56
     if (val != -56) return 3;
 
-    // Test 4: Overflow from zero
+   
+// Test 4: Overflow from zero
     val <- 0;
     val +<- 200; // 0 + 200 = 200, should wrap to -56
     if (val != -56) return 4;
 
-    // Test 5: Multiple overflows in sequence
+   
+// Test 5: Multiple overflows in sequence
     val <- 127;
     val +<- 1; // -128
     if (val != -128) return 5;
@@ -31,22 +37,26 @@ u32 main() {
     if (val != 127) return 6;
 
     // === UNDERFLOW WRAPPING (wraps to positive) ===
-    // Test 7: Basic underflow - subtract below min
+   
+// Test 7: Basic underflow - subtract below min
     val <- -128;
     val -<- 1; // -128 - 1 = -129, should wrap to 127
     if (val != 127) return 7;
 
-    // Test 8: Underflow with larger subtraction
+   
+// Test 8: Underflow with larger subtraction
     val <- -120;
     val -<- 10; // -120 - 10 = -130, should wrap to 126
     if (val != 126) return 8;
 
-    // Test 9: Large underflow
+   
+// Test 9: Large underflow
     val <- -100;
     val -<- 100; // -100 - 100 = -200, should wrap to 56
     if (val != 56) return 9;
 
-    // Test 10: Multiple underflows in sequence
+   
+// Test 10: Multiple underflows in sequence
     val <- -128;
     val -<- 1; // 127
     if (val != 127) return 10;
@@ -54,70 +64,83 @@ u32 main() {
     if (val != -128) return 11;
 
     // === CROSS-ZERO OPERATIONS ===
-    // Test 12: Positive to negative (no wrap needed)
+   
+// Test 12: Positive to negative (no wrap needed)
     val <- 50;
     val -<- 100; // 50 - 100 = -50, no wrap
     if (val != -50) return 12;
 
-    // Test 13: Negative to positive (no wrap needed)
+   
+// Test 13: Negative to positive (no wrap needed)
     val <- -50;
     val +<- 100; // -50 + 100 = 50, no wrap
     if (val != 50) return 13;
 
-    // Test 14: Cross zero exactly
+   
+// Test 14: Cross zero exactly
     val <- 10;
     val -<- 10; // 0
     if (val != 0) return 14;
 
-    // Test 15: Negative to zero exactly
+   
+// Test 15: Negative to zero exactly
     val <- -10;
     val +<- 10; // 0
     if (val != 0) return 15;
 
     // === NORMAL OPERATIONS (no wrapping needed) ===
-    // Test 16: Normal positive addition
+   
+// Test 16: Normal positive addition
     val <- 50;
     val +<- 25; // 75
     if (val != 75) return 16;
 
-    // Test 17: Normal negative subtraction
+   
+// Test 17: Normal negative subtraction
     val <- -50;
     val -<- 25; // -75
     if (val != -75) return 17;
 
-    // Test 18: Add negative (same as subtract)
+   
+// Test 18: Add negative (same as subtract)
     val <- 50;
     val +<- -25; // 25
     if (val != 25) return 18;
 
-    // Test 19: Subtract negative (same as add)
+   
+// Test 19: Subtract negative (same as add)
     val <- -50;
     val -<- -25; // -25
     if (val != -25) return 19;
 
     // === BOUNDARY TESTS ===
-    // Test 20: Add 1 to 126 (just under max, no wrap)
+   
+// Test 20: Add 1 to 126 (just under max, no wrap)
     val <- 126;
     val +<- 1;
     if (val != 127) return 20;
 
-    // Test 21: Subtract 1 from -127 (just above min, no wrap)
+   
+// Test 21: Subtract 1 from -127 (just above min, no wrap)
     val <- -127;
     val -<- 1;
     if (val != -128) return 21;
 
-    // Test 22: Add 0 (no change)
+   
+// Test 22: Add 0 (no change)
     val <- 64;
     val +<- 0;
     if (val != 64) return 22;
 
-    // Test 23: Subtract 0 (no change)
+   
+// Test 23: Subtract 0 (no change)
     val <- -64;
     val -<- 0;
     if (val != -64) return 23;
 
     // === WRAP-AROUND CYCLES ===
-    // Test 24: Full wrap cycle (max -> min -> max)
+   
+// Test 24: Full wrap cycle (max -> min -> max)
     val <- 127;
     val +<- 1; // -128
     if (val != -128) return 24;

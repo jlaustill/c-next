@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // ADR-010: C Interoperability - Type compatibility
 // Tests: C-Next types map cleanly to C types
 

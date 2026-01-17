@@ -19,7 +19,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return a + (uint8_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 Modifiers in public and private method contexts
 // Verifies that this. and global. accessors work correctly in all method contexts
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns

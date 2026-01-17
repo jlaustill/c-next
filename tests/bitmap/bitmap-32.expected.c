@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 11-bitmap32 */
-/* test-execution */
+// test-coverage: 11-bitmap32
+// test-execution
 // Tests: 32-bit bitmap type
 // 32-bit bitmap for IP address representation
 /* Bitmap: IPv4Address */

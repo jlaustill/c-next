@@ -15,7 +15,8 @@ i32 main() {
     cube[1][2][0] <- 8;
     cube[1][1][0] <- 128;
 
-    // Test all compound assignment operators on 3D array elements
+   
+// Test all compound assignment operators on 3D array elements
     cube[0][0][0] +<- 25; // 100 + 25 = 125
     cube[1][1][1] -<- 15; // 50 - 15 = 35
     cube[2][2][2] *<- 7; // 10 * 7 = 70

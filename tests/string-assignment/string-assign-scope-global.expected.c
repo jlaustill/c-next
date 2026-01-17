@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test global.member string assignment inside scope (ADR-016)
 char globalBuffer[65] = "";
 

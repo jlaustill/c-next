@@ -13,7 +13,7 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     return a + (uint64_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional u64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large data buffers, matrices for embedded systems

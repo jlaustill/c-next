@@ -1,7 +1,9 @@
-/* test-execution */ // Tests: comprehensive break scenarios in for loops
+// test-execution
+// Tests: comprehensive break scenarios in for loops
 // Validates: various break patterns and edge cases
 u32 main() {
-    // Test 1: Break at specific value
+   
+// Test 1: Break at specific value
     u32 breakPoint <- 0;
     for (u32 i <- 0; i < 100; i +<- 1) {
         if (i = 25) {
@@ -11,7 +13,8 @@ u32 main() {
     }
     if (breakPoint != 25) return 1;
 
-    // Test 2: Break with counter preserved
+   
+// Test 2: Break with counter preserved
     u32 counter <- 0;
     for (u32 j <- 10; j < 50; j +<- 1) {
         counter <- j;
@@ -21,7 +24,8 @@ u32 main() {
     }
     if (counter != 20) return 2;
 
-    // Test 3: Break with accumulation
+   
+// Test 3: Break with accumulation
     u32 sum <- 0;
     for (u32 k <- 1; k <= 100; k +<- 1) {
         sum +<- k;
@@ -33,7 +37,8 @@ u32 main() {
     // 1+2+3+4+5+6+7+8+9+10 = 55 (first sum >= 50)
     if (sum != 55) return 3;
 
-    // Test 4: Break with decrementing counter
+   
+// Test 4: Break with decrementing counter
     u32 countdown <- 0;
     for (u32 m <- 100; m > 0; m -<- 1) {
         countdown +<- 1;
@@ -45,7 +50,8 @@ u32 main() {
     // Counts 100,99,98,97,96,95,94,93,92,91,90 = 11 iterations
     if (countdown != 11) return 4;
 
-    // Test 5: Break with step > 1
+   
+// Test 5: Break with step > 1
     u32 evenSum <- 0;
     for (u32 n <- 0; n < 100; n +<- 2) {
         evenSum +<- n;
@@ -57,7 +63,8 @@ u32 main() {
     // 0 + 2 + 4 + 6 + 8 + 10 = 30
     if (evenSum != 30) return 5;
 
-    // Test 6: Break inside nested if
+   
+// Test 6: Break inside nested if
     u32 found <- 0;
     for (u32 p <- 0; p < 100; p +<- 1) {
         if (p > 10) {
@@ -71,7 +78,8 @@ u32 main() {
     // First multiple of 7 greater than 10 is 14
     if (found != 14) return 6;
 
-    // Test 7: Break with boolean condition
+   
+// Test 7: Break with boolean condition
     bool shouldBreak <- false;
     u32 iterCount <- 0;
     for (u32 q <- 0; q < 50; q +<- 1) {
@@ -87,7 +95,8 @@ u32 main() {
     // Breaks after q becomes 15 and shouldBreak is set
     if (iterCount != 16) return 7;
 
-    // Test 8: Empty body before break
+   
+// Test 8: Empty body before break
     u32 emptyCount <- 0;
     for (u32 r <- 0; r < 100; r +<- 1) {
         emptyCount +<- 1;

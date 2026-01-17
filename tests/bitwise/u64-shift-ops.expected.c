@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 5.5-u64-left-shift, 5.6-u64-right-shift */
-/* test-execution */
+// test-coverage: 5.5-u64-left-shift, 5.6-u64-right-shift
+// test-execution
 // Test u64 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u64 type
 int main(void) {

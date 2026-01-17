@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test string literal assignment to global variable in function body
 // This is the core bug - assigning a string literal inside a function should use strncpy
 char messageBuffer[65] = "";

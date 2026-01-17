@@ -1,4 +1,5 @@
-/* test-execution */ // For loop tests: i64 as loop counter
+// test-execution
+// For loop tests: i64 as loop counter
 // Tests: i64 type can be used as for-loop counter
 i64 main() {
     i64 sum <- 0;

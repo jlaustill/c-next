@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Basic slice assignment functionality for multi-byte copies
 // Validates copying u8, u16, u32, u64 values into string buffers
 // Each byte is verified individually to ensure correct memory layout

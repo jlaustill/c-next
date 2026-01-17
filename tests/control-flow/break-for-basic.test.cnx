@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: break statement in for loop
+// test-execution
+// Tests: break statement in for loop
 u32 main() {
     u32 count <- 0;
 

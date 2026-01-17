@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: multi-dimensional f32 arrays (2D and 3D)
+// test-execution
+// Tests: multi-dimensional f32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, graphics coordinates, physics simulations
 f32 matrix2d[4][8];
@@ -32,7 +33,8 @@ u32 main() {
     if (cube3d[1][0][0] != 99.5) return 8;
     if (cube3d[1][2][3] != -0.0625) return 9;
 
-    // Test .length property at each dimension
+   
+// Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.length != 4) return 10; // First dimension
     if (matrix2d[0].length != 8) return 11; // Second dimension
@@ -71,15 +73,18 @@ u32 main() {
     // Verify sum: 3.0+12.0+21.0+45.0+54.0+63.0 = 198.0
     if (sum != 198.0) return 21;
 
-    // Test modification after initialization
+   
+// Test modification after initialization
     matrix2d[2][4] <- -1000.0; // Changed from -999.999
     if (matrix2d[2][4] != -1000.0) return 22;
 
-    // Test boundary access
+   
+// Test boundary access
     matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- 42.5; // Changed from 42.42
     if (matrix2d[3][7] != 42.5) return 23;
 
-    // Test f32 specific edge cases
+   
+// Test f32 specific edge cases
     f32 testArray[4][2];
 
     // Initialize all elements first
@@ -102,7 +107,8 @@ u32 main() {
     if (testArray[2][0] != 0.125) return 28;
     if (testArray[3][1] != -0.125) return 29;
 
-    // Test 2D array with temperature pattern (Celsius)
+   
+// Test 2D array with temperature pattern (Celsius)
     f32 temps[3][3];
 
     // Initialize all elements first
@@ -125,7 +131,8 @@ u32 main() {
     if (temps[1][0] != 37.0) return 33;
     if (temps[2][0] != -40.0) return 34;
 
-    // Test decimal precision
+   
+// Test decimal precision
     f32 precise[2][2];
 
     // Initialize all elements first
@@ -144,7 +151,8 @@ u32 main() {
     if (precise[1][0] != 1000.0) return 37;
     if (precise[1][1] != -123.5) return 38;
 
-    // Test floating point arithmetic
+   
+// Test floating point arithmetic
     f32 calc[2][2];
 
     // Initialize all elements first
@@ -158,7 +166,8 @@ u32 main() {
     f32 calcSum <- calc[0][0] + calc[0][1];
     if (calcSum != 15.75) return 39;
 
-    // Test with graphics coordinates (normalized 0.0-1.0)
+   
+// Test with graphics coordinates (normalized 0.0-1.0)
     f32 coords[2][4];
 
     // Initialize all elements first

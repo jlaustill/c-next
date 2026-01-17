@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for i32 type across all contexts
 // Tests: .length returns 32 for i32 in every possible scope and access pattern
 int32_t globalVar = -100000;

@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-025: Switch statement test for all integer types
+// test-execution
+// ADR-025: Switch statement test for all integer types
 // Tests: u8, u16, u32, u64, i8, i16, i32, i64 switch expressions
 // Coverage: Section 7 (Control Flow) - switch with all integer types
 u32 result;

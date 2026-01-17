@@ -23,7 +23,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return a + (uint8_t)b;
 }
 
-/* test-execution */
+// test-execution
 // ADR-003: Static counter allocation
 // Tests: global counters with known sizes are valid
 uint32_t eventCount = 0;

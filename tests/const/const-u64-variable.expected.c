@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const u64 variable
 // Tests: const u64 declaration and read access
 const uint64_t MAX_FILE_SIZE = 4294967296;

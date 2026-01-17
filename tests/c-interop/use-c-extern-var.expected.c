@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
-/* test-coverage: 30-use-c-extern-var */
+// test-execution
+// test-coverage: 30-use-c-extern-var
 // Tests: Using extern C variables
 // ADR-010: Extern variable import from C headers
 #include "c-interop/variables.h"

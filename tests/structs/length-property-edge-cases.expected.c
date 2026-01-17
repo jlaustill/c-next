@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Edge case tests for .length property on struct members
 // Tests const parameters, all primitive types, and nested expressions
 typedef struct {

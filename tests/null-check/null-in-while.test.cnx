@@ -1,4 +1,5 @@
-/* test-coverage: 28-null-in-while */ // Tests: NULL check in while loop condition
+// test-coverage: 28-null-in-while
+// Tests: NULL check in while loop condition
 #include <stdio.h>
 
 string<64> buffer;

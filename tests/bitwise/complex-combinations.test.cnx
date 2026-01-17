@@ -1,4 +1,6 @@
-/* test-coverage: 5.7-complex-combinations */ /* test-execution */ // Test complex bitwise combinations and expressions
+// test-coverage: 5.7-complex-combinations
+// test-execution
+// Test complex bitwise combinations and expressions
 // Coverage: Section 5.7 - complex patterns, multiple operations, precedence
 u32 main() {
     // Chained bitwise operations
@@ -28,7 +30,8 @@ u32 main() {
     u16 bit_pos <- 5;
     u16 mask <- 1 << bit_pos; // Create mask for bit 5: 0x0020 = 32
     u16 test_val <- 0b00100101;
-    u16 bit_test <- (test_val & mask) >> bit_pos; // Test bit 5: 1
+    u16 bit_test <- (test_val & mask) >> bit_pos;
+// Test bit 5: 1
 
     // Multi-level operations
     u32 g <- 0x12345678;

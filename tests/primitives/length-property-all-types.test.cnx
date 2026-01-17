@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-044: Test .length property on all primitive types
+// test-execution
+// ADR-044: Test .length property on all primitive types
 // The .length property should return the bit width of any type
 i32 main() {
     // Unsigned integers

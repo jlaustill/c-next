@@ -1,5 +1,5 @@
-/* test-coverage: 23-sizeof-in-expression */
-/* test-execution */
+// test-coverage: 23-sizeof-in-expression
+// test-execution
 // Tests: sizeof used in arithmetic expressions
 
 struct Header {

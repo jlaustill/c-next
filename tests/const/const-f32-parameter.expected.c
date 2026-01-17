@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const f32 parameter
 // Tests: const f32 parameter read access
 float readConstF32(const float value) {

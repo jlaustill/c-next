@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 10-enum-function-return */
-/* test-execution */
+// test-coverage: 10-enum-function-return
+// test-execution
 // Tests: Enum as function return type
 typedef enum {
     Color_RED = 0,

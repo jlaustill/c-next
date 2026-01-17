@@ -1,4 +1,6 @@
-/* test-coverage: 26-loop-init */ /* test-execution */ // Tests: Variable initialization inside loops
+// test-coverage: 26-loop-init
+// test-execution
+// Tests: Variable initialization inside loops
 u32 main() {
     // Variable declared and initialized in for loop init
     u32 sum <- 0;

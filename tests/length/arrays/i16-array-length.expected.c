@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for i16 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 16 (element bit width)
 int16_t globalArr[16] = {0};

@@ -13,8 +13,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-coverage: 33.2-while-inside-while */
-/* test-execution */
+// test-coverage: 33.2-while-inside-while
+// test-execution
 // Coverage: Section 7.2, 33.2 - Nested while loops
 // Tests: while loops nested inside other while loops
 int main(void) {

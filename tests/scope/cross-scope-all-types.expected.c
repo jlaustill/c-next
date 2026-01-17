@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 Cross-scope access with all primitive types
 // Verifies that scopes can correctly access each other's public members
 // Tests: all primitive types, cross-scope method calls, arrays, modifiers

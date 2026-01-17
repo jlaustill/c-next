@@ -1,167 +1,200 @@
-/* test-execution */ /* test-coverage: 21.1-compound-mul */ // Tests: clamp modifier with compound multiplication (*<-)
+// test-execution
+// test-coverage: 21.1-compound-mul
+// Tests: clamp modifier with compound multiplication (*<-)
 // Validates multiplication overflow clamps to type max
 // ADR-044: Per-variable overflow semantics
 u32 main() {
     // === U8 CLAMP MULTIPLICATION (max 255) ===
-    // Test 1: Basic overflow - product exceeds max
+   
+// Test 1: Basic overflow - product exceeds max
     clamp u8 val8 <- 20;
     val8 *<- 20; // 20 * 20 = 400, should clamp to 255
     if (val8 != 255) return 1;
 
-    // Test 2: Multiply by 2 causing overflow
+   
+// Test 2: Multiply by 2 causing overflow
     val8 <- 200;
     val8 *<- 2; // 200 * 2 = 400, should clamp to 255
     if (val8 != 255) return 2;
 
-    // Test 3: Large multiplier
+   
+// Test 3: Large multiplier
     val8 <- 10;
     val8 *<- 100; // 10 * 100 = 1000, should clamp to 255
     if (val8 != 255) return 3;
 
-    // Test 4: Normal multiplication (no overflow)
+   
+// Test 4: Normal multiplication (no overflow)
     val8 <- 10;
     val8 *<- 10; // 10 * 10 = 100, no clamping needed
     if (val8 != 100) return 4;
 
-    // Test 5: Multiply by 1 (identity)
+   
+// Test 5: Multiply by 1 (identity)
     val8 <- 200;
     val8 *<- 1;
     if (val8 != 200) return 5;
 
-    // Test 6: Multiply by 0
+   
+// Test 6: Multiply by 0
     val8 <- 200;
     val8 *<- 0;
     if (val8 != 0) return 6;
 
-    // Test 7: Exact max result (no clamping)
+   
+// Test 7: Exact max result (no clamping)
     val8 <- 17;
     val8 *<- 15; // 17 * 15 = 255
     if (val8 != 255) return 7;
 
-    // Test 8: Just over max
+   
+// Test 8: Just over max
     val8 <- 16;
     val8 *<- 16; // 16 * 16 = 256, should clamp to 255
     if (val8 != 255) return 8;
 
     // === U16 CLAMP MULTIPLICATION (max 65535) ===
-    // Test 9: Basic overflow
+   
+// Test 9: Basic overflow
     clamp u16 val16 <- 300;
     val16 *<- 300; // 300 * 300 = 90000, should clamp to 65535
     if (val16 != 65535) return 9;
 
-    // Test 10: Normal multiplication
+   
+// Test 10: Normal multiplication
     val16 <- 100;
     val16 *<- 100; // 100 * 100 = 10000
     if (val16 != 10000) return 10;
 
-    // Test 11: Large multiplier causing overflow
+   
+// Test 11: Large multiplier causing overflow
     val16 <- 1000;
     val16 *<- 1000; // 1000 * 1000 = 1000000, should clamp
     if (val16 != 65535) return 11;
 
-    // Test 12: Multiply by 2 near max
+   
+// Test 12: Multiply by 2 near max
     val16 <- 40000;
     val16 *<- 2; // 40000 * 2 = 80000, should clamp to 65535
     if (val16 != 65535) return 12;
 
     // === U32 CLAMP MULTIPLICATION (max 4294967295) ===
-    // Test 13: Basic overflow
+   
+// Test 13: Basic overflow
     clamp u32 val32 <- 100000;
     val32 *<- 100000; // 100000 * 100000 = 10 billion, should clamp
     if (val32 != 4294967295) return 13;
 
-    // Test 14: Normal multiplication
+   
+// Test 14: Normal multiplication
     val32 <- 1000;
     val32 *<- 1000; // 1000 * 1000 = 1000000
     if (val32 != 1000000) return 14;
 
-    // Test 15: Multiply by 2 near max
+   
+// Test 15: Multiply by 2 near max
     val32 <- 3000000000; // 3 billion
     val32 *<- 2; // 6 billion, should clamp
     if (val32 != 4294967295) return 15;
 
     // === U64 CLAMP MULTIPLICATION ===
-    // Test 16: Normal multiplication (u64 has huge range)
+   
+// Test 16: Normal multiplication (u64 has huge range)
     clamp u64 val64 <- 1000000000; // 1 billion
     val64 *<- 1000; // 1 trillion
     if (val64 != 1000000000000) return 16;
 
-    // Test 17: Multiply by 1
+   
+// Test 17: Multiply by 1
     val64 <- 9223372036854775807; // Half of max
     val64 *<- 1;
     if (val64 != 9223372036854775807) return 17;
 
     // === I8 CLAMP MULTIPLICATION (range -128 to 127) ===
-    // Test 18: Positive overflow
+   
+// Test 18: Positive overflow
     clamp i8 vali8 <- 20;
     vali8 *<- 10; // 20 * 10 = 200, should clamp to 127
     if (vali8 != 127) return 18;
 
-    // Test 19: Negative overflow (positive * negative)
+   
+// Test 19: Negative overflow (positive * negative)
     vali8 <- 20;
     vali8 *<- -10; // 20 * -10 = -200, should clamp to -128
     if (vali8 != -128) return 19;
 
-    // Test 20: Negative * negative = positive overflow
+   
+// Test 20: Negative * negative = positive overflow
     vali8 <- -20;
     vali8 *<- -10; // -20 * -10 = 200, should clamp to 127
     if (vali8 != 127) return 20;
 
-    // Test 21: Normal positive multiplication
+   
+// Test 21: Normal positive multiplication
     vali8 <- 10;
     vali8 *<- 10; // 10 * 10 = 100
     if (vali8 != 100) return 21;
 
-    // Test 22: Normal negative multiplication
+   
+// Test 22: Normal negative multiplication
     vali8 <- -10;
     vali8 *<- 5; // -10 * 5 = -50
     if (vali8 != -50) return 22;
 
     // === I16 CLAMP MULTIPLICATION (range -32768 to 32767) ===
-    // Test 23: Positive overflow
+   
+// Test 23: Positive overflow
     clamp i16 vali16 <- 200;
     vali16 *<- 200; // 200 * 200 = 40000, should clamp to 32767
     if (vali16 != 32767) return 23;
 
-    // Test 24: Negative overflow
+   
+// Test 24: Negative overflow
     vali16 <- 200;
     vali16 *<- -200; // 200 * -200 = -40000, should clamp to -32768
     if (vali16 != -32768) return 24;
 
-    // Test 25: Normal multiplication
+   
+// Test 25: Normal multiplication
     vali16 <- 100;
     vali16 *<- 100; // 100 * 100 = 10000
     if (vali16 != 10000) return 25;
 
     // === I32 CLAMP MULTIPLICATION ===
-    // Test 26: Positive overflow
+   
+// Test 26: Positive overflow
     clamp i32 vali32 <- 50000;
     vali32 *<- 50000; // 50000 * 50000 = 2.5 billion, should clamp to 2147483647
     if (vali32 != 2147483647) return 26;
 
-    // Test 27: Negative overflow
+   
+// Test 27: Negative overflow
     vali32 <- 50000;
     vali32 *<- -50000; // 50000 * -50000 = -2.5 billion, should clamp to -2147483648
     if (vali32 != -2147483648) return 27;
 
-    // Test 28: Normal multiplication
+   
+// Test 28: Normal multiplication
     vali32 <- 1000;
     vali32 *<- 1000; // 1000 * 1000 = 1000000
     if (vali32 != 1000000) return 28;
 
     // === I64 CLAMP MULTIPLICATION ===
-    // Test 29: Normal multiplication (i64 has huge range)
+   
+// Test 29: Normal multiplication (i64 has huge range)
     clamp i64 vali64 <- 1000000;
     vali64 *<- 1000000; // 1 trillion
     if (vali64 != 1000000000000) return 29;
 
-    // Test 30: Multiply by -1
+   
+// Test 30: Multiply by -1
     vali64 <- 100;
     vali64 *<- -1;
     if (vali64 != -100) return 30;
 
     // === EDGE CASES ===
-    // Test 31: Repeated multiplications
+   
+// Test 31: Repeated multiplications
     val8 <- 2;
     val8 *<- 2; // 4
     if (val8 != 4) return 31;

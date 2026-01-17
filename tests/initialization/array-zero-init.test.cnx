@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-015: Array zero initialization
+// test-execution
+// ADR-015: Array zero initialization
 // Tests: arrays are automatically zero-initialized
 u8 buffer[16];
 

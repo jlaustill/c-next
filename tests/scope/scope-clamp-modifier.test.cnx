@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
@@ -67,7 +67,8 @@ scope ClampTest {
         this.position -<- 100000000;  // Normal decrease, no clamping needed
     }
 
-    // Test unsigned underflow - clamps to 0
+   
+// Test unsigned underflow - clamps to 0
     public void dimBrightness() {
         this.brightness -<- 250;  // Would underflow, clamps to 0
     }
@@ -87,7 +88,8 @@ scope ClampTest {
 }
 
 u32 main() {
-    // Test 1-6: Validate initial values
+   
+// Test 1-6: Validate initial values
     if (ClampTest.getBrightness() != 200) return 1;
     if (ClampTest.getSensorValue() != 60000) return 2;
     if (ClampTest.getCounter() != 4000000000) return 3;
@@ -95,37 +97,45 @@ u32 main() {
     if (ClampTest.getAltitude() != 30000) return 5;
     if (ClampTest.getPosition() != 2000000000) return 6;
 
-    // Test 7: u8 overflow clamps to 255 (200 + 100 = 300 -> 255)
+   
+// Test 7: u8 overflow clamps to 255 (200 + 100 = 300 -> 255)
     ClampTest.increaseBrightness();
     if (ClampTest.getBrightness() != 255) return 7;
 
-    // Test 8: u16 overflow clamps to 65535 (60000 + 10000 = 70000 -> 65535)
+   
+// Test 8: u16 overflow clamps to 65535 (60000 + 10000 = 70000 -> 65535)
     ClampTest.increaseSensorValue();
     if (ClampTest.getSensorValue() != 65535) return 8;
 
-    // Test 9: u32 overflow clamps to UINT32_MAX
+   
+// Test 9: u32 overflow clamps to UINT32_MAX
     ClampTest.increaseCounter();
     if (ClampTest.getCounter() != 4294967295) return 9;
 
-    // Test 10: i8 underflow clamps to -128 (-100 - 50 = -150 -> -128)
+   
+// Test 10: i8 underflow clamps to -128 (-100 - 50 = -150 -> -128)
     ClampTest.decreaseTemperature();
     if (ClampTest.getTemperature() != -128) return 10;
 
-    // Test 11: i16 normal decrease (30000 - 5000 = 25000)
+   
+// Test 11: i16 normal decrease (30000 - 5000 = 25000)
     ClampTest.decreaseAltitude();
     if (ClampTest.getAltitude() != 25000) return 11;
 
-    // Test 12: i32 normal decrease (2000000000 - 100000000 = 1900000000)
+   
+// Test 12: i32 normal decrease (2000000000 - 100000000 = 1900000000)
     ClampTest.decreasePosition();
     if (ClampTest.getPosition() != 1900000000) return 12;
 
-    // Test 13: u8 underflow clamps to 0 (255 - 250 = 5, then need fresh test)
+   
+// Test 13: u8 underflow clamps to 0 (255 - 250 = 5, then need fresh test)
     // Reset brightness to test underflow
     ClampTest.setBrightness(100);
     ClampTest.dimBrightness();  // 100 - 250 = -150 -> clamps to 0
     if (ClampTest.getBrightness() != 0) return 13;
 
-    // Test 14: u16 underflow clamps to 0
+   
+// Test 14: u16 underflow clamps to 0
     ClampTest.setSensorValue(1000);
     ClampTest.resetSensor();  // 1000 - 65000 = -64000 -> clamps to 0
     if (ClampTest.getSensorValue() != 0) return 14;

@@ -1,4 +1,5 @@
-/* test-coverage: 20-atomic-in-scope */ // Tests: atomic variables inside scope declarations
+// test-coverage: 20-atomic-in-scope
+// Tests: atomic variables inside scope declarations
 // Note: Compilation test only - ARM-specific code
 #pragma target teensy41
 

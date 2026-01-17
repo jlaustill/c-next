@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 10-enum-function-param */
-/* test-execution */
+// test-coverage: 10-enum-function-param
+// test-execution
 // Tests: Enum as function parameter
 typedef enum {
     Status_OK = 0,

@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-022: Ternary operator test for i64
+// test-execution
+// ADR-022: Ternary operator test for i64
 // Tests: ternary with i64 in conditions and branches, including negative values
 i64 getMax(i64 a, i64 b) {
     return (a > b) ? a : b;
@@ -18,27 +19,32 @@ u32 main() {
     i64 c <- -3000;
     i64 d <- -500;
 
-    // Test max function with positive values
+   
+// Test max function with positive values
     if (getMax(a, b) != 2000) {
         return 1;
     }
 
-    // Test max with negative values
+   
+// Test max with negative values
     if (getMax(c, d) != -500) {
         return 2;
     }
 
-    // Test min function with positive values
+   
+// Test min function with positive values
     if (getMin(a, b) != 1000) {
         return 3;
     }
 
-    // Test min with negative values
+   
+// Test min with negative values
     if (getMin(c, d) != -3000) {
         return 4;
     }
 
-    // Test abs function
+   
+// Test abs function
     if (getAbs(c) != 3000) {
         return 5;
     }
@@ -46,13 +52,15 @@ u32 main() {
         return 6;
     }
 
-    // Test inline ternary with negative comparison
+   
+// Test inline ternary with negative comparison
     i64 result <- (a > c) ? a : c;
     if (result != 1000) {
         return 7;
     }
 
-    // Test with large positive values
+   
+// Test with large positive values
     i64 large_a <- 1000000000000;
     i64 large_b <- 2000000000000;
     i64 large_result <- (large_a < large_b) ? large_a : large_b;
@@ -60,7 +68,8 @@ u32 main() {
         return 8;
     }
 
-    // Test with large negative values
+   
+// Test with large negative values
     i64 large_neg_a <- -1000000000000;
     i64 large_neg_b <- -2000000000000;
     i64 large_neg_result <- (large_neg_a > large_neg_b) ? large_neg_a : large_neg_b;
@@ -68,13 +77,15 @@ u32 main() {
         return 9;
     }
 
-    // Test equality condition with negative
+   
+// Test equality condition with negative
     i64 equal_test <- (c = -3000) ? 100000 : -100000;
     if (equal_test != 100000) {
         return 10;
     }
 
-    // Test zero crossing
+   
+// Test zero crossing
     i64 neg <- -1000000;
     i64 pos <- 1000000;
     i64 zero_cross <- (neg < 0) ? pos : neg;
@@ -82,7 +93,8 @@ u32 main() {
         return 11;
     }
 
-    // Test with very large values
+   
+// Test with very large values
     i64 very_large_pos <- 9000000000000000000;
     i64 very_large_neg <- -9000000000000000000;
     i64 very_large_result <- (very_large_pos > very_large_neg) ? very_large_pos : very_large_neg;

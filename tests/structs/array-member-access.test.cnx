@@ -1,4 +1,5 @@
-/* test-execution */ // Test accessing array members within structs
+// test-execution
+// Test accessing array members within structs
 // Bug: config.items[i].value transpiles to bit operations instead of array access
 struct Item {
     u32 value;

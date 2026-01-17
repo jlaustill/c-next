@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-015: Global zero initialization
 // Tests: globals are automatically zero-initialized
 uint32_t counter = 0;

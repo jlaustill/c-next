@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const i64 parameter
 // Tests: const i64 parameter read access with negative values
 int64_t readConstI64(const int64_t* value) {

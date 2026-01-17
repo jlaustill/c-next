@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-025: Multiple cases execution test
 // Tests: case A || B syntax with result validation
 // Coverage: Section 7 (Control Flow) - multiple cases per block

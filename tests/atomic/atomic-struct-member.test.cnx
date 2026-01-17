@@ -1,4 +1,4 @@
-/* test-coverage: 20-atomic-struct-member */
+// test-coverage: 20-atomic-struct-member
 // Tests: atomic as struct member type
 // Note: Compilation test only - ARM-specific code
 

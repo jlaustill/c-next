@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #139: Test string literal assignment to global variable in function body
+// test-execution
+// Issue #139: Test string literal assignment to global variable in function body
 // This is the core bug - assigning a string literal inside a function should use strncpy
 string<64> messageBuffer <- "";
 
@@ -15,19 +16,23 @@ void clear() {
 }
 
 u32 main() {
-    // Test basic assignment in function
+   
+// Test basic assignment in function
     reset();
     if (messageBuffer.length != 6) return 1;
 
-    // Test another assignment
+   
+// Test another assignment
     setToHello();
     if (messageBuffer.length != 13) return 2;
 
-    // Test clearing (empty string assignment)
+   
+// Test clearing (empty string assignment)
     clear();
     if (messageBuffer.length != 0) return 3;
 
-    // Test multiple assignments in sequence
+   
+// Test multiple assignments in sequence
     messageBuffer <- "First";
     if (messageBuffer.length != 5) return 4;
 

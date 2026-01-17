@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-013: Const i8 parameter
+// test-execution
+// ADR-013: Const i8 parameter
 // Tests: const i8 parameter read access with negative values
 i8 readConstI8(const i8 value) {
     return value;
@@ -9,23 +10,28 @@ i8 negateConstI8(const i8 value) {
 }
 
 u32 main() {
-    // Test 1: Read positive const parameter
+   
+// Test 1: Read positive const parameter
     i8 result <- readConstI8(100);
     if (result != 100) return 1;
 
-    // Test 2: Read negative const parameter
+   
+// Test 2: Read negative const parameter
     i8 negResult <- readConstI8(-50);
     if (negResult != -50) return 2;
 
-    // Test 3: Negate positive value
+   
+// Test 3: Negate positive value
     i8 negated <- negateConstI8(25);
     if (negated != -25) return 3;
 
-    // Test 4: Negate negative value
+   
+// Test 4: Negate negative value
     i8 doubleNeg <- negateConstI8(-30);
     if (doubleNeg != 30) return 4;
 
-    // Test 5: Pass variable to const parameter
+   
+// Test 5: Pass variable to const parameter
     i8 myValue <- -100;
     i8 readBack <- readConstI8(myValue);
     if (readBack != -100) return 5;

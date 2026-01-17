@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #139: Test global.member string assignment inside scope (ADR-016)
+// test-execution
+// Issue #139: Test global.member string assignment inside scope (ADR-016)
 string<64> globalBuffer <- "";
 
 scope Handler {

@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 11-bitmap24 */
-/* test-execution */
+// test-coverage: 11-bitmap24
+// test-execution
 // Tests: 24-bit bitmap type
 // 24-bit bitmap for RGB color
 /* Bitmap: RGBColor */

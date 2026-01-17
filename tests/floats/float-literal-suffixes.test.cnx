@@ -1,52 +1,63 @@
-/* test-execution */ // Tests: f32 and f64 literal suffix syntax (ADR-024)
+// test-execution
+// Tests: f32 and f64 literal suffix syntax (ADR-024)
 // Validates that suffixed float literals work correctly
 u32 main() {
-    // Test f32 suffix - decimal notation
+   
+// Test f32 suffix - decimal notation
     f32 a <- 3.14f32;
     if (a < 3.13) return 1;
     if (a > 3.15) return 2;
 
-    // Test f64 suffix - decimal notation
+   
+// Test f64 suffix - decimal notation
     f64 b <- 2.718281828f64;
     if (b < 2.718) return 3;
     if (b > 2.719) return 4;
 
-    // Test f32 suffix - scientific notation
+   
+// Test f32 suffix - scientific notation
     f32 c <- 1.5e10f32;
     if (c < 1.4e10) return 5;
     if (c > 1.6e10) return 6;
 
-    // Test f64 suffix - scientific notation
+   
+// Test f64 suffix - scientific notation
     f64 d <- 6.022e23f64;
     if (d < 6.0e23) return 7;
     if (d > 6.1e23) return 8;
 
-    // Test uppercase F suffix (f32)
+   
+// Test uppercase F suffix (f32)
     f32 e <- 100.5F32;
     if (e < 100.0) return 9;
     if (e > 101.0) return 10;
 
-    // Test uppercase F suffix (f64)
+   
+// Test uppercase F suffix (f64)
     f64 f <- 999.999F64;
     if (f < 999.0) return 11;
     if (f > 1000.0) return 12;
 
-    // Test negative f32 literal
+   
+// Test negative f32 literal
     f32 g <- -42.5f32;
     if (g > -42.0) return 13;
     if (g < -43.0) return 14;
 
-    // Test negative f64 literal
+   
+// Test negative f64 literal
     f64 h <- -123.456f64;
     if (h > -123.0) return 15;
     if (h < -124.0) return 16;
 
-    // Test small f32 value
+   
+// Test small f32 value
     f32 i <- 0.001f32;
     if (i < 0.0009) return 17;
     if (i > 0.0011) return 18;
 
-    // Test small f64 value with more precision
+   
+// Test small f64 value with more precision
     f64 j <- 0.000000001f64;
     if (j < 0.0000000009) return 19;
     if (j > 0.0000000011) return 20;

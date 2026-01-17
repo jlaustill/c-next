@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-execution */
-/* test-coverage: 21.2-compound-mul */
+// test-execution
+// test-coverage: 21.2-compound-mul
 // Tests: wrap modifier with compound multiplication (*<-)
 // Validates multiplication overflow wraps around
 // ADR-044: Per-variable overflow semantics

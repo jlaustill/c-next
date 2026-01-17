@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-013: Const i16 parameter
+// test-execution
+// ADR-013: Const i16 parameter
 // Tests: const i16 parameter read access with negative values
 i16 readConstI16(const i16 value) {
     return value;
@@ -12,23 +13,28 @@ i16 absConstI16(const i16 value) {
 }
 
 u32 main() {
-    // Test 1: Read positive const parameter
+   
+// Test 1: Read positive const parameter
     i16 result <- readConstI16(10000);
     if (result != 10000) return 1;
 
-    // Test 2: Read negative const parameter
+   
+// Test 2: Read negative const parameter
     i16 negResult <- readConstI16(-5000);
     if (negResult != -5000) return 2;
 
-    // Test 3: Abs of positive
+   
+// Test 3: Abs of positive
     i16 absPos <- absConstI16(1234);
     if (absPos != 1234) return 3;
 
-    // Test 4: Abs of negative
+   
+// Test 4: Abs of negative
     i16 absNeg <- absConstI16(-5678);
     if (absNeg != 5678) return 4;
 
-    // Test 5: Pass variable to const parameter
+   
+// Test 5: Pass variable to const parameter
     i16 myValue <- -20000;
     i16 readBack <- readConstI16(myValue);
     if (readBack != -20000) return 5;

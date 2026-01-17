@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Boolean type in all language contexts
 // Covers: function params, return types, struct members, arrays
 // 1. Global variables

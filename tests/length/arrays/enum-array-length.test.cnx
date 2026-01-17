@@ -1,4 +1,5 @@
-/* test-execution */ // .length test for enum arrays - validates element .length returns 32
+// test-execution
+// .length test for enum arrays - validates element .length returns 32
 // Issue #121: Enum arrays were previously returning 0 for element .length
 // Note: This test focuses on element .length, as enum array dimension .length
 // has separate implementation issues tracked elsewhere
@@ -17,13 +18,15 @@ u32 checkElementLength(State arr[16]) {
 }
 
 i32 main() {
-    // Test 1: Array parameter length should return 16 (array size)
+   
+// Test 1: Array parameter length should return 16 (array size)
     State testArr[16];
     if (checkArrayLength(testArr) != 16) {
         return 1;
     }
 
-    // Test 2: Array element .length should return 32 (enum bit width)
+   
+// Test 2: Array element .length should return 32 (enum bit width)
     if (checkElementLength(testArr) != 32) {
         return 2;
     }

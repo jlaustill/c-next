@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-coverage: 20-atomic-in-scope */
+// test-coverage: 20-atomic-in-scope
 // Tests: atomic variables inside scope declarations
 // Note: Compilation test only - ARM-specific code
 

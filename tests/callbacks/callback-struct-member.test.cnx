@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: Callbacks as struct members with invocation and validation
+// test-execution
+// Tests: Callbacks as struct members with invocation and validation
 // Validates: default callback, assignment, invocation via struct field
 // Callback that returns a computed value (used as a type)
 u32 computeValue(u32 input) {
@@ -17,7 +18,8 @@ struct Processor {
 }
 
 u32 main() {
-    // Test 1: Struct initialization with default callback
+   
+// Test 1: Struct initialization with default callback
     Processor p;
     p.baseValue <- 10;
 
@@ -25,22 +27,27 @@ u32 main() {
     u32 result <- p.handler(5);
     if (result != 10) return 1;
 
-    // Test 2: Invoke with struct's baseValue
+   
+// Test 2: Invoke with struct's baseValue
     result <- p.handler(p.baseValue);
     if (result != 20) return 2;
 
-    // Test 3: Assign alternative callback
+   
+// Test 3: Assign alternative callback
     p.handler <- tripleValue;
 
-    // Test 4: Invoke reassigned callback (tripleValue: input * 3)
+   
+// Test 4: Invoke reassigned callback (tripleValue: input * 3)
     result <- p.handler(5);
     if (result != 15) return 3;
 
-    // Test 5: Invoke with baseValue after reassignment
+   
+// Test 5: Invoke with baseValue after reassignment
     result <- p.handler(p.baseValue);
     if (result != 30) return 4;
 
-    // Test 6: Reassign back to default
+   
+// Test 6: Reassign back to default
     p.handler <- computeValue;
     result <- p.handler(7);
     if (result != 14) return 5;

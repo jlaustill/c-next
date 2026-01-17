@@ -1,4 +1,5 @@
-/* test-execution */ // Test reading array members within structs in loops
+// test-execution
+// Test reading array members within structs in loops
 // Verifies postfix chain ordering: cfg.items[i].value
 struct Item {
     u32 value;

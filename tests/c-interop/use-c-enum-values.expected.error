@@ -1,2 +1,2 @@
-41:8 mismatched input 'rw' expecting IDENTIFIER
-42:8 mismatched input 'rw' expecting {'this', 'global', 'true', 'false', 'NULL', 'sizeof', SUFFIXED_FLOAT, SUFFIXED_HEX, SUFFIXED_BINARY, SUFFIXED_DECIMAL, '-', '!', '&', '~', '(', '{', '[', HEX_LITERAL, BINARY_LITERAL, FLOAT_LITERAL, INTEGER_LITERAL, STRING_LITERAL, CHAR_LITERAL, IDENTIFIER}
+45:8 mismatched input 'rw' expecting IDENTIFIER
+46:8 mismatched input 'rw' expecting {'this', 'global', 'true', 'false', 'NULL', 'sizeof', SUFFIXED_FLOAT, SUFFIXED_HEX, SUFFIXED_BINARY, SUFFIXED_DECIMAL, '-', '!', '&', '~', '(', '{', '[', HEX_LITERAL, BINARY_LITERAL, FLOAT_LITERAL, INTEGER_LITERAL, STRING_LITERAL, CHAR_LITERAL, IDENTIFIER}

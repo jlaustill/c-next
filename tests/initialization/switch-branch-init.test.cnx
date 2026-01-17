@@ -1,5 +1,5 @@
-/* test-coverage: 26-switch-branch-init */
-/* test-execution */
+// test-coverage: 26-switch-branch-init
+// test-execution
 // Tests: Variable initialization in switch case branches
 
 enum Mode {

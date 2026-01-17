@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for u8 type across all contexts
 // Tests: .length returns 8 for u8 in every possible scope and access pattern
 // Context 1: Global variable

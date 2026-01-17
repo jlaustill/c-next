@@ -1,4 +1,5 @@
-/* test-coverage: 20-atomic-with-wrap */ // Tests: atomic combined with wrap modifier
+// test-coverage: 20-atomic-with-wrap
+// Tests: atomic combined with wrap modifier
 // Note: Compilation test only - ARM-specific code
 #pragma target teensy41
 

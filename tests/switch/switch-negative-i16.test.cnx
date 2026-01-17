@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #107: Negative Case Labels - i16 Type
+// test-execution
+// Issue #107: Negative Case Labels - i16 Type
 // Tests: negative literals with i16 switch expressions
 i32 result;
 
@@ -72,7 +73,8 @@ void testI16Hex(i16 val) {
 }
 
 u32 main() {
-    // Test i16 boundaries
+   
+// Test i16 boundaries
     i16 minVal <- -32768;
     i16 minPlus1 <- -32767;
     i16 neg256 <- -256;
@@ -122,7 +124,8 @@ u32 main() {
     testI16Boundaries(other);
     if (result != 99) return 12;
 
-    // Test hex literals
+   
+// Test hex literals
     testI16Hex(minVal);
     if (result != 20) return 13;
 

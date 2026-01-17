@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const i64 variable
 // Tests: const i64 declaration and read access with negative values
 const int64_t MIN_TIMESTAMP = -2147483648;

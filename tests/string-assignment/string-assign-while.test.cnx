@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #139: Test string assignment inside while loop
+// test-execution
+// Issue #139: Test string assignment inside while loop
 string<16> current <- "";
 
 u32 main() {

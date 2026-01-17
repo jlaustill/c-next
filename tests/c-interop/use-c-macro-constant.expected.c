@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
-/* test-coverage: 30-use-c-macro-constant */
+// test-execution
+// test-coverage: 30-use-c-macro-constant
 // Tests: Using C macro constants (#define)
 // ADR-010: Macro constant import from C headers
 #include "c-interop/macros.h"

@@ -1,12 +1,13 @@
-/* test-execution */
-/* test-coverage: 30-use-c-struct-nested */
+// test-execution
+// test-coverage: 30-use-c-struct-nested
 // Tests: Using C structs with nested struct members (Issue #196 fix)
 // ADR-010: Nested struct member access from C headers
 
 #include "c-interop/structs.h"
 
 u32 main() {
-    // Test 1: Use Rectangle with nested NamedPoint
+   
+// Test 1: Use Rectangle with nested NamedPoint
     Rectangle rect;
     rect.origin.x <- 10;
     rect.origin.y <- 20;
@@ -18,15 +19,18 @@ u32 main() {
     if (rect.width != 100) return 3;
     if (rect.height != 50) return 4;
 
-    // Test 2: Access nested struct field sizes
+   
+// Test 2: Access nested struct field sizes
     if (rect.origin.x.length != 32) return 5;
     if (rect.width.length != 32) return 6;
 
-    // Test 3: Calculate area
+   
+// Test 3: Calculate area
     u32 area <- rect.width * rect.height;
     if (area != 5000) return 7;
 
-    // Test 4: Copy nested struct values
+   
+// Test 4: Copy nested struct values
     Rectangle rect2;
     rect2.origin.x <- rect.origin.x;
     rect2.origin.y <- rect.origin.y;

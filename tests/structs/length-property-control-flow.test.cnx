@@ -1,4 +1,5 @@
-/* test-execution */ // Regression test: .length in control flow expressions
+// test-execution
+// Regression test: .length in control flow expressions
 // Tests if, while, for, and switch with .length property
 struct Packet {
     u32 header;
@@ -14,16 +15,19 @@ u32 main() {
     pkt.type <- 1;
     pkt.payload <- 0x123456789ABCDEF;
 
-    // Test .length in if condition
+   
+// Test .length in if condition
     if (pkt.header.length != 32) {
         return 1;
     }
 
-    // Test .length in multiple sequential conditions
+   
+// Test .length in multiple sequential conditions
     if (pkt.header.length != 32) return 2;
     if (pkt.type.length != 8) return 3;
 
-    // Test .length in while loop condition
+   
+// Test .length in while loop condition
     u32 counter <- 0;
     u32 maxBits <- pkt.header.length;
     while ((counter < maxBits) != false) {
@@ -31,24 +35,28 @@ u32 main() {
     }
     if (counter != 32) return 4;
 
-    // Test .length in for loop
+   
+// Test .length in for loop
     u32 totalBits <- 0;
     for (u32 i <- 0; (i < 4) != false; i +<- 1) {
         totalBits +<- pkt.type.length;
     }
     if (totalBits != 32) return 5; // 4 * 8 = 32
 
-    // Test .length in ternary expression
+   
+// Test .length in ternary expression
     u32 fieldSize <- ((pkt.header.length > 16) != false) ? 4 : 2;
     if (fieldSize != 4) return 6;
 
-    // Test .length computed in expression assigned to variable used in if
+   
+// Test .length computed in expression assigned to variable used in if
     u32 headerBytes <- pkt.header.length / 8;
     if (headerBytes != 4) {
         return 7;
     }
 
-    // Test multiple .length accesses in nested if
+   
+// Test multiple .length accesses in nested if
     if (pkt.header.length != 32) {
         return 8;
     }

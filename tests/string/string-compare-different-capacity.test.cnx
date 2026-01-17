@@ -1,7 +1,9 @@
-/* test-execution */ // ADR-045: Test comparison between strings with different capacities
+// test-execution
+// ADR-045: Test comparison between strings with different capacities
 // Validates: capacity doesn't affect content comparison
 i32 main() {
-    // Test 1-3: Same content, different capacities
+   
+// Test 1-3: Same content, different capacities
     string<16> small <- "Hello";
     string<64> medium <- "Hello";
     string<256> large <- "Hello";
@@ -10,31 +12,36 @@ i32 main() {
     if (medium != large) return 2; // Should be equal
     if (small != large) return 3; // Should be equal
 
-    // Test 4-6: Verify all equal to literal
+   
+// Test 4-6: Verify all equal to literal
     if (small != "Hello") return 4;
     if (medium != "Hello") return 5;
     if (large != "Hello") return 6;
 
-    // Test 7-9: Empty strings with different capacities
+   
+// Test 7-9: Empty strings with different capacities
     string<8> emptySmall;
     string<128> emptyLarge;
     if (emptySmall != emptyLarge) return 7;
     if (emptySmall != "") return 8;
     if (emptyLarge != "") return 9;
 
-    // Test 10-12: Different content regardless of capacity
+   
+// Test 10-12: Different content regardless of capacity
     string<32> alice <- "Alice";
     string<64> bob <- "Bob";
     if (alice = bob) return 10; // Should NOT be equal
     if (!(alice != bob)) return 11; // Should be different
 
-    // Test 13-14: Longer strings with different capacities
+   
+// Test 13-14: Longer strings with different capacities
     string<32> longSmall <- "The quick brown fox";
     string<128> longLarge <- "The quick brown fox";
     if (longSmall != longLarge) return 12;
     if (longSmall.length != longLarge.length) return 13;
 
-    // Test 15: Verify lengths match
+   
+// Test 15: Verify lengths match
     if (small.length != medium.length) return 14;
     if (medium.length != large.length) return 15;
 

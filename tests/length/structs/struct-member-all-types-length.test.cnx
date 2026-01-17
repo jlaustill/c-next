@@ -1,4 +1,5 @@
-/* test-execution */ // Comprehensive .length test for struct members of all primitive types
+// test-execution
+// Comprehensive .length test for struct members of all primitive types
 // Tests: .length returns correct bit width for each struct member type
 struct AllTypes {
     u8 u8Field;
@@ -21,7 +22,8 @@ AllTypes globalStruct;
 scope TestScope {
     AllTypes scopeStruct;
     public u32 checkScopeStructMember() {
-        // Test one member to verify scope access works
+       
+// Test one member to verify scope access works
         if (this.scopeStruct.u32Field.length != 32) {
             return 1;
         }
@@ -81,7 +83,8 @@ i32 main() {
     globalStruct.f64Field <- 3.14159;
     globalStruct.boolField <- true;
 
-    // Test global struct members
+   
+// Test global struct members
     if (globalStruct.u8Field.length != 8) {
         return 1;
     }
@@ -116,12 +119,14 @@ i32 main() {
         return 11;
     }
 
-    // Test scope struct members
+   
+// Test scope struct members
     if (TestScope.checkScopeStructMember() != 0) {
         return 12;
     }
 
-    // Test local struct members
+   
+// Test local struct members
     AllTypes localStruct;
     localStruct.u8Field <- 1;
     localStruct.u16Field <- 1;
@@ -169,7 +174,8 @@ i32 main() {
         return 23;
     }
 
-    // Test parameter struct members
+   
+// Test parameter struct members
     AllTypes paramStruct;
     paramStruct.u8Field <- 1;
     paramStruct.u16Field <- 1;

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for bitmap16 type across all contexts
 // Tests: .length returns 16 for bitmap16 in every possible scope and access pattern
 // Define bitmap16 type

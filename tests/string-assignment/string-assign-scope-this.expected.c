@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 /* Scope: Logger */
 char Logger_message[65] = "";

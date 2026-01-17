@@ -1,7 +1,9 @@
-/* test-execution */ // Tests: mixed break and continue in nested loops
+// test-execution
+// Tests: mixed break and continue in nested loops
 // Validates: break and continue work correctly together in complex scenarios
 u32 main() {
-    // Test 1: Continue outer, break inner
+   
+// Test 1: Continue outer, break inner
     u32 outerProcessed <- 0;
     u32 innerBreaks <- 0;
     for (u32 i <- 0; i < 10; i +<- 1) {
@@ -21,7 +23,8 @@ u32 main() {
     if (outerProcessed != 5) return 1;
     if (innerBreaks != 5) return 2;
 
-    // Test 2: Break based on accumulated value from inner loop
+   
+// Test 2: Break based on accumulated value from inner loop
     u32 totalSum <- 0;
     u32 outerBreakAt <- 0;
     for (u32 a <- 0; a < 100; a +<- 1) {
@@ -41,7 +44,8 @@ u32 main() {
     if (outerBreakAt != 4) return 3;
     if (totalSum != 225) return 4;
 
-    // Test 3: Continue inner, then potentially break outer
+   
+// Test 3: Continue inner, then potentially break outer
     u32 validCount <- 0;
     u32 breakOuter <- 0;
     for (u32 c <- 0; c < 10; c +<- 1) {
@@ -64,7 +68,8 @@ u32 main() {
     if (breakOuter != 2) return 5;
     if (validCount != 12) return 6;
 
-    // Test 4: Complex pattern - search matrix
+   
+// Test 4: Complex pattern - search matrix
     u32 foundRow <- 99;
     u32 foundCol <- 99;
     bool found <- false;
@@ -86,7 +91,8 @@ u32 main() {
     if (foundCol != 2) return 8;
     if (!found) return 9;
 
-    // Test 5: Alternating break and continue behavior
+   
+// Test 5: Alternating break and continue behavior
     u32 processed <- 0;
     u32 broken <- 0;
     for (u32 e <- 0; e < 4; e +<- 1) {

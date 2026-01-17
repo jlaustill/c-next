@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-coverage: 20-atomic-with-wrap */
+// test-coverage: 20-atomic-with-wrap
 // Tests: atomic combined with wrap modifier
 // Note: Compilation test only - ARM-specific code
 

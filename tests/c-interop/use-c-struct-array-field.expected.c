@@ -4,7 +4,7 @@
  */
 
 // NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
-/* test-coverage: 30-use-c-struct-array-field */
+// test-coverage: 30-use-c-struct-array-field
 // Tests: Using C structs with array fields
 // ADR-010: Array field access in imported C structs
 #include "c-interop/structs.h"

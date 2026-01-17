@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test i64 arithmetic operations
 // Coverage: Section 4.1-4.5 for i64 type
 int main(void) {

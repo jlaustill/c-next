@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-001: Compound assignment operators
+// test-execution
+// ADR-001: Compound assignment operators
 // Tests: compound assignment with <- syntax
 u32 testCompound() {
     u32 val <- 10;

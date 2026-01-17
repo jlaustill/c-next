@@ -1,7 +1,9 @@
-/* test-execution */ // ADR-045: Test strings in control flow structures
+// test-execution
+// ADR-045: Test strings in control flow structures
 // Validates: string operations in if, while, for conditions
 i32 main() {
-    // Test 1-3: String comparison in if condition
+   
+// Test 1-3: String comparison in if condition
     string<32> name <- "Alice";
     u32 result <- 0;
 
@@ -15,13 +17,15 @@ i32 main() {
     }
     if (result != 1) return 2; // Should still be 1
 
-    // Test 4-5: String inequality in if
+   
+// Test 4-5: String inequality in if
     if (name != "Bob") {
         result <- 3;
     }
     if (result != 3) return 3;
 
-    // Test 6-8: String length in condition
+   
+// Test 6-8: String length in condition
     string<64> text <- "Hello";
     if (text.length = 5) {
         result <- 4;
@@ -33,7 +37,8 @@ i32 main() {
     }
     if (result != 5) return 5;
 
-    // Test 9-11: While loop with string length
+   
+// Test 9-11: While loop with string length
     string<32> items[4];
     items[0] <- "One";
     items[1] <- "Two";
@@ -50,7 +55,8 @@ i32 main() {
     // 3 + 3 + 5 + 4 = 15
     if (totalLen != 15) return 6;
 
-    // Test 12-14: Conditional based on empty string
+   
+// Test 12-14: Conditional based on empty string
     string<32> maybeEmpty;
     if (maybeEmpty.length = 0) {
         result <- 6;
@@ -63,7 +69,8 @@ i32 main() {
     }
     if (result != 7) return 8;
 
-    // Test 15: Nested conditions with strings
+   
+// Test 15: Nested conditions with strings
     string<32> status <- "active";
     if (status = "active") {
         if (status.length = 6) {

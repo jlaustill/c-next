@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #107: Negative Case Labels - i16 Type
 // Tests: negative literals with i16 switch expressions
 int32_t result = 0;

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #107: Negative Literals in Switch Case Labels
 // Tests: switch statement with negative integer literals
 int32_t result = 0;

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-coverage: 28-null-in-while */
+// test-coverage: 28-null-in-while
 // Tests: NULL check in while loop condition
 #include <stdio.h>
 

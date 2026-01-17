@@ -1,4 +1,6 @@
-/* test-coverage: 11-bitmap-struct-member */ /* test-execution */ // Tests: Bitmap as struct member
+// test-coverage: 11-bitmap-struct-member
+// test-execution
+// Tests: Bitmap as struct member
 bitmap8 Flags {
     Active, // bit 0
     Ready, // bit 1
@@ -35,7 +37,8 @@ u32 main() {
     device.id <- 12345;
     device.value <- 100;
 
-    // Test bitmap member write - single bits
+   
+// Test bitmap member write - single bits
     device.flags.Active <- true;
     device.flags.Ready <- true;
     device.flags.Error <- false;
@@ -44,11 +47,13 @@ u32 main() {
     if (device.flags.Ready != true) return 2;
     if (device.flags.Error != false) return 3;
 
-    // Test bitmap member write - multi-bit field
+   
+// Test bitmap member write - multi-bit field
     device.flags.Mode <- 15;
     if (device.flags.Mode != 15) return 4;
 
-    // Test 16-bit bitmap member
+   
+// Test 16-bit bitmap member
     device.status.Running <- true;
     device.status.Paused <- false;
     device.status.Complete <- false;
@@ -62,7 +67,8 @@ u32 main() {
     if (device.id != 12345) return 8;
     if (device.value != 100) return 9;
 
-    // Test second struct with bitmap
+   
+// Test second struct with bitmap
     ctrl.counter <- 999;
     ctrl.controlFlags.Active <- true;
     ctrl.controlFlags.Mode <- 7;

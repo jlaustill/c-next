@@ -1,4 +1,5 @@
-/* test-execution */ // Test i16 arithmetic operations
+// test-execution
+// Test i16 arithmetic operations
 // Coverage: Section 4.1-4.5 for i16 type
 u32 main() {
     // Addition - basic
@@ -94,5 +95,6 @@ u32 main() {
             }
         }
     }
-    return 1; // Test failed
+    return 1;
+// Test failed
 }

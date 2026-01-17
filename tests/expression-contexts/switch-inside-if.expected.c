@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 33.2-switch-inside-if */
-/* test-execution */
+// test-coverage: 33.2-switch-inside-if
+// test-execution
 // Tests: switch statements nested inside if/else branches
 // Coverage: Section 33.2 - Statement Nesting
 uint32_t result = 0;

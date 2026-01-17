@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Zero-length slice assignment edge case
 // Validates that zero-length copies are no-ops
 // Buffer should remain unchanged after zero-length assignment

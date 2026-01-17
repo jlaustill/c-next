@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for i64
 // Tests: ternary with i64 in conditions and branches, including negative values
 int64_t getMax(int64_t* a, int64_t* b) {

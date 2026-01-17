@@ -28,7 +28,8 @@ i32 main() {
     d.shl_val <- 8;
     d.shr_val <- 128;
 
-    // Test all compound assignment operators on struct members
+   
+// Test all compound assignment operators on struct members
     d.add_val +<- 25; // 100 + 25 = 125
     d.sub_val -<- 15; // 50 - 15 = 35
     d.mul_val *<- 7; // 10 * 7 = 70

@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // ADR-007: Single bit read
 // Tests: reading individual bits from integer
 

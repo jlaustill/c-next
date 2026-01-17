@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-001: Basic assignment operator
 // Tests: <- operator transpiles to = in C
 uint32_t counter = 0;

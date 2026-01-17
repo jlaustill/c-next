@@ -13,7 +13,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: continue in nested loops
 // Validates: continue only skips to next iteration of innermost loop
 int main(void) {

@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // ADR-045: Validate string function parameters at runtime
 uint32_t getLen(const char* s) {
     return strlen(s);

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const i8 variable
 // Tests: const i8 declaration and read access with negative values
 const int8_t MIN_TEMP = -40;

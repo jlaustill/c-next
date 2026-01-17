@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-coverage: 12-bit-range-access */
+// test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
 /* Register: TIMER @ 0x40010000 */
 #define TIMER_CTRL (*(volatile uint32_t*)(0x40010000 + 0x00))

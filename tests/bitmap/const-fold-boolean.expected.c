@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Constant-folding of literal boolean values in bitmap assignments
 /* Bitmap: Flags */
 /* Fields:

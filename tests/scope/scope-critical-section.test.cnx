@@ -203,30 +203,37 @@ scope CriticalTest {
 }
 
 void main() {
-    // Test public methods with critical sections - basic this. operations
+   
+// Test public methods with critical sections - basic this. operations
     CriticalTest.enqueue(42);
     CriticalTest.enqueue(84);
     CriticalTest.dequeue();
 
-    // Test public methods with critical sections - global. operations
+   
+// Test public methods with critical sections - global. operations
     CriticalTest.updateGlobalIndex();
     CriticalTest.transferToGlobal();
 
-    // Test thread-safe reads
+   
+// Test thread-safe reads
     CriticalTest.getCount();
     CriticalTest.isLocked();
 
-    // Test lock/unlock pattern
+   
+// Test lock/unlock pattern
     CriticalTest.tryLock();
     CriticalTest.unlock();
 
-    // Test reset
+   
+// Test reset
     CriticalTest.resetAll();
 
-    // Test sync check
+   
+// Test sync check
     CriticalTest.isInSync();
 
-    // Test wrappers calling internal critical methods
+   
+// Test wrappers calling internal critical methods
     CriticalTest.safeEnqueue(10);
     CriticalTest.safeDequeue();
     CriticalTest.lockedEnqueue(20);

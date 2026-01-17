@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-022: Ternary operator test for u16
+// test-execution
+// ADR-022: Ternary operator test for u16
 // Tests: ternary with u16 in conditions and branches
 u16 getMax(u16 a, u16 b) {
     return (a > b) ? a : b;
@@ -14,7 +15,8 @@ u32 main() {
     u16 c <- 300;
     u16 d <- 50;
 
-    // Test max function
+   
+// Test max function
     if (getMax(a, b) != 200) {
         return 1;
     }
@@ -22,7 +24,8 @@ u32 main() {
         return 2;
     }
 
-    // Test min function
+   
+// Test min function
     if (getMin(a, b) != 100) {
         return 3;
     }
@@ -30,13 +33,15 @@ u32 main() {
         return 4;
     }
 
-    // Test inline ternary
+   
+// Test inline ternary
     u16 result <- (a > b) ? a : b;
     if (result != 200) {
         return 5;
     }
 
-    // Test with edge cases - max value
+   
+// Test with edge cases - max value
     u16 max_val <- 65535;
     u16 mid_val <- 32767;
     u16 edge_result <- (max_val > mid_val) ? max_val : mid_val;
@@ -44,7 +49,8 @@ u32 main() {
         return 6;
     }
 
-    // Test with edge cases - min value (0)
+   
+// Test with edge cases - min value (0)
     u16 zero <- 0;
     u16 one <- 1;
     u16 zero_result <- (zero < one) ? zero : one;
@@ -52,13 +58,15 @@ u32 main() {
         return 7;
     }
 
-    // Test equality condition
+   
+// Test equality condition
     u16 equal_test <- (a = 100) ? 1000 : 2000;
     if (equal_test != 1000) {
         return 8;
     }
 
-    // Test with larger values
+   
+// Test with larger values
     u16 large_a <- 50000;
     u16 large_b <- 60000;
     u16 large_result <- (large_a < large_b) ? large_a : large_b;

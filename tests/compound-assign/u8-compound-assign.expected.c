@@ -23,7 +23,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
     return a - (uint8_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: u8 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

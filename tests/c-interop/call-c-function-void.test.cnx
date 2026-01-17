@@ -1,32 +1,38 @@
-/* test-execution */
-/* test-coverage: 30-call-c-function-void */
+// test-execution
+// test-coverage: 30-call-c-function-void
 // Tests: Calling void C functions and functions with no parameters
 // ADR-010: Void function interoperability
 
 #include "c-interop/functions.h"
 
 u32 main() {
-    // Test 1: Call void function with no parameters
+   
+// Test 1: Call void function with no parameters
     no_return_no_params();
     // If we get here, the call worked
 
-    // Test 2: Call void function with parameter (set flag)
+   
+// Test 2: Call void function with parameter (set flag)
     set_global_flag(true);
 
-    // Test 3: Call function to get the flag value
+   
+// Test 3: Call function to get the flag value
     bool flag_val <- get_global_flag();
     if (flag_val != true) return 1;
 
-    // Test 4: Set flag to false
+   
+// Test 4: Set flag to false
     set_global_flag(false);
     flag_val <- get_global_flag();
     if (flag_val != false) return 2;
 
-    // Test 5: Call function with no params returning constant
+   
+// Test 5: Call function with no params returning constant
     i32 constant <- get_constant_42();
     if (constant != 42) return 3;
 
-    // Test 6: Call function with no params returning u32
+   
+// Test 6: Call function with no params returning u32
     u32 magic <- get_magic_number();
     if (magic != 0xDEADBEEF) return 4;
 

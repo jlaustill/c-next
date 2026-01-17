@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test string assignment inside if/else blocks
 char status[33] = "Unknown";
 

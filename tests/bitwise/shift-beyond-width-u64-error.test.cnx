@@ -1,4 +1,5 @@
-/* test-coverage: 5.5-shift-beyond-width-error */ // Test u64 shift beyond width - should be ERROR
+// test-coverage: 5.5-shift-beyond-width-error
+// Test u64 shift beyond width - should be ERROR
 // Coverage: Section 5.5-5.6 error case - shift beyond type width
 void testU64ShiftBeyondWidth() {
     u64 a <- 1;

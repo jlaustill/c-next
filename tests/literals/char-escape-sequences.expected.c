@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 32.4-escape-sequences */
-/* test-execution */
+// test-coverage: 32.4-escape-sequences
+// test-execution
 // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
 int main(void) {

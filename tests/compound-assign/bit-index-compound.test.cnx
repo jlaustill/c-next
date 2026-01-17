@@ -1,5 +1,5 @@
 /* test-error */
-/* test-coverage: 2.2-bit-index */
+// test-coverage: 2.2-bit-index
 // Tests: Compound addition (+<-) on bit range is NOT supported
 // Expected: Transpiler error - compound assignment on bit fields not implemented
 // Note: This documents a current limitation of C-Next

@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Slice assignment for struct field serialization
 // Validates copying struct fields into buffers (real-world use case)
 // Recreates the pattern from crc32.cnx for binary protocol implementation
@@ -22,7 +22,8 @@ u32 main() {
     config.flags <- 0x0F;             // Some flags
     config.timestamp <- 0x123456789ABCDEF0;
 
-    // Test 1: Serialize magic field (4 bytes)
+   
+// Test 1: Serialize magic field (4 bytes)
     length <- 4;
     buffer[offset, length] <- config.magic;
     offset +<- length;
@@ -33,7 +34,8 @@ u32 main() {
     if (buffer[3] != 0x43) return 4;
     if (offset != 4) return 5;
 
-    // Test 2: Serialize version field (2 bytes)
+   
+// Test 2: Serialize version field (2 bytes)
     length <- 2;
     buffer[offset, length] <- config.version;
     offset +<- length;
@@ -42,7 +44,8 @@ u32 main() {
     if (buffer[5] != 0x01) return 7;
     if (offset != 6) return 8;
 
-    // Test 3: Serialize flags field (1 byte)
+   
+// Test 3: Serialize flags field (1 byte)
     length <- 1;
     buffer[offset, length] <- config.flags;
     offset +<- length;
@@ -50,7 +53,8 @@ u32 main() {
     if (buffer[6] != 0x0F) return 9;
     if (offset != 7) return 10;
 
-    // Test 4: Serialize timestamp field (8 bytes)
+   
+// Test 4: Serialize timestamp field (8 bytes)
     length <- 8;
     buffer[offset, length] <- config.timestamp;
     offset +<- length;

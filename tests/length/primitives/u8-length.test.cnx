@@ -1,4 +1,5 @@
-/* test-execution */ // Comprehensive .length test for u8 type across all contexts
+// test-execution
+// Comprehensive .length test for u8 type across all contexts
 // Tests: .length returns 8 for u8 in every possible scope and access pattern
 // Context 1: Global variable
 u8 globalVar <- 42;
@@ -28,46 +29,54 @@ struct TestStruct {
 }
 
 i32 main() {
-    // Test Context 1: Global variable
+   
+// Test Context 1: Global variable
     if (globalVar.length != 8) {
         return 1;
     }
 
-    // Test Context 2: Global from inside scope
+   
+// Test Context 2: Global from inside scope
     if (TestScope.getGlobalLength() != 8) {
         return 2;
     }
 
-    // Test Context 3: Scope member with this.
+   
+// Test Context 3: Scope member with this.
     if (TestScope.getMemberLength() != 8) {
         return 3;
     }
 
-    // Test Context 4: Cross-scope access
+   
+// Test Context 4: Cross-scope access
     if (TestScope.publicMember.length != 8) {
         return 4;
     }
 
-    // Test Context 5: Local variable
+   
+// Test Context 5: Local variable
     u8 localVar <- 42;
     if (localVar.length != 8) {
         return 5;
     }
 
-    // Test Context 6: Function parameter
+   
+// Test Context 6: Function parameter
     u8 testVal <- 42;
     if (checkParamLength(testVal) != 8) {
         return 6;
     }
 
-    // Test Context 7: Struct member
+   
+// Test Context 7: Struct member
     TestStruct ts;
     ts.member <- 42;
     if (ts.member.length != 8) {
         return 7;
     }
 
-    // Test Context 8: Array element
+   
+// Test Context 8: Array element
     u8 arr[4];
     arr[0] <- 42;
     if (arr[0].length != 8) {

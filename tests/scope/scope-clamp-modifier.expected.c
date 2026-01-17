@@ -54,7 +54,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
     return a - (uint8_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators

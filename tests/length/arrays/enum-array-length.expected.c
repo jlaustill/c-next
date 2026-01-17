@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // .length test for enum arrays - validates element .length returns 32
 // Issue #121: Enum arrays were previously returning 0 for element .length
 // Note: This test focuses on element .length, as enum array dimension .length

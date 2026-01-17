@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-coverage: 20-atomic-with-clamp */
+// test-coverage: 20-atomic-with-clamp
 // Tests: atomic combined with clamp modifier
 // Note: Compilation test only - ARM-specific code
 

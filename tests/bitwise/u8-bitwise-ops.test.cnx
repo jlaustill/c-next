@@ -1,4 +1,6 @@
-/* test-coverage: 1.1-u8-in-bitwise-operation */ /* test-execution */ // Test u8 bitwise operations: AND, OR, XOR, NOT
+// test-coverage: 1.1-u8-in-bitwise-operation
+// test-execution
+// Test u8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u8 type
 u32 main() {
     // AND operations
@@ -16,13 +18,15 @@ u32 main() {
     u8 c <- 0b10101010;
     u8 not_result <- ~c; // 0b01010101 = 85
 
-    // Test with hex literals
+   
+// Test with hex literals
     u8 hex_a <- 0xF0;
     u8 hex_b <- 0xAA;
     u8 hex_and <- hex_a & hex_b; // 0xA0 = 160
     u8 hex_or <- hex_a | hex_b; // 0xFA = 250
 
-    // Test with decimal literals
+   
+// Test with decimal literals
     u8 dec_and <- 240 & 170; // 160
     u8 dec_or <- 240 | 170; // 250
 

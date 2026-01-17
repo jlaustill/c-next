@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 5.1-i16-and, 5.2-i16-or, 5.3-i16-xor, 5.4-i16-not */
-/* test-execution */
+// test-coverage: 5.1-i16-and, 5.2-i16-or, 5.3-i16-xor, 5.4-i16-not
+// test-execution
 // Test i16 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i16 type
 int main(void) {

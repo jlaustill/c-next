@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 3.1-enum-enum-same-type */
-/* test-execution */
+// test-coverage: 3.1-enum-enum-same-type
+// test-execution
 // ADR-017: Basic Enum Test
 // Tests basic enum declaration, usage, and code generation
 // Simple enum with auto-incrementing values

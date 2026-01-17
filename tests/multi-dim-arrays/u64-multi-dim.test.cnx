@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: multi-dimensional u64 arrays (2D and 3D)
+// test-execution
+// Tests: multi-dimensional u64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large data buffers, matrices for embedded systems
 u64 matrix2d[4][8];
@@ -32,7 +33,8 @@ u32 main() {
     if (cube3d[1][0][0] != 999999999999) return 8;
     if (cube3d[1][2][3] != 888888888888) return 9;
 
-    // Test .length property at each dimension
+   
+// Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.length != 4) return 10; // First dimension
     if (matrix2d[0].length != 8) return 11; // Second dimension
@@ -79,15 +81,18 @@ u32 main() {
     // Total: 6+46+86+406+446+486 = 1476
     if (sum != 1476) return 21;
 
-    // Test modification after initialization
+   
+// Test modification after initialization
     matrix2d[2][4] <- 9000000000000000000;
     if (matrix2d[2][4] != 9000000000000000000) return 22;
 
-    // Test boundary access
+   
+// Test boundary access
     matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- 555;
     if (matrix2d[3][7] != 555) return 23;
 
-    // Test 2D array with large timestamp values
+   
+// Test 2D array with large timestamp values
     u64 timestamps[3][2];
     timestamps[0][0] <- 1609459200000; // Jan 1, 2021
     timestamps[0][1] <- 1612137600000; // Feb 1, 2021

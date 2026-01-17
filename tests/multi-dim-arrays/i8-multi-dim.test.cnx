@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: multi-dimensional i8 arrays (2D and 3D)
+// test-execution
+// Tests: multi-dimensional i8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: temperature sensors, small signed offsets, delta values
 i8 matrix2d[4][8];
@@ -32,7 +33,8 @@ u32 main() {
     if (cube3d[1][0][0] != 50) return 8;
     if (cube3d[1][2][3] != 127) return 9;
 
-    // Test .length property at each dimension
+   
+// Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.length != 4) return 10; // First dimension
     if (matrix2d[0].length != 8) return 11; // Second dimension
@@ -71,15 +73,18 @@ u32 main() {
     // Verify sum: 6+14+22+26+34+42 = 144
     if (sum != 144) return 21;
 
-    // Test modification after initialization
+   
+// Test modification after initialization
     matrix2d[2][4] <- -128;
     if (matrix2d[2][4] != -128) return 22;
 
-    // Test boundary access
+   
+// Test boundary access
     matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- -1;
     if (matrix2d[3][7] != -1) return 23;
 
-    // Test i8 specific edge cases
+   
+// Test i8 specific edge cases
     i8 testArray[4][2];
 
     // Initialize all elements first
@@ -102,7 +107,8 @@ u32 main() {
     if (testArray[2][0] != 1) return 28;
     if (testArray[3][1] != -50) return 29;
 
-    // Test 2D array with temperature sensor pattern (in Celsius)
+   
+// Test 2D array with temperature sensor pattern (in Celsius)
     i8 temps[3][3];
 
     // Initialize all elements first
@@ -125,7 +131,8 @@ u32 main() {
     if (temps[2][0] != 37) return 34;
     if (temps[2][1] != 100) return 35;
 
-    // Test negative value calculations
+   
+// Test negative value calculations
     i8 deltas[2][2];
 
     // Initialize all elements first

@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-040: ISR direct invocation
+// test-execution
+// ADR-040: ISR direct invocation
 // Tests: invoking ISR through variables (global and local)
 // Global to track handler execution
 u32 invokeCallCount <- 0;
@@ -25,14 +26,16 @@ void invokeHandler3() {
 ISR globalHandler <- invokeHandler1;
 
 u32 main() {
-    // Test 1: Invoke global ISR variable
+   
+// Test 1: Invoke global ISR variable
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     globalHandler();
     if (invokeCallCount != 1) return 1;
     if (invokeLastHandler != 1) return 2;
 
-    // Test 2: Reassign global and invoke
+   
+// Test 2: Reassign global and invoke
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     globalHandler <- invokeHandler2;
@@ -40,7 +43,8 @@ u32 main() {
     if (invokeCallCount != 1) return 3;
     if (invokeLastHandler != 2) return 4;
 
-    // Test 3: Local ISR variable
+   
+// Test 3: Local ISR variable
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     ISR localHandler <- invokeHandler3;
@@ -48,7 +52,8 @@ u32 main() {
     if (invokeCallCount != 1) return 5;
     if (invokeLastHandler != 3) return 6;
 
-    // Test 4: Reassign local and invoke
+   
+// Test 4: Reassign local and invoke
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     localHandler <- invokeHandler1;
@@ -56,7 +61,8 @@ u32 main() {
     if (invokeCallCount != 1) return 7;
     if (invokeLastHandler != 1) return 8;
 
-    // Test 5: Multiple invocations through same variable
+   
+// Test 5: Multiple invocations through same variable
     invokeCallCount <- 0;
     localHandler <- invokeHandler2;
     localHandler();
@@ -65,7 +71,8 @@ u32 main() {
     if (invokeCallCount != 3) return 9;
     if (invokeLastHandler != 2) return 10;
 
-    // Test 6: Chain of reassignments
+   
+// Test 6: Chain of reassignments
     invokeCallCount <- 0;
     localHandler <- invokeHandler1;
     localHandler(); // count = 1

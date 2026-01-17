@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 1.1-u64-in-ternary-expression */
-/* test-execution */
+// test-coverage: 1.1-u64-in-ternary-expression
+// test-execution
 // ADR-022: Ternary operator test for u64
 // Tests: ternary with u64 in conditions and branches
 uint64_t getMax(uint64_t* a, uint64_t* b) {

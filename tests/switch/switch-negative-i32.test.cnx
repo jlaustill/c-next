@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #107: Negative Case Labels - i32 Type
+// test-execution
+// Issue #107: Negative Case Labels - i32 Type
 // Tests: negative literals with i32 switch expressions
 i32 result;
 
@@ -75,7 +76,8 @@ void testI32Hex(i32 val) {
 }
 
 u32 main() {
-    // Test i32 values
+   
+// Test i32 values
     i32 minVal <- -2147483648;
     i32 minPlus1 <- -2147483647;
     i32 negMillion <- -1000000;
@@ -129,7 +131,8 @@ u32 main() {
     testI32Values(other);
     if (result != 99) return 13;
 
-    // Test hex literals
+   
+// Test hex literals
     testI32Hex(minVal);
     if (result != 20) return 14;
 

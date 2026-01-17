@@ -14,7 +14,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: Issue #213 - Scope helper methods with string parameters
 // Validates that slice assignment in private methods generates memcpy, not bitwise ops
 /* Scope: StringSliceTest */

@@ -42,7 +42,8 @@ i32 main() {
     o.middle.value <- 200;
     o.top_val <- 50;
 
-    // Test all compound operators on deeply nested struct members
+   
+// Test all compound operators on deeply nested struct members
     o.middle.inner.add_val +<- 25; // 100 + 25 = 125
     o.middle.inner.sub_val -<- 15; // 50 - 15 = 35
     o.middle.inner.mul_val *<- 7; // 10 * 7 = 70

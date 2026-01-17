@@ -1,4 +1,6 @@
-/* test-coverage: 5.1-i32-and, 5.2-i32-or, 5.3-i32-xor, 5.4-i32-not */ /* test-execution */ // Test i32 bitwise operations: AND, OR, XOR, NOT
+// test-coverage: 5.1-i32-and, 5.2-i32-or, 5.3-i32-xor, 5.4-i32-not
+// test-execution
+// Test i32 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i32 type
 u32 main() {
     // AND operations with positive values
@@ -29,7 +31,8 @@ u32 main() {
     i32 minus_one <- -1;
     i32 not_minus_one <- ~minus_one; // 0
 
-    // Test with smaller values
+   
+// Test with smaller values
     i32 small_a <- 0xFFA0;
     i32 small_b <- 0xAA;
     i32 small_and <- small_a & small_b; // 0xA0 = 160

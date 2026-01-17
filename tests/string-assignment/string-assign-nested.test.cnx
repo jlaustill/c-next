@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #139: Test string assignment in deeply nested blocks
+// test-execution
+// Issue #139: Test string assignment in deeply nested blocks
 string<32> nested <- "";
 
 void deepNest(u32 depth) {

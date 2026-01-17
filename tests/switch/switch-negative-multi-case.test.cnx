@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #107: Negative Case Labels with Multi-Case Syntax
+// test-execution
+// Issue #107: Negative Case Labels with Multi-Case Syntax
 // Tests: negative literals with || syntax for multiple case labels
 i32 result;
 
@@ -63,7 +64,8 @@ void testNegativeHexGroup(i32 val) {
 }
 
 u32 main() {
-    // Test negative groups
+   
+// Test negative groups
     i8 neg1 <- -1;
     i8 neg2 <- -2;
     i8 neg3 <- -3;
@@ -121,7 +123,8 @@ u32 main() {
     testNegativeGroup(other);
     if (result != 99) return 14;
 
-    // Test mixed groups
+   
+// Test mixed groups
     i16 neg100 <- -100;
     i16 pos100 <- 100;
     i16 negOneI16 <- -1;
@@ -155,7 +158,8 @@ u32 main() {
     testMixedGroup(otherI16);
     if (result != 99) return 22;
 
-    // Test negative hex groups
+   
+// Test negative hex groups
     i32 neg16 <- -16;
     i32 neg32 <- -32;
     i32 neg48 <- -48;

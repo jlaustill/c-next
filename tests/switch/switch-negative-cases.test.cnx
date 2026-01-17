@@ -1,4 +1,5 @@
-/* test-execution */ // Issue #107: Negative Literals in Switch Case Labels
+// test-execution
+// Issue #107: Negative Literals in Switch Case Labels
 // Tests: switch statement with negative integer literals
 i32 result;
 
@@ -47,7 +48,8 @@ u32 main() {
     i8 maxI8 <- 127;
     i8 other <- 50;
 
-    // Test i8 negative cases
+   
+// Test i8 negative cases
     handleValue(minI8);
     if (result != 1) return 1;
 
@@ -63,7 +65,8 @@ u32 main() {
     handleValue(other);
     if (result != 9) return 5;
 
-    // Test negative hex cases
+   
+// Test negative hex cases
     i16 negHex80 <- -128;
     i16 negHex01 <- -1;
     i16 zeroHex <- 0;

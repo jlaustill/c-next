@@ -14,8 +14,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-coverage: 33.2-3-levels-of-nesting */
-/* test-execution */
+// test-coverage: 33.2-3-levels-of-nesting
+// test-execution
 // Tests: comprehensive 3-level deep control structure nesting
 // Coverage: Section 33.2 - Statement Nesting (3+ levels)
 uint32_t result = 0;

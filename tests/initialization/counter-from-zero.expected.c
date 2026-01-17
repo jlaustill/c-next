@@ -13,7 +13,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // ADR-015: Counter pattern with zero initialization
 // Tests: counters can be incremented from their zero-initialized state
 uint32_t eventCount = 0;

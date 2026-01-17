@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013 + ADR-044: Const wrap u8 combination
 // Tests: const wrap u8 declaration and read access
 const uint8_t FULL_CYCLE = 255;

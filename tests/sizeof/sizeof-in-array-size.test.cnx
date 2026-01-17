@@ -1,4 +1,6 @@
-/* test-coverage: 23-sizeof-in-array-size */ /* test-execution */ // Tests: sizeof used as array dimension
+// test-coverage: 23-sizeof-in-array-size
+// test-execution
+// Tests: sizeof used as array dimension
 u32 main() {
     // sizeof(type) as array dimension
     u8 typeBuffer[sizeof(u32)];

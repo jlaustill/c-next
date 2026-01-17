@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: Constant-folding of literal boolean values in bitmap assignments
+// test-execution
+// Tests: Constant-folding of literal boolean values in bitmap assignments
 bitmap8 Flags {
     bit0,
     bit1,

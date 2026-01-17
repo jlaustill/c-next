@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 23-sizeof-struct-member */
-/* test-execution */
+// test-coverage: 23-sizeof-struct-member
+// test-execution
 // Tests: sizeof on struct members
 typedef struct {
     int32_t x;

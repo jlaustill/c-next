@@ -11,7 +11,8 @@ struct Data {
 Data items[16];  // Max reasonable array size for testing
 
 void main() {
-    // Test maximum bit indices for each type
+   
+// Test maximum bit indices for each type
 
     // u8: bits 0-7
     items[0].byte <- 0xFF;
@@ -45,7 +46,8 @@ void main() {
     bool q0 <- items[0].qword[0];
     bool q63 <- items[0].qword[63];
 
-    // Test maximum array indices
+   
+// Test maximum array indices
     items[15].byte <- 0xAA;  // Last element
     u8 lastByte <- items[15].byte;
 

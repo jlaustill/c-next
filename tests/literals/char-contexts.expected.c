@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 32.4-variable-init, 32.4-array-element, 32.4-comparison, 32.4-in-switch-case */
-/* test-execution */
+// test-coverage: 32.4-variable-init, 32.4-array-element, 32.4-comparison, 32.4-in-switch-case
+// test-execution
 // Tests: Character literal usage in various contexts
 // Character literals work with u8 type (which maps to uint8_t in C)
 int main(void) {

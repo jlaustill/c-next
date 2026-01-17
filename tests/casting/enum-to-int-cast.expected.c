@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 22-enum-to-int-cast */
-/* test-execution */
+// test-coverage: 22-enum-to-int-cast
+// test-execution
 // Tests: Explicit enum to integer cast
 typedef enum {
     Priority_LOW = 1,

@@ -18,12 +18,14 @@ scope Timer {
         LOAD: u32 rw @ 0x04,
     }
     public void init() {
-        // Test bitmap field assignment
+       
+// Test bitmap field assignment
         this.SysTick.CTRL.ENABLE <- false;
         this.SysTick.CTRL.TICKINT <- true;
         this.SysTick.CTRL.CLKSOURCE <- true;
 
-        // Test normal register assignment
+       
+// Test normal register assignment
         this.SysTick.LOAD <- 16000;
     }
 }

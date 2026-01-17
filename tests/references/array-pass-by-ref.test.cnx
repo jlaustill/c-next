@@ -1,4 +1,6 @@
-/* test-coverage: 27-array-pass-by-ref */ /* test-execution */ // Tests: Array passed to function (pass-by-reference behavior)
+// test-coverage: 27-array-pass-by-ref
+// test-execution
+// Tests: Array passed to function (pass-by-reference behavior)
 // Function that modifies an array element
 void setElement(u32 arr[10], u32 index, u32 value) {
     arr[index] <- value;
@@ -34,7 +36,8 @@ void copyArray(u32 src[4], u32 dst[4], u32 count) {
 }
 
 u32 main() {
-    // Test setElement
+   
+// Test setElement
     u32 data[10];
     data[0] <- 100;
     data[5] <- 200;
@@ -45,7 +48,8 @@ u32 main() {
     setElement(data, 5, 888);
     if (data[5] != 888) return 2;
 
-    // Test sumArray
+   
+// Test sumArray
     u32 nums[5];
     nums[0] <- 10;
     nums[1] <- 20;
@@ -60,7 +64,8 @@ u32 main() {
     total <- sumArray(nums, 3);
     if (total != 60) return 4;
 
-    // Test zeroArray
+   
+// Test zeroArray
     u32 toZero[8];
     toZero[0] <- 1;
     toZero[1] <- 2;
@@ -73,7 +78,8 @@ u32 main() {
     if (toZero[2] != 0) return 7;
     if (toZero[3] != 0) return 8;
 
-    // Test copyArray
+   
+// Test copyArray
     u32 source[4];
     u32 dest[4];
     source[0] <- 11;

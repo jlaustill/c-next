@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-013: Const bool parameter
+// test-execution
+// ADR-013: Const bool parameter
 // Tests: const bool parameter read access
 bool readConstBool(const bool value) {
     return value;
@@ -16,27 +17,33 @@ u32 selectByBool(const bool flag, u32 ifTrue, u32 ifFalse) {
 }
 
 u32 main() {
-    // Test 1: Read true const parameter
+   
+// Test 1: Read true const parameter
     bool result <- readConstBool(true);
     if (!result) return 1;
 
-    // Test 2: Read false const parameter
+   
+// Test 2: Read false const parameter
     bool falseResult <- readConstBool(false);
     if (falseResult) return 2;
 
-    // Test 3: Negate true
+   
+// Test 3: Negate true
     bool notTrue <- notConstBool(true);
     if (notTrue) return 3;
 
-    // Test 4: Negate false
+   
+// Test 4: Negate false
     bool notFalse <- notConstBool(false);
     if (!notFalse) return 4;
 
-    // Test 5: Use const bool in selection
+   
+// Test 5: Use const bool in selection
     u32 selected <- selectByBool(true, 100, 200);
     if (selected != 100) return 5;
 
-    // Test 6: Use const bool false in selection
+   
+// Test 6: Use const bool false in selection
     u32 selected2 <- selectByBool(false, 100, 200);
     if (selected2 != 200) return 6;
 

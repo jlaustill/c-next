@@ -1,4 +1,5 @@
-/* test-execution */ // Test i8 comparison operations
+// test-execution
+// Test i8 comparison operations
 // Coverage: Section 3.1-3.6 for i8 type
 u32 main() {
     i8 a <- 50;
@@ -61,5 +62,6 @@ u32 main() {
             }
         }
     }
-    return 1; // Test failed
+    return 1;
+// Test failed
 }

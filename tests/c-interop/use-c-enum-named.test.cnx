@@ -1,12 +1,13 @@
-/* test-execution */
-/* test-coverage: 30-use-c-enum-named */
+// test-execution
+// test-coverage: 30-use-c-enum-named
 // Tests: Using named C enums (enum keyword required)
 // ADR-010: Named enum import from C headers
 
 #include "c-interop/enums.h"
 
 u32 main() {
-    // Test 1: Use enum Color values
+   
+// Test 1: Use enum Color values
     i32 red <- COLOR_RED;
     i32 green <- COLOR_GREEN;
     i32 blue <- COLOR_BLUE;
@@ -15,12 +16,14 @@ u32 main() {
     if (green != 1) return 2;
     if (blue != 2) return 3;
 
-    // Test 2: Compare with enum values
+   
+// Test 2: Compare with enum values
     i32 color <- COLOR_GREEN;
     if (color != COLOR_GREEN) return 4;
     if (color = COLOR_RED) return 5;  // Should be false
 
-    // Test 3: Enum in switch-like logic
+   
+// Test 3: Enum in switch-like logic
     color <- COLOR_BLUE;
     if (color = COLOR_RED) {
         return 6;  // Should not reach here

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for string arrays across all contexts
 // Tests: array.length returns 4 (element count), string.length returns strlen (runtime)
 char globalArr[4][65] = {0};

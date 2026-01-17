@@ -1,41 +1,49 @@
-/* test-execution */ // ADR-045: Validate string comparison operators at runtime
+// test-execution
+// ADR-045: Validate string comparison operators at runtime
 i32 main() {
-    // Test 1-3: Equal strings
+   
+// Test 1-3: Equal strings
     string<32> a <- "Hello";
     string<32> b <- "Hello";
     if (a != b) return 1; // Should be equal
     if (!(a = b)) return 2; // Explicit equality check
     if (a != "Hello") return 3; // Compare to literal
 
-    // Test 4-6: Different strings
+   
+// Test 4-6: Different strings
     string<32> c <- "World";
     if (a = c) return 4; // Should NOT be equal
     if (!(a != c)) return 5; // Explicit inequality
     if (c != "World") return 6;
 
-    // Test 7-9: Case sensitivity
+   
+// Test 7-9: Case sensitivity
     string<32> upper <- "HELLO";
     if (a = upper) return 7; // "Hello" != "HELLO"
     if (!(a != upper)) return 8;
 
-    // Test 10-12: Prefix/suffix differences
+   
+// Test 10-12: Prefix/suffix differences
     string<32> prefix <- "Hell";
     string<32> suffix <- "ello";
     if (a = prefix) return 9; // "Hello" != "Hell"
     if (a = suffix) return 10; // "Hello" != "ello"
 
-    // Test 11-12: Empty string comparisons
+   
+// Test 11-12: Empty string comparisons
     string<32> empty1;
     string<32> empty2;
     if (empty1 != empty2) return 11; // Both empty, should be equal
     if (empty1 = a) return 12; // Empty != "Hello"
 
-    // Test 13-14: Same content, different capacity
+   
+// Test 13-14: Same content, different capacity
     string<64> bigHello <- "Hello";
     if (a != bigHello) return 13; // Content should match
     if (!(a = bigHello)) return 14;
 
-    // Test 15: Literal comparison both ways
+   
+// Test 15: Literal comparison both ways
     if ("Hello" != a) return 15;
 
     return 0;

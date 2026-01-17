@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for u32 type across all contexts
 // Tests: .length returns 32 for u32 in every possible scope and access pattern
 uint32_t globalVar = 100000;

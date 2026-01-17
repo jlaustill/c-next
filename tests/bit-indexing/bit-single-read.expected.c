@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-007: Single bit read
 // Tests: reading individual bits from integer
 int main(void) {

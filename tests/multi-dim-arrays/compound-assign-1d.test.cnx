@@ -15,7 +15,8 @@ i32 main() {
     data[8] <- 8;
     data[9] <- 128;
 
-    // Test all compound assignment operators on array elements
+   
+// Test all compound assignment operators on array elements
     data[0] +<- 25; // 100 + 25 = 125
     data[1] -<- 15; // 50 - 15 = 35
     data[2] *<- 7; // 10 * 7 = 70

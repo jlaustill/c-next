@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // ADR-010: C Interoperability - Include passthrough
 // Tests: #include directives pass through to generated C
 #include <stdio.h>

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-execution */
-/* test-coverage: 2.3-global-member, 2.4-global-member, 2.5-global-member, 2.6-global-member, 2.7-global-member, 2.8-global-member, 2.9-global-member, 2.10-global-member, 2.11-global-member */
+// test-execution
+// test-coverage: 2.3-global-member, 2.4-global-member, 2.5-global-member, 2.6-global-member, 2.7-global-member, 2.8-global-member, 2.9-global-member, 2.10-global-member, 2.11-global-member
 // Tests: All compound assignment operators with global.member syntax
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on global members from within scope
 // Note: +<- is already tested in scope/global-compound-assign.test.cnx

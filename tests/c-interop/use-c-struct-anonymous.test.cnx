@@ -1,19 +1,21 @@
 // NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
-/* test-coverage: 30-use-c-struct-anonymous */
+// test-coverage: 30-use-c-struct-anonymous
 // Tests: Using anonymous C structs with typedef
 // ADR-010: Anonymous struct typedef import from C headers
 
 #include "c-interop/structs.h"
 
 u32 main() {
-    // Test 1: Use SimpleRecord (anonymous struct with typedef)
+   
+// Test 1: Use SimpleRecord (anonymous struct with typedef)
     SimpleRecord sr;
     sr.id <- 99999;
     sr.flags <- 0x1234;
     if (sr.id != 99999) return 1;
     if (sr.flags != 0x1234) return 2;
 
-    // Test 2: Use DataBuffer with array field
+   
+// Test 2: Use DataBuffer with array field
     DataBuffer buf;
     buf.length <- 5;
     buf.data[0] <- 0x11;
@@ -26,7 +28,8 @@ u32 main() {
     if (buf.data[0] != 0x11) return 4;
     if (buf.data[4] != 0x55) return 5;
 
-    // Test 3: Use MixedTypes struct
+   
+// Test 3: Use MixedTypes struct
     MixedTypes mt;
     mt.active <- true;
     mt.byte_val <- 255;
@@ -40,7 +43,8 @@ u32 main() {
     if (mt.dword_val != 100000) return 9;
     if (mt.signed_val != -50000) return 10;
 
-    // Test 4: Field type sizes
+   
+// Test 4: Field type sizes
     if (mt.byte_val.length != 8) return 11;
     if (mt.word_val.length != 16) return 12;
     if (mt.dword_val.length != 32) return 13;

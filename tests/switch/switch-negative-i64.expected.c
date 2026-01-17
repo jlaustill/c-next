@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #107: Negative Case Labels - i64 Type
 // Tests: negative literals with i64 switch expressions
 // Note: Avoids INT64_MIN/MAX due to JS parseInt precision limits in duplicate detection

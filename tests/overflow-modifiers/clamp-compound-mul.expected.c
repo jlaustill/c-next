@@ -58,8 +58,8 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
     return a * (uint8_t)b;
 }
 
-/* test-execution */
-/* test-coverage: 21.1-compound-mul */
+// test-execution
+// test-coverage: 21.1-compound-mul
 // Tests: clamp modifier with compound multiplication (*<-)
 // Validates multiplication overflow clamps to type max
 // ADR-044: Per-variable overflow semantics

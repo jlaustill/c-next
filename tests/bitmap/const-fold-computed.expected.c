@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Tests: Computed expressions in loops should NOT be constant-folded
 // Issue #200: Only literal true/false should fold to 1/0
 //

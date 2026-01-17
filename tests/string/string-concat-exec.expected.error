@@ -1,2 +1,2 @@
-33:39 error[E0381]: use of uninitialized variable 'empty'
-38:29 error[E0381]: use of uninitialized variable 'empty'
+39:39 error[E0381]: use of uninitialized variable 'empty'
+45:29 error[E0381]: use of uninitialized variable 'empty'

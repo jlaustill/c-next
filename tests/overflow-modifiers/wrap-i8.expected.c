@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: wrap modifier for i8 type (-128 to 127)
 // Validates: overflow wraps to -128, underflow wraps to 127
 // Issue #19: Add wrap modifier tests for all integer types

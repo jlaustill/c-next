@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-013: Const f32 parameter
+// test-execution
+// ADR-013: Const f32 parameter
 // Tests: const f32 parameter read access
 f32 readConstF32(const f32 value) {
     return value;
@@ -9,22 +10,26 @@ f32 doubleConstF32(const f32 value) {
 }
 
 u32 main() {
-    // Test 1: Read const parameter
+   
+// Test 1: Read const parameter
     f32 result <- readConstF32(3.14);
     if (result < 3.13) return 1;
     if (result > 3.15) return 2;
 
-    // Test 2: Read negative const parameter
+   
+// Test 2: Read negative const parameter
     f32 negResult <- readConstF32(-2.5);
     if (negResult > -2.4) return 3;
     if (negResult < -2.6) return 4;
 
-    // Test 3: Double a const value
+   
+// Test 3: Double a const value
     f32 doubled <- doubleConstF32(1.5);
     if (doubled < 2.9) return 5;
     if (doubled > 3.1) return 6;
 
-    // Test 4: Pass variable to const parameter
+   
+// Test 4: Pass variable to const parameter
     f32 myValue <- 9.81;
     f32 readBack <- readConstF32(myValue);
     if (readBack < 9.8) return 7;

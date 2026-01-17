@@ -15,7 +15,7 @@ static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
     return (int16_t)result;
 }
 
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional i8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: temperature sensors, small signed offsets, delta values

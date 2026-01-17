@@ -1,7 +1,9 @@
-/* test-execution */ // Tests: break in nested loops
+// test-execution
+// Tests: break in nested loops
 // Validates: break only exits innermost loop
 u32 main() {
-    // Test 1: Break inner for loop
+   
+// Test 1: Break inner for loop
     u32 outerCount <- 0;
     u32 innerBreaks <- 0;
     for (u32 i <- 0; i < 5; i +<- 1) {
@@ -18,7 +20,8 @@ u32 main() {
     if (outerCount != 5) return 1;
     if (innerBreaks != 5) return 2;
 
-    // Test 2: Break inner while loop
+   
+// Test 2: Break inner while loop
     u32 outerIter <- 0;
     u32 innerSum <- 0;
     u32 a <- 0;
@@ -41,7 +44,8 @@ u32 main() {
     // Inner sums 0+1+2+3+4 = 10 per outer iteration = 30 total
     if (innerSum != 30) return 4;
 
-    // Test 3: For loop inside while loop with break
+   
+// Test 3: For loop inside while loop with break
     u32 whileRuns <- 0;
     u32 forBreaks <- 0;
     u32 c <- 0;
@@ -58,7 +62,8 @@ u32 main() {
     if (whileRuns != 4) return 5;
     if (forBreaks != 4) return 6;
 
-    // Test 4: While loop inside for loop with break
+   
+// Test 4: While loop inside for loop with break
     u32 forRuns <- 0;
     u32 whileBreaks <- 0;
     for (u32 e <- 0; e < 3; e +<- 1) {
@@ -75,7 +80,8 @@ u32 main() {
     if (forRuns != 3) return 7;
     if (whileBreaks != 3) return 8;
 
-    // Test 5: Do-while nested in for with break
+   
+// Test 5: Do-while nested in for with break
     u32 doBreaks <- 0;
     for (u32 g <- 0; g < 2; g +<- 1) {
         u32 h <- 0;
@@ -89,7 +95,8 @@ u32 main() {
     }
     if (doBreaks != 2) return 9;
 
-    // Test 6: Three level nesting with break in innermost
+   
+// Test 6: Three level nesting with break in innermost
     u32 level1 <- 0;
     u32 level2 <- 0;
     u32 level3Breaks <- 0;

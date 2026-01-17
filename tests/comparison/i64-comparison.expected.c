@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test i64 comparison operations
 // Coverage: Section 3.1-3.6 for i64 type
 int main(void) {

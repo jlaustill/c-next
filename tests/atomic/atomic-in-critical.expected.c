@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-coverage: 20-atomic-in-critical */
+// test-coverage: 20-atomic-in-critical
 // Tests: atomic operations inside critical sections
 // Note: Compilation test only - ARM-specific code
 

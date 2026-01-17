@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Verify bit manipulation operations still work correctly
 // Ensures that slice assignment fix doesn't break existing bit-range operations
 // Bit operations on scalar integers should use bit manipulation, not memcpy

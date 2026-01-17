@@ -1,7 +1,9 @@
-/* test-execution */ // ADR-045: Test chained/nested string operations
+// test-execution
+// ADR-045: Test chained/nested string operations
 // Validates: operations on results of other operations
 i32 main() {
-    // Test 1-3: Length of concatenation result
+   
+// Test 1-3: Length of concatenation result
     string<32> a <- "Hello";
     string<32> b <- " World";
     string<64> concat <- a + b;
@@ -9,28 +11,32 @@ i32 main() {
     if (concat.capacity != 64) return 2;
     if (concat.size != 65) return 3;
 
-    // Test 4-6: Length of substring result
+   
+// Test 4-6: Length of substring result
     string<64> source <- "Hello, World!";
     string<5> sub <- source[0, 5];
     if (sub.length != 5) return 4;
     if (sub.capacity != 5) return 5;
     if (sub != "Hello") return 6;
 
-    // Test 7-9: Comparison after concatenation
+   
+// Test 7-9: Comparison after concatenation
     string<32> first <- "AB";
     string<32> second <- "CD";
     string<64> combined <- first + second;
     if (combined != "ABCD") return 7;
     if (combined.length != 4) return 8;
 
-    // Test 10-12: Substring of a string with specific content
+   
+// Test 10-12: Substring of a string with specific content
     string<20> text <- "Testing123";
     string<7> letters <- text[0, 7];
     if (letters != "Testing") return 9;
     string<3> numbers <- text[7, 3];
     if (numbers != "123") return 10;
 
-    // Test 13-15: Multiple property accesses
+   
+// Test 13-15: Multiple property accesses
     string<64> msg <- "Example";
     u32 len <- msg.length;
     u32 cap <- msg.capacity;
@@ -39,7 +45,8 @@ i32 main() {
     if (cap != 64) return 12;
     if (sz != 65) return 13;
 
-    // Test 16-17: Concatenation followed by comparison
+   
+// Test 16-17: Concatenation followed by comparison
     string<16> prefix <- "pre";
     string<16> suffix <- "fix";
     string<32> word <- prefix + suffix;

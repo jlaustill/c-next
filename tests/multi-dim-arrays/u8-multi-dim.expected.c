@@ -13,7 +13,7 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     return a + (uint16_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional u8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: small data buffers, pixel data, byte arrays

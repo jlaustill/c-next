@@ -1,2 +1,2 @@
-25:18 error[E0381]: use of uninitialized variable 'p.handler'
-29:14 error[E0381]: use of uninitialized variable 'p.handler'
+27:18 error[E0381]: use of uninitialized variable 'p.handler'
+32:14 error[E0381]: use of uninitialized variable 'p.handler'

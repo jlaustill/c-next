@@ -1,4 +1,5 @@
-/* test-execution */ // Tests: u64 compound assignment operators
+// test-execution
+// Tests: u64 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 u32 main() {

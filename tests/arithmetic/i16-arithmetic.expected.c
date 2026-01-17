@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test i16 arithmetic operations
 // Coverage: Section 4.1-4.5 for i16 type
 int main(void) {

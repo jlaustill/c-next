@@ -29,7 +29,7 @@ static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
     return a - b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: i64 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

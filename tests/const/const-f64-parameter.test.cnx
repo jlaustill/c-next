@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-013: Const f64 parameter
+// test-execution
+// ADR-013: Const f64 parameter
 // Tests: const f64 parameter read access
 f64 readConstF64(const f64 value) {
     return value;
@@ -9,22 +10,26 @@ f64 squareConstF64(const f64 value) {
 }
 
 u32 main() {
-    // Test 1: Read const parameter
+   
+// Test 1: Read const parameter
     f64 result <- readConstF64(3.14159265);
     if (result < 3.14159) return 1;
     if (result > 3.1416) return 2;
 
-    // Test 2: Read negative const parameter
+   
+// Test 2: Read negative const parameter
     f64 negResult <- readConstF64(-2.71828);
     if (negResult > -2.718) return 3;
     if (negResult < -2.719) return 4;
 
-    // Test 3: Square a const value
+   
+// Test 3: Square a const value
     f64 squared <- squareConstF64(2.0);
     if (squared < 3.9) return 5;
     if (squared > 4.1) return 6;
 
-    // Test 4: Pass variable to const parameter
+   
+// Test 4: Pass variable to const parameter
     f64 myValue <- 1.41421356;
     f64 readBack <- readConstF64(myValue);
     if (readBack < 1.414) return 7;

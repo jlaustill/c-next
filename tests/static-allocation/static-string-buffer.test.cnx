@@ -1,4 +1,5 @@
-/* test-execution */ // ADR-003/ADR-045: Static string buffer allocation
+// test-execution
+// ADR-003/ADR-045: Static string buffer allocation
 // Tests: global string buffers with known sizes are valid
 // Issues #138 and #139 fixed: string assignment now works correctly
 string<64> messageBuffer <- "Initial";
@@ -24,38 +25,46 @@ void setDefaultMessage() {
 }
 
 u32 main() {
-    // Test 1: Global string buffers are initialized correctly
+   
+// Test 1: Global string buffers are initialized correctly
     if (messageBuffer.length != 7) return 1; // "Initial"
     if (logBuffer.length != 13) return 2; // "Log entry one"
 
-    // Test 2: Content comparison
+   
+// Test 2: Content comparison
     if (messageBuffer != "Initial") return 3;
     if (logBuffer != "Log entry one") return 4;
 
-    // Test 3: Capacity is correct
+   
+// Test 3: Capacity is correct
     if (messageBuffer.capacity != 64) return 5;
     if (logBuffer.capacity != 128) return 6;
 
-    // Test 4: Size is correct (capacity + 1)
+   
+// Test 4: Size is correct (capacity + 1)
     if (messageBuffer.size != 65) return 7;
     if (logBuffer.size != 129) return 8;
 
-    // Test 5: Access length via function
+   
+// Test 5: Access length via function
     if (getMessageLength() != 7) return 9;
     if (getLogLength() != 13) return 10;
 
-    // Test 6: Modify global buffer directly (issue #139)
+   
+// Test 6: Modify global buffer directly (issue #139)
     messageBuffer <- "Modified";
     if (messageBuffer.length != 8) return 11;
     if (messageBuffer != "Modified") return 12;
 
-    // Test 7: Copy from parameter (issue #138)
+   
+// Test 7: Copy from parameter (issue #138)
     string<64> source <- "FromParam";
     copyMessage(source);
     if (messageBuffer.length != 9) return 13;
     if (messageBuffer != "FromParam") return 14;
 
-    // Test 8: Set from literal in function (issue #139)
+   
+// Test 8: Set from literal in function (issue #139)
     setDefaultMessage();
     if (messageBuffer.length != 12) return 15;
     if (messageBuffer != "DefaultValue") return 16;

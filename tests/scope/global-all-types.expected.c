@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 global. accessor with all primitive types
 // Verifies that global. works correctly with every C-Next primitive type inside scope methods
 // Unsigned integer globals

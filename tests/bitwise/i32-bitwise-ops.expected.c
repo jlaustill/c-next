@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 5.1-i32-and, 5.2-i32-or, 5.3-i32-xor, 5.4-i32-not */
-/* test-execution */
+// test-coverage: 5.1-i32-and, 5.2-i32-or, 5.3-i32-xor, 5.4-i32-not
+// test-execution
 // Test i32 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i32 type
 int main(void) {

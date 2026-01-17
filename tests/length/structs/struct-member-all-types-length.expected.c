@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for struct members of all primitive types
 // Tests: .length returns correct bit width for each struct member type
 typedef struct {

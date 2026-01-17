@@ -1,35 +1,43 @@
-/* test-execution */ /* test-coverage: 30a-local-volatile */ // Tests: Local volatile variable in function scope
+// test-execution
+// test-coverage: 30a-local-volatile
+// Tests: Local volatile variable in function scope
 // ADR-108: Volatile keyword for delay loops and optimization prevention
 u32 main() {
-    // Test 1: Local volatile declaration
+   
+// Test 1: Local volatile declaration
     volatile u32 counter <- 0;
     if (counter != 0) return 1;
 
-    // Test 2: Assign to local volatile
+   
+// Test 2: Assign to local volatile
     counter <- 100;
     if (counter != 100) return 2;
 
-    // Test 3: Increment local volatile (delay loop pattern)
+   
+// Test 3: Increment local volatile (delay loop pattern)
     volatile u32 i <- 0;
     while (i < 10) {
         i +<- 1;
     }
     if (i != 10) return 3;
 
-    // Test 4: Decrement pattern
+   
+// Test 4: Decrement pattern
     volatile u32 countdown <- 5;
     while (countdown > 0) {
         countdown -<- 1;
     }
     if (countdown != 0) return 4;
 
-    // Test 5: Multiple local volatiles
+   
+// Test 5: Multiple local volatiles
     volatile u8 a <- 10;
     volatile u8 b <- 20;
     volatile u8 c <- a + b;
     if (c != 30) return 5;
 
-    // Test 6: Volatile in for loop (ADR-108 pattern)
+   
+// Test 6: Volatile in for loop (ADR-108 pattern)
     volatile u32 loop_count <- 0;
     for (volatile u32 j <- 0; j < 5; j +<- 1) {
         loop_count +<- 1;

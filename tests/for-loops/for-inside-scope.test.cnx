@@ -41,7 +41,8 @@ scope ArrayOps {
 }
 
 void main() {
-    // Test for loop inside scope method
+   
+// Test for loop inside scope method
     Calculator.sumToN(5);
     globalSum <- Calculator.getResult();
 

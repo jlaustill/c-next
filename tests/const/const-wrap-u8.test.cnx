@@ -1,19 +1,23 @@
-/* test-execution */ // ADR-013 + ADR-044: Const wrap u8 combination
+// test-execution
+// ADR-013 + ADR-044: Const wrap u8 combination
 // Tests: const wrap u8 declaration and read access
 const wrap u8 FULL_CYCLE <- 255;
 
 const wrap u8 HALF_CYCLE <- 128;
 
 u32 main() {
-    // Test 1: Read const wrap into local
+   
+// Test 1: Read const wrap into local
     u8 full <- FULL_CYCLE;
     if (full != 255) return 1;
 
-    // Test 2: Read second const wrap
+   
+// Test 2: Read second const wrap
     u8 half <- HALF_CYCLE;
     if (half != 128) return 2;
 
-    // Test 3: Use const wrap in arithmetic
+   
+// Test 3: Use const wrap in arithmetic
     u8 quarter <- HALF_CYCLE / 2;
     if (quarter != 64) return 3;
 

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 5.5-i32-left-shift, 5.6-i32-right-shift-arithmetic */
-/* test-execution */
+// test-coverage: 5.5-i32-left-shift, 5.6-i32-right-shift-arithmetic
+// test-execution
 // Test i32 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i32 type (ADR-044)
 int main(void) {

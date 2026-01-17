@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Runtime bounds checking for slice assignment
 // Validates that out-of-bounds copies are prevented
 // Buffer should remain unchanged when bounds are violated

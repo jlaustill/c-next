@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Reproduces issue #68: Real-world serialization pattern
 // Bug: config.magic.length evaluates to 0 instead of 32
 typedef struct {

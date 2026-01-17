@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test i8 arithmetic operations
 // Coverage: Section 4.1-4.5 for i8 type
 int main(void) {

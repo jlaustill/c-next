@@ -14,8 +14,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-coverage: 33.2-for-inside-if */
-/* test-execution */
+// test-coverage: 33.2-for-inside-if
+// test-execution
 // Coverage: Section 7.4, 33.2 - for loop inside if statement
 // Tests: for loops nested inside if/else branches
 int main(void) {

@@ -29,7 +29,7 @@ static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
     return (int8_t)result;
 }
 
-/* test-execution */
+// test-execution
 // Tests: i8 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

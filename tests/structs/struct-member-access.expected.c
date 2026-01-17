@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-014: Struct member access
 // Tests: reading and writing struct members
 typedef struct {
