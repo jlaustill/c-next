@@ -29,8 +29,8 @@ interface IProjectConfig {
   /** Additional preprocessor defines */
   defines?: Record<string, string | boolean>;
 
-  /** Output file extension (default: ".c") */
-  outputExtension?: ".c" | ".cpp";
+  /** Issue #211: Force C++ output. Auto-detection may also enable this. */
+  cppRequired?: boolean;
 
   /** Issue #183: Disable symbol caching (default: false = cache enabled) */
   noCache?: boolean;

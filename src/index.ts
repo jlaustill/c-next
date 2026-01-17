@@ -25,7 +25,8 @@ const packageJson = require("../package.json");
  * C-Next configuration file options
  */
 interface ICNextConfig {
-  outputExtension?: ".c" | ".cpp";
+  /** Issue #211: Force C++ output. Auto-detection may also enable this. */
+  cppRequired?: boolean;
   generateHeaders?: boolean;
   debugMode?: boolean;
   target?: string; // ADR-049: Target platform (e.g., "teensy41", "cortex-m0")
@@ -130,7 +131,7 @@ function showHelp(): void {
   console.log("  cnext.config.json, .cnext.json, .cnextrc");
   console.log("");
   console.log("Config example:");
-  console.log('  { "outputExtension": ".cpp" }');
+  console.log('  { "cppRequired": true }');
   console.log("");
   console.log("A safer C for embedded systems development.");
 }
@@ -188,7 +189,7 @@ async function runUnifiedMode(
   generateHeaders: boolean,
   preprocess: boolean,
   verbose: boolean,
-  outputExtension: ".c" | ".cpp",
+  cppRequired: boolean,
   noCache: boolean,
 ): Promise<void> {
   // Step 1: Expand directories to .cnx files
@@ -257,7 +258,7 @@ async function runUnifiedMode(
     generateHeaders,
     preprocess,
     defines,
-    outputExtension,
+    cppRequired,
     noCache,
   });
 
@@ -466,7 +467,7 @@ async function main(): Promise<void> {
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
   let cliGenerateHeaders: boolean | undefined;
-  let cliOutputExtension: ".c" | ".cpp" | undefined;
+  let cliCppRequired: boolean | undefined;
   let preprocess = true;
   let verbose = false;
   let noCache = false;
@@ -483,7 +484,7 @@ async function main(): Promise<void> {
     } else if (arg === "--exclude-headers") {
       cliGenerateHeaders = false;
     } else if (arg === "--cpp") {
-      cliOutputExtension = ".cpp";
+      cliCppRequired = true;
     } else if (arg === "--no-preprocess") {
       preprocess = false;
     } else if (arg === "--no-cache") {
@@ -508,7 +509,7 @@ async function main(): Promise<void> {
 
   // Apply config defaults, CLI flags take precedence
   const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
-  const outputExtension = cliOutputExtension ?? config.outputExtension ?? ".c";
+  const cppRequired = cliCppRequired ?? config.cppRequired ?? false;
 
   // Unified mode - always use Project class with header discovery
   if (inputFiles.length === 0) {
@@ -525,7 +526,7 @@ async function main(): Promise<void> {
     generateHeaders,
     preprocess,
     verbose,
-    outputExtension,
+    cppRequired,
     noCache,
   );
 }

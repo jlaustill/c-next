@@ -23,8 +23,8 @@ interface IPipelineConfig {
   /** Whether to generate .h files for exported symbols (default: true) */
   generateHeaders?: boolean;
 
-  /** Output file extension (default: ".c") */
-  outputExtension?: ".c" | ".cpp";
+  /** Issue #211: Force C++ output (--cpp flag). Auto-detection may also enable this. */
+  cppRequired?: boolean;
 
   /** Parse only mode - no code generation */
   parseOnly?: boolean;

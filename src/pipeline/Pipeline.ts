@@ -56,6 +56,8 @@ class Pipeline {
   private headerGenerator: HeaderGenerator;
   private warnings: string[];
   private cacheManager: CacheManager | null;
+  /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
+  private cppDetected: boolean;
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -66,13 +68,16 @@ class Pipeline {
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
       generateHeaders: config.generateHeaders ?? true,
-      outputExtension: config.outputExtension ?? ".c",
+      cppRequired: config.cppRequired ?? false,
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
       target: config.target ?? "",
       collectGrammarCoverage: config.collectGrammarCoverage ?? false,
       noCache: config.noCache ?? false,
     };
+
+    // Issue #211: Initialize cppDetected from config (--cpp flag sets this)
+    this.cppDetected = this.config.cppRequired;
 
     this.symbolTable = new SymbolTable();
     this.preprocessor = new Preprocessor();
@@ -317,7 +322,20 @@ class Pipeline {
         this.symbolTable.restoreStructFields(cached.structFields);
         this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
         this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
-        return; // Cache hit - skip parsing
+
+        // Issue #211: Still check for C++ syntax even on cache hit
+        // The detection is cheap (regex only) and ensures cppDetected is set correctly
+        if (file.type === EFileType.CHeader) {
+          const content = readFileSync(file.path, "utf-8");
+          if (detectCppSyntax(content)) {
+            this.cppDetected = true;
+          }
+        } else if (file.type === EFileType.CppHeader) {
+          // .hpp files are always C++
+          this.cppDetected = true;
+        }
+
+        return; // Cache hit - skip full parsing
       }
     }
 
@@ -347,6 +365,8 @@ class Pipeline {
     if (file.type === EFileType.CHeader) {
       this.parseCHeader(content, file.path);
     } else if (file.type === EFileType.CppHeader) {
+      // Issue #211: .hpp files are always C++
+      this.cppDetected = true;
       this.parseCppHeader(content, file.path);
     }
 
@@ -374,6 +394,8 @@ class Pipeline {
    */
   private parseCHeader(content: string, filePath: string): void {
     if (detectCppSyntax(content)) {
+      // Issue #211: C++ detected, set flag for .cpp output
+      this.cppDetected = true;
       // Use C++14 parser for headers with C++ syntax (typed enums, classes, etc.)
       this.parseCppHeader(content, filePath);
     } else {
@@ -580,7 +602,8 @@ class Pipeline {
    * Get output path for a file
    */
   private getOutputPath(file: IDiscoveredFile): string {
-    const ext = this.config.outputExtension;
+    // Issue #211: Derive extension from cppDetected flag
+    const ext = this.cppDetected ? ".cpp" : ".c";
     const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
 
     // Check if file is in any input directory (for preserving structure)
