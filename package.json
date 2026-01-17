@@ -34,7 +34,10 @@
     "coverage:ids": "tsx scripts/coverage-checker.ts ids",
     "coverage:grammar": "tsx scripts/grammar-coverage.ts report",
     "coverage:grammar:check": "tsx scripts/grammar-coverage.ts check",
-    "coverage:grammar:console": "tsx scripts/grammar-coverage.ts console"
+    "coverage:grammar:console": "tsx scripts/grammar-coverage.ts console",
+    "unit": "vitest run",
+    "unit:watch": "vitest",
+    "test:all": "npm run unit && npm test"
   },
   "keywords": [
     "c",
@@ -67,11 +70,10 @@
     "@types/node": "^25.0.3",
     "antlr4ng-cli": "^2.0.0",
     "husky": "^9.1.7",
-    "jest": "^30.2.0",
     "lint-staged": "^16.2.7",
     "oxlint": "^1.39.0",
     "prettier": "^3.7.4",
-    "ts-jest": "^29.4.6"
+    "vitest": "^3.0.0"
   },
   "dependencies": {
     "antlr4ng": "^3.0.16",

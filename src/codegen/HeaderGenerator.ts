@@ -8,25 +8,9 @@ import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "../symbols/SymbolTable";
 import IHeaderOptions from "./types/IHeaderOptions";
+import typeUtils from "./headerGenerators/mapType";
 
-/**
- * Maps C-Next types to C types
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-  void: "void",
-  ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
-};
+const { TYPE_MAP, mapType } = typeUtils;
 
 /**
  * Generates C header files from symbol information
@@ -138,7 +122,7 @@ class HeaderGenerator {
       lines.push("/* Type aliases */");
       for (const sym of types) {
         if (sym.type) {
-          const cType = this.mapType(sym.type);
+          const cType = mapType(sym.type);
           lines.push(`typedef ${cType} ${sym.name};`);
         }
       }
@@ -149,7 +133,7 @@ class HeaderGenerator {
     if (variables.length > 0) {
       lines.push("/* External variables */");
       for (const sym of variables) {
-        const cType = sym.type ? this.mapType(sym.type) : "int";
+        const cType = sym.type ? mapType(sym.type) : "int";
         lines.push(`extern ${cType} ${sym.name};`);
       }
       lines.push("");
@@ -225,46 +209,19 @@ class HeaderGenerator {
   }
 
   /**
-   * Map a C-Next type to C type
-   */
-  private mapType(type: string): string {
-    // Check direct mapping first
-    if (TYPE_MAP[type]) {
-      return TYPE_MAP[type];
-    }
-
-    // Handle pointer types
-    if (type.endsWith("*")) {
-      const baseType = type.slice(0, -1).trim();
-      return `${this.mapType(baseType)}*`;
-    }
-
-    // Handle array types (simplified)
-    const arrayMatch = type.match(/^(\w+)\[(\d*)\]$/);
-    if (arrayMatch) {
-      const baseType = this.mapType(arrayMatch[1]);
-      const size = arrayMatch[2] || "";
-      return `${baseType}[${size}]`;
-    }
-
-    // User-defined types pass through
-    return type;
-  }
-
-  /**
    * Generate a function prototype from symbol info
    * Handles all parameter edge cases per ADR-006, ADR-029, and ADR-040
    */
   private generateFunctionPrototype(sym: ISymbol): string | null {
     // Map return type from C-Next to C
-    const returnType = sym.type ? this.mapType(sym.type) : "void";
+    const returnType = sym.type ? mapType(sym.type) : "void";
 
     // Build parameter list with proper C semantics
     let params = "void"; // Default for no parameters
 
     if (sym.parameters && sym.parameters.length > 0) {
       const translatedParams = sym.parameters.map((p) => {
-        const baseType = this.mapType(p.type);
+        const baseType = mapType(p.type);
         const constMod = p.isConst ? "const " : "";
 
         // Handle array parameters (pass naturally as pointers per C semantics)
