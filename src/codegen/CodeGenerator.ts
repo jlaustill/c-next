@@ -6693,6 +6693,33 @@ export default class CodeGenerator implements IOrchestrator {
           continue; // Skip further processing, this just sets the base identifier
         }
 
+        // Issue #212: Check if 'length' is a scope variable before treating it as a property accessor
+        // When accessing this.length, we need to check if 'length' is a scope variable name
+        // If so, transform it to the scope variable (e.g., Scope_length) instead of treating
+        // it as the .length property accessor
+        if (result === "__THIS_SCOPE__" && memberName === "length") {
+          if (!this.context.currentScope) {
+            throw new Error("Error: 'this' can only be used inside a scope");
+          }
+          const members = this.context.scopeMembers.get(
+            this.context.currentScope,
+          );
+          if (members && members.has("length")) {
+            // This is a scope variable named 'length', not a property accessor
+            result = `${this.context.currentScope}_${memberName}`;
+            currentIdentifier = result;
+            // Set struct type for chained access if applicable
+            const resolvedTypeInfo = this.context.typeRegistry.get(result);
+            if (
+              resolvedTypeInfo &&
+              this.isKnownStruct(resolvedTypeInfo.baseType)
+            ) {
+              currentStructType = resolvedTypeInfo.baseType;
+            }
+            continue; // Skip the .length property handler
+          }
+        }
+
         // Handle .length property for arrays, strings, and integers
         if (memberName === "length") {
           // Special case: main function's args.length -> argc
