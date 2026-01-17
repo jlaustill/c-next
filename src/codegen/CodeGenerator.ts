@@ -5592,10 +5592,12 @@ export default class CodeGenerator implements IOrchestrator {
 
       // ADR-040: ISR arrays use normal array indexing, not bit manipulation
       // Also handle any array type that isn't an integer scalar
+      // Issue #213: String parameters (isString=true) should also use memcpy for slice assignment
       const isActualArray =
-        typeInfo?.isArray &&
-        typeInfo.arrayDimensions &&
-        typeInfo.arrayDimensions.length > 0;
+        (typeInfo?.isArray &&
+          typeInfo.arrayDimensions &&
+          typeInfo.arrayDimensions.length > 0) ||
+        typeInfo?.isString;
       const isISRType = typeInfo?.baseType === "ISR";
 
       if (isActualArray || isISRType) {
@@ -5617,6 +5619,16 @@ export default class CodeGenerator implements IOrchestrator {
 
           // Generate bounds-checked memcpy
           // if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &value, length); }
+          // Issue #213: For string parameters, use capacity for bounds checking
+          // since sizeof(char*) gives pointer size, not buffer size
+          if (
+            typeInfo?.isString &&
+            typeInfo.stringCapacity &&
+            !typeInfo.isArray
+          ) {
+            const capacity = typeInfo.stringCapacity + 1;
+            return `if (${offset} + ${length} <= ${capacity}) { memcpy(&${name}[${offset}], &${value}, ${length}); }`;
+          }
           return `if (${offset} + ${length} <= sizeof(${name})) { memcpy(&${name}[${offset}], &${value}, ${length}); }`;
         }
 
