@@ -81,7 +81,8 @@ scope AtomicTest {
 }
 
 void main() {
-    // Test reading atomic values via this. accessor
+   
+// Test reading atomic values via this. accessor
     AtomicTest.getCounterU8();
     AtomicTest.getCounterU16();
     AtomicTest.getCounterU32();
@@ -89,19 +90,23 @@ void main() {
     AtomicTest.getPosition();
     AtomicTest.getTicks();
 
-    // Test atomic increment operations
+   
+// Test atomic increment operations
     AtomicTest.incrementU8();
     AtomicTest.incrementU16();
     AtomicTest.incrementU32();
 
-    // Test atomic decrement operations
+   
+// Test atomic decrement operations
     AtomicTest.decrementBrightness();
     AtomicTest.decrementPosition();
 
-    // Test atomic bitwise operations
+   
+// Test atomic bitwise operations
     AtomicTest.maskTicks();
     AtomicTest.setTickFlag();
 
-    // Test combined increments
+   
+// Test combined increments
     AtomicTest.incrementAll();
 }

@@ -29,7 +29,7 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
-/* test-execution */
+// test-execution
 // Tests: i32 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

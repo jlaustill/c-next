@@ -14,7 +14,7 @@ static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
     return a + b;
 }
 
-/* test-execution */
+// test-execution
 // For loop tests: i64 as loop counter
 // Tests: i64 type can be used as for-loop counter
 int main(void) {

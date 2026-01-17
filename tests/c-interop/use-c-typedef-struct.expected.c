@@ -4,7 +4,7 @@
  */
 
 // NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
-/* test-coverage: 30-use-c-typedef-struct */
+// test-coverage: 30-use-c-typedef-struct
 // Tests: Using C typedef'd struct types from header
 // ADR-010: Struct typedef import from C headers
 #include "c-interop/typedefs.h"

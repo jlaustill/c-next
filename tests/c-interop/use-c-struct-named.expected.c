@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
-/* test-coverage: 31-use-c-struct-named */
+// test-execution
+// test-coverage: 31-use-c-struct-named
 // Tests: Using non-typedef'd C structs (Issue #196 Bug 3)
 // In C, 'struct NamedPoint' is declared but not typedef'd
 // Generated C must emit 'struct NamedPoint' not just 'NamedPoint'

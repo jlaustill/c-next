@@ -1,25 +1,24 @@
-/* test-coverage: 12-w1s-access-modifier */
+// test-coverage: 12-w1s-access-modifier
 // Tests: Write-1-to-Set register access modifier
 // Writing 1 to a bit sets it, writing 0 has no effect
-
 register GPIO @ 0x40000000 {
-    DR:        u32 rw  @ 0x00,
-    DR_SET:    u32 w1s @ 0x84,  // Write-1-to-set
-    DR_CLEAR:  u32 w1c @ 0x88,  // Write-1-to-clear
-    DR_TOGGLE: u32 wo  @ 0x8C,
+    DR: u32 rw @ 0x00,
+    DR_SET: u32 w1s @ 0x84, // Write-1-to-set
+    DR_CLEAR: u32 w1c @ 0x88, // Write-1-to-clear
+    DR_TOGGLE: u32 wo @ 0x8C,
 }
 
 register CTRL @ 0x40001000 {
-    ENABLE: u32 w1s @ 0x00,  // Write-1-to-set enable bits
-    FLAGS:  u32 w1s @ 0x04,  // Write-1-to-set flags
+    ENABLE: u32 w1s @ 0x00, // Write-1-to-set enable bits
+    FLAGS: u32 w1s @ 0x04, // Write-1-to-set flags
 }
 
 void setGpioBit(u8 pin) {
-    GPIO.DR_SET[pin] <- true;  // Set specific pin
+    GPIO.DR_SET[pin] <- true; // Set specific pin
 }
 
 void setGpioMask(u32 mask) {
-    GPIO.DR_SET <- mask;  // Set multiple pins
+    GPIO.DR_SET <- mask; // Set multiple pins
 }
 
 void enableFeature(u8 feature) {
@@ -37,12 +36,12 @@ void main() {
     setGpioBit(15);
 
     // Set multiple GPIOs at once
-    setGpioMask(0x00FF);  // Set pins 0-7
+    setGpioMask(0x00FF); // Set pins 0-7
 
     // Enable features
     enableFeature(0);
     enableFeature(3);
 
     // Set multiple flags
-    setFlags(0x0F);  // Set flags 0-3
+    setFlags(0x0F); // Set flags 0-3
 }

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Minimal test for Issue #202: Bitmap .length returns 0 instead of bit width
 // Tests: bitmap8 variable .length should return 8
 /* Bitmap: Flags */

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 27-multiple-output-params */
-/* test-execution */
+// test-coverage: 27-multiple-output-params
+// test-execution
 // Tests: Function with multiple output parameters
 // Divides a by b, returns quotient and remainder via output params
 void divmod(uint32_t* a, uint32_t* b, uint32_t* quotient, uint32_t* remainder) {

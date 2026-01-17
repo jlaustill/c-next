@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Large value copies with slice assignment
 // Validates copying maximum values and large data structures
 // Ensures no truncation or overflow in memory operations

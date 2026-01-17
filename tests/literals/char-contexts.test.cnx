@@ -1,50 +1,56 @@
-/* test-coverage: 32.4-variable-init, 32.4-array-element, 32.4-comparison, 32.4-in-switch-case */
-/* test-execution */
+// test-coverage: 32.4-variable-init, 32.4-array-element, 32.4-comparison, 32.4-in-switch-case
+// test-execution
 // Tests: Character literal usage in various contexts
 // Character literals work with u8 type (which maps to uint8_t in C)
-
 u32 main() {
     // ===== Variable initialization =====
-
-    // Test basic char literal to u8
+   
+// Test basic char literal to u8
     u8 letter <- 'A';
     if (letter != 65) return 1;
 
-    // Test lowercase
+   
+// Test lowercase
     u8 lower <- 'z';
     if (lower != 122) return 2;
 
-    // Test digit character
+   
+// Test digit character
     u8 digit <- '0';
     if (digit != 48) return 3;
 
-    // Test space character
+   
+// Test space character
     u8 space <- ' ';
     if (space != 32) return 4;
 
     // ===== Comparison operations =====
-
-    // Test equality comparison
+   
+// Test equality comparison
     u8 c <- 'X';
     if (c != 'X') return 5;
 
-    // Test not-equal comparison
+   
+// Test not-equal comparison
     if (c = 'Y') return 6;
 
-    // Test less-than comparison (ASCII ordering)
+   
+// Test less-than comparison (ASCII ordering)
     if ('A' >= 'B') return 7;
 
-    // Test greater-than comparison
+   
+// Test greater-than comparison
     if ('Z' <= 'A') return 8;
 
-    // Test comparison with variable
+   
+// Test comparison with variable
     u8 first <- 'a';
     u8 second <- 'b';
     if (first >= second) return 9;
 
     // ===== Array element context =====
-
-    // Test char literals in array initializer
+   
+// Test char literals in array initializer
     u8 vowels[5] <- ['a', 'e', 'i', 'o', 'u'];
     if (vowels[0] != 'a') return 10;
     if (vowels[1] != 'e') return 11;
@@ -52,19 +58,20 @@ u32 main() {
     if (vowels[3] != 'o') return 13;
     if (vowels[4] != 'u') return 14;
 
-    // Test array element assignment with char literal
+   
+// Test array element assignment with char literal
     u8 buffer[4];
     buffer[0] <- 'H';
     buffer[1] <- 'i';
     buffer[2] <- '!';
     buffer[3] <- 0;
-    if (buffer[0] != 72) return 15;  // 'H' = 72
+    if (buffer[0] != 72) return 15; // 'H' = 72
     if (buffer[1] != 105) return 16; // 'i' = 105
-    if (buffer[2] != 33) return 17;  // '!' = 33
+    if (buffer[2] != 33) return 17; // '!' = 33
 
     // ===== Switch case context =====
-
-    // Test switch with char literal cases
+   
+// Test switch with char literal cases
     u8 grade <- 'B';
     u32 points <- 0;
 
@@ -78,13 +85,14 @@ u32 main() {
         case 'C' {
             points <- 2;
         }
-        default {
+    default {
             points <- 0;
         }
     }
     if (points != 3) return 18;
 
-    // Test another switch case
+   
+// Test another switch case
     u8 dir <- 'N';
     u32 heading <- 0;
 
@@ -101,13 +109,14 @@ u32 main() {
         case 'W' {
             heading <- 270;
         }
-        default {
+    default {
             heading <- 999;
         }
     }
     if (heading != 0) return 19;
 
-    // Test switch with 'S' direction
+   
+// Test switch with 'S' direction
     dir <- 'S';
     switch (dir) {
         case 'N' {
@@ -122,23 +131,24 @@ u32 main() {
         case 'W' {
             heading <- 270;
         }
-        default {
+    default {
             heading <- 999;
         }
     }
     if (heading != 180) return 20;
 
     // ===== Arithmetic with char literals =====
-
-    // Test addition (useful for case conversion)
+   
+// Test addition (useful for case conversion)
     u8 upperA <- 'A';
-    u8 lowerA <- upperA + 32;  // Convert to lowercase
+    u8 lowerA <- upperA + 32; // Convert to lowercase
     if (lowerA != 'a') return 21;
 
-    // Test subtraction
+   
+// Test subtraction
     u8 lowerZ <- 'z';
-    u8 upperZ <- lowerZ - 32;  // Convert to uppercase
+    u8 upperZ <- lowerZ - 32; // Convert to uppercase
     if (upperZ != 'Z') return 22;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

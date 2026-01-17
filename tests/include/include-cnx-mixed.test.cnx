@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-010: C Interoperability - Mixed includes
 // Tests: Mix of .cnx, .h, and standard library includes
-
 #include <stdio.h>
 #include <helper-types.cnx>
 #include "helper-types.cnx"

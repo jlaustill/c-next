@@ -1,8 +1,7 @@
 // ADR-013: Error - compound assignment to const f64
 // Tests: cannot use compound multiplication on const f64 variable
-
 const f64 RATIO <- 2.0;
 
 void main() {
-    RATIO *<- 1.5;  // ERROR: cannot assign to const variable
+    RATIO *<- 1.5; // ERROR: cannot assign to const variable
 }

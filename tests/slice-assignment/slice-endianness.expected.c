@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Byte order verification for slice assignment
 // Validates that bytes are copied in correct endianness
 // Embedded systems typically use little-endian

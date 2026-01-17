@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 12-w1s-access-modifier */
+// test-coverage: 12-w1s-access-modifier
 // Tests: Write-1-to-Set register access modifier
 // Writing 1 to a bit sets it, writing 0 has no effect
 /* Register: GPIO @ 0x40000000 */

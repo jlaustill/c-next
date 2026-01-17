@@ -13,7 +13,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Coverage: Section 7.4 - for loop with compound update
 // Tests: for loops using compound assignment operators in update
 int main(void) {

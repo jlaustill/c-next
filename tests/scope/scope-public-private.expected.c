@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
 /* Scope: Visibility */

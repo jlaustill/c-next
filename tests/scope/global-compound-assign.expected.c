@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test: Compound assignment with global.* patterns inside scopes
 // Tests global array access with compound operators
 int32_t counter = 100;

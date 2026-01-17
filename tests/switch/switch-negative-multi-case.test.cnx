@@ -1,28 +1,27 @@
-/* test-execution */
+// test-execution
 // Issue #107: Negative Case Labels with Multi-Case Syntax
 // Tests: negative literals with || syntax for multiple case labels
-
 i32 result;
 
 // Test multiple negative cases grouped together
 void testNegativeGroup(i8 val) {
     switch (val) {
         case -3 || -2 || -1 {
-            result <- 1;   // Small negatives
+            result <- 1; // Small negatives
         }
         case -128 || -127 || -126 {
-            result <- 2;   // Min boundary negatives
+            result <- 2; // Min boundary negatives
         }
         case 0 {
             result <- 3;
         }
         case 1 || 2 || 3 {
-            result <- 4;   // Small positives
+            result <- 4; // Small positives
         }
         case 125 || 126 || 127 {
-            result <- 5;   // Max boundary positives
+            result <- 5; // Max boundary positives
         }
-        default {
+    default {
             result <- 99;
         }
     }
@@ -32,15 +31,15 @@ void testNegativeGroup(i8 val) {
 void testMixedGroup(i16 val) {
     switch (val) {
         case -100 || 100 {
-            result <- 10;  // Opposites
+            result <- 10; // Opposites
         }
         case -1 || 0 || 1 {
-            result <- 11;  // Around zero
+            result <- 11; // Around zero
         }
         case -32768 || 32767 {
-            result <- 12;  // Min and max
+            result <- 12; // Min and max
         }
-        default {
+    default {
             result <- 99;
         }
     }
@@ -50,22 +49,23 @@ void testMixedGroup(i16 val) {
 void testNegativeHexGroup(i32 val) {
     switch (val) {
         case -0x10 || -0x20 || -0x30 {
-            result <- 20;  // -16, -32, -48
+            result <- 20; // -16, -32, -48
         }
         case -0xFF || -0x100 {
-            result <- 21;  // -255, -256
+            result <- 21; // -255, -256
         }
         case 0x00 {
             result <- 22;
         }
-        default {
+    default {
             result <- 99;
         }
     }
 }
 
 u32 main() {
-    // Test negative groups
+   
+// Test negative groups
     i8 neg1 <- -1;
     i8 neg2 <- -2;
     i8 neg3 <- -3;
@@ -123,7 +123,8 @@ u32 main() {
     testNegativeGroup(other);
     if (result != 99) return 14;
 
-    // Test mixed groups
+   
+// Test mixed groups
     i16 neg100 <- -100;
     i16 pos100 <- 100;
     i16 negOneI16 <- -1;
@@ -157,7 +158,8 @@ u32 main() {
     testMixedGroup(otherI16);
     if (result != 99) return 22;
 
-    // Test negative hex groups
+   
+// Test negative hex groups
     i32 neg16 <- -16;
     i32 neg32 <- -32;
     i32 neg48 <- -48;

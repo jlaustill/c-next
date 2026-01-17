@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 + ADR-044 Wrap overflow modifier inside scopes
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators

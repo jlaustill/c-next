@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for bitmap8 type across all contexts
 // Tests: .length returns 8 for bitmap8 in every possible scope and access pattern
 // Define bitmap8 type

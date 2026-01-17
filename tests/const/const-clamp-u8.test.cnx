@@ -1,20 +1,23 @@
-/* test-execution */
+// test-execution
 // ADR-013 + ADR-044: Const clamp u8 combination
 // Tests: const clamp u8 declaration and read access
-
 const clamp u8 MAX_VALUE <- 255;
+
 const clamp u8 MID_VALUE <- 128;
 
 u32 main() {
-    // Test 1: Read const clamp into local
+   
+// Test 1: Read const clamp into local
     u8 maxVal <- MAX_VALUE;
     if (maxVal != 255) return 1;
 
-    // Test 2: Read second const clamp
+   
+// Test 2: Read second const clamp
     u8 midVal <- MID_VALUE;
     if (midVal != 128) return 2;
 
-    // Test 3: Use const clamp in arithmetic
+   
+// Test 3: Use const clamp in arithmetic
     u8 diff <- MAX_VALUE - MID_VALUE;
     if (diff != 127) return 3;
 

@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Zero-length slice assignment edge case
 // Validates that zero-length copies are no-ops
 // Buffer should remain unchanged after zero-length assignment
@@ -16,7 +16,8 @@ u32 main() {
     if (buffer[2] != 0x34) return 3;
     if (buffer[3] != 0x12) return 4;
 
-    // Test 1: Zero-length copy should be no-op
+   
+// Test 1: Zero-length copy should be no-op
     u32 dummy <- 0xAABBCCDD;
     buffer[0, 0] <- dummy;
 
@@ -26,7 +27,8 @@ u32 main() {
     if (buffer[2] != 0x34) return 7;
     if (buffer[3] != 0x12) return 8;
 
-    // Test 2: Zero-length at non-zero offset
+   
+// Test 2: Zero-length at non-zero offset
     buffer[10, 0] <- dummy;
 
     // Original bytes should still be unchanged

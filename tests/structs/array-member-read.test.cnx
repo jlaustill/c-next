@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // Test reading array members within structs in loops
 // Verifies postfix chain ordering: cfg.items[i].value
-
 struct Item {
     u32 value;
     u8 flags;
@@ -15,9 +14,9 @@ i32 main() {
     Container cfg;
 
     // Initialize the array items (workaround: accessing through intermediate variable)
-    Item item0 <- { value: 100, flags: 0 };
-    Item item1 <- { value: 200, flags: 0 };
-    Item item2 <- { value: 300, flags: 0 };
+    Item item0 <- {value: 100, flags: 0};
+    Item item1 <- {value: 200, flags: 0};
+    Item item2 <- {value: 300, flags: 0};
     cfg.items[0] <- item0;
     cfg.items[1] <- item1;
     cfg.items[2] <- item2;
@@ -25,7 +24,7 @@ i32 main() {
     // Read access in a loop - THIS WORKS with the fix
     u32 sum <- 0;
     for (u32 i <- 0; i < 3; i +<- 1) {
-        sum +<- cfg.items[i].value;  // Should generate: cfg.items[i].value
+        sum +<- cfg.items[i].value; // Should generate: cfg.items[i].value
     }
 
     // Expected: 100 + 200 + 300 = 600

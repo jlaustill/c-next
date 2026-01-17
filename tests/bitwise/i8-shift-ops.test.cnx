@@ -1,40 +1,39 @@
-/* test-coverage: 5.5-i8-left-shift, 5.6-i8-right-shift-arithmetic */
-/* test-execution */
+// test-coverage: 5.5-i8-left-shift, 5.6-i8-right-shift-arithmetic
+// test-execution
 // Test i8 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i8 type
-
 u32 main() {
     // Left shift - same as unsigned (logical shift)
     i8 a <- 1;
-    i8 left1 <- a << 1;  // 2
-    i8 left4 <- a << 4;  // 16
-    i8 left6 <- a << 6;  // 64
+    i8 left1 <- a << 1; // 2
+    i8 left4 <- a << 4; // 16
+    i8 left6 <- a << 6; // 64
 
     // Right shift on positive - fills with 0 (arithmetic shift)
-    i8 b <- 64;  // 0b01000000
-    i8 right1 <- b >> 1;  // 0b00100000 = 32
-    i8 right2 <- b >> 2;  // 0b00010000 = 16
-    i8 right6 <- b >> 6;  // 0b00000001 = 1
+    i8 b <- 64; // 0b01000000
+    i8 right1 <- b >> 1; // 0b00100000 = 32
+    i8 right2 <- b >> 2; // 0b00010000 = 16
+    i8 right6 <- b >> 6; // 0b00000001 = 1
 
     // Right shift on negative - fills with 1 (sign extension)
-    i8 c <- -64;  // 0b11000000 (two's complement)
-    i8 neg_right1 <- c >> 1;  // 0b11100000 = -32 (sign preserved)
-    i8 neg_right2 <- c >> 2;  // 0b11110000 = -16
-    i8 neg_right6 <- c >> 6;  // 0b11111111 = -1
+    i8 c <- -64; // 0b11000000 (two's complement)
+    i8 neg_right1 <- c >> 1; // 0b11100000 = -32 (sign preserved)
+    i8 neg_right2 <- c >> 2; // 0b11110000 = -16
+    i8 neg_right6 <- c >> 6; // 0b11111111 = -1
 
     // Edge case: shift -1 (all bits set)
-    i8 minus_one <- -1;  // 0b11111111
-    i8 shift_minus_one <- minus_one >> 4;  // Still -1 (sign extends)
+    i8 minus_one <- -1; // 0b11111111
+    i8 shift_minus_one <- minus_one >> 4; // Still -1 (sign extends)
 
     // Shift by variable
     i8 d <- 16;
     i8 shift_amount <- 2;
-    i8 left_var <- d << shift_amount;   // 64
-    i8 right_var <- d >> shift_amount;  // 4
+    i8 left_var <- d << shift_amount; // 64
+    i8 right_var <- d >> shift_amount; // 4
 
     // Complex: negative shift
     i8 e <- -8;
-    i8 neg_shift <- e >> 1;  // -4 (sign preserved)
+    i8 neg_shift <- e >> 1; // -4 (sign preserved)
 
     // Verify results
     if (left1 = 2 && left4 = 16 && left6 = 64) {

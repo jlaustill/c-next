@@ -1,6 +1,5 @@
 // ADR-013: Error - assigning to const u16 parameter
 // Tests: cannot modify const parameter
-
 void setPort(const u16 port) {
-    port <- 9090;  // ERROR: cannot assign to const parameter
+    port <- 9090; // ERROR: cannot assign to const parameter
 }

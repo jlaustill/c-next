@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for u8 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 8 (element bit width)
 uint8_t globalArr[16] = {0};

@@ -1,6 +1,5 @@
 // ADR-032: Basic Nested Struct Test
 // Tests: struct member with struct type, chained member access
-
 struct Point {
     i32 x;
     i32 y;
@@ -17,15 +16,9 @@ struct Rectangle {
 }
 
 // Global nested struct instance
-Line segment <- {
-    start: { x: 0, y: 0 },
-    end: { x: 100, y: 100 }
-};
+Line segment <- {start: {x: 0, y: 0}, end: {x: 100, y: 100}};
 
-Rectangle bounds <- {
-    topLeft: { x: 10, y: 20 },
-    bottomRight: { x: 110, y: 120 }
-};
+Rectangle bounds <- {topLeft: {x: 10, y: 20}, bottomRight: {x: 110, y: 120}};
 
 i32 main() {
     // Read nested members

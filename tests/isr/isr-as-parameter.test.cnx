@@ -1,9 +1,9 @@
-/* test-execution */
+// test-execution
 // ADR-040: ISR as function parameter
 // Tests: passing ISR to functions and invoking through parameter
-
 // Global to track which handler was called
 u32 paramCallCount <- 0;
+
 u32 paramLastHandler <- 0;
 
 // Handler functions (void() compatible with ISR)
@@ -41,40 +41,46 @@ void executeParamBoth(ISR first, ISR second) {
 }
 
 u32 main() {
-    // Test 1: Pass paramHandler1 as parameter and invoke
+   
+// Test 1: Pass paramHandler1 as parameter and invoke
     paramCallCount <- 0;
     paramLastHandler <- 0;
     executeParamHandler(paramHandler1);
     if (paramCallCount != 1) return 1;
     if (paramLastHandler != 1) return 2;
 
-    // Test 2: Pass paramHandler2 as parameter and invoke
+   
+// Test 2: Pass paramHandler2 as parameter and invoke
     paramCallCount <- 0;
     paramLastHandler <- 0;
     executeParamHandler(paramHandler2);
     if (paramCallCount != 1) return 3;
     if (paramLastHandler != 2) return 4;
 
-    // Test 3: Pass handler to executeParamMultiple
+   
+// Test 3: Pass handler to executeParamMultiple
     paramCallCount <- 0;
     executeParamMultiple(paramHandler1, 5);
     if (paramCallCount != 5) return 5;
 
-    // Test 4: Execute both handlers
+   
+// Test 4: Execute both handlers
     paramCallCount <- 0;
     paramLastHandler <- 0;
     executeParamBoth(paramHandler1, paramHandler2);
     if (paramCallCount != 2) return 6;
-    if (paramLastHandler != 2) return 7;  // paramHandler2 called last
+    if (paramLastHandler != 2) return 7; // paramHandler2 called last
 
-    // Test 5: Execute both in reverse order
+   
+// Test 5: Execute both in reverse order
     paramCallCount <- 0;
     paramLastHandler <- 0;
     executeParamBoth(paramHandler2, paramHandler1);
     if (paramCallCount != 2) return 8;
-    if (paramLastHandler != 1) return 9;  // paramHandler1 called last
+    if (paramLastHandler != 1) return 9; // paramHandler1 called last
 
-    // Test 6: Chain multiple executeParamHandler calls
+   
+// Test 6: Chain multiple executeParamHandler calls
     paramCallCount <- 0;
     executeParamHandler(paramHandler1);
     executeParamHandler(paramHandler2);

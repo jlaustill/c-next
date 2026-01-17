@@ -1,12 +1,13 @@
-/* test-coverage: 1.1-u8-with-atomic-modifier, 1.1-u16-with-atomic-modifier */
-/* test-coverage: 1.1-u32-with-atomic-modifier */
+// test-coverage: 1.1-u8-with-atomic-modifier, 1.1-u16-with-atomic-modifier
+// test-coverage: 1.1-u32-with-atomic-modifier
 // ADR-049: Atomic variables with all integer types
 // Tests: atomic works with u8, u16, u32, u64
-
 #pragma target teensy41
 
 atomic u8 byte_counter <- 0;
+
 atomic u16 word_counter <- 0;
+
 atomic u32 dword_counter <- 0;
 
 void main() {

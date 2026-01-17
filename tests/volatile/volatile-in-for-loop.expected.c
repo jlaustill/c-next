@@ -13,8 +13,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
-/* test-coverage: 30a-volatile-for-loop */
+// test-execution
+// test-coverage: 30a-volatile-for-loop
 // Tests: Volatile variable in for loop (iteration variable)
 // ADR-108: Prevent loop optimization in timing-critical code
 int main(void) {

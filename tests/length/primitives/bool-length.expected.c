@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for bool type across all contexts
 // Tests: .length returns 8 for bool in every possible scope and access pattern
 // Note: bool storage is 1 byte (8 bits), not 1 bit

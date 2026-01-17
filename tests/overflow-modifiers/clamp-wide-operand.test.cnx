@@ -1,96 +1,104 @@
-/* test-execution */
+// test-execution
 // Tests: clamp with operands larger than target type range
 // Issue #94: Prevents silent truncation when operand exceeds type bounds
 // ADR-044: Per-variable overflow semantics
-
 u32 main() {
     // === U8 TESTS (operands > 255) ===
-
-    // Test 1: u8 subtraction with operand > 255
+   
+// Test 1: u8 subtraction with operand > 255
     // Without fix: 300 truncates to 44, result = 200 - 44 = 156
     // With fix: 300 > 200, should clamp to 0
     clamp u8 val8 <- 200;
     val8 -<- 300;
     if (val8 != 0) return 1;
 
-    // Test 2: u8 addition with operand > 255
+   
+// Test 2: u8 addition with operand > 255
     // Without fix: 300 truncates to 44, result = 100 + 44 = 144
     // With fix: 100 + 300 = 400 > 255, should clamp to 255
     val8 <- 100;
     val8 +<- 300;
     if (val8 != 255) return 2;
 
-    // Test 3: u8 multiplication with operand > 255
+   
+// Test 3: u8 multiplication with operand > 255
     // Without fix: 300 truncates to 44, result = 10 * 44 = 440 -> clamps to 255
     // With fix: 10 * 300 = 3000 > 255, should clamp to 255
     val8 <- 10;
     val8 *<- 300;
     if (val8 != 255) return 3;
 
-    // Test 4: u8 subtraction with operand exactly at 256
+   
+// Test 4: u8 subtraction with operand exactly at 256
     // 256 would truncate to 0, making no subtraction happen
     val8 <- 100;
     val8 -<- 256;
     if (val8 != 0) return 4;
 
     // === U16 TESTS (operands > 65535) ===
-
-    // Test 5: u16 subtraction with operand > 65535
+   
+// Test 5: u16 subtraction with operand > 65535
     clamp u16 val16 <- 1000;
     val16 -<- 70000;
     if (val16 != 0) return 5;
 
-    // Test 6: u16 addition with operand > 65535
+   
+// Test 6: u16 addition with operand > 65535
     val16 <- 1000;
     val16 +<- 70000;
     if (val16 != 65535) return 6;
 
     // === U32 TESTS (operands > UINT32_MAX) ===
-
-    // Test 7: u32 subtraction with operand > 4294967295
+   
+// Test 7: u32 subtraction with operand > 4294967295
     clamp u32 val32 <- 1000;
-    val32 -<- 5000000000;  // 5 billion > 4.29 billion
+    val32 -<- 5000000000; // 5 billion > 4.29 billion
     if (val32 != 0) return 7;
 
-    // Test 8: u32 addition with large operand
-    val32 <- 4000000000;  // 4 billion
-    val32 +<- 5000000000;  // Would overflow
+   
+// Test 8: u32 addition with large operand
+    val32 <- 4000000000; // 4 billion
+    val32 +<- 5000000000; // Would overflow
     if (val32 != 4294967295) return 8;
 
     // === SIGNED TYPE TESTS ===
-
-    // Test 9: i8 subtraction with operand > 127
+   
+// Test 9: i8 subtraction with operand > 127
     // Without fix: 200 truncates to -56, result = 50 - (-56) = 106
     // With fix: 50 - 200 = -150 < -128, should clamp to -128
     clamp i8 vali8 <- 50;
     vali8 -<- 200;
     if (vali8 != -128) return 9;
 
-    // Test 10: i8 addition with operand > 127
+   
+// Test 10: i8 addition with operand > 127
     // Without fix: 200 truncates to -56, result = 50 + (-56) = -6
     // With fix: 50 + 200 = 250 > 127, should clamp to 127
     vali8 <- 50;
     vali8 +<- 200;
     if (vali8 != 127) return 10;
 
-    // Test 11: i16 subtraction with operand > 32767
+   
+// Test 11: i16 subtraction with operand > 32767
     clamp i16 vali16 <- 1000;
-    vali16 -<- 40000;  // Would underflow
+    vali16 -<- 40000; // Would underflow
     if (vali16 != -32768) return 11;
 
     // === EDGE CASES ===
-
-    // Test 12: Operand at exact boundary still works
+   
+// Test 12: Operand at exact boundary still works
     val8 <- 10;
-    val8 +<- 255;  // Exactly at max, should clamp to 255
+    val8 +<- 255; // Exactly at max, should clamp to 255
     if (val8 != 255) return 12;
 
-    // Test 13: Normal operations still work correctly
+   
+// Test 13: Normal operations still work correctly
     val8 <- 100;
-    val8 +<- 50;  // Normal addition within bounds
+    val8 +<- 50; // Normal addition within bounds
     if (val8 != 150) return 13;
 
-    // Test 14: Zero operand works
+   
+// Test 14: Zero operand works
     val8 <- 100;
     val8 -<- 0;
     if (val8 != 100) return 14;
@@ -98,42 +106,48 @@ u32 main() {
     // === REGRESSION TESTS: Truncation boundary values ===
     // These specifically test values that would truncate to small numbers
     // causing incorrect results with the old narrow-type implementation
-
-    // Test 15: 256 truncates to 0 (256 % 256 = 0)
+   
+// Test 15: 256 truncates to 0 (256 % 256 = 0)
     // Old bug: 100 - 0 = 100, should be 0
     val8 <- 100;
     val8 -<- 256;
     if (val8 != 0) return 15;
 
-    // Test 16: 512 truncates to 0 (512 % 256 = 0)
+   
+// Test 16: 512 truncates to 0 (512 % 256 = 0)
     val8 <- 50;
     val8 -<- 512;
     if (val8 != 0) return 16;
 
-    // Test 17: 257 truncates to 1 (257 % 256 = 1)
+   
+// Test 17: 257 truncates to 1 (257 % 256 = 1)
     // Old bug: 100 - 1 = 99, should be 0
     val8 <- 100;
     val8 -<- 257;
     if (val8 != 0) return 17;
 
-    // Test 18: 300 truncates to 44 (300 % 256 = 44) - the original issue example
+   
+// Test 18: 300 truncates to 44 (300 % 256 = 44) - the original issue example
     // Old bug: 200 - 44 = 156, should be 0
     val8 <- 200;
     val8 -<- 300;
     if (val8 != 0) return 18;
 
-    // Test 19: Addition where truncation would give wrong "no overflow" result
+   
+// Test 19: Addition where truncation would give wrong "no overflow" result
     // 256 truncates to 0, old: 100 + 0 = 100, should clamp to 255
     val8 <- 100;
     val8 +<- 256;
     if (val8 != 255) return 19;
 
-    // Test 20: u16 truncation boundary (65536 truncates to 0)
+   
+// Test 20: u16 truncation boundary (65536 truncates to 0)
     val16 <- 1000;
     val16 -<- 65536;
     if (val16 != 0) return 20;
 
-    // Test 21: u16 value that truncates to small number
+   
+// Test 21: u16 value that truncates to small number
     // 65537 % 65536 = 1, old: 1000 - 1 = 999, should be 0
     val16 <- 1000;
     val16 -<- 65537;

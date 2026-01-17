@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for i64 type across all contexts
 // Tests: .length returns 64 for i64 in every possible scope and access pattern
 int64_t globalVar = -1000000;

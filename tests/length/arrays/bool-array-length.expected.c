@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for bool arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 8 (element byte width)
 bool globalArr[16] = {0};

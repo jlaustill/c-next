@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 11-bitmap-struct-member */
-/* test-execution */
+// test-coverage: 11-bitmap-struct-member
+// test-execution
 // Tests: Bitmap as struct member
 /* Bitmap: Flags */
 /* Fields:

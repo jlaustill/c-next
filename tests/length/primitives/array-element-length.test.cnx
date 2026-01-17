@@ -1,26 +1,29 @@
-/* test-execution */
+// test-execution
 // Issue #196 Bug 2: Array element .length should not require initialization
 // Tests that accessing .length on an array element does not trigger false positive
 // "use of uninitialized variable" error, since .length is a compile-time type property
-
 i32 main() {
-    // Test 1: Array element .length on uninitialized array
+   
+// Test 1: Array element .length on uninitialized array
     // .length is compile-time type property, doesn't read runtime value
     u32 arr[4];
     if (arr[0].length != 32) {
         return 1;
     }
 
-    // Test 2: Multi-dimensional array element .length
+   
+// Test 2: Multi-dimensional array element .length
     u32 matrix[2][3];
     if (matrix[0][0].length != 32) {
         return 2;
     }
 
-    // Test 3: After partial initialization, .length still works
+   
+// Test 3: After partial initialization, .length still works
     u32 partial[4];
     partial[0] <- 42;
-    if (partial[1].length != 32) {  // partial[1] not initialized but .length is fine
+    if (partial[1].length != 32) {
+        // partial[1] not initialized but .length is fine
         return 3;
     }
 

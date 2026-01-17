@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 26-loop-init */
-/* test-execution */
+// test-coverage: 26-loop-init
+// test-execution
 // Tests: Variable initialization inside loops
 int main(void) {
     uint32_t sum = 0;

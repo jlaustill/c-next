@@ -1,6 +1,5 @@
 // MISRA 3.1 Test - Nested block comment marker
 // This should produce an error
-
 #include <stdint.h>
 
 // This comment has /* nested block marker

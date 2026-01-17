@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // For loop tests: u64 as loop counter
 // Tests: u64 type can be used as for-loop counter
-
 u64 main() {
     u64 sum <- 0;
     for (u64 i <- 0; i < 10; i +<- 1) {

@@ -4,6 +4,6 @@
 string<64> buffer;
 
 void readInput() {
-    fgets(buffer, buffer.size, stdin);  // ERROR: must check NULL
+    fgets(buffer, buffer.size, stdin); // ERROR: must check NULL
     printf("Got: %s", buffer);
 }

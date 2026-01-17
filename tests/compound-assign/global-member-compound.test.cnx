@@ -1,11 +1,11 @@
-/* test-execution */
-/* test-coverage: 2.3-global-member, 2.4-global-member, 2.5-global-member, 2.6-global-member, 2.7-global-member, 2.8-global-member, 2.9-global-member, 2.10-global-member, 2.11-global-member */
+// test-execution
+// test-coverage: 2.3-global-member, 2.4-global-member, 2.5-global-member, 2.6-global-member, 2.7-global-member, 2.8-global-member, 2.9-global-member, 2.10-global-member, 2.11-global-member
 // Tests: All compound assignment operators with global.member syntax
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on global members from within scope
 // Note: +<- is already tested in scope/global-compound-assign.test.cnx
-
 // Global variables accessed via global.* from within scope
 i32 gValue <- 0;
+
 u32 gBits <- 0;
 
 scope Worker {
@@ -21,7 +21,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== MULTIPLICATION (*<-) =====
     public i32 testMultiplication() {
         global.gValue <- 7;
@@ -38,7 +37,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== DIVISION (/<-) =====
     public i32 testDivision() {
         global.gValue <- 100;
@@ -55,7 +53,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== MODULO (%<-) =====
     public i32 testModulo() {
         global.gValue <- 17;
@@ -72,7 +69,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== BITWISE AND (&<-) =====
     public i32 testBitwiseAnd() {
         global.gBits <- 0xFF;
@@ -89,7 +85,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== BITWISE OR (|<-) =====
     public i32 testBitwiseOr() {
         global.gBits <- 0xF0;
@@ -106,7 +101,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== BITWISE XOR (^<-) =====
     public i32 testBitwiseXor() {
         global.gBits <- 0xFF;
@@ -123,7 +117,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== LEFT SHIFT (<<<-) =====
     public i32 testLeftShift() {
         global.gBits <- 1;
@@ -140,7 +133,6 @@ scope Worker {
 
         return 0;
     }
-
     // ===== RIGHT SHIFT (>><-) =====
     public i32 testRightShift() {
         global.gBits <- 256;

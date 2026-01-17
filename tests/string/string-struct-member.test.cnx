@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-045: Test string as struct member
 // Validates: declaration, initialization, properties, comparison, function passing
-
 struct Person {
     string<64> name;
     string<128> bio;
@@ -22,7 +21,8 @@ bool compareName(Person p, const string<64> expected) {
 }
 
 i32 main() {
-    // Test 1: Basic struct member initialization
+   
+// Test 1: Basic struct member initialization
     Person alice;
     alice.name <- "Alice";
     alice.bio <- "Software engineer";
@@ -31,19 +31,23 @@ i32 main() {
     if (alice.name.length != 5) return 1;
     if (alice.bio.length != 17) return 2;
 
-    // Test 2: .capacity property on struct member
+   
+// Test 2: .capacity property on struct member
     if (alice.name.capacity != 64) return 3;
     if (alice.bio.capacity != 128) return 4;
 
-    // Test 3: .size property on struct member
+   
+// Test 3: .size property on struct member
     if (alice.name.size != 65) return 5;
     if (alice.bio.size != 129) return 6;
 
-    // Test 4: Comparison of struct member strings
+   
+// Test 4: Comparison of struct member strings
     if (alice.name != "Alice") return 7;
     if (alice.bio != "Software engineer") return 8;
 
-    // Test 5: Second struct instance
+   
+// Test 5: Second struct instance
     Person bob;
     bob.name <- "Bob";
     bob.bio <- "Data scientist";
@@ -52,23 +56,28 @@ i32 main() {
     if (bob.name.length != 3) return 9;
     if (bob.name != "Bob") return 10;
 
-    // Test 6: Compare struct members between instances
-    if (alice.name = bob.name) return 11;  // Should be different
+   
+// Test 6: Compare struct members between instances
+    if (alice.name = bob.name) return 11; // Should be different
 
-    // Test 7: Assign same value, compare
+   
+// Test 7: Assign same value, compare
     Person charlie;
-    charlie.name <- "Alice";  // Same as alice
-    if (alice.name != charlie.name) return 12;  // Should be equal
+    charlie.name <- "Alice"; // Same as alice
+    if (alice.name != charlie.name) return 12; // Should be equal
 
-    // Test 8: Pass struct to function, access member
+   
+// Test 8: Pass struct to function, access member
     if (getNameLength(alice) != 5) return 13;
     if (getNameLength(bob) != 3) return 14;
 
-    // Test 9: Function with comparison
+   
+// Test 9: Function with comparison
     if (!compareName(alice, "Alice")) return 15;
-    if (compareName(alice, "Bob")) return 16;  // Should not match
+    if (compareName(alice, "Bob")) return 16; // Should not match
 
-    // Test 10: Config struct (different capacities)
+   
+// Test 10: Config struct (different capacities)
     Config cfg;
     cfg.key <- "api_url";
     cfg.value <- "https://example.com/api/v1";
@@ -78,11 +87,13 @@ i32 main() {
     if (cfg.key.capacity != 32) return 19;
     if (cfg.value.capacity != 256) return 20;
 
-    // Test 11: Empty string member
+   
+// Test 11: Empty string member
     Person empty;
     if (empty.name.length != 0) return 21;
 
-    // Test 12: Reassign struct member
+   
+// Test 12: Reassign struct member
     alice.name <- "Alicia";
     if (alice.name.length != 6) return 22;
     if (alice.name != "Alicia") return 23;

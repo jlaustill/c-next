@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Regression test: .length on struct members that are arrays
 // Tests both array.length (element count) and array[i].field.length
 typedef struct {

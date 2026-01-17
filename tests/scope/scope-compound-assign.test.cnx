@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Test: Compound assignment with scope-local (this.) patterns
 // Tests lines 4336 and 4338 in CodeGenerator.ts
 

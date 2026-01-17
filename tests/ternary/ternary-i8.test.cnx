@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for i8
 // Tests: ternary with i8 in conditions and branches, including negative values
-
 i8 getMax(i8 a, i8 b) {
     return (a > b) ? a : b;
 }
@@ -20,27 +19,32 @@ u32 main() {
     i8 c <- -30;
     i8 d <- -5;
 
-    // Test max function with positive values
+   
+// Test max function with positive values
     if (getMax(a, b) != 20) {
         return 1;
     }
 
-    // Test max with negative values
+   
+// Test max with negative values
     if (getMax(c, d) != -5) {
         return 2;
     }
 
-    // Test min function with positive values
+   
+// Test min function with positive values
     if (getMin(a, b) != 10) {
         return 3;
     }
 
-    // Test min with negative values
+   
+// Test min with negative values
     if (getMin(c, d) != -30) {
         return 4;
     }
 
-    // Test abs function
+   
+// Test abs function
     if (getAbs(c) != 30) {
         return 5;
     }
@@ -48,13 +52,15 @@ u32 main() {
         return 6;
     }
 
-    // Test inline ternary with negative comparison
+   
+// Test inline ternary with negative comparison
     i8 result <- (a > c) ? a : c;
     if (result != 10) {
         return 7;
     }
 
-    // Test with edge cases - max value
+   
+// Test with edge cases - max value
     i8 max_val <- 127;
     i8 mid_val <- 50;
     i8 edge_result <- (max_val > mid_val) ? max_val : mid_val;
@@ -62,7 +68,8 @@ u32 main() {
         return 8;
     }
 
-    // Test with edge cases - min value
+   
+// Test with edge cases - min value
     i8 min_val <- -128;
     i8 neg_mid <- -50;
     i8 min_result <- (min_val < neg_mid) ? min_val : neg_mid;
@@ -70,13 +77,15 @@ u32 main() {
         return 9;
     }
 
-    // Test equality condition with negative
+   
+// Test equality condition with negative
     i8 equal_test <- (c = -30) ? 100 : -100;
     if (equal_test != 100) {
         return 10;
     }
 
-    // Test zero crossing
+   
+// Test zero crossing
     i8 neg <- -10;
     i8 pos <- 10;
     i8 zero_cross <- (neg < 0) ? pos : neg;

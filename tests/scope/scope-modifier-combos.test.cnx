@@ -173,50 +173,61 @@ scope ModifierCombos {
 }
 
 void main() {
-    // Test reading const clamp values
+   
+// Test reading const clamp values
     ModifierCombos.getMaxBrightness();
     ModifierCombos.getMaxSensor();
     ModifierCombos.getMinTemp();
 
-    // Test reading const wrap values
+   
+// Test reading const wrap values
     ModifierCombos.getCounterStart();
     ModifierCombos.getTickStart();
 
-    // Test reading public clamp values
+   
+// Test reading public clamp values
     ModifierCombos.getPublicClampByte();
     ModifierCombos.getPublicClampWord();
     ModifierCombos.getPublicClampSigned();
 
-    // Test reading private clamp values via public methods
+   
+// Test reading private clamp values via public methods
     ModifierCombos.getPrivateClampByte();
     ModifierCombos.getPrivateClampWord();
     ModifierCombos.getPrivateClampSigned();
 
-    // Test reading public wrap values
+   
+// Test reading public wrap values
     ModifierCombos.getPublicWrapByte();
     ModifierCombos.getPublicWrapWord();
 
-    // Test reading private wrap values via public methods
+   
+// Test reading private wrap values via public methods
     ModifierCombos.getPrivateWrapByte();
     ModifierCombos.getPrivateWrapWord();
 
-    // Test reading public const values
+   
+// Test reading public const values
     ModifierCombos.getPublicConst();
     ModifierCombos.getPublicFlag();
 
-    // Test reading private const values via public methods
+   
+// Test reading private const values via public methods
     ModifierCombos.getPrivateConst();
     ModifierCombos.getPrivateFlag();
 
-    // Test modifying public clamp variables (overflow clamping)
+   
+// Test modifying public clamp variables (overflow clamping)
     ModifierCombos.increasePublicClampByte();
     ModifierCombos.decreasePublicClampSigned();
 
-    // Test modifying public wrap variables (overflow wrapping)
+   
+// Test modifying public wrap variables (overflow wrapping)
     ModifierCombos.incrementPublicWrapByte();
     ModifierCombos.incrementPublicWrapWord();
 
-    // Test combined operations
+   
+// Test combined operations
     ModifierCombos.adjustAllClamp();
     ModifierCombos.adjustAllWrap();
 

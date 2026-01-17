@@ -1,20 +1,16 @@
-/* test-execution */
+// test-execution
 // Comprehensive .length test for i32 type across all contexts
 // Tests: .length returns 32 for i32 in every possible scope and access pattern
-
 i32 globalVar <- -100000;
 
 scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-
     i32 scopeMember <- -100000;
-
     public u32 getMemberLength() {
         return this.scopeMember.length;
     }
-
     public i32 publicMember <- -100000;
 }
 

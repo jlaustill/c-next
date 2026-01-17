@@ -1,1 +1,1 @@
-1:0 Code generation failed: Error at line 7: Cannot use both 'atomic' and 'volatile' modifiers. Use 'atomic' for ISR-shared variables (includes volatile + atomicity), or 'volatile' for hardware registers and delay loops.
+1:0 Code generation failed: Error at line 6: Cannot use both 'atomic' and 'volatile' modifiers. Use 'atomic' for ISR-shared variables (includes volatile + atomicity), or 'volatile' for hardware registers and delay loops.

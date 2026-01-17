@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 this. accessor with all primitive types
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */

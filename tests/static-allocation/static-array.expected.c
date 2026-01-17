@@ -13,7 +13,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // ADR-003: Static array allocation
 // Tests: compile-time sized arrays are valid (no heap allocation)
 uint8_t rxBuffer[256] = {0};

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #107: Negative Case Labels with Multi-Case Syntax
 // Tests: negative literals with || syntax for multiple case labels
 int32_t result = 0;

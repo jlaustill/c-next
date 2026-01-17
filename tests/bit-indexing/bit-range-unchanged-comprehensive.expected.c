@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Writing to bit ranges must NOT affect other bits
 // Verifies correct mask generation for read-modify-write operations
 // Pattern: Start with all 1s, write 0s to a range, verify only target bits change

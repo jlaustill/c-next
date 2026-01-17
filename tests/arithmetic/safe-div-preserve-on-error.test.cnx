@@ -1,7 +1,6 @@
 // ADR-051: Safe division - preserve current value on error
 // Demonstrates the pattern for preserving state when division fails
 // Example: speed <- distance / time (if time is zero, speed shouldn't change)
-
 void testPreserveSpeedOnZeroTime() {
     u32 speed <- 60; // Current speed: 60 mph
     u32 distance <- 120; // Distance: 120 miles

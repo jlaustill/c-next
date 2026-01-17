@@ -13,7 +13,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // For loop tests: Basic for loop
 // Tests: standard for loop with all three parts
 int main(void) {

@@ -1,6 +1,5 @@
 // Test: All compound assignment operators on nested struct members
 // Covers deeply nested member access with compound assignments
-
 struct Inner {
     u32 add_val;
     u32 sub_val;
@@ -43,21 +42,22 @@ i32 main() {
     o.middle.value <- 200;
     o.top_val <- 50;
 
-    // Test all compound operators on deeply nested struct members
-    o.middle.inner.add_val +<- 25;           // 100 + 25 = 125
-    o.middle.inner.sub_val -<- 15;           // 50 - 15 = 35
-    o.middle.inner.mul_val *<- 7;            // 10 * 7 = 70
-    o.middle.inner.div_val /<- 4;            // 100 / 4 = 25
-    o.middle.inner.mod_val %<- 5;            // 17 % 5 = 2
-    o.middle.inner.and_val &<- 0b11001100;   // 0b11110000 & 0b11001100 = 192
-    o.middle.inner.or_val |<- 0b11110000;    // 0b00001111 | 0b11110000 = 255
-    o.middle.inner.xor_val ^<- 0b11111111;   // 0b10101010 ^ 0b11111111 = 85
-    o.middle.inner.shl_val <<<- 2;           // 8 << 2 = 32
-    o.middle.inner.shr_val >><- 3;           // 128 >> 3 = 16
+   
+// Test all compound operators on deeply nested struct members
+    o.middle.inner.add_val +<- 25; // 100 + 25 = 125
+    o.middle.inner.sub_val -<- 15; // 50 - 15 = 35
+    o.middle.inner.mul_val *<- 7; // 10 * 7 = 70
+    o.middle.inner.div_val /<- 4; // 100 / 4 = 25
+    o.middle.inner.mod_val %<- 5; // 17 % 5 = 2
+    o.middle.inner.and_val &<- 0b11001100; // 0b11110000 & 0b11001100 = 192
+    o.middle.inner.or_val |<- 0b11110000; // 0b00001111 | 0b11110000 = 255
+    o.middle.inner.xor_val ^<- 0b11111111; // 0b10101010 ^ 0b11111111 = 85
+    o.middle.inner.shl_val <<<- 2; // 8 << 2 = 32
+    o.middle.inner.shr_val >><- 3; // 128 >> 3 = 16
 
     // Also test middle and top level compound assignments
-    o.middle.value +<- 100;  // 200 + 100 = 300
-    o.top_val *<- 3;         // 50 * 3 = 150
+    o.middle.value +<- 100; // 200 + 100 = 300
+    o.top_val *<- 3; // 50 * 3 = 150
 
     // Verify all deeply nested results
     if (o.middle.inner.add_val != 125) {

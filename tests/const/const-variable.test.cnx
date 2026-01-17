@@ -1,8 +1,8 @@
-/* test-coverage: 1.1-u8-with-const-modifier, 1.1-u32-with-const-modifier */
+// test-coverage: 1.1-u8-with-const-modifier, 1.1-u32-with-const-modifier
 // ADR-013: Const variable usage
 // Tests: const variable can be read but not written
-
 const u32 MAX_SIZE <- 100;
+
 const u8 FLAGS <- 0x55;
 
 void main() {

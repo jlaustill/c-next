@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // Tests: Callbacks with various parameter types
 // Validates: u8, u32, bool, and struct parameters work correctly
-
 // Callback with u8 parameter
 u32 processU8(u8 val) {
     return val + 100;
@@ -49,34 +48,41 @@ struct PointHandler {
 }
 
 u32 main() {
-    // Test 1: u8 parameter callback
+   
+// Test 1: u8 parameter callback
     U8Handler u8h;
     u32 result <- u8h.handler(50);
     if (result != 150) return 1;
 
-    // Test 2: u8 with max value
+   
+// Test 2: u8 with max value
     result <- u8h.handler(255);
     if (result != 355) return 2;
 
-    // Test 3: u32 parameter callback
+   
+// Test 3: u32 parameter callback
     U32Handler u32h;
     result <- u32h.handler(5000);
     if (result != 6000) return 3;
 
-    // Test 4: u32 with larger value
+   
+// Test 4: u32 with larger value
     result <- u32h.handler(1000000);
     if (result != 1001000) return 4;
 
-    // Test 5: bool parameter - true
+   
+// Test 5: bool parameter - true
     BoolHandler bh;
     result <- bh.handler(true);
     if (result != 1) return 5;
 
-    // Test 6: bool parameter - false
+   
+// Test 6: bool parameter - false
     result <- bh.handler(false);
     if (result != 0) return 6;
 
-    // Test 7: struct parameter
+   
+// Test 7: struct parameter
     PointHandler ph;
     Point pt;
     pt.x <- 10;
@@ -84,7 +90,8 @@ u32 main() {
     result <- ph.handler(pt);
     if (result != 30) return 7;
 
-    // Test 8: struct with different values
+   
+// Test 8: struct with different values
     pt.x <- 100;
     pt.y <- 200;
     result <- ph.handler(pt);

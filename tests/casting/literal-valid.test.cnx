@@ -1,6 +1,5 @@
 // ADR-024: Test that valid literal values work correctly
 // This should compile successfully
-
 void main() {
     // All valid - values fit in their types
     u8 byte <- 255;

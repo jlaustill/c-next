@@ -1,7 +1,7 @@
 // Test f64 in all language contexts
-
 // Global variable declarations
 f64 global_d <- 3.141592653589793;
+
 f64 global_uninit;
 
 // Struct member

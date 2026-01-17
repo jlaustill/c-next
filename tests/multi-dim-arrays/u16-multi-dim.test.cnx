@@ -1,9 +1,9 @@
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional u16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor data, medium-range counters, port numbers
-
 u16 matrix2d[4][8];
+
 u16 cube3d[2][3][4];
 
 u32 main() {
@@ -33,16 +33,17 @@ u32 main() {
     if (cube3d[1][0][0] != 10000) return 8;
     if (cube3d[1][2][3] != 50000) return 9;
 
-    // Test .length property at each dimension
+   
+// Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10;        // First dimension
-    if (matrix2d[0].length != 8) return 11;     // Second dimension
+    if (matrix2d.length != 4) return 10; // First dimension
+    if (matrix2d[0].length != 8) return 11; // Second dimension
     if (matrix2d[0][0].length != 16) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
+    if (cube3d.length != 2) return 13; // First dimension
+    if (cube3d[0].length != 3) return 14; // Second dimension
+    if (cube3d[0][0].length != 4) return 15; // Third dimension
     if (cube3d[0][0][0].length != 16) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array
@@ -72,46 +73,52 @@ u32 main() {
     // Verify sum: 6+46+86+406+446+486 = 1476
     if (sum != 1476) return 21;
 
-    // Test modification after initialization
+   
+// Test modification after initialization
     matrix2d[2][4] <- 60000;
     if (matrix2d[2][4] != 60000) return 22;
 
-    // Test boundary access
+   
+// Test boundary access
     matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- 555;
     if (matrix2d[3][7] != 555) return 23;
 
-    // Test u16 specific edge cases
+   
+// Test u16 specific edge cases
     u16 testArray[3][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 3; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
-    testArray[0][0] <- 0;      // Min value
-    testArray[0][1] <- 65535;  // Max value
-    testArray[1][0] <- 32768;  // Mid value
-    testArray[2][1] <- 1000;   // Small value
+    testArray[0][0] <- 0; // Min value
+    testArray[0][1] <- 65535; // Max value
+    testArray[1][0] <- 32768; // Mid value
+    testArray[2][1] <- 1000; // Small value
 
     if (testArray[0][0] != 0) return 24;
     if (testArray[0][1] != 65535) return 25;
     if (testArray[1][0] != 32768) return 26;
     if (testArray[2][1] != 1000) return 27;
 
-    // Test 2D array with port numbers pattern
+   
+// Test 2D array with port numbers pattern
     u16 ports[3][3];
+
     // Initialize all elements first
     for (u32 pi <- 0; pi < 3; pi +<- 1) {
         for (u32 pj <- 0; pj < 3; pj +<- 1) {
             ports[pi][pj] <- 0;
         }
     }
-    ports[0][0] <- 80;     // HTTP
-    ports[0][1] <- 443;    // HTTPS
-    ports[1][0] <- 22;     // SSH
-    ports[1][1] <- 3306;   // MySQL
-    ports[2][0] <- 5432;   // PostgreSQL
-    ports[2][1] <- 8080;   // Alt HTTP
+    ports[0][0] <- 80; // HTTP
+    ports[0][1] <- 443; // HTTPS
+    ports[1][0] <- 22; // SSH
+    ports[1][1] <- 3306; // MySQL
+    ports[2][0] <- 5432; // PostgreSQL
+    ports[2][1] <- 8080; // Alt HTTP
 
     if (ports[0][0] != 80) return 28;
     if (ports[0][1] != 443) return 29;
@@ -120,8 +127,10 @@ u32 main() {
     if (ports[2][0] != 5432) return 32;
     if (ports[2][1] != 8080) return 33;
 
-    // Test large value calculations
+   
+// Test large value calculations
     u16 data[2][2];
+
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
         for (u32 dj <- 0; dj < 2; dj +<- 1) {

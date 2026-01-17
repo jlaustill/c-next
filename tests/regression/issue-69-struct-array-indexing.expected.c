@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Regression test for issue #69: Array indexing transpiles as bitshift operation
 //
 // Bug: Array indexing on struct array members like config.tempInputs[index].assignedSpn

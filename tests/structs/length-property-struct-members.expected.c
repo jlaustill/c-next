@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test .length property on struct member access
 // Bug: config.magic.length evaluates to 0 instead of 32
 typedef struct {

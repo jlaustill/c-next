@@ -1,198 +1,197 @@
-/* test-execution */
+// test-execution
 // Tests: u32 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: 0 to 4294967295
-
 u32 main() {
     // ===== ADDITION (+<-) =====
     u32 val <- 2000000000;
-    val +<- 1000000000;  // Basic addition
+    val +<- 1000000000; // Basic addition
     if (val != 3000000000) return 1;
 
     val <- 4000000000;
-    val +<- 0;  // Identity: add zero
+    val +<- 0; // Identity: add zero
     if (val != 4000000000) return 2;
 
     val <- 0;
-    val +<- 4294967294;  // 0 + near-max
+    val +<- 4294967294; // 0 + near-max
     if (val != 4294967294) return 3;
 
     val <- 4294967294;
-    val +<- 1;  // Near max
+    val +<- 1; // Near max
     if (val != 4294967295) return 4;
 
     // ===== SUBTRACTION (-<-) =====
     u32 sub <- 3000000000;
-    sub -<- 1000000000;  // Basic subtraction
+    sub -<- 1000000000; // Basic subtraction
     if (sub != 2000000000) return 10;
 
     sub <- 2000000000;
-    sub -<- 0;  // Identity: subtract zero
+    sub -<- 0; // Identity: subtract zero
     if (sub != 2000000000) return 11;
 
     sub <- 4294967295;
-    sub -<- 4294967294;  // Max - (max-1) = 1
+    sub -<- 4294967294; // Max - (max-1) = 1
     if (sub != 1) return 12;
 
     sub <- 2000000000;
-    sub -<- 2000000000;  // Result zero
+    sub -<- 2000000000; // Result zero
     if (sub != 0) return 13;
 
     sub <- 1;
-    sub -<- 1;  // Near min
+    sub -<- 1; // Near min
     if (sub != 0) return 14;
 
     // ===== MULTIPLICATION (*<-) =====
     u32 mul <- 50000;
-    mul *<- 50000;  // 50000 * 50000 = 2.5B
+    mul *<- 50000; // 50000 * 50000 = 2.5B
     if (mul != 2500000000) return 20;
 
     mul <- 1000000;
-    mul *<- 1;  // Identity: multiply by one
+    mul *<- 1; // Identity: multiply by one
     if (mul != 1000000) return 21;
 
     mul <- 65536;
-    mul *<- 65535;  // 65536 * 65535 = 4294901760
+    mul *<- 65535; // 65536 * 65535 = 4294901760
     if (mul != 4294901760) return 22;
 
     mul <- 65536;
-    mul *<- 65536;  // 65536 * 65536 = 2^32, clamped to max
+    mul *<- 65536; // 65536 * 65536 = 2^32, clamped to max
     if (mul != 4294967295) return 23;
 
     mul <- 1000000;
-    mul *<- 0;  // Multiply by zero
+    mul *<- 0; // Multiply by zero
     if (mul != 0) return 24;
 
     // ===== DIVISION (/<-) =====
     u32 div <- 3000000000;
-    div /<- 1000;  // 3B / 1K = 3M
+    div /<- 1000; // 3B / 1K = 3M
     if (div != 3000000) return 30;
 
     div <- 1000000000;
-    div /<- 1;  // Identity: divide by one
+    div /<- 1; // Identity: divide by one
     if (div != 1000000000) return 31;
 
     div <- 4294967295;
-    div /<- 4294967295;  // Max / max = 1
+    div /<- 4294967295; // Max / max = 1
     if (div != 1) return 32;
 
     div <- 1000000000;
-    div /<- 3;  // 1B / 3 = 333333333
+    div /<- 3; // 1B / 3 = 333333333
     if (div != 333333333) return 33;
 
     div <- 0;
-    div /<- 1000;  // 0 / x = 0
+    div /<- 1000; // 0 / x = 0
     if (div != 0) return 34;
 
     // ===== MODULO (%<-) =====
     u32 mod <- 1000000007;
-    mod %<- 1000000;  // Large mod
+    mod %<- 1000000; // Large mod
     if (mod != 7) return 40;
 
     mod <- 4000000000;
-    mod %<- 1000000000;  // 4B % 1B = 0
+    mod %<- 1000000000; // 4B % 1B = 0
     if (mod != 0) return 41;
 
     mod <- 12345;
-    mod %<- 7;  // 12345 % 7 = 4
+    mod %<- 7; // 12345 % 7 = 4
     if (mod != 4) return 42;
 
     mod <- 4294967295;
-    mod %<- 65536;  // Max % 65536 = 65535
+    mod %<- 65536; // Max % 65536 = 65535
     if (mod != 65535) return 43;
 
     mod <- 1;
-    mod %<- 2;  // 1 % 2 = 1
+    mod %<- 2; // 1 % 2 = 1
     if (mod != 1) return 44;
 
     // ===== BITWISE AND (&<-) =====
     u32 and <- 0xFFFFFFFF;
-    and &<- 0x0000FFFF;  // Keep low 16 bits
+    and &<- 0x0000FFFF; // Keep low 16 bits
     if (and != 0x0000FFFF) return 50;
 
     and <- 0xAAAAAAAA;
-    and &<- 0x55555555;  // Non-overlapping = 0
+    and &<- 0x55555555; // Non-overlapping = 0
     if (and != 0) return 51;
 
     and <- 0x55555555;
-    and &<- 0xFFFFFFFF;  // AND with all 1s = identity
+    and &<- 0xFFFFFFFF; // AND with all 1s = identity
     if (and != 0x55555555) return 52;
 
     and <- 0xFFFF0000;
-    and &<- 0x0000FFFF;  // High/low halves AND = 0
+    and &<- 0x0000FFFF; // High/low halves AND = 0
     if (and != 0) return 53;
 
     // ===== BITWISE OR (|<-) =====
     u32 or <- 0x0000FFFF;
-    or |<- 0xFFFF0000;  // Combine halves
+    or |<- 0xFFFF0000; // Combine halves
     if (or != 0xFFFFFFFF) return 60;
 
     or <- 0x55555555;
-    or |<- 0x00000000;  // OR with zero = identity
+    or |<- 0x00000000; // OR with zero = identity
     if (or != 0x55555555) return 61;
 
     or <- 0xAAAAAAAA;
-    or |<- 0x55555555;  // Alternating OR = all 1s
+    or |<- 0x55555555; // Alternating OR = all 1s
     if (or != 0xFFFFFFFF) return 62;
 
     // ===== BITWISE XOR (^<-) =====
     u32 xor <- 0xAAAAAAAA;
-    xor ^<- 0x55555555;  // Alternating XOR = all 1s
+    xor ^<- 0x55555555; // Alternating XOR = all 1s
     if (xor != 0xFFFFFFFF) return 70;
 
     xor <- 0xFFFFFFFF;
-    xor ^<- 0xFFFFFFFF;  // XOR with all 1s = 0
+    xor ^<- 0xFFFFFFFF; // XOR with all 1s = 0
     if (xor != 0) return 71;
 
     xor <- 0x55555555;
-    xor ^<- 0x55555555;  // XOR with self = 0
+    xor ^<- 0x55555555; // XOR with self = 0
     if (xor != 0) return 72;
 
     xor <- 0x0000FFFF;
-    xor ^<- 0xFFFF0000;  // Non-overlapping XOR = all 1s
+    xor ^<- 0xFFFF0000; // Non-overlapping XOR = all 1s
     if (xor != 0xFFFFFFFF) return 73;
 
     // ===== LEFT SHIFT (<<<-) =====
     u32 shl <- 1;
-    shl <<<- 0;  // Shift by 0 = identity
+    shl <<<- 0; // Shift by 0 = identity
     if (shl != 1) return 80;
 
     shl <- 1;
-    shl <<<- 1;  // 1 << 1 = 2
+    shl <<<- 1; // 1 << 1 = 2
     if (shl != 2) return 81;
 
     shl <- 1;
-    shl <<<- 16;  // 1 << 16 = 65536
+    shl <<<- 16; // 1 << 16 = 65536
     if (shl != 65536) return 82;
 
     shl <- 1;
-    shl <<<- 31;  // 1 << 31 = 2147483648
+    shl <<<- 31; // 1 << 31 = 2147483648
     if (shl != 2147483648) return 83;
 
     shl <- 0x0000FFFF;
-    shl <<<- 16;  // 0x0000FFFF << 16 = 0xFFFF0000
+    shl <<<- 16; // 0x0000FFFF << 16 = 0xFFFF0000
     if (shl != 0xFFFF0000) return 84;
 
     // ===== RIGHT SHIFT (>><-) =====
     u32 shr <- 2147483648;
-    shr >><- 0;  // Shift by 0 = identity
+    shr >><- 0; // Shift by 0 = identity
     if (shr != 2147483648) return 90;
 
     shr <- 2147483648;
-    shr >><- 1;  // 2^31 >> 1 = 2^30
+    shr >><- 1; // 2^31 >> 1 = 2^30
     if (shr != 1073741824) return 91;
 
     shr <- 2147483648;
-    shr >><- 31;  // 2^31 >> 31 = 1
+    shr >><- 31; // 2^31 >> 31 = 1
     if (shr != 1) return 92;
 
     shr <- 0xFFFF0000;
-    shr >><- 16;  // 0xFFFF0000 >> 16 = 0x0000FFFF
+    shr >><- 16; // 0xFFFF0000 >> 16 = 0x0000FFFF
     if (shr != 0x0000FFFF) return 93;
 
     shr <- 4294967295;
-    shr >><- 16;  // Max >> 16 = 65535
+    shr >><- 16; // Max >> 16 = 65535
     if (shr != 65535) return 94;
 
     return 0;

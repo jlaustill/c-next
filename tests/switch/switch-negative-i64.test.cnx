@@ -1,27 +1,26 @@
-/* test-execution */
+// test-execution
 // Issue #107: Negative Case Labels - i64 Type
 // Tests: negative literals with i64 switch expressions
 // Note: Avoids INT64_MIN/MAX due to JS parseInt precision limits in duplicate detection
-
 i32 result;
 
 // Test i64 with various negative values (within JS safe integer range)
 void testI64Values(i64 val) {
     switch (val) {
         case -9007199254740991 {
-            result <- 1;   // JS MIN_SAFE_INTEGER
+            result <- 1; // JS MIN_SAFE_INTEGER
         }
         case -1000000000000000 {
-            result <- 2;   // Quadrillion
+            result <- 2; // Quadrillion
         }
         case -1000000000000 {
-            result <- 3;   // Trillion
+            result <- 3; // Trillion
         }
         case -2147483649 {
-            result <- 4;   // Just beyond i32 min
+            result <- 4; // Just beyond i32 min
         }
         case -2147483648 {
-            result <- 5;   // i32 min boundary
+            result <- 5; // i32 min boundary
         }
         case -1 {
             result <- 6;
@@ -30,21 +29,21 @@ void testI64Values(i64 val) {
             result <- 7;
         }
         case 2147483647 {
-            result <- 8;   // i32 max boundary
+            result <- 8; // i32 max boundary
         }
         case 2147483648 {
-            result <- 9;   // Just beyond i32 max
+            result <- 9; // Just beyond i32 max
         }
         case 1000000000000 {
-            result <- 10;  // Trillion
+            result <- 10; // Trillion
         }
         case 1000000000000000 {
-            result <- 11;  // Quadrillion
+            result <- 11; // Quadrillion
         }
         case 9007199254740991 {
-            result <- 12;  // JS MAX_SAFE_INTEGER
+            result <- 12; // JS MAX_SAFE_INTEGER
         }
-        default {
+    default {
             result <- 99;
         }
     }
@@ -55,31 +54,32 @@ void testI64Values(i64 val) {
 void testI64Hex(i64 val) {
     switch (val) {
         case -0x100000000 {
-            result <- 20;  // Beyond i32 range (-4294967296)
+            result <- 20; // Beyond i32 range (-4294967296)
         }
         case -0x7FFFFFFF {
-            result <- 21;  // -2147483647 (i32 max negated)
+            result <- 21; // -2147483647 (i32 max negated)
         }
         case -0x1000000 {
-            result <- 22;  // -16777216
+            result <- 22; // -16777216
         }
         case -0xFF {
-            result <- 23;  // -255
+            result <- 23; // -255
         }
         case 0x00 {
             result <- 24;
         }
         case 0x100000000 {
-            result <- 25;  // Beyond i32 range
+            result <- 25; // Beyond i32 range
         }
-        default {
+    default {
             result <- 99;
         }
     }
 }
 
 u32 main() {
-    // Test i64 values
+   
+// Test i64 values
     i64 minSafe <- -9007199254740991;
     i64 negQuad <- -1000000000000000;
     i64 negTrillion <- -1000000000000;
@@ -133,7 +133,8 @@ u32 main() {
     testI64Values(other);
     if (result != 99) return 13;
 
-    // Test hex literals
+   
+// Test hex literals
     i64 negBeyondU32 <- -4294967296;
     testI64Hex(negBeyondU32);
     if (result != 20) return 14;

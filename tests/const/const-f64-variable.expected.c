@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const f64 variable
 // Tests: const f64 declaration and read access
 const double PI_PRECISE = 3.14159265358979;

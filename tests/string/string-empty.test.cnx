@@ -1,3 +1,4 @@
 // ADR-045: Test empty string declaration
 string<64> buffer;
+
 string<256> largeBuffer;

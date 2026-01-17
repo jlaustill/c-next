@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 27-array-pass-by-ref */
-/* test-execution */
+// test-coverage: 27-array-pass-by-ref
+// test-execution
 // Tests: Array passed to function (pass-by-reference behavior)
 // Function that modifies an array element
 void setElement(uint32_t arr[10], uint32_t* index, uint32_t* value) {

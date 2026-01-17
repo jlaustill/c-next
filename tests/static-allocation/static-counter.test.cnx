@@ -1,9 +1,10 @@
-/* test-execution */
+// test-execution
 // ADR-003: Static counter allocation
 // Tests: global counters with known sizes are valid
-
 u32 eventCount;
+
 u16 errorCount;
+
 u8 retryCount;
 
 void recordEvent() {

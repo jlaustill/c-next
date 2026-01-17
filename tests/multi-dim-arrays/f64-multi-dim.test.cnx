@@ -1,9 +1,9 @@
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional f64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: scientific calculations, high-precision measurements, astronomy
-
 f64 matrix2d[4][8];
+
 f64 cube3d[2][3][4];
 
 u32 main() {
@@ -33,16 +33,17 @@ u32 main() {
     if (cube3d[1][0][0] != 999.999999999999) return 8;
     if (cube3d[1][2][3] != -0.000000000001) return 9;
 
-    // Test .length property at each dimension
+   
+// Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10;        // First dimension
-    if (matrix2d[0].length != 8) return 11;     // Second dimension
+    if (matrix2d.length != 4) return 10; // First dimension
+    if (matrix2d[0].length != 8) return 11; // Second dimension
     if (matrix2d[0][0].length != 64) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
+    if (cube3d.length != 2) return 13; // First dimension
+    if (cube3d[0].length != 3) return 14; // Second dimension
+    if (cube3d[0][0].length != 4) return 15; // Third dimension
     if (cube3d[0][0][0].length != 64) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array with decimal pattern
@@ -72,27 +73,31 @@ u32 main() {
     // Verify sum: 3.0+12.0+21.0+45.0+54.0+63.0 = 198.0
     if (sum != 198.0) return 21;
 
-    // Test modification after initialization
+   
+// Test modification after initialization
     matrix2d[2][4] <- -999999.999999;
     if (matrix2d[2][4] != -999999.999999) return 22;
 
-    // Test boundary access
+   
+// Test boundary access
     matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- 42.123456789;
     if (matrix2d[3][7] != 42.123456789) return 23;
 
-    // Test f64 specific edge cases
+   
+// Test f64 specific edge cases
     f64 testArray[4][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0.0;
         }
     }
-    testArray[0][0] <- 0.0;                // Zero
-    testArray[0][1] <- -0.0;               // Negative zero
-    testArray[1][0] <- 1.0;                // One
-    testArray[1][1] <- -1.0;               // Negative one
-    testArray[2][0] <- 0.123456789012345;  // High precision positive
+    testArray[0][0] <- 0.0; // Zero
+    testArray[0][1] <- -0.0; // Negative zero
+    testArray[1][0] <- 1.0; // One
+    testArray[1][1] <- -1.0; // Negative one
+    testArray[2][0] <- 0.123456789012345; // High precision positive
     testArray[3][1] <- -0.123456789012345; // High precision negative
 
     if (testArray[0][0] != 0.0) return 24;
@@ -102,21 +107,23 @@ u32 main() {
     if (testArray[2][0] != 0.123456789012345) return 28;
     if (testArray[3][1] != -0.123456789012345) return 29;
 
-    // Test 2D array with scientific constants
+   
+// Test 2D array with scientific constants
     f64 constants[3][3];
+
     // Initialize all elements first
     for (u32 coi <- 0; coi < 3; coi +<- 1) {
         for (u32 coj <- 0; coj < 3; coj +<- 1) {
             constants[coi][coj] <- 0.0;
         }
     }
-    constants[0][0] <- 3.14159265358979;   // Pi
-    constants[0][1] <- 2.71828182845905;   // e
-    constants[0][2] <- 1.61803398874989;   // Golden ratio
-    constants[1][0] <- 6.62607015e-34;     // Planck constant
-    constants[1][1] <- 299792458.0;        // Speed of light (m/s)
-    constants[2][0] <- 6.67430e-11;        // Gravitational constant
-    constants[2][1] <- 9.80665;            // Standard gravity (m/s²)
+    constants[0][0] <- 3.14159265358979; // Pi
+    constants[0][1] <- 2.71828182845905; // e
+    constants[0][2] <- 1.61803398874989; // Golden ratio
+    constants[1][0] <- 6.62607015e-34; // Planck constant
+    constants[1][1] <- 299792458.0; // Speed of light (m/s)
+    constants[2][0] <- 6.67430e-11; // Gravitational constant
+    constants[2][1] <- 9.80665; // Standard gravity (m/s²)
 
     if (constants[0][0] != 3.14159265358979) return 30;
     if (constants[0][1] != 2.71828182845905) return 31;
@@ -126,8 +133,10 @@ u32 main() {
     if (constants[2][0] != 6.67430e-11) return 35;
     if (constants[2][1] != 9.80665) return 36;
 
-    // Test high precision decimal calculations
+   
+// Test high precision decimal calculations
     f64 precise[2][2];
+
     // Initialize all elements first
     for (u32 pi <- 0; pi < 2; pi +<- 1) {
         for (u32 pj <- 0; pj < 2; pj +<- 1) {
@@ -144,8 +153,10 @@ u32 main() {
     if (precise[1][0] != 999999.999999999) return 39;
     if (precise[1][1] != -123456.789012345) return 40;
 
-    // Test floating point arithmetic with high precision
+   
+// Test floating point arithmetic with high precision
     f64 calc[2][2];
+
     // Initialize all elements first
     for (u32 ci <- 0; ci < 2; ci +<- 1) {
         for (u32 cj <- 0; cj < 2; cj +<- 1) {
@@ -157,37 +168,41 @@ u32 main() {
     f64 calcSum <- calc[0][0] + calc[0][1];
     if (calcSum != 16.11111111) return 41;
 
-    // Test astronomical distances (light-years to meters)
+   
+// Test astronomical distances (light-years to meters)
     f64 distances[2][3];
+
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
         for (u32 dj <- 0; dj < 3; dj +<- 1) {
             distances[di][dj] <- 0.0;
         }
     }
-    distances[0][0] <- 9.461e15;       // 1 light-year in meters
-    distances[0][1] <- 1.496e11;       // 1 AU in meters
-    distances[0][2] <- 3.086e16;       // 1 parsec in meters
-    distances[1][0] <- 4.0e26;         // Distance to Proxima Centauri
-    distances[1][1] <- 2.5e22;         // Distance to Andromeda
-    distances[1][2] <- 1.0e21;         // Diameter of Milky Way
+    distances[0][0] <- 9.461e15; // 1 light-year in meters
+    distances[0][1] <- 1.496e11; // 1 AU in meters
+    distances[0][2] <- 3.086e16; // 1 parsec in meters
+    distances[1][0] <- 4.0e26; // Distance to Proxima Centauri
+    distances[1][1] <- 2.5e22; // Distance to Andromeda
+    distances[1][2] <- 1.0e21; // Diameter of Milky Way
 
     if (distances[0][0] != 9.461e15) return 42;
     if (distances[0][1] != 1.496e11) return 43;
     if (distances[1][0] != 4.0e26) return 44;
 
-    // Test very small numbers (quantum scale)
+   
+// Test very small numbers (quantum scale)
     f64 quantum[2][2];
+
     // Initialize all elements first
     for (u32 qi <- 0; qi < 2; qi +<- 1) {
         for (u32 qj <- 0; qj < 2; qj +<- 1) {
             quantum[qi][qj] <- 0.0;
         }
     }
-    quantum[0][0] <- 1.0e-35;   // Planck length
-    quantum[0][1] <- 5.39e-44;  // Planck time
+    quantum[0][0] <- 1.0e-35; // Planck length
+    quantum[0][1] <- 5.39e-44; // Planck time
     quantum[1][0] <- 1.616e-35; // More precise Planck length
-    quantum[1][1] <- 0.0;       // Zero
+    quantum[1][1] <- 0.0; // Zero
 
     if (quantum[0][0] != 1.0e-35) return 45;
     if (quantum[0][1] != 5.39e-44) return 46;

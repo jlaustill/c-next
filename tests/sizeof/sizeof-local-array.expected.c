@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 23-sizeof-local-array */
-/* test-execution */
+// test-coverage: 23-sizeof-local-array
+// test-execution
 // Tests: sizeof on local arrays
 int main(void) {
     uint8_t byteArray[10] = {0};

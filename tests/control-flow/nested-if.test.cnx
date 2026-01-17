@@ -1,15 +1,15 @@
-/* test-coverage: 33.2-if-inside-if */
-/* test-execution */
+// test-coverage: 33.2-if-inside-if
+// test-execution
 // Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
-
 u32 main() {
     u32 a <- 10;
     u32 b <- 20;
     u32 c <- 30;
     u32 result <- 0;
 
-    // Test 1: Simple nested if
+   
+// Test 1: Simple nested if
     if (a < b) {
         if (b < c) {
             result <- 1;
@@ -17,7 +17,8 @@ u32 main() {
     }
     if (result != 1) return 1;
 
-    // Test 2: Nested if-else
+   
+// Test 2: Nested if-else
     result <- 0;
     if (a > 5) {
         if (b > 25) {
@@ -28,7 +29,8 @@ u32 main() {
     }
     if (result != 3) return 2;
 
-    // Test 3: Deeply nested (3 levels)
+   
+// Test 3: Deeply nested (3 levels)
     result <- 0;
     if (a = 10) {
         if (b = 20) {
@@ -39,7 +41,8 @@ u32 main() {
     }
     if (result != 4) return 3;
 
-    // Test 4: Nested if in else branch
+   
+// Test 4: Nested if in else branch
     result <- 0;
     if (a > 100) {
         result <- 5;
@@ -50,7 +53,8 @@ u32 main() {
     }
     if (result != 6) return 4;
 
-    // Test 5: Multiple nested branches
+   
+// Test 5: Multiple nested branches
     result <- 0;
     if (a < b) {
         if (b < c) {
@@ -67,7 +71,8 @@ u32 main() {
     }
     if (result != 7) return 5;
 
-    // Test 6: Nested if with compound conditions
+   
+// Test 6: Nested if with compound conditions
     result <- 0;
     if (a < b && b < c) {
         if (a + b < c + 10) {

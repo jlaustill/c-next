@@ -1,7 +1,6 @@
-/* test-coverage: 22-enum-to-int-cast */
-/* test-execution */
+// test-coverage: 22-enum-to-int-cast
+// test-execution
 // Tests: Explicit enum to integer cast
-
 enum Priority {
     LOW <- 1,
     MEDIUM <- 5,
@@ -17,7 +16,8 @@ enum Flags {
 }
 
 u32 main() {
-    // Test basic enum to u32 cast
+   
+// Test basic enum to u32 cast
     u32 lowVal <- (u32)Priority.LOW;
     if (lowVal != 1) return 1;
 
@@ -30,30 +30,36 @@ u32 main() {
     u32 critVal <- (u32)Priority.CRITICAL;
     if (critVal != 100) return 4;
 
-    // Test cast from variable
+   
+// Test cast from variable
     Priority p <- Priority.HIGH;
     u32 pVal <- (u32)p;
     if (pVal != 10) return 5;
 
-    // Test enum in arithmetic after cast
+   
+// Test enum in arithmetic after cast
     u32 sum <- (u32)Priority.LOW + (u32)Priority.MEDIUM;
     if (sum != 6) return 6;
 
-    // Test flags-style enum
+   
+// Test flags-style enum
     u32 readFlag <- (u32)Flags.READ;
     if (readFlag != 1) return 7;
 
     u32 writeFlag <- (u32)Flags.WRITE;
     if (writeFlag != 2) return 8;
 
-    // Test combined flags using cast
+   
+// Test combined flags using cast
     u32 combined <- (u32)Flags.READ + (u32)Flags.WRITE;
     if (combined != 3) return 9;
 
-    // Test cast in comparison
+   
+// Test cast in comparison
     if ((u32)Priority.CRITICAL != 100) return 10;
 
-    // Test cast to different integer sizes
+   
+// Test cast to different integer sizes
     u8 smallVal <- (u8)Priority.LOW;
     if (smallVal != 1) return 11;
 

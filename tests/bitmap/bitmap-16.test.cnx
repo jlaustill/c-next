@@ -1,16 +1,15 @@
 // ADR-034: 16-bit Bitmap Test
 // Tests larger bitmap with various field sizes
-
 bitmap16 CANStatus {
-    Ready,              // bit 0
-    Error,              // bit 1
-    TxEmpty,            // bit 2
-    RxFull,             // bit 3
-    BusOff,             // bit 4
-    ErrorPassive,       // bit 5
-    Warning,            // bit 6
-    Overrun,            // bit 7
-    MessageCounter[8]   // bits 8-15 (8 bits)
+    Ready, // bit 0
+    Error, // bit 1
+    TxEmpty, // bit 2
+    RxFull, // bit 3
+    BusOff, // bit 4
+    ErrorPassive, // bit 5
+    Warning, // bit 6
+    Overrun, // bit 7
+    MessageCounter[8] // bits 8-15 (8 bits)
 }
 
 CANStatus status <- 0;

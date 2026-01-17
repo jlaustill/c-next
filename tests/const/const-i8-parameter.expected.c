@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const i8 parameter
 // Tests: const i8 parameter read access with negative values
 int8_t readConstI8(const int8_t* value) {

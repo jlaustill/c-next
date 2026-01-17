@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
-/* test-coverage: 30-use-c-struct-nested */
+// test-execution
+// test-coverage: 30-use-c-struct-nested
 // Tests: Using C structs with nested struct members (Issue #196 fix)
 // ADR-010: Nested struct member access from C headers
 #include "c-interop/structs.h"

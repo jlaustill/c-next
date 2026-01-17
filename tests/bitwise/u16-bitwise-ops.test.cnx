@@ -1,36 +1,37 @@
-/* test-coverage: 5.1-u16-and, 5.2-u16-or, 5.3-u16-xor, 5.4-u16-not */
-/* test-execution */
+// test-coverage: 5.1-u16-and, 5.2-u16-or, 5.3-u16-xor, 5.4-u16-not
+// test-execution
 // Test u16 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u16 type
-
 u32 main() {
     // AND operations
     u16 a <- 0xFF00;
     u16 b <- 0xAAAA;
-    u16 and_result <- a & b;  // 0xAA00 = 43520
+    u16 and_result <- a & b; // 0xAA00 = 43520
 
     // OR operations
-    u16 or_result <- a | b;   // 0xFFAA = 65450
+    u16 or_result <- a | b; // 0xFFAA = 65450
 
     // XOR operations
-    u16 xor_result <- a ^ b;  // 0x55AA = 21930
+    u16 xor_result <- a ^ b; // 0x55AA = 21930
 
     // NOT operations
     u16 c <- 0xAAAA;
-    u16 not_result <- ~c;     // 0x5555 = 21845
+    u16 not_result <- ~c; // 0x5555 = 21845
 
-    // Test with binary literals
+   
+// Test with binary literals
     u16 bin_a <- 0b1111111100000000;
     u16 bin_b <- 0b1010101010101010;
-    u16 bin_and <- bin_a & bin_b;  // 0xAA00 = 43520
+    u16 bin_and <- bin_a & bin_b; // 0xAA00 = 43520
 
-    // Test with decimal literals
-    u16 dec_and <- 65280 & 43690;  // 0xFF00 & 0xAAAA = 43520
-    u16 dec_or <- 65280 | 43690;   // 0xFF00 | 0xAAAA = 65450
+   
+// Test with decimal literals
+    u16 dec_and <- 65280 & 43690; // 0xFF00 & 0xAAAA = 43520
+    u16 dec_or <- 65280 | 43690; // 0xFF00 | 0xAAAA = 65450
 
     // Edge case: all bits set
     u16 all_bits <- 0xFFFF;
-    u16 not_all <- ~all_bits;  // 0x0000 = 0
+    u16 not_all <- ~all_bits; // 0x0000 = 0
 
     // Verify results
     if (and_result = 43520 && or_result = 65450 && xor_result = 21930 && not_result = 21845) {

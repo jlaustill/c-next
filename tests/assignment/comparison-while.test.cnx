@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-001: Comparison in while loops
 // Tests: = operator transpiles to == in while conditions
-
 u32 sumUntilLimit(u32 limit) {
     u32 sum <- 0;
     u32 i <- 0;
@@ -18,15 +17,20 @@ u32 main() {
     u32 zero <- 0;
     u32 three <- 3;
 
-    // Test sumUntilLimit: 0+1+2+3+4 = 10
+   
+// Test sumUntilLimit: 0+1+2+3+4 = 10
     if (sumUntilLimit(five) != 10) {
         return 1;
     }
-    // Test sumUntilLimit: 0 = 0
+
+   
+// Test sumUntilLimit: 0 = 0
     if (sumUntilLimit(zero) != 0) {
         return 1;
     }
-    // Test sumUntilLimit: 0+1+2 = 3
+
+   
+// Test sumUntilLimit: 0+1+2 = 3
     if (sumUntilLimit(three) != 3) {
         return 1;
     }

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test i8 comparison operations
 // Coverage: Section 3.1-3.6 for i8 type
 int main(void) {

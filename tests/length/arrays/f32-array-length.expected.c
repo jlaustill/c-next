@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for f32 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 32 (element bit width)
 float globalArr[16] = {0};

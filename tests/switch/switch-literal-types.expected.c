@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-025: Switch with different literal formats
 // Tests: hex, binary, and char literals in case labels
 // Coverage: Section 7 (Control Flow) - case label literal types

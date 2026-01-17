@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for u64 type across all contexts
 // Tests: .length returns 64 for u64 in every possible scope and access pattern
 uint64_t globalVar = 1000000;

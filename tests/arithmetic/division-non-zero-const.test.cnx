@@ -1,5 +1,4 @@
 // ADR-051: Division by non-zero constant should compile
-
 const u32 TEN <- 10;
 
 void testNonZeroConst() {

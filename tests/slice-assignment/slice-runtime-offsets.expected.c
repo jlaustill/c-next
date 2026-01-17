@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Tests: Slice assignment with runtime variable offsets and lengths
 // Validates that offset and length can be variables or expressions
 // Ensures the code generator handles non-literal indices correctly

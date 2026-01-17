@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Issue #213 - Scope helper methods with string parameters
 // Validates that slice assignment in private methods generates memcpy, not bitwise ops
 

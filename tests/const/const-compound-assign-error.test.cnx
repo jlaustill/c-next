@@ -1,8 +1,7 @@
 // ADR-013: Error - compound assignment to const
 // Tests: cannot use compound assignment on const variable
-
 const u32 COUNTER <- 0;
 
 void main() {
-    COUNTER +<- 1;  // ERROR: cannot assign to const variable
+    COUNTER +<- 1; // ERROR: cannot assign to const variable
 }

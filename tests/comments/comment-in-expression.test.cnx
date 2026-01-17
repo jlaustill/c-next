@@ -1,5 +1,5 @@
-/* test-coverage: 25-comment-in-expression */
-/* test-execution */
+// test-coverage: 25-comment-in-expression
+// test-execution
 // Tests: Comments within expressions
 
 u32 main() {

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: wrap modifier for i64 type (-9223372036854775808 to 9223372036854775807)
 // Validates: overflow wraps to min, underflow wraps to max
 // Issue #19: Add wrap modifier tests for all integer types

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test: Compound assignment with cross-scope access
 // Tests global.OtherScope.var +<- value pattern (ADR-016)
 /* Scope: Counter */

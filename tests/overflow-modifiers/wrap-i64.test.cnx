@@ -1,131 +1,146 @@
-/* test-execution */
+// test-execution
 // Tests: wrap modifier for i64 type (-9223372036854775808 to 9223372036854775807)
 // Validates: overflow wraps to min, underflow wraps to max
 // Issue #19: Add wrap modifier tests for all integer types
-
 u32 main() {
     // === OVERFLOW WRAPPING (wraps to negative) ===
-
-    // Test 1: Basic overflow - add past max
-    wrap i64 val <- 9223372036854775807;  // I64_MAX
-    val +<- 1;  // Should wrap to I64_MIN
+   
+// Test 1: Basic overflow - add past max
+    wrap i64 val <- 9223372036854775807; // I64_MAX
+    val +<- 1; // Should wrap to I64_MIN
     if (val != -9223372036854775808) return 1;
 
-    // Test 2: Overflow with larger addition
-    wrap i64 val2 <- 9223372036854775800;  // I64_MAX - 7
-    val2 +<- 10;  // Should wrap to I64_MIN + 2
+   
+// Test 2: Overflow with larger addition
+    wrap i64 val2 <- 9223372036854775800; // I64_MAX - 7
+    val2 +<- 10; // Should wrap to I64_MIN + 2
     if (val2 != -9223372036854775806) return 2;
 
-    // Test 3: Large overflow
+   
+// Test 3: Large overflow
     val <- 5000000000000000000;
-    val +<- 5000000000000000000;  // 10 quintillion, wraps
+    val +<- 5000000000000000000; // 10 quintillion, wraps
+
     // 10000000000000000000 - 9223372036854775808 = overflow territory
     if (val != -8446744073709551616) return 3;
 
-    // Test 4: Multiple overflows in sequence
+   
+// Test 4: Multiple overflows in sequence
     val <- 9223372036854775807;
-    val +<- 1;  // I64_MIN
+    val +<- 1; // I64_MIN
     if (val != -9223372036854775808) return 4;
-    val +<- 9223372036854775807;  // -1
+    val +<- 9223372036854775807; // -1
     if (val != -1) return 5;
 
     // === UNDERFLOW WRAPPING (wraps to positive) ===
-
-    // Test 6: Basic underflow - subtract below min
-    val <- -9223372036854775808;  // I64_MIN
-    val -<- 1;  // Should wrap to I64_MAX
+   
+// Test 6: Basic underflow - subtract below min
+    val <- -9223372036854775808; // I64_MIN
+    val -<- 1; // Should wrap to I64_MAX
     if (val != 9223372036854775807) return 6;
 
-    // Test 7: Underflow with larger subtraction
-    val <- -9223372036854775800;  // I64_MIN + 8
-    val -<- 10;  // Should wrap to I64_MAX - 1
+   
+// Test 7: Underflow with larger subtraction
+    val <- -9223372036854775800; // I64_MIN + 8
+    val -<- 10; // Should wrap to I64_MAX - 1
     if (val != 9223372036854775806) return 7;
 
-    // Test 8: Large underflow
+   
+// Test 8: Large underflow
     val <- -5000000000000000000;
-    val -<- 5000000000000000000;  // -10 quintillion, wraps
+    val -<- 5000000000000000000; // -10 quintillion, wraps
     if (val != 8446744073709551616) return 8;
 
-    // Test 9: Multiple underflows in sequence
+   
+// Test 9: Multiple underflows in sequence
     val <- -9223372036854775808;
-    val -<- 1;  // I64_MAX
+    val -<- 1; // I64_MAX
     if (val != 9223372036854775807) return 9;
-    val -<- 9223372036854775807;  // 0
+    val -<- 9223372036854775807; // 0
     if (val != 0) return 10;
 
     // === CROSS-ZERO OPERATIONS ===
-
-    // Test 11: Positive to negative (no wrap needed)
+   
+// Test 11: Positive to negative (no wrap needed)
     val <- 1000000000000;
-    val -<- 2000000000000;  // -1 trillion
+    val -<- 2000000000000; // -1 trillion
     if (val != -1000000000000) return 11;
 
-    // Test 12: Negative to positive (no wrap needed)
+   
+// Test 12: Negative to positive (no wrap needed)
     val <- -1000000000000;
-    val +<- 2000000000000;  // 1 trillion
+    val +<- 2000000000000; // 1 trillion
     if (val != 1000000000000) return 12;
 
-    // Test 13: Cross zero exactly
+   
+// Test 13: Cross zero exactly
     val <- 1000000000000;
-    val -<- 1000000000000;  // 0
+    val -<- 1000000000000; // 0
     if (val != 0) return 13;
 
-    // Test 14: Negative to zero exactly
+   
+// Test 14: Negative to zero exactly
     val <- -1000000000000;
-    val +<- 1000000000000;  // 0
+    val +<- 1000000000000; // 0
     if (val != 0) return 14;
 
     // === NORMAL OPERATIONS (no wrapping needed) ===
-
-    // Test 15: Normal positive addition
+   
+// Test 15: Normal positive addition
     val <- 4000000000000000000;
-    val +<- 1000000000000000000;  // 5 quintillion
+    val +<- 1000000000000000000; // 5 quintillion
     if (val != 5000000000000000000) return 15;
 
-    // Test 16: Normal negative subtraction
+   
+// Test 16: Normal negative subtraction
     val <- -4000000000000000000;
-    val -<- 1000000000000000000;  // -5 quintillion
+    val -<- 1000000000000000000; // -5 quintillion
     if (val != -5000000000000000000) return 16;
 
-    // Test 17: Add negative (same as subtract)
+   
+// Test 17: Add negative (same as subtract)
     val <- 1000000000000;
-    val +<- -500000000000;  // 500 billion
+    val +<- -500000000000; // 500 billion
     if (val != 500000000000) return 17;
 
-    // Test 18: Subtract negative (same as add)
+   
+// Test 18: Subtract negative (same as add)
     val <- -1000000000000;
-    val -<- -500000000000;  // -500 billion
+    val -<- -500000000000; // -500 billion
     if (val != -500000000000) return 18;
 
     // === BOUNDARY TESTS ===
-
-    // Test 19: Add 1 to I64_MAX - 1 (just under max, no wrap)
+   
+// Test 19: Add 1 to I64_MAX - 1 (just under max, no wrap)
     val <- 9223372036854775806;
     val +<- 1;
     if (val != 9223372036854775807) return 19;
 
-    // Test 20: Subtract 1 from I64_MIN + 1 (just above min, no wrap)
+   
+// Test 20: Subtract 1 from I64_MIN + 1 (just above min, no wrap)
     val <- -9223372036854775807;
     val -<- 1;
     if (val != -9223372036854775808) return 20;
 
-    // Test 21: Add 0 (no change)
-    val <- 4611686018427387904;  // 2^62
+   
+// Test 21: Add 0 (no change)
+    val <- 4611686018427387904; // 2^62
     val +<- 0;
     if (val != 4611686018427387904) return 21;
 
-    // Test 22: Subtract 0 (no change)
+   
+// Test 22: Subtract 0 (no change)
     val <- -4611686018427387904;
     val -<- 0;
     if (val != -4611686018427387904) return 22;
 
     // === WRAP-AROUND CYCLES ===
-
-    // Test 23: Full wrap cycle (max -> min -> max)
+   
+// Test 23: Full wrap cycle (max -> min -> max)
     val <- 9223372036854775807;
-    val +<- 1;  // I64_MIN
+    val +<- 1; // I64_MIN
     if (val != -9223372036854775808) return 23;
-    val -<- 1;  // I64_MAX
+    val -<- 1; // I64_MAX
     if (val != 9223372036854775807) return 24;
 
     // All tests passed

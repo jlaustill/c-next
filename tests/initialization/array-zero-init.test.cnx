@@ -1,8 +1,8 @@
-/* test-execution */
+// test-execution
 // ADR-015: Array zero initialization
 // Tests: arrays are automatically zero-initialized
-
 u8 buffer[16];
+
 i32 values[4];
 
 u32 main() {

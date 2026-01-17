@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // ADR-010: C Interoperability - Include C-Next files
 // Tests: #include <file.cnx> transpiles to #include <file.h>
 #include <helper-types.h>

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 32.1-with-u8-suffix, 32.1-with-u16-suffix, 32.1-with-u32-suffix, 32.1-with-i8-suffix, 32.1-with-i16-suffix, 32.1-with-i32-suffix */
-/* test-execution */
+// test-coverage: 32.1-with-u8-suffix, 32.1-with-u16-suffix, 32.1-with-u32-suffix, 32.1-with-i8-suffix, 32.1-with-i16-suffix, 32.1-with-i32-suffix
+// test-execution
 // Tests: Integer literal suffixes for explicit type specification
 // Validates decimal, hex, and binary formats with u8/u16/u32/i8/i16/i32 suffixes
 int main(void) {

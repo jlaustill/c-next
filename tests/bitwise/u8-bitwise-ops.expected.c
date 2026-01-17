@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 1.1-u8-in-bitwise-operation */
-/* test-execution */
+// test-coverage: 1.1-u8-in-bitwise-operation
+// test-execution
 // Test u8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u8 type
 int main(void) {

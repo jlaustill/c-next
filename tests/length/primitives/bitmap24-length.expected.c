@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for bitmap24 type across all contexts
 // Tests: .length returns 24 for bitmap24 in every possible scope and access pattern
 // Define bitmap24 type

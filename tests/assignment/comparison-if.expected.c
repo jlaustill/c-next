@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
 uint32_t checkValue(uint32_t* x) {

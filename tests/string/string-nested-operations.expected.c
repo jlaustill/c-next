@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // ADR-045: Test chained/nested string operations
 // Validates: operations on results of other operations
 int main(void) {

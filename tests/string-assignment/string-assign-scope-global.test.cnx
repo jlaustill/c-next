@@ -1,17 +1,14 @@
-/* test-execution */
+// test-execution
 // Issue #139: Test global.member string assignment inside scope (ADR-016)
-
 string<64> globalBuffer <- "";
 
 scope Handler {
     public void updateGlobal() {
         global.globalBuffer <- "FromScope";
     }
-
     public void clearGlobal() {
         global.globalBuffer <- "";
     }
-
     public void setLongMessage() {
         global.globalBuffer <- "This is a longer message from scope";
     }

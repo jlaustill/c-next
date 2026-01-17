@@ -1,35 +1,34 @@
-/* test-coverage: 12-bit-range-access */
+// test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
-
 register TIMER @ 0x40010000 {
-    CTRL:    u32 rw @ 0x00,
+    CTRL: u32 rw @ 0x00,
     PRESCALE: u32 rw @ 0x04,
-    VALUE:   u32 ro @ 0x08,
+    VALUE: u32 ro @ 0x08,
 }
 
 register CONFIG @ 0x40020000 {
-    MODE:    u32 rw @ 0x00,
+    MODE: u32 rw @ 0x00,
     OPTIONS: u32 rw @ 0x04,
 }
 
 void setTimerPrescaler(u8 prescaler) {
     // Write 8-bit prescaler to bits 0-7
-    TIMER.PRESCALE[0, 8] <- prescaler;
+    TIMER.PRESCALE[0] <- prescaler;
 }
 
 void setTimerMode(u8 mode) {
     // Write 4-bit mode to bits 0-3 of CTRL
-    TIMER.CTRL[0, 4] <- mode;
+    TIMER.CTRL[0] <- mode;
 }
 
 void setTimerFlags(u8 flags) {
     // Write 4-bit flags to bits 4-7 of CTRL
-    TIMER.CTRL[4, 4] <- flags;
+    TIMER.CTRL[4] <- flags;
 }
 
 void configureOptions(u16 opts) {
     // Write 16-bit options to bits 0-15
-    CONFIG.OPTIONS[0, 16] <- opts;
+    CONFIG.OPTIONS[0] <- opts;
 }
 
 u8 readTimerMode() {

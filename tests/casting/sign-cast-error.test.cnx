@@ -1,7 +1,6 @@
 // ADR-024: Test that sign-changing cast produces error
 // (u32)i32_value should produce a compiler error
-
 void main() {
     i32 signed_val <- -5;
-    u32 unsigned_val <- (u32)signed_val;  // ERROR: casting i32 to u32 is sign change
+    u32 unsigned_val <- (u32)signed_val; // ERROR: casting i32 to u32 is sign change
 }

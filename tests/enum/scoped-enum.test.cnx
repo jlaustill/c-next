@@ -1,6 +1,5 @@
 // ADR-017: Scoped Enum Test
 // Tests enums declared inside scopes with proper prefixing
-
 const u8 defaultValue <- 3;
 
 scope Motor {
@@ -9,23 +8,18 @@ scope Motor {
         RUNNING,
         STALLED
     }
-
     const u8 defaultValue <- 1;
-
     public this.State current <- this.State.IDLE; // This is a default value
-
     public u8 start() {
         this.current <- this.State.RUNNING;
 
         return this.defaultValue;
     }
-
     public u8 stop() {
         this.current <- this.State.IDLE;
 
         return global.defaultValue;
     }
-
     public bool isRunning() {
         const this.State currentState <- this.current;
         if (currentState = this.State.RUNNING) {

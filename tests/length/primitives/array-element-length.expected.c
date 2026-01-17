@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #196 Bug 2: Array element .length should not require initialization
 // Tests that accessing .length on an array element does not trigger false positive
 // "use of uninitialized variable" error, since .length is a compile-time type property

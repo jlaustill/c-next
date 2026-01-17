@@ -1,10 +1,9 @@
-/* test-coverage: 5.5-shift-negative-error */
+// test-coverage: 5.5-shift-negative-error
 // Test negative shift amount - should be ERROR
 // Coverage: Section 5.5 error case - negative shift amount
-
 void testNegativeShift() {
     u32 a <- 255;
 
     // Negative shift is undefined behavior
-    u32 bad_shift <- a << -1;  // ERROR: negative shift amount
+    u32 bad_shift <- a << -1; // ERROR: negative shift amount
 }

@@ -14,7 +14,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Coverage: Section 7.3 - do-while loop inside if statement
 // Tests: do-while loops nested inside if/else branches
 int main(void) {

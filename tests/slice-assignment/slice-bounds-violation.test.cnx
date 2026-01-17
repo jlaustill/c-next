@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Runtime bounds checking for slice assignment
 // Validates that out-of-bounds copies are prevented
 // Buffer should remain unchanged when bounds are violated
@@ -15,7 +15,8 @@ u32 main() {
     if (buffer[0] != 0x11) return 1;
     if (buffer[4] != 0x11) return 2;
 
-    // Test 1: Attempt to copy beyond buffer bounds
+   
+// Test 1: Attempt to copy beyond buffer bounds
     // Buffer size is 32 bytes
     // Trying to write 8 bytes at offset 28 would exceed bounds (28 + 8 = 36 > 32)
     u64 largeValue <- 0xDEADBEEFDEADBEEF;
@@ -29,7 +30,8 @@ u32 main() {
     if (buffer[0] != 0x11) return 5;
     if (buffer[4] != 0x11) return 6;
 
-    // Test 2: Copy at exact boundary (should succeed)
+   
+// Test 2: Copy at exact boundary (should succeed)
     // sizeof(buffer) is 32, so offset 28 + length 4 = 32 (exactly at boundary)
     u32 boundaryValue <- 0x22222222;
     buffer[28, 4] <- boundaryValue;
@@ -40,7 +42,8 @@ u32 main() {
     if (buffer[30] != 0x22) return 9;
     if (buffer[31] != 0x22) return 10;
 
-    // Test 3: Copy just beyond boundary (should fail)
+   
+// Test 3: Copy just beyond boundary (should fail)
     u32 overValue <- 0x33333333;
     buffer[29, 4] <- overValue;  // 29 + 4 = 33 > 32
 

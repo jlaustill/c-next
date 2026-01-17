@@ -1,10 +1,9 @@
 // ADR-024: Test that bit indexing allows reinterpret for sign change
 // Using [start, width] syntax to explicitly extract and reinterpret bits
-
 void main() {
     i32 signed_val <- -5;
-    u32 as_unsigned <- signed_val[0, 32];  // OK: explicit bit reinterpret
+    u32 as_unsigned <- signed_val[0, 32]; // OK: explicit bit reinterpret
 
     u32 unsigned_val <- 0xFFFFFFFF;
-    i32 as_signed <- unsigned_val[0, 32];  // OK: explicit bit reinterpret
+    i32 as_signed <- unsigned_val[0, 32]; // OK: explicit bit reinterpret
 }

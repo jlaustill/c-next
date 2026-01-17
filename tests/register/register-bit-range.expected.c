@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-coverage: 12-bit-range-access */
+// test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
 /* Register: TIMER @ 0x40010000 */
 #define TIMER_CTRL (*(volatile uint32_t*)(0x40010000 + 0x00))
@@ -17,19 +17,19 @@
 #define CONFIG_OPTIONS (*(volatile uint32_t*)(0x40020000 + 0x04))
 
 void setTimerPrescaler(uint8_t* prescaler) {
-    TIMER_PRESCALE = (TIMER_PRESCALE & ~(0xFFU << 0)) | (((*prescaler) & 0xFFU) << 0);
+    TIMER_PRESCALE = (TIMER_PRESCALE & ~(1 << 0)) | (((*prescaler) ? 1 : 0) << 0);
 }
 
 void setTimerMode(uint8_t* mode) {
-    TIMER_CTRL = (TIMER_CTRL & ~(((1U << 4) - 1) << 0)) | (((*mode) & ((1U << 4) - 1)) << 0);
+    TIMER_CTRL = (TIMER_CTRL & ~(1 << 0)) | (((*mode) ? 1 : 0) << 0);
 }
 
 void setTimerFlags(uint8_t* flags) {
-    TIMER_CTRL = (TIMER_CTRL & ~(((1U << 4) - 1) << 4)) | (((*flags) & ((1U << 4) - 1)) << 4);
+    TIMER_CTRL = (TIMER_CTRL & ~(1 << 4)) | (((*flags) ? 1 : 0) << 4);
 }
 
 void configureOptions(uint16_t* opts) {
-    CONFIG_OPTIONS = (CONFIG_OPTIONS & ~(0xFFFFU << 0)) | (((*opts) & 0xFFFFU) << 0);
+    CONFIG_OPTIONS = (CONFIG_OPTIONS & ~(1 << 0)) | (((*opts) ? 1 : 0) << 0);
 }
 
 uint8_t readTimerMode(void) {

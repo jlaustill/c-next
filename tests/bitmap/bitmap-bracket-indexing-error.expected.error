@@ -1,1 +1,1 @@
-1:0 Code generation failed: Error at line 48: Cannot use bracket indexing on bitmap type 'Timer_ControlBits'. Use named field access instead (e.g., CTRL.FIELD_NAME).
+1:0 Code generation failed: Error at line 45: Cannot use bracket indexing on bitmap type 'Timer_ControlBits'. Use named field access instead (e.g., CTRL.FIELD_NAME).

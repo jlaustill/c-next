@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const i16 parameter
 // Tests: const i16 parameter read access with negative values
 int16_t readConstI16(const int16_t* value) {

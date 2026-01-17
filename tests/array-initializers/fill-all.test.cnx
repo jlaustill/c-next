@@ -1,47 +1,53 @@
-/* test-execution */
+// test-execution
 // ADR-035: Fill-All Syntax Test
 // Tests: [value*] fills all elements with the specified value
 // Validates that all array elements are properly initialized
-
 // Zero fill
 u8 buffer[100] <- [0*];
 
 // Fill with other values
 u8 ones[50] <- [1*];
+
 u16 magic[10] <- [0xDEAD*];
+
 i32 negatives[5] <- [-1*];
 
 u32 main() {
-    // Test zero fill - check first, middle, and last elements
+   
+// Test zero fill - check first, middle, and last elements
     if (buffer[0] != 0) return 1;
     if (buffer[49] != 0) return 2;
     if (buffer[99] != 0) return 3;
 
-    // Test ones fill - check first, middle, and last elements
+   
+// Test ones fill - check first, middle, and last elements
     if (ones[0] != 1) return 4;
     if (ones[24] != 1) return 5;
     if (ones[49] != 1) return 6;
 
-    // Test magic value fill (0xDEAD = 57005)
+   
+// Test magic value fill (0xDEAD = 57005)
     if (magic[0] != 0xDEAD) return 7;
     if (magic[5] != 0xDEAD) return 8;
     if (magic[9] != 0xDEAD) return 9;
 
-    // Test negative fill
+   
+// Test negative fill
     if (negatives[0] != -1) return 10;
     if (negatives[2] != -1) return 11;
     if (negatives[4] != -1) return 12;
 
-    // Test modification after fill
+   
+// Test modification after fill
     buffer[50] <- 42;
     if (buffer[50] != 42) return 13;
-    if (buffer[49] != 0) return 14;  // Adjacent unchanged
-    if (buffer[51] != 0) return 15;  // Adjacent unchanged
+    if (buffer[49] != 0) return 14; // Adjacent unchanged
+    if (buffer[51] != 0) return 15; // Adjacent unchanged
 
     ones[25] <- 255;
     if (ones[25] != 255) return 16;
-    if (ones[24] != 1) return 17;  // Adjacent unchanged
-    if (ones[26] != 1) return 18;  // Adjacent unchanged
+    if (ones[24] != 1) return 17; // Adjacent unchanged
+    if (ones[26] != 1) return 18; // Adjacent unchanged
 
     return 0;
 }

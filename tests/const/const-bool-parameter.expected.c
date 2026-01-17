@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const bool parameter
 // Tests: const bool parameter read access
 bool readConstBool(const bool* value) {

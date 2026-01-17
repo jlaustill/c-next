@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Test: ADR-016 Private method validation
 // Verifies that private methods work correctly within scopes
 // Tests: private calling private, private accessing this., private accessing global.
@@ -178,28 +178,35 @@ u32 main() {
     // SECTION 1: Basic private state access via public wrappers
     // ==========================================
 
-    // Test 1: Initial private state is 0
+   
+// Test 1: Initial private state is 0
     if (PrivateMethodTest.exposePrivateState() != 0) return 1;
 
-    // Test 2: Update private state and verify
+   
+// Test 2: Update private state and verify
     PrivateMethodTest.setPrivateState(42);
     if (PrivateMethodTest.exposePrivateState() != 42) return 2;
 
-    // Test 3: Initial private flag is false
+   
+// Test 3: Initial private flag is false
     if (PrivateMethodTest.exposePrivateFlag() != false) return 3;
 
-    // Test 4: Update private flag and verify
+   
+// Test 4: Update private flag and verify
     PrivateMethodTest.setPrivateFlag(true);
     if (PrivateMethodTest.exposePrivateFlag() != true) return 4;
 
-    // Test 5: Initial private accumulator is 0
+   
+// Test 5: Initial private accumulator is 0
     if (PrivateMethodTest.exposePrivateAccumulator() != 0) return 5;
 
-    // Test 6: Add to accumulator and verify
+   
+// Test 6: Add to accumulator and verify
     PrivateMethodTest.addToAccumulator(100);
     if (PrivateMethodTest.exposePrivateAccumulator() != 100) return 6;
 
-    // Test 7: Add negative value to accumulator
+   
+// Test 7: Add negative value to accumulator
     PrivateMethodTest.addToAccumulator(-30);
     if (PrivateMethodTest.exposePrivateAccumulator() != 70) return 7;
 
@@ -207,18 +214,22 @@ u32 main() {
     // SECTION 2: Private methods accessing global.
     // ==========================================
 
-    // Test 8: Private method reads global counter
+   
+// Test 8: Private method reads global counter
     if (PrivateMethodTest.exposeGlobalCounter() != 100) return 8;
 
-    // Test 9: Private method combines this. and global.
+   
+// Test 9: Private method combines this. and global.
     // privateState(42) + globalCounter(100) = 142
     if (PrivateMethodTest.exposeCombinedStateAndGlobal() != 142) return 9;
 
-    // Test 10: Private method checks both flags
+   
+// Test 10: Private method checks both flags
     // privateFlag(true) && globalFlag(true) = true
     if (PrivateMethodTest.exposeBothFlagsCheck() != true) return 10;
 
-    // Test 11: Change private flag and recheck
+   
+// Test 11: Change private flag and recheck
     PrivateMethodTest.setPrivateFlag(false);
     // privateFlag(false) && globalFlag(true) = false
     if (PrivateMethodTest.exposeBothFlagsCheck() != false) return 11;
@@ -227,27 +238,33 @@ u32 main() {
     // SECTION 3: Private methods calling other private methods
     // ==========================================
 
-    // Test 12: Nested private call - getStateViaHelper calls getPrivateState
+   
+// Test 12: Nested private call - getStateViaHelper calls getPrivateState
     if (PrivateMethodTest.exposeStateViaHelper() != 42) return 12;
 
-    // Test 13: Set state to known value for chain test
+   
+// Test 13: Set state to known value for chain test
     PrivateMethodTest.setPrivateState(990);
     if (PrivateMethodTest.exposePrivateState() != 990) return 13;
 
-    // Test 14: Initial call count from addToAccumulator calls
+   
+// Test 14: Initial call count from addToAccumulator calls
     // addToAccumulator was called 2 times (tests 6 and 7)
     if (PrivateMethodTest.exposeCallCount() != 2) return 14;
 
-    // Test 15: Trigger private chain - increments count, adds 10 to state, toggles flag
+   
+// Test 15: Trigger private chain - increments count, adds 10 to state, toggles flag
     // Before: state=990, flag=false, count=2
     PrivateMethodTest.triggerPrivateChain();
     // After: state=1000, flag=true, count=3
     if (PrivateMethodTest.exposePrivateState() != 1000) return 15;
 
-    // Test 16: Verify flag was toggled
+   
+// Test 16: Verify flag was toggled
     if (PrivateMethodTest.exposePrivateFlag() != true) return 16;
 
-    // Test 17: Verify call count incremented
+   
+// Test 17: Verify call count incremented
     if (PrivateMethodTest.exposeCallCount() != 3) return 17;
 
     // ==========================================
@@ -259,16 +276,19 @@ u32 main() {
     PrivateMethodTest.setPrivateFlag(true);
     // Accumulator is 70 from previous tests
 
-    // Test 18: Copy private to public
+   
+// Test 18: Copy private to public
     PrivateMethodTest.copyPrivateToPublic();
 
     // Verify public members match (direct access)
     if (PrivateMethodTest.publicResult != 777) return 18;
 
-    // Test 19: Verify public flag matches
+   
+// Test 19: Verify public flag matches
     if (PrivateMethodTest.publicFlag != true) return 19;
 
-    // Test 20: Verify public accumulator matches
+   
+// Test 20: Verify public accumulator matches
     if (PrivateMethodTest.publicAccumulator != 70) return 20;
 
     // All 20 validations passed

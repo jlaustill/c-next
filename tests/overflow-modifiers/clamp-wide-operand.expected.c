@@ -64,7 +64,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
     return a - (uint8_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: clamp with operands larger than target type range
 // Issue #94: Prevents silent truncation when operand exceeds type bounds
 // ADR-044: Per-variable overflow semantics

@@ -1,3 +1,4 @@
 // ADR-045: Test basic string declaration with initializer
 string<64> message <- "Hello, World!";
+
 string<5> name <- "Hello";

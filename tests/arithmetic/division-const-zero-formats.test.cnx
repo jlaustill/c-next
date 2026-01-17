@@ -1,12 +1,13 @@
 // ADR-051 Phase 3: Division by const zero in different formats
 // Should fail at compile time for all zero formats
-
 const u32 ZERO_DEC <- 0;
+
 const u32 ZERO_HEX <- 0x0;
+
 const u32 ZERO_BIN <- 0b0;
 
 void testDivisionByConstZeroFormats() {
-    u32 r1 <- 10 / ZERO_DEC;  // Should error
-    u32 r2 <- 10 / ZERO_HEX;  // Should error
-    u32 r3 <- 10 / ZERO_BIN;  // Should error
+    u32 r1 <- 10 / ZERO_DEC; // Should error
+    u32 r2 <- 10 / ZERO_HEX; // Should error
+    u32 r3 <- 10 / ZERO_BIN; // Should error
 }

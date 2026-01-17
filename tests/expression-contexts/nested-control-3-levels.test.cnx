@@ -1,15 +1,15 @@
-/* test-coverage: 33.2-3-levels-of-nesting */
-/* test-execution */
+// test-coverage: 33.2-3-levels-of-nesting
+// test-execution
 // Tests: comprehensive 3-level deep control structure nesting
 // Coverage: Section 33.2 - Statement Nesting (3+ levels)
-
 u32 result;
+
 u32 counter;
 
 u32 main() {
     // === IF-IF-IF NESTING ===
-
-    // Test 1: Simple 3-level if
+   
+// Test 1: Simple 3-level if
     bool a <- true;
     bool b <- true;
     bool c <- true;
@@ -24,7 +24,8 @@ u32 main() {
     }
     if (result != 1) return 1;
 
-    // Test 2: 3-level if with middle false
+   
+// Test 2: 3-level if with middle false
     b <- false;
     result <- 0;
     if (a = true) {
@@ -36,7 +37,8 @@ u32 main() {
     }
     if (result != 0) return 2;
 
-    // Test 3: 3-level if with else branches
+   
+// Test 3: 3-level if with else branches
     a <- true;
     b <- false;
     c <- true;
@@ -54,8 +56,8 @@ u32 main() {
     if (result != 11) return 3;
 
     // === IF-IF-WHILE NESTING ===
-
-    // Test 4: if-if-while
+   
+// Test 4: if-if-while
     a <- true;
     b <- true;
     counter <- 0;
@@ -72,8 +74,8 @@ u32 main() {
     if (result != 30) return 4;
 
     // === IF-WHILE-IF NESTING ===
-
-    // Test 5: if-while-if
+   
+// Test 5: if-while-if
     a <- true;
     counter <- 0;
     result <- 0;
@@ -89,8 +91,8 @@ u32 main() {
     if (result != 100) return 5;
 
     // === WHILE-IF-IF NESTING ===
-
-    // Test 6: while-if-if
+   
+// Test 6: while-if-if
     counter <- 0;
     result <- 0;
 
@@ -102,12 +104,13 @@ u32 main() {
         }
         counter +<- 1;
     }
+
     // counter 1 and 2 match, so result = 2
     if (result != 2) return 6;
 
     // === WHILE-WHILE-WHILE NESTING ===
-
-    // Test 7: 3-level while
+   
+// Test 7: 3-level while
     u32 i <- 0;
     u32 j <- 0;
     u32 k <- 0;
@@ -125,12 +128,13 @@ u32 main() {
         }
         i +<- 1;
     }
+
     // 2 * 2 * 2 = 8 iterations
     if (counter != 8) return 7;
 
     // === FOR-IF-IF NESTING ===
-
-    // Test 8: for-if-if
+   
+// Test 8: for-if-if
     result <- 0;
     for (u32 x <- 0; x < 5; x <- x + 1) {
         if (x > 1) {
@@ -139,12 +143,13 @@ u32 main() {
             }
         }
     }
+
     // x=2, x=3 match: 2+3=5
     if (result != 5) return 8;
 
     // === FOR-FOR-FOR NESTING ===
-
-    // Test 9: 3-level for
+   
+// Test 9: 3-level for
     counter <- 0;
     for (u32 p <- 0; p < 2; p <- p + 1) {
         for (u32 q <- 0; q < 2; q <- q + 1) {
@@ -156,8 +161,8 @@ u32 main() {
     if (counter != 8) return 9;
 
     // === FOR-WHILE-IF NESTING ===
-
-    // Test 10: for-while-if
+   
+// Test 10: for-while-if
     result <- 0;
     for (u32 m <- 0; m < 3; m <- m + 1) {
         u32 n <- 0;
@@ -168,12 +173,13 @@ u32 main() {
             n +<- 1;
         }
     }
+
     // m=1 executes twice (n=0,1), so result = 10
     if (result != 10) return 10;
 
     // === IF-FOR-WHILE NESTING ===
-
-    // Test 11: if-for-while
+   
+// Test 11: if-for-while
     a <- true;
     result <- 0;
 
@@ -186,12 +192,13 @@ u32 main() {
             }
         }
     }
+
     // 2 * 3 = 6
     if (result != 6) return 11;
 
     // === WHILE-FOR-IF NESTING ===
-
-    // Test 12: while-for-if
+   
+// Test 12: while-for-if
     counter <- 0;
     result <- 0;
 
@@ -203,12 +210,13 @@ u32 main() {
         }
         counter +<- 1;
     }
+
     // h=1 hits twice (counter 0 and 1), so result = 14
     if (result != 14) return 12;
 
     // === IF-IF-SWITCH NESTING ===
-
-    // Test 13: if-if-switch
+   
+// Test 13: if-if-switch
     a <- true;
     b <- true;
     u32 sel <- 2;
@@ -217,41 +225,58 @@ u32 main() {
     if (a = true) {
         if (b = true) {
             switch (sel) {
-                case 0 { result <- 100; }
-                case 1 { result <- 101; }
-                case 2 { result <- 102; }
-                default { result <- 199; }
+                case 0 {
+                    result <- 100;
+                }
+                case 1 {
+                    result <- 101;
+                }
+                case 2 {
+                    result <- 102;
+                }
+            default {
+                    result <- 199;
+                }
             }
         }
     }
     if (result != 102) return 13;
 
     // === FOR-IF-SWITCH NESTING ===
-
-    // Test 14: for-if-switch
+   
+// Test 14: for-if-switch
     result <- 0;
     for (u32 s <- 0; s < 4; s <- s + 1) {
         if (s > 0 && s < 3) {
             switch (s) {
-                case 1 { result +<- 10; }
-                case 2 { result +<- 20; }
-                default { result +<- 99; }
+                case 1 {
+                    result +<- 10;
+                }
+                case 2 {
+                    result +<- 20;
+                }
+            default {
+                    result +<- 99;
+                }
             }
         }
     }
+
     // s=1 adds 10, s=2 adds 20, total=30
     if (result != 30) return 14;
 
     // === SWITCH-IF-IF (switch containing nested ifs) ===
-
-    // Test 15: switch with nested if-if inside case
+   
+// Test 15: switch with nested if-if inside case
     sel <- 1;
     a <- true;
     b <- true;
     result <- 0;
 
     switch (sel) {
-        case 0 { result <- 200; }
+        case 0 {
+            result <- 200;
+        }
         case 1 {
             if (a = true) {
                 if (b = true) {
@@ -259,14 +284,18 @@ u32 main() {
                 }
             }
         }
-        case 2 { result <- 202; }
-        default { result <- 299; }
+        case 2 {
+            result <- 202;
+        }
+    default {
+            result <- 299;
+        }
     }
     if (result != 201) return 15;
 
     // === MIXED COMPLEX: if-while-switch ===
-
-    // Test 16: if-while-switch
+   
+// Test 16: if-while-switch
     a <- true;
     counter <- 0;
     result <- 0;
@@ -274,19 +303,26 @@ u32 main() {
     if (a = true) {
         while (counter < 2) {
             switch (counter) {
-                case 0 { result +<- 5; }
-                case 1 { result +<- 15; }
-                default { result +<- 99; }
+                case 0 {
+                    result +<- 5;
+                }
+                case 1 {
+                    result +<- 15;
+                }
+            default {
+                    result +<- 99;
+                }
             }
             counter +<- 1;
         }
     }
+
     // counter 0 adds 5, counter 1 adds 15, total=20
     if (result != 20) return 16;
 
     // === 3-LEVEL WITH BREAK ===
-
-    // Test 17: 3-level for with break in innermost
+   
+// Test 17: 3-level for with break in innermost
     counter <- 0;
     for (u32 aa <- 0; aa < 3; aa <- aa + 1) {
         for (u32 bb <- 0; bb < 3; bb <- bb + 1) {
@@ -298,13 +334,14 @@ u32 main() {
             }
         }
     }
+
     // Each inner loop runs 2 times (cc=0,1 then break)
     // 3 * 3 * 2 = 18
     if (counter != 18) return 17;
 
     // === 3-LEVEL WITH CONTINUE ===
-
-    // Test 18: 3-level for with continue
+   
+// Test 18: 3-level for with continue
     result <- 0;
     for (u32 dd <- 0; dd < 2; dd <- dd + 1) {
         for (u32 ee <- 0; ee < 2; ee <- ee + 1) {
@@ -316,6 +353,7 @@ u32 main() {
             }
         }
     }
+
     // Each innermost loop: ff=0 counts, ff=1 skipped, ff=2 counts = 2 per
     // 2 * 2 * 2 = 8
     if (result != 8) return 18;

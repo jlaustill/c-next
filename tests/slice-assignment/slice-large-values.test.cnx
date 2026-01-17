@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Large value copies with slice assignment
 // Validates copying maximum values and large data structures
 // Ensures no truncation or overflow in memory operations
@@ -6,7 +6,8 @@
 u32 main() {
     u8 buffer[256];
 
-    // Test 1: u64 maximum value
+   
+// Test 1: u64 maximum value
     u64 maxU64 <- 0xFFFFFFFFFFFFFFFF;
     buffer[0, 8] <- maxU64;
 
@@ -20,7 +21,8 @@ u32 main() {
     if (buffer[6] != 0xFF) return 7;
     if (buffer[7] != 0xFF) return 8;
 
-    // Test 2: u32 maximum value
+   
+// Test 2: u32 maximum value
     u32 maxU32 <- 0xFFFFFFFF;
     buffer[10, 4] <- maxU32;
 
@@ -29,7 +31,8 @@ u32 main() {
     if (buffer[12] != 0xFF) return 11;
     if (buffer[13] != 0xFF) return 12;
 
-    // Test 3: Copy multiple large values sequentially
+   
+// Test 3: Copy multiple large values sequentially
     u64 val1 <- 0x8000000000000000;  // Largest bit set
     u64 val2 <- 0x7FFFFFFFFFFFFFFF;  // All but largest bit set
     u64 val3 <- 0x0000000000000001;  // Smallest bit set

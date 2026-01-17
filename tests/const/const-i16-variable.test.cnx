@@ -1,32 +1,39 @@
-/* test-execution */
+// test-execution
 // ADR-013: Const i16 variable
 // Tests: const i16 declaration and read access with negative values
-
 const i16 MIN_ALTITUDE <- -500;
+
 const i16 MAX_ALTITUDE <- 10000;
+
 const i16 SEA_LEVEL <- 0;
 
 u32 main() {
-    // Test 1: Read negative const into local variable
+   
+// Test 1: Read negative const into local variable
     i16 minAlt <- MIN_ALTITUDE;
     if (minAlt != -500) return 1;
 
-    // Test 2: Read positive const
+   
+// Test 2: Read positive const
     i16 maxAlt <- MAX_ALTITUDE;
     if (maxAlt != 10000) return 2;
 
-    // Test 3: Read zero const
+   
+// Test 3: Read zero const
     i16 sea <- SEA_LEVEL;
     if (sea != 0) return 3;
 
-    // Test 4: Use const in arithmetic (range calculation)
+   
+// Test 4: Use const in arithmetic (range calculation)
     i16 range <- MAX_ALTITUDE - MIN_ALTITUDE;
     if (range != 10500) return 4;
 
-    // Test 5: Use negative const in comparison
+   
+// Test 5: Use negative const in comparison
     if (MIN_ALTITUDE >= SEA_LEVEL) return 5;
 
-    // Test 6: Use const in conditional
+   
+// Test 6: Use const in conditional
     i16 altitude <- 5000;
     if (altitude < MIN_ALTITUDE) return 6;
     if (altitude > MAX_ALTITUDE) return 7;

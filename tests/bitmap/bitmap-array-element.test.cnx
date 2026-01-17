@@ -1,61 +1,69 @@
-/* test-execution */
+// test-execution
 // Tests: Bitmap field access on array elements
 // Validates that arr[i].field generates correct RMW bit manipulation
 // Issue #201: Bitmap array element field access generates invalid C
-
 bitmap8 StatusFlags {
-    active,      // bit 0 (1 bit)
-    ready,       // bit 1 (1 bit)
-    error,       // bit 2 (1 bit)
-    mode[3],     // bits 3-5 (3 bits)
-    priority[2]  // bits 6-7 (2 bits)
+    active, // bit 0 (1 bit)
+    ready, // bit 1 (1 bit)
+    error, // bit 2 (1 bit)
+    mode[3], // bits 3-5 (3 bits)
+    priority[2] // bits 6-7 (2 bits)
 }
 
 u32 main() {
     // Create array of bitmap type with fill syntax
     StatusFlags arr[4] <- [0*];
 
-    // Test 1: Set single-bit field on array element
+   
+// Test 1: Set single-bit field on array element
     arr[0].active <- true;
     if (arr[0].active != true) return 1;
-    if (arr[0] != 1) return 2;  // bit 0 set = value 1
+    if (arr[0] != 1) return 2; // bit 0 set = value 1
 
-    // Test 2: Set another single-bit field
+   
+// Test 2: Set another single-bit field
     arr[0].ready <- true;
     if (arr[0].ready != true) return 3;
-    if (arr[0] != 3) return 4;  // bits 0,1 set = value 3
+    if (arr[0] != 3) return 4; // bits 0,1 set = value 3
 
-    // Test 3: Set multi-bit field on array element
-    arr[1].mode <- 5;  // 5 = 0b101
+   
+// Test 3: Set multi-bit field on array element
+    arr[1].mode <- 5; // 5 = 0b101
     if (arr[1].mode != 5) return 5;
-    if (arr[1] != 40) return 6;  // 5 << 3 = 40
+    if (arr[1] != 40) return 6; // 5 << 3 = 40
 
-    // Test 4: Set priority field (bits 6-7)
-    arr[2].priority <- 3;  // 3 = 0b11
+   
+// Test 4: Set priority field (bits 6-7)
+    arr[2].priority <- 3; // 3 = 0b11
     if (arr[2].priority != 3) return 7;
-    if (arr[2] != 192) return 8;  // 3 << 6 = 192
+    if (arr[2] != 192) return 8; // 3 << 6 = 192
 
-    // Test 5: Combine multiple field assignments on same element
+   
+// Test 5: Combine multiple field assignments on same element
     arr[3].active <- true;
-    arr[3].mode <- 7;  // max 3-bit value
+    arr[3].mode <- 7; // max 3-bit value
     arr[3].priority <- 2;
     if (arr[3].active != true) return 9;
     if (arr[3].mode != 7) return 10;
     if (arr[3].priority != 2) return 11;
+
     // Expected: 1 + (7 << 3) + (2 << 6) = 1 + 56 + 128 = 185
     if (arr[3] != 185) return 12;
 
-    // Test 6: Clear a bit that was set
+   
+// Test 6: Clear a bit that was set
     arr[0].active <- false;
     if (arr[0].active != false) return 13;
-    if (arr[0] != 2) return 14;  // only bit 1 remains
+    if (arr[0] != 2) return 14; // only bit 1 remains
 
-    // Test 7: Variable index access
+   
+// Test 7: Variable index access
     u8 idx <- 1;
     arr[idx].error <- true;
     if (arr[idx].error != true) return 15;
+
     // arr[1] had mode=5 (40), now also error=true (4) = 44
     if (arr[1] != 44) return 16;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

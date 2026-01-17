@@ -1,8 +1,7 @@
 // ADR-027: Do-while with boolean variable condition
-
 void menuLoop() {
     bool running <- true;
     do {
-        running <- false;  // Simulated quit
+        running <- false; // Simulated quit
     } while (running);
 }

@@ -14,8 +14,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
-/* test-coverage: 30a-global-volatile */
+// test-execution
+// test-coverage: 30a-global-volatile
 // Tests: Global volatile variable declaration and access
 // ADR-108: Volatile keyword for optimization prevention
 // Global volatile variable - prevents compiler from caching value

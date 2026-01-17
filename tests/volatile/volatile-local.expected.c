@@ -18,8 +18,8 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
     return a - (uint32_t)b;
 }
 
-/* test-execution */
-/* test-coverage: 30a-local-volatile */
+// test-execution
+// test-coverage: 30a-local-volatile
 // Tests: Local volatile variable in function scope
 // ADR-108: Volatile keyword for delay loops and optimization prevention
 int main(void) {

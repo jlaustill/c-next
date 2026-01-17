@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #107: Negative Case Labels - i8 Edge Cases
 // Tests: boundary values and edge cases for i8 switch
 int32_t result = 0;

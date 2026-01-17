@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: f32 and f64 literal suffix syntax (ADR-024)
 // Validates that suffixed float literals work correctly
 int main(void) {

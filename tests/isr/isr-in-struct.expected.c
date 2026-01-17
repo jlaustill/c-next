@@ -16,7 +16,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return a + (uint32_t)b;
 }
 
-/* test-execution */
+// test-execution
 // ADR-040: ISR as struct field
 // Tests: storing ISR in struct, retrieving and invoking
 // Global to track which handler was called

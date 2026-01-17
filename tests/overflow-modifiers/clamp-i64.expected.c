@@ -20,7 +20,7 @@ static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
     return a - b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: clamp modifier for i64 type (-9223372036854775808 to 9223372036854775807)
 // Validates overflow clamps to INT64_MAX, underflow clamps to INT64_MIN
 // ADR-044: Per-variable overflow semantics

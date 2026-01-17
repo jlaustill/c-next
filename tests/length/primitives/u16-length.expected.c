@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for u16 type across all contexts
 // Tests: .length returns 16 for u16 in every possible scope and access pattern
 uint16_t globalVar = 1000;

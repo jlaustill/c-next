@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 33.2-if-inside-if */
-/* test-execution */
+// test-coverage: 33.2-if-inside-if
+// test-execution
 // Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
 int main(void) {

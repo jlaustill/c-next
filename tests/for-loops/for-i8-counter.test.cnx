@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // For loop tests: i8 as loop counter
 // Tests: i8 type can be used as for-loop counter
-
 i8 main() {
     i8 sum <- 0;
     for (i8 i <- 0; i < 10; i +<- 1) {

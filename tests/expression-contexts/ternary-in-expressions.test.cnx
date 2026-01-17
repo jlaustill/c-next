@@ -1,8 +1,7 @@
-/* test-coverage: 33.1-ternary-in-function-arg, 33.1-ternary-in-array-index */
-/* test-execution */
+// test-coverage: 33.1-ternary-in-function-arg, 33.1-ternary-in-array-index
+// test-execution
 // Tests: ternary expressions in complex contexts (function args, array indices)
 // Coverage: Section 33.1 - Nested/Complex Expressions
-
 u32 result;
 
 // Helper function to receive ternary result
@@ -21,40 +20,45 @@ u32 max(u32 a, u32 b) {
 
 u32 main() {
     // === TERNARY IN FUNCTION ARGUMENT TESTS ===
-
-    // Test 1: Simple ternary as function argument
+   
+// Test 1: Simple ternary as function argument
     u32 a <- 10;
     u32 b <- 20;
     result <- identity((a > b) ? a : b);
     if (result != 20) return 1;
 
-    // Test 2: Ternary as first argument
+   
+// Test 2: Ternary as first argument
     result <- add((a < b) ? 100 : 200, 5);
     if (result != 105) return 2;
 
-    // Test 3: Ternary as second argument
+   
+// Test 3: Ternary as second argument
     result <- add(5, (a < b) ? 100 : 200);
     if (result != 105) return 3;
 
-    // Test 4: Ternary in both arguments
+   
+// Test 4: Ternary in both arguments
     result <- add((a < b) ? 10 : 20, (b > a) ? 30 : 40);
     if (result != 40) return 4;
 
-    // Test 5: Nested function call with ternary
+   
+// Test 5: Nested function call with ternary
     result <- identity(max((a < b) ? a : b, 15));
     if (result != 15) return 5;
 
-    // Test 6: Ternary with equality condition in function arg
+   
+// Test 6: Ternary with equality condition in function arg
     u32 x <- 5;
     result <- identity((x = 5) ? 100 : 200);
     if (result != 100) return 6;
 
-    // Test 7: Ternary selecting function result as arg
+   
+// Test 7: Ternary selecting function result as arg
     result <- identity((a < b) ? max(a, b) : a);
     if (result != 20) return 7;
 
     // === TERNARY IN ARRAY INDEX TESTS ===
-
     u32 arr[5];
     arr[0] <- 100;
     arr[1] <- 200;
@@ -62,39 +66,46 @@ u32 main() {
     arr[3] <- 400;
     arr[4] <- 500;
 
-    // Test 8: Ternary selecting array index (true branch)
+   
+// Test 8: Ternary selecting array index (true branch)
     bool cond <- true;
     result <- arr[(cond = true) ? 0 : 4];
     if (result != 100) return 8;
 
-    // Test 9: Ternary selecting array index (false branch)
+   
+// Test 9: Ternary selecting array index (false branch)
     cond <- false;
     result <- arr[(cond = true) ? 0 : 4];
     if (result != 500) return 9;
 
-    // Test 10: Ternary with comparison as array index
+   
+// Test 10: Ternary with comparison as array index
     u32 idx <- 2;
     result <- arr[(idx > 3) ? 0 : idx];
     if (result != 300) return 10;
 
-    // Test 11: Ternary with variable indices
+   
+// Test 11: Ternary with variable indices
     u32 lowIdx <- 1;
     u32 highIdx <- 3;
     result <- arr[(a > b) ? lowIdx : highIdx];
     if (result != 400) return 11;
 
-    // Test 12: Ternary for bounds checking pattern
+   
+// Test 12: Ternary for bounds checking pattern
     u32 requestedIdx <- 10;
     u32 maxIdx <- 4;
     result <- arr[(requestedIdx > maxIdx) ? maxIdx : requestedIdx];
     if (result != 500) return 12;
 
-    // Test 13: Ternary index with zero fallback
+   
+// Test 13: Ternary index with zero fallback
     i32 signedIdx <- -1;
     result <- arr[(signedIdx < 0) ? 0 : 2];
     if (result != 100) return 13;
 
-    // Test 14: Ternary in array write (index)
+   
+// Test 14: Ternary in array write (index)
     u32 writeArr[3];
     writeArr[0] <- 0;
     writeArr[1] <- 0;
@@ -103,7 +114,8 @@ u32 main() {
     writeArr[(writeIdx > 0) ? writeIdx : 0] <- 999;
     if (writeArr[1] != 999) return 14;
 
-    // Test 15: Ternary in both array index and value
+   
+// Test 15: Ternary in both array index and value
     writeArr[(true) ? 0 : 2] <- (false) ? 111 : 222;
     if (writeArr[0] != 222) return 15;
 

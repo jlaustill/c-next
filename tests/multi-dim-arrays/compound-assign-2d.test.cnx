@@ -1,6 +1,5 @@
 // Test: Compound assignment on multi-dimensional arrays
 // Verifies fix for line 4073 in CodeGenerator.ts
-
 u8 matrix[4][4];
 
 i32 main() {
@@ -10,9 +9,9 @@ i32 main() {
     matrix[2][2] <- 100;
 
     // Compound assignments on 2D array
-    matrix[0][0] +<- 5;    // 10 + 5 = 15
-    matrix[1][1] -<- 8;    // 20 - 8 = 12
-    matrix[2][2] *<- 2;    // 100 * 2 = 200
+    matrix[0][0] +<- 5; // 10 + 5 = 15
+    matrix[1][1] -<- 8; // 20 - 8 = 12
+    matrix[2][2] *<- 2; // 100 * 2 = 200
 
     // Verify
     if (matrix[0][0] != 15) {

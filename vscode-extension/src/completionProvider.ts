@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import {
-  parseWithSymbols,
-  ISymbolInfo,
-  TSymbolKind,
-} from "../../src/lib/transpiler";
+import parseWithSymbols from "../../src/lib/parseWithSymbols";
+import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
+import TSymbolKind from "../../src/lib/types/TSymbolKind";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import { lastGoodOutputPath, outputChannel } from "./extension";
 

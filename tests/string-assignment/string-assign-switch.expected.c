@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test string assignment inside switch cases
 char level[33] = "";
 

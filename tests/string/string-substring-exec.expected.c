@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // ADR-045: Validate substring extraction at runtime
 // Issue #140 fixed: Single-character substring source[i] now generates valid C
 int main(void) {

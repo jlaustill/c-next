@@ -13,7 +13,7 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     return a + (uint16_t)b;
 }
 
-/* test-execution */
+// test-execution
 // For loop tests: u16 as loop counter
 // Tests: u16 type can be used as for-loop counter
 int main(void) {

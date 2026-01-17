@@ -1,19 +1,21 @@
 // NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
-/* test-coverage: 30-use-c-typedef-struct */
+// test-coverage: 30-use-c-typedef-struct
 // Tests: Using C typedef'd struct types from header
 // ADR-010: Struct typedef import from C headers
 
 #include "c-interop/typedefs.h"
 
 u32 main() {
-    // Test 1: Declare Point2D variable
+   
+// Test 1: Declare Point2D variable
     Point2D p;
     p.x <- 10;
     p.y <- 20;
     if (p.x != 10) return 1;
     if (p.y != 20) return 2;
 
-    // Test 2: Use Record typedef
+   
+// Test 2: Use Record typedef
     Record r;
     r.id <- 12345;
     r.flags <- 0xFF;
@@ -21,7 +23,8 @@ u32 main() {
     if (r.id != 12345) return 3;
     if (r.flags != 0xFF) return 4;
 
-    // Test 3: Use SizedFields typedef (.length property)
+   
+// Test 3: Use SizedFields typedef (.length property)
     SizedFields sf;
     sf.byte_field <- 255;
     sf.word_field <- 65535;
@@ -32,7 +35,8 @@ u32 main() {
     if (sf.word_field != 65535) return 6;
     if (sf.dword_field != 0xFFFFFFFF) return 7;
 
-    // Test 4: Verify field sizes via .length
+   
+// Test 4: Verify field sizes via .length
     if (sf.byte_field.length != 8) return 8;
     if (sf.word_field.length != 16) return 9;
     if (sf.dword_field.length != 32) return 10;

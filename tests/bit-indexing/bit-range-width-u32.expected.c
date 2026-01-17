@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: All bit range widths 1-32 on u32 type
 // Verifies correct mask generation and bit operations for every width
 int main(void) {

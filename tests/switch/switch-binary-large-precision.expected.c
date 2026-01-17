@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #114: Test binary literal precision for values > 2^53
 // Tests: Large binary literals in switch case labels preserve precision
 // Coverage: Section 7 (Control Flow) - binary literal precision in case labels

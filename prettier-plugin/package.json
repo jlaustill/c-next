@@ -1,0 +1,37 @@
+{
+  "name": "prettier-plugin-cnext",
+  "version": "0.0.1",
+  "description": "Prettier plugin for C-Next language",
+  "main": "dist/index.js",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "esbuild ./src/index.ts --bundle --outfile=dist/index.js --format=cjs --platform=node --external:prettier",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "prettier",
+    "plugin",
+    "c-next",
+    "formatter"
+  ],
+  "author": "Joshua Austill <jlaustill@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.10.0",
+    "esbuild": "^0.24.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.7.4",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "antlr4ng": "^3.0.16"
+  }
+}

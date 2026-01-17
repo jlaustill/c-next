@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 27-ref-in-loop */
-/* test-execution */
+// test-coverage: 27-ref-in-loop
+// test-execution
 // Tests: Modifying reference parameter inside loops
 // Increments value N times
 void incrementN(uint32_t* value, uint32_t* times) {

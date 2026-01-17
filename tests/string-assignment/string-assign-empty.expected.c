@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test empty string assignment
 char msg[33] = "Initial";
 

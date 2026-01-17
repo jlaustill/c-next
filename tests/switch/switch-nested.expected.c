@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-025: Nested switch statement tests
 // Tests: switch statements nested inside other switch statements
 // Coverage: Section 7 (Control Flow) - nested switch

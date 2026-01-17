@@ -1,10 +1,9 @@
 // ADR-024: Test that bit indexing allows safe narrowing
 // Using [start, width] syntax to explicitly extract bits
-
 void main() {
     u32 large <- 0xDEADBEEF;
-    u8 low_byte <- large[0, 8];    // OK: explicit bit extraction
-    u8 high_byte <- large[24, 8];  // OK: extract high byte
+    u8 low_byte <- large[0, 8]; // OK: explicit bit extraction
+    u8 high_byte <- large[24, 8]; // OK: extract high byte
 
-    u16 low_word <- large[0, 16];  // OK: extract low word
+    u16 low_word <- large[0, 16]; // OK: extract low word
 }

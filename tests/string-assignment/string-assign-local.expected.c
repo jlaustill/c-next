@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test local string variable reassignment in function body
 int main(void) {
     char local[33] = "Initial";

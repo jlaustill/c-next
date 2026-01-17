@@ -1,8 +1,7 @@
 // ADR-003: calloc is forbidden
 // Tests: dynamic allocation not allowed
-
 #include <stdlib.h>
 
 void allocateZeroMemory() {
-    calloc(10, 4);  // ERROR: forbidden function
+    calloc(10, 4); // ERROR: forbidden function
 }

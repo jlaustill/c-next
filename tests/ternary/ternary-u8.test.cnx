@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for u8
 // Tests: ternary with u8 in conditions and branches
-
 u8 getMax(u8 a, u8 b) {
     return (a > b) ? a : b;
 }
@@ -16,7 +15,8 @@ u32 main() {
     u8 c <- 30;
     u8 d <- 5;
 
-    // Test max function
+   
+// Test max function
     if (getMax(a, b) != 20) {
         return 1;
     }
@@ -24,7 +24,8 @@ u32 main() {
         return 2;
     }
 
-    // Test min function
+   
+// Test min function
     if (getMin(a, b) != 10) {
         return 3;
     }
@@ -32,13 +33,15 @@ u32 main() {
         return 4;
     }
 
-    // Test inline ternary
+   
+// Test inline ternary
     u8 result <- (a > b) ? a : b;
     if (result != 20) {
         return 5;
     }
 
-    // Test with edge cases - max value
+   
+// Test with edge cases - max value
     u8 max_val <- 255;
     u8 mid_val <- 127;
     u8 edge_result <- (max_val > mid_val) ? max_val : mid_val;
@@ -46,7 +49,8 @@ u32 main() {
         return 6;
     }
 
-    // Test with edge cases - min value (0)
+   
+// Test with edge cases - min value (0)
     u8 zero <- 0;
     u8 one <- 1;
     u8 zero_result <- (zero < one) ? zero : one;
@@ -54,7 +58,8 @@ u32 main() {
         return 7;
     }
 
-    // Test equality condition
+   
+// Test equality condition
     u8 equal_test <- (a = 10) ? 100 : 200;
     if (equal_test != 100) {
         return 8;

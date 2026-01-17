@@ -1,6 +1,5 @@
 // ADR-022: Ternary with equality comparison
 // Uses = for comparison (C-Next syntax)
-
 u32 getValue(u32 x) {
     return (x = 0) ? 100 : x;
 }

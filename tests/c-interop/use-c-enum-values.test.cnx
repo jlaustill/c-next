@@ -1,12 +1,13 @@
-/* test-execution */
-/* test-coverage: 30-use-c-enum-values */
+// test-execution
+// test-coverage: 30-use-c-enum-values
 // Tests: Using C enums with explicit values
 // ADR-010: Enum value import from C headers
 
 #include "c-interop/enums.h"
 
 u32 main() {
-    // Test 1: Enum Status with explicit values
+   
+// Test 1: Enum Status with explicit values
     i32 ok <- STATUS_OK;
     i32 err <- STATUS_ERROR;
     i32 pending <- STATUS_PENDING;
@@ -17,14 +18,16 @@ u32 main() {
     if (pending != 100) return 3;
     if (complete != 200) return 4;
 
-    // Test 2: BaudRate with large values
+   
+// Test 2: BaudRate with large values
     i32 baud1 <- BAUD_9600;
     i32 baud2 <- BAUD_115200;
 
     if (baud1 != 9600) return 5;
     if (baud2 != 115200) return 6;
 
-    // Test 3: Permissions bit flags
+   
+// Test 3: Permissions bit flags
     i32 none <- FLAG_NONE;
     i32 read <- FLAG_READ;
     i32 write <- FLAG_WRITE;
@@ -37,7 +40,8 @@ u32 main() {
     if (exec != 4) return 10;
     if (all != 7) return 11;
 
-    // Test 4: Combine flags with bitwise OR
+   
+// Test 4: Combine flags with bitwise OR
     i32 rw <- read | write;
     if (rw != 3) return 12;
 

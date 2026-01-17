@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for i16
 // Tests: ternary with i16 in conditions and branches, including negative values
 int16_t getMax(int16_t* a, int16_t* b) {

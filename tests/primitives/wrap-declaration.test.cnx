@@ -1,7 +1,9 @@
 // ADR-044: Test wrap keyword in variable declarations
-
 // Explicit wrap modifier for counters
 wrap u8 byteCounter <- 0;
+
 wrap u16 tickCount <- 0;
+
 wrap u32 cycleCounter <- 0;
+
 wrap u64 systemTicks <- 0;

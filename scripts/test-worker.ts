@@ -460,7 +460,7 @@ async function runTest(
       }
 
       // Execution test if marker present
-      if (source.includes("/* test-execution */")) {
+      if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (requiresArmRuntime(result.code)) {
           return { passed: true, skippedExec: true };
         }
@@ -479,7 +479,7 @@ async function runTest(
     }
 
     // Snapshot mismatch - but still try to execute if marker present
-    if (source.includes("/* test-execution */")) {
+    if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
       const tempCFile = expectedCFile.replace(".expected.c", ".tmp.c");
       writeFileSync(tempCFile, result.code);
 

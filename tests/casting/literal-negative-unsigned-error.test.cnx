@@ -1,6 +1,5 @@
 // ADR-024: Test that negative literals to unsigned types are caught
 // This should produce a compiler error
-
 void main() {
-    u8 negative <- -1;  // ERROR: Negative value cannot be assigned to unsigned u8
+    u8 negative <- -1; // ERROR: Negative value cannot be assigned to unsigned u8
 }

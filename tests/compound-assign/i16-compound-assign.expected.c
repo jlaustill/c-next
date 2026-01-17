@@ -29,7 +29,7 @@ static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
     return (int16_t)result;
 }
 
-/* test-execution */
+// test-execution
 // Tests: i16 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

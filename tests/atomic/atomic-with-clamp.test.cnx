@@ -1,25 +1,28 @@
-/* test-coverage: 20-atomic-with-clamp */
+// test-coverage: 20-atomic-with-clamp
 // Tests: atomic combined with clamp modifier
 // Note: Compilation test only - ARM-specific code
-
 #pragma target teensy41
 
 // Atomic clamp variables - saturating arithmetic
 atomic clamp u8 brightness <- 100;
+
 atomic clamp u16 volume <- 500;
+
 atomic clamp u32 counter <- 0;
 
 // Signed atomic clamp
 atomic clamp i8 temperature <- 0;
+
 atomic clamp i16 offset <- 0;
+
 atomic clamp i32 position <- 0;
 
 void adjustBrightness(u8 delta) {
-    brightness +<- delta;  // Clamps to 255 max
+    brightness +<- delta; // Clamps to 255 max
 }
 
 void decreaseBrightness(u8 delta) {
-    brightness -<- delta;  // Clamps to 0 min
+    brightness -<- delta; // Clamps to 0 min
 }
 
 void updateVolume(u16 delta) {
@@ -31,13 +34,14 @@ void incrementCounter() {
 }
 
 void adjustTemperature(i8 delta) {
-    temperature +<- delta;  // Clamps to i8 min/max
+    temperature +<- delta; // Clamps to i8 min/max
 }
 
 void main() {
-    // Test various operations
+   
+// Test various operations
     adjustBrightness(50);
-    decreaseBrightness(200);  // Would clamp to 0
+    decreaseBrightness(200); // Would clamp to 0
     updateVolume(1000);
     incrementCounter();
     adjustTemperature(100);

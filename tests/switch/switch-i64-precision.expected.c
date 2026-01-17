@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Issue #110: Tests i64 precision in case label duplicate detection
 // These adjacent large values would cause false-positive duplicate errors with parseInt()
 // Note: Only positive values until parser supports negative case labels

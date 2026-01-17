@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const u16 variable
 // Tests: const u16 declaration and read access
 const uint16_t MAX_PORT = 65535;

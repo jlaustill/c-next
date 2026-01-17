@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Test: ADR-016 + ADR-044 Wrap overflow modifier inside scopes
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
@@ -112,7 +112,8 @@ scope WrapTest {
 }
 
 u32 main() {
-    // Test 1-6: Validate initial values
+   
+// Test 1-6: Validate initial values
     if (WrapTest.getByteCounter() != 250) return 1;
     if (WrapTest.getTickCount() != 65530) return 2;
     if (WrapTest.getCycleCounter() != 4294967290) return 3;
@@ -120,50 +121,60 @@ u32 main() {
     if (WrapTest.getSensorValue() != 100) return 5;
     if (WrapTest.getPosition() != 50) return 6;
 
-    // Test 7: u8 overflow wraps around (250 + 10 = 260 -> 4)
+   
+// Test 7: u8 overflow wraps around (250 + 10 = 260 -> 4)
     WrapTest.incrementByteCounter();
     if (WrapTest.getByteCounter() != 4) return 7;
 
-    // Test 8: u16 overflow wraps around (65530 + 10 = 65540 -> 4)
+   
+// Test 8: u16 overflow wraps around (65530 + 10 = 65540 -> 4)
     WrapTest.incrementTickCount();
     if (WrapTest.getTickCount() != 4) return 8;
 
-    // Test 9: u32 overflow wraps around (4294967290 + 10 = 4294967300 -> 4)
+   
+// Test 9: u32 overflow wraps around (4294967290 + 10 = 4294967300 -> 4)
     WrapTest.incrementCycleCounter();
     if (WrapTest.getCycleCounter() != 4) return 9;
 
-    // Test 10: Normal u8 increment (10 + 5 = 15)
+   
+// Test 10: Normal u8 increment (10 + 5 = 15)
     if (WrapTest.getBrightness() != 10) return 100;  // Verify initial
     WrapTest.incrementBrightness();
     if (WrapTest.getBrightness() != 15) return 10;
 
-    // Test 11: Normal u16 increment (100 + 100 = 200)
+   
+// Test 11: Normal u16 increment (100 + 100 = 200)
     WrapTest.incrementSensorValue();
     if (WrapTest.getSensorValue() != 200) return 11;
 
-    // Test 12: Normal u32 increment (50 + 1000 = 1050)
+   
+// Test 12: Normal u32 increment (50 + 1000 = 1050)
     WrapTest.incrementPosition();
     if (WrapTest.getPosition() != 1050) return 12;
 
-    // Test 13: u8 underflow wraps around
+   
+// Test 13: u8 underflow wraps around
     // Reset brightness to 10 first
     WrapTest.setBrightness(10);
     WrapTest.decrementBrightness();  // 10 - 20 = -10 -> wraps to 246
     if (WrapTest.getBrightness() != 246) return 13;
 
-    // Test 14: u16 underflow wraps around
+   
+// Test 14: u16 underflow wraps around
     // Reset sensorValue to 100 first
     WrapTest.setSensorValue(100);
     WrapTest.decrementSensorValue();  // 100 - 150 = -50 -> wraps to 65486
     if (WrapTest.getSensorValue() != 65486) return 14;
 
-    // Test 15: u32 underflow wraps around
+   
+// Test 15: u32 underflow wraps around
     // Reset position to 50 first
     WrapTest.setPosition(50);
     WrapTest.decrementPosition();  // 50 - 100 = -50 -> wraps to UINT32_MAX - 49 = 4294967246
     if (WrapTest.getPosition() != 4294967246) return 15;
 
-    // Test 16-18: Normal decrements after wrap
+   
+// Test 16-18: Normal decrements after wrap
     WrapTest.setByteCounter(10);
     WrapTest.decrementByteCounter();  // 10 - 1 = 9
     if (WrapTest.getByteCounter() != 9) return 16;

@@ -1,6 +1,5 @@
 // ADR-013: Error - assigning to const i16 parameter
 // Tests: cannot modify const parameter
-
 void setAltitude(const i16 alt) {
-    alt <- 0;  // ERROR: cannot assign to const parameter
+    alt <- 0; // ERROR: cannot assign to const parameter
 }

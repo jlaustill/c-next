@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for i8 type across all contexts
 // Tests: .length returns 8 for i8 in every possible scope and access pattern
 int8_t globalVar = -42;

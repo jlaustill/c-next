@@ -1,33 +1,34 @@
-/* test-coverage: 1.1-u8-in-bitwise-operation */
-/* test-execution */
+// test-coverage: 1.1-u8-in-bitwise-operation
+// test-execution
 // Test u8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u8 type
-
 u32 main() {
     // AND operations
     u8 a <- 0b11110000;
     u8 b <- 0b10101010;
-    u8 and_result <- a & b;  // 0b10100000 = 160
+    u8 and_result <- a & b; // 0b10100000 = 160
 
     // OR operations
-    u8 or_result <- a | b;   // 0b11111010 = 250
+    u8 or_result <- a | b; // 0b11111010 = 250
 
     // XOR operations
-    u8 xor_result <- a ^ b;  // 0b01011010 = 90
+    u8 xor_result <- a ^ b; // 0b01011010 = 90
 
     // NOT operations
     u8 c <- 0b10101010;
-    u8 not_result <- ~c;     // 0b01010101 = 85
+    u8 not_result <- ~c; // 0b01010101 = 85
 
-    // Test with hex literals
+   
+// Test with hex literals
     u8 hex_a <- 0xF0;
     u8 hex_b <- 0xAA;
-    u8 hex_and <- hex_a & hex_b;  // 0xA0 = 160
-    u8 hex_or <- hex_a | hex_b;   // 0xFA = 250
+    u8 hex_and <- hex_a & hex_b; // 0xA0 = 160
+    u8 hex_or <- hex_a | hex_b; // 0xFA = 250
 
-    // Test with decimal literals
-    u8 dec_and <- 240 & 170;  // 160
-    u8 dec_or <- 240 | 170;   // 250
+   
+// Test with decimal literals
+    u8 dec_and <- 240 & 170; // 160
+    u8 dec_or <- 240 | 170; // 250
 
     // Verify results
     if (and_result = 160 && or_result = 250 && xor_result = 90 && not_result = 85) {

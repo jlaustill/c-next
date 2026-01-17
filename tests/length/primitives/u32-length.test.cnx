@@ -1,20 +1,16 @@
-/* test-execution */
+// test-execution
 // Comprehensive .length test for u32 type across all contexts
 // Tests: .length returns 32 for u32 in every possible scope and access pattern
-
 u32 globalVar <- 100000;
 
 scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-
     u32 scopeMember <- 100000;
-
     public u32 getMemberLength() {
         return this.scopeMember.length;
     }
-
     public u32 publicMember <- 100000;
 }
 

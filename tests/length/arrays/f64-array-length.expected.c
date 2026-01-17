@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for f64 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 64 (element bit width)
 double globalArr[16] = {0};

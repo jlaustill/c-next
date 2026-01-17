@@ -1,7 +1,6 @@
 // uart_buffer.cnx - UART with ring buffer
 // Demonstrates: structs + free functions (C-style, ADR-016)
 // This example shows the C-Next approach: data in structs, behavior in functions
-
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -11,7 +10,6 @@
 // ============================================================================
 // Note: Generic/parameterized structs are a research topic in ADR-016
 // For now, we use a concrete type (u8 buffer with size 256)
-
 struct RingBuffer {
     u8 buffer[256];
     u16 head;
@@ -32,7 +30,7 @@ void RingBuffer_init(RingBuffer self) {
 // Push a value to the buffer, returns true on success
 bool RingBuffer_push(RingBuffer self, const u8 value) {
     if (self.count = RING_BUFFER_SIZE) {
-        return false;  // Buffer full
+        return false; // Buffer full
     }
     self.buffer[self.head] <- value;
     self.head <- (self.head + 1) % RING_BUFFER_SIZE;
@@ -43,7 +41,7 @@ bool RingBuffer_push(RingBuffer self, const u8 value) {
 // Pop a value from the buffer, returns true on success
 bool RingBuffer_pop(RingBuffer self, u8 result) {
     if (self.count = 0) {
-        return false;  // Buffer empty
+        return false; // Buffer empty
     }
     result <- self.buffer[self.tail];
     self.tail <- (self.tail + 1) % RING_BUFFER_SIZE;
@@ -69,7 +67,6 @@ bool RingBuffer_isFull(const RingBuffer self) {
 // ============================================================================
 // UART - Data container (ADR-014 struct)
 // ============================================================================
-
 struct UART {
     u32 baseAddress;
     RingBuffer rxBuffer;
@@ -122,20 +119,23 @@ void UART_print(UART self, const char msg[]) {
 // Hardware base addresses
 // ============================================================================
 const u32 USART1_BASE <- 0x40011000;
+
 const u32 USART2_BASE <- 0x40004400;
+
 const u32 DEFAULT_BAUD <- 115200;
+
 const u32 SLOW_BAUD <- 9600;
 
 // ============================================================================
 // Global UART instances (static allocation, ADR-003)
 // ============================================================================
-UART Serial1;  // Zero-initialized by default (ADR-015)
+UART Serial1; // Zero-initialized by default (ADR-015)
+
 UART Serial2;
 
 // ============================================================================
 // Arduino entry points
 // ============================================================================
-
 void setup() {
     // Initialize UART instances
     UART_init(Serial1, USART1_BASE);

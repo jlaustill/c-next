@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013 + ADR-044: Const wrap u16 combination
 // Tests: const wrap u16 declaration and read access
 const uint16_t MAX_COUNTER = 65535;

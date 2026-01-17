@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
-/* test-coverage: 30-use-c-typedef */
+// test-execution
+// test-coverage: 30-use-c-typedef
 // Tests: Using C typedef'd types from header
 // ADR-010: Type definition import from C headers
 #include "c-interop/typedefs.h"

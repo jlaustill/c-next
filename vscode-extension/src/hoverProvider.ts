@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { parseWithSymbols, ISymbolInfo } from "../../src/lib/transpiler";
+import parseWithSymbols from "../../src/lib/parseWithSymbols";
+import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import { lastGoodOutputPath } from "./extension";
 

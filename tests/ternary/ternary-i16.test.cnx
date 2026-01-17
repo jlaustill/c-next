@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for i16
 // Tests: ternary with i16 in conditions and branches, including negative values
-
 i16 getMax(i16 a, i16 b) {
     return (a > b) ? a : b;
 }
@@ -20,27 +19,32 @@ u32 main() {
     i16 c <- -300;
     i16 d <- -50;
 
-    // Test max function with positive values
+   
+// Test max function with positive values
     if (getMax(a, b) != 200) {
         return 1;
     }
 
-    // Test max with negative values
+   
+// Test max with negative values
     if (getMax(c, d) != -50) {
         return 2;
     }
 
-    // Test min function with positive values
+   
+// Test min function with positive values
     if (getMin(a, b) != 100) {
         return 3;
     }
 
-    // Test min with negative values
+   
+// Test min with negative values
     if (getMin(c, d) != -300) {
         return 4;
     }
 
-    // Test abs function
+   
+// Test abs function
     if (getAbs(c) != 300) {
         return 5;
     }
@@ -48,13 +52,15 @@ u32 main() {
         return 6;
     }
 
-    // Test inline ternary with negative comparison
+   
+// Test inline ternary with negative comparison
     i16 result <- (a > c) ? a : c;
     if (result != 100) {
         return 7;
     }
 
-    // Test with edge cases - max value
+   
+// Test with edge cases - max value
     i16 max_val <- 32767;
     i16 mid_val <- 1000;
     i16 edge_result <- (max_val > mid_val) ? max_val : mid_val;
@@ -62,7 +68,8 @@ u32 main() {
         return 8;
     }
 
-    // Test with edge cases - min value
+   
+// Test with edge cases - min value
     i16 min_val <- -32768;
     i16 neg_mid <- -1000;
     i16 min_result <- (min_val < neg_mid) ? min_val : neg_mid;
@@ -70,13 +77,15 @@ u32 main() {
         return 9;
     }
 
-    // Test equality condition with negative
+   
+// Test equality condition with negative
     i16 equal_test <- (c = -300) ? 1000 : -1000;
     if (equal_test != 1000) {
         return 10;
     }
 
-    // Test zero crossing
+   
+// Test zero crossing
     i16 neg <- -1000;
     i16 pos <- 1000;
     i16 zero_cross <- (neg < 0) ? pos : neg;
@@ -84,7 +93,8 @@ u32 main() {
         return 11;
     }
 
-    // Test with larger range values
+   
+// Test with larger range values
     i16 large_neg <- -30000;
     i16 large_pos <- 30000;
     i16 large_result <- (large_neg < large_pos) ? large_pos : large_neg;

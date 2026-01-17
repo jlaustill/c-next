@@ -13,7 +13,7 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     return a + (uint64_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: u64 array initialization, access, and modification
 // Validates array operations with u64 element type
 // Includes typical embedded use cases (timestamps, counters, buffers)

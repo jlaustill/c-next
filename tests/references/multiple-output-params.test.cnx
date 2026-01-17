@@ -1,7 +1,6 @@
-/* test-coverage: 27-multiple-output-params */
-/* test-execution */
+// test-coverage: 27-multiple-output-params
+// test-execution
 // Tests: Function with multiple output parameters
-
 // Divides a by b, returns quotient and remainder via output params
 void divmod(u32 a, u32 b, u32 quotient, u32 remainder) {
     quotient <- a / b;
@@ -35,7 +34,8 @@ void rotate3(u32 a, u32 b, u32 c) {
 }
 
 u32 main() {
-    // Test divmod
+   
+// Test divmod
     u32 q <- 0;
     u32 r <- 0;
 
@@ -51,7 +51,8 @@ u32 main() {
     if (q != 2) return 5;
     if (r != 1) return 6;
 
-    // Test minmax
+   
+// Test minmax
     i32 minResult <- 0;
     i32 maxResult <- 0;
 
@@ -67,7 +68,8 @@ u32 main() {
     if (minResult != -5) return 11;
     if (maxResult != 5) return 12;
 
-    // Test stats
+   
+// Test stats
     u32 sum <- 0;
     u32 count <- 0;
     u32 avg <- 0;
@@ -81,7 +83,8 @@ u32 main() {
     if (sum != 600) return 16;
     if (avg != 200) return 17;
 
-    // Test rotate3
+   
+// Test rotate3
     u32 x <- 1;
     u32 y <- 2;
     u32 z <- 3;

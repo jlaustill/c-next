@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // Issue #139: Test assigning string variable to another string variable
 char source[65] = "Original";
 

@@ -1,90 +1,97 @@
-/* test-coverage: 32.4-escape-sequences */
-/* test-execution */
+// test-coverage: 32.4-escape-sequences
+// test-execution
 // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
-
 u32 main() {
     // ===== Standard escape sequences =====
-
-    // Test newline escape
+   
+// Test newline escape
     u8 newline <- '\n';
     if (newline != 10) return 1;
 
-    // Test tab escape
+   
+// Test tab escape
     u8 tab <- '\t';
     if (tab != 9) return 2;
 
-    // Test carriage return escape
+   
+// Test carriage return escape
     u8 cr <- '\r';
     if (cr != 13) return 3;
 
-    // Test null terminator escape
+   
+// Test null terminator escape
     u8 nul <- '\0';
     if (nul != 0) return 4;
 
-    // Test backslash escape
+   
+// Test backslash escape
     u8 backslash <- '\\';
     if (backslash != 92) return 5;
 
-    // Test single quote escape
+   
+// Test single quote escape
     u8 quote <- '\'';
     if (quote != 39) return 6;
 
-    // Test double quote escape (valid in char literal)
+   
+// Test double quote escape (valid in char literal)
     u8 dquote <- '\"';
     if (dquote != 34) return 7;
 
     // ===== Escape sequences in arrays =====
-
-    // Test escape sequences as array elements
+   
+// Test escape sequences as array elements
     u8 escapes[7] <- ['\n', '\t', '\r', '\0', '\\', '\'', '\"'];
-    if (escapes[0] != 10) return 8;   // newline
-    if (escapes[1] != 9) return 9;    // tab
-    if (escapes[2] != 13) return 10;  // carriage return
-    if (escapes[3] != 0) return 11;   // null
-    if (escapes[4] != 92) return 12;  // backslash
-    if (escapes[5] != 39) return 13;  // single quote
-    if (escapes[6] != 34) return 14;  // double quote
+    if (escapes[0] != 10) return 8; // newline
+    if (escapes[1] != 9) return 9; // tab
+    if (escapes[2] != 13) return 10; // carriage return
+    if (escapes[3] != 0) return 11; // null
+    if (escapes[4] != 92) return 12; // backslash
+    if (escapes[5] != 39) return 13; // single quote
+    if (escapes[6] != 34) return 14; // double quote
 
     // ===== Escape sequences in comparisons =====
-
-    // Test newline comparison
+   
+// Test newline comparison
     u8 c <- '\n';
     if (c != '\n') return 15;
 
-    // Test tab comparison
+   
+// Test tab comparison
     c <- '\t';
     if (c != '\t') return 16;
 
-    // Test null comparison
+   
+// Test null comparison
     c <- '\0';
     if (c != '\0') return 17;
 
     // ===== Escape sequences in switch =====
-
     u8 whitespace <- '\t';
     u32 wsType <- 0;
 
     switch (whitespace) {
         case ' ' {
-            wsType <- 1;  // space
+            wsType <- 1; // space
         }
         case '\t' {
-            wsType <- 2;  // tab
+            wsType <- 2; // tab
         }
         case '\n' {
-            wsType <- 3;  // newline
+            wsType <- 3; // newline
         }
         case '\r' {
-            wsType <- 4;  // carriage return
+            wsType <- 4; // carriage return
         }
-        default {
+    default {
             wsType <- 0;
         }
     }
     if (wsType != 2) return 18;
 
-    // Test newline in switch
+   
+// Test newline in switch
     whitespace <- '\n';
     switch (whitespace) {
         case ' ' {
@@ -99,11 +106,11 @@ u32 main() {
         case '\r' {
             wsType <- 4;
         }
-        default {
+    default {
             wsType <- 0;
         }
     }
     if (wsType != 3) return 19;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

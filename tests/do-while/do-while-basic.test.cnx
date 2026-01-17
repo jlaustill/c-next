@@ -1,6 +1,5 @@
-/* test-execution */
+// test-execution
 // ADR-027: Basic do-while loop with comparison condition
-
 u32 main() {
     u32 count <- 0;
     do {

@@ -1,6 +1,5 @@
 // ADR-013: Error - assigning to const f32 parameter
 // Tests: cannot modify const parameter
-
 void setScale(const f32 scale) {
-    scale <- 0.0;  // ERROR: cannot assign to const parameter
+    scale <- 0.0; // ERROR: cannot assign to const parameter
 }

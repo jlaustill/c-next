@@ -1,8 +1,7 @@
 // ADR-013: Error - assigning to const i16 variable
 // Tests: cannot assign to const variable
-
 const i16 ALTITUDE <- -500;
 
 void main() {
-    ALTITUDE <- 1000;  // ERROR: cannot assign to const variable
+    ALTITUDE <- 1000; // ERROR: cannot assign to const variable
 }

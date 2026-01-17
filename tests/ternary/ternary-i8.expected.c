@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-022: Ternary operator test for i8
 // Tests: ternary with i8 in conditions and branches, including negative values
 int8_t getMax(int8_t* a, int8_t* b) {

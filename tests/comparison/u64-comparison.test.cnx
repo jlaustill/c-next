@@ -1,11 +1,11 @@
-/* test-coverage: 1.1-u64-in-comparison */
-/* test-execution */
+// test-coverage: 1.1-u64-in-comparison
+// test-execution
 // Tests: u64 comparison operations (<, >, <=, >=, =, !=)
 // Validates all comparison operators with u64 type
 // Includes edge cases with zero, max values, and typical embedded use cases
-
 u32 main() {
-    // Test equality
+   
+// Test equality
     u64 a <- 1000000000000;
     u64 b <- 1000000000000;
     u64 c <- 2000000000000;
@@ -13,7 +13,8 @@ u32 main() {
     if ((a = b) != true) return 1;
     if ((a = c) != false) return 2;
 
-    // Test inequality
+   
+// Test inequality
     if ((a != c) != true) return 3;
     if ((a != b) != false) return 4;
 
@@ -22,7 +23,8 @@ u32 main() {
     if ((zero = 0) != true) return 5;
     if ((zero != 1) != true) return 6;
 
-    // Test less than
+   
+// Test less than
     u64 small <- 1000;
     u64 large <- 1000000000000;
 
@@ -30,7 +32,8 @@ u32 main() {
     if ((large < small) != false) return 8;
     if ((small < small) != false) return 9;
 
-    // Test less than or equal
+   
+// Test less than or equal
     if ((small <= large) != true) return 10;
     if ((small <= small) != true) return 11;
     if ((large <= small) != false) return 12;
@@ -39,12 +42,14 @@ u32 main() {
     if ((zero < 1) != true) return 13;
     if ((zero <= 0) != true) return 14;
 
-    // Test greater than
+   
+// Test greater than
     if ((large > small) != true) return 15;
     if ((small > large) != false) return 16;
     if ((small > small) != false) return 17;
 
-    // Test greater than or equal
+   
+// Test greater than or equal
     if ((large >= small) != true) return 18;
     if ((small >= small) != true) return 19;
     if ((small >= large) != false) return 20;
@@ -53,7 +58,8 @@ u32 main() {
     if ((1 > zero) != true) return 21;
     if ((zero >= 0) != true) return 22;
 
-    // Test comparison with literals
+   
+// Test comparison with literals
     u64 val <- 1000000000000;
 
     if ((val = 1000000000000) != true) return 23;
@@ -67,7 +73,8 @@ u32 main() {
     if ((val >= 1000000000000) != true) return 31;
     if ((val >= 500000000000) != true) return 32;
 
-    // Test in control flow - while loop
+   
+// Test in control flow - while loop
     u64 counter <- 0;
     while (counter < 100) {
         counter +<- 1;
@@ -87,7 +94,8 @@ u32 main() {
     }
     if (nested_passed != true) return 34;
 
-    // Test edge cases - zero
+   
+// Test edge cases - zero
     if ((zero < 1) != true) return 35;
     if ((zero = 0) != true) return 36;
     if ((0 <= zero) != true) return 37;
@@ -106,12 +114,13 @@ u32 main() {
     if ((near_max <= max) != true) return 43;
 
     // Large values (embedded timestamps)
-    u64 timestamp_2020 <- 1577836800000;  // Jan 1, 2020
-    u64 timestamp_2021 <- 1609459200000;  // Jan 1, 2021
+    u64 timestamp_2020 <- 1577836800000; // Jan 1, 2020
+    u64 timestamp_2021 <- 1609459200000; // Jan 1, 2021
     if ((timestamp_2021 > timestamp_2020) != true) return 44;
     if ((timestamp_2021 != timestamp_2020) != true) return 45;
 
-    // Test comparison chains
+   
+// Test comparison chains
     u64 chain_a <- 1000;
     u64 chain_b <- 5000;
     u64 chain_c <- 10000;

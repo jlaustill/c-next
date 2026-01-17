@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Test: ADR-016 Private method validation
 // Verifies that private methods work correctly within scopes
 // Tests: private calling private, private accessing this., private accessing global.

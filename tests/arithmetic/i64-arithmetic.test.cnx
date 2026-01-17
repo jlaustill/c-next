@@ -1,86 +1,85 @@
-/* test-execution */
+// test-execution
 // Test i64 arithmetic operations
 // Coverage: Section 4.1-4.5 for i64 type
-
 u32 main() {
     // Addition - basic
     i64 a <- 5000000000;
     i64 b <- 3000000000;
-    i64 sum <- a + b;  // 8000000000
+    i64 sum <- a + b; // 8000000000
 
     // Addition - negative + positive
     i64 c <- -5000000000;
     i64 d <- 3000000000;
-    i64 sum_neg <- c + d;  // -2000000000
+    i64 sum_neg <- c + d; // -2000000000
 
     // Addition - negative + negative
     i64 e <- -4000000000;
     i64 f <- -2000000000;
-    i64 sum_both_neg <- e + f;  // -6000000000
+    i64 sum_both_neg <- e + f; // -6000000000
 
     // Subtraction - basic
     i64 g <- 5000000000;
     i64 h <- 3000000000;
-    i64 diff <- g - h;  // 2000000000
+    i64 diff <- g - h; // 2000000000
 
     // Subtraction - negative result
     i64 i <- 3000000000;
     i64 j <- 5000000000;
-    i64 diff_neg <- i - j;  // -2000000000
+    i64 diff_neg <- i - j; // -2000000000
 
     // Subtraction - with negatives
     i64 k <- -3000000000;
     i64 l <- 2000000000;
-    i64 diff_mixed <- k - l;  // -5000000000
+    i64 diff_mixed <- k - l; // -5000000000
 
     // Multiplication - basic
     i64 m <- 1000000;
     i64 n <- 5000;
-    i64 product <- m * n;  // 5000000000
+    i64 product <- m * n; // 5000000000
 
     // Multiplication - negative
     i64 o <- -1000000;
     i64 p <- 5000;
-    i64 product_neg <- o * p;  // -5000000000
+    i64 product_neg <- o * p; // -5000000000
 
     // Multiplication - negative * negative
     i64 q <- -1000000;
     i64 r <- -5000;
-    i64 product_pos <- q * r;  // 5000000000
+    i64 product_pos <- q * r; // 5000000000
 
     // Division - basic
     i64 s <- 6000000000;
     i64 t <- 3;
-    i64 quotient <- s / t;  // 2000000000
+    i64 quotient <- s / t; // 2000000000
 
     // Division - negative
     i64 u <- -6000000000;
     i64 v <- 3;
-    i64 quotient_neg <- u / v;  // -2000000000
+    i64 quotient_neg <- u / v; // -2000000000
 
     // Division - negative divisor
     i64 w <- 6000000000;
     i64 x <- -3;
-    i64 quotient_neg_div <- w / x;  // -2000000000
+    i64 quotient_neg_div <- w / x; // -2000000000
 
     // Modulo - basic
     i64 y <- 1000000023;
     i64 z <- 5000;
-    i64 remainder <- y % z;  // 23
+    i64 remainder <- y % z; // 23
 
     // Modulo - negative (C semantics: result has sign of dividend)
     i64 aa <- -1000000023;
     i64 bb <- 5000;
-    i64 remainder_neg <- aa % bb;  // -23
+    i64 remainder_neg <- aa % bb; // -23
 
     // Edge cases - max positive
     i64 max_val <- 9223372036854775807;
     i64 one <- 1;
-    i64 max_minus_one <- max_val - one;  // 9223372036854775806
+    i64 max_minus_one <- max_val - one; // 9223372036854775806
 
     // Edge cases - min negative
     i64 min_val <- -9223372036854775808;
-    i64 min_plus_one <- min_val + one;  // -9223372036854775807
+    i64 min_plus_one <- min_val + one; // -9223372036854775807
 
     // Verify all results
     if (sum = 8000000000 && sum_neg = -2000000000 && sum_both_neg = -6000000000) {
@@ -89,12 +88,13 @@ u32 main() {
                 if (quotient = 2000000000 && quotient_neg = -2000000000 && quotient_neg_div = -2000000000) {
                     if (remainder = 23 && remainder_neg = -23) {
                         if (max_minus_one = 9223372036854775806 && min_plus_one = -9223372036854775807) {
-                            return 0;  // All tests passed
+                            return 0; // All tests passed
                         }
                     }
                 }
             }
         }
     }
-    return 1;  // Test failed
+    return 1;
+// Test failed
 }

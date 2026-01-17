@@ -18,7 +18,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
     return a - (uint8_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: clamp modifier behavior inside scopes
 // ADR-044 + ADR-016: Verifies clamp works with scope variables via this. accessor
 // This test exposes a BUG if clamp is ignored in scope contexts

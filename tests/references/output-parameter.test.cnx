@@ -1,6 +1,5 @@
 // ADR-006: Output parameter pattern
 // Tests: function writes result to caller's variable
-
 void calculateSum(i32 a, i32 b, i32 result) {
     result <- a + b;
 }

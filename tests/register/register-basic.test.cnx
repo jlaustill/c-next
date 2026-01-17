@@ -1,9 +1,8 @@
 // ADR-004: Basic register declaration and access
 // Tests: standalone register definition outside of scope
-
 register GPIO @ 0x40000000 {
-    DR:   u32 rw @ 0x00,
-    PSR:  u32 ro @ 0x08,
+    DR: u32 rw @ 0x00,
+    PSR: u32 ro @ 0x08,
 }
 
 void main() {

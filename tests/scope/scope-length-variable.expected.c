@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Test: Issue #212 - Scope variable named 'length' should not conflict with .length property accessor
 // When a scope variable is named 'length', this.length should access the variable,
 // not be interpreted as a .length property accessor

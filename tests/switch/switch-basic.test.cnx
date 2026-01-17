@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // ADR-025: Basic Switch Test
 // Tests: basic switch statement with integer type
-
 u32 result;
 
 void handleCommand(u32 cmd) {
@@ -12,7 +11,7 @@ void handleCommand(u32 cmd) {
         case 1 {
             result <- 200;
         }
-        default {
+    default {
             result <- 999;
         }
     }

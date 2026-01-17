@@ -1,7 +1,6 @@
-/* test-coverage: 10-enum-function-return */
-/* test-execution */
+// test-coverage: 10-enum-function-return
+// test-execution
 // Tests: Enum as function return type
-
 enum Color {
     RED <- 0,
     GREEN <- 1,
@@ -52,7 +51,8 @@ TrafficLight colorToLight(Color c) {
 }
 
 u32 main() {
-    // Test getColorByIndex
+   
+// Test getColorByIndex
     Color c <- getColorByIndex(0);
     if (c != Color.RED) return 1;
 
@@ -65,7 +65,8 @@ u32 main() {
     c <- getColorByIndex(99);
     if (c != Color.YELLOW) return 4;
 
-    // Test getNextLight cycle
+   
+// Test getNextLight cycle
     TrafficLight light <- TrafficLight.STOP;
     light <- getNextLight(light);
     if (light != TrafficLight.GO) return 5;
@@ -76,7 +77,8 @@ u32 main() {
     light <- getNextLight(light);
     if (light != TrafficLight.STOP) return 7;
 
-    // Test colorToLight mapping
+   
+// Test colorToLight mapping
     if (colorToLight(Color.RED) != TrafficLight.STOP) return 8;
     if (colorToLight(Color.GREEN) != TrafficLight.GO) return 9;
     if (colorToLight(Color.BLUE) != TrafficLight.CAUTION) return 10;

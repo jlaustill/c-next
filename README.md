@@ -773,6 +773,26 @@ npm run coverage:grammar:check   # Grammar coverage with threshold check (CI)
 
 **Note:** C-Next runs directly via `tsx` without a build step. The `typecheck` command validates types only and does not generate any output files.
 
+### Formatting C-Next Files
+
+The project includes a Prettier plugin for formatting `.cnx` files with consistent style (4-space indentation, same-line braces).
+
+```bash
+# Format a single file
+npx prettier --plugin ./prettier-plugin/dist/index.js --write myfile.cnx
+
+# Format all .cnx files in tests/
+npx prettier --plugin ./prettier-plugin/dist/index.js --write "tests/**/*.cnx"
+```
+
+To build the plugin from source (after making changes):
+
+```bash
+cd prettier-plugin
+npm install
+npm run build
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete development workflow, testing requirements, and PR process.

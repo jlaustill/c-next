@@ -1,7 +1,6 @@
-/* test-execution */
+// test-execution
 // Test .length property on struct members from C headers
 // This is the core test for issue #45 - verifies SymbolTable integration
-
 // TestConfig.h defines: typedef struct { uint32_t magic; uint16_t version; uint8_t flags; uint64_t timestamp; } AppConfig;
 #include "../../include/TestConfig.h"
 
@@ -15,7 +14,8 @@ struct CNextConfig {
 }
 
 i32 main() {
-    // Test C-Next struct (baseline - should already work)
+   
+// Test C-Next struct (baseline - should already work)
     CNextConfig localCfg;
     localCfg.magic <- 0x11111111;
     localCfg.version <- 10;
@@ -38,11 +38,12 @@ i32 main() {
         return 4;
     }
 
-    // Test compile-time constant evaluation
+   
+// Test compile-time constant evaluation
     u8 magicBytes <- localCfg.magic.length / 8;
     if (magicBytes != 4) {
         return 5;
     }
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

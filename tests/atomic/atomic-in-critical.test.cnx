@@ -1,12 +1,14 @@
-/* test-coverage: 20-atomic-in-critical */
+// test-coverage: 20-atomic-in-critical
 // Tests: atomic operations inside critical sections
 // Note: Compilation test only - ARM-specific code
-
 #pragma target teensy41
 
 atomic u32 sharedCounter <- 0;
+
 atomic wrap u16 sequence <- 0;
+
 u8 buffer[64];
+
 u32 writeIdx <- 0;
 
 // Atomic operation within critical section
@@ -22,7 +24,7 @@ void enqueueWithCount(u8 data) {
     critical {
         buffer[writeIdx] <- data;
         writeIdx +<- 1;
-        sharedCounter +<- 1;  // Track total enqueues
+        sharedCounter +<- 1; // Track total enqueues
     }
 }
 

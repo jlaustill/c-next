@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Test .length property on struct members from C headers
 // This is the core test for issue #45 - verifies SymbolTable integration
 // TestConfig.h defines: typedef struct { uint32_t magic; uint16_t version; uint8_t flags; uint64_t timestamp; } AppConfig;

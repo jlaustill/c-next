@@ -1,47 +1,53 @@
-/* test-execution */
+// test-execution
 // ADR-045: Test string boundary conditions
 // Validates: exact capacity, minimum sizes, edge cases
-
 i32 main() {
-    // Test 1-3: String at exact capacity
+   
+// Test 1-3: String at exact capacity
     string<5> exact <- "Hello";
     if (exact.length != 5) return 1;
     if (exact.capacity != 5) return 2;
     if (exact != "Hello") return 3;
 
-    // Test 4-6: Single character capacity
+   
+// Test 4-6: Single character capacity
     string<1> single <- "X";
     if (single.length != 1) return 4;
     if (single.capacity != 1) return 5;
     if (single != "X") return 6;
 
-    // Test 7-9: Empty string (zero length, non-zero capacity)
+   
+// Test 7-9: Empty string (zero length, non-zero capacity)
     string<10> emptyWithCap;
     if (emptyWithCap.length != 0) return 7;
     if (emptyWithCap.capacity != 10) return 8;
     if (emptyWithCap != "") return 9;
 
-    // Test 10-12: Large capacity with small content
+   
+// Test 10-12: Large capacity with small content
     string<1024> largeBuffer <- "Tiny";
     if (largeBuffer.length != 4) return 10;
     if (largeBuffer.capacity != 1024) return 11;
     if (largeBuffer != "Tiny") return 12;
 
-    // Test 13-15: Substring at boundary
+   
+// Test 13-15: Substring at boundary
     string<10> source <- "0123456789";
     string<5> firstHalf <- source[0, 5];
     if (firstHalf != "01234") return 13;
     string<5> lastHalf <- source[5, 5];
     if (lastHalf != "56789") return 14;
 
-    // Test 16-17: Concatenation at exact capacity
+   
+// Test 16-17: Concatenation at exact capacity
     string<3> part1 <- "ABC";
     string<3> part2 <- "DEF";
     string<6> combined <- part1 + part2;
     if (combined.length != 6) return 15;
     if (combined != "ABCDEF") return 16;
 
-    // Test 18-19: Multiple small strings
+   
+// Test 18-19: Multiple small strings
     string<2> a <- "AB";
     string<2> b <- "CD";
     string<2> c <- "EF";

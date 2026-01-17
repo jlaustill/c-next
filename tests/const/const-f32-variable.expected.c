@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const f32 variable
 // Tests: const f32 declaration and read access
 const float PI = 3.14159;

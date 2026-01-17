@@ -15,7 +15,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional i16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, coordinate systems, signed offsets

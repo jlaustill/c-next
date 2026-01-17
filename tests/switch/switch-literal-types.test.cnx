@@ -1,70 +1,135 @@
-/* test-execution */
+// test-execution
 // ADR-025: Switch with different literal formats
 // Tests: hex, binary, and char literals in case labels
 // Coverage: Section 7 (Control Flow) - case label literal types
-
 u32 result;
 
 // Hex literal cases
 void testHexCases(u8 val) {
     switch (val) {
-        case 0x00 { result <- 1; }
-        case 0x0F { result <- 2; }
-        case 0x10 { result <- 3; }
-        case 0x7F { result <- 4; }
-        case 0x80 { result <- 5; }
-        case 0xFF { result <- 6; }
-        default { result <- 99; }
+        case 0x00 {
+            result <- 1;
+        }
+        case 0x0F {
+            result <- 2;
+        }
+        case 0x10 {
+            result <- 3;
+        }
+        case 0x7F {
+            result <- 4;
+        }
+        case 0x80 {
+            result <- 5;
+        }
+        case 0xFF {
+            result <- 6;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Binary literal cases
 void testBinaryCases(u8 val) {
     switch (val) {
-        case 0b00000000 { result <- 10; }
-        case 0b00000001 { result <- 11; }
-        case 0b00001111 { result <- 12; }
-        case 0b01111111 { result <- 13; }
-        case 0b10000000 { result <- 14; }
-        case 0b11111111 { result <- 15; }
-        default { result <- 99; }
+        case 0b00000000 {
+            result <- 10;
+        }
+        case 0b00000001 {
+            result <- 11;
+        }
+        case 0b00001111 {
+            result <- 12;
+        }
+        case 0b01111111 {
+            result <- 13;
+        }
+        case 0b10000000 {
+            result <- 14;
+        }
+        case 0b11111111 {
+            result <- 15;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Char literal cases
 void testCharCases(u8 val) {
     switch (val) {
-        case 'A' { result <- 20; }
-        case 'Z' { result <- 21; }
-        case 'a' { result <- 22; }
-        case 'z' { result <- 23; }
-        case '0' { result <- 24; }
-        case '9' { result <- 25; }
-        default { result <- 99; }
+        case 'A' {
+            result <- 20;
+        }
+        case 'Z' {
+            result <- 21;
+        }
+        case 'a' {
+            result <- 22;
+        }
+        case 'z' {
+            result <- 23;
+        }
+        case '0' {
+            result <- 24;
+        }
+        case '9' {
+            result <- 25;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Mixed literal types in same switch
 void testMixedLiterals(u8 val) {
     switch (val) {
-        case 0 { result <- 30; }
-        case 0x0A { result <- 31; }
-        case 0b00010100 { result <- 32; }
-        case 'X' { result <- 33; }
-        default { result <- 99; }
+        case 0 {
+            result <- 30;
+        }
+        case 0x0A {
+            result <- 31;
+        }
+        case 0b00010100 {
+            result <- 32;
+        }
+        case 'X' {
+            result <- 33;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Large hex values (u16)
 void testLargeHex(u16 val) {
     switch (val) {
-        case 0x0000 { result <- 40; }
-        case 0x00FF { result <- 41; }
-        case 0x0100 { result <- 42; }
-        case 0x7FFF { result <- 43; }
-        case 0x8000 { result <- 44; }
-        case 0xFFFF { result <- 45; }
-        default { result <- 99; }
+        case 0x0000 {
+            result <- 40;
+        }
+        case 0x00FF {
+            result <- 41;
+        }
+        case 0x0100 {
+            result <- 42;
+        }
+        case 0x7FFF {
+            result <- 43;
+        }
+        case 0x8000 {
+            result <- 44;
+        }
+        case 0xFFFF {
+            result <- 45;
+        }
+    default {
+            result <- 99;
+        }
     }
 }
 

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // ADR-010: C Interoperability - Mixed includes
 // Tests: Mix of .cnx, .h, and standard library includes
 #include <stdio.h>

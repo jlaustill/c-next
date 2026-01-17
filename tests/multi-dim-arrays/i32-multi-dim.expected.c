@@ -14,7 +14,7 @@ static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
     return a + b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional i32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large counters, financial data, coordinate systems

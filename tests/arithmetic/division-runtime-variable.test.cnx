@@ -1,5 +1,4 @@
 // ADR-051: Runtime variable division should compile (no static check)
-
 void testRuntimeDivision(u32 divisor) {
     // Runtime variable - no compile-time check possible
     u32 result <- 10 / divisor;

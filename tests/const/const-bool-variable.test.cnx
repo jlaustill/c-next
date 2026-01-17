@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // ADR-013: Const bool variable
 // Tests: const bool declaration and read access
 
@@ -6,27 +6,33 @@ const bool FEATURE_ENABLED <- true;
 const bool DEBUG_MODE <- false;
 
 u32 main() {
-    // Test 1: Read true const into local variable
+   
+// Test 1: Read true const into local variable
     bool enabled <- FEATURE_ENABLED;
     if (!enabled) return 1;
 
-    // Test 2: Read false const
+   
+// Test 2: Read false const
     bool debug <- DEBUG_MODE;
     if (debug) return 2;
 
-    // Test 3: Use const in conditional
+   
+// Test 3: Use const in conditional
     if (!FEATURE_ENABLED) return 3;
     if (DEBUG_MODE) return 4;
 
-    // Test 4: Use const in logical expression
+   
+// Test 4: Use const in logical expression
     bool result <- FEATURE_ENABLED && !DEBUG_MODE;
     if (!result) return 5;
 
-    // Test 5: Use const in ternary
+   
+// Test 5: Use const in ternary
     u32 value <- FEATURE_ENABLED ? 100 : 0;
     if (value != 100) return 6;
 
-    // Test 6: Use false const in ternary
+   
+// Test 6: Use false const in ternary
     u32 debugVal <- DEBUG_MODE ? 1 : 0;
     if (debugVal != 0) return 7;
 

@@ -1,20 +1,16 @@
-/* test-execution */
+// test-execution
 // Comprehensive .length test for string arrays across all contexts
 // Tests: array.length returns 4 (element count), string.length returns strlen (runtime)
-
 string<64> globalArr[4];
 
 scope TestScope {
     public u32 getGlobalArrayLength() {
         return global.globalArr.length;
     }
-
     string<64> scopeArr[4];
-
     public u32 getScopeArrayLength() {
         return this.scopeArr.length;
     }
-
     public string<64> publicArr[4];
 }
 
@@ -30,12 +26,14 @@ i32 main() {
     globalArr[0] <- "Hello";
     globalArr[1] <- "World";
 
-    // Test array.length (element count)
+   
+// Test array.length (element count)
     if (globalArr.length != 4) {
         return 1;
     }
 
-    // Test string[0].length (runtime strlen)
+   
+// Test string[0].length (runtime strlen)
     if (globalArr[0].length != 5) {
         return 2;
     }

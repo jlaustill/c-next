@@ -1,7 +1,6 @@
-/* test-coverage: 23-sizeof-struct-member */
-/* test-execution */
+// test-coverage: 23-sizeof-struct-member
+// test-execution
 // Tests: sizeof on struct members
-
 struct Point {
     i32 x;
     i32 y;
@@ -20,47 +19,55 @@ struct DataBuffer {
 }
 
 Point globalPoint;
+
 Sensor globalSensor;
+
 DataBuffer globalBuffer;
 
 u32 main() {
-    // Test sizeof on struct instance
+   
+// Test sizeof on struct instance
     Point p;
     u32 pointSize <- sizeof(p);
-    if (pointSize != 8) return 1;  // 2 * 4 bytes (i32)
+    if (pointSize != 8) return 1; // 2 * 4 bytes (i32)
 
-    // Test sizeof on struct member (primitive)
+   
+// Test sizeof on struct member (primitive)
     u32 xSize <- sizeof(p.x);
-    if (xSize != 4) return 2;  // i32 = 4 bytes
+    if (xSize != 4) return 2; // i32 = 4 bytes
 
     u32 ySize <- sizeof(p.y);
     if (ySize != 4) return 3;
 
-    // Test sizeof on sensor struct
+   
+// Test sizeof on sensor struct
     Sensor s;
     u32 sensorSize <- sizeof(s);
+
     // Note: May have padding - check each member instead
     u32 idSize <- sizeof(s.id);
-    if (idSize != 1) return 4;  // u8 = 1 byte
+    if (idSize != 1) return 4; // u8 = 1 byte
 
     u32 valueSize <- sizeof(s.value);
-    if (valueSize != 2) return 5;  // u16 = 2 bytes
+    if (valueSize != 2) return 5; // u16 = 2 bytes
 
     u32 timestampSize <- sizeof(s.timestamp);
-    if (timestampSize != 4) return 6;  // u32 = 4 bytes
+    if (timestampSize != 4) return 6; // u32 = 4 bytes
 
     u32 tempSize <- sizeof(s.temperature);
-    if (tempSize != 4) return 7;  // f32 = 4 bytes
+    if (tempSize != 4) return 7; // f32 = 4 bytes
 
-    // Test sizeof on struct with array member
+   
+// Test sizeof on struct with array member
     DataBuffer buf;
     u32 dataSize <- sizeof(buf.data);
-    if (dataSize != 64) return 8;  // 64 bytes
+    if (dataSize != 64) return 8; // 64 bytes
 
     u32 lenSize <- sizeof(buf.length);
-    if (lenSize != 4) return 9;  // u32 = 4 bytes
+    if (lenSize != 4) return 9; // u32 = 4 bytes
 
-    // Test sizeof on global struct members
+   
+// Test sizeof on global struct members
     u32 globalXSize <- sizeof(globalPoint.x);
     if (globalXSize != 4) return 10;
 

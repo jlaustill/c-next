@@ -1,3 +1,4 @@
 // ADR-045: Test const string capacity inference from literal
 const string VERSION <- "1.0.0";
+
 const string APP_NAME <- "MyApp";

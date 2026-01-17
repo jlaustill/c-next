@@ -1,6 +1,5 @@
-/* test-execution */
+// test-execution
 // Issue #139: Test string assignment inside if/else blocks
-
 string<32> status <- "Unknown";
 
 void setStatus(bool ok) {
@@ -22,15 +21,18 @@ void setNested(u32 level) {
 }
 
 u32 main() {
-    // Test if branch
+   
+// Test if branch
     setStatus(true);
     if (status.length != 7) return 1;
 
-    // Test else branch
+   
+// Test else branch
     setStatus(false);
     if (status.length != 7) return 2;
 
-    // Test nested if via function
+   
+// Test nested if via function
     setNested(2);
     if (status.length != 6) return 3;
 

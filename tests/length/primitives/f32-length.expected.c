@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for f32 type across all contexts
 // Tests: .length returns 32 for f32 in every possible scope and access pattern
 float globalVar = 3.14;

@@ -1,40 +1,39 @@
-/* test-coverage: 5.5-i16-left-shift, 5.6-i16-right-shift-arithmetic */
-/* test-execution */
+// test-coverage: 5.5-i16-left-shift, 5.6-i16-right-shift-arithmetic
+// test-execution
 // Test i16 shift operations: arithmetic right shift preserves sign
 // Coverage: Section 5.5-5.6 for i16 type
-
 u32 main() {
     // Left shift - logical
     i16 a <- 1;
-    i16 left1 <- a << 1;   // 2
-    i16 left8 <- a << 8;   // 256
+    i16 left1 <- a << 1; // 2
+    i16 left8 <- a << 8; // 256
     i16 left14 <- a << 14; // 16384
 
     // Right shift on positive
-    i16 b <- 16384;  // 0x4000
-    i16 right1 <- b >> 1;   // 0x2000 = 8192
-    i16 right8 <- b >> 8;   // 0x0040 = 64
+    i16 b <- 16384; // 0x4000
+    i16 right1 <- b >> 1; // 0x2000 = 8192
+    i16 right8 <- b >> 8; // 0x0040 = 64
     i16 right14 <- b >> 14; // 0x0001 = 1
 
     // Right shift on negative - sign extension
-    i16 c <- -16384;  // 0xC000 (two's complement)
-    i16 neg_right1 <- c >> 1;   // 0xE000 = -8192
-    i16 neg_right8 <- c >> 8;   // 0xFFC0 = -64
+    i16 c <- -16384; // 0xC000 (two's complement)
+    i16 neg_right1 <- c >> 1; // 0xE000 = -8192
+    i16 neg_right8 <- c >> 8; // 0xFFC0 = -64
     i16 neg_right14 <- c >> 14; // 0xFFFF = -1
 
     // Edge case: shift -1 (all bits set)
     i16 minus_one <- -1;
-    i16 shift_minus_one <- minus_one >> 8;  // Still -1
+    i16 shift_minus_one <- minus_one >> 8; // Still -1
 
     // Shift by variable
     i16 d <- 256;
     i16 shift_amount <- 4;
-    i16 left_var <- d << shift_amount;   // 4096
-    i16 right_var <- d >> shift_amount;  // 16
+    i16 left_var <- d << shift_amount; // 4096
+    i16 right_var <- d >> shift_amount; // 16
 
     // Complex: negative shift
     i16 e <- -1024;
-    i16 neg_shift <- e >> 2;  // -256 (sign preserved)
+    i16 neg_shift <- e >> 2; // -256 (sign preserved)
 
     // Verify results
     if (left1 = 2 && left8 = 256 && left14 = 16384) {

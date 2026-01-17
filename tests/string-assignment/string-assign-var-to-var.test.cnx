@@ -1,7 +1,7 @@
-/* test-execution */
+// test-execution
 // Issue #139: Test assigning string variable to another string variable
-
 string<64> source <- "Original";
+
 string<64> dest <- "";
 
 void copyString() {

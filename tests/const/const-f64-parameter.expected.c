@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const f64 parameter
 // Tests: const f64 parameter read access
 double readConstF64(const double value) {

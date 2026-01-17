@@ -1,38 +1,39 @@
-/* test-coverage: 5.1-u64-and, 5.2-u64-or, 5.3-u64-xor, 5.4-u64-not */
-/* test-execution */
+// test-coverage: 5.1-u64-and, 5.2-u64-or, 5.3-u64-xor, 5.4-u64-not
+// test-execution
 // Test u64 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u64 type
-
 u32 main() {
     // AND operations
     u64 a <- 0xFFFFFFFF00000000;
     u64 b <- 0xAAAAAAAAAAAAAAAA;
-    u64 and_result <- a & b;  // 0xAAAAAAAA00000000
+    u64 and_result <- a & b; // 0xAAAAAAAA00000000
 
     // OR operations
-    u64 or_result <- a | b;   // 0xFFFFFFFFAAAAAAAA
+    u64 or_result <- a | b; // 0xFFFFFFFFAAAAAAAA
 
     // XOR operations
-    u64 xor_result <- a ^ b;  // 0x55555555AAAAAAAA
+    u64 xor_result <- a ^ b; // 0x55555555AAAAAAAA
 
     // NOT operations
     u64 c <- 0xAAAAAAAAAAAAAAAA;
-    u64 not_result <- ~c;     // 0x5555555555555555
+    u64 not_result <- ~c; // 0x5555555555555555
 
-    // Test with smaller values
+   
+// Test with smaller values
     u64 small_a <- 0xFFA0;
     u64 small_b <- 0xAA;
-    u64 small_and <- small_a & small_b;  // 0x00A0 = 160
-    u64 small_or <- small_a | small_b;   // 0xFFAA = 65450
+    u64 small_and <- small_a & small_b; // 0x00A0 = 160
+    u64 small_or <- small_a | small_b; // 0xFFAA = 65450
 
     // Edge case: all bits set
     u64 all_bits <- 0xFFFFFFFFFFFFFFFF;
-    u64 not_all <- ~all_bits;  // 0x0000000000000000 = 0
+    u64 not_all <- ~all_bits; // 0x0000000000000000 = 0
 
-    // Test lower 32 bits
+   
+// Test lower 32 bits
     u64 lower32 <- 0x12345678;
     u64 mask32 <- 0x00000000FFFFFFFF;
-    u64 masked <- lower32 & mask32;  // 0x12345678
+    u64 masked <- lower32 & mask32; // 0x12345678
 
     // Verify results (using approximate checks for large values)
     if (small_and = 160 && small_or = 65450 && not_all = 0 && masked = 0x12345678) {

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-035: Fill-All Syntax Test
 // Tests: [value*] fills all elements with the specified value
 // Validates that all array elements are properly initialized

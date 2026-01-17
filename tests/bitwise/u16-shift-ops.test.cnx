@@ -1,34 +1,33 @@
-/* test-coverage: 5.5-u16-left-shift, 5.6-u16-right-shift */
-/* test-execution */
+// test-coverage: 5.5-u16-left-shift, 5.6-u16-right-shift
+// test-execution
 // Test u16 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u16 type
-
 u32 main() {
     // Left shift by literal
     u16 a <- 0x0001;
-    u16 left1 <- a << 1;   // 0x0002 = 2
-    u16 left8 <- a << 8;   // 0x0100 = 256
+    u16 left1 <- a << 1; // 0x0002 = 2
+    u16 left8 <- a << 8; // 0x0100 = 256
     u16 left15 <- a << 15; // 0x8000 = 32768
 
     // Right shift by literal
     u16 b <- 0x8000;
-    u16 right1 <- b >> 1;   // 0x4000 = 16384
-    u16 right8 <- b >> 8;   // 0x0080 = 128
+    u16 right1 <- b >> 1; // 0x4000 = 16384
+    u16 right8 <- b >> 8; // 0x0080 = 128
     u16 right15 <- b >> 15; // 0x0001 = 1
 
     // Shift by variable
     u16 c <- 0x00FF;
     u16 shift_amount <- 4;
-    u16 left_var <- c << shift_amount;   // 0x0FF0 = 4080
-    u16 right_var <- c >> shift_amount;  // 0x000F = 15
+    u16 left_var <- c << shift_amount; // 0x0FF0 = 4080
+    u16 right_var <- c >> shift_amount; // 0x000F = 15
 
     // Edge case: shift full byte boundary
     u16 d <- 0xFF00;
-    u16 shift_byte <- d >> 8;  // 0x00FF = 255
+    u16 shift_byte <- d >> 8; // 0x00FF = 255
 
     // Complex shift patterns
     u16 e <- 0xAAAA;
-    u16 multi_shift <- (e >> 4) << 2;  // (0xAAAA >> 4) = 0x0AAA, (0x0AAA << 2) = 0x2AA8 = 10920
+    u16 multi_shift <- (e >> 4) << 2; // (0xAAAA >> 4) = 0x0AAA, (0x0AAA << 2) = 0x2AA8 = 10920
 
     // Verify results
     if (left1 = 2 && left8 = 256 && left15 = 32768) {

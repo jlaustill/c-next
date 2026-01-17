@@ -1,6 +1,5 @@
 // Test: Compound assignment on struct member arrays
 // Verifies fix for line 4114 in CodeGenerator.ts
-
 struct Buffer {
     u8 data[8];
     i32 counts[4];
@@ -16,10 +15,10 @@ i32 main() {
     buf.counts[1] <- 500;
 
     // Compound assignments on struct member arrays
-    buf.data[0] +<- 10;     // 50 + 10 = 60
-    buf.data[1] -<- 25;     // 100 - 25 = 75
-    buf.counts[0] +<- 500;  // 1000 + 500 = 1500
-    buf.counts[1] -<- 200;  // 500 - 200 = 300
+    buf.data[0] +<- 10; // 50 + 10 = 60
+    buf.data[1] -<- 25; // 100 - 25 = 75
+    buf.counts[0] +<- 500; // 1000 + 500 = 1500
+    buf.counts[1] -<- 200; // 500 - 200 = 300
 
     // Verify
     if (buf.data[0] != 60) {

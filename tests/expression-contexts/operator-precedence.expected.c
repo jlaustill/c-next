@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-coverage: 33.1-multiple-operators-same-precedence */
-/* test-execution */
+// test-coverage: 33.1-multiple-operators-same-precedence
+// test-execution
 // Tests: multiple operators with same precedence (left-to-right associativity)
 // Coverage: Section 33.1 - Nested/Complex Expressions
 // Note: Mixed operator tests (a + b - c) deferred due to bug #152

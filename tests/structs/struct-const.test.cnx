@@ -1,13 +1,13 @@
 // ADR-014: Const struct
 // Tests: constant struct declaration
-
 struct Point {
     i32 x;
     i32 y;
 }
 
-const Point ORIGIN <- { x: 0, y: 0 };
-const Point UNIT <- { x: 1, y: 1 };
+const Point ORIGIN <- {x: 0, y: 0};
+
+const Point UNIT <- {x: 1, y: 1};
 
 void main() {
     i32 x <- ORIGIN.x;

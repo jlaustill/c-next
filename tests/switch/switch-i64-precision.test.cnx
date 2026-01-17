@@ -1,29 +1,48 @@
-/* test-execution */
+// test-execution
 // Issue #110: Tests i64 precision in case label duplicate detection
 // These adjacent large values would cause false-positive duplicate errors with parseInt()
 // Note: Only positive values until parser supports negative case labels
-
 i32 result;
 
 // Test decimal literals near INT64_MAX
 void testDecimalPrecision(i64 val) {
     switch (val) {
-        case 9223372036854775807 { result <- 1; }   // INT64_MAX
-        case 9223372036854775806 { result <- 2; }   // INT64_MAX - 1
-        case 9223372036854775805 { result <- 3; }   // INT64_MAX - 2
-        case 9223372036854775804 { result <- 4; }   // INT64_MAX - 3
-        default { result <- 99; }
+        case 9223372036854775807 {
+            result <- 1;
+        } // INT64_MAX
+        case 9223372036854775806 {
+            result <- 2;
+        } // INT64_MAX - 1
+        case 9223372036854775805 {
+            result <- 3;
+        } // INT64_MAX - 2
+        case 9223372036854775804 {
+            result <- 4;
+        } // INT64_MAX - 3
+    default {
+            result <- 99;
+        }
     }
 }
 
 // Test hex literals near INT64_MAX
 void testHexPrecision(i64 val) {
     switch (val) {
-        case 0x7FFFFFFFFFFFFFFF { result <- 10; }  // INT64_MAX
-        case 0x7FFFFFFFFFFFFFFE { result <- 11; }  // INT64_MAX - 1
-        case 0x7FFFFFFFFFFFFFFD { result <- 12; }  // INT64_MAX - 2
-        case 0x7FFFFFFFFFFFFFFC { result <- 13; }  // INT64_MAX - 3
-        default { result <- 99; }
+        case 0x7FFFFFFFFFFFFFFF {
+            result <- 10;
+        } // INT64_MAX
+        case 0x7FFFFFFFFFFFFFFE {
+            result <- 11;
+        } // INT64_MAX - 1
+        case 0x7FFFFFFFFFFFFFFD {
+            result <- 12;
+        } // INT64_MAX - 2
+        case 0x7FFFFFFFFFFFFFFC {
+            result <- 13;
+        } // INT64_MAX - 3
+    default {
+            result <- 99;
+        }
     }
 }
 

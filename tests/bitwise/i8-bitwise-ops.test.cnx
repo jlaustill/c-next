@@ -1,41 +1,41 @@
-/* test-coverage: 5.1-i8-and, 5.2-i8-or, 5.3-i8-xor, 5.4-i8-not */
-/* test-execution */
+// test-coverage: 5.1-i8-and, 5.2-i8-or, 5.3-i8-xor, 5.4-i8-not
+// test-execution
 // Test i8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i8 type (with sign extension)
-
 u32 main() {
     // AND operations with positive values
-    i8 a <- 0b01111000;  // 120
-    i8 b <- 0b01010101;  // 85
-    i8 and_result <- a & b;  // 0b01010000 = 80
+    i8 a <- 0b01111000; // 120
+    i8 b <- 0b01010101; // 85
+    i8 and_result <- a & b; // 0b01010000 = 80
 
     // AND with negative values (two's complement)
-    i8 neg_a <- -16;  // 0b11110000
-    i8 neg_b <- -1;   // 0b11111111
-    i8 neg_and <- neg_a & neg_b;  // -16
+    i8 neg_a <- -16; // 0b11110000
+    i8 neg_b <- -1; // 0b11111111
+    i8 neg_and <- neg_a & neg_b; // -16
 
     // OR operations
-    i8 or_result <- a | b;   // 0b01111101 = 125
+    i8 or_result <- a | b; // 0b01111101 = 125
 
     // XOR operations
-    i8 xor_result <- a ^ b;  // 0b00101101 = 45
+    i8 xor_result <- a ^ b; // 0b00101101 = 45
 
     // NOT operations - positive to negative
-    i8 c <- 127;  // 0b01111111
-    i8 not_pos <- ~c;  // 0b10000000 = -128
+    i8 c <- 127; // 0b01111111
+    i8 not_pos <- ~c; // 0b10000000 = -128
 
     // NOT operations - negative to positive
-    i8 d <- -128;  // 0b10000000
-    i8 not_neg <- ~d;  // 0b01111111 = 127
+    i8 d <- -128; // 0b10000000
+    i8 not_neg <- ~d; // 0b01111111 = 127
 
     // Edge case: NOT of -1
     i8 minus_one <- -1;
-    i8 not_minus_one <- ~minus_one;  // 0
+    i8 not_minus_one <- ~minus_one; // 0
 
-    // Test with hex literals
-    i8 hex_a <- 0x7F;  // 127
-    i8 hex_b <- 0x55;  // 85
-    i8 hex_and <- hex_a & hex_b;  // 0x55 = 85
+   
+// Test with hex literals
+    i8 hex_a <- 0x7F; // 127
+    i8 hex_b <- 0x55; // 85
+    i8 hex_and <- hex_a & hex_b; // 0x55 = 85
 
     // Verify results
     if (and_result = 80 && or_result = 125 && xor_result = 45) {

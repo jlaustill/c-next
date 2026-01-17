@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 5.7-complex-combinations */
-/* test-execution */
+// test-coverage: 5.7-complex-combinations
+// test-execution
 // Test complex bitwise combinations and expressions
 // Coverage: Section 5.7 - complex patterns, multiple operations, precedence
 int main(void) {

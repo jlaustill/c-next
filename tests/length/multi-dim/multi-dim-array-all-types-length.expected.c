@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for multi-dimensional arrays
 // Tests: array.length returns first dimension only (ADR-036)
 // Global multi-dim arrays

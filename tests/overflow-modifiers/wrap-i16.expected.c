@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: wrap modifier for i16 type (-32768 to 32767)
 // Validates: overflow wraps to -32768, underflow wraps to 32767
 // Issue #19: Add wrap modifier tests for all integer types

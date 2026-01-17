@@ -1,9 +1,9 @@
-/* test-execution */
+// test-execution
 // Tests: multi-dimensional i32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large counters, financial data, coordinate systems
-
 i32 matrix2d[4][8];
+
 i32 cube3d[2][3][4];
 
 u32 main() {
@@ -33,16 +33,17 @@ u32 main() {
     if (cube3d[1][0][0] != 500000) return 8;
     if (cube3d[1][2][3] != 2000000) return 9;
 
-    // Test .length property at each dimension
+   
+// Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10;        // First dimension
-    if (matrix2d[0].length != 8) return 11;     // Second dimension
+    if (matrix2d.length != 4) return 10; // First dimension
+    if (matrix2d[0].length != 8) return 11; // Second dimension
     if (matrix2d[0][0].length != 32) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13;          // First dimension
-    if (cube3d[0].length != 3) return 14;       // Second dimension
-    if (cube3d[0][0].length != 4) return 15;    // Third dimension
+    if (cube3d.length != 2) return 13; // First dimension
+    if (cube3d[0].length != 3) return 14; // Second dimension
+    if (cube3d[0][0].length != 4) return 15; // Third dimension
     if (cube3d[0][0][0].length != 32) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array
@@ -72,28 +73,32 @@ u32 main() {
     // Verify sum: 6+406+806+4006+4406+4806 = 14436
     if (sum != 14436) return 21;
 
-    // Test modification after initialization
+   
+// Test modification after initialization
     matrix2d[2][4] <- -2147483648;
     if (matrix2d[2][4] != -2147483648) return 22;
 
-    // Test boundary access
+   
+// Test boundary access
     matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- -100000;
     if (matrix2d[3][7] != -100000) return 23;
 
-    // Test i32 specific edge cases
+   
+// Test i32 specific edge cases
     i32 testArray[4][2];
+
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
         for (u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
-    testArray[0][0] <- -2147483648;  // Min value
-    testArray[0][1] <- 2147483647;   // Max value
-    testArray[1][0] <- 0;            // Zero
-    testArray[1][1] <- -1;           // Negative
-    testArray[2][0] <- 1;            // Positive
-    testArray[3][1] <- -1000000;     // Large negative
+    testArray[0][0] <- -2147483648; // Min value
+    testArray[0][1] <- 2147483647; // Max value
+    testArray[1][0] <- 0; // Zero
+    testArray[1][1] <- -1; // Negative
+    testArray[2][0] <- 1; // Positive
+    testArray[3][1] <- -1000000; // Large negative
 
     if (testArray[0][0] != -2147483648) return 24;
     if (testArray[0][1] != 2147483647) return 25;
@@ -102,20 +107,22 @@ u32 main() {
     if (testArray[2][0] != 1) return 28;
     if (testArray[3][1] != -1000000) return 29;
 
-    // Test 2D array with financial data pattern (cents)
+   
+// Test 2D array with financial data pattern (cents)
     i32 balances[3][3];
+
     // Initialize all elements first
     for (u32 bi <- 0; bi < 3; bi +<- 1) {
         for (u32 bj <- 0; bj < 3; bj +<- 1) {
             balances[bi][bj] <- 0;
         }
     }
-    balances[0][0] <- -50000;     // -$500.00 (debt)
-    balances[0][1] <- 100000;     // $1000.00
-    balances[1][0] <- 0;          // $0.00
-    balances[1][1] <- 1000000;    // $10000.00
-    balances[2][0] <- -250000;    // -$2500.00
-    balances[2][1] <- 500000000;  // $5000000.00
+    balances[0][0] <- -50000; // -$500.00 (debt)
+    balances[0][1] <- 100000; // $1000.00
+    balances[1][0] <- 0; // $0.00
+    balances[1][1] <- 1000000; // $10000.00
+    balances[2][0] <- -250000; // -$2500.00
+    balances[2][1] <- 500000000; // $5000000.00
 
     if (balances[0][0] != -50000) return 30;
     if (balances[0][1] != 100000) return 31;
@@ -124,8 +131,10 @@ u32 main() {
     if (balances[2][0] != -250000) return 34;
     if (balances[2][1] != 500000000) return 35;
 
-    // Test negative value calculations
+   
+// Test negative value calculations
     i32 deltas[2][2];
+
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
         for (u32 dj <- 0; dj < 2; dj +<- 1) {
@@ -137,20 +146,22 @@ u32 main() {
     i64 deltaSum <- deltas[0][0] + deltas[0][1];
     if (deltaSum != -250000) return 36;
 
-    // Test with timestamp offsets (seconds from epoch)
+   
+// Test with timestamp offsets (seconds from epoch)
     i32 offsets[2][3];
+
     // Initialize all elements first
     for (u32 oi <- 0; oi < 2; oi +<- 1) {
         for (u32 oj <- 0; oj < 3; oj +<- 1) {
             offsets[oi][oj] <- 0;
         }
     }
-    offsets[0][0] <- -86400;      // -1 day
-    offsets[0][1] <- 0;           // No offset
-    offsets[0][2] <- 86400;       // +1 day
-    offsets[1][0] <- -2592000;    // -30 days
-    offsets[1][1] <- 3600;        // +1 hour
-    offsets[1][2] <- 31536000;    // +1 year
+    offsets[0][0] <- -86400; // -1 day
+    offsets[0][1] <- 0; // No offset
+    offsets[0][2] <- 86400; // +1 day
+    offsets[1][0] <- -2592000; // -30 days
+    offsets[1][1] <- 3600; // +1 hour
+    offsets[1][2] <- 31536000; // +1 year
 
     if (offsets[0][0] != -86400) return 37;
     if (offsets[0][2] != 86400) return 38;

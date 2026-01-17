@@ -1,6 +1,5 @@
-/* test-execution */
+// test-execution
 // Issue #139: Test string assignment inside switch cases
-
 string<32> level <- "";
 
 void setLevel(u32 code) {
@@ -14,7 +13,7 @@ void setLevel(u32 code) {
         case 2 {
             level <- "High";
         }
-        default {
+    default {
             level <- "Unknown";
         }
     }

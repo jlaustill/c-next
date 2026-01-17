@@ -15,7 +15,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
-/* test-execution */
+// test-execution
 // Test: Compound assignment with scope-local (this.) patterns
 // Tests lines 4336 and 4338 in CodeGenerator.ts
 /* Scope: Counter */

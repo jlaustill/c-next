@@ -1,82 +1,90 @@
-/* test-execution */
+// test-execution
 // Tests: clamp modifier for u64 type (0 to 18446744073709551615)
 // Validates overflow clamps to UINT64_MAX, underflow clamps to 0
 // ADR-044: Per-variable overflow semantics
-
 u32 main() {
     // === OVERFLOW TESTS (clamp to UINT64_MAX) ===
-
-    // Test 1: Basic overflow - add past max
-    clamp u64 val <- 18446744073709551610;  // UINT64_MAX - 5
-    val +<- 10;  // Would overflow, should clamp to UINT64_MAX
+   
+// Test 1: Basic overflow - add past max
+    clamp u64 val <- 18446744073709551610; // UINT64_MAX - 5
+    val +<- 10; // Would overflow, should clamp to UINT64_MAX
     if (val != 18446744073709551615) return 1;
 
-    // Test 2: Overflow from max value
-    val <- 18446744073709551615;  // UINT64_MAX
-    val +<- 1;  // Would overflow, should clamp to UINT64_MAX
+   
+// Test 2: Overflow from max value
+    val <- 18446744073709551615; // UINT64_MAX
+    val +<- 1; // Would overflow, should clamp to UINT64_MAX
     if (val != 18446744073709551615) return 2;
 
-    // Test 3: Large addition near max
-    val <- 18446744073709551600;  // UINT64_MAX - 15
-    val +<- 100;  // Would overflow
+   
+// Test 3: Large addition near max
+    val <- 18446744073709551600; // UINT64_MAX - 15
+    val +<- 100; // Would overflow
     if (val != 18446744073709551615) return 3;
 
-    // Test 4: Multiple overflows stay clamped
+   
+// Test 4: Multiple overflows stay clamped
     val <- 18446744073709551610;
-    val +<- 10;  // Clamps to max
+    val +<- 10; // Clamps to max
     if (val != 18446744073709551615) return 4;
-    val +<- 1000;  // Still at max
+    val +<- 1000; // Still at max
     if (val != 18446744073709551615) return 5;
 
     // === UNDERFLOW TESTS (clamp to 0) ===
-
-    // Test 6: Basic underflow - subtract below zero
+   
+// Test 6: Basic underflow - subtract below zero
     val <- 50;
-    val -<- 100;  // -50, should clamp to 0
+    val -<- 100; // -50, should clamp to 0
     if (val != 0) return 6;
 
-    // Test 7: Underflow from min value
+   
+// Test 7: Underflow from min value
     val <- 0;
-    val -<- 1;  // -1, should clamp to 0
+    val -<- 1; // -1, should clamp to 0
     if (val != 0) return 7;
 
-    // Test 8: Large underflow
+   
+// Test 8: Large underflow
     val <- 1000;
-    val -<- 1000000;  // Large negative, should clamp to 0
+    val -<- 1000000; // Large negative, should clamp to 0
     if (val != 0) return 8;
 
-    // Test 9: Multiple underflows stay clamped
+   
+// Test 9: Multiple underflows stay clamped
     val <- 5;
-    val -<- 10;  // Clamps to 0
+    val -<- 10; // Clamps to 0
     if (val != 0) return 9;
-    val -<- 100;  // Still 0
+    val -<- 100; // Still 0
     if (val != 0) return 10;
 
     // === NORMAL OPERATIONS (no clamping needed) ===
-
-    // Test 11: Normal addition within bounds
-    val <- 1000000000000;  // 1 trillion
-    val +<- 500000000000;  // 500 billion
+   
+// Test 11: Normal addition within bounds
+    val <- 1000000000000; // 1 trillion
+    val +<- 500000000000; // 500 billion
     if (val != 1500000000000) return 11;
 
-    // Test 12: Normal subtraction within bounds
+   
+// Test 12: Normal subtraction within bounds
     val <- 1000000000000;
     val -<- 300000000000;
     if (val != 700000000000) return 12;
 
-    // Test 13: Add to zero
+   
+// Test 13: Add to zero
     val <- 0;
-    val +<- 9223372036854775807;  // INT64_MAX (large but fits)
+    val +<- 9223372036854775807; // INT64_MAX (large but fits)
     if (val != 9223372036854775807) return 13;
 
-    // Test 14: Subtract to zero exactly
+   
+// Test 14: Subtract to zero exactly
     val <- 100000;
     val -<- 100000;
     if (val != 0) return 14;
 
     // === BOUNDARY TESTS ===
-
-    // Test 15: Operations with small values
+   
+// Test 15: Operations with small values
     val <- 100;
     val +<- 50;
     if (val != 150) return 15;
@@ -85,25 +93,27 @@ u32 main() {
     val -<- 50;
     if (val != 50) return 16;
 
-    // Test 17: Add 0 (no change)
+   
+// Test 17: Add 0 (no change)
     val <- 9999999999;
     val +<- 0;
     if (val != 9999999999) return 17;
 
-    // Test 18: Subtract 0 (no change)
+   
+// Test 18: Subtract 0 (no change)
     val <- 9999999999;
     val -<- 0;
     if (val != 9999999999) return 18;
 
     // === SEQUENTIAL OPERATIONS ===
-
-    // Test 19: Multiple operations
+   
+// Test 19: Multiple operations
     val <- 18446744073709551610;
-    val +<- 10;  // Clamp to max
+    val +<- 10; // Clamp to max
     if (val != 18446744073709551615) return 19;
-    val -<- 18446744073709551615;  // max - max = 0
+    val -<- 18446744073709551615; // max - max = 0
     if (val != 0) return 20;
-    val +<- 1000;  // 0 + 1000 = 1000
+    val +<- 1000; // 0 + 1000 = 1000
     if (val != 1000) return 21;
 
     // All tests passed

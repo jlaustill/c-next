@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // ADR-045: Test array of strings
 // Validates: declaration, element access, array.length, element.length, loops
 char globalNames[5][33] = {0};

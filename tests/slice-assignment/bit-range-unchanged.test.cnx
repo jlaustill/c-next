@@ -1,10 +1,11 @@
-/* test-execution */
+// test-execution
 // Tests: Verify bit manipulation operations still work correctly
 // Ensures that slice assignment fix doesn't break existing bit-range operations
 // Bit operations on scalar integers should use bit manipulation, not memcpy
 
 u32 main() {
-    // Test 1: Single bit assignment
+   
+// Test 1: Single bit assignment
     u32 flags <- 0;
 
     // Set bit 0
@@ -23,7 +24,8 @@ u32 main() {
     flags[15] <- true;
     if (flags != 0x00008080) return 4;
 
-    // Test 2: Bit range assignment
+   
+// Test 2: Bit range assignment
     u32 value <- 0;
 
     // Set bits [0, 3] to value 5 (0b101)
@@ -38,7 +40,8 @@ u32 main() {
     value[8, 8] <- 255;
     if (value != 0x0000FFA5) return 7;
 
-    // Test 3: Overwriting bit ranges
+   
+// Test 3: Overwriting bit ranges
     u32 bits <- 0xFFFFFFFF;
 
     // Clear bits [0, 4] by setting to 0
@@ -49,7 +52,8 @@ u32 main() {
     bits[4, 4] <- 5;
     if (bits != 0xFFFFFF50) return 9;
 
-    // Test 4: u8 bit manipulation
+   
+// Test 4: u8 bit manipulation
     u8 smallFlags <- 0;
 
     // Set bits [0, 4] to 15 (0b1111)
@@ -60,7 +64,8 @@ u32 main() {
     smallFlags[7] <- true;
     if (smallFlags != 0x8F) return 11;
 
-    // Test 5: u16 bit manipulation
+   
+// Test 5: u16 bit manipulation
     u16 mediumFlags <- 0;
 
     // Set bits [0, 8] to 0xFF

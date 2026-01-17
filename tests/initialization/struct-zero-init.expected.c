@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-015: Struct zero initialization
 // Tests: struct members are automatically zero-initialized
 typedef struct {

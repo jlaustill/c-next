@@ -1,5 +1,4 @@
 // Test various float literal formats
-
 void test_decimal_literals() {
     // Simple decimal
     f32 a <- 3.14;

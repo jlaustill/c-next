@@ -1,45 +1,53 @@
-/* test-execution */
-/* test-coverage: 30-use-c-extern-var */
+// test-execution
+// test-coverage: 30-use-c-extern-var
 // Tests: Using extern C variables
 // ADR-010: Extern variable import from C headers
 
 #include "c-interop/variables.h"
 
 u32 main() {
-    // Test 1: Read extern counter (initial value is 0)
+   
+// Test 1: Read extern counter (initial value is 0)
     u32 initial <- extern_counter;
     if (initial != 0) return 1;
 
-    // Test 2: Write to extern counter
+   
+// Test 2: Write to extern counter
     extern_counter <- 42;
     if (extern_counter != 42) return 2;
 
-    // Test 3: Increment extern counter
+   
+// Test 3: Increment extern counter
     extern_counter +<- 8;
     if (extern_counter != 50) return 3;
 
-    // Test 4: Read extern const
+   
+// Test 4: Read extern const
     u32 magic <- EXTERN_MAGIC_NUMBER;
     if (magic != 0xCAFEBABE) return 4;
 
-    // Test 5: Read extern const array
+   
+// Test 5: Read extern const array
     u8 first <- extern_lookup_table[0];
     u8 last <- extern_lookup_table[15];
 
     if (first != 0x00) return 5;
     if (last != 0xFF) return 6;
 
-    // Test 6: Sum some array elements
+   
+// Test 6: Sum some array elements
     u32 sum <- extern_lookup_table[1] + extern_lookup_table[2];
     // 0x11 + 0x22 = 0x33
     if (sum != 0x33) return 7;
 
-    // Test 7: Read extern volatile
+   
+// Test 7: Read extern volatile
     u32 status <- extern_status_register;
     // Initial value is 0
     if (status != 0) return 8;
 
-    // Test 8: Write to extern volatile
+   
+// Test 8: Write to extern volatile
     extern_status_register <- 0xABCD;
     if (extern_status_register != 0xABCD) return 9;
 

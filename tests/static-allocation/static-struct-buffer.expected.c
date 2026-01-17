@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-003: Static struct buffer allocation
 // Tests: array of structs with member access
 typedef struct {

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-013: Const i16 variable
 // Tests: const i16 declaration and read access with negative values
 const int16_t MIN_ALTITUDE = -500;

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-022: Basic ternary operator test
 // Tests: simple relational conditions with parentheses
 uint32_t getMax(uint32_t* a, uint32_t* b) {

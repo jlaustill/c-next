@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
-/* test-coverage: 30-use-c-enum-named */
+// test-execution
+// test-coverage: 30-use-c-enum-named
 // Tests: Using named C enums (enum keyword required)
 // ADR-010: Named enum import from C headers
 #include "c-interop/enums.h"

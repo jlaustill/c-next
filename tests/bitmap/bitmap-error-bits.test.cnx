@@ -1,9 +1,8 @@
 // ADR-034: Bitmap total bits validation error
 // This should fail because 1+1+3 = 5 bits, not 8
-
 bitmap8 BadBitmap {
-    A,       // 1 bit
-    B,       // 1 bit
-    C[3]     // 3 bits
+    A, // 1 bit
+    B, // 1 bit
+    C[3] // 3 bits
 }
 // Total: 5 bits, but bitmap8 requires 8 bits

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-010: C Interoperability - Type compatibility
 // Tests: C-Next types map cleanly to C types
 // All C-Next types map to stdint.h types

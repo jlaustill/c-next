@@ -1,12 +1,13 @@
-/* test-execution */
-/* test-coverage: 30-use-c-macro-constant */
+// test-execution
+// test-coverage: 30-use-c-macro-constant
 // Tests: Using C macro constants (#define)
 // ADR-010: Macro constant import from C headers
 
 #include "c-interop/macros.h"
 
 u32 main() {
-    // Test 1: Integer macro constants
+   
+// Test 1: Integer macro constants
     u32 max <- MAX_SIZE;
     if (max != 256) return 1;
 
@@ -16,7 +17,8 @@ u32 main() {
     u32 buf <- BUFFER_SIZE;
     if (buf != 64) return 3;
 
-    // Test 2: Version macros
+   
+// Test 2: Version macros
     u32 major <- VERSION_MAJOR;
     u32 minor <- VERSION_MINOR;
     u32 patch <- VERSION_PATCH;
@@ -25,12 +27,14 @@ u32 main() {
     if (minor != 2) return 5;
     if (patch != 3) return 6;
 
-    // Test 3: Computed macro constant
+   
+// Test 3: Computed macro constant
     u32 total <- TOTAL_VERSION;
     // (1 * 10000) + (2 * 100) + 3 = 10203
     if (total != 10203) return 7;
 
-    // Test 4: Hex macro constants
+   
+// Test 4: Hex macro constants
     u32 magic <- MAGIC_VALUE;
     if (magic != 0xDEADBEEF) return 8;
 
@@ -40,14 +44,16 @@ u32 main() {
     u32 flags <- FLAG_BITS;
     if (flags != 0x0F) return 10;
 
-    // Test 5: Using macros in expressions
+   
+// Test 5: Using macros in expressions
     u32 double_buf <- BUFFER_SIZE * 2;
     if (double_buf != 128) return 11;
 
     u32 masked <- 0x1234 & STATUS_MASK;
     if (masked != 0x1200) return 12;
 
-    // Test 6: Boolean-like macros
+   
+// Test 6: Boolean-like macros
     u32 enabled <- FEATURE_ENABLED;
     u32 disabled <- FEATURE_DISABLED;
 

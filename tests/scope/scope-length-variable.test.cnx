@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Test: Issue #212 - Scope variable named 'length' should not conflict with .length property accessor
 // When a scope variable is named 'length', this.length should access the variable,
 // not be interpreted as a .length property accessor
@@ -8,62 +8,73 @@ scope LengthTest {
     u8 length <- 0;
     u16 offset <- 0;
 
-    // Test reading via this.length
+   
+// Test reading via this.length
     public u8 getLength() {
         return this.length;
     }
 
-    // Test writing via this.length
+   
+// Test writing via this.length
     public void setLength(u8 newLen) {
         this.length <- newLen;
     }
 
-    // Test reading offset (control - should work)
+   
+// Test reading offset (control - should work)
     public u16 getOffset() {
         return this.offset;
     }
 
-    // Test writing offset (control - should work)
+   
+// Test writing offset (control - should work)
     public void setOffset(u16 newOffset) {
         this.offset <- newOffset;
     }
 
-    // Test using this.length in an expression
+   
+// Test using this.length in an expression
     public u16 getLengthPlusOffset() {
         return this.offset + this.length;
     }
 }
 
 i32 main() {
-    // Test 1: Initial value of length should be 0
+   
+// Test 1: Initial value of length should be 0
     if (LengthTest.getLength() != 0) {
         return 1;
     }
 
-    // Test 2: Set length to 42 and verify
+   
+// Test 2: Set length to 42 and verify
     LengthTest.setLength(42);
     if (LengthTest.getLength() != 42) {
         return 2;
     }
 
-    // Test 3: Control test - offset should work correctly
+   
+// Test 3: Control test - offset should work correctly
     if (LengthTest.getOffset() != 0) {
         return 3;
     }
 
-    // Test 4: Set offset and verify
+   
+// Test 4: Set offset and verify
     LengthTest.setOffset(100);
     if (LengthTest.getOffset() != 100) {
         return 4;
     }
 
-    // Test 5: Test expression using both this.length and this.offset
+   
+// Test 5: Test expression using both this.length and this.offset
     // offset (100) + length (42) = 142
     if (LengthTest.getLengthPlusOffset() != 142) {
         return 5;
     }
 
-    // Test 6: Set length to max u8 value
+   
+// Test 6: Set length to max u8 value
     LengthTest.setLength(255);
     if (LengthTest.getLength() != 255) {
         return 6;

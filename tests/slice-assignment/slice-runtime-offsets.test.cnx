@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Slice assignment with runtime variable offsets and lengths
 // Validates that offset and length can be variables or expressions
 // Ensures the code generator handles non-literal indices correctly
@@ -6,7 +6,8 @@
 u32 main() {
     u8 buffer[128];
 
-    // Test 1: Variable offset, literal length
+   
+// Test 1: Variable offset, literal length
     u32 offset <- 0;
     u32 value1 <- 0x11223344;
     buffer[offset, 4] <- value1;
@@ -16,7 +17,8 @@ u32 main() {
     if (buffer[2] != 0x22) return 3;
     if (buffer[3] != 0x11) return 4;
 
-    // Test 2: Literal offset, variable length
+   
+// Test 2: Literal offset, variable length
     u8 len <- 4;
     u32 value2 <- 0x55667788;
     buffer[10, len] <- value2;
@@ -26,7 +28,8 @@ u32 main() {
     if (buffer[12] != 0x66) return 7;
     if (buffer[13] != 0x55) return 8;
 
-    // Test 3: Both variable offset and length
+   
+// Test 3: Both variable offset and length
     offset <- 20;
     len <- 8;
     u64 value3 <- 0xAABBCCDDEEFF0011;
@@ -41,7 +44,8 @@ u32 main() {
     if (buffer[26] != 0xBB) return 15;
     if (buffer[27] != 0xAA) return 16;
 
-    // Test 4: Expression for offset
+   
+// Test 4: Expression for offset
     u32 base <- 5;
     u16 value4 <- 0x9988;
     buffer[base + 30, 2] <- value4;
@@ -49,7 +53,8 @@ u32 main() {
     if (buffer[35] != 0x88) return 17;
     if (buffer[36] != 0x99) return 18;
 
-    // Test 5: Expression for length
+   
+// Test 5: Expression for length
     u8 multiplier <- 2;
     u32 value5 <- 0x12345678;
     buffer[40, multiplier * 2] <- value5;

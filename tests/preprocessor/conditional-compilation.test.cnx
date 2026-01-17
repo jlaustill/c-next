@@ -1,7 +1,6 @@
 // ADR-037: Conditional compilation directives
 // These pass through to the generated C for the C preprocessor to handle
 // Note: Inline conditionals (around code blocks) are handled by the C preprocessor
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -16,27 +15,26 @@
 
 // Use const for values (not #define)
 const u32 LED_BIT <- 3;
+
 const u32 BLINK_DELAY <- 1000;
 
 register GPIO7 @ 0x42004000 {
-    DR:         u32 rw @ 0x00,
-    DR_SET:     u32 wo @ 0x84,
-    DR_CLEAR:   u32 wo @ 0x88,
-    DR_TOGGLE:  u32 wo @ 0x8C,
+    DR: u32 rw @ 0x00,
+    DR_SET: u32 wo @ 0x84,
+    DR_CLEAR: u32 wo @ 0x88,
+    DR_TOGGLE: u32 wo @ 0x8C,
 }
 
 scope LED {
     public void on() {
         GPIO7.DR_SET[LED_BIT] <- true;
     }
-
     public void off() {
         GPIO7.DR_CLEAR[LED_BIT] <- true;
     }
 }
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
     LED.on();

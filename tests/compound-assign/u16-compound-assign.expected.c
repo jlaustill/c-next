@@ -23,7 +23,7 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
     return a - (uint16_t)b;
 }
 
-/* test-execution */
+// test-execution
 // Tests: u16 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* test-execution */
+// test-execution
 // ADR-045: Validate const string inference at runtime
 const char VERSION[6] = "1.0.0";
 

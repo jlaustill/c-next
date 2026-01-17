@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Bitmap field access on array elements
 // Validates that arr[i].field generates correct RMW bit manipulation
 // Issue #201: Bitmap array element field access generates invalid C

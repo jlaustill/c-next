@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { transpile } from "../../src/lib/transpiler";
+import transpile from "../../src/lib/transpiler";
 
 /**
  * Manages C-Next preview panels with live updates

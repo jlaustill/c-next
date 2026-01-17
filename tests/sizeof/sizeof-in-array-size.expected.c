@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-/* test-coverage: 23-sizeof-in-array-size */
-/* test-execution */
+// test-coverage: 23-sizeof-in-array-size
+// test-execution
 // Tests: sizeof used as array dimension
 int main(void) {
     uint8_t typeBuffer[sizeof(uint32_t)] = {0};

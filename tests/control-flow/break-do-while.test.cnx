@@ -1,9 +1,9 @@
-/* test-execution */
+// test-execution
 // Tests: break statement in do-while loop
 // Validates: early loop termination with break in do-while loops
-
 u32 main() {
-    // Test 1: Basic break in do-while loop
+   
+// Test 1: Basic break in do-while loop
     u32 count <- 0;
     u32 i <- 0;
     do {
@@ -13,20 +13,24 @@ u32 main() {
         }
         i +<- 1;
     } while (i < 100);
+
     // Should have executed 6 times (i = 0,1,2,3,4,5), break on i=5
     if (count != 6) return 1;
     if (i != 5) return 2;
 
-    // Test 2: Break on first iteration
+   
+// Test 2: Break on first iteration
     u32 firstOnly <- 0;
     do {
         firstOnly +<- 1;
         break;
     } while (true);
+
     // Should execute exactly once
     if (firstOnly != 1) return 3;
 
-    // Test 3: Break with false condition (do-while always runs once)
+   
+// Test 3: Break with false condition (do-while always runs once)
     u32 runOnce <- 0;
     do {
         runOnce +<- 1;
@@ -36,7 +40,8 @@ u32 main() {
     } while (false);
     if (runOnce != 1) return 4;
 
-    // Test 4: Break mid-loop with accumulation
+   
+// Test 4: Break mid-loop with accumulation
     u32 sum <- 0;
     u32 j <- 0;
     do {
@@ -46,11 +51,13 @@ u32 main() {
             break;
         }
     } while (j < 100);
+
     // sum = 0 + 1 + 2 + ... + 9 = 45
     if (sum != 45) return 5;
     if (j != 10) return 6;
 
-    // Test 5: Multiple potential break points
+   
+// Test 5: Multiple potential break points
     u32 val <- 0;
     u32 k <- 0;
     do {
@@ -64,6 +71,7 @@ u32 main() {
             break;
         }
     } while (k < 20);
+
     // First break at k=3
     if (val != 30) return 7;
     if (k != 3) return 8;

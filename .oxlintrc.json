@@ -23,5 +23,11 @@
     "@typescript-eslint/no-extraneous-class": "off",
     "oxc/no-barrel-file": "error"
   },
-  "ignorePatterns": ["dist/**", "node_modules/**", "src/parser/**", "**/*.js"]
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    "src/parser/**",
+    "prettier-plugin/**",
+    "**/*.js"
+  ]
 }

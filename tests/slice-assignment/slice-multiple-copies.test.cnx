@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Multiple sequential slice assignments to same buffer
 // Validates non-overlapping regions and advancing offset pattern
 // Simulates real-world buffer building (like crc32.cnx pattern)
@@ -81,7 +81,8 @@ u32 main() {
     if (buffer[18] != 0x02) return 20;
     if (buffer[19] != 0x01) return 21;
 
-    // Test 2: Overwriting specific regions
+   
+// Test 2: Overwriting specific regions
     u32 newMagic <- 0x44434241;  // "ABCD"
     buffer[0, 4] <- newMagic;
 

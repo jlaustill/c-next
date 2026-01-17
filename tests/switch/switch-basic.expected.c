@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // ADR-025: Basic Switch Test
 // Tests: basic switch statement with integer type
 uint32_t result = 0;

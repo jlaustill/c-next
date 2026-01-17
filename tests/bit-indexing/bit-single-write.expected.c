@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // ADR-007: Single bit write
 // Tests: setting individual bits in integer
 int main(void) {

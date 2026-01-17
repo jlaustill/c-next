@@ -1,32 +1,38 @@
-/* test-execution */
+// test-execution
 // ADR-013: Const f32 variable
 // Tests: const f32 declaration and read access
-
 const f32 PI <- 3.14159;
+
 const f32 GRAVITY <- 9.81;
+
 const f32 ZERO <- 0.0;
 
 u32 main() {
-    // Test 1: Read const into local variable
+   
+// Test 1: Read const into local variable
     f32 pi <- PI;
     if (pi < 3.14) return 1;
     if (pi > 3.15) return 2;
 
-    // Test 2: Read second const
+   
+// Test 2: Read second const
     f32 g <- GRAVITY;
     if (g < 9.8) return 3;
     if (g > 9.82) return 4;
 
-    // Test 3: Read zero const
+   
+// Test 3: Read zero const
     f32 zero <- ZERO;
     if (zero != 0.0) return 5;
 
-    // Test 4: Use const in arithmetic
+   
+// Test 4: Use const in arithmetic
     f32 circumference <- 2.0 * PI * 10.0;
     if (circumference < 62.0) return 6;
     if (circumference > 63.0) return 7;
 
-    // Test 5: Use const in comparison
+   
+// Test 5: Use const in comparison
     if (ZERO >= GRAVITY) return 8;
 
     return 0;

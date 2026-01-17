@@ -1,10 +1,9 @@
 // ADR-004: Error test - reading from write-only register
 // Tests: compile error when attempting to read from wo register
-
 register CONTROL_REG @ 0x40000000 {
     COMMAND: u32 wo @ 0x00,
 }
 
 void main() {
-    u32 value <- CONTROL_REG.COMMAND;  // ERROR: cannot read from write-only
+    u32 value <- CONTROL_REG.COMMAND; // ERROR: cannot read from write-only
 }

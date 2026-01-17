@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for i16 type across all contexts
 // Tests: .length returns 16 for i16 in every possible scope and access pattern
 int16_t globalVar = -1000;

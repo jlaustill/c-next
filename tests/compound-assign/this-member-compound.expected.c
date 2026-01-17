@@ -22,8 +22,8 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
-/* test-execution */
-/* test-coverage: 2.3-this-member, 2.4-this-member, 2.5-this-member, 2.6-this-member, 2.7-this-member, 2.8-this-member, 2.9-this-member, 2.10-this-member, 2.11-this-member */
+// test-execution
+// test-coverage: 2.3-this-member, 2.4-this-member, 2.5-this-member, 2.6-this-member, 2.7-this-member, 2.8-this-member, 2.9-this-member, 2.10-this-member, 2.11-this-member
 // Tests: All compound assignment operators with this.member syntax
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on scope-local members
 // Note: +<- is already tested in scope/scope-compound-assign.test.cnx
