@@ -8,7 +8,11 @@ import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "../symbols/SymbolTable";
 import IHeaderOptions from "./types/IHeaderOptions";
+import IHeaderTypeInput from "./headerGenerators/IHeaderTypeInput";
 import typeUtils from "./headerGenerators/mapType";
+import generateEnumHeader from "./headerGenerators/generateEnumHeader";
+import generateStructHeader from "./headerGenerators/generateStructHeader";
+import generateBitmapHeader from "./headerGenerators/generateBitmapHeader";
 
 const { TYPE_MAP, mapType } = typeUtils;
 
@@ -18,11 +22,17 @@ const { TYPE_MAP, mapType } = typeUtils;
 class HeaderGenerator {
   /**
    * Generate a header file from symbols
+   *
+   * @param symbols - Array of symbols to include in header
+   * @param filename - Output filename (used for include guard)
+   * @param options - Header generation options
+   * @param typeInput - Optional type information for full definitions (enums, structs, bitmaps)
    */
   generate(
     symbols: ISymbol[],
     filename: string,
     options: IHeaderOptions = {},
+    typeInput?: IHeaderTypeInput,
   ): string {
     const lines: string[] = [];
     const guard = this.makeGuard(filename, options.guardPrefix);
@@ -70,17 +80,22 @@ class HeaderGenerator {
     );
     const enums = exportedSymbols.filter((s) => s.kind === ESymbolKind.Enum);
     const types = exportedSymbols.filter((s) => s.kind === ESymbolKind.Type);
+    const bitmaps = exportedSymbols.filter(
+      (s) => s.kind === ESymbolKind.Bitmap,
+    );
 
     // Issue #121: Collect external type dependencies from function signatures
     const localStructNames = new Set(structs.map((s) => s.name));
     const localEnumNames = new Set(enums.map((s) => s.name));
     const localTypeNames = new Set(types.map((s) => s.name));
+    const localBitmapNames = new Set(bitmaps.map((s) => s.name));
     const externalTypes = this.collectExternalTypes(
       functions,
       variables,
       localStructNames,
       localEnumNames,
       localTypeNames,
+      localBitmapNames,
     );
 
     // Emit forward declarations for external types
@@ -94,25 +109,52 @@ class HeaderGenerator {
       lines.push("");
     }
 
-    // Forward declarations for structs
+    // Struct definitions or forward declarations
     if (structs.length > 0 || classes.length > 0) {
-      lines.push("/* Forward declarations */");
-      for (const sym of structs) {
-        lines.push(`typedef struct ${sym.name} ${sym.name};`);
-      }
-      for (const sym of classes) {
-        // Classes become typedefs to structs
-        lines.push(`typedef struct ${sym.name} ${sym.name};`);
+      if (typeInput) {
+        lines.push("/* Struct definitions */");
+        for (const sym of structs) {
+          lines.push(generateStructHeader(sym.name, typeInput));
+        }
+        for (const sym of classes) {
+          lines.push(generateStructHeader(sym.name, typeInput));
+        }
+      } else {
+        lines.push("/* Forward declarations */");
+        for (const sym of structs) {
+          lines.push(`typedef struct ${sym.name} ${sym.name};`);
+        }
+        for (const sym of classes) {
+          lines.push(`typedef struct ${sym.name} ${sym.name};`);
+        }
       }
       lines.push("");
     }
 
-    // Enum declarations
+    // Enum definitions or comments
     if (enums.length > 0) {
       lines.push("/* Enumerations */");
       for (const sym of enums) {
-        // For now, just forward declare - full definition would require enum values
-        lines.push(`/* Enum: ${sym.name} (see implementation for values) */`);
+        if (typeInput) {
+          lines.push(generateEnumHeader(sym.name, typeInput));
+        } else {
+          lines.push(`/* Enum: ${sym.name} (see implementation for values) */`);
+        }
+      }
+      lines.push("");
+    }
+
+    // Bitmap definitions (only when typeInput is available)
+    if (bitmaps.length > 0) {
+      lines.push("/* Bitmaps */");
+      for (const sym of bitmaps) {
+        if (typeInput) {
+          lines.push(generateBitmapHeader(sym.name, typeInput));
+        } else {
+          lines.push(
+            `/* Bitmap: ${sym.name} (see implementation for layout) */`,
+          );
+        }
       }
       lines.push("");
     }
@@ -258,7 +300,7 @@ class HeaderGenerator {
    * Issue #121: Collect external type dependencies from function signatures and variables
    * Returns types that are:
    * - Not primitive types (not in TYPE_MAP)
-   * - Not locally defined structs, enums, or type aliases
+   * - Not locally defined structs, enums, bitmaps, or type aliases
    */
   private collectExternalTypes(
     functions: ISymbol[],
@@ -266,6 +308,7 @@ class HeaderGenerator {
     localStructs: Set<string>,
     localEnums: Set<string>,
     localTypes: Set<string>,
+    localBitmaps: Set<string>,
   ): Set<string> {
     const externalTypes = new Set<string>();
 
@@ -283,6 +326,9 @@ class HeaderGenerator {
         return false;
       }
       if (localTypes.has(typeName)) {
+        return false;
+      }
+      if (localBitmaps.has(typeName)) {
         return false;
       }
 
