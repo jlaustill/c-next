@@ -49,7 +49,7 @@ class Project {
       defines: this.config.defines,
       preprocess: this.config.preprocess,
       generateHeaders: this.config.generateHeaders,
-      outputExtension: this.config.outputExtension,
+      cppRequired: this.config.cppRequired,
       noCache: this.config.noCache,
     });
   }
