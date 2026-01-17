@@ -147,4 +147,21 @@ describe("generateEnumHeader", () => {
       expect(result).toContain("Signed_POSITIVE = 1");
     });
   });
+
+  describe("boundary values", () => {
+    it("should handle large enum values at C int boundaries", () => {
+      const members = new Map<string, number>([
+        ["MIN", -2147483648], // INT32_MIN
+        ["MAX", 2147483647], // INT32_MAX
+        ["ZERO", 0],
+      ]);
+      const input = createInput(new Map([["Bounds", members]]));
+
+      const result = generateEnumHeader("Bounds", input);
+
+      expect(result).toContain("Bounds_MIN = -2147483648");
+      expect(result).toContain("Bounds_MAX = 2147483647");
+      expect(result).toContain("Bounds_ZERO = 0");
+    });
+  });
 });
