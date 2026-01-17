@@ -62,8 +62,11 @@ export default class GeneratorRegistry {
    * @param kind - Declaration kind (e.g., 'struct', 'enum', 'function')
    * @param fn - Generator function
    */
-  registerDeclaration(kind: string, fn: TGeneratorFn<ParserRuleContext>): void {
-    this.declarations.set(kind, fn);
+  registerDeclaration<T extends ParserRuleContext>(
+    kind: string,
+    fn: TGeneratorFn<T>,
+  ): void {
+    this.declarations.set(kind, fn as TGeneratorFn<ParserRuleContext>);
   }
 
   /**
@@ -71,8 +74,11 @@ export default class GeneratorRegistry {
    * @param kind - Statement kind (e.g., 'if', 'while', 'assignment')
    * @param fn - Generator function
    */
-  registerStatement(kind: string, fn: TGeneratorFn<ParserRuleContext>): void {
-    this.statements.set(kind, fn);
+  registerStatement<T extends ParserRuleContext>(
+    kind: string,
+    fn: TGeneratorFn<T>,
+  ): void {
+    this.statements.set(kind, fn as TGeneratorFn<ParserRuleContext>);
   }
 
   /**
@@ -80,8 +86,11 @@ export default class GeneratorRegistry {
    * @param kind - Expression kind (e.g., 'ternary', 'binary', 'call')
    * @param fn - Generator function
    */
-  registerExpression(kind: string, fn: TGeneratorFn<ParserRuleContext>): void {
-    this.expressions.set(kind, fn);
+  registerExpression<T extends ParserRuleContext>(
+    kind: string,
+    fn: TGeneratorFn<T>,
+  ): void {
+    this.expressions.set(kind, fn as TGeneratorFn<ParserRuleContext>);
   }
 
   // =========================================================================

@@ -7,7 +7,10 @@
  * - C function calls with pass-by-value semantics
  * - Const-to-non-const validation (ADR-013)
  */
-import { ArgumentListContext } from "../../../parser/grammar/CNextParser";
+import {
+  ArgumentListContext,
+  ExpressionContext,
+} from "../../../parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
@@ -94,7 +97,7 @@ const generateFunctionCall = (
  */
 const generateSafeDivMod = (
   funcName: string,
-  argExprs: ReturnType<ArgumentListContext["expression"]>,
+  argExprs: ExpressionContext[],
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
@@ -157,7 +160,7 @@ const generateSafeDivMod = (
  */
 const validateConstToNonConst = (
   funcName: string,
-  argExprs: ReturnType<ArgumentListContext["expression"]>,
+  argExprs: ExpressionContext[],
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): void => {
