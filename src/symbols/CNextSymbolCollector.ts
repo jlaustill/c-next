@@ -77,27 +77,38 @@ class CNextSymbolCollector {
 
     // Collect scope members
     for (const member of scopeDecl.scopeMember()) {
+      // Issue #218: Check visibility modifier - default is "private"
+      const visibilityMod = member.visibilityModifier();
+      const visibility = visibilityMod?.getText() ?? "private";
+      const isPublic = visibility === "public";
+
       if (member.variableDeclaration()) {
-        this.collectVariable(member.variableDeclaration()!, name);
+        this.collectVariable(member.variableDeclaration()!, name, isPublic);
       }
       if (member.functionDeclaration()) {
-        this.collectFunction(member.functionDeclaration()!, name);
+        this.collectFunction(member.functionDeclaration()!, name, isPublic);
       }
       // ADR-034: Handle bitmap declarations in scopes
       if (member.bitmapDeclaration()) {
-        this.collectBitmap(member.bitmapDeclaration()!, name);
+        this.collectBitmap(member.bitmapDeclaration()!, name, isPublic);
       }
       // Handle register declarations in scopes
       if (member.registerDeclaration()) {
-        this.collectScopedRegister(member.registerDeclaration()!, name);
+        this.collectScopedRegister(
+          member.registerDeclaration()!,
+          name,
+          isPublic,
+        );
       }
     }
   }
 
   // Collect scoped register declarations (e.g., scope.register -> Scope_Register)
+  // Issue #218: isPublic parameter controls header export
   private collectScopedRegister(
     reg: Parser.RegisterDeclarationContext,
     scopeName: string,
+    isPublic: boolean = true,
   ): void {
     const regName = reg.IDENTIFIER().getText();
     const fullName = `${scopeName}_${regName}`;
@@ -109,7 +120,7 @@ class CNextSymbolCollector {
       sourceFile: this.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      isExported: isPublic,
       parent: scopeName,
     });
 
@@ -127,7 +138,7 @@ class CNextSymbolCollector {
         sourceFile: this.sourceFile,
         sourceLine: memberLine,
         sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        isExported: isPublic,
         parent: fullName,
         accessModifier: accessMod,
       });
@@ -183,9 +194,11 @@ class CNextSymbolCollector {
   }
 
   // ADR-034: Collect bitmap declarations
+  // Issue #218: isPublic parameter controls header export
   private collectBitmap(
     bitmap: Parser.BitmapDeclarationContext,
     parent: string | undefined,
+    isPublic: boolean = true,
   ): void {
     const name = bitmap.IDENTIFIER().getText();
     const line = bitmap.start?.line ?? 0;
@@ -200,7 +213,7 @@ class CNextSymbolCollector {
       sourceFile: this.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      isExported: isPublic,
       parent,
     });
 
@@ -230,7 +243,7 @@ class CNextSymbolCollector {
         sourceFile: this.sourceFile,
         sourceLine: fieldLine,
         sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        isExported: isPublic,
         parent: fullName,
         signature: `${bitRange} (${width} bit${width > 1 ? "s" : ""})`,
       });
@@ -239,9 +252,11 @@ class CNextSymbolCollector {
     }
   }
 
+  // Issue #218: isPublic parameter controls header export
   private collectFunction(
     func: Parser.FunctionDeclarationContext,
     parent: string | undefined,
+    isPublic: boolean = true,
   ): void {
     const name = func.IDENTIFIER().getText();
     const line = func.start?.line ?? 0;
@@ -278,7 +293,7 @@ class CNextSymbolCollector {
       sourceFile: this.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      isExported: isPublic,
       parent,
       signature,
       parameters,
@@ -306,9 +321,11 @@ class CNextSymbolCollector {
     }
   }
 
+  // Issue #218: isPublic parameter controls header export
   private collectVariable(
     varDecl: Parser.VariableDeclarationContext,
     parent: string | undefined,
+    isPublic: boolean = true,
   ): void {
     const name = varDecl.IDENTIFIER().getText();
     const line = varDecl.start?.line ?? 0;
@@ -335,7 +352,7 @@ class CNextSymbolCollector {
       sourceFile: this.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      isExported: isPublic,
       parent,
       size,
     });
