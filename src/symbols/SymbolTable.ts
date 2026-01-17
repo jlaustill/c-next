@@ -5,6 +5,7 @@
 
 import ISymbol from "../types/ISymbol";
 import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
 import IConflict from "./types/IConflict";
 import IStructFieldInfo from "./types/IStructFieldInfo";
 
@@ -370,6 +371,33 @@ class SymbolTable {
       return null;
     }
 
+    // Issue #221: Filter out function parameters from conflict detection
+    // Function parameters have a parent (their containing function) but their name
+    // is NOT qualified with the parent prefix (unlike scope-level variables like Math_counter).
+    // Parameters with the same name in different functions are not conflicts.
+    const globalDefinitions = definitions.filter((def) => {
+      // If no parent, it's a global symbol - keep it
+      if (!def.parent) return true;
+
+      // Variables with a parent need special handling
+      if (def.kind === ESymbolKind.Variable) {
+        // Scope-level variables have qualified names (e.g., "Math_counter" with parent "Math")
+        // Function parameters have unqualified names (e.g., "x" with parent "Math_add")
+        // If the name starts with parent_, it's a scope-level variable - keep it
+        // If not, it's a function parameter - filter it out
+        const isQualifiedName = def.name.startsWith(def.parent + "_");
+        return isQualifiedName;
+      }
+
+      // Non-variable symbols with parents (functions, enums, etc.) are kept
+      return true;
+    });
+
+    if (globalDefinitions.length <= 1) {
+      // After filtering parameters, 0 or 1 definitions = no conflict
+      return null;
+    }
+
     // Check for C++ function overloads (different signatures are OK)
     const cppFunctions = definitions.filter(
       (s) => s.sourceLanguage === ESourceLanguage.Cpp && s.signature,
@@ -384,28 +412,29 @@ class SymbolTable {
     }
 
     // Check for cross-language conflict (C-Next vs C or C++)
-    const cnextDefs = definitions.filter(
+    // Issue #221: Use globalDefinitions for C-Next to exclude function parameters
+    const cnextDefs = globalDefinitions.filter(
       (s) => s.sourceLanguage === ESourceLanguage.CNext,
     );
-    const cDefs = definitions.filter(
+    const cDefs = globalDefinitions.filter(
       (s) => s.sourceLanguage === ESourceLanguage.C,
     );
-    const cppDefs = definitions.filter(
+    const cppDefs = globalDefinitions.filter(
       (s) => s.sourceLanguage === ESourceLanguage.Cpp,
     );
 
     if (cnextDefs.length > 0 && (cDefs.length > 0 || cppDefs.length > 0)) {
       // C-Next + C/C++ conflict = ERROR
-      const locations = definitions.map(
+      const locations = globalDefinitions.map(
         (s) =>
           `${s.sourceLanguage.toUpperCase()} (${s.sourceFile}:${s.sourceLine})`,
       );
 
       return {
-        symbolName: definitions[0].name,
-        definitions,
+        symbolName: globalDefinitions[0].name,
+        definitions: globalDefinitions,
         severity: "error",
-        message: `Symbol conflict: '${definitions[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\nRename the C-Next symbol to resolve.`,
+        message: `Symbol conflict: '${globalDefinitions[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\nRename the C-Next symbol to resolve.`,
       };
     }
 
@@ -413,10 +442,10 @@ class SymbolTable {
     if (cnextDefs.length > 1) {
       const locations = cnextDefs.map((s) => `${s.sourceFile}:${s.sourceLine}`);
       return {
-        symbolName: definitions[0].name,
+        symbolName: cnextDefs[0].name,
         definitions: cnextDefs,
         severity: "error",
-        message: `Symbol conflict: '${definitions[0].name}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
+        message: `Symbol conflict: '${cnextDefs[0].name}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
       };
     }
 

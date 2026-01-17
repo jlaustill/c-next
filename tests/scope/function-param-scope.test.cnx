@@ -1,0 +1,33 @@
+// Test: Function parameters should be scoped to their function
+// Issue #221: Parameters were being treated as global symbols
+//
+// Multiple functions can have parameters with the same name because
+// parameters are local to their function scope.
+
+scope Math {
+    // Both functions have 'x' and 'y' parameters - this should be valid
+    public f32 add(f32 x, f32 y) {
+        return x + y;
+    }
+
+    public f32 multiply(f32 x, f32 y) {
+        return x * y;
+    }
+
+    // More functions with common parameter names
+    public f32 subtract(f32 x, f32 y) {
+        return x - y;
+    }
+}
+
+// Global function also using common parameter names
+f32 divide(f32 x, f32 y) {
+    return x / y;
+}
+
+void main() {
+    f32 result <- Math_add(1.0, 2.0);
+    result <- Math_multiply(3.0, 4.0);
+    result <- Math_subtract(5.0, 2.0);
+    result <- divide(10.0, 2.0);
+}
