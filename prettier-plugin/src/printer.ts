@@ -164,6 +164,9 @@ function printProgram(path: AstPath, print: PrintFn): Doc {
   const node = path.getValue() as AST.Program;
   const parts: Doc[] = [];
 
+  // Note: Comments are handled by Prettier's comment attachment system
+  // We tell Prettier all comments are "block comments" so they get separate lines
+
   // Print includes
   if (node.includes.length > 0) {
     parts.push(join(hardline, path.map(print, "includes")));

@@ -73,6 +73,10 @@ const defaultOptions = {
   useTabs: false,
 };
 
+// Named exports for CommonJS compatibility
+export { languages, parsers, printers, options, defaultOptions };
+
+// Default export for ESM
 export default {
   languages,
   parsers,
