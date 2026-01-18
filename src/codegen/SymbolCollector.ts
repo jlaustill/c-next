@@ -174,7 +174,9 @@ class SymbolCollector {
       return null;
     }
 
-    return usedIn.values().next().value;
+    // Use nullish coalescing to convert undefined to null for type safety
+    // (we know value exists since size === 1, but TS can't infer this)
+    return usedIn.values().next().value ?? null;
   }
 
   /**
