@@ -1,0 +1,48 @@
+// test-execution
+// Tests: Issue #234 - Slice assignment with const variable offsets
+// Validates that const variables are recognized as compile-time constants
+// and can be used for slice offset and length parameters.
+
+const u32 OFFSET_MAGIC <- 0;
+const u32 OFFSET_VERSION <- 4;
+const u32 OFFSET_FLAGS <- 6;
+const u8 LEN_MAGIC <- 4;
+const u8 LEN_VERSION <- 2;
+const u8 LEN_FLAGS <- 1;
+
+u32 main() {
+    u8 buffer[64];
+
+    // Test 1: Const variable for offset
+    u32 magic <- 0x12345678;
+    buffer[OFFSET_MAGIC, 4] <- magic;
+
+    if (buffer[0] != 0x78) return 1;
+    if (buffer[1] != 0x56) return 2;
+    if (buffer[2] != 0x34) return 3;
+    if (buffer[3] != 0x12) return 4;
+
+    // Test 2: Const variable for length
+    u16 version <- 0xABCD;
+    buffer[4, LEN_VERSION] <- version;
+
+    if (buffer[4] != 0xCD) return 5;
+    if (buffer[5] != 0xAB) return 6;
+
+    // Test 3: Both offset and length as const variables
+    u8 flags <- 0xFF;
+    buffer[OFFSET_FLAGS, LEN_FLAGS] <- flags;
+
+    if (buffer[6] != 0xFF) return 7;
+
+    // Test 4: Const expression (const + const)
+    u32 value <- 0x11223344;
+    buffer[OFFSET_VERSION + LEN_VERSION, 4] <- value;
+
+    if (buffer[6] != 0x44) return 8;
+    if (buffer[7] != 0x33) return 9;
+    if (buffer[8] != 0x22) return 10;
+    if (buffer[9] != 0x11) return 11;
+
+    return 0;
+}

@@ -1,0 +1,16 @@
+// test-error
+// Tests: Issue #234 - Slice assignment on outer dimension is invalid
+// For u8 board[4][8], board[offset, length] is NOT valid because
+// board[i] returns u8[8], not u8. Slice assignment is only valid on
+// the innermost (leaf) array dimension containing primitive types.
+
+u32 main() {
+    u8 board[4][8];
+
+    // INVALID: Trying to slice the outer dimension
+    // board[0] is u8[8], not a primitive type that can be sliced into a buffer
+    u32 value <- 0x12345678;
+    board[0, 4] <- value;
+
+    return 0;
+}

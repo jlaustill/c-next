@@ -13,14 +13,14 @@
 int main(void) {
     uint8_t arr8[32] = {0};
     uint32_t value1 = 0x11223344;
-    if (0 + 4 <= sizeof(arr8)) { memcpy(&arr8[0], &value1, 4); }
+    memcpy(&arr8[0], &value1, 4);
     if (arr8[0] != 0x44) return 1;
     if (arr8[1] != 0x33) return 2;
     if (arr8[2] != 0x22) return 3;
     if (arr8[3] != 0x11) return 4;
     uint16_t arr16[16] = {0};
     uint64_t value2 = 0x0102030405060708;
-    if (0 + 8 <= sizeof(arr16)) { memcpy(&arr16[0], &value2, 8); }
+    memcpy(&arr16[0], &value2, 8);
     uint8_t byte0 = arr16[0];
     uint8_t byte1 = arr16[0] >> 8;
     uint8_t byte2 = arr16[1];
@@ -31,15 +31,15 @@ int main(void) {
     if (byte3 != 0x05) return 8;
     uint32_t arr32[16] = {0};
     uint32_t value3 = 0xAABBCCDD;
-    if (0 + 4 <= sizeof(arr32)) { memcpy(&arr32[0], &value3, 4); }
+    memcpy(&arr32[0], &value3, 4);
     if (arr32[0] != 0xAABBCCDD) return 9;
     uint64_t arr64[8] = {0};
     uint64_t value4 = 0x123456789ABCDEF0;
-    if (0 + 8 <= sizeof(arr64)) { memcpy(&arr64[0], &value4, 8); }
+    memcpy(&arr64[0], &value4, 8);
     if (arr64[0] != 0x123456789ABCDEF0) return 10;
     uint8_t buffer[64] = {0};
     uint32_t value5 = 0x55667788;
-    if (0 + 4 <= sizeof(buffer)) { memcpy(&buffer[0], &value5, 4); }
+    memcpy(&buffer[0], &value5, 4);
     if (buffer[0] != 0x88) return 11;
     if (buffer[1] != 0x77) return 12;
     if (buffer[2] != 0x66) return 13;
@@ -48,9 +48,9 @@ int main(void) {
     uint32_t val1 = 0x11111111;
     uint32_t val2 = 0x22222222;
     uint32_t val3 = 0x33333333;
-    if (0 + 4 <= sizeof(multiArr)) { memcpy(&multiArr[0], &val1, 4); }
-    if (4 + 4 <= sizeof(multiArr)) { memcpy(&multiArr[4], &val2, 4); }
-    if (8 + 4 <= sizeof(multiArr)) { memcpy(&multiArr[8], &val3, 4); }
+    memcpy(&multiArr[0], &val1, 4);
+    memcpy(&multiArr[4], &val2, 4);
+    memcpy(&multiArr[8], &val3, 4);
     if (multiArr[0] != 0x11) return 15;
     if (multiArr[4] != 0x22) return 16;
     if (multiArr[8] != 0x33) return 17;

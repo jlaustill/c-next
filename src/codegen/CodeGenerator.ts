@@ -5617,9 +5617,43 @@ export default class CodeGenerator implements IOrchestrator {
       if (isActualArray || isISRType) {
         // Check for slice assignment: array[offset, length] <- value
         if (exprs.length === 2) {
-          // Slice assignment - generate memcpy with bounds checking
-          const offset = this._generateExpression(exprs[0]);
-          const length = this._generateExpression(exprs[1]);
+          // Issue #234: Slice assignment requires compile-time constant offset and length
+          // to ensure bounds safety at compile time, not runtime
+          const offsetValue = this._tryEvaluateConstant(exprs[0]);
+          const lengthValue = this._tryEvaluateConstant(exprs[1]);
+
+          const line = exprs[0].start?.line ?? arrayAccessCtx.start?.line ?? 0;
+
+          // Issue #234: Reject slice assignment on multi-dimensional arrays
+          // Slice assignment is only valid on 1D arrays (the innermost dimension)
+          // For multi-dimensional arrays like board[4][8], use board[row][offset, length]
+          // (Note: grammar currently doesn't support this - tracked as future work)
+          if (
+            typeInfo?.arrayDimensions &&
+            typeInfo.arrayDimensions.length > 1
+          ) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment is only valid on one-dimensional arrays. ` +
+                `'${name}' has ${typeInfo.arrayDimensions.length} dimensions. ` +
+                `Access the innermost dimension first (e.g., ${name}[index][offset, length]).`,
+            );
+          }
+
+          // Validate offset is compile-time constant
+          if (offsetValue === undefined) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment offset must be a compile-time constant. ` +
+                `Runtime offsets are not allowed to ensure bounds safety.`,
+            );
+          }
+
+          // Validate length is compile-time constant
+          if (lengthValue === undefined) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment length must be a compile-time constant. ` +
+                `Runtime lengths are not allowed to ensure bounds safety.`,
+            );
+          }
 
           // Compound operators not supported for slice assignment
           if (cOp !== "=") {
@@ -5628,22 +5662,50 @@ export default class CodeGenerator implements IOrchestrator {
             );
           }
 
-          // Set flag to include string.h for memcpy
-          this.needsString = true;
-
-          // Generate bounds-checked memcpy
-          // if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &value, length); }
-          // Issue #213: For string parameters, use capacity for bounds checking
-          // since sizeof(char*) gives pointer size, not buffer size
+          // Determine buffer capacity for compile-time bounds check
+          let capacity: number;
           if (
             typeInfo?.isString &&
             typeInfo.stringCapacity &&
             !typeInfo.isArray
           ) {
-            const capacity = typeInfo.stringCapacity + 1;
-            return `if (${offset} + ${length} <= ${capacity}) { memcpy(&${name}[${offset}], &${value}, ${length}); }`;
+            capacity = typeInfo.stringCapacity + 1;
+          } else if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions[0]) {
+            capacity = typeInfo.arrayDimensions[0];
+          } else {
+            // Can't determine capacity at compile time - this shouldn't happen
+            // for properly tracked arrays, but fall back to error
+            throw new Error(
+              `${line}:0 Error: Cannot determine buffer size for '${name}' at compile time.`,
+            );
           }
-          return `if (${offset} + ${length} <= sizeof(${name})) { memcpy(&${name}[${offset}], &${value}, ${length}); }`;
+
+          // Issue #234: Compile-time bounds validation
+          if (offsetValue + lengthValue > capacity) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment out of bounds: ` +
+                `offset(${offsetValue}) + length(${lengthValue}) = ${offsetValue + lengthValue} ` +
+                `exceeds buffer capacity(${capacity}) for '${name}'.`,
+            );
+          }
+
+          if (offsetValue < 0) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment offset cannot be negative: ${offsetValue}`,
+            );
+          }
+
+          if (lengthValue <= 0) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment length must be positive: ${lengthValue}`,
+            );
+          }
+
+          // Set flag to include string.h for memcpy
+          this.needsString = true;
+
+          // Generate memcpy without runtime bounds check (already validated at compile time)
+          return `memcpy(&${name}[${offsetValue}], &${value}, ${lengthValue});`;
         }
 
         // Normal array element assignment (single index)
