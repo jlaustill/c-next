@@ -1,6 +1,10 @@
 /**
  * Helper function generators for overflow-safe arithmetic and safe division.
  * Extracted from CodeGenerator.ts as part of ADR-053 A5.
+ *
+ * Portability note: Uses __builtin_add_overflow, __builtin_sub_overflow, and
+ * __builtin_mul_overflow intrinsics (GCC 5+, Clang 3.4+). C-Next targets embedded
+ * systems using arm-none-eabi-gcc, so these are available. MSVC is not supported.
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import WIDER_TYPE_MAP from "../../types/WIDER_TYPE_MAP";
@@ -33,10 +37,13 @@ function generateSingleHelper(
   switch (operation) {
     case "add":
       if (isUnsigned) {
-        // Unsigned addition: use wider type for b to prevent truncation (Issue #94)
+        // Issue #231: Hybrid approach - check wide operand first, then use builtin
+        // Issue #94: Wide operand check prevents truncation issues
         return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
-    if (b > ${maxValue} - a) return ${maxValue};
-    return a + (${cType})b;
+    if (b > (${widerType})(${maxValue} - a)) return ${maxValue};
+    ${cType} result;
+    if (__builtin_add_overflow(a, (${cType})b, &result)) return ${maxValue};
+    return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed addition: compute in wider type, then clamp (Issue #94)
@@ -58,11 +65,14 @@ function generateSingleHelper(
 
     case "sub":
       if (isUnsigned) {
-        // Unsigned subtraction: use wider type for b to prevent truncation (Issue #94)
-        // Cast a to wider type for comparison to handle b > type max
+        // Issue #231: Hybrid approach - check wide operand first, then use builtin
+        // Issue #94: Wide operand check prevents truncation issues
+        // Use > (not >=) since b == a produces valid result 0 via the builtin path
         return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
-    if (b >= (${widerType})a) return 0;
-    return a - (${cType})b;
+    if (b > (${widerType})a) return 0;
+    ${cType} result;
+    if (__builtin_sub_overflow(a, (${cType})b, &result)) return 0;
+    return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed subtraction: compute in wider type, then clamp (Issue #94)
@@ -83,10 +93,13 @@ function generateSingleHelper(
 
     case "mul":
       if (isUnsigned) {
-        // Unsigned multiplication: use wider type for b to prevent truncation (Issue #94)
+        // Issue #231: Hybrid approach - check wide operand first, then use builtin
+        // Issue #94: Wide operand check prevents truncation issues
         return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
     if (b != 0 && a > ${maxValue} / b) return ${maxValue};
-    return a * (${cType})b;
+    ${cType} result;
+    if (__builtin_mul_overflow(a, (${cType})b, &result)) return ${maxValue};
+    return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed multiplication: compute in wider type, then clamp (Issue #94)
@@ -144,13 +157,19 @@ function generateDebugHelper(
   switch (operation) {
     case "add":
       if (isUnsigned) {
-        // Use wider type for b to prevent truncation (Issue #94)
+        // Issue #231: Hybrid approach - check wide operand first, then use builtin
+        // Issue #94: Wide operand check prevents truncation issues
         return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
-    if (b > ${maxValue} - a) {
+    if (b > (${widerType})(${maxValue} - a)) {
         fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
         abort();
     }
-    return a + (${cType})b;
+    ${cType} result;
+    if (__builtin_add_overflow(a, (${cType})b, &result)) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed addition: compute in wider type, check bounds (Issue #94)
@@ -175,13 +194,20 @@ function generateDebugHelper(
 
     case "sub":
       if (isUnsigned) {
-        // Use wider type for b to prevent truncation (Issue #94)
+        // Issue #231: Hybrid approach - check wide operand first, then use builtin
+        // Issue #94: Wide operand check prevents truncation issues
+        // Use > (not >=) since b == a produces valid result 0 via the builtin path
         return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
-    if (b >= (${widerType})a) {
+    if (b > (${widerType})a) {
         fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
         abort();
     }
-    return a - (${cType})b;
+    ${cType} result;
+    if (__builtin_sub_overflow(a, (${cType})b, &result)) {
+        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed subtraction: compute in wider type, check bounds (Issue #94)
@@ -206,13 +232,19 @@ function generateDebugHelper(
 
     case "mul":
       if (isUnsigned) {
-        // Use wider type for b to prevent truncation (Issue #94)
+        // Issue #231: Hybrid approach - check wide operand first, then use builtin
+        // Issue #94: Wide operand check prevents truncation issues
         return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
     if (b != 0 && a > ${maxValue} / b) {
         fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
         abort();
     }
-    return a * (${cType})b;
+    ${cType} result;
+    if (__builtin_mul_overflow(a, (${cType})b, &result)) {
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        abort();
+    }
+    return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed multiplication: compute in wider type, check bounds (Issue #94)

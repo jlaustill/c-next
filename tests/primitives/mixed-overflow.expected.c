@@ -9,13 +9,17 @@
 #include <limits.h>
 
 static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
-    if (b > UINT16_MAX - a) return UINT16_MAX;
-    return a + (uint16_t)b;
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    uint16_t result;
+    if (__builtin_add_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
+    return result;
 }
 
 static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
-    return a * (uint32_t)b;
+    uint32_t result;
+    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
 }
 
 // Test: Mixed overflow behaviors in same file
