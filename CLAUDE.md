@@ -21,6 +21,41 @@
 - Legacy errors in untouched files can be ignored (fix as you go)
 - Pre-commit hooks use `lint-staged` to only check files you're committing
 
+### TypeScript Coding Standards
+
+**Default exports only** - The project uses oxlint's `no-named-export` rule.
+
+**Static classes for utilities** - Use static classes (not object literals) for modules with multiple related functions:
+
+```typescript
+// ✅ Correct
+class TestUtils {
+  static normalize(str: string): string { ... }
+  static validate(file: string): IResult { ... }
+}
+export default TestUtils;
+```
+
+**No destructuring** - Always use the class name prefix for self-documenting code:
+
+```typescript
+// ✅ Correct - self-documenting
+TestUtils.normalize(actualErrors) === TestUtils.normalize(expectedErrors);
+
+// ❌ Wrong - obscures origin
+const { normalize } = TestUtils;
+normalize(actualErrors) === normalize(expectedErrors);
+```
+
+**Shared types in `/types` directories** - One interface per file with default export:
+
+```
+src/pipeline/types/IFileResult.ts
+scripts/types/ITools.ts
+```
+
+See `CONTRIBUTING.md` for complete TypeScript coding standards.
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**

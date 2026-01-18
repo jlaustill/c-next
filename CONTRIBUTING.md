@@ -162,6 +162,90 @@ npm run eslint:check
 - **Zero ESLint errors**: In files you touch (fix as you go)
 - **Formatting**: Use Prettier (automatic with `prettier:fix`)
 
+### TypeScript Coding Standards
+
+#### Default Exports Only
+
+The project uses oxlint's `no-named-export` rule. All modules must use default exports:
+
+```typescript
+// ✅ Correct - default export
+class TestUtils {
+  static normalize(str: string): string { ... }
+}
+export default TestUtils;
+
+// ❌ Wrong - named exports
+export function normalize(str: string): string { ... }
+export const helper = () => { ... };
+```
+
+#### Static Classes for Utility Modules
+
+Use static classes (not object literals) for utility modules with multiple related functions:
+
+```typescript
+// ✅ Correct - static class
+class TestUtils {
+  static normalize(str: string): string { ... }
+  static validateCompilation(file: string): IResult { ... }
+}
+
+// ❌ Wrong - object literal with composed functions
+function normalize(str: string): string { ... }
+function validateCompilation(file: string): IResult { ... }
+const testUtils = { normalize, validateCompilation };
+```
+
+**Why static classes?**
+
+- Methods reference siblings via `ClassName.method()` which survives destructuring
+- Clear namespace and IDE autocomplete
+- Self-documenting code
+
+#### No Destructuring of Utility Classes
+
+Always use the class name prefix for self-documenting code:
+
+```typescript
+// ✅ Correct - self-documenting
+import TestUtils from "./test-utils";
+if (TestUtils.normalize(a) === TestUtils.normalize(b)) { ... }
+const result = TestUtils.validateCompilation(file, tools, rootDir);
+
+// ❌ Wrong - obscures origin
+import TestUtils from "./test-utils";
+const { normalize, validateCompilation } = TestUtils;
+if (normalize(a) === normalize(b)) { ... }  // Where does normalize come from?
+```
+
+#### Shared Types in `/types` Directory
+
+Interfaces shared across multiple files go in a dedicated `types/` directory with one interface per file:
+
+```
+scripts/
+├── test-utils.ts
+├── test.ts
+├── test-worker.ts
+└── types/
+    ├── ITools.ts          # One interface per file
+    ├── ITestResult.ts
+    └── IValidationResult.ts
+```
+
+```typescript
+// types/ITools.ts
+interface ITools {
+  gcc: boolean;
+  cppcheck: boolean;
+}
+export default ITools;
+
+// Consumer
+import ITools from "./types/ITools";
+```
+
 ### Code Verification
 
 ```bash
