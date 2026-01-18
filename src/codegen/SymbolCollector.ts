@@ -174,9 +174,8 @@ class SymbolCollector {
       return null;
     }
 
-    // Use nullish coalescing to convert undefined to null for type safety
-    // (we know value exists since size === 1, but TS can't infer this)
-    return usedIn.values().next().value ?? null;
+    // Extract the single element from the Set (we know it exists since size === 1)
+    return [...usedIn][0];
   }
 
   /**
@@ -480,7 +479,9 @@ class SymbolCollector {
       }
     }
 
-    // Recursively check all children using .children property
+    // Recursively check all children using .children property.
+    // Type assertion needed because antlr4ng's ParserRuleContext doesn't expose
+    // .children in its public type definitions, but it exists at runtime.
     const children = (node as { children?: unknown[] }).children;
     if (children) {
       for (const child of children) {
