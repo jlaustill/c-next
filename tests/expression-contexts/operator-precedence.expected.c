@@ -27,17 +27,17 @@ int main(void) {
     uint32_t d = 40;
     uint32_t result = a + b + c + d;
     if (result != 100) return 1;
-    result = 100 - 30 - 20 - 10;
+    result = 40;
     if (result != 40) return 2;
-    result = 100 - 60 - 30;
+    result = 10;
     if (result != 10) return 3;
-    result = 2 * 3 * 4 * 5;
+    result = 120;
     if (result != 120) return 4;
-    result = 120 / 2 / 3 / 4;
+    result = 5;
     if (result != 5) return 5;
-    result = 100 / 10 / 2;
+    result = 5;
     if (result != 5) return 6;
-    result = 100 % 30 % 7;
+    result = 3;
     if (result != 3) return 7;
     uint32_t x = 0xFF;
     uint32_t y = 0x0F;
@@ -78,9 +78,9 @@ int main(void) {
     if (orResult != true) return 19;
     orResult = f1 || f2 || f3 || f4;
     if (orResult != false) return 20;
-    result = (10 + 20) * 3;
+    result = (30) * 3;
     if (result != 90) return 21;
-    result = ((100 - 50) * 2);
+    result = ((50) * 2);
     if (result != 100) return 22;
     return 0;
 }

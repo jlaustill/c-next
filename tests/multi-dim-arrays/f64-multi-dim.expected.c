@@ -60,7 +60,7 @@ int main(void) {
     if (sum != 198.0) return 21;
     matrix2d[2][4] = -999999.999999;
     if (matrix2d[2][4] != -999999.999999) return 22;
-    matrix2d[4 - 1][8 - 1] = 42.123456789;
+    matrix2d[3][7] = 42.123456789;
     if (matrix2d[3][7] != 42.123456789) return 23;
     double testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {

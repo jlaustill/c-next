@@ -17,9 +17,9 @@ int main(void) {
     Config config = {0};
     config.magic = 0x12345678;
     config.version = 0x42;
-    uint32_t length = 32 / 8;
+    uint32_t length = 4;
     if (length != 4) return 1;
-    length = 8 / 8;
+    length = 1;
     if (length != 1) return 2;
     uint32_t bits = 32;
     if (bits != 32) return 3;

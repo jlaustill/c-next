@@ -70,7 +70,7 @@ int main(void) {
     if (sum != 144) return 21;
     matrix2d[2][4] = -128;
     if (matrix2d[2][4] != -128) return 22;
-    matrix2d[4 - 1][8 - 1] = -1;
+    matrix2d[3][7] = -1;
     if (matrix2d[3][7] != -1) return 23;
     int8_t testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {

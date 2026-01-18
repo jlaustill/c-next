@@ -40,9 +40,9 @@ int main(void) {
     if (16 != 16) return 5;
     if (8 != 8) return 6;
     if (64 != 64) return 7;
-    uint32_t bytes = 32 / 8;
+    uint32_t bytes = 4;
     if (bytes != 4) return 8;
-    uint32_t total = 32 + 8;
+    uint32_t total = 40;
     if (total != 40) return 9;
     return 0;
 }

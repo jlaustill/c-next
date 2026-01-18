@@ -76,9 +76,9 @@ int main(void) {
     if (mix1 != 170) return 32;
     uint16_t mix2 = 0B1010101010101010;
     if (mix2 != 43690) return 33;
-    uint8_t arith1 = 10 + 20;
+    uint8_t arith1 = 30;
     if (arith1 != 30) return 34;
-    uint16_t arith2 = 100 * 10;
+    uint16_t arith2 = 1000;
     if (arith2 != 1000) return 35;
     return 0;
 }

@@ -33,7 +33,7 @@ int main(void) {
     if (32 != 32) return 4;
     if (16 != 16) return 5;
     if (8 != 8) return 6;
-    uint32_t bytes = 32 / 8;
+    uint32_t bytes = 4;
     if (bytes != 4) return 7;
     return 0;
 }

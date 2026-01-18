@@ -65,7 +65,7 @@ int main(void) {
     if (sum != 276) return 21;
     matrix2d[2][4] = 255;
     if (matrix2d[2][4] != 255) return 22;
-    matrix2d[4 - 1][8 - 1] = 111;
+    matrix2d[3][7] = 111;
     if (matrix2d[3][7] != 111) return 23;
     uint8_t testArray[3][2] = {0};
     for (uint32_t ti = 0; ti < 3; ti += 1) {

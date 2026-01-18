@@ -38,7 +38,7 @@ int main(void) {
     if (64 != 64) {
         return 4;
     }
-    uint8_t magicBytes = 32 / 8;
+    uint8_t magicBytes = 4;
     if (magicBytes != 4) {
         return 5;
     }
