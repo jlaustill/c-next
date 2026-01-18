@@ -13,7 +13,7 @@
 int main(void) {
     uint8_t buffer[256] = {0};
     uint64_t maxU64 = 0xFFFFFFFFFFFFFFFF;
-    if (0 + 8 <= sizeof(buffer)) { memcpy(&buffer[0], &maxU64, 8); }
+    memcpy(&buffer[0], &maxU64, 8);
     if (buffer[0] != 0xFF) return 1;
     if (buffer[1] != 0xFF) return 2;
     if (buffer[2] != 0xFF) return 3;
@@ -23,7 +23,7 @@ int main(void) {
     if (buffer[6] != 0xFF) return 7;
     if (buffer[7] != 0xFF) return 8;
     uint32_t maxU32 = 0xFFFFFFFF;
-    if (10 + 4 <= sizeof(buffer)) { memcpy(&buffer[10], &maxU32, 4); }
+    memcpy(&buffer[10], &maxU32, 4);
     if (buffer[10] != 0xFF) return 9;
     if (buffer[11] != 0xFF) return 10;
     if (buffer[12] != 0xFF) return 11;
@@ -31,9 +31,9 @@ int main(void) {
     uint64_t val1 = 0x8000000000000000;
     uint64_t val2 = 0x7FFFFFFFFFFFFFFF;
     uint64_t val3 = 0x0000000000000001;
-    if (20 + 8 <= sizeof(buffer)) { memcpy(&buffer[20], &val1, 8); }
-    if (28 + 8 <= sizeof(buffer)) { memcpy(&buffer[28], &val2, 8); }
-    if (36 + 8 <= sizeof(buffer)) { memcpy(&buffer[36], &val3, 8); }
+    memcpy(&buffer[20], &val1, 8);
+    memcpy(&buffer[28], &val2, 8);
+    memcpy(&buffer[36], &val3, 8);
     if (buffer[20] != 0x00) return 13;
     if (buffer[27] != 0x80) return 14;
     if (buffer[28] != 0xFF) return 15;

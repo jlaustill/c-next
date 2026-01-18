@@ -1,7 +1,7 @@
 // test-execution
 // Tests: Slice assignment for struct field serialization
-// Validates copying struct fields into buffers (real-world use case)
-// Recreates the pattern from crc32.cnx for binary protocol implementation
+// Validates copying struct fields into buffers with compile-time offsets
+// Layout: [magic:4][version:2][flags:1][timestamp:8] = 15 bytes total
 
 struct Config {
     u32 magic;
@@ -12,64 +12,43 @@ struct Config {
 
 u32 main() {
     u8 buffer[256];
-    u32 offset <- 0;
-    u8 length <- 0;
 
     // Create a config struct
     Config config;
-    config.magic <- 0x43534E58;      // "CNXT" magic number
-    config.version <- 0x0101;         // Version 1.1
-    config.flags <- 0x0F;             // Some flags
+    config.magic <- 0x43534E58;
+    config.version <- 0x0101;
+    config.flags <- 0x0F;
     config.timestamp <- 0x123456789ABCDEF0;
 
-   
-// Test 1: Serialize magic field (4 bytes)
-    length <- 4;
-    buffer[offset, length] <- config.magic;
-    offset +<- length;
+    // Serialize with compile-time constant offsets
+    // Layout: magic(4) + version(2) + flags(1) + timestamp(8) = 15 bytes
+    buffer[0, 4] <- config.magic;
+    buffer[4, 2] <- config.version;
+    buffer[6, 1] <- config.flags;
+    buffer[7, 8] <- config.timestamp;
 
+    // Validate magic (bytes 0-3)
     if (buffer[0] != 0x58) return 1;
     if (buffer[1] != 0x4E) return 2;
     if (buffer[2] != 0x53) return 3;
     if (buffer[3] != 0x43) return 4;
-    if (offset != 4) return 5;
 
-   
-// Test 2: Serialize version field (2 bytes)
-    length <- 2;
-    buffer[offset, length] <- config.version;
-    offset +<- length;
+    // Validate version (bytes 4-5)
+    if (buffer[4] != 0x01) return 5;
+    if (buffer[5] != 0x01) return 6;
 
-    if (buffer[4] != 0x01) return 6;
-    if (buffer[5] != 0x01) return 7;
-    if (offset != 6) return 8;
+    // Validate flags (byte 6)
+    if (buffer[6] != 0x0F) return 7;
 
-   
-// Test 3: Serialize flags field (1 byte)
-    length <- 1;
-    buffer[offset, length] <- config.flags;
-    offset +<- length;
+    // Validate timestamp (bytes 7-14)
+    if (buffer[7] != 0xF0) return 8;
+    if (buffer[8] != 0xDE) return 9;
+    if (buffer[9] != 0xBC) return 10;
+    if (buffer[10] != 0x9A) return 11;
+    if (buffer[11] != 0x78) return 12;
+    if (buffer[12] != 0x56) return 13;
+    if (buffer[13] != 0x34) return 14;
+    if (buffer[14] != 0x12) return 15;
 
-    if (buffer[6] != 0x0F) return 9;
-    if (offset != 7) return 10;
-
-   
-// Test 4: Serialize timestamp field (8 bytes)
-    length <- 8;
-    buffer[offset, length] <- config.timestamp;
-    offset +<- length;
-
-    if (buffer[7] != 0xF0) return 11;
-    if (buffer[8] != 0xDE) return 12;
-    if (buffer[9] != 0xBC) return 13;
-    if (buffer[10] != 0x9A) return 14;
-    if (buffer[11] != 0x78) return 15;
-    if (buffer[12] != 0x56) return 16;
-    if (buffer[13] != 0x34) return 17;
-    if (buffer[14] != 0x12) return 18;
-
-    // Final verification: Check total serialized size (4 + 2 + 1 + 8 = 15 bytes)
-    if (offset != 15) return 19;
-
-    return 0;  // All tests passed
+    return 0;
 }

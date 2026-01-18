@@ -1,35 +1,38 @@
 // test-execution
 // Tests: Issue #213 - Scope helper methods with string parameters
 // Validates that slice assignment in private methods generates memcpy, not bitwise ops
+// Updated for Issue #234: Uses compile-time constant offsets
 
 scope StringSliceTest {
-    u32 offset <- 0;
-    u8 len <- 0;
-
     // Private helper that performs slice assignment on string parameter
+    // Using compile-time constant offset and length
     void copyToBuffer(string<64> buffer, u16 value) {
-        buffer[this.offset, this.len] <- value;
-        this.offset +<- this.len;
+        buffer[0, 2] <- value;
+    }
+
+    void copyToBufferAt2(string<64> buffer, u16 value) {
+        buffer[2, 2] <- value;
     }
 
     public u32 testSliceAssignment() {
         string<64> buffer <- "";
 
-        // Set up for 2-byte copy at offset 0
-        this.offset <- 0;
-        this.len <- 2;
-
-        // Copy 0x1234 into buffer via helper
+        // Copy 0x1234 into buffer at offset 0
         this.copyToBuffer(buffer, 0x1234);
 
-        // Verify bytes (little-endian) using u8 cast to avoid strcmp bug
+        // Verify bytes (little-endian) using u8 cast
         u8 byte0 <- buffer[0];
         u8 byte1 <- buffer[1];
         if (byte0 != 0x34) return 1;
         if (byte1 != 0x12) return 2;
 
-        // Verify offset advanced
-        if (this.offset != 2) return 3;
+        // Copy 0x5678 into buffer at offset 2
+        this.copyToBufferAt2(buffer, 0x5678);
+
+        u8 byte2 <- buffer[2];
+        u8 byte3 <- buffer[3];
+        if (byte2 != 0x78) return 3;
+        if (byte3 != 0x56) return 4;
 
         return 0;
     }

@@ -6,18 +6,10 @@
 #include <stdint.h>
 #include <string.h>
 
-// ADR-044: Overflow helper functions
-#include <limits.h>
-
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
-    if (b > UINT32_MAX - a) return UINT32_MAX;
-    return a + (uint32_t)b;
-}
-
 // test-execution
 // Tests: Slice assignment for struct field serialization
-// Validates copying struct fields into buffers (real-world use case)
-// Recreates the pattern from crc32.cnx for binary protocol implementation
+// Validates copying struct fields into buffers with compile-time offsets
+// Layout: [magic:4][version:2][flags:1][timestamp:8] = 15 bytes total
 typedef struct {
     uint32_t magic;
     uint16_t version;
@@ -27,43 +19,29 @@ typedef struct {
 
 int main(void) {
     uint8_t buffer[256] = {0};
-    uint32_t offset = 0;
-    uint8_t length = 0;
     Config config = {0};
     config.magic = 0x43534E58;
     config.version = 0x0101;
     config.flags = 0x0F;
     config.timestamp = 0x123456789ABCDEF0;
-    length = 4;
-    if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &config.magic, length); }
-    offset = cnx_clamp_add_u32(offset, length);
+    memcpy(&buffer[0], &config.magic, 4);
+    memcpy(&buffer[4], &config.version, 2);
+    memcpy(&buffer[6], &config.flags, 1);
+    memcpy(&buffer[7], &config.timestamp, 8);
     if (buffer[0] != 0x58) return 1;
     if (buffer[1] != 0x4E) return 2;
     if (buffer[2] != 0x53) return 3;
     if (buffer[3] != 0x43) return 4;
-    if (offset != 4) return 5;
-    length = 2;
-    if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &config.version, length); }
-    offset = cnx_clamp_add_u32(offset, length);
-    if (buffer[4] != 0x01) return 6;
-    if (buffer[5] != 0x01) return 7;
-    if (offset != 6) return 8;
-    length = 1;
-    if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &config.flags, length); }
-    offset = cnx_clamp_add_u32(offset, length);
-    if (buffer[6] != 0x0F) return 9;
-    if (offset != 7) return 10;
-    length = 8;
-    if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &config.timestamp, length); }
-    offset = cnx_clamp_add_u32(offset, length);
-    if (buffer[7] != 0xF0) return 11;
-    if (buffer[8] != 0xDE) return 12;
-    if (buffer[9] != 0xBC) return 13;
-    if (buffer[10] != 0x9A) return 14;
-    if (buffer[11] != 0x78) return 15;
-    if (buffer[12] != 0x56) return 16;
-    if (buffer[13] != 0x34) return 17;
-    if (buffer[14] != 0x12) return 18;
-    if (offset != 15) return 19;
+    if (buffer[4] != 0x01) return 5;
+    if (buffer[5] != 0x01) return 6;
+    if (buffer[6] != 0x0F) return 7;
+    if (buffer[7] != 0xF0) return 8;
+    if (buffer[8] != 0xDE) return 9;
+    if (buffer[9] != 0xBC) return 10;
+    if (buffer[10] != 0x9A) return 11;
+    if (buffer[11] != 0x78) return 12;
+    if (buffer[12] != 0x56) return 13;
+    if (buffer[13] != 0x34) return 14;
+    if (buffer[14] != 0x12) return 15;
     return 0;
 }

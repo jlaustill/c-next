@@ -6,36 +6,32 @@
 #include <stdint.h>
 #include <string.h>
 
-// ADR-044: Overflow helper functions
-#include <limits.h>
-
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
-    if (b > UINT32_MAX - a) return UINT32_MAX;
-    return a + (uint32_t)b;
-}
-
 // test-execution
 // Tests: Issue #213 - Scope helper methods with string parameters
 // Validates that slice assignment in private methods generates memcpy, not bitwise ops
+// Updated for Issue #234: Uses compile-time constant offsets
 /* Scope: StringSliceTest */
-static uint32_t StringSliceTest_offset = 0;
-static uint8_t StringSliceTest_len = 0;
 
 static void StringSliceTest_copyToBuffer(char* buffer, uint16_t* value) {
-    if (StringSliceTest_offset + StringSliceTest_len <= 65) { memcpy(&buffer[StringSliceTest_offset], &(*value), StringSliceTest_len); }
-    StringSliceTest_offset = cnx_clamp_add_u32(StringSliceTest_offset, StringSliceTest_len);
+    memcpy(&buffer[0], &(*value), 2);
+}
+
+static void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t* value) {
+    memcpy(&buffer[2], &(*value), 2);
 }
 
 uint32_t StringSliceTest_testSliceAssignment(void) {
     char buffer[65] = "";
-    StringSliceTest_offset = 0;
-    StringSliceTest_len = 2;
     StringSliceTest_copyToBuffer(&buffer, &(uint16_t){0x1234});
     uint8_t byte0 = buffer[0];
     uint8_t byte1 = buffer[1];
     if (byte0 != 0x34) return 1;
     if (byte1 != 0x12) return 2;
-    if (StringSliceTest_offset != 2) return 3;
+    StringSliceTest_copyToBufferAt2(&buffer, &(uint16_t){0x5678});
+    uint8_t byte2 = buffer[2];
+    uint8_t byte3 = buffer[3];
+    if (byte2 != 0x78) return 3;
+    if (byte3 != 0x56) return 4;
     return 0;
 }
 

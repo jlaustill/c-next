@@ -1,39 +1,13 @@
-// test-execution
-// Tests: Zero-length slice assignment edge case
-// Validates that zero-length copies are no-ops
-// Buffer should remain unchanged after zero-length assignment
+// test-error
+// Tests: Issue #234 - Zero-length slice assignment is a compile-time error
+// Slice assignment length must be positive.
 
 u32 main() {
     u8 buffer[64];
 
-    // Initialize buffer with known pattern
-    u32 pattern <- 0x12345678;
-    buffer[0, 4] <- pattern;
-
-    // Verify initial state
-    if (buffer[0] != 0x78) return 1;
-    if (buffer[1] != 0x56) return 2;
-    if (buffer[2] != 0x34) return 3;
-    if (buffer[3] != 0x12) return 4;
-
-   
-// Test 1: Zero-length copy should be no-op
+    // Zero-length copy should fail at compile time
     u32 dummy <- 0xAABBCCDD;
     buffer[0, 0] <- dummy;
 
-    // Buffer should be unchanged
-    if (buffer[0] != 0x78) return 5;
-    if (buffer[1] != 0x56) return 6;
-    if (buffer[2] != 0x34) return 7;
-    if (buffer[3] != 0x12) return 8;
-
-   
-// Test 2: Zero-length at non-zero offset
-    buffer[10, 0] <- dummy;
-
-    // Original bytes should still be unchanged
-    if (buffer[0] != 0x78) return 9;
-    if (buffer[1] != 0x56) return 10;
-
-    return 0;  // All tests passed
+    return 0;
 }
