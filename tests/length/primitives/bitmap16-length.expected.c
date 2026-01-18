@@ -38,9 +38,9 @@ StatusFlags globalVar = {0};
 uint32_t TestScope_getGlobalLength(void) {
     return 16;
 }
-static StatusFlags TestScope_scopeMember = {0};
 
 uint32_t TestScope_getMemberLength(void) {
+    StatusFlags TestScope_scopeMember = {0};
     return 16;
 }
 StatusFlags TestScope_publicMember = {0};

@@ -15,9 +15,9 @@ double globalVar = 3.14159;
 uint32_t TestScope_getGlobalLength(void) {
     return 64;
 }
-static double TestScope_scopeMember = 3.14159;
 
 uint32_t TestScope_getMemberLength(void) {
+    double TestScope_scopeMember = 3.14159;
     return 64;
 }
 double TestScope_publicMember = 3.14159;

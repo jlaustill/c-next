@@ -17,9 +17,9 @@ float globalF32Matrix[2][10] = {0};
 
 // Scope with multi-dim arrays
 /* Scope: TestScope */
-static uint8_t TestScope_scopeMatrix[4][8] = {0};
 
 uint32_t TestScope_getScopeMatrixLength(void) {
+    uint8_t TestScope_scopeMatrix[4][8] = {0};
     return 4;
 }
 uint8_t TestScope_publicMatrix[3][5] = {0};

@@ -30,6 +30,15 @@ import generateScopedRegister from "./ScopedRegisterGenerator";
  * - Visibility control (private -> static, public -> extern)
  * - Organization without runtime overhead
  */
+/**
+ * Issue #232: Information about a single-function variable
+ */
+interface ISingleFunctionVar {
+  varDecl: Parser.VariableDeclarationContext;
+  targetFunction: string;
+  isPrivate: boolean;
+}
+
 const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   node: Parser.ScopeDeclarationContext,
   input: IGeneratorInput,
@@ -44,6 +53,10 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   const lines: string[] = [];
   lines.push(`/* Scope: ${name} */`);
 
+  // Issue #232: First pass - identify single-function variables
+  // Maps functionName -> list of variable declarations that are local to it
+  const localVarsForFunction = new Map<string, ISingleFunctionVar[]>();
+
   for (const member of node.scopeMember()) {
     const visibility = member.visibilityModifier()?.getText() || "private";
     const isPrivate = visibility === "private";
@@ -51,8 +64,30 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
     // Handle variable declarations
     if (member.variableDeclaration()) {
       const varDecl = member.variableDeclaration()!;
-      const type = orchestrator.generateType(varDecl.type());
       const varName = varDecl.IDENTIFIER().getText();
+
+      // Issue #232: Check if this PRIVATE variable is used in only one function
+      // PUBLIC variables must stay file-scope because they can be accessed from outside
+      const targetFunc = isPrivate
+        ? input.symbols?.getSingleFunctionForVariable(name, varName)
+        : null;
+
+      if (targetFunc) {
+        // Single-function private variable - emit as local, not file-scope
+        if (!localVarsForFunction.has(targetFunc)) {
+          localVarsForFunction.set(targetFunc, []);
+        }
+        localVarsForFunction.get(targetFunc)!.push({
+          varDecl,
+          targetFunction: targetFunc,
+          isPrivate,
+        });
+        // Don't emit file-scope declaration
+        continue;
+      }
+
+      // Multi-function or unused variable - emit at file scope (original behavior)
+      const type = orchestrator.generateType(varDecl.type());
       const fullName = `${name}_${varName}`;
       const prefix = isPrivate ? "static " : "";
 
@@ -99,7 +134,53 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
         ? orchestrator.generateParameterList(funcDecl.parameterList()!)
         : "void";
 
-      const body = orchestrator.generateBlock(funcDecl.block());
+      let body = orchestrator.generateBlock(funcDecl.block());
+
+      // Issue #232: Inject local variable declarations for single-function vars
+      const localVars = localVarsForFunction.get(funcName);
+      if (localVars && localVars.length > 0) {
+        // Generate local variable declarations
+        const localDecls: string[] = [];
+        for (const { varDecl } of localVars) {
+          const varType = orchestrator.generateType(varDecl.type());
+          const varName = varDecl.IDENTIFIER().getText();
+          const varFullName = `${name}_${varName}`;
+
+          const arrayDims = varDecl.arrayDimension();
+          const isArray = arrayDims.length > 0;
+          let decl = `    ${varType} ${varFullName}`;
+          if (isArray) {
+            decl += orchestrator.generateArrayDimensions(arrayDims);
+          }
+          // ADR-045: Add string capacity dimension for string arrays
+          if (varDecl.type().stringType()) {
+            const stringCtx = varDecl.type().stringType()!;
+            const intLiteral = stringCtx.INTEGER_LITERAL();
+            if (intLiteral) {
+              const capacity = parseInt(intLiteral.getText(), 10);
+              decl += `[${capacity + 1}]`;
+            }
+          }
+          if (varDecl.expression()) {
+            decl += ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
+          } else {
+            decl += ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;
+          }
+          localDecls.push(decl + ";");
+        }
+
+        // Inject after opening brace: { -> {\n    local_var = init;
+        // Body format is typically "{\n    ...statements...\n}"
+        const openBraceIdx = body.indexOf("{");
+        if (openBraceIdx !== -1) {
+          const afterBrace = body.substring(openBraceIdx + 1);
+          body =
+            body.substring(0, openBraceIdx + 1) +
+            "\n" +
+            localDecls.join("\n") +
+            afterBrace;
+        }
+      }
 
       // ADR-016: Exit function body context
       orchestrator.exitFunctionBody();

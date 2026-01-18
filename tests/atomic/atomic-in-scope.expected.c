@@ -47,10 +47,10 @@ uint32_t Counter_get(void) {
 }
 
 /* Scope: Timer */
-static uint32_t Timer_ticks = 0;
 static uint16_t Timer_period = 1000;
 
 void Timer_tick(void) {
+    uint32_t Timer_ticks = 0;
     Timer_ticks += 1;
 }
 

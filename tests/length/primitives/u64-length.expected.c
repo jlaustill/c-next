@@ -15,9 +15,9 @@ uint64_t globalVar = 1000000;
 uint32_t TestScope_getGlobalLength(void) {
     return 64;
 }
-static uint64_t TestScope_scopeMember = 1000000;
 
 uint32_t TestScope_getMemberLength(void) {
+    uint64_t TestScope_scopeMember = 1000000;
     return 64;
 }
 uint64_t TestScope_publicMember = 1000000;

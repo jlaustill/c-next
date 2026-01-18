@@ -91,6 +91,23 @@ interface ISymbolInfo {
 
   /** Register member C types: "reg_member" -> C type (e.g., "uint32_t") */
   readonly registerMemberCTypes: ReadonlyMap<string, string>;
+
+  // === Issue #232: Scope Variable Usage Analysis ===
+
+  /**
+   * Scope variable usage: "Scope_varName" -> Set of function names that use it.
+   * Used to determine if a variable is single-function (can be local).
+   */
+  readonly scopeVariableUsage: ReadonlyMap<string, ReadonlySet<string>>;
+
+  /**
+   * Check if a scope variable is used in only one function.
+   * Returns the function name if single-function, null otherwise.
+   */
+  getSingleFunctionForVariable(
+    scopeName: string,
+    varName: string,
+  ): string | null;
 }
 
 export default ISymbolInfo;
