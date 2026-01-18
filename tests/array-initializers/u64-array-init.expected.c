@@ -77,8 +77,8 @@ int main(void) {
     if (64 != 64) return 29;
     if (64 != 64) return 30;
     uint64_t computed[3] = {0};
-    computed[0] = 1000 * 1000;
-    computed[1] = 1000 * 1000000;
+    computed[0] = 1000000;
+    computed[1] = 1000000000;
     computed[2] = computed[0] + computed[1];
     if (computed[2] != 1001000000) return 31;
     return 0;

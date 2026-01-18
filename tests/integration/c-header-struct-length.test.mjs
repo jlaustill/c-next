@@ -95,8 +95,9 @@ const checks = [
     description: "config.timestamp.length should be 64",
   },
   {
-    pattern: /uint8_t bytesNeeded = 32 \/ 8/,
-    description: "config.magic.length / 8 should be 32 / 8",
+    // Issue #235: Constant folding now evaluates 32 / 8 to 4
+    pattern: /uint8_t bytesNeeded = 4/,
+    description: "config.magic.length / 8 should be folded to 4",
   },
 ];
 

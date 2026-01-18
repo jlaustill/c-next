@@ -1,0 +1,27 @@
+// Issue #235: Constant folding for division expressions
+// Tests that compile-time constant expressions are evaluated during transpilation
+
+// Test 1: Pure literal division - should fold to constants
+u32 literal_result1 <- 32 / 8;      // Should fold to: 4
+u32 literal_result2 <- 100 / 10;    // Should fold to: 10
+u32 literal_result3 <- 64 / 4;      // Should fold to: 16
+
+// Test 2: .length property division (the original bug report)
+// .length returns compile-time constants (bit-width), so these should fold
+u32 x;
+u8 bytes_for_u32 <- x.length / 8;   // 32 / 8 should fold to: 4
+
+u64 y;
+u8 bytes_for_u64 <- y.length / 8;   // 64 / 8 should fold to: 8
+
+u16 z;
+u8 bytes_for_u16 <- z.length / 8;   // 16 / 8 should fold to: 2
+
+// Test 3: Other arithmetic operations on constants
+u32 mult_result <- 4 * 8;           // Should fold to: 32
+u32 add_result <- 10 + 20;          // Should fold to: 30
+u32 sub_result <- 100 - 40;         // Should fold to: 60
+
+void main() {
+    // Empty - this test validates generated code, not runtime behavior
+}

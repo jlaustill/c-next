@@ -59,9 +59,9 @@ int main(void) {
     if (result != 0) return result;
     result = testParam(&data);
     if (result != 0) return result;
-    uint32_t totalBits = 32 + 16 + 8;
+    uint32_t totalBits = 56;
     if (totalBits != 56) return 100;
-    uint32_t totalBytes = (32 + 16) / 8;
+    uint32_t totalBytes = (48) / 8;
     if (totalBytes != 6) return 101;
     uint32_t len1 = 32;
     uint32_t len2 = 16;

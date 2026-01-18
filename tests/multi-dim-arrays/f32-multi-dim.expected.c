@@ -60,7 +60,7 @@ int main(void) {
     if (sum != 198.0) return 21;
     matrix2d[2][4] = -1000.0;
     if (matrix2d[2][4] != -1000.0) return 22;
-    matrix2d[4 - 1][8 - 1] = 42.5;
+    matrix2d[3][7] = 42.5;
     if (matrix2d[3][7] != 42.5) return 23;
     float testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {

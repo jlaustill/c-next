@@ -53,7 +53,7 @@ int main(void) {
     if (result != 1000000000) return 13;
     result = div1 / 2;
     if (result != 500000000000) return 14;
-    result = 1000000000000 / 500;
+    result = 2000000000;
     if (result != 2000000000) return 15;
     uint64_t div3 = 9000000000000000000;
     uint64_t div4 = 1000000;
@@ -65,7 +65,7 @@ int main(void) {
     if (result != 7) return 17;
     result = mod1 % 100;
     if (result != 7) return 18;
-    result = 12345 % 7;
+    result = 4;
     if (result != 4) return 19;
     uint64_t timestamp = 1609459200000;
     result = timestamp % 1000;

@@ -70,7 +70,7 @@ int main(void) {
     if (sum != 1476) return 21;
     matrix2d[2][4] = 9000000000000000000;
     if (matrix2d[2][4] != 9000000000000000000) return 22;
-    matrix2d[4 - 1][8 - 1] = 555;
+    matrix2d[3][7] = 555;
     if (matrix2d[3][7] != 555) return 23;
     uint64_t timestamps[3][2] = {0};
     timestamps[0][0] = 1609459200000;

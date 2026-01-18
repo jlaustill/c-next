@@ -8,6 +8,8 @@
  * - Bitwise: |, ^, &
  * - Shift: <<, >> with validation
  * - Arithmetic: +, -, *, /, %
+ *
+ * Issue #235: Includes constant folding for compile-time constant expressions.
  */
 import * as Parser from "../../../parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
@@ -15,6 +17,89 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+
+/**
+ * Issue #235: Try to parse a string as a numeric constant.
+ * Returns the numeric value if it's a simple integer literal, undefined otherwise.
+ * Handles decimal, hex (0x), and binary (0b) formats.
+ */
+const tryParseNumericLiteral = (code: string): number | undefined => {
+  const trimmed = code.trim();
+
+  // Decimal integer (including negative)
+  if (/^-?\d+$/.test(trimmed)) {
+    return parseInt(trimmed, 10);
+  }
+
+  // Hex literal
+  if (/^0[xX][0-9a-fA-F]+$/.test(trimmed)) {
+    return parseInt(trimmed, 16);
+  }
+
+  // Binary literal
+  if (/^0[bB][01]+$/.test(trimmed)) {
+    return parseInt(trimmed.substring(2), 2);
+  }
+
+  return undefined;
+};
+
+/**
+ * Issue #235: Evaluate a constant arithmetic expression.
+ * Returns the result if all operands are numeric and evaluation succeeds,
+ * undefined otherwise (falls back to non-folded code).
+ */
+const tryFoldConstants = (
+  operandCodes: string[],
+  operators: string[],
+): number | undefined => {
+  // Parse all operands as numbers
+  const values = operandCodes.map(tryParseNumericLiteral);
+
+  // If any operand is not a constant, we can't fold
+  if (values.some((v) => v === undefined)) {
+    return undefined;
+  }
+
+  // Evaluate left-to-right with the operators
+  let result = values[0] as number;
+  for (let i = 0; i < operators.length; i++) {
+    const op = operators[i];
+    const rightValue = values[i + 1] as number;
+
+    switch (op) {
+      case "*":
+        result = result * rightValue;
+        break;
+      case "/":
+        // Avoid division by zero - let C compiler handle it
+        if (rightValue === 0) {
+          return undefined;
+        }
+        // Integer division (truncate toward zero like C)
+        result = Math.trunc(result / rightValue);
+        break;
+      case "%":
+        // Avoid modulo by zero
+        if (rightValue === 0) {
+          return undefined;
+        }
+        result = result % rightValue;
+        break;
+      case "+":
+        result = result + rightValue;
+        break;
+      case "-":
+        result = result - rightValue;
+        break;
+      default:
+        // Unknown operator - don't fold
+        return undefined;
+    }
+  }
+
+  return result;
+};
 
 /**
  * Generate C code for an OR expression (lowest precedence binary op).
@@ -320,6 +405,7 @@ const generateShiftExpr = (
 
 /**
  * Generate C code for an additive expression.
+ * Issue #235: Includes constant folding for compile-time constant expressions.
  */
 const generateAdditiveExpr = (
   node: Parser.AdditiveExpressionContext,
@@ -336,25 +422,25 @@ const generateAdditiveExpr = (
 
   // Issue #152: Extract operators in order from parse tree children
   const operators = orchestrator.getOperatorsFromChildren(node);
-  const firstResult = generateMultiplicativeExpr(
-    exprs[0],
-    input,
-    state,
-    orchestrator,
-  );
-  effects.push(...firstResult.effects);
-  let result = firstResult.code;
 
-  for (let i = 1; i < exprs.length; i++) {
+  // Generate code for all operands
+  const operandResults = exprs.map((expr) =>
+    generateMultiplicativeExpr(expr, input, state, orchestrator),
+  );
+  const operandCodes = operandResults.map((r) => r.code);
+  operandResults.forEach((r) => effects.push(...r.effects));
+
+  // Issue #235: Try constant folding for compile-time constant expressions
+  const foldedResult = tryFoldConstants(operandCodes, operators);
+  if (foldedResult !== undefined) {
+    return { code: String(foldedResult), effects };
+  }
+
+  // Fall back to standard code generation
+  let result = operandCodes[0];
+  for (let i = 1; i < operandCodes.length; i++) {
     const op = operators[i - 1] || "+";
-    const exprResult = generateMultiplicativeExpr(
-      exprs[i],
-      input,
-      state,
-      orchestrator,
-    );
-    effects.push(...exprResult.effects);
-    result += ` ${op} ${exprResult.code}`;
+    result += ` ${op} ${operandCodes[i]}`;
   }
 
   return { code: result, effects };
@@ -363,6 +449,7 @@ const generateAdditiveExpr = (
 /**
  * Generate C code for a multiplicative expression.
  * This is the bottom of the binary chain - delegates to unary via orchestrator.
+ * Issue #235: Includes constant folding for compile-time constant expressions.
  */
 const generateMultiplicativeExpr = (
   node: Parser.MultiplicativeExpressionContext,
@@ -380,11 +467,23 @@ const generateMultiplicativeExpr = (
 
   // Issue #152: Extract operators in order from parse tree children
   const operators = orchestrator.getOperatorsFromChildren(node);
-  let result = orchestrator.generateUnaryExpr(exprs[0]);
 
-  for (let i = 1; i < exprs.length; i++) {
+  // Generate code for all operands
+  const operandCodes = exprs.map((expr) =>
+    orchestrator.generateUnaryExpr(expr),
+  );
+
+  // Issue #235: Try constant folding for compile-time constant expressions
+  const foldedResult = tryFoldConstants(operandCodes, operators);
+  if (foldedResult !== undefined) {
+    return { code: String(foldedResult), effects: [] };
+  }
+
+  // Fall back to standard code generation
+  let result = operandCodes[0];
+  for (let i = 1; i < operandCodes.length; i++) {
     const op = operators[i - 1] || "*";
-    result += ` ${op} ${orchestrator.generateUnaryExpr(exprs[i])}`;
+    result += ` ${op} ${operandCodes[i]}`;
   }
 
   return { code: result, effects: [] };

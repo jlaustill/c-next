@@ -50,7 +50,7 @@ int main(void) {
     if (totalBits != 32) return 5;
     uint32_t fieldSize = ((32 > 16) != false) ? 4 : 2;
     if (fieldSize != 4) return 6;
-    uint32_t headerBytes = 32 / 8;
+    uint32_t headerBytes = 4;
     if (headerBytes != 4) {
         return 7;
     }
