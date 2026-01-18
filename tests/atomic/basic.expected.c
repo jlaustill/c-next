@@ -11,13 +11,17 @@
 #include <limits.h>
 
 static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
-    if (b > UINT32_MAX - a) return UINT32_MAX;
-    return a + (uint32_t)b;
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
 }
 
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
-    if (b > UINT8_MAX - a) return UINT8_MAX;
-    return a + (uint8_t)b;
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
 }
 
 volatile uint32_t counter = 0;

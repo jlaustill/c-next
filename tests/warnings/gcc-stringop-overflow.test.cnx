@@ -1,0 +1,55 @@
+/* test-no-warnings */
+/* test-execution */
+// Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
+// Validates: Clamp compound assignment should not trigger false warnings
+// Coverage: __builtin_*_overflow allows GCC to track value bounds correctly
+
+u32 main() {
+    // Test clamp compound assignment without array access
+    // The old helper implementation could cause GCC to emit -Wstringop-overflow
+    // because it couldn't track value bounds through the manual overflow check
+
+    // Use clamp compound assignment to compute values
+    clamp u32 index <- 100;
+    index +<- 50;  // Uses cnx_clamp_add_u32
+    if (index != 150) return 1;
+
+    // Test subtraction clamp
+    index -<- 50;  // Uses cnx_clamp_sub_u32
+    if (index != 100) return 2;
+
+    // Test multiplication clamp
+    clamp u32 mult_val <- 5;
+    mult_val *<- 10;  // Uses cnx_clamp_mul_u32
+    if (mult_val != 50) return 3;
+
+    // Test overflow clamping behavior with addition
+    clamp u32 overflow_test <- 4294967290;
+    overflow_test +<- 100;  // Should clamp to UINT32_MAX
+    if (overflow_test != 4294967295) return 4;
+
+    // Test underflow clamping behavior with subtraction
+    clamp u32 underflow_test <- 10;
+    underflow_test -<- 100;  // Should clamp to 0
+    if (underflow_test != 0) return 5;
+
+    // Test overflow clamping with multiplication
+    clamp u32 mul_overflow <- 100000;
+    mul_overflow *<- 100000;  // 10B > UINT32_MAX, should clamp
+    if (mul_overflow != 4294967295) return 6;
+
+    // Test u8 types which are more likely to trigger the warning
+    clamp u8 byte_val <- 100;
+    byte_val +<- 50;
+    if (byte_val != 150) return 7;
+
+    byte_val +<- 200;  // 150 + 200 = 350, should clamp to 255
+    if (byte_val != 255) return 8;
+
+    // Test u16 types
+    clamp u16 short_val <- 60000;
+    short_val +<- 10000;  // 70000 > UINT16_MAX, should clamp
+    if (short_val != 65535) return 9;
+
+    return 0;
+}

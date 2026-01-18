@@ -9,8 +9,10 @@
 #include <limits.h>
 
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
-    if (b > UINT8_MAX - a) return UINT8_MAX;
-    return a + (uint8_t)b;
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
 }
 
 // test-coverage: 1.1-u8-as-loop-counter

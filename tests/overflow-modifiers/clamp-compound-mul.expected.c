@@ -40,22 +40,30 @@ static inline int8_t cnx_clamp_mul_i8(int8_t a, int32_t b) {
 
 static inline uint16_t cnx_clamp_mul_u16(uint16_t a, uint32_t b) {
     if (b != 0 && a > UINT16_MAX / b) return UINT16_MAX;
-    return a * (uint16_t)b;
+    uint16_t result;
+    if (__builtin_mul_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
+    return result;
 }
 
 static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
-    return a * (uint32_t)b;
+    uint32_t result;
+    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
 }
 
 static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
     if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
-    return a * (uint64_t)b;
+    uint64_t result;
+    if (__builtin_mul_overflow(a, (uint64_t)b, &result)) return UINT64_MAX;
+    return result;
 }
 
 static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
     if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
-    return a * (uint8_t)b;
+    uint8_t result;
+    if (__builtin_mul_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
 }
 
 // test-execution

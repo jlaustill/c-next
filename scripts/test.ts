@@ -75,6 +75,14 @@ interface ITestResult {
   skippedExec?: boolean;
   noSnapshot?: boolean;
   execError?: string;
+  warningError?: string;
+}
+
+/**
+ * Check if source has test-no-warnings marker in block comment
+ */
+function hasNoWarningsMarker(source: string): boolean {
+  return /\/\*\s*test-no-warnings\s*\*\//i.test(source);
 }
 
 interface IValidationResult {
@@ -292,6 +300,53 @@ function validateMisra(cFile: string): IValidationResult {
     return {
       valid: false,
       message: issues || "MISRA check failed",
+    };
+  }
+}
+
+/**
+ * Validate that a C file compiles without any warnings
+ * Uses gcc with -Werror to treat all warnings as errors
+ */
+function validateNoWarnings(cFile: string): IValidationResult {
+  try {
+    // Auto-detect C++14 headers and use g++ when needed
+    const useCpp = requiresCpp14(cFile);
+    const compiler = useCpp ? "g++" : "gcc";
+    const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
+
+    // Compile with -Werror to treat warnings as errors
+    // Include common warning flags that catch issues like -Wstringop-overflow
+    execFileSync(
+      compiler,
+      [
+        "-fsyntax-only",
+        stdFlag,
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-unused-variable",
+        "-Wno-main",
+        "-I",
+        join(rootDir, "tests/include"),
+        cFile,
+      ],
+      { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
+    );
+    return { valid: true };
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message: string };
+    // Extract just the warning/error messages
+    const output = err.stderr || err.stdout || err.message;
+    const warnings = output
+      .split("\n")
+      .filter((line) => line.includes("warning:") || line.includes("error:"))
+      .map((line) => line.replace(cFile + ":", ""))
+      .slice(0, 5)
+      .join("\n");
+    return {
+      valid: false,
+      message: warnings || "Compilation produced warnings",
     };
   }
 }
@@ -599,7 +654,19 @@ async function runTest(
         }
       }
 
-      // Step 5: Execution test (if // test-execution marker present)
+      // Step 5: No-warnings check (if /* test-no-warnings */ marker present)
+      if (hasNoWarningsMarker(source)) {
+        const noWarningsResult = validateNoWarnings(expectedCFile);
+        if (!noWarningsResult.valid) {
+          return {
+            passed: false,
+            message: "Warning check failed (test-no-warnings)",
+            warningError: noWarningsResult.message,
+          };
+        }
+      }
+
+      // Step 6: Execution test (if // test-execution marker present)
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (requiresArmRuntime(result.code)) {
           return { passed: true, skippedExec: true };
@@ -727,6 +794,12 @@ function printResult(
       if (result.execError) {
         console.log(
           `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
+        );
+      }
+      // Show warning error if present (test-no-warnings failure)
+      if (result.warningError) {
+        console.log(
+          `        ${colors.red}Warning:${colors.reset} ${result.warningError}`,
         );
       }
     }
