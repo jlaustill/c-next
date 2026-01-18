@@ -1,6 +1,10 @@
 /**
  * Helper function generators for overflow-safe arithmetic and safe division.
  * Extracted from CodeGenerator.ts as part of ADR-053 A5.
+ *
+ * Portability note: Uses __builtin_add_overflow, __builtin_sub_overflow, and
+ * __builtin_mul_overflow intrinsics (GCC 5+, Clang 3.4+). C-Next targets embedded
+ * systems using arm-none-eabi-gcc, so these are available. MSVC is not supported.
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import WIDER_TYPE_MAP from "../../types/WIDER_TYPE_MAP";
@@ -63,6 +67,7 @@ function generateSingleHelper(
       if (isUnsigned) {
         // Issue #231: Hybrid approach - check wide operand first, then use builtin
         // Issue #94: Wide operand check prevents truncation issues
+        // Use > (not >=) since b == a produces valid result 0 via the builtin path
         return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
     if (b > (${widerType})a) return 0;
     ${cType} result;
@@ -191,6 +196,7 @@ function generateDebugHelper(
       if (isUnsigned) {
         // Issue #231: Hybrid approach - check wide operand first, then use builtin
         // Issue #94: Wide operand check prevents truncation issues
+        // Use > (not >=) since b == a produces valid result 0 via the builtin path
         return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
     if (b > (${widerType})a) {
         fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
