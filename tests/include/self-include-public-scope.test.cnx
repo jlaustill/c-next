@@ -1,0 +1,31 @@
+// Issue #230: Self-include for extern "C" linkage
+// When a file has public functions, the generated .cpp/.c must include
+// its own header file to ensure extern "C" linkage from the header applies.
+// Without this, functions get C++ mangling while the header promises C linkage.
+
+scope Calculator {
+    // Private helper
+    u32 square(u32 x) {
+        return x * x;
+    }
+
+    // Public function - triggers header generation with extern "C"
+    public u32 add(u32 a, u32 b) {
+        return a + b;
+    }
+
+    // Another public function
+    public u32 multiply(u32 a, u32 b) {
+        return this.square(a) + this.square(b);
+    }
+}
+
+u32 main() {
+    u32 result <- Calculator.add(5, 3);
+    if (result != 8) return 1;
+
+    result <- Calculator.multiply(3, 4);
+    if (result != 25) return 2;  // 9 + 16 = 25
+
+    return 0;
+}

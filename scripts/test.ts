@@ -455,6 +455,10 @@ async function runTest(
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
+  const headerFile = basePath + ".test.h";
+
+  // Issue #230: If test has a corresponding .test.h file, enable self-include generation
+  const hasHeaderFile = existsSync(headerFile);
 
   // Use Pipeline for transpilation with header parsing support
   const pipeline = new Pipeline({
@@ -466,6 +470,7 @@ async function runTest(
   const result: IFileResult = await pipeline.transpileSource(source, {
     workingDir: dirname(cnxFile),
     sourcePath: cnxFile,
+    generateHeaders: hasHeaderFile, // Issue #230: Enable self-include for extern "C" tests
   });
 
   // Check if this is an error test (no validation needed for error tests)
