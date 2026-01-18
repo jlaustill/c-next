@@ -9,8 +9,10 @@
 #include <limits.h>
 
 static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
-    if (b >= (uint64_t)a) return 0;
-    return a - (uint32_t)b;
+    if (b > (uint64_t)a) return 0;
+    uint32_t result;
+    if (__builtin_sub_overflow(a, (uint32_t)b, &result)) return 0;
+    return result;
 }
 
 // Coverage: Section 7.2 - while loop non-boolean condition error

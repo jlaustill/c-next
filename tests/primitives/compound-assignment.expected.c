@@ -9,18 +9,24 @@
 #include <limits.h>
 
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
-    if (b > UINT8_MAX - a) return UINT8_MAX;
-    return a + (uint8_t)b;
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
 }
 
 static inline uint16_t cnx_clamp_mul_u16(uint16_t a, uint32_t b) {
     if (b != 0 && a > UINT16_MAX / b) return UINT16_MAX;
-    return a * (uint16_t)b;
+    uint16_t result;
+    if (__builtin_mul_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
+    return result;
 }
 
 static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
-    if (b >= (uint32_t)a) return 0;
-    return a - (uint8_t)b;
+    if (b > (uint32_t)a) return 0;
+    uint8_t result;
+    if (__builtin_sub_overflow(a, (uint8_t)b, &result)) return 0;
+    return result;
 }
 
 // ADR-044: Test compound assignments with overflow behavior

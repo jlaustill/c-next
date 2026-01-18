@@ -29,6 +29,14 @@ interface ITestResult {
   skippedExec?: boolean;
   noSnapshot?: boolean;
   execError?: string;
+  warningError?: string;
+}
+
+/**
+ * Check if source has test-no-warnings marker in block comment
+ */
+function hasNoWarningsMarker(source: string): boolean {
+  return /\/\*\s*test-no-warnings\s*\*\//i.test(source);
 }
 
 interface IValidationResult {
@@ -231,6 +239,49 @@ function validateMisra(cFile: string): IValidationResult {
     return {
       valid: false,
       message: issues || "MISRA check failed",
+    };
+  }
+}
+
+/**
+ * Validate that a C file compiles without any warnings
+ * Uses gcc with -Werror to treat all warnings as errors
+ */
+function validateNoWarnings(cFile: string): IValidationResult {
+  try {
+    const useCpp = requiresCpp14(cFile);
+    const compiler = useCpp ? "g++" : "gcc";
+    const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
+
+    execFileSync(
+      compiler,
+      [
+        "-fsyntax-only",
+        stdFlag,
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-unused-variable",
+        "-Wno-main",
+        "-I",
+        join(rootDir, "tests/include"),
+        cFile,
+      ],
+      { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
+    );
+    return { valid: true };
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message: string };
+    const output = err.stderr || err.stdout || err.message;
+    const warnings = output
+      .split("\n")
+      .filter((line) => line.includes("warning:") || line.includes("error:"))
+      .map((line) => line.replace(cFile + ":", ""))
+      .slice(0, 5)
+      .join("\n");
+    return {
+      valid: false,
+      message: warnings || "Compilation produced warnings",
     };
   }
 }
@@ -460,6 +511,18 @@ async function runTest(
             passed: false,
             message: "MISRA check failed",
             actual: misraResult.message,
+          };
+        }
+      }
+
+      // No-warnings check if marker present
+      if (hasNoWarningsMarker(source)) {
+        const noWarningsResult = validateNoWarnings(expectedCFile);
+        if (!noWarningsResult.valid) {
+          return {
+            passed: false,
+            message: "Warning check failed (test-no-warnings)",
+            warningError: noWarningsResult.message,
           };
         }
       }
