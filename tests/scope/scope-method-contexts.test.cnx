@@ -381,20 +381,24 @@ u32 main() {
 
    
 // Test 19-20: setPrivateValue and verify
+    // Issue #233: setPrivateValue resets privateValue to 10, then sets to 42
     MethodContexts.setPrivateValue(42);
     if (MethodContexts.getPrivateValueExternal() != 42) return 19;
 
-   
-// Test 20: Verify computePrivateSum updated - privateValue(42) + globalCounter(50) = 92
+
+// Test 20: Verify computePrivateSum - privateValue(42) + globalCounter(50) = 92
+    // Note: computePrivateSum only reads, so privateValue stays 42
     if (MethodContexts.getPrivateSumViaInternal() != 92) return 20;
 
-   
+
 // Test 21-22: setPublicValue and verify
+    // Issue #233: setPublicValue resets publicValue to 20, then sets to 84
     MethodContexts.setPublicValue(84);
     if (MethodContexts.getPublicValue() != 84) return 21;
 
-   
-// Test 22: Verify computePublicSum updated - publicValue(84) + globalCounter(50) = 134
+
+// Test 22: Verify computePublicSum - publicValue(84) + globalCounter(50) = 134
+    // Note: computePublicSum only reads, so publicValue stays 84
     if (MethodContexts.computePublicSum() != 134) return 22;
 
    
@@ -428,91 +432,95 @@ u32 main() {
     // SECTION 7: modifyAllPrivate comprehensive test
     // ==========================================
 
-    // Before modifyAllPrivate:
-    // privateValue = 42, privateClampValue = 200, privateWrapValue = 250
-    // privateFlag = true, privateOffset = -50
+    // With persistent scope variables:
+    // State: privateValue=42, privateClampValue=200, privateWrapValue=250
+    //        privateFlag=true (from test 23), privateOffset=-50
 
-   
-// Test 27: Call modifyAllPrivate and verify privateValue incremented
+
+// Test 27: Call modifyAllPrivate - modifies persisted values
     MethodContexts.modifyAllPrivate();
-    // privateValue <- privateValue + 1 -> 42 + 1 = 43
+    // privateValue: 42 + 1 = 43
     if (MethodContexts.getPrivateValueExternal() != 43) return 27;
 
-   
-// Test 28: privateClampValue +<- 10 -> 200 + 10 = 210
+
+// Test 28: privateClampValue: 200 + 10 = 210
     if (MethodContexts.getPrivateClampViaInternal() != 210) return 28;
 
-   
-// Test 29: privateWrapValue +<- 5 -> 250 + 5 = 255 (no wrap yet)
+
+// Test 29: privateWrapValue: 250 + 5 = 255 (no wrap yet)
     // Note: Can't directly access private wrap value, but we tested the method exists
 
     // ==========================================
     // SECTION 8: modifyAllPublic comprehensive test
     // ==========================================
 
-    // Before modifyAllPublic:
-    // publicValue = 84, publicClampValue = 65535 (clamped), publicWrapValue = 4 (wrapped)
-    // publicFlag = false, publicOffset = -1000
+    // With persistent scope variables:
+    // State: publicValue=84, publicClampValue=65535 (clamped), publicWrapValue=4 (wrapped)
+    //        publicFlag=false (from test 24), publicOffset=-1000
 
-   
-// Test 30: Call modifyAllPublic and verify publicValue incremented
+
+// Test 30: Call modifyAllPublic - modifies persisted values
     MethodContexts.modifyAllPublic();
-    // publicValue <- publicValue + 1 -> 84 + 1 = 85
+    // publicValue: 84 + 1 = 85
     if (MethodContexts.getPublicValue() != 85) return 30;
 
-   
-// Test 31: publicClampValue +<- 100 -> already at 65535, stays 65535
+
+// Test 31: publicClampValue: 65535 + 100 = clamped to 65535
     if (MethodContexts.getPublicClampValue() != 65535) return 31;
 
-   
-// Test 32: publicWrapValue +<- 5 -> 4 + 5 = 9
+
+// Test 32: publicWrapValue: 4 + 5 = 9
     if (MethodContexts.getPublicWrapValue() != 9) return 32;
 
-   
-// Test 33: publicFlag toggled -> !false = true
+
+// Test 33: publicFlag: !false = true
     if (MethodContexts.getPublicFlag() != true) return 33;
 
-   
-// Test 34: publicOffset <- publicOffset - 100 -> -1000 - 100 = -1100
+
+// Test 34: publicOffset: -1000 - 100 = -1100
     if (MethodContexts.getPublicOffset() != -1100) return 34;
 
     // ==========================================
     // SECTION 9: Threshold and flag checks
     // ==========================================
 
-   
-// Test 35: checkThresholds() - publicClampValue(65535) < GLOBAL_THRESHOLD(1000) is FALSE
+
+// Test 35: checkThresholds() - only reads
+    // publicClampValue=65535 < GLOBAL_THRESHOLD=1000 is FALSE
     // So the && with privateValue < GLOBAL_MAX doesn't matter - result is false
     if (MethodContexts.checkThresholds() != false) return 35;
 
-   
-// Test 36: getAllFlags() - privateFlag(true after modifyAllPrivate toggle),
-    // publicFlag(true after modifyAllPublic toggle), globalEnabled(true)
-    // Note: privateFlag was true, then modifyAllPrivate toggled it to false
-    // So getAllFlags should be false (false && true && true = false)
+
+// Test 36: getAllFlags() - only reads
+    // privateFlag was toggled to false by modifyAllPrivate (!true = false)
+    // publicFlag was toggled to true by modifyAllPublic (!false = true)
+    // globalEnabled is true
+    // So getAllFlags = false && true && true = false
     if (MethodContexts.getAllFlags() != false) return 36;
 
     // ==========================================
     // SECTION 10: Direct public variable access
     // ==========================================
 
-   
+    // After modifyAllPublic: publicValue=85, publicClampValue=65535, publicWrapValue=9
+    //                        publicFlag=true, publicOffset=-1100
+
 // Test 37: Direct read of publicValue
     if (MethodContexts.publicValue != 85) return 37;
 
-   
+
 // Test 38: Direct read of publicClampValue
     if (MethodContexts.publicClampValue != 65535) return 38;
 
-   
+
 // Test 39: Direct read of publicWrapValue
     if (MethodContexts.publicWrapValue != 9) return 39;
 
-   
+
 // Test 40: Direct read of publicFlag
     if (MethodContexts.publicFlag != true) return 40;
 
-   
+
 // Test 41: Direct read of publicOffset
     if (MethodContexts.publicOffset != -1100) return 41;
 

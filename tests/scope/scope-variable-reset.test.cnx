@@ -1,0 +1,50 @@
+// test-execution
+// Tests: Issue #233 - Scope variables persist like C static variables
+//
+// This test verifies that scope variables are initialized once at program start
+// and persist across all function calls, just like C static variables.
+
+scope Calculator {
+    // operationCount persists across all function calls
+    u32 operationCount <- 0;
+
+    public u32 addAndCount(u32 value) {
+        // Local variable (always resets - standard function-local behavior)
+        u32 accumulator <- 0;
+        accumulator <- accumulator + value;
+        // Scope variable persists - increments each call
+        this.operationCount <- this.operationCount + 1;
+        return accumulator;
+    }
+
+    public u32 getOperationCount() {
+        return this.operationCount;
+    }
+}
+
+u32 main() {
+    // First call: operationCount goes 0 -> 1
+    u32 result1 <- Calculator.addAndCount(10);
+    if (result1 != 10) return 1;
+
+    // Getter reads current value (1)
+    u32 count1 <- Calculator.getOperationCount();
+    if (count1 != 1) return 2;
+
+    // Second call: operationCount goes 1 -> 2 (persists!)
+    u32 result2 <- Calculator.addAndCount(5);
+    if (result2 != 5) return 3;
+
+    // Getter reads current value (2)
+    u32 count2 <- Calculator.getOperationCount();
+    if (count2 != 2) return 4;
+
+    // Third call: operationCount goes 2 -> 3
+    u32 result3 <- Calculator.addAndCount(7);
+    if (result3 != 7) return 5;
+
+    u32 count3 <- Calculator.getOperationCount();
+    if (count3 != 3) return 6;
+
+    return 0;
+}

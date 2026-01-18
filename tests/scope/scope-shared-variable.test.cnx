@@ -1,14 +1,15 @@
 // test-execution
-// Tests: Scope variables used in MULTIPLE functions stay shared (file-scope static)
+// Tests: Scope variables persist like C static variables (Issue #233)
 //
-// Issue #232: Variables used in multiple functions intentionally share state.
-// This test verifies that multi-function variables work correctly as shared state.
+// Scope variables are initialized once at program start and persist
+// across all function calls, just like C static variables.
 
 scope SharedState {
-    // counter is used in BOTH increment() and getCount() - stays file-scope static
+    // counter persists across all function calls
     u32 counter <- 0;
 
     public void increment() {
+        // counter retains its value from previous calls
         this.counter <- this.counter + 1;
     }
 
@@ -18,21 +19,20 @@ scope SharedState {
 }
 
 u32 main() {
-    // counter starts at 0
+    // Initial value is 0
     if (SharedState.getCount() != 0) return 1;
 
-    // increment twice
+    // Increment: 0 -> 1
     SharedState.increment();
+    if (SharedState.getCount() != 1) return 2;
+
+    // Increment: 1 -> 2 (persists!)
     SharedState.increment();
+    if (SharedState.getCount() != 2) return 3;
 
-    // counter should now be 2 (shared across functions)
-    if (SharedState.getCount() != 2) return 2;
-
-    // increment once more
+    // Increment: 2 -> 3
     SharedState.increment();
-
-    // counter should now be 3
-    if (SharedState.getCount() != 3) return 3;
+    if (SharedState.getCount() != 3) return 4;
 
     return 0;
 }

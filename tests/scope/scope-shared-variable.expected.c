@@ -6,10 +6,10 @@
 #include <stdint.h>
 
 // test-execution
-// Tests: Scope variables used in MULTIPLE functions stay shared (file-scope static)
+// Tests: Scope variables persist like C static variables (Issue #233)
 //
-// Issue #232: Variables used in multiple functions intentionally share state.
-// This test verifies that multi-function variables work correctly as shared state.
+// Scope variables are initialized once at program start and persist
+// across all function calls, just like C static variables.
 /* Scope: SharedState */
 static uint32_t SharedState_counter = 0;
 
@@ -24,9 +24,10 @@ uint32_t SharedState_getCount(void) {
 int main(void) {
     if (SharedState_getCount() != 0) return 1;
     SharedState_increment();
+    if (SharedState_getCount() != 1) return 2;
     SharedState_increment();
-    if (SharedState_getCount() != 2) return 2;
+    if (SharedState_getCount() != 2) return 3;
     SharedState_increment();
-    if (SharedState_getCount() != 3) return 3;
+    if (SharedState_getCount() != 3) return 4;
     return 0;
 }

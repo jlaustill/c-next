@@ -372,6 +372,7 @@ class SymbolCollector {
 
   /**
    * Issue #232: Analyze which scope variables are used in which functions.
+   * Issue #233: Also track which variables are WRITTEN to (for reset injection).
    * This enables making single-function variables local instead of file-scope.
    */
   private analyzeScopeVariableUsage(
@@ -393,13 +394,13 @@ class SymbolCollector {
       }
     }
 
-    // For each function, find which variables it references
+    // For each function, find which variables it references and writes
     for (const funcDecl of functions) {
       const funcName = funcDecl.IDENTIFIER().getText();
       const block = funcDecl.block();
       if (!block) continue;
 
-      // Find all this.varName references in the function body
+      // Find all this.varName references in the function body (reads + writes)
       const usedVars = this.findScopedMemberReferences(block, variableNames);
 
       // Record usage

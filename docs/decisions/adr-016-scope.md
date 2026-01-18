@@ -83,6 +83,52 @@ void LED_off(void) {
 - **Not a type** — Cannot create instances of a scope
 - **Minimal expectations** — No baggage from C++ namespaces or classes
 
+### Scope Variable Persistence (Issue #233)
+
+Scope variables behave like C `static` variables — they are initialized once at program start and persist across all function calls.
+
+```cnx
+scope Counter {
+    u32 value <- 0;           // Initialized once at program start
+
+    public void increment() {
+        this.value <- this.value + 1;
+    }
+
+    public u32 getValue() {
+        return this.value;
+    }
+}
+
+// Behavior:
+Counter.increment();  // value: 0 -> 1
+Counter.increment();  // value: 1 -> 2
+Counter.increment();  // value: 2 -> 3
+Counter.getValue();   // returns 3
+```
+
+**Generated C code:**
+
+```c
+static uint32_t Counter_value = 0;  // Static = persists
+
+void Counter_increment(void) {
+    Counter_value = Counter_value + 1;
+}
+
+uint32_t Counter_getValue(void) {
+    return Counter_value;
+}
+```
+
+**Variable lifetime summary:**
+
+| Variable Type            | Lifetime         | Notes                                      |
+| ------------------------ | ---------------- | ------------------------------------------ |
+| Scope variables          | Program lifetime | Like C `static` — persist across all calls |
+| Function-local variables | Function call    | Reset each call (standard C behavior)      |
+| Global variables         | Program lifetime | Persist across all function calls          |
+
 ### Scoped Registers
 
 Scopes can contain register declarations for platform-specific hardware:
