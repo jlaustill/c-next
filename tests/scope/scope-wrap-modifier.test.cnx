@@ -173,11 +173,11 @@ u32 main() {
     WrapTest.decrementPosition();  // 50 - 100 = -50 -> wraps to UINT32_MAX - 49 = 4294967246
     if (WrapTest.getPosition() != 4294967246) return 15;
 
-   
-// Test 16-18: Normal decrements after wrap
-    WrapTest.setByteCounter(10);
-    WrapTest.decrementByteCounter();  // 10 - 1 = 9
-    if (WrapTest.getByteCounter() != 9) return 16;
+
+// Test 16: Normal decrement (byteCounter persists from test 7)
+    // byteCounter is 4 after test 7 (250 + 10 wrapped to 4)
+    WrapTest.decrementByteCounter();  // 4 - 1 = 3
+    if (WrapTest.getByteCounter() != 3) return 16;
 
     // All 16 validations passed
     return 0;

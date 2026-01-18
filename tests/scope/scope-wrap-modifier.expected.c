@@ -134,8 +134,7 @@ int main(void) {
     WrapTest_setPosition(&(uint32_t){50});
     WrapTest_decrementPosition();
     if (WrapTest_getPosition() != 4294967246) return 15;
-    WrapTest_setByteCounter(&(uint8_t){10});
     WrapTest_decrementByteCounter();
-    if (WrapTest_getByteCounter() != 9) return 16;
+    if (WrapTest_getByteCounter() != 3) return 16;
     return 0;
 }

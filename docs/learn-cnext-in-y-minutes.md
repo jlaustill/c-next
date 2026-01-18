@@ -1423,6 +1423,26 @@ scope Teensy4 {
 // - Avoid conflicts with HAL headers (e.g., Teensy's imxrt.h defines GPIO7_DR)
 // - Group platform-specific registers, constants, and functions
 // - Support multiple platform configurations in same codebase
+
+// [DONE] Scope variables persist like C static variables
+// Initialized once at program start, maintain value across calls
+scope Counter {
+    u32 count <- 0;  // Initialized once
+
+    public void increment() {
+        this.count <- this.count + 1;
+    }
+
+    public u32 getCount() {
+        return this.count;
+    }
+}
+
+// Usage:
+Counter.increment();  // count: 0 -> 1
+Counter.increment();  // count: 1 -> 2
+Counter.increment();  // count: 2 -> 3
+Counter.getCount();   // returns 3
 ```
 
 ## Instance Pattern (C-Style OOP)
