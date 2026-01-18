@@ -1131,6 +1131,20 @@ export default class CodeGenerator implements IOrchestrator {
     output.push(" */");
     output.push("");
 
+    // Issue #230: Self-include for extern "C" linkage
+    // When file has public symbols and headers are being generated,
+    // include own header to ensure proper C linkage
+    if (
+      options?.generateHeaders &&
+      this.symbols!.hasPublicSymbols() &&
+      this.sourcePath
+    ) {
+      const basename = this.sourcePath.replace(/^.*[\\/]/, "");
+      const headerName = basename.replace(/\.cnx$|\.cnext$/, ".h");
+      output.push(`#include "${headerName}"`);
+      output.push("");
+    }
+
     // Pass through #include directives from source
     // C-Next does NOT hardcode any libraries - all includes must be explicit
     // ADR-043: Comments before first include become file-level comments

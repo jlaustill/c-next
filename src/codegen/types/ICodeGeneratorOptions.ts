@@ -8,6 +8,11 @@ interface ICodeGeneratorOptions {
   target?: string;
   /** ADR-010: Source file path for validating includes */
   sourcePath?: string;
+  /**
+   * Issue #230: When true, emit self-include for extern "C" linkage.
+   * Only set this when headers will actually be generated alongside the implementation.
+   */
+  generateHeaders?: boolean;
 }
 
 export default ICodeGeneratorOptions;

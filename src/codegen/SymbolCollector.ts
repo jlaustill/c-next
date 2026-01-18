@@ -539,6 +539,21 @@ class SymbolCollector {
     }
     return value;
   }
+
+  /**
+   * Issue #230: Check if any scope members are public (exported)
+   * Used to determine if a self-include header is needed for extern "C" linkage
+   */
+  hasPublicSymbols(): boolean {
+    for (const [, visibilityMap] of this._scopeMemberVisibility) {
+      for (const [, visibility] of visibilityMap) {
+        if (visibility === "public") {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }
 
 export default SymbolCollector;

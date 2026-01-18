@@ -565,6 +565,8 @@ class Pipeline {
         {
           debugMode: this.config.debugMode,
           target: this.config.target,
+          sourcePath: file.path, // Issue #230: For self-include header generation
+          generateHeaders: this.config.generateHeaders, // Issue #230: Enable self-include when headers are generated
         },
       );
 
@@ -724,6 +726,7 @@ class Pipeline {
       workingDir?: string; // For resolving relative #includes
       includeDirs?: string[]; // Additional include paths
       sourcePath?: string; // Optional source path for error messages
+      generateHeaders?: boolean; // Issue #230: Enable self-include for extern "C" tests
     },
   ): Promise<IFileResult> {
     const workingDir = options?.workingDir ?? process.cwd();
@@ -868,6 +871,8 @@ class Pipeline {
         {
           debugMode: this.config.debugMode,
           target: this.config.target,
+          sourcePath, // Issue #230: For self-include header generation
+          generateHeaders: options?.generateHeaders, // Issue #230: Enable self-include for extern "C" tests
         },
       );
 
