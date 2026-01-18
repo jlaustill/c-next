@@ -1,6 +1,6 @@
 {
   "name": "c-next",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "main": "src/index.ts",
   "bin": {
@@ -37,7 +37,7 @@
     "coverage:grammar:console": "tsx scripts/grammar-coverage.ts console",
     "unit": "vitest run",
     "unit:watch": "vitest",
-    "test:all": "npm run unit && npm test"
+    "test:all": "npm run unit && npm run test:q"
   },
   "keywords": [
     "c",
