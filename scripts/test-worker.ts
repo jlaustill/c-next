@@ -6,43 +6,16 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
-import { join, basename, dirname } from "path";
-import { execFileSync } from "child_process";
-import { tmpdir } from "os";
-import { randomBytes } from "crypto";
+import { join, dirname } from "path";
 import Pipeline from "../src/pipeline/Pipeline";
 import IFileResult from "../src/pipeline/types/IFileResult";
 
-interface ITools {
-  gcc: boolean;
-  cppcheck: boolean;
-  clangTidy: boolean;
-  misra: boolean;
-}
+// Import shared types
+import ITools from "./types/ITools";
+import ITestResult from "./types/ITestResult";
 
-interface ITestResult {
-  passed: boolean;
-  message?: string;
-  expected?: string;
-  actual?: string;
-  updated?: boolean;
-  skippedExec?: boolean;
-  noSnapshot?: boolean;
-  execError?: string;
-  warningError?: string;
-}
-
-/**
- * Check if source has test-no-warnings marker in block comment
- */
-function hasNoWarningsMarker(source: string): boolean {
-  return /\/\*\s*test-no-warnings\s*\*\//i.test(source);
-}
-
-interface IValidationResult {
-  valid: boolean;
-  message?: string;
-}
+// Import shared test utilities
+import TestUtils from "./test-utils";
 
 interface IInitMessage {
   type: "init";
@@ -65,324 +38,7 @@ type TWorkerMessage = IInitMessage | ITestMessage | IExitMessage;
 let rootDir: string;
 let tools: ITools;
 
-/**
- * Normalize output for comparison
- */
-function normalize(str: string): string {
-  return str
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .join("\n")
-    .trim();
-}
-
-/**
- * Issue #208: Check if a C file includes headers requiring C++14 support
- * Detects typed enums: enum Name : type { ... }
- */
-function requiresCpp14(cFile: string): boolean {
-  try {
-    const cCode = readFileSync(cFile, "utf-8");
-    const cFileDir = dirname(cFile);
-
-    // Find all #include "local_header.h" directives
-    const includePattern = /#include\s+"([^"]+)"/g;
-    let match;
-
-    while ((match = includePattern.exec(cCode)) !== null) {
-      const headerPath = join(cFileDir, match[1]);
-      if (existsSync(headerPath)) {
-        const headerContent = readFileSync(headerPath, "utf-8");
-        // Check for C++14 typed enum syntax: enum Name : type {
-        if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(headerContent)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Validate that a C file compiles without errors
- * Issue #208: Detects C++14 headers and uses g++ when needed
- */
-function validateCompilation(cFile: string): IValidationResult {
-  const useCpp = requiresCpp14(cFile);
-  const compiler = useCpp ? "g++" : "gcc";
-  const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
-
-  try {
-    execFileSync(
-      compiler,
-      [
-        "-fsyntax-only",
-        stdFlag,
-        "-Wno-unused-variable",
-        "-Wno-main",
-        "-I",
-        join(rootDir, "tests/include"),
-        cFile,
-      ],
-      { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
-    );
-    return { valid: true };
-  } catch (error: unknown) {
-    const err = error as { stderr?: string; stdout?: string; message: string };
-    const output = err.stderr || err.stdout || err.message;
-    const errors = output
-      .split("\n")
-      .filter((line) => line.includes("error:"))
-      .map((line) => line.replace(cFile + ":", ""))
-      .slice(0, 5)
-      .join("\n");
-    return {
-      valid: false,
-      message: errors || "Compilation failed",
-    };
-  }
-}
-
-/**
- * Validate that a C file passes cppcheck static analysis
- */
-function validateCppcheck(cFile: string): IValidationResult {
-  try {
-    execFileSync(
-      "cppcheck",
-      [
-        "--error-exitcode=1",
-        "--enable=warning,performance",
-        "--suppress=unusedFunction",
-        "--suppress=missingIncludeSystem",
-        "--suppress=unusedVariable",
-        "--quiet",
-        cFile,
-      ],
-      { encoding: "utf-8", timeout: 90000, stdio: "pipe" },
-    );
-    return { valid: true };
-  } catch (error: unknown) {
-    const err = error as { stderr?: string; stdout?: string; message: string };
-    const output = err.stderr || err.stdout || err.message;
-    const issues = output
-      .split("\n")
-      .filter((line) => line.trim().length > 0)
-      .slice(0, 5)
-      .join("\n");
-    return {
-      valid: false,
-      message: issues || "Cppcheck failed",
-    };
-  }
-}
-
-/**
- * Validate that a C file passes clang-tidy analysis
- */
-function validateClangTidy(cFile: string): IValidationResult {
-  try {
-    execFileSync(
-      "clang-tidy",
-      [cFile, "--", "-std=c99", "-Wno-unused-variable"],
-      { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
-    );
-    return { valid: true };
-  } catch (error: unknown) {
-    const err = error as { stderr?: string; stdout?: string; message: string };
-    const output = err.stderr || err.stdout || err.message;
-    const issues = output
-      .split("\n")
-      .filter((line) => line.includes("warning:") || line.includes("error:"))
-      .slice(0, 5)
-      .join("\n");
-    if (issues.includes("error:")) {
-      return {
-        valid: false,
-        message: issues || "Clang-tidy failed",
-      };
-    }
-    return { valid: true };
-  }
-}
-
-/**
- * Validate that a C file passes MISRA C compliance check
- */
-function validateMisra(cFile: string): IValidationResult {
-  try {
-    execFileSync(
-      "cppcheck",
-      [
-        "--addon=misra",
-        "--error-exitcode=1",
-        "--suppress=missingIncludeSystem",
-        "--suppress=unusedFunction",
-        "--quiet",
-        "-I",
-        join(rootDir, "tests/include"),
-        cFile,
-      ],
-      { encoding: "utf-8", timeout: 60000, stdio: "pipe" },
-    );
-    return { valid: true };
-  } catch (error: unknown) {
-    const err = error as { stderr?: string; stdout?: string; message: string };
-    const output = err.stderr || err.stdout || err.message;
-    const issues = output
-      .split("\n")
-      .filter((line) => line.includes("misra") || line.includes("MISRA"))
-      .slice(0, 5)
-      .join("\n");
-    return {
-      valid: false,
-      message: issues || "MISRA check failed",
-    };
-  }
-}
-
-/**
- * Validate that a C file compiles without any warnings
- * Uses gcc with -Werror to treat all warnings as errors
- */
-function validateNoWarnings(cFile: string): IValidationResult {
-  try {
-    const useCpp = requiresCpp14(cFile);
-    const compiler = useCpp ? "g++" : "gcc";
-    const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
-
-    execFileSync(
-      compiler,
-      [
-        "-fsyntax-only",
-        stdFlag,
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wno-unused-variable",
-        "-Wno-main",
-        "-I",
-        join(rootDir, "tests/include"),
-        cFile,
-      ],
-      { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
-    );
-    return { valid: true };
-  } catch (error: unknown) {
-    const err = error as { stderr?: string; stdout?: string; message: string };
-    const output = err.stderr || err.stdout || err.message;
-    const warnings = output
-      .split("\n")
-      .filter((line) => line.includes("warning:") || line.includes("error:"))
-      .map((line) => line.replace(cFile + ":", ""))
-      .slice(0, 5)
-      .join("\n");
-    return {
-      valid: false,
-      message: warnings || "Compilation produced warnings",
-    };
-  }
-}
-
-/**
- * Get a unique path for a test executable
- */
-function getExecutablePath(cnxFile: string): string {
-  const testName = basename(cnxFile, ".test.cnx");
-  const uniqueId = randomBytes(4).toString("hex");
-  return join(tmpdir(), `cnx-test-${testName}-${uniqueId}`);
-}
-
-/**
- * Check if generated C code requires ARM runtime
- */
-function requiresArmRuntime(cCode: string): boolean {
-  return (
-    cCode.includes("cmsis_gcc.h") ||
-    cCode.includes("__LDREX") ||
-    cCode.includes("__STREX") ||
-    cCode.includes("__get_PRIMASK") ||
-    cCode.includes("__set_PRIMASK") ||
-    cCode.includes("__disable_irq") ||
-    cCode.includes("__enable_irq")
-  );
-}
-
-/**
- * Compile and execute a C file
- * Issue #208: Detects C++14 headers and uses g++ when needed
- */
-function executeTest(
-  cFile: string,
-  expectedExitCode: number = 0,
-): IValidationResult {
-  const execPath = getExecutablePath(cFile);
-  const useCpp = requiresCpp14(cFile);
-  const compiler = useCpp ? "g++" : "gcc";
-  const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
-
-  try {
-    execFileSync(
-      compiler,
-      [
-        stdFlag,
-        "-Wno-unused-variable",
-        "-Wno-main",
-        "-I",
-        join(rootDir, "tests/include"),
-        "-o",
-        execPath,
-        cFile,
-      ],
-      { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
-    );
-
-    try {
-      execFileSync(execPath, [], {
-        encoding: "utf-8",
-        timeout: 5000,
-        stdio: "pipe",
-      });
-
-      if (expectedExitCode !== 0) {
-        return {
-          valid: false,
-          message: `Expected exit ${expectedExitCode}, got 0`,
-        };
-      }
-      return { valid: true };
-    } catch (execError: unknown) {
-      const err = execError as { status?: number };
-      const actualCode = err.status || 1;
-
-      if (actualCode === expectedExitCode) {
-        return { valid: true };
-      }
-
-      return {
-        valid: false,
-        message: `Expected exit 0, got ${actualCode}`,
-      };
-    }
-  } catch (compileError: unknown) {
-    const err = compileError as { stderr?: string; message: string };
-    const output = err.stderr || err.message;
-    return {
-      valid: false,
-      message: `Compile failed: ${output.split("\n")[0]}`,
-    };
-  } finally {
-    try {
-      if (existsSync(execPath)) {
-        unlinkSync(execPath);
-      }
-    } catch {
-      // Ignore cleanup errors
-    }
-  }
-}
+// All validation functions imported from ./test-utils
 
 /**
  * Run a single test
@@ -435,7 +91,9 @@ async function runTest(
       return { passed: true, message: "Updated error snapshot", updated: true };
     }
 
-    if (normalize(actualErrors) === normalize(expectedErrors)) {
+    if (
+      TestUtils.normalize(actualErrors) === TestUtils.normalize(expectedErrors)
+    ) {
       return { passed: true };
     }
 
@@ -468,11 +126,15 @@ async function runTest(
       return { passed: true, message: "Updated C snapshot", updated: true };
     }
 
-    if (normalize(result.code) === normalize(expectedC)) {
+    if (TestUtils.normalize(result.code) === TestUtils.normalize(expectedC)) {
       // Snapshot matches - run all validation steps
 
       if (tools.gcc) {
-        const compileResult = validateCompilation(expectedCFile);
+        const compileResult = TestUtils.validateCompilation(
+          expectedCFile,
+          tools,
+          rootDir,
+        );
         if (!compileResult.valid) {
           return {
             passed: false,
@@ -483,7 +145,7 @@ async function runTest(
       }
 
       if (tools.cppcheck) {
-        const cppcheckResult = validateCppcheck(expectedCFile);
+        const cppcheckResult = TestUtils.validateCppcheck(expectedCFile);
         if (!cppcheckResult.valid) {
           return {
             passed: false,
@@ -494,7 +156,7 @@ async function runTest(
       }
 
       if (tools.clangTidy) {
-        const clangTidyResult = validateClangTidy(expectedCFile);
+        const clangTidyResult = TestUtils.validateClangTidy(expectedCFile);
         if (!clangTidyResult.valid) {
           return {
             passed: false,
@@ -505,7 +167,7 @@ async function runTest(
       }
 
       if (tools.misra) {
-        const misraResult = validateMisra(expectedCFile);
+        const misraResult = TestUtils.validateMisra(expectedCFile, rootDir);
         if (!misraResult.valid) {
           return {
             passed: false,
@@ -516,8 +178,11 @@ async function runTest(
       }
 
       // No-warnings check if marker present
-      if (hasNoWarningsMarker(source)) {
-        const noWarningsResult = validateNoWarnings(expectedCFile);
+      if (TestUtils.hasNoWarningsMarker(source)) {
+        const noWarningsResult = TestUtils.validateNoWarnings(
+          expectedCFile,
+          rootDir,
+        );
         if (!noWarningsResult.valid) {
           return {
             passed: false,
@@ -529,11 +194,11 @@ async function runTest(
 
       // Execution test if marker present
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
-        if (requiresArmRuntime(result.code)) {
+        if (TestUtils.requiresArmRuntime(result.code)) {
           return { passed: true, skippedExec: true };
         }
 
-        const execResult = executeTest(expectedCFile, 0);
+        const execResult = TestUtils.executeTest(expectedCFile, rootDir, 0);
         if (!execResult.valid) {
           return {
             passed: false,
@@ -552,8 +217,8 @@ async function runTest(
       writeFileSync(tempCFile, result.code);
 
       try {
-        if (!requiresArmRuntime(result.code)) {
-          const execResult = executeTest(tempCFile, 0);
+        if (!TestUtils.requiresArmRuntime(result.code)) {
+          const execResult = TestUtils.executeTest(tempCFile, rootDir, 0);
           if (!execResult.valid) {
             return {
               passed: false,
