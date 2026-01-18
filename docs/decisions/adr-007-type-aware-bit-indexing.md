@@ -300,6 +300,66 @@ namespace LED {
 }
 ```
 
+### Array Slice Assignment (Issue #234)
+
+The `[offset, length]` syntax has a different meaning when applied to arrays versus scalars:
+
+| Context                | Syntax                            | Meaning                   |
+| ---------------------- | --------------------------------- | ------------------------- |
+| Scalar (u8, u32, etc.) | `value[start, width]`             | Bit range manipulation    |
+| Array (u8[], string)   | `buffer[offset, length] <- value` | Byte memory copy (memcpy) |
+
+**Array Slice Syntax:**
+
+```cnx
+u8 packet[256];
+u32 magic <- 0x12345678;
+
+// Copy 4 bytes from magic into packet at offset 0
+packet[0, 4] <- magic;
+
+// Using const variables for named offsets (common pattern)
+const u32 HEADER_OFFSET <- 0;
+const u32 DATA_OFFSET <- 8;
+packet[HEADER_OFFSET, 4] <- magic;
+packet[DATA_OFFSET, 8] <- timestamp;
+```
+
+**Generated C:**
+
+```c
+memcpy(&packet[0], &magic, 4);
+memcpy(&packet[8], &timestamp, 8);
+```
+
+**Issue #234: Compile-Time Safety Requirements**
+
+As of Issue #234, array slice assignment enforces strict compile-time safety:
+
+1. **Offset must be compile-time constant** — Variables not allowed
+2. **Length must be compile-time constant** — Variables not allowed
+3. **Bounds checked at compile time** — `offset + length <= capacity`
+4. **1D arrays only** — Multi-dimensional arrays must access innermost dimension first
+
+```cnx
+// VALID: Compile-time constants
+packet[0, 4] <- magic;
+packet[HEADER_OFFSET, 4] <- magic;  // const variable
+
+// INVALID: Runtime offset (compile error)
+u32 offset <- 0;
+packet[offset, 4] <- magic;  // ERROR: offset must be compile-time constant
+
+// INVALID: Multi-dimensional array outer dimension
+u8 board[4][8];
+board[0, 4] <- magic;  // ERROR: slice only valid on 1D arrays
+// Future: board[0][0, 4] <- magic;  // Would slice row 0
+```
+
+**Rationale:**
+
+The previous implementation used runtime bounds checking which could silently skip operations when bounds were violated. This led to subtle bugs where code appeared to work but produced incorrect results (e.g., incorrect CRC checksums due to skipped writes). By enforcing compile-time validation, these bugs become compile-time errors.
+
 ---
 
 ## Success Criteria
@@ -310,6 +370,9 @@ namespace LED {
 4. `flags.length` returns bit width as compile-time constant
 5. Bit access works with register members
 6. blink.cnx works on Teensy MicroMod with new syntax
+7. `packet[0, 4] <- value` generates direct memcpy (Issue #234)
+8. Runtime offsets in slice assignment produce compile-time errors (Issue #234)
+9. Multi-dimensional array outer-dimension slicing produces compile-time errors (Issue #234)
 
 ---
 

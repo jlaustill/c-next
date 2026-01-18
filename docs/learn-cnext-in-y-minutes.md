@@ -637,14 +637,18 @@ u8 data[2][3] <- [
 // u8 bad[4][8];
 // bad[5][0] <- 1;  // ERROR: index 5 >= dimension 4
 
-// [DONE] Slice assignment - multi-byte memory copy with bounds checking
+// [DONE] Slice assignment - multi-byte memory copy with compile-time bounds checking
+// Issue #234: Offset and length MUST be compile-time constants for safety
 u8 packet[256];
 u32 magic <- 0x12345678;
-u8 length <- 4;
-u32 offset <- 0;
 
-// Copy 'length' bytes from 'magic' into 'packet' starting at 'offset'
-packet[offset, length] <- magic;  // Generates bounds-checked memcpy
+// Copy 4 bytes from 'magic' into 'packet' at offset 0
+packet[0, 4] <- magic;  // Compile-time validated, generates direct memcpy
+
+// Using const variables for named offsets (common pattern)
+const u32 OFFSET_MAGIC <- 0;
+const u32 OFFSET_VERSION <- 4;
+const u32 OFFSET_FLAGS <- 6;
 
 // Works with struct fields (binary serialization)
 struct Header {
@@ -658,28 +662,36 @@ hdr.magic <- 0x43534E58;
 hdr.version <- 0x0100;
 hdr.flags <- 0x0F;
 
-// Serialize struct fields into buffer
-packet[0, 4] <- hdr.magic;    // Copy 4 bytes at offset 0
-packet[4, 2] <- hdr.version;  // Copy 2 bytes at offset 4
-packet[6, 1] <- hdr.flags;    // Copy 1 byte at offset 6
+// Serialize struct fields into buffer with named offsets
+packet[OFFSET_MAGIC, 4] <- hdr.magic;      // Copy 4 bytes at offset 0
+packet[OFFSET_VERSION, 2] <- hdr.version;  // Copy 2 bytes at offset 4
+packet[OFFSET_FLAGS, 1] <- hdr.flags;      // Copy 1 byte at offset 6
+
+// ERROR: Runtime offsets are NOT allowed (Issue #234)
+// u32 offset <- 0;
+// packet[offset, 4] <- magic;  // ERROR: offset must be compile-time constant
+
+// ERROR: Slice on multi-dimensional arrays outer dimension
+// u8 board[4][8];
+// board[0, 4] <- magic;  // ERROR: slice only valid on 1D arrays
 
 // Distinction from bit operations:
 // - Arrays: buffer[offset, length] <- value  → memcpy (byte copy)
 // - Scalars: flags[start, width] <- value    → bit manipulation
 ```
 
-Transpiles to runtime bounds-checked code:
+Transpiles to direct memcpy (bounds validated at compile time):
 
 ```c
-if (offset + length <= sizeof(packet)) {
-    memcpy(&packet[offset], &magic, length);
-}
+memcpy(&packet[0], &magic, 4);
 ```
 
 **Key Features:**
 
-- Runtime bounds checking prevents buffer overflows
-- Enables binary protocol implementation and serialization
+- **Compile-time bounds validation** prevents buffer overflows at compile time, not runtime
+- Offset and length must be compile-time constants (literals or `const` variables)
+- Multi-dimensional array slicing only allowed on innermost dimension
+- Silent runtime failures are now compile-time errors (Issue #234)
 - Distinct semantics: array slices = memory copy, scalar slices = bit operations
 
 ## Strings [DONE]

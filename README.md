@@ -303,36 +303,38 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 
 ### Slice Assignment for Memory Operations
 
-Multi-byte copying with bounds-checked `memcpy` generation:
+Multi-byte copying with compile-time validated `memcpy` generation (Issue #234):
 
 ```cnx
 u8 buffer[256];
 u32 magic <- 0x12345678;
-u8 length <- 4;
-u32 offset <- 0;
 
-// Copy 4 bytes from value into buffer at offset
-buffer[offset, length] <- magic;
+// Copy 4 bytes from value into buffer at offset 0
+buffer[0, 4] <- magic;
+
+// Named offsets using const variables
+const u32 HEADER_OFFSET <- 0;
+const u32 DATA_OFFSET <- 8;
+buffer[HEADER_OFFSET, 4] <- magic;
+buffer[DATA_OFFSET, 8] <- timestamp;
 ```
 
-Transpiles to runtime bounds-checked code:
+Transpiles to direct memcpy (bounds validated at compile time):
 
 ```c
 uint8_t buffer[256] = {0};
 uint32_t magic = 0x12345678;
-uint8_t length = 4;
-uint32_t offset = 0;
 
-if (offset + length <= sizeof(buffer)) {
-    memcpy(&buffer[offset], &magic, length);
-}
+memcpy(&buffer[0], &magic, 4);
+memcpy(&buffer[8], &timestamp, 8);
 ```
 
 **Key Features:**
 
-- Runtime bounds checking prevents buffer overflows
-- Enables binary serialization and protocol implementation
-- Works with struct fields: `buffer[offset, len] <- config.magic`
+- **Compile-time bounds checking** prevents buffer overflows at compile time
+- Offset and length must be compile-time constants (literals or `const` variables)
+- Silent runtime failures are now compile-time errors
+- Works with struct fields: `buffer[0, 4] <- config.magic`
 - Distinct from bit operations: array slices use `memcpy`, scalar bit ranges use bit manipulation
 
 ### Scopes (ADR-016)

@@ -5624,6 +5624,21 @@ export default class CodeGenerator implements IOrchestrator {
 
           const line = exprs[0].start?.line ?? arrayAccessCtx.start?.line ?? 0;
 
+          // Issue #234: Reject slice assignment on multi-dimensional arrays
+          // Slice assignment is only valid on 1D arrays (the innermost dimension)
+          // For multi-dimensional arrays like board[4][8], use board[row][offset, length]
+          // (Note: grammar currently doesn't support this - tracked as future work)
+          if (
+            typeInfo?.arrayDimensions &&
+            typeInfo.arrayDimensions.length > 1
+          ) {
+            throw new Error(
+              `${line}:0 Error: Slice assignment is only valid on one-dimensional arrays. ` +
+                `'${name}' has ${typeInfo.arrayDimensions.length} dimensions. ` +
+                `Access the innermost dimension first (e.g., ${name}[index][offset, length]).`,
+            );
+          }
+
           // Validate offset is compile-time constant
           if (offsetValue === undefined) {
             throw new Error(
