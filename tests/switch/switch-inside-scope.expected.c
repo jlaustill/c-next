@@ -10,10 +10,10 @@
 uint32_t globalResult = 0;
 
 /* Scope: CommandProcessor */
-static uint32_t CommandProcessor_lastCommand = 0;
 static uint32_t CommandProcessor_result = 0;
 
 void CommandProcessor_execute(uint32_t* command) {
+    uint32_t CommandProcessor_lastCommand = 0;
     CommandProcessor_lastCommand = (*command);
     switch ((*command)) {
         case 1: {
@@ -40,7 +40,6 @@ uint32_t CommandProcessor_getResult(void) {
 }
 
 /* Scope: Calculator */
-static uint32_t Calculator_mode = 0;
 static uint32_t Calculator_a = 0;
 static uint32_t Calculator_b = 0;
 static uint32_t Calculator_output = 0;
@@ -51,6 +50,7 @@ void Calculator_setOperands(uint32_t* x, uint32_t* y) {
 }
 
 void Calculator_compute(uint32_t* operation) {
+    uint32_t Calculator_mode = 0;
     Calculator_mode = (*operation);
     switch ((*operation)) {
         case 0: {

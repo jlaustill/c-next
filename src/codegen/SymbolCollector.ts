@@ -5,6 +5,7 @@
  * Issue #60: Extracted from CodeGenerator for better separation of concerns.
  */
 
+import { ParserRuleContext } from "antlr4ng";
 import * as Parser from "../parser/grammar/CNextParser";
 import BITMAP_SIZE from "./types/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "./types/BITMAP_BACKING_TYPE";
@@ -57,6 +58,16 @@ class SymbolCollector {
 
   // For scope context during collection (used by getTypeName)
   private _collectingScope: string | null = null;
+
+  // Issue #232: Track which scope variables are used in which functions
+  // Maps "ScopeName_varName" -> Set of function names that use it
+  private _scopeVariableUsage: Map<string, Set<string>> = new Map();
+
+  // Store function declarations for usage analysis
+  private _scopeFunctionBodies: Map<
+    string,
+    Parser.FunctionDeclarationContext[]
+  > = new Map();
 
   // Readonly public accessors
   get knownScopes(): ReadonlySet<string> {
@@ -141,6 +152,30 @@ class SymbolCollector {
 
   get registerMemberCTypes(): ReadonlyMap<string, string> {
     return this._registerMemberCTypes;
+  }
+
+  // Issue #232: Getter for scope variable usage analysis
+  get scopeVariableUsage(): ReadonlyMap<string, Set<string>> {
+    return this._scopeVariableUsage;
+  }
+
+  /**
+   * Issue #232: Check if a scope variable is used in only one function.
+   * Returns the function name if single-function, null otherwise.
+   */
+  getSingleFunctionForVariable(
+    scopeName: string,
+    varName: string,
+  ): string | null {
+    const fullVarName = `${scopeName}_${varName}`;
+    const usedIn = this._scopeVariableUsage.get(fullVarName);
+
+    if (!usedIn || usedIn.size !== 1) {
+      return null;
+    }
+
+    // Extract the single element from the Set (we know it exists since size === 1)
+    return [...usedIn][0];
   }
 
   /**
@@ -259,6 +294,12 @@ class SymbolCollector {
         const funcName = funcDecl.IDENTIFIER().getText();
         members.add(funcName);
         memberVisibility.set(funcName, visibility);
+
+        // Issue #232: Store function for usage analysis
+        if (!this._scopeFunctionBodies.has(name)) {
+          this._scopeFunctionBodies.set(name, []);
+        }
+        this._scopeFunctionBodies.get(name)!.push(funcDecl);
       }
 
       // ADR-017: Collect enums declared inside scopes
@@ -322,8 +363,141 @@ class SymbolCollector {
     this._scopeMembers.set(name, members);
     this._scopeMemberVisibility.set(name, memberVisibility);
 
+    // Issue #232: Analyze which functions use which scope variables
+    this.analyzeScopeVariableUsage(name, members);
+
     // Clear collecting scope
     this._collectingScope = null;
+  }
+
+  /**
+   * Issue #232: Analyze which scope variables are used in which functions.
+   * This enables making single-function variables local instead of file-scope.
+   */
+  private analyzeScopeVariableUsage(
+    scopeName: string,
+    members: Set<string>,
+  ): void {
+    const functions = this._scopeFunctionBodies.get(scopeName);
+    if (!functions) return;
+
+    // Collect all variable names (non-function members)
+    const variableNames = new Set<string>();
+    for (const member of members) {
+      // Check if this is a function by seeing if we have it in the function list
+      const isFuncMember = functions.some(
+        (f) => f.IDENTIFIER().getText() === member,
+      );
+      if (!isFuncMember) {
+        variableNames.add(member);
+      }
+    }
+
+    // For each function, find which variables it references
+    for (const funcDecl of functions) {
+      const funcName = funcDecl.IDENTIFIER().getText();
+      const block = funcDecl.block();
+      if (!block) continue;
+
+      // Find all this.varName references in the function body
+      const usedVars = this.findScopedMemberReferences(block, variableNames);
+
+      // Record usage
+      for (const varName of usedVars) {
+        const fullVarName = `${scopeName}_${varName}`;
+        if (!this._scopeVariableUsage.has(fullVarName)) {
+          this._scopeVariableUsage.set(fullVarName, new Set());
+        }
+        this._scopeVariableUsage.get(fullVarName)!.add(funcName);
+      }
+    }
+  }
+
+  /**
+   * Issue #232: Recursively find all this.varName references in an AST node.
+   * Returns a set of variable names that are referenced.
+   *
+   * `this.temp` parses as PostfixExpressionContext with:
+   * - primaryExpression: 'this'
+   * - postfixOp[0]: '.temp'
+   */
+  private findScopedMemberReferences(
+    node: ParserRuleContext,
+    variableNames: Set<string>,
+  ): Set<string> {
+    const found = new Set<string>();
+
+    // Check if this node is a PostfixExpression with 'this' primary
+    if (node instanceof Parser.PostfixExpressionContext) {
+      const primary = node.primaryExpression();
+      if (primary && primary.getText() === "this") {
+        // Get the first postfixOp - it should be .memberName
+        const ops = node.postfixOp();
+        if (ops.length > 0) {
+          const firstOp = ops[0];
+          const identifier = firstOp.IDENTIFIER();
+          if (identifier) {
+            const memberName = identifier.getText();
+            if (variableNames.has(memberName)) {
+              found.add(memberName);
+            }
+          }
+        }
+      }
+    }
+
+    // Also check thisAccess, thisMemberAccess, thisArrayAccess in lvalue context
+    if (node instanceof Parser.ThisAccessContext) {
+      const identifier = node.IDENTIFIER();
+      if (identifier) {
+        const memberName = identifier.getText();
+        if (variableNames.has(memberName)) {
+          found.add(memberName);
+        }
+      }
+    }
+
+    if (node instanceof Parser.ThisMemberAccessContext) {
+      // First IDENTIFIER after 'this.'
+      const identifiers = node.IDENTIFIER();
+      if (identifiers.length > 0) {
+        const firstMember = identifiers[0].getText();
+        if (variableNames.has(firstMember)) {
+          found.add(firstMember);
+        }
+      }
+    }
+
+    if (node instanceof Parser.ThisArrayAccessContext) {
+      // First IDENTIFIER after 'this.'
+      const identifiers = node.IDENTIFIER();
+      if (identifiers.length > 0) {
+        const firstMember = identifiers[0].getText();
+        if (variableNames.has(firstMember)) {
+          found.add(firstMember);
+        }
+      }
+    }
+
+    // Recursively check all children using .children property.
+    // Type assertion needed because antlr4ng's ParserRuleContext doesn't expose
+    // .children in its public type definitions, but it exists at runtime.
+    const children = (node as { children?: unknown[] }).children;
+    if (children) {
+      for (const child of children) {
+        if (child instanceof ParserRuleContext) {
+          const childFound = this.findScopedMemberReferences(
+            child,
+            variableNames,
+          );
+          for (const v of childFound) {
+            found.add(v);
+          }
+        }
+      }
+    }
+
+    return found;
   }
 
   /**

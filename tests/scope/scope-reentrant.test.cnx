@@ -1,0 +1,34 @@
+// test-execution
+// Tests: Scope variable reentrancy - single-function variables should be local
+//
+// Issue #232: Variables used in only ONE function become function-local,
+// making them reentrant. Variables used in multiple functions stay shared.
+
+// Pass a value through a global to avoid scope method call argument issue
+u32 call_arg <- 0;
+
+scope Reentrant {
+    // Each function has its OWN temp variable - both should become local
+    u32 outer_temp <- 0;  // Only used in outer() - should become local
+    u32 inner_temp <- 0;  // Only used in inner() - should become local
+
+    // inner() defined first to avoid forward reference in generated C
+    public u32 inner() {
+        this.inner_temp <- call_arg;  // Local to inner(), doesn't affect outer
+        return call_arg;
+    }
+
+    public u32 outer(u32 x) {
+        this.outer_temp <- x;  // Local to outer(), preserved across inner() call
+        // Call inner with x+100 via global
+        call_arg <- x + 100;
+        u32 inner_result <- this.inner();
+        return this.outer_temp;  // Should return x (10) because outer_temp is local
+    }
+}
+
+u32 main() {
+    u32 result <- Reentrant.outer(10);
+    if (result != 10) return 1;  // Now passes because outer_temp is local!
+    return 0;
+}

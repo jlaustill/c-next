@@ -1,0 +1,38 @@
+// test-execution
+// Tests: Scope variables used in MULTIPLE functions stay shared (file-scope static)
+//
+// Issue #232: Variables used in multiple functions intentionally share state.
+// This test verifies that multi-function variables work correctly as shared state.
+
+scope SharedState {
+    // counter is used in BOTH increment() and getCount() - stays file-scope static
+    u32 counter <- 0;
+
+    public void increment() {
+        this.counter <- this.counter + 1;
+    }
+
+    public u32 getCount() {
+        return this.counter;
+    }
+}
+
+u32 main() {
+    // counter starts at 0
+    if (SharedState.getCount() != 0) return 1;
+
+    // increment twice
+    SharedState.increment();
+    SharedState.increment();
+
+    // counter should now be 2 (shared across functions)
+    if (SharedState.getCount() != 2) return 2;
+
+    // increment once more
+    SharedState.increment();
+
+    // counter should now be 3
+    if (SharedState.getCount() != 3) return 3;
+
+    return 0;
+}

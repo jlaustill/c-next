@@ -21,7 +21,6 @@
 typedef uint8_t MotorFlags;
 
 /* Scope: MotorController */
-static uint32_t MotorController_DEFAULT_SPEED = 100;
 
 /* Register: MotorController_MOTOR_REG @ 0x40002000 */
 #define MotorController_MOTOR_REG_CTRL (*(volatile MotorFlags*)(0x40002000 + 0x00))
@@ -30,6 +29,7 @@ static uint32_t MotorController_DEFAULT_SPEED = 100;
 
 
 void MotorController_start(void) {
+    uint32_t MotorController_DEFAULT_SPEED = 100;
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | (1 << 0);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7 << 3)) | ((3 & 0x7) << 3);
     MotorController_MOTOR_REG_SPEED = MotorController_DEFAULT_SPEED;
@@ -49,9 +49,9 @@ uint8_t MotorController_getMode(void) {
 #define Board_GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 #define Board_GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
-static uint32_t Board_LED_BIT = 3;
 
 void Board_toggleLed(void) {
+    uint32_t Board_LED_BIT = 3;
     Board_GPIO_DR_SET = (1 << Board_LED_BIT);
 }
 

@@ -34,43 +34,40 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
 // work correctly with scope variables accessed via this. accessor
 /* Scope: ModifierCombos */
-static uint8_t ModifierCombos_MAX_BRIGHTNESS = 255;
-static uint16_t ModifierCombos_MAX_SENSOR = 65535;
-static int8_t ModifierCombos_MIN_TEMP = -128;
-static uint8_t ModifierCombos_COUNTER_START = 0;
-static uint16_t ModifierCombos_TICK_START = 1000;
 uint8_t ModifierCombos_publicClampByte = 200;
 uint16_t ModifierCombos_publicClampWord = 60000;
 int8_t ModifierCombos_publicClampSigned = 100;
 static uint8_t ModifierCombos_privateClampByte = 50;
 static uint16_t ModifierCombos_privateClampWord = 10000;
-static int8_t ModifierCombos_privateClampSigned = -50;
 uint8_t ModifierCombos_publicWrapByte = 250;
 uint16_t ModifierCombos_publicWrapWord = 65530;
 static uint8_t ModifierCombos_privateWrapByte = 5;
 static uint16_t ModifierCombos_privateWrapWord = 100;
 uint8_t ModifierCombos_PUBLIC_CONST = 42;
 bool ModifierCombos_PUBLIC_FLAG = true;
-static uint8_t ModifierCombos_PRIVATE_CONST = 99;
-static bool ModifierCombos_PRIVATE_FLAG = false;
 
 uint8_t ModifierCombos_getMaxBrightness(void) {
+    uint8_t ModifierCombos_MAX_BRIGHTNESS = 255;
     return ModifierCombos_MAX_BRIGHTNESS;
 }
 
 uint16_t ModifierCombos_getMaxSensor(void) {
+    uint16_t ModifierCombos_MAX_SENSOR = 65535;
     return ModifierCombos_MAX_SENSOR;
 }
 
 int8_t ModifierCombos_getMinTemp(void) {
+    int8_t ModifierCombos_MIN_TEMP = -128;
     return ModifierCombos_MIN_TEMP;
 }
 
 uint8_t ModifierCombos_getCounterStart(void) {
+    uint8_t ModifierCombos_COUNTER_START = 0;
     return ModifierCombos_COUNTER_START;
 }
 
 uint16_t ModifierCombos_getTickStart(void) {
+    uint16_t ModifierCombos_TICK_START = 1000;
     return ModifierCombos_TICK_START;
 }
 
@@ -95,6 +92,7 @@ uint16_t ModifierCombos_getPrivateClampWord(void) {
 }
 
 int8_t ModifierCombos_getPrivateClampSigned(void) {
+    int8_t ModifierCombos_privateClampSigned = -50;
     return ModifierCombos_privateClampSigned;
 }
 
@@ -123,10 +121,12 @@ bool ModifierCombos_getPublicFlag(void) {
 }
 
 uint8_t ModifierCombos_getPrivateConst(void) {
+    uint8_t ModifierCombos_PRIVATE_CONST = 99;
     return ModifierCombos_PRIVATE_CONST;
 }
 
 bool ModifierCombos_getPrivateFlag(void) {
+    bool ModifierCombos_PRIVATE_FLAG = false;
     return ModifierCombos_PRIVATE_FLAG;
 }
 
