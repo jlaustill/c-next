@@ -1,0 +1,10 @@
+// ADR-046: NULL comparison on non-c_ variable
+#include <stdio.h>
+
+string<64> buffer;
+
+void test() {
+    if (buffer != NULL) { // ERROR: NULL comparison on non-c_ variable
+        printf("test");
+    }
+}
