@@ -48,6 +48,8 @@ import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
 import commentUtils from "./generators/support/CommentUtils";
+// ADR-046: NullCheckAnalyzer for nullable C pointer type detection
+import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -4149,9 +4151,36 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    const type = this._generateType(ctx.type());
+    let type = this._generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
+
+    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
+    // When variable has c_ prefix and is assigned from a nullable C function,
+    // the type needs to be a pointer (e.g., FILE -> FILE*)
+    if (name.startsWith("c_") && ctx.expression()) {
+      const exprText = ctx.expression()!.getText();
+      // Check if assigning from a nullable C function (like fopen)
+      for (const funcName of [
+        "fopen",
+        "freopen",
+        "tmpfile",
+        "strstr",
+        "strchr",
+        "strrchr",
+        "memchr",
+        "getenv",
+      ]) {
+        if (
+          exprText.includes(`${funcName}(`) &&
+          NullCheckAnalyzer.isNullableFunction(funcName)
+        ) {
+          // Add pointer asterisk for nullable C pointer types
+          type = `${type}*`;
+          break;
+        }
+      }
+    }
 
     // Track type for bit access and .length support
     // Note: Global variables already registered in registerAllVariableTypes() pass
