@@ -5,8 +5,7 @@ string<64> buffer;
 
 void handleEof() {
     // Using = NULL instead of != NULL
-    i8* result <- fgets(buffer, buffer.size, stdin);
-    if (result = NULL) {
+    if (fgets(buffer, buffer.size, stdin) = NULL) {
         // EOF or error occurred
         printf("End of input\n");
     }

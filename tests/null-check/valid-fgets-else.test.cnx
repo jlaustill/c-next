@@ -4,8 +4,7 @@
 string<128> line;
 
 void processLine() {
-    i8* result <- fgets(line, line.size, stdin);
-    if (result != NULL) {
+    if (fgets(line, line.size, stdin) != NULL) {
         printf("Read: %s", line);
     } else {
         printf("No more input\n");

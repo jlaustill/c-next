@@ -6,21 +6,17 @@ string<64> buffer;
 
 // Read lines until fgets returns NULL (EOF)
 void readAllLines() {
-    i8* result <- fgets(buffer, buffer.size, stdin);
-    while (result != NULL) {
+    while (fgets(buffer, buffer.size, stdin) != NULL) {
         // Process each line
         printf("Line: %s", buffer);
-        result <- fgets(buffer, buffer.size, stdin);
     }
 }
 
 // Alternative pattern with = NULL check
 void readUntilEmpty() {
-    i8* result <- fgets(buffer, buffer.size, stdin);
-    while (result = NULL) {
+    while (fgets(buffer, buffer.size, stdin) = NULL) {
         // This pattern exits on first NULL
         printf("Got NULL\n");
-        result <- fgets(buffer, buffer.size, stdin);
     }
 }
 

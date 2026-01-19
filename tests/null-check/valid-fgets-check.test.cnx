@@ -4,8 +4,7 @@
 string<64> buffer;
 
 void readInput() {
-    i8* result <- fgets(buffer, buffer.size, stdin);
-    if (result != NULL) {
+    if (fgets(buffer, buffer.size, stdin) != NULL) {
         printf("Got: %s", buffer);
     }
 }
