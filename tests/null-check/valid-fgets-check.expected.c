@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check pattern for fgets
+// ADR-046: Valid inline NULL check pattern for stream functions
 #include <stdio.h>
 
 #include <string.h>

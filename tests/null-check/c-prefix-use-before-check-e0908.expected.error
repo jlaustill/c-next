@@ -1,0 +1,1 @@
+6:11 error[E0908]: Variable 'c_file' must be NULL-checked before use

@@ -1,0 +1,9 @@
+// ADR-046: E0907 - NULL comparison on non-nullable variable
+#include <stdio.h>
+
+void badCompare() {
+    u32 x <- 5;
+    if (x != NULL) { // ERROR: x is not nullable
+        printf("not null\n");
+    }
+}

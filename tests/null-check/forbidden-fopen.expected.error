@@ -1,1 +1,1 @@
-5:4 error[E0902]: C library function 'fopen' returns a pointer - not supported in C-Next v1
+6:4 error[E0905]: Variable 'file' stores nullable C pointer from 'fopen' - must use 'c_' prefix

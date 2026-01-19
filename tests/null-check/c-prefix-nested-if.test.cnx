@@ -1,0 +1,18 @@
+// ADR-046: Valid nested control flow with c_ prefix
+// Tests that NULL check inside nested if is properly tracked
+#include <string.h>
+#include <stdio.h>
+
+string<64> haystack <- "Hello, World!";
+
+void nestedCheck() {
+    string c_found <- strstr(haystack, "World");
+    bool condition <- true;
+
+    if (condition) {
+        if (c_found != NULL) {
+            // c_found is NULL-checked in this branch
+            printf("Found: %s\n", c_found);
+        }
+    }
+}

@@ -1,4 +1,4 @@
-// ADR-047: NULL check with != operator
+// ADR-046: Stream functions still require inline NULL check (cannot store result)
 // Tests: checking for non-NULL before using result
 #include <stdio.h>
 

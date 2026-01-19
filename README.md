@@ -601,29 +601,36 @@ void enqueue(uint8_t data) {
 
 **Safety**: `return` inside `critical { }` is a compile error (E0853).
 
-### NULL for C Library Interop (ADR-047)
+### NULL for C Library Interop (ADR-046)
 
-Safe interop with C stream functions that can return NULL:
+Safe interop with C library functions that return nullable pointers:
 
 ```cnx
 #include <stdio.h>
 
+// Stream functions use inline NULL check
 string<64> buffer;
-
 void readInput() {
-    // NULL check is REQUIRED - compiler enforces it
     if (fgets(buffer, buffer.size, stdin) != NULL) {
         printf("Got: %s", buffer);
     }
 }
+
+// c_ prefix for stored nullable C pointers
+void processFile() {
+    FILE c_file <- fopen("data.txt", "r");  // c_ prefix required
+    if (c_file != NULL) {
+        fclose(c_file);
+    }
+}
 ```
 
-**Constraints:**
+**Key Rules:**
 
-- NULL only valid in comparison context (`!= NULL` or `= NULL`)
-- Only whitelisted stream functions: `fgets`, `fputs`, `fgetc`, `fputc`
-- Cannot store C pointer returns in variables
-- `fopen`, `malloc`, etc. are errors (see ADR-103 for future FILE\* support)
+- `c_` prefix required for variables storing nullable C returns (`fopen`, `getenv`, `strstr`, etc.)
+- Stream functions (`fgets`, `fputs`) must use inline NULL check pattern
+- `c_` prefixed variables must be NULL-checked before use (E0908)
+- `malloc`/`free` remain forbidden (ADR-003)
 
 ### Startup Allocation
 
@@ -698,7 +705,8 @@ Decisions are documented in `/docs/decisions/`:
 | [ADR-049](docs/decisions/adr-049-atomic-types.md)                     | Atomic Types            | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
 | [ADR-050](docs/decisions/adr-050-critical-sections.md)                | Critical Sections       | `critical { }` blocks with PRIMASK save/restore              |
 | [ADR-108](docs/decisions/adr-108-volatile-keyword.md)                 | Volatile Variables      | `volatile` keyword prevents compiler optimization            |
-| [ADR-047](docs/decisions/adr-047-nullable-types.md)                   | NULL for C Interop      | `NULL` keyword for C stream function comparisons             |
+| [ADR-046](docs/decisions/adr-046-nullable-c-interop.md)               | NULL for C Interop      | `c_` prefix for nullable C pointers + NULL check enforcement |
+| [ADR-047](docs/decisions/adr-047-nullable-types.md)                   | ~~NULL Keyword~~        | Superseded by ADR-046                                        |
 | [ADR-052](docs/decisions/adr-052-safe-numeric-literal-generation.md)  | Safe Numeric Literals   | `type_MIN`/`type_MAX` constants + safe hex conversion        |
 | [ADR-053](docs/decisions/adr-053-transpiler-pipeline-architecture.md) | Transpiler Pipeline     | Unified multi-pass pipeline with header symbol extraction    |
 

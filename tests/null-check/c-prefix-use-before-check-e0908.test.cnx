@@ -1,0 +1,7 @@
+// ADR-046: E0908 - Missing NULL check before use
+#include <stdio.h>
+
+void noCheck() {
+    FILE c_file <- fopen("test.txt", "r");
+    fclose(c_file); // ERROR: not NULL-checked
+}

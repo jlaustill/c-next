@@ -1,6 +1,7 @@
-// ADR-047: fopen is forbidden - returns FILE* not supported in v1
+// ADR-046: fopen without c_ prefix should error
+// fopen is now allowed with c_ prefix (see c-prefix-valid-fopen.test.cnx)
 #include <stdio.h>
 
 void openFile() {
-    fopen("test.txt", "r"); // ERROR: forbidden function
+    FILE file <- fopen("test.txt", "r"); // ERROR: missing c_ prefix
 }

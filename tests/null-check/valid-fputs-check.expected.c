@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check pattern for fputs
+// ADR-046: Valid inline check pattern for fputs (uses EOF not NULL)
 #include <stdio.h>
 
 #include <string.h>

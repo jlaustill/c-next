@@ -1,4 +1,4 @@
-// ADR-047: Valid NULL check pattern for fgetc
+// ADR-046: Valid inline check pattern for fgetc (uses EOF not NULL)
 #include <stdio.h>
 
 i32 readChar() {

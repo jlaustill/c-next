@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check with else branch
+// ADR-046: Valid inline NULL check with else branch
 #include <stdio.h>
 
 #include <string.h>

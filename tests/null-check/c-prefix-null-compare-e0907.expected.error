@@ -1,0 +1,1 @@
+6:8 error[E0907]: Cannot compare 'x' to NULL - only 'c_' prefixed variables can be NULL

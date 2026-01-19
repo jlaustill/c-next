@@ -1,0 +1,11 @@
+// ADR-046: Valid strstr with c_ prefix and NULL check
+#include <string.h>
+#include <stdio.h>
+
+void findSubstring() {
+    string<64> haystack <- "hello world";
+    string c_found <- strstr(haystack, "world");
+    if (c_found != NULL) {
+        printf("Found: %s\n", c_found);
+    }
+}

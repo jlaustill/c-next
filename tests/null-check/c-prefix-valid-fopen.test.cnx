@@ -1,0 +1,13 @@
+// ADR-046: Valid c_ prefix with strchr (character search)
+// strchr returns char* (NULL if not found), works with C-Next string type
+#include <string.h>
+#include <stdio.h>
+
+string<64> text <- "Hello, World!";
+
+void findChar() {
+    string c_result <- strchr(text, 'o');
+    if (c_result != NULL) {
+        printf("Found 'o' at: %s\n", c_result);
+    }
+}

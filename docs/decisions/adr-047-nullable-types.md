@@ -1,8 +1,13 @@
 # ADR-047: NULL Keyword for C Library Interop
 
-**Status:** Accepted
+**Status:** Superseded by ADR-046
 **Date:** 2026-01-06
+**Superseded Date:** 2026-01-19
 **Decision Makers:** C-Next Language Design Team
+
+> **Note:** This ADR has been superseded by [ADR-046: Nullable C Interop with c\_ Prefix](./adr-046-nullable-c-interop.md).
+> ADR-046 relaxes the restrictions on storing nullable returns by introducing the `c_` prefix convention,
+> which allows `fopen`, `getenv`, `strstr`, and other useful C functions while maintaining null safety.
 
 ## Context
 

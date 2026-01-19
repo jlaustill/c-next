@@ -1290,7 +1290,11 @@ void goodFunction() {
 
 ## NULL for C Library Interop [IMPLEMENTED]
 
-C-Next safely interoperates with C stream functions that return NULL (ADR-047):
+C-Next safely interoperates with C library functions that return NULL (ADR-046):
+
+### Stream Functions (Inline Check)
+
+Stream functions like `fgets` use the inline NULL check pattern:
 
 ```cnx
 // [DONE] Safe NULL checking for C stream functions
@@ -1307,32 +1311,95 @@ void readInput() {
 }
 ```
 
+### The c\_ Prefix (For Stored Nullable Pointers)
+
+For C functions like `fopen`, `getenv`, and `strstr` that return pointers you need to store, use the `c_` prefix:
+
+```cnx
+// [DONE] c_ prefix for nullable C pointer variables
+#include <stdio.h>
+#include <stdlib.h>
+
+void processFile() {
+    FILE c_file <- fopen("data.txt", "r");  // c_ prefix required
+    if (c_file != NULL) {
+        // Safe to use - NULL check performed
+        string<256> buffer;
+        while (fgets(buffer, buffer.size, c_file) != NULL) {
+            printf("%s", buffer);
+        }
+        fclose(c_file);
+    }
+}
+
+void checkEnv() {
+    string c_home <- getenv("HOME");  // c_ prefix required
+    if (c_home != NULL) {
+        printf("Home: %s\n", c_home);
+    }
+}
+```
+
 ### What's Allowed
 
 ```cnx
-// OK: NULL comparison with whitelisted stream functions
+// OK: Inline NULL comparison with stream functions
 if (fgets(buffer, buffer.size, stdin) != NULL) { ... }
-if (fputs("hello", stdout) = NULL) { ... }  // Note: = is equality in C-Next
+
+// OK: c_ prefix variables for nullable C returns
+FILE c_file <- fopen("test.txt", "r");
+if (c_file != NULL) {
+    fclose(c_file);
+}
 ```
 
 ### What's NOT Allowed
 
 ```cnx
-// ERROR E0901: Must check NULL
+// ERROR E0901: Stream function must be NULL-checked inline
 fgets(buffer, buffer.size, stdin);  // Missing NULL check!
-printf("Got: %s", buffer);
 
-// ERROR E0902: Forbidden function (returns FILE*)
-fopen("test.txt", "r");  // Not supported - see ADR-103
+// ERROR E0902: Dynamic allocation is forbidden (ADR-003)
+malloc(1024);  // Not allowed - use static allocation
 
 // ERROR E0903: NULL outside comparison
 u32 x <- NULL;  // NULL only valid in comparison
 
-// ERROR E0904: Cannot store C pointer returns
-string<64>? result <- fgets(...);  // No nullable types
+// ERROR E0904: Stream function result cannot be stored
+string result <- fgets(...);  // Must use inline check
+
+// ERROR E0905: Missing c_ prefix for nullable C type
+FILE file <- fopen("x.txt", "r");  // Needs c_ prefix!
+
+// ERROR E0906: Invalid c_ prefix on non-nullable type
+u32 c_count <- 0;  // u32 is not nullable
+
+// ERROR E0907: NULL comparison on non-nullable variable
+u32 x <- 5;
+if (x != NULL) { }  // C-Next variables can't be NULL
+
+// ERROR E0908: Missing NULL check before use
+FILE c_file <- fopen("x.txt", "r");
+fclose(c_file);  // Must check for NULL first!
 ```
 
-### Whitelisted Functions
+### Nullable C Functions (c\_ Prefix Required)
+
+| Function    | Returns      | NULL Meaning        | Header   |
+| ----------- | ------------ | ------------------- | -------- |
+| `fopen`     | `FILE*`      | File open failed    | stdio.h  |
+| `freopen`   | `FILE*`      | Reopen failed       | stdio.h  |
+| `tmpfile`   | `FILE*`      | Creation failed     | stdio.h  |
+| `getenv`    | `char*`      | Variable not set    | stdlib.h |
+| `strstr`    | `char*`      | Substring not found | string.h |
+| `strchr`    | `char*`      | Character not found | string.h |
+| `strrchr`   | `char*`      | Character not found | string.h |
+| `strpbrk`   | `char*`      | No match found      | string.h |
+| `memchr`    | `void*`      | Byte not found      | string.h |
+| `localtime` | `struct tm*` | Invalid time        | time.h   |
+| `gmtime`    | `struct tm*` | Invalid time        | time.h   |
+
+### Stream Functions (Inline Check)
 
 | Function | NULL Meaning | Header  |
 | -------- | ------------ | ------- |
@@ -1341,7 +1408,7 @@ string<64>? result <- fgets(...);  // No nullable types
 | `fgetc`  | EOF or error | stdio.h |
 | `fputc`  | Write error  | stdio.h |
 
-**Why constrained?** C-Next eliminates null bugs by design. This feature is a controlled exception for C interop only - maintaining safety while enabling practical stdio usage.
+**Why the c\_ prefix?** The prefix makes nullable variables visible at declaration, is self-documenting ("this is C interop"), and requires no type system changes. C-Next native types remain non-nullable by design.
 
 ## Register Bindings
 

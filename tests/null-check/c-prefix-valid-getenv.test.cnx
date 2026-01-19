@@ -1,0 +1,10 @@
+// ADR-046: Valid getenv with c_ prefix and NULL check
+#include <stdlib.h>
+#include <stdio.h>
+
+void checkEnv() {
+    string c_home <- getenv("HOME");
+    if (c_home != NULL) {
+        printf("Home: %s\n", c_home);
+    }
+}

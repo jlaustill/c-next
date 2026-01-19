@@ -1,0 +1,6 @@
+// ADR-046: E0906 - Invalid c_ prefix on non-nullable type
+#include <stdio.h>
+
+void badPrefix() {
+    u32 c_counter <- 0; // ERROR: u32 is not nullable
+}

@@ -1,0 +1,6 @@
+// ADR-046: E0905 - Missing c_ prefix for nullable C type
+#include <stdio.h>
+
+void openFile() {
+    FILE file <- fopen("test.txt", "r"); // ERROR: needs c_ prefix
+}

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check using = (equality) comparison
+// ADR-046: Valid NULL check using = (equality) comparison
 #include <stdio.h>
 
 #include <string.h>
