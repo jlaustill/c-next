@@ -3021,6 +3021,39 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #246: Check if an expression is a subscript access on a string variable.
+   * For example, buf[0] where buf is a string<N>.
+   * Used to determine when to cast char* to uint8_t* etc.
+   */
+  private isStringSubscriptAccess(ctx: Parser.ExpressionContext): boolean {
+    const postfix = this.getPostfixExpression(ctx);
+    if (!postfix) return false;
+
+    // Must have at least one postfix operator
+    const ops = postfix.postfixOp();
+    if (ops.length === 0) return false;
+
+    // Last operator must be array access [expression]
+    const lastOp = ops[ops.length - 1];
+    if (!lastOp.expression()) return false;
+
+    // Get the base identifier
+    const primary = postfix.primaryExpression();
+    const baseId = primary.IDENTIFIER()?.getText();
+    if (!baseId) return false;
+
+    // Check if the base is a string type in the type registry
+    const typeInfo = this.context.typeRegistry.get(baseId);
+    if (typeInfo?.isString) return true;
+
+    // Also check if it's a string parameter
+    const paramInfo = this.context.currentParameters.get(baseId);
+    if (paramInfo?.isString) return true;
+
+    return false;
+  }
+
+  /**
    * Check if an expression is a simple literal (number, bool, etc.)
    * Navigates: expression -> ternaryExpression -> orExpression -> ... -> primaryExpression -> literal
    */
@@ -3181,7 +3214,22 @@ export default class CodeGenerator implements IOrchestrator {
     const lvalueType = this.getLvalueType(ctx);
     if (lvalueType) {
       // Generate the expression and wrap with &
-      return `&${this._generateExpression(ctx)}`;
+      const expr = `&${this._generateExpression(ctx)}`;
+
+      // Issue #246: When passing string bytes to integer parameters,
+      // cast from char* to the appropriate integer pointer type
+      if (
+        lvalueType === "array" &&
+        targetParamBaseType &&
+        this.isStringSubscriptAccess(ctx)
+      ) {
+        const cType = TYPE_MAP[targetParamBaseType];
+        if (cType && !["float", "double", "bool", "void"].includes(cType)) {
+          return `(${cType}*)${expr}`;
+        }
+      }
+
+      return expr;
     }
 
     // Check if it's a literal being passed to a pointer parameter
