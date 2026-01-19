@@ -3216,8 +3216,9 @@ export default class CodeGenerator implements IOrchestrator {
       // Generate the expression and wrap with &
       const expr = `&${this._generateExpression(ctx)}`;
 
-      // Issue #246: When passing string bytes to integer parameters,
-      // cast from char* to the appropriate integer pointer type
+      // Issue #246: When passing string bytes to integer pointer parameters
+      // (C-Next's by-reference semantics), cast from char* to the appropriate
+      // integer pointer type to avoid signedness warnings
       if (
         lvalueType === "array" &&
         targetParamBaseType &&
