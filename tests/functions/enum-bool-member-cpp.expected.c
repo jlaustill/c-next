@@ -11,6 +11,7 @@
 #include "enum-bool-member-cpp.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 uint32_t process(uint32_t* crc, uint8_t* byte) {
     return (*crc) ^ (*byte);
@@ -18,18 +19,22 @@ uint32_t process(uint32_t* crc, uint8_t* byte) {
 
 uint32_t testEnumBoolMembers(SensorConfig* cfg) {
     uint32_t crc = 0;
-    crc = process(&crc, &(*cfg).enabled);
-    crc = process(&crc, &(*cfg).pressureType);
-    crc = process(&crc, &(*cfg).thermocoupleType);
-    crc = process(&crc, &(*cfg).value);
+    uint8_t _cnx_tmp_0 = static_cast<uint8_t>((*cfg).enabled);
+    crc = process(&crc, &_cnx_tmp_0);
+    uint8_t _cnx_tmp_1 = static_cast<uint8_t>((*cfg).pressureType);
+    crc = process(&crc, &_cnx_tmp_1);
+    uint8_t _cnx_tmp_2 = static_cast<uint8_t>((*cfg).thermocoupleType);
+    crc = process(&crc, &_cnx_tmp_2);
+    uint8_t _cnx_tmp_3 = static_cast<uint8_t>((*cfg).value);
+    crc = process(&crc, &_cnx_tmp_3);
     return crc;
 }
 
 int main(void) {
     SensorConfig cfg = {0};
-    cfg.enabled = 1;
-    cfg.pressureType = 2;
-    cfg.thermocoupleType = 1;
+    cfg.enabled = true;
+    cfg.pressureType = PRESSURE_HIGH;
+    cfg.thermocoupleType = TC_TYPE_J;
     cfg.value = 4;
     uint32_t result = testEnumBoolMembers(&cfg);
     if (result != 6) return 1;

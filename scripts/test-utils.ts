@@ -151,22 +151,33 @@ class TestUtils {
 
   /**
    * Validate that a C file passes cppcheck static analysis
+   * Auto-detects C++14 headers and uses --language=c++ when needed
    */
   static validateCppcheck(cFile: string): IValidationResult {
     try {
-      execFileSync(
-        "cppcheck",
-        [
-          "--error-exitcode=1",
-          "--enable=warning,performance",
-          "--suppress=unusedFunction",
-          "--suppress=missingIncludeSystem",
-          "--suppress=unusedVariable",
-          "--quiet",
-          cFile,
-        ],
-        { encoding: "utf-8", timeout: 90000, stdio: "pipe" },
-      );
+      // Issue #251/#252: Auto-detect C++14 headers and use C++ mode when needed
+      const useCpp = TestUtils.requiresCpp14(cFile);
+      const args = [
+        "--error-exitcode=1",
+        "--enable=warning,performance",
+        "--suppress=unusedFunction",
+        "--suppress=missingIncludeSystem",
+        "--suppress=unusedVariable",
+        "--quiet",
+      ];
+
+      if (useCpp) {
+        args.push("--language=c++");
+        args.push("--std=c++14");
+      }
+
+      args.push(cFile);
+
+      execFileSync("cppcheck", args, {
+        encoding: "utf-8",
+        timeout: 90000,
+        stdio: "pipe",
+      });
       return { valid: true };
     } catch (error: unknown) {
       const err = error as {
@@ -189,13 +200,18 @@ class TestUtils {
 
   /**
    * Validate that a C file passes clang-tidy analysis
+   * Auto-detects C++14 headers and uses -std=c++14 when needed
    */
   static validateClangTidy(cFile: string): IValidationResult {
     try {
+      // Issue #251/#252: Auto-detect C++14 headers and use C++ mode when needed
+      const useCpp = TestUtils.requiresCpp14(cFile);
+      const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
+
       // Run clang-tidy with safety and readability checks
       execFileSync(
         "clang-tidy",
-        [cFile, "--", "-std=c99", "-Wno-unused-variable"],
+        [cFile, "--", stdFlag, "-Wno-unused-variable"],
         { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
       );
       return { valid: true };
@@ -226,12 +242,18 @@ class TestUtils {
   /**
    * Validate that a C file passes MISRA C compliance check
    * Uses cppcheck's MISRA addon
+   * Note: MISRA C is only for C code, not C++. Skips validation for C++ files.
    *
    * @param cFile - Path to the C file
    * @param rootDir - Project root directory for include paths
    */
   static validateMisra(cFile: string, rootDir: string): IValidationResult {
     try {
+      // Issue #251/#252: Skip MISRA for C++ files (MISRA C is only for C code)
+      if (TestUtils.requiresCpp14(cFile)) {
+        return { valid: true };
+      }
+
       // Run cppcheck with MISRA addon
       // Include -I flag for tests/include to resolve stub headers
       execFileSync(

@@ -3050,6 +3050,57 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #251/#252: Check if a member access expression needs a temp variable in C++ mode.
+   *
+   * Returns true when passing struct member to function would fail C++ compilation:
+   * 1. Const struct parameter member -> non-const parameter (const T* -> T* invalid)
+   * 2. External C struct members of bool/enum type -> u8 parameter (type mismatch)
+   */
+  private needsCppMemberConversion(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): boolean {
+    if (!this.cppMode) return false;
+    if (!targetParamBaseType) return false;
+
+    const postfix = this.getPostfixExpression(ctx);
+    if (!postfix) return false;
+
+    // Get the base identifier (e.g., "cfg" in "cfg.value")
+    const primary = postfix.primaryExpression();
+    if (!primary) return false;
+    const baseId = primary.IDENTIFIER()?.getText();
+    if (!baseId) return false;
+
+    // Check if base is a parameter with a non-primitive type (could be struct from C header)
+    const paramInfo = this.context.currentParameters.get(baseId);
+    if (!paramInfo) return false;
+
+    // Check if the parameter type is a primitive type
+    const isPrimitiveParam = !!TYPE_MAP[paramInfo.baseType];
+
+    // If not a primitive type, it's either a known struct or an external C struct
+    // (typedef structs from C headers may not be recognized as structs)
+    const couldBeStruct = paramInfo.isStruct || !isPrimitiveParam;
+    if (!couldBeStruct) return false;
+
+    // Issue #251: Const struct parameter needs temp to break const chain
+    if (paramInfo.isConst) {
+      return true;
+    }
+
+    // Issue #252: External C structs may have bool/enum members that need casting
+    // In C++ mode, we conservatively create temps for all external struct member accesses
+    // to u8 parameters, since we don't have full member type info for C headers
+    const targetCType = TYPE_MAP[targetParamBaseType];
+    if (targetCType === "uint8_t") {
+      return true; // Could be bool or typed enum
+    }
+
+    return false;
+  }
+
+  /**
    * Issue #246: Check if an expression is a subscript access on a string variable.
    * For example, buf[0] where buf is a string<N>.
    * Used to determine when to cast char* to uint8_t* etc.
@@ -3242,6 +3293,21 @@ export default class CodeGenerator implements IOrchestrator {
     // Check if it's a member access or array access (lvalue) - needs &
     const lvalueType = this.getLvalueType(ctx);
     if (lvalueType) {
+      // Issue #251/#252: In C++ mode, struct member access may need temp variable
+      if (
+        lvalueType === "member" &&
+        this.needsCppMemberConversion(ctx, targetParamBaseType)
+      ) {
+        const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
+        const value = this._generateExpression(ctx);
+        const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
+        // Use static_cast for C++ type safety
+        this.pendingTempDeclarations.push(
+          `${cType} ${tempName} = static_cast<${cType}>(${value});`,
+        );
+        return `&${tempName}`;
+      }
+
       // Generate the expression and wrap with &
       const expr = `&${this._generateExpression(ctx)}`;
 

@@ -23,9 +23,9 @@ u32 testEnumBoolMembers(SensorConfig cfg) {
 
 u32 main() {
     SensorConfig cfg;
-    cfg.enabled <- 1;          // true = 1
-    cfg.pressureType <- 2;     // PRESSURE_HIGH = 2
-    cfg.thermocoupleType <- 1; // TC_TYPE_J = 1
+    cfg.enabled <- true;
+    cfg.pressureType <- PRESSURE_HIGH;
+    cfg.thermocoupleType <- TC_TYPE_J;
     cfg.value <- 4;
 
     // Expected: 0 ^ 1 ^ 2 ^ 1 ^ 4 = 6
