@@ -567,6 +567,7 @@ class Pipeline {
           target: this.config.target,
           sourcePath: file.path, // Issue #230: For self-include header generation
           generateHeaders: this.config.generateHeaders, // Issue #230: Enable self-include when headers are generated
+          cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
         },
       );
 
@@ -873,6 +874,7 @@ class Pipeline {
           target: this.config.target,
           sourcePath, // Issue #230: For self-include header generation
           generateHeaders: options?.generateHeaders, // Issue #230: Enable self-include for extern "C" tests
+          cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
         },
       );
 
