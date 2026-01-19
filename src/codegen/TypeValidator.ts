@@ -18,22 +18,6 @@ import TypeResolver from "./TypeResolver";
 const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
 
 /**
- * C stream I/O functions that can return NULL and MUST be checked
- * These are exempt from E0702 when used in NULL comparison patterns
- * (e.g., `if (fgets(...) != NULL)`) because:
- * - E0904 forbids storing their return values
- * - E0901 requires NULL checking
- * - This is the ONLY valid usage pattern for these functions
- */
-const C_STREAM_FUNCTIONS = new Set([
-  "fgets",
-  "fputs",
-  "fgetc",
-  "fputc",
-  "gets",
-]);
-
-/**
  * TypeValidator class - validates types, assignments, and control flow at compile time
  */
 class TypeValidator {
@@ -748,20 +732,11 @@ class TypeValidator {
    * MISRA C:2012 Rule 13.5 forbids function calls in conditions because:
    * - Short-circuit evaluation may skip the function call
    * - Side effects become unpredictable
-   *
-   * EXCEPTION: C stream function NULL checks (e.g., `if (fgets(...) != NULL)`)
-   * are exempt because E0904 forbids storing their results and E0901 requires
-   * NULL checking - this is the ONLY valid usage pattern.
    */
   validateConditionNoFunctionCall(
     ctx: Parser.ExpressionContext,
     conditionType: string,
   ): void {
-    // Check for C stream function NULL check exemption
-    if (this.isCStreamFunctionNullCheck(ctx)) {
-      return; // Exempt from E0702
-    }
-
     if (this.hasPostfixFunctionCall(ctx)) {
       const text = ctx.getText();
       throw new Error(
@@ -843,103 +818,6 @@ class TypeValidator {
       }
     }
     return false;
-  }
-
-  /**
-   * Check if expression is a C stream function error check pattern.
-   * Valid patterns:
-   * - `fgets(...) != NULL` / `fgets(...) = NULL`
-   * - `NULL != fgets(...)` / `NULL = fgets(...)`
-   * - `fputs(...) != EOF` / `fputs(...) = EOF`
-   * - `EOF != fputs(...)` / `EOF = fputs(...)`
-   *
-   * These are exempt from E0702 because they're the ONLY valid way to use
-   * C stream functions (E0904 forbids storing results, E0901 requires error check).
-   */
-  private isCStreamFunctionNullCheck(expr: Parser.ExpressionContext): boolean {
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return false;
-
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return false;
-
-    const andExprs = orExprs[0].andExpression();
-    if (andExprs.length !== 1) return false;
-
-    const eqExpr = andExprs[0].equalityExpression();
-    if (eqExpr.length !== 1) return false;
-
-    const relExprs = eqExpr[0].relationalExpression();
-    // Must be exactly 2 operands with an equality operator between them
-    if (relExprs.length !== 2) return false;
-
-    // Check equality operators (= or !=)
-    const eqOps = eqExpr[0].EQ();
-    const neqOps = eqExpr[0].NEQ();
-    if (eqOps.length === 0 && neqOps.length === 0) return false;
-
-    // Check if one side is NULL/EOF and other is C stream function call
-    const leftText = relExprs[0].getText();
-    const rightText = relExprs[1].getText();
-
-    const isLeftSentinel = leftText === "NULL" || leftText === "EOF";
-    const isRightSentinel = rightText === "NULL" || rightText === "EOF";
-
-    if (!isLeftSentinel && !isRightSentinel) return false;
-
-    // Check the non-sentinel side for C stream function call
-    const nonSentinelExpr = isLeftSentinel ? relExprs[1] : relExprs[0];
-    const funcName = this.extractFunctionName(nonSentinelExpr);
-
-    return funcName !== null && C_STREAM_FUNCTIONS.has(funcName);
-  }
-
-  /**
-   * Extract the function name from a relational expression if it's a simple function call.
-   * Returns null if expression is not a simple function call.
-   */
-  private extractFunctionName(
-    rel: Parser.RelationalExpressionContext,
-  ): string | null {
-    const bor = rel.bitwiseOrExpression();
-    if (bor.length !== 1) return null;
-
-    const bxor = bor[0].bitwiseXorExpression();
-    if (bxor.length !== 1) return null;
-
-    const band = bxor[0].bitwiseAndExpression();
-    if (band.length !== 1) return null;
-
-    const shift = band[0].shiftExpression();
-    if (shift.length !== 1) return null;
-
-    const add = shift[0].additiveExpression();
-    if (add.length !== 1) return null;
-
-    const mult = add[0].multiplicativeExpression();
-    if (mult.length !== 1) return null;
-
-    const unary = mult[0].unaryExpression();
-    if (unary.length !== 1) return null;
-
-    const postfix = unary[0].postfixExpression();
-    if (!postfix) return null;
-
-    // Check for function call (has argumentList)
-    const ops = postfix.postfixOp();
-    if (ops.length === 0) return null;
-
-    const hasArgList = ops.some(
-      (op) => op.argumentList() || op.getText().startsWith("("),
-    );
-    if (!hasArgList) return null;
-
-    // Get the function name from primaryExpression
-    const primary = postfix.primaryExpression();
-    if (!primary) return null;
-
-    const identifier = primary.IDENTIFIER();
-    return identifier ? identifier.getText() : null;
   }
 
   // ========================================================================
