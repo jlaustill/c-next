@@ -1,0 +1,32 @@
+/* test-execution */
+// Tests: Issue #250 - rvalue expressions in C++ mode
+// C++ compound literals are rvalues, can't take address
+//
+// This test includes a C++ header (typed enum) to force g++ compilation.
+// The compound literal syntax &(uint8_t){...} is invalid in C++.
+
+#include "rvalue-arg-cpp.h"
+
+u32 process(u32 crc, u8 byte) {
+    return crc ^ byte;
+}
+
+u32 main() {
+    u32 value <- 0x12345678;
+    u32 crc <- 0;
+
+    // Test: passing bitwise expression (rvalue) to u8 parameter
+    // In C mode: &(uint8_t){value & 0xFF} works
+    // In C++ mode: compound literals are rvalues, & is illegal
+    crc <- process(crc, value & 0xFF);
+    if (crc != 0x78) return 1;
+
+    // Test: arithmetic expression
+    u8 a <- 10;
+    u8 b <- 5;
+    crc <- 0;
+    crc <- process(crc, a + b);
+    if (crc != 15) return 2;
+
+    return 0;
+}

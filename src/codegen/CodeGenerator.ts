@@ -267,6 +267,15 @@ export default class CodeGenerator implements IOrchestrator {
   /** Generator registry for modular code generation (ADR-053) */
   private registry: GeneratorRegistry = new GeneratorRegistry();
 
+  /** Issue #250: C++ mode - use temp vars instead of compound literals */
+  private cppMode: boolean = false;
+
+  /** Issue #250: Pending temp variable declarations for C++ mode */
+  private pendingTempDeclarations: string[] = [];
+
+  /** Issue #250: Counter for unique temp variable names */
+  private tempVarCounter: number = 0;
+
   /**
    * Initialize generator registry with extracted generators.
    * Called once before code generation begins.
@@ -663,6 +672,20 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #250: Flush pending temp variable declarations.
+   * Returns declarations as a single string and clears the pending list.
+   * Part of IOrchestrator interface.
+   */
+  flushPendingTempDeclarations(): string {
+    if (this.pendingTempDeclarations.length === 0) {
+      return "";
+    }
+    const decls = this.pendingTempDeclarations.join("\n");
+    this.pendingTempDeclarations = [];
+    return decls;
+  }
+
+  /**
    * Get indentation string for current level.
    * Part of IOrchestrator interface (ADR-053 A3).
    */
@@ -1023,6 +1046,12 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-010: Store source path for include validation
     this.sourcePath = options?.sourcePath ?? null;
+
+    // Issue #250: Store C++ mode for temp variable generation
+    this.cppMode = options?.cppMode ?? false;
+    // Reset temp var state for each generation
+    this.pendingTempDeclarations = [];
+    this.tempVarCounter = 0;
 
     // Initialize comment extraction (ADR-043)
     this.tokenStream = tokenStream ?? null;
@@ -3234,12 +3263,21 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if it's a literal OR complex expression being passed to a pointer parameter
-    // Use C99 compound literal syntax: &(type){value}
     // Any expression reaching this point is an rvalue (identifiers/lvalues handled above)
     if (targetParamBaseType) {
       const cType = TYPE_MAP[targetParamBaseType];
       if (cType && cType !== "void") {
         const value = this._generateExpression(ctx);
+
+        // Issue #250: In C++ mode, compound literals are rvalues and can't have their
+        // address taken. Use temporary variables instead.
+        if (this.cppMode) {
+          const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
+          this.pendingTempDeclarations.push(`${cType} ${tempName} = ${value};`);
+          return `&${tempName}`;
+        }
+
+        // C mode: Use C99 compound literal syntax: &(type){value}
         return `&(${cType}){${value}}`;
       }
     }
@@ -4527,43 +4565,42 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private _generateStatement(ctx: Parser.StatementContext): string {
+    let result = "";
+
     if (ctx.variableDeclaration()) {
-      return this.generateVariableDecl(ctx.variableDeclaration()!);
+      result = this.generateVariableDecl(ctx.variableDeclaration()!);
+    } else if (ctx.assignmentStatement()) {
+      result = this.generateAssignment(ctx.assignmentStatement()!);
+    } else if (ctx.expressionStatement()) {
+      result =
+        this._generateExpression(ctx.expressionStatement()!.expression()) + ";";
+    } else if (ctx.ifStatement()) {
+      result = this.generateIf(ctx.ifStatement()!);
+    } else if (ctx.whileStatement()) {
+      result = this.generateWhile(ctx.whileStatement()!);
+    } else if (ctx.doWhileStatement()) {
+      result = this.generateDoWhile(ctx.doWhileStatement()!);
+    } else if (ctx.forStatement()) {
+      result = this.generateFor(ctx.forStatement()!);
+    } else if (ctx.switchStatement()) {
+      result = this.generateSwitch(ctx.switchStatement()!);
+    } else if (ctx.returnStatement()) {
+      result = this.generateReturn(ctx.returnStatement()!);
+    } else if (ctx.criticalStatement()) {
+      // ADR-050: Critical statement for atomic multi-variable operations
+      result = this.generateCriticalStatement(ctx.criticalStatement()!);
+    } else if (ctx.block()) {
+      result = this._generateBlock(ctx.block()!);
     }
-    if (ctx.assignmentStatement()) {
-      return this.generateAssignment(ctx.assignmentStatement()!);
+
+    // Issue #250: Prepend any pending temp variable declarations (C++ mode)
+    if (this.pendingTempDeclarations.length > 0) {
+      const tempDecls = this.pendingTempDeclarations.join("\n");
+      this.pendingTempDeclarations = [];
+      return tempDecls + "\n" + result;
     }
-    if (ctx.expressionStatement()) {
-      return (
-        this._generateExpression(ctx.expressionStatement()!.expression()) + ";"
-      );
-    }
-    if (ctx.ifStatement()) {
-      return this.generateIf(ctx.ifStatement()!);
-    }
-    if (ctx.whileStatement()) {
-      return this.generateWhile(ctx.whileStatement()!);
-    }
-    if (ctx.doWhileStatement()) {
-      return this.generateDoWhile(ctx.doWhileStatement()!);
-    }
-    if (ctx.forStatement()) {
-      return this.generateFor(ctx.forStatement()!);
-    }
-    if (ctx.switchStatement()) {
-      return this.generateSwitch(ctx.switchStatement()!);
-    }
-    if (ctx.returnStatement()) {
-      return this.generateReturn(ctx.returnStatement()!);
-    }
-    // ADR-050: Critical statement for atomic multi-variable operations
-    if (ctx.criticalStatement()) {
-      return this.generateCriticalStatement(ctx.criticalStatement()!);
-    }
-    if (ctx.block()) {
-      return this._generateBlock(ctx.block()!);
-    }
-    return "";
+
+    return result;
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators

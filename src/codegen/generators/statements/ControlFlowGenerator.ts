@@ -88,6 +88,10 @@ const generateIf = (
 
   // Generate with cache enabled
   const condition = orchestrator.generateExpression(node.expression());
+
+  // Issue #250: Flush any temp vars from condition BEFORE generating branches
+  const conditionTemps = orchestrator.flushPendingTempDeclarations();
+
   const thenBranch = orchestrator.generateStatement(thenStmt);
 
   let result = `if (${condition}) ${thenBranch}`;
@@ -100,9 +104,12 @@ const generateIf = (
   // Clear cache after generating
   orchestrator.clearLengthCache();
 
-  // Prepend cache declarations if any
+  // Prepend condition temps and cache declarations
+  if (conditionTemps) {
+    result = conditionTemps + "\n" + result;
+  }
   if (cacheDecls) {
-    return { code: cacheDecls + result, effects };
+    result = cacheDecls + result;
   }
 
   return { code: result, effects };
@@ -119,8 +126,20 @@ const generateWhile = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   const condition = orchestrator.generateExpression(node.expression());
+
+  // Issue #250: Flush any temp vars from condition BEFORE generating body
+  // Otherwise they end up inside the loop body, causing "not declared" errors
+  const conditionTemps = orchestrator.flushPendingTempDeclarations();
+
   const body = orchestrator.generateStatement(node.statement());
-  return { code: `while (${condition}) ${body}`, effects };
+  let result = `while (${condition}) ${body}`;
+
+  // Prepend condition temps before the while statement
+  if (conditionTemps) {
+    result = conditionTemps + "\n" + result;
+  }
+
+  return { code: result, effects };
 };
 
 /**
@@ -139,7 +158,18 @@ const generateDoWhile = (
 
   const body = orchestrator.generateBlock(node.block());
   const condition = orchestrator.generateExpression(node.expression());
-  return { code: `do ${body} while (${condition});`, effects };
+
+  // Issue #250: Flush any temp vars from condition
+  // For do-while, condition is evaluated after body, but temps must be declared before
+  const conditionTemps = orchestrator.flushPendingTempDeclarations();
+
+  let result = `do ${body} while (${condition});`;
+
+  if (conditionTemps) {
+    result = conditionTemps + "\n" + result;
+  }
+
+  return { code: result, effects };
 };
 
 /**
@@ -197,6 +227,11 @@ const generateForAssignment = (
 
 /**
  * Generate C code for a for statement.
+ *
+ * Note: Issue #250 - temps from condition/update are hoisted before the for loop.
+ * This means the expression is evaluated once, not on each iteration.
+ * This is a known limitation; if the value changes inside the loop,
+ * the user should capture it in a variable explicitly.
  */
 const generateFor = (
   node: ForStatementContext,
@@ -230,10 +265,16 @@ const generateFor = (
     }
   }
 
+  // Issue #250: Flush temps from init before generating condition
+  const initTemps = orchestrator.flushPendingTempDeclarations();
+
   let condition = "";
   if (node.expression()) {
     condition = orchestrator.generateExpression(node.expression()!);
   }
+
+  // Issue #250: Flush temps from condition before generating update
+  const conditionTemps = orchestrator.flushPendingTempDeclarations();
 
   let update = "";
   const forUpdate = node.forUpdate();
@@ -248,9 +289,22 @@ const generateFor = (
     update = `${target} ${cOp} ${value}`;
   }
 
+  // Issue #250: Flush temps from update before generating body
+  const updateTemps = orchestrator.flushPendingTempDeclarations();
+
   const body = orchestrator.generateStatement(node.statement());
 
-  return { code: `for (${init}; ${condition}; ${update}) ${body}`, effects };
+  let result = `for (${init}; ${condition}; ${update}) ${body}`;
+
+  // Prepend all temps before the for statement
+  const allTemps = [initTemps, conditionTemps, updateTemps]
+    .filter((t) => t)
+    .join("\n");
+  if (allTemps) {
+    result = allTemps + "\n" + result;
+  }
+
+  return { code: result, effects };
 };
 
 // Export all control flow generators
