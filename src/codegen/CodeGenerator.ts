@@ -3184,9 +3184,10 @@ export default class CodeGenerator implements IOrchestrator {
       return `&${this._generateExpression(ctx)}`;
     }
 
-    // Check if it's a literal being passed to a pointer parameter
+    // Check if it's a literal OR complex expression being passed to a pointer parameter
     // Use C99 compound literal syntax: &(type){value}
-    if (targetParamBaseType && this.isLiteralExpression(ctx)) {
+    // Any expression reaching this point is an rvalue (identifiers/lvalues handled above)
+    if (targetParamBaseType) {
       const cType = TYPE_MAP[targetParamBaseType];
       if (cType && cType !== "void") {
         const value = this._generateExpression(ctx);
@@ -3194,7 +3195,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // Complex expression or literal (for non-pointer targets) - generate normally
+    // No target type info - generate expression as-is
     return this._generateExpression(ctx);
   }
 

@@ -1,0 +1,25 @@
+/* test-execution */
+// Tests: Issue #245 - rvalue expressions passed to pointer parameters
+
+u32 process(u32 crc, u8 byte) {
+    return crc ^ byte;
+}
+
+u32 main() {
+    u32 value <- 0x12345678;
+    u32 crc <- 0;
+
+    // Test: passing bitwise expression (rvalue) to u8 parameter
+    // Should generate: process(&crc, &(uint8_t){(*value) & 0xFF})
+    crc <- process(crc, value & 0xFF);
+    if (crc != 0x78) return 1;
+
+    // Test: arithmetic expression
+    u8 a <- 10;
+    u8 b <- 5;
+    crc <- 0;
+    crc <- process(crc, a + b);
+    if (crc != 15) return 2;
+
+    return 0;
+}
