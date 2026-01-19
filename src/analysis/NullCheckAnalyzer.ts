@@ -326,6 +326,18 @@ class NullCheckListener extends CNextListener {
     // Check forbidden functions (malloc, etc.) - always error
     if (funcName && FORBIDDEN_FUNCTIONS.has(funcName)) {
       this.analyzer.reportForbiddenFunction(funcName, line, column);
+      return;
+    }
+
+    // Check for invalid c_ prefix on non-nullable types (E0906)
+    if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
+      const typeName = ctx.type()?.getText() ?? "unknown";
+      // If NOT assigning from nullable function AND type is NOT nullable, c_ prefix is invalid
+      if (!funcName || !NULLABLE_C_FUNCTIONS.has(funcName)) {
+        if (!NullCheckAnalyzer.isNullableCType(typeName)) {
+          this.analyzer.reportInvalidCPrefix(varName, typeName, line, column);
+        }
+      }
     }
   };
 
@@ -515,6 +527,25 @@ class NullCheckAnalyzer {
     });
   }
 
+  /**
+   * Report error: c_ prefix on non-nullable type (E0906)
+   */
+  public reportInvalidCPrefix(
+    varName: string,
+    typeName: string,
+    line: number,
+    column: number,
+  ): void {
+    this.errors.push({
+      code: "E0906",
+      functionName: varName,
+      line,
+      column,
+      message: `Invalid 'c_' prefix on non-nullable type '${typeName}'`,
+      helpText: `The 'c_' prefix is only for nullable C pointer types. Use: ${typeName} ${varName.substring(2)} <- ...`,
+    });
+  }
+
   // ========================================================================
   // c_ Prefix Validation Helpers (ADR-046)
   // ========================================================================
@@ -530,7 +561,7 @@ class NullCheckAnalyzer {
    * Check if a type is a nullable C pointer type
    * Currently checks for FILE and pointer returns from NULLABLE_C_FUNCTIONS
    */
-  private static isNullableCType(typeName: string): boolean {
+  public static isNullableCType(typeName: string): boolean {
     // FILE is always nullable
     if (typeName === "FILE") return true;
     // cstring (char*) from C functions is nullable
