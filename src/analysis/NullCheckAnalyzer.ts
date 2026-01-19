@@ -1,16 +1,15 @@
 /**
  * Null Check Analyzer
- * Enforces NULL safety for C library interop (ADR-047)
+ * Enforces NULL safety for C library interop (ADR-046)
  *
  * C-Next eliminates null bugs by design. This analyzer provides a controlled
- * exception for C interop: NULL comparisons are allowed ONLY for whitelisted
- * stream I/O functions (fgets, fputs, etc.), and the comparison is REQUIRED.
+ * exception for C interop: Variables storing nullable C pointer returns must
+ * use the c_ prefix to indicate they hold C interop values.
  *
  * Rules:
- * - C stream functions returning nullable pointers must be NULL-checked
+ * - C functions returning nullable pointers require c_ prefix for storage
  * - NULL keyword only valid in equality comparison context (= or !=)
- * - Cannot store nullable return in C-Next variable
- * - Forbidden functions (fopen, malloc) are not supported in v1
+ * - Dynamic allocation functions (malloc, etc.) remain forbidden (ADR-003)
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -28,15 +27,16 @@ interface ICLibraryFunction {
 }
 
 /**
- * Whitelisted stream I/O functions that can return NULL
- * These are the only functions where NULL comparison is allowed
+ * C library functions that return nullable pointers
+ * These require the c_ prefix when stored in variables (ADR-046)
  */
-const C_STREAM_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
+const NULLABLE_C_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
+  // Stream I/O
   [
     "fgets",
     {
       header: "stdio.h",
-      nullMeaning: "EOF reached or read error occurred",
+      nullMeaning: "EOF or error",
       docsUrl: "https://en.cppreference.com/w/c/io/fgets",
     },
   ],
@@ -44,7 +44,7 @@ const C_STREAM_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
     "fputs",
     {
       header: "stdio.h",
-      nullMeaning: "Write error occurred (returns EOF, not NULL)",
+      nullMeaning: "Write error (EOF)",
       docsUrl: "https://en.cppreference.com/w/c/io/fputs",
     },
   ],
@@ -52,7 +52,7 @@ const C_STREAM_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
     "fgetc",
     {
       header: "stdio.h",
-      nullMeaning: "EOF reached or read error occurred (returns EOF)",
+      nullMeaning: "EOF or error",
       docsUrl: "https://en.cppreference.com/w/c/io/fgetc",
     },
   ],
@@ -60,7 +60,7 @@ const C_STREAM_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
     "fputc",
     {
       header: "stdio.h",
-      nullMeaning: "Write error occurred (returns EOF)",
+      nullMeaning: "Write error (EOF)",
       docsUrl: "https://en.cppreference.com/w/c/io/fputc",
     },
   ],
@@ -68,28 +68,87 @@ const C_STREAM_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
     "gets",
     {
       header: "stdio.h",
-      nullMeaning: "EOF reached or read error (DEPRECATED - use fgets)",
+      nullMeaning: "EOF or error (DEPRECATED)",
       docsUrl: "https://en.cppreference.com/w/c/io/gets",
+    },
+  ],
+  // File handling (now allowed with c_ prefix)
+  [
+    "fopen",
+    {
+      header: "stdio.h",
+      nullMeaning: "Failed to open file",
+      docsUrl: "https://en.cppreference.com/w/c/io/fopen",
+    },
+  ],
+  [
+    "freopen",
+    {
+      header: "stdio.h",
+      nullMeaning: "Failed to reopen",
+      docsUrl: "https://en.cppreference.com/w/c/io/freopen",
+    },
+  ],
+  [
+    "tmpfile",
+    {
+      header: "stdio.h",
+      nullMeaning: "Failed to create temp file",
+      docsUrl: "https://en.cppreference.com/w/c/io/tmpfile",
+    },
+  ],
+  // String functions
+  [
+    "strstr",
+    {
+      header: "string.h",
+      nullMeaning: "Substring not found",
+      docsUrl: "https://en.cppreference.com/w/c/string/byte/strstr",
+    },
+  ],
+  [
+    "strchr",
+    {
+      header: "string.h",
+      nullMeaning: "Character not found",
+      docsUrl: "https://en.cppreference.com/w/c/string/byte/strchr",
+    },
+  ],
+  [
+    "strrchr",
+    {
+      header: "string.h",
+      nullMeaning: "Character not found",
+      docsUrl: "https://en.cppreference.com/w/c/string/byte/strrchr",
+    },
+  ],
+  [
+    "memchr",
+    {
+      header: "string.h",
+      nullMeaning: "Byte not found",
+      docsUrl: "https://en.cppreference.com/w/c/string/byte/memchr",
+    },
+  ],
+  // Environment
+  [
+    "getenv",
+    {
+      header: "stdlib.h",
+      nullMeaning: "Variable not found",
+      docsUrl: "https://en.cppreference.com/w/c/program/getenv",
     },
   ],
 ]);
 
 /**
- * Forbidden functions that return pointers but aren't supported in v1
- * These require ADR-103 (stream handling) infrastructure
+ * Functions that remain forbidden (dynamic allocation - ADR-003)
  */
-const FORBIDDEN_NULLABLE_FUNCTIONS: Map<string, string> = new Map([
-  ["fopen", "File handling will be available via ADR-103 (stream handling)"],
-  ["fclose", "File handling will be available via ADR-103 (stream handling)"],
-  ["malloc", "Dynamic allocation is forbidden by ADR-003"],
-  ["calloc", "Dynamic allocation is forbidden by ADR-003"],
-  ["realloc", "Dynamic allocation is forbidden by ADR-003"],
-  ["free", "Dynamic allocation is forbidden by ADR-003"],
-  ["getenv", "Environment access requires ADR-103 infrastructure"],
-  ["strstr", "Returns pointer into string - use indexOf pattern instead"],
-  ["strchr", "Returns pointer into string - use indexOf pattern instead"],
-  ["strrchr", "Returns pointer into string - use indexOf pattern instead"],
-  ["memchr", "Returns pointer into memory - not supported"],
+const FORBIDDEN_FUNCTIONS: Set<string> = new Set([
+  "malloc",
+  "calloc",
+  "realloc",
+  "free",
 ]);
 
 /**
@@ -183,13 +242,13 @@ class NullCheckListener extends CNextListener {
     const column = ctx.start?.column ?? 0;
 
     // Check forbidden functions (always an error)
-    if (FORBIDDEN_NULLABLE_FUNCTIONS.has(funcName)) {
+    if (FORBIDDEN_FUNCTIONS.has(funcName)) {
       this.analyzer.reportForbiddenFunction(funcName, line, column);
       return;
     }
 
-    // Check stream functions
-    if (C_STREAM_FUNCTIONS.has(funcName)) {
+    // Check nullable C functions
+    if (NULLABLE_C_FUNCTIONS.has(funcName)) {
       if (this.inEqualityComparison) {
         // Track that we found a stream function in this comparison
         this.equalityComparisonFuncName = funcName;
@@ -235,7 +294,7 @@ class NullCheckListener extends CNextListener {
     if (!expr) return;
 
     const funcName = this.extractFunctionCallName(expr);
-    if (funcName && C_STREAM_FUNCTIONS.has(funcName)) {
+    if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
       const varName = ctx.IDENTIFIER().getText();
       const line = ctx.start?.line ?? 0;
       const column = ctx.start?.column ?? 0;
@@ -250,7 +309,7 @@ class NullCheckListener extends CNextListener {
     const expr = ctx.expression();
     const funcName = this.extractFunctionCallName(expr);
 
-    if (funcName && C_STREAM_FUNCTIONS.has(funcName)) {
+    if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
       const target = ctx.assignmentTarget();
       const varName = target.getText();
       const line = ctx.start?.line ?? 0;
@@ -269,7 +328,7 @@ class NullCheckListener extends CNextListener {
     // This could be improved with deeper AST analysis
     const text = ctx.getText();
 
-    for (const funcName of C_STREAM_FUNCTIONS.keys()) {
+    for (const funcName of NULLABLE_C_FUNCTIONS.keys()) {
       if (text.includes(`${funcName}(`)) {
         return funcName;
       }
@@ -346,22 +405,20 @@ class NullCheckAnalyzer {
   }
 
   /**
-   * Report error: forbidden function not supported in v1
+   * Report error: forbidden function (dynamic allocation - ADR-003)
    */
   public reportForbiddenFunction(
     funcName: string,
     line: number,
     column: number,
   ): void {
-    const reason =
-      FORBIDDEN_NULLABLE_FUNCTIONS.get(funcName) ?? "Not supported in v1";
     this.errors.push({
       code: "E0902",
       functionName: funcName,
       line,
       column,
-      message: `C library function '${funcName}' returns a pointer - not supported in C-Next v1`,
-      helpText: reason,
+      message: `Dynamic allocation function '${funcName}' is forbidden`,
+      helpText: "Dynamic allocation is forbidden by ADR-003",
     });
   }
 
@@ -399,26 +456,26 @@ class NullCheckAnalyzer {
   }
 
   /**
-   * Get metadata for a C stream function (for VS Code tooltips)
+   * Get metadata for a nullable C function (for VS Code tooltips)
    */
-  public static getStreamFunctionInfo(
+  public static getNullableFunctionInfo(
     funcName: string,
   ): ICLibraryFunction | null {
-    return C_STREAM_FUNCTIONS.get(funcName) ?? null;
+    return NULLABLE_C_FUNCTIONS.get(funcName) ?? null;
   }
 
   /**
-   * Check if a function is a whitelisted stream function
+   * Check if a function is a nullable C function
    */
-  public static isStreamFunction(funcName: string): boolean {
-    return C_STREAM_FUNCTIONS.has(funcName);
+  public static isNullableFunction(funcName: string): boolean {
+    return NULLABLE_C_FUNCTIONS.has(funcName);
   }
 
   /**
-   * Check if a function is forbidden (returns pointer, not supported)
+   * Check if a function is forbidden (dynamic allocation - ADR-003)
    */
   public static isForbiddenFunction(funcName: string): boolean {
-    return FORBIDDEN_NULLABLE_FUNCTIONS.has(funcName);
+    return FORBIDDEN_FUNCTIONS.has(funcName);
   }
 }
 
