@@ -1,18 +1,20 @@
 // test-coverage: 28-null-in-ternary
-// Tests: NULL check in ternary condition
+// Tests: NULL check in ternary condition with c_ prefix pattern (ADR-046)
 #include <stdio.h>
 
 string<64> buffer;
 
-// Use ternary with NULL check
+// Use ternary with NULL check - c_ prefix pattern
 u32 readWithFallback() {
-    u32 result <- fgets(buffer, buffer.size, stdin) != NULL ? 1 : 0;
+    cstring c_result <- fgets(buffer, buffer.size, stdin);
+    u32 result <- c_result != NULL ? 1 : 0;
     return result;
 }
 
 // Another pattern: equality check
 bool isInputAvailable() {
-    bool available <- fgets(buffer, buffer.size, stdin) = NULL ? false : true;
+    cstring c_result <- fgets(buffer, buffer.size, stdin);
+    bool available <- c_result = NULL ? false : true;
     return available;
 }
 

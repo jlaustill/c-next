@@ -662,6 +662,15 @@ class NullCheckAnalyzer {
   public static isForbiddenFunction(funcName: string): boolean {
     return FORBIDDEN_FUNCTIONS.has(funcName);
   }
+
+  /**
+   * Get nullable C functions that return struct pointers (FILE*, etc.)
+   * These need asterisk added to the type in code generation.
+   * Excludes char*-returning functions (fgets, strstr, etc.) which use cstring type.
+   */
+  public static getStructPointerFunctions(): Set<string> {
+    return new Set(["fopen", "freopen", "tmpfile"]);
+  }
 }
 
 export default NullCheckAnalyzer;
