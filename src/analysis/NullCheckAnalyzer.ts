@@ -166,6 +166,9 @@ class NullCheckListener extends CNextListener {
   /** Track if the current equality comparison contains NULL */
   private equalityComparisonHasNull = false;
 
+  /** Whether we're currently inside a variable declaration (with c_ prefix handling) */
+  private inVariableDeclarationWithNullable = false;
+
   constructor(analyzer: NullCheckAnalyzer) {
     super();
     this.analyzer = analyzer;
@@ -252,6 +255,9 @@ class NullCheckListener extends CNextListener {
       if (this.inEqualityComparison) {
         // Track that we found a stream function in this comparison
         this.equalityComparisonFuncName = funcName;
+      } else if (this.inVariableDeclarationWithNullable) {
+        // Inside a variable declaration - E0905 or valid c_ prefix already handled
+        // Don't also report E0901
       } else {
         // Stream function used outside of NULL comparison - error
         this.analyzer.reportMissingNullCheck(funcName, line, column);
@@ -288,18 +294,44 @@ class NullCheckListener extends CNextListener {
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    // Check if initialization contains a stream function call
-    // Grammar: type IDENTIFIER ('<-' expression)?
     const expr = ctx.expression();
     if (!expr) return;
 
+    const varName = ctx.IDENTIFIER().getText();
     const funcName = this.extractFunctionCallName(expr);
+    const identifierToken = ctx.IDENTIFIER().symbol;
+    const line = identifierToken.line;
+    const column = (identifierToken.column ?? 0) + 1; // 1-indexed column
+
+    // Check if assigning from a nullable C function
     if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
-      const varName = ctx.IDENTIFIER().getText();
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
-      this.analyzer.reportInvalidStorage(varName, funcName, line, column);
+      // Set flag to suppress E0901 for the function call inside this declaration
+      this.inVariableDeclarationWithNullable = true;
+
+      // Must have c_ prefix
+      if (!NullCheckAnalyzer.hasNullablePrefix(varName)) {
+        const typeName = ctx.type()?.getText() ?? "unknown";
+        this.analyzer.reportMissingCPrefix(
+          varName,
+          typeName,
+          funcName,
+          line,
+          column,
+        );
+      }
+      // If has c_ prefix, storage is allowed (don't report E0904 or E0901)
+      return;
     }
+
+    // Check forbidden functions (malloc, etc.) - always error
+    if (funcName && FORBIDDEN_FUNCTIONS.has(funcName)) {
+      this.analyzer.reportForbiddenFunction(funcName, line, column);
+    }
+  };
+
+  override exitVariableDeclaration = (): void => {
+    // Clear the flag when leaving variable declaration
+    this.inVariableDeclarationWithNullable = false;
   };
 
   override enterAssignmentStatement = (
@@ -328,7 +360,15 @@ class NullCheckListener extends CNextListener {
     // This could be improved with deeper AST analysis
     const text = ctx.getText();
 
+    // Check nullable C functions
     for (const funcName of NULLABLE_C_FUNCTIONS.keys()) {
+      if (text.includes(`${funcName}(`)) {
+        return funcName;
+      }
+    }
+
+    // Check forbidden functions
+    for (const funcName of FORBIDDEN_FUNCTIONS) {
       if (text.includes(`${funcName}(`)) {
         return funcName;
       }
@@ -455,6 +495,26 @@ class NullCheckAnalyzer {
     });
   }
 
+  /**
+   * Report error: missing c_ prefix for nullable C type (E0905)
+   */
+  public reportMissingCPrefix(
+    varName: string,
+    typeName: string,
+    funcName: string,
+    line: number,
+    column: number,
+  ): void {
+    this.errors.push({
+      code: "E0905",
+      functionName: funcName,
+      line,
+      column,
+      message: `Missing 'c_' prefix for nullable C type '${typeName}'`,
+      helpText: `Variable '${varName}' stores nullable pointer from '${funcName}'. Use: ${typeName} c_${varName} <- ${funcName}(...)`,
+    });
+  }
+
   // ========================================================================
   // c_ Prefix Validation Helpers (ADR-046)
   // ========================================================================
@@ -462,7 +522,7 @@ class NullCheckAnalyzer {
   /**
    * Check if variable name has required c_ prefix for nullable C types
    */
-  private static hasNullablePrefix(varName: string): boolean {
+  public static hasNullablePrefix(varName: string): boolean {
     return varName.startsWith("c_");
   }
 
