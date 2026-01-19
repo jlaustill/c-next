@@ -1,0 +1,45 @@
+// tests/functions/func-return-member-cpp.test.cnx
+/* test-execution */
+// Tests: Issue #256 - function return member passing in C++ mode
+// When passing getConfig().member to u8 parameter, must generate temp variable
+// because bool* and enum* cannot convert to uint8_t* in C++
+
+#include "func-return-member-cpp.h"
+
+// Global config for the getter to return
+DeviceConfig globalConfig;
+
+// Function that returns a struct by value
+DeviceConfig getConfig() {
+    return globalConfig;
+}
+
+u32 process(u32 crc, u8 byte) {
+    return crc ^ byte;
+}
+
+u32 testFuncReturnMember() {
+    u32 crc <- 0;
+
+    // Initialize global config
+    globalConfig.enabled <- true;
+    globalConfig.mode <- MODE_AUTO;
+    globalConfig.value <- 42;
+
+    // Each of these should generate temp with static_cast:
+    // uint8_t _cnx_tmp_N = static_cast<uint8_t>(getConfig().enabled);
+    // NOT: &getConfig().enabled which gives bool* instead of uint8_t*
+    crc <- process(crc, getConfig().enabled);  // bool -> u8
+    crc <- process(crc, getConfig().mode);     // EMode -> u8
+    crc <- process(crc, getConfig().value);    // u8 -> u8
+
+    return crc;
+}
+
+u32 main() {
+    // Expected: 0 ^ 1 ^ 2 ^ 42 = 41
+    u32 result <- testFuncReturnMember();
+    if (result != 41) return 1;
+
+    return 0;
+}
