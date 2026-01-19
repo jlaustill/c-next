@@ -19,47 +19,53 @@ u32 main() {
     i16 c <- -300;
     i16 d <- -50;
 
-   
+
 // Test max function with positive values
-    if (getMax(a, b) != 200) {
+    i16 maxResult1 <- getMax(a, b);
+    if (maxResult1 != 200) {
         return 1;
     }
 
-   
+
 // Test max with negative values
-    if (getMax(c, d) != -50) {
+    i16 maxResult2 <- getMax(c, d);
+    if (maxResult2 != -50) {
         return 2;
     }
 
-   
+
 // Test min function with positive values
-    if (getMin(a, b) != 100) {
+    i16 minResult1 <- getMin(a, b);
+    if (minResult1 != 100) {
         return 3;
     }
 
-   
+
 // Test min with negative values
-    if (getMin(c, d) != -300) {
+    i16 minResult2 <- getMin(c, d);
+    if (minResult2 != -300) {
         return 4;
     }
 
-   
+
 // Test abs function
-    if (getAbs(c) != 300) {
+    i16 absResult1 <- getAbs(c);
+    if (absResult1 != 300) {
         return 5;
     }
-    if (getAbs(a) != 100) {
+    i16 absResult2 <- getAbs(a);
+    if (absResult2 != 100) {
         return 6;
     }
 
-   
+
 // Test inline ternary with negative comparison
     i16 result <- (a > c) ? a : c;
     if (result != 100) {
         return 7;
     }
 
-   
+
 // Test with edge cases - max value
     i16 max_val <- 32767;
     i16 mid_val <- 1000;
@@ -68,7 +74,7 @@ u32 main() {
         return 8;
     }
 
-   
+
 // Test with edge cases - min value
     i16 min_val <- -32768;
     i16 neg_mid <- -1000;
@@ -77,14 +83,14 @@ u32 main() {
         return 9;
     }
 
-   
+
 // Test equality condition with negative
     i16 equal_test <- (c = -300) ? 1000 : -1000;
     if (equal_test != 1000) {
         return 10;
     }
 
-   
+
 // Test zero crossing
     i16 neg <- -1000;
     i16 pos <- 1000;
@@ -93,7 +99,7 @@ u32 main() {
         return 11;
     }
 
-   
+
 // Test with larger range values
     i16 large_neg <- -30000;
     i16 large_pos <- 30000;

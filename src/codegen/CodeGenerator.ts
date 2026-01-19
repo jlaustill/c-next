@@ -713,6 +713,27 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #254: Validate no function calls in condition (E0702).
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateConditionNoFunctionCall(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void {
+    this.typeValidator!.validateConditionNoFunctionCall(ctx, conditionType);
+  }
+
+  /**
+   * Issue #254: Validate no function calls in ternary condition (E0702).
+   * Part of IOrchestrator interface (ADR-053 A2).
+   */
+  validateTernaryConditionNoFunctionCall(
+    ctx: Parser.OrExpressionContext,
+  ): void {
+    this.typeValidator!.validateTernaryConditionNoFunctionCall(ctx);
+  }
+
+  /**
    * Generate an assignment target.
    * Part of IOrchestrator interface (ADR-053 A3).
    */

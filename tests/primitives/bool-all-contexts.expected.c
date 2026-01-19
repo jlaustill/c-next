@@ -38,9 +38,12 @@ int main(void) {
     if (globalFalse != false) return 2;
     bool localTrue = true;
     bool localFalse = false;
-    if (negate(&localTrue) != false) return 3;
-    if (negate(&localFalse) != true) return 4;
-    if (identity(&localTrue) != true) return 5;
+    bool negResult1 = negate(&localTrue);
+    if (negResult1 != false) return 3;
+    bool negResult2 = negate(&localFalse);
+    if (negResult2 != true) return 4;
+    bool idResult = identity(&localTrue);
+    if (idResult != true) return 5;
     bool localBool = true;
     if (localBool != true) return 6;
     Flags flags = {0};

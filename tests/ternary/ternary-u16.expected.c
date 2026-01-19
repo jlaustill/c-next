@@ -21,16 +21,20 @@ int main(void) {
     uint16_t b = 200;
     uint16_t c = 300;
     uint16_t d = 50;
-    if (getMax(&a, &b) != 200) {
+    uint16_t maxResult1 = getMax(&a, &b);
+    if (maxResult1 != 200) {
         return 1;
     }
-    if (getMax(&c, &d) != 300) {
+    uint16_t maxResult2 = getMax(&c, &d);
+    if (maxResult2 != 300) {
         return 2;
     }
-    if (getMin(&a, &b) != 100) {
+    uint16_t minResult1 = getMin(&a, &b);
+    if (minResult1 != 100) {
         return 3;
     }
-    if (getMin(&c, &d) != 50) {
+    uint16_t minResult2 = getMin(&c, &d);
+    if (minResult2 != 50) {
         return 4;
     }
     uint16_t result = (a > b) ? a : b;

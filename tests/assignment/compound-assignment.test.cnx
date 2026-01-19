@@ -27,12 +27,14 @@ u32 testBitwise() {
 
 u32 main() {
     // testCompound: (10+5-3)*2/4%3 = 0
-    if (testCompound() != 0) {
+    u32 result1 <- testCompound();
+    if (result1 != 0) {
         return 1;
     }
 
     // testBitwise: 0xFF & 0x0F | 0xF0 ^ 0x55 << 2 >> 1 = 0x154
-    if (testBitwise() != 0x154) {
+    u32 result2 <- testBitwise();
+    if (result2 != 0x154) {
         return 1;
     }
 

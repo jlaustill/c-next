@@ -47,17 +47,27 @@ uint32_t getStatusPriority(Status s) {
 }
 
 int main(void) {
-    if (getStatusCode(Status_OK) != 0) return 1;
-    if (getStatusCode(Status_WARNING) != 1) return 2;
-    if (getStatusCode(Status_ERROR) != 2) return 3;
-    if (getStatusCode(Status_CRITICAL) != 3) return 4;
+    uint32_t code = getStatusCode(Status_OK);
+    if (code != 0) return 1;
+    code = getStatusCode(Status_WARNING);
+    if (code != 1) return 2;
+    code = getStatusCode(Status_ERROR);
+    if (code != 2) return 3;
+    code = getStatusCode(Status_CRITICAL);
+    if (code != 3) return 4;
     Status current = Status_ERROR;
-    if (getStatusCode(current) != 2) return 5;
-    if (getStatusPriority(Status_OK) != 0) return 6;
-    if (getStatusPriority(Status_WARNING) != 10) return 7;
-    if (getStatusPriority(Status_ERROR) != 50) return 8;
-    if (getStatusPriority(Status_CRITICAL) != 100) return 9;
+    code = getStatusCode(current);
+    if (code != 2) return 5;
+    uint32_t priority = getStatusPriority(Status_OK);
+    if (priority != 0) return 6;
+    priority = getStatusPriority(Status_WARNING);
+    if (priority != 10) return 7;
+    priority = getStatusPriority(Status_ERROR);
+    if (priority != 50) return 8;
+    priority = getStatusPriority(Status_CRITICAL);
+    if (priority != 100) return 9;
     current = Status_CRITICAL;
-    if (getStatusPriority(current) != 100) return 10;
+    priority = getStatusPriority(current);
+    if (priority != 100) return 10;
     return 0;
 }

@@ -40,10 +40,12 @@ int main(void) {
     if (strlen(globalArr[0]) != 5) {
         return 2;
     }
-    if (TestScope_getGlobalArrayLength() != 4) {
+    uint32_t result = TestScope_getGlobalArrayLength();
+    if (result != 4) {
         return 3;
     }
-    if (TestScope_getScopeArrayLength() != 4) {
+    result = TestScope_getScopeArrayLength();
+    if (result != 4) {
         return 4;
     }
     if (4 != 4) {
@@ -59,7 +61,8 @@ int main(void) {
     }
     char testArr[4][65] = {0};
     strncpy(testArr[0], "Param", 64);
-    if (checkArrayLength(&testArr) != 4) {
+    result = checkArrayLength(&testArr);
+    if (result != 4) {
         return 8;
     }
     TestStruct ts = {0};

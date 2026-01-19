@@ -1,0 +1,12 @@
+// Issue #254: Function calls in for conditions are not allowed (E0702)
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+u32 getLimit() {
+    return 10;
+}
+
+void test() {
+    for (u32 i <- 0; i < getLimit(); i +<- 1) {
+        // body
+    }
+}

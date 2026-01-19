@@ -69,15 +69,21 @@ i32 main() {
 
    
 // Test 9: Pass array to function - get array length
-    if (getArrayLength(globalNames) != 5) return 17;
+    u32 arrLen <- getArrayLength(globalNames);
+    if (arrLen != 5) return 17;
 
    
 // Test 10: Pass array to function - get element length (issue #136 fixed)
-    if (getElementLength(globalNames, 0) != 5) return 18; // "Alice"
-    if (getElementLength(globalNames, 1) != 3) return 19; // "Bob"
-    if (getElementLength(globalNames, 2) != 7) return 20; // "Charlie"
-    if (getElementLength(globalNames, 3) != 5) return 21; // "Diana"
-    if (getElementLength(globalNames, 4) != 3) return 22; // "Eve"
+    u32 elemLen0 <- getElementLength(globalNames, 0);
+    if (elemLen0 != 5) return 18; // "Alice"
+    u32 elemLen1 <- getElementLength(globalNames, 1);
+    if (elemLen1 != 3) return 19; // "Bob"
+    u32 elemLen2 <- getElementLength(globalNames, 2);
+    if (elemLen2 != 7) return 20; // "Charlie"
+    u32 elemLen3 <- getElementLength(globalNames, 3);
+    if (elemLen3 != 5) return 21; // "Diana"
+    u32 elemLen4 <- getElementLength(globalNames, 4);
+    if (elemLen4 != 3) return 22; // "Eve"
 
    
 // Test 11: Loop through array with index

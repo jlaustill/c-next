@@ -15,32 +15,36 @@ u32 main() {
     u8 c <- 30;
     u8 d <- 5;
 
-   
+
 // Test max function
-    if (getMax(a, b) != 20) {
+    u8 maxResult1 <- getMax(a, b);
+    if (maxResult1 != 20) {
         return 1;
     }
-    if (getMax(c, d) != 30) {
+    u8 maxResult2 <- getMax(c, d);
+    if (maxResult2 != 30) {
         return 2;
     }
 
-   
+
 // Test min function
-    if (getMin(a, b) != 10) {
+    u8 minResult1 <- getMin(a, b);
+    if (minResult1 != 10) {
         return 3;
     }
-    if (getMin(c, d) != 5) {
+    u8 minResult2 <- getMin(c, d);
+    if (minResult2 != 5) {
         return 4;
     }
 
-   
+
 // Test inline ternary
     u8 result <- (a > b) ? a : b;
     if (result != 20) {
         return 5;
     }
 
-   
+
 // Test with edge cases - max value
     u8 max_val <- 255;
     u8 mid_val <- 127;
@@ -49,7 +53,7 @@ u32 main() {
         return 6;
     }
 
-   
+
 // Test with edge cases - min value (0)
     u8 zero <- 0;
     u8 one <- 1;
@@ -58,7 +62,7 @@ u32 main() {
         return 7;
     }
 
-   
+
 // Test equality condition
     u8 equal_test <- (a = 10) ? 100 : 200;
     if (equal_test != 100) {

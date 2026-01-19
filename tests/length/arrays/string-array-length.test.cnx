@@ -26,25 +26,27 @@ i32 main() {
     globalArr[0] <- "Hello";
     globalArr[1] <- "World";
 
-   
+
 // Test array.length (element count)
     if (globalArr.length != 4) {
         return 1;
     }
 
-   
+
 // Test string[0].length (runtime strlen)
     if (globalArr[0].length != 5) {
         return 2;
     }
 
     // Scope access - array length
-    if (TestScope.getGlobalArrayLength() != 4) {
+    u32 result <- TestScope.getGlobalArrayLength();
+    if (result != 4) {
         return 3;
     }
 
     // Scope member - array length
-    if (TestScope.getScopeArrayLength() != 4) {
+    result <- TestScope.getScopeArrayLength();
+    if (result != 4) {
         return 4;
     }
 
@@ -66,7 +68,8 @@ i32 main() {
     // Function parameter - array length
     string<64> testArr[4];
     testArr[0] <- "Param";
-    if (checkArrayLength(testArr) != 4) {
+    result <- checkArrayLength(testArr);
+    if (result != 4) {
         return 8;
     }
 

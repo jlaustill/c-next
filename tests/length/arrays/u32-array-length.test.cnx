@@ -43,19 +43,23 @@ i32 main() {
         return 2;
     }
 
-    if (TestScope.getGlobalArrayLength() != 16) {
+    u32 result <- TestScope.getGlobalArrayLength();
+    if (result != 16) {
         return 3;
     }
 
-    if (TestScope.getGlobalElementLength() != 32) {
+    result <- TestScope.getGlobalElementLength();
+    if (result != 32) {
         return 4;
     }
 
-    if (TestScope.getScopeArrayLength() != 16) {
+    result <- TestScope.getScopeArrayLength();
+    if (result != 16) {
         return 5;
     }
 
-    if (TestScope.getScopeElementLength() != 32) {
+    result <- TestScope.getScopeElementLength();
+    if (result != 32) {
         return 6;
     }
 
@@ -78,11 +82,13 @@ i32 main() {
 
     u32 testArr[16];
     testArr[0] <- 100000;
-    if (checkArrayLength(testArr) != 16) {
+    result <- checkArrayLength(testArr);
+    if (result != 16) {
         return 11;
     }
 
-    if (checkElementLength(testArr) != 32) {
+    result <- checkElementLength(testArr);
+    if (result != 32) {
         return 12;
     }
 

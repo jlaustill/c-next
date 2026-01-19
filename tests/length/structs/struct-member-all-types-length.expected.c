@@ -120,7 +120,8 @@ int main(void) {
     if (8 != 8) {
         return 11;
     }
-    if (TestScope_checkScopeStructMember() != 0) {
+    uint32_t scopeResult = TestScope_checkScopeStructMember();
+    if (scopeResult != 0) {
         return 12;
     }
     AllTypes localStruct = {0};

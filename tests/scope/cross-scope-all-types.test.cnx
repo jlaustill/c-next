@@ -186,81 +186,92 @@ u32 main() {
     // SECTION 1: Cross-scope read - unsigned integers
     // ==========================================
 
-   
+
 // Test 1: Read u8 from Provider via Consumer method
-    if (Consumer.readProviderU8() != 255) return 1;
+    u8 resultU8 <- Consumer.readProviderU8();
+    if (resultU8 != 255) return 1;
 
-   
+
 // Test 2: Read u16 from Provider
-    if (Consumer.readProviderU16() != 65535) return 2;
+    u16 resultU16 <- Consumer.readProviderU16();
+    if (resultU16 != 65535) return 2;
 
-   
+
 // Test 3: Read u32 from Provider
-    if (Consumer.readProviderU32() != 4294967295) return 3;
+    u32 resultU32 <- Consumer.readProviderU32();
+    if (resultU32 != 4294967295) return 3;
 
-   
+
 // Test 4: Read u64 from Provider
-    if (Consumer.readProviderU64() != 18446744073709551615) return 4;
+    u64 resultU64 <- Consumer.readProviderU64();
+    if (resultU64 != 18446744073709551615) return 4;
 
     // ==========================================
     // SECTION 2: Cross-scope read - signed integers
     // ==========================================
 
-   
+
 // Test 5: Read i8 from Provider
-    if (Consumer.readProviderI8() != -128) return 5;
+    i8 resultI8 <- Consumer.readProviderI8();
+    if (resultI8 != -128) return 5;
 
-   
+
 // Test 6: Read i16 from Provider
-    if (Consumer.readProviderI16() != -32768) return 6;
+    i16 resultI16 <- Consumer.readProviderI16();
+    if (resultI16 != -32768) return 6;
 
-   
+
 // Test 7: Read i32 from Provider
-    if (Consumer.readProviderI32() != -2147483648) return 7;
+    i32 resultI32 <- Consumer.readProviderI32();
+    if (resultI32 != -2147483648) return 7;
 
-   
+
 // Test 8: Read i64 from Provider
-    if (Consumer.readProviderI64() != -9223372036854775808) return 8;
+    i64 resultI64 <- Consumer.readProviderI64();
+    if (resultI64 != -9223372036854775808) return 8;
 
     // ==========================================
     // SECTION 3: Cross-scope read - floating point
     // ==========================================
 
-   
+
 // Test 9: Read f32 from Provider (using roundtrip to avoid literal issues)
     f32 expectedF32 <- 3.14;
     Provider.valF32 <- expectedF32;
-    if (Consumer.readProviderF32() != expectedF32) return 9;
+    f32 resultF32 <- Consumer.readProviderF32();
+    if (resultF32 != expectedF32) return 9;
 
-   
+
 // Test 10: Read f64 from Provider
     f64 expectedF64 <- 3.141592653589793;
     Provider.valF64 <- expectedF64;
-    if (Consumer.readProviderF64() != expectedF64) return 10;
+    f64 resultF64 <- Consumer.readProviderF64();
+    if (resultF64 != expectedF64) return 10;
 
     // ==========================================
     // SECTION 4: Cross-scope read - boolean
     // ==========================================
 
-   
+
 // Test 11: Read bool from Provider
-    if (Consumer.readProviderBool() != true) return 11;
+    bool resultBool <- Consumer.readProviderBool();
+    if (resultBool != true) return 11;
 
     // ==========================================
     // SECTION 5: Cross-scope write
     // ==========================================
 
-   
+
 // Test 12: Write u8 to Provider and verify
     Consumer.writeProviderU8(42);
     if (Provider.valU8 != 42) return 12;
 
-   
+
 // Test 13: Write i32 to Provider and verify
     Consumer.writeProviderI32(-999);
     if (Provider.valI32 != -999) return 13;
 
-   
+
 // Test 14: Write bool to Provider and verify
     Consumer.writeProviderBool(false);
     if (Provider.valBool != false) return 14;
@@ -274,75 +285,85 @@ u32 main() {
     Provider.valI32 <- -500;
     Provider.valBool <- true;
 
-   
+
 // Test 15: Call Provider's getU8() via Consumer
-    if (Consumer.callProviderGetU8() != 100) return 15;
+    u8 resultU8_2 <- Consumer.callProviderGetU8();
+    if (resultU8_2 != 100) return 15;
 
-   
+
 // Test 16: Call Provider's getI32() via Consumer
-    if (Consumer.callProviderGetI32() != -500) return 16;
+    i32 resultI32_2 <- Consumer.callProviderGetI32();
+    if (resultI32_2 != -500) return 16;
 
-   
+
 // Test 17: Call Provider's getBool() via Consumer
-    if (Consumer.callProviderGetBool() != true) return 17;
+    bool resultBool2 <- Consumer.callProviderGetBool();
+    if (resultBool2 != true) return 17;
 
     // ==========================================
     // SECTION 7: Cross-scope array access
     // ==========================================
 
-   
+
 // Test 18: Write to Provider's array via Consumer
     Consumer.writeProviderArray(0, 1000);
     Consumer.writeProviderArray(1, 2000);
     Consumer.writeProviderArray(2, 3000);
 
-   
+
 // Test 19: Read from Provider's array via Consumer
-    if (Consumer.readProviderArray(0) != 1000) return 19;
-    if (Consumer.readProviderArray(1) != 2000) return 20;
-    if (Consumer.readProviderArray(2) != 3000) return 21;
+    u32 arrResult0 <- Consumer.readProviderArray(0);
+    if (arrResult0 != 1000) return 19;
+    u32 arrResult1 <- Consumer.readProviderArray(1);
+    if (arrResult1 != 2000) return 20;
+    u32 arrResult2 <- Consumer.readProviderArray(2);
+    if (arrResult2 != 3000) return 21;
 
     // ==========================================
     // SECTION 8: Cross-scope modifier access
     // ==========================================
 
-   
+
 // Test 22: Read clamp value from Provider
-    if (Consumer.readProviderClamp() != 200) return 22;
+    u8 clampResult <- Consumer.readProviderClamp();
+    if (clampResult != 200) return 22;
 
-   
+
 // Test 23: Read wrap value from Provider
-    if (Consumer.readProviderWrap() != 250) return 23;
+    u8 wrapResult <- Consumer.readProviderWrap();
+    if (wrapResult != 250) return 23;
 
-   
+
 // Test 24: Set Provider's clamp value via cross-scope write
     Consumer.setProviderClamp(100);
-    if (Consumer.readProviderClamp() != 100) return 24;
+    u8 clampResult2 <- Consumer.readProviderClamp();
+    if (clampResult2 != 100) return 24;
 
-   
+
 // Test 25: Set Provider's wrap value via cross-scope write
     Consumer.setProviderWrap(50);
-    if (Consumer.readProviderWrap() != 50) return 25;
+    u8 wrapResult2 <- Consumer.readProviderWrap();
+    if (wrapResult2 != 50) return 25;
 
     // ==========================================
     // SECTION 9: Direct cross-scope access from main
     // ==========================================
 
-   
+
 // Test 26: Direct read of Provider's u8 from main
     if (Provider.valU8 != 100) return 26;
 
-   
+
 // Test 27: Direct write to Provider from main
     Provider.valU16 <- 12345;
     if (Provider.valU16 != 12345) return 27;
 
-   
+
 // Test 28: Direct read of Consumer's result from main
     Consumer.computeSum();
     if (Consumer.result != 4294967295) return 28;
 
-   
+
 // Test 29: Direct read of Consumer's signedResult after computation
     Consumer.computeSignedSum();
     // Provider.valI32 = -500, -500 + 100 = -400
@@ -352,11 +373,12 @@ u32 main() {
     // SECTION 10: Bidirectional cross-scope access
     // ==========================================
 
-   
+
 // Test 30: Verify both scopes can read/write each other
     // Write via Consumer, read via direct access
     Consumer.writeProviderU8(77);
-    if (Provider.getU8() != 77) return 30;
+    u8 finalResult <- Provider.getU8();
+    if (finalResult != 77) return 30;
 
     // All 30 validations passed
     return 0;

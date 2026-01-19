@@ -182,6 +182,15 @@ interface IOrchestrator {
   /** Validate do-while condition (ADR-027) */
   validateDoWhileCondition(ctx: Parser.ExpressionContext): void;
 
+  /** Validate no function calls in condition (Issue #254, E0702) */
+  validateConditionNoFunctionCall(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void;
+
+  /** Validate no function calls in ternary condition (Issue #254, E0702) */
+  validateTernaryConditionNoFunctionCall(ctx: Parser.OrExpressionContext): void;
+
   // === Control Flow Helpers (ADR-053 A3) ===
 
   /** Generate an assignment target */

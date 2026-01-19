@@ -1,0 +1,51 @@
+/* test-execution */
+// Issue #254: Valid conditions without function calls
+// These should compile and run successfully
+
+u32 getValue() {
+    return 42;
+}
+
+bool checkValue() {
+    return true;
+}
+
+u32 main() {
+    // Valid: Store function result in variable first
+    u32 value <- getValue();
+    bool valid <- checkValue();
+
+    // Valid: if with variable comparison
+    if (value > 0) {
+        value <- 1;
+    }
+    if (value != 1) return 1;
+
+    // Valid: while with variable comparison
+    u32 count <- 3;
+    while (count > 0) {
+        count -<- 1;
+    }
+    if (count != 0) return 2;
+
+    // Valid: for with variable condition
+    u32 sum <- 0;
+    u32 limit <- 5;
+    for (u32 i <- 0; i < limit; i +<- 1) {
+        sum +<- 1;
+    }
+    if (sum != 5) return 3;
+
+    // Valid: do-while with variable comparison
+    u32 x <- 2;
+    do {
+        x -<- 1;
+    } while (x > 0);
+    if (x != 0) return 4;
+
+    // Valid: ternary with variable comparison
+    u32 result <- (valid = true) ? 100 : 0;
+    if (result != 100) return 5;
+
+    return 0;
+}

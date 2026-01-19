@@ -83,51 +83,64 @@ void AllTypesTest_setF64(double val) {
 }
 
 int main(void) {
-    if (AllTypesTest_getU8() != 255) {
+    uint8_t resultU8 = AllTypesTest_getU8();
+    if (resultU8 != 255) {
         return 1;
     }
-    if (AllTypesTest_getU16() != 65535) {
+    uint16_t resultU16 = AllTypesTest_getU16();
+    if (resultU16 != 65535) {
         return 2;
     }
-    if (AllTypesTest_getU32() != 4294967295) {
+    uint32_t resultU32 = AllTypesTest_getU32();
+    if (resultU32 != 4294967295) {
         return 3;
     }
-    if (AllTypesTest_getU64() != 18446744073709551615) {
+    uint64_t resultU64 = AllTypesTest_getU64();
+    if (resultU64 != 18446744073709551615) {
         return 4;
     }
-    if (AllTypesTest_getI8() != -128) {
+    int8_t resultI8 = AllTypesTest_getI8();
+    if (resultI8 != -128) {
         return 5;
     }
-    if (AllTypesTest_getI16() != -32768) {
+    int16_t resultI16 = AllTypesTest_getI16();
+    if (resultI16 != -32768) {
         return 6;
     }
-    if (AllTypesTest_getI32() != -2147483648) {
+    int32_t resultI32 = AllTypesTest_getI32();
+    if (resultI32 != -2147483648) {
         return 7;
     }
-    if (AllTypesTest_getI64() != -9223372036854775808) {
+    int64_t resultI64 = AllTypesTest_getI64();
+    if (resultI64 != -9223372036854775808) {
         return 8;
     }
     float testF32 = 99.5;
     AllTypesTest_setF32(testF32);
-    if (AllTypesTest_getF32() != testF32) {
+    float resultF32 = AllTypesTest_getF32();
+    if (resultF32 != testF32) {
         return 9;
     }
     double testF64 = 123.456789012345;
     AllTypesTest_setF64(testF64);
-    if (AllTypesTest_getF64() != testF64) {
+    double resultF64 = AllTypesTest_getF64();
+    if (resultF64 != testF64) {
         return 10;
     }
-    if (AllTypesTest_getBool() != true) {
+    bool resultBool = AllTypesTest_getBool();
+    if (resultBool != true) {
         return 11;
     }
     uint8_t newU8Value = 100;
     AllTypesTest_setU8(&newU8Value);
-    if (AllTypesTest_getU8() != 100) {
+    resultU8 = AllTypesTest_getU8();
+    if (resultU8 != 100) {
         return 12;
     }
     bool newBoolValue = false;
     AllTypesTest_setBool(&newBoolValue);
-    if (AllTypesTest_getBool() != false) {
+    resultBool = AllTypesTest_getBool();
+    if (resultBool != false) {
         return 13;
     }
     return 0;

@@ -69,7 +69,8 @@ void configureTimer(u8 prescale) {
 void main() {
     configureUART();
 
-    if (isUARTReady()) {
+    bool uartReady <- isUARTReady();
+    if (uartReady) {
         UART.DATA <- 0x55;
     }
 

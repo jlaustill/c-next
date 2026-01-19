@@ -27,11 +27,13 @@ i32 main() {
         return 1;
     }
 
-    if (TestScope.getGlobalLength() != 8) {
+    u32 result <- TestScope.getGlobalLength();
+    if (result != 8) {
         return 2;
     }
 
-    if (TestScope.getMemberLength() != 8) {
+    result <- TestScope.getMemberLength();
+    if (result != 8) {
         return 3;
     }
 
@@ -45,7 +47,8 @@ i32 main() {
     }
 
     i8 testVal <- -42;
-    if (checkParamLength(testVal) != 8) {
+    result <- checkParamLength(testVal);
+    if (result != 8) {
         return 6;
     }
 

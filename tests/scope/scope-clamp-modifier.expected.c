@@ -141,29 +141,43 @@ void ClampTest_setSensorValue(uint16_t* val) {
 }
 
 int main(void) {
-    if (ClampTest_getBrightness() != 200) return 1;
-    if (ClampTest_getSensorValue() != 60000) return 2;
-    if (ClampTest_getCounter() != 4000000000) return 3;
-    if (ClampTest_getTemperature() != -100) return 4;
-    if (ClampTest_getAltitude() != 30000) return 5;
-    if (ClampTest_getPosition() != 2000000000) return 6;
+    uint8_t resultBrightness = ClampTest_getBrightness();
+    if (resultBrightness != 200) return 1;
+    uint16_t resultSensor = ClampTest_getSensorValue();
+    if (resultSensor != 60000) return 2;
+    uint32_t resultCounter = ClampTest_getCounter();
+    if (resultCounter != 4000000000) return 3;
+    int8_t resultTemp = ClampTest_getTemperature();
+    if (resultTemp != -100) return 4;
+    int16_t resultAlt = ClampTest_getAltitude();
+    if (resultAlt != 30000) return 5;
+    int32_t resultPos = ClampTest_getPosition();
+    if (resultPos != 2000000000) return 6;
     ClampTest_increaseBrightness();
-    if (ClampTest_getBrightness() != 255) return 7;
+    resultBrightness = ClampTest_getBrightness();
+    if (resultBrightness != 255) return 7;
     ClampTest_increaseSensorValue();
-    if (ClampTest_getSensorValue() != 65535) return 8;
+    resultSensor = ClampTest_getSensorValue();
+    if (resultSensor != 65535) return 8;
     ClampTest_increaseCounter();
-    if (ClampTest_getCounter() != 4294967295) return 9;
+    resultCounter = ClampTest_getCounter();
+    if (resultCounter != 4294967295) return 9;
     ClampTest_decreaseTemperature();
-    if (ClampTest_getTemperature() != -128) return 10;
+    resultTemp = ClampTest_getTemperature();
+    if (resultTemp != -128) return 10;
     ClampTest_decreaseAltitude();
-    if (ClampTest_getAltitude() != 25000) return 11;
+    resultAlt = ClampTest_getAltitude();
+    if (resultAlt != 25000) return 11;
     ClampTest_decreasePosition();
-    if (ClampTest_getPosition() != 1900000000) return 12;
+    resultPos = ClampTest_getPosition();
+    if (resultPos != 1900000000) return 12;
     ClampTest_setBrightness(&(uint8_t){100});
     ClampTest_dimBrightness();
-    if (ClampTest_getBrightness() != 0) return 13;
+    resultBrightness = ClampTest_getBrightness();
+    if (resultBrightness != 0) return 13;
     ClampTest_setSensorValue(&(uint16_t){1000});
     ClampTest_resetSensor();
-    if (ClampTest_getSensorValue() != 0) return 14;
+    resultSensor = ClampTest_getSensorValue();
+    if (resultSensor != 0) return 14;
     return 0;
 }

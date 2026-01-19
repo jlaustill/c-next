@@ -50,16 +50,20 @@ int main(void) {
     if (8 != 8) {
         return 2;
     }
-    if (TestScope_getGlobalArrayLength() != 16) {
+    uint32_t result = TestScope_getGlobalArrayLength();
+    if (result != 16) {
         return 3;
     }
-    if (TestScope_getGlobalElementLength() != 8) {
+    result = TestScope_getGlobalElementLength();
+    if (result != 8) {
         return 4;
     }
-    if (TestScope_getScopeArrayLength() != 16) {
+    result = TestScope_getScopeArrayLength();
+    if (result != 16) {
         return 5;
     }
-    if (TestScope_getScopeElementLength() != 8) {
+    result = TestScope_getScopeElementLength();
+    if (result != 8) {
         return 6;
     }
     if (16 != 16) {
@@ -78,10 +82,12 @@ int main(void) {
     }
     uint8_t testArr[16] = {0};
     testArr[0] = 42;
-    if (checkArrayLength(testArr) != 16) {
+    result = checkArrayLength(testArr);
+    if (result != 16) {
         return 11;
     }
-    if (checkElementLength(testArr) != 8) {
+    result = checkElementLength(testArr);
+    if (result != 8) {
         return 12;
     }
     TestStruct ts = {0};

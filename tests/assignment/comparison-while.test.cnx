@@ -17,21 +17,24 @@ u32 main() {
     u32 zero <- 0;
     u32 three <- 3;
 
-   
+
 // Test sumUntilLimit: 0+1+2+3+4 = 10
-    if (sumUntilLimit(five) != 10) {
+    u32 result1 <- sumUntilLimit(five);
+    if (result1 != 10) {
         return 1;
     }
 
-   
+
 // Test sumUntilLimit: 0 = 0
-    if (sumUntilLimit(zero) != 0) {
+    u32 result2 <- sumUntilLimit(zero);
+    if (result2 != 0) {
         return 1;
     }
 
-   
+
 // Test sumUntilLimit: 0+1+2 = 3
-    if (sumUntilLimit(three) != 3) {
+    u32 result3 <- sumUntilLimit(three);
+    if (result3 != 3) {
         return 1;
     }
 

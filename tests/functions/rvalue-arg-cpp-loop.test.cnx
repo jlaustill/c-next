@@ -15,7 +15,8 @@ u32 main() {
 
     // Test 1: rvalue expression (a + b) in if condition
     // Temp var for (a + b) should be declared BEFORE the if
-    if (checkValue(a + b) > 5) {
+    u32 check1 <- checkValue(a + b);
+    if (check1 > 5) {
         result <- 1;
     }
     if (result != 1) return 1;  // 5 + 3 = 8 > 5, so result should be 1
@@ -25,7 +26,8 @@ u32 main() {
     // This test uses a constant expression to verify compilation works
     u8 iterations <- 0;
     u8 limit <- 2;
-    while (checkValue(limit + 1) > iterations) {
+    u32 check2 <- checkValue(limit + 1);
+    while (check2 > iterations) {
         iterations <- iterations + 1;
         if (iterations > 10) return 2;  // Safety: prevent infinite loop
     }
@@ -36,7 +38,8 @@ u32 main() {
     // Note: Using loop var in rvalue would cause scoping issues
     u32 sum <- 0;
     u8 maxVal <- 3;
-    for (u8 i <- 0; i < checkValue(maxVal + 1); i <- i + 1) {
+    u32 check3 <- checkValue(maxVal + 1);
+    for (u8 i <- 0; i < check3; i <- i + 1) {
         sum <- sum + 1;
     }
     // maxVal + 1 = 4, so loops while i < 4 (i=0,1,2,3)

@@ -34,25 +34,31 @@ uint16_t LengthTest_getLengthPlusOffset(void) {
 }
 
 int main(void) {
-    if (LengthTest_getLength() != 0) {
+    uint8_t resultLen = LengthTest_getLength();
+    if (resultLen != 0) {
         return 1;
     }
     LengthTest_setLength(&(uint8_t){42});
-    if (LengthTest_getLength() != 42) {
+    resultLen = LengthTest_getLength();
+    if (resultLen != 42) {
         return 2;
     }
-    if (LengthTest_getOffset() != 0) {
+    uint16_t resultOffset = LengthTest_getOffset();
+    if (resultOffset != 0) {
         return 3;
     }
     LengthTest_setOffset(&(uint16_t){100});
-    if (LengthTest_getOffset() != 100) {
+    resultOffset = LengthTest_getOffset();
+    if (resultOffset != 100) {
         return 4;
     }
-    if (LengthTest_getLengthPlusOffset() != 142) {
+    uint16_t resultSum = LengthTest_getLengthPlusOffset();
+    if (resultSum != 142) {
         return 5;
     }
     LengthTest_setLength(&(uint8_t){255});
-    if (LengthTest_getLength() != 255) {
+    resultLen = LengthTest_getLength();
+    if (resultLen != 255) {
         return 6;
     }
     return 0;

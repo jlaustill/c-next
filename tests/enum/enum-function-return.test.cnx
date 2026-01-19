@@ -77,11 +77,14 @@ u32 main() {
     light <- getNextLight(light);
     if (light != TrafficLight.STOP) return 7;
 
-   
+
 // Test colorToLight mapping
-    if (colorToLight(Color.RED) != TrafficLight.STOP) return 8;
-    if (colorToLight(Color.GREEN) != TrafficLight.GO) return 9;
-    if (colorToLight(Color.BLUE) != TrafficLight.CAUTION) return 10;
+    TrafficLight mapped <- colorToLight(Color.RED);
+    if (mapped != TrafficLight.STOP) return 8;
+    mapped <- colorToLight(Color.GREEN);
+    if (mapped != TrafficLight.GO) return 9;
+    mapped <- colorToLight(Color.BLUE);
+    if (mapped != TrafficLight.CAUTION) return 10;
 
     return 0;
 }

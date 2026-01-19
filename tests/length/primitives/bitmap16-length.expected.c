@@ -58,10 +58,12 @@ int main(void) {
     if (16 != 16) {
         return 1;
     }
-    if (TestScope_getGlobalLength() != 16) {
+    uint32_t result = TestScope_getGlobalLength();
+    if (result != 16) {
         return 2;
     }
-    if (TestScope_getMemberLength() != 16) {
+    result = TestScope_getMemberLength();
+    if (result != 16) {
         return 3;
     }
     if (16 != 16) {
@@ -74,7 +76,8 @@ int main(void) {
     }
     StatusFlags testVal = {0};
     testVal = (testVal & ~(1 << 0)) | (1 << 0);
-    if (checkParamLength(&testVal) != 16) {
+    result = checkParamLength(&testVal);
+    if (result != 16) {
         return 6;
     }
     StatusFlags arr[4] = {0};
