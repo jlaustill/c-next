@@ -166,6 +166,9 @@ class NullCheckListener extends CNextListener {
   /** Track if the current equality comparison contains NULL */
   private equalityComparisonHasNull = false;
 
+  /** Track variable names in the current equality comparison */
+  private equalityComparisonVarNames: string[] = [];
+
   /** Whether we're currently inside a variable declaration (with c_ prefix handling) */
   private inVariableDeclarationWithNullable = false;
 
@@ -192,10 +195,31 @@ class NullCheckListener extends CNextListener {
         this.inEqualityComparison = true;
         this.equalityComparisonFuncName = null;
         this.equalityComparisonHasNull = false;
+        // Extract variable names from the comparison
+        this.equalityComparisonVarNames = this.extractVariableNames(ctx);
         return;
       }
     }
   };
+
+  /**
+   * Extract simple variable names from an equality expression
+   */
+  private extractVariableNames(
+    ctx: Parser.EqualityExpressionContext,
+  ): string[] {
+    const names: string[] = [];
+    // Get relational expressions (left and right sides of comparison)
+    const children = ctx.relationalExpression();
+    for (const child of children) {
+      const text = child.getText();
+      // Simple check: if it's a simple identifier and not NULL, add it
+      if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(text) && text !== "NULL") {
+        names.push(text);
+      }
+    }
+    return names;
+  }
 
   override exitEqualityExpression = (
     ctx: Parser.EqualityExpressionContext,
@@ -217,6 +241,7 @@ class NullCheckListener extends CNextListener {
       this.inEqualityComparison = false;
       this.equalityComparisonFuncName = null;
       this.equalityComparisonHasNull = false;
+      this.equalityComparisonVarNames = [];
     }
   };
 
@@ -278,7 +303,20 @@ class NullCheckListener extends CNextListener {
       const column = ctx.start?.column ?? 0;
 
       if (this.inEqualityComparison) {
-        // NULL in comparison context - OK
+        // Check if any compared variable lacks c_ prefix and is not a nullable C function
+        for (const varName of this.equalityComparisonVarNames) {
+          if (
+            !NullCheckAnalyzer.hasNullablePrefix(varName) &&
+            !NULLABLE_C_FUNCTIONS.has(varName)
+          ) {
+            this.analyzer.reportNullComparisonOnNonNullable(
+              varName,
+              line,
+              column,
+            );
+          }
+        }
+        // NULL in comparison context - OK (for c_ prefixed variables or functions)
         this.equalityComparisonHasNull = true;
       } else {
         // NULL outside comparison - error
@@ -543,6 +581,24 @@ class NullCheckAnalyzer {
       column,
       message: `Invalid 'c_' prefix on non-nullable type '${typeName}'`,
       helpText: `The 'c_' prefix is only for nullable C pointer types. Use: ${typeName} ${varName.substring(2)} <- ...`,
+    });
+  }
+
+  /**
+   * Report error: NULL comparison on non-nullable variable (E0907)
+   */
+  public reportNullComparisonOnNonNullable(
+    varName: string,
+    line: number,
+    column: number,
+  ): void {
+    this.errors.push({
+      code: "E0907",
+      functionName: varName,
+      line,
+      column,
+      message: `NULL comparison on non-nullable variable '${varName}'`,
+      helpText: `Only variables with 'c_' prefix can be compared to NULL. C-Next variables are never null.`,
     });
   }
 

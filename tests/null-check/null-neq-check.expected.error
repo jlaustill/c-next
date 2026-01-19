@@ -1,1 +1,2 @@
 9:8 error[E0905]: Missing 'c_' prefix for nullable C type 'u8'
+10:18 error[E0907]: NULL comparison on non-nullable variable 'result'
