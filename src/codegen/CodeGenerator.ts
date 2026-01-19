@@ -672,6 +672,20 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #250: Flush pending temp variable declarations.
+   * Returns declarations as a single string and clears the pending list.
+   * Part of IOrchestrator interface.
+   */
+  flushPendingTempDeclarations(): string {
+    if (this.pendingTempDeclarations.length === 0) {
+      return "";
+    }
+    const decls = this.pendingTempDeclarations.join("\n");
+    this.pendingTempDeclarations = [];
+    return decls;
+  }
+
+  /**
    * Get indentation string for current level.
    * Part of IOrchestrator interface (ADR-053 A3).
    */

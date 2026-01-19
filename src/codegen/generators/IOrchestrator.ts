@@ -157,6 +157,14 @@ interface IOrchestrator {
   /** Generate a single statement */
   generateStatement(ctx: Parser.StatementContext): string;
 
+  /**
+   * Issue #250: Flush pending temp variable declarations.
+   * Returns declarations as a single string and clears the pending list.
+   * Used by control flow generators to capture temps from conditions
+   * before generating loop/if bodies.
+   */
+  flushPendingTempDeclarations(): string;
+
   /** Get indentation string for current level */
   indent(text: string): string;
 
