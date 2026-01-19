@@ -22,16 +22,20 @@ int main(void) {
     uint64_t b = 2000;
     uint64_t c = 3000;
     uint64_t d = 500;
-    if (getMax(&a, &b) != 2000) {
+    uint64_t maxResult1 = getMax(&a, &b);
+    if (maxResult1 != 2000) {
         return 1;
     }
-    if (getMax(&c, &d) != 3000) {
+    uint64_t maxResult2 = getMax(&c, &d);
+    if (maxResult2 != 3000) {
         return 2;
     }
-    if (getMin(&a, &b) != 1000) {
+    uint64_t minResult1 = getMin(&a, &b);
+    if (minResult1 != 1000) {
         return 3;
     }
-    if (getMin(&c, &d) != 500) {
+    uint64_t minResult2 = getMin(&c, &d);
+    if (minResult2 != 500) {
         return 4;
     }
     uint64_t result = (a > b) ? a : b;

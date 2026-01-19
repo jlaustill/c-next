@@ -119,9 +119,10 @@ i32 main() {
         return 11;
     }
 
-   
+
 // Test scope struct members
-    if (TestScope.checkScopeStructMember() != 0) {
+    u32 scopeResult <- TestScope.checkScopeStructMember();
+    if (scopeResult != 0) {
         return 12;
     }
 

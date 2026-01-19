@@ -36,10 +36,12 @@ int main(void) {
     if (8 != 8) {
         return 1;
     }
-    if (TestScope_getGlobalLength() != 8) {
+    uint32_t result = TestScope_getGlobalLength();
+    if (result != 8) {
         return 2;
     }
-    if (TestScope_getMemberLength() != 8) {
+    result = TestScope_getMemberLength();
+    if (result != 8) {
         return 3;
     }
     if (8 != 8) {
@@ -50,7 +52,8 @@ int main(void) {
         return 5;
     }
     bool testVal = true;
-    if (checkParamLength(&testVal) != 8) {
+    result = checkParamLength(&testVal);
+    if (result != 8) {
         return 6;
     }
     TestStruct ts = {0};

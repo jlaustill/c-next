@@ -49,16 +49,23 @@ u32 main() {
 
    
 // Test 1: Function parameter access (original issue #69 pattern)
-    if (getSpn(cfg, idx0) != 100) return 1;
-    if (getSpn(cfg, idx1) != 200) return 2;
-    if (getSpn(cfg, idx2) != 300) return 3;
-    if (getSpn(cfg, idx5) != 999) return 4;
+    u16 spn0 <- getSpn(cfg, idx0);
+    if (spn0 != 100) return 1;
+    u16 spn1 <- getSpn(cfg, idx1);
+    if (spn1 != 200) return 2;
+    u16 spn2 <- getSpn(cfg, idx2);
+    if (spn2 != 300) return 3;
+    u16 spn5 <- getSpn(cfg, idx5);
+    if (spn5 != 999) return 4;
 
    
 // Test 2: Float member access
-    if (getCoeff(cfg, idx0) != 1.5) return 5;
-    if (getCoeff(cfg, idx1) != 2.5) return 6;
-    if (getCoeff(cfg, idx2) != 3.5) return 7;
+    f32 coeff0 <- getCoeff(cfg, idx0);
+    if (coeff0 != 1.5) return 5;
+    f32 coeff1 <- getCoeff(cfg, idx1);
+    if (coeff1 != 2.5) return 6;
+    f32 coeff2 <- getCoeff(cfg, idx2);
+    if (coeff2 != 3.5) return 7;
 
    
 // Test 3: Direct access patterns

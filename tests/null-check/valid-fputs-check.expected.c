@@ -3,14 +3,16 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check pattern for fputs
+// ADR-046: Valid EOF check pattern for fputs using c_ prefix
 #include <stdio.h>
 
+#include <stdint.h>
 #include <string.h>
 
 char message[33] = "Hello, World!";
 
 void writeOutput(void) {
-    if (fputs(message, stdout) != EOF) {
+    int32_t c_result = fputs(message, stdout);
+    if (c_result != EOF) {
     }
 }

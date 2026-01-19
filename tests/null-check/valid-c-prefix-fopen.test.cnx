@@ -1,0 +1,16 @@
+// ADR-046: Valid c_ prefix with fopen and fgets while loop
+#include <stdio.h>
+
+string<256> line;
+
+void readFile() {
+    FILE c_file <- fopen("data.txt", "r");
+    if (c_file != NULL) {
+        cstring c_result <- fgets(line, line.size, c_file);
+        while (c_result != NULL) {
+            printf("%s", line);
+            c_result <- fgets(line, line.size, c_file);
+        }
+        fclose(c_file);
+    }
+}

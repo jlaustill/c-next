@@ -51,9 +51,10 @@ i32 main() {
         return 3;
     }
 
-   
+
 // Test scope member matrix
-    if (TestScope.getScopeMatrixLength() != 4) {
+    u32 scopeMatrixLen <- TestScope.getScopeMatrixLength();
+    if (scopeMatrixLen != 4) {
         return 4;
     }
 
@@ -83,11 +84,12 @@ i32 main() {
         return 8;
     }
 
-   
+
 // Test function parameter matrix
     u8 paramMatrix[4][8];
     paramMatrix[0][0] <- 1;
-    if (checkMatrixLength(paramMatrix) != 4) {
+    u32 paramMatrixLen <- checkMatrixLength(paramMatrix);
+    if (paramMatrixLen != 4) {
         return 9;
     }
 

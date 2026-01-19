@@ -27,19 +27,24 @@ int main(void) {
     uint32_t d = 5;
     int32_t neg = -5;
     int32_t pos = 7;
-    if (getMax(&a, &b) != 20) {
+    uint32_t maxResult1 = getMax(&a, &b);
+    if (maxResult1 != 20) {
         return 1;
     }
-    if (getMax(&c, &d) != 30) {
+    uint32_t maxResult2 = getMax(&c, &d);
+    if (maxResult2 != 30) {
         return 2;
     }
-    if (getMin(&a, &b) != 10) {
+    uint32_t minResult = getMin(&a, &b);
+    if (minResult != 10) {
         return 3;
     }
-    if (getAbs(&neg) != 5) {
+    int32_t absResult1 = getAbs(&neg);
+    if (absResult1 != 5) {
         return 4;
     }
-    if (getAbs(&pos) != 7) {
+    int32_t absResult2 = getAbs(&pos);
+    if (absResult2 != 7) {
         return 5;
     }
     return 0;

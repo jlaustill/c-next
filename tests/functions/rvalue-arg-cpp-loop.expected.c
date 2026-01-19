@@ -19,14 +19,16 @@ int main(void) {
     uint8_t b = 3;
     uint32_t result = 0;
     uint8_t _cnx_tmp_0 = a + b;
-    if (checkValue(&_cnx_tmp_0) > 5) {
+    uint32_t check1 = checkValue(&_cnx_tmp_0);
+    if (check1 > 5) {
         result = 1;
     }
     if (result != 1) return 1;
     uint8_t iterations = 0;
     uint8_t limit = 2;
     uint8_t _cnx_tmp_1 = limit + 1;
-    while (checkValue(&_cnx_tmp_1) > iterations) {
+    uint32_t check2 = checkValue(&_cnx_tmp_1);
+    while (check2 > iterations) {
         iterations = iterations + 1;
         if (iterations > 10) return 2;
     }
@@ -34,7 +36,8 @@ int main(void) {
     uint32_t sum = 0;
     uint8_t maxVal = 3;
     uint8_t _cnx_tmp_2 = maxVal + 1;
-    for (uint8_t i = 0; i < checkValue(&_cnx_tmp_2); i = i + 1) {
+    uint32_t check3 = checkValue(&_cnx_tmp_2);
+    for (uint8_t i = 0; i < check3; i = i + 1) {
         sum = sum + 1;
     }
     if (sum != 4) return 4;

@@ -70,6 +70,9 @@ const generateTernaryExpr = (
   orchestrator.validateNoNestedTernary(trueExpr, "true branch");
   orchestrator.validateNoNestedTernary(falseExpr, "false branch");
 
+  // Issue #254: Validate no function calls in ternary condition (E0702)
+  orchestrator.validateTernaryConditionNoFunctionCall(condition);
+
   // Generate C output - parentheses already present from grammar
   const condCode = orchestrator.generateOrExpr(condition);
   const trueCode = orchestrator.generateOrExpr(trueExpr);

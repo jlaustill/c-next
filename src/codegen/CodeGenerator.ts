@@ -48,6 +48,8 @@ import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
 import commentUtils from "./generators/support/CommentUtils";
+// ADR-046: NullCheckAnalyzer for nullable C pointer type detection
+import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -710,6 +712,27 @@ export default class CodeGenerator implements IOrchestrator {
    */
   validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
     this.typeValidator!.validateDoWhileCondition(ctx);
+  }
+
+  /**
+   * Issue #254: Validate no function calls in condition (E0702).
+   * Part of IOrchestrator interface (ADR-053 A3).
+   */
+  validateConditionNoFunctionCall(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void {
+    this.typeValidator!.validateConditionNoFunctionCall(ctx, conditionType);
+  }
+
+  /**
+   * Issue #254: Validate no function calls in ternary condition (E0702).
+   * Part of IOrchestrator interface (ADR-053 A2).
+   */
+  validateTernaryConditionNoFunctionCall(
+    ctx: Parser.OrExpressionContext,
+  ): void {
+    this.typeValidator!.validateTernaryConditionNoFunctionCall(ctx);
   }
 
   /**
@@ -4177,9 +4200,23 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    const type = this._generateType(ctx.type());
+    let type = this._generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
+
+    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
+    // When variable has c_ prefix and is assigned from a struct-pointer-returning
+    // function (fopen, freopen, tmpfile), the type needs asterisk (e.g., FILE -> FILE*)
+    // Note: char*-returning functions (fgets, strstr) use cstring type instead
+    if (name.startsWith("c_") && ctx.expression()) {
+      const exprText = ctx.expression()!.getText();
+      for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
+        if (exprText.includes(`${funcName}(`)) {
+          type = `${type}*`;
+          break;
+        }
+      }
+    }
 
     // Track type for bit access and .length support
     // Note: Global variables already registered in registerAllVariableTypes() pass
@@ -8504,6 +8541,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
     if (ctx.userType()) {
       const typeName = ctx.userType()!.getText();
+      // ADR-046: cstring maps to char* for C library interop
+      if (typeName === "cstring") {
+        return "char*";
+      }
       // Issue #196 Bug 3: Check if this C struct needs 'struct' keyword
       if (this.symbolTable?.checkNeedsStructKeyword(typeName)) {
         return `struct ${typeName}`;

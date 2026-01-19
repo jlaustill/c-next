@@ -35,35 +35,37 @@ struct TestStruct {
 i32 main() {
     globalArr[0] <- 42;
 
-   
-// Test array.length (element count)
+    // Test array.length (element count)
     if (globalArr.length != 16) {
         return 1;
     }
 
-   
-// Test array[0].length (element bit width)
+    // Test array[0].length (element bit width)
     if (globalArr[0].length != 8) {
         return 2;
     }
 
     // Scope access - array length
-    if (TestScope.getGlobalArrayLength() != 16) {
+    u32 result <- TestScope.getGlobalArrayLength();
+    if (result != 16) {
         return 3;
     }
 
     // Scope access - element length
-    if (TestScope.getGlobalElementLength() != 8) {
+    result <- TestScope.getGlobalElementLength();
+    if (result != 8) {
         return 4;
     }
 
     // Scope member - array length
-    if (TestScope.getScopeArrayLength() != 16) {
+    result <- TestScope.getScopeArrayLength();
+    if (result != 16) {
         return 5;
     }
 
     // Scope member - element length
-    if (TestScope.getScopeElementLength() != 8) {
+    result <- TestScope.getScopeElementLength();
+    if (result != 8) {
         return 6;
     }
 
@@ -90,12 +92,14 @@ i32 main() {
     // Function parameter - array length
     u8 testArr[16];
     testArr[0] <- 42;
-    if (checkArrayLength(testArr) != 16) {
+    result <- checkArrayLength(testArr);
+    if (result != 16) {
         return 11;
     }
 
     // Function parameter - element length
-    if (checkElementLength(testArr) != 8) {
+    result <- checkElementLength(testArr);
+    if (result != 8) {
         return 12;
     }
 

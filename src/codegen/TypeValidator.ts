@@ -724,6 +724,103 @@ class TypeValidator {
   }
 
   // ========================================================================
+  // Function Call in Condition Validation (Issue #254)
+  // ========================================================================
+
+  /**
+   * Issue #254: Validate that condition does not contain function calls (E0702)
+   * MISRA C:2012 Rule 13.5 forbids function calls in conditions because:
+   * - Short-circuit evaluation may skip the function call
+   * - Side effects become unpredictable
+   */
+  validateConditionNoFunctionCall(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void {
+    if (this.hasPostfixFunctionCall(ctx)) {
+      const text = ctx.getText();
+      throw new Error(
+        `Error E0702: Function call in '${conditionType}' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
+          `  expression: ${text}\n` +
+          `  help: store the function result in a variable first`,
+      );
+    }
+  }
+
+  /**
+   * Issue #254: Validate that ternary condition does not contain function calls (E0702)
+   * Used for ternary expressions where condition is OrExpressionContext
+   */
+  validateTernaryConditionNoFunctionCall(
+    ctx: Parser.OrExpressionContext,
+  ): void {
+    if (this.hasPostfixFunctionCallInOrExpr(ctx)) {
+      const text = ctx.getText();
+      throw new Error(
+        `Error E0702: Function call in 'ternary' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
+          `  expression: ${text}\n` +
+          `  help: store the function result in a variable first`,
+      );
+    }
+  }
+
+  /**
+   * Issue #254: Check if expression contains a function call (postfix with argumentList)
+   * Adapted from CodeGenerator.hasPostfixFunctionCall
+   */
+  private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
+    const ternary = expr.ternaryExpression();
+    if (!ternary) return false;
+
+    for (const or of ternary.orExpression()) {
+      if (this.hasPostfixFunctionCallInOrExpr(or)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Issue #254: Check if orExpression contains a function call
+   */
+  private hasPostfixFunctionCallInOrExpr(
+    or: Parser.OrExpressionContext,
+  ): boolean {
+    for (const and of or.andExpression()) {
+      for (const eq of and.equalityExpression()) {
+        for (const rel of eq.relationalExpression()) {
+          for (const bor of rel.bitwiseOrExpression()) {
+            for (const bxor of bor.bitwiseXorExpression()) {
+              for (const band of bxor.bitwiseAndExpression()) {
+                for (const shift of band.shiftExpression()) {
+                  for (const add of shift.additiveExpression()) {
+                    for (const mult of add.multiplicativeExpression()) {
+                      for (const unary of mult.unaryExpression()) {
+                        const postfix = unary.postfixExpression();
+                        if (postfix) {
+                          for (const op of postfix.postfixOp()) {
+                            if (
+                              op.argumentList() ||
+                              op.getText().startsWith("(")
+                            ) {
+                              return true;
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  // ========================================================================
   // Shift Amount Validation (MISRA C:2012 Rule 12.2)
   // ========================================================================
 

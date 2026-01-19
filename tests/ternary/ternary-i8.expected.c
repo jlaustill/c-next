@@ -25,22 +25,28 @@ int main(void) {
     int8_t b = 20;
     int8_t c = -30;
     int8_t d = -5;
-    if (getMax(&a, &b) != 20) {
+    int8_t maxResult1 = getMax(&a, &b);
+    if (maxResult1 != 20) {
         return 1;
     }
-    if (getMax(&c, &d) != -5) {
+    int8_t maxResult2 = getMax(&c, &d);
+    if (maxResult2 != -5) {
         return 2;
     }
-    if (getMin(&a, &b) != 10) {
+    int8_t minResult1 = getMin(&a, &b);
+    if (minResult1 != 10) {
         return 3;
     }
-    if (getMin(&c, &d) != -30) {
+    int8_t minResult2 = getMin(&c, &d);
+    if (minResult2 != -30) {
         return 4;
     }
-    if (getAbs(&c) != 30) {
+    int8_t absResult1 = getAbs(&c);
+    if (absResult1 != 30) {
         return 5;
     }
-    if (getAbs(&a) != 10) {
+    int8_t absResult2 = getAbs(&a);
+    if (absResult2 != 10) {
         return 6;
     }
     int8_t result = (a > c) ? a : c;

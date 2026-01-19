@@ -89,35 +89,43 @@ scope GlobalAccessTest {
 }
 
 i32 main() {
-   
+
 // Test all getter methods using global. accessor - verify returned values
     // Each validation uses a unique error code for debugging
 
     // Unsigned integers
-    if (GlobalAccessTest.getGlobalU8() != 255) {
+    u8 resultU8 <- GlobalAccessTest.getGlobalU8();
+    if (resultU8 != 255) {
         return 1;
     }
-    if (GlobalAccessTest.getGlobalU16() != 65535) {
+    u16 resultU16 <- GlobalAccessTest.getGlobalU16();
+    if (resultU16 != 65535) {
         return 2;
     }
-    if (GlobalAccessTest.getGlobalU32() != 4294967295) {
+    u32 resultU32 <- GlobalAccessTest.getGlobalU32();
+    if (resultU32 != 4294967295) {
         return 3;
     }
-    if (GlobalAccessTest.getGlobalU64() != 18446744073709551615) {
+    u64 resultU64 <- GlobalAccessTest.getGlobalU64();
+    if (resultU64 != 18446744073709551615) {
         return 4;
     }
 
     // Signed integers
-    if (GlobalAccessTest.getGlobalI8() != -128) {
+    i8 resultI8 <- GlobalAccessTest.getGlobalI8();
+    if (resultI8 != -128) {
         return 5;
     }
-    if (GlobalAccessTest.getGlobalI16() != -32768) {
+    i16 resultI16 <- GlobalAccessTest.getGlobalI16();
+    if (resultI16 != -32768) {
         return 6;
     }
-    if (GlobalAccessTest.getGlobalI32() != -2147483648) {
+    i32 resultI32 <- GlobalAccessTest.getGlobalI32();
+    if (resultI32 != -2147483648) {
         return 7;
     }
-    if (GlobalAccessTest.getGlobalI64() != -9223372036854775808) {
+    i64 resultI64 <- GlobalAccessTest.getGlobalI64();
+    if (resultI64 != -9223372036854775808) {
         return 8;
     }
 
@@ -125,32 +133,37 @@ i32 main() {
     // Direct comparison of float to double literals has precision issues (see Issue #26)
     f32 testF32 <- 99.5;
     GlobalAccessTest.setGlobalF32(testF32);
-    if (GlobalAccessTest.getGlobalF32() != testF32) {
+    f32 resultF32 <- GlobalAccessTest.getGlobalF32();
+    if (resultF32 != testF32) {
         return 9;
     }
 
     f64 testF64 <- 123.456789012345;
     GlobalAccessTest.setGlobalF64(testF64);
-    if (GlobalAccessTest.getGlobalF64() != testF64) {
+    f64 resultF64 <- GlobalAccessTest.getGlobalF64();
+    if (resultF64 != testF64) {
         return 10;
     }
 
     // Boolean
-    if (GlobalAccessTest.getGlobalBool() != true) {
+    bool resultBool <- GlobalAccessTest.getGlobalBool();
+    if (resultBool != true) {
         return 11;
     }
 
-   
+
 // Test setters - modify and verify
     u8 newU8Value <- 100;
     GlobalAccessTest.setGlobalU8(newU8Value);
-    if (GlobalAccessTest.getGlobalU8() != 100) {
+    u8 resultU8_2 <- GlobalAccessTest.getGlobalU8();
+    if (resultU8_2 != 100) {
         return 12;
     }
 
     bool newBoolValue <- false;
     GlobalAccessTest.setGlobalBool(newBoolValue);
-    if (GlobalAccessTest.getGlobalBool() != false) {
+    bool resultBool2 <- GlobalAccessTest.getGlobalBool();
+    if (resultBool2 != false) {
         return 13;
     }
 

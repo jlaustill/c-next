@@ -1,0 +1,10 @@
+// ADR-046: Invalid c_ prefix on non-nullable type
+#include <stdio.h>
+
+i32 getCount() {
+    return 42;
+}
+
+void test() {
+    i32 c_count <- getCount(); // ERROR: c_ prefix on non-nullable
+}

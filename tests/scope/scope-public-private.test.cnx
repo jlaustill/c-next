@@ -78,57 +78,66 @@ scope Visibility {
 }
 
 u32 main() {
-   
+
 // Test 1-2: Read public variables directly
     if (Visibility.publicCounter != 10) return 1;
     if (Visibility.publicFlag != true) return 2;
 
-   
+
 // Test 3-4: Access private variables via public getter methods (encapsulation)
-    if (Visibility.getPrivateCounter() != 0) return 3;
-    if (Visibility.getPrivateCounterViaInternal() != 0) return 4;
+    u8 result3 <- Visibility.getPrivateCounter();
+    if (result3 != 0) return 3;
+    u8 result4 <- Visibility.getPrivateCounterViaInternal();
+    if (result4 != 0) return 4;
 
-   
+
 // Test 5: Access public variables via public methods
-    if (Visibility.getPublicCounter() != 10) return 5;
+    u8 result5 <- Visibility.getPublicCounter();
+    if (result5 != 10) return 5;
 
-   
+
 // Test 6: Modify public state directly
     Visibility.publicCounter <- 20;
     if (Visibility.publicCounter != 20) return 6;
 
-   
+
 // Test 7: Modify public state via public methods
     Visibility.setPublicCounter(30);
-    if (Visibility.getPublicCounter() != 30) return 7;
+    u8 result7 <- Visibility.getPublicCounter();
+    if (result7 != 30) return 7;
 
-   
+
 // Test 8: Modify private state via public methods (encapsulation)
     Visibility.incrementPrivate();
-    if (Visibility.getPrivateCounter() != 1) return 8;
+    u8 result8 <- Visibility.getPrivateCounter();
+    if (result8 != 1) return 8;
 
-   
+
 // Test 9: Test getSum combines private and public
     // private = 1, public = 30, sum = 31
-    if (Visibility.getSum() != 31) return 9;
+    u8 result9 <- Visibility.getSum();
+    if (result9 != 31) return 9;
 
-   
+
 // Test 10: Set private flag via public method
     Visibility.setPrivateFlag(true);
     // private flag is now true, public flag was set to default true
     // both true -> should return true
-    if (Visibility.getBothFlags() != true) return 10;
+    bool result10 <- Visibility.getBothFlags();
+    if (result10 != true) return 10;
 
-   
+
 // Test 11: Set public flag via public method
     Visibility.setPublicFlag(false);
     // now private=true, public=false -> AND = false
-    if (Visibility.getBothFlags() != false) return 11;
+    bool result11 <- Visibility.getBothFlags();
+    if (result11 != false) return 11;
 
-   
+
 // Test 12: Set private counter directly via public setter
     Visibility.setPrivateCounter(100);
-    if (Visibility.getPrivateCounter() != 100) return 12;
+    u8 result12 <- Visibility.getPrivateCounter();
+    if (result12 != 100) return 12;
 
     // All 12 validations passed
     return 0;

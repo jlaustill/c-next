@@ -35,15 +35,17 @@ i32 main() {
         return 1;
     }
 
-   
+
 // Test Context 2: Global from inside scope
-    if (TestScope.getGlobalLength() != 8) {
+    u32 result <- TestScope.getGlobalLength();
+    if (result != 8) {
         return 2;
     }
 
-   
+
 // Test Context 3: Scope member with this.
-    if (TestScope.getMemberLength() != 8) {
+    result <- TestScope.getMemberLength();
+    if (result != 8) {
         return 3;
     }
 
@@ -63,7 +65,8 @@ i32 main() {
    
 // Test Context 6: Function parameter
     u8 testVal <- 42;
-    if (checkParamLength(testVal) != 8) {
+    result <- checkParamLength(testVal);
+    if (result != 8) {
         return 6;
     }
 

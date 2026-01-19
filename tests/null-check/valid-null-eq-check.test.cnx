@@ -1,11 +1,12 @@
-// ADR-047: Valid NULL check using = (equality) comparison
+// ADR-046: Valid NULL check using = (equality) comparison with c_ prefix
 #include <stdio.h>
 
 string<64> buffer;
 
 void handleEof() {
     // Using = NULL instead of != NULL
-    if (fgets(buffer, buffer.size, stdin) = NULL) {
+    cstring c_result <- fgets(buffer, buffer.size, stdin);
+    if (c_result = NULL) {
         // EOF or error occurred
         printf("End of input\n");
     }

@@ -112,72 +112,89 @@ scope WrapTest {
 }
 
 u32 main() {
-   
-// Test 1-6: Validate initial values
-    if (WrapTest.getByteCounter() != 250) return 1;
-    if (WrapTest.getTickCount() != 65530) return 2;
-    if (WrapTest.getCycleCounter() != 4294967290) return 3;
-    if (WrapTest.getBrightness() != 10) return 4;
-    if (WrapTest.getSensorValue() != 100) return 5;
-    if (WrapTest.getPosition() != 50) return 6;
 
-   
+// Test 1-6: Validate initial values
+    u8 byteResult <- WrapTest.getByteCounter();
+    if (byteResult != 250) return 1;
+    u16 tickResult <- WrapTest.getTickCount();
+    if (tickResult != 65530) return 2;
+    u32 cycleResult <- WrapTest.getCycleCounter();
+    if (cycleResult != 4294967290) return 3;
+    u8 brightResult <- WrapTest.getBrightness();
+    if (brightResult != 10) return 4;
+    u16 sensorResult <- WrapTest.getSensorValue();
+    if (sensorResult != 100) return 5;
+    u32 posResult <- WrapTest.getPosition();
+    if (posResult != 50) return 6;
+
+
 // Test 7: u8 overflow wraps around (250 + 10 = 260 -> 4)
     WrapTest.incrementByteCounter();
-    if (WrapTest.getByteCounter() != 4) return 7;
+    byteResult <- WrapTest.getByteCounter();
+    if (byteResult != 4) return 7;
 
-   
+
 // Test 8: u16 overflow wraps around (65530 + 10 = 65540 -> 4)
     WrapTest.incrementTickCount();
-    if (WrapTest.getTickCount() != 4) return 8;
+    tickResult <- WrapTest.getTickCount();
+    if (tickResult != 4) return 8;
 
-   
+
 // Test 9: u32 overflow wraps around (4294967290 + 10 = 4294967300 -> 4)
     WrapTest.incrementCycleCounter();
-    if (WrapTest.getCycleCounter() != 4) return 9;
+    cycleResult <- WrapTest.getCycleCounter();
+    if (cycleResult != 4) return 9;
 
-   
+
 // Test 10: Normal u8 increment (10 + 5 = 15)
-    if (WrapTest.getBrightness() != 10) return 100;  // Verify initial
+    brightResult <- WrapTest.getBrightness();
+    if (brightResult != 10) return 100;  // Verify initial
     WrapTest.incrementBrightness();
-    if (WrapTest.getBrightness() != 15) return 10;
+    brightResult <- WrapTest.getBrightness();
+    if (brightResult != 15) return 10;
 
-   
+
 // Test 11: Normal u16 increment (100 + 100 = 200)
     WrapTest.incrementSensorValue();
-    if (WrapTest.getSensorValue() != 200) return 11;
+    sensorResult <- WrapTest.getSensorValue();
+    if (sensorResult != 200) return 11;
 
-   
+
 // Test 12: Normal u32 increment (50 + 1000 = 1050)
     WrapTest.incrementPosition();
-    if (WrapTest.getPosition() != 1050) return 12;
+    posResult <- WrapTest.getPosition();
+    if (posResult != 1050) return 12;
 
-   
+
 // Test 13: u8 underflow wraps around
     // Reset brightness to 10 first
     WrapTest.setBrightness(10);
     WrapTest.decrementBrightness();  // 10 - 20 = -10 -> wraps to 246
-    if (WrapTest.getBrightness() != 246) return 13;
+    brightResult <- WrapTest.getBrightness();
+    if (brightResult != 246) return 13;
 
-   
+
 // Test 14: u16 underflow wraps around
     // Reset sensorValue to 100 first
     WrapTest.setSensorValue(100);
     WrapTest.decrementSensorValue();  // 100 - 150 = -50 -> wraps to 65486
-    if (WrapTest.getSensorValue() != 65486) return 14;
+    sensorResult <- WrapTest.getSensorValue();
+    if (sensorResult != 65486) return 14;
 
-   
+
 // Test 15: u32 underflow wraps around
     // Reset position to 50 first
     WrapTest.setPosition(50);
     WrapTest.decrementPosition();  // 50 - 100 = -50 -> wraps to UINT32_MAX - 49 = 4294967246
-    if (WrapTest.getPosition() != 4294967246) return 15;
+    posResult <- WrapTest.getPosition();
+    if (posResult != 4294967246) return 15;
 
 
 // Test 16: Normal decrement (byteCounter persists from test 7)
     // byteCounter is 4 after test 7 (250 + 10 wrapped to 4)
     WrapTest.decrementByteCounter();  // 4 - 1 = 3
-    if (WrapTest.getByteCounter() != 3) return 16;
+    byteResult <- WrapTest.getByteCounter();
+    if (byteResult != 3) return 16;
 
     // All 16 validations passed
     return 0;

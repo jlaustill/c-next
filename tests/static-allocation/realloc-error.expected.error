@@ -1,1 +1,1 @@
-6:4 error[E0902]: C library function 'realloc' returns a pointer - not supported in C-Next v1
+6:4 error[E0902]: Dynamic allocation function 'realloc' is forbidden

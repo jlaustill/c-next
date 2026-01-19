@@ -288,255 +288,218 @@ u32 main() {
     // SECTION 1: Public methods accessing private members via this.
     // ==========================================
 
-   
-// Test 1: getPrivateValueExternal() returns initial private value (10)
-    if (MethodContexts.getPrivateValueExternal() != 10) return 1;
+    // Test 1: getPrivateValueExternal() returns initial private value (10)
+    u8 res1 <- MethodContexts.getPrivateValueExternal();
+    if (res1 != 10) return 1;
 
-   
-// Test 2: getPrivateSumViaInternal() - private method called by public
+    // Test 2: getPrivateSumViaInternal() - private method called by public
     // privateValue(10) + globalCounter(50) = 60
-    if (MethodContexts.getPrivateSumViaInternal() != 60) return 2;
+    u8 res2 <- MethodContexts.getPrivateSumViaInternal();
+    if (res2 != 60) return 2;
 
-   
-// Test 3: getGlobalCounterViaInternal() - private method accessing global
-    if (MethodContexts.getGlobalCounterViaInternal() != 50) return 3;
+    // Test 3: getGlobalCounterViaInternal() - private method accessing global
+    u8 res3 <- MethodContexts.getGlobalCounterViaInternal();
+    if (res3 != 50) return 3;
 
-   
-// Test 4: getPrivateClampViaInternal() - private method with clamp modifier
-    if (MethodContexts.getPrivateClampViaInternal() != 200) return 4;
+    // Test 4: getPrivateClampViaInternal() - private method with clamp modifier
+    u8 res4 <- MethodContexts.getPrivateClampViaInternal();
+    if (res4 != 200) return 4;
 
     // ==========================================
     // SECTION 2: Public methods accessing public members via this.
     // ==========================================
 
-   
-// Test 5: getPublicValue() returns initial public value (20)
-    if (MethodContexts.getPublicValue() != 20) return 5;
+    // Test 5: getPublicValue() returns initial public value (20)
+    u8 res5 <- MethodContexts.getPublicValue();
+    if (res5 != 20) return 5;
 
-   
-// Test 6: getPublicClampValue() - public clamp variable (60000)
-    if (MethodContexts.getPublicClampValue() != 60000) return 6;
+    // Test 6: getPublicClampValue() - public clamp variable (60000)
+    u16 res6 <- MethodContexts.getPublicClampValue();
+    if (res6 != 60000) return 6;
 
-   
-// Test 7: getPublicWrapValue() - public wrap variable (65530)
-    if (MethodContexts.getPublicWrapValue() != 65530) return 7;
+    // Test 7: getPublicWrapValue() - public wrap variable (65530)
+    u16 res7 <- MethodContexts.getPublicWrapValue();
+    if (res7 != 65530) return 7;
 
-   
-// Test 8: getPublicFlag() - public boolean (true)
-    if (MethodContexts.getPublicFlag() != true) return 8;
+    // Test 8: getPublicFlag() - public boolean (true)
+    bool res8 <- MethodContexts.getPublicFlag();
+    if (res8 != true) return 8;
 
-   
-// Test 9: getPublicOffset() - public signed integer (-1000)
-    if (MethodContexts.getPublicOffset() != -1000) return 9;
+    // Test 9: getPublicOffset() - public signed integer (-1000)
+    i32 res9 <- MethodContexts.getPublicOffset();
+    if (res9 != -1000) return 9;
 
     // ==========================================
     // SECTION 3: Public methods accessing global. values
     // ==========================================
 
-   
-// Test 10: getGlobalMax() - const global (100)
-    if (MethodContexts.getGlobalMax() != 100) return 10;
+    // Test 10: getGlobalMax() - const global (100)
+    u8 res10 <- MethodContexts.getGlobalMax();
+    if (res10 != 100) return 10;
 
-   
-// Test 11: getGlobalThreshold() - const global (1000)
-    if (MethodContexts.getGlobalThreshold() != 1000) return 11;
+    // Test 11: getGlobalThreshold() - const global (1000)
+    u16 res11 <- MethodContexts.getGlobalThreshold();
+    if (res11 != 1000) return 11;
 
-   
-// Test 12: getGlobalCounter() - mutable global (50)
-    if (MethodContexts.getGlobalCounter() != 50) return 12;
+    // Test 12: getGlobalCounter() - mutable global (50)
+    u8 res12 <- MethodContexts.getGlobalCounter();
+    if (res12 != 50) return 12;
 
-   
-// Test 13: getGlobalEnabled() - bool global (true)
-    if (MethodContexts.getGlobalEnabled() != true) return 13;
+    // Test 13: getGlobalEnabled() - bool global (true)
+    bool res13 <- MethodContexts.getGlobalEnabled();
+    if (res13 != true) return 13;
 
-   
-// Test 14: getGlobalOffset() - signed global (-25)
-    if (MethodContexts.getGlobalOffset() != -25) return 14;
+    // Test 14: getGlobalOffset() - signed global (-25)
+    i16 res14 <- MethodContexts.getGlobalOffset();
+    if (res14 != -25) return 14;
 
-   
-// Test 15: getGlobalScale() - float global (2.5)
-    // Use variable comparison to avoid float literal issues
+    // Test 15: getGlobalScale() - float global (2.5)
     f32 expectedScale <- 2.5;
-    if (MethodContexts.getGlobalScale() != expectedScale) return 15;
+    f32 res15 <- MethodContexts.getGlobalScale();
+    if (res15 != expectedScale) return 15;
 
     // ==========================================
     // SECTION 4: Combined this. and global. access
     // ==========================================
 
-   
-// Test 16: computePublicSum() - publicValue(20) + globalCounter(50) = 70
-    if (MethodContexts.computePublicSum() != 70) return 16;
+    // Test 16: computePublicSum() - publicValue(20) + globalCounter(50) = 70
+    u8 res16 <- MethodContexts.computePublicSum();
+    if (res16 != 70) return 16;
 
-   
-// Test 17: publicValueBelowMax() - publicValue(20) < GLOBAL_MAX(100) = true
-    if (MethodContexts.publicValueBelowMax() != true) return 17;
+    // Test 17: publicValueBelowMax() - publicValue(20) < GLOBAL_MAX(100) = true
+    bool res17 <- MethodContexts.publicValueBelowMax();
+    if (res17 != true) return 17;
 
-   
-// Test 18: computePublicWithOffset() - publicOffset(-1000) + globalOffset(-25) = -1025
-    if (MethodContexts.computePublicWithOffset() != -1025) return 18;
+    // Test 18: computePublicWithOffset() - publicOffset(-1000) + globalOffset(-25) = -1025
+    i32 res18 <- MethodContexts.computePublicWithOffset();
+    if (res18 != -1025) return 18;
 
     // ==========================================
     // SECTION 5: Setter methods modify state
     // ==========================================
 
-   
-// Test 19-20: setPrivateValue and verify
-    // Issue #233: setPrivateValue resets privateValue to 10, then sets to 42
+    // Test 19-20: setPrivateValue and verify
     MethodContexts.setPrivateValue(42);
-    if (MethodContexts.getPrivateValueExternal() != 42) return 19;
+    u8 res19 <- MethodContexts.getPrivateValueExternal();
+    if (res19 != 42) return 19;
 
+    // Test 20: Verify computePrivateSum - privateValue(42) + globalCounter(50) = 92
+    u8 res20 <- MethodContexts.getPrivateSumViaInternal();
+    if (res20 != 92) return 20;
 
-// Test 20: Verify computePrivateSum - privateValue(42) + globalCounter(50) = 92
-    // Note: computePrivateSum only reads, so privateValue stays 42
-    if (MethodContexts.getPrivateSumViaInternal() != 92) return 20;
-
-
-// Test 21-22: setPublicValue and verify
-    // Issue #233: setPublicValue resets publicValue to 20, then sets to 84
+    // Test 21-22: setPublicValue and verify
     MethodContexts.setPublicValue(84);
-    if (MethodContexts.getPublicValue() != 84) return 21;
+    u8 res21 <- MethodContexts.getPublicValue();
+    if (res21 != 84) return 21;
 
+    // Test 22: Verify computePublicSum - publicValue(84) + globalCounter(50) = 134
+    u8 res22 <- MethodContexts.computePublicSum();
+    if (res22 != 134) return 22;
 
-// Test 22: Verify computePublicSum - publicValue(84) + globalCounter(50) = 134
-    // Note: computePublicSum only reads, so publicValue stays 84
-    if (MethodContexts.computePublicSum() != 134) return 22;
-
-   
-// Test 23: setPrivateFlag and verify
+    // Test 23: setPrivateFlag and verify
     MethodContexts.setPrivateFlag(true);
-    // Note: getAllFlags needs privateFlag=true, publicFlag=true, globalEnabled=true
-    // Currently publicFlag=true (default), so this should work after setting privateFlag
 
-   
-// Test 24: setPublicFlag and verify
+    // Test 24: setPublicFlag and verify
     MethodContexts.setPublicFlag(false);
-    if (MethodContexts.getPublicFlag() != false) return 24;
+    bool res24 <- MethodContexts.getPublicFlag();
+    if (res24 != false) return 24;
 
     // ==========================================
     // SECTION 6: Modifier behavior (clamp/wrap)
     // ==========================================
 
-   
-// Test 25: incrementPublicClamp - adds 10000 to 60000, clamps at 65535
+    // Test 25: incrementPublicClamp - adds 10000 to 60000, clamps at 65535
     MethodContexts.incrementPublicClamp();
-    // 60000 + 10000 = 70000, clamped to 65535
-    if (MethodContexts.getPublicClampValue() != 65535) return 25;
+    u16 res25 <- MethodContexts.getPublicClampValue();
+    if (res25 != 65535) return 25;
 
-   
-// Test 26: incrementPublicWrap - adds 10 to 65530, wraps around
+    // Test 26: incrementPublicWrap - adds 10 to 65530, wraps around
     MethodContexts.incrementPublicWrap();
-    // 65530 + 10 = 65540, wraps to 65540 - 65536 = 4
-    if (MethodContexts.getPublicWrapValue() != 4) return 26;
+    u16 res26 <- MethodContexts.getPublicWrapValue();
+    if (res26 != 4) return 26;
 
     // ==========================================
     // SECTION 7: modifyAllPrivate comprehensive test
     // ==========================================
 
-    // With persistent scope variables:
-    // State: privateValue=42, privateClampValue=200, privateWrapValue=250
-    //        privateFlag=true (from test 23), privateOffset=-50
-
-
-// Test 27: Call modifyAllPrivate - modifies persisted values
+    // Test 27: Call modifyAllPrivate - modifies persisted values
     MethodContexts.modifyAllPrivate();
-    // privateValue: 42 + 1 = 43
-    if (MethodContexts.getPrivateValueExternal() != 43) return 27;
+    u8 res27 <- MethodContexts.getPrivateValueExternal();
+    if (res27 != 43) return 27;
 
-
-// Test 28: privateClampValue: 200 + 10 = 210
-    if (MethodContexts.getPrivateClampViaInternal() != 210) return 28;
-
-
-// Test 29: privateWrapValue: 250 + 5 = 255 (no wrap yet)
-    // Note: Can't directly access private wrap value, but we tested the method exists
+    // Test 28: privateClampValue: 200 + 10 = 210
+    u8 res28 <- MethodContexts.getPrivateClampViaInternal();
+    if (res28 != 210) return 28;
 
     // ==========================================
     // SECTION 8: modifyAllPublic comprehensive test
     // ==========================================
 
-    // With persistent scope variables:
-    // State: publicValue=84, publicClampValue=65535 (clamped), publicWrapValue=4 (wrapped)
-    //        publicFlag=false (from test 24), publicOffset=-1000
-
-
-// Test 30: Call modifyAllPublic - modifies persisted values
+    // Test 30: Call modifyAllPublic - modifies persisted values
     MethodContexts.modifyAllPublic();
-    // publicValue: 84 + 1 = 85
-    if (MethodContexts.getPublicValue() != 85) return 30;
+    u8 res30 <- MethodContexts.getPublicValue();
+    if (res30 != 85) return 30;
 
+    // Test 31: publicClampValue: 65535 + 100 = clamped to 65535
+    u16 res31 <- MethodContexts.getPublicClampValue();
+    if (res31 != 65535) return 31;
 
-// Test 31: publicClampValue: 65535 + 100 = clamped to 65535
-    if (MethodContexts.getPublicClampValue() != 65535) return 31;
+    // Test 32: publicWrapValue: 4 + 5 = 9
+    u16 res32 <- MethodContexts.getPublicWrapValue();
+    if (res32 != 9) return 32;
 
+    // Test 33: publicFlag: !false = true
+    bool res33 <- MethodContexts.getPublicFlag();
+    if (res33 != true) return 33;
 
-// Test 32: publicWrapValue: 4 + 5 = 9
-    if (MethodContexts.getPublicWrapValue() != 9) return 32;
-
-
-// Test 33: publicFlag: !false = true
-    if (MethodContexts.getPublicFlag() != true) return 33;
-
-
-// Test 34: publicOffset: -1000 - 100 = -1100
-    if (MethodContexts.getPublicOffset() != -1100) return 34;
+    // Test 34: publicOffset: -1000 - 100 = -1100
+    i32 res34 <- MethodContexts.getPublicOffset();
+    if (res34 != -1100) return 34;
 
     // ==========================================
     // SECTION 9: Threshold and flag checks
     // ==========================================
 
+    // Test 35: checkThresholds() - only reads
+    bool res35 <- MethodContexts.checkThresholds();
+    if (res35 != false) return 35;
 
-// Test 35: checkThresholds() - only reads
-    // publicClampValue=65535 < GLOBAL_THRESHOLD=1000 is FALSE
-    // So the && with privateValue < GLOBAL_MAX doesn't matter - result is false
-    if (MethodContexts.checkThresholds() != false) return 35;
-
-
-// Test 36: getAllFlags() - only reads
-    // privateFlag was toggled to false by modifyAllPrivate (!true = false)
-    // publicFlag was toggled to true by modifyAllPublic (!false = true)
-    // globalEnabled is true
-    // So getAllFlags = false && true && true = false
-    if (MethodContexts.getAllFlags() != false) return 36;
+    // Test 36: getAllFlags() - only reads
+    bool res36 <- MethodContexts.getAllFlags();
+    if (res36 != false) return 36;
 
     // ==========================================
     // SECTION 10: Direct public variable access
     // ==========================================
 
-    // After modifyAllPublic: publicValue=85, publicClampValue=65535, publicWrapValue=9
-    //                        publicFlag=true, publicOffset=-1100
-
-// Test 37: Direct read of publicValue
+    // Test 37: Direct read of publicValue
     if (MethodContexts.publicValue != 85) return 37;
 
-
-// Test 38: Direct read of publicClampValue
+    // Test 38: Direct read of publicClampValue
     if (MethodContexts.publicClampValue != 65535) return 38;
 
-
-// Test 39: Direct read of publicWrapValue
+    // Test 39: Direct read of publicWrapValue
     if (MethodContexts.publicWrapValue != 9) return 39;
 
-
-// Test 40: Direct read of publicFlag
+    // Test 40: Direct read of publicFlag
     if (MethodContexts.publicFlag != true) return 40;
 
-
-// Test 41: Direct read of publicOffset
+    // Test 41: Direct read of publicOffset
     if (MethodContexts.publicOffset != -1100) return 41;
 
     // ==========================================
     // SECTION 11: Direct public variable modification
     // ==========================================
 
-   
-// Test 42: Direct write to publicValue and verify via getter
+    // Test 42: Direct write to publicValue and verify via getter
     MethodContexts.publicValue <- 99;
-    if (MethodContexts.getPublicValue() != 99) return 42;
+    u8 res42 <- MethodContexts.getPublicValue();
+    if (res42 != 99) return 42;
 
-   
-// Test 43: Direct write to publicFlag and verify via getter
+    // Test 43: Direct write to publicFlag and verify via getter
     MethodContexts.publicFlag <- false;
-    if (MethodContexts.getPublicFlag() != false) return 43;
+    bool res43 <- MethodContexts.getPublicFlag();
+    if (res43 != false) return 43;
 
     // All 43 validations passed
     return 0;

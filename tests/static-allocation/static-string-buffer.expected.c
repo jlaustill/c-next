@@ -41,8 +41,10 @@ int main(void) {
     if (128 != 128) return 6;
     if (65 != 65) return 7;
     if (129 != 129) return 8;
-    if (getMessageLength() != 7) return 9;
-    if (getLogLength() != 13) return 10;
+    uint32_t msgLen = getMessageLength();
+    if (msgLen != 7) return 9;
+    uint32_t logLen = getLogLength();
+    if (logLen != 13) return 10;
     strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
     if (strlen(messageBuffer) != 8) return 11;
     if (strcmp(messageBuffer, "Modified") != 0) return 12;

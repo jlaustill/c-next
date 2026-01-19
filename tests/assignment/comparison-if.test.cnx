@@ -19,7 +19,7 @@ bool isPositive(i32 n) {
 }
 
 u32 main() {
-   
+
 // Test checkValue - use variables to avoid cppcheck null pointer warning
     u32 zero <- 0;
     u32 hundred <- 100;
@@ -27,22 +27,27 @@ u32 main() {
     i32 positive <- 5;
     i32 negative <- -5;
 
-    if (checkValue(zero) != 0) {
+    u32 result1 <- checkValue(zero);
+    if (result1 != 0) {
         return 1;
     }
-    if (checkValue(hundred) != 100) {
+    u32 result2 <- checkValue(hundred);
+    if (result2 != 100) {
         return 1;
     }
-    if (checkValue(fifty) != 50) {
+    u32 result3 <- checkValue(fifty);
+    if (result3 != 50) {
         return 1;
     }
 
-   
+
 // Test isPositive
-    if (isPositive(positive) != true) {
+    bool result4 <- isPositive(positive);
+    if (result4 != true) {
         return 1;
     }
-    if (isPositive(negative) != false) {
+    bool result5 <- isPositive(negative);
+    if (result5 != false) {
         return 1;
     }
 

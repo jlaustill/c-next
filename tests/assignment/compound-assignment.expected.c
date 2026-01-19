@@ -53,10 +53,12 @@ uint32_t testBitwise(void) {
 }
 
 int main(void) {
-    if (testCompound() != 0) {
+    uint32_t result1 = testCompound();
+    if (result1 != 0) {
         return 1;
     }
-    if (testBitwise() != 0x154) {
+    uint32_t result2 = testBitwise();
+    if (result2 != 0x154) {
         return 1;
     }
     return 0;

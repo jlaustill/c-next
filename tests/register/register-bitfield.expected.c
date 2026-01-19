@@ -80,7 +80,8 @@ void configureTimer(uint8_t* prescale) {
 
 int main(void) {
     configureUART();
-    if (isUARTReady()) {
+    bool uartReady = isUARTReady();
+    if (uartReady) {
         UART_DATA = 0x55;
     }
     configureTimer(&(uint8_t){100});

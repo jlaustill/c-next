@@ -32,13 +32,16 @@ int main(void) {
     uint32_t five = 5;
     uint32_t zero = 0;
     uint32_t three = 3;
-    if (sumUntilLimit(&five) != 10) {
+    uint32_t result1 = sumUntilLimit(&five);
+    if (result1 != 10) {
         return 1;
     }
-    if (sumUntilLimit(&zero) != 0) {
+    uint32_t result2 = sumUntilLimit(&zero);
+    if (result2 != 0) {
         return 1;
     }
-    if (sumUntilLimit(&three) != 3) {
+    uint32_t result3 = sumUntilLimit(&three);
+    if (result3 != 3) {
         return 1;
     }
     return 0;

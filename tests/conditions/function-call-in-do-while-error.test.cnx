@@ -1,0 +1,12 @@
+// Issue #254: Function calls in do-while conditions are not allowed (E0702)
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+bool shouldContinue() {
+    return true;
+}
+
+void test() {
+    do {
+        // body
+    } while (shouldContinue() = true);
+}

@@ -34,10 +34,12 @@ int main(void) {
     if (32 != 32) {
         return 1;
     }
-    if (TestScope_getGlobalLength() != 32) {
+    uint32_t result = TestScope_getGlobalLength();
+    if (result != 32) {
         return 2;
     }
-    if (TestScope_getMemberLength() != 32) {
+    result = TestScope_getMemberLength();
+    if (result != 32) {
         return 3;
     }
     if (32 != 32) {
@@ -48,7 +50,8 @@ int main(void) {
         return 5;
     }
     float testVal = 3.14;
-    if (checkParamLength(testVal) != 32) {
+    result = checkParamLength(testVal);
+    if (result != 32) {
         return 6;
     }
     TestStruct ts = {0};

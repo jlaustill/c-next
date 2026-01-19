@@ -50,12 +50,18 @@ int main(void) {
     if (strlen(colors[0]) != 3) return 14;
     if (strlen(colors[1]) != 5) return 15;
     if (strlen(colors[2]) != 4) return 16;
-    if (getArrayLength(&globalNames) != 5) return 17;
-    if (getElementLength(&globalNames, &(uint32_t){0}) != 5) return 18;
-    if (getElementLength(&globalNames, &(uint32_t){1}) != 3) return 19;
-    if (getElementLength(&globalNames, &(uint32_t){2}) != 7) return 20;
-    if (getElementLength(&globalNames, &(uint32_t){3}) != 5) return 21;
-    if (getElementLength(&globalNames, &(uint32_t){4}) != 3) return 22;
+    uint32_t arrLen = getArrayLength(&globalNames);
+    if (arrLen != 5) return 17;
+    uint32_t elemLen0 = getElementLength(&globalNames, &(uint32_t){0});
+    if (elemLen0 != 5) return 18;
+    uint32_t elemLen1 = getElementLength(&globalNames, &(uint32_t){1});
+    if (elemLen1 != 3) return 19;
+    uint32_t elemLen2 = getElementLength(&globalNames, &(uint32_t){2});
+    if (elemLen2 != 7) return 20;
+    uint32_t elemLen3 = getElementLength(&globalNames, &(uint32_t){3});
+    if (elemLen3 != 5) return 21;
+    uint32_t elemLen4 = getElementLength(&globalNames, &(uint32_t){4});
+    if (elemLen4 != 3) return 22;
     uint32_t totalLength = 0;
     uint32_t i = 0;
     while (i < 5) {

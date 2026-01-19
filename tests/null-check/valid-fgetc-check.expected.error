@@ -1,2 +1,1 @@
-5:4 error[E0904]: Cannot store 'fgetc' return value in variable 'ch'
-5:14 error[E0901]: C library function 'fgetc' can return NULL - must check result
+5:9 error[E0905]: Missing 'c_' prefix for nullable C type 'i32'

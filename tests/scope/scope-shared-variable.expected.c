@@ -22,12 +22,16 @@ uint32_t SharedState_getCount(void) {
 }
 
 int main(void) {
-    if (SharedState_getCount() != 0) return 1;
+    uint32_t result1 = SharedState_getCount();
+    if (result1 != 0) return 1;
     SharedState_increment();
-    if (SharedState_getCount() != 1) return 2;
+    uint32_t result2 = SharedState_getCount();
+    if (result2 != 1) return 2;
     SharedState_increment();
-    if (SharedState_getCount() != 2) return 3;
+    uint32_t result3 = SharedState_getCount();
+    if (result3 != 2) return 3;
     SharedState_increment();
-    if (SharedState_getCount() != 3) return 4;
+    uint32_t result4 = SharedState_getCount();
+    if (result4 != 3) return 4;
     return 0;
 }

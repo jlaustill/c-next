@@ -32,19 +32,24 @@ int main(void) {
     uint32_t fifty = 50;
     int32_t positive = 5;
     int32_t negative = -5;
-    if (checkValue(&zero) != 0) {
+    uint32_t result1 = checkValue(&zero);
+    if (result1 != 0) {
         return 1;
     }
-    if (checkValue(&hundred) != 100) {
+    uint32_t result2 = checkValue(&hundred);
+    if (result2 != 100) {
         return 1;
     }
-    if (checkValue(&fifty) != 50) {
+    uint32_t result3 = checkValue(&fifty);
+    if (result3 != 50) {
         return 1;
     }
-    if (isPositive(&positive) != true) {
+    bool result4 = isPositive(&positive);
+    if (result4 != true) {
         return 1;
     }
-    if (isPositive(&negative) != false) {
+    bool result5 = isPositive(&negative);
+    if (result5 != false) {
         return 1;
     }
     return 0;

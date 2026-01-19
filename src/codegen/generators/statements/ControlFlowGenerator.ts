@@ -86,6 +86,9 @@ const generateIf = (
   // Set up cache and generate declarations
   const cacheDecls = orchestrator.setupLengthCache(lengthCounts);
 
+  // Issue #254: Validate no function calls in condition (E0702)
+  orchestrator.validateConditionNoFunctionCall(node.expression(), "if");
+
   // Generate with cache enabled
   const condition = orchestrator.generateExpression(node.expression());
 
@@ -125,6 +128,10 @@ const generateWhile = (
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
+
+  // Issue #254: Validate no function calls in condition (E0702)
+  orchestrator.validateConditionNoFunctionCall(node.expression(), "while");
+
   const condition = orchestrator.generateExpression(node.expression());
 
   // Issue #250: Flush any temp vars from condition BEFORE generating body
@@ -155,6 +162,9 @@ const generateDoWhile = (
 
   // Validate the condition is a boolean expression (E0701)
   orchestrator.validateDoWhileCondition(node.expression());
+
+  // Issue #254: Validate no function calls in condition (E0702)
+  orchestrator.validateConditionNoFunctionCall(node.expression(), "do-while");
 
   const body = orchestrator.generateBlock(node.block());
   const condition = orchestrator.generateExpression(node.expression());
@@ -270,6 +280,8 @@ const generateFor = (
 
   let condition = "";
   if (node.expression()) {
+    // Issue #254: Validate no function calls in condition (E0702)
+    orchestrator.validateConditionNoFunctionCall(node.expression()!, "for");
     condition = orchestrator.generateExpression(node.expression()!);
   }
 

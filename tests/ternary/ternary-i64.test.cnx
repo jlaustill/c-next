@@ -19,47 +19,53 @@ u32 main() {
     i64 c <- -3000;
     i64 d <- -500;
 
-   
+
 // Test max function with positive values
-    if (getMax(a, b) != 2000) {
+    i64 maxResult1 <- getMax(a, b);
+    if (maxResult1 != 2000) {
         return 1;
     }
 
-   
+
 // Test max with negative values
-    if (getMax(c, d) != -500) {
+    i64 maxResult2 <- getMax(c, d);
+    if (maxResult2 != -500) {
         return 2;
     }
 
-   
+
 // Test min function with positive values
-    if (getMin(a, b) != 1000) {
+    i64 minResult1 <- getMin(a, b);
+    if (minResult1 != 1000) {
         return 3;
     }
 
-   
+
 // Test min with negative values
-    if (getMin(c, d) != -3000) {
+    i64 minResult2 <- getMin(c, d);
+    if (minResult2 != -3000) {
         return 4;
     }
 
-   
+
 // Test abs function
-    if (getAbs(c) != 3000) {
+    i64 absResult1 <- getAbs(c);
+    if (absResult1 != 3000) {
         return 5;
     }
-    if (getAbs(a) != 1000) {
+    i64 absResult2 <- getAbs(a);
+    if (absResult2 != 1000) {
         return 6;
     }
 
-   
+
 // Test inline ternary with negative comparison
     i64 result <- (a > c) ? a : c;
     if (result != 1000) {
         return 7;
     }
 
-   
+
 // Test with large positive values
     i64 large_a <- 1000000000000;
     i64 large_b <- 2000000000000;
@@ -68,7 +74,7 @@ u32 main() {
         return 8;
     }
 
-   
+
 // Test with large negative values
     i64 large_neg_a <- -1000000000000;
     i64 large_neg_b <- -2000000000000;
@@ -77,14 +83,14 @@ u32 main() {
         return 9;
     }
 
-   
+
 // Test equality condition with negative
     i64 equal_test <- (c = -3000) ? 100000 : -100000;
     if (equal_test != 100000) {
         return 10;
     }
 
-   
+
 // Test zero crossing
     i64 neg <- -1000000;
     i64 pos <- 1000000;
@@ -93,7 +99,7 @@ u32 main() {
         return 11;
     }
 
-   
+
 // Test with very large values
     i64 very_large_pos <- 9000000000000000000;
     i64 very_large_neg <- -9000000000000000000;

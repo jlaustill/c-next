@@ -34,10 +34,12 @@ int main(void) {
     if (64 != 64) {
         return 1;
     }
-    if (TestScope_getGlobalLength() != 64) {
+    uint32_t result = TestScope_getGlobalLength();
+    if (result != 64) {
         return 2;
     }
-    if (TestScope_getMemberLength() != 64) {
+    result = TestScope_getMemberLength();
+    if (result != 64) {
         return 3;
     }
     if (64 != 64) {
@@ -48,7 +50,8 @@ int main(void) {
         return 5;
     }
     double testVal = 3.14159;
-    if (checkParamLength(testVal) != 64) {
+    result = checkParamLength(testVal);
+    if (result != 64) {
         return 6;
     }
     TestStruct ts = {0};

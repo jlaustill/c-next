@@ -47,7 +47,8 @@ int main(void) {
     if (2 != 2) {
         return 3;
     }
-    if (TestScope_getScopeMatrixLength() != 4) {
+    uint32_t scopeMatrixLen = TestScope_getScopeMatrixLength();
+    if (scopeMatrixLen != 4) {
         return 4;
     }
     if (3 != 3) {
@@ -70,7 +71,8 @@ int main(void) {
     }
     uint8_t paramMatrix[4][8] = {0};
     paramMatrix[0][0] = 1;
-    if (checkMatrixLength(paramMatrix) != 4) {
+    uint32_t paramMatrixLen = checkMatrixLength(paramMatrix);
+    if (paramMatrixLen != 4) {
         return 9;
     }
     TestStruct ts = {0};

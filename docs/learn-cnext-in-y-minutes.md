@@ -1288,60 +1288,58 @@ void goodFunction() {
 | Ring buffer read/write        | `critical { }` |
 | State machine transitions     | `critical { }` |
 
-## NULL for C Library Interop [IMPLEMENTED]
+## C Library Interop with NULL [IMPLEMENTED]
 
-C-Next safely interoperates with C stream functions that return NULL (ADR-047):
+C-Next variables are never null. C library functions can return nullable pointers.
+Use the `c_` prefix to mark variables storing nullable C returns (ADR-046):
 
 ```cnx
-// [DONE] Safe NULL checking for C stream functions
 #include <stdio.h>
 
-string<64> buffer;
+string<256> line;
 
-void readInput() {
-    // NULL check is REQUIRED - compiler enforces it
-    if (fgets(buffer, buffer.size, stdin) != NULL) {
-        // Safe to use buffer - fgets wrote to it
-        printf("Got: %s", buffer);
+void readFile() {
+    // c_ prefix marks nullable C pointer
+    FILE c_file <- fopen("data.txt", "r");
+    if (c_file != NULL) {
+        cstring c_result <- fgets(line, line.size, c_file);
+        while (c_result != NULL) {
+            printf("%s", line);
+            c_result <- fgets(line, line.size, c_file);
+        }
+        fclose(c_file);
     }
 }
 ```
 
-### What's Allowed
+### Key Rules
+
+- **`cstring` type**: Available for nullable C strings (`char*`)
+- **`c_` prefix required**: Only variables with `c_` prefix can be compared to NULL
+- **malloc/free forbidden**: Dynamic allocation remains prohibited (ADR-003)
+
+### Errors
 
 ```cnx
-// OK: NULL comparison with whitelisted stream functions
-if (fgets(buffer, buffer.size, stdin) != NULL) { ... }
-if (fputs("hello", stdout) = NULL) { ... }  // Note: = is equality in C-Next
+// E0905: Missing c_ prefix - C function returns nullable pointer
+FILE file <- fopen("x", "r");     // ERROR: must use c_file
+
+// E0906: Invalid c_ prefix - type is not nullable from C
+i32 c_count <- getCount();        // ERROR: i32 is not a C pointer type
+
+// E0907: NULL comparison on non-c_ variable
+string<64> buffer;
+if (buffer != NULL) { }           // ERROR: buffer is not nullable
 ```
 
-### What's NOT Allowed
+### Why This Design?
 
-```cnx
-// ERROR E0901: Must check NULL
-fgets(buffer, buffer.size, stdin);  // Missing NULL check!
-printf("Got: %s", buffer);
+C-Next eliminates null bugs by design. The `c_` prefix pattern:
 
-// ERROR E0902: Forbidden function (returns FILE*)
-fopen("test.txt", "r");  // Not supported - see ADR-103
-
-// ERROR E0903: NULL outside comparison
-u32 x <- NULL;  // NULL only valid in comparison
-
-// ERROR E0904: Cannot store C pointer returns
-string<64>? result <- fgets(...);  // No nullable types
-```
-
-### Whitelisted Functions
-
-| Function | NULL Meaning | Header  |
-| -------- | ------------ | ------- |
-| `fgets`  | EOF or error | stdio.h |
-| `fputs`  | Write error  | stdio.h |
-| `fgetc`  | EOF or error | stdio.h |
-| `fputc`  | Write error  | stdio.h |
-
-**Why constrained?** C-Next eliminates null bugs by design. This feature is a controlled exception for C interop only - maintaining safety while enabling practical stdio usage.
+- **Makes nullability visible** in variable names
+- **Restricts NULL checks** to only variables that can actually be null
+- **Maintains C interop** for file I/O and other standard library functions
+- **Catches errors at compile time** rather than runtime crashes
 
 ## Register Bindings
 
@@ -1589,6 +1587,7 @@ void loop(void) {
 | `int z[100] = {0}`  | `u8 z[100] <- [0*]` | Explicit fill-all syntax              |
 | `volatile`          | `atomic`            | ISR-safe with LDREX/STREX or PRIMASK  |
 | Manual IRQ disable  | `critical { }`      | PRIMASK save/restore blocks           |
+| `FILE* f`           | `FILE c_f`          | `c_` prefix marks nullable C pointers |
 
 ## Further Reading
 

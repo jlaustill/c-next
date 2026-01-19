@@ -1,0 +1,10 @@
+// Issue #254: Function calls in ternary conditions are not allowed (E0702)
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+bool isValid() {
+    return true;
+}
+
+u32 test() {
+    return (isValid() = true) ? 1 : 0;
+}

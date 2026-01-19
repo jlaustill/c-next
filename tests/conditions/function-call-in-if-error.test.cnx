@@ -1,0 +1,12 @@
+// Issue #254: Function calls in if conditions are not allowed (E0702)
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+u32 getValue() {
+    return 42;
+}
+
+void test() {
+    if (getValue() > 0) {
+        // body
+    }
+}

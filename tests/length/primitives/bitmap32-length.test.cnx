@@ -65,11 +65,13 @@ i32 main() {
         return 1;
     }
 
-    if (TestScope.getGlobalLength() != 32) {
+    u32 result <- TestScope.getGlobalLength();
+    if (result != 32) {
         return 2;
     }
 
-    if (TestScope.getMemberLength() != 32) {
+    result <- TestScope.getMemberLength();
+    if (result != 32) {
         return 3;
     }
 
@@ -85,7 +87,8 @@ i32 main() {
 
     StatusFlags testVal;
     testVal.bit0 <- true;
-    if (checkParamLength(testVal) != 32) {
+    result <- checkParamLength(testVal);
+    if (result != 32) {
         return 6;
     }
 

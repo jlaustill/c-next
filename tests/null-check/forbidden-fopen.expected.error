@@ -1,1 +1,1 @@
-5:4 error[E0902]: C library function 'fopen' returns a pointer - not supported in C-Next v1
+5:4 error[E0901]: C library function 'fopen' can return NULL - must check result

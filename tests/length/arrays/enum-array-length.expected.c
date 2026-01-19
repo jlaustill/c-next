@@ -26,10 +26,12 @@ uint32_t checkElementLength(State arr[16]) {
 
 int main(void) {
     State testArr[16] = {0};
-    if (checkArrayLength(testArr) != 16) {
+    uint32_t result = checkArrayLength(testArr);
+    if (result != 16) {
         return 1;
     }
-    if (checkElementLength(testArr) != 32) {
+    result = checkElementLength(testArr);
+    if (result != 32) {
         return 2;
     }
     return 0;

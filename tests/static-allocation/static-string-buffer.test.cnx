@@ -47,8 +47,10 @@ u32 main() {
 
    
 // Test 5: Access length via function
-    if (getMessageLength() != 7) return 9;
-    if (getLogLength() != 13) return 10;
+    u32 msgLen <- getMessageLength();
+    if (msgLen != 7) return 9;
+    u32 logLen <- getLogLength();
+    if (logLen != 13) return 10;
 
    
 // Test 6: Modify global buffer directly (issue #139)
