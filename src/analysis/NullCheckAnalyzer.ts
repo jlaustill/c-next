@@ -455,6 +455,31 @@ class NullCheckAnalyzer {
     });
   }
 
+  // ========================================================================
+  // c_ Prefix Validation Helpers (ADR-046)
+  // ========================================================================
+
+  /**
+   * Check if variable name has required c_ prefix for nullable C types
+   */
+  private static hasNullablePrefix(varName: string): boolean {
+    return varName.startsWith("c_");
+  }
+
+  /**
+   * Check if a type is a nullable C pointer type
+   * Currently checks for FILE and pointer returns from NULLABLE_C_FUNCTIONS
+   */
+  private static isNullableCType(typeName: string): boolean {
+    // FILE is always nullable
+    if (typeName === "FILE") return true;
+    // cstring (char*) from C functions is nullable
+    if (typeName === "cstring") return true;
+    // Pointer types from C headers
+    if (typeName.endsWith("*")) return true;
+    return false;
+  }
+
   /**
    * Get metadata for a nullable C function (for VS Code tooltips)
    */
