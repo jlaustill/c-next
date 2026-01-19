@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check using = (equality) comparison
+// ADR-046: Valid NULL check using = (equality) comparison with c_ prefix
 #include <stdio.h>
 
 #include <string.h>
@@ -11,7 +11,8 @@
 char buffer[65] = "";
 
 void handleEof(void) {
-    if (fgets(buffer, 65, stdin) == NULL) {
+    char* c_result = fgets(buffer, 65, stdin);
+    if (c_result == NULL) {
         printf("End of input\n");
     }
 }

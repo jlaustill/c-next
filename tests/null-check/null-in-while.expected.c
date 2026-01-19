@@ -4,7 +4,7 @@
  */
 
 // test-coverage: 28-null-in-while
-// Tests: NULL check in while loop condition
+// Tests: NULL check in while loop condition using c_ prefix pattern
 #include <stdio.h>
 
 #include <string.h>
@@ -13,15 +13,19 @@ char buffer[65] = "";
 
 // Read lines until fgets returns NULL (EOF)
 void readAllLines(void) {
-    while (fgets(buffer, 65, stdin) != NULL) {
+    char* c_result = fgets(buffer, 65, stdin);
+    while (c_result != NULL) {
         printf("Line: %s", buffer);
+        c_result = fgets(buffer, 65, stdin);
     }
 }
 
 // Alternative pattern with = NULL check
 void readUntilEmpty(void) {
-    while (fgets(buffer, 65, stdin) == NULL) {
+    char* c_result = fgets(buffer, 65, stdin);
+    while (c_result == NULL) {
         printf("Got NULL\n");
+        c_result = fgets(buffer, 65, stdin);
     }
 }
 

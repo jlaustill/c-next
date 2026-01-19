@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check pattern for fgets
+// ADR-046: Valid NULL check pattern for fgets using c_ prefix
 #include <stdio.h>
 
 #include <string.h>
@@ -11,7 +11,8 @@
 char buffer[65] = "";
 
 void readInput(void) {
-    if (fgets(buffer, 65, stdin) != NULL) {
+    char* c_result = fgets(buffer, 65, stdin);
+    if (c_result != NULL) {
         printf("Got: %s", buffer);
     }
 }

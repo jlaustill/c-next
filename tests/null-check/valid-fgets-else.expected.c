@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-047: Valid NULL check with else branch
+// ADR-046: Valid NULL check with else branch using c_ prefix
 #include <stdio.h>
 
 #include <string.h>
@@ -11,7 +11,8 @@
 char line[129] = "";
 
 void processLine(void) {
-    if (fgets(line, 129, stdin) != NULL) {
+    char* c_result = fgets(line, 129, stdin);
+    if (c_result != NULL) {
         printf("Read: %s", line);
     } else {
         printf("No more input\n");

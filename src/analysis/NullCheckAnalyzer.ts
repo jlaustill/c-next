@@ -396,8 +396,21 @@ class NullCheckListener extends CNextListener {
       const varName = target.getText();
       const line = ctx.start?.line ?? 0;
       const column = ctx.start?.column ?? 0;
+
+      // ADR-046: Allow reassignment to c_ prefixed variables (e.g., in while loops)
+      if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
+        // Set flag to suppress E0901 for the function call inside this assignment
+        this.inVariableDeclarationWithNullable = true;
+        return;
+      }
+
       this.analyzer.reportInvalidStorage(varName, funcName, line, column);
     }
+  };
+
+  override exitAssignmentStatement = (): void => {
+    // Clear the flag when leaving assignment statement
+    this.inVariableDeclarationWithNullable = false;
   };
 
   /**

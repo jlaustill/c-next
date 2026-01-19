@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// ADR-046: Valid c_ prefix with fopen
+// ADR-046: Valid c_ prefix with fopen and fgets while loop
 #include <stdio.h>
 
 #include <string.h>
@@ -13,8 +13,10 @@ char line[257] = "";
 void readFile(void) {
     FILE* c_file = fopen("data.txt", "r");
     if (c_file != NULL) {
-        while (fgets(line, 257, c_file) != NULL) {
+        char* c_result = fgets(line, 257, c_file);
+        while (c_result != NULL) {
             printf("%s", line);
+            c_result = fgets(line, 257, c_file);
         }
         fclose(c_file);
     }

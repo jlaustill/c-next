@@ -8505,6 +8505,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
     if (ctx.userType()) {
       const typeName = ctx.userType()!.getText();
+      // ADR-046: cstring maps to char* for C library interop
+      if (typeName === "cstring") {
+        return "char*";
+      }
       // Issue #196 Bug 3: Check if this C struct needs 'struct' keyword
       if (this.symbolTable?.checkNeedsStructKeyword(typeName)) {
         return `struct ${typeName}`;
