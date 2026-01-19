@@ -5,7 +5,8 @@ string<32> message <- "Hello, World!";
 
 void writeOutput() {
     // fputs returns EOF (not NULL) on error, but pattern is similar
-    if (fputs(message, stdout) != EOF) {
+    i32 result <- fputs(message, stdout);
+    if (result != EOF) {
         // Write succeeded
     }
 }

@@ -5,9 +5,10 @@ string<50> userName;
 u32 main(string args[]) {
     printf("What is your name in 50 characters or less? ");
 
-   
+
 // ADR-047: NULL check required for C stream functions
-    if (fgets(userName, userName.size, stdin) != NULL) {
+    cstring fgetsResult <- fgets(userName, userName.size, stdin);
+    if (fgetsResult != NULL) {
         if (userName.length > 0 && userName[userName.length - 1] = '\n') {
             userName[userName.length - 1] <- '\0';
         }
