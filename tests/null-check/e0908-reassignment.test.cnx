@@ -1,0 +1,18 @@
+// E0908: Reassignment resets NULL check state
+#include <stdio.h>
+
+string<256> line;
+
+void testReassignment() {
+    FILE c_file <- fopen("first.txt", "r");
+    if (c_file != NULL) {
+        // Inside check - OK to use
+        cstring c_result <- fgets(line, line.size, c_file);
+        if (c_result != NULL) {
+            // OK
+        }
+        // Reassign - resets state to unchecked
+        c_result <- fgets(line, line.size, c_file);
+        printf("%s", c_result); // ERROR: c_result not rechecked after reassign
+    }
+}
