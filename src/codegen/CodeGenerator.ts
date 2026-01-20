@@ -3386,6 +3386,7 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #246: When passing string bytes to integer pointer parameters
       // (C-Next's by-reference semantics), cast from char* to the appropriate
       // integer pointer type to avoid signedness warnings
+      // Issue #267: Use reinterpret_cast for pointer type conversions in C++ mode
       if (
         lvalueType === "array" &&
         targetParamBaseType &&
@@ -3393,6 +3394,9 @@ export default class CodeGenerator implements IOrchestrator {
       ) {
         const cType = TYPE_MAP[targetParamBaseType];
         if (cType && !["float", "double", "bool", "void"].includes(cType)) {
+          if (this.cppMode) {
+            return `reinterpret_cast<${cType}*>(${expr})`;
+          }
           return `(${cType}*)${expr}`;
         }
       }
@@ -7840,7 +7844,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * ADR-017: Generate cast expression
-   * (u8)State.IDLE -> (uint8_t)State_IDLE
+   * C mode:   (u8)State.IDLE -> (uint8_t)State_IDLE
+   * C++ mode: (u8)State.IDLE -> static_cast<uint8_t>(State_IDLE)
+   * Issue #267: Use C++ casts when cppMode is enabled
    */
   private generateCastExpression(ctx: Parser.CastExpressionContext): string {
     const targetType = this._generateType(ctx.type());
@@ -7883,6 +7889,10 @@ export default class CodeGenerator implements IOrchestrator {
       // It's a user type cast - allow for now (could be struct pointer, etc.)
     }
 
+    // Issue #267: Use C++ casts when cppMode is enabled for MISRA compliance
+    if (this.cppMode) {
+      return `static_cast<${targetType}>(${expr})`;
+    }
     return `(${targetType})${expr}`;
   }
 

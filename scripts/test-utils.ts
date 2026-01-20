@@ -60,8 +60,14 @@ class TestUtils {
   }
 
   /**
-   * Detect if a C file includes headers with C++14 features
-   * Checks for typed enums (enum Foo : type {) which require C++14 parser
+   * Detect if a C file requires C++ compilation (g++ instead of gcc)
+   *
+   * Checks for:
+   * - C++ casts: static_cast, reinterpret_cast, etc. (Issue #267)
+   * - C++14 typed enums: enum Foo : type { (in included headers)
+   *
+   * Note: Named "requiresCpp14" for historical reasons, but now detects
+   * any C++ feature that requires g++ compilation.
    *
    * @param cFile - Path to the C file
    * @param _rootDir - Project root directory (unused, kept for API consistency)
@@ -70,6 +76,16 @@ class TestUtils {
     try {
       const cCode = readFileSync(cFile, "utf-8");
       const cFileDir = dirname(cFile);
+
+      // Issue #267: Check for C++ casts (static_cast, reinterpret_cast)
+      // These are generated when cppMode is enabled
+      if (
+        /\b(static_cast|reinterpret_cast|const_cast|dynamic_cast)\s*</.test(
+          cCode,
+        )
+      ) {
+        return true;
+      }
 
       // Find all #include "local_header.h" directives
       const includePattern = /#include\s+"([^"]+)"/g;
