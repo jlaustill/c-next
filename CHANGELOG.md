@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-01-19
+
+### Added
+
+- E0908 flow analysis: detect nullable c\_ variables used without NULL check
+- While loop condition tracking: `while (c_var != NULL)` marks variable as checked in body
+- VS Code completion provider updates for recent language features
+- E0905-E0907 errors for c\_ prefix validation (ADR-046)
+
+### Changed
+
+- Nullable C interop now uses c\_ prefix pattern (ADR-046 supersedes ADR-047)
+- Functions like `fopen`, `strstr`, `getenv` now allowed with c\_ prefix storage
+
+### Fixed
+
+- C++ struct member arguments now use temp variables for correct compilation (#251, #252)
+- C++ compound literals replaced with temp variables (#250)
+- Function calls banned in boolean conditions per MISRA C:2012 Rule 13.5 (E0702)
+
 ## [0.1.7] - 2026-01-16
 
 ### Added
