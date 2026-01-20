@@ -694,6 +694,10 @@ memcpy(&packet[0], &magic, 4);
 - Silent runtime failures are now compile-time errors (Issue #234)
 - Distinct semantics: array slices = memory copy, scalar slices = bit operations
 
+**For Dynamic Offsets:**
+
+If your offsets are truly runtime-dependent (not just written in a dynamic style), use explicit `memcpy` with manual bounds checking. See ADR-007 for detailed guidance and patterns.
+
 ## Strings [DONE]
 
 C-Next provides bounded strings with compile-time safety (ADR-045):
