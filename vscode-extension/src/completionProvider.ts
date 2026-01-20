@@ -23,9 +23,11 @@ function debug(message: string): void {
 const KEYWORDS = [
   "register",
   "namespace",
+  "scope",
   "class",
   "struct",
   "enum",
+  "bitmap",
   "if",
   "else",
   "for",
@@ -45,6 +47,8 @@ const KEYWORDS = [
   "inline",
   "typedef",
   "sizeof",
+  "atomic",
+  "critical",
 ];
 
 /**
@@ -63,6 +67,12 @@ const TYPES = [
   "f64",
   "bool",
   "void",
+  "string",
+  "ISR",
+  "bitmap8",
+  "bitmap16",
+  "bitmap24",
+  "bitmap32",
 ];
 
 /**
@@ -71,9 +81,14 @@ const TYPES = [
 const ACCESS_MODIFIERS = ["rw", "ro", "wo", "w1c", "w1s"];
 
 /**
- * Boolean literals
+ * Boolean and null literals
  */
-const BOOL_LITERALS = ["true", "false"];
+const LITERALS = ["true", "false", "null", "NULL"];
+
+/**
+ * Overflow behavior modifiers (ADR-044)
+ */
+const OVERFLOW_MODIFIERS = ["clamp", "wrap"];
 
 /**
  * Common Arduino symbols that might not be returned by executeCompletionItemProvider
@@ -864,13 +879,23 @@ export default class CNextCompletionProvider
       items.push(item);
     }
 
-    // Add boolean literals
-    for (const lit of BOOL_LITERALS) {
+    // Add boolean and null literals
+    for (const lit of LITERALS) {
       const item = new vscode.CompletionItem(
         lit,
         vscode.CompletionItemKind.Constant,
       );
-      item.detail = "bool";
+      item.detail = lit === "true" || lit === "false" ? "bool" : "null pointer";
+      items.push(item);
+    }
+
+    // Add overflow modifiers
+    for (const mod of OVERFLOW_MODIFIERS) {
+      const item = new vscode.CompletionItem(
+        mod,
+        vscode.CompletionItemKind.Keyword,
+      );
+      item.detail = "overflow modifier";
       items.push(item);
     }
 
