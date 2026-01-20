@@ -1,0 +1,20 @@
+// test-coverage: 267-cpp-casts
+// test-execution
+// Tests: C++ casts are generated when cppMode is enabled (Issue #267)
+#include "cpp-cast-mode.hpp"
+
+enum Priority {
+    LOW <- 1,
+    HIGH <- 10
+}
+
+u32 main() {
+    // Test enum to integer cast - should generate static_cast in C++ mode
+    u32 val <- (u32)Priority.LOW;
+    if (val != 1) return 1;
+
+    u32 highVal <- (u32)Priority.HIGH;
+    if (highVal != 10) return 2;
+
+    return 0;
+}
