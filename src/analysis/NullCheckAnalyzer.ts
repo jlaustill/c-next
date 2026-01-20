@@ -237,6 +237,15 @@ class NullCheckListener extends CNextListener {
   /** Track the current if-statement context for body detection */
   private currentIfCtx: Parser.IfStatementContext | null = null;
 
+  /** Stack of while-statement info for tracking nested while conditions */
+  private whileStack: Array<{
+    varName: string | null;
+    isNotNullCheck: boolean;
+  }> = [];
+
+  /** Track the current while-statement context for body detection */
+  private currentWhileCtx: Parser.WhileStatementContext | null = null;
+
   constructor(analyzer: NullCheckAnalyzer) {
     super();
     this.analyzer = analyzer;
@@ -393,8 +402,8 @@ class NullCheckListener extends CNextListener {
   };
 
   /**
-   * Detect when we enter the body of an if statement
-   * For "if (c_var != NULL)" the body has the variable checked
+   * Detect when we enter the body of an if or while statement
+   * For "if (c_var != NULL)" or "while (c_var != NULL)" the body has the variable checked
    */
   override enterStatement = (ctx: Parser.StatementContext): void => {
     // Check if this is the "then" branch of a null-check if
@@ -417,6 +426,23 @@ class NullCheckListener extends CNextListener {
         }
       }
     }
+
+    // Check if this is the body of a null-check while
+    if (this.currentWhileCtx && this.whileStack.length > 0) {
+      const whileInfo = this.whileStack[this.whileStack.length - 1];
+      if (whileInfo.varName && whileInfo.isNotNullCheck) {
+        // Get the statement from the while (body)
+        const whileBody = this.currentWhileCtx.statement();
+        // Check if this is the while body
+        if (whileBody === ctx) {
+          // Mark variable as checked within this body
+          this.updateVariableState(
+            whileInfo.varName,
+            NullCheckState.CheckedNotNull,
+          );
+        }
+      }
+    }
   };
 
   override enterReturnStatement = (
@@ -426,6 +452,45 @@ class NullCheckListener extends CNextListener {
     if (this.ifStack.length > 0) {
       this.ifStack[this.ifStack.length - 1].hasReturn = true;
     }
+  };
+
+  // ========================================================================
+  // While-Statement Flow Analysis (E0908)
+  // ========================================================================
+
+  override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
+    // Parse the condition to detect NULL checks
+    const condition = ctx.expression();
+    const conditionText = condition?.getText() ?? "";
+
+    // Check for patterns like "c_var != NULL"
+    const nullCheckMatch = conditionText.match(
+      /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*!=\s*NULL$/,
+    );
+
+    if (nullCheckMatch) {
+      const varName = nullCheckMatch[1];
+
+      // Push info onto the while-stack for tracking
+      this.whileStack.push({
+        varName,
+        isNotNullCheck: true,
+      });
+
+      // For != NULL check, mark the variable as checked in the while-body
+      this.currentWhileCtx = ctx;
+    } else {
+      // Not a null check, just track for nesting
+      this.whileStack.push({
+        varName: null,
+        isNotNullCheck: false,
+      });
+    }
+  };
+
+  override exitWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
+    this.whileStack.pop();
+    this.currentWhileCtx = null;
   };
 
   // ========================================================================
