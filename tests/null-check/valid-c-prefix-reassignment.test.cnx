@@ -1,6 +1,6 @@
 // ADR-046: Valid c_ prefix reassignment pattern
 // Tests that c_ prefixed variables can be reassigned (e.g., in while loops).
-// The NULL-check state persists across reassignment for ergonomic loop patterns.
+// After reassignment, a new NULL check is required (stricter E0908 behavior).
 #include <string.h>
 #include <stdio.h>
 
@@ -16,6 +16,9 @@ void testReassignment() {
     // Re-assignment is allowed for c_ prefixed variables
     c_found <- strstr(haystack, "world");
 
-    // OK: Reassignment keeps the NULL-checked state for ergonomic while loops
-    printf("Found: %s\n", c_found);
+    // Reassignment resets NULL-check state - new value could be NULL
+    // Must check again before use
+    if (c_found != NULL) {
+        printf("Found: %s\n", c_found);  // OK - checked after reassignment
+    }
 }
