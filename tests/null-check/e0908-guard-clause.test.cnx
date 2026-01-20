@@ -1,0 +1,10 @@
+// E0908: Guard clause pattern (no error)
+#include <stdio.h>
+
+void testGuardClause() {
+    FILE c_file <- fopen("test.txt", "r");
+    if (c_file = NULL) {
+        return; // Guard clause: early return if NULL
+    }
+    fclose(c_file); // OK: guard clause implies not NULL
+}

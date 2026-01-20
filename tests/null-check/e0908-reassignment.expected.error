@@ -1,0 +1,1 @@
+16:21 error[E0908]: Nullable variable 'c_result' used without NULL check

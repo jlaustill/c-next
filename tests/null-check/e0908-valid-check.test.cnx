@@ -1,0 +1,9 @@
+// E0908: Valid NULL check before use (no error)
+#include <stdio.h>
+
+void testValidCheck() {
+    FILE c_file <- fopen("test.txt", "r");
+    if (c_file != NULL) {
+        fclose(c_file); // OK: inside NULL check
+    }
+}

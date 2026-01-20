@@ -1,0 +1,17 @@
+// E0908: Loop with reassignment pattern (no error expected)
+// This is the idiomatic fgets-in-while pattern from ADR-046
+#include <stdio.h>
+
+string<256> buffer;
+
+void testLoopPattern() {
+    FILE c_file <- fopen("data.txt", "r");
+    if (c_file != NULL) {
+        cstring c_line <- fgets(buffer, buffer.size, c_file);
+        while (c_line != NULL) {
+            printf("%s", buffer);
+            c_line <- fgets(buffer, buffer.size, c_file);
+        }
+        fclose(c_file);
+    }
+}

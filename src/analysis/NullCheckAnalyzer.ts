@@ -151,6 +151,51 @@ const FORBIDDEN_FUNCTIONS: Set<string> = new Set([
   "free",
 ]);
 
+// ============================================================================
+// Flow Analysis Data Structures (E0908)
+// ============================================================================
+
+/**
+ * State of a nullable variable with respect to NULL checking
+ */
+enum NullCheckState {
+  /** Variable has not been checked for NULL */
+  Unchecked = "unchecked",
+  /** Variable has been verified as not NULL */
+  CheckedNotNull = "checked_not_null",
+}
+
+/**
+ * Tracks the NULL check state of a single nullable variable
+ */
+interface INullableVariableState {
+  /** Variable name (with c_ prefix) */
+  name: string;
+  /** Line where the variable was declared */
+  declarationLine: number;
+  /** Type name (e.g., FILE, cstring) */
+  typeName: string;
+  /** Current NULL check state */
+  state: NullCheckState;
+}
+
+/**
+ * A scope for tracking nullable variable states.
+ * Scopes form a stack: function body -> if body -> nested if body, etc.
+ */
+interface INullCheckScope {
+  /** Map of variable name to state within this scope */
+  variables: Map<string, INullableVariableState>;
+  /** Parent scope (null for function-level scope) */
+  parent: INullCheckScope | null;
+  /** If this scope is from an if-statement, tracks if it's a guard clause */
+  isGuardClause: boolean;
+  /** Variable being checked in the if condition (for guard clause detection) */
+  guardVariable: string | null;
+  /** Whether the condition was == NULL (true) or != NULL (false) */
+  isNullEqualityCheck: boolean;
+}
+
 /**
  * Listener that walks the parse tree and checks NULL usage
  */
@@ -172,10 +217,216 @@ class NullCheckListener extends CNextListener {
   /** Whether we're currently inside a variable declaration (with c_ prefix handling) */
   private inVariableDeclarationWithNullable = false;
 
+  // ========================================================================
+  // Flow Analysis State (E0908)
+  // ========================================================================
+
+  /** Current scope for tracking nullable variable states */
+  private currentScope: INullCheckScope | null = null;
+
+  /** Stack of if-statement info for tracking nested conditions */
+  private ifStack: Array<{
+    varName: string | null;
+    isNullCheck: boolean;
+    hasReturn: boolean;
+  }> = [];
+
+  /** Track if we're in the body of an if statement (first statement) */
+  private inIfBody = false;
+
+  /** Track the current if-statement context for body detection */
+  private currentIfCtx: Parser.IfStatementContext | null = null;
+
   constructor(analyzer: NullCheckAnalyzer) {
     super();
     this.analyzer = analyzer;
   }
+
+  // ========================================================================
+  // Scope Management (E0908)
+  // ========================================================================
+
+  /**
+   * Create a new scope (e.g., entering a function or if-body)
+   */
+  private pushScope(): void {
+    const newScope: INullCheckScope = {
+      variables: new Map(),
+      parent: this.currentScope,
+      isGuardClause: false,
+      guardVariable: null,
+      isNullEqualityCheck: false,
+    };
+    this.currentScope = newScope;
+  }
+
+  /**
+   * Exit the current scope and return to parent
+   */
+  private popScope(): INullCheckScope | null {
+    const oldScope = this.currentScope;
+    if (this.currentScope) {
+      this.currentScope = this.currentScope.parent;
+    }
+    return oldScope;
+  }
+
+  /**
+   * Look up a variable's state in the current scope chain
+   */
+  private lookupVariable(name: string): INullableVariableState | null {
+    let scope = this.currentScope;
+    while (scope) {
+      const state = scope.variables.get(name);
+      if (state) return state;
+      scope = scope.parent;
+    }
+    return null;
+  }
+
+  /**
+   * Update a variable's state in the scope where it's defined
+   */
+  private updateVariableState(name: string, newState: NullCheckState): void {
+    let scope = this.currentScope;
+    while (scope) {
+      if (scope.variables.has(name)) {
+        const varState = scope.variables.get(name)!;
+        varState.state = newState;
+        return;
+      }
+      scope = scope.parent;
+    }
+  }
+
+  /**
+   * Register a c_ prefixed variable in the current scope
+   */
+  private registerNullableVariable(
+    name: string,
+    typeName: string,
+    line: number,
+  ): void {
+    if (!this.currentScope) return;
+    this.currentScope.variables.set(name, {
+      name,
+      declarationLine: line,
+      typeName,
+      state: NullCheckState.Unchecked,
+    });
+  }
+
+  // ========================================================================
+  // Function Scope Management (E0908)
+  // ========================================================================
+
+  override enterFunctionDeclaration = (
+    _ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    // Create a new scope for the function body
+    this.pushScope();
+  };
+
+  override exitFunctionDeclaration = (
+    _ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    // Exit the function scope
+    this.popScope();
+  };
+
+  // ========================================================================
+  // If-Statement Flow Analysis (E0908)
+  // ========================================================================
+
+  override enterIfStatement = (ctx: Parser.IfStatementContext): void => {
+    // Parse the condition to detect NULL checks
+    const condition = ctx.expression();
+    const conditionText = condition?.getText() ?? "";
+
+    // Check for patterns like "c_var != NULL" or "c_var = NULL"
+    const nullCheckMatch = conditionText.match(
+      /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*(!?=)\s*NULL$/,
+    );
+
+    if (nullCheckMatch) {
+      const varName = nullCheckMatch[1];
+      const operator = nullCheckMatch[2];
+      const isNotNullCheck = operator === "!=";
+
+      // Push info onto the if-stack for tracking
+      this.ifStack.push({
+        varName,
+        isNullCheck: !isNotNullCheck, // true if checking == NULL
+        hasReturn: false,
+      });
+
+      // For != NULL check, mark the variable as checked in the if-body
+      if (isNotNullCheck) {
+        // We'll set state to CheckedNotNull when entering the if-body
+        this.currentIfCtx = ctx;
+      }
+    } else {
+      // Not a null check, just track for nesting
+      this.ifStack.push({
+        varName: null,
+        isNullCheck: false,
+        hasReturn: false,
+      });
+    }
+  };
+
+  override exitIfStatement = (ctx: Parser.IfStatementContext): void => {
+    const ifInfo = this.ifStack.pop();
+    if (!ifInfo) return;
+
+    // Handle guard clause pattern: if (c_var == NULL) { return; }
+    // After such a guard, the variable is known to be not null
+    if (ifInfo.varName && ifInfo.isNullCheck && ifInfo.hasReturn) {
+      // This was a guard clause - the variable is checked after the if
+      const hasElse = ctx.ELSE() !== null;
+      if (!hasElse) {
+        this.updateVariableState(ifInfo.varName, NullCheckState.CheckedNotNull);
+      }
+    }
+
+    this.currentIfCtx = null;
+  };
+
+  /**
+   * Detect when we enter the body of an if statement
+   * For "if (c_var != NULL)" the body has the variable checked
+   */
+  override enterStatement = (ctx: Parser.StatementContext): void => {
+    // Check if this is the "then" branch of a null-check if
+    if (
+      this.currentIfCtx &&
+      this.ifStack.length > 0 &&
+      !this.ifStack[this.ifStack.length - 1].isNullCheck
+    ) {
+      const ifInfo = this.ifStack[this.ifStack.length - 1];
+      if (ifInfo.varName) {
+        // Get the statements from the if
+        const statements = this.currentIfCtx.statement();
+        // Check if this is the "then" branch (first statement)
+        if (statements.length > 0 && ctx === statements[0]) {
+          // Mark variable as checked within this branch
+          this.updateVariableState(
+            ifInfo.varName,
+            NullCheckState.CheckedNotNull,
+          );
+        }
+      }
+    }
+  };
+
+  override enterReturnStatement = (
+    _ctx: Parser.ReturnStatementContext,
+  ): void => {
+    // Mark current if-statement (if any) as having a return
+    if (this.ifStack.length > 0) {
+      this.ifStack[this.ifStack.length - 1].hasReturn = true;
+    }
+  };
 
   // ========================================================================
   // Equality Comparison Context
@@ -288,7 +539,47 @@ class NullCheckListener extends CNextListener {
         this.analyzer.reportMissingNullCheck(funcName, line, column);
       }
     }
+
+    // E0908: Check for unchecked c_ variables passed as function arguments
+    this.checkFunctionArgumentsForUncheckedVariables(ctx, ops, line);
   };
+
+  /**
+   * Check if any c_ prefixed variables in function arguments are unchecked (E0908)
+   */
+  private checkFunctionArgumentsForUncheckedVariables(
+    ctx: Parser.PostfixExpressionContext,
+    ops: Parser.PostfixOpContext[],
+    line: number,
+  ): void {
+    // Skip if we're in a NULL comparison context (the check itself)
+    if (this.inEqualityComparison) return;
+
+    for (const op of ops) {
+      const argList = op.argumentList();
+      if (!argList) continue;
+
+      // Get all expressions in the argument list
+      const args = argList.expression();
+      for (const arg of args) {
+        const argText = arg.getText();
+        // Check if argument is a simple c_ prefixed variable
+        if (/^c_[a-zA-Z_][a-zA-Z0-9_]*$/.test(argText)) {
+          const varState = this.lookupVariable(argText);
+          if (varState && varState.state === NullCheckState.Unchecked) {
+            const argLine = arg.start?.line ?? line;
+            const argColumn = arg.start?.column ?? 0;
+            this.analyzer.reportMissingNullCheckBeforeUse(
+              argText,
+              varState.typeName,
+              argLine,
+              argColumn,
+            );
+          }
+        }
+      }
+    }
+  }
 
   // ========================================================================
   // NULL Literal
@@ -333,13 +624,20 @@ class NullCheckListener extends CNextListener {
     ctx: Parser.VariableDeclarationContext,
   ): void => {
     const expr = ctx.expression();
-    if (!expr) return;
-
     const varName = ctx.IDENTIFIER().getText();
-    const funcName = this.extractFunctionCallName(expr);
+    const typeName = ctx.type()?.getText() ?? "unknown";
     const identifierToken = ctx.IDENTIFIER().symbol;
     const line = identifierToken.line;
     const column = (identifierToken.column ?? 0) + 1; // 1-indexed column
+
+    // E0908: Register c_ prefixed variables for flow tracking
+    if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
+      this.registerNullableVariable(varName, typeName, line);
+    }
+
+    if (!expr) return;
+
+    const funcName = this.extractFunctionCallName(expr);
 
     // Check if assigning from a nullable C function
     if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
@@ -348,7 +646,6 @@ class NullCheckListener extends CNextListener {
 
       // Must have c_ prefix
       if (!NullCheckAnalyzer.hasNullablePrefix(varName)) {
-        const typeName = ctx.type()?.getText() ?? "unknown";
         this.analyzer.reportMissingCPrefix(
           varName,
           typeName,
@@ -369,7 +666,6 @@ class NullCheckListener extends CNextListener {
 
     // Check for invalid c_ prefix on non-nullable types (E0906)
     if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
-      const typeName = ctx.type()?.getText() ?? "unknown";
       // If NOT assigning from nullable function AND type is NOT nullable, c_ prefix is invalid
       if (!funcName || !NULLABLE_C_FUNCTIONS.has(funcName)) {
         if (!NullCheckAnalyzer.isNullableCType(typeName)) {
@@ -390,17 +686,18 @@ class NullCheckListener extends CNextListener {
     // Check if RHS contains a stream function call
     const expr = ctx.expression();
     const funcName = this.extractFunctionCallName(expr);
+    const target = ctx.assignmentTarget();
+    const varName = target.getText();
+    const line = ctx.start?.line ?? 0;
+    const column = ctx.start?.column ?? 0;
 
     if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
-      const target = ctx.assignmentTarget();
-      const varName = target.getText();
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
-
       // ADR-046: Allow reassignment to c_ prefixed variables (e.g., in while loops)
       if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
         // Set flag to suppress E0901 for the function call inside this assignment
         this.inVariableDeclarationWithNullable = true;
+        // E0908: Reset state to Unchecked on reassignment from nullable function
+        this.updateVariableState(varName, NullCheckState.Unchecked);
         return;
       }
 
@@ -612,6 +909,25 @@ class NullCheckAnalyzer {
       column,
       message: `NULL comparison on non-nullable variable '${varName}'`,
       helpText: `Only variables with 'c_' prefix can be compared to NULL. C-Next variables are never null.`,
+    });
+  }
+
+  /**
+   * Report error: c_ variable used without prior NULL check (E0908)
+   */
+  public reportMissingNullCheckBeforeUse(
+    varName: string,
+    typeName: string,
+    line: number,
+    column: number,
+  ): void {
+    this.errors.push({
+      code: "E0908",
+      functionName: varName,
+      line,
+      column,
+      message: `Nullable variable '${varName}' used without NULL check`,
+      helpText: `Check for NULL before use: if (${varName} != NULL) { ... }`,
     });
   }
 

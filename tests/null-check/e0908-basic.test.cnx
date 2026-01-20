@@ -1,0 +1,7 @@
+// E0908: Nullable variable used without NULL check
+#include <stdio.h>
+
+void testBasic() {
+    FILE c_file <- fopen("test.txt", "r");
+    fclose(c_file); // ERROR: c_file not checked for NULL
+}

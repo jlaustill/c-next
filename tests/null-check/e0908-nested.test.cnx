@@ -1,0 +1,18 @@
+// E0908: Nested if blocks with NULL checks
+#include <stdio.h>
+
+string<256> buffer;
+
+void testNested() {
+    FILE c_file <- fopen("test.txt", "r");
+    if (c_file != NULL) {
+        cstring c_line <- fgets(buffer, buffer.size, c_file);
+        if (c_line != NULL) {
+            // Both checked - OK
+            printf("%s", c_line);
+        }
+        // c_line is unchecked again at this level
+        // but we don't use it here
+        fclose(c_file); // OK: c_file still checked
+    }
+}
