@@ -8,10 +8,11 @@ Syntax highlighting and live C preview for **C-Next**, a safer C for embedded sy
 
 Full syntax highlighting for `.cnx` files including:
 
-- Keywords (`register`, `namespace`, `if`, `for`, etc.)
-- Types (`u8`, `u32`, `bool`, etc.)
+- Keywords (`register`, `scope`, `atomic`, `critical`, `if`, `for`, etc.)
+- Types (`u8`, `u32`, `bool`, `string`, `bitmap8`, `ISR`, etc.)
 - Operators (`<-` assignment, `@` address)
-- Literals, comments, strings
+- Modifiers (`clamp`, `wrap` for overflow behavior)
+- Literals (`true`, `false`, `null`, `NULL`), comments, strings
 
 ### Live C Preview
 
@@ -53,7 +54,7 @@ register GPIO7 @ 0x42004000 {
 
 u32 LED_BIT <- 3;
 
-namespace LED {
+scope LED {
     void toggle() {
         GPIO7.DR_TOGGLE[LED_BIT] <- true;
     }
@@ -72,6 +73,20 @@ void LED_toggle(void) {
 }
 ```
 
+### Atomic and Critical Sections
+
+```cnx
+atomic u32 counter <- 0;
+
+scope Counter {
+    void increment() {
+        critical {
+            counter <- counter + 1;
+        }
+    }
+}
+```
+
 ## About C-Next
 
 C-Next is a safer C for embedded systems that transpiles to clean, readable C code.
@@ -83,6 +98,10 @@ Key features:
 - Type-safe register bindings
 - Type-aware bit indexing
 - Static allocation only (no heap)
+- `atomic` variables with hardware-backed atomicity
+- `critical { }` sections for interrupt-safe code
+- Overflow control with `clamp` and `wrap` modifiers
+- Null-safe C interop with `c_` prefix pattern
 
 Learn more: [github.com/jlaustill/c-next](https://github.com/jlaustill/c-next)
 
