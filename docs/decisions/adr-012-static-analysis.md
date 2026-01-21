@@ -39,8 +39,11 @@ C-Next already aligns with many MISRA rules by design:
 | Phase | Tool              | Purpose                                |
 | ----- | ----------------- | -------------------------------------- |
 | 1     | **cppcheck**      | General static analysis, easy baseline |
+| 1     | **rats**          | Security-focused vulnerability scanner |
 | 2     | **clang-tidy**    | Comprehensive checks, CERT guidelines  |
 | 3     | **MISRA checker** | Full MISRA C 2012 compliance           |
+
+**Note:** RATS (Rough Auditing Tool for Security) is optional but recommended. It complements cppcheck by focusing specifically on security vulnerabilities with 334 C/C++ patterns.
 
 ### Long-term Goal
 
@@ -76,6 +79,32 @@ cppcheck --enable=all --std=c99 --force generated.c
 # Suppress known false positives with documented rationale
 # suppressions-list=tools/cppcheck-suppressions.txt
 ```
+
+### Phase 1b: RATS Integration (Optional)
+
+RATS (Rough Auditing Tool for Security) is a security-focused scanner that complements cppcheck by identifying common security vulnerabilities.
+
+**Install:**
+
+```bash
+# Ubuntu/Debian
+sudo apt install rats
+
+# Or build from source
+git clone https://github.com/andrew-d/rough-auditing-tool-for-security
+cd rough-auditing-tool-for-security
+./configure && make && sudo make install
+```
+
+**Run:**
+
+```bash
+rats generated.c
+```
+
+**Output:** RATS reports findings with severity levels (High, Medium, Low) and descriptions of potential vulnerabilities.
+
+**Note:** RATS integration is optional. The static analysis script will skip RATS if not installed and continue with cppcheck analysis.
 
 ### Phase 2: clang-tidy Integration
 
@@ -229,6 +258,7 @@ c-next/
 ### Static Analysis Tools
 
 - [cppcheck](http://cppcheck.sourceforge.net/)
+- [RATS](https://github.com/andrew-d/rough-auditing-tool-for-security) — Rough Auditing Tool for Security
 - [clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
 - [PC-lint Plus](https://pclintplus.com/)
 

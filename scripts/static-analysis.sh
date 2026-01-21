@@ -136,12 +136,73 @@ else
     echo -e "${YELLOW}Total issues: ${TOTAL_ISSUES}${NC}"
 fi
 
+# RATS security analysis (optional)
+# Initialize counters (needed for final exit check even if rats not installed)
+RATS_HIGH=0
+RATS_MEDIUM=0
+RATS_LOW=0
+RATS_TOTAL=0
+if command -v rats &> /dev/null; then
+    echo ""
+    echo -e "${BLUE}Running rats (security scanner)...${NC}"
+    echo ""
+
+    # Run rats and capture output
+    RATS_OUTPUT=$(rats "$TEMP_DIR" 2>&1)
+
+    # Count severity levels from rats output
+    # rats output format: "filename:line: High: description"
+    RATS_HIGH=$(echo "$RATS_OUTPUT" | grep -c ": High:" 2>/dev/null) || RATS_HIGH=0
+    RATS_MEDIUM=$(echo "$RATS_OUTPUT" | grep -c ": Medium:" 2>/dev/null) || RATS_MEDIUM=0
+    RATS_LOW=$(echo "$RATS_OUTPUT" | grep -c ": Low:" 2>/dev/null) || RATS_LOW=0
+    RATS_TOTAL=$((RATS_HIGH + RATS_MEDIUM + RATS_LOW))
+
+    # Display results
+    echo -e "${BLUE}=== rats Results ===${NC}"
+    echo ""
+
+    if [ "$RATS_TOTAL" -gt 0 ]; then
+        echo "$RATS_OUTPUT"
+        echo ""
+    fi
+
+    echo -e "${BLUE}Summary:${NC}"
+    if [ "$RATS_HIGH" -gt 0 ]; then
+        echo -e "  High:   ${RED}${RATS_HIGH}${NC}"
+    else
+        echo -e "  High:   ${RATS_HIGH}"
+    fi
+    if [ "$RATS_MEDIUM" -gt 0 ]; then
+        echo -e "  Medium: ${YELLOW}${RATS_MEDIUM}${NC}"
+    else
+        echo -e "  Medium: ${RATS_MEDIUM}"
+    fi
+    echo -e "  Low:    ${RATS_LOW}"
+    echo ""
+
+    if [ "$RATS_TOTAL" -eq 0 ]; then
+        echo -e "${GREEN}No security issues found!${NC}"
+    else
+        echo -e "${YELLOW}Total security findings: ${RATS_TOTAL}${NC}"
+    fi
+else
+    echo ""
+    echo -e "${YELLOW}Note: rats not installed (optional security scanner)${NC}"
+    echo -e "${YELLOW}Install from: https://github.com/andrew-d/rough-auditing-tool-for-security${NC}"
+fi
+
 echo ""
 echo -e "${BLUE}Generated files are in: ${TEMP_DIR}${NC}"
 echo ""
 
-# Exit with error if there are actual errors
+# Exit with error if there are cppcheck errors or high-severity RATS findings
 if [ "$ERRORS" -gt 0 ]; then
+    echo -e "${RED}Failed: cppcheck found $ERRORS error(s)${NC}"
+    exit 1
+fi
+
+if [ "$RATS_HIGH" -gt 0 ]; then
+    echo -e "${RED}Failed: rats found $RATS_HIGH high-severity security issue(s)${NC}"
     exit 1
 fi
 
