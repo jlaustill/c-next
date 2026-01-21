@@ -39,8 +39,12 @@ C-Next already aligns with many MISRA rules by design:
 | Phase | Tool              | Purpose                                |
 | ----- | ----------------- | -------------------------------------- |
 | 1     | **cppcheck**      | General static analysis, easy baseline |
+| 1     | **rats**          | Security-focused vulnerability scanner |
 | 2     | **clang-tidy**    | Comprehensive checks, CERT guidelines  |
 | 3     | **MISRA checker** | Full MISRA C 2012 compliance           |
+| 4     | **flawfinder**    | CWE-based security vulnerability scan  |
+
+**Note:** RATS (Rough Auditing Tool for Security) is optional but recommended. It complements cppcheck by focusing specifically on security vulnerabilities with 334 C/C++ patterns.
 
 ### Long-term Goal
 
@@ -77,6 +81,32 @@ cppcheck --enable=all --std=c99 --force generated.c
 # suppressions-list=tools/cppcheck-suppressions.txt
 ```
 
+### Phase 1b: RATS Integration (Optional)
+
+RATS (Rough Auditing Tool for Security) is a security-focused scanner that complements cppcheck by identifying common security vulnerabilities.
+
+**Install:**
+
+```bash
+# Ubuntu/Debian
+sudo apt install rats
+
+# Or build from source
+git clone https://github.com/andrew-d/rough-auditing-tool-for-security
+cd rough-auditing-tool-for-security
+./configure && make && sudo make install
+```
+
+**Run:**
+
+```bash
+rats generated.c
+```
+
+**Output:** RATS reports findings with severity levels (High, Medium, Low) and descriptions of potential vulnerabilities.
+
+**Note:** RATS integration is optional. The static analysis script will skip RATS if not installed and continue with cppcheck analysis.
+
 ### Phase 2: clang-tidy Integration
 
 **Useful check categories:**
@@ -107,6 +137,37 @@ Checks: >
 4. **Polyspace** — Commercial, automotive-focused
 
 **Recommendation:** Start with cppcheck + clang-tidy. Evaluate commercial tools if/when C-Next targets safety-critical applications.
+
+### Phase 4: flawfinder Integration
+
+**Install:**
+
+```bash
+pip install flawfinder
+```
+
+**Risk Levels (0-5 scale):**
+
+| Level | Severity | Description                          |
+| ----- | -------- | ------------------------------------ |
+| 5     | Critical | Almost certainly exploitable         |
+| 4     | High     | Likely exploitable                   |
+| 3     | Medium   | Potential vulnerability              |
+| 2     | Low      | Minor issue, rarely exploitable      |
+| 1     | Info     | Informational, likely false positive |
+| 0     | None     | No risk (suppressed findings)        |
+
+**Integration Approach:**
+
+- **Test runner (`npm test`)**: Uses `--minlevel=3` to skip low-risk findings
+  - Level 2 char[] warnings are false positives for C-Next (static allocation per ADR-003)
+- **Manual analysis (`npm run analyze`)**: Uses `--minlevel=1` to show all actionable findings
+- **Exit behavior**: `--error-level=3` returns non-zero for level 3+ findings in test runner
+- **Timeout**: 30 seconds (flawfinder is fast, matches clang-tidy)
+
+**CWE Mapping:**
+
+flawfinder maps findings to CWE (Common Weakness Enumeration) identifiers, providing standardized vulnerability classification for security audits.
 
 ---
 
@@ -229,6 +290,7 @@ c-next/
 ### Static Analysis Tools
 
 - [cppcheck](http://cppcheck.sourceforge.net/)
+- [RATS](https://github.com/andrew-d/rough-auditing-tool-for-security) — Rough Auditing Tool for Security
 - [clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
 - [PC-lint Plus](https://pclintplus.com/)
 

@@ -30,11 +30,11 @@ uint32_t TestScope_getScopeElementLength(void) {
 }
 double TestScope_publicArr[16] = {0};
 
-uint32_t checkArrayLength(double arr[16]) {
+uint32_t checkArrayLength(const double arr[16]) {
     return 16;
 }
 
-uint32_t checkElementLength(double arr[16]) {
+uint32_t checkElementLength(const double arr[16]) {
     return 64;
 }
 

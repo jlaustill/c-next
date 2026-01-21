@@ -276,16 +276,18 @@ class HeaderGenerator {
     if (sym.parameters && sym.parameters.length > 0) {
       const translatedParams = sym.parameters.map((p) => {
         const baseType = mapType(p.type);
+        // Issue #268: Include auto-const for unmodified pointer parameters
         const constMod = p.isConst ? "const " : "";
+        const autoConst = p.isAutoConst ? "const " : "";
 
         // Handle array parameters (pass naturally as pointers per C semantics)
         if (p.isArray && p.arrayDimensions) {
           const dims = p.arrayDimensions.map((d) => `[${d}]`).join("");
           // Special case: string[] becomes char* name[]
           if (p.type === "string") {
-            return `${constMod}char* ${p.name}${dims}`;
+            return `${autoConst}${constMod}char* ${p.name}${dims}`;
           }
-          return `${constMod}${baseType} ${p.name}${dims}`;
+          return `${autoConst}${constMod}${baseType} ${p.name}${dims}`;
         }
 
         // ADR-040: ISR is already a function pointer typedef, no pointer needed
@@ -304,8 +306,9 @@ class HeaderGenerator {
         }
 
         // ADR-006: Pass by reference - non-array, non-float params become pointers
+        // Issue #268: Add auto-const for unmodified parameters
         // This applies to primitives (u32, i16, etc.) and struct types
-        return `${constMod}${baseType}* ${p.name}`;
+        return `${autoConst}${constMod}${baseType}* ${p.name}`;
       });
       params = translatedParams.join(", ");
     }

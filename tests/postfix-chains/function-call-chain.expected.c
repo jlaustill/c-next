@@ -35,7 +35,7 @@ float multiplyF32(float a, float b) {
     return a * b;
 }
 
-Vec3 scaleVec3(Vec3* v, float scale) {
+Vec3 scaleVec3(const Vec3* v, float scale) {
     Vec3 result = {0};
     result.x = v->x * scale;
     result.y = v->y * scale;
@@ -47,7 +47,7 @@ bool isGreater(float a, float b) {
     return a > b;
 }
 
-void setTransform(Transform* t, uint32_t index) {
+void setTransform(const Transform* t, uint32_t index) {
     transforms[index] = (*t);
 }
 

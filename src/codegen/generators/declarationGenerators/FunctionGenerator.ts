@@ -51,9 +51,11 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
     node.parameterList(),
   );
 
-  let params: string;
+  let params: string = ""; // Will be set below
   let actualReturnType: string;
 
+  // Issue #268: Generate body FIRST to track parameter modifications,
+  // then generate parameter list using that tracking info
   if (isMainWithArgs) {
     // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
     actualReturnType = "int";
@@ -64,12 +66,20 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
   } else {
     // For main() without args, always use int return type for C++ compatibility
     actualReturnType = name === "main" ? "int" : returnType;
+  }
+
+  // Generate body first (this populates modifiedParameters)
+  const body = orchestrator.generateBlock(node.block());
+
+  // Issue #268: Update symbol's parameter info with auto-const before clearing
+  orchestrator.updateFunctionParamsAutoConst(name);
+
+  // Now generate parameter list (can use modifiedParameters for auto-const)
+  if (!isMainWithArgs) {
     params = node.parameterList()
       ? orchestrator.generateParameterList(node.parameterList()!)
       : "void";
   }
-
-  const body = orchestrator.generateBlock(node.block());
 
   // ADR-016: Clear local variables and mark that we're no longer in a function body
   orchestrator.exitFunctionBody();

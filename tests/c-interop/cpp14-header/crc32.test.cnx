@@ -1,12 +1,13 @@
 // test-error
 // crc32.cnx - This pattern requires runtime offsets which are now compile-time errors
 // Issue #234: Slice assignment requires compile-time constant offsets for safety
+// Issue #272: Confirmed as intentional design - compile-time safety over runtime flexibility
 //
-// This example demonstrates the OLD pattern that used runtime offsets.
+// This example demonstrates a pattern that requires runtime offsets.
 // For real-world serialization, consider:
-// 1. Using fixed compile-time offsets when layout is known
-// 2. Using a serialization helper/library
-// 3. Using raw memcpy with explicit bounds documentation
+// 1. Using fixed compile-time offsets when layout is known (see ADR-007)
+// 2. Using explicit memcpy with manual bounds checking
+// 3. Using a serialization helper/library
 
 #include "AppConfig.h"
 

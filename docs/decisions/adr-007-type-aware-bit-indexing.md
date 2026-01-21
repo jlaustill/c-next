@@ -356,9 +356,62 @@ board[0, 4] <- magic;  // ERROR: slice only valid on 1D arrays
 // Future: board[0][0, 4] <- magic;  // Would slice row 0
 ```
 
-**Rationale:**
+**Design Rationale (Issue #272):**
 
-The previous implementation used runtime bounds checking which could silently skip operations when bounds were violated. This led to subtle bugs where code appeared to work but produced incorrect results (e.g., incorrect CRC checksums due to skipped writes). By enforcing compile-time validation, these bugs become compile-time errors.
+The compile-time constant requirement is a deliberate safety design choice, not an arbitrary restriction:
+
+1. **Silent failure problem**: The previous implementation generated runtime bounds checking:
+
+   ```cpp
+   if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &value, length); }
+   ```
+
+   When bounds were violated, the `memcpy` was silently skipped. This led to subtle bugs where code appeared to work but produced incorrect results (e.g., incorrect CRC checksums due to skipped writes).
+
+2. **Compile-time guarantees**: By requiring compile-time constants, bounds can be verified before the code runs. If it compiles, it cannot overflow at runtime.
+
+3. **Safety-critical alignment**: Compile-time provable safety aligns with MISRA and similar safety-critical coding standards.
+
+**For Dynamic Use Cases:**
+
+If your offsets or lengths are truly runtime-dependent, the slice syntax is intentionally unavailable because compile-time safety cannot be guaranteed. Use explicit `memcpy` with manual bounds checking:
+
+```cnx
+// Dynamic serialization pattern - use explicit memcpy
+#include <string.h>
+
+void serialize(u8* buffer, size capacity, const Data data) {
+    size offset <- 0;
+
+    // Programmer takes responsibility for bounds checking
+    if (offset + 4 <= capacity) {
+        memcpy(&buffer[offset], &data.field1, 4);
+        offset +<- 4;
+    }
+
+    if (offset + 2 <= capacity) {
+        memcpy(&buffer[offset], &data.field2, 2);
+        offset +<- 2;
+    }
+}
+```
+
+**Alternative: Named Compile-Time Offsets**
+
+If your struct layout is fixed, the offsets ARE known at compile time. Use `const` variables:
+
+```cnx
+// Fixed layout - use named compile-time offsets
+const size OFFSET_FIELD1 <- 0;
+const size OFFSET_FIELD2 <- 4;
+const size OFFSET_FIELD3 <- 6;
+
+buffer[OFFSET_FIELD1, 4] <- data.field1;
+buffer[OFFSET_FIELD2, 2] <- data.field2;
+buffer[OFFSET_FIELD3, 1] <- data.field3;
+```
+
+This approach maintains compile-time safety while keeping code readable.
 
 ---
 

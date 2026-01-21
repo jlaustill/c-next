@@ -177,6 +177,18 @@ async function runTest(
         }
       }
 
+      // Flawfinder security analysis
+      if (tools.flawfinder) {
+        const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
+        if (!flawfinderResult.valid) {
+          return {
+            passed: false,
+            message: "Flawfinder security check failed",
+            actual: flawfinderResult.message,
+          };
+        }
+      }
+
       // No-warnings check if marker present
       if (TestUtils.hasNoWarningsMarker(source)) {
         const noWarningsResult = TestUtils.validateNoWarnings(

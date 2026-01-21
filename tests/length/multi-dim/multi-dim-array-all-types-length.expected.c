@@ -25,7 +25,7 @@ uint32_t TestScope_getScopeMatrixLength(void) {
 uint8_t TestScope_publicMatrix[3][5] = {0};
 
 // Function with multi-dim array parameter
-uint32_t checkMatrixLength(uint8_t matrix[4][8]) {
+uint32_t checkMatrixLength(const uint8_t matrix[4][8]) {
     return 4;
 }
 

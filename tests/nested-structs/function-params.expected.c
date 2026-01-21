@@ -18,16 +18,16 @@ typedef struct {
 } Rectangle;
 
 // Access nested members from struct parameter (ADR-006: pass by reference)
-int32_t getWidth(Rectangle* rect) {
+int32_t getWidth(const Rectangle* rect) {
     return rect->bottomRight.x - rect->topLeft.x;
 }
 
-int32_t getHeight(Rectangle* rect) {
+int32_t getHeight(const Rectangle* rect) {
     return rect->bottomRight.y - rect->topLeft.y;
 }
 
 // Calculate area using nested access
-int32_t getArea(Rectangle* rect) {
+int32_t getArea(const Rectangle* rect) {
     int32_t w = rect->bottomRight.x - rect->topLeft.x;
     int32_t h = rect->bottomRight.y - rect->topLeft.y;
     return w * h;

@@ -14,7 +14,7 @@ void setElement(uint32_t arr[10], uint32_t index, uint32_t value) {
 }
 
 // Function that sums array elements
-uint32_t sumArray(uint32_t arr[5], uint32_t count) {
+uint32_t sumArray(const uint32_t arr[5], uint32_t count) {
     uint32_t sum = 0;
     uint32_t i = 0;
     while (i < count) {
@@ -34,7 +34,7 @@ void zeroArray(uint32_t arr[8], uint32_t count) {
 }
 
 // Function that copies arrays
-void copyArray(uint32_t src[4], uint32_t dst[4], uint32_t count) {
+void copyArray(const uint32_t src[4], uint32_t dst[4], uint32_t count) {
     uint32_t i = 0;
     while (i < count) {
         dst[i] = src[i];

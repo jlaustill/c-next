@@ -55,6 +55,8 @@ const generateFunctionCall = (
   // ADR-013: Check const-to-non-const before generating arguments
   if (isCNextFunc) {
     validateConstToNonConst(funcExpr, argExprs, input, orchestrator);
+    // Issue #268: Track pass-through modifications for auto-const
+    trackPassThroughModifications(funcExpr, argExprs, orchestrator);
   }
 
   const args = argExprs
@@ -186,6 +188,41 @@ const validateConstToNonConst = (
             `of function '${funcName}'`,
         );
       }
+    }
+  }
+};
+
+/**
+ * Issue #268: Track pass-through modifications for auto-const inference.
+ *
+ * When a parameter of the current function is passed to another function
+ * that modifies its corresponding parameter, we must mark our parameter
+ * as modified too (since it's pass-by-reference).
+ *
+ * Example:
+ *   void modifies(u32 val) { val <- 42; }
+ *   void passesThrough(u32 val) { modifies(val); }  // val is effectively modified
+ *
+ * Note: This only works when the callee is defined before the caller.
+ * If the callee is defined later, we can't know if it modifies the param,
+ * and the C compiler will catch any const-mismatch errors.
+ */
+const trackPassThroughModifications = (
+  funcName: string,
+  argExprs: ExpressionContext[],
+  orchestrator: IOrchestrator,
+): void => {
+  for (let argIdx = 0; argIdx < argExprs.length; argIdx++) {
+    const argId = orchestrator.getSimpleIdentifier(argExprs[argIdx]);
+    if (!argId) continue;
+
+    // Check if this argument is a parameter of the current function
+    if (!orchestrator.isCurrentParameter(argId)) continue;
+
+    // Check if the callee's parameter at this index is modified
+    if (orchestrator.isCalleeParameterModified(funcName, argIdx)) {
+      // The callee modifies this parameter, so our parameter is also modified
+      orchestrator.markParameterModified(argId);
     }
   }
 };

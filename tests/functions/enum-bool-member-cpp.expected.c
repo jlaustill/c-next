@@ -17,7 +17,7 @@ uint32_t process(uint32_t crc, uint8_t byte) {
     return crc ^ byte;
 }
 
-uint32_t testEnumBoolMembers(SensorConfig* cfg) {
+uint32_t testEnumBoolMembers(const SensorConfig* cfg) {
     uint32_t crc = 0;
     crc = process(crc, (*cfg).enabled);
     crc = process(crc, (*cfg).pressureType);
