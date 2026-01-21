@@ -7,7 +7,9 @@
 
 // test-execution
 // Issue #281: const incorrectly added to pointer parameter that is modified
-// Tests that scope functions correctly omit const for modified pointer parameters
+// Tests that scope functions correctly handle parameter passing:
+// - Modified scalars: passed as pointer (no const) for mutation
+// - Unmodified scalars: passed by value (optimization over const pointer)
 /* Scope: TestScope */
 
 void TestScope_increment(uint32_t* x) {
@@ -41,6 +43,15 @@ void TestScope_switchIncrement(uint32_t* x, uint32_t mode) {
     }
 }
 
+uint32_t TestScope_readOnly(uint32_t x) {
+    return x * 2;
+}
+
+uint32_t TestScope_mixedParams(uint32_t* counter, uint32_t multiplier) {
+    (*counter) = (*counter) + 1;
+    return (*counter) * multiplier;
+}
+
 int main(void) {
     uint32_t counter = 10;
     TestScope_increment(&counter);
@@ -61,5 +72,15 @@ int main(void) {
     switchVal = 100;
     TestScope_switchIncrement(&switchVal, 99);
     if (switchVal != 101) return 7;
+    uint32_t readVal = 25;
+    uint32_t readResult = TestScope_readOnly(readVal);
+    if (readVal != 25) return 8;
+    if (readResult != 50) return 9;
+    uint32_t mixedCounter = 10;
+    uint32_t mixedMult = 3;
+    uint32_t mixedResult = TestScope_mixedParams(&mixedCounter, mixedMult);
+    if (mixedCounter != 11) return 10;
+    if (mixedMult != 3) return 11;
+    if (mixedResult != 33) return 12;
     return 0;
 }

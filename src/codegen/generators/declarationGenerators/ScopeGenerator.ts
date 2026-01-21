@@ -130,10 +130,7 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       // Track parameters for ADR-006 pointer semantics
       orchestrator.setParameters(funcDecl.parameterList() ?? null);
 
-      // Issue #281: Clear modified parameters tracking for this function
-      orchestrator.clearModifiedParameters();
-
-      // ADR-016: Enter function body context
+      // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
       orchestrator.enterFunctionBody();
 
       // Issue #281: Generate body FIRST to track parameter modifications,

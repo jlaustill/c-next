@@ -1001,13 +1001,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #281: Clear modified parameters tracking for a new function.
-   */
-  clearModifiedParameters(): void {
-    this.context.modifiedParameters.clear();
-  }
-
-  /**
    * Issue #268: Check if a callee function's parameter at given index is modified.
    * Returns true if the callee modifies that parameter (should not have const).
    */
@@ -4226,12 +4219,8 @@ export default class CodeGenerator implements IOrchestrator {
         // Track parameters for ADR-006 pointer semantics
         this._setParameters(funcDecl.parameterList() ?? null);
 
-        // Issue #281: Clear modified parameters tracking for this function
-        this.context.modifiedParameters.clear();
-
-        // ADR-016: Clear local variables and mark that we're in a function body
-        this.context.localVariables.clear();
-        this.context.inFunctionBody = true;
+        // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
+        this.enterFunctionBody();
 
         // Issue #281: Generate body FIRST to track parameter modifications,
         // then generate parameter list using that tracking info
@@ -4245,9 +4234,8 @@ export default class CodeGenerator implements IOrchestrator {
           ? this._generateParameterList(funcDecl.parameterList()!)
           : "void";
 
-        // ADR-016: Clear local variables and mark that we're no longer in a function body
-        this.context.inFunctionBody = false;
-        this.context.localVariables.clear();
+        // ADR-016: Exit function body context
+        this.exitFunctionBody();
         this.context.currentFunctionName = null; // Issue #269: Clear function name
         this._clearParameters();
 
