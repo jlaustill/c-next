@@ -45,6 +45,31 @@ u32 addAndIncrement(u32 a, u32 b) {
     return a + b;
 }
 
+// --- Modification in switch statement (Issue #269 bug fix) ---
+// Parameters modified inside switch cases must still pass by pointer
+
+void modifyInSwitch(u32 x, u32 mode) {
+    switch (mode) {
+        case 1 {
+            x <- x + 10;
+        }
+        case 2 {
+            x <- x + 20;
+        }
+        default {
+            x <- x + 1;
+        }
+    }
+}
+
+// --- Modification in critical section (ADR-050) ---
+
+void modifyInCritical(u32 x) {
+    critical {
+        x <- x * 2;
+    }
+}
+
 // --- Main test ---
 
 u32 main() {
@@ -86,6 +111,24 @@ u32 main() {
     u32 mixedResult <- addAndIncrement(mixedA, mixedB);
     if (mixedResult != 16) return 9;  // (5+1) + 10 = 16
     if (mixedA != 6) return 10;       // a was modified
+
+    // Test modification in switch (Issue #269 bug fix)
+    u32 switchVal <- 100;
+    modifyInSwitch(switchVal, 1);
+    if (switchVal != 110) return 11;  // case 1: +10
+
+    switchVal <- 100;
+    modifyInSwitch(switchVal, 2);
+    if (switchVal != 120) return 12;  // case 2: +20
+
+    switchVal <- 100;
+    modifyInSwitch(switchVal, 99);    // hits default
+    if (switchVal != 101) return 13;  // default: +1
+
+    // Test modification in critical section (ADR-050)
+    u32 criticalVal <- 50;
+    modifyInCritical(criticalVal);
+    if (criticalVal != 100) return 14;  // *2
 
     return 0;
 }

@@ -1816,6 +1816,40 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
+    // Issue #269: Handle switch statements - modifications can occur in any case
+    if (stmt.switchStatement()) {
+      const switchStmt = stmt.switchStatement()!;
+      // Check switch expression for calls
+      this.walkExpressionForCalls(funcName, paramSet, switchStmt.expression());
+      // Walk each case block
+      for (const caseCtx of switchStmt.switchCase()) {
+        this.walkBlockForModifications(
+          funcName,
+          [...paramSet],
+          caseCtx.block(),
+        );
+      }
+      // Walk default case if present
+      const defaultCase = switchStmt.defaultCase();
+      if (defaultCase) {
+        this.walkBlockForModifications(
+          funcName,
+          [...paramSet],
+          defaultCase.block(),
+        );
+      }
+    }
+
+    // ADR-050: Handle critical statements - recurse into the block
+    if (stmt.criticalStatement()) {
+      const criticalStmt = stmt.criticalStatement()!;
+      this.walkBlockForModifications(
+        funcName,
+        [...paramSet],
+        criticalStmt.block(),
+      );
+    }
+
     // Recurse into nested blocks
     if (stmt.block()) {
       this.walkBlockForModifications(funcName, [...paramSet], stmt.block()!);
