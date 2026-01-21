@@ -1,0 +1,20 @@
+// Issue #291: Test C++ template interop with C-Next scope
+// This demonstrates that template types come from C++ headers (external)
+// while scope types are defined in C-Next itself
+
+#include "template-stubs.h"
+
+// External C++ template type (simulating FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16>)
+// In real usage this would come from FlexCAN_T4.h
+TemplateType<Param1, Param2, Param3> canBus;
+
+// C-Next defined scope with its own types
+scope CANHandler {
+    public void init() {
+        // Using the external template type via module-level variable
+    }
+}
+
+void main() {
+    CANHandler.init();
+}
