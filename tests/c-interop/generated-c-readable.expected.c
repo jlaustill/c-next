@@ -9,7 +9,7 @@
 // Tests: generated C is idiomatic and maintainable
 // This test verifies the generated C is clean and readable
 // The expected.c file should be human-readable C code
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;

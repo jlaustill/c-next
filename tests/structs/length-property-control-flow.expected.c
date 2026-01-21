@@ -19,7 +19,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Regression test: .length in control flow expressions
 // Tests if, while, for, and switch with .length property
-typedef struct {
+typedef struct Packet {
     uint32_t header;
     uint16_t length;
     uint8_t type;

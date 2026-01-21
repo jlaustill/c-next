@@ -7,7 +7,7 @@
 
 // Test: Compound assignment on struct member arrays
 // Verifies fix for line 4114 in CodeGenerator.ts
-typedef struct {
+typedef struct Buffer {
     uint8_t data[8];
     int32_t counts[4];
 } Buffer;

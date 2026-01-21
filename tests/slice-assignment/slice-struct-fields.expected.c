@@ -10,7 +10,7 @@
 // Tests: Slice assignment for struct field serialization
 // Validates copying struct fields into buffers with compile-time offsets
 // Layout: [magic:4][version:2][flags:1][timestamp:8] = 15 bytes total
-typedef struct {
+typedef struct Config {
     uint32_t magic;
     uint16_t version;
     uint8_t flags;

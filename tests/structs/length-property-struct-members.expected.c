@@ -8,7 +8,7 @@
 // test-execution
 // Test .length property on struct member access
 // Bug: config.magic.length evaluates to 0 instead of 32
-typedef struct {
+typedef struct Config {
     uint32_t magic;
     uint16_t version;
     uint8_t flags;

@@ -13,7 +13,7 @@
 
 // Also define in C-Next for semantic analysis (actual type comes from C header)
 // The code generation should use SymbolTable (C header types), not this definition
-typedef struct {
+typedef struct CNextConfig {
     uint32_t magic;
     uint16_t version;
     uint8_t flags;

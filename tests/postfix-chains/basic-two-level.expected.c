@@ -8,12 +8,12 @@
 
 // Postfix Chain Test: Basic 2-level chains
 // Tests: struct.member, array[index], register.field combinations
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Line {
     Point start;
     Point end;
 } Line;

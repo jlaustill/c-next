@@ -30,7 +30,7 @@ uint32_t checkMatrixLength(const uint8_t matrix[4][8]) {
 }
 
 // Struct with multi-dim array
-typedef struct {
+typedef struct TestStruct {
     uint8_t matrix[4][8];
 } TestStruct;
 

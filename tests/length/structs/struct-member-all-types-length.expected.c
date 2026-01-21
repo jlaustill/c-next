@@ -9,7 +9,7 @@
 // test-execution
 // Comprehensive .length test for struct members of all primitive types
 // Tests: .length returns correct bit width for each struct member type
-typedef struct {
+typedef struct AllTypes {
     uint8_t u8Field;
     uint16_t u16Field;
     uint32_t u32Field;

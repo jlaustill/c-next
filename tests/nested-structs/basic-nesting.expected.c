@@ -7,17 +7,17 @@
 
 // ADR-032: Basic Nested Struct Test
 // Tests: struct member with struct type, chained member access
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Line {
     Point start;
     Point end;
 } Line;
 
-typedef struct {
+typedef struct Rectangle {
     Point topLeft;
     Point bottomRight;
 } Rectangle;

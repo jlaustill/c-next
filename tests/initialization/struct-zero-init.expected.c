@@ -9,12 +9,12 @@
 // test-execution
 // ADR-015: Struct zero initialization
 // Tests: struct members are automatically zero-initialized
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Config {
     uint32_t baudRate;
     uint8_t dataBits;
     bool enabled;

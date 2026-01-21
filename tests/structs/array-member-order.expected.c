@@ -18,12 +18,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Test postfix chain ordering for both reads and assignments
 // Bug: cfg.items[0].value transpiles to cfg.items.value[0] (wrong order!)
-typedef struct {
+typedef struct Item {
     uint32_t value;
     uint8_t flags;
 } Item;
 
-typedef struct {
+typedef struct Container {
     Item items[3];
 } Container;
 

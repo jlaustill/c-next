@@ -30,7 +30,7 @@ uint32_t checkParamLength(uint8_t param) {
 }
 
 // Context 7: Struct member
-typedef struct {
+typedef struct TestStruct {
     uint8_t member;
 } TestStruct;
 

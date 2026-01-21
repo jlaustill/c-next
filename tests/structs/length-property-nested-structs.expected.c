@@ -8,17 +8,17 @@
 // test-execution
 // Regression test: .length on nested struct members
 // Ensures the fix handles deep member chains correctly
-typedef struct {
+typedef struct Inner {
     uint32_t value;
     uint16_t status;
 } Inner;
 
-typedef struct {
+typedef struct Outer {
     Inner inner;
     uint8_t flags;
 } Outer;
 
-typedef struct {
+typedef struct DeepNest {
     Outer outer;
     uint64_t timestamp;
 } DeepNest;

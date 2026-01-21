@@ -8,7 +8,7 @@
 // test-execution
 // ADR-014: Struct member access
 // Tests: reading and writing struct members
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
