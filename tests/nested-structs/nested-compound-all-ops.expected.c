@@ -7,7 +7,7 @@
 
 // Test: All compound assignment operators on nested struct members
 // Covers deeply nested member access with compound assignments
-typedef struct {
+typedef struct Inner {
     uint32_t add_val;
     uint32_t sub_val;
     uint32_t mul_val;
@@ -20,12 +20,12 @@ typedef struct {
     uint32_t shr_val;
 } Inner;
 
-typedef struct {
+typedef struct Middle {
     Inner inner;
     uint32_t value;
 } Middle;
 
-typedef struct {
+typedef struct Outer {
     Middle middle;
     uint32_t top_val;
 } Outer;

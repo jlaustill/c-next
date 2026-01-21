@@ -43,7 +43,7 @@ void structHandler3(void) {
 }
 
 // Struct with ISR fields
-typedef struct {
+typedef struct IsrHolder {
     ISR primary;
     ISR secondary;
 } IsrHolder;

@@ -27,7 +27,7 @@ uint32_t checkArrayLength(char arr[4][65]) {
     return 4;
 }
 
-typedef struct {
+typedef struct TestStruct {
     char arr[4][65];
 } TestStruct;
 

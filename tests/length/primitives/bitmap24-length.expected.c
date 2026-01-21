@@ -57,7 +57,7 @@ uint32_t checkParamLength(const StatusFlags* param) {
     return 24;
 }
 
-typedef struct {
+typedef struct TestStruct {
     StatusFlags member;
 } TestStruct;
 

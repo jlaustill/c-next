@@ -1,0 +1,32 @@
+// Issue #296: Forward declaration incompatible with typedef struct pattern
+// Tests: Cross-file struct usage with public functions
+// When a public function uses a struct from another file, the header
+// generator creates forward declarations that must be compatible with
+// the struct definition.
+#include <issue-296-types.cnx>
+
+scope DataHandler {
+    AppData storedData;
+
+    // Public function using external struct type - triggers forward declaration
+    public void initialize(AppData data) {
+        this.storedData <- data;
+    }
+
+    public AppData getData() {
+        return this.storedData;
+    }
+}
+
+u32 main() {
+    AppData input <- {humidity: 65.5, temperature: 22.3};
+    DataHandler.initialize(input);
+
+    AppData output <- DataHandler.getData();
+
+    // Simple validation
+    if (output.humidity != 65.5) return 1;
+    if (output.temperature != 22.3) return 2;
+
+    return 0;
+}

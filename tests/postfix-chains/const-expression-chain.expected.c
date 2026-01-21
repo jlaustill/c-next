@@ -20,7 +20,7 @@ const uint32_t LED_BIT = 3;
 
 const uint32_t STATUS_BIT = 7;
 
-typedef struct {
+typedef struct Sensor {
     uint32_t id;
     uint8_t data;
 } Sensor;

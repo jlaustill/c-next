@@ -26,7 +26,7 @@ uint32_t checkParamLength(double param) {
     return 64;
 }
 
-typedef struct {
+typedef struct TestStruct {
     double member;
 } TestStruct;
 

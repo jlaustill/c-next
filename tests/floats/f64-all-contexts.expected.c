@@ -12,7 +12,7 @@ double global_d = 3.141592653589793;
 double global_uninit = 0.0;
 
 // Struct member
-typedef struct {
+typedef struct Vector {
     double x;
     double y;
     double z;

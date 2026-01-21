@@ -104,12 +104,13 @@ class HeaderGenerator {
     );
 
     // Emit forward declarations for external types
+    // Issue #296: Use typedef forward declaration for compatibility with named structs
     if (externalTypes.size > 0) {
       lines.push(
         "/* External type dependencies - include appropriate headers */",
       );
       for (const typeName of externalTypes) {
-        lines.push(`struct ${typeName};`);
+        lines.push(`typedef struct ${typeName} ${typeName};`);
       }
       lines.push("");
     }

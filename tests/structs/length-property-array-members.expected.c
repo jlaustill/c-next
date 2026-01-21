@@ -8,13 +8,13 @@
 // test-execution
 // Regression test: .length on struct members that are arrays
 // Tests both array.length (element count) and array[i].field.length
-typedef struct {
+typedef struct DataPoint {
     uint32_t timestamp;
     uint16_t value;
     uint8_t quality;
 } DataPoint;
 
-typedef struct {
+typedef struct Dataset {
     uint32_t id;
     DataPoint samples[10];
     uint8_t count;

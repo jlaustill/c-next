@@ -7,7 +7,7 @@
 
 // ADR-006: Struct pass-by-reference
 // Tests: struct modification persists after function call
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;

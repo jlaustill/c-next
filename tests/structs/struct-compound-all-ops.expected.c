@@ -7,7 +7,7 @@
 
 // Test: All compound assignment operators on struct members
 // Covers: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
-typedef struct {
+typedef struct Data {
     uint32_t add_val;
     uint32_t sub_val;
     uint32_t mul_val;

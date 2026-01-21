@@ -26,7 +26,7 @@ uint32_t checkParamLength(uint16_t param) {
     return 16;
 }
 
-typedef struct {
+typedef struct TestStruct {
     uint16_t member;
 } TestStruct;
 

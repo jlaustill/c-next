@@ -18,12 +18,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Test reading array members within structs in loops
 // Verifies postfix chain ordering: cfg.items[i].value
-typedef struct {
+typedef struct Item {
     uint32_t value;
     uint8_t flags;
 } Item;
 
-typedef struct {
+typedef struct Container {
     Item items[3];
 } Container;
 

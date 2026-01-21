@@ -7,12 +7,12 @@
 
 // ADR-032: Nested Structs with Function Parameters
 // Tests: passing and accessing nested struct members via function params
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Rectangle {
     Point topLeft;
     Point bottomRight;
 } Rectangle;

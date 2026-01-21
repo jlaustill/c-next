@@ -7,7 +7,7 @@
 
 // ADR-014: Const struct
 // Tests: constant struct declaration
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;

@@ -8,7 +8,7 @@
 // test-execution
 // Reproduces issue #68: Real-world serialization pattern
 // Bug: config.magic.length evaluates to 0 instead of 32
-typedef struct {
+typedef struct Config {
     uint32_t magic;
     uint8_t version;
 } Config;

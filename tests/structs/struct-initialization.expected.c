@@ -7,7 +7,7 @@
 
 // ADR-014: Named field initialization
 // Tests: struct initialization with named fields
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;

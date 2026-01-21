@@ -8,19 +8,19 @@
 
 // Postfix Chain Test: Arrays + Struct Members
 // Tests: Complex chains involving multi-dimensional arrays and struct members
-typedef struct {
+typedef struct Vec3 {
     float x;
     float y;
     float z;
 } Vec3;
 
-typedef struct {
+typedef struct Transform {
     Vec3 position;
     Vec3 rotation;
     Vec3 scale;
 } Transform;
 
-typedef struct {
+typedef struct Entity {
     Transform transform;
     uint32_t id;
     uint8_t flags;
@@ -30,7 +30,7 @@ typedef struct {
 Entity grid[4][4] = {0};
 
 // Array of struct containing arrays
-typedef struct {
+typedef struct Mesh {
     Vec3 vertices[8];
     uint32_t indices[12];
 } Mesh;

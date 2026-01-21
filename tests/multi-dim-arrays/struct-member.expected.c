@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-036: Multi-dimensional arrays in structs
-typedef struct {
+typedef struct Image {
     uint32_t width;
     uint32_t height;
     uint8_t pixels[240][320];

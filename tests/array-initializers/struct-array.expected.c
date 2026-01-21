@@ -7,7 +7,7 @@
 
 // ADR-035: Struct Array Initialization Test
 // Tests: array of structs with initializers
-typedef struct {
+typedef struct Command {
     uint8_t code;
     uint8_t length;
 } Command;

@@ -7,7 +7,7 @@
 
 // ADR-014 + ADR-006: Struct as function parameter
 // Tests: pass-by-reference for struct parameters
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;

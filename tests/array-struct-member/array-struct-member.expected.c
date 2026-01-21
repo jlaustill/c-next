@@ -19,12 +19,12 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Test: Array-of-struct member assignment
 // Bug: arr[i].field generates arr.field[i] instead of arr[i].field
 // This test verifies correct code generation and runtime behavior
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Sensor {
     uint16_t id;
     int32_t value;
     bool active;

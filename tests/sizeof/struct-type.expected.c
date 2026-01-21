@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-023: sizeof on struct types
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;

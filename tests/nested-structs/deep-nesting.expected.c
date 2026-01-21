@@ -7,20 +7,20 @@
 
 // ADR-032: Deep Nested Struct Test
 // Tests: 3+ levels of nesting
-typedef struct {
+typedef struct Color {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 } Color;
 
-typedef struct {
+typedef struct Material {
     Color ambient;
     Color diffuse;
     Color specular;
     float shininess;
 } Material;
 
-typedef struct {
+typedef struct Mesh {
     Material material;
     uint32_t vertexCount;
 } Mesh;
