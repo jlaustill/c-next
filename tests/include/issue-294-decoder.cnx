@@ -1,0 +1,22 @@
+// Issue #294: Helper scope for cross-file scope resolution test
+// This file defines a scope that will be included by another file
+
+scope decoder {
+    // Public function that extracts a value from data
+    public u16 getSpn(const u8 data[8]) {
+        // Simple extraction: combine first two bytes
+        u16 result <- data[0];
+        result <- result + (data[1] * 256);
+        return result;
+    }
+
+    // Another public function for additional testing
+    public u8 getByte(const u8 data[8], u8 index) {
+        return data[index];
+    }
+
+    // Private helper (should not be accessible from other files)
+    u8 internalHelper(u8 val) {
+        return val + 1;
+    }
+}
