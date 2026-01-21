@@ -137,6 +137,10 @@ else
 fi
 
 # RATS security analysis (optional)
+# Initialize counters (needed for final exit check even if rats not installed)
+RATS_HIGH=0
+RATS_MEDIUM=0
+RATS_LOW=0
 RATS_TOTAL=0
 if command -v rats &> /dev/null; then
     echo ""
@@ -157,7 +161,7 @@ if command -v rats &> /dev/null; then
     echo -e "${BLUE}=== rats Results ===${NC}"
     echo ""
 
-    if [ -n "$RATS_OUTPUT" ] && [ "$RATS_TOTAL" -gt 0 ]; then
+    if [ "$RATS_TOTAL" -gt 0 ]; then
         echo "$RATS_OUTPUT"
         echo ""
     fi
