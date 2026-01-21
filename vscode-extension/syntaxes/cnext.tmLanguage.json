@@ -7,8 +7,8 @@
     { "include": "#preprocessor" },
     { "include": "#registers" },
     { "include": "#bitmaps" },
-    { "include": "#scope-access" },
     { "include": "#template-types" },
+    { "include": "#scope-access" },
     { "include": "#c-interop" },
     { "include": "#keywords" },
     { "include": "#types" },
@@ -191,7 +191,7 @@
     "template-types": {
       "patterns": [
         {
-          "comment": "C++ template instantiation (e.g., FlexCAN_T4<CAN1, RX_SIZE_256>)",
+          "comment": "C++ template instantiation (e.g., FlexCAN_T4<CAN1, RX_SIZE_256>). Requires uppercase start to avoid false positives with comparison operators like 'if (x < y)'",
           "begin": "\\b([A-Z_][A-Za-z0-9_]*)\\s*(<)",
           "beginCaptures": {
             "1": { "name": "entity.name.type.template.cnext" },
