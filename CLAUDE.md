@@ -223,7 +223,9 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## Release Checklist
 
-**When preparing a release, ensure the VS Code extension is updated:**
+**See [`releasing.md`](releasing.md) for the complete release process.**
+
+Quick reference for VS Code extension updates (if grammar changed):
 
 1. **Regenerate parser** if grammar changed: `npm run antlr`
 2. **Update VS Code extension** (`vscode-extension/`):

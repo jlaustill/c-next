@@ -1,7 +1,8 @@
 # ADR-046: Nullable C Interop with c\_ Prefix
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2026-01-19
+**Implemented:** 2026-01-19 (v0.1.12)
 **Supersedes:** ADR-047 (NULL Keyword for C Library Interop)
 
 ## Context
