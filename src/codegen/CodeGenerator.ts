@@ -1174,10 +1174,8 @@ export default class CodeGenerator implements IOrchestrator {
     // Check global symbol table for scopes from included files
     if (this.symbolTable) {
       const symbols = this.symbolTable.getOverloads(name);
-      for (const sym of symbols) {
-        if (sym.kind === ESymbolKind.Namespace) {
-          return true;
-        }
+      if (symbols.some((sym) => sym.kind === ESymbolKind.Namespace)) {
+        return true;
       }
     }
 
