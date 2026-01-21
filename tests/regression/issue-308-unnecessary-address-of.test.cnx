@@ -1,15 +1,18 @@
 /* test-execution */
-// Tests: Issue #308 - Unnecessary & added to array access and struct member arrays
+// Tests: Issue #308 - Unnecessary & added to struct member arrays
 // NOTE: Uses cpp mode because C++ has stricter type checking that catches this error
 // The .hpp include triggers C++ mode automatically
 
 #include "issue-308-unnecessary-address-of.hpp"
 
-// Bug: The transpiler incorrectly adds & (address-of) in two scenarios:
-// 1. Array element access: data[3] becomes &data[3] (wrong - we want the value)
-// 2. Struct member arrays: result.data becomes &result.data (wrong - array should decay)
+// Bug: The transpiler incorrectly added & to struct member arrays:
+//   result.data becomes &result.data (wrong - array should decay to pointer)
+//
+// Note: Array element access (data[3]) to primitive parameters (u8) was never
+// broken - it uses the pass-by-value path (isPrimitivePassByValue). This test
+// validates both scenarios work correctly.
 
-// Struct with array member to test scenario 2
+// Struct with array member to test the fix
 struct DataResult {
     u8 errorCode;
     u8 data[6];
@@ -17,8 +20,9 @@ struct DataResult {
 }
 
 // ============================================================
-// Scenario 1: Array element access
-// Function expects VALUES (u8), not pointers
+// Scenario 1: Array element access (was never broken)
+// Primitive parameters use pass-by-value path (isPrimitivePassByValue)
+// Included to validate this continues to work correctly
 // ============================================================
 u32 sumFourBytes(u8 b0, u8 b1, u8 b2, u8 b3) {
     // Simple sum to verify we got values, not pointers
@@ -26,8 +30,8 @@ u32 sumFourBytes(u8 b0, u8 b1, u8 b2, u8 b3) {
 }
 
 // ============================================================
-// Scenario 2: Struct member array
-// Function expects array pointer (via decay), not pointer-to-array
+// Scenario 2: Struct member array (THE FIX)
+// Array should decay to pointer, NOT have & added
 // ============================================================
 u8 sumArray(u8 arr[6], u8 len) {
     u8 sum <- 0;

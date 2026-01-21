@@ -4,17 +4,20 @@
  */
 
 /* test-execution */
-// Tests: Issue #308 - Unnecessary & added to array access and struct member arrays
+// Tests: Issue #308 - Unnecessary & added to struct member arrays
 // NOTE: Uses cpp mode because C++ has stricter type checking that catches this error
 // The .hpp include triggers C++ mode automatically
 #include "issue-308-unnecessary-address-of.hpp"
 
 #include <stdint.h>
 
-// Bug: The transpiler incorrectly adds & (address-of) in two scenarios:
-// 1. Array element access: data[3] becomes &data[3] (wrong - we want the value)
-// 2. Struct member arrays: result.data becomes &result.data (wrong - array should decay)
-// Struct with array member to test scenario 2
+// Bug: The transpiler incorrectly added & to struct member arrays:
+//   result.data becomes &result.data (wrong - array should decay to pointer)
+//
+// Note: Array element access (data[3]) to primitive parameters (u8) was never
+// broken - it uses the pass-by-value path (isPrimitivePassByValue). This test
+// validates both scenarios work correctly.
+// Struct with array member to test the fix
 typedef struct DataResult {
     uint8_t errorCode;
     uint8_t data[6];
@@ -22,16 +25,17 @@ typedef struct DataResult {
 } DataResult;
 
 // ============================================================
-// Scenario 1: Array element access
-// Function expects VALUES (u8), not pointers
+// Scenario 1: Array element access (was never broken)
+// Primitive parameters use pass-by-value path (isPrimitivePassByValue)
+// Included to validate this continues to work correctly
 // ============================================================
 uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
     return b0 + b1 + b2 + b3;
 }
 
 // ============================================================
-// Scenario 2: Struct member array
-// Function expects array pointer (via decay), not pointer-to-array
+// Scenario 2: Struct member array (THE FIX)
+// Array should decay to pointer, NOT have & added
 // ============================================================
 uint8_t sumArray(const uint8_t arr[6], uint8_t len) {
     uint8_t sum = 0;

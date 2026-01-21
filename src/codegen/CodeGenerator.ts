@@ -4018,6 +4018,11 @@ export default class CodeGenerator implements IOrchestrator {
    * When passing such expressions to functions, the array should naturally decay
    * to a pointer, so we should NOT add & operator.
    *
+   * Note: Currently handles single-level member access only (e.g., result.data).
+   * Nested access like outer.inner.data would require traversing the postfix chain
+   * to resolve intermediate struct types. This is acceptable since issue #308
+   * involves single-level access patterns.
+   *
    * @param ctx - The expression context
    * @returns true if the expression is a member access to an array field
    */
