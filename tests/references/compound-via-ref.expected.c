@@ -7,32 +7,32 @@
 
 // Test: Compound assignment through reference parameters
 // Verifies that pass-by-reference works with compound operators
-void addToValue(int32_t* value, int32_t* amount) {
-    (*value) += (*amount);
+void addToValue(int32_t* value, int32_t amount) {
+    (*value) += amount;
 }
 
-void subtractFromValue(int32_t* value, int32_t* amount) {
-    (*value) -= (*amount);
+void subtractFromValue(int32_t* value, int32_t amount) {
+    (*value) -= amount;
 }
 
-void multiplyValue(int32_t* value, int32_t* factor) {
-    (*value) *= (*factor);
+void multiplyValue(int32_t* value, int32_t factor) {
+    (*value) *= factor;
 }
 
 int main(void) {
     int32_t x = 100;
     int32_t amount = 50;
-    addToValue(&x, &amount);
+    addToValue(&x, amount);
     if (x != 150) {
         return 1;
     }
     amount = 30;
-    subtractFromValue(&x, &amount);
+    subtractFromValue(&x, amount);
     if (x != 120) {
         return 2;
     }
     amount = 2;
-    multiplyValue(&x, &amount);
+    multiplyValue(&x, amount);
     if (x != 240) {
         return 3;
     }

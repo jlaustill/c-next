@@ -70,9 +70,9 @@ bool isUARTReady(void) {
     return ((UART_STATUS >> 0) & 1);
 }
 
-void configureTimer(uint8_t* prescale) {
+void configureTimer(uint8_t prescale) {
     TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | (0 << 0);
-    TIMER_CONFIG = (TIMER_CONFIG & ~(0xFF << 4)) | (((*prescale) & 0xFF) << 4);
+    TIMER_CONFIG = (TIMER_CONFIG & ~(0xFF << 4)) | ((prescale & 0xFF) << 4);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 2)) | (1 << 2);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 3)) | (1 << 3);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | (1 << 0);
@@ -84,7 +84,7 @@ int main(void) {
     if (uartReady) {
         UART_DATA = 0x55;
     }
-    configureTimer(&(uint8_t){100});
+    configureTimer(100);
     bool hasError = ((UART_STATUS >> 4) & 1);
     bool isBusy = ((UART_STATUS >> 7) & 1);
     uint8_t dataBits = ((UART_CTRL >> 5) & 0x3);

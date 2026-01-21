@@ -12,46 +12,46 @@
 #define REG32_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 
 // Write full 32 bits - should use uint32_t*
-void write32(uint32_t* data) {
-    REG32_DR = (*data);
+void write32(uint32_t data) {
+    REG32_DR = data;
 }
 
 // Write lower 16 bits - MUST use uint16_t* for correct hardware behavior
-void write16_at_0(uint16_t* data) {
+void write16_at_0(uint16_t data) {
     REG32_DR = (1 << 0);
 }
 
 // Write upper 16 bits - MUST use uint16_t* at offset +2
-void write16_at_16(uint16_t* data) {
+void write16_at_16(uint16_t data) {
     REG32_DR = (1 << 16);
 }
 
 // Write lower 8 bits - MUST use uint8_t*
-void write8_at_0(uint8_t* data) {
+void write8_at_0(uint8_t data) {
     REG32_DR = (1 << 0);
 }
 
 // Write byte at offset 1 - MUST use uint8_t* at offset +1
-void write8_at_8(uint8_t* data) {
+void write8_at_8(uint8_t data) {
     REG32_DR = (1 << 8);
 }
 
 // Write byte at offset 2 - MUST use uint8_t* at offset +2
-void write8_at_16(uint8_t* data) {
+void write8_at_16(uint8_t data) {
     REG32_DR = (1 << 16);
 }
 
 // Write byte at offset 3 - MUST use uint8_t* at offset +3
-void write8_at_24(uint8_t* data) {
+void write8_at_24(uint8_t data) {
     REG32_DR = (1 << 24);
 }
 
 int main(void) {
-    write32(&(uint32_t){0x12345678});
-    write16_at_0(&(uint16_t){0x1234});
-    write16_at_16(&(uint16_t){0x5678});
-    write8_at_0(&(uint8_t){0x12});
-    write8_at_8(&(uint8_t){0x34});
-    write8_at_16(&(uint8_t){0x56});
-    write8_at_24(&(uint8_t){0x78});
+    write32(0x12345678);
+    write16_at_0(0x1234);
+    write16_at_16(0x5678);
+    write8_at_0(0x12);
+    write8_at_8(0x34);
+    write8_at_16(0x56);
+    write8_at_24(0x78);
 }

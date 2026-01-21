@@ -81,12 +81,12 @@ bool GlobalAccessTest_getGlobalBool(void) {
     return globalBool;
 }
 
-void GlobalAccessTest_setGlobalU8(uint8_t* val) {
-    globalU8 = (*val);
+void GlobalAccessTest_setGlobalU8(uint8_t val) {
+    globalU8 = val;
 }
 
-void GlobalAccessTest_setGlobalBool(bool* val) {
-    globalBool = (*val);
+void GlobalAccessTest_setGlobalBool(bool val) {
+    globalBool = val;
 }
 
 void GlobalAccessTest_setGlobalF32(float val) {
@@ -147,13 +147,13 @@ int main(void) {
         return 11;
     }
     uint8_t newU8Value = 100;
-    GlobalAccessTest_setGlobalU8(&newU8Value);
+    GlobalAccessTest_setGlobalU8(newU8Value);
     uint8_t resultU8_2 = GlobalAccessTest_getGlobalU8();
     if (resultU8_2 != 100) {
         return 12;
     }
     bool newBoolValue = false;
-    GlobalAccessTest_setGlobalBool(&newBoolValue);
+    GlobalAccessTest_setGlobalBool(newBoolValue);
     bool resultBool2 = GlobalAccessTest_getGlobalBool();
     if (resultBool2 != false) {
         return 13;

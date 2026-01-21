@@ -71,12 +71,17 @@ const generateFunctionCall = (
         targetParam && orchestrator.isFloatType(targetParam.baseType);
       const isEnumParam =
         targetParam && orchestrator.getKnownEnums().has(targetParam.baseType);
+      // Issue #269: Check if small unmodified primitive
+      const isPrimitivePassByValue = orchestrator.isParameterPassByValue(
+        funcExpr,
+        idx,
+      );
 
-      if (isFloatParam || isEnumParam) {
-        // Target parameter is float or enum (pass-by-value): pass value directly
+      if (isFloatParam || isEnumParam || isPrimitivePassByValue) {
+        // Target parameter is pass-by-value: pass value directly
         return orchestrator.generateExpression(e);
       } else {
-        // Target parameter is non-float/non-enum (pass-by-reference): use & logic
+        // Target parameter is pass-by-reference: use & logic
         // Pass the target param type for proper literal handling
         return orchestrator.generateFunctionArg(e, targetParam?.baseType);
       }

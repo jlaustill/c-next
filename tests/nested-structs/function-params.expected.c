@@ -34,11 +34,11 @@ int32_t getArea(Rectangle* rect) {
 }
 
 // Modify nested members through parameter
-void moveRect(Rectangle* rect, int32_t* dx, int32_t* dy) {
-    rect->topLeft.x += (*dx);
-    rect->topLeft.y += (*dy);
-    rect->bottomRight.x += (*dx);
-    rect->bottomRight.y += (*dy);
+void moveRect(Rectangle* rect, int32_t dx, int32_t dy) {
+    rect->topLeft.x += dx;
+    rect->topLeft.y += dy;
+    rect->bottomRight.x += dx;
+    rect->bottomRight.y += dy;
 }
 
 // Test instance

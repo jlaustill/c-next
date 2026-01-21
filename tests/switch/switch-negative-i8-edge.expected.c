@@ -11,8 +11,8 @@
 int32_t result = 0;
 
 // Test all critical i8 boundary values
-void testI8Boundaries(int8_t* val) {
-    switch ((*val)) {
+void testI8Boundaries(int8_t val) {
+    switch (val) {
         case -128: {
             result = 1;
             break;
@@ -57,8 +57,8 @@ void testI8Boundaries(int8_t* val) {
 }
 
 // Test consecutive negative values
-void testConsecutiveNegatives(int8_t* val) {
-    switch ((*val)) {
+void testConsecutiveNegatives(int8_t val) {
+    switch (val) {
         case -5: {
             result = 10;
             break;
@@ -97,40 +97,40 @@ int main(void) {
     int8_t maxMinus1 = 126;
     int8_t maxVal = 127;
     int8_t other = 50;
-    testI8Boundaries(&minVal);
+    testI8Boundaries(minVal);
     if (result != 1) return 1;
-    testI8Boundaries(&minPlus1);
+    testI8Boundaries(minPlus1);
     if (result != 2) return 2;
-    testI8Boundaries(&midNeg);
+    testI8Boundaries(midNeg);
     if (result != 3) return 3;
-    testI8Boundaries(&negOne);
+    testI8Boundaries(negOne);
     if (result != 4) return 4;
-    testI8Boundaries(&zero);
+    testI8Boundaries(zero);
     if (result != 5) return 5;
-    testI8Boundaries(&one);
+    testI8Boundaries(one);
     if (result != 6) return 6;
-    testI8Boundaries(&midPos);
+    testI8Boundaries(midPos);
     if (result != 7) return 7;
-    testI8Boundaries(&maxMinus1);
+    testI8Boundaries(maxMinus1);
     if (result != 8) return 8;
-    testI8Boundaries(&maxVal);
+    testI8Boundaries(maxVal);
     if (result != 9) return 9;
-    testI8Boundaries(&other);
+    testI8Boundaries(other);
     if (result != 99) return 10;
     int8_t neg5 = -5;
     int8_t neg4 = -4;
     int8_t neg3 = -3;
     int8_t neg2 = -2;
     int8_t neg1 = -1;
-    testConsecutiveNegatives(&neg5);
+    testConsecutiveNegatives(neg5);
     if (result != 10) return 11;
-    testConsecutiveNegatives(&neg4);
+    testConsecutiveNegatives(neg4);
     if (result != 11) return 12;
-    testConsecutiveNegatives(&neg3);
+    testConsecutiveNegatives(neg3);
     if (result != 12) return 13;
-    testConsecutiveNegatives(&neg2);
+    testConsecutiveNegatives(neg2);
     if (result != 13) return 14;
-    testConsecutiveNegatives(&neg1);
+    testConsecutiveNegatives(neg1);
     if (result != 14) return 15;
     return 0;
 }

@@ -12,13 +12,13 @@
 // - "value" does not start with "calculate_"
 // - "calculate" without underscore is allowed
 // - "calc_value" does not start with "calculate_"
-void calculate(uint32_t* value) {
+void calculate(uint32_t value) {
 }
 
-void process(uint32_t* process) {
+void process(uint32_t process) {
 }
 
-void update(uint32_t* upd_value) {
+void update(uint32_t upd_value) {
 }
 
 // Scope functions should also work correctly
@@ -33,9 +33,9 @@ float Math_multiply(float mult_factor, float value) {
 }
 
 int main(void) {
-    calculate(&(uint32_t){42});
-    process(&(uint32_t){10});
-    update(&(uint32_t){5});
+    calculate(42);
+    process(10);
+    update(5);
     float result = Math_add(1.0, 2.0);
     result = Math_multiply(3.0, 4.0);
 }

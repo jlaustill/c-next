@@ -12,8 +12,8 @@
 int32_t result = 0;
 
 // Test decimal literals near INT64_MAX
-void testDecimalPrecision(int64_t* val) {
-    switch ((*val)) {
+void testDecimalPrecision(int64_t val) {
+    switch (val) {
         case 9223372036854775807: {
             result = 1;
             break;
@@ -38,8 +38,8 @@ void testDecimalPrecision(int64_t* val) {
 }
 
 // Test hex literals near INT64_MAX
-void testHexPrecision(int64_t* val) {
-    switch ((*val)) {
+void testHexPrecision(int64_t val) {
+    switch (val) {
         case 0x7FFFFFFFFFFFFFFF: {
             result = 10;
             break;
@@ -64,25 +64,25 @@ void testHexPrecision(int64_t* val) {
 }
 
 int main(void) {
-    testDecimalPrecision(&(int64_t){9223372036854775807});
+    testDecimalPrecision(9223372036854775807);
     if (result != 1) return 1;
-    testDecimalPrecision(&(int64_t){9223372036854775806});
+    testDecimalPrecision(9223372036854775806);
     if (result != 2) return 2;
-    testDecimalPrecision(&(int64_t){9223372036854775805});
+    testDecimalPrecision(9223372036854775805);
     if (result != 3) return 3;
-    testDecimalPrecision(&(int64_t){9223372036854775804});
+    testDecimalPrecision(9223372036854775804);
     if (result != 4) return 4;
-    testDecimalPrecision(&(int64_t){0});
+    testDecimalPrecision(0);
     if (result != 99) return 5;
-    testHexPrecision(&(int64_t){9223372036854775807});
+    testHexPrecision(9223372036854775807);
     if (result != 10) return 10;
-    testHexPrecision(&(int64_t){9223372036854775806});
+    testHexPrecision(9223372036854775806);
     if (result != 11) return 11;
-    testHexPrecision(&(int64_t){9223372036854775805});
+    testHexPrecision(9223372036854775805);
     if (result != 12) return 12;
-    testHexPrecision(&(int64_t){9223372036854775804});
+    testHexPrecision(9223372036854775804);
     if (result != 13) return 13;
-    testHexPrecision(&(int64_t){0});
+    testHexPrecision(0);
     if (result != 99) return 14;
     return 0;
 }

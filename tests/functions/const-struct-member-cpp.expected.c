@@ -12,14 +12,13 @@
 
 #include <stdint.h>
 
-uint32_t process(uint32_t* crc, uint8_t* byte) {
-    return (*crc) ^ (*byte);
+uint32_t process(uint32_t crc, uint8_t byte) {
+    return crc ^ byte;
 }
 
 uint32_t testConstStruct(const TestConfig* cfg) {
     uint32_t crc = 0;
-    uint8_t _cnx_tmp_0 = static_cast<uint8_t>((*cfg).value);
-    crc = process(&crc, &_cnx_tmp_0);
+    crc = process(crc, (*cfg).value);
     return crc;
 }
 

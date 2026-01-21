@@ -21,8 +21,8 @@ DeviceConfig getConfig(void) {
     return globalConfig;
 }
 
-uint32_t process(uint32_t* crc, uint8_t* byte) {
-    return (*crc) ^ (*byte);
+uint32_t process(uint32_t crc, uint8_t byte) {
+    return crc ^ byte;
 }
 
 uint32_t testFuncReturnMember(void) {
@@ -30,12 +30,9 @@ uint32_t testFuncReturnMember(void) {
     globalConfig.enabled = true;
     globalConfig.mode = MODE_AUTO;
     globalConfig.value = 42;
-    uint8_t _cnx_tmp_0 = static_cast<uint8_t>(getConfig().enabled);
-    crc = process(&crc, &_cnx_tmp_0);
-    uint8_t _cnx_tmp_1 = static_cast<uint8_t>(getConfig().mode);
-    crc = process(&crc, &_cnx_tmp_1);
-    uint8_t _cnx_tmp_2 = static_cast<uint8_t>(getConfig().value);
-    crc = process(&crc, &_cnx_tmp_2);
+    crc = process(crc, getConfig().enabled);
+    crc = process(crc, getConfig().mode);
+    crc = process(crc, getConfig().value);
     return crc;
 }
 

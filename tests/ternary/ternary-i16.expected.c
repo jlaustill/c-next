@@ -8,16 +8,16 @@
 // test-execution
 // ADR-022: Ternary operator test for i16
 // Tests: ternary with i16 in conditions and branches, including negative values
-int16_t getMax(int16_t* a, int16_t* b) {
-    return ((*a) > (*b)) ? (*a) : (*b);
+int16_t getMax(int16_t a, int16_t b) {
+    return (a > b) ? a : b;
 }
 
-int16_t getMin(int16_t* a, int16_t* b) {
-    return ((*a) < (*b)) ? (*a) : (*b);
+int16_t getMin(int16_t a, int16_t b) {
+    return (a < b) ? a : b;
 }
 
-int16_t getAbs(int16_t* x) {
-    return ((*x) < 0) ? -(*x) : (*x);
+int16_t getAbs(int16_t x) {
+    return (x < 0) ? -x : x;
 }
 
 int main(void) {
@@ -25,27 +25,27 @@ int main(void) {
     int16_t b = 200;
     int16_t c = -300;
     int16_t d = -50;
-    int16_t maxResult1 = getMax(&a, &b);
+    int16_t maxResult1 = getMax(a, b);
     if (maxResult1 != 200) {
         return 1;
     }
-    int16_t maxResult2 = getMax(&c, &d);
+    int16_t maxResult2 = getMax(c, d);
     if (maxResult2 != -50) {
         return 2;
     }
-    int16_t minResult1 = getMin(&a, &b);
+    int16_t minResult1 = getMin(a, b);
     if (minResult1 != 100) {
         return 3;
     }
-    int16_t minResult2 = getMin(&c, &d);
+    int16_t minResult2 = getMin(c, d);
     if (minResult2 != -300) {
         return 4;
     }
-    int16_t absResult1 = getAbs(&c);
+    int16_t absResult1 = getAbs(c);
     if (absResult1 != 300) {
         return 5;
     }
-    int16_t absResult2 = getAbs(&a);
+    int16_t absResult2 = getAbs(a);
     if (absResult2 != 100) {
         return 6;
     }

@@ -89,20 +89,20 @@ void WrapTest_decrementCycleCounter(void) {
     WrapTest_cycleCounter -= 1;
 }
 
-void WrapTest_setByteCounter(uint8_t* val) {
-    WrapTest_byteCounter = (*val);
+void WrapTest_setByteCounter(uint8_t val) {
+    WrapTest_byteCounter = val;
 }
 
-void WrapTest_setBrightness(uint8_t* val) {
-    WrapTest_brightness = (*val);
+void WrapTest_setBrightness(uint8_t val) {
+    WrapTest_brightness = val;
 }
 
-void WrapTest_setSensorValue(uint16_t* val) {
-    WrapTest_sensorValue = (*val);
+void WrapTest_setSensorValue(uint16_t val) {
+    WrapTest_sensorValue = val;
 }
 
-void WrapTest_setPosition(uint32_t* val) {
-    WrapTest_position = (*val);
+void WrapTest_setPosition(uint32_t val) {
+    WrapTest_position = val;
 }
 
 int main(void) {
@@ -138,15 +138,15 @@ int main(void) {
     WrapTest_incrementPosition();
     posResult = WrapTest_getPosition();
     if (posResult != 1050) return 12;
-    WrapTest_setBrightness(&(uint8_t){10});
+    WrapTest_setBrightness(10);
     WrapTest_decrementBrightness();
     brightResult = WrapTest_getBrightness();
     if (brightResult != 246) return 13;
-    WrapTest_setSensorValue(&(uint16_t){100});
+    WrapTest_setSensorValue(100);
     WrapTest_decrementSensorValue();
     sensorResult = WrapTest_getSensorValue();
     if (sensorResult != 65486) return 14;
-    WrapTest_setPosition(&(uint32_t){50});
+    WrapTest_setPosition(50);
     WrapTest_decrementPosition();
     posResult = WrapTest_getPosition();
     if (posResult != 4294967246) return 15;

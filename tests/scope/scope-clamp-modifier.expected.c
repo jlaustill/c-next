@@ -132,12 +132,12 @@ void ClampTest_resetSensor(void) {
     ClampTest_sensorValue = cnx_clamp_sub_u16(ClampTest_sensorValue, 65000);
 }
 
-void ClampTest_setBrightness(uint8_t* val) {
-    ClampTest_brightness = (*val);
+void ClampTest_setBrightness(uint8_t val) {
+    ClampTest_brightness = val;
 }
 
-void ClampTest_setSensorValue(uint16_t* val) {
-    ClampTest_sensorValue = (*val);
+void ClampTest_setSensorValue(uint16_t val) {
+    ClampTest_sensorValue = val;
 }
 
 int main(void) {
@@ -171,11 +171,11 @@ int main(void) {
     ClampTest_decreasePosition();
     resultPos = ClampTest_getPosition();
     if (resultPos != 1900000000) return 12;
-    ClampTest_setBrightness(&(uint8_t){100});
+    ClampTest_setBrightness(100);
     ClampTest_dimBrightness();
     resultBrightness = ClampTest_getBrightness();
     if (resultBrightness != 0) return 13;
-    ClampTest_setSensorValue(&(uint16_t){1000});
+    ClampTest_setSensorValue(1000);
     ClampTest_resetSensor();
     resultSensor = ClampTest_getSensorValue();
     if (resultSensor != 0) return 14;

@@ -50,11 +50,11 @@ static uint32_t CriticalTest_readIndex = 0;
 static uint8_t CriticalTest_count = 0;
 static bool CriticalTest_locked = false;
 
-static void CriticalTest_internalEnqueue(uint8_t* data) {
+static void CriticalTest_internalEnqueue(uint8_t data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        CriticalTest_buffer[CriticalTest_writeIndex] = (*data);
+        CriticalTest_buffer[CriticalTest_writeIndex] = data;
         CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
         CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
         __set_PRIMASK(__primask);
@@ -121,11 +121,11 @@ static void CriticalTest_internalUnlock(void) {
     }
 }
 
-void CriticalTest_enqueue(uint8_t* data) {
+void CriticalTest_enqueue(uint8_t data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        CriticalTest_buffer[CriticalTest_writeIndex] = (*data);
+        CriticalTest_buffer[CriticalTest_writeIndex] = data;
         CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
         CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
         __set_PRIMASK(__primask);
@@ -238,7 +238,7 @@ bool CriticalTest_isInSync(void) {
     return inSync;
 }
 
-void CriticalTest_safeEnqueue(uint8_t* data) {
+void CriticalTest_safeEnqueue(uint8_t data) {
     CriticalTest_internalEnqueue(data);
 }
 
@@ -246,15 +246,15 @@ uint8_t CriticalTest_safeDequeue(void) {
     return CriticalTest_internalDequeue();
 }
 
-void CriticalTest_lockedEnqueue(uint8_t* data) {
+void CriticalTest_lockedEnqueue(uint8_t data) {
     CriticalTest_internalTryLock();
     CriticalTest_internalEnqueue(data);
     CriticalTest_internalUnlock();
 }
 
 int main(void) {
-    CriticalTest_enqueue(&(uint8_t){42});
-    CriticalTest_enqueue(&(uint8_t){84});
+    CriticalTest_enqueue(42);
+    CriticalTest_enqueue(84);
     CriticalTest_dequeue();
     CriticalTest_updateGlobalIndex();
     CriticalTest_transferToGlobal();
@@ -264,7 +264,7 @@ int main(void) {
     CriticalTest_unlock();
     CriticalTest_resetAll();
     CriticalTest_isInSync();
-    CriticalTest_safeEnqueue(&(uint8_t){10});
+    CriticalTest_safeEnqueue(10);
     CriticalTest_safeDequeue();
-    CriticalTest_lockedEnqueue(&(uint8_t){20});
+    CriticalTest_lockedEnqueue(20);
 }

@@ -8,12 +8,12 @@
 // test-execution
 // ADR-022: Ternary operator test for u8
 // Tests: ternary with u8 in conditions and branches
-uint8_t getMax(uint8_t* a, uint8_t* b) {
-    return ((*a) > (*b)) ? (*a) : (*b);
+uint8_t getMax(uint8_t a, uint8_t b) {
+    return (a > b) ? a : b;
 }
 
-uint8_t getMin(uint8_t* a, uint8_t* b) {
-    return ((*a) < (*b)) ? (*a) : (*b);
+uint8_t getMin(uint8_t a, uint8_t b) {
+    return (a < b) ? a : b;
 }
 
 int main(void) {
@@ -21,19 +21,19 @@ int main(void) {
     uint8_t b = 20;
     uint8_t c = 30;
     uint8_t d = 5;
-    uint8_t maxResult1 = getMax(&a, &b);
+    uint8_t maxResult1 = getMax(a, b);
     if (maxResult1 != 20) {
         return 1;
     }
-    uint8_t maxResult2 = getMax(&c, &d);
+    uint8_t maxResult2 = getMax(c, d);
     if (maxResult2 != 30) {
         return 2;
     }
-    uint8_t minResult1 = getMin(&a, &b);
+    uint8_t minResult1 = getMin(a, b);
     if (minResult1 != 10) {
         return 3;
     }
-    uint8_t minResult2 = getMin(&c, &d);
+    uint8_t minResult2 = getMin(c, d);
     if (minResult2 != 5) {
         return 4;
     }

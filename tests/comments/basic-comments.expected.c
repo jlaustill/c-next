@@ -19,6 +19,6 @@ uint32_t counter = 0;
 uint32_t maxValue = 100;
 
 // Function with inline comment
-uint32_t increment(uint32_t* value) {
-    return (*value) + 1;
+uint32_t increment(uint32_t value) {
+    return value + 1;
 }

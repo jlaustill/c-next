@@ -8,23 +8,23 @@
 // test-execution
 // ADR-013: Const u16 parameter
 // Tests: const u16 parameter read access
-uint16_t readConstU16(const uint16_t* value) {
-    return (*value);
+uint16_t readConstU16(const uint16_t value) {
+    return value;
 }
 
-uint16_t doubleConstU16(const uint16_t* value) {
-    return (*value) * 2;
+uint16_t doubleConstU16(const uint16_t value) {
+    return value * 2;
 }
 
 int main(void) {
-    uint16_t result = readConstU16(&(uint16_t){1000});
+    uint16_t result = readConstU16(1000);
     if (result != 1000) return 1;
-    uint16_t maxResult = readConstU16(&(uint16_t){65535});
+    uint16_t maxResult = readConstU16(65535);
     if (maxResult != 65535) return 2;
-    uint16_t doubled = doubleConstU16(&(uint16_t){100});
+    uint16_t doubled = doubleConstU16(100);
     if (doubled != 200) return 3;
     uint16_t myValue = 5000;
-    uint16_t readBack = readConstU16(&myValue);
+    uint16_t readBack = readConstU16(myValue);
     if (readBack != 5000) return 4;
     return 0;
 }

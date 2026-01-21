@@ -9,33 +9,33 @@
 // test-execution
 // ADR-013: Const bool parameter
 // Tests: const bool parameter read access
-bool readConstBool(const bool* value) {
-    return (*value);
+bool readConstBool(const bool value) {
+    return value;
 }
 
-bool notConstBool(const bool* value) {
-    return !(*value);
+bool notConstBool(const bool value) {
+    return !value;
 }
 
-uint32_t selectByBool(const bool* flag, uint32_t* ifTrue, uint32_t* ifFalse) {
-    if ((*flag)) {
-        return (*ifTrue);
+uint32_t selectByBool(const bool flag, uint32_t ifTrue, uint32_t ifFalse) {
+    if (flag) {
+        return ifTrue;
     }
-    return (*ifFalse);
+    return ifFalse;
 }
 
 int main(void) {
-    bool result = readConstBool(&(bool){true});
+    bool result = readConstBool(true);
     if (!result) return 1;
-    bool falseResult = readConstBool(&(bool){false});
+    bool falseResult = readConstBool(false);
     if (falseResult) return 2;
-    bool notTrue = notConstBool(&(bool){true});
+    bool notTrue = notConstBool(true);
     if (notTrue) return 3;
-    bool notFalse = notConstBool(&(bool){false});
+    bool notFalse = notConstBool(false);
     if (!notFalse) return 4;
-    uint32_t selected = selectByBool(&(bool){true}, &(uint32_t){100}, &(uint32_t){200});
+    uint32_t selected = selectByBool(true, 100, 200);
     if (selected != 100) return 5;
-    uint32_t selected2 = selectByBool(&(bool){false}, &(uint32_t){100}, &(uint32_t){200});
+    uint32_t selected2 = selectByBool(false, 100, 200);
     if (selected2 != 200) return 6;
     return 0;
 }

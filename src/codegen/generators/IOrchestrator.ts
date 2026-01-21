@@ -149,6 +149,9 @@ interface IOrchestrator {
   /** Get known enums set for pass-by-value detection */
   getKnownEnums(): ReadonlySet<string>;
 
+  /** Issue #269: Check if a parameter is pass-by-value (small unmodified primitive) */
+  isParameterPassByValue(funcName: string, paramIndex: number): boolean;
+
   // === Statement Generation (ADR-053 A3) ===
 
   /** Generate a block (curly braces with statements) */
@@ -264,6 +267,9 @@ interface IOrchestrator {
 
   /** Set the current scope name for prefixing */
   setCurrentScope(name: string | null): void;
+
+  /** Issue #269: Set the current function name for pass-by-value lookup */
+  setCurrentFunctionName(name: string | null): void;
 
   // === Function Body Management ===
 

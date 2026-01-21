@@ -664,11 +664,15 @@ class Pipeline {
     // Issue #220: Get SymbolCollector for full type definitions
     const typeInput = this.symbolCollectors.get(file.path);
 
+    // Issue #269: Get pass-by-value params from code generator for header consistency
+    const passByValueParams = this.codeGenerator.getPassByValueParams();
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
       { exportedOnly: true },
       typeInput,
+      passByValueParams,
     );
 
     writeFileSync(headerPath, headerContent, "utf-8");

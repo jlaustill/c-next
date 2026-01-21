@@ -36,6 +36,9 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
   const returnType = orchestrator.generateType(node.type());
   const name = node.IDENTIFIER().getText();
 
+  // Issue #269: Set current function name for pass-by-value lookup
+  orchestrator.setCurrentFunctionName(name);
+
   // Track parameters for ADR-006 pointer semantics
   orchestrator.setParameters(node.parameterList() ?? null);
 
@@ -70,6 +73,7 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
 
   // ADR-016: Clear local variables and mark that we're no longer in a function body
   orchestrator.exitFunctionBody();
+  orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
   orchestrator.clearParameters();
 
   const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;

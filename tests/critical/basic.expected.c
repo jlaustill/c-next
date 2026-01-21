@@ -20,11 +20,11 @@ uint8_t buffer[64] = {0};
 
 uint32_t writeIdx = 0;
 
-void enqueue(uint8_t* data) {
+void enqueue(uint8_t data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        buffer[writeIdx] = (*data);
+        buffer[writeIdx] = data;
         writeIdx = cnx_clamp_add_u32(writeIdx, 1);
         __set_PRIMASK(__primask);
     }

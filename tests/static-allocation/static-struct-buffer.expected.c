@@ -17,10 +17,10 @@ typedef struct {
 // Fixed-size array of readings - no heap allocation
 SensorReading readings[10] = {0};
 
-void addReading(uint8_t* index, uint32_t* ts, int16_t* val, uint8_t* id) {
-    readings[(*index)].timestamp = (*ts);
-    readings[(*index)].value = (*val);
-    readings[(*index)].sensorId = (*id);
+void addReading(uint8_t index, uint32_t ts, int16_t val, uint8_t id) {
+    readings[index].timestamp = ts;
+    readings[index].value = val;
+    readings[index].sensorId = id;
 }
 
 int main(void) {
@@ -35,9 +35,9 @@ int main(void) {
     int16_t val3 = -5;
     uint8_t id1 = 1;
     uint8_t id2 = 2;
-    addReading(&idx0, &ts1, &val1, &id1);
-    addReading(&idx1, &ts2, &val2, &id2);
-    addReading(&idx2, &ts3, &val3, &id1);
+    addReading(idx0, ts1, val1, id1);
+    addReading(idx1, ts2, val2, id2);
+    addReading(idx2, ts3, val3, id1);
     if (readings[0].value == 25 && readings[1].value == 30 && readings[2].value == -5) {
         return 0;
     }

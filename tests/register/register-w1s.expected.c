@@ -19,28 +19,28 @@
 #define CTRL_ENABLE (*(volatile uint32_t*)(0x40001000 + 0x00))
 #define CTRL_FLAGS (*(volatile uint32_t*)(0x40001000 + 0x04))
 
-void setGpioBit(uint8_t* pin) {
-    GPIO_DR_SET = (1 << (*pin));
+void setGpioBit(uint8_t pin) {
+    GPIO_DR_SET = (1 << pin);
 }
 
-void setGpioMask(uint32_t* mask) {
-    GPIO_DR_SET = (*mask);
+void setGpioMask(uint32_t mask) {
+    GPIO_DR_SET = mask;
 }
 
-void enableFeature(uint8_t* feature) {
-    CTRL_ENABLE = (1 << (*feature));
+void enableFeature(uint8_t feature) {
+    CTRL_ENABLE = (1 << feature);
 }
 
-void setFlags(uint32_t* flagMask) {
-    CTRL_FLAGS = (*flagMask);
+void setFlags(uint32_t flagMask) {
+    CTRL_FLAGS = flagMask;
 }
 
 int main(void) {
-    setGpioBit(&(uint8_t){0});
-    setGpioBit(&(uint8_t){7});
-    setGpioBit(&(uint8_t){15});
-    setGpioMask(&(uint32_t){0x00FF});
-    enableFeature(&(uint8_t){0});
-    enableFeature(&(uint8_t){3});
-    setFlags(&(uint32_t){0x0F});
+    setGpioBit(0);
+    setGpioBit(7);
+    setGpioBit(15);
+    setGpioMask(0x00FF);
+    enableFeature(0);
+    enableFeature(3);
+    setFlags(0x0F);
 }

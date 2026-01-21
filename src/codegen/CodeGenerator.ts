@@ -164,6 +164,7 @@ interface AssignmentContext {
  */
 interface GeneratorContext {
   currentScope: string | null; // ADR-016: renamed from currentNamespace
+  currentFunctionName: string | null; // Issue #269: track current function for pass-by-value lookup
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
   currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
@@ -191,6 +192,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   private context: GeneratorContext = {
     currentScope: null, // ADR-016: renamed from currentNamespace
+    currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
     indentLevel: 0,
     scopeMembers: new Map(), // ADR-016: renamed from namespaceMembers
     currentParameters: new Map(),
@@ -277,6 +279,34 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #250: Counter for unique temp variable names */
   private tempVarCounter: number = 0;
+
+  /**
+   * Issue #269: Tracks which parameters are modified (directly or transitively)
+   * Map of functionName -> Set of modified parameter names
+   */
+  private modifiedParameters: Map<string, Set<string>> = new Map();
+
+  /**
+   * Issue #269: Tracks which parameters should pass by value
+   * Map of functionName -> Set of passByValue parameter names
+   */
+  private passByValueParams: Map<string, Set<string>> = new Map();
+
+  /**
+   * Issue #269: Tracks function call relationships for transitive modification analysis
+   * Map of functionName -> Array of {callee, paramIndex, argParamName}
+   * where argParamName is the caller's parameter passed as argument
+   */
+  private functionCallGraph: Map<
+    string,
+    Array<{ callee: string; paramIndex: number; argParamName: string }>
+  > = new Map();
+
+  /**
+   * Issue #269: Tracks function parameter lists for call graph analysis
+   * Map of functionName -> Array of parameter names in order
+   */
+  private functionParamLists: Map<string, string[]> = new Map();
 
   /**
    * Initialize generator registry with extracted generators.
@@ -892,6 +922,14 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.currentScope = name;
   }
 
+  /**
+   * Issue #269: Set the current function name for pass-by-value lookup.
+   * Part of IOrchestrator interface.
+   */
+  setCurrentFunctionName(name: string | null): void {
+    this.context.currentFunctionName = name;
+  }
+
   // === Function Body Management (A4) ===
 
   enterFunctionBody(): void {
@@ -1099,6 +1137,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Reset state
     this.context = {
       currentScope: null, // ADR-016
+      currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
       indentLevel: 0,
       scopeMembers: new Map(), // ADR-016
       currentParameters: new Map(),
@@ -1150,6 +1189,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Collect function/callback information (not yet extracted to SymbolCollector)
     this.collectFunctionsAndCallbacks(tree);
+
+    // Issue #269: Analyze which parameters can be passed by value
+    this.analyzePassByValue(tree);
 
     // Issue #63: Initialize type validator with clean dependencies
     this.typeValidator = new TypeValidator({
@@ -1486,6 +1528,544 @@ export default class CodeGenerator implements IOrchestrator {
 
   // Issue #63: validateBitmapFieldLiteral moved to TypeValidator
   // Issue #60: evaluateConstantExpression method removed - now in SymbolCollector
+
+  // ========================================================================
+  // Issue #269: Pass-by-value analysis for small unmodified parameters
+  // ========================================================================
+
+  /**
+   * Analyze all functions to determine which parameters should pass by value.
+   * This runs before code generation and populates passByValueParams.
+   */
+  private analyzePassByValue(tree: Parser.ProgramContext): void {
+    // Reset analysis state
+    this.modifiedParameters.clear();
+    this.passByValueParams.clear();
+    this.functionCallGraph.clear();
+    this.functionParamLists.clear();
+
+    // Phase 1: Collect function parameter lists and direct modifications
+    this.collectFunctionParametersAndModifications(tree);
+
+    // Phase 2: Fixed-point iteration for transitive modifications
+    this.propagateTransitiveModifications();
+
+    // Phase 3: Determine which parameters can pass by value
+    this.computePassByValueParams();
+  }
+
+  /**
+   * Phase 1: Walk all functions to collect:
+   * - Parameter lists (for call graph resolution)
+   * - Direct modifications (param <- value)
+   * - Function calls where params are passed as arguments
+   */
+  private collectFunctionParametersAndModifications(
+    tree: Parser.ProgramContext,
+  ): void {
+    for (const decl of tree.declaration()) {
+      // Handle scope-level functions
+      if (decl.scopeDeclaration()) {
+        const scopeDecl = decl.scopeDeclaration()!;
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+
+        for (const member of scopeDecl.scopeMember()) {
+          if (member.functionDeclaration()) {
+            const funcDecl = member.functionDeclaration()!;
+            const funcName = funcDecl.IDENTIFIER().getText();
+            const fullName = `${scopeName}_${funcName}`;
+            this.analyzeFunctionForModifications(fullName, funcDecl);
+          }
+        }
+      }
+
+      // Handle top-level functions
+      if (decl.functionDeclaration()) {
+        const funcDecl = decl.functionDeclaration()!;
+        const name = funcDecl.IDENTIFIER().getText();
+        this.analyzeFunctionForModifications(name, funcDecl);
+      }
+    }
+  }
+
+  /**
+   * Analyze a single function for parameter modifications and call graph edges.
+   */
+  private analyzeFunctionForModifications(
+    funcName: string,
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    // Collect parameter names
+    const paramNames: string[] = [];
+    const paramList = funcDecl.parameterList();
+    if (paramList) {
+      for (const param of paramList.parameter()) {
+        paramNames.push(param.IDENTIFIER().getText());
+      }
+    }
+    this.functionParamLists.set(funcName, paramNames);
+
+    // Initialize modified set
+    this.modifiedParameters.set(funcName, new Set());
+    this.functionCallGraph.set(funcName, []);
+
+    // Walk the function body to find modifications and calls
+    const block = funcDecl.block();
+    if (block) {
+      this.walkBlockForModifications(funcName, paramNames, block);
+    }
+  }
+
+  /**
+   * Walk a block to find parameter modifications and function calls.
+   */
+  private walkBlockForModifications(
+    funcName: string,
+    paramNames: string[],
+    block: Parser.BlockContext,
+  ): void {
+    const paramSet = new Set(paramNames);
+
+    for (const stmt of block.statement()) {
+      this.walkStatementForModifications(funcName, paramSet, stmt);
+    }
+  }
+
+  /**
+   * Walk a statement recursively looking for modifications and calls.
+   */
+  private walkStatementForModifications(
+    funcName: string,
+    paramSet: Set<string>,
+    stmt: Parser.StatementContext,
+  ): void {
+    // Check for assignment statements
+    if (stmt.assignmentStatement()) {
+      const assign = stmt.assignmentStatement()!;
+      // Get the target - use assignmentTarget() which has IDENTIFIER()
+      const target = assign.assignmentTarget();
+      if (target && target.IDENTIFIER()) {
+        // Simple identifier assignment (not array/member access)
+        if (!target.arrayAccess() && !target.memberAccess()) {
+          const targetName = target.IDENTIFIER()!.getText();
+          if (paramSet.has(targetName)) {
+            // Direct assignment to parameter
+            this.modifiedParameters.get(funcName)!.add(targetName);
+          }
+        }
+      }
+    }
+
+    // Check for expressions that contain function calls
+    if (stmt.expressionStatement()) {
+      this.walkExpressionForCalls(
+        funcName,
+        paramSet,
+        stmt.expressionStatement()!.expression(),
+      );
+    }
+
+    // Recurse into control flow statements
+    if (stmt.ifStatement()) {
+      const ifStmt = stmt.ifStatement()!;
+      // ifStatement has statement() children, not block()
+      for (const childStmt of ifStmt.statement()) {
+        if (childStmt.block()) {
+          this.walkBlockForModifications(
+            funcName,
+            [...paramSet],
+            childStmt.block()!,
+          );
+        } else {
+          this.walkStatementForModifications(funcName, paramSet, childStmt);
+        }
+      }
+      // Check condition for calls
+      this.walkExpressionForCalls(funcName, paramSet, ifStmt.expression());
+    }
+
+    if (stmt.whileStatement()) {
+      const whileStmt = stmt.whileStatement()!;
+      // whileStatement has a single statement() child
+      const bodyStmt = whileStmt.statement();
+      if (bodyStmt.block()) {
+        this.walkBlockForModifications(
+          funcName,
+          [...paramSet],
+          bodyStmt.block()!,
+        );
+      } else {
+        this.walkStatementForModifications(funcName, paramSet, bodyStmt);
+      }
+      this.walkExpressionForCalls(funcName, paramSet, whileStmt.expression());
+    }
+
+    if (stmt.forStatement()) {
+      const forStmt = stmt.forStatement()!;
+      // forStatement has a single statement() child
+      const bodyStmt = forStmt.statement();
+      if (bodyStmt.block()) {
+        this.walkBlockForModifications(
+          funcName,
+          [...paramSet],
+          bodyStmt.block()!,
+        );
+      } else {
+        this.walkStatementForModifications(funcName, paramSet, bodyStmt);
+      }
+      // Check condition and update for calls
+      if (forStmt.expression()) {
+        this.walkExpressionForCalls(funcName, paramSet, forStmt.expression()!);
+      }
+    }
+
+    if (stmt.doWhileStatement()) {
+      const doWhile = stmt.doWhileStatement()!;
+      // doWhileStatement has block()
+      this.walkBlockForModifications(funcName, [...paramSet], doWhile.block());
+      this.walkExpressionForCalls(funcName, paramSet, doWhile.expression());
+    }
+
+    // Check return statement for calls
+    if (stmt.returnStatement()) {
+      const retStmt = stmt.returnStatement()!;
+      if (retStmt.expression()) {
+        this.walkExpressionForCalls(funcName, paramSet, retStmt.expression()!);
+      }
+    }
+
+    // Check variable declaration for calls in initializer
+    if (stmt.variableDeclaration()) {
+      const varDecl = stmt.variableDeclaration()!;
+      if (varDecl.expression()) {
+        this.walkExpressionForCalls(funcName, paramSet, varDecl.expression()!);
+      }
+    }
+
+    // Recurse into nested blocks
+    if (stmt.block()) {
+      this.walkBlockForModifications(funcName, [...paramSet], stmt.block()!);
+    }
+  }
+
+  /**
+   * Walk an expression tree to find function calls where parameters are passed.
+   * Uses recursive descent through the expression hierarchy.
+   */
+  private walkExpressionForCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    expr: Parser.ExpressionContext,
+  ): void {
+    // Expression -> TernaryExpression -> OrExpression -> ... -> PostfixExpression
+    const ternary = expr.ternaryExpression();
+    if (ternary) {
+      // Walk all orExpression children
+      for (const orExpr of ternary.orExpression()) {
+        this.walkOrExpressionForCalls(funcName, paramSet, orExpr);
+      }
+    }
+  }
+
+  /**
+   * Walk an orExpression tree for function calls.
+   */
+  private walkOrExpressionForCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    orExpr: Parser.OrExpressionContext,
+  ): void {
+    for (const andExpr of orExpr.andExpression()) {
+      for (const eqExpr of andExpr.equalityExpression()) {
+        for (const relExpr of eqExpr.relationalExpression()) {
+          for (const bitOrExpr of relExpr.bitwiseOrExpression()) {
+            for (const bitXorExpr of bitOrExpr.bitwiseXorExpression()) {
+              for (const bitAndExpr of bitXorExpr.bitwiseAndExpression()) {
+                for (const shiftExpr of bitAndExpr.shiftExpression()) {
+                  for (const addExpr of shiftExpr.additiveExpression()) {
+                    for (const mulExpr of addExpr.multiplicativeExpression()) {
+                      for (const unaryExpr of mulExpr.unaryExpression()) {
+                        this.walkUnaryExpressionForCalls(
+                          funcName,
+                          paramSet,
+                          unaryExpr,
+                        );
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Walk a unaryExpression tree for function calls.
+   */
+  private walkUnaryExpressionForCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    unaryExpr: Parser.UnaryExpressionContext,
+  ): void {
+    // Recurse into nested unary
+    if (unaryExpr.unaryExpression()) {
+      this.walkUnaryExpressionForCalls(
+        funcName,
+        paramSet,
+        unaryExpr.unaryExpression()!,
+      );
+      return;
+    }
+
+    // Check postfix expression
+    const postfix = unaryExpr.postfixExpression();
+    if (postfix) {
+      this.walkPostfixExpressionForCalls(funcName, paramSet, postfix);
+    }
+  }
+
+  /**
+   * Walk a postfixExpression for function calls.
+   * This is where function calls are found: primaryExpr followed by '(' args ')'
+   */
+  private walkPostfixExpressionForCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    postfix: Parser.PostfixExpressionContext,
+  ): void {
+    const primary = postfix.primaryExpression();
+    const postfixOps = postfix.postfixOp();
+
+    // Check if this is a function call: IDENTIFIER followed by '(' ... ')'
+    if (primary.IDENTIFIER() && postfixOps.length > 0) {
+      const firstOp = postfixOps[0];
+      // Check if first postfix op is a function call (has argumentList or RPAREN)
+      if (firstOp.LPAREN()) {
+        const calleeName = primary.IDENTIFIER()!.getText();
+        const argList = firstOp.argumentList();
+
+        if (argList) {
+          const args = argList.expression();
+          for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            // Check if argument is a simple identifier that's a parameter
+            const argName = this.getSimpleIdentifierFromExpr(arg);
+            if (argName && paramSet.has(argName)) {
+              this.functionCallGraph.get(funcName)!.push({
+                callee: calleeName,
+                paramIndex: i,
+                argParamName: argName,
+              });
+            }
+            // Recurse into argument
+            this.walkExpressionForCalls(funcName, paramSet, arg);
+          }
+        }
+      }
+    }
+
+    // Check for scope-qualified calls: Scope.func(...)
+    // primaryExpression could be 'global' or 'this' with member access
+    // For now, handle the simple case where we see IDENTIFIER.IDENTIFIER(...)
+
+    // Recurse into primary expression if it's a parenthesized expression
+    if (primary.expression()) {
+      this.walkExpressionForCalls(funcName, paramSet, primary.expression()!);
+    }
+
+    // Walk arguments in any postfix function call ops
+    for (const op of postfixOps) {
+      if (op.argumentList()) {
+        for (const argExpr of op.argumentList()!.expression()) {
+          this.walkExpressionForCalls(funcName, paramSet, argExpr);
+        }
+      }
+      // Walk array subscript expressions
+      for (const expr of op.expression()) {
+        this.walkExpressionForCalls(funcName, paramSet, expr);
+      }
+    }
+  }
+
+  /**
+   * Get simple identifier from an expression if it's just a bare identifier.
+   */
+  private getSimpleIdentifierFromExpr(
+    expr: Parser.ExpressionContext,
+  ): string | null {
+    // Expression -> TernaryExpression -> OrExpression -> ... -> PostfixExpression -> PrimaryExpression -> IDENTIFIER
+    const ternary = expr.ternaryExpression();
+    if (!ternary) return null;
+
+    const orExprs = ternary.orExpression();
+    if (orExprs.length !== 1) return null;
+
+    const andExprs = orExprs[0].andExpression();
+    if (andExprs.length !== 1) return null;
+
+    const eqExprs = andExprs[0].equalityExpression();
+    if (eqExprs.length !== 1) return null;
+
+    const relExprs = eqExprs[0].relationalExpression();
+    if (relExprs.length !== 1) return null;
+
+    const bitOrExprs = relExprs[0].bitwiseOrExpression();
+    if (bitOrExprs.length !== 1) return null;
+
+    const bitXorExprs = bitOrExprs[0].bitwiseXorExpression();
+    if (bitXorExprs.length !== 1) return null;
+
+    const bitAndExprs = bitXorExprs[0].bitwiseAndExpression();
+    if (bitAndExprs.length !== 1) return null;
+
+    const shiftExprs = bitAndExprs[0].shiftExpression();
+    if (shiftExprs.length !== 1) return null;
+
+    const addExprs = shiftExprs[0].additiveExpression();
+    if (addExprs.length !== 1) return null;
+
+    const mulExprs = addExprs[0].multiplicativeExpression();
+    if (mulExprs.length !== 1) return null;
+
+    const unaryExprs = mulExprs[0].unaryExpression();
+    if (unaryExprs.length !== 1) return null;
+
+    const unary = unaryExprs[0];
+    if (unary.unaryExpression()) return null; // Has unary operator
+
+    const postfix = unary.postfixExpression();
+    if (!postfix) return null;
+
+    // Must have no postfix operators (just the primary)
+    if (postfix.postfixOp().length > 0) return null;
+
+    const primary = postfix.primaryExpression();
+    if (!primary.IDENTIFIER()) return null;
+
+    return primary.IDENTIFIER()!.getText();
+  }
+
+  /**
+   * Phase 2: Fixed-point iteration to propagate transitive modifications.
+   * If a parameter is passed to a function that modifies its corresponding param,
+   * then the caller's parameter is also considered modified.
+   */
+  private propagateTransitiveModifications(): void {
+    let changed = true;
+    while (changed) {
+      changed = false;
+
+      for (const [funcName, calls] of this.functionCallGraph) {
+        for (const { callee, paramIndex, argParamName } of calls) {
+          // Get the callee's parameter list
+          const calleeParams = this.functionParamLists.get(callee);
+          if (!calleeParams || paramIndex >= calleeParams.length) {
+            continue;
+          }
+
+          const calleeParamName = calleeParams[paramIndex];
+          const calleeModified = this.modifiedParameters.get(callee);
+
+          // If callee's parameter is modified, mark caller's parameter as modified
+          if (calleeModified && calleeModified.has(calleeParamName)) {
+            const callerModified = this.modifiedParameters.get(funcName);
+            if (callerModified && !callerModified.has(argParamName)) {
+              callerModified.add(argParamName);
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Phase 3: Determine which parameters can pass by value.
+   * A parameter passes by value if:
+   * 1. It's a small primitive type (u8, i8, u16, i16, u32, i32, u64, i64, bool)
+   * 2. It's not modified (directly or transitively)
+   * 3. It's not an array, struct, string, or callback
+   */
+  private computePassByValueParams(): void {
+    const smallPrimitives = new Set([
+      "u8",
+      "i8",
+      "u16",
+      "i16",
+      "u32",
+      "i32",
+      "u64",
+      "i64",
+      "bool",
+    ]);
+
+    for (const [funcName, paramNames] of this.functionParamLists) {
+      const passByValue = new Set<string>();
+      const modified = this.modifiedParameters.get(funcName) ?? new Set();
+
+      // Get function declaration to check parameter types
+      const funcSig = this.functionSignatures.get(funcName);
+      if (funcSig) {
+        for (let i = 0; i < paramNames.length; i++) {
+          const paramName = paramNames[i];
+          const paramSig = funcSig.parameters[i];
+
+          if (!paramSig) continue;
+
+          // Check if eligible for pass-by-value:
+          // - Is a small primitive type
+          // - Not an array
+          // - Not modified
+          const isSmallPrimitive = smallPrimitives.has(paramSig.baseType);
+          const isArray = paramSig.isArray ?? false;
+          const isModified = modified.has(paramName);
+
+          if (isSmallPrimitive && !isArray && !isModified) {
+            passByValue.add(paramName);
+          }
+        }
+      }
+
+      this.passByValueParams.set(funcName, passByValue);
+    }
+  }
+
+  /**
+   * Check if a parameter should be passed by value (by name).
+   * Used internally during code generation.
+   */
+  private _isParameterPassByValueByName(
+    funcName: string,
+    paramName: string,
+  ): boolean {
+    const passByValue = this.passByValueParams.get(funcName);
+    return passByValue?.has(paramName) ?? false;
+  }
+
+  /**
+   * Issue #269: Check if a parameter should be passed by value (by index).
+   * Part of IOrchestrator interface - used by CallExprGenerator.
+   */
+  isParameterPassByValue(funcName: string, paramIndex: number): boolean {
+    const paramList = this.functionParamLists.get(funcName);
+    if (!paramList || paramIndex < 0 || paramIndex >= paramList.length) {
+      return false;
+    }
+    const paramName = paramList[paramIndex];
+    return this._isParameterPassByValueByName(funcName, paramName);
+  }
+
+  /**
+   * Issue #269: Get all pass-by-value parameters.
+   * Returns a Map from function name to Set of parameter names that should be pass-by-value.
+   * Used by HeaderGenerator to ensure header and implementation signatures match.
+   */
+  getPassByValueParams(): ReadonlyMap<string, ReadonlySet<string>> {
+    return this.passByValueParams;
+  }
 
   /**
    * ADR-036: Try to evaluate an expression as a compile-time constant.
@@ -3525,6 +4105,9 @@ export default class CodeGenerator implements IOrchestrator {
         const fullName = `${name}_${funcName}`;
         const prefix = isPrivate ? "static " : "";
 
+        // Issue #269: Set current function name for pass-by-value lookup
+        this.context.currentFunctionName = fullName;
+
         // Track parameters for ADR-006 pointer semantics
         this._setParameters(funcDecl.parameterList() ?? null);
 
@@ -3541,6 +4124,7 @@ export default class CodeGenerator implements IOrchestrator {
         // ADR-016: Clear local variables and mark that we're no longer in a function body
         this.context.inFunctionBody = false;
         this.context.localVariables.clear();
+        this.context.currentFunctionName = null; // Issue #269: Clear function name
         this._clearParameters();
 
         lines.push("");
@@ -3984,6 +4568,13 @@ export default class CodeGenerator implements IOrchestrator {
     const returnType = this._generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
+    // Issue #269: Set current function name for pass-by-value lookup
+    // Include scope prefix for scoped functions
+    const fullFuncName = this.context.currentScope
+      ? `${this.context.currentScope}_${name}`
+      : name;
+    this.context.currentFunctionName = fullFuncName;
+
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
 
@@ -4022,6 +4613,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
     this.context.mainArgsName = null;
+    this.context.currentFunctionName = null; // Issue #269: Clear function name
     this._clearParameters();
 
     const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
@@ -4150,6 +4742,14 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-017: Enum types use standard C pass-by-value semantics
     if (this.symbols!.knownEnums.has(typeName)) {
+      return `${constMod}${type} ${name}`;
+    }
+
+    // Issue #269: Small unmodified primitives use pass-by-value semantics
+    if (
+      this.context.currentFunctionName &&
+      this._isParameterPassByValueByName(this.context.currentFunctionName, name)
+    ) {
       return `${constMod}${type} ${name}`;
     }
 
@@ -6373,6 +6973,13 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
         return id;
       }
+      // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
+      if (
+        this.context.currentFunctionName &&
+        this._isParameterPassByValueByName(this.context.currentFunctionName, id)
+      ) {
+        return id;
+      }
       // Parameter - allowed as bare identifier, but needs dereference
       if (!paramInfo.isArray) {
         return `(*${id})`;
@@ -7803,6 +8410,16 @@ export default class CodeGenerator implements IOrchestrator {
         if (paramInfo.isString) {
           return id;
         }
+        // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
+        if (
+          this.context.currentFunctionName &&
+          this._isParameterPassByValueByName(
+            this.context.currentFunctionName,
+            id,
+          )
+        ) {
+          return id;
+        }
         // Parameter - allowed as bare identifier
         if (!paramInfo.isArray && !paramInfo.isStruct) {
           return `(*${id})`;
@@ -8439,26 +9056,49 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateArrayAccess(ctx: Parser.ArrayAccessContext): string {
-    const name = ctx.IDENTIFIER().getText();
+    const rawName = ctx.IDENTIFIER().getText();
     const exprs = ctx.expression();
+
+    // ADR-006: Check if the identifier is a parameter
+    // For pass-by-pointer parameters, we need to dereference when accessing bits
+    // For pass-by-value parameters (Issue #269), use the name directly
+    const paramInfo = this.context.currentParameters.get(rawName);
+    let name = rawName;
+    if (paramInfo && !paramInfo.isArray) {
+      // Check if this parameter is pass-by-value
+      const isPassByValue =
+        this._isFloatType(paramInfo.baseType) ||
+        this.symbols!.knownEnums.has(paramInfo.baseType) ||
+        (this.context.currentFunctionName &&
+          this._isParameterPassByValueByName(
+            this.context.currentFunctionName,
+            rawName,
+          ));
+
+      if (!isPassByValue) {
+        // Pass-by-pointer: need to dereference
+        name = `(*${rawName})`;
+      }
+    }
 
     if (exprs.length === 1) {
       // Single index: array[i] or bit access flags[3]
       // ADR-036: Compile-time bounds checking for constant indices
-      const typeInfo = this.context.typeRegistry.get(name);
+      // Note: Use rawName for type lookup since typeRegistry uses original names
+      const typeInfo = this.context.typeRegistry.get(rawName);
 
       // Check if this is a bitmap type
       if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
         const line = ctx.start?.line ?? 0;
         throw new Error(
           `Error at line ${line}: Cannot use bracket indexing on bitmap type '${typeInfo.bitmapTypeName}'. ` +
-            `Use named field access instead (e.g., ${name}.FIELD_NAME).`,
+            `Use named field access instead (e.g., ${rawName}.FIELD_NAME).`,
         );
       }
 
       if (typeInfo?.isArray && typeInfo.arrayDimensions) {
         this.typeValidator!.checkArrayBounds(
-          name,
+          rawName,
           typeInfo.arrayDimensions,
           exprs,
           ctx.start?.line ?? 0,

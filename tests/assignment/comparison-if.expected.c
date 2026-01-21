@@ -9,18 +9,18 @@
 // test-execution
 // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
-uint32_t checkValue(uint32_t* x) {
-    if ((*x) == 0) {
+uint32_t checkValue(uint32_t x) {
+    if (x == 0) {
         return 0;
     }
-    if ((*x) == 100) {
+    if (x == 100) {
         return 100;
     }
-    return (*x);
+    return x;
 }
 
-bool isPositive(int32_t* n) {
-    if ((*n) > 0) {
+bool isPositive(int32_t n) {
+    if (n > 0) {
         return true;
     }
     return false;
@@ -32,23 +32,23 @@ int main(void) {
     uint32_t fifty = 50;
     int32_t positive = 5;
     int32_t negative = -5;
-    uint32_t result1 = checkValue(&zero);
+    uint32_t result1 = checkValue(zero);
     if (result1 != 0) {
         return 1;
     }
-    uint32_t result2 = checkValue(&hundred);
+    uint32_t result2 = checkValue(hundred);
     if (result2 != 100) {
         return 1;
     }
-    uint32_t result3 = checkValue(&fifty);
+    uint32_t result3 = checkValue(fifty);
     if (result3 != 50) {
         return 1;
     }
-    bool result4 = isPositive(&positive);
+    bool result4 = isPositive(positive);
     if (result4 != true) {
         return 1;
     }
-    bool result5 = isPositive(&negative);
+    bool result5 = isPositive(negative);
     if (result5 != false) {
         return 1;
     }

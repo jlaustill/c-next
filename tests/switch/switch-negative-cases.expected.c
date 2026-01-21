@@ -10,8 +10,8 @@
 // Tests: switch statement with negative integer literals
 int32_t result = 0;
 
-void handleValue(int8_t* val) {
-    switch ((*val)) {
+void handleValue(int8_t val) {
+    switch (val) {
         case -128: {
             result = 1;
             break;
@@ -36,8 +36,8 @@ void handleValue(int8_t* val) {
 }
 
 // Test negative hex literals
-void handleHex(int16_t* val) {
-    switch ((*val)) {
+void handleHex(int16_t val) {
+    switch (val) {
         case -0x80: {
             result = 10;
             break;
@@ -63,27 +63,27 @@ int main(void) {
     int8_t zero = 0;
     int8_t maxI8 = 127;
     int8_t other = 50;
-    handleValue(&minI8);
+    handleValue(minI8);
     if (result != 1) return 1;
-    handleValue(&negOne);
+    handleValue(negOne);
     if (result != 2) return 2;
-    handleValue(&zero);
+    handleValue(zero);
     if (result != 3) return 3;
-    handleValue(&maxI8);
+    handleValue(maxI8);
     if (result != 4) return 4;
-    handleValue(&other);
+    handleValue(other);
     if (result != 9) return 5;
     int16_t negHex80 = -128;
     int16_t negHex01 = -1;
     int16_t zeroHex = 0;
     int16_t otherHex = 100;
-    handleHex(&negHex80);
+    handleHex(negHex80);
     if (result != 10) return 6;
-    handleHex(&negHex01);
+    handleHex(negHex01);
     if (result != 20) return 7;
-    handleHex(&zeroHex);
+    handleHex(zeroHex);
     if (result != 30) return 8;
-    handleHex(&otherHex);
+    handleHex(otherHex);
     if (result != 99) return 9;
     return 0;
 }

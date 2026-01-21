@@ -148,20 +148,20 @@ int32_t MethodContexts_getPublicOffset(void) {
     return MethodContexts_publicOffset;
 }
 
-void MethodContexts_setPrivateValue(uint8_t* val) {
-    MethodContexts_privateValue = (*val);
+void MethodContexts_setPrivateValue(uint8_t val) {
+    MethodContexts_privateValue = val;
 }
 
-void MethodContexts_setPublicValue(uint8_t* val) {
-    MethodContexts_publicValue = (*val);
+void MethodContexts_setPublicValue(uint8_t val) {
+    MethodContexts_publicValue = val;
 }
 
-void MethodContexts_setPrivateFlag(bool* val) {
-    MethodContexts_privateFlag = (*val);
+void MethodContexts_setPrivateFlag(bool val) {
+    MethodContexts_privateFlag = val;
 }
 
-void MethodContexts_setPublicFlag(bool* val) {
-    MethodContexts_publicFlag = (*val);
+void MethodContexts_setPublicFlag(bool val) {
+    MethodContexts_publicFlag = val;
 }
 
 uint8_t MethodContexts_getGlobalMax(void) {
@@ -274,18 +274,18 @@ int main(void) {
     if (res17 != true) return 17;
     int32_t res18 = MethodContexts_computePublicWithOffset();
     if (res18 != -1025) return 18;
-    MethodContexts_setPrivateValue(&(uint8_t){42});
+    MethodContexts_setPrivateValue(42);
     uint8_t res19 = MethodContexts_getPrivateValueExternal();
     if (res19 != 42) return 19;
     uint8_t res20 = MethodContexts_getPrivateSumViaInternal();
     if (res20 != 92) return 20;
-    MethodContexts_setPublicValue(&(uint8_t){84});
+    MethodContexts_setPublicValue(84);
     uint8_t res21 = MethodContexts_getPublicValue();
     if (res21 != 84) return 21;
     uint8_t res22 = MethodContexts_computePublicSum();
     if (res22 != 134) return 22;
-    MethodContexts_setPrivateFlag(&(bool){true});
-    MethodContexts_setPublicFlag(&(bool){false});
+    MethodContexts_setPrivateFlag(true);
+    MethodContexts_setPublicFlag(false);
     bool res24 = MethodContexts_getPublicFlag();
     if (res24 != false) return 24;
     MethodContexts_incrementPublicClamp();

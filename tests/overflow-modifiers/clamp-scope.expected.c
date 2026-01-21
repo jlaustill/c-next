@@ -41,8 +41,8 @@ uint8_t ClampScope_getBrightness(void) {
     return ClampScope_brightness;
 }
 
-void ClampScope_reset(uint8_t* value) {
-    ClampScope_brightness = (*value);
+void ClampScope_reset(uint8_t value) {
+    ClampScope_brightness = value;
 }
 
 int main(void) {
@@ -51,11 +51,11 @@ int main(void) {
     ClampScope_triggerOverflow();
     val = ClampScope_getBrightness();
     if (val != 255) return 2;
-    ClampScope_reset(&(uint8_t){50});
+    ClampScope_reset(50);
     ClampScope_triggerUnderflow();
     val = ClampScope_getBrightness();
     if (val != 0) return 3;
-    ClampScope_reset(&(uint8_t){250});
+    ClampScope_reset(250);
     ClampScope_triggerOverflow();
     val = ClampScope_getBrightness();
     if (val != 255) return 4;

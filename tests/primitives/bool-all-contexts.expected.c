@@ -24,12 +24,12 @@ typedef struct {
 bool flagArray[4] = {0};
 
 // 4. Function with bool param and return
-bool negate(bool* value) {
-    return !(*value);
+bool negate(bool value) {
+    return !value;
 }
 
-bool identity(bool* value) {
-    return (*value);
+bool identity(bool value) {
+    return value;
 }
 
 // 5. Main with validations (unique error codes)
@@ -38,11 +38,11 @@ int main(void) {
     if (globalFalse != false) return 2;
     bool localTrue = true;
     bool localFalse = false;
-    bool negResult1 = negate(&localTrue);
+    bool negResult1 = negate(localTrue);
     if (negResult1 != false) return 3;
-    bool negResult2 = negate(&localFalse);
+    bool negResult2 = negate(localFalse);
     if (negResult2 != true) return 4;
-    bool idResult = identity(&localTrue);
+    bool idResult = identity(localTrue);
     if (idResult != true) return 5;
     bool localBool = true;
     if (localBool != true) return 6;

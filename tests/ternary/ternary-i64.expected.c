@@ -8,16 +8,16 @@
 // test-execution
 // ADR-022: Ternary operator test for i64
 // Tests: ternary with i64 in conditions and branches, including negative values
-int64_t getMax(int64_t* a, int64_t* b) {
-    return ((*a) > (*b)) ? (*a) : (*b);
+int64_t getMax(int64_t a, int64_t b) {
+    return (a > b) ? a : b;
 }
 
-int64_t getMin(int64_t* a, int64_t* b) {
-    return ((*a) < (*b)) ? (*a) : (*b);
+int64_t getMin(int64_t a, int64_t b) {
+    return (a < b) ? a : b;
 }
 
-int64_t getAbs(int64_t* x) {
-    return ((*x) < 0) ? -(*x) : (*x);
+int64_t getAbs(int64_t x) {
+    return (x < 0) ? -x : x;
 }
 
 int main(void) {
@@ -25,27 +25,27 @@ int main(void) {
     int64_t b = 2000;
     int64_t c = -3000;
     int64_t d = -500;
-    int64_t maxResult1 = getMax(&a, &b);
+    int64_t maxResult1 = getMax(a, b);
     if (maxResult1 != 2000) {
         return 1;
     }
-    int64_t maxResult2 = getMax(&c, &d);
+    int64_t maxResult2 = getMax(c, d);
     if (maxResult2 != -500) {
         return 2;
     }
-    int64_t minResult1 = getMin(&a, &b);
+    int64_t minResult1 = getMin(a, b);
     if (minResult1 != 1000) {
         return 3;
     }
-    int64_t minResult2 = getMin(&c, &d);
+    int64_t minResult2 = getMin(c, d);
     if (minResult2 != -3000) {
         return 4;
     }
-    int64_t absResult1 = getAbs(&c);
+    int64_t absResult1 = getAbs(c);
     if (absResult1 != 3000) {
         return 5;
     }
-    int64_t absResult2 = getAbs(&a);
+    int64_t absResult2 = getAbs(a);
     if (absResult2 != 1000) {
         return 6;
     }

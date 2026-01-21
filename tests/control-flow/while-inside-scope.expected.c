@@ -31,9 +31,9 @@ void Counter_countToFive(void) {
     }
 }
 
-void Counter_countWhileCondition(bool* shouldCount) {
+void Counter_countWhileCondition(bool shouldCount) {
     uint32_t i = 0;
-    while (i < 3 && (*shouldCount) == true) {
+    while (i < 3 && shouldCount == true) {
         Counter_value = cnx_clamp_add_u32(Counter_value, 10);
         i = cnx_clamp_add_u32(i, 1);
     }
@@ -50,9 +50,9 @@ void Counter_reset(void) {
 /* Scope: Accumulator */
 static uint32_t Accumulator_sum = 0;
 
-void Accumulator_sumRange(uint32_t* limit) {
+void Accumulator_sumRange(uint32_t limit) {
     uint32_t i = 1;
-    while (i <= (*limit)) {
+    while (i <= limit) {
         Accumulator_sum = cnx_clamp_add_u32(Accumulator_sum, i);
         i = cnx_clamp_add_u32(i, 1);
     }
@@ -66,6 +66,6 @@ int main(void) {
     Counter_countToFive();
     globalResult = Counter_getValue();
     Counter_reset();
-    Counter_countWhileCondition(&(bool){true});
-    Accumulator_sumRange(&(uint32_t){5});
+    Counter_countWhileCondition(true);
+    Accumulator_sumRange(5);
 }

@@ -11,17 +11,17 @@
 // Issue #139: Test string assignment inside if/else blocks
 char status[33] = "Unknown";
 
-void setStatus(bool* ok) {
-    if ((*ok)) {
+void setStatus(bool ok) {
+    if (ok) {
         strncpy(status, "Success", 32); status[32] = '\0';
     } else {
         strncpy(status, "Failure", 32); status[32] = '\0';
     }
 }
 
-void setNested(uint32_t* level) {
-    if ((*level) > 0) {
-        if ((*level) > 1) {
+void setNested(uint32_t level) {
+    if (level > 0) {
+        if (level > 1) {
             strncpy(status, "Nested", 32); status[32] = '\0';
         } else {
             strncpy(status, "Level1", 32); status[32] = '\0';
@@ -30,13 +30,13 @@ void setNested(uint32_t* level) {
 }
 
 int main(void) {
-    setStatus(&(bool){true});
+    setStatus(true);
     if (strlen(status) != 7) return 1;
-    setStatus(&(bool){false});
+    setStatus(false);
     if (strlen(status) != 7) return 2;
-    setNested(&(uint32_t){2});
+    setNested(2);
     if (strlen(status) != 6) return 3;
-    setNested(&(uint32_t){1});
+    setNested(1);
     if (strlen(status) != 6) return 4;
     return 0;
 }

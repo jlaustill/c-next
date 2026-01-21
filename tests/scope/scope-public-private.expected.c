@@ -39,8 +39,8 @@ uint8_t Visibility_getPublicCounter(void) {
     return Visibility_publicCounter;
 }
 
-void Visibility_setPublicCounter(uint8_t* value) {
-    Visibility_publicCounter = (*value);
+void Visibility_setPublicCounter(uint8_t value) {
+    Visibility_publicCounter = value;
 }
 
 void Visibility_incrementPrivate(void) {
@@ -55,16 +55,16 @@ bool Visibility_getBothFlags(void) {
     return Visibility_privateFlag && Visibility_publicFlag;
 }
 
-void Visibility_setPrivateFlag(bool* value) {
-    Visibility_privateFlag = (*value);
+void Visibility_setPrivateFlag(bool value) {
+    Visibility_privateFlag = value;
 }
 
-void Visibility_setPublicFlag(bool* value) {
-    Visibility_publicFlag = (*value);
+void Visibility_setPublicFlag(bool value) {
+    Visibility_publicFlag = value;
 }
 
-void Visibility_setPrivateCounter(uint8_t* value) {
-    Visibility_privateCounter = (*value);
+void Visibility_setPrivateCounter(uint8_t value) {
+    Visibility_privateCounter = value;
 }
 
 int main(void) {
@@ -78,7 +78,7 @@ int main(void) {
     if (result5 != 10) return 5;
     Visibility_publicCounter = 20;
     if (Visibility_publicCounter != 20) return 6;
-    Visibility_setPublicCounter(&(uint8_t){30});
+    Visibility_setPublicCounter(30);
     uint8_t result7 = Visibility_getPublicCounter();
     if (result7 != 30) return 7;
     Visibility_incrementPrivate();
@@ -86,13 +86,13 @@ int main(void) {
     if (result8 != 1) return 8;
     uint8_t result9 = Visibility_getSum();
     if (result9 != 31) return 9;
-    Visibility_setPrivateFlag(&(bool){true});
+    Visibility_setPrivateFlag(true);
     bool result10 = Visibility_getBothFlags();
     if (result10 != true) return 10;
-    Visibility_setPublicFlag(&(bool){false});
+    Visibility_setPublicFlag(false);
     bool result11 = Visibility_getBothFlags();
     if (result11 != false) return 11;
-    Visibility_setPrivateCounter(&(uint8_t){100});
+    Visibility_setPrivateCounter(100);
     uint8_t result12 = Visibility_getPrivateCounter();
     if (result12 != 100) return 12;
     return 0;

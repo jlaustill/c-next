@@ -48,11 +48,11 @@ void criticalUpdate(void) {
 }
 
 // Mixed atomic and non-atomic in critical
-void enqueueWithCount(uint8_t* data) {
+void enqueueWithCount(uint8_t data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        buffer[writeIdx] = (*data);
+        buffer[writeIdx] = data;
         writeIdx = cnx_clamp_add_u32(writeIdx, 1);
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
@@ -64,13 +64,13 @@ void enqueueWithCount(uint8_t* data) {
 }
 
 // Multiple atomic operations in critical
-void batchUpdate(uint32_t* delta) {
+void batchUpdate(uint32_t delta) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
-            uint32_t __new = cnx_clamp_add_u32(__old, (*delta));
+            uint32_t __new = cnx_clamp_add_u32(__old, delta);
             if (__STREXW(__new, &sharedCounter) == 0) break;
         } while (1);
         do {
@@ -100,7 +100,7 @@ void conditionalIncrement(void) {
 
 int main(void) {
     criticalUpdate();
-    enqueueWithCount(&(uint8_t){0xAB});
-    batchUpdate(&(uint32_t){10});
+    enqueueWithCount(0xAB);
+    batchUpdate(10);
     conditionalIncrement();
 }

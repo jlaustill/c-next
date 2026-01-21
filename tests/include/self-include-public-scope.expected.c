@@ -13,22 +13,22 @@
 // Without this, functions get C++ mangling while the header promises C linkage.
 /* Scope: Calculator */
 
-static uint32_t Calculator_square(uint32_t* x) {
-    return (*x) * (*x);
+static uint32_t Calculator_square(uint32_t x) {
+    return x * x;
 }
 
-uint32_t Calculator_add(uint32_t* a, uint32_t* b) {
-    return (*a) + (*b);
+uint32_t Calculator_add(uint32_t a, uint32_t b) {
+    return a + b;
 }
 
-uint32_t Calculator_multiply(uint32_t* a, uint32_t* b) {
+uint32_t Calculator_multiply(uint32_t a, uint32_t b) {
     return Calculator_square(a) + Calculator_square(b);
 }
 
 int main(void) {
-    uint32_t result = Calculator_add(&(uint32_t){5}, &(uint32_t){3});
+    uint32_t result = Calculator_add(5, 3);
     if (result != 8) return 1;
-    result = Calculator_multiply(&(uint32_t){3}, &(uint32_t){4});
+    result = Calculator_multiply(3, 4);
     if (result != 25) return 2;
     return 0;
 }

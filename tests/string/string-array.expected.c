@@ -16,8 +16,8 @@ uint32_t getArrayLength(char arr[5][33]) {
 }
 
 // Issue #136 fixed: arr[index].length now correctly returns strlen
-uint32_t getElementLength(char arr[5][33], uint32_t* index) {
-    return strlen(arr[(*index)]);
+uint32_t getElementLength(char arr[5][33], uint32_t index) {
+    return strlen(arr[index]);
 }
 
 int main(void) {
@@ -52,15 +52,15 @@ int main(void) {
     if (strlen(colors[2]) != 4) return 16;
     uint32_t arrLen = getArrayLength(&globalNames);
     if (arrLen != 5) return 17;
-    uint32_t elemLen0 = getElementLength(&globalNames, &(uint32_t){0});
+    uint32_t elemLen0 = getElementLength(&globalNames, 0);
     if (elemLen0 != 5) return 18;
-    uint32_t elemLen1 = getElementLength(&globalNames, &(uint32_t){1});
+    uint32_t elemLen1 = getElementLength(&globalNames, 1);
     if (elemLen1 != 3) return 19;
-    uint32_t elemLen2 = getElementLength(&globalNames, &(uint32_t){2});
+    uint32_t elemLen2 = getElementLength(&globalNames, 2);
     if (elemLen2 != 7) return 20;
-    uint32_t elemLen3 = getElementLength(&globalNames, &(uint32_t){3});
+    uint32_t elemLen3 = getElementLength(&globalNames, 3);
     if (elemLen3 != 5) return 21;
-    uint32_t elemLen4 = getElementLength(&globalNames, &(uint32_t){4});
+    uint32_t elemLen4 = getElementLength(&globalNames, 4);
     if (elemLen4 != 3) return 22;
     uint32_t totalLength = 0;
     uint32_t i = 0;

@@ -12,10 +12,10 @@
 uint32_t result = 0;
 
 // Basic nested switch: outer and inner both u32
-void testNestedBasic(uint32_t* outer, uint32_t* inner) {
-    switch ((*outer)) {
+void testNestedBasic(uint32_t outer, uint32_t inner) {
+    switch (outer) {
         case 0: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 100;
                     break;
@@ -32,7 +32,7 @@ void testNestedBasic(uint32_t* outer, uint32_t* inner) {
             break;
         }
         case 1: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 200;
                     break;
@@ -49,7 +49,7 @@ void testNestedBasic(uint32_t* outer, uint32_t* inner) {
             break;
         }
         default: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 900;
                     break;
@@ -69,10 +69,10 @@ void testNestedBasic(uint32_t* outer, uint32_t* inner) {
 }
 
 // Nested with different types: outer u8, inner u16
-void testNestedMixedTypes(uint8_t* outer, uint16_t* inner) {
-    switch ((*outer)) {
+void testNestedMixedTypes(uint8_t outer, uint16_t inner) {
+    switch (outer) {
         case 0: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 1000;
                     break;
@@ -89,7 +89,7 @@ void testNestedMixedTypes(uint8_t* outer, uint16_t* inner) {
             break;
         }
         case 255: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 65535: {
                     result = 2000;
                     break;
@@ -109,12 +109,12 @@ void testNestedMixedTypes(uint8_t* outer, uint16_t* inner) {
 }
 
 // Triple nested: all u8 for manageable test cases
-void testTripleNested(uint8_t* a, uint8_t* b, uint8_t* c) {
-    switch ((*a)) {
+void testTripleNested(uint8_t a, uint8_t b, uint8_t c) {
+    switch (a) {
         case 0: {
-            switch ((*b)) {
+            switch (b) {
                 case 0: {
-                    switch ((*c)) {
+                    switch (c) {
                         case 0: {
                             result = 111;
                             break;
@@ -131,7 +131,7 @@ void testTripleNested(uint8_t* a, uint8_t* b, uint8_t* c) {
                     break;
                 }
                 case 1: {
-                    switch ((*c)) {
+                    switch (c) {
                         case 0: {
                             result = 121;
                             break;
@@ -151,7 +151,7 @@ void testTripleNested(uint8_t* a, uint8_t* b, uint8_t* c) {
             break;
         }
         case 1: {
-            switch ((*b)) {
+            switch (b) {
                 case 0: {
                     result = 210;
                     break;
@@ -171,10 +171,10 @@ void testTripleNested(uint8_t* a, uint8_t* b, uint8_t* c) {
 }
 
 // Nested with signed types (positive case labels only)
-void testNestedSigned(int8_t* outer, int8_t* inner) {
-    switch ((*outer)) {
+void testNestedSigned(int8_t outer, int8_t inner) {
+    switch (outer) {
         case 0: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 11;
                     break;
@@ -195,7 +195,7 @@ void testNestedSigned(int8_t* outer, int8_t* inner) {
             break;
         }
         case 1: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 21;
                     break;
@@ -216,7 +216,7 @@ void testNestedSigned(int8_t* outer, int8_t* inner) {
             break;
         }
         case 50: {
-            switch ((*inner)) {
+            switch (inner) {
                 case 0: {
                     result = 31;
                     break;
@@ -250,23 +250,23 @@ int main(void) {
     uint32_t i0 = 0;
     uint32_t i1 = 1;
     uint32_t i99 = 99;
-    testNestedBasic(&o0, &i0);
+    testNestedBasic(o0, i0);
     if (result != 100) return 1;
-    testNestedBasic(&o0, &i1);
+    testNestedBasic(o0, i1);
     if (result != 101) return 2;
-    testNestedBasic(&o0, &i99);
+    testNestedBasic(o0, i99);
     if (result != 199) return 3;
-    testNestedBasic(&o1, &i0);
+    testNestedBasic(o1, i0);
     if (result != 200) return 4;
-    testNestedBasic(&o1, &i1);
+    testNestedBasic(o1, i1);
     if (result != 201) return 5;
-    testNestedBasic(&o1, &i99);
+    testNestedBasic(o1, i99);
     if (result != 299) return 6;
-    testNestedBasic(&o99, &i0);
+    testNestedBasic(o99, i0);
     if (result != 900) return 7;
-    testNestedBasic(&o99, &i1);
+    testNestedBasic(o99, i1);
     if (result != 901) return 8;
-    testNestedBasic(&o99, &i99);
+    testNestedBasic(o99, i99);
     if (result != 999) return 9;
     uint8_t m0 = 0;
     uint8_t m255 = 255;
@@ -275,66 +275,66 @@ int main(void) {
     uint16_t n1000 = 1000;
     uint16_t nMax = 65535;
     uint16_t nOther = 5000;
-    testNestedMixedTypes(&m0, &n0);
+    testNestedMixedTypes(m0, n0);
     if (result != 1000) return 10;
-    testNestedMixedTypes(&m0, &n1000);
+    testNestedMixedTypes(m0, n1000);
     if (result != 1001) return 11;
-    testNestedMixedTypes(&m0, &nOther);
+    testNestedMixedTypes(m0, nOther);
     if (result != 1099) return 12;
-    testNestedMixedTypes(&m255, &nMax);
+    testNestedMixedTypes(m255, nMax);
     if (result != 2000) return 13;
-    testNestedMixedTypes(&m255, &nOther);
+    testNestedMixedTypes(m255, nOther);
     if (result != 2099) return 14;
-    testNestedMixedTypes(&mOther, &n0);
+    testNestedMixedTypes(mOther, n0);
     if (result != 9999) return 15;
     uint8_t t0 = 0;
     uint8_t t1 = 1;
     uint8_t t99 = 99;
-    testTripleNested(&t0, &t0, &t0);
+    testTripleNested(t0, t0, t0);
     if (result != 111) return 16;
-    testTripleNested(&t0, &t0, &t1);
+    testTripleNested(t0, t0, t1);
     if (result != 112) return 17;
-    testTripleNested(&t0, &t0, &t99);
+    testTripleNested(t0, t0, t99);
     if (result != 119) return 18;
-    testTripleNested(&t0, &t1, &t0);
+    testTripleNested(t0, t1, t0);
     if (result != 121) return 19;
-    testTripleNested(&t0, &t1, &t99);
+    testTripleNested(t0, t1, t99);
     if (result != 129) return 20;
-    testTripleNested(&t0, &t99, &t0);
+    testTripleNested(t0, t99, t0);
     if (result != 190) return 21;
-    testTripleNested(&t1, &t0, &t0);
+    testTripleNested(t1, t0, t0);
     if (result != 210) return 22;
-    testTripleNested(&t1, &t99, &t0);
+    testTripleNested(t1, t99, t0);
     if (result != 290) return 23;
-    testTripleNested(&t99, &t0, &t0);
+    testTripleNested(t99, t0, t0);
     if (result != 900) return 24;
     int8_t sZero = 0;
     int8_t sOne = 1;
     int8_t sFifty = 50;
     int8_t sNeg = -50;
-    testNestedSigned(&sZero, &sZero);
+    testNestedSigned(sZero, sZero);
     if (result != 11) return 25;
-    testNestedSigned(&sZero, &sOne);
+    testNestedSigned(sZero, sOne);
     if (result != 12) return 26;
-    testNestedSigned(&sZero, &sFifty);
+    testNestedSigned(sZero, sFifty);
     if (result != 13) return 27;
-    testNestedSigned(&sOne, &sZero);
+    testNestedSigned(sOne, sZero);
     if (result != 21) return 28;
-    testNestedSigned(&sOne, &sOne);
+    testNestedSigned(sOne, sOne);
     if (result != 22) return 29;
-    testNestedSigned(&sOne, &sFifty);
+    testNestedSigned(sOne, sFifty);
     if (result != 23) return 30;
-    testNestedSigned(&sFifty, &sZero);
+    testNestedSigned(sFifty, sZero);
     if (result != 31) return 31;
-    testNestedSigned(&sFifty, &sOne);
+    testNestedSigned(sFifty, sOne);
     if (result != 32) return 32;
-    testNestedSigned(&sFifty, &sFifty);
+    testNestedSigned(sFifty, sFifty);
     if (result != 33) return 33;
-    testNestedSigned(&sNeg, &sZero);
+    testNestedSigned(sNeg, sZero);
     if (result != 99) return 34;
-    testNestedSigned(&sZero, &sNeg);
+    testNestedSigned(sZero, sNeg);
     if (result != 19) return 35;
-    testNestedSigned(&sOne, &sNeg);
+    testNestedSigned(sOne, sNeg);
     if (result != 29) return 36;
     return 0;
 }
