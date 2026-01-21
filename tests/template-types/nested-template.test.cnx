@@ -1,0 +1,16 @@
+// Issue #291: Test nested C++ template types
+// Verifies grammar correctly parses templates within templates
+// Note: Requires space before >> to avoid lexer ambiguity (pre-C++11 style)
+
+#include "template-stubs.h"
+
+// Nested template: outer template with inner template as argument
+// Space before > > required to avoid >> being parsed as right-shift
+Container<Pair<Element, Element> > nestedPair;
+
+// Multiple levels of nesting
+Vector<Container<Element> > vectorOfContainers;
+
+void main() {
+    // Nested templates are passed through to C++ unchanged
+}

@@ -1,0 +1,15 @@
+// Issue #291: Test single parameter template type
+// Tests template with a single type parameter like Vector<u32>
+
+#include "template-stubs.h"
+
+// Single template parameter with identifier
+Container<Element> singleParam;
+
+// Single template parameter with C++ compatible type (uint32_t)
+// Note: C-Next u32 maps to uint32_t in generated code
+Vector<uint32_t> numbers;
+
+void main() {
+    // Template types should be passed through to C++ unchanged
+}

@@ -505,6 +505,7 @@ type
     | stringType                              // ADR-045: Bounded strings
     | scopedType                              // ADR-016: this.Type for scoped types
     | qualifiedType                           // ADR-016: Scope.Type from outside scope
+    | templateType                            // Issue #291: C++ template instantiation syntax
     | userType
     | arrayType
     | 'void'
@@ -530,6 +531,29 @@ primitiveType
 
 userType
     : IDENTIFIER
+    ;
+
+// Issue #291: C++ template instantiation syntax
+// Allows C-Next to parse C++ template types like FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16>
+// Template arguments are passed through unchanged to C++ output
+templateType
+    : IDENTIFIER '<' templateArgumentList '>'
+    ;
+
+templateArgumentList
+    : templateArgument (',' templateArgument)*
+    ;
+
+// Template arguments can be:
+// - Identifiers (type names, constants): CAN1, RX_SIZE_256
+// - Primitive types: u32, f64
+// - Integer literals: 256, 16
+// - Nested templates: Container<Element>
+templateArgument
+    : templateType                            // Nested template: Pair<int, int>
+    | primitiveType                           // Primitive: u32, f64
+    | IDENTIFIER                              // Type name or constant: CAN1, MyType
+    | INTEGER_LITERAL                         // Size parameter: 256, 16
     ;
 
 // ADR-045: Bounded string type

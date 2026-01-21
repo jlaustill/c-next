@@ -64,6 +64,7 @@ class TestUtils {
    *
    * Checks for:
    * - C++ casts: static_cast, reinterpret_cast, etc. (Issue #267)
+   * - C++ template types: Type<Args> (Issue #291)
    * - C++14 typed enums: enum Foo : type { (in included headers)
    *
    * Note: Named "requiresCpp14" for historical reasons, but now detects
@@ -84,6 +85,14 @@ class TestUtils {
           cCode,
         )
       ) {
+        return true;
+      }
+
+      // Issue #291: Check for C++ template types (Type<Args>)
+      // Excludes string<N> which is C-Next bounded string syntax
+      // Pattern matches: identifier followed by < with template args >
+      // but not comparison operators like "if (x < y)"
+      if (/\b(?!string\b)\w+<[^;=<>]+>/.test(cCode)) {
         return true;
       }
 
