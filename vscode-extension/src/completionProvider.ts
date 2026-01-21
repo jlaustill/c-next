@@ -19,12 +19,14 @@ function debug(message: string): void {
 
 /**
  * C-Next keywords for autocomplete
+ * Note: Excludes C keywords that are NOT part of C-Next:
+ * - namespace, class (use scope instead)
+ * - break, continue, goto (not allowed - no unstructured control flow)
+ * - static, extern, inline, typedef (not in C-Next)
  */
 const KEYWORDS = [
   "register",
-  "namespace",
   "scope",
-  "class",
   "struct",
   "enum",
   "bitmap",
@@ -36,16 +38,9 @@ const KEYWORDS = [
   "switch",
   "case",
   "default",
-  "break",
-  "continue",
   "return",
-  "goto",
   "const",
   "volatile",
-  "static",
-  "extern",
-  "inline",
-  "typedef",
   "sizeof",
   "atomic",
   "critical",

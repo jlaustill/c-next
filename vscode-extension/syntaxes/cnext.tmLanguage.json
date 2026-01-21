@@ -8,6 +8,8 @@
     { "include": "#registers" },
     { "include": "#bitmaps" },
     { "include": "#scope-access" },
+    { "include": "#template-types" },
+    { "include": "#c-interop" },
     { "include": "#keywords" },
     { "include": "#types" },
     { "include": "#operators" },
@@ -182,6 +184,53 @@
             "1": { "name": "entity.name.namespace.cnext" },
             "2": { "name": "punctuation.accessor.cnext" },
             "3": { "name": "variable.other.member.cnext" }
+          }
+        }
+      ]
+    },
+    "template-types": {
+      "patterns": [
+        {
+          "comment": "C++ template instantiation (e.g., FlexCAN_T4<CAN1, RX_SIZE_256>)",
+          "begin": "\\b([A-Z_][A-Za-z0-9_]*)\\s*(<)",
+          "beginCaptures": {
+            "1": { "name": "entity.name.type.template.cnext" },
+            "2": { "name": "punctuation.definition.template.begin.cnext" }
+          },
+          "end": "(>)",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.template.end.cnext" }
+          },
+          "patterns": [
+            {
+              "comment": "Template argument - identifier (type or constant)",
+              "match": "\\b([A-Z_][A-Za-z0-9_]*)\\b",
+              "captures": {
+                "1": { "name": "entity.name.type.template-argument.cnext" }
+              }
+            },
+            {
+              "comment": "Template argument - number",
+              "match": "\\b([0-9]+)\\b",
+              "captures": {
+                "1": { "name": "constant.numeric.template-argument.cnext" }
+              }
+            },
+            {
+              "name": "punctuation.separator.template.cnext",
+              "match": ","
+            }
+          ]
+        }
+      ]
+    },
+    "c-interop": {
+      "patterns": [
+        {
+          "comment": "C library interop identifier with c_ prefix (nullable, ADR-046)",
+          "match": "\\b(c_[a-zA-Z_][a-zA-Z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "variable.other.c-interop.nullable.cnext" }
           }
         }
       ]
