@@ -39,6 +39,37 @@ const mapTypeToCType = (cnxType: string): string => {
 };
 
 /**
+ * Issue #304: Wrap argument with static_cast if it's a C++ enum class
+ * being passed to an integer parameter.
+ *
+ * @param argCode - The generated argument code
+ * @param argExpr - The argument expression context (for type lookup)
+ * @param targetParamBaseType - The target parameter's base type (if known)
+ * @param orchestrator - Orchestrator for type checking methods
+ * @returns The argument code, possibly wrapped with static_cast
+ */
+const wrapWithCppEnumCast = (
+  argCode: string,
+  argExpr: ExpressionContext,
+  targetParamBaseType: string | undefined,
+  orchestrator: IOrchestrator,
+): string => {
+  if (!orchestrator.isCppMode() || !targetParamBaseType) {
+    return argCode;
+  }
+
+  const argType = orchestrator.getExpressionType(argExpr);
+  if (argType && orchestrator.isCppEnumClass(argType)) {
+    if (orchestrator.isIntegerType(targetParamBaseType)) {
+      const cType = mapTypeToCType(targetParamBaseType);
+      return `static_cast<${cType}>(${argCode})`;
+    }
+  }
+
+  return argCode;
+};
+
+/**
  * Generate C code for a function call.
  *
  * @param funcExpr - The function name or expression being called
@@ -89,20 +120,13 @@ const generateFunctionCall = (
       if (!isCNextFunc) {
         // C function: pass-by-value, just generate the expression
         const argCode = orchestrator.generateExpression(e);
-
-        // Issue #304: In C++ mode, C++ enum classes need explicit cast to integer types
-        if (orchestrator.isCppMode() && targetParam) {
-          const argType = orchestrator.getExpressionType(e);
-          if (argType && orchestrator.isCppEnumClass(argType)) {
-            // Target is an integer type - wrap with static_cast
-            if (orchestrator.isIntegerType(targetParam.baseType)) {
-              const cType = mapTypeToCType(targetParam.baseType);
-              return `static_cast<${cType}>(${argCode})`;
-            }
-          }
-        }
-
-        return argCode;
+        // Issue #304: Wrap with static_cast if C++ enum class → integer
+        return wrapWithCppEnumCast(
+          argCode,
+          e,
+          targetParam?.baseType,
+          orchestrator,
+        );
       }
 
       // C-Next function: check if target parameter is a pass-by-value type
@@ -119,20 +143,13 @@ const generateFunctionCall = (
       if (isFloatParam || isEnumParam || isPrimitivePassByValue) {
         // Target parameter is pass-by-value: pass value directly
         const argCode = orchestrator.generateExpression(e);
-
-        // Issue #304: In C++ mode, C++ enum classes need explicit cast to integer types
-        if (orchestrator.isCppMode() && targetParam) {
-          const argType = orchestrator.getExpressionType(e);
-          if (argType && orchestrator.isCppEnumClass(argType)) {
-            // Target is an integer type - wrap with static_cast
-            if (orchestrator.isIntegerType(targetParam.baseType)) {
-              const cType = mapTypeToCType(targetParam.baseType);
-              return `static_cast<${cType}>(${argCode})`;
-            }
-          }
-        }
-
-        return argCode;
+        // Issue #304: Wrap with static_cast if C++ enum class → integer
+        return wrapWithCppEnumCast(
+          argCode,
+          e,
+          targetParam?.baseType,
+          orchestrator,
+        );
       } else {
         // Target parameter is pass-by-reference: use & logic
         // Pass the target param type for proper literal handling
