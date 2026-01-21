@@ -13,7 +13,7 @@
  * both scopes are in the same file.
  */
 
-import { writeFileSync, mkdirSync, rmSync, existsSync } from "fs";
+import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import Pipeline from "../../src/pipeline/Pipeline";
@@ -80,7 +80,6 @@ async function runTest() {
   if (result.success) {
     // BUG: The compilation succeeded when it should have failed!
     // Check if the generated code has the bug (dot notation instead of underscore)
-    const { readFileSync } = await import("fs");
     const generatedPath = join(testDir, "j1939_bus.c");
 
     if (existsSync(generatedPath)) {
