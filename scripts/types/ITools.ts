@@ -6,6 +6,7 @@ interface ITools {
   cppcheck: boolean;
   clangTidy: boolean;
   misra: boolean;
+  flawfinder: boolean;
 }
 
 export default ITools;

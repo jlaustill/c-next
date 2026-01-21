@@ -103,6 +103,7 @@ function checkValidationTools(): ITools {
     cppcheck: false,
     clangTidy: false,
     misra: false,
+    flawfinder: false,
   };
 
   try {
@@ -132,6 +133,16 @@ function checkValidationTools(): ITools {
     tools.clangTidy = true;
   } catch {
     // clang-tidy not available
+  }
+
+  try {
+    execFileSync("flawfinder", ["--version"], {
+      encoding: "utf-8",
+      stdio: "pipe",
+    });
+    tools.flawfinder = true;
+  } catch {
+    // flawfinder not available
   }
 
   return tools;
@@ -300,7 +311,19 @@ async function runTest(
         }
       }
 
-      // Step 5: No-warnings check (if /* test-no-warnings */ marker present)
+      // Step 5: Flawfinder security analysis
+      if (tools.flawfinder) {
+        const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
+        if (!flawfinderResult.valid) {
+          return {
+            passed: false,
+            message: "Flawfinder security check failed",
+            actual: flawfinderResult.message,
+          };
+        }
+      }
+
+      // Step 6: No-warnings check (if /* test-no-warnings */ marker present)
       if (TestUtils.hasNoWarningsMarker(source)) {
         const noWarningsResult = TestUtils.validateNoWarnings(
           expectedCFile,
@@ -315,7 +338,7 @@ async function runTest(
         }
       }
 
-      // Step 6: Execution test (if // test-execution marker present)
+      // Step 7: Execution test (if // test-execution marker present)
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (TestUtils.requiresArmRuntime(result.code)) {
           return { passed: true, skippedExec: true };
@@ -740,6 +763,7 @@ async function main(): Promise<void> {
     if (tools.cppcheck) toolList.push("cppcheck");
     if (tools.clangTidy) toolList.push("clang-tidy");
     if (tools.misra) toolList.push("MISRA");
+    if (tools.flawfinder) toolList.push("flawfinder");
     console.log(
       `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
     );
