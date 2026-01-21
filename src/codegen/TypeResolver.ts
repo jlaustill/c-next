@@ -230,6 +230,7 @@ class TypeResolver {
 
   /**
    * ADR-024: Get the type of a postfix expression.
+   * Issue #304: Enhanced to track type through member access chains (e.g., cfg.mode)
    */
   getPostfixExpressionType(
     ctx: Parser.PostfixExpressionContext,
@@ -238,13 +239,28 @@ class TypeResolver {
     if (!primary) return null;
 
     // Get base type from primary expression
-    const baseType = this.getPrimaryExpressionType(primary);
+    let currentType = this.getPrimaryExpressionType(primary);
+    if (!currentType) return null;
 
-    // Check for postfix operations like bit indexing
+    // Check for postfix operations: member access, array indexing, bit indexing
     const suffixes = ctx.children?.slice(1) || [];
     for (const suffix of suffixes) {
       const text = suffix.getText();
-      // Bit indexing: [start, width] or [index]
+
+      // Member access: .fieldName
+      if (text.startsWith(".")) {
+        const memberName = text.slice(1);
+        const memberInfo = this.getMemberTypeInfo(currentType, memberName);
+        if (memberInfo) {
+          currentType = memberInfo.baseType;
+        } else {
+          // Can't determine member type, return null
+          return null;
+        }
+        continue;
+      }
+
+      // Array or bit indexing: [index] or [start, width]
       if (text.startsWith("[") && text.endsWith("]")) {
         const inner = text.slice(1, -1);
         if (inner.includes(",")) {
@@ -253,13 +269,19 @@ class TypeResolver {
           // Bit indexing is the explicit escape hatch for narrowing/sign conversions
           return null;
         } else {
-          // Single bit indexing: [index] - returns bool
-          return "bool";
+          // Single index: could be array access or bit indexing
+          // For arrays, the type stays the same (element type)
+          // For single bit on integer, returns bool
+          if (this.isIntegerType(currentType)) {
+            return "bool";
+          }
+          // For arrays, currentType is already the element type (from getMemberTypeInfo)
+          continue;
         }
       }
     }
 
-    return baseType;
+    return currentType;
   }
 
   /**

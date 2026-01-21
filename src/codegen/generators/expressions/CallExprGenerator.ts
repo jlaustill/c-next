@@ -18,6 +18,58 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 
 /**
+ * Issue #304: Map C-Next type to C type for static_cast.
+ */
+const TYPE_MAP: Record<string, string> = {
+  u8: "uint8_t",
+  u16: "uint16_t",
+  u32: "uint32_t",
+  u64: "uint64_t",
+  i8: "int8_t",
+  i16: "int16_t",
+  i32: "int32_t",
+  i64: "int64_t",
+  f32: "float",
+  f64: "double",
+  bool: "bool",
+};
+
+const mapTypeToCType = (cnxType: string): string => {
+  return TYPE_MAP[cnxType] || cnxType;
+};
+
+/**
+ * Issue #304: Wrap argument with static_cast if it's a C++ enum class
+ * being passed to an integer parameter.
+ *
+ * @param argCode - The generated argument code
+ * @param argExpr - The argument expression context (for type lookup)
+ * @param targetParamBaseType - The target parameter's base type (if known)
+ * @param orchestrator - Orchestrator for type checking methods
+ * @returns The argument code, possibly wrapped with static_cast
+ */
+const wrapWithCppEnumCast = (
+  argCode: string,
+  argExpr: ExpressionContext,
+  targetParamBaseType: string | undefined,
+  orchestrator: IOrchestrator,
+): string => {
+  if (!orchestrator.isCppMode() || !targetParamBaseType) {
+    return argCode;
+  }
+
+  const argType = orchestrator.getExpressionType(argExpr);
+  if (argType && orchestrator.isCppEnumClass(argType)) {
+    if (orchestrator.isIntegerType(targetParamBaseType)) {
+      const cType = mapTypeToCType(targetParamBaseType);
+      return `static_cast<${cType}>(${argCode})`;
+    }
+  }
+
+  return argCode;
+};
+
+/**
  * Generate C code for a function call.
  *
  * @param funcExpr - The function name or expression being called
@@ -61,14 +113,23 @@ const generateFunctionCall = (
 
   const args = argExprs
     .map((e, idx) => {
+      // Get function signature for parameter type info
+      const sig = input.functionSignatures.get(funcExpr);
+      const targetParam = sig?.parameters[idx];
+
       if (!isCNextFunc) {
         // C function: pass-by-value, just generate the expression
-        return orchestrator.generateExpression(e);
+        const argCode = orchestrator.generateExpression(e);
+        // Issue #304: Wrap with static_cast if C++ enum class → integer
+        return wrapWithCppEnumCast(
+          argCode,
+          e,
+          targetParam?.baseType,
+          orchestrator,
+        );
       }
 
       // C-Next function: check if target parameter is a pass-by-value type
-      const sig = input.functionSignatures.get(funcExpr);
-      const targetParam = sig?.parameters[idx];
       const isFloatParam =
         targetParam && orchestrator.isFloatType(targetParam.baseType);
       const isEnumParam =
@@ -81,7 +142,14 @@ const generateFunctionCall = (
 
       if (isFloatParam || isEnumParam || isPrimitivePassByValue) {
         // Target parameter is pass-by-value: pass value directly
-        return orchestrator.generateExpression(e);
+        const argCode = orchestrator.generateExpression(e);
+        // Issue #304: Wrap with static_cast if C++ enum class → integer
+        return wrapWithCppEnumCast(
+          argCode,
+          e,
+          targetParam?.baseType,
+          orchestrator,
+        );
       } else {
         // Target parameter is pass-by-reference: use & logic
         // Pass the target param type for proper literal handling
