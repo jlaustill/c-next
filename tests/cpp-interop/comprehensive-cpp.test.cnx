@@ -258,6 +258,56 @@ void testRefsAndPtrs() {
 }
 
 // ============================================================================
+// SECTION 13: STRICT INITIALIZATION (Issue #304.3)
+// ============================================================================
+// Test types that FAIL with {0} but work with {}
+// This section will FAIL to compile if transpiler generates {0}
+
+void testStrictInit() {
+    // StrictResult has explicit constructor - {0} would fail
+    StrictResult sr1;
+    sr1.code <- 0;
+    StrictResult sr2 <- global.StrictResult.success();
+    StrictResult sr3 <- global.StrictResult.error(404);
+
+    // CommandResult default constructor - {0} would fail
+    CommandResult cr1;
+    cr1.errorCode <- 0;
+    cr1.responseLen <- 0;
+    CommandResult cr2 <- global.CommandResult.ok();
+    CommandResult cr3 <- global.CommandResult.fail(500, "error");
+
+    // Access members to verify initialization works
+    i32 code1 <- sr1.code;
+    i32 code2 <- cr1.errorCode;
+}
+
+// ============================================================================
+// SECTION 14: ARRAY PARAMETERS (Issue #304.4)
+// ============================================================================
+// Test passing array members to functions - should NOT add spurious &
+
+void testArrayParams() {
+    ResponsePacket packet;
+    packet.statusCode <- 200;
+    packet.payloadLen <- 8;
+    packet.payload[0] <- 0x01;
+    packet.payload[1] <- 0x02;
+
+    // Pass array member to function - should be packet.payload, NOT &packet.payload
+    global.sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
+
+    // Also test with Result struct from earlier
+    Result res;
+    res.code <- 0;
+    res.dataLen <- 4;
+    res.data[0] <- 0xAB;
+
+    // Pass result.data - should NOT have & prefix
+    global.sendData(2, res.code, res.data, res.dataLen);
+}
+
+// ============================================================================
 // MAIN - Call all test sections
 // ============================================================================
 
@@ -274,4 +324,6 @@ void main() {
     testComplexStructs();
     testSingleton();
     testRefsAndPtrs();
+    testStrictInit();
+    testArrayParams();
 }

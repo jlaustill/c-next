@@ -1213,6 +1213,33 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #304: Check if a type name is from a C++ header
+   * Used to determine whether to use {} or {0} for initialization.
+   * C++ types with constructors may fail with {0} but work with {}.
+   */
+  private isCppType(typeName: string): boolean {
+    if (!this.symbolTable) {
+      return false;
+    }
+
+    const symbols = this.symbolTable.getOverloads(typeName);
+    for (const sym of symbols) {
+      if (sym.sourceLanguage === ESourceLanguage.Cpp) {
+        // Any C++ struct, class, or user-defined type
+        if (
+          sym.kind === ESymbolKind.Struct ||
+          sym.kind === ESymbolKind.Class ||
+          sym.kind === ESymbolKind.TypeAlias
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Generate C code from a C-Next program
    * @param tree The parsed C-Next program
    * @param symbolTable Optional symbol table for cross-language interop
@@ -5423,6 +5450,12 @@ export default class CodeGenerator implements IOrchestrator {
         }
         // Fallback to casting 0 to the enum type
         return `(${typeName})0`;
+      }
+
+      // Issue #304: C++ types with constructors may fail with {0}
+      // Use {} for C++ types, {0} for C types
+      if (this.isCppType(typeName)) {
+        return "{}";
       }
 
       return "{0}";

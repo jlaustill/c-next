@@ -71,13 +71,13 @@ void testStaticMethods(void) {
 // ============================================================================
 // Test struct with constructors and factory methods
 void testStructInit(void) {
-    Result r1 = {0};
+    Result r1 = {};
     Result success = Result::success();
     Result error = Result::error(404);
-    Point p = {0};
+    Point p = {};
     p.x = 10;
     p.y = 20;
-    Settings s = {0};
+    Settings s = {};
     s.enabled = false;
     s.timeout = 1000;
     s.mode = EMode::OFF;
@@ -120,7 +120,7 @@ uint32_t processByte(uint32_t crc, uint8_t byte) {
 }
 
 void testTypeConversions(void) {
-    SensorConfig cfg = {0};
+    SensorConfig cfg = {};
     cfg.enabled = true;
     cfg.mode = EMode::ON;
     cfg.flags = 0x0F;
@@ -136,7 +136,7 @@ void testTypeConversions(void) {
 // ============================================================================
 // Test array of structs member access
 void testArrayMembers(void) {
-    DeviceConfig device = {0};
+    DeviceConfig device = {};
     device.sensors[0].enabled = true;
     device.sensors[0].mode = EMode::ON;
     device.sensors[0].flags = 0x01;
@@ -156,7 +156,7 @@ void testArrayMembers(void) {
 // ============================================================================
 // Test nested struct member access
 void testComplexStructs(void) {
-    Message msg = {0};
+    Message msg = {};
     msg.id = 0x100;
     msg.length = 8;
     msg.flags = FLAG_READ;
@@ -189,6 +189,43 @@ void testRefsAndPtrs(void) {
 }
 
 // ============================================================================
+// SECTION 13: STRICT INITIALIZATION (Issue #304.3)
+// ============================================================================
+// Test types that FAIL with {0} but work with {}
+// This section will FAIL to compile if transpiler generates {0}
+void testStrictInit(void) {
+    StrictResult sr1 = {};
+    sr1.code = 0;
+    StrictResult sr2 = StrictResult::success();
+    StrictResult sr3 = StrictResult::error(404);
+    CommandResult cr1 = {};
+    cr1.errorCode = 0;
+    cr1.responseLen = 0;
+    CommandResult cr2 = CommandResult::ok();
+    CommandResult cr3 = CommandResult::fail(500, "error");
+    int32_t code1 = sr1.code;
+    int32_t code2 = cr1.errorCode;
+}
+
+// ============================================================================
+// SECTION 14: ARRAY PARAMETERS (Issue #304.4)
+// ============================================================================
+// Test passing array members to functions - should NOT add spurious &
+void testArrayParams(void) {
+    ResponsePacket packet = {};
+    packet.statusCode = 200;
+    packet.payloadLen = 8;
+    packet.payload[0] = 0x01;
+    packet.payload[1] = 0x02;
+    sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
+    Result res = {};
+    res.code = 0;
+    res.dataLen = 4;
+    res.data[0] = 0xAB;
+    sendData(2, res.code, res.data, res.dataLen);
+}
+
+// ============================================================================
 // MAIN - Call all test sections
 // ============================================================================
 int main(void) {
@@ -204,4 +241,6 @@ int main(void) {
     testComplexStructs();
     testSingleton();
     testRefsAndPtrs();
+    testStrictInit();
+    testArrayParams();
 }

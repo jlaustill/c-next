@@ -336,3 +336,56 @@ public:
     NonCopyable(NonCopyable&&) = default;
     NonCopyable& operator=(NonCopyable&&) = default;
 };
+
+// ============================================================================
+// SECTION 17: STRICT INITIALIZATION (Issue #304.3)
+// ============================================================================
+// These types FAIL with {0} but work with {} - tests correct initialization
+
+// Type with explicit constructor - {0} fails, {} works
+struct StrictResult {
+    int code;
+    const char* message;
+
+    StrictResult() : code(0), message(nullptr) {}
+    explicit StrictResult(int c) : code(c), message(nullptr) {}
+
+    static StrictResult success() { return StrictResult(); }
+    static StrictResult error(int c) { return StrictResult(c); }
+};
+
+// Type requiring multiple constructor args - {0} fails, {} works
+struct CommandResult {
+    int errorCode;
+    const char* errorMessage;
+    uint8_t responseData[32];
+    size_t responseLen;
+
+    // Only constructor requires 2 args - {0} cannot match
+    CommandResult(int code, const char* msg)
+        : errorCode(code), errorMessage(msg), responseData{}, responseLen(0) {}
+
+    // Default constructor for {} initialization
+    CommandResult() : errorCode(0), errorMessage(nullptr), responseData{}, responseLen(0) {}
+
+    static CommandResult ok() { return CommandResult(); }
+    static CommandResult fail(int code, const char* msg) { return CommandResult(code, msg); }
+};
+
+// ============================================================================
+// SECTION 18: ARRAY PARAMETERS (Issue #304.4)
+// ============================================================================
+// Functions taking array parameters - tests spurious & detection
+
+// Takes pointer to array data (common embedded pattern)
+void sendData(int channel, int errorCode, const uint8_t* data, size_t len);
+void receiveData(int channel, uint8_t* data, size_t* len);
+
+// Struct with array that gets passed to functions
+struct ResponsePacket {
+    int statusCode;
+    uint8_t payload[64];
+    size_t payloadLen;
+
+    ResponsePacket() : statusCode(0), payload{}, payloadLen(0) {}
+};
