@@ -1,0 +1,91 @@
+// test-execution
+// Issue #269: Pass-by-value for small unmodified parameters
+// Tests that unmodified small primitive types pass by value,
+// while modified parameters still pass by pointer.
+
+// --- Unmodified parameters: should pass by value ---
+
+u8 getLowByte(u16 value) {
+    return value[0, 8];
+}
+
+u8 getHighByte(u16 value) {
+    return value[8, 8];
+}
+
+u32 addTwo(u32 a, u32 b) {
+    return a + b;
+}
+
+bool invert(bool flag) {
+    return !flag;
+}
+
+// --- Modified parameters: should still pass by pointer ---
+
+void increment(u32 x) {
+    x <- x + 1;
+}
+
+void doubleValue(u16 val) {
+    val <- val * 2;
+}
+
+// --- Transitively modified: passed to function that modifies ---
+// These should pass by pointer because increment() modifies its param
+
+void incrementWrapper(u32 x) {
+    increment(x);
+}
+
+// --- Mixed: some params modified, some not ---
+
+u32 addAndIncrement(u32 a, u32 b) {
+    a <- a + 1;
+    return a + b;
+}
+
+// --- Main test ---
+
+u32 main() {
+    // Test unmodified by-value functions
+    u16 testVal <- 0x1234;
+
+    u8 low <- getLowByte(testVal);
+    if (low != 0x34) return 1;
+
+    u8 high <- getHighByte(testVal);
+    if (high != 0x12) return 2;
+
+    u32 sum <- addTwo(100, 200);
+    if (sum != 300) return 3;
+
+    bool result <- invert(true);
+    if (result != false) return 4;
+
+    result <- invert(false);
+    if (result != true) return 5;
+
+    // Test modified by-pointer functions
+    u32 counter <- 10;
+    increment(counter);
+    if (counter != 11) return 6;
+
+    u16 doubled <- 50;
+    doubleValue(doubled);
+    if (doubled != 100) return 7;
+
+    // Test transitively modified
+    u32 wrapped <- 20;
+    incrementWrapper(wrapped);
+    if (wrapped != 21) return 8;
+
+    // Test mixed
+    u32 mixedA <- 5;
+    u32 mixedB <- 10;
+    u32 mixedResult <- addAndIncrement(mixedA, mixedB);
+    if (mixedResult != 16) return 9;  // (5+1) + 10 = 16
+    if (mixedA != 6) return 10;       // a was modified
+
+    return 0;
+}
