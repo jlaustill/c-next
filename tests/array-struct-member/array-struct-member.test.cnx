@@ -1,6 +1,5 @@
-// Test: Array-of-struct member assignment
-// Bug: arr[i].field generates arr.field[i] instead of arr[i].field
-// This test verifies correct code generation and runtime behavior
+// Regression test: Array-of-struct member assignment
+// Verifies arr[i].field generates correctly (was generating arr.field[i])
 struct Point {
     i32 x;
     i32 y;

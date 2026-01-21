@@ -16,8 +16,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
-// Test accessing array members within structs
-// Bug: config.items[i].value transpiles to bit operations instead of array access
+// Regression test: accessing array members within structs
+// Verifies config.items[i].value transpiles correctly (was generating bit operations)
 typedef struct Item {
     uint32_t value;
     uint8_t flags;

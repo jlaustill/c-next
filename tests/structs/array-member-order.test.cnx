@@ -1,6 +1,6 @@
 // test-execution
-// Test postfix chain ordering for both reads and assignments
-// Bug: cfg.items[0].value transpiles to cfg.items.value[0] (wrong order!)
+// Regression test: postfix chain ordering for reads and assignments
+// Verifies cfg.items[0].value transpiles correctly (was generating cfg.items.value[0])
 struct Item {
     u32 value;
     u8 flags;
