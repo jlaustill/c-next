@@ -33,7 +33,8 @@ describe("generateStructHeader", () => {
 
       const result = generateStructHeader("Point3D", input);
 
-      expect(result).toContain("typedef struct {");
+      // Issue #296: Named structs for forward declaration compatibility
+      expect(result).toContain("typedef struct Point3D {");
       expect(result).toContain("uint32_t x;");
       expect(result).toContain("uint32_t y;");
       expect(result).toContain("uint32_t z;");
@@ -158,7 +159,10 @@ describe("generateStructHeader", () => {
 
       const result = generateStructHeader("Wrapper", input);
 
-      expect(result).toBe("typedef struct {\n    int64_t value;\n} Wrapper;");
+      // Issue #296: Named structs for forward declaration compatibility
+      expect(result).toBe(
+        "typedef struct Wrapper {\n    int64_t value;\n} Wrapper;",
+      );
     });
 
     it("should handle struct with pointer field type", () => {
