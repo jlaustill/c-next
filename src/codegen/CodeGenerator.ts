@@ -953,6 +953,46 @@ export default class CodeGenerator implements IOrchestrator {
     this.functionUnmodifiedParams.set(functionName, unmodifiedParams);
   }
 
+  /**
+   * Issue #268: Mark a parameter as modified for auto-const tracking.
+   */
+  markParameterModified(paramName: string): void {
+    if (this.context.currentParameters.has(paramName)) {
+      this.context.modifiedParameters.add(paramName);
+    }
+  }
+
+  /**
+   * Issue #268: Check if a callee function's parameter at given index is modified.
+   * Returns true if the callee modifies that parameter (should not have const).
+   */
+  isCalleeParameterModified(funcName: string, paramIndex: number): boolean {
+    const unmodifiedParams = this.functionUnmodifiedParams.get(funcName);
+    if (!unmodifiedParams) {
+      // Callee not yet processed - conservatively return false (assume unmodified)
+      // This means we won't mark our param as modified, which may cause a C compiler error
+      // if the callee actually modifies the param. The C compiler will catch this.
+      return false;
+    }
+
+    // Get the parameter name at the given index from the function signature
+    const sig = this.functionSignatures.get(funcName);
+    if (!sig || paramIndex >= sig.parameters.length) {
+      return false;
+    }
+
+    const paramName = sig.parameters[paramIndex].name;
+    // If the param is NOT in the unmodified set, it was modified
+    return !unmodifiedParams.has(paramName);
+  }
+
+  /**
+   * Issue #268: Check if a name is a parameter of the current function.
+   */
+  isCurrentParameter(name: string): boolean {
+    return this.context.currentParameters.has(name);
+  }
+
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================
@@ -4054,6 +4094,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Generate body first (this populates modifiedParameters)
     const body = this._generateBlock(ctx.block());
+
+    // Issue #268: Update symbol's parameter info with auto-const before clearing
+    this.updateFunctionParamsAutoConst(name);
 
     // Now generate parameter list (can use modifiedParameters for auto-const)
     if (!isMainWithArgs) {
