@@ -9,7 +9,7 @@
 // test-execution
 // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
-uint32_t checkValue(uint32_t* x) {
+uint32_t checkValue(const uint32_t* x) {
     if ((*x) == 0) {
         return 0;
     }
@@ -19,7 +19,7 @@ uint32_t checkValue(uint32_t* x) {
     return (*x);
 }
 
-bool isPositive(int32_t* n) {
+bool isPositive(const int32_t* n) {
     if ((*n) > 0) {
         return true;
     }

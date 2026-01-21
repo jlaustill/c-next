@@ -20,7 +20,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Issue #139: Test string assignment in deeply nested blocks
 char nested[33] = "";
 
-void deepNest(uint32_t* depth) {
+void deepNest(const uint32_t* depth) {
     if ((*depth) > 0) {
         if ((*depth) > 1) {
             if ((*depth) > 2) {
@@ -30,7 +30,7 @@ void deepNest(uint32_t* depth) {
     }
 }
 
-void mixedNest(uint32_t* count) {
+void mixedNest(const uint32_t* count) {
     if ((*count) > 0) {
         uint32_t i = 0;
         while (i < (*count)) {

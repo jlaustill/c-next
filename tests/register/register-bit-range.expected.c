@@ -16,19 +16,19 @@
 #define CONFIG_MODE (*(volatile uint32_t*)(0x40020000 + 0x00))
 #define CONFIG_OPTIONS (*(volatile uint32_t*)(0x40020000 + 0x04))
 
-void setTimerPrescaler(uint8_t* prescaler) {
+void setTimerPrescaler(const uint8_t* prescaler) {
     TIMER_PRESCALE = (TIMER_PRESCALE & ~(1 << 0)) | (((*prescaler) ? 1 : 0) << 0);
 }
 
-void setTimerMode(uint8_t* mode) {
+void setTimerMode(const uint8_t* mode) {
     TIMER_CTRL = (TIMER_CTRL & ~(1 << 0)) | (((*mode) ? 1 : 0) << 0);
 }
 
-void setTimerFlags(uint8_t* flags) {
+void setTimerFlags(const uint8_t* flags) {
     TIMER_CTRL = (TIMER_CTRL & ~(1 << 4)) | (((*flags) ? 1 : 0) << 4);
 }
 
-void configureOptions(uint16_t* opts) {
+void configureOptions(const uint16_t* opts) {
     CONFIG_OPTIONS = (CONFIG_OPTIONS & ~(1 << 0)) | (((*opts) ? 1 : 0) << 0);
 }
 

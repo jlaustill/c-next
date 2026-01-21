@@ -16,11 +16,11 @@ typedef enum {
     State_ERROR = 2
 } State;
 
-uint32_t checkArrayLength(State arr[16]) {
+uint32_t checkArrayLength(const State arr[16]) {
     return 16;
 }
 
-uint32_t checkElementLength(State arr[16]) {
+uint32_t checkElementLength(const State arr[16]) {
     return 32;
 }
 

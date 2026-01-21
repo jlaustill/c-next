@@ -12,11 +12,11 @@
 // Updated for Issue #234: Uses compile-time constant offsets
 /* Scope: StringSliceTest */
 
-static void StringSliceTest_copyToBuffer(char* buffer, uint16_t* value) {
+static void StringSliceTest_copyToBuffer(const char* buffer, const uint16_t* value) {
     memcpy(&buffer[0], &(*value), 2);
 }
 
-static void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t* value) {
+static void StringSliceTest_copyToBufferAt2(const char* buffer, const uint16_t* value) {
     memcpy(&buffer[2], &(*value), 2);
 }
 

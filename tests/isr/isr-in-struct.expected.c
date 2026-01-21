@@ -55,7 +55,7 @@ void initStructHolder(IsrHolder* hld, ISR prim, ISR sec) {
 }
 
 // Invoke ISR from struct field
-void invokeStructHolder(IsrHolder* hld) {
+void invokeStructHolder(const IsrHolder* hld) {
     hld->primary();
     hld->secondary();
 }

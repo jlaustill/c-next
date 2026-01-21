@@ -7,7 +7,7 @@
 
 // ADR-006: Output parameter pattern
 // Tests: function writes result to caller's variable
-void calculateSum(int32_t* a, int32_t* b, int32_t* result) {
+void calculateSum(const int32_t* a, const int32_t* b, int32_t* result) {
     (*result) = (*a) + (*b);
 }
 

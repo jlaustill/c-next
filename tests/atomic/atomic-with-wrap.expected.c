@@ -56,7 +56,7 @@ void nextFrame(void) {
     } while (1);
 }
 
-void addToTicks(uint32_t* delta) {
+void addToTicks(const uint32_t* delta) {
     do {
         uint32_t __old = __LDREXW(&tick32);
         uint32_t __new = __old + (*delta);
@@ -64,7 +64,7 @@ void addToTicks(uint32_t* delta) {
     } while (1);
 }
 
-void subtractFromTick8(uint8_t* delta) {
+void subtractFromTick8(const uint8_t* delta) {
     do {
         uint8_t __old = __LDREXB(&tick8);
         uint8_t __new = __old - (*delta);

@@ -34,7 +34,7 @@ void Counter_increment(void) {
     Counter_value = cnx_clamp_add_u32(Counter_value, 1);
 }
 
-void Counter_incrementBy(uint32_t* delta) {
+void Counter_incrementBy(const uint32_t* delta) {
     Counter_value = cnx_clamp_add_u32(Counter_value, (*delta));
 }
 
@@ -54,11 +54,11 @@ void Timer_tick(void) {
     Timer_ticks += 1;
 }
 
-void Timer_setPeriod(uint16_t* p) {
+void Timer_setPeriod(const uint16_t* p) {
     Timer_period = (*p);
 }
 
-void Timer_adjustPeriod(uint16_t* delta) {
+void Timer_adjustPeriod(const uint16_t* delta) {
     Timer_period = cnx_clamp_add_u16(Timer_period, (*delta));
 }
 

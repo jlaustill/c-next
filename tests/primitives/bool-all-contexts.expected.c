@@ -24,11 +24,11 @@ typedef struct {
 bool flagArray[4] = {0};
 
 // 4. Function with bool param and return
-bool negate(bool* value) {
+bool negate(const bool* value) {
     return !(*value);
 }
 
-bool identity(bool* value) {
+bool identity(const bool* value) {
     return (*value);
 }
 

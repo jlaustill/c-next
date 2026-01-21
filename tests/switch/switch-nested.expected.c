@@ -12,7 +12,7 @@
 uint32_t result = 0;
 
 // Basic nested switch: outer and inner both u32
-void testNestedBasic(uint32_t* outer, uint32_t* inner) {
+void testNestedBasic(const uint32_t* outer, const uint32_t* inner) {
     switch ((*outer)) {
         case 0: {
             switch ((*inner)) {
@@ -69,7 +69,7 @@ void testNestedBasic(uint32_t* outer, uint32_t* inner) {
 }
 
 // Nested with different types: outer u8, inner u16
-void testNestedMixedTypes(uint8_t* outer, uint16_t* inner) {
+void testNestedMixedTypes(const uint8_t* outer, const uint16_t* inner) {
     switch ((*outer)) {
         case 0: {
             switch ((*inner)) {
@@ -109,7 +109,7 @@ void testNestedMixedTypes(uint8_t* outer, uint16_t* inner) {
 }
 
 // Triple nested: all u8 for manageable test cases
-void testTripleNested(uint8_t* a, uint8_t* b, uint8_t* c) {
+void testTripleNested(const uint8_t* a, const uint8_t* b, const uint8_t* c) {
     switch ((*a)) {
         case 0: {
             switch ((*b)) {
@@ -171,7 +171,7 @@ void testTripleNested(uint8_t* a, uint8_t* b, uint8_t* c) {
 }
 
 // Nested with signed types (positive case labels only)
-void testNestedSigned(int8_t* outer, int8_t* inner) {
+void testNestedSigned(const int8_t* outer, const int8_t* inner) {
     switch ((*outer)) {
         case 0: {
             switch ((*inner)) {

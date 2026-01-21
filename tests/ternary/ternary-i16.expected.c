@@ -8,15 +8,15 @@
 // test-execution
 // ADR-022: Ternary operator test for i16
 // Tests: ternary with i16 in conditions and branches, including negative values
-int16_t getMax(int16_t* a, int16_t* b) {
+int16_t getMax(const int16_t* a, const int16_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
 
-int16_t getMin(int16_t* a, int16_t* b) {
+int16_t getMin(const int16_t* a, const int16_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-int16_t getAbs(int16_t* x) {
+int16_t getAbs(const int16_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 

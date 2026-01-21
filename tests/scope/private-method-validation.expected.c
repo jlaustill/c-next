@@ -77,7 +77,7 @@ static void PrivateMethodTest_performPrivateChain(void) {
     PrivateMethodTest_privateFlag = !PrivateMethodTest_privateFlag;
 }
 
-static void PrivateMethodTest_addValue(int32_t* amount) {
+static void PrivateMethodTest_addValue(const int32_t* amount) {
     PrivateMethodTest_privateAccumulator = PrivateMethodTest_privateAccumulator + (*amount);
     PrivateMethodTest_incrementCallCount();
 }
@@ -86,7 +86,7 @@ uint32_t PrivateMethodTest_exposePrivateState(void) {
     return PrivateMethodTest_getPrivateState();
 }
 
-void PrivateMethodTest_setPrivateState(uint32_t* val) {
+void PrivateMethodTest_setPrivateState(const uint32_t* val) {
     PrivateMethodTest_privateState = (*val);
 }
 
@@ -94,7 +94,7 @@ bool PrivateMethodTest_exposePrivateFlag(void) {
     return PrivateMethodTest_getPrivateFlag();
 }
 
-void PrivateMethodTest_setPrivateFlag(bool* val) {
+void PrivateMethodTest_setPrivateFlag(const bool* val) {
     PrivateMethodTest_privateFlag = (*val);
 }
 
@@ -102,7 +102,7 @@ int32_t PrivateMethodTest_exposePrivateAccumulator(void) {
     return PrivateMethodTest_getPrivateAccumulator();
 }
 
-void PrivateMethodTest_addToAccumulator(int32_t* val) {
+void PrivateMethodTest_addToAccumulator(const int32_t* val) {
     PrivateMethodTest_addValue(val);
 }
 

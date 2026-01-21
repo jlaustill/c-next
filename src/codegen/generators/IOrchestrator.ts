@@ -284,6 +284,12 @@ interface IOrchestrator {
 
   /** Generate callback typedef for a function */
   generateCallbackTypedef(funcName: string): string | null;
+
+  /**
+   * Issue #268: Update symbol parameters with auto-const info based on modification tracking.
+   * Call this after generating function body but before clearing modifiedParameters.
+   */
+  updateFunctionParamsAutoConst(functionName: string): void;
 }
 
 export default IOrchestrator;

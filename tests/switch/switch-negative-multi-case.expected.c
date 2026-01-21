@@ -11,7 +11,7 @@
 int32_t result = 0;
 
 // Test multiple negative cases grouped together
-void testNegativeGroup(int8_t* val) {
+void testNegativeGroup(const int8_t* val) {
     switch ((*val)) {
         case -3:
         case -2:
@@ -49,7 +49,7 @@ void testNegativeGroup(int8_t* val) {
 }
 
 // Test mixed positive and negative in same case
-void testMixedGroup(int16_t* val) {
+void testMixedGroup(const int16_t* val) {
     switch ((*val)) {
         case -100:
         case 100: {
@@ -75,7 +75,7 @@ void testMixedGroup(int16_t* val) {
 }
 
 // Test negative hex in multi-case
-void testNegativeHexGroup(int32_t* val) {
+void testNegativeHexGroup(const int32_t* val) {
     switch ((*val)) {
         case -0x10:
         case -0x20:

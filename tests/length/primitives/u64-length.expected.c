@@ -22,7 +22,7 @@ uint32_t TestScope_getMemberLength(void) {
 }
 uint64_t TestScope_publicMember = 1000000;
 
-uint32_t checkParamLength(uint64_t* param) {
+uint32_t checkParamLength(const uint64_t* param) {
     return 64;
 }
 

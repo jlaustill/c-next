@@ -11,7 +11,7 @@
 int32_t result = 0;
 
 // Test i32 with various negative values
-void testI32Values(int32_t* val) {
+void testI32Values(const int32_t* val) {
     switch ((*val)) {
         case -2147483648: {
             result = 1;
@@ -69,7 +69,7 @@ void testI32Values(int32_t* val) {
 }
 
 // Test negative hex with i32 values
-void testI32Hex(int32_t* val) {
+void testI32Hex(const int32_t* val) {
     switch ((*val)) {
         case -0x80000000: {
             result = 20;

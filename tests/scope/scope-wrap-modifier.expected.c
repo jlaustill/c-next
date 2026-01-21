@@ -89,19 +89,19 @@ void WrapTest_decrementCycleCounter(void) {
     WrapTest_cycleCounter -= 1;
 }
 
-void WrapTest_setByteCounter(uint8_t* val) {
+void WrapTest_setByteCounter(const uint8_t* val) {
     WrapTest_byteCounter = (*val);
 }
 
-void WrapTest_setBrightness(uint8_t* val) {
+void WrapTest_setBrightness(const uint8_t* val) {
     WrapTest_brightness = (*val);
 }
 
-void WrapTest_setSensorValue(uint16_t* val) {
+void WrapTest_setSensorValue(const uint16_t* val) {
     WrapTest_sensorValue = (*val);
 }
 
-void WrapTest_setPosition(uint32_t* val) {
+void WrapTest_setPosition(const uint32_t* val) {
     WrapTest_position = (*val);
 }
 

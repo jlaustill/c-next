@@ -148,19 +148,19 @@ int32_t MethodContexts_getPublicOffset(void) {
     return MethodContexts_publicOffset;
 }
 
-void MethodContexts_setPrivateValue(uint8_t* val) {
+void MethodContexts_setPrivateValue(const uint8_t* val) {
     MethodContexts_privateValue = (*val);
 }
 
-void MethodContexts_setPublicValue(uint8_t* val) {
+void MethodContexts_setPublicValue(const uint8_t* val) {
     MethodContexts_publicValue = (*val);
 }
 
-void MethodContexts_setPrivateFlag(bool* val) {
+void MethodContexts_setPrivateFlag(const bool* val) {
     MethodContexts_privateFlag = (*val);
 }
 
-void MethodContexts_setPublicFlag(bool* val) {
+void MethodContexts_setPublicFlag(const bool* val) {
     MethodContexts_publicFlag = (*val);
 }
 

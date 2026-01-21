@@ -20,7 +20,7 @@ uint8_t buffer[64] = {0};
 
 uint32_t writeIdx = 0;
 
-void enqueue(uint8_t* data) {
+void enqueue(const uint8_t* data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();

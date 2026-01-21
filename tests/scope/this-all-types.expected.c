@@ -66,11 +66,11 @@ bool AllTypesTest_getBool(void) {
     return AllTypesTest_valBool;
 }
 
-void AllTypesTest_setU8(uint8_t* val) {
+void AllTypesTest_setU8(const uint8_t* val) {
     AllTypesTest_valU8 = (*val);
 }
 
-void AllTypesTest_setBool(bool* val) {
+void AllTypesTest_setBool(const bool* val) {
     AllTypesTest_valBool = (*val);
 }
 

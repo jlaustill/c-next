@@ -8,15 +8,15 @@
 // test-execution
 // ADR-022: Basic ternary operator test
 // Tests: simple relational conditions with parentheses
-uint32_t getMax(uint32_t* a, uint32_t* b) {
+uint32_t getMax(const uint32_t* a, const uint32_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
 
-uint32_t getMin(uint32_t* a, uint32_t* b) {
+uint32_t getMin(const uint32_t* a, const uint32_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-int32_t getAbs(int32_t* x) {
+int32_t getAbs(const int32_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 

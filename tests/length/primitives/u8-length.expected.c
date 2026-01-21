@@ -25,7 +25,7 @@ uint32_t TestScope_getMemberLength(void) {
 uint8_t TestScope_publicMember = 42;
 
 // Context 6: Function parameter
-uint32_t checkParamLength(uint8_t* param) {
+uint32_t checkParamLength(const uint8_t* param) {
     return 8;
 }
 

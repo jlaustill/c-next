@@ -15,7 +15,7 @@
 // u8 is the most common use case for byte-by-byte string processing
 /* Scope: ByteProcessor */
 
-static uint32_t ByteProcessor_processByte(uint32_t* crc, uint8_t* byte) {
+static uint32_t ByteProcessor_processByte(const uint32_t* crc, const uint8_t* byte) {
     return (*crc) ^ (*byte);
 }
 

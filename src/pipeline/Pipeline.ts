@@ -27,6 +27,7 @@ import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
 import SymbolCollector from "../codegen/SymbolCollector";
 import SymbolTable from "../symbols/SymbolTable";
+import ESymbolKind from "../types/ESymbolKind";
 import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
 import CSymbolCollector from "../symbols/CSymbolCollector";
 import CppSymbolCollector from "../symbols/CppSymbolCollector";
@@ -576,6 +577,9 @@ class Pipeline {
         this.symbolCollectors.set(file.path, this.codeGenerator.symbols);
       }
 
+      // Issue #268: Update symbol parameters with auto-const info for header generation
+      this.updateSymbolsAutoConst(file.path);
+
       // Write to file if output directory specified
       let outputPath: string | undefined;
       if (this.config.outDir) {
@@ -673,6 +677,45 @@ class Pipeline {
 
     writeFileSync(headerPath, headerContent, "utf-8");
     return headerPath;
+  }
+
+  /**
+   * Issue #268: Update symbol parameters with auto-const info from code generation.
+   * This must be called after code generation to set isAutoConst on parameters
+   * that were not modified, enabling correct header generation.
+   */
+  private updateSymbolsAutoConst(filePath: string): void {
+    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
+    const symbols = this.symbolTable.getSymbolsByFile(filePath);
+    const symbolCollector = this.symbolCollectors.get(filePath);
+
+    for (const symbol of symbols) {
+      if (symbol.kind !== ESymbolKind.Function || !symbol.parameters) {
+        continue;
+      }
+
+      const unmodified = unmodifiedParams.get(symbol.name);
+      if (!unmodified) continue;
+
+      // Update each parameter's isAutoConst
+      for (const param of symbol.parameters) {
+        // Only set auto-const for parameters that would get pointer semantics
+        const isPointerParam =
+          !param.isConst &&
+          !param.isArray &&
+          param.type !== "f32" &&
+          param.type !== "f64" &&
+          param.type !== "ISR" &&
+          !(symbolCollector?.knownEnums.has(param.type) ?? false);
+
+        // Also check array params (they become pointers in C)
+        const isArrayParam = param.isArray && !param.isConst;
+
+        if (isPointerParam || isArrayParam) {
+          param.isAutoConst = unmodified.has(param.name);
+        }
+      }
+    }
   }
 
   /**

@@ -12,7 +12,7 @@
 uint32_t result = 0;
 
 // Basic multiple case syntax
-void testMultiCase(uint32_t* val) {
+void testMultiCase(const uint32_t* val) {
     switch ((*val)) {
         case 0:
         case 1:
@@ -37,7 +37,7 @@ void testMultiCase(uint32_t* val) {
 }
 
 // Multiple cases with hex literals
-void testMultiCaseHex(uint8_t* val) {
+void testMultiCaseHex(const uint8_t* val) {
     switch ((*val)) {
         case 0x00:
         case 0x01: {
@@ -61,7 +61,7 @@ void testMultiCaseHex(uint8_t* val) {
 }
 
 // Multiple cases with binary literals
-void testMultiCaseBinary(uint8_t* val) {
+void testMultiCaseBinary(const uint8_t* val) {
     switch ((*val)) {
         case 0x0:
         case 0x1: {
@@ -85,7 +85,7 @@ void testMultiCaseBinary(uint8_t* val) {
 }
 
 // Multiple cases with signed values (positive case labels only)
-void testMultiCaseSigned(int8_t* val) {
+void testMultiCaseSigned(const int8_t* val) {
     switch ((*val)) {
         case 0:
         case 1:
@@ -112,7 +112,7 @@ void testMultiCaseSigned(int8_t* val) {
 }
 
 // Many cases combined (5 alternatives)
-void testManyMultiCases(uint16_t* val) {
+void testManyMultiCases(const uint16_t* val) {
     switch ((*val)) {
         case 1:
         case 2:

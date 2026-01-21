@@ -14,7 +14,7 @@ typedef struct {
     int32_t y;
 } Point;
 
-Point addPoints(Point* a, Point* b) {
+Point addPoints(const Point* a, const Point* b) {
     Point result = {0};
     result.x = a->x + b->x;
     result.y = a->y + b->y;

@@ -8,15 +8,15 @@
 // test-execution
 // ADR-022: Ternary operator test for i64
 // Tests: ternary with i64 in conditions and branches, including negative values
-int64_t getMax(int64_t* a, int64_t* b) {
+int64_t getMax(const int64_t* a, const int64_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
 
-int64_t getMin(int64_t* a, int64_t* b) {
+int64_t getMin(const int64_t* a, const int64_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-int64_t getAbs(int64_t* x) {
+int64_t getAbs(const int64_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 

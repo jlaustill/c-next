@@ -11,7 +11,7 @@
 int32_t result = 0;
 
 // Test all critical i8 boundary values
-void testI8Boundaries(int8_t* val) {
+void testI8Boundaries(const int8_t* val) {
     switch ((*val)) {
         case -128: {
             result = 1;
@@ -57,7 +57,7 @@ void testI8Boundaries(int8_t* val) {
 }
 
 // Test consecutive negative values
-void testConsecutiveNegatives(int8_t* val) {
+void testConsecutiveNegatives(const int8_t* val) {
     switch ((*val)) {
         case -5: {
             result = 10;

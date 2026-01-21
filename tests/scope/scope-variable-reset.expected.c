@@ -13,7 +13,7 @@
 /* Scope: Calculator */
 static uint32_t Calculator_operationCount = 0;
 
-uint32_t Calculator_addAndCount(uint32_t* value) {
+uint32_t Calculator_addAndCount(const uint32_t* value) {
     uint32_t accumulator = 0;
     accumulator = accumulator + (*value);
     Calculator_operationCount = Calculator_operationCount + 1;

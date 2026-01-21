@@ -81,11 +81,11 @@ bool GlobalAccessTest_getGlobalBool(void) {
     return globalBool;
 }
 
-void GlobalAccessTest_setGlobalU8(uint8_t* val) {
+void GlobalAccessTest_setGlobalU8(const uint8_t* val) {
     globalU8 = (*val);
 }
 
-void GlobalAccessTest_setGlobalBool(bool* val) {
+void GlobalAccessTest_setGlobalBool(const bool* val) {
     globalBool = (*val);
 }
 

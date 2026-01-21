@@ -70,7 +70,7 @@ bool isUARTReady(void) {
     return ((UART_STATUS >> 0) & 1);
 }
 
-void configureTimer(uint8_t* prescale) {
+void configureTimer(const uint8_t* prescale) {
     TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 0)) | (0 << 0);
     TIMER_CONFIG = (TIMER_CONFIG & ~(0xFF << 4)) | (((*prescale) & 0xFF) << 4);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1 << 2)) | (1 << 2);

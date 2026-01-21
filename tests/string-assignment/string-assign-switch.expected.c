@@ -10,7 +10,7 @@
 // Issue #139: Test string assignment inside switch cases
 char level[33] = "";
 
-void setLevel(uint32_t* code) {
+void setLevel(const uint32_t* code) {
     switch ((*code)) {
         case 0: {
             strncpy(level, "Low", 32); level[32] = '\0';

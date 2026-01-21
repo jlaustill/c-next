@@ -11,7 +11,7 @@
 int32_t result = 0;
 
 // Test i16 boundary values
-void testI16Boundaries(int16_t* val) {
+void testI16Boundaries(const int16_t* val) {
     switch ((*val)) {
         case -32768: {
             result = 1;
@@ -65,7 +65,7 @@ void testI16Boundaries(int16_t* val) {
 }
 
 // Test negative hex with i16 values
-void testI16Hex(int16_t* val) {
+void testI16Hex(const int16_t* val) {
     switch ((*val)) {
         case -0x8000: {
             result = 20;

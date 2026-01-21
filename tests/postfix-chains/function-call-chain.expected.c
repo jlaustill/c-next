@@ -23,7 +23,7 @@ typedef struct {
 Transform transforms[4] = {0};
 
 // Functions with various parameter types
-uint32_t addU32(uint32_t* a, uint32_t* b) {
+uint32_t addU32(const uint32_t* a, const uint32_t* b) {
     return (*a) + (*b);
 }
 
@@ -35,7 +35,7 @@ float multiplyF32(float a, float b) {
     return a * b;
 }
 
-Vec3 scaleVec3(Vec3* v, float scale) {
+Vec3 scaleVec3(const Vec3* v, float scale) {
     Vec3 result = {0};
     result.x = v->x * scale;
     result.y = v->y * scale;
@@ -47,7 +47,7 @@ bool isGreater(float a, float b) {
     return a > b;
 }
 
-void setTransform(Transform* t, uint32_t* index) {
+void setTransform(const Transform* t, const uint32_t* index) {
     transforms[(*index)] = (*t);
 }
 

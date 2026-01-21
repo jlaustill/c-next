@@ -12,13 +12,13 @@
 // - "value" does not start with "calculate_"
 // - "calculate" without underscore is allowed
 // - "calc_value" does not start with "calculate_"
-void calculate(uint32_t* value) {
+void calculate(const uint32_t* value) {
 }
 
-void process(uint32_t* process) {
+void process(const uint32_t* process) {
 }
 
-void update(uint32_t* upd_value) {
+void update(const uint32_t* upd_value) {
 }
 
 // Scope functions should also work correctly

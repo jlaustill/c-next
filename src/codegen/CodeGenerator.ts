@@ -167,6 +167,7 @@ interface GeneratorContext {
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
   currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
+  modifiedParameters: Set<string>; // Issue #268: track modified params for auto-const inference
   localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
   localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
   inFunctionBody: boolean; // ADR-016: track if we're inside a function body
@@ -194,6 +195,7 @@ export default class CodeGenerator implements IOrchestrator {
     indentLevel: 0,
     scopeMembers: new Map(), // ADR-016: renamed from namespaceMembers
     currentParameters: new Map(),
+    modifiedParameters: new Set(),
     localArrays: new Set(),
     localVariables: new Set(), // ADR-016: track local variables
     inFunctionBody: false, // ADR-016: track if inside function body
@@ -896,6 +898,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   enterFunctionBody(): void {
     this.context.localVariables.clear();
+    this.context.modifiedParameters.clear(); // Issue #268: Clear for new function
     this.context.inFunctionBody = true;
   }
 
@@ -918,6 +921,36 @@ export default class CodeGenerator implements IOrchestrator {
 
   generateCallbackTypedef(funcName: string): string | null {
     return this._generateCallbackTypedef(funcName);
+  }
+
+  /**
+   * Issue #268: Store unmodified parameters for a function.
+   * Maps function name -> Set of parameter names that were NOT modified.
+   * Used by Pipeline to update symbol info before header generation.
+   */
+  private functionUnmodifiedParams: Map<string, Set<string>> = new Map();
+
+  /**
+   * Issue #268: Get unmodified parameters info for all functions.
+   * Returns map of function name -> Set of unmodified parameter names.
+   */
+  getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
+    return this.functionUnmodifiedParams;
+  }
+
+  /**
+   * Issue #268: Update symbol parameters with auto-const info.
+   * Call after generating function body to track unmodified parameters.
+   */
+  updateFunctionParamsAutoConst(functionName: string): void {
+    // Collect unmodified parameters for this function
+    const unmodifiedParams = new Set<string>();
+    for (const [paramName] of this.context.currentParameters) {
+      if (!this.context.modifiedParameters.has(paramName)) {
+        unmodifiedParams.add(paramName);
+      }
+    }
+    this.functionUnmodifiedParams.set(functionName, unmodifiedParams);
   }
 
   // ===========================================================================
@@ -1102,6 +1135,7 @@ export default class CodeGenerator implements IOrchestrator {
       indentLevel: 0,
       scopeMembers: new Map(), // ADR-016
       currentParameters: new Map(),
+      modifiedParameters: new Set(),
       localArrays: new Set(),
       localVariables: new Set(), // ADR-016
       inFunctionBody: false, // ADR-016
@@ -3987,6 +4021,9 @@ export default class CodeGenerator implements IOrchestrator {
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
 
+    // Issue #268: Clear modified parameters tracking for this function
+    this.context.modifiedParameters.clear();
+
     // ADR-016: Clear local variables and mark that we're in a function body
     this.context.localVariables.clear();
     this.context.inFunctionBody = true;
@@ -3997,9 +4034,11 @@ export default class CodeGenerator implements IOrchestrator {
       ctx.parameterList(),
     );
 
-    let params: string;
+    let params: string = ""; // Will be set below
     let actualReturnType: string;
 
+    // Issue #268: Generate body FIRST to track parameter modifications,
+    // then generate parameter list using that tracking info
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
       actualReturnType = "int";
@@ -4011,12 +4050,17 @@ export default class CodeGenerator implements IOrchestrator {
     } else {
       // For main() without args, always use int return type for C++ compatibility
       actualReturnType = name === "main" ? "int" : returnType;
+    }
+
+    // Generate body first (this populates modifiedParameters)
+    const body = this._generateBlock(ctx.block());
+
+    // Now generate parameter list (can use modifiedParameters for auto-const)
+    if (!isMainWithArgs) {
       params = ctx.parameterList()
         ? this._generateParameterList(ctx.parameterList()!)
         : "void";
     }
-
-    const body = this._generateBlock(ctx.block());
 
     // ADR-016: Clear local variables and mark that we're no longer in a function body
     this.context.inFunctionBody = false;
@@ -4135,7 +4179,10 @@ export default class CodeGenerator implements IOrchestrator {
     // Arrays pass naturally as pointers
     if (dims.length > 0) {
       const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
-      return `${constMod}${type} ${name}${dimStr}`;
+      // Issue #268: Add const for unmodified array parameters
+      const wasModified = this.context.modifiedParameters.has(name);
+      const autoConst = !wasModified && !constMod ? "const " : "";
+      return `${autoConst}${constMod}${type} ${name}${dimStr}`;
     }
 
     // ADR-040: ISR is already a function pointer typedef, no additional pointer needed
@@ -4155,7 +4202,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-006: Pass by reference for non-array types
     // Add pointer for primitive types to enable pass-by-reference semantics
-    return `${constMod}${type}* ${name}`;
+    // Issue #268: Add const for unmodified pointer parameters
+    const wasModified = this.context.modifiedParameters.has(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    return `${autoConst}${constMod}${type}* ${name}`;
   }
 
   private _generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
@@ -4811,6 +4861,11 @@ export default class CodeGenerator implements IOrchestrator {
         throw new Error(constError);
       }
 
+      // Issue #268: Track parameter modification for auto-const inference
+      if (this.context.currentParameters.has(id)) {
+        this.context.modifiedParameters.add(id);
+      }
+
       // ADR-017: Validate enum type assignment
       const targetTypeInfo = this.context.typeRegistry.get(id);
       if (targetTypeInfo?.isEnum && targetTypeInfo.enumTypeName) {
@@ -4907,6 +4962,11 @@ export default class CodeGenerator implements IOrchestrator {
       if (constError) {
         throw new Error(`${constError} (array element)`);
       }
+
+      // Issue #268: Track parameter modification for auto-const inference (array element)
+      if (this.context.currentParameters.has(arrayName)) {
+        this.context.modifiedParameters.add(arrayName);
+      }
     }
 
     // Check member access on const struct - validate the root is not const
@@ -4917,6 +4977,11 @@ export default class CodeGenerator implements IOrchestrator {
         const constError = this.typeValidator!.checkConstAssignment(rootName);
         if (constError) {
           throw new Error(`${constError} (member access)`);
+        }
+
+        // Issue #268: Track parameter modification for auto-const inference (member access)
+        if (this.context.currentParameters.has(rootName)) {
+          this.context.modifiedParameters.add(rootName);
         }
 
         // ADR-013: Check for read-only register members (ro = implicitly const)

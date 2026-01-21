@@ -21,7 +21,7 @@ uint32_t Reentrant_inner(void) {
     return call_arg;
 }
 
-uint32_t Reentrant_outer(uint32_t* x) {
+uint32_t Reentrant_outer(const uint32_t* x) {
     uint32_t Reentrant_outer_temp = 0;
     Reentrant_outer_temp = (*x);
     call_arg = (*x) + 100;

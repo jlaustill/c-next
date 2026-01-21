@@ -12,7 +12,7 @@ typedef struct {
     int32_t y;
 } Point;
 
-void movePoint(Point* p, int32_t* dx, int32_t* dy) {
+void movePoint(Point* p, const int32_t* dx, const int32_t* dy) {
     p->x += (*dx);
     p->y += (*dy);
 }

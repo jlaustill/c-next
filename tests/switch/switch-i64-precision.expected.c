@@ -12,7 +12,7 @@
 int32_t result = 0;
 
 // Test decimal literals near INT64_MAX
-void testDecimalPrecision(int64_t* val) {
+void testDecimalPrecision(const int64_t* val) {
     switch ((*val)) {
         case 9223372036854775807: {
             result = 1;
@@ -38,7 +38,7 @@ void testDecimalPrecision(int64_t* val) {
 }
 
 // Test hex literals near INT64_MAX
-void testHexPrecision(int64_t* val) {
+void testHexPrecision(const int64_t* val) {
     switch ((*val)) {
         case 0x7FFFFFFFFFFFFFFF: {
             result = 10;

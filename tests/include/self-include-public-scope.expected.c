@@ -13,15 +13,15 @@
 // Without this, functions get C++ mangling while the header promises C linkage.
 /* Scope: Calculator */
 
-static uint32_t Calculator_square(uint32_t* x) {
+static uint32_t Calculator_square(const uint32_t* x) {
     return (*x) * (*x);
 }
 
-uint32_t Calculator_add(uint32_t* a, uint32_t* b) {
+uint32_t Calculator_add(const uint32_t* a, const uint32_t* b) {
     return (*a) + (*b);
 }
 
-uint32_t Calculator_multiply(uint32_t* a, uint32_t* b) {
+uint32_t Calculator_multiply(const uint32_t* a, const uint32_t* b) {
     return Calculator_square(a) + Calculator_square(b);
 }
 
