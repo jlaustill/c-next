@@ -1,7 +1,8 @@
 # ADR-047: NULL Keyword for C Library Interop
 
-**Status:** Accepted
+**Status:** Superseded
 **Date:** 2026-01-06
+**Superseded By:** ADR-046 (Nullable C Interop with c\_ Prefix)
 **Decision Makers:** C-Next Language Design Team
 
 ## Context

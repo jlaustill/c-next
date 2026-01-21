@@ -7,6 +7,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-01-21
+
+### Added
+
+- `releasing.md` - comprehensive release process documentation
+
+### Changed
+
+- CHANGELOG.md backfilled with entries for v0.1.8-v0.1.18
+- ADR-046 status updated to Implemented
+- ADR-047 status updated to Superseded (by ADR-046)
+- README.md ADR table updated with ADR-046 and ADR-047 status notes
+
+## [0.1.18] - 2026-01-21
+
+### Fixed
+
+- Use `{}` instead of `{0}` for unknown C++ types (Issue #309)
+- Don't add `&` to struct member arrays in function args (Issue #308)
+
+## [0.1.17] - 2026-01-20
+
+### Added
+
+- Vitest unit tests to PR checks workflow
+
+### Fixed
+
+- C++ enum class → integer conversions with `static_cast` (Issue #304)
+- Generate C++ scope resolution syntax (`::`) for C++ symbols
+- Use `{}` for C++ types initialization
+- Cross-file scope function calls converted to underscore notation (Issue #294)
+- Cross-scope calls from included files now properly validated
+- Use named structs for forward declaration compatibility (Issue #296)
+- Use value initialization `{}` for C++ template types (Issue #295)
+
+### Changed
+
+- Refactored `wrapWithCppEnumCast` and `getScopeSeparator` helpers
+
+## [0.1.16] - 2026-01-20
+
+### Added
+
+- C++ template syntax parsing support (Issue #291)
+- `Template<T>` patterns now recognized in extern declarations
+
+### Changed
+
+- VS Code extension v0.0.7: template syntax and c\_ interop highlighting
+
+## [0.1.15] - 2026-01-20
+
+### Fixed
+
+- Include `const` qualifier in extern declarations for public const variables (Issue #288)
+
+## [0.1.14] - 2026-01-20
+
+### Fixed
+
+- lowByte header signature regression (Issue #280)
+- Multi-file header pass-by-value params handling
+- Scope functions correctly omit const for modified pointer params
+- Inline scope const values instead of generating local variables (Issue #282)
+
+## [0.1.13] - 2026-01-20
+
+### Added
+
+- Pass-by-value for small unmodified primitives (Issue #269)
+- Auto-const inference for unmodified pointer parameters (Issue #268)
+- RATS static analysis integration (Issue #271)
+- Flawfinder CWE-based security scanner (Issue #270)
+- C++ casts (`static_cast`, `reinterpret_cast`) when cppMode enabled (Issue #267)
+
+### Changed
+
+- ADR-013 updated to document auto-const inference feature
+
+### Fixed
+
+- Handle switch and critical statements in pass-by-value analysis
+
 ## [0.1.12] - 2026-01-19
 
 ### Added
@@ -26,6 +110,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - C++ struct member arguments now use temp variables for correct compilation (#251, #252)
 - C++ compound literals replaced with temp variables (#250)
 - Function calls banned in boolean conditions per MISRA C:2012 Rule 13.5 (E0702)
+
+## [0.1.11] - 2026-01-19
+
+### Fixed
+
+- Cast string subscripts to integer pointer types (Issue #246)
+- Wrap rvalue expressions in compound literals for pointer params (Issue #245)
+
+## [0.1.10] - 2026-01-18
+
+### Added
+
+- Compile-time slice assignment validation - silent overflows now errors (Issue #234)
+- Constant folding for arithmetic expressions (Issue #235)
+- Self-include for `extern "C"` linkage in generated headers (Issue #230)
+
+### Changed
+
+- Shared test utilities extracted into `test-utils.ts`
+- Scope variable persistence semantics clarified (Issue #233)
+
+### Fixed
+
+- GCC `-Wstringop-overflow` false positive in overflow helpers (Issue #231)
+- Scope variable reentrancy - single-function vars become local (Issue #232)
+
+## [0.1.9] - 2026-01-17
+
+### Added
+
+- Prettier plugin for C-Next language formatting
+- TypeScript type checking to CI workflow (Issue #224)
+- Header type generator infrastructure (Issue #220)
+
+### Changed
+
+- Test markers converted from block to line comments (`// test-execution`)
+
+### Fixed
+
+- Function parameters being treated as global symbols (Issue #221)
+- Reserved parameter naming pattern validation (Issue #227)
+- Scope variable static/extern mismatch in C++ headers (Issue #218)
+
+## [0.1.8] - 2026-01-17
+
+### Added
+
+- Auto-detect C++ features and output `.cpp` by default (Issue #211)
+
+### Fixed
+
+- Scope helper methods with string parameters generating bitwise ops (Issue #213)
+- Scope variable named 'length' conflicting with `.length` property accessor (Issue #212)
 
 ## [0.1.7] - 2026-01-16
 
@@ -86,7 +224,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/jlaustill/c-next/compare/v0.1.18...v0.1.19
+[0.1.18]: https://github.com/jlaustill/c-next/compare/v0.1.17...v0.1.18
+[0.1.17]: https://github.com/jlaustill/c-next/compare/v0.1.16...v0.1.17
+[0.1.16]: https://github.com/jlaustill/c-next/compare/v0.1.15...v0.1.16
+[0.1.15]: https://github.com/jlaustill/c-next/compare/v0.1.14...v0.1.15
+[0.1.14]: https://github.com/jlaustill/c-next/compare/v0.1.13...v0.1.14
+[0.1.13]: https://github.com/jlaustill/c-next/compare/v0.1.12...v0.1.13
+[0.1.12]: https://github.com/jlaustill/c-next/compare/v0.1.11...v0.1.12
+[0.1.11]: https://github.com/jlaustill/c-next/compare/v0.1.10...v0.1.11
+[0.1.10]: https://github.com/jlaustill/c-next/compare/v0.1.9...v0.1.10
+[0.1.9]: https://github.com/jlaustill/c-next/compare/v0.1.8...v0.1.9
+[0.1.8]: https://github.com/jlaustill/c-next/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/jlaustill/c-next/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/jlaustill/c-next/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/jlaustill/c-next/compare/v0.1.1...v0.1.5
