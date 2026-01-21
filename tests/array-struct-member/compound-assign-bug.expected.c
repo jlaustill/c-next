@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-// Focused test: Compound assignment on array-of-struct member
-// Bug: arr[i].field +<- value generates arr[i].field = value (loses the +=)
+// Regression test: Compound assignment on array-of-struct member
+// Verifies arr[i].field +<- value generates += correctly (was losing the +=)
 typedef struct Counter {
     int32_t value;
 } Counter;

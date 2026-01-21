@@ -1,5 +1,5 @@
 // test-execution
-// Test reading array members within structs in loops
+// Regression test: reading array members within structs in loops
 // Verifies postfix chain ordering: cfg.items[i].value
 struct Item {
     u32 value;
@@ -13,7 +13,7 @@ struct Container {
 i32 main() {
     Container cfg;
 
-    // Initialize the array items (workaround: accessing through intermediate variable)
+    // Initialize array items through intermediate variables
     Item item0 <- {value: 100, flags: 0};
     Item item1 <- {value: 200, flags: 0};
     Item item2 <- {value: 300, flags: 0};

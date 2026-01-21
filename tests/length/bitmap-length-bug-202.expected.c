@@ -6,8 +6,8 @@
 #include <stdint.h>
 
 // test-execution
-// Minimal test for Issue #202: Bitmap .length returns 0 instead of bit width
-// Tests: bitmap8 variable .length should return 8
+// Regression test for Issue #202: Bitmap .length property
+// Verifies bitmap8 variable .length returns 8 (was returning 0)
 /* Bitmap: Flags */
 /* Fields:
  *   bit0: bit 0 (1 bit)

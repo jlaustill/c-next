@@ -16,9 +16,8 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
-// Test: Array-of-struct member assignment
-// Bug: arr[i].field generates arr.field[i] instead of arr[i].field
-// This test verifies correct code generation and runtime behavior
+// Regression test: Array-of-struct member assignment
+// Verifies arr[i].field generates correctly (was generating arr.field[i])
 typedef struct Point {
     int32_t x;
     int32_t y;

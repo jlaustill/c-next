@@ -1,7 +1,7 @@
 /* test-execution */
-// Tests: Issue #288 - extern declarations must include const qualifier for public const variables
-// Bug: Header generates "extern uint8_t X;" but impl has "const uint8_t X = value;"
-// This causes C++ compilation errors due to conflicting declarations
+// Regression test for Issue #288 - extern declarations must include const qualifier
+// Verifies header generates "extern const uint8_t X;" (was missing const qualifier)
+// The missing const caused C++ compilation errors due to conflicting declarations
 //
 // The .test.h file contains a C++14 typed enum to force g++ compilation,
 // which is stricter about const mismatches between declaration and definition.
