@@ -49,6 +49,11 @@ jobs:
         run: npm test
         continue-on-error: true
 
+      - name: Run unit tests (vitest)
+        id: unit
+        run: npm run unit
+        continue-on-error: true
+
       - name: Run CLI integration tests
         id: test_cli
         run: npm run test:cli
@@ -109,6 +114,13 @@ jobs:
             FAILED=1
           else
             echo "✅ Tests passed"
+          fi
+
+          if [ "${{ steps.unit.outcome }}" != "success" ]; then
+            echo "❌ Unit tests failed"
+            FAILED=1
+          else
+            echo "✅ Unit tests passed"
           fi
 
           if [ "${{ steps.test_cli.outcome }}" != "success" ]; then
