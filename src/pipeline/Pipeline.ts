@@ -583,7 +583,10 @@ class Pipeline {
       }
 
       // Issue #280: Store pass-by-value params for header generation (deep copy)
-      // Must snapshot before next file's transpilation clears the data
+      // Must snapshot before next file's transpilation clears the data.
+      // Note: This captures which params are small primitives for pass-by-value optimization,
+      // while updateSymbolsAutoConst (below) handles const inference for remaining pointer params.
+      // Both are needed for correct header signatures.
       const passByValue = this.codeGenerator.getPassByValueParams();
       const passByValueCopy = new Map<string, Set<string>>();
       for (const [funcName, params] of passByValue) {
@@ -683,8 +686,11 @@ class Pipeline {
     const typeInput = this.symbolCollectors.get(file.path);
 
     // Issue #280: Get pass-by-value params from per-file storage for multi-file consistency
-    // This uses the snapshot taken during transpilation, not the current (stale) codeGenerator state
-    const passByValueParams = this.passByValueParamsCollectors.get(file.path);
+    // This uses the snapshot taken during transpilation, not the current (stale) codeGenerator state.
+    // Fallback to empty map if not found (defensive - should always exist after transpilation).
+    const passByValueParams =
+      this.passByValueParamsCollectors.get(file.path) ??
+      new Map<string, Set<string>>();
 
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
