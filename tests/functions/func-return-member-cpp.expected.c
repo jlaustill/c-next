@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 // Global config for the getter to return
-DeviceConfig globalConfig = {0};
+DeviceConfig globalConfig = {};
 
 // Function that returns a struct by value
 DeviceConfig getConfig(void) {

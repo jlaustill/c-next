@@ -23,7 +23,7 @@ uint32_t testConstStruct(const TestConfig* cfg) {
 }
 
 int main(void) {
-    TestConfig cfg = {0};
+    TestConfig cfg = {};
     cfg.value = 0x42;
     cfg.flags = 0xFF;
     uint32_t result = testConstStruct(&cfg);

@@ -5562,6 +5562,14 @@ export default class CodeGenerator implements IOrchestrator {
         return "{}";
       }
 
+      // Issue #309: In C++ mode, unknown user types (external libraries)
+      // should use {} instead of {0} because they may have non-trivial
+      // constructors. Known structs (C-Next or C headers) are POD types
+      // where {0} works fine.
+      if (this.cppMode && !this._isKnownStruct(typeName)) {
+        return "{}";
+      }
+
       return "{0}";
     }
 
