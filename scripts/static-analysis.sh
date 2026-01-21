@@ -191,8 +191,14 @@ echo ""
 echo -e "${BLUE}Generated files are in: ${TEMP_DIR}${NC}"
 echo ""
 
-# Exit with error if there are actual errors
+# Exit with error if there are cppcheck errors or high-severity RATS findings
 if [ "$ERRORS" -gt 0 ]; then
+    echo -e "${RED}Failed: cppcheck found $ERRORS error(s)${NC}"
+    exit 1
+fi
+
+if [ "$RATS_HIGH" -gt 0 ]; then
+    echo -e "${RED}Failed: rats found $RATS_HIGH high-severity security issue(s)${NC}"
     exit 1
 fi
 
