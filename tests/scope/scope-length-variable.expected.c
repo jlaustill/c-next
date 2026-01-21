@@ -17,7 +17,7 @@ uint8_t LengthTest_getLength(void) {
     return LengthTest_length;
 }
 
-void LengthTest_setLength(uint8_t* newLen) {
+void LengthTest_setLength(const uint8_t* newLen) {
     LengthTest_length = (*newLen);
 }
 
@@ -25,7 +25,7 @@ uint16_t LengthTest_getOffset(void) {
     return LengthTest_offset;
 }
 
-void LengthTest_setOffset(uint16_t* newOffset) {
+void LengthTest_setOffset(const uint16_t* newOffset) {
     LengthTest_offset = (*newOffset);
 }
 

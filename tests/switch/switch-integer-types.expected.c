@@ -12,7 +12,7 @@
 uint32_t result = 0;
 
 // === UNSIGNED TYPE HELPERS ===
-void testSwitchU8(uint8_t* val) {
+void testSwitchU8(const uint8_t* val) {
     switch ((*val)) {
         case 0: {
             result = 100;
@@ -33,7 +33,7 @@ void testSwitchU8(uint8_t* val) {
     }
 }
 
-void testSwitchU16(uint16_t* val) {
+void testSwitchU16(const uint16_t* val) {
     switch ((*val)) {
         case 0: {
             result = 200;
@@ -54,7 +54,7 @@ void testSwitchU16(uint16_t* val) {
     }
 }
 
-void testSwitchU32(uint32_t* val) {
+void testSwitchU32(const uint32_t* val) {
     switch ((*val)) {
         case 0: {
             result = 300;
@@ -71,7 +71,7 @@ void testSwitchU32(uint32_t* val) {
     }
 }
 
-void testSwitchU64(uint64_t* val) {
+void testSwitchU64(const uint64_t* val) {
     switch ((*val)) {
         case 0: {
             result = 400;
@@ -91,7 +91,7 @@ void testSwitchU64(uint64_t* val) {
 // === SIGNED TYPE HELPERS ===
 // Note: Case labels must use positive literals (grammar limitation).
 // Signed types are still tested - negative values fall to default.
-void testSwitchI8(int8_t* val) {
+void testSwitchI8(const int8_t* val) {
     switch ((*val)) {
         case 0: {
             result = 500;
@@ -112,7 +112,7 @@ void testSwitchI8(int8_t* val) {
     }
 }
 
-void testSwitchI16(int16_t* val) {
+void testSwitchI16(const int16_t* val) {
     switch ((*val)) {
         case 0: {
             result = 600;
@@ -133,7 +133,7 @@ void testSwitchI16(int16_t* val) {
     }
 }
 
-void testSwitchI32(int32_t* val) {
+void testSwitchI32(const int32_t* val) {
     switch ((*val)) {
         case 0: {
             result = 700;
@@ -154,7 +154,7 @@ void testSwitchI32(int32_t* val) {
     }
 }
 
-void testSwitchI64(int64_t* val) {
+void testSwitchI64(const int64_t* val) {
     switch ((*val)) {
         case 0: {
             result = 800;

@@ -9,13 +9,13 @@
 // test-execution
 // Tests: Function with multiple output parameters
 // Divides a by b, returns quotient and remainder via output params
-void divmod(uint32_t* a, uint32_t* b, uint32_t* quotient, uint32_t* remainder) {
+void divmod(const uint32_t* a, const uint32_t* b, uint32_t* quotient, uint32_t* remainder) {
     (*quotient) = (*a) / (*b);
     (*remainder) = (*a) % (*b);
 }
 
 // Returns min and max of two values
-void minmax(int32_t* a, int32_t* b, int32_t* minVal, int32_t* maxVal) {
+void minmax(const int32_t* a, const int32_t* b, int32_t* minVal, int32_t* maxVal) {
     if ((*a) < (*b)) {
         (*minVal) = (*a);
         (*maxVal) = (*b);
@@ -26,7 +26,7 @@ void minmax(int32_t* a, int32_t* b, int32_t* minVal, int32_t* maxVal) {
 }
 
 // Calculates statistics: sum, count, and average
-void stats(uint32_t* a, uint32_t* b, uint32_t* c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
+void stats(const uint32_t* a, const uint32_t* b, const uint32_t* c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
     (*sum) = (*a) + (*b) + (*c);
     (*count) = 3;
     (*avg) = (*sum) / (*count);

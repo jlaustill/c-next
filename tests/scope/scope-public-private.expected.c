@@ -39,7 +39,7 @@ uint8_t Visibility_getPublicCounter(void) {
     return Visibility_publicCounter;
 }
 
-void Visibility_setPublicCounter(uint8_t* value) {
+void Visibility_setPublicCounter(const uint8_t* value) {
     Visibility_publicCounter = (*value);
 }
 
@@ -55,15 +55,15 @@ bool Visibility_getBothFlags(void) {
     return Visibility_privateFlag && Visibility_publicFlag;
 }
 
-void Visibility_setPrivateFlag(bool* value) {
+void Visibility_setPrivateFlag(const bool* value) {
     Visibility_privateFlag = (*value);
 }
 
-void Visibility_setPublicFlag(bool* value) {
+void Visibility_setPublicFlag(const bool* value) {
     Visibility_publicFlag = (*value);
 }
 
-void Visibility_setPrivateCounter(uint8_t* value) {
+void Visibility_setPrivateCounter(const uint8_t* value) {
     Visibility_privateCounter = (*value);
 }
 

@@ -12,7 +12,7 @@
 uint32_t result = 0;
 
 // Hex literal cases
-void testHexCases(uint8_t* val) {
+void testHexCases(const uint8_t* val) {
     switch ((*val)) {
         case 0x00: {
             result = 1;
@@ -46,7 +46,7 @@ void testHexCases(uint8_t* val) {
 }
 
 // Binary literal cases
-void testBinaryCases(uint8_t* val) {
+void testBinaryCases(const uint8_t* val) {
     switch ((*val)) {
         case 0x0: {
             result = 10;
@@ -80,7 +80,7 @@ void testBinaryCases(uint8_t* val) {
 }
 
 // Char literal cases
-void testCharCases(uint8_t* val) {
+void testCharCases(const uint8_t* val) {
     switch ((*val)) {
         case 'A': {
             result = 20;
@@ -114,7 +114,7 @@ void testCharCases(uint8_t* val) {
 }
 
 // Mixed literal types in same switch
-void testMixedLiterals(uint8_t* val) {
+void testMixedLiterals(const uint8_t* val) {
     switch ((*val)) {
         case 0: {
             result = 30;
@@ -140,7 +140,7 @@ void testMixedLiterals(uint8_t* val) {
 }
 
 // Large hex values (u16)
-void testLargeHex(uint16_t* val) {
+void testLargeHex(const uint16_t* val) {
     switch ((*val)) {
         case 0x0000: {
             result = 40;

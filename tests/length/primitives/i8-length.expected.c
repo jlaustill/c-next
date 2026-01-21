@@ -22,7 +22,7 @@ uint32_t TestScope_getMemberLength(void) {
 }
 int8_t TestScope_publicMember = -42;
 
-uint32_t checkParamLength(int8_t* param) {
+uint32_t checkParamLength(const int8_t* param) {
     return 8;
 }
 

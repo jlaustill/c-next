@@ -29,7 +29,7 @@ uint32_t testConst(const AllTypes* data) {
 }
 
 // Test with regular parameter
-uint32_t testParam(AllTypes* data) {
+uint32_t testParam(const AllTypes* data) {
     if (8 != 8) return 10;
     if (16 != 16) return 11;
     if (32 != 32) return 12;

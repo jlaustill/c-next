@@ -50,7 +50,7 @@ static uint32_t CriticalTest_readIndex = 0;
 static uint8_t CriticalTest_count = 0;
 static bool CriticalTest_locked = false;
 
-static void CriticalTest_internalEnqueue(uint8_t* data) {
+static void CriticalTest_internalEnqueue(const uint8_t* data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
@@ -121,7 +121,7 @@ static void CriticalTest_internalUnlock(void) {
     }
 }
 
-void CriticalTest_enqueue(uint8_t* data) {
+void CriticalTest_enqueue(const uint8_t* data) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
@@ -238,7 +238,7 @@ bool CriticalTest_isInSync(void) {
     return inSync;
 }
 
-void CriticalTest_safeEnqueue(uint8_t* data) {
+void CriticalTest_safeEnqueue(const uint8_t* data) {
     CriticalTest_internalEnqueue(data);
 }
 
@@ -246,7 +246,7 @@ uint8_t CriticalTest_safeDequeue(void) {
     return CriticalTest_internalDequeue();
 }
 
-void CriticalTest_lockedEnqueue(uint8_t* data) {
+void CriticalTest_lockedEnqueue(const uint8_t* data) {
     CriticalTest_internalTryLock();
     CriticalTest_internalEnqueue(data);
     CriticalTest_internalUnlock();

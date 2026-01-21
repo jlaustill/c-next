@@ -16,6 +16,7 @@ type TCodeGenContext = {
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>;
   currentParameters: Map<string, TParameterInfo>;
+  modifiedParameters: Set<string>;
   localArrays: Set<string>;
   localVariables: Set<string>;
   inFunctionBody: boolean;

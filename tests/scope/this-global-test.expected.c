@@ -23,7 +23,7 @@ uint8_t Motor_getSum(void) {
     return Motor_localValue + globalValue;
 }
 
-void Motor_setState(uint8_t* val) {
+void Motor_setState(const uint8_t* val) {
     uint8_t Motor_state = 0;
     Motor_state = (*val);
 }

@@ -39,6 +39,7 @@ interface ISymbol {
     isConst: boolean;
     isArray: boolean;
     arrayDimensions?: string[]; // e.g., ["10", "20"] or ["", ""] for unbounded
+    isAutoConst?: boolean; // Issue #268: true if parameter should get auto-const (unmodified pointer)
   }>;
 
   /** Parent namespace or class name */

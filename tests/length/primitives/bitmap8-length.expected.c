@@ -37,7 +37,7 @@ uint32_t TestScope_getMemberLength(void) {
 }
 StatusFlags TestScope_publicMember = {0};
 
-uint32_t checkParamLength(StatusFlags* param) {
+uint32_t checkParamLength(const StatusFlags* param) {
     return 8;
 }
 

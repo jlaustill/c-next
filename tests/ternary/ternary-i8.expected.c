@@ -8,15 +8,15 @@
 // test-execution
 // ADR-022: Ternary operator test for i8
 // Tests: ternary with i8 in conditions and branches, including negative values
-int8_t getMax(int8_t* a, int8_t* b) {
+int8_t getMax(const int8_t* a, const int8_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
 
-int8_t getMin(int8_t* a, int8_t* b) {
+int8_t getMin(const int8_t* a, const int8_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 
-int8_t getAbs(int8_t* x) {
+int8_t getAbs(const int8_t* x) {
     return ((*x) < 0) ? -(*x) : (*x);
 }
 

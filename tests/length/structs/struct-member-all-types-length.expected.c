@@ -38,7 +38,7 @@ uint32_t TestScope_checkScopeStructMember(void) {
 }
 
 // Test as function parameter
-uint32_t checkParamStructMembers(AllTypes* param) {
+uint32_t checkParamStructMembers(const AllTypes* param) {
     if (8 != 8) {
         return 1;
     }

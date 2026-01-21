@@ -767,43 +767,126 @@ As C-Next matures, consider making parameters `const` by default (like Swift/Rus
 
 ---
 
-## Future Implementation: Q1 - Missing Const Error
+## Automatic Const Inference for Pointer Parameters (Issue #268)
 
-**Status:** TODO
+**Status:** Implemented
 
-The aggressive safety approach (Q1) requires analyzing function bodies to detect parameters that are never modified. If a non-const parameter is never assigned to within the function, it should be an error requiring the developer to add `const`.
+Instead of erroring on missing `const` (aggressive approach), C-Next automatically infers `const` for pointer parameters that are never modified within the function body. This eliminates cppcheck `constParameterPointer` warnings while maintaining developer ergonomics.
 
-### Implementation Approach
+### How It Works
 
-1. **Track assignment targets within function body**: During code generation, collect all identifiers that appear on the left side of assignment operators
-2. **Compare against parameters**: After processing the function body, check which parameters were never assigned to
-3. **Error on missing const**: If a non-const parameter was never modified, throw an error
+The transpiler tracks parameter modifications during function body generation:
+
+1. **Track assignment targets**: During code generation, collect all identifiers that appear on the left side of assignment operators (`<-`, `+<-`, etc.)
+2. **Track array element modifications**: `arr[i] <- value` marks `arr` as modified
+3. **Track member access modifications**: `param.field <- value` marks `param` as modified
+4. **Track pass-through modifications**: If a parameter is passed to another function that modifies its corresponding parameter, the outer parameter is also marked as modified
+5. **Generate parameter list after body**: Parameters are generated after the function body, so modification tracking can inform `const` qualifiers
 
 ### Example
 
 ```cnx
-void printValue(i32 value) {  // ERROR: parameter 'value' is never modified, should be const
-    Console.print(value);
+// C-Next source - no explicit const needed
+void readOnly(u32 value) {
+    u32 local <- value;  // Only reads, never assigns
 }
 
-// Developer must fix by adding const:
-void printValue(const i32 value) {  // OK
-    Console.print(value);
+void modified(u32 value) {
+    value <- 42;  // Direct assignment - modified
 }
 ```
 
-### Complexity
+```c
+// Generated C - const automatically added where safe
+void readOnly(const uint32_t* value) {  // const inferred
+    uint32_t local = (*value);
+}
 
-This requires:
+void modified(uint32_t* value) {  // no const - parameter is modified
+    (*value) = 42;
+}
+```
 
-- Tracking all assignment targets during function body generation
-- Handling nested scopes (loops, conditionals)
-- Distinguishing between the parameter itself and derived values
-- Special handling for struct member access (`p.x <- 1` modifies `p`)
+### Pass-Through Modification Tracking
 
-### Files to Modify
+When a parameter is passed to another function that modifies it, the parameter is transitively marked as modified:
 
-- `src/codegen/CodeGenerator.ts`: Add assignment target tracking and post-function validation
+```cnx
+void modifiesParam(u32 val) {
+    val <- 42;
+}
+
+void passesThrough(u32 val) {
+    modifiesParam(val);  // val is passed to a function that modifies it
+}
+```
+
+```c
+// Both functions get non-const parameters
+void modifiesParam(uint32_t* val) { (*val) = 42; }
+void passesThrough(uint32_t* val) { modifiesParam(val); }
+```
+
+### Order-Dependent Detection Limitation
+
+Pass-through modification tracking only works when the **callee is defined before the caller** in the source file. This is because the transpiler processes functions in order and needs to know whether a callee modifies its parameters.
+
+```cnx
+// Case 1: Callee defined FIRST (correctly detected)
+void modifies(u32 val) { val <- 42; }           // Processed first
+void caller(u32 val) { modifies(val); }         // Knows modifies() modifies val
+
+// Case 2: Callee defined AFTER (not detected, C compiler catches)
+void caller(u32 val) { modifies(val); }         // Doesn't know yet if modifies() modifies val
+void modifies(u32 val) { val <- 42; }           // Processed later
+```
+
+In Case 2, the transpiler conservatively assumes the parameter is unmodified (adds `const`). If this is incorrect, the C compiler will catch the mismatch with a clear error message about passing `const` to non-`const` parameter.
+
+**Design rationale**: This conservative approach is safe because:
+
+- If we incorrectly add `const`, the C compiler catches it
+- If we incorrectly omit `const`, we just miss an optimization opportunity
+- Reordering function definitions fixes the issue
+
+### Header Generation Sync
+
+The auto-const information is synchronized to symbol metadata so header files (`.h`) match implementation files (`.c`):
+
+```c
+// Generated .h file
+void readOnly(const uint32_t* value);
+void modified(uint32_t* value);
+
+// Generated .c file
+void readOnly(const uint32_t* value) { ... }
+void modified(uint32_t* value) { ... }
+```
+
+### What Gets Auto-Const
+
+Auto-const is applied to:
+
+- **Pointer parameters** (non-array, non-float, non-enum types that become `T*` in C)
+- **Array parameters** (already pointers in C, get `const` if unmodified)
+
+Auto-const is NOT applied to:
+
+- **Float parameters** (`f32`, `f64`) - passed by value, not by pointer
+- **Enum parameters** - passed by value, not by pointer
+- **ISR parameters** - function pointer type, not data pointer
+- **Explicitly `const` parameters** - already const, redundant
+
+### Implementation Details
+
+Files modified:
+
+- `src/codegen/CodeGenerator.ts`: Tracks `modifiedParameters` Set during function body generation
+- `src/codegen/generators/declarationGenerators/FunctionGenerator.ts`: Generates body before parameters
+- `src/codegen/generators/expressions/CallExprGenerator.ts`: Tracks pass-through modifications
+- `src/codegen/HeaderGenerator.ts`: Uses `isAutoConst` for prototype generation
+- `src/pipeline/Pipeline.ts`: Syncs auto-const info to symbols before header generation
+- `src/types/ISymbol.ts`: Added `isAutoConst` field to parameter interface
 
 ---
 

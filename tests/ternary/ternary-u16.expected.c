@@ -8,11 +8,11 @@
 // test-execution
 // ADR-022: Ternary operator test for u16
 // Tests: ternary with u16 in conditions and branches
-uint16_t getMax(uint16_t* a, uint16_t* b) {
+uint16_t getMax(const uint16_t* a, const uint16_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
 
-uint16_t getMin(uint16_t* a, uint16_t* b) {
+uint16_t getMin(const uint16_t* a, const uint16_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 

@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Calculator_add(uint32_t* a, uint32_t* b);
-uint32_t Calculator_multiply(uint32_t* a, uint32_t* b);
+uint32_t Calculator_add(const uint32_t* a, const uint32_t* b);
+uint32_t Calculator_multiply(const uint32_t* a, const uint32_t* b);
 int main(void);
 
 #ifdef __cplusplus

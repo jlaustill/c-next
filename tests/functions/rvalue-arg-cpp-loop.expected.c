@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-uint32_t checkValue(uint8_t* x) {
+uint32_t checkValue(const uint8_t* x) {
     return (*x);
 }
 

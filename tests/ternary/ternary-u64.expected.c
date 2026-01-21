@@ -9,11 +9,11 @@
 // test-execution
 // ADR-022: Ternary operator test for u64
 // Tests: ternary with u64 in conditions and branches
-uint64_t getMax(uint64_t* a, uint64_t* b) {
+uint64_t getMax(const uint64_t* a, const uint64_t* b) {
     return ((*a) > (*b)) ? (*a) : (*b);
 }
 
-uint64_t getMin(uint64_t* a, uint64_t* b) {
+uint64_t getMin(const uint64_t* a, const uint64_t* b) {
     return ((*a) < (*b)) ? (*a) : (*b);
 }
 

@@ -17,7 +17,7 @@ typedef struct {
 // Fixed-size array of readings - no heap allocation
 SensorReading readings[10] = {0};
 
-void addReading(uint8_t* index, uint32_t* ts, int16_t* val, uint8_t* id) {
+void addReading(const uint8_t* index, const uint32_t* ts, const int16_t* val, const uint8_t* id) {
     readings[(*index)].timestamp = (*ts);
     readings[(*index)].value = (*val);
     readings[(*index)].sensorId = (*id);

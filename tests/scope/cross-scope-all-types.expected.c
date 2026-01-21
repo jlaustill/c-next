@@ -42,15 +42,15 @@ bool Provider_getBool(void) {
     return Provider_valBool;
 }
 
-void Provider_setU8(uint8_t* val) {
+void Provider_setU8(const uint8_t* val) {
     Provider_valU8 = (*val);
 }
 
-void Provider_setI32(int32_t* val) {
+void Provider_setI32(const int32_t* val) {
     Provider_valI32 = (*val);
 }
 
-void Provider_setBool(bool* val) {
+void Provider_setBool(const bool* val) {
     Provider_valBool = (*val);
 }
 
@@ -106,15 +106,15 @@ bool Consumer_readProviderBool(void) {
     return Provider_valBool;
 }
 
-void Consumer_writeProviderU8(uint8_t* val) {
+void Consumer_writeProviderU8(const uint8_t* val) {
     Provider_valU8 = (*val);
 }
 
-void Consumer_writeProviderI32(int32_t* val) {
+void Consumer_writeProviderI32(const int32_t* val) {
     Provider_valI32 = (*val);
 }
 
-void Consumer_writeProviderBool(bool* val) {
+void Consumer_writeProviderBool(const bool* val) {
     Provider_valBool = (*val);
 }
 
@@ -130,11 +130,11 @@ bool Consumer_callProviderGetBool(void) {
     return Provider_getBool();
 }
 
-void Consumer_writeProviderArray(uint32_t* index, uint32_t* val) {
+void Consumer_writeProviderArray(const uint32_t* index, const uint32_t* val) {
     Provider_arrayU32[(*index)] = (*val);
 }
 
-uint32_t Consumer_readProviderArray(uint32_t* index) {
+uint32_t Consumer_readProviderArray(const uint32_t* index) {
     return Provider_arrayU32[(*index)];
 }
 
@@ -146,11 +146,11 @@ uint8_t Consumer_readProviderWrap(void) {
     return Provider_wrapVal;
 }
 
-void Consumer_setProviderClamp(uint8_t* val) {
+void Consumer_setProviderClamp(const uint8_t* val) {
     Provider_clampVal = (*val);
 }
 
-void Consumer_setProviderWrap(uint8_t* val) {
+void Consumer_setProviderWrap(const uint8_t* val) {
     Provider_wrapVal = (*val);
 }
 

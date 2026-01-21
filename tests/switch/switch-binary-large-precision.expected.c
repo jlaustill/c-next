@@ -13,7 +13,7 @@ uint32_t result = 0;
 
 // Test values around 2^53 boundary (JavaScript's MAX_SAFE_INTEGER is 2^53 - 1)
 // These values previously caused precision loss when converted to hex
-void testLargeBinaryPrecision(uint64_t* val) {
+void testLargeBinaryPrecision(const uint64_t* val) {
     switch ((*val)) {
         case 0x20000000000000ULL: {
             result = 1;
@@ -39,7 +39,7 @@ void testLargeBinaryPrecision(uint64_t* val) {
 }
 
 // Test very large values (near u64 max)
-void testVeryLargeBinary(uint64_t* val) {
+void testVeryLargeBinary(const uint64_t* val) {
     switch ((*val)) {
         case 0x4000000000000000ULL: {
             result = 10;

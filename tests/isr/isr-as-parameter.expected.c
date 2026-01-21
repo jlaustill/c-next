@@ -48,7 +48,7 @@ void executeParamHandler(ISR cb) {
 }
 
 // Function that accepts ISR and invokes it multiple times
-void executeParamMultiple(ISR fn, uint32_t* times) {
+void executeParamMultiple(ISR fn, const uint32_t* times) {
     for (uint32_t i = 0; i < (*times); i += 1) {
         (*fn)();
     }

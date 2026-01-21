@@ -12,7 +12,7 @@
 int32_t result = 0;
 
 // Test i64 with various negative values (within JS safe integer range)
-void testI64Values(int64_t* val) {
+void testI64Values(const int64_t* val) {
     switch ((*val)) {
         case -9007199254740991: {
             result = 1;
@@ -71,7 +71,7 @@ void testI64Values(int64_t* val) {
 
 // Test negative hex with i64 values
 // Note: Avoids -0x80000000 due to C's unsigned hex literal interpretation
-void testI64Hex(int64_t* val) {
+void testI64Hex(const int64_t* val) {
     switch ((*val)) {
         case -0x100000000: {
             result = 20;

@@ -10,7 +10,7 @@
 // Tests: switch statement with negative integer literals
 int32_t result = 0;
 
-void handleValue(int8_t* val) {
+void handleValue(const int8_t* val) {
     switch ((*val)) {
         case -128: {
             result = 1;
@@ -36,7 +36,7 @@ void handleValue(int8_t* val) {
 }
 
 // Test negative hex literals
-void handleHex(int16_t* val) {
+void handleHex(const int16_t* val) {
     switch ((*val)) {
         case -0x80: {
             result = 10;

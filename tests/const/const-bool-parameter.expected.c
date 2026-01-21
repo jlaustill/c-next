@@ -17,7 +17,7 @@ bool notConstBool(const bool* value) {
     return !(*value);
 }
 
-uint32_t selectByBool(const bool* flag, uint32_t* ifTrue, uint32_t* ifFalse) {
+uint32_t selectByBool(const bool* flag, const uint32_t* ifTrue, const uint32_t* ifFalse) {
     if ((*flag)) {
         return (*ifTrue);
     }

@@ -13,11 +13,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-uint32_t process(uint32_t* crc, uint8_t* byte) {
+uint32_t process(const uint32_t* crc, const uint8_t* byte) {
     return (*crc) ^ (*byte);
 }
 
-uint32_t testEnumBoolMembers(SensorConfig* cfg) {
+uint32_t testEnumBoolMembers(const SensorConfig* cfg) {
     uint32_t crc = 0;
     uint8_t _cnx_tmp_0 = static_cast<uint8_t>((*cfg).enabled);
     crc = process(&crc, &_cnx_tmp_0);

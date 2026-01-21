@@ -24,11 +24,11 @@ typedef struct {
 } Configuration;
 
 // Function that exposes the bug - passing struct by value with array member access
-uint16_t getSpn(const Configuration* conf, uint32_t* idx) {
+uint16_t getSpn(const Configuration* conf, const uint32_t* idx) {
     return conf->tempInputs[(*idx)].assignedSpn;
 }
 
-float getCoeff(const Configuration* data, uint32_t* pos) {
+float getCoeff(const Configuration* data, const uint32_t* pos) {
     return data->tempInputs[(*pos)].coeffA;
 }
 

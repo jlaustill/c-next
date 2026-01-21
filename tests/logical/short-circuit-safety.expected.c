@@ -22,11 +22,11 @@ uint32_t accessCount = 0;
 
 uint32_t dangerousValue = 0;
 
-bool isIndexSafe(uint32_t* index) {
+bool isIndexSafe(const uint32_t* index) {
     return (*index) < 5;
 }
 
-uint32_t performDangerousOperation(uint32_t* index) {
+uint32_t performDangerousOperation(const uint32_t* index) {
     accessCount = cnx_clamp_add_u32(accessCount, 1);
     dangerousValue = (*index) * 2;
     return dangerousValue;

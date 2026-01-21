@@ -24,7 +24,7 @@ uint32_t TestScope_getMemberLength(void) {
 }
 bool TestScope_publicMember = true;
 
-uint32_t checkParamLength(bool* param) {
+uint32_t checkParamLength(const bool* param) {
     return 8;
 }
 

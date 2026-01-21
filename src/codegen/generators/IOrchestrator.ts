@@ -284,6 +284,30 @@ interface IOrchestrator {
 
   /** Generate callback typedef for a function */
   generateCallbackTypedef(funcName: string): string | null;
+
+  /**
+   * Issue #268: Update symbol parameters with auto-const info based on modification tracking.
+   * Call this after generating function body but before clearing modifiedParameters.
+   */
+  updateFunctionParamsAutoConst(functionName: string): void;
+
+  /**
+   * Issue #268: Mark a parameter as modified for auto-const tracking.
+   * Used when a parameter is passed to a function that modifies its corresponding parameter.
+   */
+  markParameterModified(paramName: string): void;
+
+  /**
+   * Issue #268: Check if a callee function's parameter at given index is modified.
+   * Returns true if the callee modifies that parameter (should not have const).
+   * Returns false if unmodified or unknown (callee not yet processed).
+   */
+  isCalleeParameterModified(funcName: string, paramIndex: number): boolean;
+
+  /**
+   * Issue #268: Check if a name is a parameter of the current function.
+   */
+  isCurrentParameter(name: string): boolean;
 }
 
 export default IOrchestrator;

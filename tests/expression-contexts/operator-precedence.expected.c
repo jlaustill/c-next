@@ -12,11 +12,11 @@
 // Coverage: Section 33.1 - Nested/Complex Expressions
 // Note: Mixed operator tests (a + b - c) deferred due to bug #152
 // Helper functions to get boolean values (prevents static analysis false positives)
-bool getTrue(uint32_t* x) {
+bool getTrue(const uint32_t* x) {
     return (*x) > 0;
 }
 
-bool getFalse(uint32_t* x) {
+bool getFalse(const uint32_t* x) {
     return (*x) > 1000;
 }
 

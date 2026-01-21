@@ -10,7 +10,7 @@
 // Tests: basic switch statement with integer type
 uint32_t result = 0;
 
-void handleCommand(uint32_t* cmd) {
+void handleCommand(const uint32_t* cmd) {
     switch ((*cmd)) {
         case 0: {
             result = 100;
