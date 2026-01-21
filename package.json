@@ -1,6 +1,6 @@
 {
   "name": "c-next",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "main": "src/index.ts",
   "bin": {
