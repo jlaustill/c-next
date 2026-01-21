@@ -23,7 +23,15 @@ This guide covers the development workflow for contributing to C-Next. We use a 
 
 ### Prerequisites
 
+**Required:**
+
+- Node.js (v18+)
+- Java (for ANTLR parser generation)
+
 ```bash
+# Install Java (Ubuntu/Debian)
+sudo apt install default-jdk
+
 # Clone the repository
 git clone https://github.com/jlaustill/c-next.git
 cd c-next
@@ -33,6 +41,16 @@ npm install
 
 # Run tests
 npm test
+```
+
+**Optional (for static analysis):**
+
+```bash
+# cppcheck - general static analysis
+sudo apt install cppcheck
+
+# rats - security-focused scanner (optional)
+sudo apt install rats
 ```
 
 ### Development Setup
