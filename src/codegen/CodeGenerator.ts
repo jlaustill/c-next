@@ -682,6 +682,45 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #304: Check if we're generating C++ output.
+   * Part of IOrchestrator interface.
+   */
+  isCppMode(): boolean {
+    return this.cppMode;
+  }
+
+  /**
+   * Issue #304: Check if a type is a C++ enum class (scoped enum).
+   * These require explicit casts to integer types in C++.
+   * Part of IOrchestrator interface.
+   */
+  isCppEnumClass(typeName: string): boolean {
+    if (!this.symbolTable) {
+      return false;
+    }
+
+    const symbols = this.symbolTable.getOverloads(typeName);
+    for (const sym of symbols) {
+      if (
+        sym.sourceLanguage === ESourceLanguage.Cpp &&
+        sym.kind === ESymbolKind.Enum
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Issue #304: Get the type of an expression.
+   * Part of IOrchestrator interface.
+   */
+  getExpressionType(ctx: Parser.ExpressionContext): string | null {
+    return this.typeResolver!.getExpressionType(ctx);
+  }
+
+  /**
    * Generate a block (curly braces with statements).
    * Part of IOrchestrator interface (ADR-053 A3).
    */
@@ -3655,14 +3694,6 @@ export default class CodeGenerator implements IOrchestrator {
     targetType: string,
   ): void {
     this.typeResolver!.validateLiteralFitsType(literalText, targetType);
-  }
-
-  /**
-   * ADR-024: Get the type of an expression for type checking.
-   * Returns the inferred type or null if type cannot be determined.
-   */
-  private getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return this.typeResolver!.getExpressionType(ctx);
   }
 
   /**
@@ -8731,6 +8762,12 @@ export default class CodeGenerator implements IOrchestrator {
         this,
       );
       this.applyEffects(result.effects);
+
+      // Issue #304: Transform NULL → nullptr in C++ mode
+      if (result.code === "NULL" && this.cppMode) {
+        return "nullptr";
+      }
+
       return result.code;
     }
     if (ctx.expression()) {

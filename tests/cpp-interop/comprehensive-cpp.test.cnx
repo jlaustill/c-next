@@ -164,9 +164,8 @@ void testTypeConversions() {
     // bool → u8 conversion (implicit in C++)
     crc <- processByte(crc, cfg.enabled);
 
-    // NOTE: enum class → u8 requires static_cast (Issue #252)
-    // Commenting out until Issue #252 is fixed:
-    // crc <- processByte(crc, cfg.mode);
+    // enum class → u8 requires static_cast (Issue #252)
+    crc <- processByte(crc, cfg.mode);
 
     // u8 direct (no conversion needed)
     crc <- processByte(crc, cfg.flags);
@@ -199,8 +198,8 @@ void testArrayMembers() {
     // Passing array element member to function
     u32 crc <- 0;
     crc <- processByte(crc, device.sensors[0].enabled);
-    // NOTE: enum class → u8 requires static_cast (Issue #252)
-    // crc <- processByte(crc, device.sensors[0].mode);
+    // enum class → u8 requires static_cast (Issue #252)
+    crc <- processByte(crc, device.sensors[0].mode);
     crc <- processByte(crc, device.sensors[0].flags);
 }
 
@@ -233,9 +232,6 @@ void testComplexStructs() {
 // Test singleton pattern and static registries
 
 void testSingleton() {
-    // Registry static methods
-    // NOTE: null → nullptr issue - commenting out until fixed
-    // global.Registry.registerHandler(1, null);
     global.Registry.callHandler(1);
     i32 count <- global.Registry.getHandlerCount();
 }

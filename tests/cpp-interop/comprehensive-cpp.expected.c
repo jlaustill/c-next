@@ -127,8 +127,9 @@ void testTypeConversions(void) {
     cfg.permissions = FLAG_READ;
     uint32_t crc = 0;
     crc = processByte(crc, cfg.enabled);
+    crc = processByte(crc, static_cast<uint8_t>(cfg.mode));
     crc = processByte(crc, cfg.flags);
-    crc = processByte(crc, cfg.permissions);
+    crc = processByte(crc, static_cast<uint8_t>(cfg.permissions));
 }
 
 // ============================================================================
@@ -148,6 +149,7 @@ void testArrayMembers(void) {
     uint8_t flags = device.sensors[2].flags;
     uint32_t crc = 0;
     crc = processByte(crc, device.sensors[0].enabled);
+    crc = processByte(crc, static_cast<uint8_t>(device.sensors[0].mode));
     crc = processByte(crc, device.sensors[0].flags);
 }
 
