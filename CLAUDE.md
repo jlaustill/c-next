@@ -220,3 +220,21 @@ If implementing a feature, all documents must be current and memory must be upda
 - All merges to main must be reviewed via Pull Request
 - Use the `/commit-push-pr` skill or `git push` + `gh pr create` to push and create PRs
 - If the user says "commit this", only commit - ask before pushing
+
+## Release Checklist
+
+**When preparing a release, ensure the VS Code extension is updated:**
+
+1. **Regenerate parser** if grammar changed: `npm run antlr`
+2. **Update VS Code extension** (`vscode-extension/`):
+   - Sync `tmLanguage.json` with any new keywords, types, or syntax
+   - Sync `completionProvider.ts` keywords with actual C-Next keywords
+   - Bump version in `package.json`
+3. **Rebuild and test extension**:
+   ```bash
+   cd vscode-extension
+   npm run compile
+   npx vsce package --allow-missing-repository
+   code --install-extension c-next-*.vsix --force
+   ```
+4. **Verify** syntax highlighting and autocompletion work for new features
