@@ -44,6 +44,10 @@ const KEYWORDS = [
   "sizeof",
   "atomic",
   "critical",
+  "public",
+  "private",
+  "this",
+  "global",
 ];
 
 /**
