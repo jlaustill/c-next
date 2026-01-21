@@ -42,11 +42,11 @@
       "patterns": [
         {
           "name": "keyword.control.cnext",
-          "match": "\\b(if|else|for|while|do|switch|case|default|break|continue|return|critical)\\b"
+          "match": "\\b(if|else|for|while|do|switch|case|default|return|critical)\\b"
         },
         {
           "name": "keyword.other.cnext",
-          "match": "\\b(register|scope|class|struct|enum|typedef|const|volatile|static|extern|inline|sizeof)\\b"
+          "match": "\\b(register|scope|struct|enum|const|volatile|sizeof)\\b"
         },
         {
           "name": "storage.modifier.visibility.cnext",
