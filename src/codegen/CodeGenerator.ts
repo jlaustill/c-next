@@ -4013,6 +4013,59 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #308: Check if a member access expression is accessing an array member.
+   * For example, result.data where data is a u8[6] array member.
+   * When passing such expressions to functions, the array should naturally decay
+   * to a pointer, so we should NOT add & operator.
+   *
+   * @param ctx - The expression context
+   * @returns true if the expression is a member access to an array field
+   */
+  private isMemberAccessToArray(ctx: Parser.ExpressionContext): boolean {
+    const postfix = this.getPostfixExpression(ctx);
+    if (!postfix) return false;
+
+    const ops = postfix.postfixOp();
+    if (ops.length === 0) return false;
+
+    // Last operator must be member access (.identifier)
+    const lastOp = ops[ops.length - 1];
+    const memberName = lastOp.IDENTIFIER()?.getText();
+    if (!memberName) return false;
+
+    // Get the base identifier to find the struct type
+    const primary = postfix.primaryExpression();
+    if (!primary) return false;
+    const baseId = primary.IDENTIFIER()?.getText();
+    if (!baseId) return false;
+
+    // Look up the struct type from either:
+    // 1. Local variable: typeRegistry.get(baseId).baseType
+    // 2. Parameter: currentParameters.get(baseId).baseType
+    let structType: string | undefined;
+
+    const typeInfo = this.context.typeRegistry.get(baseId);
+    if (typeInfo) {
+      structType = typeInfo.baseType;
+    } else {
+      const paramInfo = this.context.currentParameters.get(baseId);
+      if (paramInfo) {
+        structType = paramInfo.baseType;
+      }
+    }
+
+    if (!structType) return false;
+
+    // Check if this struct member is an array
+    const memberInfo = this.getMemberTypeInfo(structType, memberName);
+    if (memberInfo?.isArray) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Check if an expression is a simple literal (number, bool, etc.)
    * Navigates: expression -> ternaryExpression -> orExpression -> ... -> primaryExpression -> literal
    */
@@ -4172,6 +4225,13 @@ export default class CodeGenerator implements IOrchestrator {
     // Check if it's a member access or array access (lvalue) - needs &
     const lvalueType = this.getLvalueType(ctx);
     if (lvalueType) {
+      // Issue #308: If member access to an array, don't add & - arrays decay to pointers
+      // For example: result.data where data is u8[6] should pass as result.data (decays to uint8_t*)
+      // NOT &result.data (which gives uint8_t (*)[6] - wrong type)
+      if (lvalueType === "member" && this.isMemberAccessToArray(ctx)) {
+        return this._generateExpression(ctx);
+      }
+
       // Issue #251/#252: In C++ mode, struct member access may need temp variable
       if (
         lvalueType === "member" &&

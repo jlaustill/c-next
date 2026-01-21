@@ -1,0 +1,82 @@
+/* test-execution */
+// Tests: Issue #308 - Unnecessary & added to array access and struct member arrays
+// NOTE: Uses cpp mode because C++ has stricter type checking that catches this error
+// The .hpp include triggers C++ mode automatically
+
+#include "issue-308-unnecessary-address-of.hpp"
+
+// Bug: The transpiler incorrectly adds & (address-of) in two scenarios:
+// 1. Array element access: data[3] becomes &data[3] (wrong - we want the value)
+// 2. Struct member arrays: result.data becomes &result.data (wrong - array should decay)
+
+// Struct with array member to test scenario 2
+struct DataResult {
+    u8 errorCode;
+    u8 data[6];
+    u8 dataLen;
+}
+
+// ============================================================
+// Scenario 1: Array element access
+// Function expects VALUES (u8), not pointers
+// ============================================================
+u32 sumFourBytes(u8 b0, u8 b1, u8 b2, u8 b3) {
+    // Simple sum to verify we got values, not pointers
+    return b0 + b1 + b2 + b3;
+}
+
+// ============================================================
+// Scenario 2: Struct member array
+// Function expects array pointer (via decay), not pointer-to-array
+// ============================================================
+u8 sumArray(u8 arr[6], u8 len) {
+    u8 sum <- 0;
+    u8 i <- 0;
+    while (i < len) {
+        sum <- sum + arr[i];
+        i <- i + 1;
+    }
+    return sum;
+}
+
+u32 main() {
+    // ============================================================
+    // Test Scenario 1: Array element access
+    // data[i] should pass the VALUE at index i, not &data[i]
+    // ============================================================
+    u8 data[8];
+    data[0] <- 0x12;
+    data[1] <- 0x34;
+    data[2] <- 0x56;
+    data[3] <- 0x78;
+
+    // This should generate: sumFourBytes(data[0], data[1], data[2], data[3])
+    // NOT: sumFourBytes(&data[0], &data[1], &data[2], &data[3])
+    u32 sum <- sumFourBytes(data[0], data[1], data[2], data[3]);
+
+    // Expected: 0x12 + 0x34 + 0x56 + 0x78 = 18 + 52 + 86 + 120 = 276
+    if (sum != 276) return 1;
+
+    // ============================================================
+    // Test Scenario 2: Struct member array
+    // result.data should decay to pointer, not have & added
+    // ============================================================
+    DataResult result;
+    result.errorCode <- 0;
+    result.data[0] <- 10;
+    result.data[1] <- 20;
+    result.data[2] <- 30;
+    result.data[3] <- 40;
+    result.data[4] <- 50;
+    result.data[5] <- 60;
+    result.dataLen <- 6;
+
+    // This should generate: sumArray(result.data, result.dataLen)
+    // NOT: sumArray(&result.data, result.dataLen)
+    u8 total <- sumArray(result.data, result.dataLen);
+
+    // Expected: 10 + 20 + 30 + 40 + 50 + 60 = 210
+    if (total != 210) return 2;
+
+    return 0;
+}
