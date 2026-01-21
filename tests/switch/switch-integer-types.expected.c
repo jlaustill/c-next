@@ -12,8 +12,8 @@
 uint32_t result = 0;
 
 // === UNSIGNED TYPE HELPERS ===
-void testSwitchU8(const uint8_t* val) {
-    switch ((*val)) {
+void testSwitchU8(uint8_t val) {
+    switch (val) {
         case 0: {
             result = 100;
             break;
@@ -33,8 +33,8 @@ void testSwitchU8(const uint8_t* val) {
     }
 }
 
-void testSwitchU16(const uint16_t* val) {
-    switch ((*val)) {
+void testSwitchU16(uint16_t val) {
+    switch (val) {
         case 0: {
             result = 200;
             break;
@@ -54,8 +54,8 @@ void testSwitchU16(const uint16_t* val) {
     }
 }
 
-void testSwitchU32(const uint32_t* val) {
-    switch ((*val)) {
+void testSwitchU32(uint32_t val) {
+    switch (val) {
         case 0: {
             result = 300;
             break;
@@ -71,8 +71,8 @@ void testSwitchU32(const uint32_t* val) {
     }
 }
 
-void testSwitchU64(const uint64_t* val) {
-    switch ((*val)) {
+void testSwitchU64(uint64_t val) {
+    switch (val) {
         case 0: {
             result = 400;
             break;
@@ -91,8 +91,8 @@ void testSwitchU64(const uint64_t* val) {
 // === SIGNED TYPE HELPERS ===
 // Note: Case labels must use positive literals (grammar limitation).
 // Signed types are still tested - negative values fall to default.
-void testSwitchI8(const int8_t* val) {
-    switch ((*val)) {
+void testSwitchI8(int8_t val) {
+    switch (val) {
         case 0: {
             result = 500;
             break;
@@ -112,8 +112,8 @@ void testSwitchI8(const int8_t* val) {
     }
 }
 
-void testSwitchI16(const int16_t* val) {
-    switch ((*val)) {
+void testSwitchI16(int16_t val) {
+    switch (val) {
         case 0: {
             result = 600;
             break;
@@ -133,8 +133,8 @@ void testSwitchI16(const int16_t* val) {
     }
 }
 
-void testSwitchI32(const int32_t* val) {
-    switch ((*val)) {
+void testSwitchI32(int32_t val) {
+    switch (val) {
         case 0: {
             result = 700;
             break;
@@ -154,8 +154,8 @@ void testSwitchI32(const int32_t* val) {
     }
 }
 
-void testSwitchI64(const int64_t* val) {
-    switch ((*val)) {
+void testSwitchI64(int64_t val) {
+    switch (val) {
         case 0: {
             result = 800;
             break;
@@ -180,91 +180,91 @@ int main(void) {
     uint8_t u8_ten = 10;
     uint8_t u8_max = 255;
     uint8_t u8_other = 50;
-    testSwitchU8(&u8_zero);
+    testSwitchU8(u8_zero);
     if (result != 100) return 1;
-    testSwitchU8(&u8_ten);
+    testSwitchU8(u8_ten);
     if (result != 110) return 2;
-    testSwitchU8(&u8_max);
+    testSwitchU8(u8_max);
     if (result != 355) return 3;
-    testSwitchU8(&u8_other);
+    testSwitchU8(u8_other);
     if (result != 999) return 4;
     uint16_t u16_zero = 0;
     uint16_t u16_mid = 1000;
     uint16_t u16_max = 65535;
     uint16_t u16_other = 5000;
-    testSwitchU16(&u16_zero);
+    testSwitchU16(u16_zero);
     if (result != 200) return 5;
-    testSwitchU16(&u16_mid);
+    testSwitchU16(u16_mid);
     if (result != 1200) return 6;
-    testSwitchU16(&u16_max);
+    testSwitchU16(u16_max);
     if (result != 65735) return 7;
-    testSwitchU16(&u16_other);
+    testSwitchU16(u16_other);
     if (result != 999) return 8;
     uint32_t u32_zero = 0;
     uint32_t u32_mid = 1000000;
     uint32_t u32_other = 12345;
-    testSwitchU32(&u32_zero);
+    testSwitchU32(u32_zero);
     if (result != 300) return 9;
-    testSwitchU32(&u32_mid);
+    testSwitchU32(u32_mid);
     if (result != 1000300) return 10;
-    testSwitchU32(&u32_other);
+    testSwitchU32(u32_other);
     if (result != 999) return 11;
     uint64_t u64_zero = 0;
     uint64_t u64_large = 1000000000000;
     uint64_t u64_other = 9999;
-    testSwitchU64(&u64_zero);
+    testSwitchU64(u64_zero);
     if (result != 400) return 12;
-    testSwitchU64(&u64_large);
+    testSwitchU64(u64_large);
     if (result != 401) return 13;
-    testSwitchU64(&u64_other);
+    testSwitchU64(u64_other);
     if (result != 999) return 14;
     int8_t i8_zero = 0;
     int8_t i8_mid = 50;
     int8_t i8_max = 127;
     int8_t i8_neg = -50;
-    testSwitchI8(&i8_zero);
+    testSwitchI8(i8_zero);
     if (result != 500) return 15;
-    testSwitchI8(&i8_mid);
+    testSwitchI8(i8_mid);
     if (result != 501) return 16;
-    testSwitchI8(&i8_max);
+    testSwitchI8(i8_max);
     if (result != 502) return 17;
-    testSwitchI8(&i8_neg);
+    testSwitchI8(i8_neg);
     if (result != 999) return 18;
     int16_t i16_zero = 0;
     int16_t i16_mid = 5000;
     int16_t i16_max = 32767;
     int16_t i16_neg = -5000;
-    testSwitchI16(&i16_zero);
+    testSwitchI16(i16_zero);
     if (result != 600) return 19;
-    testSwitchI16(&i16_mid);
+    testSwitchI16(i16_mid);
     if (result != 601) return 20;
-    testSwitchI16(&i16_max);
+    testSwitchI16(i16_max);
     if (result != 602) return 21;
-    testSwitchI16(&i16_neg);
+    testSwitchI16(i16_neg);
     if (result != 999) return 22;
     int32_t i32_zero = 0;
     int32_t i32_mid = 1000000;
     int32_t i32_high = 2000000;
     int32_t i32_neg = -1000000;
-    testSwitchI32(&i32_zero);
+    testSwitchI32(i32_zero);
     if (result != 700) return 23;
-    testSwitchI32(&i32_mid);
+    testSwitchI32(i32_mid);
     if (result != 701) return 24;
-    testSwitchI32(&i32_high);
+    testSwitchI32(i32_high);
     if (result != 702) return 25;
-    testSwitchI32(&i32_neg);
+    testSwitchI32(i32_neg);
     if (result != 999) return 26;
     int64_t i64_zero = 0;
     int64_t i64_mid = 5000000000;
     int64_t i64_high = 9000000000;
     int64_t i64_neg = -5000000000;
-    testSwitchI64(&i64_zero);
+    testSwitchI64(i64_zero);
     if (result != 800) return 27;
-    testSwitchI64(&i64_mid);
+    testSwitchI64(i64_mid);
     if (result != 801) return 28;
-    testSwitchI64(&i64_high);
+    testSwitchI64(i64_high);
     if (result != 802) return 29;
-    testSwitchI64(&i64_neg);
+    testSwitchI64(i64_neg);
     if (result != 999) return 30;
     return 0;
 }

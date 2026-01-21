@@ -12,10 +12,10 @@ uint32_t globalResult = 0;
 /* Scope: CommandProcessor */
 static uint32_t CommandProcessor_result = 0;
 
-void CommandProcessor_execute(const uint32_t* command) {
+void CommandProcessor_execute(uint32_t command) {
     uint32_t CommandProcessor_lastCommand = 0;
-    CommandProcessor_lastCommand = (*command);
-    switch ((*command)) {
+    CommandProcessor_lastCommand = command;
+    switch (command) {
         case 1: {
             CommandProcessor_result = 100;
             break;
@@ -44,15 +44,15 @@ static uint32_t Calculator_a = 0;
 static uint32_t Calculator_b = 0;
 static uint32_t Calculator_output = 0;
 
-void Calculator_setOperands(const uint32_t* x, const uint32_t* y) {
-    Calculator_a = (*x);
-    Calculator_b = (*y);
+void Calculator_setOperands(uint32_t x, uint32_t y) {
+    Calculator_a = x;
+    Calculator_b = y;
 }
 
-void Calculator_compute(const uint32_t* operation) {
+void Calculator_compute(uint32_t operation) {
     uint32_t Calculator_mode = 0;
-    Calculator_mode = (*operation);
-    switch ((*operation)) {
+    Calculator_mode = operation;
+    switch (operation) {
         case 0: {
             Calculator_output = Calculator_a + Calculator_b;
             break;
@@ -77,11 +77,11 @@ uint32_t Calculator_getOutput(void) {
 }
 
 int main(void) {
-    CommandProcessor_execute(&(uint32_t){2});
+    CommandProcessor_execute(2);
     globalResult = CommandProcessor_getResult();
-    Calculator_setOperands(&(uint32_t){10}, &(uint32_t){5});
-    Calculator_compute(&(uint32_t){0});
+    Calculator_setOperands(10, 5);
+    Calculator_compute(0);
     globalResult = Calculator_getOutput();
-    Calculator_compute(&(uint32_t){1});
+    Calculator_compute(1);
     globalResult = Calculator_getOutput();
 }

@@ -13,21 +13,19 @@
 
 #include <stdint.h>
 
-uint32_t process(const uint32_t* crc, const uint8_t* byte) {
-    return (*crc) ^ (*byte);
+uint32_t process(uint32_t crc, uint8_t byte) {
+    return crc ^ byte;
 }
 
 int main(void) {
     uint32_t value = 0x12345678;
     uint32_t crc = 0;
-    uint8_t _cnx_tmp_0 = value & 0xFF;
-    crc = process(&crc, &_cnx_tmp_0);
+    crc = process(crc, value & 0xFF);
     if (crc != 0x78) return 1;
     uint8_t a = 10;
     uint8_t b = 5;
     crc = 0;
-    uint8_t _cnx_tmp_1 = a + b;
-    crc = process(&crc, &_cnx_tmp_1);
+    crc = process(crc, a + b);
     if (crc != 15) return 2;
     return 0;
 }

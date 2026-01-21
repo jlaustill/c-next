@@ -22,7 +22,7 @@ uint32_t TestScope_getMemberLength(void) {
 }
 int32_t TestScope_publicMember = -100000;
 
-uint32_t checkParamLength(const int32_t* param) {
+uint32_t checkParamLength(int32_t param) {
     return 32;
 }
 
@@ -50,7 +50,7 @@ int main(void) {
         return 5;
     }
     int32_t testVal = -100000;
-    result = checkParamLength(&testVal);
+    result = checkParamLength(testVal);
     if (result != 32) {
         return 6;
     }

@@ -16,8 +16,8 @@
 // Array of external C structs with bool/enum members
 SensorReading sensors[4] = {0};
 
-uint32_t process(const uint32_t* crc, const uint8_t* byte) {
-    return (*crc) ^ (*byte);
+uint32_t process(uint32_t crc, uint8_t byte) {
+    return crc ^ byte;
 }
 
 uint32_t testArrayStructMembers(void) {
@@ -26,14 +26,10 @@ uint32_t testArrayStructMembers(void) {
     sensors[0].sensorType = SENSOR_PRESSURE;
     sensors[0].status = STATUS_ON;
     sensors[0].value = 42;
-    uint8_t _cnx_tmp_0 = static_cast<uint8_t>(sensors[0].active);
-    crc = process(&crc, &_cnx_tmp_0);
-    uint8_t _cnx_tmp_1 = static_cast<uint8_t>(sensors[0].sensorType);
-    crc = process(&crc, &_cnx_tmp_1);
-    uint8_t _cnx_tmp_2 = static_cast<uint8_t>(sensors[0].status);
-    crc = process(&crc, &_cnx_tmp_2);
-    uint8_t _cnx_tmp_3 = static_cast<uint8_t>(sensors[0].value);
-    crc = process(&crc, &_cnx_tmp_3);
+    crc = process(crc, sensors[0].active);
+    crc = process(crc, sensors[0].sensorType);
+    crc = process(crc, sensors[0].status);
+    crc = process(crc, sensors[0].value);
     return crc;
 }
 
@@ -43,14 +39,10 @@ uint32_t testMultipleIndices(void) {
     sensors[1].sensorType = SENSOR_HUMIDITY;
     sensors[2].status = STATUS_ERROR;
     sensors[3].value = 100;
-    uint8_t _cnx_tmp_4 = static_cast<uint8_t>(sensors[1].active);
-    crc = process(&crc, &_cnx_tmp_4);
-    uint8_t _cnx_tmp_5 = static_cast<uint8_t>(sensors[1].sensorType);
-    crc = process(&crc, &_cnx_tmp_5);
-    uint8_t _cnx_tmp_6 = static_cast<uint8_t>(sensors[2].status);
-    crc = process(&crc, &_cnx_tmp_6);
-    uint8_t _cnx_tmp_7 = static_cast<uint8_t>(sensors[3].value);
-    crc = process(&crc, &_cnx_tmp_7);
+    crc = process(crc, sensors[1].active);
+    crc = process(crc, sensors[1].sensorType);
+    crc = process(crc, sensors[2].status);
+    crc = process(crc, sensors[3].value);
     return crc;
 }
 

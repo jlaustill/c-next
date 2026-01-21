@@ -16,6 +16,9 @@ import generateBitmapHeader from "./headerGenerators/generateBitmapHeader";
 
 const { TYPE_MAP, mapType } = typeUtils;
 
+/** Issue #269: Pass-by-value parameter info from CodeGenerator */
+type TPassByValueParams = ReadonlyMap<string, ReadonlySet<string>>;
+
 /**
  * Generates C header files from symbol information
  */
@@ -27,12 +30,14 @@ class HeaderGenerator {
    * @param filename - Output filename (used for include guard)
    * @param options - Header generation options
    * @param typeInput - Optional type information for full definitions (enums, structs, bitmaps)
+   * @param passByValueParams - Issue #269: Map of function names to pass-by-value parameter names
    */
   generate(
     symbols: ISymbol[],
     filename: string,
     options: IHeaderOptions = {},
     typeInput?: IHeaderTypeInput,
+    passByValueParams?: TPassByValueParams,
   ): string {
     const lines: string[] = [];
     const guard = this.makeGuard(filename, options.guardPrefix);
@@ -185,7 +190,7 @@ class HeaderGenerator {
     if (functions.length > 0) {
       lines.push("/* Function prototypes */");
       for (const sym of functions) {
-        const proto = this.generateFunctionPrototype(sym);
+        const proto = this.generateFunctionPrototype(sym, passByValueParams);
         if (proto) {
           lines.push(proto);
         }
@@ -253,10 +258,17 @@ class HeaderGenerator {
   /**
    * Generate a function prototype from symbol info
    * Handles all parameter edge cases per ADR-006, ADR-029, and ADR-040
+   * Issue #269: Also handles pass-by-value for small unmodified primitives
    */
-  private generateFunctionPrototype(sym: ISymbol): string | null {
+  private generateFunctionPrototype(
+    sym: ISymbol,
+    passByValueParams?: TPassByValueParams,
+  ): string | null {
     // Map return type from C-Next to C
     const returnType = sym.type ? mapType(sym.type) : "void";
+
+    // Issue #269: Get pass-by-value parameter names for this function
+    const passByValueSet = passByValueParams?.get(sym.name);
 
     // Build parameter list with proper C semantics
     let params = "void"; // Default for no parameters
@@ -285,6 +297,11 @@ class HeaderGenerator {
 
         // Float types (f32, f64) use standard C pass-by-value semantics
         if (p.type === "f32" || p.type === "f64") {
+          return `${constMod}${baseType} ${p.name}`;
+        }
+
+        // Issue #269: Check if parameter should be passed by value
+        if (passByValueSet?.has(p.name)) {
           return `${constMod}${baseType} ${p.name}`;
         }
 

@@ -8,8 +8,8 @@
 /* test-execution */
 // Tests: Issue #268 - automatic const for unmodified pointer parameters
 // Read-only parameter - should get const
-void readOnly(const uint32_t* value) {
-    uint32_t local = (*value);
+void readOnly(uint32_t value) {
+    uint32_t local = value;
 }
 
 // Modified parameter - should NOT get const
@@ -18,8 +18,8 @@ void modified(uint32_t* value) {
 }
 
 // Multiple params - mixed const/non-const
-uint32_t mixedParams(const uint32_t* readVal, uint32_t* writeVal) {
-    (*writeVal) = (*readVal) + 10;
+uint32_t mixedParams(uint32_t readVal, uint32_t* writeVal) {
+    (*writeVal) = readVal + 10;
     return (*writeVal);
 }
 
@@ -35,12 +35,12 @@ uint8_t arrayReadOnly(const uint8_t arr[4]) {
 
 int main(void) {
     uint32_t x = 10;
-    readOnly(&x);
+    readOnly(x);
     if (x != 10) return 1;
     modified(&x);
     uint32_t a = 5;
     uint32_t b = 0;
-    uint32_t result = mixedParams(&a, &b);
+    uint32_t result = mixedParams(a, &b);
     if (result != 15) return 2;
     uint8_t data[4] = {1, 2, 3, 4};
     arrayMod(data);

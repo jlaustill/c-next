@@ -77,8 +77,8 @@ static void PrivateMethodTest_performPrivateChain(void) {
     PrivateMethodTest_privateFlag = !PrivateMethodTest_privateFlag;
 }
 
-static void PrivateMethodTest_addValue(const int32_t* amount) {
-    PrivateMethodTest_privateAccumulator = PrivateMethodTest_privateAccumulator + (*amount);
+static void PrivateMethodTest_addValue(int32_t amount) {
+    PrivateMethodTest_privateAccumulator = PrivateMethodTest_privateAccumulator + amount;
     PrivateMethodTest_incrementCallCount();
 }
 
@@ -86,23 +86,23 @@ uint32_t PrivateMethodTest_exposePrivateState(void) {
     return PrivateMethodTest_getPrivateState();
 }
 
-void PrivateMethodTest_setPrivateState(const uint32_t* val) {
-    PrivateMethodTest_privateState = (*val);
+void PrivateMethodTest_setPrivateState(uint32_t val) {
+    PrivateMethodTest_privateState = val;
 }
 
 bool PrivateMethodTest_exposePrivateFlag(void) {
     return PrivateMethodTest_getPrivateFlag();
 }
 
-void PrivateMethodTest_setPrivateFlag(const bool* val) {
-    PrivateMethodTest_privateFlag = (*val);
+void PrivateMethodTest_setPrivateFlag(bool val) {
+    PrivateMethodTest_privateFlag = val;
 }
 
 int32_t PrivateMethodTest_exposePrivateAccumulator(void) {
     return PrivateMethodTest_getPrivateAccumulator();
 }
 
-void PrivateMethodTest_addToAccumulator(const int32_t* val) {
+void PrivateMethodTest_addToAccumulator(int32_t val) {
     PrivateMethodTest_addValue(val);
 }
 
@@ -139,20 +139,20 @@ void PrivateMethodTest_copyPrivateToPublic(void) {
 int main(void) {
     uint32_t resultState = PrivateMethodTest_exposePrivateState();
     if (resultState != 0) return 1;
-    PrivateMethodTest_setPrivateState(&(uint32_t){42});
+    PrivateMethodTest_setPrivateState(42);
     resultState = PrivateMethodTest_exposePrivateState();
     if (resultState != 42) return 2;
     bool resultFlag = PrivateMethodTest_exposePrivateFlag();
     if (resultFlag != false) return 3;
-    PrivateMethodTest_setPrivateFlag(&(bool){true});
+    PrivateMethodTest_setPrivateFlag(true);
     resultFlag = PrivateMethodTest_exposePrivateFlag();
     if (resultFlag != true) return 4;
     int32_t resultAccum = PrivateMethodTest_exposePrivateAccumulator();
     if (resultAccum != 0) return 5;
-    PrivateMethodTest_addToAccumulator(&(int32_t){100});
+    PrivateMethodTest_addToAccumulator(100);
     resultAccum = PrivateMethodTest_exposePrivateAccumulator();
     if (resultAccum != 100) return 6;
-    PrivateMethodTest_addToAccumulator(&(int32_t){-30});
+    PrivateMethodTest_addToAccumulator(-30);
     resultAccum = PrivateMethodTest_exposePrivateAccumulator();
     if (resultAccum != 70) return 7;
     uint32_t resultCounter = PrivateMethodTest_exposeGlobalCounter();
@@ -161,12 +161,12 @@ int main(void) {
     if (resultCombined != 142) return 9;
     bool resultBothFlags = PrivateMethodTest_exposeBothFlagsCheck();
     if (resultBothFlags != true) return 10;
-    PrivateMethodTest_setPrivateFlag(&(bool){false});
+    PrivateMethodTest_setPrivateFlag(false);
     resultBothFlags = PrivateMethodTest_exposeBothFlagsCheck();
     if (resultBothFlags != false) return 11;
     uint32_t resultHelper = PrivateMethodTest_exposeStateViaHelper();
     if (resultHelper != 42) return 12;
-    PrivateMethodTest_setPrivateState(&(uint32_t){990});
+    PrivateMethodTest_setPrivateState(990);
     resultState = PrivateMethodTest_exposePrivateState();
     if (resultState != 990) return 13;
     uint8_t resultCallCount = PrivateMethodTest_exposeCallCount();
@@ -178,8 +178,8 @@ int main(void) {
     if (resultFlag != true) return 16;
     resultCallCount = PrivateMethodTest_exposeCallCount();
     if (resultCallCount != 3) return 17;
-    PrivateMethodTest_setPrivateState(&(uint32_t){777});
-    PrivateMethodTest_setPrivateFlag(&(bool){true});
+    PrivateMethodTest_setPrivateState(777);
+    PrivateMethodTest_setPrivateFlag(true);
     PrivateMethodTest_copyPrivateToPublic();
     if (PrivateMethodTest_publicResult != 777) return 18;
     if (PrivateMethodTest_publicFlag != true) return 19;

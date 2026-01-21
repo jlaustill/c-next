@@ -66,12 +66,12 @@ bool AllTypesTest_getBool(void) {
     return AllTypesTest_valBool;
 }
 
-void AllTypesTest_setU8(const uint8_t* val) {
-    AllTypesTest_valU8 = (*val);
+void AllTypesTest_setU8(uint8_t val) {
+    AllTypesTest_valU8 = val;
 }
 
-void AllTypesTest_setBool(const bool* val) {
-    AllTypesTest_valBool = (*val);
+void AllTypesTest_setBool(bool val) {
+    AllTypesTest_valBool = val;
 }
 
 void AllTypesTest_setF32(float val) {
@@ -132,13 +132,13 @@ int main(void) {
         return 11;
     }
     uint8_t newU8Value = 100;
-    AllTypesTest_setU8(&newU8Value);
+    AllTypesTest_setU8(newU8Value);
     resultU8 = AllTypesTest_getU8();
     if (resultU8 != 100) {
         return 12;
     }
     bool newBoolValue = false;
-    AllTypesTest_setBool(&newBoolValue);
+    AllTypesTest_setBool(newBoolValue);
     resultBool = AllTypesTest_getBool();
     if (resultBool != false) {
         return 13;

@@ -24,12 +24,12 @@ typedef struct {
 } Configuration;
 
 // Function that exposes the bug - passing struct by value with array member access
-uint16_t getSpn(const Configuration* conf, const uint32_t* idx) {
-    return conf->tempInputs[(*idx)].assignedSpn;
+uint16_t getSpn(const Configuration* conf, uint32_t idx) {
+    return conf->tempInputs[idx].assignedSpn;
 }
 
-float getCoeff(const Configuration* data, const uint32_t* pos) {
-    return data->tempInputs[(*pos)].coeffA;
+float getCoeff(const Configuration* data, uint32_t pos) {
+    return data->tempInputs[pos].coeffA;
 }
 
 int main(void) {
@@ -46,26 +46,26 @@ int main(void) {
     uint32_t idx1 = 1;
     uint32_t idx2 = 2;
     uint32_t idx5 = 5;
-    uint16_t spn0 = getSpn(&cfg, &idx0);
+    uint16_t spn0 = getSpn(&cfg, idx0);
     if (spn0 != 100) return 1;
-    uint16_t spn1 = getSpn(&cfg, &idx1);
+    uint16_t spn1 = getSpn(&cfg, idx1);
     if (spn1 != 200) return 2;
-    uint16_t spn2 = getSpn(&cfg, &idx2);
+    uint16_t spn2 = getSpn(&cfg, idx2);
     if (spn2 != 300) return 3;
-    uint16_t spn5 = getSpn(&cfg, &idx5);
+    uint16_t spn5 = getSpn(&cfg, idx5);
     if (spn5 != 999) return 4;
-    float coeff0 = getCoeff(&cfg, &idx0);
+    float coeff0 = getCoeff(&cfg, idx0);
     if (coeff0 != 1.5) return 5;
-    float coeff1 = getCoeff(&cfg, &idx1);
+    float coeff1 = getCoeff(&cfg, idx1);
     if (coeff1 != 2.5) return 6;
-    float coeff2 = getCoeff(&cfg, &idx2);
+    float coeff2 = getCoeff(&cfg, idx2);
     if (coeff2 != 3.5) return 7;
     if (cfg.tempInputs[0].assignedSpn != 100) return 8;
     if (cfg.tempInputs[1].assignedSpn != 200) return 9;
     if (cfg.tempInputs[2].assignedSpn != 300) return 10;
     uint16_t sum = cfg.tempInputs[0].assignedSpn + cfg.tempInputs[1].assignedSpn;
     if (sum != 300) return 11;
-    uint16_t val = getSpn(&cfg, &idx2);
+    uint16_t val = getSpn(&cfg, idx2);
     if (val != 300) return 12;
     if ((cfg.tempInputs[0].assignedSpn + cfg.tempInputs[2].assignedSpn) != 400) return 13;
     return 0;

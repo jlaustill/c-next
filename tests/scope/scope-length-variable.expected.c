@@ -17,16 +17,16 @@ uint8_t LengthTest_getLength(void) {
     return LengthTest_length;
 }
 
-void LengthTest_setLength(const uint8_t* newLen) {
-    LengthTest_length = (*newLen);
+void LengthTest_setLength(uint8_t newLen) {
+    LengthTest_length = newLen;
 }
 
 uint16_t LengthTest_getOffset(void) {
     return LengthTest_offset;
 }
 
-void LengthTest_setOffset(const uint16_t* newOffset) {
-    LengthTest_offset = (*newOffset);
+void LengthTest_setOffset(uint16_t newOffset) {
+    LengthTest_offset = newOffset;
 }
 
 uint16_t LengthTest_getLengthPlusOffset(void) {
@@ -38,7 +38,7 @@ int main(void) {
     if (resultLen != 0) {
         return 1;
     }
-    LengthTest_setLength(&(uint8_t){42});
+    LengthTest_setLength(42);
     resultLen = LengthTest_getLength();
     if (resultLen != 42) {
         return 2;
@@ -47,7 +47,7 @@ int main(void) {
     if (resultOffset != 0) {
         return 3;
     }
-    LengthTest_setOffset(&(uint16_t){100});
+    LengthTest_setOffset(100);
     resultOffset = LengthTest_getOffset();
     if (resultOffset != 100) {
         return 4;
@@ -56,7 +56,7 @@ int main(void) {
     if (resultSum != 142) {
         return 5;
     }
-    LengthTest_setLength(&(uint8_t){255});
+    LengthTest_setLength(255);
     resultLen = LengthTest_getLength();
     if (resultLen != 255) {
         return 6;

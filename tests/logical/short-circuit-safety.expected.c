@@ -22,30 +22,30 @@ uint32_t accessCount = 0;
 
 uint32_t dangerousValue = 0;
 
-bool isIndexSafe(const uint32_t* index) {
-    return (*index) < 5;
+bool isIndexSafe(uint32_t index) {
+    return index < 5;
 }
 
-uint32_t performDangerousOperation(const uint32_t* index) {
+uint32_t performDangerousOperation(uint32_t index) {
     accessCount = cnx_clamp_add_u32(accessCount, 1);
-    dangerousValue = (*index) * 2;
+    dangerousValue = index * 2;
     return dangerousValue;
 }
 
 void testSafeGuardPattern(void) {
     accessCount = 0;
-    bool result = isIndexSafe(&(uint32_t){10}) && (performDangerousOperation(&(uint32_t){10}) > 0);
+    bool result = isIndexSafe(10) && (performDangerousOperation(10) > 0);
 }
 
 void testSafeGuardPatternValid(void) {
     accessCount = 0;
-    bool result = isIndexSafe(&(uint32_t){2}) && (performDangerousOperation(&(uint32_t){2}) >= 0);
+    bool result = isIndexSafe(2) && (performDangerousOperation(2) >= 0);
 }
 
 void testOrSafetyPattern(void) {
     accessCount = 0;
     uint32_t invalidIndex = 100;
-    bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(&invalidIndex) == 0);
+    bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) == 0);
 }
 
 typedef struct {

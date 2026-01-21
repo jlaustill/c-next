@@ -17,26 +17,26 @@
 #define GPIO_DR (*(volatile uint32_t*)(0x40002000 + 0x00))
 #define GPIO_INTSTAT (*(volatile uint32_t*)(0x40002000 + 0x10))
 
-void clearInterrupt(const uint32_t* mask) {
-    INT_STATUS = (*mask);
+void clearInterrupt(uint32_t mask) {
+    INT_STATUS = mask;
 }
 
-void clearPendingIRQ(const uint8_t* irqNum) {
-    INT_PENDING = (1 << (*irqNum));
+void clearPendingIRQ(uint8_t irqNum) {
+    INT_PENDING = (1 << irqNum);
 }
 
-void clearGpioInterrupt(const uint32_t* bitMask) {
-    GPIO_INTSTAT = (*bitMask);
+void clearGpioInterrupt(uint32_t bitMask) {
+    GPIO_INTSTAT = bitMask;
 }
 
-void clearSingleBit(const uint8_t* bit) {
-    INT_STATUS = (1 << (*bit));
+void clearSingleBit(uint8_t bit) {
+    INT_STATUS = (1 << bit);
 }
 
 int main(void) {
-    clearInterrupt(&(uint32_t){0x01});
-    clearInterrupt(&(uint32_t){0xFF});
-    clearPendingIRQ(&(uint8_t){5});
-    clearGpioInterrupt(&(uint32_t){0x0F});
-    clearSingleBit(&(uint8_t){7});
+    clearInterrupt(0x01);
+    clearInterrupt(0xFF);
+    clearPendingIRQ(5);
+    clearGpioInterrupt(0x0F);
+    clearSingleBit(7);
 }

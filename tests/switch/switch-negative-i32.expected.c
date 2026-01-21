@@ -11,8 +11,8 @@
 int32_t result = 0;
 
 // Test i32 with various negative values
-void testI32Values(const int32_t* val) {
-    switch ((*val)) {
+void testI32Values(int32_t val) {
+    switch (val) {
         case -2147483648: {
             result = 1;
             break;
@@ -69,8 +69,8 @@ void testI32Values(const int32_t* val) {
 }
 
 // Test negative hex with i32 values
-void testI32Hex(const int32_t* val) {
-    switch ((*val)) {
+void testI32Hex(int32_t val) {
+    switch (val) {
         case -0x80000000: {
             result = 20;
             break;
@@ -116,45 +116,45 @@ int main(void) {
     int32_t maxMinus1 = 2147483646;
     int32_t maxVal = 2147483647;
     int32_t other = 12345;
-    testI32Values(&minVal);
+    testI32Values(minVal);
     if (result != 1) return 1;
-    testI32Values(&minPlus1);
+    testI32Values(minPlus1);
     if (result != 2) return 2;
-    testI32Values(&negMillion);
+    testI32Values(negMillion);
     if (result != 3) return 3;
-    testI32Values(&neg32769);
+    testI32Values(neg32769);
     if (result != 4) return 4;
-    testI32Values(&neg32768);
+    testI32Values(neg32768);
     if (result != 5) return 5;
-    testI32Values(&negOne);
+    testI32Values(negOne);
     if (result != 6) return 6;
-    testI32Values(&zero);
+    testI32Values(zero);
     if (result != 7) return 7;
-    testI32Values(&pos32767);
+    testI32Values(pos32767);
     if (result != 8) return 8;
-    testI32Values(&pos32768);
+    testI32Values(pos32768);
     if (result != 9) return 9;
-    testI32Values(&posMillion);
+    testI32Values(posMillion);
     if (result != 10) return 10;
-    testI32Values(&maxMinus1);
+    testI32Values(maxMinus1);
     if (result != 11) return 11;
-    testI32Values(&maxVal);
+    testI32Values(maxVal);
     if (result != 12) return 12;
-    testI32Values(&other);
+    testI32Values(other);
     if (result != 99) return 13;
-    testI32Hex(&minVal);
+    testI32Hex(minVal);
     if (result != 20) return 14;
     int32_t neg65536 = -65536;
-    testI32Hex(&neg65536);
+    testI32Hex(neg65536);
     if (result != 21) return 15;
-    testI32Hex(&neg32768);
+    testI32Hex(neg32768);
     if (result != 22) return 16;
     int32_t neg255 = -255;
-    testI32Hex(&neg255);
+    testI32Hex(neg255);
     if (result != 23) return 17;
-    testI32Hex(&zero);
+    testI32Hex(zero);
     if (result != 24) return 18;
-    testI32Hex(&maxVal);
+    testI32Hex(maxVal);
     if (result != 25) return 19;
     return 0;
 }

@@ -8,16 +8,16 @@
 // test-execution
 // ADR-022: Basic ternary operator test
 // Tests: simple relational conditions with parentheses
-uint32_t getMax(const uint32_t* a, const uint32_t* b) {
-    return ((*a) > (*b)) ? (*a) : (*b);
+uint32_t getMax(uint32_t a, uint32_t b) {
+    return (a > b) ? a : b;
 }
 
-uint32_t getMin(const uint32_t* a, const uint32_t* b) {
-    return ((*a) < (*b)) ? (*a) : (*b);
+uint32_t getMin(uint32_t a, uint32_t b) {
+    return (a < b) ? a : b;
 }
 
-int32_t getAbs(const int32_t* x) {
-    return ((*x) < 0) ? -(*x) : (*x);
+int32_t getAbs(int32_t x) {
+    return (x < 0) ? -x : x;
 }
 
 int main(void) {
@@ -27,23 +27,23 @@ int main(void) {
     uint32_t d = 5;
     int32_t neg = -5;
     int32_t pos = 7;
-    uint32_t maxResult1 = getMax(&a, &b);
+    uint32_t maxResult1 = getMax(a, b);
     if (maxResult1 != 20) {
         return 1;
     }
-    uint32_t maxResult2 = getMax(&c, &d);
+    uint32_t maxResult2 = getMax(c, d);
     if (maxResult2 != 30) {
         return 2;
     }
-    uint32_t minResult = getMin(&a, &b);
+    uint32_t minResult = getMin(a, b);
     if (minResult != 10) {
         return 3;
     }
-    int32_t absResult1 = getAbs(&neg);
+    int32_t absResult1 = getAbs(neg);
     if (absResult1 != 5) {
         return 4;
     }
-    int32_t absResult2 = getAbs(&pos);
+    int32_t absResult2 = getAbs(pos);
     if (absResult2 != 7) {
         return 5;
     }

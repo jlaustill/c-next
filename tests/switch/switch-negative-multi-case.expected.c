@@ -11,8 +11,8 @@
 int32_t result = 0;
 
 // Test multiple negative cases grouped together
-void testNegativeGroup(const int8_t* val) {
-    switch ((*val)) {
+void testNegativeGroup(int8_t val) {
+    switch (val) {
         case -3:
         case -2:
         case -1: {
@@ -49,8 +49,8 @@ void testNegativeGroup(const int8_t* val) {
 }
 
 // Test mixed positive and negative in same case
-void testMixedGroup(const int16_t* val) {
-    switch ((*val)) {
+void testMixedGroup(int16_t val) {
+    switch (val) {
         case -100:
         case 100: {
             result = 10;
@@ -75,8 +75,8 @@ void testMixedGroup(const int16_t* val) {
 }
 
 // Test negative hex in multi-case
-void testNegativeHexGroup(const int32_t* val) {
-    switch ((*val)) {
+void testNegativeHexGroup(int32_t val) {
+    switch (val) {
         case -0x10:
         case -0x20:
         case -0x30: {
@@ -114,33 +114,33 @@ int main(void) {
     int8_t pos126 = 126;
     int8_t pos127 = 127;
     int8_t other = 50;
-    testNegativeGroup(&neg1);
+    testNegativeGroup(neg1);
     if (result != 1) return 1;
-    testNegativeGroup(&neg2);
+    testNegativeGroup(neg2);
     if (result != 1) return 2;
-    testNegativeGroup(&neg3);
+    testNegativeGroup(neg3);
     if (result != 1) return 3;
-    testNegativeGroup(&neg128);
+    testNegativeGroup(neg128);
     if (result != 2) return 4;
-    testNegativeGroup(&neg127);
+    testNegativeGroup(neg127);
     if (result != 2) return 5;
-    testNegativeGroup(&neg126);
+    testNegativeGroup(neg126);
     if (result != 2) return 6;
-    testNegativeGroup(&zero);
+    testNegativeGroup(zero);
     if (result != 3) return 7;
-    testNegativeGroup(&pos1);
+    testNegativeGroup(pos1);
     if (result != 4) return 8;
-    testNegativeGroup(&pos2);
+    testNegativeGroup(pos2);
     if (result != 4) return 9;
-    testNegativeGroup(&pos3);
+    testNegativeGroup(pos3);
     if (result != 4) return 10;
-    testNegativeGroup(&pos125);
+    testNegativeGroup(pos125);
     if (result != 5) return 11;
-    testNegativeGroup(&pos126);
+    testNegativeGroup(pos126);
     if (result != 5) return 12;
-    testNegativeGroup(&pos127);
+    testNegativeGroup(pos127);
     if (result != 5) return 13;
-    testNegativeGroup(&other);
+    testNegativeGroup(other);
     if (result != 99) return 14;
     int16_t neg100 = -100;
     int16_t pos100 = 100;
@@ -150,21 +150,21 @@ int main(void) {
     int16_t minI16 = -32768;
     int16_t maxI16 = 32767;
     int16_t otherI16 = 500;
-    testMixedGroup(&neg100);
+    testMixedGroup(neg100);
     if (result != 10) return 15;
-    testMixedGroup(&pos100);
+    testMixedGroup(pos100);
     if (result != 10) return 16;
-    testMixedGroup(&negOneI16);
+    testMixedGroup(negOneI16);
     if (result != 11) return 17;
-    testMixedGroup(&zeroI16);
+    testMixedGroup(zeroI16);
     if (result != 11) return 18;
-    testMixedGroup(&posOneI16);
+    testMixedGroup(posOneI16);
     if (result != 11) return 19;
-    testMixedGroup(&minI16);
+    testMixedGroup(minI16);
     if (result != 12) return 20;
-    testMixedGroup(&maxI16);
+    testMixedGroup(maxI16);
     if (result != 12) return 21;
-    testMixedGroup(&otherI16);
+    testMixedGroup(otherI16);
     if (result != 99) return 22;
     int32_t neg16 = -16;
     int32_t neg32 = -32;
@@ -173,19 +173,19 @@ int main(void) {
     int32_t neg256 = -256;
     int32_t zeroI32 = 0;
     int32_t otherI32 = 1000;
-    testNegativeHexGroup(&neg16);
+    testNegativeHexGroup(neg16);
     if (result != 20) return 23;
-    testNegativeHexGroup(&neg32);
+    testNegativeHexGroup(neg32);
     if (result != 20) return 24;
-    testNegativeHexGroup(&neg48);
+    testNegativeHexGroup(neg48);
     if (result != 20) return 25;
-    testNegativeHexGroup(&neg255);
+    testNegativeHexGroup(neg255);
     if (result != 21) return 26;
-    testNegativeHexGroup(&neg256);
+    testNegativeHexGroup(neg256);
     if (result != 21) return 27;
-    testNegativeHexGroup(&zeroI32);
+    testNegativeHexGroup(zeroI32);
     if (result != 22) return 28;
-    testNegativeHexGroup(&otherI32);
+    testNegativeHexGroup(otherI32);
     if (result != 99) return 29;
     return 0;
 }

@@ -12,8 +12,8 @@
 int32_t result = 0;
 
 // Test i64 with various negative values (within JS safe integer range)
-void testI64Values(const int64_t* val) {
-    switch ((*val)) {
+void testI64Values(int64_t val) {
+    switch (val) {
         case -9007199254740991: {
             result = 1;
             break;
@@ -71,8 +71,8 @@ void testI64Values(const int64_t* val) {
 
 // Test negative hex with i64 values
 // Note: Avoids -0x80000000 due to C's unsigned hex literal interpretation
-void testI64Hex(const int64_t* val) {
-    switch ((*val)) {
+void testI64Hex(int64_t val) {
+    switch (val) {
         case -0x100000000: {
             result = 20;
             break;
@@ -118,48 +118,48 @@ int main(void) {
     int64_t posQuad = 1000000000000000;
     int64_t maxSafe = 9007199254740991;
     int64_t other = 123456789;
-    testI64Values(&minSafe);
+    testI64Values(minSafe);
     if (result != 1) return 1;
-    testI64Values(&negQuad);
+    testI64Values(negQuad);
     if (result != 2) return 2;
-    testI64Values(&negTrillion);
+    testI64Values(negTrillion);
     if (result != 3) return 3;
-    testI64Values(&negBeyondI32);
+    testI64Values(negBeyondI32);
     if (result != 4) return 4;
-    testI64Values(&negI32Min);
+    testI64Values(negI32Min);
     if (result != 5) return 5;
-    testI64Values(&negOne);
+    testI64Values(negOne);
     if (result != 6) return 6;
-    testI64Values(&zero);
+    testI64Values(zero);
     if (result != 7) return 7;
-    testI64Values(&posI32Max);
+    testI64Values(posI32Max);
     if (result != 8) return 8;
-    testI64Values(&posBeyondI32);
+    testI64Values(posBeyondI32);
     if (result != 9) return 9;
-    testI64Values(&posTrillion);
+    testI64Values(posTrillion);
     if (result != 10) return 10;
-    testI64Values(&posQuad);
+    testI64Values(posQuad);
     if (result != 11) return 11;
-    testI64Values(&maxSafe);
+    testI64Values(maxSafe);
     if (result != 12) return 12;
-    testI64Values(&other);
+    testI64Values(other);
     if (result != 99) return 13;
     int64_t negBeyondU32 = -4294967296;
-    testI64Hex(&negBeyondU32);
+    testI64Hex(negBeyondU32);
     if (result != 20) return 14;
     int64_t negI32Max = -2147483647;
-    testI64Hex(&negI32Max);
+    testI64Hex(negI32Max);
     if (result != 21) return 15;
     int64_t neg16M = -16777216;
-    testI64Hex(&neg16M);
+    testI64Hex(neg16M);
     if (result != 22) return 16;
     int64_t neg255 = -255;
-    testI64Hex(&neg255);
+    testI64Hex(neg255);
     if (result != 23) return 17;
-    testI64Hex(&zero);
+    testI64Hex(zero);
     if (result != 24) return 18;
     int64_t posBeyondU32 = 4294967296;
-    testI64Hex(&posBeyondU32);
+    testI64Hex(posBeyondU32);
     if (result != 25) return 19;
     return 0;
 }

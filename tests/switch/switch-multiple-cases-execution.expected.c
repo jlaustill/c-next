@@ -12,8 +12,8 @@
 uint32_t result = 0;
 
 // Basic multiple case syntax
-void testMultiCase(const uint32_t* val) {
-    switch ((*val)) {
+void testMultiCase(uint32_t val) {
+    switch (val) {
         case 0:
         case 1:
         case 2: {
@@ -37,8 +37,8 @@ void testMultiCase(const uint32_t* val) {
 }
 
 // Multiple cases with hex literals
-void testMultiCaseHex(const uint8_t* val) {
-    switch ((*val)) {
+void testMultiCaseHex(uint8_t val) {
+    switch (val) {
         case 0x00:
         case 0x01: {
             result = 10;
@@ -61,8 +61,8 @@ void testMultiCaseHex(const uint8_t* val) {
 }
 
 // Multiple cases with binary literals
-void testMultiCaseBinary(const uint8_t* val) {
-    switch ((*val)) {
+void testMultiCaseBinary(uint8_t val) {
+    switch (val) {
         case 0x0:
         case 0x1: {
             result = 40;
@@ -85,8 +85,8 @@ void testMultiCaseBinary(const uint8_t* val) {
 }
 
 // Multiple cases with signed values (positive case labels only)
-void testMultiCaseSigned(const int8_t* val) {
-    switch ((*val)) {
+void testMultiCaseSigned(int8_t val) {
+    switch (val) {
         case 0:
         case 1:
         case 2: {
@@ -112,8 +112,8 @@ void testMultiCaseSigned(const int8_t* val) {
 }
 
 // Many cases combined (5 alternatives)
-void testManyMultiCases(const uint16_t* val) {
-    switch ((*val)) {
+void testManyMultiCases(uint16_t val) {
+    switch (val) {
         case 1:
         case 2:
         case 3:
@@ -143,49 +143,49 @@ int main(void) {
     uint32_t val20 = 20;
     uint32_t val100 = 100;
     uint32_t val50 = 50;
-    testMultiCase(&val0);
+    testMultiCase(val0);
     if (result != 100) return 1;
-    testMultiCase(&val1);
+    testMultiCase(val1);
     if (result != 100) return 2;
-    testMultiCase(&val2);
+    testMultiCase(val2);
     if (result != 100) return 3;
-    testMultiCase(&val10);
+    testMultiCase(val10);
     if (result != 200) return 4;
-    testMultiCase(&val20);
+    testMultiCase(val20);
     if (result != 200) return 5;
-    testMultiCase(&val100);
+    testMultiCase(val100);
     if (result != 300) return 6;
-    testMultiCase(&val50);
+    testMultiCase(val50);
     if (result != 999) return 7;
     uint8_t hex0 = 0x00;
     uint8_t hex1 = 0x01;
     uint8_t hexA = 0x0A;
     uint8_t hexFF = 0xFF;
     uint8_t hexOther = 0x50;
-    testMultiCaseHex(&hex0);
+    testMultiCaseHex(hex0);
     if (result != 10) return 8;
-    testMultiCaseHex(&hex1);
+    testMultiCaseHex(hex1);
     if (result != 10) return 9;
-    testMultiCaseHex(&hexA);
+    testMultiCaseHex(hexA);
     if (result != 20) return 10;
-    testMultiCaseHex(&hexFF);
+    testMultiCaseHex(hexFF);
     if (result != 30) return 11;
-    testMultiCaseHex(&hexOther);
+    testMultiCaseHex(hexOther);
     if (result != 99) return 12;
     uint8_t bin0 = 0b00000000;
     uint8_t bin1 = 0b00000001;
     uint8_t binA = 0b00001010;
     uint8_t binFF = 0b11111111;
     uint8_t binOther = 0b00100000;
-    testMultiCaseBinary(&bin0);
+    testMultiCaseBinary(bin0);
     if (result != 40) return 13;
-    testMultiCaseBinary(&bin1);
+    testMultiCaseBinary(bin1);
     if (result != 40) return 14;
-    testMultiCaseBinary(&binA);
+    testMultiCaseBinary(binA);
     if (result != 50) return 15;
-    testMultiCaseBinary(&binFF);
+    testMultiCaseBinary(binFF);
     if (result != 60) return 16;
-    testMultiCaseBinary(&binOther);
+    testMultiCaseBinary(binOther);
     if (result != 99) return 17;
     int8_t sZero = 0;
     int8_t sOne = 1;
@@ -195,21 +195,21 @@ int main(void) {
     int8_t sMax1 = 126;
     int8_t sMax = 127;
     int8_t sNeg = -50;
-    testMultiCaseSigned(&sZero);
+    testMultiCaseSigned(sZero);
     if (result != 1) return 18;
-    testMultiCaseSigned(&sOne);
+    testMultiCaseSigned(sOne);
     if (result != 1) return 19;
-    testMultiCaseSigned(&sTwo);
+    testMultiCaseSigned(sTwo);
     if (result != 1) return 20;
-    testMultiCaseSigned(&sFifty);
+    testMultiCaseSigned(sFifty);
     if (result != 2) return 21;
-    testMultiCaseSigned(&sFiftyOne);
+    testMultiCaseSigned(sFiftyOne);
     if (result != 2) return 22;
-    testMultiCaseSigned(&sMax1);
+    testMultiCaseSigned(sMax1);
     if (result != 3) return 23;
-    testMultiCaseSigned(&sMax);
+    testMultiCaseSigned(sMax);
     if (result != 3) return 24;
-    testMultiCaseSigned(&sNeg);
+    testMultiCaseSigned(sNeg);
     if (result != 9) return 25;
     uint16_t m1 = 1;
     uint16_t m3 = 3;
@@ -218,19 +218,19 @@ int main(void) {
     uint16_t m200 = 200;
     uint16_t m300 = 300;
     uint16_t mOther = 999;
-    testManyMultiCases(&m1);
+    testManyMultiCases(m1);
     if (result != 500) return 26;
-    testManyMultiCases(&m3);
+    testManyMultiCases(m3);
     if (result != 500) return 27;
-    testManyMultiCases(&m5);
+    testManyMultiCases(m5);
     if (result != 500) return 28;
-    testManyMultiCases(&m100);
+    testManyMultiCases(m100);
     if (result != 600) return 29;
-    testManyMultiCases(&m200);
+    testManyMultiCases(m200);
     if (result != 600) return 30;
-    testManyMultiCases(&m300);
+    testManyMultiCases(m300);
     if (result != 600) return 31;
-    testManyMultiCases(&mOther);
+    testManyMultiCases(mOther);
     if (result != 999) return 32;
     return 0;
 }

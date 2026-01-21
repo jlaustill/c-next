@@ -15,15 +15,15 @@
 
 /* Scope: ByteProcessor */
 
-static uint32_t ByteProcessor_processByte(const uint32_t* crc, const uint8_t* byte) {
-    return (*crc) ^ (*byte);
+static uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte) {
+    return crc ^ byte;
 }
 
 uint32_t ByteProcessor_processBuffer(void) {
     char buf[5] = "ABCD";
     uint32_t crc = 0;
-    crc = ByteProcessor_processByte(&crc, reinterpret_cast<uint8_t*>(&buf[0]));
-    crc = ByteProcessor_processByte(&crc, reinterpret_cast<uint8_t*>(&buf[1]));
+    crc = ByteProcessor_processByte(crc, buf[0]);
+    crc = ByteProcessor_processByte(crc, buf[1]);
     return crc;
 }
 

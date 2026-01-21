@@ -10,8 +10,8 @@
 // Tests: basic switch statement with integer type
 uint32_t result = 0;
 
-void handleCommand(const uint32_t* cmd) {
-    switch ((*cmd)) {
+void handleCommand(uint32_t cmd) {
+    switch (cmd) {
         case 0: {
             result = 100;
             break;
@@ -31,15 +31,15 @@ int main(void) {
     uint32_t cmd0 = 0;
     uint32_t cmd1 = 1;
     uint32_t cmd99 = 99;
-    handleCommand(&cmd0);
+    handleCommand(cmd0);
     if (result != 100) {
         return 1;
     }
-    handleCommand(&cmd1);
+    handleCommand(cmd1);
     if (result != 200) {
         return 2;
     }
-    handleCommand(&cmd99);
+    handleCommand(cmd99);
     if (result != 999) {
         return 3;
     }

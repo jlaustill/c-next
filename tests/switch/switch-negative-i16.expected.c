@@ -11,8 +11,8 @@
 int32_t result = 0;
 
 // Test i16 boundary values
-void testI16Boundaries(const int16_t* val) {
-    switch ((*val)) {
+void testI16Boundaries(int16_t val) {
+    switch (val) {
         case -32768: {
             result = 1;
             break;
@@ -65,8 +65,8 @@ void testI16Boundaries(const int16_t* val) {
 }
 
 // Test negative hex with i16 values
-void testI16Hex(const int16_t* val) {
-    switch ((*val)) {
+void testI16Hex(int16_t val) {
+    switch (val) {
         case -0x8000: {
             result = 20;
             break;
@@ -111,41 +111,41 @@ int main(void) {
     int16_t maxMinus1 = 32766;
     int16_t maxVal = 32767;
     int16_t other = 1000;
-    testI16Boundaries(&minVal);
+    testI16Boundaries(minVal);
     if (result != 1) return 1;
-    testI16Boundaries(&minPlus1);
+    testI16Boundaries(minPlus1);
     if (result != 2) return 2;
-    testI16Boundaries(&neg256);
+    testI16Boundaries(neg256);
     if (result != 3) return 3;
-    testI16Boundaries(&neg129);
+    testI16Boundaries(neg129);
     if (result != 4) return 4;
-    testI16Boundaries(&neg128);
+    testI16Boundaries(neg128);
     if (result != 5) return 5;
-    testI16Boundaries(&negOne);
+    testI16Boundaries(negOne);
     if (result != 6) return 6;
-    testI16Boundaries(&zero);
+    testI16Boundaries(zero);
     if (result != 7) return 7;
-    testI16Boundaries(&pos127);
+    testI16Boundaries(pos127);
     if (result != 8) return 8;
-    testI16Boundaries(&pos128);
+    testI16Boundaries(pos128);
     if (result != 9) return 9;
-    testI16Boundaries(&maxMinus1);
+    testI16Boundaries(maxMinus1);
     if (result != 10) return 10;
-    testI16Boundaries(&maxVal);
+    testI16Boundaries(maxVal);
     if (result != 11) return 11;
-    testI16Boundaries(&other);
+    testI16Boundaries(other);
     if (result != 99) return 12;
-    testI16Hex(&minVal);
+    testI16Hex(minVal);
     if (result != 20) return 13;
-    testI16Hex(&neg256);
+    testI16Hex(neg256);
     if (result != 21) return 14;
-    testI16Hex(&neg128);
+    testI16Hex(neg128);
     if (result != 22) return 15;
-    testI16Hex(&negOne);
+    testI16Hex(negOne);
     if (result != 23) return 16;
-    testI16Hex(&zero);
+    testI16Hex(zero);
     if (result != 24) return 17;
-    testI16Hex(&maxVal);
+    testI16Hex(maxVal);
     if (result != 25) return 18;
     return 0;
 }

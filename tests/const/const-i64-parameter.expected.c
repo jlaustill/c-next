@@ -8,28 +8,28 @@
 // test-execution
 // ADR-013: Const i64 parameter
 // Tests: const i64 parameter read access with negative values
-int64_t readConstI64(const int64_t* value) {
-    return (*value);
+int64_t readConstI64(const int64_t value) {
+    return value;
 }
 
-int64_t absConstI64(const int64_t* value) {
-    if ((*value) < 0) {
-        return 0 - (*value);
+int64_t absConstI64(const int64_t value) {
+    if (value < 0) {
+        return 0 - value;
     }
-    return (*value);
+    return value;
 }
 
 int main(void) {
-    int64_t result = readConstI64(&(int64_t){1000000000});
+    int64_t result = readConstI64(1000000000);
     if (result != 1000000000) return 1;
-    int64_t negResult = readConstI64(&(int64_t){-500000000});
+    int64_t negResult = readConstI64(-500000000);
     if (negResult != -500000000) return 2;
-    int64_t absPos = absConstI64(&(int64_t){123456789});
+    int64_t absPos = absConstI64(123456789);
     if (absPos != 123456789) return 3;
-    int64_t absNeg = absConstI64(&(int64_t){-987654321});
+    int64_t absNeg = absConstI64(-987654321);
     if (absNeg != 987654321) return 4;
     int64_t myValue = -2147483648;
-    int64_t readBack = readConstI64(&myValue);
+    int64_t readBack = readConstI64(myValue);
     if (readBack != -2147483648) return 5;
     return 0;
 }

@@ -13,8 +13,8 @@ uint32_t result = 0;
 
 // Test values around 2^53 boundary (JavaScript's MAX_SAFE_INTEGER is 2^53 - 1)
 // These values previously caused precision loss when converted to hex
-void testLargeBinaryPrecision(const uint64_t* val) {
-    switch ((*val)) {
+void testLargeBinaryPrecision(uint64_t val) {
+    switch (val) {
         case 0x20000000000000ULL: {
             result = 1;
             break;
@@ -39,8 +39,8 @@ void testLargeBinaryPrecision(const uint64_t* val) {
 }
 
 // Test very large values (near u64 max)
-void testVeryLargeBinary(const uint64_t* val) {
-    switch ((*val)) {
+void testVeryLargeBinary(uint64_t val) {
+    switch (val) {
         case 0x4000000000000000ULL: {
             result = 10;
             break;
@@ -62,28 +62,28 @@ void testVeryLargeBinary(const uint64_t* val) {
 
 int main(void) {
     uint64_t v53 = 9007199254740992;
-    testLargeBinaryPrecision(&v53);
+    testLargeBinaryPrecision(v53);
     if (result != 1) return 1;
     uint64_t v53_1 = 9007199254740993;
-    testLargeBinaryPrecision(&v53_1);
+    testLargeBinaryPrecision(v53_1);
     if (result != 2) return 2;
     uint64_t v53_2 = 9007199254740994;
-    testLargeBinaryPrecision(&v53_2);
+    testLargeBinaryPrecision(v53_2);
     if (result != 3) return 3;
     uint64_t v53_3 = 9007199254740995;
-    testLargeBinaryPrecision(&v53_3);
+    testLargeBinaryPrecision(v53_3);
     if (result != 4) return 4;
     uint64_t vOther = 9007199254740990;
-    testLargeBinaryPrecision(&vOther);
+    testLargeBinaryPrecision(vOther);
     if (result != 99) return 5;
     uint64_t v62 = 4611686018427387904;
-    testVeryLargeBinary(&v62);
+    testVeryLargeBinary(v62);
     if (result != 10) return 6;
     uint64_t v62_1 = 4611686018427387905;
-    testVeryLargeBinary(&v62_1);
+    testVeryLargeBinary(v62_1);
     if (result != 11) return 7;
     uint64_t v63m1 = 9223372036854775807;
-    testVeryLargeBinary(&v63m1);
+    testVeryLargeBinary(v63m1);
     if (result != 12) return 8;
     return 0;
 }

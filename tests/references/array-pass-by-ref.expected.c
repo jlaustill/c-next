@@ -9,15 +9,15 @@
 // test-execution
 // Tests: Array passed to function (pass-by-reference behavior)
 // Function that modifies an array element
-void setElement(uint32_t arr[10], const uint32_t* index, const uint32_t* value) {
-    arr[(*index)] = (*value);
+void setElement(uint32_t arr[10], uint32_t index, uint32_t value) {
+    arr[index] = value;
 }
 
 // Function that sums array elements
-uint32_t sumArray(const uint32_t arr[5], const uint32_t* count) {
+uint32_t sumArray(const uint32_t arr[5], uint32_t count) {
     uint32_t sum = 0;
     uint32_t i = 0;
-    while (i < (*count)) {
+    while (i < count) {
         sum = sum + arr[i];
         i = i + 1;
     }
@@ -25,18 +25,18 @@ uint32_t sumArray(const uint32_t arr[5], const uint32_t* count) {
 }
 
 // Function that zeroes an array
-void zeroArray(uint32_t arr[8], const uint32_t* count) {
+void zeroArray(uint32_t arr[8], uint32_t count) {
     uint32_t i = 0;
-    while (i < (*count)) {
+    while (i < count) {
         arr[i] = 0;
         i = i + 1;
     }
 }
 
 // Function that copies arrays
-void copyArray(const uint32_t src[4], uint32_t dst[4], const uint32_t* count) {
+void copyArray(const uint32_t src[4], uint32_t dst[4], uint32_t count) {
     uint32_t i = 0;
-    while (i < (*count)) {
+    while (i < count) {
         dst[i] = src[i];
         i = i + 1;
     }
@@ -46,9 +46,9 @@ int main(void) {
     uint32_t data[10] = {0};
     data[0] = 100;
     data[5] = 200;
-    setElement(data, &(uint32_t){0}, &(uint32_t){999});
+    setElement(data, 0, 999);
     if (data[0] != 999) return 1;
-    setElement(data, &(uint32_t){5}, &(uint32_t){888});
+    setElement(data, 5, 888);
     if (data[5] != 888) return 2;
     uint32_t nums[5] = {0};
     nums[0] = 10;
@@ -56,16 +56,16 @@ int main(void) {
     nums[2] = 30;
     nums[3] = 40;
     nums[4] = 50;
-    uint32_t total = sumArray(nums, &(uint32_t){5});
+    uint32_t total = sumArray(nums, 5);
     if (total != 150) return 3;
-    total = sumArray(nums, &(uint32_t){3});
+    total = sumArray(nums, 3);
     if (total != 60) return 4;
     uint32_t toZero[8] = {0};
     toZero[0] = 1;
     toZero[1] = 2;
     toZero[2] = 3;
     toZero[3] = 4;
-    zeroArray(toZero, &(uint32_t){4});
+    zeroArray(toZero, 4);
     if (toZero[0] != 0) return 5;
     if (toZero[1] != 0) return 6;
     if (toZero[2] != 0) return 7;
@@ -80,7 +80,7 @@ int main(void) {
     dest[1] = 0;
     dest[2] = 0;
     dest[3] = 0;
-    copyArray(source, dest, &(uint32_t){4});
+    copyArray(source, dest, 4);
     if (dest[0] != 11) return 9;
     if (dest[1] != 22) return 10;
     if (dest[2] != 33) return 11;

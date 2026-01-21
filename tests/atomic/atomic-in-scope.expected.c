@@ -34,8 +34,8 @@ void Counter_increment(void) {
     Counter_value = cnx_clamp_add_u32(Counter_value, 1);
 }
 
-void Counter_incrementBy(const uint32_t* delta) {
-    Counter_value = cnx_clamp_add_u32(Counter_value, (*delta));
+void Counter_incrementBy(uint32_t delta) {
+    Counter_value = cnx_clamp_add_u32(Counter_value, delta);
 }
 
 void Counter_reset(void) {
@@ -54,19 +54,19 @@ void Timer_tick(void) {
     Timer_ticks += 1;
 }
 
-void Timer_setPeriod(const uint16_t* p) {
-    Timer_period = (*p);
+void Timer_setPeriod(uint16_t p) {
+    Timer_period = p;
 }
 
-void Timer_adjustPeriod(const uint16_t* delta) {
-    Timer_period = cnx_clamp_add_u16(Timer_period, (*delta));
+void Timer_adjustPeriod(uint16_t delta) {
+    Timer_period = cnx_clamp_add_u16(Timer_period, delta);
 }
 
 int main(void) {
     Counter_increment();
-    Counter_incrementBy(&(uint32_t){10});
+    Counter_incrementBy(10);
     Counter_reset();
     Timer_tick();
-    Timer_setPeriod(&(uint16_t){500});
-    Timer_adjustPeriod(&(uint16_t){100});
+    Timer_setPeriod(500);
+    Timer_adjustPeriod(100);
 }

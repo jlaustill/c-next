@@ -8,25 +8,25 @@
 // test-execution
 // ADR-013: Const i8 parameter
 // Tests: const i8 parameter read access with negative values
-int8_t readConstI8(const int8_t* value) {
-    return (*value);
+int8_t readConstI8(const int8_t value) {
+    return value;
 }
 
-int8_t negateConstI8(const int8_t* value) {
-    return 0 - (*value);
+int8_t negateConstI8(const int8_t value) {
+    return 0 - value;
 }
 
 int main(void) {
-    int8_t result = readConstI8(&(int8_t){100});
+    int8_t result = readConstI8(100);
     if (result != 100) return 1;
-    int8_t negResult = readConstI8(&(int8_t){-50});
+    int8_t negResult = readConstI8(-50);
     if (negResult != -50) return 2;
-    int8_t negated = negateConstI8(&(int8_t){25});
+    int8_t negated = negateConstI8(25);
     if (negated != -25) return 3;
-    int8_t doubleNeg = negateConstI8(&(int8_t){-30});
+    int8_t doubleNeg = negateConstI8(-30);
     if (doubleNeg != 30) return 4;
     int8_t myValue = -100;
-    int8_t readBack = readConstI8(&myValue);
+    int8_t readBack = readConstI8(myValue);
     if (readBack != -100) return 5;
     return 0;
 }

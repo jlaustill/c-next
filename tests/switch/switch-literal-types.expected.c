@@ -12,8 +12,8 @@
 uint32_t result = 0;
 
 // Hex literal cases
-void testHexCases(const uint8_t* val) {
-    switch ((*val)) {
+void testHexCases(uint8_t val) {
+    switch (val) {
         case 0x00: {
             result = 1;
             break;
@@ -46,8 +46,8 @@ void testHexCases(const uint8_t* val) {
 }
 
 // Binary literal cases
-void testBinaryCases(const uint8_t* val) {
-    switch ((*val)) {
+void testBinaryCases(uint8_t val) {
+    switch (val) {
         case 0x0: {
             result = 10;
             break;
@@ -80,8 +80,8 @@ void testBinaryCases(const uint8_t* val) {
 }
 
 // Char literal cases
-void testCharCases(const uint8_t* val) {
-    switch ((*val)) {
+void testCharCases(uint8_t val) {
+    switch (val) {
         case 'A': {
             result = 20;
             break;
@@ -114,8 +114,8 @@ void testCharCases(const uint8_t* val) {
 }
 
 // Mixed literal types in same switch
-void testMixedLiterals(const uint8_t* val) {
-    switch ((*val)) {
+void testMixedLiterals(uint8_t val) {
+    switch (val) {
         case 0: {
             result = 30;
             break;
@@ -140,8 +140,8 @@ void testMixedLiterals(const uint8_t* val) {
 }
 
 // Large hex values (u16)
-void testLargeHex(const uint16_t* val) {
-    switch ((*val)) {
+void testLargeHex(uint16_t val) {
+    switch (val) {
         case 0x0000: {
             result = 40;
             break;
@@ -181,19 +181,19 @@ int main(void) {
     uint8_t h80 = 0x80;
     uint8_t hFF = 0xFF;
     uint8_t hOther = 0x50;
-    testHexCases(&h00);
+    testHexCases(h00);
     if (result != 1) return 1;
-    testHexCases(&h0F);
+    testHexCases(h0F);
     if (result != 2) return 2;
-    testHexCases(&h10);
+    testHexCases(h10);
     if (result != 3) return 3;
-    testHexCases(&h7F);
+    testHexCases(h7F);
     if (result != 4) return 4;
-    testHexCases(&h80);
+    testHexCases(h80);
     if (result != 5) return 5;
-    testHexCases(&hFF);
+    testHexCases(hFF);
     if (result != 6) return 6;
-    testHexCases(&hOther);
+    testHexCases(hOther);
     if (result != 99) return 7;
     uint8_t b00 = 0b00000000;
     uint8_t b01 = 0b00000001;
@@ -202,19 +202,19 @@ int main(void) {
     uint8_t b80 = 0b10000000;
     uint8_t bFF = 0b11111111;
     uint8_t bOther = 0b00100000;
-    testBinaryCases(&b00);
+    testBinaryCases(b00);
     if (result != 10) return 8;
-    testBinaryCases(&b01);
+    testBinaryCases(b01);
     if (result != 11) return 9;
-    testBinaryCases(&b0F);
+    testBinaryCases(b0F);
     if (result != 12) return 10;
-    testBinaryCases(&b7F);
+    testBinaryCases(b7F);
     if (result != 13) return 11;
-    testBinaryCases(&b80);
+    testBinaryCases(b80);
     if (result != 14) return 12;
-    testBinaryCases(&bFF);
+    testBinaryCases(bFF);
     if (result != 15) return 13;
-    testBinaryCases(&bOther);
+    testBinaryCases(bOther);
     if (result != 99) return 14;
     uint8_t cA = 'A';
     uint8_t cZ = 'Z';
@@ -223,34 +223,34 @@ int main(void) {
     uint8_t c0 = '0';
     uint8_t c9 = '9';
     uint8_t cOther = 'X';
-    testCharCases(&cA);
+    testCharCases(cA);
     if (result != 20) return 15;
-    testCharCases(&cZ);
+    testCharCases(cZ);
     if (result != 21) return 16;
-    testCharCases(&ca);
+    testCharCases(ca);
     if (result != 22) return 17;
-    testCharCases(&cz);
+    testCharCases(cz);
     if (result != 23) return 18;
-    testCharCases(&c0);
+    testCharCases(c0);
     if (result != 24) return 19;
-    testCharCases(&c9);
+    testCharCases(c9);
     if (result != 25) return 20;
-    testCharCases(&cOther);
+    testCharCases(cOther);
     if (result != 99) return 21;
     uint8_t m0 = 0;
     uint8_t m10 = 10;
     uint8_t m20 = 20;
     uint8_t mX = 'X';
     uint8_t mOther = 100;
-    testMixedLiterals(&m0);
+    testMixedLiterals(m0);
     if (result != 30) return 22;
-    testMixedLiterals(&m10);
+    testMixedLiterals(m10);
     if (result != 31) return 23;
-    testMixedLiterals(&m20);
+    testMixedLiterals(m20);
     if (result != 32) return 24;
-    testMixedLiterals(&mX);
+    testMixedLiterals(mX);
     if (result != 33) return 25;
-    testMixedLiterals(&mOther);
+    testMixedLiterals(mOther);
     if (result != 99) return 26;
     uint16_t l0000 = 0x0000;
     uint16_t l00FF = 0x00FF;
@@ -259,19 +259,19 @@ int main(void) {
     uint16_t l8000 = 0x8000;
     uint16_t lFFFF = 0xFFFF;
     uint16_t lOther = 0x1234;
-    testLargeHex(&l0000);
+    testLargeHex(l0000);
     if (result != 40) return 27;
-    testLargeHex(&l00FF);
+    testLargeHex(l00FF);
     if (result != 41) return 28;
-    testLargeHex(&l0100);
+    testLargeHex(l0100);
     if (result != 42) return 29;
-    testLargeHex(&l7FFF);
+    testLargeHex(l7FFF);
     if (result != 43) return 30;
-    testLargeHex(&l8000);
+    testLargeHex(l8000);
     if (result != 44) return 31;
-    testLargeHex(&lFFFF);
+    testLargeHex(lFFFF);
     if (result != 45) return 32;
-    testLargeHex(&lOther);
+    testLargeHex(lOther);
     if (result != 99) return 33;
     return 0;
 }

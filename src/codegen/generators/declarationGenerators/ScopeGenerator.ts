@@ -124,6 +124,9 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       const fullName = `${name}_${funcName}`;
       const prefix = isPrivate ? "static " : "";
 
+      // Issue #269: Set current function name for pass-by-value lookup
+      orchestrator.setCurrentFunctionName(fullName);
+
       // Track parameters for ADR-006 pointer semantics
       orchestrator.setParameters(funcDecl.parameterList() ?? null);
 
@@ -184,6 +187,7 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
 
       // ADR-016: Exit function body context
       orchestrator.exitFunctionBody();
+      orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
       orchestrator.clearParameters();
 
       lines.push("");

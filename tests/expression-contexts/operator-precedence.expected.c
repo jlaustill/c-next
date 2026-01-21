@@ -12,12 +12,12 @@
 // Coverage: Section 33.1 - Nested/Complex Expressions
 // Note: Mixed operator tests (a + b - c) deferred due to bug #152
 // Helper functions to get boolean values (prevents static analysis false positives)
-bool getTrue(const uint32_t* x) {
-    return (*x) > 0;
+bool getTrue(uint32_t x) {
+    return x > 0;
 }
 
-bool getFalse(const uint32_t* x) {
-    return (*x) > 1000;
+bool getFalse(uint32_t x) {
+    return x > 1000;
 }
 
 int main(void) {
@@ -62,18 +62,18 @@ int main(void) {
     if (eq1 != true) return 14;
     if (eq2 != true) return 15;
     if (eq3 != true) return 16;
-    bool t1 = getTrue(&(uint32_t){1});
-    bool t2 = getTrue(&(uint32_t){2});
-    bool t3 = getTrue(&(uint32_t){3});
-    bool t4 = getTrue(&(uint32_t){4});
+    bool t1 = getTrue(1);
+    bool t2 = getTrue(2);
+    bool t3 = getTrue(3);
+    bool t4 = getTrue(4);
     bool andResult = t1 && t2 && t3 && t4;
     if (andResult != true) return 17;
-    bool f1 = getFalse(&(uint32_t){0});
+    bool f1 = getFalse(0);
     andResult = t1 && t2 && f1 && t4;
     if (andResult != false) return 18;
-    bool f2 = getFalse(&(uint32_t){0});
-    bool f3 = getFalse(&(uint32_t){0});
-    bool f4 = getFalse(&(uint32_t){0});
+    bool f2 = getFalse(0);
+    bool f3 = getFalse(0);
+    bool f4 = getFalse(0);
     bool orResult = f1 || f2 || f3 || t1;
     if (orResult != true) return 19;
     orResult = f1 || f2 || f3 || f4;

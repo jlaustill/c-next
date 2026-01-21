@@ -21,16 +21,16 @@ uint32_t Reentrant_inner(void) {
     return call_arg;
 }
 
-uint32_t Reentrant_outer(const uint32_t* x) {
+uint32_t Reentrant_outer(uint32_t x) {
     uint32_t Reentrant_outer_temp = 0;
-    Reentrant_outer_temp = (*x);
-    call_arg = (*x) + 100;
+    Reentrant_outer_temp = x;
+    call_arg = x + 100;
     uint32_t inner_result = Reentrant_inner();
     return Reentrant_outer_temp;
 }
 
 int main(void) {
-    uint32_t result = Reentrant_outer(&(uint32_t){10});
+    uint32_t result = Reentrant_outer(10);
     if (result != 10) return 1;
     return 0;
 }

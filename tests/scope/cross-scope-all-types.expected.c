@@ -42,16 +42,16 @@ bool Provider_getBool(void) {
     return Provider_valBool;
 }
 
-void Provider_setU8(const uint8_t* val) {
-    Provider_valU8 = (*val);
+void Provider_setU8(uint8_t val) {
+    Provider_valU8 = val;
 }
 
-void Provider_setI32(const int32_t* val) {
-    Provider_valI32 = (*val);
+void Provider_setI32(int32_t val) {
+    Provider_valI32 = val;
 }
 
-void Provider_setBool(const bool* val) {
-    Provider_valBool = (*val);
+void Provider_setBool(bool val) {
+    Provider_valBool = val;
 }
 
 // ==========================================
@@ -106,16 +106,16 @@ bool Consumer_readProviderBool(void) {
     return Provider_valBool;
 }
 
-void Consumer_writeProviderU8(const uint8_t* val) {
-    Provider_valU8 = (*val);
+void Consumer_writeProviderU8(uint8_t val) {
+    Provider_valU8 = val;
 }
 
-void Consumer_writeProviderI32(const int32_t* val) {
-    Provider_valI32 = (*val);
+void Consumer_writeProviderI32(int32_t val) {
+    Provider_valI32 = val;
 }
 
-void Consumer_writeProviderBool(const bool* val) {
-    Provider_valBool = (*val);
+void Consumer_writeProviderBool(bool val) {
+    Provider_valBool = val;
 }
 
 uint8_t Consumer_callProviderGetU8(void) {
@@ -130,12 +130,12 @@ bool Consumer_callProviderGetBool(void) {
     return Provider_getBool();
 }
 
-void Consumer_writeProviderArray(const uint32_t* index, const uint32_t* val) {
-    Provider_arrayU32[(*index)] = (*val);
+void Consumer_writeProviderArray(uint32_t index, uint32_t val) {
+    Provider_arrayU32[index] = val;
 }
 
-uint32_t Consumer_readProviderArray(const uint32_t* index) {
-    return Provider_arrayU32[(*index)];
+uint32_t Consumer_readProviderArray(uint32_t index) {
+    return Provider_arrayU32[index];
 }
 
 uint8_t Consumer_readProviderClamp(void) {
@@ -146,12 +146,12 @@ uint8_t Consumer_readProviderWrap(void) {
     return Provider_wrapVal;
 }
 
-void Consumer_setProviderClamp(const uint8_t* val) {
-    Provider_clampVal = (*val);
+void Consumer_setProviderClamp(uint8_t val) {
+    Provider_clampVal = val;
 }
 
-void Consumer_setProviderWrap(const uint8_t* val) {
-    Provider_wrapVal = (*val);
+void Consumer_setProviderWrap(uint8_t val) {
+    Provider_wrapVal = val;
 }
 
 void Consumer_computeSum(void) {
@@ -189,11 +189,11 @@ int main(void) {
     if (resultF64 != expectedF64) return 10;
     bool resultBool = Consumer_readProviderBool();
     if (resultBool != true) return 11;
-    Consumer_writeProviderU8(&(uint8_t){42});
+    Consumer_writeProviderU8(42);
     if (Provider_valU8 != 42) return 12;
-    Consumer_writeProviderI32(&(int32_t){-999});
+    Consumer_writeProviderI32(-999);
     if (Provider_valI32 != -999) return 13;
-    Consumer_writeProviderBool(&(bool){false});
+    Consumer_writeProviderBool(false);
     if (Provider_valBool != false) return 14;
     Provider_valU8 = 100;
     Provider_valI32 = -500;
@@ -204,23 +204,23 @@ int main(void) {
     if (resultI32_2 != -500) return 16;
     bool resultBool2 = Consumer_callProviderGetBool();
     if (resultBool2 != true) return 17;
-    Consumer_writeProviderArray(&(uint32_t){0}, &(uint32_t){1000});
-    Consumer_writeProviderArray(&(uint32_t){1}, &(uint32_t){2000});
-    Consumer_writeProviderArray(&(uint32_t){2}, &(uint32_t){3000});
-    uint32_t arrResult0 = Consumer_readProviderArray(&(uint32_t){0});
+    Consumer_writeProviderArray(0, 1000);
+    Consumer_writeProviderArray(1, 2000);
+    Consumer_writeProviderArray(2, 3000);
+    uint32_t arrResult0 = Consumer_readProviderArray(0);
     if (arrResult0 != 1000) return 19;
-    uint32_t arrResult1 = Consumer_readProviderArray(&(uint32_t){1});
+    uint32_t arrResult1 = Consumer_readProviderArray(1);
     if (arrResult1 != 2000) return 20;
-    uint32_t arrResult2 = Consumer_readProviderArray(&(uint32_t){2});
+    uint32_t arrResult2 = Consumer_readProviderArray(2);
     if (arrResult2 != 3000) return 21;
     uint8_t clampResult = Consumer_readProviderClamp();
     if (clampResult != 200) return 22;
     uint8_t wrapResult = Consumer_readProviderWrap();
     if (wrapResult != 250) return 23;
-    Consumer_setProviderClamp(&(uint8_t){100});
+    Consumer_setProviderClamp(100);
     uint8_t clampResult2 = Consumer_readProviderClamp();
     if (clampResult2 != 100) return 24;
-    Consumer_setProviderWrap(&(uint8_t){50});
+    Consumer_setProviderWrap(50);
     uint8_t wrapResult2 = Consumer_readProviderWrap();
     if (wrapResult2 != 50) return 25;
     if (Provider_valU8 != 100) return 26;
@@ -230,7 +230,7 @@ int main(void) {
     if (Consumer_result != 4294967295) return 28;
     Consumer_computeSignedSum();
     if (Consumer_signedResult != -400) return 29;
-    Consumer_writeProviderU8(&(uint8_t){77});
+    Consumer_writeProviderU8(77);
     uint8_t finalResult = Provider_getU8();
     if (finalResult != 77) return 30;
     return 0;

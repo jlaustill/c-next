@@ -7,13 +7,13 @@
 
 // ADR-006: Output parameter pattern
 // Tests: function writes result to caller's variable
-void calculateSum(const int32_t* a, const int32_t* b, int32_t* result) {
-    (*result) = (*a) + (*b);
+void calculateSum(int32_t a, int32_t b, int32_t* result) {
+    (*result) = a + b;
 }
 
 int main(void) {
     int32_t x = 10;
     int32_t y = 20;
     int32_t sum = 0;
-    calculateSum(&x, &y, &sum);
+    calculateSum(x, y, &sum);
 }

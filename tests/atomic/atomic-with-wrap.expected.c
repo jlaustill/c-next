@@ -56,18 +56,18 @@ void nextFrame(void) {
     } while (1);
 }
 
-void addToTicks(const uint32_t* delta) {
+void addToTicks(uint32_t delta) {
     do {
         uint32_t __old = __LDREXW(&tick32);
-        uint32_t __new = __old + (*delta);
+        uint32_t __new = __old + delta;
         if (__STREXW(__new, &tick32) == 0) break;
     } while (1);
 }
 
-void subtractFromTick8(const uint8_t* delta) {
+void subtractFromTick8(uint8_t delta) {
     do {
         uint8_t __old = __LDREXB(&tick8);
-        uint8_t __new = __old - (*delta);
+        uint8_t __new = __old - delta;
         if (__STREXB(__new, &tick8) == 0) break;
     } while (1);
 }
@@ -76,6 +76,6 @@ int main(void) {
     incrementTicks();
     nextSequence();
     nextFrame();
-    addToTicks(&(uint32_t){100});
-    subtractFromTick8(&(uint8_t){10});
+    addToTicks(100);
+    subtractFromTick8(10);
 }

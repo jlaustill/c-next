@@ -12,22 +12,22 @@
 // Updated for Issue #234: Uses compile-time constant offsets
 /* Scope: StringSliceTest */
 
-static void StringSliceTest_copyToBuffer(const char* buffer, const uint16_t* value) {
-    memcpy(&buffer[0], &(*value), 2);
+static void StringSliceTest_copyToBuffer(const char* buffer, uint16_t value) {
+    memcpy(&buffer[0], &value, 2);
 }
 
-static void StringSliceTest_copyToBufferAt2(const char* buffer, const uint16_t* value) {
-    memcpy(&buffer[2], &(*value), 2);
+static void StringSliceTest_copyToBufferAt2(const char* buffer, uint16_t value) {
+    memcpy(&buffer[2], &value, 2);
 }
 
 uint32_t StringSliceTest_testSliceAssignment(void) {
     char buffer[65] = "";
-    StringSliceTest_copyToBuffer(&buffer, &(uint16_t){0x1234});
+    StringSliceTest_copyToBuffer(&buffer, 0x1234);
     uint8_t byte0 = buffer[0];
     uint8_t byte1 = buffer[1];
     if (byte0 != 0x34) return 1;
     if (byte1 != 0x12) return 2;
-    StringSliceTest_copyToBufferAt2(&buffer, &(uint16_t){0x5678});
+    StringSliceTest_copyToBufferAt2(&buffer, 0x5678);
     uint8_t byte2 = buffer[2];
     uint8_t byte3 = buffer[3];
     if (byte2 != 0x78) return 3;

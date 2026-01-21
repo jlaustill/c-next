@@ -8,28 +8,28 @@
 // test-execution
 // ADR-013: Const i16 parameter
 // Tests: const i16 parameter read access with negative values
-int16_t readConstI16(const int16_t* value) {
-    return (*value);
+int16_t readConstI16(const int16_t value) {
+    return value;
 }
 
-int16_t absConstI16(const int16_t* value) {
-    if ((*value) < 0) {
-        return 0 - (*value);
+int16_t absConstI16(const int16_t value) {
+    if (value < 0) {
+        return 0 - value;
     }
-    return (*value);
+    return value;
 }
 
 int main(void) {
-    int16_t result = readConstI16(&(int16_t){10000});
+    int16_t result = readConstI16(10000);
     if (result != 10000) return 1;
-    int16_t negResult = readConstI16(&(int16_t){-5000});
+    int16_t negResult = readConstI16(-5000);
     if (negResult != -5000) return 2;
-    int16_t absPos = absConstI16(&(int16_t){1234});
+    int16_t absPos = absConstI16(1234);
     if (absPos != 1234) return 3;
-    int16_t absNeg = absConstI16(&(int16_t){-5678});
+    int16_t absNeg = absConstI16(-5678);
     if (absNeg != 5678) return 4;
     int16_t myValue = -20000;
-    int16_t readBack = readConstI16(&myValue);
+    int16_t readBack = readConstI16(myValue);
     if (readBack != -20000) return 5;
     return 0;
 }

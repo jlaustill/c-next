@@ -25,7 +25,7 @@ void moveEndPoint(void) {
     segment.end.y = 200;
 }
 
-void setStartPoint(const int32_t* newX, const int32_t* newY) {
-    segment.start.x = (*newX);
-    segment.start.y = (*newY);
+void setStartPoint(int32_t newX, int32_t newY) {
+    segment.start.x = newX;
+    segment.start.y = newY;
 }

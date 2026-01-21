@@ -29,16 +29,16 @@ uint32_t globalSum = 0;
 /* Scope: Calculator */
 static uint32_t Calculator_result = 0;
 
-void Calculator_sumToN(const uint32_t* n) {
+void Calculator_sumToN(uint32_t n) {
     Calculator_result = 0;
-    for (uint32_t i = 1; i <= (*n); i = i + 1) {
+    for (uint32_t i = 1; i <= n; i = i + 1) {
         Calculator_result = cnx_clamp_add_u32(Calculator_result, i);
     }
 }
 
-void Calculator_factorial(const uint32_t* n) {
+void Calculator_factorial(uint32_t n) {
     Calculator_result = 1;
-    for (uint32_t i = 2; i <= (*n); i = i + 1) {
+    for (uint32_t i = 2; i <= n; i = i + 1) {
         Calculator_result = cnx_clamp_mul_u32(Calculator_result, i);
     }
 }
@@ -69,9 +69,9 @@ uint32_t ArrayOps_getSum(void) {
 }
 
 int main(void) {
-    Calculator_sumToN(&(uint32_t){5});
+    Calculator_sumToN(5);
     globalSum = Calculator_getResult();
-    Calculator_factorial(&(uint32_t){5});
+    Calculator_factorial(5);
     ArrayOps_initialize();
     ArrayOps_computeSum();
 }

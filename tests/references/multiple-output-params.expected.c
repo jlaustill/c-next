@@ -9,25 +9,25 @@
 // test-execution
 // Tests: Function with multiple output parameters
 // Divides a by b, returns quotient and remainder via output params
-void divmod(const uint32_t* a, const uint32_t* b, uint32_t* quotient, uint32_t* remainder) {
-    (*quotient) = (*a) / (*b);
-    (*remainder) = (*a) % (*b);
+void divmod(uint32_t a, uint32_t b, uint32_t* quotient, uint32_t* remainder) {
+    (*quotient) = a / b;
+    (*remainder) = a % b;
 }
 
 // Returns min and max of two values
-void minmax(const int32_t* a, const int32_t* b, int32_t* minVal, int32_t* maxVal) {
-    if ((*a) < (*b)) {
-        (*minVal) = (*a);
-        (*maxVal) = (*b);
+void minmax(int32_t a, int32_t b, int32_t* minVal, int32_t* maxVal) {
+    if (a < b) {
+        (*minVal) = a;
+        (*maxVal) = b;
     } else {
-        (*minVal) = (*b);
-        (*maxVal) = (*a);
+        (*minVal) = b;
+        (*maxVal) = a;
     }
 }
 
 // Calculates statistics: sum, count, and average
-void stats(const uint32_t* a, const uint32_t* b, const uint32_t* c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
-    (*sum) = (*a) + (*b) + (*c);
+void stats(uint32_t a, uint32_t b, uint32_t c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
+    (*sum) = a + b + c;
     (*count) = 3;
     (*avg) = (*sum) / (*count);
 }
@@ -43,34 +43,34 @@ void rotate3(uint32_t* a, uint32_t* b, uint32_t* c) {
 int main(void) {
     uint32_t q = 0;
     uint32_t r = 0;
-    divmod(&(uint32_t){17}, &(uint32_t){5}, &q, &r);
+    divmod(17, 5, &q, &r);
     if (q != 3) return 1;
     if (r != 2) return 2;
-    divmod(&(uint32_t){100}, &(uint32_t){10}, &q, &r);
+    divmod(100, 10, &q, &r);
     if (q != 10) return 3;
     if (r != 0) return 4;
-    divmod(&(uint32_t){7}, &(uint32_t){3}, &q, &r);
+    divmod(7, 3, &q, &r);
     if (q != 2) return 5;
     if (r != 1) return 6;
     int32_t minResult = 0;
     int32_t maxResult = 0;
-    minmax(&(int32_t){10}, &(int32_t){20}, &minResult, &maxResult);
+    minmax(10, 20, &minResult, &maxResult);
     if (minResult != 10) return 7;
     if (maxResult != 20) return 8;
-    minmax(&(int32_t){50}, &(int32_t){25}, &minResult, &maxResult);
+    minmax(50, 25, &minResult, &maxResult);
     if (minResult != 25) return 9;
     if (maxResult != 50) return 10;
-    minmax(&(int32_t){-5}, &(int32_t){5}, &minResult, &maxResult);
+    minmax(-5, 5, &minResult, &maxResult);
     if (minResult != -5) return 11;
     if (maxResult != 5) return 12;
     uint32_t sum = 0;
     uint32_t count = 0;
     uint32_t avg = 0;
-    stats(&(uint32_t){10}, &(uint32_t){20}, &(uint32_t){30}, &sum, &count, &avg);
+    stats(10, 20, 30, &sum, &count, &avg);
     if (sum != 60) return 13;
     if (count != 3) return 14;
     if (avg != 20) return 15;
-    stats(&(uint32_t){100}, &(uint32_t){200}, &(uint32_t){300}, &sum, &count, &avg);
+    stats(100, 200, 300, &sum, &count, &avg);
     if (sum != 600) return 16;
     if (avg != 200) return 17;
     uint32_t x = 1;
