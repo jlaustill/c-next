@@ -29,10 +29,9 @@ typedef uint8_t MotorFlags;
 
 
 void MotorController_start(void) {
-    uint32_t MotorController_DEFAULT_SPEED = 100;
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1 << 0)) | (1 << 0);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7 << 3)) | ((3 & 0x7) << 3);
-    MotorController_MOTOR_REG_SPEED = MotorController_DEFAULT_SPEED;
+    MotorController_MOTOR_REG_SPEED = 100;
 }
 
 bool MotorController_isRunning(void) {
@@ -51,8 +50,7 @@ uint8_t MotorController_getMode(void) {
 
 
 void Board_toggleLed(void) {
-    uint32_t Board_LED_BIT = 3;
-    Board_GPIO_DR_SET = (1 << Board_LED_BIT);
+    Board_GPIO_DR_SET = (1 << 3);
 }
 
 int main(void) {

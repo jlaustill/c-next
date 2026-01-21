@@ -43,32 +43,27 @@ uint8_t ModifierCombos_publicWrapByte = 250;
 uint16_t ModifierCombos_publicWrapWord = 65530;
 static uint8_t ModifierCombos_privateWrapByte = 5;
 static uint16_t ModifierCombos_privateWrapWord = 100;
-uint8_t ModifierCombos_PUBLIC_CONST = 42;
-bool ModifierCombos_PUBLIC_FLAG = true;
+const uint8_t ModifierCombos_PUBLIC_CONST = 42;
+const bool ModifierCombos_PUBLIC_FLAG = true;
 
 uint8_t ModifierCombos_getMaxBrightness(void) {
-    uint8_t ModifierCombos_MAX_BRIGHTNESS = 255;
-    return ModifierCombos_MAX_BRIGHTNESS;
+    return 255;
 }
 
 uint16_t ModifierCombos_getMaxSensor(void) {
-    uint16_t ModifierCombos_MAX_SENSOR = 65535;
-    return ModifierCombos_MAX_SENSOR;
+    return 65535;
 }
 
 int8_t ModifierCombos_getMinTemp(void) {
-    int8_t ModifierCombos_MIN_TEMP = -128;
-    return ModifierCombos_MIN_TEMP;
+    return -128;
 }
 
 uint8_t ModifierCombos_getCounterStart(void) {
-    uint8_t ModifierCombos_COUNTER_START = 0;
-    return ModifierCombos_COUNTER_START;
+    return 0;
 }
 
 uint16_t ModifierCombos_getTickStart(void) {
-    uint16_t ModifierCombos_TICK_START = 1000;
-    return ModifierCombos_TICK_START;
+    return 1000;
 }
 
 uint8_t ModifierCombos_getPublicClampByte(void) {
@@ -121,13 +116,11 @@ bool ModifierCombos_getPublicFlag(void) {
 }
 
 uint8_t ModifierCombos_getPrivateConst(void) {
-    uint8_t ModifierCombos_PRIVATE_CONST = 99;
-    return ModifierCombos_PRIVATE_CONST;
+    return 99;
 }
 
 bool ModifierCombos_getPrivateFlag(void) {
-    bool ModifierCombos_PRIVATE_FLAG = false;
-    return ModifierCombos_PRIVATE_FLAG;
+    return false;
 }
 
 void ModifierCombos_increasePublicClampByte(void) {

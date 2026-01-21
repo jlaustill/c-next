@@ -8250,19 +8250,30 @@ export default class CodeGenerator implements IOrchestrator {
             if (!this.context.currentScope) {
               throw new Error("Error: 'this' can only be used inside a scope");
             }
-            // Transform this.member to Scope_member
-            result = `${this.context.currentScope}_${memberName}`;
-            currentIdentifier = result; // Track for .length lookups
 
-            // Set struct type for chained access, but ONLY if result is not an enum
-            // This prevents treating enum types (like Motor_State) as struct variables
-            if (!this.symbols!.knownEnums.has(result)) {
-              const resolvedTypeInfo = this.context.typeRegistry.get(result);
-              if (
-                resolvedTypeInfo &&
-                this.isKnownStruct(resolvedTypeInfo.baseType)
-              ) {
-                currentStructType = resolvedTypeInfo.baseType;
+            // Issue #282: Check if this is a private const - if so, inline the value
+            const fullName = `${this.context.currentScope}_${memberName}`;
+            const constValue =
+              this.symbols!.scopePrivateConstValues.get(fullName);
+            if (constValue !== undefined) {
+              // Inline the const value directly
+              result = constValue;
+              currentIdentifier = fullName; // Track for .length lookups
+            } else {
+              // Transform this.member to Scope_member
+              result = fullName;
+              currentIdentifier = result; // Track for .length lookups
+
+              // Set struct type for chained access, but ONLY if result is not an enum
+              // This prevents treating enum types (like Motor_State) as struct variables
+              if (!this.symbols!.knownEnums.has(result)) {
+                const resolvedTypeInfo = this.context.typeRegistry.get(result);
+                if (
+                  resolvedTypeInfo &&
+                  this.isKnownStruct(resolvedTypeInfo.baseType)
+                ) {
+                  currentStructType = resolvedTypeInfo.baseType;
+                }
               }
             }
           } else if (this.symbols!.knownScopes.has(result)) {

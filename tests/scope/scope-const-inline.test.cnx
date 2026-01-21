@@ -1,0 +1,124 @@
+/* test-execution */
+// Tests: Scope-level const values should be inlined, not created as local variables
+// Issue #282: Const declarations were incorrectly being generated as mutable locals
+
+scope ConstTest {
+    // Private const values - should be inlined when accessed via this.
+    const u8 MAX_VALUE <- 255;
+    const u16 BUFFER_SIZE <- 1024;
+    const i32 OFFSET <- -100;
+    const bool ENABLED <- true;
+
+    // Edge case: hex and binary literal formats (should inline preserving format)
+    const u8 HEX_FLAGS <- 0xAB;
+    const u8 BIN_MASK <- 0b11001010;
+    const u32 HEX_ADDR <- 0x40001000;
+
+    // Public const values - should be declared as 'const' at file scope
+    public const u8 PUBLIC_MAX <- 200;
+    public const u32 PUBLIC_ID <- 42;
+
+    // Non-const private variable (used in one function) - OK to be local
+    private u8 counter <- 0;
+
+    // Getter for private const - should return inlined value
+    public u8 getMaxValue() {
+        return this.MAX_VALUE;
+    }
+
+    public u16 getBufferSize() {
+        return this.BUFFER_SIZE;
+    }
+
+    public i32 getOffset() {
+        return this.OFFSET;
+    }
+
+    public bool getEnabled() {
+        return this.ENABLED;
+    }
+
+    // Getter for public const - should access const variable (not local)
+    public u8 getPublicMax() {
+        return this.PUBLIC_MAX;
+    }
+
+    public u32 getPublicId() {
+        return this.PUBLIC_ID;
+    }
+
+    // Use counter to test non-const single-function variable still works
+    public u8 getCounter() {
+        return this.counter;
+    }
+
+    // Edge case: hex/binary const getters
+    public u8 getHexFlags() {
+        return this.HEX_FLAGS;
+    }
+
+    public u8 getBinMask() {
+        return this.BIN_MASK;
+    }
+
+    public u32 getHexAddr() {
+        return this.HEX_ADDR;
+    }
+
+    // Edge case: multiple references to same const in one function
+    // Each reference should be inlined independently
+    public u16 multipleRefs() {
+        u16 a <- this.MAX_VALUE;
+        u16 b <- this.MAX_VALUE + 1;
+        u16 c <- this.MAX_VALUE * 2;
+        return a + b + c;  // 255 + 256 + 510 = 1021
+    }
+}
+
+u32 main() {
+    // Test private const getters return correct values
+    u8 maxVal <- ConstTest.getMaxValue();
+    if (maxVal != 255) return 1;
+
+    u16 bufSize <- ConstTest.getBufferSize();
+    if (bufSize != 1024) return 2;
+
+    i32 offset <- ConstTest.getOffset();
+    if (offset != -100) return 3;
+
+    bool enabled <- ConstTest.getEnabled();
+    if (enabled != true) return 4;
+
+    // Test public const getters return correct values
+    u8 pubMax <- ConstTest.getPublicMax();
+    if (pubMax != 200) return 5;
+
+    u32 pubId <- ConstTest.getPublicId();
+    if (pubId != 42) return 6;
+
+    // Test direct access to public const
+    if (ConstTest.PUBLIC_MAX != 200) return 7;
+    if (ConstTest.PUBLIC_ID != 42) return 8;
+
+    // Test non-const variable still works
+    u8 cnt <- ConstTest.getCounter();
+    if (cnt != 0) return 9;
+
+    // Test hex const values (0xAB = 171 decimal)
+    u8 hexFlags <- ConstTest.getHexFlags();
+    if (hexFlags != 171) return 10;
+
+    // Test binary const values (0b11001010 = 202 decimal)
+    u8 binMask <- ConstTest.getBinMask();
+    if (binMask != 202) return 11;
+
+    // Test hex address const (0x40001000 = 1073745920 decimal)
+    u32 hexAddr <- ConstTest.getHexAddr();
+    if (hexAddr != 1073745920) return 12;
+
+    // Test multiple references to same const in one function
+    u16 multiResult <- ConstTest.multipleRefs();
+    if (multiResult != 1021) return 13;
+
+    return 0;
+}

@@ -21,9 +21,8 @@ typedef enum {
 Motor_State Motor_current = Motor_State_IDLE;
 
 uint8_t Motor_start(void) {
-    uint8_t Motor_defaultValue = 1;
     Motor_current = Motor_State_RUNNING;
-    return Motor_defaultValue;
+    return 1;
 }
 
 uint8_t Motor_stop(void) {
