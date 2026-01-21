@@ -1,0 +1,97 @@
+// test-execution
+// Issue #281: const incorrectly added to pointer parameter that is modified
+// Tests that scope functions correctly handle parameter passing:
+// - Modified scalars: passed as pointer (no const) for mutation
+// - Unmodified scalars: passed by value (optimization over const pointer)
+
+scope TestScope {
+    public void increment(u32 x) {
+        x <- x + 1;  // x is modified, should NOT have const
+    }
+
+    public u32 accumulate(u32 sum, u32 value) {
+        sum <- sum + value;  // sum is modified
+        return sum;
+    }
+
+    // Test with multiple modifications
+    public void doubleIncrement(u32 x) {
+        x <- x + 1;
+        x <- x + 1;
+    }
+
+    // Test modification in switch
+    public void switchIncrement(u32 x, u32 mode) {
+        switch (mode) {
+            case 1 {
+                x <- x + 10;
+            }
+            case 2 {
+                x <- x + 20;
+            }
+            default {
+                x <- x + 1;
+            }
+        }
+    }
+
+    // Negative test: unmodified params should still get const
+    public u32 readOnly(u32 x) {
+        return x * 2;  // x is NOT modified, should have const
+    }
+
+    // Mixed: first param modified, second param read-only
+    public u32 mixedParams(u32 counter, u32 multiplier) {
+        counter <- counter + 1;  // modified, no const
+        return counter * multiplier;  // multiplier only read
+    }
+}
+
+u32 main() {
+    // Test basic increment in scope
+    u32 counter <- 10;
+    TestScope.increment(counter);
+    if (counter != 11) return 1;
+
+    // Test accumulate - sum is modified, value is not
+    u32 total <- 100;
+    u32 result <- TestScope.accumulate(total, 50);
+    if (total != 150) return 2;
+    if (result != 150) return 3;
+
+    // Test double increment
+    u32 doubled <- 5;
+    TestScope.doubleIncrement(doubled);
+    if (doubled != 7) return 4;
+
+    // Test modification in switch (mode 1)
+    u32 switchVal <- 100;
+    TestScope.switchIncrement(switchVal, 1);
+    if (switchVal != 110) return 5;
+
+    // Test modification in switch (mode 2)
+    switchVal <- 100;
+    TestScope.switchIncrement(switchVal, 2);
+    if (switchVal != 120) return 6;
+
+    // Test modification in switch (default)
+    switchVal <- 100;
+    TestScope.switchIncrement(switchVal, 99);
+    if (switchVal != 101) return 7;
+
+    // Negative test: readOnly should NOT modify input (const param)
+    u32 readVal <- 25;
+    u32 readResult <- TestScope.readOnly(readVal);
+    if (readVal != 25) return 8;  // Should be unchanged
+    if (readResult != 50) return 9;  // Should be 25 * 2
+
+    // Mixed params: counter modified, multiplier const
+    u32 mixedCounter <- 10;
+    u32 mixedMult <- 3;
+    u32 mixedResult <- TestScope.mixedParams(mixedCounter, mixedMult);
+    if (mixedCounter != 11) return 10;  // counter was modified
+    if (mixedMult != 3) return 11;  // multiplier unchanged
+    if (mixedResult != 33) return 12;  // (10+1) * 3 = 33
+
+    return 0;
+}

@@ -4219,19 +4219,23 @@ export default class CodeGenerator implements IOrchestrator {
         // Track parameters for ADR-006 pointer semantics
         this._setParameters(funcDecl.parameterList() ?? null);
 
-        // ADR-016: Clear local variables and mark that we're in a function body
-        this.context.localVariables.clear();
-        this.context.inFunctionBody = true;
+        // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
+        this.enterFunctionBody();
 
+        // Issue #281: Generate body FIRST to track parameter modifications,
+        // then generate parameter list using that tracking info
+        const body = this._generateBlock(funcDecl.block());
+
+        // Issue #281: Update symbol's parameter info with auto-const before generating params
+        this.updateFunctionParamsAutoConst(fullName);
+
+        // Now generate parameter list (can use modifiedParameters for auto-const)
         const params = funcDecl.parameterList()
           ? this._generateParameterList(funcDecl.parameterList()!)
           : "void";
 
-        const body = this._generateBlock(funcDecl.block());
-
-        // ADR-016: Clear local variables and mark that we're no longer in a function body
-        this.context.inFunctionBody = false;
-        this.context.localVariables.clear();
+        // ADR-016: Exit function body context
+        this.exitFunctionBody();
         this.context.currentFunctionName = null; // Issue #269: Clear function name
         this._clearParameters();
 
