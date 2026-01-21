@@ -1213,6 +1213,14 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #304: Get the appropriate scope separator for C++ vs C/C-Next.
+   * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
+   */
+  private getScopeSeparator(isCppContext: boolean): string {
+    return isCppContext ? "::" : "_";
+  }
+
+  /**
    * Issue #304: Check if a type name is from a C++ header
    * Used to determine whether to use {} or {0} for initialization.
    * C++ types with constructors may fail with {0} but work with {}.
@@ -7275,8 +7283,7 @@ export default class CodeGenerator implements IOrchestrator {
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
       // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-      const separator = isCppAccess ? "::" : "_";
-      return parts.join(separator);
+      return parts.join(this.getScopeSeparator(isCppAccess));
     }
     // Issue #304: C++ class/enum access uses ::
     if (isCppAccess) {
@@ -7321,8 +7328,7 @@ export default class CodeGenerator implements IOrchestrator {
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
       // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-      const separator = isCppAccess ? "::" : "_";
-      const scopedName = parts.join(separator);
+      const scopedName = parts.join(this.getScopeSeparator(isCppAccess));
       return `${scopedName}[${indexExpr}]`;
     }
 
@@ -8174,8 +8180,7 @@ export default class CodeGenerator implements IOrchestrator {
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
             // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-            const scopeSeparator = isCppAccessChain ? "::" : "_";
-            result = `${result}${scopeSeparator}${memberName}`;
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
             currentIdentifier = result; // Track for .length lookups
 
             // Check if this resolved identifier is a struct type for chained access
@@ -8204,8 +8209,7 @@ export default class CodeGenerator implements IOrchestrator {
               }
             }
             // Issue #304: Use :: for C++ enum classes, _ for C-Next enums
-            const enumSeparator = isCppAccessChain ? "::" : "_";
-            result = `${result}${enumSeparator}${memberName}`;
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
           }
           // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
           else if (this.symbols!.knownRegisters.has(result)) {
@@ -8406,8 +8410,7 @@ export default class CodeGenerator implements IOrchestrator {
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
             // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-            const scopeSep = isCppAccessChain ? "::" : "_";
-            result = `${result}${scopeSep}${memberName}`;
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
             currentIdentifier = result; // Track for .length lookups
           } else if (this.symbols!.knownEnums.has(result)) {
             // ADR-016: Inside a scope, accessing global enum requires global. prefix
@@ -8424,8 +8427,7 @@ export default class CodeGenerator implements IOrchestrator {
               }
             }
             // Issue #304: Use :: for C++ enum classes, _ for C-Next enums
-            const enumSep = isCppAccessChain ? "::" : "_";
-            result = `${result}${enumSep}${memberName}`;
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
           } else if (this.symbols!.knownRegisters.has(result)) {
             // ADR-016: Inside a scope, accessing global register requires global. prefix
             // Exception: if the register belongs to the current scope, access is allowed
