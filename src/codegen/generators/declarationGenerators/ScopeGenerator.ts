@@ -66,11 +66,17 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       const varDecl = member.variableDeclaration()!;
       const varName = varDecl.IDENTIFIER().getText();
 
+      // Issue #282: Check if this is a const variable - const values should be inlined,
+      // not injected as local variables
+      const isConst = varDecl.constModifier() !== null;
+
       // Issue #232: Check if this PRIVATE variable is used in only one function
       // PUBLIC variables must stay file-scope because they can be accessed from outside
-      const targetFunc = isPrivate
-        ? input.symbols?.getSingleFunctionForVariable(name, varName)
-        : null;
+      // Issue #282: Skip const variables - they should be inlined, not made local
+      const targetFunc =
+        isPrivate && !isConst
+          ? input.symbols?.getSingleFunctionForVariable(name, varName)
+          : null;
 
       if (targetFunc) {
         // Single-function private variable - emit as local, not file-scope
@@ -86,15 +92,23 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
         continue;
       }
 
+      // Issue #282: Private const variables should be inlined, not emitted at file scope
+      // The inlining happens in CodeGenerator when resolving this.CONST_NAME
+      if (isPrivate && isConst) {
+        continue;
+      }
+
       // Multi-function or unused variable - emit at file scope (original behavior)
       const type = orchestrator.generateType(varDecl.type());
       const fullName = `${name}_${varName}`;
+      // Issue #282: Add 'const' modifier for const variables
+      const constPrefix = isConst ? "const " : "";
       const prefix = isPrivate ? "static " : "";
 
       // ADR-036: arrayDimension() now returns an array
       const arrayDims = varDecl.arrayDimension();
       const isArray = arrayDims.length > 0;
-      let decl = `${prefix}${type} ${fullName}`;
+      let decl = `${prefix}${constPrefix}${type} ${fullName}`;
       if (isArray) {
         decl += orchestrator.generateArrayDimensions(arrayDims);
       }

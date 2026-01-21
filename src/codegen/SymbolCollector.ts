@@ -63,6 +63,10 @@ class SymbolCollector {
   // Maps "ScopeName_varName" -> Set of function names that use it
   private _scopeVariableUsage: Map<string, Set<string>> = new Map();
 
+  // Issue #282: Track private const values for inlining
+  // Maps "ScopeName_constName" -> literal value string (e.g., "255", "true", "-100")
+  private _scopePrivateConstValues: Map<string, string> = new Map();
+
   // Store function declarations for usage analysis
   private _scopeFunctionBodies: Map<
     string,
@@ -157,6 +161,11 @@ class SymbolCollector {
   // Issue #232: Getter for scope variable usage analysis
   get scopeVariableUsage(): ReadonlyMap<string, Set<string>> {
     return this._scopeVariableUsage;
+  }
+
+  // Issue #282: Getter for private scope const values (for inlining)
+  get scopePrivateConstValues(): ReadonlyMap<string, string> {
+    return this._scopePrivateConstValues;
   }
 
   /**
@@ -284,9 +293,20 @@ class SymbolCollector {
         "private") as TScopeMemberVisibility;
 
       if (member.variableDeclaration()) {
-        const varName = member.variableDeclaration()!.IDENTIFIER().getText();
+        const varDecl = member.variableDeclaration()!;
+        const varName = varDecl.IDENTIFIER().getText();
         members.add(varName);
         memberVisibility.set(varName, visibility);
+
+        // Issue #282: Track private const values for inlining
+        const isConst = varDecl.constModifier() !== null;
+        const isPrivate = visibility === "private";
+        if (isConst && isPrivate && varDecl.expression()) {
+          const fullName = `${name}_${varName}`;
+          // Get the literal value as a string from the expression
+          const exprText = varDecl.expression()!.getText();
+          this._scopePrivateConstValues.set(fullName, exprText);
+        }
       }
 
       if (member.functionDeclaration()) {

@@ -8,7 +8,6 @@
 
 // Test: Bit indexing on scoped registers
 /* Scope: Board */
-static uint32_t Board_LED_BIT = 3;
 
 /* Register: Board_GPIO @ 0x40000000 */
 #define Board_GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
