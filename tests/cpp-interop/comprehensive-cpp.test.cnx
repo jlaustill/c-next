@@ -1,0 +1,277 @@
+// Comprehensive C++ Interop Test
+// Tests: C++ syntax patterns for scope resolution and type handling
+// This is a compilation-only test (no test-execution marker)
+// Note: C-Next doesn't have native pointer syntax, so pointer tests are omitted
+
+#include "comprehensive-cpp.hpp"
+
+// ============================================================================
+// SECTION 1: NAMESPACE ACCESS
+// ============================================================================
+// Test namespace function calls and constant access
+
+void testNamespaces() {
+    // Direct namespace function call
+    global.hw.init();
+    global.hw.shutdown();
+
+    // Namespace constant access
+    i32 ver <- global.hw.VERSION;
+    i32 maxDev <- global.hw.MAX_DEVICES;
+
+    // Nested namespace
+    global.hw.nested.configure();
+    i32 bufSize <- global.hw.nested.BUFFER_SIZE;
+}
+
+// ============================================================================
+// SECTION 2: ENUM CLASS ACCESS
+// ============================================================================
+// Test enum class values (C++11 scoped enums)
+
+void testEnumClasses() {
+    // Enum class with underlying type - use global.EnumName.VALUE syntax
+    EMode mode1 <- global.EMode.OFF;
+    EMode mode2 <- global.EMode.ON;
+    EMode mode3 <- global.EMode.AUTO;
+    EMode mode4 <- global.EMode.MANUAL;
+
+    // Enum class without explicit type
+    EColor color1 <- global.EColor.RED;
+    EColor color2 <- global.EColor.GREEN;
+    EColor color3 <- global.EColor.BLUE;
+}
+
+// ============================================================================
+// SECTION 3: TYPED ENUM ACCESS (not class)
+// ============================================================================
+// Test typed enums (C++11) and C-style enums
+
+void testTypedEnums() {
+    // Typed enum (not class) - C-style access
+    EFlags flags1 <- FLAG_NONE;
+    EFlags flags2 <- FLAG_READ;
+    u16 flags3 <- FLAG_WRITE | FLAG_EXEC;
+
+    // Traditional C-style enum
+    ELegacy leg1 <- LEGACY_A;
+    ELegacy leg2 <- LEGACY_B;
+}
+
+// ============================================================================
+// SECTION 4: STATIC METHODS
+// ============================================================================
+// Test class static method calls
+
+void testStaticMethods() {
+    // Static method calls
+    bool ok <- global.CommandHandler.execute(1);
+    i32 status <- global.CommandHandler.getStatus();
+    global.CommandHandler.reset();
+
+    // MathUtils static methods
+    i32 absVal <- global.MathUtils.abs(-5);
+    i32 minVal <- global.MathUtils.min(10, 20);
+    i32 maxVal <- global.MathUtils.max(10, 20);
+
+    // Static constexpr member
+    i32 pi <- global.MathUtils.PI_INT;
+
+    // Static method with enum return
+    EMode computed <- global.MathUtils.computeMode(0x05);
+}
+
+// ============================================================================
+// SECTION 5: STRUCT INITIALIZATION
+// ============================================================================
+// Test struct with constructors and factory methods
+
+void testStructInit() {
+    // Default initialization (should use {} not {0} for C++ types)
+    Result r1;
+
+    // Static factory methods
+    Result success <- global.Result.success();
+    Result error <- global.Result.error(404);
+
+    // POD struct
+    Point p;
+    p.x <- 10;
+    p.y <- 20;
+
+    // Struct with default initializers (C++ has defaults, but C-Next needs explicit init)
+    Settings s;
+    s.enabled <- false;
+    s.timeout <- 1000;
+    s.mode <- global.EMode.OFF;
+    bool enabled <- s.enabled;
+    i32 timeout <- s.timeout;
+    EMode mode <- s.mode;
+}
+
+// ============================================================================
+// SECTION 6: CONSTEXPR CONSTANTS
+// ============================================================================
+// Test constexpr access
+
+void testConstexpr() {
+    i32 maxSize <- global.MAX_SIZE;
+    i32 minSize <- global.MIN_SIZE;
+    i32 timeout <- global.DEFAULT_TIMEOUT;
+    u32 magic <- global.MAGIC_NUMBER;
+
+    // Constexpr functions
+    i32 sq <- global.square(5);
+    i32 fact <- global.factorial(5);
+}
+
+// ============================================================================
+// SECTION 7: FUNCTION OVERLOADS
+// ============================================================================
+// Test function overload resolution
+
+void testOverloads() {
+    // Integer overloads
+    i32 r1 <- global.process(10);
+    i32 r2 <- global.process(10, 20);
+
+    // Float/double overloads
+    f32 r3 <- global.process(3.14);
+    f64 r4 <- global.process(3.14159);
+
+    // String overload
+    Result r5 <- global.process("test");
+}
+
+// ============================================================================
+// SECTION 8: TYPE CONVERSIONS (Issue #252)
+// ============================================================================
+// Test enum and bool to u8 conversions
+
+u32 processByte(u32 crc, u8 byte) {
+    return crc ^ byte;
+}
+
+void testTypeConversions() {
+    SensorConfig cfg;
+    cfg.enabled <- true;
+    cfg.mode <- global.EMode.ON;
+    cfg.flags <- 0x0F;
+    cfg.permissions <- FLAG_READ;
+
+    u32 crc <- 0;
+
+    // bool → u8 conversion (implicit in C++)
+    crc <- processByte(crc, cfg.enabled);
+
+    // NOTE: enum class → u8 requires static_cast (Issue #252)
+    // Commenting out until Issue #252 is fixed:
+    // crc <- processByte(crc, cfg.mode);
+
+    // u8 direct (no conversion needed)
+    crc <- processByte(crc, cfg.flags);
+
+    // typed enum → u8
+    crc <- processByte(crc, cfg.permissions);
+}
+
+// ============================================================================
+// SECTION 9: ARRAY MEMBER ACCESS (Issue #256)
+// ============================================================================
+// Test array of structs member access
+
+void testArrayMembers() {
+    DeviceConfig device;
+
+    // Initialize array elements (C-Next requires explicit init)
+    device.sensors[0].enabled <- true;
+    device.sensors[0].mode <- global.EMode.ON;
+    device.sensors[0].flags <- 0x01;
+    device.sensors[1].enabled <- false;
+    device.sensors[1].mode <- global.EMode.OFF;
+    device.sensors[2].flags <- 0x0F;
+
+    // Array of structs member access
+    bool enabled <- device.sensors[0].enabled;
+    EMode mode <- device.sensors[1].mode;
+    u8 flags <- device.sensors[2].flags;
+
+    // Passing array element member to function
+    u32 crc <- 0;
+    crc <- processByte(crc, device.sensors[0].enabled);
+    // NOTE: enum class → u8 requires static_cast (Issue #252)
+    // crc <- processByte(crc, device.sensors[0].mode);
+    crc <- processByte(crc, device.sensors[0].flags);
+}
+
+// ============================================================================
+// SECTION 10: COMPLEX STRUCT ACCESS
+// ============================================================================
+// Test nested struct member access
+
+void testComplexStructs() {
+    Message msg;
+    msg.id <- 0x100;
+    msg.length <- 8;
+    msg.flags <- FLAG_READ;
+
+    // Initialize nested struct members before access
+    msg.result.code <- 0;
+    msg.result.dataLen <- 0;
+    msg.result.data[0] <- 0x42;
+
+    // Nested struct member
+    i32 code <- msg.result.code;
+
+    // Array member of nested struct
+    u8 firstByte <- msg.result.data[0];
+}
+
+// ============================================================================
+// SECTION 11: SINGLETON ACCESS
+// ============================================================================
+// Test singleton pattern and static registries
+
+void testSingleton() {
+    // Registry static methods
+    // NOTE: null → nullptr issue - commenting out until fixed
+    // global.Registry.registerHandler(1, null);
+    global.Registry.callHandler(1);
+    i32 count <- global.Registry.getHandlerCount();
+}
+
+// ============================================================================
+// SECTION 12: REFERENCES AND POINTERS
+// ============================================================================
+// Test reference and pointer passing
+
+void testRefsAndPtrs() {
+    i32 val <- 42;
+
+    // Pass by reference
+    global.modifyRef(val);
+    global.readRef(val);
+
+    // Pass by pointer (using address-of)
+    global.modifyPtr(&val);
+    global.readPtr(&val);
+}
+
+// ============================================================================
+// MAIN - Call all test sections
+// ============================================================================
+
+void main() {
+    testNamespaces();
+    testEnumClasses();
+    testTypedEnums();
+    testStaticMethods();
+    testStructInit();
+    testConstexpr();
+    testOverloads();
+    testTypeConversions();
+    testArrayMembers();
+    testComplexStructs();
+    testSingleton();
+    testRefsAndPtrs();
+}
