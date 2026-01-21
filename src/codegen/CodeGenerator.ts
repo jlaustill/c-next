@@ -5398,6 +5398,13 @@ export default class CodeGenerator implements IOrchestrator {
       return "{0}";
     }
 
+    // Issue #295: C++ template types use value initialization {}
+    // Template types like FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> are non-trivial
+    // class types that cannot be initialized with = 0
+    if (typeCtx.templateType()) {
+      return "{}";
+    }
+
     // Primitive types
     if (typeCtx.primitiveType()) {
       const primType = typeCtx.primitiveType()!.getText();

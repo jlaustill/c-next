@@ -8,11 +8,11 @@
 #include "template-stubs.h"
 
 // Single template parameter with identifier
-Container<Element> singleParam = 0;
+Container<Element> singleParam = {};
 
 // Single template parameter with C++ compatible type (uint32_t)
 // Note: C-Next u32 maps to uint32_t in generated code
-Vector<uint32_t> numbers = 0;
+Vector<uint32_t> numbers = {};
 
 int main(void) {
 }

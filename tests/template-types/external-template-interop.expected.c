@@ -10,7 +10,7 @@
 
 // External C++ template type (simulating FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16>)
 // In real usage this would come from FlexCAN_T4.h
-TemplateType<Param1,Param2,Param3> canBus = 0;
+TemplateType<Param1,Param2,Param3> canBus = {};
 
 // C-Next defined scope with its own types
 /* Scope: CANHandler */
