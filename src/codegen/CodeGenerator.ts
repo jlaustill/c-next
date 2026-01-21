@@ -1276,7 +1276,7 @@ export default class CodeGenerator implements IOrchestrator {
         if (
           sym.kind === ESymbolKind.Struct ||
           sym.kind === ESymbolKind.Class ||
-          sym.kind === ESymbolKind.TypeAlias
+          sym.kind === ESymbolKind.Type
         ) {
           return true;
         }
