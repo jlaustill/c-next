@@ -1,0 +1,18 @@
+// Issue #309: External C++ type initialization
+// When outputting C++ and a type is not in the symbol table
+// (e.g., external library with --no-preprocess), use {} not {0}
+
+// The header is in tests/include/ for compilation
+// but NOT here, so transpiler won't find it during symbol collection
+#include "external-cpp-type.hpp"
+
+void test() {
+    // ExternalCppType is NOT in the symbol table
+    // but will be available at compile time
+    ExternalCppType value;
+    value.code <- 42;
+}
+
+void main() {
+    test();
+}

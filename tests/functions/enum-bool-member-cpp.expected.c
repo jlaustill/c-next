@@ -27,7 +27,7 @@ uint32_t testEnumBoolMembers(const SensorConfig* cfg) {
 }
 
 int main(void) {
-    SensorConfig cfg = {0};
+    SensorConfig cfg = {};
     cfg.enabled = true;
     cfg.pressureType = PRESSURE_HIGH;
     cfg.thermocoupleType = TC_TYPE_J;
