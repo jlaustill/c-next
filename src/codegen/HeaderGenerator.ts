@@ -181,7 +181,9 @@ class HeaderGenerator {
       lines.push("/* External variables */");
       for (const sym of variables) {
         const cType = sym.type ? mapType(sym.type) : "int";
-        lines.push(`extern ${cType} ${sym.name};`);
+        // Issue #288: Include const qualifier for const variables
+        const constPrefix = sym.isConst ? "const " : "";
+        lines.push(`extern ${constPrefix}${cType} ${sym.name};`);
       }
       lines.push("");
     }

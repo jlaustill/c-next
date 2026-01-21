@@ -1,0 +1,54 @@
+/* test-execution */
+// Tests: Issue #288 - extern declarations must include const qualifier for public const variables
+// Bug: Header generates "extern uint8_t X;" but impl has "const uint8_t X = value;"
+// This causes C++ compilation errors due to conflicting declarations
+//
+// The .test.h file contains a C++14 typed enum to force g++ compilation,
+// which is stricter about const mismatches between declaration and definition.
+
+scope ExternConstTest {
+    // Public const values - must be declared as "extern const" in header
+    public const u8 STATUS_OK <- 0;
+    public const u8 STATUS_ERROR <- 1;
+    public const u32 MAGIC_NUMBER <- 0xCAFEBABE;
+
+    public bool isSuccess(u8 status) {
+        if (status = this.STATUS_OK) {
+            return true;
+        }
+        return false;
+    }
+
+    public u8 getErrorCode() {
+        return this.STATUS_ERROR;
+    }
+
+    public u32 getMagic() {
+        return this.MAGIC_NUMBER;
+    }
+}
+
+u32 main() {
+    // Test 1: Check STATUS_OK value
+    if (ExternConstTest.STATUS_OK != 0) return 1;
+
+    // Test 2: Check STATUS_ERROR value
+    if (ExternConstTest.STATUS_ERROR != 1) return 2;
+
+    // Test 3: Check MAGIC_NUMBER value
+    if (ExternConstTest.MAGIC_NUMBER != 0xCAFEBABE) return 3;
+
+    // Test 4: Test isSuccess function
+    bool success <- ExternConstTest.isSuccess(0);
+    if (success != true) return 4;
+
+    // Test 5: Test getErrorCode function
+    u8 errCode <- ExternConstTest.getErrorCode();
+    if (errCode != 1) return 5;
+
+    // Test 6: Test getMagic function
+    u32 magic <- ExternConstTest.getMagic();
+    if (magic != 0xCAFEBABE) return 6;
+
+    return 0;
+}
