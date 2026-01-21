@@ -50,6 +50,9 @@ interface ISymbol {
 
   /** For arrays: element count. For integers: bit width */
   size?: number;
+
+  /** Issue #288: Whether this variable is const (for extern declarations) */
+  isConst?: boolean;
 }
 
 export default ISymbol;

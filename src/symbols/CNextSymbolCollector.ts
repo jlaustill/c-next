@@ -375,6 +375,9 @@ class CNextSymbolCollector {
       }
     }
 
+    // Issue #288: Capture const modifier for extern declarations
+    const isConst = varDecl.constModifier() !== null;
+
     this.symbols.push({
       name: fullName,
       kind: ESymbolKind.Variable,
@@ -385,6 +388,7 @@ class CNextSymbolCollector {
       isExported: isPublic,
       parent,
       size,
+      isConst,
     });
   }
 }
