@@ -62,6 +62,11 @@ class Pipeline {
   private cppDetected: boolean;
   /** Issue #220: Store SymbolCollector per file for header generation */
   private symbolCollectors: Map<string, SymbolCollector> = new Map();
+  /** Issue #280: Store pass-by-value params per file for header generation */
+  private passByValueParamsCollectors: Map<
+    string,
+    ReadonlyMap<string, ReadonlySet<string>>
+  > = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -577,6 +582,18 @@ class Pipeline {
         this.symbolCollectors.set(file.path, this.codeGenerator.symbols);
       }
 
+      // Issue #280: Store pass-by-value params for header generation (deep copy)
+      // Must snapshot before next file's transpilation clears the data.
+      // Note: This captures which params are small primitives for pass-by-value optimization,
+      // while updateSymbolsAutoConst (below) handles const inference for remaining pointer params.
+      // Both are needed for correct header signatures.
+      const passByValue = this.codeGenerator.getPassByValueParams();
+      const passByValueCopy = new Map<string, Set<string>>();
+      for (const [funcName, params] of passByValue) {
+        passByValueCopy.set(funcName, new Set(params));
+      }
+      this.passByValueParamsCollectors.set(file.path, passByValueCopy);
+
       // Issue #268: Update symbol parameters with auto-const info for header generation
       this.updateSymbolsAutoConst(file.path);
 
@@ -668,8 +685,12 @@ class Pipeline {
     // Issue #220: Get SymbolCollector for full type definitions
     const typeInput = this.symbolCollectors.get(file.path);
 
-    // Issue #269: Get pass-by-value params from code generator for header consistency
-    const passByValueParams = this.codeGenerator.getPassByValueParams();
+    // Issue #280: Get pass-by-value params from per-file storage for multi-file consistency
+    // This uses the snapshot taken during transpilation, not the current (stale) codeGenerator state.
+    // Fallback to empty map if not found (defensive - should always exist after transpilation).
+    const passByValueParams =
+      this.passByValueParamsCollectors.get(file.path) ??
+      new Map<string, Set<string>>();
 
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
