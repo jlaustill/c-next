@@ -41,6 +41,7 @@ C-Next already aligns with many MISRA rules by design:
 | 1     | **cppcheck**      | General static analysis, easy baseline |
 | 2     | **clang-tidy**    | Comprehensive checks, CERT guidelines  |
 | 3     | **MISRA checker** | Full MISRA C 2012 compliance           |
+| 4     | **flawfinder**    | CWE-based security vulnerability scan  |
 
 ### Long-term Goal
 
@@ -107,6 +108,37 @@ Checks: >
 4. **Polyspace** — Commercial, automotive-focused
 
 **Recommendation:** Start with cppcheck + clang-tidy. Evaluate commercial tools if/when C-Next targets safety-critical applications.
+
+### Phase 4: flawfinder Integration
+
+**Install:**
+
+```bash
+pip install flawfinder
+```
+
+**Risk Levels (0-5 scale):**
+
+| Level | Severity | Description                          |
+| ----- | -------- | ------------------------------------ |
+| 5     | Critical | Almost certainly exploitable         |
+| 4     | High     | Likely exploitable                   |
+| 3     | Medium   | Potential vulnerability              |
+| 2     | Low      | Minor issue, rarely exploitable      |
+| 1     | Info     | Informational, likely false positive |
+| 0     | None     | No risk (suppressed findings)        |
+
+**Integration Approach:**
+
+- **Test runner (`npm test`)**: Uses `--minlevel=3` to skip low-risk findings
+  - Level 2 char[] warnings are false positives for C-Next (static allocation per ADR-003)
+- **Manual analysis (`npm run analyze`)**: Uses `--minlevel=1` to show all actionable findings
+- **Exit behavior**: `--error-level=3` returns non-zero for level 3+ findings in test runner
+- **Timeout**: 30 seconds (flawfinder is fast, matches clang-tidy)
+
+**CWE Mapping:**
+
+flawfinder maps findings to CWE (Common Weakness Enumeration) identifiers, providing standardized vulnerability classification for security audits.
 
 ---
 

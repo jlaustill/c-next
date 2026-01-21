@@ -307,6 +307,46 @@ class TestUtils {
   }
 
   /**
+   * Validate that a C file passes flawfinder security analysis
+   * flawfinder scans C code for CWE-mapped security vulnerabilities
+   *
+   * @param cFile - Path to the C file
+   */
+  static validateFlawfinder(cFile: string): IValidationResult {
+    try {
+      // Run flawfinder with:
+      // --minlevel=3: Skip low-risk (0-2) to reduce noise from char[] static buffers
+      //   (C-Next uses static allocation per ADR-003, so level 2 char[] warnings are FPs)
+      // --error-level=3: Return non-zero exit for level 3+ findings (medium risk+)
+      // --dataonly: Output data only, no headers
+      // --quiet: Don't show progress
+      execFileSync(
+        "flawfinder",
+        ["--minlevel=3", "--error-level=3", "--dataonly", "--quiet", cFile],
+        { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
+      );
+      return { valid: true };
+    } catch (error: unknown) {
+      const err = error as {
+        stderr?: string;
+        stdout?: string;
+        message: string;
+      };
+      const output = err.stdout || err.stderr || err.message;
+      // Parse flawfinder output for CWE identifiers
+      const issues = output
+        .split("\n")
+        .filter((line) => line.includes("CWE") || line.includes(cFile))
+        .slice(0, 5)
+        .join("\n");
+      return {
+        valid: false,
+        message: issues || "Flawfinder security check failed",
+      };
+    }
+  }
+
+  /**
    * Validate that a C file compiles without any warnings
    * Uses gcc with -Werror to treat all warnings as errors
    *

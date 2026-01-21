@@ -16,7 +16,7 @@ src/parser/
 # *.c
 
 # Static analysis temp files
-.analysis-temp/
+analysis-temp/
 
 # Large hardware documentation PDFs (download instructions in README)
 examples/teensy4/docs/IMXRT1060RM_rev3.pdf
