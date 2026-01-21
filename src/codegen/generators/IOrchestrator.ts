@@ -304,6 +304,12 @@ interface IOrchestrator {
   markParameterModified(paramName: string): void;
 
   /**
+   * Issue #281: Clear modified parameters tracking for a new function.
+   * Call this before generating a function body to track fresh modifications.
+   */
+  clearModifiedParameters(): void;
+
+  /**
    * Issue #268: Check if a callee function's parameter at given index is modified.
    * Returns true if the callee modifies that parameter (should not have const).
    * Returns false if unmodified or unknown (callee not yet processed).

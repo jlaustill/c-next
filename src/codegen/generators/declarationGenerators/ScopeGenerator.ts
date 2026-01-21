@@ -130,14 +130,23 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       // Track parameters for ADR-006 pointer semantics
       orchestrator.setParameters(funcDecl.parameterList() ?? null);
 
+      // Issue #281: Clear modified parameters tracking for this function
+      orchestrator.clearModifiedParameters();
+
       // ADR-016: Enter function body context
       orchestrator.enterFunctionBody();
 
+      // Issue #281: Generate body FIRST to track parameter modifications,
+      // then generate parameter list using that tracking info
+      let body = orchestrator.generateBlock(funcDecl.block());
+
+      // Issue #281: Update symbol's parameter info with auto-const before generating params
+      orchestrator.updateFunctionParamsAutoConst(fullName);
+
+      // Now generate parameter list (can use modifiedParameters for auto-const)
       const params = funcDecl.parameterList()
         ? orchestrator.generateParameterList(funcDecl.parameterList()!)
         : "void";
-
-      let body = orchestrator.generateBlock(funcDecl.block());
 
       // Issue #232: Inject local variable declarations for single-function vars
       const localVars = localVarsForFunction.get(funcName);
