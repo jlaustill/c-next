@@ -682,6 +682,45 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #304: Check if we're generating C++ output.
+   * Part of IOrchestrator interface.
+   */
+  isCppMode(): boolean {
+    return this.cppMode;
+  }
+
+  /**
+   * Issue #304: Check if a type is a C++ enum class (scoped enum).
+   * These require explicit casts to integer types in C++.
+   * Part of IOrchestrator interface.
+   */
+  isCppEnumClass(typeName: string): boolean {
+    if (!this.symbolTable) {
+      return false;
+    }
+
+    const symbols = this.symbolTable.getOverloads(typeName);
+    for (const sym of symbols) {
+      if (
+        sym.sourceLanguage === ESourceLanguage.Cpp &&
+        sym.kind === ESymbolKind.Enum
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Issue #304: Get the type of an expression.
+   * Part of IOrchestrator interface.
+   */
+  getExpressionType(ctx: Parser.ExpressionContext): string | null {
+    return this.typeResolver!.getExpressionType(ctx);
+  }
+
+  /**
    * Generate a block (curly braces with statements).
    * Part of IOrchestrator interface (ADR-053 A3).
    */
@@ -1176,6 +1215,71 @@ export default class CodeGenerator implements IOrchestrator {
       const symbols = this.symbolTable.getOverloads(name);
       if (symbols.some((sym) => sym.kind === ESymbolKind.Namespace)) {
         return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Issue #304: Check if a name is a C++ scope-like symbol that requires :: syntax
+   * This includes C++ namespaces, classes, and enum classes (scoped enums).
+   * Returns true if the symbol comes from C++ and needs :: for member access.
+   */
+  private isCppScopeSymbol(name: string): boolean {
+    if (!this.symbolTable) {
+      return false;
+    }
+
+    const symbols = this.symbolTable.getOverloads(name);
+    for (const sym of symbols) {
+      // Only consider C++ symbols
+      if (sym.sourceLanguage !== ESourceLanguage.Cpp) {
+        continue;
+      }
+
+      // C++ namespaces, classes, and enums (enum class) need :: syntax
+      if (
+        sym.kind === ESymbolKind.Namespace ||
+        sym.kind === ESymbolKind.Class ||
+        sym.kind === ESymbolKind.Enum
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Issue #304: Get the appropriate scope separator for C++ vs C/C-Next.
+   * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
+   */
+  private getScopeSeparator(isCppContext: boolean): string {
+    return isCppContext ? "::" : "_";
+  }
+
+  /**
+   * Issue #304: Check if a type name is from a C++ header
+   * Used to determine whether to use {} or {0} for initialization.
+   * C++ types with constructors may fail with {0} but work with {}.
+   */
+  private isCppType(typeName: string): boolean {
+    if (!this.symbolTable) {
+      return false;
+    }
+
+    const symbols = this.symbolTable.getOverloads(typeName);
+    for (const sym of symbols) {
+      if (sym.sourceLanguage === ESourceLanguage.Cpp) {
+        // Any C++ struct, class, or user-defined type
+        if (
+          sym.kind === ESymbolKind.Struct ||
+          sym.kind === ESymbolKind.Class ||
+          sym.kind === ESymbolKind.Type
+        ) {
+          return true;
+        }
       }
     }
 
@@ -3593,14 +3697,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-024: Get the type of an expression for type checking.
-   * Returns the inferred type or null if type cannot be determined.
-   */
-  private getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return this.typeResolver!.getExpressionType(ctx);
-  }
-
-  /**
    * ADR-024: Get the type of a postfix expression.
    */
   private getPostfixExpressionType(
@@ -5393,6 +5489,12 @@ export default class CodeGenerator implements IOrchestrator {
         }
         // Fallback to casting 0 to the enum type
         return `(${typeName})0`;
+      }
+
+      // Issue #304: C++ types with constructors may fail with {0}
+      // Use {} for C++ types, {0} for C types
+      if (this.isCppType(typeName)) {
+        return "{}";
       }
 
       return "{0}";
@@ -7199,6 +7301,8 @@ export default class CodeGenerator implements IOrchestrator {
     const identifiers = ctx.IDENTIFIER();
     const parts = identifiers.map((id) => id.getText());
     const firstId = parts[0];
+    // Issue #304: Check if first identifier is a C++ scope symbol
+    const isCppAccess = this.isCppScopeSymbol(firstId);
     // Check if first identifier is a register
     if (this.symbols!.knownRegisters.has(firstId)) {
       // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
@@ -7209,8 +7313,12 @@ export default class CodeGenerator implements IOrchestrator {
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
-      // Scope member access: global.Counter.value -> Counter_value
-      return parts.join("_");
+      // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
+      return parts.join(this.getScopeSeparator(isCppAccess));
+    }
+    // Issue #304: C++ class/enum access uses ::
+    if (isCppAccess) {
+      return parts.join("::");
     }
     // Non-register, non-scope member access: obj.field
     return parts.join(".");
@@ -7224,6 +7332,8 @@ export default class CodeGenerator implements IOrchestrator {
     const parts = identifiers.map((id) => id.getText());
     const expressions = ctx.expression();
     const firstId = parts[0];
+    // Issue #304: Check if first identifier is a C++ scope symbol
+    const isCppAccess = this.isCppScopeSymbol(firstId);
 
     // Handle single vs multi-expression (bit range) syntax
     let indexExpr: string;
@@ -7248,9 +7358,15 @@ export default class CodeGenerator implements IOrchestrator {
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
-      // Scope array access: global.Counter.data[0] -> Counter_data[0]
-      const scopedName = parts.join("_");
+      // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
+      const scopedName = parts.join(this.getScopeSeparator(isCppAccess));
       return `${scopedName}[${indexExpr}]`;
+    }
+
+    // Issue #304: C++ class/enum access uses ::
+    if (isCppAccess) {
+      const baseName = parts.join("::");
+      return `${baseName}[${indexExpr}]`;
     }
 
     // Non-register, non-scope array access
@@ -7781,6 +7897,8 @@ export default class CodeGenerator implements IOrchestrator {
     let subscriptDepth = 0;
     // ADR-016: Track if we're in a global. access chain (skips scope/enum/register validation)
     let isGlobalAccess = false;
+    // Issue #304: Track if we're accessing C++ symbols that need :: syntax
+    let isCppAccessChain = false;
 
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
@@ -7794,6 +7912,10 @@ export default class CodeGenerator implements IOrchestrator {
           result = memberName;
           currentIdentifier = memberName; // Track for .length lookups
           isGlobalAccess = true; // Mark that we're in a global access chain
+          // Issue #304: Check if this is a C++ scope symbol (namespace, class, enum)
+          if (this.isCppScopeSymbol(memberName)) {
+            isCppAccessChain = true;
+          }
           // Check if this first identifier is a register
           if (this.symbols!.knownRegisters.has(memberName)) {
             isRegisterChain = true;
@@ -8088,8 +8210,8 @@ export default class CodeGenerator implements IOrchestrator {
             }
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
-            // Transform Scope.member to Scope_member
-            result = `${result}_${memberName}`;
+            // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
             currentIdentifier = result; // Track for .length lookups
 
             // Check if this resolved identifier is a struct type for chained access
@@ -8117,8 +8239,8 @@ export default class CodeGenerator implements IOrchestrator {
                 );
               }
             }
-            // Transform Enum.member to Enum_member
-            result = `${result}_${memberName}`;
+            // Issue #304: Use :: for C++ enum classes, _ for C-Next enums
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
           }
           // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
           else if (this.symbols!.knownRegisters.has(result)) {
@@ -8318,8 +8440,8 @@ export default class CodeGenerator implements IOrchestrator {
             }
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
-            // Transform Scope.member to Scope_member
-            result = `${result}_${memberName}`;
+            // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
             currentIdentifier = result; // Track for .length lookups
           } else if (this.symbols!.knownEnums.has(result)) {
             // ADR-016: Inside a scope, accessing global enum requires global. prefix
@@ -8335,8 +8457,8 @@ export default class CodeGenerator implements IOrchestrator {
                 );
               }
             }
-            // Transform Enum.member to Enum_member
-            result = `${result}_${memberName}`;
+            // Issue #304: Use :: for C++ enum classes, _ for C-Next enums
+            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
           } else if (this.symbols!.knownRegisters.has(result)) {
             // ADR-016: Inside a scope, accessing global register requires global. prefix
             // Exception: if the register belongs to the current scope, access is allowed
@@ -8373,6 +8495,14 @@ export default class CodeGenerator implements IOrchestrator {
                 `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
               );
             }
+          }
+          // Issue #304: C++ class/namespace static member access uses :: (e.g., CommandHandler::execute)
+          // Also handles nested namespaces (hw::nested::configure) by checking if result already contains ::
+          else if (
+            isCppAccessChain &&
+            (this.isCppScopeSymbol(result) || result.includes("::"))
+          ) {
+            result = `${result}::${memberName}`;
           } else {
             result = `${result}.${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
@@ -8632,6 +8762,12 @@ export default class CodeGenerator implements IOrchestrator {
         this,
       );
       this.applyEffects(result.effects);
+
+      // Issue #304: Transform NULL → nullptr in C++ mode
+      if (result.code === "NULL" && this.cppMode) {
+        return "nullptr";
+      }
+
       return result.code;
     }
     if (ctx.expression()) {
