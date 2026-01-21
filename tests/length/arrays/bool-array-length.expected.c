@@ -39,7 +39,7 @@ uint32_t checkElementLength(const bool arr[16]) {
     return 8;
 }
 
-typedef struct {
+typedef struct TestStruct {
     bool arr[16];
 } TestStruct;
 

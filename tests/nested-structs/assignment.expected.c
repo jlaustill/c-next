@@ -7,12 +7,12 @@
 
 // ADR-032: Nested Struct Assignment Test
 // Tests: assignment to nested struct members
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Line {
     Point start;
     Point end;
 } Line;

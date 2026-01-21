@@ -7,7 +7,7 @@
 
 // ADR-014: Struct with array member
 // Tests: array fields inside structs
-typedef struct {
+typedef struct Buffer {
     uint8_t data[16];
     uint32_t length;
 } Buffer;

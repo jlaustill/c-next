@@ -830,8 +830,9 @@ class Pipeline {
         }
       }
 
-      // Step 3: Resolve and collect header files
+      // Step 3: Resolve and collect header files (C/C++ headers and C-Next includes)
       const headerFiles: IDiscoveredFile[] = [];
+      const cnextIncludes: IDiscoveredFile[] = [];
       for (const includePath of includes) {
         const resolved = IncludeDiscovery.resolveInclude(
           includePath,
@@ -839,22 +840,38 @@ class Pipeline {
         );
         if (resolved) {
           const file = FileDiscovery.discoverFile(resolved);
-          if (
-            file &&
-            (file.type === EFileType.CHeader ||
-              file.type === EFileType.CppHeader)
-          ) {
-            headerFiles.push(file);
+          if (file) {
+            if (
+              file.type === EFileType.CHeader ||
+              file.type === EFileType.CppHeader
+            ) {
+              headerFiles.push(file);
+            } else if (file.type === EFileType.CNext) {
+              // Issue #294: Also collect symbols from C-Next include files
+              cnextIncludes.push(file);
+            }
           }
         }
       }
 
-      // Step 4: Parse headers to populate symbol table
+      // Step 4a: Parse C/C++ headers to populate symbol table
       for (const file of headerFiles) {
         try {
           await this.collectHeaderSymbols(file);
         } catch (err) {
           this.warnings.push(`Failed to process header ${file.path}: ${err}`);
+        }
+      }
+
+      // Step 4b: Issue #294 - Parse C-Next includes to populate symbol table
+      // This enables cross-file scope references (e.g., decoder.getSpn() -> decoder_getSpn())
+      for (const file of cnextIncludes) {
+        try {
+          this.collectCNextSymbols(file);
+        } catch (err) {
+          this.warnings.push(
+            `Failed to process C-Next include ${file.path}: ${err}`,
+          );
         }
       }
 

@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-029: Test callback assignment
-typedef struct {
+typedef struct Message {
     uint32_t id;
 } Message;
 
@@ -19,7 +19,7 @@ typedef void (*onReceive_fp)(const Message*);
 void myHandler(const Message* msg) {
 }
 
-typedef struct {
+typedef struct Controller {
     onReceive_fp _handler;
 } Controller;
 

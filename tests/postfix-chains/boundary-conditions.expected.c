@@ -8,7 +8,7 @@
 
 // Postfix Chain Test: Boundary Conditions
 // Tests: Edge cases at type boundaries, max indices, etc.
-typedef struct {
+typedef struct Data {
     uint8_t byte;
     uint16_t word;
     uint32_t dword;

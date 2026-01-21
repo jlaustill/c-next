@@ -14,12 +14,12 @@
 // Expected: config->tempInputs[index].assignedSpn
 //
 // This test ensures the bug does not regress in future changes.
-typedef struct {
+typedef struct InputData {
     uint16_t assignedSpn;
     float coeffA;
 } InputData;
 
-typedef struct {
+typedef struct Configuration {
     InputData tempInputs[8];
 } Configuration;
 

@@ -7,12 +7,12 @@
 
 // ADR-014: Basic struct declaration
 // Tests: struct definition and declaration
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Color {
     uint8_t r;
     uint8_t g;
     uint8_t b;

@@ -13,9 +13,9 @@ const { mapType } = typeUtils;
 /**
  * Generate a C typedef struct declaration for the given struct name.
  *
- * Output format:
+ * Output format (Issue #296: uses named struct for forward declaration compatibility):
  * ```c
- * typedef struct {
+ * typedef struct StructName {
  *     uint32_t field1;
  *     uint8_t buffer[256];
  * } StructName;
@@ -35,7 +35,8 @@ function generateStructHeader(name: string, input: IHeaderTypeInput): string {
 
   const dimensions = input.structFieldDimensions.get(name);
   const lines: string[] = [];
-  lines.push("typedef struct {");
+  // Issue #296: Use named struct for forward declaration compatibility
+  lines.push(`typedef struct ${name} {`);
 
   // Iterate fields in insertion order (Map preserves order)
   for (const [fieldName, fieldType] of fields) {

@@ -7,24 +7,24 @@
 
 // Postfix Chain Test: Deep nesting (3+ levels)
 // Tests: Complex chains with multiple member/array/bit accesses
-typedef struct {
+typedef struct Color {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 } Color;
 
-typedef struct {
+typedef struct Material {
     Color ambient;
     Color diffuse;
     uint8_t opacity;
 } Material;
 
-typedef struct {
+typedef struct Object {
     Material material;
     int32_t id;
 } Object;
 
-typedef struct {
+typedef struct Scene {
     Object objects[4];
     uint32_t count;
 } Scene;

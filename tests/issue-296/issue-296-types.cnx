@@ -1,0 +1,7 @@
+// Issue #296: Type definitions for cross-file struct usage
+// This file defines struct types used by other modules
+
+struct AppData {
+    f32 humidity;
+    f32 temperature;
+}

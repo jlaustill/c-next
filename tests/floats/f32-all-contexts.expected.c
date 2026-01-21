@@ -16,7 +16,7 @@ float global_f = 3.14;
 float global_uninit = 0.0f;
 
 // Struct member
-typedef struct {
+typedef struct Point {
     float x;
     float y;
 } Point;

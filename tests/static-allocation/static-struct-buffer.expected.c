@@ -8,7 +8,7 @@
 // test-execution
 // ADR-003: Static struct buffer allocation
 // Tests: array of structs with member access
-typedef struct {
+typedef struct SensorReading {
     uint32_t timestamp;
     int16_t value;
     uint8_t sensorId;

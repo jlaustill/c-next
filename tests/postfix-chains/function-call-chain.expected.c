@@ -9,13 +9,13 @@
 // Postfix Chain Test: Function Calls in Chains
 // Tests: Function calls with complex chained parameters
 // HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
-typedef struct {
+typedef struct Vec3 {
     float x;
     float y;
     float z;
 } Vec3;
 
-typedef struct {
+typedef struct Transform {
     Vec3 position;
     Vec3 scale;
 } Transform;

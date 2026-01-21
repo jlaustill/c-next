@@ -15,7 +15,7 @@ bool globalTrue = true;
 bool globalFalse = false;
 
 // 2. Struct with bool members
-typedef struct {
+typedef struct Flags {
     bool enabled;
     bool active;
 } Flags;

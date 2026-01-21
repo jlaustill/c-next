@@ -1160,6 +1160,29 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #294: Check if an identifier is a known scope
+   * Checks both the local SymbolCollector (current file) and the global SymbolTable
+   * (all files including includes). This ensures cross-file scope references are
+   * properly validated.
+   */
+  private isKnownScope(name: string): boolean {
+    // Check local file's symbol collector first
+    if (this.symbols?.knownScopes.has(name)) {
+      return true;
+    }
+
+    // Check global symbol table for scopes from included files
+    if (this.symbolTable) {
+      const symbols = this.symbolTable.getOverloads(name);
+      if (symbols.some((sym) => sym.kind === ESymbolKind.Namespace)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Generate C code from a C-Next program
    * @param tree The parsed C-Next program
    * @param symbolTable Optional symbol table for cross-language interop
@@ -5867,7 +5890,7 @@ export default class CodeGenerator implements IOrchestrator {
         const fieldName = identifiers[3].getText();
 
         // Check if first identifier is a scope
-        if (this.symbols!.knownScopes.has(scopeName)) {
+        if (this.isKnownScope(scopeName)) {
           // ADR-016: Validate visibility before allowing cross-scope access
           this.validateCrossScopeVisibility(scopeName, regName);
           const fullRegName = `${scopeName}_${regName}`;
@@ -6004,7 +6027,7 @@ export default class CodeGenerator implements IOrchestrator {
       const firstId = identifiers[0].getText();
       // Check if this is a scoped register: Scope.Register.Member[bit]
       const scopedRegName =
-        identifiers.length >= 3 && this.symbols!.knownScopes.has(firstId)
+        identifiers.length >= 3 && this.isKnownScope(firstId)
           ? `${firstId}_${identifiers[1].getText()}`
           : null;
       const isScopedRegister =
@@ -6029,7 +6052,7 @@ export default class CodeGenerator implements IOrchestrator {
           let exprIndex = 0;
 
           // Check if first identifier is a scope for special handling
-          const isCrossScope = this.symbols!.knownScopes.has(firstId);
+          const isCrossScope = this.isKnownScope(firstId);
 
           // Bug #8: Track struct types to detect bit access through chains
           // e.g., items[0].byte[7] where byte is u8 - final [7] is bit access
@@ -6245,10 +6268,7 @@ export default class CodeGenerator implements IOrchestrator {
         // Pattern 2: Scope.GPIO7.DR_SET[bit] - 3 identifiers, first is scope
         let fullName: string;
         const leadingId = identifiers[0].getText();
-        if (
-          this.symbols!.knownScopes.has(leadingId) &&
-          identifiers.length >= 3
-        ) {
+        if (this.isKnownScope(leadingId) && identifiers.length >= 3) {
           // Scoped register: Scope.Register.Member
           const scopeName = leadingId;
           const regName = identifiers[1].getText();
@@ -6309,10 +6329,7 @@ export default class CodeGenerator implements IOrchestrator {
               // Issue #187: Generate width-appropriate memory access
               // Determine register name for base address lookup
               let regName: string;
-              if (
-                this.symbols!.knownScopes.has(leadingId) &&
-                identifiers.length >= 3
-              ) {
+              if (this.isKnownScope(leadingId) && identifiers.length >= 3) {
                 regName = `${leadingId}_${identifiers[1].getText()}`;
               } else {
                 regName = leadingId;
@@ -6393,7 +6410,7 @@ export default class CodeGenerator implements IOrchestrator {
           // Read-write: need read-modify-write
           return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
         }
-      } else if (this.symbols!.knownScopes.has(firstId)) {
+      } else if (this.isKnownScope(firstId)) {
         // ADR-016: Validate visibility before allowing cross-scope access
         const memberName = parts[1];
         this.validateCrossScopeVisibility(firstId, memberName);
@@ -7188,7 +7205,7 @@ export default class CodeGenerator implements IOrchestrator {
       return parts.join("_");
     }
     // Check if first identifier is a scope
-    if (this.symbols!.knownScopes.has(firstId)) {
+    if (this.isKnownScope(firstId)) {
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
@@ -7227,7 +7244,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if first identifier is a scope
-    if (this.symbols!.knownScopes.has(firstId)) {
+    if (this.isKnownScope(firstId)) {
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
@@ -8053,7 +8070,7 @@ export default class CodeGenerator implements IOrchestrator {
             }
           }
           // Check if this is a scope member access: Scope.member (ADR-016)
-          else if (this.symbols!.knownScopes.has(result)) {
+          else if (this.isKnownScope(result)) {
             // ADR-016: Skip validation if we're already in a global. access chain
             if (!isGlobalAccess) {
               // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
@@ -8283,7 +8300,7 @@ export default class CodeGenerator implements IOrchestrator {
                 }
               }
             }
-          } else if (this.symbols!.knownScopes.has(result)) {
+          } else if (this.isKnownScope(result)) {
             // ADR-016: Skip validation if we're already in a global. access chain
             if (!isGlobalAccess) {
               // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
@@ -8718,7 +8735,7 @@ export default class CodeGenerator implements IOrchestrator {
         // Check if first identifier is a global variable
         // If not a scope or enum, it's likely a global struct variable
         if (
-          !this.symbols!.knownScopes.has(firstName) &&
+          !this.isKnownScope(firstName) &&
           !this.symbols!.knownEnums.has(firstName)
         ) {
           return `sizeof(${firstName}.${memberName})`;
@@ -8948,7 +8965,7 @@ export default class CodeGenerator implements IOrchestrator {
       const isDirectRegister =
         parts.length > 1 && this.symbols!.knownRegisters.has(firstPart);
       const scopedRegisterName =
-        parts.length > 2 && this.symbols!.knownScopes.has(firstPart)
+        parts.length > 2 && this.isKnownScope(firstPart)
           ? `${parts[0]}_${parts[1]}`
           : null;
       const isScopedRegister =
@@ -9025,7 +9042,7 @@ export default class CodeGenerator implements IOrchestrator {
           let exprIndex = 0;
 
           // Check if first identifier is a scope for special handling
-          const isCrossScope = this.symbols!.knownScopes.has(firstPart);
+          const isCrossScope = this.isKnownScope(firstPart);
 
           // ADR-016: Inside a scope, accessing another scope requires global. prefix
           if (isCrossScope && this.context.currentScope) {
@@ -9186,7 +9203,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
-    if (this.symbols!.knownScopes.has(firstPart)) {
+    if (this.isKnownScope(firstPart)) {
       // ADR-016: Inside a scope, accessing another scope requires global. prefix
       if (this.context.currentScope) {
         // Self-referential access should use 'this.'

@@ -42,7 +42,8 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   const callbackFields: Array<{ fieldName: string; callbackType: string }> = [];
 
   const lines: string[] = [];
-  lines.push(`typedef struct {`);
+  // Issue #296: Use named struct for forward declaration compatibility
+  lines.push(`typedef struct ${name} {`);
 
   for (const member of node.structMember()) {
     const fieldName = member.IDENTIFIER().getText();

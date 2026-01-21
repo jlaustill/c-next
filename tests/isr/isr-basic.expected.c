@@ -19,7 +19,7 @@ void registerHandler(ISR handler) {
 }
 
 // Use ISR as struct field
-typedef struct {
+typedef struct InterruptController {
     ISR timerCallback;
     ISR uartCallback;
 } InterruptController;

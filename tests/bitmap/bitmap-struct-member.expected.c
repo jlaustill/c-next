@@ -28,14 +28,14 @@ typedef uint8_t Flags;
  */
 typedef uint16_t Status;
 
-typedef struct {
+typedef struct Device {
     uint32_t id;
     Flags flags;
     Status status;
     uint32_t value;
 } Device;
 
-typedef struct {
+typedef struct Controller {
     Flags controlFlags;
     uint32_t counter;
 } Controller;

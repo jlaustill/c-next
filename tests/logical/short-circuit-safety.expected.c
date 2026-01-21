@@ -48,7 +48,7 @@ void testOrSafetyPattern(void) {
     bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) == 0);
 }
 
-typedef struct {
+typedef struct TStatusRegister {
     uint32_t enabled;
     uint32_t value;
 } TStatusRegister;

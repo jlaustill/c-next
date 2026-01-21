@@ -8,19 +8,19 @@
 // test-coverage: 23-sizeof-struct-member
 // test-execution
 // Tests: sizeof on struct members
-typedef struct {
+typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
 
-typedef struct {
+typedef struct Sensor {
     uint8_t id;
     uint16_t value;
     uint32_t timestamp;
     float temperature;
 } Sensor;
 
-typedef struct {
+typedef struct DataBuffer {
     uint8_t data[64];
     uint32_t length;
 } DataBuffer;

@@ -8,7 +8,7 @@
 
 // test-execution
 // Issue #139: Test struct member string assignment
-typedef struct {
+typedef struct Config {
     char name[33];
     uint32_t value;
 } Config;

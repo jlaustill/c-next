@@ -8,7 +8,7 @@
 // test-execution
 // Edge case tests for .length property on struct members
 // Tests const parameters, all primitive types, and nested expressions
-typedef struct {
+typedef struct AllTypes {
     uint8_t field_u8;
     uint16_t field_u16;
     uint32_t field_u32;
