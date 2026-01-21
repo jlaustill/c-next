@@ -6,8 +6,8 @@
 #include <stdint.h>
 
 // test-execution
-// Reproduces issue #68: Real-world serialization pattern
-// Bug: config.magic.length evaluates to 0 instead of 32
+// Regression test for issue #68: Real-world serialization pattern
+// Verifies config.magic.length correctly returns 32 (was returning 0)
 typedef struct Config {
     uint32_t magic;
     uint8_t version;

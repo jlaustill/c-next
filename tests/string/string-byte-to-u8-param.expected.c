@@ -8,11 +8,9 @@
 
 // test-execution
 /* test-no-warnings */
-// Tests: Issue #246 - string<N> byte indexing to u8 function parameters
-// When passing buf[0] directly to a function expecting u8, the generated
-// C has a type mismatch: char* (from string) vs uint8_t* (function param)
-// Note: This fix also applies to other integer types (u16, u32, i8, etc.)
-// u8 is the most common use case for byte-by-byte string processing
+// Regression test for Issue #246 - string<N> byte indexing to u8 parameters
+// Verifies passing buf[0] to u8 parameter generates correct types
+// (was generating char* instead of uint8_t*)
 /* Scope: ByteProcessor */
 
 static uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte) {

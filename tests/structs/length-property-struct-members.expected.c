@@ -6,8 +6,8 @@
 #include <stdint.h>
 
 // test-execution
-// Test .length property on struct member access
-// Bug: config.magic.length evaluates to 0 instead of 32
+// Regression test: .length property on struct member access
+// Verifies cfg.magic.length correctly returns 32 (was returning 0)
 typedef struct Config {
     uint32_t magic;
     uint16_t version;
