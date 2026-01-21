@@ -42,6 +42,25 @@ uint8_t ConstTest_getCounter(void) {
     return ConstTest_counter;
 }
 
+uint8_t ConstTest_getHexFlags(void) {
+    return 0xAB;
+}
+
+uint8_t ConstTest_getBinMask(void) {
+    return 0b11001010;
+}
+
+uint32_t ConstTest_getHexAddr(void) {
+    return 0x40001000;
+}
+
+uint16_t ConstTest_multipleRefs(void) {
+    uint16_t a = 255;
+    uint16_t b = 256;
+    uint16_t c = 510;
+    return a + b + c;
+}
+
 int main(void) {
     uint8_t maxVal = ConstTest_getMaxValue();
     if (maxVal != 255) return 1;
@@ -59,5 +78,13 @@ int main(void) {
     if (ConstTest_PUBLIC_ID != 42) return 8;
     uint8_t cnt = ConstTest_getCounter();
     if (cnt != 0) return 9;
+    uint8_t hexFlags = ConstTest_getHexFlags();
+    if (hexFlags != 171) return 10;
+    uint8_t binMask = ConstTest_getBinMask();
+    if (binMask != 202) return 11;
+    uint32_t hexAddr = ConstTest_getHexAddr();
+    if (hexAddr != 1073745920) return 12;
+    uint16_t multiResult = ConstTest_multipleRefs();
+    if (multiResult != 1021) return 13;
     return 0;
 }
