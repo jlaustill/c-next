@@ -37,6 +37,9 @@ interface IProjectConfig {
 
   /** Issue #183: Disable symbol caching (default: false = cache enabled) */
   noCache?: boolean;
+
+  /** Parse only mode - validate syntax without generating output */
+  parseOnly?: boolean;
 }
 
 export default IProjectConfig;

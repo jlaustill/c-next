@@ -52,6 +52,7 @@ class Project {
       generateHeaders: this.config.generateHeaders,
       cppRequired: this.config.cppRequired,
       noCache: this.config.noCache,
+      parseOnly: this.config.parseOnly,
     });
   }
 

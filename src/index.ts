@@ -196,6 +196,7 @@ async function runUnifiedMode(
   verbose: boolean,
   cppRequired: boolean,
   noCache: boolean,
+  parseOnly: boolean,
   headerOutDir?: string,
 ): Promise<void> {
   // Issue #337: Identify which inputs are directories (for structure preservation)
@@ -283,6 +284,7 @@ async function runUnifiedMode(
     defines,
     cppRequired,
     noCache,
+    parseOnly,
   });
 
   // Step 5: Compile
@@ -494,6 +496,7 @@ async function main(): Promise<void> {
   let preprocess = true;
   let verbose = false;
   let noCache = false;
+  let parseOnly = false;
   let headerOutDir: string | undefined;
   let cleanMode = false;
 
@@ -514,6 +517,8 @@ async function main(): Promise<void> {
       preprocess = false;
     } else if (arg === "--no-cache") {
       noCache = true;
+    } else if (arg === "--parse") {
+      parseOnly = true;
     } else if (arg === "--header-out" && i + 1 < args.length) {
       headerOutDir = args[++i];
     } else if (arg === "--clean") {
@@ -526,7 +531,26 @@ async function main(): Promise<void> {
       } else {
         defines[define] = true;
       }
-    } else if (!arg.startsWith("-")) {
+    } else if (arg.startsWith("-I")) {
+      // Common mistake: -I is GCC syntax, we use --include
+      // Catches both "-I path" and "-Ipath" (no space)
+      console.error(`Error: Unknown flag '${arg}'`);
+      console.error("  Did you mean: --include <dir>");
+      console.error("");
+      console.error("Example:");
+      console.error("  cnext src --include path/to/headers");
+      process.exit(1);
+    } else if (arg.startsWith("--")) {
+      // Catch unknown long flags (e.g., --foo)
+      console.error(`Error: Unknown flag '${arg}'`);
+      showHelp();
+      process.exit(1);
+    } else if (arg.startsWith("-")) {
+      // Catch other unknown short flags (e.g., -x)
+      console.error(`Error: Unknown flag '${arg}'`);
+      showHelp();
+      process.exit(1);
+    } else {
       inputFiles.push(arg);
     }
   }
@@ -563,6 +587,7 @@ async function main(): Promise<void> {
     verbose,
     cppRequired,
     noCache,
+    parseOnly,
     headerOutDir,
   );
 }
