@@ -20,6 +20,7 @@ This document describes the release process for C-Next.
 ### 3. Version Bump
 
 - [ ] Bump version in `package.json`
+- [ ] Run `npm install` to update `package-lock.json`
 - [ ] Bump version in `vscode-extension/package.json` (keep in sync)
 
 ### 4. Testing

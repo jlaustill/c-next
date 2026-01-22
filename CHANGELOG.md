@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.23] - 2026-01-22
+
+### Fixed
+
+- Add `&` operator for C-Next structs passed to external pointer params (Issue #332)
+- Deduplicate files when scanning overlapping include paths (Issue #331)
+
 ## [0.1.22] - 2026-01-22
 
 ### Fixed
@@ -255,7 +262,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.21...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.23...HEAD
+[0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
+[0.1.22]: https://github.com/jlaustill/c-next/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/jlaustill/c-next/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/jlaustill/c-next/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/jlaustill/c-next/compare/v0.1.18...v0.1.19
