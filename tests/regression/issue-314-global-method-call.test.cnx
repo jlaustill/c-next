@@ -1,0 +1,71 @@
+// Issue #314: global.X.method() generates wrong C++ syntax for undeclared classes
+// Tests: C++ scope resolution for both declared and undeclared external classes
+// Bug: global.UndeclaredClass.method() generates "UndeclaredClass.method()" (dot)
+//      but should generate "UndeclaredClass::method()" (scope resolution)
+
+#include "issue-314-global-method-call.hpp"
+
+// ============================================================================
+// SECTION 1: DECLARED CLASSES (regression protection - already works)
+// ============================================================================
+void testDeclaredClasses() {
+    // These should generate :: syntax (already works)
+    global.DeclaredClass.init();
+    i32 val <- global.DeclaredClass.getValue();
+
+    // Declared namespace (already works)
+    global.DeclaredNS.setup();
+    i32 readVal <- global.DeclaredNS.read();
+}
+
+// ============================================================================
+// SECTION 2: UNDECLARED EXTERNAL CLASSES (Issue #314 - the bug)
+// ============================================================================
+// These classes are NOT declared in the header but exist externally
+// (like Arduino's Serial, Wire, SPI classes)
+// In C++ mode, global.X.method() should ALWAYS use :: syntax
+
+void testUndeclaredExternalClasses() {
+    // Arduino-style Serial class (not declared in our header)
+    // Bug: generates "Serial.begin(9600)" instead of "Serial::begin(9600)"
+    global.Serial.begin(9600);
+    global.Serial.println("Hello");
+
+    // Arduino-style Wire class (not declared in our header)
+    global.Wire.begin();
+    global.Wire.beginTransmission(0x50);
+
+    // Arduino-style SPI class (not declared in our header)
+    global.SPI.begin();
+    global.SPI.transfer(0xFF);
+
+    // Generic external class pattern
+    global.ExternalLib.initialize();
+    i32 result <- global.ExternalLib.compute(42);
+}
+
+// ============================================================================
+// SECTION 3: MIXED USAGE (declared and undeclared in same function)
+// ============================================================================
+void testMixedUsage() {
+    // Declared class
+    global.DeclaredClass.init();
+
+    // Undeclared external class
+    global.Serial.begin(115200);
+
+    // Declared namespace
+    global.DeclaredNS.setup();
+
+    // Another undeclared class
+    global.ExternalSensor.calibrate();
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+void main() {
+    testDeclaredClasses();
+    testUndeclaredExternalClasses();
+    testMixedUsage();
+}
