@@ -18,6 +18,12 @@ interface ICodeGeneratorOptions {
    * Uses temporary variables instead of compound literals for rvalue pointer params.
    */
   cppMode?: boolean;
+  /**
+   * Issue #339: Relative path from source root to source file for self-include.
+   * When set, self-includes will use this relative path instead of just the basename.
+   * Example: "Display/Utils.cnx" -> #include "Display/Utils.h"
+   */
+  sourceRelativePath?: string;
 }
 
 export default ICodeGeneratorOptions;
