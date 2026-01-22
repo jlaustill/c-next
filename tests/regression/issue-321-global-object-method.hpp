@@ -2,15 +2,16 @@
 #include <cstdint>
 #include <cstddef>
 
+// Include AVR io.h shim to define UBRR0H (enables extern HardwareSerial Serial)
+#include <avr/io.h>
+
 /**
  * Issue #321: Test header for differentiating object instances vs classes
  *
- * This header mirrors the REAL Arduino pattern from ArduinoCore-avr/HardwareSerial.h:
- *   - HardwareSerial is a CLASS (non-static methods)
+ * This test uses the REAL Arduino headers from ArduinoCore-avr to verify
+ * that C-Next correctly handles the Arduino pattern:
+ *   - HardwareSerial is a CLASS (non-static instance methods)
  *   - Serial is an OBJECT INSTANCE: "extern HardwareSerial Serial;"
- *
- * The real Arduino headers are available in tests/fixtures/arduino-avr/ for reference.
- * We use a simplified version here to ensure reliable C++ parsing.
  *
  * Key distinction being tested:
  *   1. A CLASS with static methods (ConfigStorage) -> uses ::
@@ -24,22 +25,12 @@ enum Issue321TestMode : uint8_t {
 };
 
 // ============================================================================
-// ARDUINO PATTERN: Class + extern object instance
-// Mirrors real Arduino: tests/fixtures/arduino-avr/HardwareSerial.h:93-143
+// REAL ARDUINO HEADERS
+// This includes the actual ArduinoCore-avr HardwareSerial.h which declares:
+//   class HardwareSerial : public Stream { ... };
+//   extern HardwareSerial Serial;  // Object INSTANCE
 // ============================================================================
-class HardwareSerial {
-public:
-    void begin(unsigned long baud);
-    void end();
-    size_t print(const char* str);
-    size_t println(const char* str);
-    int available();
-    int read();
-};
-
-// THE KEY PATTERN: Serial is an OBJECT INSTANCE, not a class
-// Real Arduino (line 143): extern HardwareSerial Serial;
-extern HardwareSerial Serial;
+#include "../fixtures/arduino-avr/HardwareSerial.h"
 
 // ============================================================================
 // A CLASS with static methods - should use :: syntax

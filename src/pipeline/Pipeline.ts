@@ -62,6 +62,8 @@ class Pipeline {
   private cppDetected: boolean;
   /** Issue #220: Store SymbolCollector per file for header generation */
   private symbolCollectors: Map<string, SymbolCollector> = new Map();
+  /** Issue #321: Track processed headers to avoid cycles during recursive include resolution */
+  private processedHeaders: Set<string> = new Set();
   /** Issue #280: Store pass-by-value params per file for header generation */
   private passByValueParamsCollectors: Map<
     string,
@@ -320,8 +322,17 @@ class Pipeline {
 
   /**
    * Stage 2: Collect symbols from C/C++ headers
+   * Issue #321: Now recursively processes #include directives to handle
+   * nested headers (e.g., Arduino's HardwareSerial.h including Stream.h)
    */
   private async collectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
+    // Issue #321: Check if already processed to avoid cycles
+    const absolutePath = resolve(file.path);
+    if (this.processedHeaders.has(absolutePath)) {
+      return;
+    }
+    this.processedHeaders.add(absolutePath);
+
     // Check cache first
     if (this.cacheManager?.isValid(file.path)) {
       const cached = this.cacheManager.getSymbols(file.path);
@@ -348,35 +359,73 @@ class Pipeline {
       }
     }
 
-    let content: string;
+    // Issue #321: Read original content FIRST to extract includes before preprocessing
+    // The preprocessor expands/removes #include directives, so we need the original
+    const originalContent = readFileSync(file.path, "utf-8");
 
-    // Preprocess if enabled
-    if (this.config.preprocess && this.preprocessor.isAvailable()) {
-      const preprocessResult = await this.preprocessor.preprocess(file.path, {
-        includePaths: this.config.includeDirs,
-        defines: this.config.defines,
-        keepLineDirectives: false,
-      });
+    // Issue #321: Recursively process #include directives in headers
+    // This ensures symbols from nested headers (like Arduino's extern HardwareSerial Serial)
+    // are properly collected even when included transitively
+    const includes = IncludeDiscovery.extractIncludes(originalContent);
+    const headerDir = dirname(absolutePath);
+    const searchPaths = [headerDir, ...this.config.includeDirs];
 
-      if (!preprocessResult.success) {
-        this.warnings.push(
-          `Preprocessor warning for ${file.path}: ${preprocessResult.error}`,
-        );
-        content = readFileSync(file.path, "utf-8");
-      } else {
-        content = preprocessResult.content;
-      }
-    } else {
-      content = readFileSync(file.path, "utf-8");
+    if (this.config.debugMode) {
+      console.log(`[DEBUG] Processing includes in ${file.path}:`);
+      console.log(`[DEBUG]   Search paths: ${searchPaths.join(", ")}`);
     }
+
+    for (const includePath of includes) {
+      const resolved = IncludeDiscovery.resolveInclude(
+        includePath,
+        searchPaths,
+      );
+      if (this.config.debugMode) {
+        console.log(
+          `[DEBUG]   #include "${includePath}" → ${resolved || "NOT FOUND"}`,
+        );
+      }
+      if (resolved) {
+        const includedFile = FileDiscovery.discoverFile(resolved);
+        if (
+          includedFile &&
+          (includedFile.type === EFileType.CHeader ||
+            includedFile.type === EFileType.CppHeader)
+        ) {
+          if (this.config.debugMode) {
+            console.log(
+              `[DEBUG]     → Recursively processing ${includedFile.path}`,
+            );
+          }
+          await this.collectHeaderSymbols(includedFile);
+        }
+      }
+    }
+
+    // Issue #321: Parse with ORIGINAL content, not preprocessed content
+    // The preprocessor expands includes and can lose class definitions.
+    // We need the original content to properly detect C++ syntax and parse classes.
+    // Note: Preprocessing was previously done here but is no longer needed for symbol collection.
 
     // Parse based on file type
     if (file.type === EFileType.CHeader) {
-      this.parseCHeader(content, file.path);
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Parsing C header: ${file.path}`);
+      }
+      this.parseCHeader(originalContent, file.path);
     } else if (file.type === EFileType.CppHeader) {
       // Issue #211: .hpp files are always C++
       this.cppDetected = true;
-      this.parseCppHeader(content, file.path);
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
+      }
+      this.parseCppHeader(originalContent, file.path);
+    }
+
+    // Debug: Show symbols found
+    if (this.config.debugMode) {
+      const symbols = this.symbolTable.getSymbolsByFile(file.path);
+      console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
     // After parsing, cache the results

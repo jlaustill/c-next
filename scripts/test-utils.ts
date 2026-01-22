@@ -192,6 +192,8 @@ class TestUtils {
         "--suppress=unusedFunction",
         "--suppress=missingIncludeSystem",
         "--suppress=unusedVariable",
+        // Issue #321: Suppress Arduino header warnings (external code we can't modify)
+        "--suppress=uninitMemberVar:*fixtures/*",
         "--quiet",
       ];
 
