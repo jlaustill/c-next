@@ -1,0 +1,117 @@
+// tests/functions/named-typedef-struct-array.test.cnx
+// test-execution
+// Tests: Issue #347 - named typedef struct array member passing
+// When passing msg.buf (u8[8]) from a NAMED typedef struct to a function
+// expecting const u8 data[8], the transpiler should NOT add '&' prefix.
+// Arrays naturally decay to pointers in C/C++.
+//
+// This tests the pattern: typedef struct CAN_message_t { ... } CAN_message_t;
+// (as opposed to anonymous: typedef struct { ... } CAN_message_t;)
+
+#include "named-typedef-struct-array.h"
+
+// Function that takes an array parameter
+u32 processNamedStructBuffer(const u8 data[8], u8 len) {
+    u32 sum <- 0;
+    u8 i <- 0;
+    while (i < len) {
+        sum <- sum + data[i];
+        i <- i + 1;
+    }
+    return sum;
+}
+
+// Test with CAN_message_t (named typedef struct)
+u32 testCANMessage() {
+    CAN_message_t msg;
+
+    // Initialize the array member
+    msg.buf[0] <- 10;
+    msg.buf[1] <- 20;
+    msg.buf[2] <- 30;
+    msg.buf[3] <- 40;
+    msg.buf[4] <- 0;
+    msg.buf[5] <- 0;
+    msg.buf[6] <- 0;
+    msg.buf[7] <- 0;
+    msg.len <- 4;
+
+    // This should generate: processNamedStructBuffer(msg->buf, msg->len)
+    // NOT: &msg->buf (which creates pointer to array, not pointer to element)
+    u32 result <- processNamedStructBuffer(msg.buf, msg.len);
+
+    // Expected: 10 + 20 + 30 + 40 = 100
+    return result;
+}
+
+// Test with CANFrame_t (another named typedef struct)
+u32 testCANFrame() {
+    CANFrame_t frame;
+
+    frame.data[0] <- 1;
+    frame.data[1] <- 2;
+    frame.data[2] <- 3;
+    frame.data[3] <- 4;
+    frame.data[4] <- 5;
+    frame.data[5] <- 6;
+    frame.data[6] <- 7;
+    frame.data[7] <- 8;
+    frame.dlc <- 8;
+
+    u32 result <- processNamedStructBuffer(frame.data, frame.dlc);
+
+    // Expected: 1+2+3+4+5+6+7+8 = 36
+    return result;
+}
+
+// Test passing array member inside a scope (like the original bug report)
+scope Handler {
+    public void process(const u8 data[8], u8 len) {
+        // Would do something with data
+    }
+
+    public u32 handleMessage(const CAN_message_t msg) {
+        // This is the exact pattern from issue #347
+        this.process(msg.buf, msg.len);
+
+        // Return sum for verification
+        u32 sum <- 0;
+        u8 i <- 0;
+        while (i < msg.len) {
+            sum <- sum + msg.buf[i];
+            i <- i + 1;
+        }
+        return sum;
+    }
+}
+
+u32 testScopeHandler() {
+    CAN_message_t msg;
+
+    msg.buf[0] <- 5;
+    msg.buf[1] <- 10;
+    msg.buf[2] <- 15;
+    msg.buf[3] <- 20;
+    msg.len <- 4;
+
+    u32 result <- Handler.handleMessage(msg);
+
+    // Expected: 5 + 10 + 15 + 20 = 50
+    return result;
+}
+
+u32 main() {
+    // Test 1: CAN_message_t (named typedef struct)
+    u32 result1 <- testCANMessage();
+    if (result1 != 100) return 1;
+
+    // Test 2: CANFrame_t (another named typedef struct)
+    u32 result2 <- testCANFrame();
+    if (result2 != 36) return 2;
+
+    // Test 3: Array member passing inside scope (original bug scenario)
+    u32 result3 <- testScopeHandler();
+    if (result3 != 50) return 3;
+
+    return 0;
+}
