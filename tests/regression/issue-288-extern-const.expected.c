@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Regression test for Issue #288 - extern declarations must include const qualifier
 // Verifies header generates "extern const uint8_t X;" (was missing const qualifier)
 // The missing const caused C++ compilation errors due to conflicting declarations

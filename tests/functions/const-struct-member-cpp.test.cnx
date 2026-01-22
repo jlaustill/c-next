@@ -1,5 +1,5 @@
 // tests/functions/const-struct-member-cpp.test.cnx
-/* test-execution */
+// test-execution
 // Tests: Issue #251 - const struct members passed to non-const parameters
 // In C++ mode, passing &const_struct->member to non-const T* is invalid
 // Must copy to temp variable first

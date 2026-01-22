@@ -1,5 +1,5 @@
 // tests/functions/array-struct-member-cpp.test.cnx
-/* test-execution */
+// test-execution
 // Tests: Issue #256 - array-of-structs member passing in C++ mode
 // When passing arr[i].member to u8 parameter, must generate temp variable
 // because bool* and enum* cannot convert to uint8_t* in C++

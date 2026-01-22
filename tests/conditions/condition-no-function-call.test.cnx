@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Issue #254: Valid conditions without function calls
 // These should compile and run successfully
 

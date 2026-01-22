@@ -4,7 +4,7 @@
  */
 
 // tests/functions/enum-bool-member-cpp.test.cnx
-/* test-execution */
+// test-execution
 // Tests: Issue #252 - enum and bool types not converted to u8
 // In C++ mode, bool* and enum* cannot convert to uint8_t*
 // Must use static_cast<uint8_t>() with temp variable

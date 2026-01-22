@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: Issue #245 - rvalue expressions passed to pointer parameters
 uint32_t process(uint32_t crc, uint8_t byte) {
     return crc ^ byte;

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: Issue #268 - pass-through modification tracking for auto-const
 // When a parameter is passed to a function that modifies it,
 // the parameter should NOT get const (since it's effectively modified).

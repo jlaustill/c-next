@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
 /* Scope: ConstTest */

@@ -1,5 +1,5 @@
 /* test-no-warnings */
-/* test-execution */
+// test-execution
 // Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
 // Validates: Clamp compound assignment should not trigger false warnings
 // Coverage: __builtin_*_overflow allows GCC to track value bounds correctly

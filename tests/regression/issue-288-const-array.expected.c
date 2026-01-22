@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: Issue #288 - const arrays should also have extern const in headers
 // Verifies the fix handles const arrays, not just scalar const variables
 /* Scope: ConstArrayTest */

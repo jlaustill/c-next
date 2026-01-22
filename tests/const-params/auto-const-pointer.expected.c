@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: Issue #268 - automatic const for unmodified pointer parameters
 // Read-only parameter - should get const
 void readOnly(uint32_t value) {

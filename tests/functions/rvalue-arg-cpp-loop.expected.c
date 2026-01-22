@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Tests: Issue #250 edge case - rvalue expressions in control flow conditions
 // Verifies temp var placement before control flow statements (not inside body)
 #include "rvalue-arg-cpp.h"

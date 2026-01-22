@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
-/* test-execution */
+// test-execution
 // Issue #254: Valid conditions without function calls
 // These should compile and run successfully
 uint32_t getValue(void) {
