@@ -5,11 +5,16 @@
 /**
  * Issue #321: Test header for differentiating object instances vs classes
  *
- * This header declares:
- *   1. A CLASS with static methods (ConfigStorage) -> uses ::
- *   2. An OBJECT INSTANCE (via extern) (Serial from HardwareSerial.h) -> uses .
+ * This header mirrors the REAL Arduino pattern from ArduinoCore-avr/HardwareSerial.h:
+ *   - HardwareSerial is a CLASS (non-static methods)
+ *   - Serial is an OBJECT INSTANCE: "extern HardwareSerial Serial;"
  *
- * The transpiler must distinguish between these and generate correct syntax.
+ * The real Arduino headers are available in tests/fixtures/arduino-avr/ for reference.
+ * We use a simplified version here to ensure reliable C++ parsing.
+ *
+ * Key distinction being tested:
+ *   1. A CLASS with static methods (ConfigStorage) -> uses ::
+ *   2. An OBJECT INSTANCE (via extern) (Serial) -> uses .
  */
 
 // C++11 typed enum to trigger C++ mode detection in test runner
@@ -18,8 +23,23 @@ enum Issue321TestMode : uint8_t {
     TEST_ON = 1
 };
 
-// Include the Arduino-style Serial object instance
-#include "../fixtures/arduino-avr/HardwareSerial.h"
+// ============================================================================
+// ARDUINO PATTERN: Class + extern object instance
+// Mirrors real Arduino: tests/fixtures/arduino-avr/HardwareSerial.h:93-143
+// ============================================================================
+class HardwareSerial {
+public:
+    void begin(unsigned long baud);
+    void end();
+    size_t print(const char* str);
+    size_t println(const char* str);
+    int available();
+    int read();
+};
+
+// THE KEY PATTERN: Serial is an OBJECT INSTANCE, not a class
+// Real Arduino (line 143): extern HardwareSerial Serial;
+extern HardwareSerial Serial;
 
 // ============================================================================
 // A CLASS with static methods - should use :: syntax
