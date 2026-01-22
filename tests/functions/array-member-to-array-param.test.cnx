@@ -1,0 +1,117 @@
+// tests/functions/array-member-to-array-param.test.cnx
+// test-execution
+// Tests: Issue #342 - array member passed to array parameter
+// When passing msg.buf (u8[8]) to a function expecting const u8 data[8],
+// the transpiler should NOT generate static_cast - just pass the array directly.
+// Arrays naturally decay to pointers in C/C++.
+
+#include "array-member-to-array-param.h"
+
+// Function that takes an array parameter
+u32 processBuffer(const u8 data[8], u8 len) {
+    u32 sum <- 0;
+    u8 i <- 0;
+    while (i < len) {
+        sum <- sum + data[i];
+        i <- i + 1;
+    }
+    return sum;
+}
+
+// Function with different array size
+u32 processHeader(const u8 header[4]) {
+    return header[0] + header[1] + header[2] + header[3];
+}
+
+// Function with larger array
+u32 processPayload(const u8 payload[16], u8 len) {
+    u32 sum <- 0;
+    u8 i <- 0;
+    while (i < len) {
+        sum <- sum + payload[i];
+        i <- i + 1;
+    }
+    return sum;
+}
+
+u32 testBasicArrayMemberPassing() {
+    CanMessage msg;
+
+    // Initialize the array member
+    msg.buf[0] <- 10;
+    msg.buf[1] <- 20;
+    msg.buf[2] <- 30;
+    msg.buf[3] <- 40;
+    msg.buf[4] <- 0;
+    msg.buf[5] <- 0;
+    msg.buf[6] <- 0;
+    msg.buf[7] <- 0;
+    msg.len <- 4;
+
+    // This should generate: processBuffer(msg.buf, msg.len)
+    // NOT: static_cast<uint8_t>(msg.buf)
+    u32 result <- processBuffer(msg.buf, msg.len);
+
+    // Expected: 10 + 20 + 30 + 40 = 100
+    return result;
+}
+
+u32 testMultipleArrayMembers() {
+    PacketData packet;
+
+    // Initialize header
+    packet.header[0] <- 1;
+    packet.header[1] <- 2;
+    packet.header[2] <- 3;
+    packet.header[3] <- 4;
+
+    // Initialize payload (first 4 bytes)
+    packet.payload[0] <- 10;
+    packet.payload[1] <- 20;
+    packet.payload[2] <- 30;
+    packet.payload[3] <- 40;
+
+    // Pass different array members to different functions
+    u32 headerSum <- processHeader(packet.header);
+    u32 payloadSum <- processPayload(packet.payload, 4);
+
+    // Expected: (1+2+3+4) + (10+20+30+40) = 10 + 100 = 110
+    return headerSum + payloadSum;
+}
+
+u32 testArrayMemberInCondition() {
+    CanMessage msg;
+    msg.id <- 65280;  // 0xFF00
+
+    msg.buf[0] <- 5;
+    msg.buf[1] <- 10;
+    msg.buf[2] <- 15;
+    msg.buf[3] <- 20;
+    msg.len <- 4;
+
+    u32 result <- 0;
+
+    // Test array member passing inside a conditional (like the original bug report)
+    if (msg.id = 65280) {
+        result <- processBuffer(msg.buf, msg.len);
+    }
+
+    // Expected: 5 + 10 + 15 + 20 = 50
+    return result;
+}
+
+u32 main() {
+    // Test 1: Basic array member passing
+    u32 result1 <- testBasicArrayMemberPassing();
+    if (result1 != 100) return 1;
+
+    // Test 2: Multiple array members from same struct
+    u32 result2 <- testMultipleArrayMembers();
+    if (result2 != 110) return 2;
+
+    // Test 3: Array member passing inside conditional (original bug scenario)
+    u32 result3 <- testArrayMemberInCondition();
+    if (result3 != 50) return 3;
+
+    return 0;
+}
