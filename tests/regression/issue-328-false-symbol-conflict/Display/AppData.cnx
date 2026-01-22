@@ -1,0 +1,6 @@
+// AppData struct definition (the original source)
+
+struct AppData {
+    f32 humidity;
+    f32 temperature;
+}
