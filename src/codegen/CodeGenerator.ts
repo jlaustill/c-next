@@ -7999,10 +7999,12 @@ export default class CodeGenerator implements IOrchestrator {
           currentIdentifier = memberName; // Track for .length lookups
           isGlobalAccess = true; // Mark that we're in a global access chain
           // Issue #304: Check if this is a C++ scope symbol (namespace, class, enum)
-          // Issue #314: In C++ mode, global.X.method() should always use :: syntax
-          // because the programmer is explicitly requesting C++ static method access,
-          // even for undeclared external symbols (e.g., Arduino's Serial class)
-          if (this.isCppScopeSymbol(memberName) || this.cppMode) {
+          // These require :: syntax for member access. Variable symbols (including
+          // object instances like Arduino's extern HardwareSerial Serial;) should
+          // use . syntax, not :: syntax.
+          // Issue #321: Removed || this.cppMode override - it was causing all symbols
+          // to use :: in C++ mode, even object instances that need . syntax.
+          if (this.isCppScopeSymbol(memberName)) {
             isCppAccessChain = true;
           }
           // Check if this first identifier is a register

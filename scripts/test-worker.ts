@@ -57,10 +57,12 @@ async function runTest(
   const hasHeaderFile = existsSync(headerFile);
 
   // Use Pipeline for transpilation with header parsing support
+  // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
+  // Caching can cause stale symbols when Pipeline code changes
   const pipeline = new Pipeline({
     inputs: [],
     includeDirs: [join(rootDir, "tests/include")],
-    noCache: false,
+    noCache: true,
   });
 
   const result: IFileResult = await pipeline.transpileSource(source, {
