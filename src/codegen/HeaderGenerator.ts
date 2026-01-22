@@ -268,7 +268,9 @@ class HeaderGenerator {
     passByValueParams?: TPassByValueParams,
   ): string | null {
     // Map return type from C-Next to C
-    const returnType = sym.type ? mapType(sym.type) : "void";
+    // Special case: main() always returns int for C/C++ compatibility
+    const mappedType = sym.type ? mapType(sym.type) : "void";
+    const returnType = sym.name === "main" ? "int" : mappedType;
 
     // Issue #269: Get pass-by-value parameter names for this function
     const passByValueSet = passByValueParams?.get(sym.name);
