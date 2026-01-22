@@ -1,0 +1,2 @@
+1:0 Code generation failed: E0504: Found #include <helper-types.h> but 'helper-types.cnx' exists at the same location.
+       Use #include <helper-types.cnx> instead to use the C-Next version. Line 5

@@ -1,0 +1,9 @@
+// E0504: Including .h when .cnx alternative exists (angle bracket include)
+// This file should FAIL to transpile with E0504
+// Note: helper-types.h and helper-types.cnx both exist in this directory
+
+#include <helper-types.h>
+
+void test() {
+    // This should not be reached - transpile should fail
+}

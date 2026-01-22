@@ -85,6 +85,75 @@ class TypeValidator {
     }
   }
 
+  /**
+   * E0504: Validate that a .cnx alternative doesn't exist for a .h/.hpp include
+   * This helps during codebase migration by alerting developers when they should
+   * be using the C-Next version of a file instead of the C header.
+   *
+   * @param includeText - The full #include directive text
+   * @param lineNumber - Line number for error reporting
+   * @param sourcePath - Path to the source file (for resolving relative includes)
+   * @param includePaths - Array of directories to search for includes
+   * @param fileExists - Function to check if a file exists (injectable for testing)
+   */
+  validateIncludeNoCnxAlternative(
+    includeText: string,
+    lineNumber: number,
+    sourcePath: string | null,
+    includePaths: string[],
+    fileExists: (path: string) => boolean = (p) => require("fs").existsSync(p),
+  ): void {
+    // Extract the file path from #include directive
+    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)>/);
+    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)"/);
+
+    const includePath = angleMatch?.[1] || quoteMatch?.[1];
+    if (!includePath) {
+      return; // Malformed include, let other validation handle it
+    }
+
+    // Skip if already a .cnx include
+    if (includePath.endsWith(".cnx")) {
+      return;
+    }
+
+    // Only check .h and .hpp files
+    const ext = includePath
+      .substring(includePath.lastIndexOf("."))
+      .toLowerCase();
+    if (ext !== ".h" && ext !== ".hpp") {
+      return;
+    }
+
+    // Build the .cnx alternative path
+    const cnxPath = includePath.replace(/\.(h|hpp)$/i, ".cnx");
+
+    if (quoteMatch) {
+      // Quoted include: resolve relative to source file's directory
+      if (sourcePath) {
+        const sourceDir = require("path").dirname(sourcePath);
+        const fullCnxPath = require("path").resolve(sourceDir, cnxPath);
+        if (fileExists(fullCnxPath)) {
+          throw new Error(
+            `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
+              `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
+          );
+        }
+      }
+    } else if (angleMatch) {
+      // Angle bracket include: search through include paths
+      for (const searchDir of includePaths) {
+        const fullCnxPath = require("path").join(searchDir, cnxPath);
+        if (fileExists(fullCnxPath)) {
+          throw new Error(
+            `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
+              `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
+          );
+        }
+      }
+    }
+  }
+
   // ========================================================================
   // Bitmap Field Validation (ADR-034)
   // ========================================================================

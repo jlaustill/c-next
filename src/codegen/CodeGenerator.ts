@@ -10,6 +10,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 import ESymbolKind from "../types/ESymbolKind";
 import CommentExtractor from "./CommentExtractor";
 import CommentFormatter from "./CommentFormatter";
+import IncludeDiscovery from "../lib/IncludeDiscovery";
 import IComment from "./types/IComment";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
@@ -1453,6 +1454,17 @@ export default class CodeGenerator implements IOrchestrator {
       this.typeValidator!.validateIncludeNotImplementationFile(
         includeDir.getText(),
         lineNumber,
+      );
+
+      // E0504: Check if a .cnx alternative exists for .h/.hpp includes
+      const includePaths = this.sourcePath
+        ? IncludeDiscovery.discoverIncludePaths(this.sourcePath)
+        : [];
+      this.typeValidator!.validateIncludeNoCnxAlternative(
+        includeDir.getText(),
+        lineNumber,
+        this.sourcePath,
+        includePaths,
       );
 
       const transformedInclude = this.transformIncludeDirective(
