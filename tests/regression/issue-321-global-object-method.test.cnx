@@ -1,3 +1,4 @@
+// test-execution
 // Issue #321: global.Object.method() generates :: instead of . for object instances
 // Tests: Correct syntax generation for object instances vs classes in C++ mode
 //
@@ -67,9 +68,10 @@ void testMixedUsage() {
 // ============================================================================
 // MAIN
 // ============================================================================
-void main() {
+u32 main() {
     testClassStaticMethods();
     testNamespace();
     testObjectInstances();
     testMixedUsage();
+    return 0;
 }

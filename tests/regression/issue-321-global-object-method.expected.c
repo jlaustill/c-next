@@ -3,6 +3,7 @@
  * A safer C for embedded systems
  */
 
+// test-execution
 // Issue #321: global.Object.method() generates :: instead of . for object instances
 // Tests: Correct syntax generation for object instances vs classes in C++ mode
 //
@@ -62,4 +63,5 @@ int main(void) {
     testNamespace();
     testObjectInstances();
     testMixedUsage();
+    return 0;
 }

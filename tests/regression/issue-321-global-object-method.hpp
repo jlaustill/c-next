@@ -2,52 +2,51 @@
 #include <cstdint>
 #include <cstddef>
 
-// Include AVR io.h shim to define UBRR0H (enables extern HardwareSerial Serial)
-#include <avr/io.h>
-
 /**
  * Issue #321: Test header for differentiating object instances vs classes
  *
- * This test uses the REAL Arduino headers from ArduinoCore-avr to verify
- * that C-Next correctly handles the Arduino pattern:
- *   - HardwareSerial is a CLASS (non-static instance methods)
- *   - Serial is an OBJECT INSTANCE: "extern HardwareSerial Serial;"
+ * This test verifies C-Next correctly handles:
+ *   - Classes with static methods -> uses ::
+ *   - Object instances (via extern) -> uses .
  *
- * Key distinction being tested:
- *   1. A CLASS with static methods (ConfigStorage) -> uses ::
- *   2. An OBJECT INSTANCE (via extern) (Serial) -> uses .
+ * For execution testing, we provide simple stub implementations.
  */
 
-// C++11 typed enum to trigger C++ mode detection in test runner
+// C++11 typed enum to trigger C++ mode detection
 enum Issue321TestMode : uint8_t {
     TEST_OFF = 0,
     TEST_ON = 1
 };
 
 // ============================================================================
-// REAL ARDUINO HEADERS
-// This includes the actual ArduinoCore-avr HardwareSerial.h which declares:
-//   class HardwareSerial : public Stream { ... };
-//   extern HardwareSerial Serial;  // Object INSTANCE
+// SIMULATED ARDUINO HardwareSerial PATTERN
+// In real Arduino: class HardwareSerial { ... }; extern HardwareSerial Serial;
 // ============================================================================
-#include "../fixtures/arduino-avr/HardwareSerial.h"
+class HardwareSerial {
+public:
+    void begin(unsigned long baud) { (void)baud; }
+    size_t println(const char* str) { (void)str; return 0; }
+};
+
+// Serial is an OBJECT INSTANCE (like in real Arduino)
+inline HardwareSerial Serial;
 
 // ============================================================================
 // A CLASS with static methods - should use :: syntax
 // ============================================================================
 class ConfigStorage {
 public:
-    static void load();
-    static void save();
-    static int getValue(const char* key);
+    static void load() {}
+    static void save() {}
+    static int getValue(const char* key) { (void)key; return 0; }
 };
 
 // ============================================================================
 // A NAMESPACE - should use :: syntax
 // ============================================================================
 namespace SystemUtils {
-    void initialize();
-    int getStatus();
+    inline void initialize() {}
+    inline int getStatus() { return 0; }
 }
 
 // ============================================================================
@@ -55,14 +54,9 @@ namespace SystemUtils {
 // ============================================================================
 class TwoWire {
 public:
-    void begin();
-    void beginTransmission(uint8_t address);
-    void endTransmission();
-    uint8_t requestFrom(uint8_t address, uint8_t quantity);
-    int available();
-    int read();
-    size_t write(uint8_t data);
+    void begin() {}
+    void beginTransmission(uint8_t address) { (void)address; }
 };
 
 // Wire is an OBJECT INSTANCE (like Serial)
-extern TwoWire Wire;
+inline TwoWire Wire;
