@@ -198,6 +198,20 @@ async function runUnifiedMode(
   noCache: boolean,
   headerOutDir?: string,
 ): Promise<void> {
+  // Issue #337: Identify which inputs are directories (for structure preservation)
+  // These will be passed to Project.srcDirs so Pipeline can preserve directory structure
+  const srcDirs: string[] = [];
+  const explicitFiles: string[] = [];
+
+  for (const input of inputs) {
+    const resolvedPath = resolve(input);
+    if (existsSync(resolvedPath) && statSync(resolvedPath).isDirectory()) {
+      srcDirs.push(resolvedPath);
+    } else {
+      explicitFiles.push(resolvedPath);
+    }
+  }
+
   // Step 1: Expand directories to .cnx files
   let files: string[];
   try {
@@ -256,9 +270,11 @@ async function runUnifiedMode(
   }
 
   // Step 4: Create Project
+  // Issue #337: Pass srcDirs to preserve directory structure in output
+  // srcDirs contains resolved directory inputs that Pipeline uses for relative path calculation
   const project = new Project({
-    srcDirs: [], // No srcDirs, use explicit files
-    files,
+    srcDirs,
+    files: explicitFiles, // Only non-directory inputs (individual files)
     includeDirs: allIncludePaths,
     outDir,
     headerOutDir,
