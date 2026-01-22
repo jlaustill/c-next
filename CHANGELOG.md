@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-01-22
+
+### Added
+
+- VS Code extension: code snippets for common C-Next patterns
+- VS Code extension: file nesting for generated `.c`/`.h` files under source `.cnx`
+- VS Code extension: formatter defaults and roadmap documentation
+
+### Fixed
+
+- Array member arguments from typedef'd C++ structs now pass correctly (Issue #342)
+- Use relative paths for self-includes with `--header-out` option (Issue #339)
+
 ## [0.1.24] - 2026-01-22
 
 ### Fixed
@@ -268,7 +281,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.24...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.25...HEAD
+[0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/jlaustill/c-next/compare/v0.1.21...v0.1.22
