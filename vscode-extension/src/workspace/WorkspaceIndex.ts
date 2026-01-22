@@ -487,6 +487,44 @@ export default class WorkspaceIndex {
   }
 
   /**
+   * Check if a filename exists in multiple locations in the workspace
+   * Used for smart path display in hover tooltips
+   */
+  hasFilenameConflict(fileName: string): boolean {
+    const allFiles = new Set<string>();
+
+    // Check CNX files
+    const cnxSymbols = this.cache.getAllSymbols();
+    for (const symbol of cnxSymbols) {
+      if (symbol.sourceFile) {
+        const name = path.basename(symbol.sourceFile);
+        if (name === fileName) {
+          allFiles.add(symbol.sourceFile);
+          if (allFiles.size > 1) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // Check header files
+    const headerSymbols = this.headerCache.getAllSymbols();
+    for (const symbol of headerSymbols) {
+      if (symbol.sourceFile) {
+        const name = path.basename(symbol.sourceFile);
+        if (name === fileName) {
+          allFiles.add(symbol.sourceFile);
+          if (allFiles.size > 1) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Get statistics about the index
    */
   getStats(): {

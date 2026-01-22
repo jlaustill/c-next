@@ -1,4 +1,5 @@
 import TSymbolKind from "./TSymbolKind";
+import TLanguage from "./TLanguage";
 
 /**
  * Symbol information for IDE features (autocomplete, hover)
@@ -23,6 +24,10 @@ interface ISymbolInfo {
   line: number;
   /** Array size or bit width */
   size?: number;
+  /** Source file path where this symbol is defined */
+  sourceFile?: string;
+  /** Language of the source file */
+  language?: TLanguage;
 }
 
 export default ISymbolInfo;
