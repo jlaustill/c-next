@@ -3,6 +3,7 @@
  * Extracted from CodeGenerator for better separation of concerns
  * Issue #63: Validation logic separated for independent testing
  */
+import { dirname, resolve, join } from "path";
 import * as Parser from "../parser/grammar/CNextParser";
 import SymbolCollector from "./SymbolCollector";
 import SymbolTable from "../symbols/SymbolTable";
@@ -131,8 +132,8 @@ class TypeValidator {
     if (quoteMatch) {
       // Quoted include: resolve relative to source file's directory
       if (sourcePath) {
-        const sourceDir = require("path").dirname(sourcePath);
-        const fullCnxPath = require("path").resolve(sourceDir, cnxPath);
+        const sourceDir = dirname(sourcePath);
+        const fullCnxPath = resolve(sourceDir, cnxPath);
         if (fileExists(fullCnxPath)) {
           throw new Error(
             `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
@@ -143,7 +144,7 @@ class TypeValidator {
     } else if (angleMatch) {
       // Angle bracket include: search through include paths
       for (const searchDir of includePaths) {
-        const fullCnxPath = require("path").join(searchDir, cnxPath);
+        const fullCnxPath = join(searchDir, cnxPath);
         if (fileExists(fullCnxPath)) {
           throw new Error(
             `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
