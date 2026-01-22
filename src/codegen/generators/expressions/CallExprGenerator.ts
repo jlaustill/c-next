@@ -16,6 +16,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import ESymbolKind from "../../../types/ESymbolKind";
 
 /**
  * Issue #304: Map C-Next type to C type for static_cast.
@@ -37,6 +38,14 @@ const TYPE_MAP: Record<string, string> = {
 const mapTypeToCType = (cnxType: string): string => {
   return TYPE_MAP[cnxType] || cnxType;
 };
+
+/**
+ * Issue #315: Small primitive types that are always passed by value.
+ * These match the types used in Issue #269 for pass-by-value optimization.
+ * For cross-file function calls, we use these types directly since we can't
+ * know if the parameter is modified (that info is only in the source file).
+ */
+const SMALL_PRIMITIVE_TYPES = new Set(["u8", "u16", "i8", "i16", "bool"]);
 
 /**
  * Issue #304: Wrap argument with static_cast if it's a C++ enum class
@@ -115,7 +124,27 @@ const generateFunctionCall = (
     .map((e, idx) => {
       // Get function signature for parameter type info
       const sig = input.functionSignatures.get(funcExpr);
-      const targetParam = sig?.parameters[idx];
+      let targetParam = sig?.parameters[idx];
+      // Issue #315: Track if we got param info from SymbolTable (cross-file function)
+      let isCrossFileFunction = false;
+
+      // Issue #315: If no local signature, try SymbolTable for cross-file functions
+      if (!targetParam && input.symbolTable) {
+        const symbols = input.symbolTable.getOverloads(funcExpr);
+        for (const sym of symbols) {
+          if (sym.kind === ESymbolKind.Function && sym.parameters?.[idx]) {
+            // Map symbol parameter to targetParam format (IFunctionSignature.parameters)
+            targetParam = {
+              name: sym.parameters[idx].name,
+              baseType: sym.parameters[idx].type,
+              isConst: sym.parameters[idx].isConst,
+              isArray: sym.parameters[idx].isArray,
+            };
+            isCrossFileFunction = true;
+            break;
+          }
+        }
+      }
 
       if (!isCNextFunc) {
         // C function: pass-by-value, just generate the expression
@@ -134,13 +163,26 @@ const generateFunctionCall = (
         targetParam && orchestrator.isFloatType(targetParam.baseType);
       const isEnumParam =
         targetParam && orchestrator.getKnownEnums().has(targetParam.baseType);
-      // Issue #269: Check if small unmodified primitive
+      // Issue #269: Check if small unmodified primitive (for local functions)
       const isPrimitivePassByValue = orchestrator.isParameterPassByValue(
         funcExpr,
         idx,
       );
+      // Issue #315: For cross-file functions ONLY, check if it's a small primitive type
+      // that should always be passed by value (u8, u16, i8, i16, bool).
+      // We only do this for cross-file functions because for local functions,
+      // isPrimitivePassByValue correctly considers whether the parameter is modified.
+      const isSmallPrimitive =
+        isCrossFileFunction &&
+        targetParam &&
+        SMALL_PRIMITIVE_TYPES.has(targetParam.baseType);
 
-      if (isFloatParam || isEnumParam || isPrimitivePassByValue) {
+      if (
+        isFloatParam ||
+        isEnumParam ||
+        isPrimitivePassByValue ||
+        isSmallPrimitive
+      ) {
         // Target parameter is pass-by-value: pass value directly
         const argCode = orchestrator.generateExpression(e);
         // Issue #304: Wrap with static_cast if C++ enum class → integer

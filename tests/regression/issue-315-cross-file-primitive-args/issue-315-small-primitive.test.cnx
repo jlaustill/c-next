@@ -1,0 +1,41 @@
+/* test-execution */
+// Issue #315: Test SMALL_PRIMITIVE_TYPES path for cross-file calls
+// This test uses u8 parameters which are handled by the isSmallPrimitive check,
+// NOT the isFloatParam check (which is tested by the main test file).
+
+#include <TestFuncSmall.cnx>
+
+struct ByteData {
+    u8 value1;
+    u8 value2;
+}
+
+scope ByteCaller {
+    ByteData data;
+
+    public void init() {
+        this.data.value1 <- 0;
+        this.data.value2 <- 0;
+    }
+
+    public u8 test() {
+        this.data.value1 <- 10;
+        this.data.value2 <- 25;
+
+        // Cross-file call with u8 params - exercises SMALL_PRIMITIVE_TYPES path
+        // Bug would generate: TestFuncSmall_addBytes(&ByteCaller_data.value1, &ByteCaller_data.value2)
+        // Expected: TestFuncSmall_addBytes(ByteCaller_data.value1, ByteCaller_data.value2)
+        u8 result <- global.TestFuncSmall.addBytes(this.data.value1, this.data.value2);
+        return result;
+    }
+}
+
+u32 main() {
+    ByteCaller.init();
+    u8 result <- ByteCaller.test();
+
+    // 10 + 25 = 35
+    if (result != 35) return 1;
+
+    return 0;
+}
