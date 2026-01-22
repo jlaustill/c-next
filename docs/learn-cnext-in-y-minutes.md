@@ -2,13 +2,7 @@
 
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C code.
 
-**Status Legend:**
-
-- `[DONE]` - Implemented and working
-- `[ACCEPTED]` - Design accepted, ready for implementation
-- `[TODO]` - Planned for v1
-
-## Comments [DONE]
+## Comments
 
 ```cnx
 // Single-line comment (C99+ style, preserved in output)
@@ -64,17 +58,17 @@ C-Next enforces comment rules at transpile time:
 // Comment ending with backslash \        // Compile error!
 ```
 
-## Preprocessor [DONE]
+## Preprocessor
 
 C-Next takes a safety-first approach to the preprocessor (ADR-037).
 
 ```cnx
-// [DONE] Include directives - pass through to C
+// Include directives - pass through to C
 #include <stdint.h>      // Search system headers first (standard library)
 #include <stdbool.h>     // Angle brackets for system/library headers
 #include "myheader.h"    // Quotes search local directory first, then system
 
-// [DONE] Flag-only defines - for conditional compilation
+// Flag-only defines - for conditional compilation
 #define ARDUINO
 #define DEBUG
 
@@ -84,7 +78,7 @@ C-Next takes a safety-first approach to the preprocessor (ADR-037).
 // ERROR: Function macros are forbidden - use inline functions!
 // #define MAX(a, b) ...     // E0501: Use inline functions
 
-// [DONE] Conditional compilation
+// Conditional compilation
 #ifdef ARDUINO
 #endif
 
@@ -123,7 +117,7 @@ C-Next requires `const` for type-safe, scoped, debuggable constants.
 
 - **Debugger Invisible (#7):** Flags control which code compiles, not runtime values. They don't need runtime inspection. Use `const` for values you want to debug.
 
-## Constants [DONE]
+## Constants
 
 Constants in C-Next use `const` and `enum` - not `#define`.
 
@@ -149,7 +143,7 @@ enum State {
     IDLE,           // 0
     RUNNING,        // 1
     ERROR <- 255    // Explicit value
-};
+}
 
 State current <- State.IDLE;
 
@@ -165,7 +159,7 @@ u8 val <- (u8)State.IDLE;  // OK with cast
 ## Functions
 
 ```cnx
-// [DONE] Function declaration
+// Function declaration
 void doNothing() {
 }
 
@@ -173,18 +167,18 @@ u32 add(const u32 a, const u32 b) {
     return a + b;
 }
 
-// [DONE] Parameters with const
+// Parameters with const
 void process(const u8 data[]) {
     // data is read-only, use data.length for size
 }
 
-// [DONE] Pass by reference (ADR-006) - structs passed by reference automatically
+// Pass by reference (ADR-006) - structs passed by reference automatically
 void updatePointXToTen(Point p) {
     p.x <- 10;  // Modifies original!
 }
 ```
 
-### Define-Before-Use [DONE]
+### Define-Before-Use
 
 C-Next enforces define-before-use with zero exceptions (ADR-030):
 
@@ -215,7 +209,7 @@ void main() {
 
 **C Compatibility:** The transpiler generates `.h` files with prototypes for all functions, so the generated C code compiles correctly. This complexity is hidden from CNX developers.
 
-### Parameters Are Always Named [DONE]
+### Parameters Are Always Named
 
 Per MISRA C:2012 Rule 8.2, all function parameters must have names:
 
@@ -229,7 +223,7 @@ void process(u8 data[], u32 flags) {
 // void process(u8[], u32) { }  // Compile error
 ```
 
-### Program Entry Point [DONE]
+### Program Entry Point
 
 C-Next supports standard C entry points with a cleaner syntax:
 
@@ -280,7 +274,7 @@ void loop() {
 ## Types
 
 ```cnx
-// [DONE] Fixed-width integers (no platform surprises)
+// Fixed-width integers (no platform surprises)
 u8  byte;       // uint8_t
 u16 word;       // uint16_t
 u32 dword;      // uint32_t
@@ -291,15 +285,15 @@ i16 sword;      // int16_t
 i32 sdword;     // int32_t
 i64 sqword;     // int64_t
 
-// [DONE] Floating point
+// Floating point
 f32 single;     // float
 f64 double;    // double
 
-// [DONE] Boolean
+// Boolean
 bool flag;      // bool (from stdbool.h)
 ```
 
-### Type Casting [DONE]
+### Type Casting
 
 C-Next takes a safety-first approach to type conversions (ADR-024):
 
@@ -336,16 +330,16 @@ u32 asBits <- signedVal[0, 32];  // OK: explicit reinterpret
 - **Sign change is reinterpretation**: -1 as u32 = 4294967295 (often unexpected)
 - **Bit indexing is explicit**: `val[0, 8]` clearly says "give me 8 bits"
 
-### Overflow Behavior [DONE]
+### Overflow Behavior
 
 C-Next provides explicit control over integer overflow behavior (ADR-044):
 
 ```cnx
-// [DONE] clamp - Saturating arithmetic (safe default)
+// clamp - Saturating arithmetic (safe default)
 clamp u8 brightness <- 200;
 brightness +<- 100;  // Clamps to 255, not 44!
 
-// [DONE] wrap - Two's complement wrapping (opt-in for counters)
+// wrap - Two's complement wrapping (opt-in for counters)
 wrap u32 counter <- 0;
 counter +<- 1;       // Wraps naturally at UINT32_MAX
 
@@ -383,28 +377,24 @@ This replaces clamp helpers with abort() calls for catching overflow during deve
 ## Variables
 
 ```cnx
-// [DONE] Variables are zero-initialized by default (ADR-015)
+// Variables are zero-initialized by default (ADR-015)
 u32 counter;    // counter = 0, not garbage!
 
-// [DONE] Assignment uses <- (ADR-001)
+// Assignment uses <- (ADR-001)
 counter <- 42;
-
-// [TODO: ADR-038] Static and extern
-static u32 filePrivate <- 0;
-extern u32 globalVar;
 ```
 
 ## Operators
 
 ```cnx
-// [DONE] Arithmetic
+// Arithmetic
 x <- a + b;
 x <- a - b;
 x <- a * b;
 x <- a / b;
 x <- a % b;
 
-// [DONE] Comparison - IMPORTANT: = is equality, not assignment!
+// Comparison - IMPORTANT: = is equality, not assignment!
 if (a = b) { }      // Equal (not ==)
 if (a != b) { }     // Not equal
 if (a < b) { }      // Less than
@@ -412,12 +402,12 @@ if (a <= b) { }     // Less or equal
 if (a > b) { }      // Greater than
 if (a >= b) { }     // Greater or equal
 
-// [DONE] Logical
+// Logical
 if (a && b) { }     // AND
 if (a || b) { }     // OR
 if (!a) { }         // NOT
 
-// [DONE] Bitwise
+// Bitwise
 x <- a & b;         // AND
 x <- a | b;         // OR
 x <- a ^ b;         // XOR
@@ -425,7 +415,7 @@ x <- ~a;            // NOT
 x <- a << 2;        // Left shift
 x <- a >> 2;        // Right shift
 
-// [DONE] Compound assignment
+// Compound assignment
 x +<- 1;            // x = x + 1
 x -<- 1;            // x = x - 1
 x *<- 2;            // x = x * 2
@@ -436,11 +426,7 @@ x ^<- bits;         // x = x ^ bits
 x <<<- 1;           // x = x << 1
 x >><- 1;           // x = x >> 1
 
-// [TODO: ADR-021] Increment/decrement
-i++;                // Statement only, not in expressions
-i--;
-
-// [DONE: ADR-022] Ternary - parentheses required, boolean condition, no nesting
+// Ternary - parentheses required, boolean condition, no nesting (ADR-022)
 u32 max <- (a > b) ? a : b;           // OK: parentheses, boolean condition
 u32 abs <- (x < 0) ? -x : x;          // OK: simple, readable
 u32 clampedPositive <- (x > 0 && x < 100) ? x : 0;  // OK: logical condition
@@ -448,7 +434,7 @@ u32 clampedPositive <- (x > 0 && x < 100) ? x : 0;  // OK: logical condition
 // u32 y <- x ? 1 : 0;                          // ERROR: x is not boolean
 // u32 z <- x > 0 ? 1 : 0;                      // ERROR: missing parentheses
 
-// [DONE: ADR-023] Sizeof - with safety checks
+// Sizeof - with safety checks (ADR-023)
 usize intSize <- sizeof(u32);          // 4
 usize structSize <- sizeof(Point);     // Includes padding
 
@@ -469,7 +455,7 @@ void process(u8 data[]) {
 // Variable-length arrays - FORBIDDEN (ADR-003: static allocation)
 // u8 buffer[n];             // ERROR E0603: array size must be constant
 
-// [DONE] Type casting (ADR-024)
+// Type casting (ADR-024)
 // Widening (small → large): Implicit, always safe
 u8 byte <- 42;
 u32 large <- byte;  // OK: u8 → u32 is widening
@@ -488,7 +474,7 @@ u32 bits <- signed_val[0, 32];    // OK: explicit bit reinterpret
 ## Control Flow
 
 ```cnx
-// [DONE: ADR-022] If/else
+// If/else (ADR-022)
 if (x > 0) {
     doSomething();
 } else if (x < 0) {
@@ -497,17 +483,17 @@ if (x > 0) {
     doDefault();
 }
 
-// [DONE] While loop
+// While loop
 while (running) {
     process();
 }
 
-// [DONE] For loop
+// For loop
 for (u32 i <- 0; i < 10; i +<- 1) {
     buffer[i] <- 0;
 }
 
-// [DONE: ADR-027] Do-while - condition must be boolean (MISRA Rule 14.4)
+// Do-while - condition must be boolean (ADR-027, MISRA Rule 14.4)
 u8 byte;
 do {
     byte <- readByte();
@@ -516,7 +502,7 @@ do {
 // do { } while (count);       // ERROR E0701: must be boolean
 // do { } while (count > 0);   // OK: explicit comparison
 
-// [DONE: ADR-025] Switch - braces replace break, no fallthrough, no colons!
+// Switch - braces replace break, no fallthrough, no colons! (ADR-025)
 switch (state) {
     case State.IDLE {
         startMotor();
@@ -561,7 +547,7 @@ switch (state) {
     // All 3 cases covered - no default required
 }
 
-// [REJECTED: ADR-026] No break/continue - use structured loop conditions
+// No break/continue - use structured loop conditions (ADR-026)
 // Instead of: while (true) { if (done) break; process(); }
 // Use:
 while (!done) {
@@ -580,17 +566,17 @@ while (!done) {
 ## Arrays
 
 ```cnx
-// [DONE] Fixed-size arrays
+// Fixed-size arrays
 u8 buffer[256];
 
-// [DONE] Array access
+// Array access
 buffer[0] <- 0xFF;
 u8 first <- buffer[0];
 
-// [DONE] .length property (ADR-007)
+// .length property (ADR-007)
 usize len <- buffer.length;  // 256
 
-// [DONE: ADR-035] Array initialization - uses [] not {}
+// Array initialization - uses [] not {} (ADR-035)
 u8 data[] <- [1, 2, 3, 4, 5];     // Size inferred as 5
 u8 zeros[100] <- [0*];            // All 100 elements = 0 (fill-all syntax)
 u8 ones[50] <- [1*];              // All 50 elements = 1
@@ -602,7 +588,7 @@ u8 explicit[5] <- [1, 2, 3, 0, 0]; // OK: all elements explicit
 // Size mismatch is a compile error
 // u8 overflow[3] <- [1, 2, 3, 4]; // ERROR: 4 elements for size-3 array
 
-// [DONE: ADR-036] Multi-dimensional arrays
+// Multi-dimensional arrays (ADR-036)
 u8 matrix[4][8];
 matrix[0][0] <- 1;
 matrix[3][7] <- 255;
@@ -637,7 +623,7 @@ u8 data[2][3] <- [
 // u8 bad[4][8];
 // bad[5][0] <- 1;  // ERROR: index 5 >= dimension 4
 
-// [DONE] Slice assignment - multi-byte memory copy with compile-time bounds checking
+// Slice assignment - multi-byte memory copy with compile-time bounds checking
 // Issue #234: Offset and length MUST be compile-time constants for safety
 u8 packet[256];
 u32 magic <- 0x12345678;
@@ -698,24 +684,24 @@ memcpy(&packet[0], &magic, 4);
 
 If your offsets are truly runtime-dependent (not just written in a dynamic style), use explicit `memcpy` with manual bounds checking. See ADR-007 for detailed guidance and patterns.
 
-## Strings [DONE]
+## Strings
 
 C-Next provides bounded strings with compile-time safety (ADR-045):
 
 ```cnx
-// [DONE] Basic declaration - N is character capacity
+// Basic declaration - N is character capacity
 string<64> name <- "Hello";           // 64 chars max, transpiles to char[65]
 string<128> buffer;                    // Empty string, initialized to ""
 
-// [DONE] Const inference - capacity auto-calculated
+// Const inference - capacity auto-calculated
 const string VERSION <- "1.0.0";       // Inferred as string<5>
 const string APP_NAME <- "MyApp";      // Inferred as string<5>
 
-// [DONE] Properties
+// Properties
 u32 len <- name.length;                // Runtime: strlen(name) = 5
 u32 cap <- name.capacity;              // Compile-time constant: 64
 
-// [DONE] Comparison - uses strcmp internally
+// Comparison - uses strcmp internally
 string<32> a <- "Hello";
 string<64> b <- "Hello";
 
@@ -727,7 +713,7 @@ if (a != b) {                          // strcmp(a, b) != 0
     // Different content
 }
 
-// [DONE] Concatenation with capacity validation
+// Concatenation with capacity validation
 string<32> first <- "Hello";
 string<32> second <- " World";
 string<64> result <- first + second;   // OK: 64 >= 32 + 32
@@ -735,7 +721,7 @@ string<64> result <- first + second;   // OK: 64 >= 32 + 32
 // With literals (tight capacity)
 string<11> greeting <- "Hello" + " World";  // OK: 11 >= 5 + 6
 
-// [DONE] Substring extraction
+// Substring extraction
 string<64> source <- "Hello, World!";
 string<5> hello <- source[0, 5];       // "Hello" - first 5 chars
 string<6> world <- source[7, 6];       // "World!" - 6 chars at position 7
@@ -794,7 +780,7 @@ sub[5] = '\0';
 ## Bit Manipulation
 
 ```cnx
-// [DONE] Type-aware bit indexing (ADR-007)
+// Type-aware bit indexing (ADR-007)
 u8 flags <- 0;
 
 flags[0] <- true;           // Set bit 0
@@ -812,7 +798,7 @@ u32 width32 <- counter.length;  // 32
 ## Bitmap Types
 
 ```cnx
-// [DONE] Portable bit-packed data types (ADR-034)
+// Portable bit-packed data types (ADR-034)
 // Unlike C bit fields, bitmaps guarantee LSB-first ordering
 
 // 8-bit bitmap with named fields
@@ -858,38 +844,38 @@ bitmap16 CANStatus {
 ## Structs
 
 ```cnx
-// [DONE] Struct declaration (ADR-014)
+// Struct declaration (ADR-014)
 struct Point {
     i32 x;
     i32 y;
 }
 
-// [DONE] Zero-initialized by default (ADR-015)
+// Zero-initialized by default (ADR-015)
 Point origin;  // x=0, y=0
 
-// [DONE] Inferred initializer
+// Inferred initializer
 Point p <- { x: 10, y: 20 };
 
-// [DONE] Member access
+// Member access
 p.x <- 100;
 i32 y <- p.y;
 
-// [DONE] Struct with array member
+// Struct with array member
 struct Buffer {
     u8 data[64];
     u32 length;
 }
 
-// [DONE: ADR-032] Named nested structs (no anonymous)
+// Named nested structs - no anonymous (ADR-032)
 struct Rectangle {
     Point topLeft;
     Point bottomRight;
 }
 
-// Nested struct initialization
+// Nested struct initialization (type inferred from field, no redundant type name)
 Rectangle bounds <- {
-    topLeft: Point { x: 10, y: 20 },
-    bottomRight: Point { x: 110, y: 120 }
+    topLeft: { x: 10, y: 20 },
+    bottomRight: { x: 110, y: 120 }
 };
 
 // Chained member access (read)
@@ -904,9 +890,9 @@ struct Material { Color ambient; Color diffuse; }
 struct Mesh { Material mat; u32 vertexCount; }
 
 Mesh cube <- {
-    mat: Material {
-        ambient: Color { r: 50, g: 50, b: 50 },
-        diffuse: Color { r: 200, g: 100, b: 50 }
+    mat: {
+        ambient: { r: 50, g: 50, b: 50 },
+        diffuse: { r: 200, g: 100, b: 50 }
     },
     vertexCount: 36
 };
@@ -926,17 +912,9 @@ struct Packet {
 }
 
 // Access: packet.header.sequence <- 1;
-
-// [TODO: ADR-033] Packed struct
-@packed
-struct TCPHeader {
-    u16 srcPort;
-    u16 dstPort;
-    u32 seqNum;
-}
 ```
 
-## Callbacks (Function-as-Type Pattern) [ACCEPTED]
+## Callbacks (Function-as-Type Pattern)
 
 C-Next provides type-safe callbacks using the Function-as-Type pattern (ADR-029):
 
@@ -1085,7 +1063,7 @@ void Robot_poke(Robot self) {
 - Exhaustive switch = compiler catches missing states
 - Direct calls = easier static analysis and debugging
 
-## ISR Type (Interrupt Service Routines) [IMPLEMENTED]
+## ISR Type (Interrupt Service Routines)
 
 C-Next provides a built-in `ISR` type for interrupt handlers (ADR-040):
 
@@ -1127,21 +1105,21 @@ void initVectors() {
 - **Can be null**: ISR fields don't have automatic defaults (callbacks always have a default)
 - **Use case**: Interrupt vectors (callbacks are for event handlers and plugins)
 
-## Atomic Variables [IMPLEMENTED]
+## Atomic Variables
 
 C-Next provides the `atomic` keyword for ISR-safe variables (ADR-049):
 
 ```cnx
-// [DONE] Target platform selection (determines atomic implementation)
+// Target platform selection (determines atomic implementation)
 #pragma target teensy41     // Cortex-M7: LDREX/STREX
 // #pragma target cortex-m0  // Cortex-M0: PRIMASK fallback
 
-// [DONE] Atomic variables - guaranteed ISR-safe
+// Atomic variables - guaranteed ISR-safe
 atomic u32 counter <- 0;           // ISR-safe counter
 atomic clamp u8 brightness <- 100; // Combines atomic + overflow behavior
 atomic wrap u16 ticks <- 0;        // Wrapping atomic counter
 
-// [DONE] Atomic compound assignment - generates hardware-assisted code
+// Atomic compound assignment - generates hardware-assisted code
 void increment() {
     counter +<- 1;     // Lock-free increment (LDREX/STREX on M3+)
     brightness +<- 10; // Atomic clamp-add
@@ -1212,12 +1190,12 @@ cnext myfile.cnx --target teensy41
 | `cortex-m0`  | Cortex-M0  | ❌          | PRIMASK fallback |
 | `avr`        | AVR        | ❌          | PRIMASK fallback |
 
-## Critical Sections [IMPLEMENTED]
+## Critical Sections
 
 For multi-statement atomic operations, use `critical { }` blocks (ADR-050):
 
 ```cnx
-// [DONE] Critical sections - PRIMASK-based interrupt masking
+// Critical sections - PRIMASK-based interrupt masking
 u8 buffer[64];
 u32 writeIdx <- 0;
 u32 readIdx <- 0;
@@ -1292,7 +1270,7 @@ void goodFunction() {
 | Ring buffer read/write        | `critical { }` |
 | State machine transitions     | `critical { }` |
 
-## C Library Interop with NULL [IMPLEMENTED]
+## C Library Interop with NULL
 
 C-Next variables are never null. C library functions can return nullable pointers.
 Use the `c_` prefix to mark variables storing nullable C returns (ADR-046):
@@ -1348,7 +1326,7 @@ C-Next eliminates null bugs by design. The `c_` prefix pattern:
 ## Register Bindings
 
 ```cnx
-// [DONE] Type-safe hardware access (ADR-004)
+// Type-safe hardware access (ADR-004)
 register GPIO7 @ 0x42004000 {
     DR:         u32 rw @ 0x00,    // Read-Write
     GDIR:       u32 rw @ 0x04,    // Direction
@@ -1358,16 +1336,16 @@ register GPIO7 @ 0x42004000 {
     DR_TOGGLE:  u32 wo @ 0x8C,    // Write-Only atomic toggle
 }
 
-// [DONE] Access registers
+// Access registers
 u32 data <- GPIO7.DR;           // Read
 GPIO7.DR <- 0xFF;               // Write
 
-// [DONE] Bit manipulation on registers
+// Bit manipulation on registers
 GPIO7.DR_SET[3] <- true;        // Set bit 3 (atomic)
 GPIO7.DR_CLEAR[3] <- true;      // Clear bit 3 (atomic)
 GPIO7.DR_TOGGLE[3] <- true;     // Toggle bit 3 (atomic)
 
-// [DONE] Write-only optimization
+// Write-only optimization
 // GPIO7.DR_SET[3] <- true generates:
 //   GPIO7_DR_SET = (1 << 3);
 // No read-modify-write for atomic registers!
@@ -1376,19 +1354,19 @@ GPIO7.DR_TOGGLE[3] <- true;     // Toggle bit 3 (atomic)
 ## Scopes
 
 ```cnx
-// [DONE] Organize code with automatic name prefixing (ADR-016)
+// Organize code with automatic name prefixing (ADR-016)
 scope LED {
     const u32 BIT <- 3;
 
-    void on() {
+    public void on() {
         GPIO7.DR_SET[BIT] <- true;
     }
 
-    void off() {
+    public void off() {
         GPIO7.DR_CLEAR[BIT] <- true;
     }
 
-    void toggle() {
+    public void toggle() {
         GPIO7.DR_TOGGLE[BIT] <- true;
     }
 }
@@ -1403,7 +1381,7 @@ LED.toggle();
 // void LED_off(void) { GPIO7_DR_CLEAR = (1 << 3); }
 // void LED_toggle(void) { GPIO7_DR_TOGGLE = (1 << 3); }
 
-// [DONE] Scoped registers for platform namespacing
+// Scoped registers for platform namespacing
 scope Teensy4 {
     register GPIO7 @ 0x42004000 {
         DR:         u32 rw @ 0x00,
@@ -1426,7 +1404,7 @@ scope Teensy4 {
 // - Group platform-specific registers, constants, and functions
 // - Support multiple platform configurations in same codebase
 
-// [DONE] Scope variables persist like C static variables
+// Scope variables persist like C static variables
 // Initialized once at program start, maintain value across calls
 scope Counter {
     u32 count <- 0;  // Initialized once
@@ -1450,7 +1428,7 @@ Counter.getCount();   // returns 3
 ## Instance Pattern (C-Style OOP)
 
 ```cnx
-// [DONE] Data in structs, behavior in free functions
+// Data in structs, behavior in free functions
 struct UART {
     u32 baseAddress;
     u32 baudRate;
@@ -1500,15 +1478,15 @@ const u32 BLINK_DELAY_MS <- 1000;
 
 // LED control
 scope LED {
-    void on() {
+    public void on() {
         GPIO7.DR_SET[LED_BIT] <- true;
     }
 
-    void off() {
+    public void off() {
         GPIO7.DR_CLEAR[LED_BIT] <- true;
     }
 
-    void toggle() {
+    public void toggle() {
         GPIO7.DR_TOGGLE[LED_BIT] <- true;
     }
 }
