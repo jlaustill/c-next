@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Issue #322: Explicit & syntax for passing address of scope struct members
 // to external C++ functions that expect pointers
 // Tests: &this.member syntax passes address correctly to external functions

@@ -81,7 +81,7 @@ Tests that verify code transpiles and compiles correctly. **NO** result validati
 
 ```cnx
 // Test all operations (NO test-execution comment)
-// Note: No /* test-execution */ marker
+// Note: No // test-execution marker
 
 f32 result;
 
@@ -100,10 +100,10 @@ void main() {
 
 #### 2. Execution Tests (With Validation) ⭐ **MOST TESTS**
 
-Tests marked with `/* test-execution */` that **execute and validate results**. These **MUST validate every operation**.
+Tests marked with `// test-execution` that **execute and validate results**. These **MUST validate every operation**.
 
 ```cnx
-/* test-execution */
+// test-execution
 // Tests: description of what is being validated
 
 u32 main() {
@@ -125,7 +125,7 @@ u32 main() {
 
 **Key Requirements for Execution Tests**:
 
-- **MUST** include `/* test-execution */` comment at top
+- **MUST** include `// test-execution` comment at top
 - **MUST** validate EVERY result with `if (result != expected) return N;`
 - **MUST** use unique return codes (1, 2, 3, ...) for each validation
 - Return 0 **ONLY** if all validations pass
@@ -143,7 +143,7 @@ u32 main() {
 ❌ **WRONG** - Execution test without validation:
 
 ```cnx
-/* test-execution */
+// test-execution
 u32 main() {
     u64 result <- 1000 + 500;
     return 0;  // BUG: Always passes, never validates!
@@ -153,7 +153,7 @@ u32 main() {
 ✅ **CORRECT** - Execution test with validation:
 
 ```cnx
-/* test-execution */
+// test-execution
 u32 main() {
     u64 result <- 1000 + 500;
     if (result != 1500) return 1;  // Validation required!
