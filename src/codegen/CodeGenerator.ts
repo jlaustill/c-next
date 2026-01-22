@@ -255,6 +255,12 @@ export default class CodeGenerator implements IOrchestrator {
   /** ADR-010: Source file path for validating includes */
   private sourcePath: string | null = null;
 
+  /** Issue #349: Include directories for resolving angle-bracket .cnx includes */
+  private includeDirs: string[] = [];
+
+  /** Issue #349: Input directories for calculating relative paths */
+  private inputs: string[] = [];
+
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
 
@@ -1309,6 +1315,10 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-010: Store source path for include validation
     this.sourcePath = options?.sourcePath ?? null;
 
+    // Issue #349: Store include directories and inputs for angle-bracket include resolution
+    this.includeDirs = options?.includeDirs ?? [];
+    this.inputs = options?.inputs ?? [];
+
     // Issue #250: Store C++ mode for temp variable generation
     this.cppMode = options?.cppMode ?? false;
     // Reset temp var state for each generation
@@ -1617,9 +1627,14 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-010: Transform #include directives, converting .cnx to .h
    * ADR-053 A5: Delegates to IncludeGenerator
+   * Issue #349: Now passes includeDirs and inputs for angle-bracket resolution
    */
   private transformIncludeDirective(includeText: string): string {
-    return includeTransformIncludeDirective(includeText, this.sourcePath);
+    return includeTransformIncludeDirective(includeText, {
+      sourcePath: this.sourcePath,
+      includeDirs: this.includeDirs,
+      inputs: this.inputs,
+    });
   }
 
   // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator

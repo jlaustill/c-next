@@ -7,21 +7,97 @@ import * as path from "path";
 import * as Parser from "../../../parser/grammar/CNextParser";
 
 /**
+ * Issue #349: Options for include transformation
+ */
+interface IIncludeTransformOptions {
+  sourcePath: string | null;
+  includeDirs?: string[];
+  inputs?: string[];
+}
+
+/**
+ * Issue #349: Find a .cnx file in the given search paths.
+ * Returns the absolute path if found, null otherwise.
+ */
+const findCnxFile = (
+  filename: string,
+  searchPaths: string[],
+): string | null => {
+  for (const searchPath of searchPaths) {
+    const cnxPath = path.resolve(searchPath, `${filename}.cnx`);
+    if (fs.existsSync(cnxPath)) {
+      return cnxPath;
+    }
+  }
+  return null;
+};
+
+/**
+ * Issue #349: Calculate the relative path from input directories.
+ * Returns the relative path (e.g., "Display/utils.cnx") or null if not found.
+ */
+const getRelativePathFromInputs = (
+  filePath: string,
+  inputs: string[],
+): string | null => {
+  for (const input of inputs) {
+    const resolvedInput = path.resolve(input);
+
+    // Skip if input is a file (not a directory)
+    if (fs.existsSync(resolvedInput) && fs.statSync(resolvedInput).isFile()) {
+      continue;
+    }
+
+    const relativePath = path.relative(resolvedInput, filePath);
+
+    // If relative path doesn't start with '..' it's under this input
+    if (!relativePath.startsWith("..") && !path.isAbsolute(relativePath)) {
+      return relativePath;
+    }
+  }
+  return null;
+};
+
+/**
  * ADR-010: Transform #include directives, converting .cnx to .h
  * Validates that .cnx files exist if sourcePath is available
  * Supports both <file.cnx> and "file.cnx" forms
+ *
+ * Issue #349: For angle-bracket includes, resolves the correct output path
+ * by finding the .cnx file and calculating its relative path from inputs.
  */
 const transformIncludeDirective = (
   includeText: string,
-  sourcePath: string | null,
+  options: IIncludeTransformOptions,
 ): string => {
+  const { sourcePath, includeDirs = [], inputs = [] } = options;
+
   // Match: #include <file.cnx> or #include "file.cnx"
   const angleMatch = includeText.match(/#\s*include\s*<([^>]+)\.cnx>/);
   const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)\.cnx"/);
 
   if (angleMatch) {
     const filename = angleMatch[1];
-    // Angle brackets: system/library includes - no validation needed
+
+    // Issue #349: Try to resolve the .cnx file to get correct output path
+    if (sourcePath) {
+      const sourceDir = path.dirname(sourcePath);
+      // Build search paths: source directory first, then include directories
+      const searchPaths = [sourceDir, ...includeDirs];
+
+      const foundPath = findCnxFile(filename, searchPaths);
+      if (foundPath && inputs.length > 0) {
+        // Calculate relative path from inputs for correct header path
+        const relativePath = getRelativePathFromInputs(foundPath, inputs);
+        if (relativePath) {
+          // Transform .cnx to .h
+          const headerPath = relativePath.replace(/\.cnx$/, ".h");
+          return includeText.replace(`<${filename}.cnx>`, `<${headerPath}>`);
+        }
+      }
+    }
+
+    // Fallback: simple replacement (for external includes or when resolution fails)
     return includeText.replace(`<${filename}.cnx>`, `<${filename}.h>`);
   } else if (quoteMatch) {
     const filepath = quoteMatch[1];

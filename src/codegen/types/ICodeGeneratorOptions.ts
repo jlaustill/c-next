@@ -24,6 +24,16 @@ interface ICodeGeneratorOptions {
    * Example: "Display/Utils.cnx" -> #include "Display/Utils.h"
    */
   sourceRelativePath?: string;
+  /**
+   * Issue #349: Include directories for resolving angle-bracket .cnx includes.
+   * Used to search for .cnx files referenced in #include <file.cnx> directives.
+   */
+  includeDirs?: string[];
+  /**
+   * Issue #349: Input directories for calculating relative paths.
+   * Used to determine the correct output path prefix for headers.
+   */
+  inputs?: string[];
 }
 
 export default ICodeGeneratorOptions;
