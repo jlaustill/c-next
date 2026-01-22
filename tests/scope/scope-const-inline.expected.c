@@ -6,12 +6,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
 /* Scope: ConstTest */
 const uint8_t ConstTest_PUBLIC_MAX = 200;
 const uint32_t ConstTest_PUBLIC_ID = 42;
+static uint8_t ConstTest_counter = 0;
 
 uint8_t ConstTest_getMaxValue(void) {
     return 255;
@@ -38,7 +39,6 @@ uint32_t ConstTest_getPublicId(void) {
 }
 
 uint8_t ConstTest_getCounter(void) {
-    uint8_t ConstTest_counter = 0;
     return ConstTest_counter;
 }
 

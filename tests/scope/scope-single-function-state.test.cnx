@@ -1,0 +1,31 @@
+// test-execution
+// Tests: Issue #313 - Scope variables persist even when used by one function
+//
+// Scope variables must persist across all calls (ADR-016), even if only
+// accessed by a single function. This test verifies the fix.
+
+scope SingleFunctionState {
+    u32 callCount <- 0;  // Only used by countCalls()
+
+    // This function both modifies AND reads the variable
+    public u32 countCalls() {
+        this.callCount <- this.callCount + 1;
+        return this.callCount;
+    }
+}
+
+u32 main() {
+    // First call: callCount 0 -> 1
+    u32 first <- SingleFunctionState.countCalls();
+    if (first != 1) return 1;
+
+    // Second call: callCount 1 -> 2 (must persist!)
+    u32 second <- SingleFunctionState.countCalls();
+    if (second != 2) return 2;
+
+    // Third call: callCount 2 -> 3
+    u32 third <- SingleFunctionState.countCalls();
+    if (third != 3) return 3;
+
+    return 0;
+}

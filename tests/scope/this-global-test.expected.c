@@ -9,6 +9,7 @@
 const uint8_t globalValue = 10;
 
 /* Scope: Motor */
+static uint8_t Motor_state = 0;
 
 uint8_t Motor_getLocalValue(void) {
     return 5;
@@ -23,7 +24,6 @@ uint8_t Motor_getSum(void) {
 }
 
 void Motor_setState(uint8_t val) {
-    uint8_t Motor_state = 0;
     Motor_state = val;
 }
 

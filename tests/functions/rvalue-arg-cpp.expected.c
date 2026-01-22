@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Tests: Issue #250 - rvalue expressions in C++ mode
 // C++ compound literals are rvalues, can't take address
 //

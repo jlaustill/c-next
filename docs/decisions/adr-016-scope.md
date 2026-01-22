@@ -129,6 +129,44 @@ uint32_t Counter_getValue(void) {
 | Function-local variables | Function call    | Reset each call (standard C behavior)      |
 | Global variables         | Program lifetime | Persist across all function calls          |
 
+### Thread Safety and Reentrancy (Issue #313)
+
+Scope variables use static storage, which means functions accessing them are **not reentrant** by design. This is intentional and safe in C-Next because:
+
+1. **Compiler enforcement**: If a scope variable is accessed from multiple execution contexts (threads, RTOS tasks, interrupts), the compiler requires it to be marked `atomic`. This prevents accidental unsafe sharing.
+
+2. **Semantic clarity**: Scope variables are meant for persistent state (counters, accumulators, state machines). If you need a reentrant utility function, use function-local variables instead.
+
+**Example - Reentrant vs Non-Reentrant Design:**
+
+```cnx
+// NON-REENTRANT: Scope variable persists (correct for state)
+scope Counter {
+    u32 value <- 0;
+
+    public void increment() {
+        this.value <- this.value + 1;  // Persists across calls
+    }
+}
+
+// REENTRANT: Local variable resets each call (correct for utilities)
+scope CRC {
+    public u32 calculate(u8[] data) {
+        u32 acc <- 0xFFFFFFFF;  // Local - each call gets fresh state
+        // ... calculate CRC ...
+        return acc;
+    }
+}
+```
+
+**Why not optimize single-function variables to local?** (Issue #232, fixed in #313)
+
+A previous optimization attempted to convert scope variables used by only one function into function-local variables. This was **incorrect** because it changed observable behavior — a counter would reset on each call instead of persisting. The optimization was removed because:
+
+- It violated the semantic contract of scope variables (static-like persistence)
+- C-Next's `atomic` enforcement already prevents unsafe multi-context access
+- Users who need reentrant functions should explicitly use local variables
+
 ### Scoped Registers
 
 Scopes can contain register declarations for platform-specific hardware:

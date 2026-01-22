@@ -1,4 +1,4 @@
-/* test-execution */
+// test-execution
 // Tests: Issue #245 - rvalue expressions passed to pointer parameters
 
 u32 process(u32 crc, u8 byte) {

@@ -28,9 +28,9 @@ AllTypes globalStruct = {0};
 
 // Test in scope context
 /* Scope: TestScope */
+static AllTypes TestScope_scopeStruct = {0};
 
 uint32_t TestScope_checkScopeStructMember(void) {
-    AllTypes TestScope_scopeStruct = {0};
     if (32 != 32) {
         return 1;
     }

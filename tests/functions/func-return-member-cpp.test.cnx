@@ -1,5 +1,5 @@
 // tests/functions/func-return-member-cpp.test.cnx
-/* test-execution */
+// test-execution
 // Tests: Issue #256 - function return member passing in C++ mode
 // When passing getConfig().member to u8 parameter, must generate temp variable
 // because bool* and enum* cannot convert to uint8_t* in C++

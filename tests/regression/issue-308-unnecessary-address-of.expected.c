@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Tests: Issue #308 - Unnecessary & added to struct member arrays
 // NOTE: Uses cpp mode because C++ has stricter type checking that catches this error
 // The .hpp include triggers C++ mode automatically

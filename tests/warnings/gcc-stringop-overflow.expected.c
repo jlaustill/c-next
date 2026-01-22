@@ -44,7 +44,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 }
 
 /* test-no-warnings */
-/* test-execution */
+// test-execution
 // Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
 // Validates: Clamp compound assignment should not trigger false warnings
 // Coverage: __builtin_*_overflow allows GCC to track value bounds correctly

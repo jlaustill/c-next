@@ -39,6 +39,7 @@ uint16_t ModifierCombos_publicClampWord = 60000;
 int8_t ModifierCombos_publicClampSigned = 100;
 static uint8_t ModifierCombos_privateClampByte = 50;
 static uint16_t ModifierCombos_privateClampWord = 10000;
+static int8_t ModifierCombos_privateClampSigned = -50;
 uint8_t ModifierCombos_publicWrapByte = 250;
 uint16_t ModifierCombos_publicWrapWord = 65530;
 static uint8_t ModifierCombos_privateWrapByte = 5;
@@ -87,7 +88,6 @@ uint16_t ModifierCombos_getPrivateClampWord(void) {
 }
 
 int8_t ModifierCombos_getPrivateClampSigned(void) {
-    int8_t ModifierCombos_privateClampSigned = -50;
     return ModifierCombos_privateClampSigned;
 }
 
