@@ -133,13 +133,12 @@ const generateFunctionCall = (
         const symbols = input.symbolTable.getOverloads(funcExpr);
         for (const sym of symbols) {
           if (sym.kind === ESymbolKind.Function && sym.parameters?.[idx]) {
-            // Map symbol parameter to targetParam format
+            // Map symbol parameter to targetParam format (IFunctionSignature.parameters)
             targetParam = {
               name: sym.parameters[idx].name,
               baseType: sym.parameters[idx].type,
               isConst: sym.parameters[idx].isConst,
               isArray: sym.parameters[idx].isArray,
-              arrayDimensions: sym.parameters[idx].arrayDimensions,
             };
             isCrossFileFunction = true;
             break;
