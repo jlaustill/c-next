@@ -17,6 +17,7 @@ import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
+import SymbolUtils from "./SymbolUtils";
 
 /**
  * Collects symbols from a C parse tree
@@ -26,6 +27,8 @@ class CSymbolCollector {
 
   private symbols: ISymbol[] = [];
 
+  private warnings: string[] = [];
+
   private symbolTable: SymbolTable | null;
 
   constructor(sourceFile: string, symbolTable?: SymbolTable) {
@@ -34,10 +37,18 @@ class CSymbolCollector {
   }
 
   /**
+   * Get warnings generated during symbol collection
+   */
+  getWarnings(): string[] {
+    return this.warnings;
+  }
+
+  /**
    * Collect all symbols from a C compilation unit
    */
   collect(tree: CompilationUnitContext): ISymbol[] {
     this.symbols = [];
+    this.warnings = [];
 
     const translationUnit = tree.translationUnit();
     if (!translationUnit) {
@@ -305,6 +316,14 @@ class CSymbolCollector {
       const fieldName = this.extractDeclaratorName(declarator);
       if (!fieldName) continue;
 
+      // Warn if field name conflicts with C-Next reserved property names
+      if (SymbolUtils.isReservedFieldName(fieldName)) {
+        this.warnings.push(
+          `Warning: C header struct '${structName}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
+            `Consider renaming the field or be aware that '${structName}.${fieldName}' may not work as expected in C-Next code.`,
+        );
+      }
+
       // Check if this field is an array and extract dimensions
       const arrayDimensions = this.extractArrayDimensions(declarator);
 
@@ -364,27 +383,12 @@ class CSymbolCollector {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private extractArrayDimensions(declarator: any): number[] {
-    const dimensions: number[] = [];
-
     // Navigate to directDeclarator
     const directDecl = declarator.directDeclarator?.();
-    if (!directDecl) return dimensions;
+    if (!directDecl) return [];
 
-    // Check for array syntax: directDeclarator '[' ... ']'
-    // This is a simplified extraction - may need enhancement for complex cases
-    const text = directDecl.getText();
-    const arrayMatches = text.match(/\[(\d+)\]/g);
-
-    if (arrayMatches) {
-      for (const match of arrayMatches) {
-        const size = parseInt(match.slice(1, -1), 10);
-        if (!isNaN(size)) {
-          dimensions.push(size);
-        }
-      }
-    }
-
-    return dimensions;
+    // Use shared utility for regex-based extraction
+    return SymbolUtils.parseArrayDimensions(directDecl.getText());
   }
 
   // Helper methods
@@ -395,16 +399,33 @@ class CSymbolCollector {
     const directDecl = declarator.directDeclarator?.();
     if (!directDecl) return null;
 
-    // Check for identifier
+    return this.extractDirectDeclaratorName(directDecl);
+  }
+
+  /**
+   * Issue #355: Extract identifier from directDeclarator, handling arrays and function pointers.
+   * The C grammar has recursive directDeclarator for arrays: `directDeclarator '[' ... ']'`
+   * so `buf[8]` is parsed as directDeclarator('[', directDeclarator('buf'), ']')
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractDirectDeclaratorName(directDecl: any): string | null {
+    // Check for identifier (base case)
     const identifier = directDecl.Identifier?.();
     if (identifier) {
       return identifier.getText();
     }
 
-    // Nested declarator - recurse
+    // Nested declarator in parentheses: '(' declarator ')'
     const nestedDecl = directDecl.declarator?.();
     if (nestedDecl) {
       return this.extractDeclaratorName(nestedDecl);
+    }
+
+    // Issue #355: Nested directDeclarator for arrays/functions
+    // Grammar: directDeclarator '[' ... ']' or directDeclarator '(' ... ')'
+    const nestedDirectDecl = directDecl.directDeclarator?.();
+    if (nestedDirectDecl) {
+      return this.extractDirectDeclaratorName(nestedDirectDecl);
     }
 
     return null;

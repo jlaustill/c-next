@@ -3,7 +3,7 @@
 // Tests if, while, for, and switch with .length property
 struct Packet {
     u32 header;
-    u16 length;
+    u16 pktLength;
     u8 type;
     u64 payload;
 }
@@ -11,7 +11,7 @@ struct Packet {
 u32 main() {
     Packet pkt;
     pkt.header <- 0xDEADBEEF;
-    pkt.length <- 256;
+    pkt.pktLength <- 256;
     pkt.type <- 1;
     pkt.payload <- 0x123456789ABCDEF;
 

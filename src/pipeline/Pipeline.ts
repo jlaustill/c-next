@@ -1018,10 +1018,25 @@ class Pipeline {
 
       // Step 6: Run analyzers with struct field info from C/C++ headers
       // Convert struct fields from IStructFieldInfo map to Set<string> for analyzer
+      // Issue #355: Exclude array fields from init checking since the analyzer
+      // can't prove loop-based array initialization is complete. This maintains
+      // backward compatibility while still allowing array field detection for codegen.
       const externalStructFields = new Map<string, Set<string>>();
       const allStructFields = this.symbolTable.getAllStructFields();
       for (const [structName, fieldMap] of allStructFields) {
-        externalStructFields.set(structName, new Set(fieldMap.keys()));
+        const nonArrayFields = new Set<string>();
+        for (const [fieldName, fieldInfo] of fieldMap) {
+          // Only include non-array fields in init checking
+          if (
+            !fieldInfo.arrayDimensions ||
+            fieldInfo.arrayDimensions.length === 0
+          ) {
+            nonArrayFields.add(fieldName);
+          }
+        }
+        if (nonArrayFields.size > 0) {
+          externalStructFields.set(structName, nonArrayFields);
+        }
       }
 
       const analyzerErrors = runAnalyzers(tree, tokenStream, {

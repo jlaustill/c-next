@@ -9,11 +9,11 @@
 // Tests: array of structs with initializers
 typedef struct Command {
     uint8_t code;
-    uint8_t length;
+    uint8_t len;
 } Command;
 
 // Array of structs with explicit size
-const Command commands[3] = {(Command){ .code = 0x01, .length = 4 }, (Command){ .code = 0x02, .length = 8 }, (Command){ .code = 0x03, .length = 2 }};
+const Command commands[3] = {(Command){ .code = 0x01, .len = 4 }, (Command){ .code = 0x02, .len = 8 }, (Command){ .code = 0x03, .len = 2 }};
 
 // Array of structs with size inference
-Command moreCommands[2] = {(Command){ .code = 0x10, .length = 1 }, (Command){ .code = 0x20, .length = 2 }};
+Command moreCommands[2] = {(Command){ .code = 0x10, .len = 1 }, (Command){ .code = 0x20, .len = 2 }};

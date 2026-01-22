@@ -1,4 +1,4 @@
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+// test-execution
 // test-coverage: 30-use-c-struct-array-field
 // Tests: Using C structs with array fields
 // ADR-010: Array field access in imported C structs
@@ -9,10 +9,10 @@ u32 main() {
    
 // Test 1: DataBuffer with uint8_t array
     DataBuffer buf;
-    buf.length <- 4;
+    buf.len <- 4;
 
     // Write to array elements
-    for (u32 i <- 0; i < buf.length; i +<- 1) {
+    for (u32 i <- 0; i < buf.len; i +<- 1) {
         buf.data[i] <- i * 10;
     }
 

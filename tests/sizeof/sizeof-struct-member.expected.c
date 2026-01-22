@@ -22,7 +22,7 @@ typedef struct Sensor {
 
 typedef struct DataBuffer {
     uint8_t data[64];
-    uint32_t length;
+    uint32_t len;
 } DataBuffer;
 
 Point globalPoint = {0};
@@ -52,7 +52,7 @@ int main(void) {
     DataBuffer buf = {0};
     uint32_t dataSize = sizeof(buf.data);
     if (dataSize != 64) return 8;
-    uint32_t lenSize = sizeof(buf.length);
+    uint32_t lenSize = sizeof(buf.len);
     if (lenSize != 4) return 9;
     uint32_t globalXSize = sizeof(globalPoint.x);
     if (globalXSize != 4) return 10;

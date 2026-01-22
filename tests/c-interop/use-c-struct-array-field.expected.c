@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+// test-execution
 // test-coverage: 30-use-c-struct-array-field
 // Tests: Using C structs with array fields
 // ADR-010: Array field access in imported C structs
@@ -23,8 +23,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 int main(void) {
     DataBuffer buf = {0};
-    buf.length = 4;
-    for (uint32_t i = 0; i < 0; i += 1) {
+    buf.len = 4;
+    for (uint32_t i = 0; i < buf.len; i += 1) {
         buf.data[i] = i * 10;
     }
     if (buf.data[0] != 0) return 1;
@@ -44,7 +44,7 @@ int main(void) {
         sum = cnx_clamp_add_u32(sum, va.values[i]);
     }
     if (sum != 2800) return 8;
-    if (0 != 8) return 9;
-    if (0 != 32) return 10;
+    if (8 != 8) return 9;
+    if (32 != 32) return 10;
     return 0;
 }

@@ -1,4 +1,4 @@
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+// test-execution
 // test-coverage: 30-use-c-struct-anonymous
 // Tests: Using anonymous C structs with typedef
 // ADR-010: Anonymous struct typedef import from C headers
@@ -17,14 +17,14 @@ u32 main() {
    
 // Test 2: Use DataBuffer with array field
     DataBuffer buf;
-    buf.length <- 5;
+    buf.len <- 5;
     buf.data[0] <- 0x11;
     buf.data[1] <- 0x22;
     buf.data[2] <- 0x33;
     buf.data[3] <- 0x44;
     buf.data[4] <- 0x55;
 
-    if (buf.length != 5) return 3;
+    if (buf.len != 5) return 3;
     if (buf.data[0] != 0x11) return 4;
     if (buf.data[4] != 0x55) return 5;
 

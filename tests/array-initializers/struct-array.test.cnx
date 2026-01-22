@@ -2,15 +2,15 @@
 // Tests: array of structs with initializers
 struct Command {
     u8 code;
-    u8 length;
+    u8 len;
 }
 
 // Array of structs with explicit size
 const Command commands[3] <- [
-    {code: 0x01, length: 4},
-    {code: 0x02, length: 8},
-    {code: 0x03, length: 2}
+    {code: 0x01, len: 4},
+    {code: 0x02, len: 8},
+    {code: 0x03, len: 2}
 ];
 
 // Array of structs with size inference
-Command moreCommands[] <- [{code: 0x10, length: 1}, {code: 0x20, length: 2}];
+Command moreCommands[] <- [{code: 0x10, len: 1}, {code: 0x20, len: 2}];

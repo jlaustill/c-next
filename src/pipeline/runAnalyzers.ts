@@ -2,12 +2,13 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 7 analyzers run in sequence, each returning errors that block compilation.
+ * All 8 analyzers run in sequence, each returning errors that block compilation.
  */
 
 import { CommonTokenStream } from "antlr4ng";
 import { ProgramContext } from "../parser/grammar/CNextParser";
 import ParameterNamingAnalyzer from "../analysis/ParameterNamingAnalyzer";
+import StructFieldAnalyzer from "../analysis/StructFieldAnalyzer";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
 import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
@@ -59,7 +60,24 @@ function runAnalyzers(
     return errors;
   }
 
-  // 2. Initialization analysis (Rust-style use-before-init detection)
+  // 2. Struct field validation (reserved field names like 'length')
+  const structFieldAnalyzer = new StructFieldAnalyzer();
+  const structFieldErrors = structFieldAnalyzer.analyze(tree);
+
+  for (const fieldError of structFieldErrors) {
+    errors.push({
+      line: fieldError.line,
+      column: fieldError.column,
+      message: `error[${fieldError.code}]: ${fieldError.message}`,
+      severity: "error",
+    });
+  }
+
+  if (errors.length > 0) {
+    return errors;
+  }
+
+  // 3. Initialization analysis (Rust-style use-before-init detection)
   const initAnalyzer = new InitializationAnalyzer();
 
   // Register external struct fields from C/C++ headers if provided

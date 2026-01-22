@@ -21,7 +21,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests if, while, for, and switch with .length property
 typedef struct Packet {
     uint32_t header;
-    uint16_t length;
+    uint16_t pktLength;
     uint8_t type;
     uint64_t payload;
 } Packet;
@@ -29,7 +29,7 @@ typedef struct Packet {
 int main(void) {
     Packet pkt = {0};
     pkt.header = 0xDEADBEEF;
-    pkt.length = 256;
+    pkt.pktLength = 256;
     pkt.type = 1;
     pkt.payload = 0x123456789ABCDEF;
     if (32 != 32) {

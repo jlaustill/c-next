@@ -13,6 +13,7 @@ import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
+import SymbolUtils from "./SymbolUtils";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
@@ -25,6 +26,8 @@ class CppSymbolCollector {
 
   private symbols: ISymbol[] = [];
 
+  private warnings: string[] = [];
+
   private currentNamespace: string | undefined;
 
   private symbolTable: SymbolTable | null;
@@ -35,10 +38,18 @@ class CppSymbolCollector {
   }
 
   /**
+   * Get warnings generated during symbol collection
+   */
+  getWarnings(): string[] {
+    return this.warnings;
+  }
+
+  /**
    * Collect all symbols from a C++ translation unit
    */
   collect(tree: TranslationUnitContext): ISymbol[] {
     this.symbols = [];
+    this.warnings = [];
     this.currentNamespace = undefined;
 
     if (!tree) {
@@ -398,6 +409,14 @@ class CppSymbolCollector {
         continue;
       }
 
+      // Warn if field name conflicts with C-Next reserved property names
+      if (SymbolUtils.isReservedFieldName(fieldName)) {
+        this.warnings.push(
+          `Warning: C++ header struct '${className}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
+            `Consider renaming the field or be aware that '${className}.${fieldName}' may not work as expected in C-Next code.`,
+        );
+      }
+
       // Extract array dimensions if any
       const arrayDimensions = this.extractArrayDimensions(declarator);
 
@@ -438,22 +457,8 @@ class CppSymbolCollector {
    * Extract array dimensions from a noPointerDeclarator
    */
   private extractArrayDimensionsFromNoPtr(noPtr: any): number[] {
-    const dimensions: number[] = [];
-
-    // Check for array notation: noPointerDeclarator '[' ... ']'
-    const text = noPtr.getText();
-    const arrayMatches = text.match(/\[(\d+)\]/g);
-
-    if (arrayMatches) {
-      for (const match of arrayMatches) {
-        const size = parseInt(match.slice(1, -1), 10);
-        if (!isNaN(size)) {
-          dimensions.push(size);
-        }
-      }
-    }
-
-    return dimensions;
+    // Use shared utility for regex-based extraction
+    return SymbolUtils.parseArrayDimensions(noPtr.getText());
   }
 
   private collectEnumSpecifier(enumSpec: any, line: number): void {
@@ -496,47 +501,10 @@ class CppSymbolCollector {
 
   /**
    * Issue #208: Map C/C++ type names to their bit widths
-   * Supports standard integer types used as enum backing types
+   * Delegates to shared utility for consistent type width mapping
    */
   private getTypeWidth(typeName: string): number {
-    const typeWidths: Record<string, number> = {
-      // stdint.h types
-      uint8_t: 8,
-      int8_t: 8,
-      uint16_t: 16,
-      int16_t: 16,
-      uint32_t: 32,
-      int32_t: 32,
-      uint64_t: 64,
-      int64_t: 64,
-      // Standard C types (common sizes)
-      char: 8,
-      "signed char": 8,
-      "unsigned char": 8,
-      short: 16,
-      "short int": 16,
-      "signed short": 16,
-      "signed short int": 16,
-      "unsigned short": 16,
-      "unsigned short int": 16,
-      int: 32,
-      "signed int": 32,
-      unsigned: 32,
-      "unsigned int": 32,
-      long: 32,
-      "long int": 32,
-      "signed long": 32,
-      "signed long int": 32,
-      "unsigned long": 32,
-      "unsigned long int": 32,
-      "long long": 64,
-      "long long int": 64,
-      "signed long long": 64,
-      "signed long long int": 64,
-      "unsigned long long": 64,
-      "unsigned long long int": 64,
-    };
-    return typeWidths[typeName] ?? 0;
+    return SymbolUtils.getTypeWidth(typeName);
   }
 
   // Helper methods
