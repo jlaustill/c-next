@@ -158,6 +158,18 @@ async function runTest(
   tools: ITools,
 ): Promise<ITestResult> {
   const source = readFileSync(cnxFile, "utf-8");
+
+  // Check for incorrect test-execution marker format (Issue #322)
+  // The correct format is "// test-execution" (single-line comment)
+  // Fail early if the incorrect block comment format is used
+  if (/\/\*\s*test-execution\s*\*\//.test(source)) {
+    return {
+      passed: false,
+      message:
+        'Invalid test-execution marker: use "// test-execution" not "/* test-execution */"',
+    };
+  }
+
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
