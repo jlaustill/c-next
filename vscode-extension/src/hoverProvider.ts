@@ -3,6 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import parseWithSymbols from "../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
+import TLanguage from "../../src/lib/types/TLanguage";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import { lastGoodOutputPath } from "./extension";
 
@@ -219,11 +220,6 @@ function getAccessDescription(access: string): string {
 }
 
 /**
- * Language type for source traceability
- */
-type TLanguage = "cnext" | "c" | "cpp";
-
-/**
  * Detect the language type from a file path
  * For .h files, defaults to C but can be overridden if C++ constructs are detected
  */
@@ -305,15 +301,20 @@ function formatSourceFooter(
   const languageLabel = getLanguageLabel(language, ext);
 
   // Create a clickable link that opens the file at the specific line
-  // VS Code markdown supports command URIs
+  // VS Code markdown supports command URIs - use vscode.open with selection options
   const fileUri = vscode.Uri.file(filePath);
-  const encodedUri = encodeURIComponent(
-    JSON.stringify([
-      fileUri.toString(),
-      { selection: { startLineNumber: line, startColumn: 1 } },
-    ]),
-  );
-  const commandUri = `command:editor.action.goToLocations?${encodedUri}`;
+  const openArgs = [
+    fileUri.toString(),
+    {
+      selection: {
+        startLineNumber: line,
+        startColumn: 1,
+        endLineNumber: line,
+        endColumn: 1,
+      },
+    },
+  ];
+  const commandUri = `command:vscode.open?${encodeURIComponent(JSON.stringify(openArgs))}`;
 
   return `\n\n---\nSource: [${displayPath}:${line}](${commandUri}) (${languageLabel})`;
 }
@@ -402,6 +403,9 @@ function buildSymbolHover(
     md.appendMarkdown(
       formatSourceFooter(displayFile, symbol.line, workspaceIndex),
     );
+  } else {
+    // Fallback: show just the line number if no source file is available
+    md.appendMarkdown(`\n\n*Line ${symbol.line}*`);
   }
 
   return md;

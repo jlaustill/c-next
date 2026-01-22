@@ -1,9 +1,5 @@
 import TSymbolKind from "./TSymbolKind";
-
-/**
- * Language type for source traceability
- */
-type TLanguage = "cnext" | "c" | "cpp";
+import TLanguage from "./TLanguage";
 
 /**
  * Symbol information for IDE features (autocomplete, hover)
