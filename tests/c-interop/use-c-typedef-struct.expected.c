@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+// test-execution
 // test-coverage: 30-use-c-typedef-struct
 // Tests: Using C typedef'd struct types from header
 // ADR-010: Struct typedef import from C headers

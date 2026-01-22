@@ -32,7 +32,7 @@ typedef struct {
 /* Struct with array fields */
 typedef struct {
     uint8_t data[32];
-    uint32_t length;
+    uint32_t len;  /* Note: avoid 'length' to not collide with .length property */
 } DataBuffer;
 
 /* Struct with fixed array field for .length testing */

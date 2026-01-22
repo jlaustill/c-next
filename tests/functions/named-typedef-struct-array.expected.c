@@ -5,19 +5,16 @@
 
 // tests/functions/named-typedef-struct-array.test.cnx
 // test-execution
-// Tests: Issue #347 - named typedef struct array member passing
-// When passing msg.buf (u8[8]) from a NAMED typedef struct to a function
-// expecting const u8 data[8], the transpiler should NOT add '&' prefix.
-// Arrays naturally decay to pointers in C/C++.
-//
-// This tests the pattern: typedef struct CAN_message_t { ... } CAN_message_t;
-// (as opposed to anonymous: typedef struct { ... } CAN_message_t;)
+// Tests: Issue #355 - Array member via pointer generates invalid static_cast in C++ mode
+// This test reproduces the EXACT pattern from issue #355:
+// A scope method calls another scope method, passing a const struct array member.
 #include "named-typedef-struct-array.h"
 
 #include <stdint.h>
 
-// Function that takes an array parameter
-uint32_t processNamedStructBuffer(const uint8_t data[8], uint8_t len) {
+/* Scope: Handler */
+
+uint32_t Handler_processBuffer(const uint8_t data[8], uint8_t len) {
     uint32_t sum = 0;
     uint8_t i = 0;
     while (i < len) {
@@ -27,9 +24,33 @@ uint32_t processNamedStructBuffer(const uint8_t data[8], uint8_t len) {
     return sum;
 }
 
-// Test with CAN_message_t (named typedef struct)
-uint32_t testCANMessage(void) {
-    CAN_message_t msg = {};
+uint32_t Handler_processData(const uint8_t data[16], uint8_t len) {
+    uint32_t sum = 0;
+    uint8_t i = 0;
+    while (i < len) {
+        sum = sum + data[i];
+        i = i + 1;
+    }
+    return sum;
+}
+
+uint32_t Handler_handleMessage(const CAN_message_t* msg) {
+    return Handler_processBuffer(msg->buf, msg->len);
+}
+
+uint32_t Handler_processMultiArray(const MultiArray_t* multi) {
+    uint32_t headerSum = Handler_processBuffer(multi->header, 4);
+    uint32_t bodySum = Handler_processData(multi->body, multi->sizes[1]);
+    return headerSum + bodySum;
+}
+
+uint32_t Handler_handleMutableMessage(const CAN_message_t* msg) {
+    return Handler_processBuffer(msg->buf, msg->len);
+}
+
+uint32_t testNamedTypedefConstArrayMember(void) {
+    CAN_message_t msg = {0};
+    msg.id = 1234;
     msg.buf[0] = 10;
     msg.buf[1] = 20;
     msg.buf[2] = 30;
@@ -39,60 +60,41 @@ uint32_t testCANMessage(void) {
     msg.buf[6] = 0;
     msg.buf[7] = 0;
     msg.len = 4;
-    uint32_t result = processNamedStructBuffer(msg.buf, msg.len);
-    return result;
-}
-
-// Test with CANFrame_t (another named typedef struct)
-uint32_t testCANFrame(void) {
-    CANFrame_t frame = {};
-    frame.data[0] = 1;
-    frame.data[1] = 2;
-    frame.data[2] = 3;
-    frame.data[3] = 4;
-    frame.data[4] = 5;
-    frame.data[5] = 6;
-    frame.data[6] = 7;
-    frame.data[7] = 8;
-    frame.dlc = 8;
-    uint32_t result = processNamedStructBuffer(frame.data, frame.dlc);
-    return result;
-}
-
-// Test passing array member inside a scope (like the original bug report)
-/* Scope: Handler */
-
-void Handler_process(const uint8_t data[8], uint8_t len) {
-}
-
-uint32_t Handler_handleMessage(const CAN_message_t* msg) {
-    Handler_process(msg->buf, msg->len);
-    uint32_t sum = 0;
-    uint8_t i = 0;
-    while (i < msg->len) {
-        sum = sum + msg->buf[i];
-        i = i + 1;
-    }
-    return sum;
-}
-
-uint32_t testScopeHandler(void) {
-    CAN_message_t msg = {};
-    msg.buf[0] = 5;
-    msg.buf[1] = 10;
-    msg.buf[2] = 15;
-    msg.buf[3] = 20;
-    msg.len = 4;
     uint32_t result = Handler_handleMessage(&msg);
     return result;
 }
 
+uint32_t testMultipleArrayMembers(void) {
+    MultiArray_t multi = {0};
+    multi.header[0] = 1;
+    multi.header[1] = 2;
+    multi.header[2] = 3;
+    multi.header[3] = 4;
+    multi.body[0] = 10;
+    multi.body[1] = 20;
+    multi.sizes[0] = 4;
+    multi.sizes[1] = 2;
+    multi.sizes[2] = 2;
+    uint32_t result = Handler_processMultiArray(&multi);
+    return result;
+}
+
+uint32_t testNonConstArrayMember(void) {
+    CAN_message_t msg = {0};
+    msg.id = 999;
+    msg.buf[0] = 100;
+    msg.buf[1] = 50;
+    msg.len = 2;
+    uint32_t result = Handler_handleMutableMessage(&msg);
+    return result;
+}
+
 int main(void) {
-    uint32_t result1 = testCANMessage();
+    uint32_t result1 = testNamedTypedefConstArrayMember();
     if (result1 != 100) return 1;
-    uint32_t result2 = testCANFrame();
-    if (result2 != 36) return 2;
-    uint32_t result3 = testScopeHandler();
-    if (result3 != 50) return 3;
+    uint32_t result2 = testMultipleArrayMembers();
+    if (result2 != 40) return 2;
+    uint32_t result3 = testNonConstArrayMember();
+    if (result3 != 150) return 3;
     return 0;
 }

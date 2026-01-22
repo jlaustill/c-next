@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// NOTE: test-execution disabled due to Issue #196 (.length code generation bug)
+// test-execution
 // test-coverage: 30-use-c-struct-anonymous
 // Tests: Using anonymous C structs with typedef
 // ADR-010: Anonymous struct typedef import from C headers
@@ -19,13 +19,13 @@ int main(void) {
     if (sr.id != 99999) return 1;
     if (sr.flags != 0x1234) return 2;
     DataBuffer buf = {0};
-    buf.length = 5;
+    buf.len = 5;
     buf.data[0] = 0x11;
     buf.data[1] = 0x22;
     buf.data[2] = 0x33;
     buf.data[3] = 0x44;
     buf.data[4] = 0x55;
-    if (0 != 5) return 3;
+    if (buf.len != 5) return 3;
     if (buf.data[0] != 0x11) return 4;
     if (buf.data[4] != 0x55) return 5;
     MixedTypes mt = {0};

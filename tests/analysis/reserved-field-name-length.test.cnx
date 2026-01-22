@@ -1,0 +1,13 @@
+// test-error
+// Tests: Struct field 'length' should be rejected as it conflicts with .length property
+
+struct BadStruct {
+    u32 length;
+    u8 data;
+}
+
+u32 main() {
+    BadStruct s;
+    s.length <- 10;
+    return 0;
+}

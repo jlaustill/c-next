@@ -9,13 +9,13 @@
 // Tests: array fields inside structs
 typedef struct Buffer {
     uint8_t data[16];
-    uint32_t length;
+    uint32_t len;
 } Buffer;
 
 int main(void) {
     Buffer buf = {0};
-    buf.length = 0;
+    buf.len = 0;
     buf.data[0] = 0x41;
     buf.data[1] = 0x42;
-    buf.length = 2;
+    buf.len = 2;
 }

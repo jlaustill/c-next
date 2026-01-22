@@ -1,0 +1,1 @@
+5:8 error[E0355]: Struct field 'length' in 'BadStruct' uses a reserved C-Next property name. The '.length' property is built-in and will shadow this field.
