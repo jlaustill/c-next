@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-01-22
+
+### Added
+
+- Cross-file execution test support in test runner
+- Validation for incorrect test-execution marker format
+- VS Code extension: source traceability in hover tooltips
+
+### Fixed
+
+- Auto address-of for external C++ functions with pointer params (Issue #322)
+- Recursive include processing for nested header symbols (Issue #321)
+- Use `.` instead of `::` for global object instance method calls
+
 ## [0.1.20] - 2026-01-21
 
 ### Added
@@ -235,7 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.20...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.21...HEAD
+[0.1.21]: https://github.com/jlaustill/c-next/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/jlaustill/c-next/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/jlaustill/c-next/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/jlaustill/c-next/compare/v0.1.17...v0.1.18
