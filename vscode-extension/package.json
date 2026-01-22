@@ -138,6 +138,13 @@
           "description": "Delay in milliseconds before updating the .c file after typing"
         }
       }
+    },
+    "configurationDefaults": {
+      "explorer.fileNesting.enabled": true,
+      "explorer.fileNesting.expand": false,
+      "explorer.fileNesting.patterns": {
+        "*.cnx": "${capture}.c, ${capture}.cpp, ${capture}.h, ${capture}.hpp"
+      }
     }
   },
   "scripts": {
