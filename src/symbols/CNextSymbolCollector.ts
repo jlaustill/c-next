@@ -7,6 +7,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
+import SymbolTable from "./SymbolTable";
 
 /**
  * Collects symbols from a C-Next parse tree
@@ -16,8 +17,12 @@ class CNextSymbolCollector {
 
   private symbols: ISymbol[] = [];
 
-  constructor(sourceFile: string) {
+  // Issue #332: Optional SymbolTable to register struct fields for isStructType() lookup
+  private symbolTable: SymbolTable | null;
+
+  constructor(sourceFile: string, symbolTable?: SymbolTable) {
     this.sourceFile = sourceFile;
+    this.symbolTable = symbolTable ?? null;
   }
 
   /**
@@ -166,6 +171,45 @@ class CNextSymbolCollector {
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
     });
+
+    // Issue #332: Register struct fields in SymbolTable for isStructType() lookup
+    // This enables TypeResolver to identify C-Next structs from included files
+    // when determining if & should be added for pointer parameters
+    if (this.symbolTable) {
+      for (const member of struct.structMember()) {
+        const fieldName = member.IDENTIFIER().getText();
+        const fieldType = this.getTypeText(member.type());
+
+        // Check for array dimensions
+        const arrayDims = member.arrayDimension();
+        const dimensions: number[] = [];
+        for (const dim of arrayDims) {
+          const sizeExpr = dim.expression();
+          if (sizeExpr) {
+            const size = parseInt(sizeExpr.getText(), 10);
+            if (!isNaN(size)) {
+              dimensions.push(size);
+            }
+          }
+        }
+
+        this.symbolTable.addStructField(
+          name,
+          fieldName,
+          fieldType,
+          dimensions.length > 0 ? dimensions : undefined,
+        );
+      }
+    }
+  }
+
+  /**
+   * Issue #332: Extract type text from a type context
+   * Simple extraction for struct field registration
+   */
+  private getTypeText(ctx: Parser.TypeContext | null): string {
+    if (!ctx) return "void";
+    return ctx.getText();
   }
 
   private collectRegister(reg: Parser.RegisterDeclarationContext): void {

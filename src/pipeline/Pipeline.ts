@@ -548,7 +548,9 @@ class Pipeline {
       throw new Error(errors.join("\n"));
     }
 
-    const collector = new CNextSymbolCollector(file.path);
+    // Issue #332: Pass symbolTable to collector so struct fields are registered
+    // This enables TypeResolver.isStructType() to identify C-Next structs from included files
+    const collector = new CNextSymbolCollector(file.path, this.symbolTable);
     const symbols = collector.collect(tree);
     this.symbolTable.addSymbols(symbols);
   }
