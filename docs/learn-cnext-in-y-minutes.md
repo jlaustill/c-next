@@ -1447,6 +1447,60 @@ Counter.increment();  // count: 2 -> 3
 Counter.getCount();   // returns 3
 ```
 
+### Passing Addresses to External C/C++ Functions [DONE]
+
+When calling external C/C++ functions that expect pointers, use the `&` operator to explicitly pass the address of a scope member (ADR-006):
+
+```cnx
+#include "ConfigStorage.hpp"  // External C++ class
+
+struct AppConfig {
+    u32 timeout;
+    u32 retries;
+}
+
+scope ConfigManager {
+    AppConfig config;
+
+    public void initConfig() {
+        this.config.timeout <- 1000;
+        this.config.retries <- 3;
+    }
+
+    public void saveToStorage() {
+        // External C++ function expects AppConfig* pointer
+        // Use & to explicitly pass the address
+        global.ConfigStorage.saveConfig(&this.config);
+    }
+
+    public void loadFromStorage() {
+        // External function modifies config through pointer
+        global.ConfigStorage.loadConfig(&this.config);
+    }
+}
+```
+
+Transpiles to:
+
+```cpp
+static AppConfig ConfigManager_config = {0};
+
+void ConfigManager_saveToStorage(void) {
+    ConfigStorage::saveConfig(&ConfigManager_config);
+}
+
+void ConfigManager_loadFromStorage(void) {
+    ConfigStorage::loadConfig(&ConfigManager_config);
+}
+```
+
+**Key Points:**
+
+- **Explicit `&`**: C-Next requires explicit `&` when passing addresses to external functions
+- **ADR-006 Alignment**: C-Next functions use automatic pass-by-reference for structs; external functions don't have this magic
+- **Scope Members**: `&this.member` generates `&ScopeName_member` - the address of the static scope variable
+- **Safety**: Makes pointer passing visible and intentional, preventing accidental by-value copies
+
 ## Instance Pattern (C-Style OOP)
 
 ```cnx

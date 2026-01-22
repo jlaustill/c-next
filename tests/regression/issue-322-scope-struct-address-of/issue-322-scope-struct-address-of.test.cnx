@@ -1,0 +1,60 @@
+/* test-execution */
+// Issue #322: Explicit & syntax for passing address of scope struct members
+// to external C++ functions that expect pointers
+// Tests: &this.member syntax passes address correctly to external functions
+
+#include "issue-322-scope-struct-address-of.hpp"
+
+struct AppConfig {
+    u32 timeout;
+    u32 retries;
+}
+
+scope ConfigManager {
+    AppConfig config;
+
+    public void initConfig() {
+        this.config.timeout <- 1000;
+        this.config.retries <- 3;
+    }
+
+    public void loadFromStorage() {
+        // Use explicit & to pass address to external function expecting pointer
+        global.ConfigStorage.loadConfig(&this.config);
+    }
+
+    public u32 getTimeout() {
+        return this.config.timeout;
+    }
+
+    public u32 getRetries() {
+        return this.config.retries;
+    }
+}
+
+u32 main() {
+    ConfigManager.initConfig();
+
+    // Store results in variables (MISRA Rule 13.5)
+    u32 timeout <- ConfigManager.getTimeout();
+    u32 retries <- ConfigManager.getRetries();
+
+    // Verify initial values
+    if (timeout != 1000) return 1;
+    if (retries != 3) return 2;
+
+    // Load from storage (external function modifies via pointer - doubles timeout)
+    ConfigManager.loadFromStorage();
+
+    // Get updated values
+    timeout <- ConfigManager.getTimeout();
+    retries <- ConfigManager.getRetries();
+
+    // Verify external function modified the struct through the pointer
+    if (timeout != 2000) return 3;
+
+    // Retries should remain unchanged
+    if (retries != 3) return 4;
+
+    return 0;
+}
