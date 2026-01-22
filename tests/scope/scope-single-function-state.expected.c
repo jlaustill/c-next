@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: Issue #313 - Scope variables persist even when used by one function
 //
 // Scope variables must persist across all calls (ADR-016), even if only
