@@ -17,9 +17,9 @@ bool globalVar = true;
 uint32_t TestScope_getGlobalLength(void) {
     return 8;
 }
+static bool TestScope_scopeMember = true;
 
 uint32_t TestScope_getMemberLength(void) {
-    bool TestScope_scopeMember = true;
     return 8;
 }
 bool TestScope_publicMember = true;

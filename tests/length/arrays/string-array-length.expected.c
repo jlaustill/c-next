@@ -16,9 +16,9 @@ char globalArr[4][65] = {0};
 uint32_t TestScope_getGlobalArrayLength(void) {
     return 4;
 }
+static char TestScope_scopeArr[4][65] = {0};
 
 uint32_t TestScope_getScopeArrayLength(void) {
-    char TestScope_scopeArr[4][65] = {0};
     return 4;
 }
 char TestScope_publicArr[4][65] = {0};

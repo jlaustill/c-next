@@ -11,6 +11,13 @@
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */
 static uint8_t AllTypesTest_valU8 = 255;
+static uint16_t AllTypesTest_valU16 = 65535;
+static uint32_t AllTypesTest_valU32 = 4294967295;
+static uint64_t AllTypesTest_valU64 = 18446744073709551615;
+static int8_t AllTypesTest_valI8 = -128;
+static int16_t AllTypesTest_valI16 = -32768;
+static int32_t AllTypesTest_valI32 = -2147483648;
+static int64_t AllTypesTest_valI64 = -9223372036854775808;
 static float AllTypesTest_valF32 = 3.14;
 static double AllTypesTest_valF64 = 3.141592653589793;
 static bool AllTypesTest_valBool = true;
@@ -20,37 +27,30 @@ uint8_t AllTypesTest_getU8(void) {
 }
 
 uint16_t AllTypesTest_getU16(void) {
-    uint16_t AllTypesTest_valU16 = 65535;
     return AllTypesTest_valU16;
 }
 
 uint32_t AllTypesTest_getU32(void) {
-    uint32_t AllTypesTest_valU32 = 4294967295;
     return AllTypesTest_valU32;
 }
 
 uint64_t AllTypesTest_getU64(void) {
-    uint64_t AllTypesTest_valU64 = 18446744073709551615;
     return AllTypesTest_valU64;
 }
 
 int8_t AllTypesTest_getI8(void) {
-    int8_t AllTypesTest_valI8 = -128;
     return AllTypesTest_valI8;
 }
 
 int16_t AllTypesTest_getI16(void) {
-    int16_t AllTypesTest_valI16 = -32768;
     return AllTypesTest_valI16;
 }
 
 int32_t AllTypesTest_getI32(void) {
-    int32_t AllTypesTest_valI32 = -2147483648;
     return AllTypesTest_valI32;
 }
 
 int64_t AllTypesTest_getI64(void) {
-    int64_t AllTypesTest_valI64 = -9223372036854775808;
     return AllTypesTest_valI64;
 }
 

@@ -14,15 +14,15 @@
 uint32_t call_arg = 0;
 
 /* Scope: Reentrant */
+static uint32_t Reentrant_outer_temp = 0;
+static uint32_t Reentrant_inner_temp = 0;
 
 uint32_t Reentrant_inner(void) {
-    uint32_t Reentrant_inner_temp = 0;
     Reentrant_inner_temp = call_arg;
     return call_arg;
 }
 
 uint32_t Reentrant_outer(uint32_t x) {
-    uint32_t Reentrant_outer_temp = 0;
     Reentrant_outer_temp = x;
     call_arg = x + 100;
     uint32_t inner_result = Reentrant_inner();

@@ -15,9 +15,9 @@ int8_t globalVar = -42;
 uint32_t TestScope_getGlobalLength(void) {
     return 8;
 }
+static int8_t TestScope_scopeMember = -42;
 
 uint32_t TestScope_getMemberLength(void) {
-    int8_t TestScope_scopeMember = -42;
     return 8;
 }
 int8_t TestScope_publicMember = -42;
