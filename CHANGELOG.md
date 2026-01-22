@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-01-21
+
+### Added
+
+- E0504 error for `.h` includes when `.cnx` alternative exists (PR #316)
+
+### Fixed
+
+- Pass primitive struct members by value in cross-file calls (Issue #315, PR #318)
+- Use `::` syntax for `global.X.method()` in C++ mode (Issue #314, PR #317)
+
 ## [0.1.19] - 2026-01-21
 
 ### Added
@@ -224,7 +235,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.19...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.20...HEAD
+[0.1.20]: https://github.com/jlaustill/c-next/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/jlaustill/c-next/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/jlaustill/c-next/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/jlaustill/c-next/compare/v0.1.16...v0.1.17
