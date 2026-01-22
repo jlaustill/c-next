@@ -193,7 +193,7 @@ class CNextSymbolCollector {
           }
         }
 
-        this.symbolTable.addStructField(
+        this.symbolTable!.addStructField(
           name,
           fieldName,
           fieldType,
