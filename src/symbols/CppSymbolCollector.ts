@@ -187,13 +187,28 @@ class CppSymbolCollector {
 
     const baseType = this.extractTypeFromDeclSpecSeq(declSpecSeq);
 
+    // Issue #342: Track anonymous class specifiers for typedef handling
+    let anonymousClassSpec: any = null;
+
     // Check for class specifier
     for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
       const typeSpec = spec.typeSpecifier?.();
       if (typeSpec) {
         const classSpec = typeSpec.classSpecifier?.();
         if (classSpec) {
-          this.collectClassSpecifier(classSpec, line);
+          // Check if this is a named struct/class
+          const classHead = classSpec.classHead?.();
+          const classHeadName = classHead?.classHeadName?.();
+          const className = classHeadName?.className?.();
+          const identifier = className?.Identifier?.();
+
+          if (identifier?.getText()) {
+            // Named struct - collect normally
+            this.collectClassSpecifier(classSpec, line);
+          } else {
+            // Issue #342: Anonymous struct - save for typedef handling below
+            anonymousClassSpec = classSpec;
+          }
         }
 
         const enumSpec = typeSpec.enumSpecifier?.();
@@ -217,6 +232,27 @@ class CppSymbolCollector {
         const fullName = this.currentNamespace
           ? `${this.currentNamespace}::${name}`
           : name;
+
+        // Issue #342: If we have an anonymous struct and this is a typedef,
+        // collect struct fields using the typedef name
+        if (anonymousClassSpec && this.symbolTable) {
+          const memberSpec = anonymousClassSpec.memberSpecification?.();
+          if (memberSpec) {
+            // Add the type symbol
+            this.symbols.push({
+              name: fullName,
+              kind: ESymbolKind.Class, // Treat typedef'd structs as classes
+              sourceFile: this.sourceFile,
+              sourceLine: line,
+              sourceLanguage: ESourceLanguage.Cpp,
+              isExported: true,
+              parent: this.currentNamespace,
+            });
+            // Collect members using the typedef name
+            this.collectClassMembers(fullName, memberSpec);
+            continue;
+          }
+        }
 
         // Issue #322: Extract parameters for function declarations
         const params = isFunction

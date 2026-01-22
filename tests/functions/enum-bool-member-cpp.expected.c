@@ -19,10 +19,10 @@ uint32_t process(uint32_t crc, uint8_t byte) {
 
 uint32_t testEnumBoolMembers(const SensorConfig* cfg) {
     uint32_t crc = 0;
-    crc = process(crc, (*cfg).enabled);
-    crc = process(crc, (*cfg).pressureType);
-    crc = process(crc, (*cfg).thermocoupleType);
-    crc = process(crc, (*cfg).value);
+    crc = process(crc, cfg->enabled);
+    crc = process(crc, static_cast<uint8_t>(cfg->pressureType));
+    crc = process(crc, static_cast<uint8_t>(cfg->thermocoupleType));
+    crc = process(crc, cfg->value);
     return crc;
 }
 

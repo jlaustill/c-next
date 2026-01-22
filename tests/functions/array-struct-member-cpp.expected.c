@@ -27,8 +27,8 @@ uint32_t testArrayStructMembers(void) {
     sensors[0].status = STATUS_ON;
     sensors[0].value = 42;
     crc = process(crc, sensors[0].active);
-    crc = process(crc, sensors[0].sensorType);
-    crc = process(crc, sensors[0].status);
+    crc = process(crc, static_cast<uint8_t>(sensors[0].sensorType));
+    crc = process(crc, static_cast<uint8_t>(sensors[0].status));
     crc = process(crc, sensors[0].value);
     return crc;
 }
@@ -40,8 +40,8 @@ uint32_t testMultipleIndices(void) {
     sensors[2].status = STATUS_ERROR;
     sensors[3].value = 100;
     crc = process(crc, sensors[1].active);
-    crc = process(crc, sensors[1].sensorType);
-    crc = process(crc, sensors[2].status);
+    crc = process(crc, static_cast<uint8_t>(sensors[1].sensorType));
+    crc = process(crc, static_cast<uint8_t>(sensors[2].status));
     crc = process(crc, sensors[3].value);
     return crc;
 }
