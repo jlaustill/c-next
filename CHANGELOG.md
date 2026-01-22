@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-01-22
+
+### Added
+
+- `StructFieldAnalyzer` (E0355) rejects struct fields named `length` to prevent shadowing built-in `.length` property
+- `SymbolUtils.ts` shared utilities for C/C++ symbol collectors (reduces code duplication)
+- Warnings when C/C++ headers have fields that conflict with C-Next reserved property names
+
+### Fixed
+
+- Array member via pointer generates invalid `static_cast` in C++ mode (Issue #355)
+- `CSymbolCollector.extractDeclaratorName()` now correctly handles recursive `directDeclarator` nodes for array fields
+
 ## [0.1.26] - 2026-01-22
 
 ### Added
@@ -298,7 +311,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.26...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.27...HEAD
+[0.1.27]: https://github.com/jlaustill/c-next/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/jlaustill/c-next/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
