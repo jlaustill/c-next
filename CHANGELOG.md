@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.26] - 2026-01-22
+
+### Added
+
+- Test coverage for named typedef struct array member pattern (Issue #347)
+
+### Fixed
+
+- Generate int return type for main() in header files
+- Angle-bracket CNX includes with `--header-out` now get correct directory prefix (Issue #349)
+- CLI now shows helpful error for unrecognized flags like `-I`
+
+### Documentation
+
+- Removed status markers from learn-cnext-in-y-minutes.md
+- Fixed enum and nested struct syntax examples in learn-cnext doc
+
 ## [0.1.25] - 2026-01-22
 
 ### Added
@@ -281,7 +298,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.25...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.26...HEAD
+[0.1.26]: https://github.com/jlaustill/c-next/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
