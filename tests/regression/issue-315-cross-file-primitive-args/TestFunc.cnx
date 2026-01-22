@@ -1,0 +1,9 @@
+// Issue #315: Helper scope for cross-file primitive argument test
+// This file defines a scope with f32 parameters
+
+scope TestFunc {
+    // Public function that takes f32 (primitive) arguments
+    public f32 addFloats(f32 a, f32 b) {
+        return a + b;
+    }
+}

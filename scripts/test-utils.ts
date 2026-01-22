@@ -139,6 +139,8 @@ class TestUtils {
       // Use compiler to check syntax only (no object file generated)
       // Suppress warnings about unused variables and void main (common in tests)
       // -I tests/include for stub headers (e.g., cmsis_gcc.h for ARM intrinsics)
+      // -I cFileDir for local headers (e.g., test helpers in the same directory)
+      const cFileDir = dirname(cFile);
       execFileSync(
         compiler,
         [
@@ -148,6 +150,8 @@ class TestUtils {
           "-Wno-main",
           "-I",
           join(rootDir, "tests/include"),
+          "-I",
+          cFileDir,
           cFile,
         ],
         { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -279,8 +283,12 @@ class TestUtils {
         return { valid: true };
       }
 
+      // Issue #315: Include the C file's directory for local headers
+      const cFileDir = dirname(cFile);
+
       // Run cppcheck with MISRA addon
       // Include -I flag for tests/include to resolve stub headers
+      // Include -I flag for cFileDir for local headers
       execFileSync(
         "cppcheck",
         [
@@ -291,6 +299,8 @@ class TestUtils {
           "--quiet",
           "-I",
           join(rootDir, "tests/include"),
+          "-I",
+          cFileDir,
           cFile,
         ],
         { encoding: "utf-8", timeout: 60000, stdio: "pipe" },
@@ -428,6 +438,9 @@ class TestUtils {
     const compiler = useCpp ? "g++" : "gcc";
     const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
 
+    // Issue #315: Include the C file's directory for local headers
+    const cFileDir = dirname(cFile);
+
     try {
       // Compile to executable
       execFileSync(
@@ -438,6 +451,8 @@ class TestUtils {
           "-Wno-main",
           "-I",
           join(rootDir, "tests/include"),
+          "-I",
+          cFileDir,
           "-o",
           execPath,
           cFile,
