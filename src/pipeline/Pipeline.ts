@@ -643,6 +643,8 @@ class Pipeline {
           generateHeaders: this.config.generateHeaders, // Issue #230: Enable self-include when headers are generated
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
           sourceRelativePath: this.getSourceRelativePath(file.path), // Issue #339: For correct self-include paths
+          includeDirs: this.config.includeDirs, // Issue #349: For angle-bracket include resolution
+          inputs: this.config.inputs, // Issue #349: For calculating relative paths
         },
       );
 
