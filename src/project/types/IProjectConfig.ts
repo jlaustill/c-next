@@ -14,6 +14,9 @@ interface IProjectConfig {
   /** Output directory for generated files */
   outDir: string;
 
+  /** Separate output directory for header files (defaults to outDir) */
+  headerOutDir?: string;
+
   /** Specific files to compile (overrides srcDirs) */
   files?: string[];
 

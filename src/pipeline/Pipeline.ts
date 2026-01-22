@@ -76,6 +76,7 @@ class Pipeline {
       inputs: config.inputs,
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir ?? "",
+      headerOutDir: config.headerOutDir ?? "",
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
       generateHeaders: config.generateHeaders ?? true,
@@ -135,6 +136,11 @@ class Pipeline {
       // Ensure output directory exists if specified
       if (this.config.outDir && !existsSync(this.config.outDir)) {
         mkdirSync(this.config.outDir, { recursive: true });
+      }
+
+      // Ensure header output directory exists if specified separately
+      if (this.config.headerOutDir && !existsSync(this.config.headerOutDir)) {
+        mkdirSync(this.config.headerOutDir, { recursive: true });
       }
 
       // Stage 2: Collect symbols from C/C++ headers
@@ -805,9 +811,13 @@ class Pipeline {
 
   /**
    * Get output path for a header file
+   * Uses headerOutDir if specified, otherwise falls back to outDir
    */
   private getHeaderOutputPath(file: IDiscoveredFile): string {
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+
+    // Use headerOutDir if specified, otherwise fall back to outDir
+    const headerDir = this.config.headerOutDir || this.config.outDir;
 
     // Check if file is in any input directory (for preserving structure)
     for (const input of this.config.inputs) {
@@ -823,7 +833,7 @@ class Pipeline {
       // Check if file is under this input directory
       if (relativePath && !relativePath.startsWith("..")) {
         const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
-        const outputPath = join(this.config.outDir, outputRelative);
+        const outputPath = join(headerDir, outputRelative);
 
         const outputDir = dirname(outputPath);
         if (!existsSync(outputDir)) {
@@ -834,8 +844,8 @@ class Pipeline {
       }
     }
 
-    // Fallback: flat output in outDir
-    return join(this.config.outDir, headerName);
+    // Fallback: flat output in headerDir
+    return join(headerDir, headerName);
   }
 
   /**
