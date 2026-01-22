@@ -1,6 +1,11 @@
 import TSymbolKind from "./TSymbolKind";
 
 /**
+ * Language type for source traceability
+ */
+type TLanguage = "cnext" | "c" | "cpp";
+
+/**
  * Symbol information for IDE features (autocomplete, hover)
  * Simplified version of ISymbol for extension use
  */
@@ -23,6 +28,10 @@ interface ISymbolInfo {
   line: number;
   /** Array size or bit width */
   size?: number;
+  /** Source file path where this symbol is defined */
+  sourceFile?: string;
+  /** Language of the source file */
+  language?: TLanguage;
 }
 
 export default ISymbolInfo;

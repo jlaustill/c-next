@@ -219,13 +219,115 @@ function getAccessDescription(access: string): string {
 }
 
 /**
+ * Language type for source traceability
+ */
+type TLanguage = "cnext" | "c" | "cpp";
+
+/**
+ * Detect the language type from a file path
+ * For .h files, defaults to C but can be overridden if C++ constructs are detected
+ */
+function detectLanguage(filePath: string): TLanguage {
+  const ext = path.extname(filePath).toLowerCase();
+
+  switch (ext) {
+    case ".cnx":
+      return "cnext";
+    case ".cpp":
+    case ".cc":
+    case ".cxx":
+    case ".hpp":
+    case ".hh":
+    case ".hxx":
+      return "cpp";
+    case ".c":
+      return "c";
+    case ".h":
+      // Default to C for .h files
+      // Could be enhanced to detect C++ constructs if needed
+      return "c";
+    default:
+      return "c";
+  }
+}
+
+/**
+ * Get the language label with file extension for display
+ */
+function getLanguageLabel(language: TLanguage, ext: string): string {
+  switch (language) {
+    case "cnext":
+      return `C-Next (${ext})`;
+    case "cpp":
+      return `C++ (${ext})`;
+    case "c":
+      return `C (${ext})`;
+  }
+}
+
+/**
+ * Get a smart display path - filename if unique, relative path if duplicates exist
+ */
+function getSmartDisplayPath(
+  filePath: string,
+  workspaceIndex?: WorkspaceIndex,
+): string {
+  const fileName = path.basename(filePath);
+
+  // If we have workspace index, check for conflicts
+  if (workspaceIndex && workspaceIndex.hasFilenameConflict(fileName)) {
+    // Return relative path from workspace root
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      const relativePath = path.relative(
+        workspaceFolders[0].uri.fsPath,
+        filePath,
+      );
+      return relativePath;
+    }
+  }
+
+  return fileName;
+}
+
+/**
+ * Format the source footer line with clickable link
+ * Format: "Source: [filename:line](command:...) (Language (.ext))"
+ */
+function formatSourceFooter(
+  filePath: string,
+  line: number,
+  workspaceIndex?: WorkspaceIndex,
+): string {
+  const displayPath = getSmartDisplayPath(filePath, workspaceIndex);
+  const ext = path.extname(filePath).toLowerCase();
+  const language = detectLanguage(filePath);
+  const languageLabel = getLanguageLabel(language, ext);
+
+  // Create a clickable link that opens the file at the specific line
+  // VS Code markdown supports command URIs
+  const fileUri = vscode.Uri.file(filePath);
+  const encodedUri = encodeURIComponent(
+    JSON.stringify([
+      fileUri.toString(),
+      { selection: { startLineNumber: line, startColumn: 1 } },
+    ]),
+  );
+  const commandUri = `command:editor.action.goToLocations?${encodedUri}`;
+
+  return `\n\n---\nSource: [${displayPath}:${line}](${commandUri}) (${languageLabel})`;
+}
+
+/**
  * Build hover content for a symbol
  * @param symbol The symbol to build hover for
  * @param sourceFile Optional source file path (for cross-file symbols)
+ * @param workspaceIndex Optional workspace index for smart path display
  */
 function buildSymbolHover(
   symbol: ISymbolWithFile,
   sourceFile?: string,
+  workspaceIndex?: WorkspaceIndex,
 ): vscode.MarkdownString {
   const md = new vscode.MarkdownString();
   md.isTrusted = true;
@@ -294,13 +396,12 @@ function buildSymbolHover(
       md.appendMarkdown(`**${symbol.kind}** \`${symbol.name}\``);
   }
 
-  // Show source file for cross-file symbols
+  // Add source traceability footer with clickable link
   const displayFile = sourceFile || symbol.sourceFile;
   if (displayFile) {
-    const fileName = path.basename(displayFile);
-    md.appendMarkdown(`\n\n*From:* \`${fileName}\` (line ${symbol.line})`);
-  } else {
-    md.appendMarkdown(`\n\n*Line ${symbol.line}*`);
+    md.appendMarkdown(
+      formatSourceFooter(displayFile, symbol.line, workspaceIndex),
+    );
   }
 
   return md;
@@ -406,7 +507,11 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     }
 
     if (symbol) {
-      return new vscode.Hover(buildSymbolHover(symbol), wordRange);
+      // For local symbols, use the current document as the source file
+      return new vscode.Hover(
+        buildSymbolHover(symbol, document.uri.fsPath, this.workspaceIndex),
+        wordRange,
+      );
     }
 
     // CROSS-FILE: Check workspace index for symbols from other files
@@ -416,7 +521,10 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
         document.uri,
       ) as ISymbolWithFile;
       if (workspaceSymbol) {
-        return new vscode.Hover(buildSymbolHover(workspaceSymbol), wordRange);
+        return new vscode.Hover(
+          buildSymbolHover(workspaceSymbol, undefined, this.workspaceIndex),
+          wordRange,
+        );
       }
     }
 
@@ -490,9 +598,41 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       );
 
       if (hovers && hovers.length > 0) {
-        // Return the first hover, but use our word range
         const hover = hovers[0];
-        return new vscode.Hover(hover.contents, wordRange);
+
+        // Try to get the definition location for the source footer
+        const definitions = await vscode.commands.executeCommand<
+          vscode.Location[]
+        >("vscode.executeDefinitionProvider", outputUri, wordPosition);
+
+        // Build the source footer
+        let sourceFooter = "";
+        if (definitions && definitions.length > 0) {
+          const def = definitions[0];
+          const defPath = def.uri.fsPath;
+          const defLine = def.range.start.line + 1; // Convert to 1-based
+          sourceFooter = formatSourceFooter(
+            defPath,
+            defLine,
+            this.workspaceIndex,
+          );
+        } else {
+          // Fallback: use the generated C file as the source
+          const line = wordPosition.line + 1; // Convert to 1-based
+          sourceFooter = formatSourceFooter(
+            outputPath,
+            line,
+            this.workspaceIndex,
+          );
+        }
+
+        // Append the source footer to the hover contents
+        const contents = [...hover.contents];
+        const footerMd = new vscode.MarkdownString(sourceFooter);
+        footerMd.isTrusted = true;
+        contents.push(footerMd);
+
+        return new vscode.Hover(contents, wordRange);
       }
     } catch (err) {
       // Silently fail - C/C++ extension might not be installed
