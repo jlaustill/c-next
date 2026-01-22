@@ -96,6 +96,12 @@ class TestUtils {
         return true;
       }
 
+      // Issue #322: Check for C++ scope resolution operator (::)
+      // Used for namespace access (std::cout) or static method calls (Class::method)
+      if (/\w+::\w+/.test(cCode)) {
+        return true;
+      }
+
       // Find all #include "local_header.h" directives
       const includePattern = /#include\s+"([^"]+)"/g;
       let match;

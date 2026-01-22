@@ -3058,9 +3058,10 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Check if a type name is a user-defined struct
+   * Issue #322: Check if a type name is a user-defined struct
+   * Part of IOrchestrator interface.
    */
-  private isStructType(typeName: string): boolean {
+  isStructType(typeName: string): boolean {
     return this.typeResolver!.isStructType(typeName);
   }
 

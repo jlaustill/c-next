@@ -102,6 +102,9 @@ class CppSymbolCollector {
       ? `${this.currentNamespace}::${name}`
       : name;
 
+    // Issue #322: Extract function parameters
+    const params = this.extractFunctionParameters(declarator);
+
     this.symbols.push({
       name: fullName,
       kind: ESymbolKind.Function,
@@ -111,6 +114,7 @@ class CppSymbolCollector {
       sourceLanguage: ESourceLanguage.Cpp,
       isExported: true,
       parent: this.currentNamespace,
+      parameters: params.length > 0 ? params : undefined,
     });
   }
 
@@ -214,6 +218,11 @@ class CppSymbolCollector {
           ? `${this.currentNamespace}::${name}`
           : name;
 
+        // Issue #322: Extract parameters for function declarations
+        const params = isFunction
+          ? this.extractFunctionParameters(declarator)
+          : [];
+
         this.symbols.push({
           name: fullName,
           kind: isFunction ? ESymbolKind.Function : ESymbolKind.Variable,
@@ -224,6 +233,7 @@ class CppSymbolCollector {
           isExported: true,
           isDeclaration: isFunction,
           parent: this.currentNamespace,
+          parameters: params.length > 0 ? params : undefined,
         });
       }
     }
@@ -280,10 +290,39 @@ class CppSymbolCollector {
    * Collect a single member declaration
    */
   private collectMemberDeclaration(className: string, memberDecl: any): void {
-    // Skip function definitions, access specifiers, etc.
-    // We only want data members
+    const line = memberDecl.start?.line ?? 0;
 
-    // Get member declaration list
+    // Issue #322: Check for inline function definition within the class
+    const funcDef = memberDecl.functionDefinition?.();
+    if (funcDef) {
+      const declarator = funcDef.declarator?.();
+      if (declarator) {
+        const funcName = this.extractDeclaratorName(declarator);
+        if (funcName) {
+          const declSpecSeq = funcDef.declSpecifierSeq?.();
+          const returnType = declSpecSeq
+            ? this.extractTypeFromDeclSpecSeq(declSpecSeq)
+            : "void";
+          const params = this.extractFunctionParameters(declarator);
+          const fullName = `${className}::${funcName}`;
+
+          this.symbols.push({
+            name: fullName,
+            kind: ESymbolKind.Function,
+            type: returnType,
+            sourceFile: this.sourceFile,
+            sourceLine: line,
+            sourceLanguage: ESourceLanguage.Cpp,
+            isExported: true,
+            parent: className,
+            parameters: params.length > 0 ? params : undefined,
+          });
+        }
+      }
+      return;
+    }
+
+    // Get member declaration list (for data members and function declarations)
     const declSpecSeq = memberDecl.declSpecifierSeq?.();
     if (!declSpecSeq) return;
 
@@ -300,8 +339,23 @@ class CppSymbolCollector {
       const fieldName = this.extractDeclaratorName(declarator);
       if (!fieldName) continue;
 
-      // Check if this is a function (has parameters) - skip functions
+      // Issue #322: Collect member functions with their parameters
       if (this.declaratorIsFunction(declarator)) {
+        const params = this.extractFunctionParameters(declarator);
+        const fullName = `${className}::${fieldName}`;
+
+        this.symbols.push({
+          name: fullName,
+          kind: ESymbolKind.Function,
+          type: fieldType,
+          sourceFile: this.sourceFile,
+          sourceLine: line,
+          sourceLanguage: ESourceLanguage.Cpp,
+          isExported: true,
+          isDeclaration: true,
+          parent: className,
+          parameters: params.length > 0 ? params : undefined,
+        });
         continue;
       }
 
@@ -505,6 +559,166 @@ class CppSymbolCollector {
       return true;
     }
 
+    return false;
+  }
+
+  /**
+   * Issue #322: Extract function parameters from a declarator.
+   * Returns an array of parameter info objects with name, type, and pointer flag.
+   */
+  private extractFunctionParameters(declarator: any): Array<{
+    name: string;
+    type: string;
+    isConst: boolean;
+    isArray: boolean;
+  }> {
+    const params: Array<{
+      name: string;
+      type: string;
+      isConst: boolean;
+      isArray: boolean;
+    }> = [];
+
+    // Find parametersAndQualifiers from the declarator
+    let paramsAndQuals: any = null;
+    const ptrDecl = declarator.pointerDeclarator?.();
+    if (ptrDecl) {
+      const noPtr = ptrDecl.noPointerDeclarator?.();
+      paramsAndQuals = noPtr?.parametersAndQualifiers?.();
+    }
+    if (!paramsAndQuals) {
+      const noPtr = declarator.noPointerDeclarator?.();
+      paramsAndQuals = noPtr?.parametersAndQualifiers?.();
+    }
+    if (!paramsAndQuals) {
+      return params;
+    }
+
+    // Get parameterDeclarationClause
+    const paramClause = paramsAndQuals.parameterDeclarationClause?.();
+    if (!paramClause) {
+      return params;
+    }
+
+    // Get parameterDeclarationList
+    const paramList = paramClause.parameterDeclarationList?.();
+    if (!paramList) {
+      return params;
+    }
+
+    // Iterate over parameterDeclaration entries
+    for (const paramDecl of paramList.parameterDeclaration?.() ?? []) {
+      const paramInfo = this.extractParameterInfo(paramDecl);
+      if (paramInfo) {
+        params.push(paramInfo);
+      }
+    }
+
+    return params;
+  }
+
+  /**
+   * Issue #322: Extract type and name info from a single parameter declaration.
+   */
+  private extractParameterInfo(paramDecl: any): {
+    name: string;
+    type: string;
+    isConst: boolean;
+    isArray: boolean;
+  } | null {
+    // Get the type from declSpecifierSeq
+    const declSpecSeq = paramDecl.declSpecifierSeq?.();
+    if (!declSpecSeq) {
+      return null;
+    }
+
+    let baseType = this.extractTypeFromDeclSpecSeq(declSpecSeq);
+    let isConst = false;
+    let isPointer = false;
+
+    // Check for const qualifier
+    const declText = declSpecSeq.getText();
+    if (declText.includes("const")) {
+      isConst = true;
+    }
+
+    // Check for pointer in declarator or abstractDeclarator
+    const declarator = paramDecl.declarator?.();
+    const abstractDecl = paramDecl.abstractDeclarator?.();
+
+    if (declarator) {
+      // Check if declarator has pointer operator
+      if (this.declaratorHasPointer(declarator)) {
+        isPointer = true;
+      }
+    }
+    if (abstractDecl) {
+      // Abstract declarator (no name) - check for pointer
+      if (this.abstractDeclaratorHasPointer(abstractDecl)) {
+        isPointer = true;
+      }
+    }
+
+    // If pointer, append * to the type
+    if (isPointer) {
+      baseType = baseType + "*";
+    }
+
+    // Get parameter name (may be empty for abstract declarators)
+    let paramName = "";
+    if (declarator) {
+      const name = this.extractDeclaratorName(declarator);
+      if (name) {
+        paramName = name;
+      }
+    }
+
+    return {
+      name: paramName,
+      type: baseType,
+      isConst,
+      isArray: false, // Could be enhanced to detect arrays
+    };
+  }
+
+  /**
+   * Issue #322: Check if a declarator contains a pointer operator.
+   */
+  private declaratorHasPointer(declarator: any): boolean {
+    const ptrDecl = declarator.pointerDeclarator?.();
+    if (ptrDecl) {
+      // Check for pointerOperator children
+      const ptrOps = ptrDecl.pointerOperator?.();
+      if (ptrOps && ptrOps.length > 0) {
+        return true;
+      }
+      // Also check getText for *
+      if (ptrDecl.getText().includes("*")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Issue #322: Check if an abstract declarator (pointer without name) contains a pointer.
+   */
+  private abstractDeclaratorHasPointer(abstractDecl: any): boolean {
+    // Check for pointerAbstractDeclarator
+    const ptrAbstract = abstractDecl.pointerAbstractDeclarator?.();
+    if (ptrAbstract) {
+      const ptrOps = ptrAbstract.pointerOperator?.();
+      if (ptrOps && ptrOps.length > 0) {
+        return true;
+      }
+      if (ptrAbstract.getText().includes("*")) {
+        return true;
+      }
+    }
+    // Simple check for * in the text
+    if (abstractDecl.getText().includes("*")) {
+      return true;
+    }
     return false;
   }
 
