@@ -7986,7 +7986,10 @@ export default class CodeGenerator implements IOrchestrator {
           currentIdentifier = memberName; // Track for .length lookups
           isGlobalAccess = true; // Mark that we're in a global access chain
           // Issue #304: Check if this is a C++ scope symbol (namespace, class, enum)
-          if (this.isCppScopeSymbol(memberName)) {
+          // Issue #314: In C++ mode, global.X.method() should always use :: syntax
+          // because the programmer is explicitly requesting C++ static method access,
+          // even for undeclared external symbols (e.g., Arduino's Serial class)
+          if (this.isCppScopeSymbol(memberName) || this.cppMode) {
             isCppAccessChain = true;
           }
           // Check if this first identifier is a register
@@ -8571,9 +8574,13 @@ export default class CodeGenerator implements IOrchestrator {
           }
           // Issue #304: C++ class/namespace static member access uses :: (e.g., CommandHandler::execute)
           // Also handles nested namespaces (hw::nested::configure) by checking if result already contains ::
+          // Issue #314: Also use :: for global.X.method() in C++ mode with undeclared external classes
+          // (e.g., Arduino's Serial class) - the global. prefix explicitly requests C++ static access
           else if (
             isCppAccessChain &&
-            (this.isCppScopeSymbol(result) || result.includes("::"))
+            (this.isCppScopeSymbol(result) ||
+              result.includes("::") ||
+              isGlobalAccess)
           ) {
             result = `${result}::${memberName}`;
           } else {
