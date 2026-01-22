@@ -93,8 +93,12 @@ class CleanCommand {
   }
 
   /**
-   * Get relative path of a file from input directories
-   * Returns undefined if file is not under any input directory
+   * Get relative path of a file from input directories.
+   * Returns undefined if file is not under any input directory.
+   *
+   * When undefined is returned (e.g., for single file inputs), the caller
+   * falls back to using just the basename, which is correct behavior since
+   * there's no directory structure to preserve.
    */
   private static getRelativePath(
     filePath: string,
@@ -103,7 +107,9 @@ class CleanCommand {
     for (const input of inputs) {
       const resolvedInput = resolve(input);
 
-      // Skip if input is a file (not a directory)
+      // Skip file inputs - only directories can establish relative structure.
+      // For single file inputs like "cnext myfile.cnx -o build", we return
+      // undefined and the caller uses baseName, which is the correct behavior.
       if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
         continue;
       }
@@ -124,17 +130,18 @@ class CleanCommand {
    * @returns true if file was deleted, false otherwise
    */
   private static deleteIfExists(filePath: string): boolean {
-    if (existsSync(filePath)) {
-      try {
-        unlinkSync(filePath);
-        console.log(`  Deleted: ${filePath}`);
-        return true;
-      } catch (err) {
-        console.error(`  Failed to delete ${filePath}: ${err}`);
+    try {
+      unlinkSync(filePath);
+      console.log(`  Deleted: ${filePath}`);
+      return true;
+    } catch (err: unknown) {
+      // ENOENT means file doesn't exist - not an error for our purposes
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         return false;
       }
+      console.error(`  Failed to delete ${filePath}: ${err}`);
+      return false;
     }
-    return false;
   }
 }
 

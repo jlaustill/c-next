@@ -77,6 +77,12 @@ cnext examples/blink.cnx --cpp
 # Target platform for atomic code generation (ADR-049)
 cnext examples/blink.cnx --target teensy41
 
+# Separate output directories for code and headers
+cnext src/ -o build/src --header-out build/include
+
+# Clean generated files
+cnext src/ -o build/src --header-out build/include --clean
+
 # Show all options
 cnext --help
 ```
