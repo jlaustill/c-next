@@ -2,7 +2,7 @@
   "name": "c-next",
   "displayName": "C-Next",
   "description": "Syntax highlighting and live C preview for C-Next, a safer C for embedded systems",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "publisher": "jlaustill",
   "license": "MIT",
   "repository": {
@@ -39,6 +39,12 @@
         "language": "cnext",
         "scopeName": "source.cnext",
         "path": "./syntaxes/cnext.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "cnext",
+        "path": "./snippets/cnext.json"
       }
     ],
     "commands": [
@@ -144,6 +150,10 @@
       "explorer.fileNesting.expand": false,
       "explorer.fileNesting.patterns": {
         "*.cnx": "${capture}.c, ${capture}.cpp, ${capture}.h, ${capture}.hpp"
+      },
+      "[cnext]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
       }
     }
   },

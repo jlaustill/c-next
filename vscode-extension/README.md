@@ -87,6 +87,46 @@ scope Counter {
 }
 ```
 
+## Code Snippets
+
+Type these prefixes and press Tab to expand:
+
+| Prefix             | Description                           |
+| ------------------ | ------------------------------------- |
+| `scope` / `scopep` | Scope with private/public sections    |
+| `register`         | Hardware register block               |
+| `struct` / `enum`  | Type definitions                      |
+| `fn` / `pfn`       | Function / public function            |
+| `for` / `while`    | Loop templates                        |
+| `if` / `ife`       | Conditionals                          |
+| `switch` / `case`  | Switch with required braces (ADR-025) |
+| `clamp` / `wrap`   | Variables with overflow behavior      |
+
+See all snippets: type `Ctrl+Space` in a `.cnx` file.
+
+## Formatting with Prettier
+
+This extension auto-configures Prettier as the default formatter for `.cnx` files with format-on-save enabled.
+
+**To enable formatting:**
+
+1. Install the [Prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+2. Add `prettier-plugin-cnext` to your project:
+   ```bash
+   npm install -D prettier prettier-plugin-cnext
+   ```
+3. Format-on-save works automatically
+
+If you don't have Prettier installed, you can disable the default by adding to your settings:
+
+```json
+{
+  "[cnext]": {
+    "editor.formatOnSave": false
+  }
+}
+```
+
 ## About C-Next
 
 C-Next is a safer C for embedded systems that transpiles to clean, readable C code.
