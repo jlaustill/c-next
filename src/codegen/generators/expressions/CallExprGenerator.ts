@@ -147,8 +147,40 @@ const generateFunctionCall = (
       }
 
       if (!isCNextFunc) {
-        // C function: pass-by-value, just generate the expression
-        const argCode = orchestrator.generateExpression(e);
+        // C/C++ function: pass-by-value, just generate the expression
+        let argCode = orchestrator.generateExpression(e);
+
+        // Issue #322: Check if parameter expects a pointer and argument is a struct
+        // If so, automatically add & to pass the address
+        if (targetParam?.baseType?.endsWith("*")) {
+          // Try getExpressionType first
+          let argType = orchestrator.getExpressionType(e);
+
+          // Issue #322: If getExpressionType returns null (e.g., for this.member),
+          // fall back to looking up the generated code in the type registry
+          if (!argType && !argCode.startsWith("&")) {
+            // The argCode is already resolved (e.g., ConfigManager_config)
+            // Look it up directly in the type registry
+            const typeInfo = input.typeRegistry.get(argCode);
+            if (typeInfo) {
+              argType = typeInfo.baseType;
+            }
+          }
+
+          // Add & if argument is a struct type (not already a pointer)
+          // Don't add & if the expression already has & prefix
+          // Don't add & if argument is already a pointer or array
+          if (
+            argType &&
+            !argType.endsWith("*") &&
+            !argCode.startsWith("&") &&
+            !targetParam.isArray &&
+            orchestrator.isStructType(argType)
+          ) {
+            argCode = `&${argCode}`;
+          }
+        }
+
         // Issue #304: Wrap with static_cast if C++ enum class → integer
         return wrapWithCppEnumCast(
           argCode,

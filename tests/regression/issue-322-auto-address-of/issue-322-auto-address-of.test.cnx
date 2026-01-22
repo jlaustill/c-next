@@ -1,0 +1,44 @@
+// test-execution
+// Issue #322: Auto address-of for external C++ functions expecting pointers
+// The transpiler should automatically add & when passing structs to external
+// functions that expect pointer parameters (AppConfig*)
+
+#include "issue-322-auto-address-of.hpp"
+
+scope ConfigManager {
+    AppConfig config;
+
+    public void initConfig() {
+        this.config.timeout <- 1000;
+        this.config.retries <- 3;
+    }
+
+    public void loadFromStorage() {
+        // Call external function expecting AppConfig* pointer
+        // C-Next code does NOT have explicit &
+        // Transpiler should automatically add & because param type is AppConfig*
+        global.ConfigStorage.loadConfig(this.config);
+    }
+
+    public u32 getTimeout() {
+        // Call external function expecting const AppConfig* pointer
+        return global.ConfigStorage.getTimeout(this.config);
+    }
+}
+
+u32 main() {
+    ConfigManager.initConfig();
+
+    // Verify initial timeout
+    u32 timeout <- ConfigManager.getTimeout();
+    if (timeout != 1000) return 1;
+
+    // Load from storage - external function doubles the timeout via pointer
+    ConfigManager.loadFromStorage();
+
+    // Verify external function modified the struct through pointer
+    timeout <- ConfigManager.getTimeout();
+    if (timeout != 2000) return 2;
+
+    return 0;
+}

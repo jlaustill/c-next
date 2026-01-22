@@ -72,6 +72,9 @@ interface IOrchestrator {
   /** Check if a function is defined in C-Next (vs C headers) */
   isCNextFunction(name: string): boolean;
 
+  /** Issue #322: Check if a type is a struct type */
+  isStructType(typeName: string): boolean;
+
   /** Get the raw type name without C conversion */
   getTypeName(ctx: Parser.TypeContext): string;
 

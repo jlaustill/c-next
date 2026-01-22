@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* test-execution */
+// test-execution
 // Issue #315: Cross-file calls incorrectly add & to primitive struct member arguments
 // When calling a function in another file via global.ScopeName.function(),
 // primitive struct member arguments should NOT have & added.

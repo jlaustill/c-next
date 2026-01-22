@@ -6,7 +6,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, basename } from "path";
 import Pipeline from "../src/pipeline/Pipeline";
 import IFileResult from "../src/pipeline/types/IFileResult";
 
@@ -48,6 +48,18 @@ async function runTest(
   updateMode: boolean,
 ): Promise<ITestResult> {
   const source = readFileSync(cnxFile, "utf-8");
+
+  // Check for incorrect test-execution marker format (Issue #322)
+  // The correct format is "// test-execution" (single-line comment)
+  // Fail early if the incorrect block comment format is used
+  if (/\/\*\s*test-execution\s*\*\//.test(source)) {
+    return {
+      passed: false,
+      message:
+        'Invalid test-execution marker: use "// test-execution" not "/* test-execution */"',
+    };
+  }
+
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
@@ -71,11 +83,50 @@ async function runTest(
     generateHeaders: hasHeaderFile, // Issue #230: Enable self-include for extern "C" tests
   });
 
+  // Issue #322: Find and transpile helper .cnx files for cross-file execution tests
+  // Use test file basename for unique temp file naming to avoid parallel test collisions
+  const testBaseName = basename(cnxFile, ".test.cnx");
+  const helperCnxFiles = TestUtils.findHelperCnxFiles(cnxFile, source);
+  const helperCFiles: string[] = [];
+  const tempHelperFiles: string[] = [];
+
+  for (const helperCnx of helperCnxFiles) {
+    const helperSource = readFileSync(helperCnx, "utf-8");
+    const helperResult = await pipeline.transpileSource(helperSource, {
+      workingDir: dirname(helperCnx),
+      sourcePath: helperCnx,
+      generateHeaders: false,
+    });
+    if (helperResult.success) {
+      // Write to temp file with unique name per test to avoid parallel collisions
+      const helperBaseName = basename(helperCnx, ".cnx");
+      const tempCFile = join(
+        dirname(helperCnx),
+        `${helperBaseName}.${testBaseName}.tmp.c`,
+      );
+      writeFileSync(tempCFile, helperResult.code);
+      helperCFiles.push(tempCFile);
+      tempHelperFiles.push(tempCFile);
+    }
+  }
+
+  // Cleanup helper function for temp files
+  const cleanupHelperFiles = (): void => {
+    for (const f of tempHelperFiles) {
+      try {
+        if (existsSync(f)) unlinkSync(f);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  };
+
   // Check if this is an error test
   if (existsSync(expectedErrorFile)) {
     const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
 
     if (result.success) {
+      cleanupHelperFiles();
       return {
         passed: false,
         message: `Expected errors but transpilation succeeded`,
@@ -90,15 +141,18 @@ async function runTest(
 
     if (updateMode) {
       writeFileSync(expectedErrorFile, actualErrors + "\n");
+      cleanupHelperFiles();
       return { passed: true, message: "Updated error snapshot", updated: true };
     }
 
     if (
       TestUtils.normalize(actualErrors) === TestUtils.normalize(expectedErrors)
     ) {
+      cleanupHelperFiles();
       return { passed: true };
     }
 
+    cleanupHelperFiles();
     return {
       passed: false,
       message: "Error output mismatch",
@@ -115,6 +169,7 @@ async function runTest(
       const errors = result.errors
         .map((e) => `${e.line}:${e.column} ${e.message}`)
         .join("\n");
+      cleanupHelperFiles();
       return {
         passed: false,
         message: `Transpilation failed unexpectedly`,
@@ -125,6 +180,7 @@ async function runTest(
 
     if (updateMode) {
       writeFileSync(expectedCFile, result.code);
+      cleanupHelperFiles();
       return { passed: true, message: "Updated C snapshot", updated: true };
     }
 
@@ -138,6 +194,7 @@ async function runTest(
           rootDir,
         );
         if (!compileResult.valid) {
+          cleanupHelperFiles();
           return {
             passed: false,
             message: "GCC compilation failed",
@@ -149,6 +206,7 @@ async function runTest(
       if (tools.cppcheck) {
         const cppcheckResult = TestUtils.validateCppcheck(expectedCFile);
         if (!cppcheckResult.valid) {
+          cleanupHelperFiles();
           return {
             passed: false,
             message: "Cppcheck failed",
@@ -160,6 +218,7 @@ async function runTest(
       if (tools.clangTidy) {
         const clangTidyResult = TestUtils.validateClangTidy(expectedCFile);
         if (!clangTidyResult.valid) {
+          cleanupHelperFiles();
           return {
             passed: false,
             message: "Clang-tidy failed",
@@ -171,6 +230,7 @@ async function runTest(
       if (tools.misra) {
         const misraResult = TestUtils.validateMisra(expectedCFile, rootDir);
         if (!misraResult.valid) {
+          cleanupHelperFiles();
           return {
             passed: false,
             message: "MISRA check failed",
@@ -183,6 +243,7 @@ async function runTest(
       if (tools.flawfinder) {
         const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
         if (!flawfinderResult.valid) {
+          cleanupHelperFiles();
           return {
             passed: false,
             message: "Flawfinder security check failed",
@@ -198,6 +259,7 @@ async function runTest(
           rootDir,
         );
         if (!noWarningsResult.valid) {
+          cleanupHelperFiles();
           return {
             passed: false,
             message: "Warning check failed (test-no-warnings)",
@@ -209,10 +271,17 @@ async function runTest(
       // Execution test if marker present
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (TestUtils.requiresArmRuntime(result.code)) {
+          cleanupHelperFiles();
           return { passed: true, skippedExec: true };
         }
 
-        const execResult = TestUtils.executeTest(expectedCFile, rootDir, 0);
+        const execResult = TestUtils.executeTest(
+          expectedCFile,
+          rootDir,
+          0,
+          helperCFiles,
+        );
+        cleanupHelperFiles();
         if (!execResult.valid) {
           return {
             passed: false,
@@ -222,6 +291,7 @@ async function runTest(
         }
       }
 
+      cleanupHelperFiles();
       return { passed: true };
     }
 
@@ -232,8 +302,14 @@ async function runTest(
 
       try {
         if (!TestUtils.requiresArmRuntime(result.code)) {
-          const execResult = TestUtils.executeTest(tempCFile, rootDir, 0);
+          const execResult = TestUtils.executeTest(
+            tempCFile,
+            rootDir,
+            0,
+            helperCFiles,
+          );
           if (!execResult.valid) {
+            cleanupHelperFiles();
             return {
               passed: false,
               message: "C output mismatch AND execution failed",
@@ -252,6 +328,7 @@ async function runTest(
       }
     }
 
+    cleanupHelperFiles();
     return {
       passed: false,
       message: "C output mismatch",
@@ -264,16 +341,19 @@ async function runTest(
   if (updateMode) {
     if (result.success) {
       writeFileSync(expectedCFile, result.code);
+      cleanupHelperFiles();
       return { passed: true, message: "Created C snapshot", updated: true };
     } else {
       const errors = result.errors
         .map((e) => `${e.line}:${e.column} ${e.message}`)
         .join("\n");
       writeFileSync(expectedErrorFile, errors + "\n");
+      cleanupHelperFiles();
       return { passed: true, message: "Created error snapshot", updated: true };
     }
   }
 
+  cleanupHelperFiles();
   return {
     passed: false,
     message: "No expected file found. Run with --update to create snapshot.",
