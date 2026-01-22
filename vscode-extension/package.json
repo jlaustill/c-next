@@ -2,7 +2,7 @@
   "name": "c-next",
   "displayName": "C-Next",
   "description": "Syntax highlighting and live C preview for C-Next, a safer C for embedded systems",
-  "version": "0.1.22",
+  "version": "0.1.24",
   "publisher": "jlaustill",
   "license": "MIT",
   "repository": {
@@ -137,6 +137,13 @@
           "default": 500,
           "description": "Delay in milliseconds before updating the .c file after typing"
         }
+      }
+    },
+    "configurationDefaults": {
+      "explorer.fileNesting.enabled": true,
+      "explorer.fileNesting.expand": false,
+      "explorer.fileNesting.patterns": {
+        "*.cnx": "${capture}.c, ${capture}.cpp, ${capture}.h, ${capture}.hpp"
       }
     }
   },
