@@ -46,6 +46,7 @@ class Project {
       inputs,
       includeDirs: this.config.includeDirs,
       outDir: this.config.outDir,
+      headerOutDir: this.config.headerOutDir,
       defines: this.config.defines,
       preprocess: this.config.preprocess,
       generateHeaders: this.config.generateHeaders,

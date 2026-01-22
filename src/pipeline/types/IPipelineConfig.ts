@@ -14,6 +14,9 @@ interface IPipelineConfig {
   /** Output directory for generated files (defaults to same as input) */
   outDir?: string;
 
+  /** Separate output directory for header files (defaults to outDir) */
+  headerOutDir?: string;
+
   /** Preprocessor defines for C/C++ headers */
   defines?: Record<string, string | boolean>;
 

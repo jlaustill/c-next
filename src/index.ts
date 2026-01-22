@@ -4,6 +4,7 @@
  * A safer C for embedded systems development
  */
 
+import CleanCommand from "./commands/CleanCommand";
 import IncludeDiscovery from "./lib/IncludeDiscovery";
 import InputExpansion from "./lib/InputExpansion";
 import Project from "./project/Project";
@@ -107,6 +108,10 @@ function showHelp(): void {
   );
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  --no-cache         Disable symbol cache (.cnx/ directory)");
+  console.log("  --header-out <dir> Output directory for header files");
+  console.log(
+    "  --clean            Delete generated files for all .cnx sources",
+  );
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --pio-install      Setup PlatformIO integration");
   console.log("  --pio-uninstall    Remove PlatformIO integration");
@@ -191,6 +196,7 @@ async function runUnifiedMode(
   verbose: boolean,
   cppRequired: boolean,
   noCache: boolean,
+  headerOutDir?: string,
 ): Promise<void> {
   // Step 1: Expand directories to .cnx files
   let files: string[];
@@ -255,6 +261,7 @@ async function runUnifiedMode(
     files,
     includeDirs: allIncludePaths,
     outDir,
+    headerOutDir,
     generateHeaders,
     preprocess,
     defines,
@@ -471,6 +478,8 @@ async function main(): Promise<void> {
   let preprocess = true;
   let verbose = false;
   let noCache = false;
+  let headerOutDir: string | undefined;
+  let cleanMode = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -489,6 +498,10 @@ async function main(): Promise<void> {
       preprocess = false;
     } else if (arg === "--no-cache") {
       noCache = true;
+    } else if (arg === "--header-out" && i + 1 < args.length) {
+      headerOutDir = args[++i];
+    } else if (arg === "--clean") {
+      cleanMode = true;
     } else if (arg.startsWith("-D")) {
       const define = arg.slice(2);
       const eqIndex = define.indexOf("=");
@@ -518,6 +531,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Clean mode: delete generated files and exit
+  if (cleanMode) {
+    CleanCommand.execute(inputFiles, outputPath, headerOutDir);
+    process.exit(0);
+  }
+
   await runUnifiedMode(
     inputFiles,
     outputPath,
@@ -528,6 +547,7 @@ async function main(): Promise<void> {
     verbose,
     cppRequired,
     noCache,
+    headerOutDir,
   );
 }
 
