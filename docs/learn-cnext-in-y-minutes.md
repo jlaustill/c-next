@@ -1358,15 +1358,15 @@ GPIO7.DR_TOGGLE[3] <- true;     // Toggle bit 3 (atomic)
 scope LED {
     const u32 BIT <- 3;
 
-    void on() {
+    public void on() {
         GPIO7.DR_SET[BIT] <- true;
     }
 
-    void off() {
+    public void off() {
         GPIO7.DR_CLEAR[BIT] <- true;
     }
 
-    void toggle() {
+    public void toggle() {
         GPIO7.DR_TOGGLE[BIT] <- true;
     }
 }
@@ -1478,15 +1478,15 @@ const u32 BLINK_DELAY_MS <- 1000;
 
 // LED control
 scope LED {
-    void on() {
+    public void on() {
         GPIO7.DR_SET[LED_BIT] <- true;
     }
 
-    void off() {
+    public void off() {
         GPIO7.DR_CLEAR[LED_BIT] <- true;
     }
 
-    void toggle() {
+    public void toggle() {
         GPIO7.DR_TOGGLE[LED_BIT] <- true;
     }
 }
