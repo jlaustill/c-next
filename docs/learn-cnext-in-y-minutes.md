@@ -143,7 +143,7 @@ enum State {
     IDLE,           // 0
     RUNNING,        // 1
     ERROR <- 255    // Explicit value
-};
+}
 
 State current <- State.IDLE;
 
@@ -872,10 +872,10 @@ struct Rectangle {
     Point bottomRight;
 }
 
-// Nested struct initialization
+// Nested struct initialization (type inferred from field, no redundant type name)
 Rectangle bounds <- {
-    topLeft: Point { x: 10, y: 20 },
-    bottomRight: Point { x: 110, y: 120 }
+    topLeft: { x: 10, y: 20 },
+    bottomRight: { x: 110, y: 120 }
 };
 
 // Chained member access (read)
@@ -890,9 +890,9 @@ struct Material { Color ambient; Color diffuse; }
 struct Mesh { Material mat; u32 vertexCount; }
 
 Mesh cube <- {
-    mat: Material {
-        ambient: Color { r: 50, g: 50, b: 50 },
-        diffuse: Color { r: 200, g: 100, b: 50 }
+    mat: {
+        ambient: { r: 50, g: 50, b: 50 },
+        diffuse: { r: 200, g: 100, b: 50 }
     },
     vertexCount: 36
 };
