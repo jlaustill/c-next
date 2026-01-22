@@ -1,0 +1,17 @@
+// Issue #331: Test file that includes Utils.cnx
+// This file is used by test-issue-331.ts
+
+#include <Utils.cnx>
+
+scope App {
+    public u32 test() {
+        // Test that we can call Utils functions without symbol conflicts
+        u8 result <- global.Utils.add(5);
+        if (result != 6) return 1;
+
+        result <- global.Utils.multiply(3, 4);
+        if (result != 12) return 2;
+
+        return 0;
+    }
+}

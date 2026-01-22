@@ -1,0 +1,10 @@
+// Utils scope - utility functions for Display module
+scope Utils {
+    public u8 add(u8 x) {
+        return x + 1;
+    }
+
+    public u8 multiply(u8 x, u8 y) {
+        return x * y;
+    }
+}

@@ -31,6 +31,9 @@ const EXTENSION_MAP: Record<string, EFileType> = {
 class FileDiscovery {
   /**
    * Discover files in the given directories
+   *
+   * Issue #331: Uses a Set to track discovered file paths and avoid duplicates
+   * when overlapping directories are provided (e.g., both src/Display and src).
    */
   static discover(
     directories: string[],
@@ -44,6 +47,8 @@ class FileDiscovery {
       /\.build/,
       /\.pio/,
     ];
+    // Issue #331: Track discovered paths to avoid duplicates from overlapping dirs
+    const discoveredPaths = new Set<string>();
 
     for (const dir of directories) {
       const resolvedDir = resolve(dir);
@@ -59,6 +64,7 @@ class FileDiscovery {
         recursive,
         options.extensions,
         excludePatterns,
+        discoveredPaths,
       );
     }
 
@@ -131,6 +137,9 @@ class FileDiscovery {
 
   /**
    * Scan a directory for source files
+   *
+   * Issue #331: discoveredPaths parameter tracks already-discovered files
+   * to avoid duplicates when scanning overlapping directories.
    */
   private static scanDirectory(
     dir: string,
@@ -138,6 +147,7 @@ class FileDiscovery {
     recursive: boolean,
     extensions: string[] | undefined,
     excludePatterns: RegExp[],
+    discoveredPaths: Set<string>,
   ): void {
     let entries: string[];
 
@@ -171,9 +181,15 @@ class FileDiscovery {
             recursive,
             extensions,
             excludePatterns,
+            discoveredPaths,
           );
         }
       } else if (stats.isFile()) {
+        // Issue #331: Skip already-discovered files (from overlapping directories)
+        if (discoveredPaths.has(fullPath)) {
+          continue;
+        }
+
         const ext = extname(fullPath).toLowerCase();
 
         // Check extension filter
@@ -183,6 +199,7 @@ class FileDiscovery {
 
         const type = EXTENSION_MAP[ext];
         if (type) {
+          discoveredPaths.add(fullPath);
           files.push({
             path: fullPath,
             type,
