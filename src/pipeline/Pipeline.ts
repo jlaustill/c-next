@@ -642,6 +642,7 @@ class Pipeline {
           sourcePath: file.path, // Issue #230: For self-include header generation
           generateHeaders: this.config.generateHeaders, // Issue #230: Enable self-include when headers are generated
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
+          sourceRelativePath: this.getSourceRelativePath(file.path), // Issue #339: For correct self-include paths
         },
       );
 
@@ -699,14 +700,14 @@ class Pipeline {
   }
 
   /**
-   * Get output path for a file
+   * Get relative path from any input directory for a file.
+   * Returns the relative path (e.g., "Display/Utils.cnx") or null if the file
+   * is not under any input directory.
+   *
+   * This is the shared logic used by getSourceRelativePath, getOutputPath,
+   * and getHeaderOutputPath for directory structure preservation.
    */
-  private getOutputPath(file: IDiscoveredFile): string {
-    // Issue #211: Derive extension from cppDetected flag
-    const ext = this.cppDetected ? ".cpp" : ".c";
-    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
-
-    // Check if file is in any input directory (for preserving structure)
+  private getRelativePathFromInputs(filePath: string): string | null {
     for (const input of this.config.inputs) {
       const resolvedInput = resolve(input);
 
@@ -715,24 +716,49 @@ class Pipeline {
         continue;
       }
 
-      const relativePath = relative(resolvedInput, file.path);
+      const relativePath = relative(resolvedInput, filePath);
 
       // Check if file is under this input directory
       if (relativePath && !relativePath.startsWith("..")) {
-        // File is under this input directory - preserve structure
-        const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
-        const outputPath = join(this.config.outDir, outputRelative);
-
-        const outputDir = dirname(outputPath);
-        if (!existsSync(outputDir)) {
-          mkdirSync(outputDir, { recursive: true });
-        }
-
-        return outputPath;
+        return relativePath;
       }
     }
 
+    return null;
+  }
+
+  /**
+   * Issue #339: Get relative path from input directory for self-include generation.
+   * Returns the relative path (e.g., "Display/Utils.cnx") or just the basename
+   * if the file is not in any input directory.
+   */
+  private getSourceRelativePath(filePath: string): string {
+    return this.getRelativePathFromInputs(filePath) ?? basename(filePath);
+  }
+
+  /**
+   * Get output path for a file
+   */
+  private getOutputPath(file: IDiscoveredFile): string {
+    // Issue #211: Derive extension from cppDetected flag
+    const ext = this.cppDetected ? ".cpp" : ".c";
+
+    const relativePath = this.getRelativePathFromInputs(file.path);
+    if (relativePath) {
+      // File is under an input directory - preserve structure
+      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
+      const outputPath = join(this.config.outDir, outputRelative);
+
+      const outputDir = dirname(outputPath);
+      if (!existsSync(outputDir)) {
+        mkdirSync(outputDir, { recursive: true });
+      }
+
+      return outputPath;
+    }
+
     // Fallback: flat output in outDir
+    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
     return join(this.config.outDir, outputName);
   }
 
@@ -816,37 +842,25 @@ class Pipeline {
    * Uses headerOutDir if specified, otherwise falls back to outDir
    */
   private getHeaderOutputPath(file: IDiscoveredFile): string {
-    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 
-    // Check if file is in any input directory (for preserving structure)
-    for (const input of this.config.inputs) {
-      const resolvedInput = resolve(input);
+    const relativePath = this.getRelativePathFromInputs(file.path);
+    if (relativePath) {
+      // File is under an input directory - preserve structure
+      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
+      const outputPath = join(headerDir, outputRelative);
 
-      // Skip if input is a file (not a directory) - can't preserve structure
-      if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
-        continue;
+      const outputDir = dirname(outputPath);
+      if (!existsSync(outputDir)) {
+        mkdirSync(outputDir, { recursive: true });
       }
 
-      const relativePath = relative(resolvedInput, file.path);
-
-      // Check if file is under this input directory
-      if (relativePath && !relativePath.startsWith("..")) {
-        const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
-        const outputPath = join(headerDir, outputRelative);
-
-        const outputDir = dirname(outputPath);
-        if (!existsSync(outputDir)) {
-          mkdirSync(outputDir, { recursive: true });
-        }
-
-        return outputPath;
-      }
+      return outputPath;
     }
 
     // Fallback: flat output in headerDir
+    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
     return join(headerDir, headerName);
   }
 

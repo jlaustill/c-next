@@ -1430,13 +1430,17 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #230: Self-include for extern "C" linkage
     // When file has public symbols and headers are being generated,
     // include own header to ensure proper C linkage
+    // Issue #339: Use relative path from source root when available
     if (
       options?.generateHeaders &&
       this.symbols!.hasPublicSymbols() &&
       this.sourcePath
     ) {
-      const basename = this.sourcePath.replace(/^.*[\\/]/, "");
-      const headerName = basename.replace(/\.cnx$|\.cnext$/, ".h");
+      // Issue #339: Prefer sourceRelativePath for correct directory structure
+      // Otherwise fall back to basename for backward compatibility
+      const pathToUse =
+        options.sourceRelativePath || this.sourcePath.replace(/^.*[\\/]/, "");
+      const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ".h");
       output.push(`#include "${headerName}"`);
       output.push("");
     }
