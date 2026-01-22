@@ -5,7 +5,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
+import {
+  CPP14Parser,
+  ClassSpecifierContext,
+} from "../parser/cpp/grammar/CPP14Parser";
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
@@ -188,7 +191,7 @@ class CppSymbolCollector {
     const baseType = this.extractTypeFromDeclSpecSeq(declSpecSeq);
 
     // Issue #342: Track anonymous class specifiers for typedef handling
-    let anonymousClassSpec: any = null;
+    let anonymousClassSpec: ClassSpecifierContext | null = null;
 
     // Check for class specifier
     for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
