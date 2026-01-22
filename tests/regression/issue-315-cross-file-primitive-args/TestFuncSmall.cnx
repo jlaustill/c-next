@@ -1,0 +1,9 @@
+// Issue #315: Helper scope for cross-file small primitive argument test
+// This file defines a scope with u8 parameters to test SMALL_PRIMITIVE_TYPES path
+
+scope TestFuncSmall {
+    // Public function that takes u8 (small primitive) arguments
+    public u8 addBytes(u8 a, u8 b) {
+        return a + b;
+    }
+}
