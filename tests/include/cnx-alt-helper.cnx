@@ -1,0 +1,6 @@
+// C-Next alternative to cnx-alt-helper.h
+// Used to test E0504 error detection
+
+struct AltHelper {
+    i32 value;
+}

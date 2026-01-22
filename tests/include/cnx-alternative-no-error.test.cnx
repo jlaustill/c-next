@@ -1,0 +1,9 @@
+// E0504: Including .h without .cnx alternative should NOT produce error
+// TestConfig.h exists but TestConfig.cnx does NOT
+
+#include "TestConfig.h"
+
+u32 main() {
+    // Should compile successfully since no .cnx alternative exists
+    return 0;
+}
