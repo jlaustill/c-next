@@ -3,8 +3,8 @@
  * A safer C for embedded systems
  */
 
+// test-execution
 // Issue #315: Test SMALL_PRIMITIVE_TYPES path for cross-file calls
-// NOTE: This is a compilation-only test - cross-file tests cannot execute without multi-file linking
 // This test uses u8 parameters which are handled by the isSmallPrimitive check,
 // NOT the isFloatParam check (which is tested by the main test file).
 #include <TestFuncSmall.h>

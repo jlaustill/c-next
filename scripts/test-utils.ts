@@ -422,16 +422,45 @@ class TestUtils {
   }
 
   /**
+   * Find helper .cnx files that are included by a test file
+   * Parses the source for #include <file.cnx> or #include "file.cnx" directives
+   * Only returns files in the same directory as the test (for cross-file execution)
+   */
+  static findHelperCnxFiles(testFile: string, source?: string): string[] {
+    const testDir = dirname(testFile);
+    const helperFiles: string[] = [];
+
+    // If source is provided, parse it for .cnx includes
+    if (source) {
+      // Match #include <file.cnx> or #include "file.cnx"
+      const includeRegex = /#include\s*[<"]([^>"]+\.cnx)[>"]/g;
+      let match;
+      while ((match = includeRegex.exec(source)) !== null) {
+        const includedFile = match[1];
+        // Check if the file exists in the test directory
+        const fullPath = join(testDir, includedFile);
+        if (existsSync(fullPath) && !includedFile.endsWith(".test.cnx")) {
+          helperFiles.push(fullPath);
+        }
+      }
+    }
+
+    return helperFiles;
+  }
+
+  /**
    * Compile and execute a C file, validating exit code
    *
    * @param cFile - Path to the C file
    * @param rootDir - Project root directory for include paths
    * @param expectedExitCode - Expected exit code (default: 0)
+   * @param additionalCFiles - Additional C files to compile and link (for cross-file tests)
    */
   static executeTest(
     cFile: string,
     rootDir: string,
     expectedExitCode: number = 0,
+    additionalCFiles: string[] = [],
   ): IValidationResult & { stdout?: string } {
     const execPath = TestUtils.getExecutablePath(cFile);
 
@@ -442,6 +471,9 @@ class TestUtils {
 
     // Issue #315: Include the C file's directory for local headers
     const cFileDir = dirname(cFile);
+
+    // All source files to compile (main + helpers)
+    const sourceFiles = [cFile, ...additionalCFiles];
 
     try {
       // Compile to executable
@@ -457,7 +489,7 @@ class TestUtils {
           cFileDir,
           "-o",
           execPath,
-          cFile,
+          ...sourceFiles,
         ],
         { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
       );
