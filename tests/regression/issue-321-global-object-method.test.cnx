@@ -1,0 +1,75 @@
+// Issue #321: global.Object.method() generates :: instead of . for object instances
+// Tests: Correct syntax generation for object instances vs classes in C++ mode
+//
+// KEY DISTINCTION:
+//   - Classes with static methods: global.ClassName.method() -> ClassName::method()
+//   - Object instances: global.objectName.method() -> objectName.method()
+//
+// BUG: The transpiler generates Serial::begin() when it should generate Serial.begin()
+//      because Serial is declared as "extern HardwareSerial Serial;" (an object instance),
+//      not as a class with static methods.
+
+#include "issue-321-global-object-method.hpp"
+
+// ============================================================================
+// SECTION 1: CLASS WITH STATIC METHODS - should use :: syntax
+// ============================================================================
+void testClassStaticMethods() {
+    // ConfigStorage is a CLASS - should use :: for static method access
+    global.ConfigStorage.load();
+    global.ConfigStorage.save();
+    i32 val <- global.ConfigStorage.getValue("key");
+}
+
+// ============================================================================
+// SECTION 2: NAMESPACE - should use :: syntax
+// ============================================================================
+void testNamespace() {
+    // SystemUtils is a NAMESPACE - should use :: syntax
+    global.SystemUtils.initialize();
+    i32 status <- global.SystemUtils.getStatus();
+}
+
+// ============================================================================
+// SECTION 3: OBJECT INSTANCES - should use . syntax (THE BUG)
+// ============================================================================
+void testObjectInstances() {
+    // Serial is an OBJECT INSTANCE (extern HardwareSerial Serial;)
+    // Should generate: Serial.begin(9600)
+    // BUG generates: Serial::begin(9600)
+    global.Serial.begin(9600);
+    global.Serial.println("Hello");
+
+    // Wire is also an OBJECT INSTANCE (extern TwoWire Wire;)
+    // Should generate: Wire.begin()
+    // BUG generates: Wire::begin()
+    global.Wire.begin();
+    global.Wire.beginTransmission(0x50);
+}
+
+// ============================================================================
+// SECTION 4: MIXED USAGE
+// ============================================================================
+void testMixedUsage() {
+    // Class - uses ::
+    global.ConfigStorage.load();
+
+    // Object instance - should use . (BUG: uses ::)
+    global.Serial.begin(115200);
+
+    // Namespace - uses ::
+    global.SystemUtils.initialize();
+
+    // Object instance - should use . (BUG: uses ::)
+    global.Wire.begin();
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+void main() {
+    testClassStaticMethods();
+    testNamespace();
+    testObjectInstances();
+    testMixedUsage();
+}
