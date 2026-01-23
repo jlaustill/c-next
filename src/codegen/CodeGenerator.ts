@@ -54,8 +54,6 @@ import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
 
-const { determineSeparator } = memberAccessChain;
-
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
   generateSafeDivHelpers: helperGenerateSafeDivHelpers,
@@ -6322,7 +6320,7 @@ export default class CodeGenerator implements IOrchestrator {
               ) {
                 const memberName = identifiers[idIndex].getText();
                 // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
-                const separator = determineSeparator(
+                const separator = memberAccessChain.determineSeparator(
                   { isStructParam, isCrossScope },
                   idIndex,
                 );
@@ -9372,7 +9370,7 @@ export default class CodeGenerator implements IOrchestrator {
               if (i < ctx.children.length && idIndex < parts.length) {
                 const memberName = parts[idIndex];
                 // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
-                const separator = determineSeparator(
+                const separator = memberAccessChain.determineSeparator(
                   { isStructParam, isCrossScope },
                   idIndex,
                 );
