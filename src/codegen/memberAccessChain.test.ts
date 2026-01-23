@@ -6,37 +6,15 @@
  */
 
 import { vi } from "vitest";
+import { ParseTree } from "antlr4ng";
 import memberAccessChain from "./memberAccessChain";
 
 const { determineSeparator, buildMemberAccessChain } = memberAccessChain;
 
-// Local type definitions for testing (mirrors internal types)
+// Local type definition for separator options (mirrors internal type)
 interface SeparatorOptions {
   isStructParam: boolean;
   isCrossScope: boolean;
-}
-
-interface BuildChainOptions<TExpr> {
-  firstId: string;
-  identifiers: string[];
-  expressions: TExpr[];
-  children: { getText(): string }[];
-  separatorOptions: SeparatorOptions;
-  generateExpression: (expr: TExpr) => string;
-  initialTypeInfo?: {
-    isArray: boolean;
-    baseType: string;
-  };
-  typeTracking?: {
-    getStructFields: (structType: string) => Map<string, string> | undefined;
-    getStructArrayFields: (structType: string) => Set<string> | undefined;
-    isKnownStruct: (typeName: string) => boolean;
-  };
-  onBitAccess?: (
-    result: string,
-    bitIndex: string,
-    memberType: string,
-  ) => string | null;
 }
 
 describe("determineSeparator", () => {
@@ -100,13 +78,11 @@ describe("determineSeparator", () => {
   });
 });
 
-// Mock ParseTree for testing
-interface MockParseTree {
-  getText(): string;
-}
-
-function createMockChildren(tokens: string[]): MockParseTree[] {
-  return tokens.map((text) => ({ getText: () => text }));
+// Mock ParseTree for testing - only getText() is used by buildMemberAccessChain
+function createMockChildren(tokens: string[]): ParseTree[] {
+  return tokens.map(
+    (text) => ({ getText: () => text }) as unknown as ParseTree,
+  );
 }
 
 describe("buildMemberAccessChain", () => {
@@ -116,7 +92,7 @@ describe("buildMemberAccessChain", () => {
   describe("simple member access (no subscripts)", () => {
     it("should build chain with regular separator", () => {
       // cfg.tempInputs.assignedSpn
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "cfg",
         identifiers: ["cfg", "tempInputs", "assignedSpn"],
         expressions: [],
@@ -139,7 +115,7 @@ describe("buildMemberAccessChain", () => {
 
     it("should build chain with -> for struct parameter", () => {
       // conf->tempInputs.assignedSpn (conf is a struct param)
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "conf",
         identifiers: ["conf", "tempInputs", "assignedSpn"],
         expressions: [],
@@ -161,7 +137,7 @@ describe("buildMemberAccessChain", () => {
 
     it("should build chain with _ for cross-scope", () => {
       // Timing_tickCount (cross-scope access)
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "Timing",
         identifiers: ["Timing", "tickCount"],
         expressions: [],
@@ -179,7 +155,7 @@ describe("buildMemberAccessChain", () => {
   describe("member access with subscripts", () => {
     it("should build chain with subscript at end", () => {
       // cfg.tempInputs[idx]
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "cfg",
         identifiers: ["cfg", "tempInputs"],
         expressions: ["idx"],
@@ -203,7 +179,7 @@ describe("buildMemberAccessChain", () => {
 
     it("should build chain with subscript then member (the issue #69 pattern)", () => {
       // conf->tempInputs[idx].assignedSpn (struct param with subscript then member)
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "conf",
         identifiers: ["conf", "tempInputs", "assignedSpn"],
         expressions: ["idx"],
@@ -229,7 +205,7 @@ describe("buildMemberAccessChain", () => {
 
     it("should handle multiple subscripts", () => {
       // matrix[i][j]
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "matrix",
         identifiers: ["matrix"],
         expressions: ["i", "j"],
@@ -245,7 +221,7 @@ describe("buildMemberAccessChain", () => {
 
     it("should handle mixed subscripts and members", () => {
       // data->items[0].value[1].flag
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "data",
         identifiers: ["data", "items", "value", "flag"],
         expressions: ["0", "1"],
@@ -286,7 +262,7 @@ describe("buildMemberAccessChain", () => {
 
       const onBitAccess = vi.fn().mockReturnValue("((items[0].byte >> 7) & 1)");
 
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "items",
         identifiers: ["items", "byte"],
         expressions: ["0", "7"],
@@ -323,7 +299,7 @@ describe("buildMemberAccessChain", () => {
 
       const onBitAccess = vi.fn();
 
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "items",
         identifiers: ["items", "indices"],
         expressions: ["0", "12"],
@@ -354,7 +330,7 @@ describe("buildMemberAccessChain", () => {
   describe("edge cases", () => {
     it("should handle single identifier with subscript", () => {
       // arr[0]
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "arr",
         identifiers: ["arr"],
         expressions: ["0"],
@@ -369,7 +345,7 @@ describe("buildMemberAccessChain", () => {
 
     it("should handle complex expression in subscript", () => {
       // cfg.items[i + 1]
-      const options: BuildChainOptions<string> = {
+      const options = {
         firstId: "cfg",
         identifiers: ["cfg", "items"],
         expressions: ["expr_placeholder"],
