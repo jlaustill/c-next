@@ -199,8 +199,25 @@ class IncludeDiscovery {
         // Split by newlines or commas, handling both single-line and multi-line formats
         const dirs = value
           .split(/[\n,]/)
-          .map((d) => d.trim())
-          .filter((d) => d && !d.startsWith(";") && !d.startsWith("#"));
+          .map((d) => {
+            // Strip inline comments (e.g., "path ; comment" or "path # comment")
+            const commentIndex = Math.min(
+              d.indexOf(";") === -1 ? Infinity : d.indexOf(";"),
+              d.indexOf("#") === -1 ? Infinity : d.indexOf("#"),
+            );
+            return d.slice(0, commentIndex).trim();
+          })
+          .map((d) => {
+            // Strip surrounding quotes (e.g., "path with spaces" or 'path')
+            if (
+              (d.startsWith('"') && d.endsWith('"')) ||
+              (d.startsWith("'") && d.endsWith("'"))
+            ) {
+              return d.slice(1, -1);
+            }
+            return d;
+          })
+          .filter((d) => d.length > 0);
 
         for (const dir of dirs) {
           // Resolve relative to project root

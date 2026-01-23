@@ -4291,16 +4291,14 @@ export default class CodeGenerator implements IOrchestrator {
           return this._generateExpression(ctx);
         }
 
-        // Issue #355: If we don't have struct field info ("unknown"), skip the
-        // static_cast conversion to avoid generating incorrect code.
-        // The header might not have been parsed, so we can't safely determine
-        // if this is an array or scalar field.
-        if (arrayStatus === "unknown") {
-          // Skip the needsCppMemberConversion path - just pass with &
-          // This is safer than potentially casting an array to a scalar
-        } else if (this.needsCppMemberConversion(ctx, targetParamBaseType)) {
-          // Issue #251/#252: In C++ mode, struct member access may need temp variable
-          // Only do this when we KNOW the field is not an array
+        // Issue #355: Only apply static_cast when we KNOW the field is not an array.
+        // When "unknown" (header not parsed), skip this path - safer than potentially
+        // casting an array to a scalar.
+        // Issue #251/#252: In C++ mode, struct member access may need temp variable.
+        if (
+          arrayStatus === "not-array" &&
+          this.needsCppMemberConversion(ctx, targetParamBaseType)
+        ) {
           const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
           const value = this._generateExpression(ctx);
           const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
