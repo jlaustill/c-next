@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.29] - 2026-01-23
+
+### Fixed
+
+- Struct param array member assignment now uses `->` instead of `.` for correct pointer access (PR #363)
+
+### Documentation
+
+- Added ADR-054 for array index overflow semantics with bounded string extension (PR #361, #362)
+- Improved ADR accuracy based on Reddit feedback (PR #360)
+
 ## [0.1.28] - 2026-01-22
 
 ### Fixed
@@ -319,7 +330,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.28...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.29...HEAD
+[0.1.29]: https://github.com/jlaustill/c-next/compare/v0.1.28...v0.1.29
 [0.1.28]: https://github.com/jlaustill/c-next/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/jlaustill/c-next/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/jlaustill/c-next/compare/v0.1.25...v0.1.26
