@@ -517,7 +517,7 @@ class Pipeline {
       const symbols = collector.collect(tree);
       this.symbolTable.addSymbols(symbols);
     } catch {
-      // Silently ignore parse errors in headers
+      // Silently ignore parse errors in headers (they may have complex C++ features)
     }
   }
 

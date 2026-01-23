@@ -1,12 +1,13 @@
 import { dirname, resolve, join, isAbsolute } from "path";
-import { existsSync, statSync } from "fs";
+import { existsSync, statSync, readdirSync } from "fs";
 
 /**
  * Auto-discovery of include paths for C-Next compilation
  *
- * Implements 2-tier include path discovery:
+ * Implements 3-tier include path discovery:
  * 1. File's own directory (for relative #include "header.h")
  * 2. Project root (walk up to find platformio.ini, cnext.config.json, .git)
+ * 3. PlatformIO library dependencies (.pio/libdeps/)
  *
  * Note: System paths (compiler defaults) not included to avoid dependencies.
  * Users can add system paths via --include flag if needed.
@@ -36,10 +37,66 @@ class IncludeDiscovery {
           paths.push(includePath);
         }
       }
+
+      // Tier 3: Issue #355 - PlatformIO library dependencies
+      // When platformio.ini exists, check for .pio/libdeps/ and add all library paths
+      const pioIniPath = join(projectRoot, "platformio.ini");
+      if (existsSync(pioIniPath)) {
+        const libDepsPath = join(projectRoot, ".pio", "libdeps");
+        if (existsSync(libDepsPath) && statSync(libDepsPath).isDirectory()) {
+          const pioLibPaths = this.discoverPlatformIOLibPaths(libDepsPath);
+          paths.push(...pioLibPaths);
+        }
+      }
     }
 
     // Remove duplicates
     return Array.from(new Set(paths));
+  }
+
+  /**
+   * Discover PlatformIO library dependency paths
+   *
+   * PlatformIO stores libraries in .pio/libdeps/<env>/<library>/
+   * This function finds all library directories across all environments.
+   *
+   * @param libDepsPath - Path to .pio/libdeps/
+   * @returns Array of library directory paths
+   */
+  private static discoverPlatformIOLibPaths(libDepsPath: string): string[] {
+    const paths: string[] = [];
+
+    try {
+      // Iterate through environment directories (e.g., teensy40, teensy41, esp32)
+      const envDirs = readdirSync(libDepsPath);
+      for (const envDir of envDirs) {
+        const envPath = join(libDepsPath, envDir);
+        if (statSync(envPath).isDirectory()) {
+          // Iterate through library directories within each environment
+          const libDirs = readdirSync(envPath);
+          for (const libDir of libDirs) {
+            const libPath = join(envPath, libDir);
+            if (statSync(libPath).isDirectory()) {
+              // Add the library root (most headers are here)
+              paths.push(libPath);
+
+              // Also check for common subdirectories where headers might live
+              const subDirs = ["src", "include"];
+              for (const subDir of subDirs) {
+                const subPath = join(libPath, subDir);
+                if (existsSync(subPath) && statSync(subPath).isDirectory()) {
+                  paths.push(subPath);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Silently ignore errors reading directories
+    }
+
+    return paths;
   }
 
   /**

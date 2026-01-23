@@ -1,0 +1,26 @@
+// Issue #355: Array member access through pointer should not generate static_cast
+// Regression test for PlatformIO library dependency header parsing
+// Tests that array fields from external C++ struct headers are correctly detected
+
+// Simulate a minimal C++ struct with an array field (like CAN_message_t from FlexCAN_T4)
+#include "mock_can.h"
+
+scope PioArrayTest {
+    // Function that takes array parameter by reference
+    public void processBuffer(const u8 data[8], u8 len) {
+        u8 sum <- 0;
+        for (u8 i <- 0; i < len; i +<- 1) {
+            sum +<- data[i];
+        }
+    }
+
+    // Test: Passing array member through pointer should not create temp variable
+    // Before fix: Generated `static_cast<uint8_t>((*msg).buf)` - WRONG
+    // After fix: Generates `msg->buf` - CORRECT
+    public void handleMessage(const MockCanMessage msg) {
+        // This is the exact pattern from Issue #355
+        if (msg.id != 0) {
+            this.processBuffer(msg.buf, 8);
+        }
+    }
+}
