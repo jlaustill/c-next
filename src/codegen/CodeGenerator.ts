@@ -6287,6 +6287,10 @@ export default class CodeGenerator implements IOrchestrator {
           // Check if first identifier is a scope for special handling
           const isCrossScope = this.isKnownScope(firstId);
 
+          // ADR-006: Check if first identifier is a struct parameter (needs -> access)
+          const paramInfo = this.context.currentParameters.get(firstId);
+          const isStructParam = paramInfo?.isStruct ?? false;
+
           // Bug #8: Track struct types to detect bit access through chains
           // e.g., items[0].byte[7] where byte is u8 - final [7] is bit access
           let currentStructType: string | undefined;
@@ -6313,8 +6317,13 @@ export default class CodeGenerator implements IOrchestrator {
                 idIndex < identifiers.length
               ) {
                 const memberName = identifiers[idIndex].getText();
-                // Use underscore for first join if cross-scope, dot otherwise
-                const separator = isCrossScope && idIndex === 1 ? "_" : ".";
+                // ADR-006: Use -> for struct param, _ for cross-scope, . otherwise
+                let separator = ".";
+                if (isStructParam && idIndex === 1) {
+                  separator = "->";
+                } else if (isCrossScope && idIndex === 1) {
+                  separator = "_";
+                }
                 result += `${separator}${memberName}`;
                 idIndex++;
 
@@ -9320,6 +9329,10 @@ export default class CodeGenerator implements IOrchestrator {
           // Check if first identifier is a scope for special handling
           const isCrossScope = this.isKnownScope(firstPart);
 
+          // ADR-006: Check if first identifier is a struct parameter (needs -> access)
+          const paramInfo = this.context.currentParameters.get(firstPart);
+          const isStructParam = paramInfo?.isStruct ?? false;
+
           // ADR-016: Inside a scope, accessing another scope requires global. prefix
           if (isCrossScope && this.context.currentScope) {
             // Self-referential access should use 'this.'
@@ -9356,8 +9369,13 @@ export default class CodeGenerator implements IOrchestrator {
               i++;
               if (i < ctx.children.length && idIndex < parts.length) {
                 const memberName = parts[idIndex];
-                // Use underscore for first join if cross-scope, dot otherwise
-                const separator = isCrossScope && idIndex === 1 ? "_" : ".";
+                // ADR-006: Use -> for first join if struct parameter, _ for cross-scope, . otherwise
+                let separator = ".";
+                if (isStructParam && idIndex === 1) {
+                  separator = "->";
+                } else if (isCrossScope && idIndex === 1) {
+                  separator = "_";
+                }
                 result += `${separator}${memberName}`;
                 idIndex++;
 
