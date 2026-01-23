@@ -4060,22 +4060,37 @@ export default class CodeGenerator implements IOrchestrator {
    * @returns true if the expression is a member access to an array field
    */
   private isMemberAccessToArray(ctx: Parser.ExpressionContext): boolean {
+    const result = this.getMemberAccessArrayStatus(ctx);
+    return result === "array";
+  }
+
+  /**
+   * Issue #355: Check if struct field info is available for a member access.
+   * Used for defensive code generation - when we don't have field info,
+   * we skip potentially dangerous conversions.
+   *
+   * @returns "array" if definitely an array, "not-array" if definitely not,
+   *          "unknown" if struct field info is not available
+   */
+  private getMemberAccessArrayStatus(
+    ctx: Parser.ExpressionContext,
+  ): "array" | "not-array" | "unknown" {
     const postfix = this.getPostfixExpression(ctx);
-    if (!postfix) return false;
+    if (!postfix) return "not-array";
 
     const ops = postfix.postfixOp();
-    if (ops.length === 0) return false;
+    if (ops.length === 0) return "not-array";
 
     // Last operator must be member access (.identifier)
     const lastOp = ops[ops.length - 1];
     const memberName = lastOp.IDENTIFIER()?.getText();
-    if (!memberName) return false;
+    if (!memberName) return "not-array";
 
     // Get the base identifier to find the struct type
     const primary = postfix.primaryExpression();
-    if (!primary) return false;
+    if (!primary) return "not-array";
     const baseId = primary.IDENTIFIER()?.getText();
-    if (!baseId) return false;
+    if (!baseId) return "not-array";
 
     // Look up the struct type from either:
     // 1. Local variable: typeRegistry.get(baseId).baseType
@@ -4092,15 +4107,18 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    if (!structType) return false;
+    if (!structType) return "not-array";
 
     // Check if this struct member is an array
     const memberInfo = this.getMemberTypeInfo(structType, memberName);
-    if (memberInfo?.isArray) {
-      return true;
+
+    // Issue #355: If memberInfo is undefined, we don't have struct field info
+    // This could mean the header wasn't parsed - return "unknown" for defensive generation
+    if (!memberInfo) {
+      return "unknown";
     }
 
-    return false;
+    return memberInfo.isArray ? "array" : "not-array";
   }
 
   /**
@@ -4266,23 +4284,30 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #308: If member access to an array, don't add & - arrays decay to pointers
       // For example: result.data where data is u8[6] should pass as result.data (decays to uint8_t*)
       // NOT &result.data (which gives uint8_t (*)[6] - wrong type)
-      if (lvalueType === "member" && this.isMemberAccessToArray(ctx)) {
-        return this._generateExpression(ctx);
-      }
+      if (lvalueType === "member") {
+        const arrayStatus = this.getMemberAccessArrayStatus(ctx);
 
-      // Issue #251/#252: In C++ mode, struct member access may need temp variable
-      if (
-        lvalueType === "member" &&
-        this.needsCppMemberConversion(ctx, targetParamBaseType)
-      ) {
-        const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
-        const value = this._generateExpression(ctx);
-        const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
-        // Use static_cast for C++ type safety
-        this.pendingTempDeclarations.push(
-          `${cType} ${tempName} = static_cast<${cType}>(${value});`,
-        );
-        return `&${tempName}`;
+        if (arrayStatus === "array") {
+          return this._generateExpression(ctx);
+        }
+
+        // Issue #355: Only apply static_cast when we KNOW the field is not an array.
+        // When "unknown" (header not parsed), skip this path - safer than potentially
+        // casting an array to a scalar.
+        // Issue #251/#252: In C++ mode, struct member access may need temp variable.
+        if (
+          arrayStatus === "not-array" &&
+          this.needsCppMemberConversion(ctx, targetParamBaseType)
+        ) {
+          const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
+          const value = this._generateExpression(ctx);
+          const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
+          // Use static_cast for C++ type safety
+          this.pendingTempDeclarations.push(
+            `${cType} ${tempName} = static_cast<${cType}>(${value});`,
+          );
+          return `&${tempName}`;
+        }
       }
 
       // Generate the expression and wrap with &

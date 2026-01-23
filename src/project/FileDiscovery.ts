@@ -41,11 +41,13 @@ class FileDiscovery {
   ): IDiscoveredFile[] {
     const files: IDiscoveredFile[] = [];
     const recursive = options.recursive ?? true;
+    // Issue #355: Exclude .pio/build (compiled artifacts) but allow .pio/libdeps (library headers)
+    // Previously excluded all of .pio/, which prevented PlatformIO library headers from being parsed
     const excludePatterns = options.excludePatterns ?? [
       /node_modules/,
       /\.git/,
       /\.build/,
-      /\.pio/,
+      /\.pio[/\\]build/,
     ];
     // Issue #331: Track discovered paths to avoid duplicates from overlapping dirs
     const discoveredPaths = new Set<string>();

@@ -383,7 +383,7 @@ class Pipeline {
     // Issue #321: Recursively process #include directives in headers
     // This ensures symbols from nested headers (like Arduino's extern HardwareSerial Serial)
     // are properly collected even when included transitively
-    const includes = IncludeDiscovery.extractIncludes(originalContent);
+    const includes = IncludeDiscovery.extractIncludesWithInfo(originalContent);
     const headerDir = dirname(absolutePath);
     const searchPaths = [headerDir, ...this.config.includeDirs];
 
@@ -392,14 +392,14 @@ class Pipeline {
       console.log(`[DEBUG]   Search paths: ${searchPaths.join(", ")}`);
     }
 
-    for (const includePath of includes) {
+    for (const includeInfo of includes) {
       const resolved = IncludeDiscovery.resolveInclude(
-        includePath,
+        includeInfo.path,
         searchPaths,
       );
       if (this.config.debugMode) {
         console.log(
-          `[DEBUG]   #include "${includePath}" → ${resolved || "NOT FOUND"}`,
+          `[DEBUG]   #include "${includeInfo.path}" → ${resolved || "NOT FOUND"}`,
         );
       }
       if (resolved) {
@@ -416,6 +416,13 @@ class Pipeline {
           }
           await this.collectHeaderSymbols(includedFile);
         }
+      } else if (includeInfo.isLocal) {
+        // Issue #355: Warn when local includes can't be resolved
+        // This helps users diagnose missing struct type information
+        this.warnings.push(
+          `Warning: #include "${includeInfo.path}" not found (from ${file.path}). ` +
+            `Struct field types from this header will not be detected.`,
+        );
       }
     }
 
@@ -517,7 +524,7 @@ class Pipeline {
       const symbols = collector.collect(tree);
       this.symbolTable.addSymbols(symbols);
     } catch {
-      // Silently ignore parse errors in headers
+      // Silently ignore parse errors in headers (they may have complex C++ features)
     }
   }
 
