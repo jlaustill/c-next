@@ -99,14 +99,17 @@ class IncludeDiscovery {
             if (statSync(libPath).isDirectory()) {
               paths.push(libPath);
 
-              // Also check for src subdirectory (common pattern)
-              const srcPath = join(libPath, "src");
-              if (existsSync(srcPath) && statSync(srcPath).isDirectory()) {
-                paths.push(srcPath);
+              // Also check for common subdirectories where headers might live
+              const subDirs = ["src", "include", "src/include"];
+              for (const subDir of subDirs) {
+                const subPath = join(libPath, subDir);
+                if (existsSync(subPath) && statSync(subPath).isDirectory()) {
+                  paths.push(subPath);
+                }
               }
             }
           }
-        } catch {
+        } catch (_error: unknown) {
           // Silently ignore errors reading directories
         }
       }
@@ -142,7 +145,7 @@ class IncludeDiscovery {
               paths.push(libPath);
 
               // Also check for common subdirectories where headers might live
-              const subDirs = ["src", "include"];
+              const subDirs = ["src", "include", "src/include"];
               for (const subDir of subDirs) {
                 const subPath = join(libPath, subDir);
                 if (existsSync(subPath) && statSync(subPath).isDirectory()) {
@@ -153,7 +156,7 @@ class IncludeDiscovery {
           }
         }
       }
-    } catch {
+    } catch (_error: unknown) {
       // Silently ignore errors reading directories
     }
 
@@ -207,7 +210,7 @@ class IncludeDiscovery {
           }
         }
       }
-    } catch {
+    } catch (_error: unknown) {
       // Silently ignore errors reading platformio.ini
     }
 
