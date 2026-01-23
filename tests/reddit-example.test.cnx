@@ -1,0 +1,27 @@
+// test-execution
+// Tests: bit indexing example for Reddit post
+
+u32 main() {
+    u8 header <- 0;
+
+    // Writing bits
+    header[0, 4] <- 5;      // bits 0-3: message type
+    header[4, 2] <- 2;      // bits 4-5: priority
+    header[6] <- true;      // bit 6: encryption flag
+    header[7] <- false;     // bit 7: compression flag
+
+    // Validate writes
+    u8 msgType <- header[0, 4];
+    if (msgType != 5) return 1;
+
+    u8 priority <- header[4, 2];
+    if (priority != 2) return 2;
+
+    bool encrypted <- header[6];
+    if (encrypted != true) return 3;
+
+    bool compressed <- header[7];
+    if (compressed != false) return 4;
+
+    return 0;
+}
