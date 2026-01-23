@@ -51,6 +51,10 @@ import includeGenerators from "./generators/support/IncludeGenerator";
 import commentUtils from "./generators/support/CommentUtils";
 // ADR-046: NullCheckAnalyzer for nullable C pointer type detection
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
+// ADR-006: Helper for building member access chains with proper separators
+import memberAccessChain from "./memberAccessChain";
+
+const { determineSeparator } = memberAccessChain;
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -6317,13 +6321,11 @@ export default class CodeGenerator implements IOrchestrator {
                 idIndex < identifiers.length
               ) {
                 const memberName = identifiers[idIndex].getText();
-                // ADR-006: Use -> for struct param, _ for cross-scope, . otherwise
-                let separator = ".";
-                if (isStructParam && idIndex === 1) {
-                  separator = "->";
-                } else if (isCrossScope && idIndex === 1) {
-                  separator = "_";
-                }
+                // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
+                const separator = determineSeparator(
+                  { isStructParam, isCrossScope },
+                  idIndex,
+                );
                 result += `${separator}${memberName}`;
                 idIndex++;
 
@@ -9369,13 +9371,11 @@ export default class CodeGenerator implements IOrchestrator {
               i++;
               if (i < ctx.children.length && idIndex < parts.length) {
                 const memberName = parts[idIndex];
-                // ADR-006: Use -> for first join if struct parameter, _ for cross-scope, . otherwise
-                let separator = ".";
-                if (isStructParam && idIndex === 1) {
-                  separator = "->";
-                } else if (isCrossScope && idIndex === 1) {
-                  separator = "_";
-                }
+                // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
+                const separator = determineSeparator(
+                  { isStructParam, isCrossScope },
+                  idIndex,
+                );
                 result += `${separator}${memberName}`;
                 idIndex++;
 
