@@ -6,24 +6,9 @@
 
 ## Context
 
-Dynamic memory allocation is the single largest source of bugs in safety-critical systems. The consequences range from system crashes to loss of human life.
+Dynamic memory allocation introduces non-determinism and failure modes that are unacceptable in safety-critical embedded systems. Industry standards explicitly prohibit it, and C-Next v1 follows this restriction for its target use case.
 
-### Why This Matters: Real-World Disasters
-
-**Toyota Unintended Acceleration (2013)**
-
-Expert testimony revealed that stack overflow and memory corruption in the Electronic Throttle Control System caused unintended acceleration leading to deaths:
-
-> "Software expert Michael Barr testified that the death of a critical task ('Task X') due to memory corruption was likely the root cause of the incident... memory corruptions acted 'like ricocheting bullets.'"
-> — [Hackaday: Toyota's Code Didn't Meet Standards](https://hackaday.com/2016/10/24/toyotas-code-didnt-meet-standards-and-might-have-led-to-death/)
-
-> "Toyota's fail safes are defective and inadequate (referring to them as a 'house of cards' safety architecture)."
-> — [EDN: Toyota's Killer Firmware](https://www.edn.com/toyotas-killer-firmware-bad-design-and-its-consequences/)
-
-**Memory Safety in 2024**
-
-> "According to the 2024 CWE Top 10 KEV Weaknesses List Insights, memory safety remains the #1 type of exploited vulnerability in 2024."
-> — [Barr Group: Top 10 Causes of Nasty Embedded Software Bugs](https://barrgroup.com/embedded-systems/how-to/top-ten-nasty-firmware-bugs)
+> **Note:** C-Next v1 targets the most restrictive embedded use case (MISRA-compliant, safety-critical). Dynamic allocation for desktop and less-constrained targets is planned for v2 - see [ADR-101: Heap Allocation](adr-101-heap-allocation.md).
 
 ### The Problems with Dynamic Allocation
 
@@ -63,6 +48,15 @@ Requirements include:
 - Verifying successful allocation for every request
 - Accurate calculations of memory usage to prevent leakage
 - Robust dynamic memory management verification at Levels A and B
+
+### Broader Context: Memory Safety in Embedded Systems
+
+While the primary rationale for static allocation is determinism and certification requirements, it also contributes to overall memory safety. Memory bugs remain the #1 exploited vulnerability class:
+
+> "According to the 2024 CWE Top 10 KEV Weaknesses List Insights, memory safety remains the #1 type of exploited vulnerability in 2024."
+> — [Barr Group: Top 10 Causes of Nasty Embedded Software Bugs](https://barrgroup.com/embedded-systems/how-to/top-ten-nasty-firmware-bugs)
+
+**Note:** Memory safety is a broader category than dynamic allocation. The Toyota unintended acceleration case (2013), often cited in embedded safety discussions, involved stack overflow and memory corruption - not heap allocation specifically. Static allocation eliminates heap-related bugs but is just one part of a comprehensive memory safety strategy.
 
 ---
 

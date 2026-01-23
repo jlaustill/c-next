@@ -120,22 +120,34 @@ end record;
 
 From SEI CERT and embedded systems research:
 
-| Bug                         | Cause                                                                 |
-| --------------------------- | --------------------------------------------------------------------- |
-| **Bit order flip**          | Compilers can allocate high-to-low OR low-to-high                     |
-| **Cross-version breakage**  | Same vendor changed layout between compiler versions                  |
-| **Endianness mismatch**     | Big-endian packs MSB first, little-endian packs LSB first             |
-| **Silent padding**          | Compiler may insert padding bits unexpectedly                         |
-| **Read-modify-write on WO** | Bit field access reads before writing - fails on write-only registers |
+| Bug                          | Cause                                                                 |
+| ---------------------------- | --------------------------------------------------------------------- |
+| **Bit order flip**           | Compilers can allocate high-to-low OR low-to-high                     |
+| **Unexpected memory access** | Compiler generates wider read-modify-write than expected              |
+| **Endianness mismatch**      | Big-endian packs MSB first, little-endian packs LSB first             |
+| **Silent padding**           | Compiler may insert padding bits unexpectedly                         |
+| **Read-modify-write on WO**  | Bit field access reads before writing - fails on write-only registers |
 
 > "The C standard doesn't define how bit fields should be ordered. In fact, it says: 'The order of allocation of bit-fields within a unit (high-order to low-order or low-order to high-order) is implementation-defined.'"
-> — SEI CERT C Coding Standard
+> — [SEI CERT C Coding Standard](https://wiki.sei.cmu.edu/confluence/display/c/EXP11-C.+Do+not+make+assumptions+regarding+the+layout+of+structures+with+bit-fields)
 
-> "There is actually a case from long ago where a certain vendor of PC compilers changed the way bit-fields were laid out from one version of their compiler to the next, even though the operating system and processor were the same."
-> — Embedded systems community discussion
+### The btrfs Lock Corruption Bug (Linux Kernel)
 
-> "Even the Linux kernel hackers have been bitten."
-> — Hackaday
+The most concrete example of bit field dangers comes from the Linux kernel's btrfs filesystem. A structure contained two adjacent bit fields:
+
+```c
+struct extent_state {
+    // ... other fields ...
+    unsigned lock : 1;
+    unsigned full : 1;
+};
+```
+
+On ia64 architecture, GCC generated a 64-bit read-modify-write cycle when modifying `full` - reading both `lock` and `full`, modifying `full`, then writing both back. This caused lock corruption in concurrent code because another thread's changes to `lock` could be silently overwritten.
+
+The fix required restructuring the code to avoid bit fields in performance-critical shared structures.
+
+> — [Betrayed by a bitfield - LWN.net](https://lwn.net/Articles/478657/)
 
 ---
 
@@ -413,6 +425,7 @@ u8 currentMode <- status.flags[EMotorFlags.MODE_START, MODE_WIDTH];
 
 ### C Bit Field Problems
 
+- [Betrayed by a bitfield - LWN.net](https://lwn.net/Articles/478657/) - Linux kernel btrfs lock corruption bug caused by GCC's bit field memory access patterns
 - [SEI CERT: Do Not Make Assumptions About Bit-Field Layout](https://wiki.sei.cmu.edu/confluence/display/c/EXP11-C.+Do+not+make+assumptions+regarding+the+layout+of+structures+with+bit-fields)
 - [Siemens: Why Not Use Bit Fields for Device Registers](https://blogs.sw.siemens.com/embedded-software/2019/12/02/why-not-use-bit-fields-for-device-registers/)
 - [Hackaday: Bit Fields vs Shift and Mask](https://hackaday.com/2015/08/28/firmware-factory-bit-fields-vs-shift-and-mask/)
