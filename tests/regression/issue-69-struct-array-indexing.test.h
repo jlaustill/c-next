@@ -13,14 +13,22 @@
 extern "C" {
 #endif
 
-/* Forward declarations */
-typedef struct InputData InputData;
-typedef struct Configuration Configuration;
+/* Struct definitions */
+typedef struct InputData {
+    uint16_t assignedSpn;
+    float coeffA;
+} InputData;
+typedef struct Configuration {
+    InputData tempInputs[8];
+} Configuration;
 
 /* Function prototypes */
-uint16_t getSpn(const Configuration* conf, uint32_t* idx);
-float getCoeff(const Configuration* data, uint32_t* pos);
-uint32_t main(void);
+uint16_t getSpn(const Configuration* conf, uint32_t idx);
+float getCoeff(const Configuration* data, uint32_t pos);
+void setSpn(Configuration* conf, uint32_t idx, uint16_t value);
+void setCoeff(Configuration* data, uint32_t pos, float value);
+void initializeAll(Configuration* conf, uint16_t spnValue, float coeffValue);
+int main(void);
 
 #ifdef __cplusplus
 }

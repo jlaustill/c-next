@@ -32,6 +32,23 @@ float getCoeff(const Configuration* data, uint32_t pos) {
     return data->tempInputs[pos].coeffA;
 }
 
+// Test writing to struct parameter array members (non-const)
+void setSpn(Configuration* conf, uint32_t idx, uint16_t value) {
+    conf->tempInputs[idx].assignedSpn = value;
+}
+
+void setCoeff(Configuration* data, uint32_t pos, float value) {
+    data->tempInputs[pos].coeffA = value;
+}
+
+// Test writing in a for-loop (the original OSSM bug pattern)
+void initializeAll(Configuration* conf, uint16_t spnValue, float coeffValue) {
+    for (uint32_t i = 0; i < 8; i += 1) {
+        conf->tempInputs[i].assignedSpn = spnValue;
+        conf->tempInputs[i].coeffA = coeffValue;
+    }
+}
+
 int main(void) {
     Configuration cfg = {0};
     cfg.tempInputs[0].assignedSpn = 100;
@@ -41,7 +58,7 @@ int main(void) {
     cfg.tempInputs[2].assignedSpn = 300;
     cfg.tempInputs[2].coeffA = 3.5;
     cfg.tempInputs[5].assignedSpn = 999;
-    cfg.tempInputs[5].coeffA = 9.9;
+    cfg.tempInputs[5].coeffA = 9.5;
     uint32_t idx0 = 0;
     uint32_t idx1 = 1;
     uint32_t idx2 = 2;
@@ -68,5 +85,14 @@ int main(void) {
     uint16_t val = getSpn(&cfg, idx2);
     if (val != 300) return 12;
     if ((cfg.tempInputs[0].assignedSpn + cfg.tempInputs[2].assignedSpn) != 400) return 13;
+    setSpn(&cfg, idx0, 500);
+    if (cfg.tempInputs[0].assignedSpn != 500) return 14;
+    setCoeff(&cfg, idx1, 7.5);
+    if (cfg.tempInputs[1].coeffA != 7.5) return 15;
+    initializeAll(&cfg, 42, 4.5);
+    for (uint32_t j = 0; j < 8; j += 1) {
+        if (cfg.tempInputs[j].assignedSpn != 42) return 16;
+        if (cfg.tempInputs[j].coeffA != 4.5) return 17;
+    }
     return 0;
 }
