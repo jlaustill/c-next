@@ -134,6 +134,60 @@ void uart_isr() {
 
 The circular buffer behavior is declared at the type level, not scattered throughout the code.
 
+### Extension: Bounded Strings
+
+The same `clamp`/`wrap`/`discard` semantics should apply to bounded strings (see ADR-045). However, strings introduce an additional complexity: they have **two bounds**.
+
+#### The Two-Bounds Problem
+
+```cnx
+String<64> name <- "Hello";  // capacity=64, length=5
+```
+
+| Index       | Relative to Length (5) | Relative to Capacity (64) |
+| ----------- | ---------------------- | ------------------------- |
+| `name[3]`   | ✅ Valid ('l')         | ✅ Valid                  |
+| `name[10]`  | ❌ Past length         | ✅ Within capacity        |
+| `name[100]` | ❌ Past length         | ❌ Past capacity          |
+
+**Question:** Should bounds checking use the **current length** or the **fixed capacity**?
+
+#### Recommendation: Check Against Length
+
+For safety and predictability, index bounds should check against the **current string length**, not capacity:
+
+```cnx
+clamp String<64> name <- "Hello";  // length=5
+name[10];   // Clamps to name[4] → 'o' (last valid char)
+name[100];  // Clamps to name[4] → 'o'
+
+wrap String<64> name <- "Hello";   // length=5
+name[7];    // Wraps: 7 % 5 = 2 → 'l'
+name[100];  // Wraps: 100 % 5 = 0 → 'H'
+
+discard String<64> name <- "Hello";
+u8 result <- 'X';
+result <- name[10];  // result stays 'X' (read discarded)
+```
+
+#### Rationale
+
+1. **Accessing uninitialized memory is a bug** — Even if index 10 is within capacity, it contains garbage
+2. **Consistency with string semantics** — `.length` returns content length, indexing should respect it
+3. **Safer default** — Prevents reading uninitialized data in the capacity buffer
+
+#### Write Behavior
+
+For writes, the behavior depends on whether we're _extending_ the string or _modifying_ existing content:
+
+```cnx
+clamp String<64> name <- "Hello";  // length=5
+name[10] <- 'X';  // Clamps to name[4] = 'X' → "HellX"
+                  // OR: Error because modifying, not appending?
+```
+
+**Open question:** Should writes past length be allowed to extend the string (up to capacity), or should they follow the same bounds as reads?
+
 ---
 
 ## Research: How Other Languages Handle This
@@ -548,6 +602,30 @@ buffer[150] <- 0;          // Writes to buffer[99]
 ### Q7: Pointer/Reference Semantics
 
 If C-Next adds limited pointer support for C interop, how do bounds apply?
+
+### Q8: Bounded String Index Bounds
+
+For bounded strings like `String<64>`, should index bounds check against:
+
+| Option            | `String<64> s <- "Hello"` then `s[10]` | Pros                   | Cons                      |
+| ----------------- | -------------------------------------- | ---------------------- | ------------------------- |
+| **Length** (5)    | Out-of-bounds                          | Safe, no garbage reads | Length changes at runtime |
+| **Capacity** (64) | In-bounds (reads garbage)              | Simpler, static        | Unsafe default            |
+
+**Recommendation:** Check against length. Capacity is a maximum, not a guarantee of valid data.
+
+### Q9: String Write Extension
+
+Should writing past string length (but within capacity) extend the string?
+
+```cnx
+String<64> name <- "Hi";  // length=2, capacity=64
+name[5] <- 'X';           // Option A: Extend to "Hi   X" (length=6)?
+                          // Option B: Clamp to name[1] = 'X' → "HX"?
+                          // Option C: Error (use .append() instead)?
+```
+
+This affects whether strings are "array-like" (direct index writes) or "string-like" (append/insert methods only).
 
 ---
 
