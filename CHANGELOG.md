@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.28] - 2026-01-22
+
+### Fixed
+
+- PlatformIO library headers not discovered causing incorrect array member code generation (Issue #355, PR #358)
+- FileDiscovery now includes `.pio/libdeps/` while excluding only `.pio/build/` artifacts
+- IncludeDiscovery automatically searches `.pio/libdeps/<env>/<library>/` for headers when `platformio.ini` exists
+
 ## [0.1.27] - 2026-01-22
 
 ### Added
@@ -311,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.27...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.28...HEAD
+[0.1.28]: https://github.com/jlaustill/c-next/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/jlaustill/c-next/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/jlaustill/c-next/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
