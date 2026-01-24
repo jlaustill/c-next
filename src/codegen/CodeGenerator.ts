@@ -1665,6 +1665,10 @@ export default class CodeGenerator implements IOrchestrator {
         const scopeDecl = decl.scopeDeclaration()!;
         const scopeName = scopeDecl.IDENTIFIER().getText();
 
+        // Set scope context for scoped type resolution (this.Type)
+        const savedScope = this.context.currentScope;
+        this.context.currentScope = scopeName;
+
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcDecl = member.functionDeclaration()!;
@@ -1682,6 +1686,9 @@ export default class CodeGenerator implements IOrchestrator {
             this.registerCallbackType(fullName, funcDecl);
           }
         }
+
+        // Restore previous scope context
+        this.context.currentScope = savedScope;
       }
 
       // ADR-029: Track callback field types in structs
@@ -3173,12 +3180,24 @@ export default class CodeGenerator implements IOrchestrator {
         // ADR-029: Check if this is a callback type
         isCallback = this.callbackTypes.has(typeName);
       } else if (typeCtx.qualifiedType()) {
-        // ADR-016: Handle qualified enum types like Scope.EnumType
+        // ADR-016: Handle qualified types like Scope.Type
         typeName = typeCtx
           .qualifiedType()!
           .IDENTIFIER()
           .map((id) => id.getText())
           .join("_");
+        // Check if this is a struct type
+        isStruct = this.isStructType(typeName);
+      } else if (typeCtx.scopedType()) {
+        // ADR-016: Handle scoped types like this.Type (inside a scope)
+        const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+        if (this.context.currentScope) {
+          typeName = `${this.context.currentScope}_${localTypeName}`;
+        } else {
+          typeName = localTypeName;
+        }
+        // Check if this is a struct type
+        isStruct = this.isStructType(typeName);
       } else if (typeCtx.stringType()) {
         // ADR-045: String parameter
         isString = true;
@@ -5660,6 +5679,64 @@ export default class CodeGenerator implements IOrchestrator {
       return "{0}";
     }
 
+    // ADR-016: Check for scoped types (this.Type)
+    // These are always struct/enum types defined in a scope
+    if (typeCtx.scopedType()) {
+      const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+      const fullTypeName = this.context.currentScope
+        ? `${this.context.currentScope}_${localTypeName}`
+        : localTypeName;
+
+      // Check if it's an enum
+      if (this.symbols!.knownEnums.has(fullTypeName)) {
+        const members = this.symbols!.enumMembers.get(fullTypeName);
+        if (members) {
+          for (const [memberName, value] of members.entries()) {
+            if (value === 0) {
+              return `${fullTypeName}_${memberName}`;
+            }
+          }
+          const firstMember = members.keys().next().value;
+          if (firstMember) {
+            return `${fullTypeName}_${firstMember}`;
+          }
+        }
+        return `(${fullTypeName})0`;
+      }
+
+      // Otherwise it's a struct - use {0}
+      return "{0}";
+    }
+
+    // ADR-016: Check for qualified types (Scope.Type)
+    if (typeCtx.qualifiedType()) {
+      const qualifiedCtx = typeCtx.qualifiedType()!;
+      const parts = qualifiedCtx.IDENTIFIER();
+      const scopeName = parts[0].getText();
+      const localTypeName = parts[1].getText();
+      const fullTypeName = `${scopeName}_${localTypeName}`;
+
+      // Check if it's an enum
+      if (this.symbols!.knownEnums.has(fullTypeName)) {
+        const members = this.symbols!.enumMembers.get(fullTypeName);
+        if (members) {
+          for (const [memberName, value] of members.entries()) {
+            if (value === 0) {
+              return `${fullTypeName}_${memberName}`;
+            }
+          }
+          const firstMember = members.keys().next().value;
+          if (firstMember) {
+            return `${fullTypeName}_${firstMember}`;
+          }
+        }
+        return `(${fullTypeName})0`;
+      }
+
+      // Otherwise it's a struct - use {0}
+      return "{0}";
+    }
+
     // Check for user-defined types (structs/classes/enums)
     if (typeCtx.userType()) {
       const typeName = typeCtx.userType()!.getText();
@@ -6839,6 +6916,18 @@ export default class CodeGenerator implements IOrchestrator {
         if (parts.length === 1) {
           return `${scopeName}_${parts[0]}[${expr}] ${cOp} ${value};`;
         }
+
+        // Check if this is array-then-field (this.arr[i].field) vs field-then-array (this.a.b[i])
+        // by examining the context text - if '[' comes right after first identifier, it's array-first
+        const ctxText = thisArrayAccessCtx.getText();
+        const firstIdEnd = ctxText.indexOf(parts[0]) + parts[0].length;
+
+        if (ctxText.charAt(firstIdEnd) === "[") {
+          // Array access comes first: this.buffer[i].field -> Scope_buffer[i].field
+          return `${scopeName}_${parts[0]}[${expr}].${parts.slice(1).join(".")} ${cOp} ${value};`;
+        }
+
+        // Field access comes first: this.GPIO7.DR_SET[i] -> Scope_GPIO7.DR_SET[i]
         return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}[${expr}] ${cOp} ${value};`;
       }
     }
@@ -7530,6 +7619,19 @@ export default class CodeGenerator implements IOrchestrator {
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstId, memberName);
+
+      // Check if the scope variable is a struct type - if so, remaining parts
+      // are struct field access and should use '.' not '_'
+      // e.g., global.Motor.current.speed -> Motor_current.speed
+      if (parts.length > 2) {
+        const scopeVarName = `${firstId}_${memberName}`;
+        const scopeVarType = this.context.typeRegistry.get(scopeVarName);
+        if (scopeVarType && this._isKnownStruct(scopeVarType.baseType)) {
+          // Scope variable is a struct - use '.' for field access
+          return `${scopeVarName}.${parts.slice(2).join(".")}`;
+        }
+      }
+
       // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
       return parts.join(this.getScopeSeparator(isCppAccess));
     }
@@ -7655,6 +7757,19 @@ export default class CodeGenerator implements IOrchestrator {
     if (parts.length === 1) {
       return `${scopeName}_${parts[0]}[${expr}]`;
     }
+
+    // Check if this is array-then-field (this.arr[i].field) vs field-then-array (this.a.b[i])
+    // by examining the context text - if '[' comes right after first identifier, it's array-first
+    const ctxText = ctx.getText();
+    const firstIdEnd = ctxText.indexOf(parts[0]) + parts[0].length;
+    const bracketPos = ctxText.indexOf("[");
+
+    if (bracketPos === firstIdEnd + 1 || ctxText.charAt(firstIdEnd) === "[") {
+      // Array access comes first: this.buffer[i].field -> Scope_buffer[i].field
+      return `${scopeName}_${parts[0]}[${expr}].${parts.slice(1).join(".")}`;
+    }
+
+    // Field access comes first: this.GPIO7.DR_SET[i] -> Scope_GPIO7.DR_SET[i]
     return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}[${expr}]`;
   }
 
@@ -9589,6 +9704,18 @@ export default class CodeGenerator implements IOrchestrator {
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
       this.validateCrossScopeVisibility(firstPart, memberName);
+
+      // Check if the scope variable is a struct type - if so, remaining parts
+      // are struct field access and should use '.' not '_'
+      // e.g., Motor.current.speed -> Motor_current.speed (not Motor_current_speed)
+      if (parts.length > 2) {
+        const scopeVarName = `${firstPart}_${memberName}`;
+        const scopeVarType = this.context.typeRegistry.get(scopeVarName);
+        if (scopeVarType && this._isKnownStruct(scopeVarType.baseType)) {
+          // Scope variable is a struct - use '.' for field access
+          return `${scopeVarName}.${parts.slice(2).join(".")}`;
+        }
+      }
       return parts.join("_");
     }
 
@@ -9737,6 +9864,10 @@ export default class CodeGenerator implements IOrchestrator {
       const identifiers = ctx.qualifiedType()!.IDENTIFIER();
       const scopeName = identifiers[0].getText();
       const typeName = identifiers[1].getText();
+
+      // Check visibility for scoped types (structs, enums, bitmaps)
+      this._validateCrossScopeVisibility(scopeName, typeName);
+
       return `${scopeName}_${typeName}`;
     }
     if (ctx.userType()) {

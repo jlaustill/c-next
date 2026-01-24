@@ -1,0 +1,85 @@
+// test-execution
+// Tests: Scoped structs in loops - reading and writing in for/while loops
+
+scope Sensor {
+    public struct Reading {
+        u16 value;
+        u8 channel;
+    }
+
+    public this.Reading buffer[4];
+    public u8 count <- 0;
+
+    public void addReading(u16 val, u8 ch) {
+        if (this.count < 4) {
+            this.buffer[this.count].value <- val;
+            this.buffer[this.count].channel <- ch;
+            this.count <- this.count + 1;
+        }
+    }
+
+    public u16 sumValues() {
+        u16 total <- 0;
+        u8 i <- 0;
+        while (i < this.count) {
+            total <- total + this.buffer[i].value;
+            i <- i + 1;
+        }
+        return total;
+    }
+
+    public void clear() {
+        u8 i <- 0;
+        while (i < 4) {
+            this.buffer[i].value <- 0;
+            this.buffer[i].channel <- 0;
+            i <- i + 1;
+        }
+        this.count <- 0;
+    }
+}
+
+u32 main() {
+    // Test 1: Initial state
+    if (Sensor.count != 0) return 1;
+
+    // Test 2: Add readings in a loop
+    u8 i <- 0;
+    while (i < 3) {
+        u16 val <- (u16)(100 + i * 10);
+        Sensor.addReading(val, i);
+        i <- i + 1;
+    }
+    if (Sensor.count != 3) return 2;
+
+    // Test 3: Verify buffer contents
+    if (Sensor.buffer[0].value != 100) return 3;
+    if (Sensor.buffer[0].channel != 0) return 4;
+    if (Sensor.buffer[1].value != 110) return 5;
+    if (Sensor.buffer[1].channel != 1) return 6;
+    if (Sensor.buffer[2].value != 120) return 7;
+    if (Sensor.buffer[2].channel != 2) return 8;
+
+    // Test 4: Sum values
+    u16 sum <- Sensor.sumValues();
+    if (sum != 330) return 9;  // 100 + 110 + 120 = 330
+
+    // Test 5: Clear and verify
+    Sensor.clear();
+    if (Sensor.count != 0) return 10;
+    if (Sensor.buffer[0].value != 0) return 11;
+
+    // Test 6: Direct write in loop from outside scope
+    i <- 0;
+    while (i < 2) {
+        Sensor.buffer[i].value <- (u16)(200 + i);
+        Sensor.buffer[i].channel <- i;
+        i <- i + 1;
+    }
+    Sensor.count <- 2;
+
+    if (Sensor.buffer[0].value != 200) return 12;
+    if (Sensor.buffer[1].value != 201) return 13;
+
+    return 0;
+}

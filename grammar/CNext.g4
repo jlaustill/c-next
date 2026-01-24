@@ -84,6 +84,7 @@ scopeMember
     | visibilityModifier? enumDeclaration
     | visibilityModifier? bitmapDeclaration
     | visibilityModifier? registerDeclaration
+    | visibilityModifier? structDeclaration
     ;
 
 visibilityModifier
@@ -264,7 +265,8 @@ thisMemberAccess
 
 // ADR-016: this.member[idx] or this.member.member[idx] for scope-local array/bit access
 thisArrayAccess
-    : 'this' '.' IDENTIFIER '[' expression ']'                           // this.arr[i]
+    : 'this' '.' IDENTIFIER '[' expression ']' ('.' IDENTIFIER)+         // this.arr[i].field.field2...
+    | 'this' '.' IDENTIFIER '[' expression ']'                           // this.arr[i]
     | 'this' '.' IDENTIFIER '[' expression ',' expression ']'            // this.reg[offset, width]
     | 'this' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'         // this.GPIO7.DR_SET[i]
     | 'this' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']'  // this.GPIO7.ICR1[6, 2]

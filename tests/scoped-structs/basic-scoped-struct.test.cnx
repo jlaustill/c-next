@@ -1,0 +1,76 @@
+// test-execution
+// Tests: Basic scoped struct declaration, read and write operations
+
+scope Motor {
+    public struct Config {
+        u8 speed;
+        u8 direction;
+        bool enabled;
+    }
+
+    public this.Config current;
+
+    public void setSpeed(u8 s) {
+        this.current.speed <- s;
+    }
+
+    public u8 getSpeed() {
+        return this.current.speed;
+    }
+
+    public void setDirection(u8 d) {
+        this.current.direction <- d;
+    }
+
+    public void enable() {
+        this.current.enabled <- true;
+    }
+
+    public void disable() {
+        this.current.enabled <- false;
+    }
+
+    public bool isEnabled() {
+        return this.current.enabled;
+    }
+}
+
+u32 main() {
+    // Test 1: Initial values should be zero
+    if (Motor.current.speed != 0) return 1;
+    if (Motor.current.direction != 0) return 2;
+    if (Motor.current.enabled != false) return 3;
+
+    // Test 2: Write speed through function
+    Motor.setSpeed(100);
+    if (Motor.current.speed != 100) return 4;
+
+    // Test 3: Read speed through function
+    u8 speed <- Motor.getSpeed();
+    if (speed != 100) return 5;
+
+    // Test 4: Write direction through function
+    Motor.setDirection(1);
+    if (Motor.current.direction != 1) return 6;
+
+    // Test 5: Enable/disable operations (extract function call per MISRA Rule 13.5)
+    Motor.enable();
+    bool enabled <- Motor.isEnabled();
+    if (enabled != true) return 7;
+
+    Motor.disable();
+    enabled <- Motor.isEnabled();
+    if (enabled != false) return 8;
+
+    // Test 6: Direct field access from outside scope
+    Motor.current.speed <- 50;
+    if (Motor.current.speed != 50) return 9;
+
+    Motor.current.direction <- 2;
+    if (Motor.current.direction != 2) return 10;
+
+    Motor.current.enabled <- true;
+    if (Motor.current.enabled != true) return 11;
+
+    return 0;
+}
