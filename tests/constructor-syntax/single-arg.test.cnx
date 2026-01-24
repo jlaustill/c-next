@@ -1,0 +1,12 @@
+// Issue #375: Single const argument constructor
+#include "constructor-stubs.h"
+
+const u8 thermoCouplePin <- 10;
+Adafruit_MAX31856 thermocouple(thermoCouplePin);
+
+void setup() {
+    // Use the thermocouple object
+}
+
+void loop() {
+}

@@ -103,7 +103,132 @@ describe("TestUtils.requiresCpp14", () => {
     expect(typeof TestUtils.requiresCpp14).toBe("function");
   });
 
-  // Note: Full testing requires file system access, which is covered by integration tests
+  // Note: File-based testing covered by integration tests
+});
+
+describe("TestUtils.hasCppFeatures", () => {
+  // Issue #267: C++ casts
+  describe("C++ casts", () => {
+    it("should detect static_cast", () => {
+      expect(TestUtils.hasCppFeatures("static_cast<int>(x)")).toBe(true);
+    });
+
+    it("should detect reinterpret_cast", () => {
+      expect(TestUtils.hasCppFeatures("reinterpret_cast<char*>(p)")).toBe(true);
+    });
+
+    it("should detect const_cast", () => {
+      expect(TestUtils.hasCppFeatures("const_cast<int*>(p)")).toBe(true);
+    });
+
+    it("should detect dynamic_cast", () => {
+      expect(TestUtils.hasCppFeatures("dynamic_cast<Derived*>(base)")).toBe(
+        true,
+      );
+    });
+  });
+
+  // Issue #291: C++ template types
+  describe("C++ template types", () => {
+    it("should detect template types", () => {
+      expect(TestUtils.hasCppFeatures("vector<int> v;")).toBe(true);
+    });
+
+    it("should detect nested templates", () => {
+      expect(TestUtils.hasCppFeatures("map<string, int> m;")).toBe(true);
+    });
+
+    it("should NOT detect string<N> (C-Next bounded string)", () => {
+      expect(TestUtils.hasCppFeatures("string<64> name;")).toBe(false);
+    });
+
+    it("should NOT detect comparison operators", () => {
+      expect(TestUtils.hasCppFeatures("if (x < y) { }")).toBe(false);
+    });
+  });
+
+  // Issue #322: Scope resolution operator
+  describe("scope resolution operator", () => {
+    it("should detect namespace access", () => {
+      expect(TestUtils.hasCppFeatures("std::cout << x;")).toBe(true);
+    });
+
+    it("should detect static method calls", () => {
+      expect(TestUtils.hasCppFeatures("MyClass::staticMethod();")).toBe(true);
+    });
+  });
+
+  // Issue #375: C++ constructor syntax
+  describe("C++ constructor syntax", () => {
+    it("should detect single-arg constructor", () => {
+      expect(
+        TestUtils.hasCppFeatures("Adafruit_MAX31856 thermocouple(pin);"),
+      ).toBe(true);
+    });
+
+    it("should detect multi-arg constructor", () => {
+      expect(TestUtils.hasCppFeatures("MyClass obj(arg1, arg2, arg3);")).toBe(
+        true,
+      );
+    });
+
+    it("should detect constructor at start of line with indent", () => {
+      expect(TestUtils.hasCppFeatures("    SomeClass instance(value);")).toBe(
+        true,
+      );
+    });
+
+    // Regression tests - these should NOT be detected as constructors
+    it("should NOT detect return statements as constructors", () => {
+      expect(TestUtils.hasCppFeatures("return strlen(s);")).toBe(false);
+    });
+
+    it("should NOT detect return with function call", () => {
+      expect(TestUtils.hasCppFeatures("    return getValue(x);")).toBe(false);
+    });
+
+    it("should NOT detect if statements", () => {
+      expect(TestUtils.hasCppFeatures("if (condition) { }")).toBe(false);
+    });
+
+    it("should NOT detect while loops", () => {
+      expect(TestUtils.hasCppFeatures("while (running) { }")).toBe(false);
+    });
+
+    it("should NOT detect for loops", () => {
+      expect(TestUtils.hasCppFeatures("for (i) { }")).toBe(false);
+    });
+
+    it("should NOT detect switch statements", () => {
+      expect(TestUtils.hasCppFeatures("switch (x) { }")).toBe(false);
+    });
+
+    it("should NOT detect sizeof expressions", () => {
+      expect(TestUtils.hasCppFeatures("sizeof (int);")).toBe(false);
+    });
+
+    it("should NOT detect standalone function calls", () => {
+      // Function calls don't have a type before them
+      expect(TestUtils.hasCppFeatures("printf(msg);")).toBe(false);
+    });
+  });
+
+  // Plain C code should not trigger C++ detection
+  describe("plain C code", () => {
+    it("should NOT detect plain C functions", () => {
+      expect(TestUtils.hasCppFeatures("int main(void) { return 0; }")).toBe(
+        false,
+      );
+    });
+
+    it("should NOT detect C variable declarations", () => {
+      expect(TestUtils.hasCppFeatures("int x = 5;")).toBe(false);
+    });
+
+    it("should NOT detect C array declarations", () => {
+      expect(TestUtils.hasCppFeatures("char buffer[64];")).toBe(false);
+    });
+  });
 });
 
 describe("requiresArmRuntime", () => {

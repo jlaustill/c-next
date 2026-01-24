@@ -60,6 +60,47 @@ class TestUtils {
   }
 
   /**
+   * Check if code contains C++ features (without file I/O).
+   * Extracted for testability - Issue #375.
+   *
+   * @param cCode - The C/C++ source code to analyze
+   * @returns true if C++ features are detected
+   */
+  static hasCppFeatures(cCode: string): boolean {
+    // Issue #267: Check for C++ casts (static_cast, reinterpret_cast)
+    if (
+      /\b(static_cast|reinterpret_cast|const_cast|dynamic_cast)\s*</.test(cCode)
+    ) {
+      return true;
+    }
+
+    // Issue #291: Check for C++ template types (Type<Args>)
+    // Excludes string<N> which is C-Next bounded string syntax
+    if (/\b(?!string\b)\w+<[^;=<>]+>/.test(cCode)) {
+      return true;
+    }
+
+    // Issue #322: Check for C++ scope resolution operator (::)
+    if (/\w+::\w+/.test(cCode)) {
+      return true;
+    }
+
+    // Issue #375: Check for C++ constructor call syntax
+    // Pattern: TypeName varName(args); at global scope
+    // Matches lines like "Adafruit_MAX31856 thermocouple(pin);"
+    // Excludes: return statements, control flow, function calls
+    if (
+      /^\s*(?!return\b|if\b|while\b|for\b|switch\b|case\b|else\b|do\b|break\b|continue\b|goto\b|sizeof\b|typeof\b|alignof\b)\w+\s+\w+\([^)]*\)\s*;/m.test(
+        cCode,
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Detect if a C file requires C++ compilation (g++ instead of gcc)
    *
    * Checks for:
@@ -78,27 +119,8 @@ class TestUtils {
       const cCode = readFileSync(cFile, "utf-8");
       const cFileDir = dirname(cFile);
 
-      // Issue #267: Check for C++ casts (static_cast, reinterpret_cast)
-      // These are generated when cppMode is enabled
-      if (
-        /\b(static_cast|reinterpret_cast|const_cast|dynamic_cast)\s*</.test(
-          cCode,
-        )
-      ) {
-        return true;
-      }
-
-      // Issue #291: Check for C++ template types (Type<Args>)
-      // Excludes string<N> which is C-Next bounded string syntax
-      // Pattern matches: identifier followed by < with template args >
-      // but not comparison operators like "if (x < y)"
-      if (/\b(?!string\b)\w+<[^;=<>]+>/.test(cCode)) {
-        return true;
-      }
-
-      // Issue #322: Check for C++ scope resolution operator (::)
-      // Used for namespace access (std::cout) or static method calls (Class::method)
-      if (/\w+::\w+/.test(cCode)) {
+      // Check inline code for C++ features
+      if (TestUtils.hasCppFeatures(cCode)) {
         return true;
       }
 

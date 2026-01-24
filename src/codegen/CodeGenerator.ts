@@ -5251,6 +5251,12 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
+    // Issue #375: Check for C++ constructor syntax
+    const constructorArgList = ctx.constructorArgumentList();
+    if (constructorArgList) {
+      return this._generateConstructorDecl(ctx, constructorArgList);
+    }
+
     const constMod = ctx.constModifier() ? "const " : "";
     // ADR-049: Add volatile for atomic variables
     const atomicMod = ctx.atomicModifier() ? "volatile " : "";
@@ -5664,6 +5670,75 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return decl + ";";
+  }
+
+  /**
+   * Issue #375: Generate C++ constructor-style declaration
+   * Validates that all arguments are const variables.
+   * Example: `Adafruit_MAX31856 thermocouple(pinConst);` -> `Adafruit_MAX31856 thermocouple(pinConst);`
+   */
+  private _generateConstructorDecl(
+    ctx: Parser.VariableDeclarationContext,
+    argListCtx: Parser.ConstructorArgumentListContext,
+  ): string {
+    const type = this._generateType(ctx.type());
+    const name = ctx.IDENTIFIER().getText();
+    const line = ctx.start?.line ?? 0;
+
+    // Collect and validate all arguments
+    const argIdentifiers = argListCtx.IDENTIFIER();
+    const resolvedArgs: string[] = [];
+
+    for (const argNode of argIdentifiers) {
+      const argName = argNode.getText();
+
+      // Check if it exists in type registry
+      const typeInfo = this.context.typeRegistry.get(argName);
+
+      // Also check scoped variables if inside a scope
+      let scopedArgName = argName;
+      let scopedTypeInfo = typeInfo;
+      if (!typeInfo && this.context.currentScope) {
+        scopedArgName = `${this.context.currentScope}_${argName}`;
+        scopedTypeInfo = this.context.typeRegistry.get(scopedArgName);
+      }
+
+      if (!typeInfo && !scopedTypeInfo) {
+        throw new Error(
+          `Error at line ${line}: Constructor argument '${argName}' is not declared`,
+        );
+      }
+
+      const finalTypeInfo = typeInfo ?? scopedTypeInfo!;
+      const finalArgName = typeInfo ? argName : scopedArgName;
+
+      // Check if it's const
+      if (!finalTypeInfo.isConst) {
+        throw new Error(
+          `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
+            `C++ constructors in C-Next only accept const variables.`,
+        );
+      }
+
+      resolvedArgs.push(finalArgName);
+    }
+
+    // Track the variable in type registry (as an external C++ type)
+    this.context.typeRegistry.set(name, {
+      baseType: type,
+      bitWidth: 0, // Unknown for C++ types
+      isArray: false,
+      arrayDimensions: [],
+      isConst: false,
+      isExternalCppType: true,
+    });
+
+    // Track as local variable if inside function body
+    if (this.context.inFunctionBody) {
+      this.context.localVariables.add(name);
+    }
+
+    return `${type} ${name}(${resolvedArgs.join(", ")});`;
   }
 
   /**

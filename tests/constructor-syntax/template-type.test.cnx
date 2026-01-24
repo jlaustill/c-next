@@ -1,0 +1,11 @@
+// Issue #375: Template type with constructor
+#include "constructor-stubs.h"
+
+const u8 canBus <- 1;
+const u16 rxSize <- 256;
+const u16 txSize <- 16;
+
+FlexCAN_T4<CAN1, 256, 16> canController(canBus);
+
+void main() {
+}

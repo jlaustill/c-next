@@ -1,0 +1,15 @@
+// Issue #375: Constructor inside scope
+#include "constructor-stubs.h"
+
+scope Sensor {
+    public const u8 pin <- 10;
+    public Adafruit_MAX31856 device(pin);
+
+    public void init() {
+        // Initialize sensor
+    }
+}
+
+void main() {
+    Sensor.init();
+}
