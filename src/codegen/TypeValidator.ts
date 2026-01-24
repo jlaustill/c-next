@@ -866,16 +866,8 @@ class TypeValidator {
                   for (const add of shift.additiveExpression()) {
                     for (const mult of add.multiplicativeExpression()) {
                       for (const unary of mult.unaryExpression()) {
-                        const postfix = unary.postfixExpression();
-                        if (postfix) {
-                          for (const op of postfix.postfixOp()) {
-                            if (
-                              op.argumentList() ||
-                              op.getText().startsWith("(")
-                            ) {
-                              return true;
-                            }
-                          }
+                        if (this.hasPostfixFunctionCallInUnary(unary)) {
+                          return true;
                         }
                       }
                     }
@@ -884,6 +876,32 @@ class TypeValidator {
               }
             }
           }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Issue #366: Recursively check unaryExpression for function calls.
+   * Handles unary operators (!, -, ~, &) that wrap function calls,
+   * including arbitrary nesting like !!isReady() or -~getValue().
+   */
+  private hasPostfixFunctionCallInUnary(
+    unary: Parser.UnaryExpressionContext,
+  ): boolean {
+    // Recurse through nested unary operators (!, -, ~, &) until we reach postfixExpression
+    const nestedUnary = unary.unaryExpression();
+    if (nestedUnary) {
+      return this.hasPostfixFunctionCallInUnary(nestedUnary);
+    }
+
+    // Base case: check postfixExpression
+    const postfix = unary.postfixExpression();
+    if (postfix) {
+      for (const op of postfix.postfixOp()) {
+        if (op.argumentList() || op.getText().startsWith("(")) {
+          return true;
         }
       }
     }
