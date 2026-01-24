@@ -142,14 +142,16 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
 
     // ADR-017: Handle enum declarations inside scopes
     // The enum generator will use state.currentScope which we've set via orchestrator
-    if (member.enumDeclaration()) {
+    // Issue #369: Skip enum definition if self-include was added (it will be in the header)
+    if (member.enumDeclaration() && !state.selfIncludeAdded) {
       const enumDecl = member.enumDeclaration()!;
       lines.push("");
       lines.push(generateScopedEnumInline(enumDecl, name, input, orchestrator));
     }
 
     // ADR-034: Handle bitmap declarations inside scopes
-    if (member.bitmapDeclaration()) {
+    // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
+    if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
       const bitmapDecl = member.bitmapDeclaration()!;
       lines.push("");
       lines.push(generateScopedBitmapInline(bitmapDecl, name, input));

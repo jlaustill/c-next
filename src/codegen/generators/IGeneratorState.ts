@@ -26,6 +26,13 @@ interface IGeneratorState {
 
   /** Expected type for inferred struct initializers */
   readonly expectedType: string | null;
+
+  /**
+   * Issue #369: Whether self-include was added.
+   * When true, type definitions (struct/enum/bitmap) should not be emitted
+   * in the .c file as they'll come from the included header.
+   */
+  readonly selfIncludeAdded: boolean;
 }
 
 export default IGeneratorState;

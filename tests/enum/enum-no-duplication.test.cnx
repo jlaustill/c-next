@@ -1,0 +1,35 @@
+// test-execution
+// Tests: Issue #369 - enum definitions should NOT be duplicated in both .h and .c files
+// When generating headers, enum definitions should ONLY appear in the .h file
+
+scope Motor {
+    public enum State {
+        IDLE,
+        RUNNING,
+        STOPPED
+    }
+
+    public this.State current <- this.State.IDLE;
+
+    public u8 start() {
+        this.current <- this.State.RUNNING;
+        return 1;
+    }
+
+    public bool isRunning() {
+        if (this.current = this.State.RUNNING) {
+            return true;
+        }
+        return false;
+    }
+}
+
+u32 main() {
+    Motor.start();
+    if (Motor.current != Motor.State.RUNNING) return 1;
+
+    bool running <- Motor.isRunning();
+    if (running != true) return 2;
+
+    return 0;
+}

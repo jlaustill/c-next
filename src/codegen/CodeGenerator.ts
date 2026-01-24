@@ -320,6 +320,13 @@ export default class CodeGenerator implements IOrchestrator {
   private functionParamLists: Map<string, string[]> = new Map();
 
   /**
+   * Issue #369: Tracks whether self-include was added.
+   * When true, skip struct/enum/bitmap definitions in .c file because
+   * they'll be defined in the included header.
+   */
+  private selfIncludeAdded: boolean = false;
+
+  /**
    * Initialize generator registry with extracted generators.
    * Called once before code generation begins.
    */
@@ -380,6 +387,7 @@ export default class CodeGenerator implements IOrchestrator {
       localVariables: this.context.localVariables,
       localArrays: this.context.localArrays,
       expectedType: this.context.expectedType,
+      selfIncludeAdded: this.selfIncludeAdded, // Issue #369
     };
   }
 
@@ -1383,6 +1391,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.needsString = false; // ADR-045: Reset string header tracking
     this.needsISR = false; // ADR-040: Reset ISR typedef tracking
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
+    this.selfIncludeAdded = false; // Issue #369: Reset self-include tracking
 
     // First pass: collect namespace and class members
     // Issue #60: Create SymbolCollector (extracted from CodeGenerator)
@@ -1443,6 +1452,7 @@ export default class CodeGenerator implements IOrchestrator {
     // When file has public symbols and headers are being generated,
     // include own header to ensure proper C linkage
     // Issue #339: Use relative path from source root when available
+    // Issue #369: Track self-include to skip type definitions in .c file
     if (
       options?.generateHeaders &&
       this.symbols!.hasPublicSymbols() &&
@@ -1455,6 +1465,8 @@ export default class CodeGenerator implements IOrchestrator {
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ".h");
       output.push(`#include "${headerName}"`);
       output.push("");
+      // Issue #369: Mark that self-include was added - types will be in header
+      this.selfIncludeAdded = true;
     }
 
     // Pass through #include directives from source
@@ -4418,15 +4430,26 @@ export default class CodeGenerator implements IOrchestrator {
     if (ctx.registerDeclaration()) {
       return this.generateRegister(ctx.registerDeclaration()!);
     }
+    // Issue #369: Skip struct/enum/bitmap definitions when self-include is added
+    // These types will be defined in the included header file
     if (ctx.structDeclaration()) {
+      if (this.selfIncludeAdded) {
+        return ""; // Definition will come from header
+      }
       return this.generateStruct(ctx.structDeclaration()!);
     }
     // ADR-017: Handle enum declarations
     if (ctx.enumDeclaration()) {
+      if (this.selfIncludeAdded) {
+        return ""; // Definition will come from header
+      }
       return this.generateEnum(ctx.enumDeclaration()!);
     }
     // ADR-034: Handle bitmap declarations
     if (ctx.bitmapDeclaration()) {
+      if (this.selfIncludeAdded) {
+        return ""; // Definition will come from header
+      }
       return this.generateBitmap(ctx.bitmapDeclaration()!);
     }
     if (ctx.functionDeclaration()) {
