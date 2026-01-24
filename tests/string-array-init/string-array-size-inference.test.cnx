@@ -1,0 +1,16 @@
+// test-transpile-only
+// Issue #380: String array initializers with size inference
+// Tests: array size inferred from initializer count
+
+// Size inferred from initializer count (3 elements)
+const string<16> DAYS[] <- [
+    "Monday",
+    "Tuesday",
+    "Wednesday"
+];
+
+// Local array with size inference
+void test() {
+    string<8> items[] <- ["A", "B", "C", "D"];
+    u8 count <- items.length;
+}

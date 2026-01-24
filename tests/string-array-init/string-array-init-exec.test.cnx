@@ -1,0 +1,60 @@
+// test-execution
+// Issue #380: String array initializers - execution validation
+// Tests: array access, .length, .capacity after inline initialization
+
+const string<10> LABELS[3] <- [
+    "One",
+    "Two",
+    "Three"
+];
+
+string<8> colors[4] <- [
+    "Red",
+    "Green",
+    "Blue",
+    "Yellow"
+];
+
+u32 main() {
+    // Test 1: Array .length returns element count
+    if (LABELS.length != 3) return 1;
+    if (colors.length != 4) return 2;
+
+    // Test 2: Element access and string comparison
+    if (LABELS[0] != "One") return 3;
+    if (LABELS[1] != "Two") return 4;
+    if (LABELS[2] != "Three") return 5;
+
+    // Test 3: Element .length returns string length (strlen)
+    if (LABELS[0].length != 3) return 6;  // "One"
+    if (LABELS[1].length != 3) return 7;  // "Two"
+    if (LABELS[2].length != 5) return 8;  // "Three"
+
+    // Test 4: Colors array element access
+    if (colors[0] != "Red") return 9;
+    if (colors[1] != "Green") return 10;
+    if (colors[2] != "Blue") return 11;
+    if (colors[3] != "Yellow") return 12;
+
+    // Test 5: Colors element lengths
+    if (colors[0].length != 3) return 13;  // "Red"
+    if (colors[1].length != 5) return 14;  // "Green"
+    if (colors[2].length != 4) return 15;  // "Blue"
+    if (colors[3].length != 6) return 16;  // "Yellow"
+
+    // Test 6: Element .capacity returns string capacity
+    if (LABELS[0].capacity != 10) return 17;
+    if (colors[0].capacity != 8) return 18;
+
+    // Test 7: Loop through initialized array
+    u32 totalLen <- 0;
+    u32 i <- 0;
+    while (i < LABELS.length) {
+        totalLen <- totalLen + LABELS[i].length;
+        i <- i + 1;
+    }
+    // 3 + 3 + 5 = 11
+    if (totalLen != 11) return 19;
+
+    return 0;
+}
