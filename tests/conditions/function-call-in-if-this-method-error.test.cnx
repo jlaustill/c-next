@@ -1,0 +1,14 @@
+// Issue #366: this.method() calls in if conditions should trigger E0702
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+scope Validator {
+    bool validateConfig() {
+        return true;
+    }
+
+    public void test() {
+        if (this.validateConfig()) {
+            // body
+        }
+    }
+}
