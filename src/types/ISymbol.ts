@@ -51,6 +51,12 @@ interface ISymbol {
   /** For arrays: element count. For integers: bit width */
   size?: number;
 
+  /** Issue #379: Whether this variable is an array */
+  isArray?: boolean;
+
+  /** Issue #379: Array dimensions for extern declarations (e.g., ["4"] or ["4", "8"]) */
+  arrayDimensions?: string[];
+
   /** Issue #288: Whether this variable is const (for extern declarations) */
   isConst?: boolean;
 }
