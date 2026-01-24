@@ -2136,16 +2136,62 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // Check for scope-qualified calls: Scope.func(...)
-    // primaryExpression could be 'global' or 'this' with member access
-    // For now, handle the simple case where we see IDENTIFIER.IDENTIFIER(...)
+    // Issue #365: Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
+    // Track member accesses to build the mangled callee name (e.g., Storage_load)
+    // Then when we find the function call, record it to the call graph
+    if (postfixOps.length > 0) {
+      const memberNames: string[] = [];
+
+      // Start with primary identifier if it's a scope name (not 'global' or 'this')
+      const primaryId = primary.IDENTIFIER()?.getText();
+      if (primaryId && primaryId !== "global" && primaryId !== "this") {
+        memberNames.push(primaryId);
+      }
+
+      // Collect member access names until we hit a function call
+      for (const op of postfixOps) {
+        if (op.IDENTIFIER()) {
+          // Member access: .IDENTIFIER
+          memberNames.push(op.IDENTIFIER()!.getText());
+        } else if (op.LPAREN()) {
+          // Function call found - record to call graph if we have a callee name
+          if (memberNames.length >= 1) {
+            // Build mangled name: e.g., ["Storage", "load"] -> "Storage_load"
+            // For scope methods, the last name is the method, everything before is scope
+            const calleeName = memberNames.join("_");
+            const argList = op.argumentList();
+
+            if (argList) {
+              const args = argList.expression();
+              for (let j = 0; j < args.length; j++) {
+                const arg = args[j];
+                const argName = this.getSimpleIdentifierFromExpr(arg);
+                if (argName && paramSet.has(argName)) {
+                  this.functionCallGraph.get(funcName)!.push({
+                    callee: calleeName,
+                    paramIndex: j,
+                    argParamName: argName,
+                  });
+                }
+              }
+            }
+          }
+          // Reset for potential chained calls like obj.foo().bar()
+          memberNames.length = 0;
+        } else if (op.expression().length > 0) {
+          // Array subscript - doesn't contribute to method name
+          // but reset member chain as array access breaks scope chain
+          memberNames.length = 0;
+        }
+      }
+    }
 
     // Recurse into primary expression if it's a parenthesized expression
     if (primary.expression()) {
       this.walkExpressionForCalls(funcName, paramSet, primary.expression()!);
     }
 
-    // Walk arguments in any postfix function call ops
+    // Walk arguments in any postfix function call ops (for nested calls)
     for (const op of postfixOps) {
       if (op.argumentList()) {
         for (const argExpr of op.argumentList()!.expression()) {
