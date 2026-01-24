@@ -1323,6 +1323,77 @@ C-Next eliminates null bugs by design. The `c_` prefix pattern:
 - **Maintains C interop** for file I/O and other standard library functions
 - **Catches errors at compile time** rather than runtime crashes
 
+## C++ Library Interop
+
+C-Next supports using external C++ libraries (like Arduino, FlexCAN, Adafruit, etc.) through constructor syntax (Issue #375).
+
+### Constructor Syntax
+
+For C++ classes that require constructor arguments, use parentheses with **const variable names only**:
+
+```cnx
+#include <Adafruit_MAX31856.h>
+
+// Const variables for constructor arguments
+const u8 csPin <- 10;
+const u8 diPin <- 11;
+const u8 doPin <- 12;
+const u8 clkPin <- 13;
+
+// C++ constructor - arguments must be const variables
+Adafruit_MAX31856 thermocouple(csPin, diPin, doPin, clkPin);
+
+void setup() {
+    thermocouple.begin();
+}
+```
+
+### Template Types with Constructors
+
+C++ template types work with constructor syntax:
+
+```cnx
+#include <FlexCAN_T4.h>
+
+const u8 canBus <- 1;
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> canController(canBus);
+```
+
+### Inside Scopes
+
+Constructor syntax works inside scopes too:
+
+```cnx
+scope Sensor {
+    public const u8 pin <- 10;
+    public Adafruit_MAX31856 device(pin);
+
+    public void init() {
+        device.begin();
+    }
+}
+```
+
+### Constraints
+
+| Feature                  | Supported | Notes                                        |
+| ------------------------ | --------- | -------------------------------------------- |
+| Const variable arguments | ✅        | `const u8 pin <- 10; Type obj(pin);`         |
+| Multiple arguments       | ✅        | `Type obj(arg1, arg2, arg3);`                |
+| Template types           | ✅        | `FlexCAN_T4<CAN1, 256, 16> can(bus);`        |
+| Literal arguments        | ❌        | `Type obj(10);` is a parse error             |
+| Non-const arguments      | ❌        | Compile-time error                           |
+| Zero-arg constructors    | ❌        | Use `Type name;` (calls default constructor) |
+
+### Why Const-Only?
+
+Constructor arguments must be const because:
+
+1. **Compile-time evaluation**: Values are known at startup
+2. **Hardware compatibility**: Embedded systems often initialize peripherals before main()
+3. **No "most vexing parse"**: Avoids C++ ambiguity between function declarations and object declarations
+4. **Safety**: Prevents subtle bugs from runtime value changes
+
 ## Register Bindings
 
 ```cnx

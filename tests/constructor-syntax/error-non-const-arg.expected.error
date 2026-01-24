@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error at line 3: Constructor argument 'mutablePin' must be const. C++ constructors in C-Next only accept const variables.

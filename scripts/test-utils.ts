@@ -102,6 +102,19 @@ class TestUtils {
         return true;
       }
 
+      // Issue #375: Check for C++ constructor call syntax
+      // Pattern: TypeName varName(args); at global scope
+      // Matches lines like "Adafruit_MAX31856 thermocouple(pin);"
+      // Excludes: return statements, control flow, function calls
+      // Uses negative lookahead to skip keywords that aren't type names
+      if (
+        /^\s*(?!return\b|if\b|while\b|for\b|switch\b|case\b|else\b|do\b|break\b|continue\b|goto\b|sizeof\b|typeof\b|alignof\b)\w+\s+\w+\([^)]*\)\s*;/m.test(
+          cCode,
+        )
+      ) {
+        return true;
+      }
+
       // Find all #include "local_header.h" directives
       const includePattern = /#include\s+"([^"]+)"/g;
       let match;

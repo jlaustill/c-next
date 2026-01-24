@@ -1,0 +1,5 @@
+// Issue #375: Error - undeclared variable argument
+Adafruit_MAX31856 thermocouple(nonExistentPin);
+
+void main() {
+}

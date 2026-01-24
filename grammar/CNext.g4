@@ -194,6 +194,12 @@ arrayDimension
 // ----------------------------------------------------------------------------
 variableDeclaration
     : atomicModifier? volatileModifier? constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
+    | type IDENTIFIER '(' constructorArgumentList ')' ';'   // Issue #375: C++ constructor
+    ;
+
+// Issue #375: Constructor argument list - identifiers only (must be const variables)
+constructorArgumentList
+    : IDENTIFIER (',' IDENTIFIER)*
     ;
 
 // ----------------------------------------------------------------------------

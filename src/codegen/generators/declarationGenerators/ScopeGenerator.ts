@@ -53,6 +53,39 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       const varDecl = member.variableDeclaration()!;
       const varName = varDecl.IDENTIFIER().getText();
 
+      // Issue #375: Check for constructor syntax
+      const constructorArgList = varDecl.constructorArgumentList();
+      if (constructorArgList) {
+        // ADR-016: All scope variables are emitted at file scope
+        const type = orchestrator.generateType(varDecl.type());
+        const fullName = `${name}_${varName}`;
+        const prefix = isPrivate ? "static " : "";
+
+        // Validate and resolve constructor arguments
+        const argIdentifiers = constructorArgList.IDENTIFIER();
+        const resolvedArgs: string[] = [];
+        const line = varDecl.start?.line ?? 0;
+
+        for (const argNode of argIdentifiers) {
+          const argName = argNode.getText();
+          // Arguments must be resolved with scope prefix
+          const scopedArgName = `${name}_${argName}`;
+
+          // Check if it's const using orchestrator
+          if (!orchestrator.isConstValue(scopedArgName)) {
+            throw new Error(
+              `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
+                `C++ constructors in C-Next only accept const variables.`,
+            );
+          }
+
+          resolvedArgs.push(scopedArgName);
+        }
+
+        lines.push(`${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`);
+        continue;
+      }
+
       // Issue #282: Check if this is a const variable - const values should be inlined
       const isConst = varDecl.constModifier() !== null;
 

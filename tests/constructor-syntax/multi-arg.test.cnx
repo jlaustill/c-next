@@ -1,0 +1,12 @@
+// Issue #375: Multiple const argument constructor
+#include "constructor-stubs.h"
+
+const u8 csPin <- 10;
+const u8 diPin <- 11;
+const u8 doPin <- 12;
+const u8 clkPin <- 13;
+
+Adafruit_MAX31856 thermocouple(csPin, diPin, doPin, clkPin);
+
+void main() {
+}
