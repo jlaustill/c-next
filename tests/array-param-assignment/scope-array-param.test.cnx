@@ -1,0 +1,33 @@
+// test-execution
+// Tests: Issue #368 - Array parameter in scope (original bug report case)
+
+scope Test {
+    public void writeToArray(u8 data[], u8 value) {
+        data[0] <- value;
+    }
+
+    public void writeAtIndex(u8 data[], u32 index, u8 value) {
+        data[index] <- value;
+    }
+}
+
+u32 main() {
+    u8 buffer[8];
+    buffer[0] <- 0;
+    buffer[1] <- 0;
+    buffer[2] <- 0;
+
+    // Test 1: Write via scope function with literal index
+    Test.writeToArray(buffer, 42);
+    if (buffer[0] != 42) return 1;
+
+    // Test 2: Write via scope function with variable index
+    Test.writeAtIndex(buffer, 1, 99);
+    if (buffer[1] != 99) return 2;
+
+    // Test 3: Ensure other elements unchanged
+    if (buffer[0] != 42) return 3;
+    if (buffer[2] != 0) return 4;
+
+    return 0;
+}
