@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.30] - 2026-01-24
+
+### Fixed
+
+- Track scope-qualified calls for auto-const inference (Issue #365)
+- Prevent struct/enum/bitmap duplication in .c files when headers generated (Issue #369)
+- Recursively detect function calls through unary operators for MISRA 13.5 compliance (Issue #366)
+- Array parameter element assignment generates correct array access (Issue #368)
+
 ## [0.1.29] - 2026-01-23
 
 ### Fixed
@@ -330,7 +339,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.29...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.30...HEAD
+[0.1.30]: https://github.com/jlaustill/c-next/compare/v0.1.29...v0.1.30
 [0.1.29]: https://github.com/jlaustill/c-next/compare/v0.1.28...v0.1.29
 [0.1.28]: https://github.com/jlaustill/c-next/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/jlaustill/c-next/compare/v0.1.26...v0.1.27
