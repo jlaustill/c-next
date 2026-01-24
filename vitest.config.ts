@@ -9,8 +9,16 @@ export default defineConfig({
     exclude: ["tests/**", "node_modules/**"],
     globals: true,
     coverage: {
-      include: ["src/codegen/headerGenerators/**"],
-      exclude: ["**/*.test.ts"],
+      provider: "v8",
+      include: ["src/**/*.ts", "scripts/**/*.ts"],
+      exclude: [
+        "**/*.test.ts",
+        "src/parser/**", // Generated ANTLR code
+        "scripts/test.ts", // Integration test runner
+        "scripts/test-worker.ts", // Test worker
+      ],
+      reporter: ["text", "html", "lcov"],
+      reportsDirectory: "./coverage",
     },
   },
 });

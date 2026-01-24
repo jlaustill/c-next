@@ -3,6 +3,9 @@ node_modules/
 dist/
 *.log
 
+# Test coverage
+coverage/
+
 # C-Next local cache (Pipeline symbol cache - Issue #183)
 .cnx/
 
