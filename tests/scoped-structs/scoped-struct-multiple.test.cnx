@@ -1,0 +1,79 @@
+// test-execution
+// Tests: Multiple scoped structs in the same scope
+
+scope DataManager {
+    public struct Point {
+        i16 x;
+        i16 y;
+    }
+
+    public struct Size {
+        u16 width;
+        u16 height;
+    }
+
+    public struct Rect {
+        this.Point origin;
+        this.Size dimensions;
+    }
+
+    public this.Point cursor;
+    public this.Size screenSize;
+    public this.Rect viewport;
+
+    public void setCursor(i16 x, i16 y) {
+        this.cursor.x <- x;
+        this.cursor.y <- y;
+    }
+
+    public void setScreen(u16 w, u16 h) {
+        this.screenSize.width <- w;
+        this.screenSize.height <- h;
+    }
+
+    public void setViewport(i16 x, i16 y, u16 w, u16 h) {
+        this.viewport.origin.x <- x;
+        this.viewport.origin.y <- y;
+        this.viewport.dimensions.width <- w;
+        this.viewport.dimensions.height <- h;
+    }
+
+    public u32 getViewportArea() {
+        return (u32)this.viewport.dimensions.width * (u32)this.viewport.dimensions.height;
+    }
+}
+
+u32 main() {
+    // Test 1: Set cursor
+    DataManager.setCursor(10, 20);
+    if (DataManager.cursor.x != 10) return 1;
+    if (DataManager.cursor.y != 20) return 2;
+
+    // Test 2: Set screen size
+    DataManager.setScreen(800, 600);
+    if (DataManager.screenSize.width != 800) return 3;
+    if (DataManager.screenSize.height != 600) return 4;
+
+    // Test 3: Set viewport with nested struct
+    DataManager.setViewport(50, 50, 200, 150);
+    if (DataManager.viewport.origin.x != 50) return 5;
+    if (DataManager.viewport.origin.y != 50) return 6;
+    if (DataManager.viewport.dimensions.width != 200) return 7;
+    if (DataManager.viewport.dimensions.height != 150) return 8;
+
+    // Test 4: Calculate area
+    u32 area <- DataManager.getViewportArea();
+    if (area != 30000) return 9;  // 200 * 150
+
+    // Test 5: Direct access from outside
+    DataManager.cursor.x <- -5;
+    DataManager.cursor.y <- -10;
+    if (DataManager.cursor.x != -5) return 10;
+    if (DataManager.cursor.y != -10) return 11;
+
+    // Test 6: Direct access to nested struct from outside
+    DataManager.viewport.origin.x <- 100;
+    if (DataManager.viewport.origin.x != 100) return 12;
+
+    return 0;
+}

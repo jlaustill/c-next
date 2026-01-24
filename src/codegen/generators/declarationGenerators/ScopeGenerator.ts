@@ -170,6 +170,16 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       );
       lines.push(result.code);
     }
+
+    // Handle struct declarations inside scopes
+    // Issue #369: Skip struct definition if self-include was added (it will be in the header)
+    if (member.structDeclaration() && !state.selfIncludeAdded) {
+      const structDecl = member.structDeclaration()!;
+      lines.push("");
+      lines.push(
+        generateScopedStructInline(structDecl, name, input, orchestrator),
+      );
+    }
   }
 
   lines.push("");
@@ -315,6 +325,53 @@ function generateScopedBitmapInline(
   }
 
   lines.push(`typedef ${backingType} ${fullName};`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate struct inside a scope with proper prefixing.
+ * Struct fields maintain their original types.
+ */
+function generateScopedStructInline(
+  node: Parser.StructDeclarationContext,
+  scopeName: string,
+  input: IGeneratorInput,
+  orchestrator: IOrchestrator,
+): string {
+  const name = node.IDENTIFIER().getText();
+  const fullName = `${scopeName}_${name}`;
+
+  const lines: string[] = [];
+  lines.push(`typedef struct ${fullName} {`);
+
+  // Process struct members
+  for (const member of node.structMember()) {
+    const fieldName = member.IDENTIFIER().getText();
+    const fieldType = orchestrator.generateType(member.type());
+
+    // Handle array dimensions if present
+    const arrayDims = member.arrayDimension();
+    let dimStr = "";
+    if (arrayDims.length > 0) {
+      dimStr = orchestrator.generateArrayDimensions(arrayDims);
+    }
+
+    // Handle string capacity for string fields
+    if (member.type().stringType()) {
+      const stringCtx = member.type().stringType()!;
+      const intLiteral = stringCtx.INTEGER_LITERAL();
+      if (intLiteral) {
+        const capacity = parseInt(intLiteral.getText(), 10);
+        dimStr += `[${capacity + 1}]`;
+      }
+    }
+
+    lines.push(`    ${fieldType} ${fieldName}${dimStr};`);
+  }
+
+  lines.push(`} ${fullName};`);
   lines.push("");
 
   return lines.join("\n");

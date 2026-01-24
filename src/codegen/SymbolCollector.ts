@@ -240,13 +240,17 @@ class SymbolCollector {
       if (decl.bitmapDeclaration()) {
         this.collectBitmap(decl.bitmapDeclaration()!);
       }
-      // Also collect bitmaps inside scopes first
+      // Also collect bitmaps and structs inside scopes first
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
         const scopeName = scopeDecl.IDENTIFIER().getText();
         for (const member of scopeDecl.scopeMember()) {
           if (member.bitmapDeclaration()) {
             this.collectBitmap(member.bitmapDeclaration()!, scopeName);
+          }
+          // Collect scoped structs early so they're available as types
+          if (member.structDeclaration()) {
+            this.collectStruct(member.structDeclaration()!, scopeName);
           }
         }
       }
@@ -377,6 +381,17 @@ class SymbolCollector {
             this._registerMemberTypes.set(fullMemberName, typeName);
           }
         }
+      }
+
+      // Handle struct declarations inside scopes
+      // Note: Struct collection happens in first pass for early availability,
+      // but we still need to add to scope members and visibility here
+      if (member.structDeclaration()) {
+        const structDecl = member.structDeclaration()!;
+        const structName = structDecl.IDENTIFIER().getText();
+        members.add(structName);
+        memberVisibility.set(structName, visibility);
+        // Note: collectStruct already called in first pass
       }
     }
 
@@ -523,10 +538,16 @@ class SymbolCollector {
 
   /**
    * Collect struct declarations and track field types
+   * @param structDecl The struct declaration context
+   * @param scopeName Optional scope name for scoped struct declarations
    */
-  private collectStruct(structDecl: Parser.StructDeclarationContext): void {
+  private collectStruct(
+    structDecl: Parser.StructDeclarationContext,
+    scopeName?: string,
+  ): void {
     const name = structDecl.IDENTIFIER().getText();
-    this._knownStructs.add(name);
+    const fullName = scopeName ? `${scopeName}_${name}` : name;
+    this._knownStructs.add(fullName);
 
     const fields = new Map<string, string>();
     const arrayFields = new Set<string>();
@@ -584,9 +605,9 @@ class SymbolCollector {
       }
     }
 
-    this._structFields.set(name, fields);
-    this._structFieldArrays.set(name, arrayFields);
-    this._structFieldDimensions.set(name, fieldDimensions);
+    this._structFields.set(fullName, fields);
+    this._structFieldArrays.set(fullName, arrayFields);
+    this._structFieldDimensions.set(fullName, fieldDimensions);
   }
 
   /**

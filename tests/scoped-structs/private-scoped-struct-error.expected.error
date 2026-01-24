@@ -1,0 +1,1 @@
+1:0 Code generation failed: Cannot access private member 'Secret' of scope 'Internal' from outside the scope. Only public members are accessible outside their scope.

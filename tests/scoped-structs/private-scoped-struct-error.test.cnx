@@ -1,0 +1,21 @@
+// test-error
+// Tests: Private scoped structs should not be accessible from outside the scope
+
+scope Internal {
+    // Private struct - should not be accessible outside
+    private struct Secret {
+        u32 value;
+    }
+
+    public u32 getValue() {
+        this.Secret s;
+        s.value <- 42;
+        return s.value;
+    }
+}
+
+void main() {
+    // This should fail - Secret is private
+    Internal.Secret s;
+    s.value <- 10;
+}
