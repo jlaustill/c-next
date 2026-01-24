@@ -16,6 +16,7 @@ import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IInitializationError from "./types/IInitializationError";
 import IDeclarationInfo from "./types/IDeclarationInfo";
+import ScopeStack from "./ScopeStack";
 
 /**
  * Tracks the initialization state of a variable
@@ -33,16 +34,6 @@ interface IVariableState {
   isStruct: boolean;
   /** Is this a string type? (string<N> or string) */
   isStringType: boolean;
-}
-
-/**
- * Represents a scope (function body, block, etc.)
- */
-interface IScope {
-  /** Variables declared in this scope */
-  variables: Map<string, IVariableState>;
-  /** Parent scope (for nested blocks) */
-  parent: IScope | null;
 }
 
 /**
@@ -460,7 +451,7 @@ class InitializationListener extends CNextListener {
 class InitializationAnalyzer {
   private errors: IInitializationError[] = [];
 
-  private currentScope: IScope | null = null;
+  private scopeStack: ScopeStack<IVariableState> = new ScopeStack();
 
   /** Known struct types and their fields */
   private structFields: Map<string, Set<string>> = new Map();
@@ -489,7 +480,7 @@ class InitializationAnalyzer {
    */
   public analyze(tree: Parser.ProgramContext): IInitializationError[] {
     this.errors = [];
-    this.currentScope = null;
+    this.scopeStack = new ScopeStack();
     // Don't clear structFields - external fields may have been registered
 
     // First pass: collect struct definitions
@@ -579,27 +570,21 @@ class InitializationAnalyzer {
   }
 
   // ========================================================================
-  // Scope Management
+  // Scope Management (delegated to ScopeStack)
   // ========================================================================
 
   /**
    * Enter a new scope (function, block, etc.)
    */
   public enterScope(): void {
-    const newScope: IScope = {
-      variables: new Map(),
-      parent: this.currentScope,
-    };
-    this.currentScope = newScope;
+    this.scopeStack.enterScope();
   }
 
   /**
    * Exit the current scope
    */
   public exitScope(): void {
-    if (this.currentScope) {
-      this.currentScope = this.currentScope.parent;
-    }
+    this.scopeStack.exitScope();
   }
 
   // ========================================================================
@@ -617,7 +602,7 @@ class InitializationAnalyzer {
     typeName: string | null,
     isStringType: boolean = false,
   ): void {
-    if (!this.currentScope) {
+    if (!this.scopeStack.hasActiveScope()) {
       // Global scope - create implicit scope
       this.enterScope();
     }
@@ -637,21 +622,22 @@ class InitializationAnalyzer {
       initializedFields: hasInitializer ? new Set(fields) : new Set(),
     };
 
-    this.currentScope!.variables.set(name, state);
+    this.scopeStack.declare(name, state);
   }
 
   /**
    * Record that a variable (or field) has been assigned
    */
   public recordAssignment(name: string, field?: string): void {
-    const state = this.lookupVariable(name);
-    if (state) {
+    const structFields = this.structFields;
+
+    this.scopeStack.update(name, (state) => {
       if (field) {
         // Field assignment
         state.initializedFields.add(field);
         // Check if all fields are now initialized
         if (state.isStruct && state.typeName) {
-          const allFields = this.structFields.get(state.typeName);
+          const allFields = structFields.get(state.typeName);
           if (allFields) {
             const allInitialized = [...allFields].every((f) =>
               state.initializedFields.has(f),
@@ -666,13 +652,14 @@ class InitializationAnalyzer {
         state.initialized = true;
         // Mark all fields as initialized too
         if (state.isStruct && state.typeName) {
-          const fields = this.structFields.get(state.typeName);
+          const fields = structFields.get(state.typeName);
           if (fields) {
             state.initializedFields = new Set(fields);
           }
         }
       }
-    }
+      return state;
+    });
   }
 
   /**
@@ -684,7 +671,7 @@ class InitializationAnalyzer {
     column: number,
     field?: string,
   ): void {
-    const state = this.lookupVariable(name);
+    const state = this.scopeStack.lookup(name);
 
     if (!state) {
       // Variable not found in any scope - this would be a different error
@@ -741,49 +728,25 @@ class InitializationAnalyzer {
   }
 
   /**
-   * Look up a variable in the current scope chain
-   */
-  private lookupVariable(name: string): IVariableState | null {
-    let scope = this.currentScope;
-    while (scope) {
-      if (scope.variables.has(name)) {
-        return scope.variables.get(name)!;
-      }
-      scope = scope.parent;
-    }
-    return null;
-  }
-
-  /**
    * Public method to look up variable state
    * Issue #196 Bug 2: Used by visitor to check if variable is string type
    */
   public lookupVariableState(name: string): IVariableState | null {
-    return this.lookupVariable(name);
+    return this.scopeStack.lookup(name);
   }
 
   // ========================================================================
-  // Control Flow
+  // Control Flow (using ScopeStack's clone/restore)
   // ========================================================================
 
   /**
    * Clone the current scope state for branch analysis
    */
   public cloneScopeState(): Map<string, IVariableState> {
-    const clone = new Map<string, IVariableState>();
-    let scope = this.currentScope;
-    while (scope) {
-      for (const [name, state] of scope.variables) {
-        if (!clone.has(name)) {
-          clone.set(name, {
-            ...state,
-            initializedFields: new Set(state.initializedFields),
-          });
-        }
-      }
-      scope = scope.parent;
-    }
-    return clone;
+    return this.scopeStack.cloneState((state) => ({
+      ...state,
+      initializedFields: new Set(state.initializedFields),
+    }));
   }
 
   /**
@@ -791,14 +754,10 @@ class InitializationAnalyzer {
    * Used for control flow analysis to "undo" branch changes
    */
   public restoreFromState(savedState: Map<string, IVariableState>): void {
-    for (const [name, savedVarState] of savedState) {
-      const currentVar = this.lookupVariable(name);
-      if (currentVar) {
-        // Restore the initialization state from the saved snapshot
-        currentVar.initialized = savedVarState.initialized;
-        currentVar.initializedFields = new Set(savedVarState.initializedFields);
-      }
-    }
+    this.scopeStack.restoreState(savedState, (_current, saved) => ({
+      ...saved,
+      initializedFields: new Set(saved.initializedFields),
+    }));
   }
 
   /**
@@ -809,21 +768,15 @@ class InitializationAnalyzer {
   public mergeInitializationState(
     beforeState: Map<string, IVariableState>,
   ): void {
-    let scope = this.currentScope;
-    while (scope) {
-      for (const [name, currentState] of scope.variables) {
-        const beforeVar = beforeState.get(name);
-        if (beforeVar) {
-          // Preserve initialization if it happened inside the loop
-          // (currentState.initialized stays true if set inside loop)
-          // Merge initializedFields from before state to preserve any
-          // fields that were initialized before the loop
-          for (const field of beforeVar.initializedFields) {
-            currentState.initializedFields.add(field);
-          }
+    // For each variable, keep current init state but merge in any fields
+    // that were initialized before the loop
+    for (const [name, beforeVar] of beforeState) {
+      this.scopeStack.update(name, (currentState) => {
+        for (const field of beforeVar.initializedFields) {
+          currentState.initializedFields.add(field);
         }
-      }
-      scope = scope.parent;
+        return currentState;
+      });
     }
   }
 
@@ -875,7 +828,7 @@ class InitializationAnalyzer {
     column: number,
     typeName: string | null,
   ): void {
-    if (!this.currentScope) {
+    if (!this.scopeStack.hasActiveScope()) {
       this.enterScope();
     }
 
@@ -893,7 +846,7 @@ class InitializationAnalyzer {
       initializedFields: new Set(fields), // All fields initialized
     };
 
-    this.currentScope!.variables.set(name, state);
+    this.scopeStack.declare(name, state);
   }
 }
 
