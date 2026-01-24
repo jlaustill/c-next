@@ -1,0 +1,25 @@
+// test-execution
+// Tests: Issue #369 - struct definitions should NOT be duplicated in both .h and .c files
+// When generating headers, struct definitions should ONLY appear in the .h file
+
+struct MyData {
+    u8 value;
+    u8 count;
+}
+
+scope Handler {
+    public u8 process(MyData data) {
+        return data.value;
+    }
+}
+
+u32 main() {
+    MyData data;
+    data.value <- 42;
+    data.count <- 1;
+
+    u8 result <- Handler.process(data);
+    if (result != 42) return 1;
+
+    return 0;
+}
