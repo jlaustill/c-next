@@ -6905,14 +6905,22 @@ export default class CodeGenerator implements IOrchestrator {
       const exprs = arrayAccessCtx.expression();
       const typeInfo = this.context.typeRegistry.get(name);
 
+      // Issue #368: Check if this is an array parameter (e.g., void foo(u8 data[]))
+      // Array parameters may not have arrayDimensions in typeRegistry (for unsized params),
+      // but they ARE arrays and should use array indexing, not bit manipulation.
+      const paramInfo = this.context.currentParameters.get(name);
+      const isArrayParameter = paramInfo?.isArray ?? false;
+
       // ADR-040: ISR arrays use normal array indexing, not bit manipulation
       // Also handle any array type that isn't an integer scalar
       // Issue #213: String parameters (isString=true) should also use memcpy for slice assignment
+      // Issue #368: Array parameters (even unsized like u8 data[]) should use array indexing
       const isActualArray =
         (typeInfo?.isArray &&
           typeInfo.arrayDimensions &&
           typeInfo.arrayDimensions.length > 0) ||
-        typeInfo?.isString;
+        typeInfo?.isString ||
+        isArrayParameter;
       const isISRType = typeInfo?.baseType === "ISR";
 
       if (isActualArray || isISRType) {
