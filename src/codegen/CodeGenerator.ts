@@ -5837,8 +5837,26 @@ export default class CodeGenerator implements IOrchestrator {
     typeCtx: Parser.TypeContext,
     isArray: boolean,
   ): string {
-    // Arrays and structs/classes use {0}
+    // Issue #379: Arrays need element type checking for C++ classes
+    // C++ class arrays must use {} instead of {0}
     if (isArray) {
+      // Check if element type is a C++ class or template type
+      if (typeCtx.userType()) {
+        const typeName = typeCtx.userType()!.getText();
+        // Use {} for C++ types (external libraries with constructors)
+        if (this.isCppType(typeName)) {
+          return "{}";
+        }
+        // In C++ mode, unknown user types may have non-trivial constructors
+        if (this.cppMode && !this._isKnownStruct(typeName)) {
+          return "{}";
+        }
+      }
+      // Template types are always C++ classes
+      if (typeCtx.templateType()) {
+        return "{}";
+      }
+      // Default: POD arrays use {0}
       return "{0}";
     }
 

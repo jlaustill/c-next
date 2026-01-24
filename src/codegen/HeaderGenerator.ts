@@ -184,7 +184,12 @@ class HeaderGenerator {
         const cType = sym.type ? mapType(sym.type) : "int";
         // Issue #288: Include const qualifier for const variables
         const constPrefix = sym.isConst ? "const " : "";
-        lines.push(`extern ${constPrefix}${cType} ${sym.name};`);
+        // Issue #379: Include array dimensions for extern declarations
+        const arrayDims =
+          sym.isArray && sym.arrayDimensions
+            ? sym.arrayDimensions.map((d) => `[${d}]`).join("")
+            : "";
+        lines.push(`extern ${constPrefix}${cType} ${sym.name}${arrayDims};`);
       }
       lines.push("");
     }

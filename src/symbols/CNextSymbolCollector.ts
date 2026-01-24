@@ -410,12 +410,24 @@ class CNextSymbolCollector {
     // Check for array (ADR-036: arrayDimension() now returns array for multi-dim)
     const arrayDims = varDecl.arrayDimension();
     let size: number | undefined;
+    let isArray = false;
+    const arrayDimensions: string[] = [];
+
     if (arrayDims.length > 0) {
-      // Get first dimension size for symbol tracking
-      const dimText = arrayDims[0].getText();
-      const match = dimText.match(/\[(\d+)\]/);
-      if (match) {
-        size = parseInt(match[1], 10);
+      isArray = true;
+      // Issue #379: Capture all array dimensions for header generation
+      for (const dim of arrayDims) {
+        const dimText = dim.getText();
+        // Extract dimension value (e.g., "[4]" -> "4", "[CONST]" -> "CONST")
+        const match = dimText.match(/\[([^\]]*)\]/);
+        if (match) {
+          arrayDimensions.push(match[1]);
+        }
+      }
+      // Get first dimension size for legacy size field
+      const firstMatch = arrayDims[0].getText().match(/\[(\d+)\]/);
+      if (firstMatch) {
+        size = parseInt(firstMatch[1], 10);
       }
     }
 
@@ -432,6 +444,8 @@ class CNextSymbolCollector {
       isExported: isPublic,
       parent,
       size,
+      isArray,
+      arrayDimensions: isArray ? arrayDimensions : undefined,
       isConst,
     });
   }
