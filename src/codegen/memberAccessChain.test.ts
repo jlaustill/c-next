@@ -252,6 +252,90 @@ describe("buildMemberAccessChain", () => {
   });
 
   describe("type tracking and bit access", () => {
+    it("should handle initial type that is not a known struct", () => {
+      // When initialTypeInfo.baseType is not a known struct, typeState.currentStructType should be undefined
+      const mockTypeTracking = {
+        getStructFields: vi.fn().mockReturnValue(new Map()),
+        getStructArrayFields: vi.fn().mockReturnValue(new Set()),
+        isKnownStruct: vi.fn().mockReturnValue(false), // NOT a known struct
+      };
+
+      const options = {
+        firstId: "data",
+        identifiers: ["data", "value"],
+        expressions: [],
+        children: createMockChildren(["data", ".", "value"]),
+        separatorOptions: { isStructParam: false, isCrossScope: false },
+        generateExpression: simpleExprGen,
+        initialTypeInfo: { isArray: false, baseType: "UnknownType" },
+        typeTracking: mockTypeTracking,
+      };
+
+      const result = buildMemberAccessChain(options);
+      expect(result.code).toBe("data.value");
+      expect(mockTypeTracking.isKnownStruct).toHaveBeenCalledWith(
+        "UnknownType",
+      );
+    });
+
+    it("should track nested struct types through member chain", () => {
+      // point.inner.x where Point has Inner member which is also a struct
+      const mockTypeTracking = {
+        getStructFields: vi.fn().mockImplementation((structType) => {
+          if (structType === "Point") return new Map([["inner", "Inner"]]);
+          if (structType === "Inner") return new Map([["x", "i32"]]);
+          return new Map();
+        }),
+        getStructArrayFields: vi.fn().mockReturnValue(new Set()),
+        isKnownStruct: vi
+          .fn()
+          .mockImplementation((type) => type === "Point" || type === "Inner"),
+      };
+
+      const onBitAccess = vi.fn();
+
+      const options = {
+        firstId: "point",
+        identifiers: ["point", "inner", "x"],
+        expressions: [],
+        children: createMockChildren(["point", ".", "inner", ".", "x"]),
+        separatorOptions: { isStructParam: false, isCrossScope: false },
+        generateExpression: simpleExprGen,
+        initialTypeInfo: { isArray: false, baseType: "Point" },
+        typeTracking: mockTypeTracking,
+        onBitAccess,
+      };
+
+      const result = buildMemberAccessChain(options);
+      expect(result.code).toBe("point.inner.x");
+      // Should have checked Point and Inner as structs
+      expect(mockTypeTracking.isKnownStruct).toHaveBeenCalledWith("Point");
+      expect(mockTypeTracking.isKnownStruct).toHaveBeenCalledWith("Inner");
+    });
+
+    it("should handle undefined array fields gracefully", () => {
+      // When getStructArrayFields returns undefined, lastMemberIsArray should default to false
+      const mockTypeTracking = {
+        getStructFields: vi.fn().mockReturnValue(new Map([["value", "u8"]])),
+        getStructArrayFields: vi.fn().mockReturnValue(undefined), // Returns undefined
+        isKnownStruct: vi.fn().mockImplementation((type) => type === "Data"),
+      };
+
+      const options = {
+        firstId: "data",
+        identifiers: ["data", "value"],
+        expressions: [],
+        children: createMockChildren(["data", ".", "value"]),
+        separatorOptions: { isStructParam: false, isCrossScope: false },
+        generateExpression: simpleExprGen,
+        initialTypeInfo: { isArray: false, baseType: "Data" },
+        typeTracking: mockTypeTracking,
+      };
+
+      const result = buildMemberAccessChain(options);
+      expect(result.code).toBe("data.value");
+    });
+
     it("should call onBitAccess when accessing primitive integer field with subscript", () => {
       // items[0].byte[7] -> bit access on u8 field
       const mockTypeTracking = {
