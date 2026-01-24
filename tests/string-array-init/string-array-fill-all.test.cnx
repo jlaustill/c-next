@@ -1,0 +1,9 @@
+// test-transpile-only
+// Issue #380: String array fill-all syntax
+// Tests: ["value"*] expands to fill all elements
+
+// Fill all 3 elements with "Hello"
+string<10> greetings[3] <- ["Hello"*];
+
+// Fill with empty string (should use {""} which C handles)
+string<8> empty[2] <- [""*];

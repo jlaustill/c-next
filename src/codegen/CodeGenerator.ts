@@ -5320,15 +5320,103 @@ export default class CodeGenerator implements IOrchestrator {
         // Check for string arrays: string<64> arr[4] -> char arr[4][65] = {0};
         if (arrayDims.length > 0) {
           let decl = `${constMod}${atomicMod}${volatileMod}char ${name}`;
-          decl += this._generateArrayDimensions(arrayDims); // [4]
-          decl += `[${capacity + 1}]`; // [65]
 
+          // Issue #380: Handle array initializers for string arrays
           if (ctx.expression()) {
+            // Reset array init tracking
+            this.context.lastArrayInitCount = 0;
+            this.context.lastArrayFillValue = undefined;
+
+            // Generate the initializer expression
+            const initValue = this._generateExpression(ctx.expression()!);
+
+            // Check if it was an array initializer
+            if (
+              this.context.lastArrayInitCount > 0 ||
+              this.context.lastArrayFillValue !== undefined
+            ) {
+              const hasEmptyArrayDim = arrayDims.some(
+                (dim) => !dim.expression(),
+              );
+
+              // Track as local array
+              this.context.localArrays.add(name);
+
+              let arraySize: number;
+              if (hasEmptyArrayDim) {
+                // Size inference: string<10> labels[] <- ["One", "Two"]
+                if (this.context.lastArrayFillValue !== undefined) {
+                  throw new Error(
+                    `Error: Fill-all syntax [${this.context.lastArrayFillValue}*] requires explicit array size`,
+                  );
+                }
+                arraySize = this.context.lastArrayInitCount;
+                decl += `[${arraySize}]`;
+
+                // Update type registry with inferred size for .length support
+                this.context.typeRegistry.set(name, {
+                  baseType: "char",
+                  bitWidth: 8,
+                  isArray: true,
+                  arrayDimensions: [arraySize, capacity + 1],
+                  isConst: ctx.constModifier() !== null,
+                  isString: true,
+                  stringCapacity: capacity,
+                });
+              } else {
+                // Explicit size: string<10> labels[3] <- ["One", "Two", "Three"]
+                decl += this._generateArrayDimensions(arrayDims);
+
+                // Validate element count matches declared size
+                const firstDimExpr = arrayDims[0].expression();
+                if (firstDimExpr) {
+                  const sizeText = firstDimExpr.getText();
+                  if (sizeText.match(/^\d+$/)) {
+                    const declaredSize = parseInt(sizeText, 10);
+                    if (
+                      this.context.lastArrayFillValue === undefined &&
+                      this.context.lastArrayInitCount !== declaredSize
+                    ) {
+                      throw new Error(
+                        `Error: Array size mismatch - declared [${declaredSize}] but got ${this.context.lastArrayInitCount} elements`,
+                      );
+                    }
+                  }
+                }
+              }
+
+              decl += `[${capacity + 1}]`; // String capacity + null terminator
+
+              // Handle fill-all syntax: ["Hello"*] -> {"Hello", "Hello", "Hello"}
+              let finalInitValue = initValue;
+              if (this.context.lastArrayFillValue !== undefined) {
+                const firstDimExpr = arrayDims[0].expression();
+                if (firstDimExpr) {
+                  const sizeText = firstDimExpr.getText();
+                  if (sizeText.match(/^\d+$/)) {
+                    const declaredSize = parseInt(sizeText, 10);
+                    const fillVal = this.context.lastArrayFillValue;
+                    // Only expand if not empty string (C handles {""} correctly for zeroing)
+                    if (fillVal !== '""') {
+                      const elements = Array(declaredSize).fill(fillVal);
+                      finalInitValue = `{${elements.join(", ")}}`;
+                    }
+                  }
+                }
+              }
+
+              return `${decl} = ${finalInitValue};`;
+            }
+
+            // Non-array-initializer expression (e.g., variable assignment) not supported
             throw new Error(
-              `Error: Array initializers for string arrays not yet supported`,
+              `Error: String array initialization from variables not supported`,
             );
           }
 
+          // No initializer - zero-initialize
+          decl += this._generateArrayDimensions(arrayDims);
+          decl += `[${capacity + 1}]`;
           return `${decl} = {0};`;
         }
 

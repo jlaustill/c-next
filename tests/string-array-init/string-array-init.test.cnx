@@ -1,0 +1,25 @@
+// test-transpile-only
+// Issue #380: String array initializers
+// Tests: const string array with inline initialization
+
+// Array of bounded strings with initializer
+const string<10> LABELS[3] <- [
+    "One",
+    "Two",
+    "Three"
+];
+
+// Non-const string array with initializer
+string<8> colors[4] <- [
+    "Red",
+    "Green",
+    "Blue",
+    "Yellow"
+];
+
+scope Test {
+    public void init() {
+        // Access string array element
+        u8 len <- global.LABELS[0].length;
+    }
+}

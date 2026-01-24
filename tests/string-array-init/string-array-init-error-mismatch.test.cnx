@@ -1,0 +1,8 @@
+// test-error: Array size mismatch
+// Issue #380: String array initializers - error on size mismatch
+
+// Declared size 3, but only 2 elements provided
+const string<10> LABELS[3] <- [
+    "One",
+    "Two"
+];
