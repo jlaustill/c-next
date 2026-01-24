@@ -5386,7 +5386,26 @@ export default class CodeGenerator implements IOrchestrator {
               }
 
               decl += `[${capacity + 1}]`; // String capacity + null terminator
-              return `${decl} = ${initValue};`;
+
+              // Handle fill-all syntax: ["Hello"*] -> {"Hello", "Hello", "Hello"}
+              let finalInitValue = initValue;
+              if (this.context.lastArrayFillValue !== undefined) {
+                const firstDimExpr = arrayDims[0].expression();
+                if (firstDimExpr) {
+                  const sizeText = firstDimExpr.getText();
+                  if (sizeText.match(/^\d+$/)) {
+                    const declaredSize = parseInt(sizeText, 10);
+                    const fillVal = this.context.lastArrayFillValue;
+                    // Only expand if not empty string (C handles {""} correctly for zeroing)
+                    if (fillVal !== '""') {
+                      const elements = Array(declaredSize).fill(fillVal);
+                      finalInitValue = `{${elements.join(", ")}}`;
+                    }
+                  }
+                }
+              }
+
+              return `${decl} = ${finalInitValue};`;
             }
 
             // Non-array-initializer expression (e.g., variable assignment) not supported
