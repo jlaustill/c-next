@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.32] - 2026-01-24
+
+### Added
+
+- Compile-time bounds checking for single-dimensional arrays (PR #385)
+- Unit tests for semantic analyzers with extracted ScopeStack utility (PR #384)
+- Comprehensive TypeScript unit tests (PR #381)
+
+### Fixed
+
+- C++ class array initialization and header declarations (Issue #379, PR #383)
+- Array initializers for bounded string arrays (Issue #380, PR #382)
+- Fill-all syntax support for string array initializers
+
 ## [0.1.31] - 2026-01-24
 
 ### Added
@@ -349,7 +363,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.31...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.32...HEAD
+[0.1.32]: https://github.com/jlaustill/c-next/compare/v0.1.31...v0.1.32
 [0.1.31]: https://github.com/jlaustill/c-next/compare/v0.1.30...v0.1.31
 [0.1.30]: https://github.com/jlaustill/c-next/compare/v0.1.29...v0.1.30
 [0.1.29]: https://github.com/jlaustill/c-next/compare/v0.1.28...v0.1.29
