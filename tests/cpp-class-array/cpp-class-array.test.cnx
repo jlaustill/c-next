@@ -1,0 +1,14 @@
+// test-transpile-only
+// Minimal reproducer for C++ class array bugs
+
+#include "MockDevice.h"
+
+const u8 DEVICE_COUNT <- 4;
+
+MockDevice devices[DEVICE_COUNT];
+
+scope Test {
+    public void init() {
+        global.devices[0].begin(0x48);
+    }
+}
