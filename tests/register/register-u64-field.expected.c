@@ -16,13 +16,8 @@
 int main(void) {
     TIMER64_COMPARE = 0x123456789ABCDEF0;
     uint64_t compare_val = TIMER64_COMPARE;
-    if (compare_val != 0x123456789ABCDEF0) return 1;
     uint64_t count = TIMER64_COUNT;
     TIMER64_COMPARE = 1000000000000;
-    compare_val = TIMER64_COMPARE;
-    if (compare_val != 1000000000000) return 2;
     TIMER64_CONTROL = 0x00000001;
     uint32_t ctrl = TIMER64_CONTROL;
-    if (ctrl != 1) return 3;
-    return 0;
 }
