@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.31] - 2026-01-24
+
+### Added
+
+- C++ constructor argument syntax for external library interop (Issue #375)
+  - Supports `Type name(constArg1, constArg2);` syntax
+  - Arguments must be const variables (enforced at parse and codegen time)
+  - Works with template types and inside scopes
+- Struct declarations inside scopes (PR #374)
+
 ## [0.1.30] - 2026-01-24
 
 ### Fixed
@@ -339,7 +349,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.30...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.31...HEAD
+[0.1.31]: https://github.com/jlaustill/c-next/compare/v0.1.30...v0.1.31
 [0.1.30]: https://github.com/jlaustill/c-next/compare/v0.1.29...v0.1.30
 [0.1.29]: https://github.com/jlaustill/c-next/compare/v0.1.28...v0.1.29
 [0.1.28]: https://github.com/jlaustill/c-next/compare/v0.1.27...v0.1.28
