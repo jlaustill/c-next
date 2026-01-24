@@ -1,0 +1,27 @@
+// Tests: u64 as register field type (compilation only - registers need hardware)
+// Coverage: Section 1.1 u64 in register field
+
+// 64-bit timer register (common in modern MCUs)
+register TIMER64 @ 0x40001000 {
+    COUNT: u64 ro @ 0x00,
+    COMPARE: u64 rw @ 0x08,
+    CONTROL: u32 rw @ 0x10,
+}
+
+void main() {
+    // Write to 64-bit register field
+    TIMER64.COMPARE <- 0x123456789ABCDEF0;
+
+    // Read from 64-bit register field
+    u64 compare_val <- TIMER64.COMPARE;
+
+    // Read 64-bit counter (read-only)
+    u64 count <- TIMER64.COUNT;
+
+    // Write smaller value
+    TIMER64.COMPARE <- 1000000000000;
+
+    // 32-bit field works alongside 64-bit
+    TIMER64.CONTROL <- 0x00000001;
+    u32 ctrl <- TIMER64.CONTROL;
+}

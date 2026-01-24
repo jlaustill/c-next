@@ -1,0 +1,59 @@
+// test-execution
+// Tests: u16 comparison operations (<, >, <=, >=, =, !=)
+// Coverage: Section 3.3-3.6 for u16 type
+u32 main() {
+    u16 a <- 30000;
+    u16 b <- 15000;
+    u16 c <- 30000;
+    u16 zero <- 0;
+    u16 max_val <- 65535;
+
+    // === Equality (=) ===
+    if ((a = c) != true) return 1;
+    if ((a = b) != false) return 2;
+    if ((zero = 0) != true) return 3;
+
+    // === Not Equal (!=) ===
+    if ((a != b) != true) return 4;
+    if ((a != c) != false) return 5;
+    if ((zero != 1) != true) return 6;
+
+    // === Less Than (<) ===
+    if ((b < a) != true) return 7;      // 15000 < 30000
+    if ((a < b) != false) return 8;     // 30000 < 15000
+    if ((a < a) != false) return 9;     // equal values
+    if ((zero < 1) != true) return 10;  // 0 < 1
+    if ((zero < max_val) != true) return 11;
+
+    // === Greater Than (>) ===
+    if ((a > b) != true) return 12;     // 30000 > 15000
+    if ((b > a) != false) return 13;    // 15000 > 30000
+    if ((a > a) != false) return 14;    // equal values
+    if ((max_val > zero) != true) return 15;
+    if ((1 > zero) != true) return 16;
+
+    // === Less Than or Equal (<=) ===
+    if ((b <= a) != true) return 17;    // 15000 <= 30000
+    if ((a <= c) != true) return 18;    // 30000 <= 30000 (equal)
+    if ((a <= b) != false) return 19;   // 30000 <= 15000
+    if ((zero <= zero) != true) return 20;
+    if ((zero <= max_val) != true) return 21;
+
+    // === Greater Than or Equal (>=) ===
+    if ((a >= b) != true) return 22;    // 30000 >= 15000
+    if ((a >= c) != true) return 23;    // 30000 >= 30000 (equal)
+    if ((b >= a) != false) return 24;   // 15000 >= 30000
+    if ((max_val >= zero) != true) return 25;
+    if ((max_val >= max_val) != true) return 26;
+
+    // === Edge cases with max value ===
+    u16 almost_max <- 65534;
+    if ((max_val > almost_max) != true) return 27;
+    if ((almost_max < max_val) != true) return 28;
+
+    // === Literal comparisons ===
+    if ((15000 < a) != true) return 29;  // literal < variable
+    if ((30000 > b) != true) return 30;  // literal > variable
+
+    return 0;
+}

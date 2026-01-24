@@ -84,12 +84,12 @@ This document tracks test coverage for every language construct in every valid c
 | In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u8-bitwise-ops.test.cnx`               |
 | As loop counter                | [x]    | `for-loops/for-u8-counter.test.cnx`             |
-| In ternary expression          | [ ]    |                                                 |
+| In ternary expression          | [x]    | `ternary/ternary-u8.test.cnx`                   |
 | With const modifier            | [x]    | `const/const-variable.test.cnx`                 |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier            | [ ]    |                                                 |
-| With wrap modifier             | [ ]    |                                                 |
-| In scope declaration           | [ ]    |                                                 |
+| With clamp modifier            | [x]    | `overflow-modifiers/clamp-u8.test.cnx`          |
+| With wrap modifier             | [x]    | `overflow-modifiers/wrap-u8.test.cnx`           |
+| In scope declaration           | [x]    | `scope/this-all-types.test.cnx`                 |
 | In register field              | [x]    |                                                 |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
@@ -110,12 +110,12 @@ This document tracks test coverage for every language construct in every valid c
 | In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/u16-bitwise-ops.test.cnx`              |
 | As loop counter                | [x]    | `for-loops/for-u16-counter.test.cnx`            |
-| In ternary expression          | [ ]    |                                                 |
+| In ternary expression          | [x]    | `ternary/ternary-u16.test.cnx`                  |
 | With const modifier            | [x]    | `const/const-u16-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
 | With clamp modifier            | [x]    | `const/const-clamp-u16.test.cnx`                |
 | With wrap modifier             | [x]    | `const/const-wrap-u16.test.cnx`                 |
-| In scope declaration           | [ ]    |                                                 |
+| In scope declaration           | [x]    | `scope/this-all-types.test.cnx`                 |
 | In register field              | [x]    |                                                 |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
@@ -165,10 +165,10 @@ This document tracks test coverage for every language construct in every valid c
 | In ternary expression          | [x]    | `ternary/ternary-u64.test.cnx`                  |
 | With const modifier            | [x]    | `const/const-u64-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier            | [ ]    |                                                 |
-| With wrap modifier             | [ ]    |                                                 |
-| In scope declaration           | [ ]    |                                                 |
-| In register field              | [ ]    |                                                 |
+| With clamp modifier            | [x]    | `overflow-modifiers/clamp-u64.test.cnx`         |
+| With wrap modifier             | [x]    | `overflow-modifiers/wrap-u64.test.cnx`          |
+| In scope declaration           | [x]    | `scope/this-all-types.test.cnx`                 |
+| In register field              | [x]    | `register/register-u64-field.test.cnx`          |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 ### 1.2 Signed Integers
@@ -184,7 +184,7 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter             | [x]    |                                                 |
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
-| Array element type             | [ ]    |                                                 |
+| Array element type             | [x]    | `array-initializers/i8-array-init.test.cnx`     |
 | Array element type (multi-dim) | [x]    | `multi-dim-arrays/i8-multi-dim.test.cnx`        |
 | In arithmetic expression       | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
 | In comparison                  | [x]    | `comparison/i8-comparison.test.cnx`             |
@@ -193,8 +193,8 @@ This document tracks test coverage for every language construct in every valid c
 | Negative literal assignment    | [x]    | `arithmetic/i8-arithmetic.test.cnx`             |
 | With const modifier            | [x]    | `const/const-i8-variable.test.cnx`              |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier            | [ ]    |                                                 |
-| With wrap modifier             | [ ]    |                                                 |
+| With clamp modifier            | [x]    | `overflow-modifiers/clamp-i8.test.cnx`          |
+| With wrap modifier             | [x]    | `overflow-modifiers/wrap-i8.test.cnx`           |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i16
@@ -208,7 +208,7 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter             | [x]    |                                                 |
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
-| Array element type             | [ ]    |                                                 |
+| Array element type             | [x]    | `array-initializers/i16-array-init.test.cnx`    |
 | Array element type (multi-dim) | [x]    | `multi-dim-arrays/i16-multi-dim.test.cnx`       |
 | In arithmetic expression       | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
 | In comparison                  | [x]    | `comparison/i16-comparison.test.cnx`            |
@@ -217,8 +217,8 @@ This document tracks test coverage for every language construct in every valid c
 | Negative literal assignment    | [x]    | `arithmetic/i16-arithmetic.test.cnx`            |
 | With const modifier            | [x]    | `const/const-i16-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier            | [ ]    |                                                 |
-| With wrap modifier             | [ ]    |                                                 |
+| With clamp modifier            | [x]    | `overflow-modifiers/clamp-i16.test.cnx`         |
+| With wrap modifier             | [x]    | `overflow-modifiers/wrap-i16.test.cnx`          |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 #### i32
@@ -232,12 +232,12 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter             | [x]    |                                                 |
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
-| Array element type             | [ ]    |                                                 |
+| Array element type             | [x]    | `array-initializers/i32-array-init.test.cnx`    |
 | Array element type (multi-dim) | [x]    | `multi-dim-arrays/i32-multi-dim.test.cnx`       |
 | In arithmetic expression       | [x]    |                                                 |
 | In comparison                  | [x]    |                                                 |
 | In bitwise operation           | [x]    | `bitwise/i32-bitwise-ops.test.cnx`              |
-| As loop counter                | [ ]    |                                                 |
+| As loop counter                | [x]    | `for-loops/for-i32-counter.test.cnx`            |
 | Negative literal assignment    | [x]    |                                                 |
 | With const modifier            | [x]    |                                                 |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
@@ -256,7 +256,7 @@ This document tracks test coverage for every language construct in every valid c
 | Function parameter             | [x]    |                                                 |
 | Function return type           | [x]    |                                                 |
 | Struct member                  | [x]    |                                                 |
-| Array element type             | [ ]    |                                                 |
+| Array element type             | [x]    | `array-initializers/i64-array-init.test.cnx`    |
 | Array element type (multi-dim) | [x]    | `multi-dim-arrays/i64-multi-dim.test.cnx`       |
 | In arithmetic expression       | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
 | In comparison                  | [x]    | `comparison/i64-comparison.test.cnx`            |
@@ -265,8 +265,8 @@ This document tracks test coverage for every language construct in every valid c
 | Negative literal assignment    | [x]    | `arithmetic/i64-arithmetic.test.cnx`            |
 | With const modifier            | [x]    | `const/const-i64-variable.test.cnx`             |
 | With atomic modifier           | [x]    | `atomic/atomic-all-types.test.cnx`              |
-| With clamp modifier            | [ ]    |                                                 |
-| With wrap modifier             | [ ]    |                                                 |
+| With clamp modifier            | [x]    | `overflow-modifiers/clamp-i64.test.cnx`         |
+| With wrap modifier             | [x]    | `overflow-modifiers/wrap-i64.test.cnx`          |
 | .length property               | [x]    | `primitives/length-property-all-types.test.cnx` |
 
 ### 1.3 Floating Point
@@ -509,10 +509,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Operand Types     | Status | Test File                            |
 | ----------------- | ------ | ------------------------------------ |
-| u8 < u8           | [ ]    |                                      |
-| u16 < u16         | [ ]    |                                      |
+| u8 < u8           | [x]    | `comparison/u8-comparison.test.cnx`  |
+| u16 < u16         | [x]    | `comparison/u16-comparison.test.cnx` |
 | u32 < u32         | [x]    |                                      |
-| u64 < u64         | [ ]    |                                      |
+| u64 < u64         | [x]    | `comparison/u64-comparison.test.cnx` |
 | i8 < i8           | [x]    | `comparison/i8-comparison.test.cnx`  |
 | i16 < i16         | [x]    | `comparison/i16-comparison.test.cnx` |
 | i32 < i32         | [x]    |                                      |
@@ -520,16 +520,16 @@ This document tracks test coverage for every language construct in every valid c
 | f32 < f32         | [x]    | `floats/float-comparison.test.cnx`   |
 | f64 < f64         | [x]    | `floats/float-comparison.test.cnx`   |
 | Integer < Literal | [x]    |                                      |
-| Literal < Integer | [ ]    |                                      |
+| Literal < Integer | [x]    | `comparison/u8-comparison.test.cnx`  |
 
 ### 3.4 Greater Than (>)
 
 | Operand Types     | Status | Test File                            |
 | ----------------- | ------ | ------------------------------------ |
-| u8 > u8           | [ ]    |                                      |
-| u16 > u16         | [ ]    |                                      |
+| u8 > u8           | [x]    | `comparison/u8-comparison.test.cnx`  |
+| u16 > u16         | [x]    | `comparison/u16-comparison.test.cnx` |
 | u32 > u32         | [x]    |                                      |
-| u64 > u64         | [ ]    |                                      |
+| u64 > u64         | [x]    | `comparison/u64-comparison.test.cnx` |
 | i8 > i8           | [x]    | `comparison/i8-comparison.test.cnx`  |
 | i16 > i16         | [x]    | `comparison/i16-comparison.test.cnx` |
 | i32 > i32         | [x]    |                                      |
@@ -542,27 +542,31 @@ This document tracks test coverage for every language construct in every valid c
 
 | Operand Types | Status | Test File                            |
 | ------------- | ------ | ------------------------------------ |
+| u8 <= u8      | [x]    | `comparison/u8-comparison.test.cnx`  |
+| u16 <= u16    | [x]    | `comparison/u16-comparison.test.cnx` |
 | u32 <= u32    | [x]    |                                      |
+| u64 <= u64    | [x]    | `comparison/u64-comparison.test.cnx` |
 | i8 <= i8      | [x]    | `comparison/i8-comparison.test.cnx`  |
 | i16 <= i16    | [x]    | `comparison/i16-comparison.test.cnx` |
 | i32 <= i32    | [x]    |                                      |
 | i64 <= i64    | [x]    | `comparison/i64-comparison.test.cnx` |
 | f32 <= f32    | [x]    | `floats/float-comparison.test.cnx`   |
 | f64 <= f64    | [x]    | `floats/float-comparison.test.cnx`   |
-| Other types   | [ ]    |                                      |
 
 ### 3.6 Greater Than or Equal (>=)
 
 | Operand Types | Status | Test File                            |
 | ------------- | ------ | ------------------------------------ |
+| u8 >= u8      | [x]    | `comparison/u8-comparison.test.cnx`  |
+| u16 >= u16    | [x]    | `comparison/u16-comparison.test.cnx` |
 | u32 >= u32    | [x]    |                                      |
+| u64 >= u64    | [x]    | `comparison/u64-comparison.test.cnx` |
 | i8 >= i8      | [x]    | `comparison/i8-comparison.test.cnx`  |
 | i16 >= i16    | [x]    | `comparison/i16-comparison.test.cnx` |
 | i32 >= i32    | [x]    |                                      |
 | i64 >= i64    | [x]    | `comparison/i64-comparison.test.cnx` |
 | f32 >= f32    | [x]    | `floats/float-comparison.test.cnx`   |
 | f64 >= f64    | [x]    | `floats/float-comparison.test.cnx`   |
-| Other types   | [ ]    |                                      |
 
 ---
 
@@ -572,10 +576,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Operand Types            | Status | Test File                                |
 | ------------------------ | ------ | ---------------------------------------- |
-| u8 + u8                  | [ ]    |                                          |
-| u16 + u16                | [ ]    |                                          |
+| u8 + u8                  | [x]    | `arithmetic/u8-arithmetic.test.cnx`      |
+| u16 + u16                | [x]    | `arithmetic/u16-arithmetic.test.cnx`     |
 | u32 + u32                | [x]    |                                          |
-| u64 + u64                | [ ]    |                                          |
+| u64 + u64                | [x]    | `arithmetic/u64-arithmetic.test.cnx`     |
 | i8 + i8                  | [x]    | `arithmetic/i8-arithmetic.test.cnx`      |
 | i16 + i16                | [x]    | `arithmetic/i16-arithmetic.test.cnx`     |
 | i32 + i32                | [x]    |                                          |
@@ -591,10 +595,10 @@ This document tracks test coverage for every language construct in every valid c
 
 | Operand Types       | Status | Test File                            |
 | ------------------- | ------ | ------------------------------------ |
-| u8 - u8             | [ ]    |                                      |
-| u16 - u16           | [ ]    |                                      |
+| u8 - u8             | [x]    | `arithmetic/u8-arithmetic.test.cnx`  |
+| u16 - u16           | [x]    | `arithmetic/u16-arithmetic.test.cnx` |
 | u32 - u32           | [x]    |                                      |
-| u64 - u64           | [ ]    |                                      |
+| u64 - u64           | [x]    | `arithmetic/u64-arithmetic.test.cnx` |
 | i8 - i8             | [x]    | `arithmetic/i8-arithmetic.test.cnx`  |
 | i16 - i16           | [x]    | `arithmetic/i16-arithmetic.test.cnx` |
 | i32 - i32           | [x]    |                                      |
@@ -767,11 +771,11 @@ This document tracks test coverage for every language construct in every valid c
 | In for condition         | [x]    |                                                                               |
 | In do-while condition    | [x]    | `do-while/do-while-logical.test.cnx`                                          |
 | In ternary condition     | [x]    | `ternary/ternary-logical.test.cnx`                                            |
-| As standalone expression | [ ]    |                                                                               |
+| As standalone expression | [x]    | `logical/logical-advanced.test.cnx`                                           |
 | Short-circuit evaluation | [x]    | `logical/and-short-circuit.test.cnx`, `logical/short-circuit-safety.test.cnx` |
 | With bool operands       | [x]    |                                                                               |
 | With comparison operands | [x]    |                                                                               |
-| Chained (a && b && c)    | [ ]    |                                                                               |
+| Chained (a && b && c)    | [x]    | `logical/logical-advanced.test.cnx`                                           |
 
 ### 6.2 OR (||)
 
@@ -782,21 +786,21 @@ This document tracks test coverage for every language construct in every valid c
 | In for condition          | [x]    |                                                                              |
 | In do-while condition     | [x]    |                                                                              |
 | In ternary condition      | [x]    |                                                                              |
-| As standalone expression  | [ ]    |                                                                              |
+| As standalone expression  | [x]    | `logical/logical-advanced.test.cnx`                                          |
 | Short-circuit evaluation  | [x]    | `logical/or-short-circuit.test.cnx`, `logical/short-circuit-safety.test.cnx` |
 | In switch case labels     | [x]    | `switch/switch-multiple-cases.test.cnx`                                      |
-| Chained (a \|\| b \|\| c) | [ ]    |                                                                              |
+| Chained (a \|\| b \|\| c) | [x]    | `logical/logical-advanced.test.cnx`                                          |
 
 ### 6.3 NOT (!)
 
-| Context              | Status | Test File |
-| -------------------- | ------ | --------- |
-| !bool_var            | [x]    |           |
-| !comparison          | [x]    |           |
-| In if condition      | [x]    |           |
-| In while condition   | [x]    |           |
-| In ternary condition | [ ]    |           |
-| Double negation (!!) | [ ]    |           |
+| Context              | Status | Test File                           |
+| -------------------- | ------ | ----------------------------------- |
+| !bool_var            | [x]    |                                     |
+| !comparison          | [x]    |                                     |
+| In if condition      | [x]    |                                     |
+| In while condition   | [x]    |                                     |
+| In ternary condition | [x]    | `logical/logical-advanced.test.cnx` |
+| Double negation (!!) | [x]    | `logical/logical-advanced.test.cnx` |
 
 ---
 
@@ -1080,21 +1084,21 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 13.2 Scoped Types (this.Type)
 
-| Feature                | Status | Test File |
-| ---------------------- | ------ | --------- |
-| this.Type declaration  | [ ]    |           |
-| this.Type as parameter | [ ]    |           |
-| this.Type as return    | [ ]    |           |
-| this.Type as variable  | [ ]    |           |
+| Feature                | Status | Test File                                      |
+| ---------------------- | ------ | ---------------------------------------------- |
+| this.Type declaration  | [x]    | `scoped-structs/basic-scoped-struct.test.cnx`  |
+| this.Type as parameter | [x]    | `scoped-structs/scoped-struct-params.test.cnx` |
+| this.Type as return    | [x]    | `scoped-structs/scoped-type-return.test.cnx`   |
+| this.Type as variable  | [x]    | `enum/scoped-enum.test.cnx`                    |
 
 ### 13.3 Qualified Types (Scope.Type)
 
-| Feature                 | Status | Test File                   |
-| ----------------------- | ------ | --------------------------- |
-| Scope.Type reference    | [x]    | `enum/scoped-enum.test.cnx` |
-| Scope.Type as parameter | [ ]    |                             |
-| Scope.Type as return    | [ ]    |                             |
-| Scope.Enum.VALUE access | [x]    |                             |
+| Feature                 | Status | Test File                                    |
+| ----------------------- | ------ | -------------------------------------------- |
+| Scope.Type reference    | [x]    | `enum/scoped-enum.test.cnx`                  |
+| Scope.Type as parameter | [x]    | `scoped-structs/scoped-type-return.test.cnx` |
+| Scope.Type as return    | [x]    | `scoped-structs/scoped-type-return.test.cnx` |
+| Scope.Enum.VALUE access | [x]    |                                              |
 
 ---
 
@@ -1156,7 +1160,7 @@ This document tracks test coverage for every language construct in every valid c
 | Element assignment        | [x]    |                                              |
 | In for loop               | [x]    | `for-loops/for-array-iteration.test.cnx`     |
 | As function parameter     | [x]    |                                              |
-| Out of bounds **(ERROR)** | [ ]    |                                              |
+| Out of bounds **(ERROR)** | [x]    | `array-initializers/bounds-error.test.cnx`   |
 
 ### 16.2 Multi-dimensional
 

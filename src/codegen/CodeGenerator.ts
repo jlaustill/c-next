@@ -6230,10 +6230,23 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check array element assignment - validate the array is not const
     if (targetCtx.arrayAccess()) {
-      const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
+      const arrayAccessCtx = targetCtx.arrayAccess()!;
+      const arrayName = arrayAccessCtx.IDENTIFIER().getText();
       const constError = this.typeValidator!.checkConstAssignment(arrayName);
       if (constError) {
         throw new Error(`${constError} (array element)`);
+      }
+
+      // ADR-036: Compile-time bounds checking for single-dimensional arrays
+      const typeInfo = this.context.typeRegistry.get(arrayName);
+      if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+        this.typeValidator!.checkArrayBounds(
+          arrayName,
+          typeInfo.arrayDimensions,
+          arrayAccessCtx.expression(),
+          ctx.start?.line ?? 0,
+          (expr) => this._tryEvaluateConstant(expr),
+        );
       }
 
       // Issue #268: Track parameter modification for auto-const inference (array element)

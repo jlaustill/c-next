@@ -1,0 +1,73 @@
+// test-execution
+// Tests: this.Type and Scope.Type as function return types
+// Coverage: Section 13.2 this.Type as return, 13.3 Scope.Type as return/parameter
+
+scope Geometry {
+    public struct Point {
+        i32 x;
+        i32 y;
+    }
+
+    // Function returning this.Type
+    public this.Point makePoint(i32 x, i32 y) {
+        this.Point p <- {x: x, y: y};
+        return p;
+    }
+
+    // Function returning this.Type (origin point)
+    public this.Point origin() {
+        this.Point p <- {x: 0, y: 0};
+        return p;
+    }
+
+    // Helper to get midpoint
+    public this.Point midpoint(this.Point a, this.Point b) {
+        i32 mx <- (a.x + b.x) / 2;
+        i32 my <- (a.y + b.y) / 2;
+        this.Point m <- {x: mx, y: my};
+        return m;
+    }
+}
+
+// Function outside scope taking Scope.Type as parameter
+void movePoint(Geometry.Point p, i32 dx, i32 dy) {
+    p.x <- p.x + dx;
+    p.y <- p.y + dy;
+}
+
+// Function outside scope returning Scope.Type
+Geometry.Point createPoint(i32 x, i32 y) {
+    Geometry.Point result <- {x: x, y: y};
+    return result;
+}
+
+u32 main() {
+    // Test 1: this.Type as return - makePoint
+    Geometry.Point p1 <- Geometry.makePoint(10, 20);
+    if (p1.x != 10) return 1;
+    if (p1.y != 20) return 2;
+
+    // Test 2: this.Type as return - origin
+    Geometry.Point o <- Geometry.origin();
+    if (o.x != 0) return 3;
+    if (o.y != 0) return 4;
+
+    // Test 3: this.Type as return with this.Type params - midpoint
+    Geometry.Point p2 <- Geometry.makePoint(20, 40);
+    Geometry.Point mid <- Geometry.midpoint(p1, p2);
+    if (mid.x != 15) return 5;  // (10 + 20) / 2
+    if (mid.y != 30) return 6;  // (20 + 40) / 2
+
+    // Test 4: Scope.Type as parameter (function outside scope)
+    Geometry.Point p3 <- Geometry.makePoint(5, 5);
+    movePoint(p3, 10, 20);
+    if (p3.x != 15) return 7;
+    if (p3.y != 25) return 8;
+
+    // Test 5: Scope.Type as return (function outside scope)
+    Geometry.Point p4 <- createPoint(100, 200);
+    if (p4.x != 100) return 9;
+    if (p4.y != 200) return 10;
+
+    return 0;
+}

@@ -1,0 +1,48 @@
+// test-execution
+// Tests: i8 as array element type
+// Coverage: Section 1.2 i8 array element type
+u32 main() {
+    // Basic i8 array with initialization
+    i8 values[5] <- [-128, -1, 0, 1, 127];
+
+    if (values[0] != -128) return 1;
+    if (values[1] != -1) return 2;
+    if (values[2] != 0) return 3;
+    if (values[3] != 1) return 4;
+    if (values[4] != 127) return 5;
+
+    // i8 array with explicit size
+    i8 data[4];
+    data[0] <- -50;
+    data[1] <- 50;
+    data[2] <- -100;
+    data[3] <- 100;
+
+    if (data[0] != -50) return 6;
+    if (data[1] != 50) return 7;
+    if (data[2] != -100) return 8;
+    if (data[3] != 100) return 9;
+
+    // i8 array with inferred size
+    i8 inferred[] <- [10, 20, 30];
+    if (inferred[0] != 10) return 10;
+    if (inferred[1] != 20) return 11;
+    if (inferred[2] != 30) return 12;
+
+    // i8 array in loop
+    i8 loop_arr[3] <- [1, 2, 3];
+    i8 sum <- 0;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        sum +<- loop_arr[i];
+    }
+    if (sum != 6) return 13;
+
+    // i8 array modification
+    i8 modify[2] <- [10, 20];
+    modify[0] <- -10;
+    modify[1] <- -20;
+    if (modify[0] != -10) return 14;
+    if (modify[1] != -20) return 15;
+
+    return 0;
+}

@@ -1,0 +1,117 @@
+// test-execution
+// Tests: u8 arithmetic operations (+, -, *, /, %)
+// Coverage: Section 4.1-4.5 for u8 type
+u32 main() {
+    // === Addition ===
+    u8 a <- 100;
+    u8 b <- 50;
+    u8 sum <- a + b;
+    if (sum != 150) return 1;
+
+    // Addition with zero
+    u8 sum_zero <- a + 0;
+    if (sum_zero != 100) return 2;
+
+    // Addition near boundary
+    u8 c <- 200;
+    u8 d <- 55;
+    u8 sum_large <- c + d;
+    if (sum_large != 255) return 3;
+
+    // === Subtraction ===
+    u8 diff <- a - b;
+    if (diff != 50) return 4;
+
+    // Subtraction to zero
+    u8 e <- 100;
+    u8 f <- 100;
+    u8 diff_zero <- e - f;
+    if (diff_zero != 0) return 5;
+
+    // Subtraction with zero
+    u8 diff_zero2 <- a - 0;
+    if (diff_zero2 != 100) return 6;
+
+    // === Multiplication ===
+    u8 g <- 10;
+    u8 h <- 5;
+    u8 product <- g * h;
+    if (product != 50) return 7;
+
+    // Multiplication by zero
+    u8 product_zero <- g * 0;
+    if (product_zero != 0) return 8;
+
+    // Multiplication by one
+    u8 product_one <- g * 1;
+    if (product_one != 10) return 9;
+
+    // Larger multiplication
+    u8 i <- 15;
+    u8 j <- 17;
+    u8 product_large <- i * j;
+    if (product_large != 255) return 10;
+
+    // === Division ===
+    u8 k <- 100;
+    u8 l <- 5;
+    u8 quotient <- k / l;
+    if (quotient != 20) return 11;
+
+    // Division by one
+    u8 quotient_one <- k / 1;
+    if (quotient_one != 100) return 12;
+
+    // Division with remainder (truncates)
+    u8 m <- 100;
+    u8 n <- 7;
+    u8 quotient_trunc <- m / n;
+    if (quotient_trunc != 14) return 13;
+
+    // Zero divided by something
+    u8 zero <- 0;
+    u8 quotient_zero <- zero / 5;
+    if (quotient_zero != 0) return 14;
+
+    // === Modulo ===
+    u8 o <- 100;
+    u8 p <- 7;
+    u8 remainder <- o % p;
+    if (remainder != 2) return 15;
+
+    // Modulo with no remainder
+    u8 q <- 100;
+    u8 r <- 5;
+    u8 remainder_zero <- q % r;
+    if (remainder_zero != 0) return 16;
+
+    // Modulo with small dividend
+    u8 s <- 3;
+    u8 t <- 10;
+    u8 remainder_small <- s % t;
+    if (remainder_small != 3) return 17;
+
+    // Zero modulo something
+    u8 remainder_zero2 <- zero % 5;
+    if (remainder_zero2 != 0) return 18;
+
+    // === Edge cases ===
+    u8 max_val <- 255;
+    u8 one <- 1;
+
+    // Max value operations
+    u8 max_div <- max_val / max_val;
+    if (max_div != 1) return 19;
+
+    u8 max_mod <- max_val % max_val;
+    if (max_mod != 0) return 20;
+
+    u8 max_minus_one <- max_val - one;
+    if (max_minus_one != 254) return 21;
+
+    // Combining operations
+    u8 combined <- (10 + 20) * 2;
+    if (combined != 60) return 22;
+
+    return 0;
+}
