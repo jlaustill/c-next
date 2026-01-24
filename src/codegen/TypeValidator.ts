@@ -884,12 +884,13 @@ class TypeValidator {
 
   /**
    * Issue #366: Recursively check unaryExpression for function calls.
-   * Handles unary operators (!, -, ~, &) that wrap function calls.
+   * Handles unary operators (!, -, ~, &) that wrap function calls,
+   * including arbitrary nesting like !!isReady() or -~getValue().
    */
   private hasPostfixFunctionCallInUnary(
     unary: Parser.UnaryExpressionContext,
   ): boolean {
-    // Check for nested unaryExpression (handles !, -, ~, & operators)
+    // Recurse through nested unary operators (!, -, ~, &) until we reach postfixExpression
     const nestedUnary = unary.unaryExpression();
     if (nestedUnary) {
       return this.hasPostfixFunctionCallInUnary(nestedUnary);
