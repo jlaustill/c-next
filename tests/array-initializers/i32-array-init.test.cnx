@@ -1,0 +1,48 @@
+// test-execution
+// Tests: i32 as array element type
+// Coverage: Section 1.2 i32 array element type
+u32 main() {
+    // Basic i32 array with initialization
+    i32 values[5] <- [-2147483648, -100000, 0, 100000, 2147483647];
+
+    if (values[0] != -2147483648) return 1;
+    if (values[1] != -100000) return 2;
+    if (values[2] != 0) return 3;
+    if (values[3] != 100000) return 4;
+    if (values[4] != 2147483647) return 5;
+
+    // i32 array with explicit size
+    i32 data[4];
+    data[0] <- -500000;
+    data[1] <- 500000;
+    data[2] <- -1000000;
+    data[3] <- 1000000;
+
+    if (data[0] != -500000) return 6;
+    if (data[1] != 500000) return 7;
+    if (data[2] != -1000000) return 8;
+    if (data[3] != 1000000) return 9;
+
+    // i32 array with inferred size
+    i32 inferred[] <- [10000, 20000, 30000];
+    if (inferred[0] != 10000) return 10;
+    if (inferred[1] != 20000) return 11;
+    if (inferred[2] != 30000) return 12;
+
+    // i32 array in loop
+    i32 loop_arr[3] <- [1000, 2000, 3000];
+    i32 sum <- 0;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        sum +<- loop_arr[i];
+    }
+    if (sum != 6000) return 13;
+
+    // i32 array modification
+    i32 modify[2] <- [10000, 20000];
+    modify[0] <- -10000;
+    modify[1] <- -20000;
+    if (modify[0] != -10000) return 14;
+    if (modify[1] != -20000) return 15;
+
+    return 0;
+}

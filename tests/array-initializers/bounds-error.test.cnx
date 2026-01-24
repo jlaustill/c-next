@@ -1,0 +1,8 @@
+// ADR-036: Compile-time bounds checking for single-dimensional arrays
+// Tests: Out of bounds access on 1D array with constant index
+u8 arr[5];
+
+i32 main() {
+    arr[5] <- 1; // Error: index 5 >= array size 5
+    return 0;
+}

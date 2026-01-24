@@ -1,0 +1,117 @@
+// test-execution
+// Tests: u16 arithmetic operations (+, -, *, /, %)
+// Coverage: Section 4.1-4.5 for u16 type
+u32 main() {
+    // === Addition ===
+    u16 a <- 30000;
+    u16 b <- 15000;
+    u16 sum <- a + b;
+    if (sum != 45000) return 1;
+
+    // Addition with zero
+    u16 sum_zero <- a + 0;
+    if (sum_zero != 30000) return 2;
+
+    // Addition near boundary
+    u16 c <- 60000;
+    u16 d <- 5535;
+    u16 sum_large <- c + d;
+    if (sum_large != 65535) return 3;
+
+    // === Subtraction ===
+    u16 diff <- a - b;
+    if (diff != 15000) return 4;
+
+    // Subtraction to zero
+    u16 e <- 30000;
+    u16 f <- 30000;
+    u16 diff_zero <- e - f;
+    if (diff_zero != 0) return 5;
+
+    // Subtraction with zero
+    u16 diff_zero2 <- a - 0;
+    if (diff_zero2 != 30000) return 6;
+
+    // === Multiplication ===
+    u16 g <- 100;
+    u16 h <- 50;
+    u16 product <- g * h;
+    if (product != 5000) return 7;
+
+    // Multiplication by zero
+    u16 product_zero <- g * 0;
+    if (product_zero != 0) return 8;
+
+    // Multiplication by one
+    u16 product_one <- g * 1;
+    if (product_one != 100) return 9;
+
+    // Larger multiplication (within u16 range)
+    u16 i <- 255;
+    u16 j <- 257;
+    u16 product_large <- i * j;
+    if (product_large != 65535) return 10;  // 255 * 257 = 65535
+
+    // === Division ===
+    u16 k <- 10000;
+    u16 l <- 50;
+    u16 quotient <- k / l;
+    if (quotient != 200) return 11;
+
+    // Division by one
+    u16 quotient_one <- k / 1;
+    if (quotient_one != 10000) return 12;
+
+    // Division with remainder (truncates)
+    u16 m <- 10000;
+    u16 n <- 7;
+    u16 quotient_trunc <- m / n;
+    if (quotient_trunc != 1428) return 13;
+
+    // Zero divided by something
+    u16 zero <- 0;
+    u16 quotient_zero <- zero / 5;
+    if (quotient_zero != 0) return 14;
+
+    // === Modulo ===
+    u16 o <- 10000;
+    u16 p <- 7;
+    u16 remainder <- o % p;
+    if (remainder != 4) return 15;
+
+    // Modulo with no remainder
+    u16 q <- 10000;
+    u16 r <- 50;
+    u16 remainder_zero <- q % r;
+    if (remainder_zero != 0) return 16;
+
+    // Modulo with small dividend
+    u16 s <- 3;
+    u16 t <- 100;
+    u16 remainder_small <- s % t;
+    if (remainder_small != 3) return 17;
+
+    // Zero modulo something
+    u16 remainder_zero2 <- zero % 5;
+    if (remainder_zero2 != 0) return 18;
+
+    // === Edge cases ===
+    u16 max_val <- 65535;
+    u16 one <- 1;
+
+    // Max value operations
+    u16 max_div <- max_val / max_val;
+    if (max_div != 1) return 19;
+
+    u16 max_mod <- max_val % max_val;
+    if (max_mod != 0) return 20;
+
+    u16 max_minus_one <- max_val - one;
+    if (max_minus_one != 65534) return 21;
+
+    // Combining operations
+    u16 combined <- (100 + 200) * 20;
+    if (combined != 6000) return 22;
+
+    return 0;
+}
