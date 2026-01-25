@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/lib/parseWithSymbols.ts", "scripts/*.ts"],
+  "project": ["src/**/*.ts", "scripts/**/*.ts"],
+  "ignore": [
+    "prettier-plugin/**",
+    "vscode-extension/**",
+    "tests/**",
+    "src/parser/grammar/**"
+  ]
+}

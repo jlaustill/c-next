@@ -36,6 +36,11 @@ jobs:
         run: npm run oxlint:check
         continue-on-error: true
 
+      - name: Check for dead code (knip)
+        id: knip
+        run: npx knip
+        continue-on-error: true
+
       - name: Generate parser files
         id: generate
         run: npm run antlr:all
@@ -100,6 +105,13 @@ jobs:
             FAILED=1
           else
             echo "✅ oxlint check passed"
+          fi
+
+          if [ "${{ steps.knip.outcome }}" != "success" ]; then
+            echo "❌ Dead code check failed (knip found unused exports/files)"
+            FAILED=1
+          else
+            echo "✅ Dead code check passed"
           fi
 
           if [ "${{ steps.generate.outcome }}" != "success" ]; then

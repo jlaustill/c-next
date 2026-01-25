@@ -5,7 +5,6 @@ enum ESymbolKind {
   Function = "function",
   Variable = "variable",
   Type = "type",
-  Macro = "macro",
   Namespace = "namespace",
   Class = "class",
   Struct = "struct",
