@@ -98,6 +98,7 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm run unit -- <path>` — Run specific unit test file
 - `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
+- `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
 
 ### Test File Patterns
 
@@ -188,6 +189,11 @@ u32 main() {
     return 0;
 }
 ```
+
+### C-Next Test Gotchas
+
+- **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
+- **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
 
 ### Error Validation Tests (test-error pattern)
 
