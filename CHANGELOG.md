@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.33] - 2026-01-24
+
+### Added
+
+- C++ namespace types support for external library interop (Issue #388, PR #390)
+- FloatModuloAnalyzer and FunctionCallAnalyzer integration tests (PR #389)
+
+### Fixed
+
+- Unified assignment target grammar rules (Issue #387, PR #392)
+- Unified include resolution and pass symbol table to FunctionCallAnalyzer (PR #391)
+
 ## [0.1.32] - 2026-01-24
 
 ### Added
@@ -363,7 +375,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.32...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.33...HEAD
+[0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
 [0.1.32]: https://github.com/jlaustill/c-next/compare/v0.1.31...v0.1.32
 [0.1.31]: https://github.com/jlaustill/c-next/compare/v0.1.30...v0.1.31
 [0.1.30]: https://github.com/jlaustill/c-next/compare/v0.1.29...v0.1.30
