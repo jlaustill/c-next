@@ -1,0 +1,16 @@
+// ADR-030: Valid scope member call
+// Tests: calling Scope.member() works when member is defined in scope
+scope LED {
+    public void on() {
+        u32 x <- 1;
+    }
+
+    public void off() {
+        u32 x <- 0;
+    }
+}
+
+void main() {
+    LED.on();
+    LED.off();
+}

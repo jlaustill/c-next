@@ -1,0 +1,7 @@
+// ADR-030: Standard library functions are recognized when header included
+// Tests: printf is allowed when stdio.h is included
+#include <stdio.h>
+
+void main() {
+    printf("Hello, World!\n");
+}

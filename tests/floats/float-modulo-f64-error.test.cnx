@@ -1,0 +1,6 @@
+// Tests: f64 modulo should also be detected as error
+// The % operator is only valid for integer types
+void main() {
+    f64 a <- 20.5;
+    f64 result <- a % 4;
+}
