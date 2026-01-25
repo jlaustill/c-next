@@ -4,7 +4,7 @@
 
 import typeUtils from "./mapType";
 
-const { TYPE_MAP, mapType } = typeUtils;
+const { TYPE_MAP, mapType, isBuiltInType } = typeUtils;
 
 describe("TYPE_MAP", () => {
   it("should map all unsigned integer types", () => {
@@ -90,5 +90,59 @@ describe("mapType", () => {
     it("should handle pointer to void", () => {
       expect(mapType("void*")).toBe("void*");
     });
+  });
+
+  // Issue #427: string<N> type handling
+  describe("string types", () => {
+    it("should map string<N> to char[N+1]", () => {
+      expect(mapType("string<32>")).toBe("char[33]");
+      expect(mapType("string<16>")).toBe("char[17]");
+      expect(mapType("string<64>")).toBe("char[65]");
+      expect(mapType("string<0>")).toBe("char[1]");
+    });
+
+    it("should handle string<N> with various capacities", () => {
+      expect(mapType("string<1>")).toBe("char[2]");
+      expect(mapType("string<255>")).toBe("char[256]");
+      expect(mapType("string<1024>")).toBe("char[1025]");
+    });
+  });
+});
+
+// Issue #427: isBuiltInType helper
+describe("isBuiltInType", () => {
+  it("should return true for primitive types", () => {
+    expect(isBuiltInType("u8")).toBe(true);
+    expect(isBuiltInType("u16")).toBe(true);
+    expect(isBuiltInType("u32")).toBe(true);
+    expect(isBuiltInType("u64")).toBe(true);
+    expect(isBuiltInType("i8")).toBe(true);
+    expect(isBuiltInType("i16")).toBe(true);
+    expect(isBuiltInType("i32")).toBe(true);
+    expect(isBuiltInType("i64")).toBe(true);
+    expect(isBuiltInType("f32")).toBe(true);
+    expect(isBuiltInType("f64")).toBe(true);
+    expect(isBuiltInType("bool")).toBe(true);
+    expect(isBuiltInType("void")).toBe(true);
+  });
+
+  it("should return true for string<N> types", () => {
+    expect(isBuiltInType("string<32>")).toBe(true);
+    expect(isBuiltInType("string<16>")).toBe(true);
+    expect(isBuiltInType("string<64>")).toBe(true);
+    expect(isBuiltInType("string<0>")).toBe(true);
+    expect(isBuiltInType("string<255>")).toBe(true);
+  });
+
+  it("should return false for user-defined types", () => {
+    expect(isBuiltInType("MyStruct")).toBe(false);
+    expect(isBuiltInType("Configuration")).toBe(false);
+    expect(isBuiltInType("Point")).toBe(false);
+  });
+
+  it("should return false for string without capacity", () => {
+    expect(isBuiltInType("string")).toBe(false);
+    expect(isBuiltInType("string<>")).toBe(false);
+    expect(isBuiltInType("string<abc>")).toBe(false);
   });
 });

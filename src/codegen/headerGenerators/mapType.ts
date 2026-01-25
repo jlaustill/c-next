@@ -32,6 +32,7 @@ const TYPE_MAP: Record<string, string> = {
  * - Direct primitive type mappings (u32 -> uint32_t)
  * - Pointer types (u32* -> uint32_t*)
  * - Array types (u32[10] -> uint32_t[10])
+ * - String types (string<N> -> char[N+1])
  * - User-defined types (pass through unchanged)
  *
  * @param type - The C-Next type string
@@ -41,6 +42,13 @@ function mapType(type: string): string {
   // Check direct mapping first
   if (TYPE_MAP[type]) {
     return TYPE_MAP[type];
+  }
+
+  // Issue #427: Handle string<N> types -> char[N+1]
+  const stringMatch = type.match(/^string<(\d+)>$/);
+  if (stringMatch) {
+    const capacity = parseInt(stringMatch[1], 10);
+    return `char[${capacity + 1}]`;
   }
 
   // Handle pointer types
@@ -61,4 +69,22 @@ function mapType(type: string): string {
   return type;
 }
 
-export default { TYPE_MAP, mapType };
+/**
+ * Check if a type is a built-in C-Next type (primitive or string<N>)
+ * Used by header generator to avoid generating forward declarations for built-in types
+ */
+function isBuiltInType(typeName: string): boolean {
+  // Direct primitive types
+  if (TYPE_MAP[typeName]) {
+    return true;
+  }
+
+  // Issue #427: string<N> is a built-in type
+  if (/^string<\d+>$/.test(typeName)) {
+    return true;
+  }
+
+  return false;
+}
+
+export default { TYPE_MAP, mapType, isBuiltInType };

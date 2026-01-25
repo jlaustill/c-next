@@ -14,7 +14,7 @@ import generateEnumHeader from "./headerGenerators/generateEnumHeader";
 import generateStructHeader from "./headerGenerators/generateStructHeader";
 import generateBitmapHeader from "./headerGenerators/generateBitmapHeader";
 
-const { TYPE_MAP, mapType } = typeUtils;
+const { mapType, isBuiltInType } = typeUtils;
 
 /** Issue #269: Pass-by-value parameter info from CodeGenerator */
 type TPassByValueParams = ReadonlyMap<string, ReadonlySet<string>>;
@@ -207,7 +207,6 @@ class HeaderGenerator {
     if (cCompatibleVariables.length > 0) {
       lines.push("/* External variables */");
       for (const sym of cCompatibleVariables) {
-        const cType = sym.type ? mapType(sym.type) : "int";
         // Issue #288: Include const qualifier for const variables
         const constPrefix = sym.isConst ? "const " : "";
         // Issue #379: Include array dimensions for extern declarations
@@ -215,7 +214,16 @@ class HeaderGenerator {
           sym.isArray && sym.arrayDimensions
             ? sym.arrayDimensions.map((d) => `[${d}]`).join("")
             : "";
-        lines.push(`extern ${constPrefix}${cType} ${sym.name}${arrayDims};`);
+
+        // Issue #427: Handle string<N> types which map to char[N+1]
+        // The array dimension must come after the variable name in C syntax
+        const declaration = this.formatVariableDeclaration(
+          sym.type || "int",
+          sym.name,
+          arrayDims,
+          constPrefix,
+        );
+        lines.push(`extern ${declaration};`);
       }
       lines.push("");
     }
@@ -369,8 +377,9 @@ class HeaderGenerator {
     const externalTypes = new Set<string>();
 
     const isExternalType = (typeName: string): boolean => {
-      // Skip if it's a primitive type
-      if (TYPE_MAP[typeName]) {
+      // Skip if it's a built-in type (primitives and string<N>)
+      // Issue #427: Use isBuiltInType to handle string<N> types
+      if (isBuiltInType(typeName)) {
         return false;
       }
 
@@ -469,6 +478,41 @@ class HeaderGenerator {
 
     // Anything else (identifier, expression) is treated as a macro
     return true;
+  }
+
+  /**
+   * Issue #427: Format a variable declaration with proper C syntax
+   *
+   * In C, array dimensions follow the variable name, not the type:
+   *   char greeting[33];      // Correct
+   *   char[33] greeting;      // Wrong
+   *
+   * This handles types that include embedded dimensions (like char[33] from
+   * mapType("string<32>")) and places them correctly after the variable name.
+   */
+  private formatVariableDeclaration(
+    cnextType: string,
+    name: string,
+    additionalDims: string,
+    constPrefix: string,
+  ): string {
+    const cType = mapType(cnextType);
+
+    // Check if the mapped type has embedded array dimensions (e.g., char[33])
+    // This happens for string<N> types which map to char[N+1]
+    const embeddedMatch = cType.match(/^(\w+)\[(\d+)\]$/);
+    if (embeddedMatch) {
+      const baseType = embeddedMatch[1];
+      const embeddedDim = embeddedMatch[2];
+      // Format: const char name[additionalDims][embeddedDim]
+      // The additional array dimensions come first (e.g., [3] for array of 3),
+      // then the embedded dimension (e.g., [17] for string capacity + 1)
+      // Example: string<16> labels[3] -> char labels[3][17]
+      return `${constPrefix}${baseType} ${name}${additionalDims}[${embeddedDim}]`;
+    }
+
+    // No embedded dimensions - standard format
+    return `${constPrefix}${cType} ${name}${additionalDims}`;
   }
 }
 

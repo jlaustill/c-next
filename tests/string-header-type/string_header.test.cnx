@@ -1,0 +1,10 @@
+// Test: string<N> types should generate char[N+1] in headers
+// Bug #427: Headers emit string<N> instead of char[N+1]
+
+string<32> greeting <- "Hello";
+const string<16> labels[3] <- ["one", "two", "three"];
+
+void main() {
+    // Access globals to ensure they're included in output
+    u8 len <- greeting.length;
+}
