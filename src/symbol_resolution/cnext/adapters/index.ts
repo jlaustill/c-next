@@ -1,6 +1,6 @@
 /**
- * Adapter exports for TSymbol → ISymbol conversion.
- * ADR-055 Phase 3: Enables backwards compatibility during migration.
+ * Adapter exports for TSymbol conversions.
+ * ADR-055: Enables backwards compatibility and CodeGenerator migration.
  */
 
 import TSymbolAdapter from "./TSymbolAdapter";

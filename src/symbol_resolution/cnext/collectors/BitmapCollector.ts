@@ -49,7 +49,7 @@ class BitmapCollector {
     // Validate total bits equals bitmap size
     if (totalBits !== expectedBits) {
       throw new Error(
-        `Bitmap '${fullName}' has ${totalBits} bits but ${bitmapType} requires exactly ${expectedBits} bits`,
+        `Error: Bitmap '${fullName}' has ${totalBits} bits but ${bitmapType} requires exactly ${expectedBits} bits`,
       );
     }
 

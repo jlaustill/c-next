@@ -1,9 +1,16 @@
+import ISymbolInfo from "../generators/ISymbolInfo";
+
 /**
  * Options for the code generator
  */
 interface ICodeGeneratorOptions {
   /** ADR-044: When true, generate panic helpers instead of clamp helpers */
   debugMode?: boolean;
+  /**
+   * ADR-055: Pre-collected symbol info from CNextResolver + TSymbolInfoAdapter.
+   * When provided, CodeGenerator uses this instead of creating SymbolCollector.
+   */
+  symbolInfo?: ISymbolInfo;
   /** ADR-049: CLI/config target override (takes priority over #pragma target) */
   target?: string;
   /** ADR-010: Source file path for validating includes */

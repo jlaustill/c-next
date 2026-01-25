@@ -4,7 +4,7 @@
  * Issue #61: Now independent of CodeGenerator
  */
 import * as Parser from "../antlr_parser/grammar/CNextParser";
-import SymbolCollector from "./SymbolCollector";
+import ISymbolInfo from "./generators/ISymbolInfo";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import TTypeInfo from "./types/TTypeInfo";
 import ITypeResolverDeps from "./types/ITypeResolverDeps";
@@ -16,7 +16,7 @@ import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 
 class TypeResolver {
-  private symbols: SymbolCollector | null;
+  private symbols: ISymbolInfo | null;
   private symbolTable: SymbolTable | null;
   private typeRegistry: Map<string, TTypeInfo>;
   private resolveIdentifierFn: (name: string) => string;

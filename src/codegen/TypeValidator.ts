@@ -5,7 +5,7 @@
  */
 import { dirname, resolve, join } from "path";
 import * as Parser from "../antlr_parser/grammar/CNextParser";
-import SymbolCollector from "./SymbolCollector";
+import ISymbolInfo from "./generators/ISymbolInfo";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import TTypeInfo from "./types/TTypeInfo";
 import TParameterInfo from "./types/TParameterInfo";
@@ -22,7 +22,7 @@ const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
  * TypeValidator class - validates types, assignments, and control flow at compile time
  */
 class TypeValidator {
-  private symbols: SymbolCollector | null;
+  private symbols: ISymbolInfo | null;
   private symbolTable: SymbolTable | null;
   private typeRegistry: Map<string, TTypeInfo>;
   private typeResolver: TypeResolver;

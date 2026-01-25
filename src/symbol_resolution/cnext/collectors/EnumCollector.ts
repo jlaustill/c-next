@@ -42,7 +42,7 @@ class EnumCollector {
 
         if (value < 0) {
           throw new Error(
-            `Negative values not allowed in enum (found ${value} in ${fullName}.${memberName})`,
+            `Error: Negative values not allowed in enum (found ${value} in ${fullName}.${memberName})`,
           );
         }
 

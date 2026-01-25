@@ -25,11 +25,12 @@ import { CPP14Parser } from "../antlr_parser/cpp/grammar/CPP14Parser";
 
 import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
-import SymbolCollector from "../codegen/SymbolCollector";
+import ISymbolInfo from "../codegen/generators/ISymbolInfo";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESymbolKind from "../types/ESymbolKind";
 import CNextResolver from "../symbol_resolution/cnext";
 import TSymbolAdapter from "../symbol_resolution/cnext/adapters/TSymbolAdapter";
+import TSymbolInfoAdapter from "../symbol_resolution/cnext/adapters/TSymbolInfoAdapter";
 import CSymbolCollector from "../symbol_resolution/CSymbolCollector";
 import CppSymbolCollector from "../symbol_resolution/CppSymbolCollector";
 import Preprocessor from "../preprocessor/Preprocessor";
@@ -62,8 +63,8 @@ class Pipeline {
   private cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
-  /** Issue #220: Store SymbolCollector per file for header generation */
-  private symbolCollectors: Map<string, SymbolCollector> = new Map();
+  /** Issue #220: Store ISymbolInfo per file for header generation (ADR-055) */
+  private symbolCollectors: Map<string, ISymbolInfo> = new Map();
   /** Issue #321: Track processed headers to avoid cycles during recursive include resolution */
   private processedHeaders: Set<string> = new Set();
   /** Issue #280: Store pass-by-value params per file for header generation */
@@ -644,6 +645,10 @@ class Pipeline {
 
     // Generate code
     try {
+      // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
+      const tSymbols = CNextResolver.resolve(tree, file.path);
+      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
       const code = this.codeGenerator.generate(
         tree,
         this.symbolTable,
@@ -657,10 +662,12 @@ class Pipeline {
           sourceRelativePath: this.getSourceRelativePath(file.path), // Issue #339: For correct self-include paths
           includeDirs: this.config.includeDirs, // Issue #349: For angle-bracket include resolution
           inputs: this.config.inputs, // Issue #349: For calculating relative paths
+          symbolInfo, // ADR-055: Pre-collected symbol info
         },
       );
 
-      // Issue #220: Store SymbolCollector for header generation
+      // Issue #220: Store ISymbolInfo for header generation
+      // ADR-055: Now stores ISymbolInfo instead of SymbolCollector
       if (this.codeGenerator.symbols) {
         this.symbolCollectors.set(file.path, this.codeGenerator.symbols);
       }
@@ -1049,6 +1056,10 @@ class Pipeline {
       }
 
       // Step 7: Generate code with symbol table
+      // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
+      const tSymbols = CNextResolver.resolve(tree, sourcePath);
+      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
       const code = this.codeGenerator.generate(
         tree,
         this.symbolTable,
@@ -1059,6 +1070,7 @@ class Pipeline {
           sourcePath, // Issue #230: For self-include header generation
           generateHeaders: options?.generateHeaders, // Issue #230: Enable self-include for extern "C" tests
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
+          symbolInfo, // ADR-055: Pre-collected symbol info
         },
       );
 

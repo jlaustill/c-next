@@ -63,8 +63,13 @@ class TypeUtils {
       return ctx.primitiveType()!.getText();
     }
 
-    // Handle string types
+    // Handle string types - preserve capacity for validation (Issue #139)
     if (ctx.stringType()) {
+      const stringCtx = ctx.stringType()!;
+      const intLiteral = stringCtx.INTEGER_LITERAL();
+      if (intLiteral) {
+        return `string<${intLiteral.getText()}>`;
+      }
       return "string";
     }
 

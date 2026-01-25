@@ -124,7 +124,7 @@ describe("BitmapCollector", () => {
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
       expect(() => BitmapCollector.collect(bitmapCtx, "test.cnx")).toThrow(
-        "Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
+        "Error: Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
       );
     });
 
@@ -139,7 +139,7 @@ describe("BitmapCollector", () => {
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
       expect(() => BitmapCollector.collect(bitmapCtx, "test.cnx")).toThrow(
-        "Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
+        "Error: Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
       );
     });
   });

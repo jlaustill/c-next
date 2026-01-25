@@ -135,7 +135,7 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
 
       expect(() => EnumCollector.collect(enumCtx, "test.cnx")).toThrow(
-        "Negative values not allowed in enum (found -1 in Invalid.Bad)",
+        "Error: Negative values not allowed in enum (found -1 in Invalid.Bad)",
       );
     });
   });

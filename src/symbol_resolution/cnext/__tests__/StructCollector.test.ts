@@ -106,7 +106,8 @@ describe("StructCollector", () => {
       const symbol = StructCollector.collect(structCtx, "test.cnx");
 
       const field = symbol.fields.get("name");
-      expect(field?.type).toBe("string");
+      // Issue #139: Type includes capacity for string validation in CodeGenerator
+      expect(field?.type).toBe("string<32>");
       expect(field?.isArray).toBe(true);
       expect(field?.dimensions).toEqual([33]); // 32 + 1 for null terminator
     });
@@ -122,7 +123,8 @@ describe("StructCollector", () => {
       const symbol = StructCollector.collect(structCtx, "test.cnx");
 
       const field = symbol.fields.get("items");
-      expect(field?.type).toBe("string");
+      // Issue #139: Type includes capacity for string validation in CodeGenerator
+      expect(field?.type).toBe("string<16>");
       expect(field?.isArray).toBe(true);
       expect(field?.dimensions).toEqual([5, 17]); // [5] array, then 16+1 for string
     });

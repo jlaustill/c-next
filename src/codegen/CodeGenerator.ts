@@ -21,7 +21,7 @@ import TParameterInfo from "./types/TParameterInfo";
 import TOverflowBehavior from "./types/TOverflowBehavior";
 import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
-import SymbolCollector from "./SymbolCollector";
+import ISymbolInfo from "./generators/ISymbolInfo";
 import TypeValidator from "./TypeValidator";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
@@ -276,8 +276,8 @@ export default class CodeGenerator implements IOrchestrator {
   /** Type resolution and classification */
   private typeResolver: TypeResolver | null = null;
 
-  /** Symbol collection - Issue #60: Extracted from CodeGenerator */
-  public symbols: SymbolCollector | null = null;
+  /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
+  public symbols: ISymbolInfo | null = null;
 
   /** Type validation - Issue #63: Extracted from CodeGenerator */
   private typeValidator: TypeValidator | null = null;
@@ -1131,7 +1131,8 @@ export default class CodeGenerator implements IOrchestrator {
         const dimensions = fieldDimensions?.get(fieldName);
         return {
           type: fieldType,
-          dimensions: dimensions,
+          // Copy readonly array to mutable for return type compatibility
+          dimensions: dimensions ? [...dimensions] : undefined,
         };
       }
     }
@@ -1481,13 +1482,18 @@ export default class CodeGenerator implements IOrchestrator {
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
     this.selfIncludeAdded = false; // Issue #369: Reset self-include tracking
 
-    // First pass: collect namespace and class members
-    // Issue #60: Create SymbolCollector (extracted from CodeGenerator)
-    this.symbols = new SymbolCollector(tree);
+    // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
+    if (!options?.symbolInfo) {
+      throw new Error(
+        "symbolInfo is required - use CNextResolver + TSymbolInfoAdapter",
+      );
+    }
+    this.symbols = options.symbolInfo;
 
     // Copy symbol data to context.scopeMembers (used by code generation)
     for (const [scopeName, members] of this.symbols.scopeMembers) {
-      this.context.scopeMembers.set(scopeName, members);
+      // Convert ReadonlySet to mutable Set for context
+      this.context.scopeMembers.set(scopeName, new Set(members));
     }
 
     // Issue #61: Initialize type resolver with clean dependencies
