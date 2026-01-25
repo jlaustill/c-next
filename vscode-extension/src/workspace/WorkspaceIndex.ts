@@ -5,8 +5,8 @@
  */
 
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import SymbolCache from "./SymbolCache";
 import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types";

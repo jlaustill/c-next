@@ -10,9 +10,9 @@
  *   npm run coverage:grammar:check   - Check coverage (fail if below threshold)
  */
 
-import { readFileSync, readdirSync, statSync, writeFileSync } from "fs";
-import { join, dirname, relative } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { join, dirname, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import transpile from "../src/lib/transpiler";
 import IGrammarCoverageReport from "../src/analysis/types/IGrammarCoverageReport";

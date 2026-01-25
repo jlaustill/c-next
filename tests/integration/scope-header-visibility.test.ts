@@ -5,9 +5,9 @@
  * while public scope variables DO appear with extern declarations.
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import Pipeline from "../../src/pipeline/Pipeline";
 
 const __filename = fileURLToPath(import.meta.url);

@@ -18,17 +18,17 @@ class ExpressionEvaluator {
   static evaluateConstant(expr: string): number {
     // Handle hex literals
     if (expr.startsWith("0x") || expr.startsWith("0X")) {
-      return parseInt(expr, 16);
+      return Number.parseInt(expr, 16);
     }
 
     // Handle binary literals
     if (expr.startsWith("0b") || expr.startsWith("0B")) {
-      return parseInt(expr.substring(2), 2);
+      return Number.parseInt(expr.substring(2), 2);
     }
 
     // Handle decimal
-    const value = parseInt(expr, 10);
-    if (isNaN(value)) {
+    const value = Number.parseInt(expr, 10);
+    if (Number.isNaN(value)) {
       throw new Error(`Invalid constant expression: ${expr}`);
     }
 

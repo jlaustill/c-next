@@ -3,8 +3,8 @@
  * Scans directories for source files
  */
 
-import { readdirSync, statSync, existsSync } from "fs";
-import { join, extname, resolve } from "path";
+import { readdirSync, statSync, existsSync } from "node:fs";
+import { join, extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IDiscoveryOptions from "./types/IDiscoveryOptions";

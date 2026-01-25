@@ -1,5 +1,5 @@
-import { existsSync, statSync } from "fs";
-import { join, resolve } from "path";
+import { existsSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import IncludeDiscovery from "./IncludeDiscovery";
 import FileDiscovery from "../project/FileDiscovery";

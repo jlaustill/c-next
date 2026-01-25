@@ -1,5 +1,5 @@
-import { dirname, resolve, join, isAbsolute } from "path";
-import { existsSync, statSync, readdirSync, readFileSync } from "fs";
+import { dirname, resolve, join, isAbsolute } from "node:path";
+import { existsSync, statSync, readdirSync, readFileSync } from "node:fs";
 
 /**
  * Auto-discovery of include paths for C-Next compilation

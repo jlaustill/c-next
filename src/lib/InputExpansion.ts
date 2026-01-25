@@ -1,5 +1,5 @@
-import { resolve, extname, basename } from "path";
-import { existsSync, statSync, readdirSync } from "fs";
+import { resolve, extname, basename } from "node:path";
+import { existsSync, statSync, readdirSync } from "node:fs";
 
 /**
  * Input expansion for C-Next CLI

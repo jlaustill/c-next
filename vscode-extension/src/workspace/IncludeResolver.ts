@@ -5,8 +5,8 @@
  */
 
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 /**
  * Parsed include directive
@@ -251,7 +251,7 @@ export default class IncludeResolver {
 
         // Find a configuration (prefer the first one, or one matching the platform)
         const activeConfig = configurations[0];
-        if (activeConfig && activeConfig.includePath) {
+        if (activeConfig?.includePath) {
           const cppIncludePaths = activeConfig.includePath
             .filter((p: string) => !p.includes("${") && !p.includes("**"))
             .map((p: string) => {

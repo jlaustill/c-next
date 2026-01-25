@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
   transpile,
   ITranspileResult,
@@ -246,7 +246,7 @@ export function activate(context: vscode.ExtensionContext): void {
     "cnext.openPreview",
     () => {
       const editor = vscode.window.activeTextEditor;
-      if (editor && editor.document.languageId === "cnext") {
+      if (editor?.document.languageId === "cnext") {
         previewProvider.show(editor.document, vscode.ViewColumn.Active);
       } else {
         vscode.window.showWarningMessage("C-Next: Open a .cnx file first");
@@ -258,7 +258,7 @@ export function activate(context: vscode.ExtensionContext): void {
     "cnext.openPreviewToSide",
     () => {
       const editor = vscode.window.activeTextEditor;
-      if (editor && editor.document.languageId === "cnext") {
+      if (editor?.document.languageId === "cnext") {
         previewProvider.show(editor.document, vscode.ViewColumn.Beside);
       } else {
         vscode.window.showWarningMessage("C-Next: Open a .cnx file first");
@@ -302,7 +302,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && editor.document.languageId === "cnext") {
+      if (editor?.document.languageId === "cnext") {
         validateDocument(editor.document);
         previewProvider.onActiveEditorChange(editor);
         transpileToFile(editor.document); // Ensure .c file exists

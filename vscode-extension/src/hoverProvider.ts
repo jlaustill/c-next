@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import parseWithSymbols from "../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import TLanguage from "../../src/lib/types/TLanguage";
@@ -271,10 +271,10 @@ function getSmartDisplayPath(
   const fileName = path.basename(filePath);
 
   // If we have workspace index, check for conflicts
-  if (workspaceIndex && workspaceIndex.hasFilenameConflict(fileName)) {
+  if (workspaceIndex?.hasFilenameConflict(fileName)) {
     // Return relative path from workspace root
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders && workspaceFolders.length > 0) {
+    if (workspaceFolders?.length) {
       const relativePath = path.relative(
         workspaceFolders[0].uri.fsPath,
         filePath,
@@ -430,7 +430,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     // Get the word at the cursor position
     const wordRange = document.getWordRangeAtPosition(
       position,
-      /[a-zA-Z_][a-zA-Z0-9_]*/,
+      /[a-zA-Z_]\w*/,
     );
     if (!wordRange) {
       return null;
@@ -601,7 +601,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
         wordPosition,
       );
 
-      if (hovers && hovers.length > 0) {
+      if (hovers?.length) {
         const hover = hovers[0];
 
         // Try to get the definition location for the source footer
@@ -611,7 +611,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
 
         // Build the source footer
         let sourceFooter = "";
-        if (definitions && definitions.length > 0) {
+        if (definitions?.length) {
           const def = definitions[0];
           const defPath = def.uri.fsPath;
           const defLine = def.range.start.line + 1; // Convert to 1-based

@@ -114,7 +114,7 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
         const stringCtx = varDecl.type().stringType()!;
         const intLiteral = stringCtx.INTEGER_LITERAL();
         if (intLiteral) {
-          const capacity = parseInt(intLiteral.getText(), 10);
+          const capacity = Number.parseInt(intLiteral.getText(), 10);
           decl += `[${capacity + 1}]`;
         }
       }
@@ -343,7 +343,7 @@ function generateScopedBitmapInline(
       for (const field of fields) {
         const fieldName = field.IDENTIFIER().getText();
         const width = field.INTEGER_LITERAL()
-          ? parseInt(field.INTEGER_LITERAL()!.getText(), 10)
+          ? Number.parseInt(field.INTEGER_LITERAL()!.getText(), 10)
           : 1;
         const endBit = bitOffset + width - 1;
         const bitRange =
@@ -396,7 +396,7 @@ function generateScopedStructInline(
       const stringCtx = member.type().stringType()!;
       const intLiteral = stringCtx.INTEGER_LITERAL();
       if (intLiteral) {
-        const capacity = parseInt(intLiteral.getText(), 10);
+        const capacity = Number.parseInt(intLiteral.getText(), 10);
         dimStr += `[${capacity + 1}]`;
       }
     }

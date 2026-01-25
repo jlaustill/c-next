@@ -13,9 +13,9 @@
  * both scopes are in the same file.
  */
 
-import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import Pipeline from "../../src/pipeline/Pipeline";
 
 const __filename = fileURLToPath(import.meta.url);

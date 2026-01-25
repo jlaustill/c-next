@@ -474,7 +474,7 @@ function convertBitmapMember(
 ): AST.BitmapMember {
   const name = ctx.IDENTIFIER().getText();
   const literal = ctx.INTEGER_LITERAL();
-  const width = literal ? parseInt(literal.getText(), 10) : null;
+  const width = literal ? Number.parseInt(literal.getText(), 10) : null;
 
   return {
     type: "BitmapMember",
@@ -1005,7 +1005,7 @@ function convertDefaultCase(
   ctx: ReturnType<CNextParser["defaultCase"]>,
 ): AST.DefaultCase {
   const intLiteral = ctx.INTEGER_LITERAL();
-  const count = intLiteral ? parseInt(intLiteral.getText(), 10) : null;
+  const count = intLiteral ? Number.parseInt(intLiteral.getText(), 10) : null;
   const body = convertBlock(ctx.block());
 
   return {
@@ -1927,7 +1927,7 @@ function convertStringType(
   ctx: ReturnType<CNextParser["stringType"]>,
 ): AST.StringType {
   const intLiteral = ctx.INTEGER_LITERAL();
-  const capacity = intLiteral ? parseInt(intLiteral.getText(), 10) : null;
+  const capacity = intLiteral ? Number.parseInt(intLiteral.getText(), 10) : null;
 
   return {
     type: "StringType",

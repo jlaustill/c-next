@@ -22,8 +22,8 @@ function parseArrayDimensions(text: string): number[] {
 
   if (arrayMatches) {
     for (const match of arrayMatches) {
-      const size = parseInt(match.slice(1, -1), 10);
-      if (!isNaN(size)) {
+      const size = Number.parseInt(match.slice(1, -1), 10);
+      if (!Number.isNaN(size)) {
         dimensions.push(size);
       }
     }

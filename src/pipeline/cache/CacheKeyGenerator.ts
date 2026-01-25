@@ -1,4 +1,4 @@
-import { statSync } from "fs";
+import { statSync } from "node:fs";
 
 /**
  * Generates and validates cache keys for files.
