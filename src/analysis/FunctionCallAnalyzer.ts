@@ -464,7 +464,7 @@ class FunctionCallAnalyzer {
     for (const include of tree.includeDirective()) {
       // Extract header name from #include <header.h> or #include "header.h"
       const text = include.getText();
-      const match = text.match(/#include\s*[<"]([^>"]+)[>"]/);
+      const match = /#include\s*[<"]([^>"]+)[>"]/.exec(text);
       if (match) {
         this.includedHeaders.add(match[1]);
       }

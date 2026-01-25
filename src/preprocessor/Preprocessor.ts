@@ -218,8 +218,8 @@ class Preprocessor {
       const line = lines[i];
 
       // Match # linenum "filename" or #line linenum "filename"
-      const match = line.match(
-        /^#\s*(?:line\s+)?(\d+)\s+"([^"]+)"(?:\s+\d+)*\s*$/,
+      const match = /^#\s*(?:line\s+)?(\d+)\s+"([^"]+)"(?:\s+\d+)*\s*$/.exec(
+        line,
       );
 
       if (match) {
@@ -244,7 +244,7 @@ class Preprocessor {
   private stripLineDirectives(content: string): string {
     return content
       .split("\n")
-      .filter((line) => !line.match(/^#\s*(?:line\s+)?\d+\s+"/))
+      .filter((line) => !/^#\s*(?:line\s+)?\d+\s+"/.exec(line))
       .join("\n");
   }
 

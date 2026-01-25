@@ -66,8 +66,7 @@ class HeaderGenerator {
       const needsUserIncludes = symbols.some(
         (s) =>
           s.isArray &&
-          s.arrayDimensions &&
-          s.arrayDimensions.some((dim) => this.isMacroDimension(dim)),
+          s.arrayDimensions?.some((dim) => this.isMacroDimension(dim)),
       );
 
       if (needsUserIncludes) {
@@ -500,7 +499,7 @@ class HeaderGenerator {
 
     // Check if the mapped type has embedded array dimensions (e.g., char[33])
     // This happens for string<N> types which map to char[N+1]
-    const embeddedMatch = cType.match(/^(\w+)\[(\d+)\]$/);
+    const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
     if (embeddedMatch) {
       const baseType = embeddedMatch[1];
       const embeddedDim = embeddedMatch[2];

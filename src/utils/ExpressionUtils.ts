@@ -79,47 +79,47 @@ class ExpressionUtils {
 
     // ternaryExpression has multiple orExpressions if it's a ternary (condition ? a : b)
     const orExprs = ternary.orExpression();
-    if (!orExprs || orExprs.length !== 1) return null;
+    if (orExprs?.length !== 1) return null;
 
     // orExpression -> andExpression (multiple = has || operator)
     const andExprs = orExprs[0].andExpression();
-    if (!andExprs || andExprs.length !== 1) return null;
+    if (andExprs?.length !== 1) return null;
 
     // andExpression -> equalityExpression (multiple = has && operator)
     const eqExprs = andExprs[0].equalityExpression();
-    if (!eqExprs || eqExprs.length !== 1) return null;
+    if (eqExprs?.length !== 1) return null;
 
     // equalityExpression -> relationalExpression (multiple = has = or != operator)
     const relExprs = eqExprs[0].relationalExpression();
-    if (!relExprs || relExprs.length !== 1) return null;
+    if (relExprs?.length !== 1) return null;
 
     // relationalExpression -> bitwiseOrExpression (multiple = has <, >, <=, >= operator)
     const bitorExprs = relExprs[0].bitwiseOrExpression();
-    if (!bitorExprs || bitorExprs.length !== 1) return null;
+    if (bitorExprs?.length !== 1) return null;
 
     // bitwiseOrExpression -> bitwiseXorExpression (multiple = has | operator)
     const bitxorExprs = bitorExprs[0].bitwiseXorExpression();
-    if (!bitxorExprs || bitxorExprs.length !== 1) return null;
+    if (bitxorExprs?.length !== 1) return null;
 
     // bitwiseXorExpression -> bitwiseAndExpression (multiple = has ^ operator)
     const bitandExprs = bitxorExprs[0].bitwiseAndExpression();
-    if (!bitandExprs || bitandExprs.length !== 1) return null;
+    if (bitandExprs?.length !== 1) return null;
 
     // bitwiseAndExpression -> shiftExpression (multiple = has & operator)
     const shiftExprs = bitandExprs[0].shiftExpression();
-    if (!shiftExprs || shiftExprs.length !== 1) return null;
+    if (shiftExprs?.length !== 1) return null;
 
     // shiftExpression -> additiveExpression (multiple = has << or >> operator)
     const addExprs = shiftExprs[0].additiveExpression();
-    if (!addExprs || addExprs.length !== 1) return null;
+    if (addExprs?.length !== 1) return null;
 
     // additiveExpression -> multiplicativeExpression (multiple = has + or - operator)
     const multExprs = addExprs[0].multiplicativeExpression();
-    if (!multExprs || multExprs.length !== 1) return null;
+    if (multExprs?.length !== 1) return null;
 
     // multiplicativeExpression -> unaryExpression (multiple = has *, /, % operator)
     const unaryExprs = multExprs[0].unaryExpression();
-    if (!unaryExprs || unaryExprs.length !== 1) return null;
+    if (unaryExprs?.length !== 1) return null;
 
     return unaryExprs[0];
   }

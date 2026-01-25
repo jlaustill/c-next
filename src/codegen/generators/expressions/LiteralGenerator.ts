@@ -40,9 +40,9 @@ const generateLiteral = (
   // ADR-024: Transform C-Next float suffixes to standard C syntax
   // 3.14f32 -> 3.14f (C float)
   // 3.14f64 -> 3.14 (C double, no suffix needed)
-  if (/[fF]32$/.test(literalText)) {
+  if (/[fF]32$/.exec(literalText)) {
     literalText = literalText.replace(/[fF]32$/, "f");
-  } else if (/[fF]64$/.test(literalText)) {
+  } else if (/[fF]64$/.exec(literalText)) {
     literalText = literalText.replace(/[fF]64$/, "");
   }
 
@@ -50,11 +50,11 @@ const generateLiteral = (
   // u8/u16/u32 and i8/i16/i32 suffixes are stripped (C infers from context)
   // u64 -> ULL suffix for 64-bit unsigned
   // i64 -> LL suffix for 64-bit signed
-  if (/[uU]64$/.test(literalText)) {
+  if (/[uU]64$/.exec(literalText)) {
     literalText = literalText.replace(/[uU]64$/, "ULL");
-  } else if (/[iI]64$/.test(literalText)) {
+  } else if (/[iI]64$/.exec(literalText)) {
     literalText = literalText.replace(/[iI]64$/, "LL");
-  } else if (/[uUiI](8|16|32)$/.test(literalText)) {
+  } else if (/[uUiI](8|16|32)$/.exec(literalText)) {
     // Strip 8/16/32-bit suffixes - C handles these without explicit suffix
     literalText = literalText.replace(/[uUiI](8|16|32)$/, "");
   }

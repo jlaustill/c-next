@@ -1711,7 +1711,7 @@ export default class CodeGenerator implements IOrchestrator {
         // PRAGMA_TARGET captures the whole "#pragma target <name>" as one token
         const text = pragmaDir.getText();
         // Extract target name: "#pragma target teensy41" -> "teensy41"
-        const match = text.match(/#\s*pragma\s+target\s+(\S+)/i);
+        const match = /#\s*pragma\s+target\s+(\S+)/i.exec(text);
         if (match) {
           const targetName = match[1].toLowerCase();
           if (TARGET_CAPABILITIES[targetName]) {
@@ -2498,20 +2498,20 @@ export default class CodeGenerator implements IOrchestrator {
     const text = ctx.getText().trim();
 
     // Check if it's a simple integer literal
-    if (/^-?\d+$/.test(text)) {
+    if (/^-?\d+$/.exec(text)) {
       return parseInt(text, 10);
     }
     // Check if it's a hex literal
-    if (/^0[xX][0-9a-fA-F]+$/.test(text)) {
+    if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
       return parseInt(text, 16);
     }
     // Check if it's a binary literal
-    if (/^0[bB][01]+$/.test(text)) {
+    if (/^0[bB][01]+$/.exec(text)) {
       return parseInt(text.substring(2), 2);
     }
 
     // Bug #8: Check if it's a known const value (identifier)
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(text)) {
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
       const constValue = this.constValues.get(text);
       if (constValue !== undefined) {
         return constValue;
@@ -2519,9 +2519,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
-    const addMatch = text.match(
-      /^([a-zA-Z_][a-zA-Z0-9_]*)\+([a-zA-Z_][a-zA-Z0-9_]*)$/,
-    );
+    const addMatch =
+      /^([a-zA-Z_][a-zA-Z0-9_]*)\+([a-zA-Z_][a-zA-Z0-9_]*)$/.exec(text);
     if (addMatch) {
       const left = this.constValues.get(addMatch[1]);
       const right = this.constValues.get(addMatch[2]);
@@ -2531,7 +2530,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) expressions for primitive types
-    const sizeofMatch = text.match(/^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)$/);
+    const sizeofMatch = /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)$/.exec(text);
     if (sizeofMatch) {
       const typeName = sizeofMatch[1];
       const bitWidth = TYPE_WIDTH[typeName];
@@ -2548,8 +2547,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) * N expressions
-    const sizeofMulMatch = text.match(
-      /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\*(\d+)$/,
+    const sizeofMulMatch = /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\*(\d+)$/.exec(
+      text,
     );
     if (sizeofMulMatch) {
       const typeName = sizeofMulMatch[1];
@@ -2561,8 +2560,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) + N expressions
-    const sizeofAddMatch = text.match(
-      /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\+(\d+)$/,
+    const sizeofAddMatch = /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\+(\d+)$/.exec(
+      text,
     );
     if (sizeofAddMatch) {
       const typeName = sizeofAddMatch[1];
@@ -3491,7 +3490,7 @@ export default class CodeGenerator implements IOrchestrator {
     const text = ctx.getText();
 
     // Check if it's a simple identifier that's an enum variable
-    if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (typeInfo?.isEnum && typeInfo.enumTypeName) {
         return typeInfo.enumTypeName;
@@ -3560,15 +3559,15 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check for integer literals
     if (
-      text.match(/^-?\d+$/) ||
-      text.match(/^0[xX][0-9a-fA-F]+$/) ||
-      text.match(/^0[bB][01]+$/)
+      /^-?\d+$/.exec(text) ||
+      /^0[xX][0-9a-fA-F]+$/.exec(text) ||
+      /^0[bB][01]+$/.exec(text)
     ) {
       return true;
     }
 
     // Check if it's a variable of primitive integer type
-    if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (
         typeInfo &&
@@ -3600,7 +3599,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if it's a simple variable of string type
-    if (text.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (typeInfo?.isString) {
         return true;
@@ -3610,7 +3609,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #137: Check for array element access (e.g., names[0], arr[i])
     // Pattern: identifier[expression] or identifier[expression][expression]...
     // BUT NOT if accessing .length/.capacity/.size (those return numbers, not strings)
-    const arrayAccessMatch = text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[/);
+    const arrayAccessMatch = /^([a-zA-Z_][a-zA-Z0-9_]*)\[/.exec(text);
     if (arrayAccessMatch) {
       // ADR-045: String properties return numeric values, not strings
       if (
@@ -3719,7 +3718,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Variable - check type registry
-    if (expr.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(expr)) {
       const typeInfo = this.context.typeRegistry.get(expr);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
@@ -5457,7 +5456,7 @@ export default class CodeGenerator implements IOrchestrator {
                 const firstDimExpr = arrayDims[0].expression();
                 if (firstDimExpr) {
                   const sizeText = firstDimExpr.getText();
-                  if (sizeText.match(/^\d+$/)) {
+                  if (/^\d+$/.exec(sizeText)) {
                     const declaredSize = parseInt(sizeText, 10);
                     if (
                       this.context.lastArrayFillValue === undefined &&
@@ -5479,7 +5478,7 @@ export default class CodeGenerator implements IOrchestrator {
                 const firstDimExpr = arrayDims[0].expression();
                 if (firstDimExpr) {
                   const sizeText = firstDimExpr.getText();
-                  if (sizeText.match(/^\d+$/)) {
+                  if (/^\d+$/.exec(sizeText)) {
                     const declaredSize = parseInt(sizeText, 10);
                     const fillVal = this.context.lastArrayFillValue;
                     // Only expand if not empty string (C handles {""} correctly for zeroing)
@@ -5669,7 +5668,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Get first dimension size for simple validation (multi-dim validation is more complex)
     if (isArray && arrayDims[0].expression()) {
       const sizeText = arrayDims[0].expression()!.getText();
-      if (sizeText.match(/^\d+$/)) {
+      if (/^\d+$/.exec(sizeText)) {
         declaredSize = parseInt(sizeText, 10);
       }
     }
@@ -5822,9 +5821,9 @@ export default class CodeGenerator implements IOrchestrator {
         const exprText = ctx.expression()!.getText().trim();
         // Check if it's a direct literal (not a variable or expression)
         if (
-          exprText.match(/^-?\d+$/) ||
-          exprText.match(/^0[xX][0-9a-fA-F]+$/) ||
-          exprText.match(/^0[bB][01]+$/)
+          /^-?\d+$/.exec(exprText) ||
+          /^0[xX][0-9a-fA-F]+$/.exec(exprText) ||
+          /^0[bB][01]+$/.exec(exprText)
         ) {
           this._validateLiteralFitsType(exprText, typeName);
         } else {
@@ -6304,9 +6303,9 @@ export default class CodeGenerator implements IOrchestrator {
         const exprText = ctx.expression().getText().trim();
         // Check if it's a direct literal
         if (
-          exprText.match(/^-?\d+$/) ||
-          exprText.match(/^0[xX][0-9a-fA-F]+$/) ||
-          exprText.match(/^0[bB][01]+$/)
+          /^-?\d+$/.exec(exprText) ||
+          /^0[xX][0-9a-fA-F]+$/.exec(exprText) ||
+          /^0[bB][01]+$/.exec(exprText)
         ) {
           this._validateLiteralFitsType(exprText, targetTypeInfo.baseType);
         } else {
@@ -7801,7 +7800,7 @@ export default class CodeGenerator implements IOrchestrator {
 
           // Check if field is a string type (non-array)
           if (fieldType && fieldType.startsWith("string<")) {
-            const match = fieldType.match(/^string<(\d+)>$/);
+            const match = /^string<(\d+)>$/.exec(fieldType);
             if (match) {
               if (cOp !== "=") {
                 throw new Error(
@@ -9663,7 +9662,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check for function calls by looking for identifier followed by (
     // This is a heuristic - looking for "name(" pattern that's not a cast
-    if (/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/.test(text)) {
+    if (/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/.exec(text)) {
       // Could be a function call - walk the tree to confirm
       return this.hasPostfixFunctionCall(expr);
     }

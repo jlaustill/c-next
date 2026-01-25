@@ -354,8 +354,8 @@ class NullCheckListener extends CNextListener {
     const conditionText = condition?.getText() ?? "";
 
     // Check for patterns like "c_var != NULL" or "c_var = NULL"
-    const nullCheckMatch = conditionText.match(
-      /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*(!?=)\s*NULL$/,
+    const nullCheckMatch = /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*(!?=)\s*NULL$/.exec(
+      conditionText,
     );
 
     if (nullCheckMatch) {
@@ -465,8 +465,8 @@ class NullCheckListener extends CNextListener {
     const conditionText = condition?.getText() ?? "";
 
     // Check for patterns like "c_var != NULL"
-    const nullCheckMatch = conditionText.match(
-      /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*!=\s*NULL$/,
+    const nullCheckMatch = /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*!=\s*NULL$/.exec(
+      conditionText,
     );
 
     if (nullCheckMatch) {
@@ -835,7 +835,7 @@ class NullCheckAnalyzer {
   private collectIncludes(tree: Parser.ProgramContext): void {
     for (const include of tree.includeDirective()) {
       const text = include.getText();
-      const match = text.match(/#include\s*[<"]([^>"]+)[>"]/);
+      const match = /#include\s*[<"]([^>"]+)[>"]/.exec(text);
       if (match) {
         this.includedHeaders.add(match[1]);
       }

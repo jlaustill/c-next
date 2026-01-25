@@ -65,8 +65,8 @@ class TypeValidator {
   ): void {
     // Extract the file path from #include directive
     // Match both <file> and "file" forms
-    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)>/);
-    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)"/);
+    const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
+    const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
 
     const includePath = angleMatch?.[1] || quoteMatch?.[1];
     if (!includePath) {
@@ -105,8 +105,8 @@ class TypeValidator {
     fileExists: (path: string) => boolean = (p) => require("fs").existsSync(p),
   ): void {
     // Extract the file path from #include directive
-    const angleMatch = includeText.match(/#\s*include\s*<([^>]+)>/);
-    const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)"/);
+    const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
+    const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
 
     const includePath = angleMatch?.[1] || quoteMatch?.[1];
     if (!includePath) {
@@ -173,11 +173,11 @@ class TypeValidator {
     // Check for integer literals
     let value: number | null = null;
 
-    if (text.match(/^\d+$/)) {
+    if (/^\d+$/.exec(text)) {
       value = parseInt(text, 10);
-    } else if (text.match(/^0[xX][0-9a-fA-F]+$/)) {
+    } else if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
       value = parseInt(text, 16);
-    } else if (text.match(/^0[bB][01]+$/)) {
+    } else if (/^0[bB][01]+$/.exec(text)) {
       value = parseInt(text.substring(2), 2);
     }
 
@@ -1063,7 +1063,7 @@ class TypeValidator {
       } else if (text.startsWith("0b") || text.startsWith("0B")) {
         value = parseInt(text.slice(2), 2);
       } else {
-        const numMatch = text.match(/^\d+/);
+        const numMatch = /^\d+/.exec(text);
         if (numMatch) {
           value = parseInt(numMatch[0], 10);
         }

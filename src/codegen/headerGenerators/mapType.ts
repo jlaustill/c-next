@@ -45,9 +45,9 @@ function mapType(type: string): string {
   }
 
   // Issue #427: Handle string<N> types -> char[N+1]
-  const stringMatch = type.match(/^string<(\d+)>$/);
+  const stringMatch = /^string<(\d+)>$/.exec(type);
   if (stringMatch) {
-    const capacity = parseInt(stringMatch[1], 10);
+    const capacity = Number.parseInt(stringMatch[1], 10);
     return `char[${capacity + 1}]`;
   }
 
@@ -58,7 +58,7 @@ function mapType(type: string): string {
   }
 
   // Handle array types (simplified)
-  const arrayMatch = type.match(/^(\w+)\[(\d*)\]$/);
+  const arrayMatch = /^(\w+)\[(\d*)\]$/.exec(type);
   if (arrayMatch) {
     const baseType = mapType(arrayMatch[1]);
     const size = arrayMatch[2] || "";
