@@ -161,6 +161,12 @@ u32 main() {
 }
 ```
 
+## Header Generation
+
+**Symbol collection timing in `transpileSource()`**: When generating headers, symbol collection MUST happen AFTER `codeGenerator.generate()`. Placing it before breaks type resolution (e.g., `strlen()` becomes placeholder comments).
+
+**Test `.expected.h` files**: The test framework validates `.expected.h` files when present. Create one alongside `.expected.c` for header generation tests.
+
 ## Task Completion Requirements
 
 **A task is NOT complete until all relevant documentation is updated:**
