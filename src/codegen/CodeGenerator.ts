@@ -1277,6 +1277,31 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #388: Resolve a qualified type from dot notation to the correct output format.
+   * For C++ namespace types (like MockLib.Parse.ParseResult), uses :: separator.
+   * For C-Next scope types (like Motor.State), uses _ separator.
+   *
+   * @param identifiers Array of identifier names forming the qualified type
+   * @returns The resolved type name with appropriate separator
+   */
+  private resolveQualifiedType(identifiers: string[]): string {
+    if (identifiers.length === 0) {
+      return "";
+    }
+
+    const firstName = identifiers[0];
+
+    // Check if the first identifier is a C++ scope symbol (namespace, class, enum)
+    if (this.isCppScopeSymbol(firstName)) {
+      // C++ namespace type: join all parts with ::
+      return identifiers.join("::");
+    }
+
+    // C-Next scope type: join all parts with _
+    return identifiers.join("_");
+  }
+
+  /**
    * Issue #304: Check if a type name is from a C++ header
    * Used to determine whether to use {} or {0} for initialization.
    * C++ types with constructors may fail with {0} but work with {}.
@@ -2646,10 +2671,10 @@ export default class CodeGenerator implements IOrchestrator {
       }
     } else if (typeCtx.qualifiedType()) {
       // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+      // Issue #388: Also handles C++ namespace types (e.g., MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-      const scopeName = identifiers[0].getText();
-      const typeName = identifiers[1].getText();
-      baseType = `${scopeName}_${typeName}`;
+      const identifierNames = identifiers.map((id) => id.getText());
+      baseType = this.resolveQualifiedType(identifierNames);
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
@@ -2919,10 +2944,10 @@ export default class CodeGenerator implements IOrchestrator {
       }
     } else if (typeCtx.qualifiedType()) {
       // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+      // Issue #388: Also handles C++ namespace types (e.g., MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-      const scopeName = identifiers[0].getText();
-      const typeName = identifiers[1].getText();
-      baseType = `${scopeName}_${typeName}`;
+      const identifierNames = identifiers.map((id) => id.getText());
+      baseType = this.resolveQualifiedType(identifierNames);
       bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
@@ -3181,11 +3206,12 @@ export default class CodeGenerator implements IOrchestrator {
         isCallback = this.callbackTypes.has(typeName);
       } else if (typeCtx.qualifiedType()) {
         // ADR-016: Handle qualified types like Scope.Type
-        typeName = typeCtx
+        // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
+        const identifierNames = typeCtx
           .qualifiedType()!
           .IDENTIFIER()
-          .map((id) => id.getText())
-          .join("_");
+          .map((id) => id.getText());
+        typeName = this.resolveQualifiedType(identifierNames);
         // Check if this is a struct type
         isStruct = this.isStructType(typeName);
       } else if (typeCtx.scopedType()) {
@@ -5890,12 +5916,12 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // ADR-016: Check for qualified types (Scope.Type)
+    // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult)
     if (typeCtx.qualifiedType()) {
       const qualifiedCtx = typeCtx.qualifiedType()!;
       const parts = qualifiedCtx.IDENTIFIER();
-      const scopeName = parts[0].getText();
-      const localTypeName = parts[1].getText();
-      const fullTypeName = `${scopeName}_${localTypeName}`;
+      const identifierNames = parts.map((id) => id.getText());
+      const fullTypeName = this.resolveQualifiedType(identifierNames);
 
       // Check if it's an enum
       if (this.symbols!.knownEnums.has(fullTypeName)) {
@@ -5903,12 +5929,15 @@ export default class CodeGenerator implements IOrchestrator {
         if (members) {
           for (const [memberName, value] of members.entries()) {
             if (value === 0) {
-              return `${fullTypeName}_${memberName}`;
+              // For C++ enums, use :: separator; for C-Next enums, use _
+              const separator = fullTypeName.includes("::") ? "::" : "_";
+              return `${fullTypeName}${separator}${memberName}`;
             }
           }
           const firstMember = members.keys().next().value;
           if (firstMember) {
-            return `${fullTypeName}_${firstMember}`;
+            const separator = fullTypeName.includes("::") ? "::" : "_";
+            return `${fullTypeName}${separator}${firstMember}`;
           }
         }
         return `(${fullTypeName})0`;
@@ -10012,11 +10041,11 @@ export default class CodeGenerator implements IOrchestrator {
       return typeName;
     }
     // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+    // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
     if (ctx.qualifiedType()) {
       const identifiers = ctx.qualifiedType()!.IDENTIFIER();
-      const scopeName = identifiers[0].getText();
-      const typeName = identifiers[1].getText();
-      return `${scopeName}_${typeName}`;
+      const identifierNames = identifiers.map((id) => id.getText());
+      return this.resolveQualifiedType(identifierNames);
     }
     if (ctx.userType()) {
       return ctx.userType()!.getText();
@@ -10054,15 +10083,23 @@ export default class CodeGenerator implements IOrchestrator {
       return `${this.context.currentScope}_${typeName}`;
     }
     // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+    // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
     if (ctx.qualifiedType()) {
       const identifiers = ctx.qualifiedType()!.IDENTIFIER();
-      const scopeName = identifiers[0].getText();
-      const typeName = identifiers[1].getText();
+      const identifierNames = identifiers.map((id) => id.getText());
+      const firstName = identifierNames[0];
 
-      // Check visibility for scoped types (structs, enums, bitmaps)
-      this._validateCrossScopeVisibility(scopeName, typeName);
+      // Check if this is a C++ namespace type - no visibility validation needed
+      if (this.isCppScopeSymbol(firstName)) {
+        return identifierNames.join("::");
+      }
 
-      return `${scopeName}_${typeName}`;
+      // C-Next scoped type - validate visibility (for 2-part types only)
+      if (identifierNames.length === 2) {
+        this._validateCrossScopeVisibility(firstName, identifierNames[1]);
+      }
+
+      return identifierNames.join("_");
     }
     if (ctx.userType()) {
       const typeName = ctx.userType()!.getText();

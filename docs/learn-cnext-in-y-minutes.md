@@ -1394,6 +1394,47 @@ Constructor arguments must be const because:
 3. **No "most vexing parse"**: Avoids C++ ambiguity between function declarations and object declarations
 4. **Safety**: Prevents subtle bugs from runtime value changes
 
+### C++ Namespace Types (Issue #388)
+
+C++ types within namespaces can be referenced using dot notation. The transpiler automatically converts to C++ `::` syntax:
+
+```cnx
+#include "MockLib.hpp"
+
+// Reference types in nested C++ namespaces using dot notation
+MockLib.Parse.ParseResult result;
+MockLib.Config config;
+Deep.Level1.Level2.DeepType deep;
+
+void process() {
+    // Function calls through namespaces use global. prefix
+    global.result <- global.MockLib.Parse.parse("data", ',');
+    global.config <- global.MockLib.getDefaultConfig();
+}
+```
+
+Transpiles to:
+
+```cpp
+#include "MockLib.hpp"
+
+MockLib::Parse::ParseResult result = {0};
+MockLib::Config config = {0};
+Deep::Level1::Level2::DeepType deep = {0};
+
+void process(void) {
+    result = MockLib::Parse::parse("data", ',');
+    config = MockLib::getDefaultConfig();
+}
+```
+
+**Key points:**
+
+- Use `.` notation in C-Next (like scopes)
+- Transpiler detects C++ namespaces via the SymbolTable
+- Outputs `::` for C++ namespaces, `_` for C-Next scopes
+- Works with arbitrary nesting depth
+
 ## Register Bindings
 
 ```cnx

@@ -525,8 +525,9 @@ scopedType
     ;
 
 // ADR-016: Qualified type from outside scope (Motor.State -> Motor_State)
+// Issue #388: Extended to support C++ nested namespace types (A.B.C -> A::B::C)
 qualifiedType
-    : IDENTIFIER '.' IDENTIFIER
+    : IDENTIFIER ('.' IDENTIFIER)+
     ;
 
 primitiveType

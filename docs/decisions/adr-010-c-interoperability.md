@@ -224,6 +224,11 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 - ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)
 - ✅ `Project` class for multi-file compilation
 - ✅ Unified parsing is now the default behavior (removed `--project` flag - [Issue #46](https://github.com/jlaustill/c-next/issues/46))
+- ✅ C++ namespace type references ([Issue #388](https://github.com/jlaustill/c-next/issues/388))
+  - **Syntax:** Use dot notation: `MockLib.Parse.ParseResult`
+  - **Output:** Transpiles to C++ `::` syntax: `MockLib::Parse::ParseResult`
+  - **Detection:** SymbolTable identifies C++ namespaces vs C-Next scopes
+  - **Depth:** Supports arbitrary nesting (e.g., `Deep.Level1.Level2.DeepType`)
 
 **Known Issues:**
 
