@@ -1,0 +1,50 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Ternary expressions should not trigger type mismatch warnings
+// Validates: Ternary operator with consistent types is warning-free
+// Coverage: Integer ternary, comparison conditions
+
+u32 main() {
+    // Test ternary with equality comparison
+    u32 a <- 10;
+    u32 b <- 20;
+    u32 flag <- 1;
+    u32 result <- (flag = 1) ? a : b;
+    if (result != 10) return 1;
+
+    // Test ternary with inequality condition
+    flag <- 0;
+    result <- (flag = 1) ? a : b;
+    if (result != 20) return 2;
+
+    // Test ternary with > comparison
+    u32 x <- 5;
+    u32 y <- 10;
+    u32 max_val <- (x > y) ? x : y;
+    if (max_val != 10) return 3;
+
+    // Test ternary with < comparison on u8
+    u8 small_a <- 100;
+    u8 small_b <- 200;
+    u8 small_result <- (small_a < small_b) ? small_a : small_b;
+    if (small_result != 100) return 4;
+
+    // Test ternary returning constant values
+    u32 val <- 50;
+    u32 is_large <- (val > 100) ? 1 : 0;
+    if (is_large != 0) return 5;
+
+    // Test ternary with signed literals
+    i32 sign <- (val > 0) ? 1 : -1;
+    if (sign != 1) return 6;
+
+    // Test ternary with logical AND
+    u32 both <- (a > 0 && b > 0) ? 1 : 0;
+    if (both != 1) return 7;
+
+    // Test ternary with logical OR
+    u32 either <- (a = 0 || b > 0) ? 1 : 0;
+    if (either != 1) return 8;
+
+    return 0;
+}
