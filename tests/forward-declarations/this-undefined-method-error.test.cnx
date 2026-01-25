@@ -1,0 +1,15 @@
+// ADR-030: Error - calling undefined method via this.
+// Tests: calling this.method() where method doesn't exist in scope produces error
+scope Test {
+    void helper() {
+        u32 x <- 1;
+    }
+
+    public void callsUndefined() {
+        this.undefinedFunction();
+    }
+}
+
+void main() {
+    Test.callsUndefined();
+}
