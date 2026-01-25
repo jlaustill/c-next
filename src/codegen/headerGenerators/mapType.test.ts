@@ -4,7 +4,7 @@
 
 import typeUtils from "./mapType";
 
-const { TYPE_MAP, mapType } = typeUtils;
+const { TYPE_MAP, mapType, isBuiltInType } = typeUtils;
 
 describe("TYPE_MAP", () => {
   it("should map all unsigned integer types", () => {
@@ -91,4 +91,76 @@ describe("mapType", () => {
       expect(mapType("void*")).toBe("void*");
     });
   });
+
+  // Issue #427: string<N> type handling
+  describe("string types", () => {
+    it("should map string<N> to char[N+1]", () => {
+      expect(mapType("string<32>")).toBe("char[33]");
+      expect(mapType("string<16>")).toBe("char[17]");
+      expect(mapType("string<64>")).toBe("char[65]");
+      expect(mapType("string<0>")).toBe("char[1]");
+    });
+
+    it("should handle string<N> with various capacities", () => {
+      expect(mapType("string<1>")).toBe("char[2]");
+      expect(mapType("string<255>")).toBe("char[256]");
+      expect(mapType("string<1024>")).toBe("char[1025]");
+    });
+  });
+});
+
+// Issue #427: isBuiltInType helper
+describe("isBuiltInType", () => {
+  // Primitive types that should be recognized as built-in
+  const builtInPrimitives = [
+    "u8",
+    "u16",
+    "u32",
+    "u64",
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "f32",
+    "f64",
+    "bool",
+    "void",
+  ];
+
+  it.each(builtInPrimitives)("should return true for primitive %s", (type) => {
+    expect(isBuiltInType(type)).toBe(true);
+  });
+
+  // String types with various capacities
+  const builtInStrings = [
+    "string<0>",
+    "string<16>",
+    "string<32>",
+    "string<64>",
+    "string<255>",
+  ];
+
+  it.each(builtInStrings)("should return true for %s", (type) => {
+    expect(isBuiltInType(type)).toBe(true);
+  });
+
+  // User-defined types that should NOT be recognized as built-in
+  const userDefinedTypes = ["MyStruct", "Configuration", "Point"];
+
+  it.each(userDefinedTypes)(
+    "should return false for user-defined type %s",
+    (type) => {
+      expect(isBuiltInType(type)).toBe(false);
+    },
+  );
+
+  // Invalid string patterns that should NOT be recognized as built-in
+  const invalidStringTypes = ["string", "string<>", "string<abc>"];
+
+  it.each(invalidStringTypes)(
+    "should return false for invalid string type %s",
+    (type) => {
+      expect(isBuiltInType(type)).toBe(false);
+    },
+  );
 });
