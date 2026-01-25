@@ -48,6 +48,8 @@ import scopedRegisterGenerator from "./generators/declarationGenerators/ScopedRe
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
+// ADR-109: Extracted utilities
+import BitUtils from "../utils/BitUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
@@ -1155,19 +1157,6 @@ export default class CodeGenerator implements IOrchestrator {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Fold literal boolean values to integer constants for bitmap bit assignments.
-   * Issue #200: Avoid generating (true ? 1 : 0) when we can just use 1.
-   * - 'true'  → '1'
-   * - 'false' → '0'
-   * - anything else → '(expr ? 1 : 0)' (runtime ternary needed)
-   */
-  private foldBooleanToInt(expr: string): string {
-    if (expr === "true") return "1";
-    if (expr === "false") return "0";
-    return `(${expr} ? 1 : 0)`;
   }
 
   /**
@@ -6084,34 +6073,6 @@ export default class CodeGenerator implements IOrchestrator {
     return "0";
   }
 
-  /**
-   * Generate a safe bit mask expression.
-   * Avoids undefined behavior when width >= 32 for 32-bit integers.
-   * @param width The width expression (may be a literal or expression)
-   */
-  private generateBitMask(width: string): string {
-    // Check if width is a compile-time constant
-    const widthNum = parseInt(width, 10);
-    if (!isNaN(widthNum)) {
-      // Use explicit hex masks for common widths to avoid UB
-      if (widthNum === 32) {
-        return "0xFFFFFFFFU";
-      }
-      if (widthNum === 64) {
-        return "0xFFFFFFFFFFFFFFFFULL";
-      }
-      if (widthNum === 16) {
-        return "0xFFFFU";
-      }
-      if (widthNum === 8) {
-        return "0xFFU";
-      }
-    }
-    // For non-constant or other widths, use the shift expression
-    // (safe as long as width < 32 for 32-bit operations)
-    return `((1U << ${width}) - 1)`;
-  }
-
   // ========================================================================
   // Statements
   // ========================================================================
@@ -6438,7 +6399,7 @@ export default class CodeGenerator implements IOrchestrator {
 
             if (fieldInfo.width === 1) {
               // Single bit write: var = (var & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-              return `${varName} = (${varName} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+              return `${varName} = (${varName} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
             } else {
               // Multi-bit write: var = (var & ~(mask << offset)) | ((value & mask) << offset)
               return `${varName} = (${varName} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
@@ -6488,7 +6449,7 @@ export default class CodeGenerator implements IOrchestrator {
 
               if (fieldInfo.width === 1) {
                 // Single bit write on register: REG_MEMBER = (REG_MEMBER & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-                return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
               } else {
                 // Multi-bit write on register
                 return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
@@ -6542,7 +6503,7 @@ export default class CodeGenerator implements IOrchestrator {
 
                 if (structFieldInfo.width === 1) {
                   // Single bit write: struct.member = (struct.member & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-                  return `${memberPath} = (${memberPath} & ~(1 << ${structFieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${structFieldInfo.offset});`;
+                  return `${memberPath} = (${memberPath} & ~(1 << ${structFieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${structFieldInfo.offset});`;
                 } else {
                   // Multi-bit write
                   return `${memberPath} = (${memberPath} & ~(${maskHex} << ${structFieldInfo.offset})) | ((${value} & ${maskHex}) << ${structFieldInfo.offset});`;
@@ -6602,14 +6563,14 @@ export default class CodeGenerator implements IOrchestrator {
                 if (isWriteOnly) {
                   // Write-only register: just write the value shifted to position (no RMW)
                   if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                    return `${fullRegMember} = (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                   } else {
                     return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
                   }
                 } else {
                   // Read-write register: use read-modify-write pattern
                   if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                   } else {
                     return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
                   }
@@ -6682,7 +6643,7 @@ export default class CodeGenerator implements IOrchestrator {
               const arrayElement = `${arrayName}${arrayIndices}`;
 
               // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
-              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(value)} << ${bitIndex});`;
             }
           }
         }
@@ -6913,7 +6874,7 @@ export default class CodeGenerator implements IOrchestrator {
 
                   if (fieldInfo.width === 1) {
                     // Single bit write: arr[i] = (arr[i] & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-                    return `${arrayElement} = (${arrayElement} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                    return `${arrayElement} = (${arrayElement} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                   } else {
                     // Multi-bit write: arr[i] = (arr[i] & ~(mask << offset)) | ((value & mask) << offset)
                     return `${arrayElement} = (${arrayElement} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
@@ -6980,12 +6941,12 @@ export default class CodeGenerator implements IOrchestrator {
             return `${fullName} = (1 << ${bitIndex});`;
           } else {
             // Read-write: need read-modify-write
-            return `${fullName} = (${fullName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+            return `${fullName} = (${fullName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(value)} << ${bitIndex});`;
           }
         } else if (exprs.length === 2) {
           const start = this._generateExpression(exprs[0]);
           const width = this._generateExpression(exprs[1]);
-          const mask = this.generateBitMask(width);
+          const mask = BitUtils.generateMask(width);
           if (isWriteOnly) {
             // Write-only: assigning 0 is semantically meaningless
             if (value === "0") {
@@ -7104,7 +7065,7 @@ export default class CodeGenerator implements IOrchestrator {
               }
               return `${regName} = (1 << ${bitIndex});`;
             } else {
-              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(value)} << ${bitIndex});`;
             }
           } else if (this.isKnownScope(firstId)) {
             const memberName = parts[1];
@@ -7226,7 +7187,7 @@ export default class CodeGenerator implements IOrchestrator {
               }
               return `${regName} = (1 << ${bitIndex});`;
             } else {
-              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(value)} << ${bitIndex});`;
             }
           }
         }
@@ -7271,13 +7232,13 @@ export default class CodeGenerator implements IOrchestrator {
 
                 if (isWriteOnly) {
                   if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                    return `${fullRegMember} = (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                   } else {
                     return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
                   }
                 } else {
                   if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                   } else {
                     return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
                   }
@@ -7351,14 +7312,14 @@ export default class CodeGenerator implements IOrchestrator {
               if (isWriteOnly) {
                 // Write-only register: just write the value, no RMW needed
                 if (fieldInfo.width === 1) {
-                  return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                  return `${fullRegMember} = (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                 } else {
                   return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
                 }
               } else {
                 // Read-write register: use read-modify-write pattern
                 if (fieldInfo.width === 1) {
-                  return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                  return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
                 } else {
                   return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
                 }
@@ -7534,13 +7495,13 @@ export default class CodeGenerator implements IOrchestrator {
         // Single bit assignment: flags[3] <- true
         const bitIndex = this._generateExpression(exprs[0]);
         // Generate: name = (name & ~(1 << index)) | ((value ? 1 : 0) << index)
-        return `${name} = (${name} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+        return `${name} = (${name} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(value)} << ${bitIndex});`;
       } else if (exprs.length === 2) {
         // Bit range assignment: flags[0, 3] <- 5
         const start = this._generateExpression(exprs[0]);
         const width = this._generateExpression(exprs[1]);
         // Generate: name = (name & ~(mask << start)) | ((value & mask) << start)
-        const mask = this.generateBitMask(width);
+        const mask = BitUtils.generateMask(width);
         return `${name} = (${name} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
       }
     }
@@ -7593,7 +7554,7 @@ export default class CodeGenerator implements IOrchestrator {
               const arrayElement = `${arrayName}${arrayIndices}`;
 
               // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
-              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(value)} << ${bitIndex});`;
             }
           }
         }
@@ -9259,7 +9220,7 @@ export default class CodeGenerator implements IOrchestrator {
           // Bit range: flags[start, width]
           const start = this._generateExpression(exprs[0]);
           const width = this._generateExpression(exprs[1]);
-          const mask = this.generateBitMask(width);
+          const mask = BitUtils.generateMask(width);
           // Optimize: skip shift when start is 0
           if (start === "0") {
             result = `((${result}) & ${mask})`;
@@ -9772,7 +9733,7 @@ export default class CodeGenerator implements IOrchestrator {
         } else if (expressions.length === 2) {
           const start = this._generateExpression(expressions[0]);
           const width = this._generateExpression(expressions[1]);
-          const mask = this.generateBitMask(width);
+          const mask = BitUtils.generateMask(width);
           if (start === "0") {
             return `((${registerName}) & ${mask})`;
           }
@@ -10085,7 +10046,7 @@ export default class CodeGenerator implements IOrchestrator {
       // Bit range: flags[start, width]
       const start = this._generateExpression(exprs[0]);
       const width = this._generateExpression(exprs[1]);
-      const mask = this.generateBitMask(width);
+      const mask = BitUtils.generateMask(width);
       // Optimize: skip shift when start is 0
       if (start === "0") {
         return `((${name}) & ${mask})`;
