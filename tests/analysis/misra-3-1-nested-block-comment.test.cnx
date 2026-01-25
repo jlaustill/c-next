@@ -1,0 +1,8 @@
+// test-error
+// Tests: MISRA C:2012 Rule 3.1 - nested block marker inside comment is forbidden
+
+/* This comment has /* nested block marker */
+
+u32 main() {
+    return 0;
+}
