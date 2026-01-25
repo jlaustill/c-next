@@ -1,0 +1,30 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Array initialization should not trigger GCC warnings
+// Validates: Array initializers with various types are warning-free
+// Coverage: Integer arrays, partial init, zero init
+
+u32 main() {
+    // Test fully initialized array
+    u32 full[4] <- [10, 20, 30, 40];
+    if (full[0] != 10) return 1;
+    if (full[3] != 40) return 2;
+
+    // Test u8 array initialization
+    u8 bytes[3] <- [0x41, 0x42, 0x43];
+    if (bytes[0] != 0x41) return 3;
+    if (bytes[2] != 0x43) return 4;
+
+    // Test u64 array initialization
+    u64 big[2] <- [1000000000, 2000000000];
+    if (big[0] != 1000000000) return 5;
+    if (big[1] != 2000000000) return 6;
+
+    // Test signed array initialization
+    i32 signed_arr[3] <- [-10, 0, 10];
+    if (signed_arr[0] != -10) return 7;
+    if (signed_arr[1] != 0) return 8;
+    if (signed_arr[2] != 10) return 9;
+
+    return 0;
+}

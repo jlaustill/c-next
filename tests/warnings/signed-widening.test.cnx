@@ -1,0 +1,36 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Signed type widening should not trigger -Wconversion warnings
+// Validates: Implicit widening from smaller to larger signed types is safe
+// Coverage: i8 -> i16 -> i32 -> i64 widening chain
+
+u32 main() {
+    // Test i8 -> i16 widening with positive value
+    i8 small_pos <- 127;
+    i16 medium_pos <- small_pos;
+    if (medium_pos != 127) return 1;
+
+    // Test i8 -> i16 widening with negative value
+    i8 small_neg <- -128;
+    i16 medium_neg <- small_neg;
+    if (medium_neg != -128) return 2;
+
+    // Test i16 -> i32 widening
+    i32 large <- medium_pos;
+    if (large != 127) return 3;
+
+    // Test i32 -> i64 widening
+    i64 huge <- large;
+    if (huge != 127) return 4;
+
+    // Test direct i8 -> i64 widening
+    i64 direct <- small_neg;
+    if (direct != -128) return 5;
+
+    // Test widening preserves sign extension
+    i8 neg_one <- -1;
+    i64 extended <- neg_one;
+    if (extended != -1) return 6;
+
+    return 0;
+}

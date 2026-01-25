@@ -1,0 +1,48 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Comparison operations should not trigger -Wsign-compare warnings
+// Validates: Same-type comparisons are warning-free
+// Coverage: Unsigned comparisons, signed comparisons, equality
+
+u32 main() {
+    // Test unsigned comparisons
+    u32 ua <- 100;
+    u32 ub <- 200;
+
+    if (ua > ub) return 1;
+    if (ua >= ub) return 2;
+    if (!(ua < ub)) return 3;
+    if (!(ua <= ub)) return 4;
+    if (ua = ub) return 5;
+    if (!(ua != ub)) return 6;
+
+    // Test signed comparisons
+    i32 sa <- -50;
+    i32 sb <- 50;
+
+    if (sa > sb) return 7;
+    if (sa >= sb) return 8;
+    if (!(sa < sb)) return 9;
+    if (!(sa <= sb)) return 10;
+
+    // Test u8 comparisons
+    u8 ba <- 0;
+    u8 bb <- 255;
+
+    if (ba > bb) return 11;
+    if (!(ba < bb)) return 12;
+    if (ba = bb) return 13;
+
+    // Test equality with zero
+    u32 zero <- 0;
+    if (zero != 0) return 14;
+    if (!(zero = 0)) return 15;
+
+    // Test i8 with negative values
+    i8 neg <- -1;
+    i8 pos <- 1;
+    if (neg > pos) return 16;
+    if (!(neg < pos)) return 17;
+
+    return 0;
+}

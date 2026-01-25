@@ -1,0 +1,48 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Integer promotion in expressions should not trigger warnings
+// Validates: Arithmetic on smaller types promotes correctly without warnings
+// Coverage: u8/u16 arithmetic, mixed-width operations
+
+u32 main() {
+    // Test u8 arithmetic (promotes to int in C)
+    u8 a <- 100;
+    u8 b <- 50;
+    u32 sum <- a + b;
+    if (sum != 150) return 1;
+
+    // Test u8 multiplication (could overflow u8, but result stored in u32)
+    u8 c <- 200;
+    u8 d <- 2;
+    u32 product <- c * d;
+    if (product != 400) return 2;
+
+    // Test u16 arithmetic
+    u16 e <- 30000;
+    u16 f <- 20000;
+    u32 large_sum <- e + f;
+    if (large_sum != 50000) return 3;
+
+    // Test mixed u8 and u16 operations
+    u8 small <- 255;
+    u16 medium <- 1000;
+    u32 mixed <- small + medium;
+    if (mixed != 1255) return 4;
+
+    // Test bit shifts (must not exceed type width - 1)
+    u32 shift_val <- 1;
+    u32 shifted <- shift_val << 8;
+    if (shifted != 256) return 5;
+
+    // Test division (integer division)
+    u32 dividend <- 100;
+    u32 divisor <- 3;
+    u32 quotient <- dividend / divisor;
+    if (quotient != 33) return 6;
+
+    // Test modulo
+    u32 remainder <- dividend % divisor;
+    if (remainder != 1) return 7;
+
+    return 0;
+}
