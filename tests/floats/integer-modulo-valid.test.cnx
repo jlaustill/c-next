@@ -1,0 +1,21 @@
+// test-execution
+// Tests: Integer modulo should work correctly (no error)
+// The % operator is valid for integer types
+u32 main() {
+    u32 a <- 10;
+    u32 b <- 3;
+    u32 result <- a % b;
+
+    // 10 % 3 = 1
+    if (result != 1) return 1;
+
+    // Test with different integer types
+    i32 c <- 17;
+    i32 d <- 5;
+    i32 result2 <- c % d;
+
+    // 17 % 5 = 2
+    if (result2 != 2) return 2;
+
+    return 0;
+}

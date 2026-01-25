@@ -1,0 +1,5 @@
+// Tests: Float literal modulo should be detected as error
+// Even without variables, float literals with % should fail
+void main() {
+    f32 result <- 10.5 % 3;
+}
