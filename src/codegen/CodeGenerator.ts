@@ -61,6 +61,11 @@ import commentUtils from "./generators/support/CommentUtils";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
+// ADR-109: Assignment decomposition (Phase 2)
+// Infrastructure ready - handlers registered via assignment module import
+// TODO: Replace generateAssignment() body with classifier + dispatch pattern
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import _assignmentHandlers from "./assignment/index";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,

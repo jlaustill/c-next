@@ -1,0 +1,73 @@
+/**
+ * Special assignment handlers (ADR-109).
+ *
+ * Handles special compound assignment operations:
+ * - ATOMIC_RMW: atomic counter +<- 1
+ * - OVERFLOW_CLAMP: clamp u8 saturated +<- 200
+ */
+import AssignmentKind from "../AssignmentKind";
+import IAssignmentContext from "../IAssignmentContext";
+import IHandlerDeps from "./IHandlerDeps";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
+import { TAssignmentHandler } from "./index";
+
+/** Maps C operators to clamp helper operation names */
+const CLAMP_OP_MAP: Record<string, string> = {
+  "+=": "add",
+  "-=": "sub",
+  "*=": "mul",
+};
+
+/**
+ * Handle atomic read-modify-write: atomic counter +<- 1
+ *
+ * Delegates to CodeGenerator's generateAtomicRMW which uses
+ * LDREX/STREX on supported platforms or PRIMASK otherwise.
+ */
+function handleAtomicRMW(ctx: IAssignmentContext, deps: IHandlerDeps): string {
+  const id = ctx.identifiers[0];
+  const typeInfo = deps.typeRegistry.get(id)!;
+  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+
+  return deps.generateAtomicRMW(target, ctx.cOp, ctx.generatedValue, typeInfo);
+}
+
+/**
+ * Handle overflow-clamped compound assignment: clamp u8 saturated +<- 200
+ *
+ * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc.
+ * Only applies to integers (floats use native C arithmetic with infinity).
+ */
+function handleOverflowClamp(
+  ctx: IAssignmentContext,
+  deps: IHandlerDeps,
+): string {
+  const id = ctx.identifiers[0];
+  const typeInfo = deps.typeRegistry.get(id)!;
+  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+
+  // Floats use native C arithmetic (overflow to infinity)
+  if (TypeCheckUtils.usesNativeArithmetic(typeInfo.baseType)) {
+    return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
+  }
+
+  const helperOp = CLAMP_OP_MAP[ctx.cOp];
+
+  if (helperOp) {
+    deps.markClampOpUsed(helperOp, typeInfo.baseType);
+    return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${ctx.generatedValue});`;
+  }
+
+  // Fallback for operators without clamp helpers (e.g., /=)
+  return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
+}
+
+/**
+ * All special handlers for registration.
+ */
+const specialHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
+  [AssignmentKind.ATOMIC_RMW, handleAtomicRMW],
+  [AssignmentKind.OVERFLOW_CLAMP, handleOverflowClamp],
+];
+
+export default specialHandlers;
