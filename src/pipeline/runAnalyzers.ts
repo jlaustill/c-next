@@ -16,6 +16,7 @@ import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "../analysis/FloatModuloAnalyzer";
 import CommentExtractor from "../codegen/CommentExtractor";
 import ITranspileError from "../lib/types/ITranspileError";
+import SymbolTable from "../symbols/SymbolTable";
 
 /**
  * Options for running analyzers
@@ -26,6 +27,12 @@ interface IAnalyzerOptions {
    * Maps struct name -> Set of field names
    */
   externalStructFields?: Map<string, Set<string>>;
+
+  /**
+   * Symbol table containing external function definitions from C/C++ headers
+   * Used by FunctionCallAnalyzer to recognize external functions
+   */
+  symbolTable?: SymbolTable;
 }
 
 /**
@@ -101,8 +108,9 @@ function runAnalyzers(
   }
 
   // 3. Call analysis (ADR-030: define-before-use)
+  // Pass symbol table so external functions from C/C++ headers are recognized
   const funcAnalyzer = new FunctionCallAnalyzer();
-  const funcErrors = funcAnalyzer.analyze(tree);
+  const funcErrors = funcAnalyzer.analyze(tree, options?.symbolTable);
 
   for (const funcError of funcErrors) {
     errors.push({

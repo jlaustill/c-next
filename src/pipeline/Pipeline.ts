@@ -37,6 +37,7 @@ import FileDiscovery from "../project/FileDiscovery";
 import EFileType from "../project/types/EFileType";
 import IDiscoveredFile from "../project/types/IDiscoveredFile";
 import IncludeDiscovery from "../lib/IncludeDiscovery";
+import IncludeResolver from "../lib/IncludeResolver";
 import ITranspileError from "../lib/types/ITranspileError";
 
 import IPipelineConfig from "./types/IPipelineConfig";
@@ -241,14 +242,19 @@ class Pipeline {
 
   /**
    * Stage 1: Discover source files
+   *
+   * Unified include resolution: Discovers .cnx files from inputs, then
+   * reads each file to extract and resolve its #include directives.
+   * This ensures headers are found based on what the source actually
+   * includes, not by blindly scanning include directories.
    */
   private async discoverSources(): Promise<{
     cnextFiles: IDiscoveredFile[];
     headerFiles: IDiscoveredFile[];
   }> {
-    let allFiles: IDiscoveredFile[] = [];
+    // Step 1: Discover C-Next files from inputs (files or directories)
+    const cnextFiles: IDiscoveredFile[] = [];
 
-    // Discover from inputs (files or directories)
     for (const input of this.config.inputs) {
       const resolvedInput = resolve(input);
 
@@ -257,73 +263,67 @@ class Pipeline {
       }
 
       const file = FileDiscovery.discoverFile(resolvedInput);
-      if (file && file.type !== EFileType.Unknown) {
-        // It's a file
-        allFiles.push(file);
+      if (file && file.type === EFileType.CNext) {
+        // It's a C-Next file
+        cnextFiles.push(file);
+      } else if (file && file.type !== EFileType.Unknown) {
+        // It's another supported file type (direct header input)
+        // Skip for now - we only want C-Next sources here
       } else {
-        // It's a directory - scan it
+        // It's a directory - scan for C-Next files
         const discovered = FileDiscovery.discover([resolvedInput], {
           recursive: true,
         });
-        allFiles.push(...discovered);
+        cnextFiles.push(...FileDiscovery.getCNextFiles(discovered));
       }
     }
 
-    // Also scan include directories for headers
-    if (this.config.includeDirs.length > 0) {
-      const headerDiscovered = FileDiscovery.discover(this.config.includeDirs, {
-        recursive: true,
-      });
-
-      // Merge, avoiding duplicates
-      const existingPaths = new Set(allFiles.map((f) => f.path));
-      for (const file of headerDiscovered) {
-        if (!existingPaths.has(file.path)) {
-          allFiles.push(file);
-        }
-      }
+    if (cnextFiles.length === 0) {
+      return { cnextFiles: [], headerFiles: [] };
     }
 
-    // Auto-discover include paths from C-Next files
-    const cnextFiles = FileDiscovery.getCNextFiles(allFiles);
-    if (cnextFiles.length > 0) {
-      const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
-        cnextFiles[0].path,
-      );
-
-      const headerDiscovered = FileDiscovery.discover(additionalIncludeDirs, {
-        recursive: true,
-      });
-
-      const existingPaths = new Set(allFiles.map((f) => f.path));
-      for (const file of headerDiscovered) {
-        if (!existingPaths.has(file.path)) {
-          allFiles.push(file);
-        }
-      }
-    }
-
-    // Separate C-Next files from headers
-    const finalCnextFiles = FileDiscovery.getCNextFiles(allFiles);
+    // Step 2: For each C-Next file, resolve its #include directives
+    const headerSet = new Map<string, IDiscoveredFile>();
 
     // Build set of base names from C-Next files to exclude generated headers
     const cnextBaseNames = new Set(
-      finalCnextFiles.map((f) =>
-        basename(f.path).replace(/\.cnx$|\.cnext$/, ""),
-      ),
+      cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
     );
 
-    // Filter headers, excluding generated ones
-    const allHeaderFiles = FileDiscovery.getHeaderFiles(allFiles);
-    const headerFiles = allHeaderFiles.filter((f) => {
-      const headerBaseName = basename(f.path).replace(
-        /\.h$|\.hpp$|\.hxx$|\.hh$/,
-        "",
-      );
-      return !cnextBaseNames.has(headerBaseName);
-    });
+    for (const cnxFile of cnextFiles) {
+      const content = readFileSync(cnxFile.path, "utf-8");
 
-    return { cnextFiles: finalCnextFiles, headerFiles };
+      // Build search paths for this file
+      const sourceDir = dirname(cnxFile.path);
+      const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
+        cnxFile.path,
+      );
+      const searchPaths = IncludeResolver.buildSearchPaths(
+        sourceDir,
+        this.config.includeDirs,
+        additionalIncludeDirs,
+      );
+
+      // Resolve includes
+      const resolver = new IncludeResolver(searchPaths);
+      const resolved = resolver.resolve(content, cnxFile.path);
+
+      // Collect headers, filtering out generated ones
+      for (const header of resolved.headers) {
+        const headerBaseName = basename(header.path).replace(
+          /\.h$|\.hpp$|\.hxx$|\.hh$/,
+          "",
+        );
+        if (!cnextBaseNames.has(headerBaseName)) {
+          headerSet.set(header.path, header);
+        }
+      }
+
+      // Collect warnings
+      this.warnings.push(...resolved.warnings);
+    }
+
+    return { cnextFiles, headerFiles: [...headerSet.values()] };
   }
 
   /**
@@ -625,8 +625,10 @@ class Pipeline {
       };
     }
 
-    // Run analyzers
-    const analyzerErrors = runAnalyzers(tree, tokenStream);
+    // Run analyzers with symbol table for external function recognition
+    const analyzerErrors = runAnalyzers(tree, tokenStream, {
+      symbolTable: this.symbolTable,
+    });
     if (analyzerErrors.length > 0) {
       return {
         sourcePath: file.path,
@@ -903,69 +905,37 @@ class Pipeline {
         await this.cacheManager.initialize();
       }
 
-      // Step 1: Extract #include directives from source
-      const includes = IncludeDiscovery.extractIncludes(source);
-
-      // Step 2: Build search paths for header discovery
-      const searchPaths = [
+      // Step 1: Build search paths using unified IncludeResolver
+      const searchPaths = IncludeResolver.buildSearchPaths(
         workingDir,
-        ...additionalIncludeDirs,
-        ...this.config.includeDirs,
-      ];
+        this.config.includeDirs,
+        additionalIncludeDirs,
+      );
 
-      // Add project-level include paths
-      const projectRoot = IncludeDiscovery.findProjectRoot(workingDir);
-      if (projectRoot) {
-        const commonDirs = ["include", "src", "lib"];
-        for (const dir of commonDirs) {
-          const includePath = join(projectRoot, dir);
-          if (existsSync(includePath) && statSync(includePath).isDirectory()) {
-            searchPaths.push(includePath);
-          }
-        }
-      }
+      // Step 2: Resolve includes from source content
+      const resolver = new IncludeResolver(searchPaths);
+      const resolved = resolver.resolve(source, sourcePath);
 
-      // Step 3: Resolve and collect header files (C/C++ headers and C-Next includes)
-      const headerFiles: IDiscoveredFile[] = [];
-      const cnextIncludes: IDiscoveredFile[] = [];
-      for (const includePath of includes) {
-        const resolved = IncludeDiscovery.resolveInclude(
-          includePath,
-          searchPaths,
-        );
-        if (resolved) {
-          const file = FileDiscovery.discoverFile(resolved);
-          if (file) {
-            if (
-              file.type === EFileType.CHeader ||
-              file.type === EFileType.CppHeader
-            ) {
-              headerFiles.push(file);
-            } else if (file.type === EFileType.CNext) {
-              // Issue #294: Also collect symbols from C-Next include files
-              cnextIncludes.push(file);
-            }
-          }
-        }
-      }
+      // Step 3: Collect warnings
+      this.warnings.push(...resolved.warnings);
 
       // Step 4a: Parse C/C++ headers to populate symbol table
-      for (const file of headerFiles) {
+      for (const header of resolved.headers) {
         try {
-          await this.collectHeaderSymbols(file);
+          await this.collectHeaderSymbols(header);
         } catch (err) {
-          this.warnings.push(`Failed to process header ${file.path}: ${err}`);
+          this.warnings.push(`Failed to process header ${header.path}: ${err}`);
         }
       }
 
       // Step 4b: Issue #294 - Parse C-Next includes to populate symbol table
       // This enables cross-file scope references (e.g., decoder.getSpn() -> decoder_getSpn())
-      for (const file of cnextIncludes) {
+      for (const cnxInclude of resolved.cnextIncludes) {
         try {
-          this.collectCNextSymbols(file);
+          this.collectCNextSymbols(cnxInclude);
         } catch (err) {
           this.warnings.push(
-            `Failed to process C-Next include ${file.path}: ${err}`,
+            `Failed to process C-Next include ${cnxInclude.path}: ${err}`,
           );
         }
       }
@@ -1048,6 +1018,7 @@ class Pipeline {
 
       const analyzerErrors = runAnalyzers(tree, tokenStream, {
         externalStructFields,
+        symbolTable: this.symbolTable,
       });
       if (analyzerErrors.length > 0) {
         return {
