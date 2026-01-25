@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.35] - 2026-01-25
+
+### Fixed
+
+- Output enums before structs that reference them in headers (Issue #449, PR #450)
+
 ## [0.1.34] - 2026-01-25
 
 ### Added
@@ -410,18 +416,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.33...HEAD
-[0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
-[0.1.32]: https://github.com/jlaustill/c-next/compare/v0.1.31...v0.1.32
-[0.1.31]: https://github.com/jlaustill/c-next/compare/v0.1.30...v0.1.31
-[0.1.30]: https://github.com/jlaustill/c-next/compare/v0.1.29...v0.1.30
-[0.1.29]: https://github.com/jlaustill/c-next/compare/v0.1.28...v0.1.29
-[0.1.28]: https://github.com/jlaustill/c-next/compare/v0.1.27...v0.1.28
-[0.1.27]: https://github.com/jlaustill/c-next/compare/v0.1.26...v0.1.27
-[0.1.26]: https://github.com/jlaustill/c-next/compare/v0.1.25...v0.1.26
-[0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
-[0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
-[0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.35...HEAD
+[0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
 [0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
 [0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
 [0.1.32]: https://github.com/jlaustill/c-next/compare/v0.1.31...v0.1.32
