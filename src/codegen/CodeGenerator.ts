@@ -9383,6 +9383,14 @@ export default class CodeGenerator implements IOrchestrator {
         (name: string) => this.isKnownStruct(name),
       );
 
+      // Issue #452: Check if identifier is an unqualified enum member reference
+      // If so, prefix it with the enum type name (e.g., PRESSURE_TYPE_PSIG -> EPressureType_PRESSURE_TYPE_PSIG)
+      for (const [enumName, members] of this.symbols!.enumMembers) {
+        if (members.has(id)) {
+          return `${enumName}${this.getScopeSeparator(false)}${id}`;
+        }
+      }
+
       return id;
     }
     if (ctx.literal()) {
