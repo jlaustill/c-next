@@ -1,0 +1,8 @@
+// test-error
+// Tests: Modulo operator with float types should be rejected (E0804)
+
+u32 main() {
+    f32 x <- 10.5;
+    f32 result <- x % 3.0;
+    return 0;
+}
