@@ -1,4 +1,4 @@
-# ADR-055: Symbol Parser Architecture
+# ADR-055: Symbol Resolution Architecture
 
 ## Status
 
@@ -8,10 +8,19 @@
 
 C-Next currently has **two separate C-Next symbol collectors** that walk the same AST to extract similar information:
 
-1. `src/codegen/SymbolCollector.ts` (758 lines) - Used by CodeGenerator
+1. `src/codegen/SymbolCollector.ts` (758 lines) - Used by CodeGenerator during code generation
 2. `src/symbols/CNextSymbolCollector.ts` (507 lines) - Used for the unified SymbolTable
 
-This creates several problems:
+### Why Two Collectors Exist
+
+| Collector                      | When It Runs                            | What It Captures                                                                                      | Output Format                                             |
+| ------------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `codegen/SymbolCollector`      | During `CodeGenerator.generate()`       | Detailed type info for code gen (struct field types, enum values, bitmap offsets, register addresses) | Rich Maps (e.g., `Map<structName, Map<fieldName, type>>`) |
+| `symbols/CNextSymbolCollector` | Before code generation (Pipeline stage) | Symbol names and metadata for cross-language lookups                                                  | Flat `ISymbol[]` array                                    |
+
+The codegen collector runs **during** generation (single-pass), while the symbols collector runs **before** to populate the SymbolTable. This timing difference exists because CodeGenerator was originally monolithic and had its own symbol collection embedded.
+
+### Problems
 
 1. **Confusion**: Developers don't know which collector to use or modify
 2. **Duplication**: ~500+ lines of similar AST-walking logic
@@ -28,7 +37,40 @@ src/
 └── analysis/         # Static analyzers
 ```
 
-A developer looking for "where symbols are parsed" has no clear answer.
+A developer looking for "where symbols are resolved" has no clear answer.
+
+### Current ISymbol (Richer Than Initially Described)
+
+The existing `ISymbol` interface already includes more than basic metadata:
+
+```typescript
+interface ISymbol {
+  name: string;
+  kind: ESymbolKind;
+  type?: string;
+  sourceFile: string;
+  sourceLine: number;
+  sourceLanguage: ESourceLanguage;
+  isExported: boolean;
+
+  // Already present:
+  parameters?: Array<{
+    name: string;
+    type: string;
+    isConst: boolean;
+    isArray: boolean;
+    arrayDimensions?: string[];
+    isAutoConst?: boolean;
+  }>;
+  accessModifier?: string; // For register members
+  size?: number; // For arrays/bit widths
+  isArray?: boolean;
+  arrayDimensions?: string[];
+  isConst?: boolean;
+}
+```
+
+However, struct fields, enum values, and bitmap field offsets are stored **separately** in `SymbolTable` (e.g., `structFields: Map<string, Map<string, IStructFieldInfo>>`), not on the symbols themselves. This separation is what the discriminated union aims to consolidate.
 
 ## Research: How Production Compilers Handle This
 
@@ -75,24 +117,24 @@ A developer looking for "where symbols are parsed" has no clear answer.
 
 ### 1. Rename Directories for Clarity
 
-| Old            | New                  | Purpose                       |
-| -------------- | -------------------- | ----------------------------- |
-| `src/parser/`  | `src/antlr_parser/`  | ANTLR grammar files only      |
-| `src/symbols/` | `src/symbol_parser/` | All symbol parsing/resolution |
+| Old            | New                      | Purpose                          |
+| -------------- | ------------------------ | -------------------------------- |
+| `src/parser/`  | `src/antlr_parser/`      | ANTLR grammar files only         |
+| `src/symbols/` | `src/symbol_resolution/` | All symbol resolution/collection |
 
-The name `symbol_parser/` makes it immediately clear: "This is where symbols are parsed."
+The name `symbol_resolution/` is accurate: we're not "parsing" symbols (that's lexing/parsing), we're **resolving** semantic information from an already-parsed AST.
 
 ### 2. One Collector Per Language with Composable Sub-Collectors
 
 Each language gets its own folder with small, focused, testable collectors:
 
 ```
-src/symbol_parser/
+src/symbol_resolution/
 ├── SymbolTable.ts              # Central storage for all languages
 ├── types/                      # Shared types (TSymbol, IFieldInfo, etc.)
 │
 ├── cnext/                      # C-Next language
-│   ├── index.ts                # CNextSymbolParser (orchestrator)
+│   ├── index.ts                # CNextResolver (orchestrator)
 │   ├── collectors/
 │   │   ├── ScopeCollector.ts       # ~50-80 lines each
 │   │   ├── StructCollector.ts
@@ -105,7 +147,7 @@ src/symbol_parser/
 │   └── __tests__/              # Unit tests for each collector
 │
 ├── cpp/                        # C++ language
-│   ├── index.ts                # CppSymbolParser
+│   ├── index.ts                # CppResolver
 │   ├── collectors/
 │   │   ├── ClassCollector.ts
 │   │   ├── NamespaceCollector.ts
@@ -114,24 +156,16 @@ src/symbol_parser/
 │   └── __tests__/
 │
 └── c/                          # C language
-    ├── index.ts                # CSymbolParser
+    ├── index.ts                # CResolver
     ├── collectors/
     └── __tests__/
 ```
 
 ### 3. Rich Discriminated Union for Symbols
 
-Replace the flat `ISymbol` with a discriminated union that carries full semantic information:
+Extend the type system with a discriminated union that carries full semantic information. This consolidates data currently split between `ISymbol` and separate `SymbolTable` maps:
 
 ```typescript
-// Current: Flat, loses information
-interface ISymbol {
-  name: string;
-  kind: ESymbolKind;
-  type?: string;
-  // No struct fields, no enum values, no bitmap offsets
-}
-
 // Proposed: Rich discriminated union
 type TSymbol =
   | IStructSymbol
@@ -165,6 +199,7 @@ interface IFieldInfo {
 interface IEnumSymbol extends IBaseSymbol {
   kind: ESymbolKind.Enum;
   members: Map<string, number>; // Actual numeric values
+  bitWidth?: number; // Issue #208: For C enums
 }
 
 interface IBitmapSymbol extends IBaseSymbol {
@@ -192,28 +227,99 @@ interface IParameterInfo {
   isConst: boolean;
   isArray: boolean;
   arrayDimensions?: string[];
+  isAutoConst?: boolean;
 }
 
 interface IScopeSymbol extends IBaseSymbol {
-  kind: ESymbolKind.Scope;
+  kind: ESymbolKind.Namespace; // Reuse existing Namespace kind for C-Next scopes
   members: Set<string>;
   memberVisibility: Map<string, "public" | "private">;
 }
+
+interface IRegisterSymbol extends IBaseSymbol {
+  kind: ESymbolKind.Register;
+  baseAddress: string;
+  members: Map<string, IRegisterMemberInfo>;
+}
+
+interface IRegisterMemberInfo {
+  offset: string;
+  cType: string;
+  access: "rw" | "ro" | "wo" | "w1c" | "w1s";
+  bitmapType?: string; // If member uses a bitmap type
+}
+
+interface IVariableSymbol extends IBaseSymbol {
+  kind: ESymbolKind.Variable;
+  type: string;
+  isConst: boolean;
+  isArray: boolean;
+  arrayDimensions?: number[];
+  initialValue?: string; // For const inlining (Issue #282)
+}
 ```
 
-### 4. Composable Collector Pattern
+### 4. Eager Collection (Not Lazy)
 
-Each collector is small, focused, and independently testable:
+We use **eager collection** - all symbol data is collected upfront when a file is processed. This is simpler than lazy collection and adequate for C-Next's use case:
+
+- C-Next projects are typically small-to-medium embedded codebases
+- Files are processed sequentially, not in parallel
+- No persistent server keeping state
+
+Lazy collection would add complexity (tracking "have I collected this yet?" state) without meaningful benefit.
+
+### 5. Forward Declarations (C/C++ Only)
+
+C-Next does not support forward declarations. For C/C++ headers that do use them:
+
+- `SymbolTable` already handles merging symbols from multiple files
+- A forward declaration in one file and definition in another both add to the table
+- The discriminated union doesn't change this - it just makes the merged data richer
+
+### 6. Cache Key Encapsulation
+
+The current caching uses file modification timestamps (`stats.mtimeMs`). To support future improvements (like content hashing), encapsulate cache key generation:
 
 ```typescript
-// symbol_parser/cnext/collectors/StructCollector.ts
+// symbol_resolution/cache/CacheKeyGenerator.ts
+
+class CacheKeyGenerator {
+  /**
+   * Generate a cache key for a file.
+   * Currently uses mtime; can be changed to content hash later.
+   */
+  static generate(filePath: string): string {
+    const stats = statSync(filePath);
+    return `${filePath}:${stats.mtimeMs}`;
+  }
+
+  /**
+   * Check if a cached entry is still valid.
+   */
+  static isValid(filePath: string, cachedKey: string): boolean {
+    const currentKey = this.generate(filePath);
+    return currentKey === cachedKey;
+  }
+}
+```
+
+This isolates the cache invalidation strategy to a single location.
+
+### 7. Composable Collector Pattern
+
+Each collector is small, focused, stateless, and independently testable:
+
+```typescript
+// symbol_resolution/cnext/collectors/StructCollector.ts
 
 import * as Parser from "../../antlr_parser/grammar/CNextParser";
 import { IStructSymbol, IFieldInfo } from "../types";
 
 class StructCollector {
   /**
-   * Collect a struct declaration into a rich symbol
+   * Collect a struct declaration into a rich symbol.
+   * Stateless - all context passed as parameters.
    */
   collect(
     ctx: Parser.StructDeclarationContext,
@@ -270,29 +376,32 @@ class StructCollector {
 export default StructCollector;
 ```
 
-### 5. Orchestrator Composes Collectors
+### 8. Orchestrator Composes Collectors
 
 ```typescript
-// symbol_parser/cnext/index.ts
+// symbol_resolution/cnext/index.ts
 
 import * as Parser from "../antlr_parser/grammar/CNextParser";
 import StructCollector from "./collectors/StructCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import BitmapCollector from "./collectors/BitmapCollector";
 import ScopeCollector from "./collectors/ScopeCollector";
+import RegisterCollector from "./collectors/RegisterCollector";
 // ... other collectors
 
-class CNextSymbolParser {
+class CNextResolver {
   private structCollector = new StructCollector();
   private enumCollector = new EnumCollector();
   private bitmapCollector = new BitmapCollector();
   private scopeCollector = new ScopeCollector();
+  private registerCollector = new RegisterCollector();
   // ...
 
   /**
-   * Parse all symbols from a C-Next program
+   * Resolve all symbols from a C-Next program.
+   * Returns rich symbols with full semantic information.
    */
-  parse(tree: Parser.ProgramContext, sourceFile: string): TSymbol[] {
+  resolve(tree: Parser.ProgramContext, sourceFile: string): TSymbol[] {
     const symbols: TSymbol[] = [];
 
     // First pass: collect bitmaps (needed before registers reference them)
@@ -321,6 +430,14 @@ class CNextSymbolParser {
           this.enumCollector.collect(decl.enumDeclaration()!, sourceFile),
         );
       }
+      if (decl.registerDeclaration()) {
+        symbols.push(
+          this.registerCollector.collect(
+            decl.registerDeclaration()!,
+            sourceFile,
+          ),
+        );
+      }
       // ... other declarations
     }
 
@@ -328,10 +445,10 @@ class CNextSymbolParser {
   }
 }
 
-export default CNextSymbolParser;
+export default CNextResolver;
 ```
 
-### 6. CodeGenerator Queries SymbolTable
+### 9. CodeGenerator Queries SymbolTable
 
 After this refactoring, CodeGenerator no longer has its own SymbolCollector:
 
@@ -357,73 +474,93 @@ class CodeGenerator {
 
 ## Migration Plan
 
+### Phase 0: Parallel Type System (Low Risk)
+
+1. Create `src/symbol_resolution/types/TSymbol.ts` with the new discriminated union
+2. Keep existing `ISymbol` unchanged
+3. Both types coexist - no breaking changes yet
+4. Add type guards: `isStructSymbol(s): s is IStructSymbol`
+
 ### Phase 1: Directory Restructure
 
 1. Rename `src/parser/` → `src/antlr_parser/`
-2. Rename `src/symbols/` → `src/symbol_parser/`
-3. Update all imports
+2. Rename `src/symbols/` → `src/symbol_resolution/`
+3. Update all imports (automated with find/replace)
 4. No functional changes - just file moves
 
-### Phase 2: Create Rich Symbol Types
+### Phase 2: Build Composable Collectors
 
-1. Create `src/symbol_parser/types/TSymbol.ts` with discriminated union
-2. Create interfaces for each symbol kind
-3. Keep old `ISymbol` temporarily for backwards compatibility
-
-### Phase 3: Build Composable Collectors
-
-1. Create `src/symbol_parser/cnext/collectors/` directory
+1. Create `src/symbol_resolution/cnext/collectors/` directory
 2. Extract `StructCollector` from existing code
 3. Add unit tests for `StructCollector`
 4. Repeat for Enum, Bitmap, Scope, Register, Function, Variable
+5. Each collector returns the new `TSymbol` types
 
-### Phase 4: Create Orchestrator
+### Phase 3: Create Orchestrator
 
-1. Create `src/symbol_parser/cnext/index.ts` (CNextSymbolParser)
+1. Create `src/symbol_resolution/cnext/index.ts` (CNextResolver)
 2. Wire up all collectors
 3. Add integration tests
+4. Orchestrator returns `TSymbol[]`
 
-### Phase 5: Migrate Consumers
+### Phase 4: Add CacheKeyGenerator
 
-1. Update `Pipeline.ts` to use new `CNextSymbolParser`
-2. Update `CodeGenerator.ts` to query `SymbolTable` instead of having its own collector
-3. Update `HeaderGenerator.ts` similarly
-4. Remove old `src/codegen/SymbolCollector.ts`
-5. Remove old `src/symbol_parser/CNextSymbolCollector.ts`
+1. Create `src/symbol_resolution/cache/CacheKeyGenerator.ts`
+2. Migrate `CacheManager.isValid()` to use it
+3. Single point of change for future cache key strategies
+
+### Phase 5: Migrate Consumers (One at a Time)
+
+1. Update `Pipeline.ts` to use new `CNextResolver`
+2. Update `SymbolTable` to store `TSymbol[]` internally
+3. Add adapter methods for backwards compatibility if needed
+4. Update `CodeGenerator.ts` to query `SymbolTable` instead of having its own collector
+5. Update `HeaderGenerator.ts` similarly
+6. Remove old `src/codegen/SymbolCollector.ts`
+7. Remove old `src/symbol_resolution/CNextSymbolCollector.ts`
 
 ### Phase 6: Repeat for C++ and C
 
-1. Apply same pattern to `CppSymbolParser`
-2. Apply same pattern to `CSymbolParser`
+1. Apply same pattern to `CppResolver`
+2. Apply same pattern to `CResolver`
+
+### Phase 7: Remove Legacy Types
+
+1. Remove `ISymbol` once all consumers migrated
+2. Remove backwards compatibility adapters
 
 ## Consequences
 
 ### Positive
 
-- **Clear discoverability**: "Where are symbols parsed?" → `src/symbol_parser/`
+- **Clear discoverability**: "Where are symbols resolved?" → `src/symbol_resolution/`
 - **One collector per language**: No more duplicate C-Next collectors
 - **Testable units**: Each collector is 50-100 lines, easily unit tested
-- **Rich data model**: Symbols carry full semantic information
+- **Rich data model**: Symbols carry full semantic information (no separate maps)
 - **DRY**: CodeGenerator and HeaderGenerator query the same data
 - **Extensible**: Adding new symbol types means adding a new collector file
+- **Future-proof caching**: CacheKeyGenerator isolates invalidation strategy
 
 ### Negative
 
 - **Migration effort**: Significant refactoring across multiple files
-- **Breaking change**: Consumers of old `ISymbol` need updates
+- **Breaking change**: Consumers of old `ISymbol` need updates (mitigated by Phase 0)
 - **Learning curve**: New architecture to understand
 
 ### Neutral
 
 - **More files**: Trade one 758-line file for ~7 smaller files
 - **Type complexity**: Discriminated union is more complex than flat interface
+- **Eager collection**: Collects all data upfront (adequate for C-Next project sizes)
 
 ## Test Strategy
+
+### Unit Tests (Per Collector)
 
 Each collector gets its own test file:
 
 ```typescript
-// symbol_parser/cnext/__tests__/StructCollector.test.ts
+// symbol_resolution/cnext/__tests__/StructCollector.test.ts
 
 describe("StructCollector", () => {
   const collector = new StructCollector();
@@ -440,6 +577,7 @@ describe("StructCollector", () => {
     const symbol = collector.collect(ctx, "test.cnx");
 
     expect(symbol.name).toBe("Point");
+    expect(symbol.kind).toBe(ESymbolKind.Struct);
     expect(symbol.fields.get("x")?.type).toBe("i32");
     expect(symbol.fields.get("y")?.type).toBe("i32");
   });
@@ -469,6 +607,59 @@ describe("StructCollector", () => {
     const symbol = collector.collect(ctx, "test.cnx", "Motor");
 
     expect(symbol.name).toBe("Motor_State");
+  });
+});
+```
+
+### Integration Tests (Orchestrator)
+
+```typescript
+// symbol_resolution/cnext/__tests__/CNextResolver.integration.test.ts
+
+describe("CNextResolver", () => {
+  const resolver = new CNextResolver();
+
+  it("should resolve all symbol types from a complete file", () => {
+    const tree = parse(`
+      struct Point { i32 x; i32 y; }
+      enum Color { Red, Green, Blue }
+      bitmap8 Flags { enabled: 1; ready: 1; error: 1; reserved: 5; }
+
+      scope Motor {
+        public void start() { }
+      }
+    `);
+
+    const symbols = resolver.resolve(tree, "test.cnx");
+
+    expect(symbols).toHaveLength(4);
+    expect(symbols.find((s) => s.name === "Point")?.kind).toBe(
+      ESymbolKind.Struct,
+    );
+    expect(symbols.find((s) => s.name === "Color")?.kind).toBe(
+      ESymbolKind.Enum,
+    );
+    expect(symbols.find((s) => s.name === "Flags")?.kind).toBe(
+      ESymbolKind.Bitmap,
+    );
+    expect(symbols.find((s) => s.name === "Motor")?.kind).toBe(
+      ESymbolKind.Namespace,
+    );
+  });
+});
+```
+
+### Regression Tests
+
+During migration, ensure output matches current behavior:
+
+```typescript
+// symbol_resolution/__tests__/regression.test.ts
+
+describe("Regression: symbol resolution matches legacy collectors", () => {
+  it("should produce equivalent data for existing test files", () => {
+    // Parse with both old and new systems
+    // Compare outputs
   });
 });
 ```
