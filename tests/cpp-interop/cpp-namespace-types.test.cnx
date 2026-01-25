@@ -1,0 +1,23 @@
+// test-transpile-only
+// Tests: C++ namespace type references from C-Next (Issue #388)
+// This test verifies that C-Next can reference types nested in C++ namespaces
+
+#include "MockLib.hpp"
+
+// Test 1: Two-level namespace type (MockLib::Parse::ParseResult)
+MockLib.Parse.ParseResult parsed;
+
+// Test 2: Single-level namespace type (MockLib::Config)
+MockLib.Config config;
+
+// Test 3: Triple-level namespace type (Deep::Level1::Level2::DeepType)
+Deep.Level1.Level2.DeepType deep;
+
+scope Test {
+    public void init() {
+        // Test function calls through namespaces (already works via global. prefix)
+        global.parsed <- global.MockLib.Parse.parse("test", ',');
+        global.config <- global.MockLib.getDefaultConfig();
+        global.deep <- global.Deep.Level1.Level2.create(42);
+    }
+}

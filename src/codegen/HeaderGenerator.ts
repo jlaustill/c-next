@@ -178,9 +178,14 @@ class HeaderGenerator {
     }
 
     // Extern variable declarations
-    if (variables.length > 0) {
+    // Issue #388: Filter out variables with C++ namespace types - they require
+    // including C++ headers which is the user's responsibility
+    const cCompatibleVariables = variables.filter(
+      (v) => !v.type?.includes("::"),
+    );
+    if (cCompatibleVariables.length > 0) {
       lines.push("/* External variables */");
-      for (const sym of variables) {
+      for (const sym of cCompatibleVariables) {
         const cType = sym.type ? mapType(sym.type) : "int";
         // Issue #288: Include const qualifier for const variables
         const constPrefix = sym.isConst ? "const " : "";
@@ -345,6 +350,12 @@ class HeaderGenerator {
     const isExternalType = (typeName: string): boolean => {
       // Skip if it's a primitive type
       if (TYPE_MAP[typeName]) {
+        return false;
+      }
+
+      // Issue #388: Skip C++ namespace types (e.g., MockLib::Parse::ParseResult)
+      // These are already defined in the included C++ headers
+      if (typeName.includes("::")) {
         return false;
       }
 

@@ -26,6 +26,42 @@ class CNextSymbolCollector {
   }
 
   /**
+   * Issue #388: Resolve a type from the parse tree to the correct output format.
+   * For C++ namespace types (like MockLib.Parse.ParseResult), uses :: separator.
+   * For C-Next scope types (like Motor.State), uses _ separator.
+   */
+  private resolveTypeName(typeCtx: Parser.TypeContext): string {
+    // Handle qualified types (A.B.C)
+    if (typeCtx.qualifiedType()) {
+      const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
+      const names = identifiers.map((id) => id.getText());
+      const firstName = names[0];
+
+      // Check if first identifier is a C++ namespace/class
+      if (this.symbolTable) {
+        const symbols = this.symbolTable.getOverloads(firstName);
+        for (const sym of symbols) {
+          if (sym.sourceLanguage !== ESourceLanguage.CNext) {
+            if (
+              sym.kind === ESymbolKind.Namespace ||
+              sym.kind === ESymbolKind.Class
+            ) {
+              // C++ namespace type - use :: separator
+              return names.join("::");
+            }
+          }
+        }
+      }
+
+      // C-Next scope type - use _ separator
+      return names.join("_");
+    }
+
+    // Other types - return as-is
+    return typeCtx.getText();
+  }
+
+  /**
    * Collect all symbols from a C-Next program
    */
   collect(tree: Parser.ProgramContext): ISymbol[] {
@@ -334,12 +370,20 @@ class CNextSymbolCollector {
   ): void {
     const name = func.IDENTIFIER().getText();
     const line = func.start?.line ?? 0;
-    const returnType = func.type()?.getText() ?? "void";
+    // Issue #388: Resolve qualified types to correct format
+    const returnTypeCtx = func.type();
+    const returnType = returnTypeCtx
+      ? this.resolveTypeName(returnTypeCtx)
+      : "void";
     const fullName = parent ? `${parent}_${name}` : name;
 
     // Build signature for overload detection
     const params = func.parameterList()?.parameter() ?? [];
-    const paramTypes = params.map((p) => p.type()?.getText() ?? "unknown");
+    // Issue #388: Resolve qualified types in parameter types
+    const paramTypes = params.map((p) => {
+      const typeCtx = p.type();
+      return typeCtx ? this.resolveTypeName(typeCtx) : "unknown";
+    });
     const signature = `${returnType} ${fullName}(${paramTypes.join(", ")})`;
 
     // Build parameter info for header generation (ADR-030 compliance)
@@ -351,9 +395,13 @@ class CNextSymbolCollector {
         return match ? match[1] : ""; // "" means unbounded array
       });
 
+      // Issue #388: Resolve qualified types in parameter types
+      const typeCtx = p.type();
+      const paramType = typeCtx ? this.resolveTypeName(typeCtx) : "unknown";
+
       return {
         name: p.IDENTIFIER().getText(),
-        type: p.type()?.getText() ?? "unknown",
+        type: paramType,
         isConst: !!p.constModifier(),
         isArray: arrayDims.length > 0,
         arrayDimensions: dimensions.length > 0 ? dimensions : undefined,
@@ -377,7 +425,11 @@ class CNextSymbolCollector {
     for (const param of params) {
       const paramName = param.IDENTIFIER().getText();
       const paramLine = param.start?.line ?? line;
-      const paramType = param.type()?.getText() ?? "unknown";
+      // Issue #388: Resolve qualified types
+      const paramTypeCtx = param.type();
+      const paramType = paramTypeCtx
+        ? this.resolveTypeName(paramTypeCtx)
+        : "unknown";
       const arrayDims = param.arrayDimension();
       const isArray = arrayDims.length > 0;
       const displayType = isArray ? `${paramType}[]` : paramType;
@@ -404,7 +456,8 @@ class CNextSymbolCollector {
     const name = varDecl.IDENTIFIER().getText();
     const line = varDecl.start?.line ?? 0;
     const typeCtx = varDecl.type();
-    const varType = typeCtx ? typeCtx.getText() : "unknown";
+    // Issue #388: Resolve qualified types to correct format (:: for C++, _ for C-Next)
+    const varType = typeCtx ? this.resolveTypeName(typeCtx) : "unknown";
     const fullName = parent ? `${parent}_${name}` : name;
 
     // Check for array (ADR-036: arrayDimension() now returns array for multi-dim)
