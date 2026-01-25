@@ -93,6 +93,15 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
+### Code Generation Patterns
+
+- **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
+- **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
+
+### Error Messages
+
+- Use simple `Error: message` format (not `Error[EXXX]`) — matches 111/114 existing errors.
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**
