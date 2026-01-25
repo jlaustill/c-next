@@ -1,0 +1,7 @@
+// test-error
+// Tests: Calling undefined function should be caught at compile time (E0422)
+
+u32 main() {
+    u32 result <- undefinedFunc(10);
+    return result;
+}

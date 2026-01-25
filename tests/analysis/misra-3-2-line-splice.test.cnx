@@ -1,0 +1,8 @@
+// test-error
+// Tests: MISRA C:2012 Rule 3.2 - line comment ending with backslash is forbidden
+
+// This comment ends with backslash \
+
+u32 main() {
+    return 0;
+}

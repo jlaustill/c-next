@@ -1,0 +1,10 @@
+// test-error
+// Tests: Division by const zero should be caught at compile time (E0800)
+
+const u32 ZERO <- 0;
+
+u32 main() {
+    u32 x <- 100;
+    u32 result <- x / ZERO;
+    return result;
+}

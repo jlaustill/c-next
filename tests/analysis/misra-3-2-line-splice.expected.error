@@ -1,0 +1,1 @@
+4:0 error[MISRA-3.2]: Line comment ends with '\' which causes line-splice (MISRA C:2012 Rule 3.2)

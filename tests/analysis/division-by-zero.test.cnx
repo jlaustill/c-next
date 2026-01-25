@@ -1,0 +1,8 @@
+// test-error
+// Tests: Division by literal zero should be caught at compile time (E0800)
+
+u32 main() {
+    u32 x <- 100;
+    u32 result <- x / 0;
+    return result;
+}

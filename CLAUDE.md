@@ -172,6 +172,16 @@ u32 main() {
 }
 ```
 
+### Error Validation Tests (test-error pattern)
+
+For compile-time error tests in `tests/analysis/`:
+
+- Use `// test-error` marker at top of `.test.cnx` file
+- Create matching `.expected.error` file with exact error output
+- Error format: `line:column error[CODE]: message` (no "Error: " prefix)
+- Code generation errors: `1:0 Code generation failed: Error[CODE]: message`
+- **Gotcha**: Avoid `/*` or `//` in test description comments - triggers MISRA 3.1 validation
+
 ## Header Generation
 
 **Symbol collection timing in `transpileSource()`**: When generating headers, symbol collection MUST happen AFTER `codeGenerator.generate()`. Placing it before breaks type resolution (e.g., `strlen()` becomes placeholder comments).

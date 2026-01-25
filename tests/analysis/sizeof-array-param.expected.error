@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error[E0601]: sizeof() on array parameter 'data' returns pointer size. Use data.length for element count or sizeof(elementType) * data.length for bytes

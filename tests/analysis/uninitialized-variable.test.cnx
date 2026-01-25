@@ -1,0 +1,8 @@
+// test-error
+// Tests: Use of uninitialized variable should be caught at compile time (E0381)
+
+u32 main() {
+    u32 x;
+    u32 result <- x + 10;
+    return result;
+}
