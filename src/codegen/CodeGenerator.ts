@@ -50,6 +50,7 @@ import functionGenerator from "./generators/declarationGenerators/FunctionGenera
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 // ADR-109: Extracted utilities
 import BitUtils from "../utils/BitUtils";
+import StringUtils from "../utils/StringUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
@@ -6834,7 +6835,13 @@ export default class CodeGenerator implements IOrchestrator {
                 }
                 this.needsString = true; // Ensure #include <string.h>
                 const index = this._generateExpression(exprs[0]);
-                return `strncpy(${structName}.${fieldName}[${index}], ${value}, ${capacity});`;
+                return StringUtils.copyToStructFieldArrayElement(
+                  structName,
+                  fieldName,
+                  index,
+                  value,
+                  capacity,
+                );
               }
             }
           }
@@ -7477,7 +7484,7 @@ export default class CodeGenerator implements IOrchestrator {
             );
           }
           this.needsString = true; // Ensure #include <string.h>
-          return `strncpy(${name}[${index}], ${value}, ${capacity});`;
+          return StringUtils.copyToArrayElement(name, index, value, capacity);
         }
 
         return `${name}[${index}] ${cOp} ${value};`;
@@ -7676,7 +7683,13 @@ export default class CodeGenerator implements IOrchestrator {
             }
             this.needsString = true; // Ensure #include <string.h>
             const index = this._generateExpression(exprs[0]);
-            return `strncpy(${structName}.${fieldName}[${index}], ${value}, ${capacity});`;
+            return StringUtils.copyToStructFieldArrayElement(
+              structName,
+              fieldName,
+              index,
+              value,
+              capacity,
+            );
           }
         }
       }
@@ -7703,7 +7716,7 @@ export default class CodeGenerator implements IOrchestrator {
           }
           this.needsString = true;
           const capacity = typeInfo.stringCapacity;
-          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+          return StringUtils.copyWithNull(target, value, capacity);
         }
       }
     }
@@ -7724,7 +7737,7 @@ export default class CodeGenerator implements IOrchestrator {
           }
           this.needsString = true;
           const capacity = typeInfo.stringCapacity;
-          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+          return StringUtils.copyWithNull(target, value, capacity);
         }
       }
     }
@@ -7746,7 +7759,7 @@ export default class CodeGenerator implements IOrchestrator {
           }
           this.needsString = true;
           const capacity = typeInfo.stringCapacity;
-          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+          return StringUtils.copyWithNull(target, value, capacity);
         }
       }
     }
@@ -7779,7 +7792,12 @@ export default class CodeGenerator implements IOrchestrator {
               }
               const capacity = parseInt(match[1], 10);
               this.needsString = true;
-              return `strncpy(${structName}.${fieldName}, ${value}, ${capacity}); ${structName}.${fieldName}[${capacity}] = '\\0';`;
+              return StringUtils.copyToStructField(
+                structName,
+                fieldName,
+                value,
+                capacity,
+              );
             }
           }
         }
