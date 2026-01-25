@@ -1,0 +1,41 @@
+// test-execution
+// Tests: Ternary conditional operator
+// Demonstrates: condition ? value_if_true : value_if_false
+
+u32 main() {
+    // Simple ternary
+    u32 a <- 10;
+    u32 b <- 20;
+    u32 max <- (a > b) ? a : b;
+    if (max != 20) return 1;
+
+    // Ternary with equality
+    u32 x <- 5;
+    u32 result <- (x = 5) ? 100 : 200;
+    if (result != 100) return 2;
+
+    result <- (x = 10) ? 100 : 200;
+    if (result != 200) return 3;
+
+    // Ternary for absolute value
+    i32 negative <- -42;
+    i32 positive <- 42;
+    i32 absNeg <- (negative < 0) ? (0 - negative) : negative;
+    i32 absPos <- (positive < 0) ? (0 - positive) : positive;
+    if (absNeg != 42) return 4;
+    if (absPos != 42) return 5;
+
+    // Ternary with boolean result
+    bool isEven <- ((10 % 2) = 0) ? true : false;
+    if (isEven != true) return 6;
+
+    isEven <- ((7 % 2) = 0) ? true : false;
+    if (isEven != false) return 7;
+
+    // Ternary in expression
+    u32 bonus <- (a < b) ? 50 : 0;
+    u32 total <- a + bonus;
+    if (total != 60) return 8;
+
+    return 0;
+}

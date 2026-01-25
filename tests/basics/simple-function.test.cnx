@@ -1,0 +1,60 @@
+// test-execution
+// Tests: Basic function declaration, calls, and return values
+// Demonstrates: void functions, return values, parameters
+
+// Simple function with no parameters
+u32 getFortyTwo() {
+    return 42;
+}
+
+// Function with parameters
+u32 add(u32 a, u32 b) {
+    return a + b;
+}
+
+// Function with multiple parameters
+u32 multiply(u32 x, u32 y) {
+    return x * y;
+}
+
+// Void function that modifies state
+u32 counter;
+
+void incrementCounter() {
+    counter <- counter + 1;
+}
+
+// Function calling another function
+u32 addThenDouble(u32 a, u32 b) {
+    u32 sum <- add(a, b);
+    return multiply(sum, 2);
+}
+
+u32 main() {
+    // Test simple return
+    u32 result <- getFortyTwo();
+    if (result != 42) return 1;
+
+    // Test parameters
+    result <- add(10, 20);
+    if (result != 30) return 2;
+
+    // Test multiply
+    result <- multiply(6, 7);
+    if (result != 42) return 3;
+
+    // Test void function with side effect
+    counter <- 0;
+    incrementCounter();
+    if (counter != 1) return 4;
+
+    incrementCounter();
+    incrementCounter();
+    if (counter != 3) return 5;
+
+    // Test function calling function
+    result <- addThenDouble(5, 10);
+    if (result != 30) return 6;
+
+    return 0;
+}
