@@ -14,8 +14,8 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IFloatModuloError from "./types/IFloatModuloError";
-
-const FLOAT_TYPES = ["f32", "f64", "float", "double"];
+import LiteralUtils from "./LiteralUtils";
+import TypeConstants from "./TypeConstants";
 
 /**
  * First pass: Collect variable declarations with float types
@@ -37,7 +37,7 @@ class FloatVariableCollector extends CNextListener {
     if (!typeCtx) return;
 
     const typeName = typeCtx.getText();
-    if (!FLOAT_TYPES.includes(typeName)) return;
+    if (!TypeConstants.FLOAT_TYPES.includes(typeName)) return;
 
     const identifier = ctx.IDENTIFIER();
     if (!identifier) return;
@@ -53,7 +53,7 @@ class FloatVariableCollector extends CNextListener {
     if (!typeCtx) return;
 
     const typeName = typeCtx.getText();
-    if (!FLOAT_TYPES.includes(typeName)) return;
+    if (!TypeConstants.FLOAT_TYPES.includes(typeName)) return;
 
     const identifier = ctx.IDENTIFIER();
     if (!identifier) return;
@@ -122,7 +122,7 @@ class FloatModuloListener extends CNextListener {
     // Check for float literal
     const literal = primaryExpr.literal();
     if (literal) {
-      return this.isFloatLiteral(literal);
+      return LiteralUtils.isFloat(literal);
     }
 
     // Check for identifier that's a float variable
@@ -132,18 +132,6 @@ class FloatModuloListener extends CNextListener {
     }
 
     return false;
-  }
-
-  /**
-   * Check if a literal is a floating-point number
-   */
-  private isFloatLiteral(ctx: Parser.LiteralContext): boolean {
-    // Check for FLOAT_LITERAL token
-    if (ctx.FLOAT_LITERAL()) return true;
-
-    // Check text for decimal point (fallback)
-    const text = ctx.getText();
-    return text.includes(".") && !text.startsWith('"');
   }
 }
 

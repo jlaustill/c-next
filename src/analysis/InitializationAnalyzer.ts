@@ -17,6 +17,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import IInitializationError from "./types/IInitializationError";
 import IDeclarationInfo from "./types/IDeclarationInfo";
 import ScopeStack from "./ScopeStack";
+import ExpressionUtils from "./ExpressionUtils";
 
 /**
  * Tracks the initialization state of a variable
@@ -204,45 +205,13 @@ class InitializationListener extends CNextListener {
   };
 
   /**
-   * Recursively find and mark simple identifier arguments as initialized
+   * Mark simple identifier arguments as initialized.
+   * Only marks truly simple identifiers (not complex expressions like `a + b`).
    */
   private markArgumentsAsInitialized(expr: Parser.ExpressionContext): void {
-    // Navigate through expression layers to find primary expression
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return;
-    const orExprs = ternary.orExpression();
-    if (orExprs.length === 0) return;
-    const or = orExprs[0];
-    if (!or) return;
-    const and = or.andExpression(0);
-    if (!and) return;
-    const eq = and.equalityExpression(0);
-    if (!eq) return;
-    const rel = eq.relationalExpression(0);
-    if (!rel) return;
-    const bor = rel.bitwiseOrExpression(0);
-    if (!bor) return;
-    const bxor = bor.bitwiseXorExpression(0);
-    if (!bxor) return;
-    const band = bxor.bitwiseAndExpression(0);
-    if (!band) return;
-    const shift = band.shiftExpression(0);
-    if (!shift) return;
-    const add = shift.additiveExpression(0);
-    if (!add) return;
-    const mult = add.multiplicativeExpression(0);
-    if (!mult) return;
-    const unary = mult.unaryExpression(0);
-    if (!unary) return;
-    const postfix = unary.postfixExpression();
-    if (!postfix) return;
-    const primary = postfix.primaryExpression();
-    if (!primary) return;
-
-    // Found primary expression - check if it's a simple identifier
-    if (primary.IDENTIFIER()) {
-      const name = primary.IDENTIFIER()!.getText();
-      this.analyzer.recordAssignment(name);
+    const identifier = ExpressionUtils.extractIdentifier(expr);
+    if (identifier) {
+      this.analyzer.recordAssignment(identifier);
     }
   }
 
