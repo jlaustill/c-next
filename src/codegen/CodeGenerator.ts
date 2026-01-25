@@ -50,6 +50,7 @@ import functionGenerator from "./generators/declarationGenerators/FunctionGenera
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 // ADR-109: Extracted utilities
 import BitUtils from "../utils/BitUtils";
+import FormatUtils from "../utils/FormatUtils";
 import StringUtils from "../utils/StringUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
@@ -490,7 +491,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Get the current indentation string.
    */
   getIndent(): string {
-    return "    ".repeat(this.context.indentLevel);
+    return FormatUtils.indent(this.context.indentLevel);
   }
 
   /**
@@ -5516,7 +5517,7 @@ export default class CodeGenerator implements IOrchestrator {
 
             // Generate safe concatenation code
             const indent = this.context.inFunctionBody
-              ? "    ".repeat(this.context.indentLevel)
+              ? FormatUtils.indent(this.context.indentLevel)
               : "";
             const lines: string[] = [];
             lines.push(`${constMod}char ${name}[${capacity + 1}] = "";`);
@@ -5565,7 +5566,7 @@ export default class CodeGenerator implements IOrchestrator {
 
             // Generate safe substring extraction code
             const indent = this.context.inFunctionBody
-              ? "    ".repeat(this.context.indentLevel)
+              ? FormatUtils.indent(this.context.indentLevel)
               : "";
             const lines: string[] = [];
             lines.push(`${constMod}char ${name}[${capacity + 1}] = "";`);
@@ -10177,7 +10178,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private _indent(text: string): string {
-    const spaces = "    ".repeat(this.context.indentLevel);
+    const spaces = FormatUtils.indent(this.context.indentLevel);
     return text
       .split("\n")
       .map((line) => spaces + line)
@@ -10507,7 +10508,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
-    const indent = "    ".repeat(this.context.indentLevel);
+    const indent = FormatUtils.indent(this.context.indentLevel);
     return commentFormatLeadingComments(
       comments,
       this.commentFormatter,
