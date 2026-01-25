@@ -15,8 +15,8 @@ import {
   Recognizer,
   ATNSimulator,
 } from "antlr4ng";
-import { CNextLexer } from "../../src/parser/grammar/CNextLexer";
-import { CNextParser } from "../../src/parser/grammar/CNextParser";
+import { CNextLexer } from "../../src/antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../../src/antlr_parser/grammar/CNextParser";
 import * as AST from "./nodes";
 
 /**

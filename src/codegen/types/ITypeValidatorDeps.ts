@@ -3,7 +3,7 @@
  * Issue #63: Extracted dependencies for better separation of concerns
  */
 import SymbolCollector from "../SymbolCollector";
-import SymbolTable from "../../symbols/SymbolTable";
+import SymbolTable from "../../symbol_resolution/SymbolTable";
 import TTypeInfo from "./TTypeInfo";
 import TParameterInfo from "./TParameterInfo";
 import ICallbackTypeInfo from "./ICallbackTypeInfo";

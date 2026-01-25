@@ -8,7 +8,7 @@
 import {
   CPP14Parser,
   ClassSpecifierContext,
-} from "../parser/cpp/grammar/CPP14Parser";
+} from "../antlr_parser/cpp/grammar/CPP14Parser";
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";

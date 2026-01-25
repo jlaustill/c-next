@@ -3,9 +3,9 @@
  * Extracted from CodeGenerator for better separation of concerns
  * Issue #61: Now independent of CodeGenerator
  */
-import * as Parser from "../parser/grammar/CNextParser";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
 import SymbolCollector from "./SymbolCollector";
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import TTypeInfo from "./types/TTypeInfo";
 import ITypeResolverDeps from "./types/ITypeResolverDeps";
 import INTEGER_TYPES from "./types/INTEGER_TYPES";

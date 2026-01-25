@@ -3,7 +3,7 @@
  * Extracts symbols from C-Next parse trees for the unified symbol table
  */
 
-import * as Parser from "../parser/grammar/CNextParser";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";

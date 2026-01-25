@@ -6,7 +6,7 @@
  */
 
 import { ParserRuleContext } from "antlr4ng";
-import * as Parser from "../parser/grammar/CNextParser";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
 import BITMAP_SIZE from "./types/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "./types/BITMAP_BACKING_TYPE";
 

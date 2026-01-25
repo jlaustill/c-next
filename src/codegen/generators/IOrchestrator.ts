@@ -14,7 +14,7 @@
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
-import * as Parser from "../../parser/grammar/CNextParser";
+import * as Parser from "../../antlr_parser/grammar/CNextParser";
 import { ParserRuleContext } from "antlr4ng";
 
 interface IOrchestrator {

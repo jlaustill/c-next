@@ -12,7 +12,7 @@ import {
   InitDeclaratorListContext,
   StructOrUnionSpecifierContext,
   EnumSpecifierContext,
-} from "../parser/c/grammar/CParser";
+} from "../antlr_parser/c/grammar/CParser";
 import ISymbol from "../types/ISymbol";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";

@@ -2,7 +2,7 @@
  * Cached entry for a single header file
  */
 
-import IStructFieldInfo from "../../symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../../symbol_resolution/types/IStructFieldInfo";
 import ISerializedSymbol from "./ISerializedSymbol";
 
 interface ICachedFileEntry {

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "./TypeValidator";
 import TypeResolver from "./TypeResolver";
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ITypeValidatorDeps from "./types/ITypeValidatorDeps";
 import ITypeResolverDeps from "./types/ITypeResolverDeps";
 import TTypeInfo from "./types/TTypeInfo";

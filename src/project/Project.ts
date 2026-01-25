@@ -6,7 +6,7 @@
  * For new code, consider using Pipeline directly.
  */
 
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import Pipeline from "../pipeline/Pipeline";
 import IProjectConfig from "./types/IProjectConfig";
 import IProjectResult from "./types/IProjectResult";

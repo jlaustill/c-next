@@ -20,7 +20,7 @@ import {
 } from "fs";
 import { join } from "path";
 import ISymbol from "../types/ISymbol";
-import IStructFieldInfo from "../symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
 import ICacheConfig from "./types/ICacheConfig";
 import ICacheSymbols from "./types/ICacheSymbols";
 import ICachedFileEntry from "./types/ICachedFileEntry";

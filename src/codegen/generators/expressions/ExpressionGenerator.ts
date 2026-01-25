@@ -9,7 +9,7 @@
 import {
   ExpressionContext,
   TernaryExpressionContext,
-} from "../../../parser/grammar/CNextParser";
+} from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

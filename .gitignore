@@ -13,7 +13,7 @@ coverage/
 test-teensy/
 
 # Generated parser files (regenerated from grammar)
-src/parser/
+src/antlr_parser/
 
 # Generated C files (transpiler output) - tracked for test snapshots
 # *.c

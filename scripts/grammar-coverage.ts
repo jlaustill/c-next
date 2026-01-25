@@ -16,8 +16,8 @@ import { fileURLToPath } from "url";
 
 import transpile from "../src/lib/transpiler";
 import IGrammarCoverageReport from "../src/analysis/types/IGrammarCoverageReport";
-import { CNextLexer } from "../src/parser/grammar/CNextLexer";
-import { CNextParser } from "../src/parser/grammar/CNextParser";
+import { CNextLexer } from "../src/antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../src/antlr_parser/grammar/CNextParser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

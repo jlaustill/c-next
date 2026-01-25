@@ -8,9 +8,9 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener";
-import * as Parser from "../parser/grammar/CNextParser";
-import SymbolTable from "../symbols/SymbolTable";
+import { CNextListener } from "../antlr_parser/grammar/CNextListener";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ESymbolKind from "../types/ESymbolKind";
 import IFunctionCallError from "./types/IFunctionCallError";

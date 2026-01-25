@@ -6,7 +6,7 @@
  */
 
 import { CommonTokenStream } from "antlr4ng";
-import { ProgramContext } from "../parser/grammar/CNextParser";
+import { ProgramContext } from "../antlr_parser/grammar/CNextParser";
 import ParameterNamingAnalyzer from "../analysis/ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "../analysis/StructFieldAnalyzer";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
@@ -16,7 +16,7 @@ import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "../analysis/FloatModuloAnalyzer";
 import CommentExtractor from "../codegen/CommentExtractor";
 import ITranspileError from "../lib/types/ITranspileError";
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 
 /**
  * Options for running analyzers

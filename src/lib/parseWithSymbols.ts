@@ -3,9 +3,9 @@
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
-import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import CNextSymbolCollector from "../symbol_resolution/CNextSymbolCollector";
 import ESymbolKind from "../types/ESymbolKind";
 import ITranspileError from "./types/ITranspileError";
 import ISymbolInfo from "./types/ISymbolInfo";

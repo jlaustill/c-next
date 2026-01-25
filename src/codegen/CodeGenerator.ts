@@ -4,8 +4,8 @@
  */
 
 import { CommonTokenStream, ParserRuleContext, TerminalNode } from "antlr4ng";
-import * as Parser from "../parser/grammar/CNextParser";
-import SymbolTable from "../symbols/SymbolTable";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ESymbolKind from "../types/ESymbolKind";
 import CommentExtractor from "./CommentExtractor";

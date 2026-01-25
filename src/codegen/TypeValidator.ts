@@ -4,9 +4,9 @@
  * Issue #63: Validation logic separated for independent testing
  */
 import { dirname, resolve, join } from "path";
-import * as Parser from "../parser/grammar/CNextParser";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
 import SymbolCollector from "./SymbolCollector";
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import TTypeInfo from "./types/TTypeInfo";
 import TParameterInfo from "./types/TParameterInfo";
 import ICallbackTypeInfo from "./types/ICallbackTypeInfo";

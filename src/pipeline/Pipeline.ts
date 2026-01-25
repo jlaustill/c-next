@@ -16,21 +16,21 @@ import {
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname, resolve } from "path";
 
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
-import { CLexer } from "../parser/c/grammar/CLexer";
-import { CParser } from "../parser/c/grammar/CParser";
-import { CPP14Lexer } from "../parser/cpp/grammar/CPP14Lexer";
-import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import { CLexer } from "../antlr_parser/c/grammar/CLexer";
+import { CParser } from "../antlr_parser/c/grammar/CParser";
+import { CPP14Lexer } from "../antlr_parser/cpp/grammar/CPP14Lexer";
+import { CPP14Parser } from "../antlr_parser/cpp/grammar/CPP14Parser";
 
 import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
 import SymbolCollector from "../codegen/SymbolCollector";
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESymbolKind from "../types/ESymbolKind";
-import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
-import CSymbolCollector from "../symbols/CSymbolCollector";
-import CppSymbolCollector from "../symbols/CppSymbolCollector";
+import CNextSymbolCollector from "../symbol_resolution/CNextSymbolCollector";
+import CSymbolCollector from "../symbol_resolution/CSymbolCollector";
+import CppSymbolCollector from "../symbol_resolution/CppSymbolCollector";
 import Preprocessor from "../preprocessor/Preprocessor";
 
 import FileDiscovery from "../project/FileDiscovery";
@@ -45,7 +45,7 @@ import IPipelineResult from "./types/IPipelineResult";
 import IFileResult from "./types/IFileResult";
 import runAnalyzers from "./runAnalyzers";
 import CacheManager from "./CacheManager";
-import IStructFieldInfo from "../symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
 import detectCppSyntax from "./detectCppSyntax";
 
 /**
