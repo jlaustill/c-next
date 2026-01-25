@@ -428,10 +428,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     position: vscode.Position,
   ): Promise<vscode.Hover | null> {
     // Get the word at the cursor position
-    const wordRange = document.getWordRangeAtPosition(
-      position,
-      /[a-zA-Z_]\w*/,
-    );
+    const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
     if (!wordRange) {
       return null;
     }

@@ -13,7 +13,13 @@
  * both scopes are in the same file.
  */
 
-import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
+import {
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  existsSync,
+  readFileSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import Pipeline from "../../src/pipeline/Pipeline";

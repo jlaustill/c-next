@@ -2528,8 +2528,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
-    const addMatch =
-      /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/.exec(text);
+    const addMatch = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/.exec(text);
     if (addMatch) {
       const left = this.constValues.get(addMatch[1]);
       const right = this.constValues.get(addMatch[2]);
@@ -2556,9 +2555,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) * N expressions
-    const sizeofMulMatch = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/.exec(
-      text,
-    );
+    const sizeofMulMatch = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/.exec(text);
     if (sizeofMulMatch) {
       const typeName = sizeofMulMatch[1];
       const multiplier = Number.parseInt(sizeofMulMatch[2], 10);
@@ -2569,9 +2566,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) + N expressions
-    const sizeofAddMatch = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/.exec(
-      text,
-    );
+    const sizeofAddMatch = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/.exec(text);
     if (sizeofAddMatch) {
       const typeName = sizeofAddMatch[1];
       const addend = Number.parseInt(sizeofAddMatch[2], 10);
@@ -4141,7 +4136,7 @@ export default class CodeGenerator implements IOrchestrator {
     // function return member access (getConfig().member)
     // Check if the expression ends with member access preceded by array/function
     if (ops.length >= 2) {
-      const lastOp = ops.at(-1)!
+      const lastOp = ops.at(-1)!;
       // Last op must be member access (.identifier)
       if (lastOp.IDENTIFIER()) {
         const precedingOps = ops.slice(0, -1);

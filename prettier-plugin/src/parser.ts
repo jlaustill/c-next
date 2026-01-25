@@ -1927,7 +1927,9 @@ function convertStringType(
   ctx: ReturnType<CNextParser["stringType"]>,
 ): AST.StringType {
   const intLiteral = ctx.INTEGER_LITERAL();
-  const capacity = intLiteral ? Number.parseInt(intLiteral.getText(), 10) : null;
+  const capacity = intLiteral
+    ? Number.parseInt(intLiteral.getText(), 10)
+    : null;
 
   return {
     type: "StringType",

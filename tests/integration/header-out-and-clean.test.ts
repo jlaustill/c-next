@@ -6,7 +6,13 @@
  * - --clean removes generated files from both directories
  */
 
-import { existsSync, writeFileSync, mkdirSync, rmSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  readdirSync,
+} from "node:fs";
 import { join } from "node:path";
 import Pipeline from "../../src/pipeline/Pipeline";
 import CleanCommand from "../../src/commands/CleanCommand";

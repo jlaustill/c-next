@@ -40,7 +40,9 @@ class BitmapCollector {
     for (const member of ctx.bitmapMember()) {
       const fieldName = member.IDENTIFIER().getText();
       const widthLiteral = member.INTEGER_LITERAL();
-      const width = widthLiteral ? Number.parseInt(widthLiteral.getText(), 10) : 1;
+      const width = widthLiteral
+        ? Number.parseInt(widthLiteral.getText(), 10)
+        : 1;
 
       fields.set(fieldName, { offset: totalBits, width });
       totalBits += width;

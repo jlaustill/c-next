@@ -465,9 +465,7 @@ class NullCheckListener extends CNextListener {
     const conditionText = condition?.getText() ?? "";
 
     // Check for patterns like "c_var != NULL"
-    const nullCheckMatch = /^(c_[a-zA-Z_]\w*)\s*!=\s*NULL$/.exec(
-      conditionText,
-    );
+    const nullCheckMatch = /^(c_[a-zA-Z_]\w*)\s*!=\s*NULL$/.exec(conditionText);
 
     if (nullCheckMatch) {
       const varName = nullCheckMatch[1];

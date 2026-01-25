@@ -11,7 +11,13 @@
  * - Both should generate headers with pass-by-value (no pointer) signatures
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import {
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import Pipeline from "../../src/pipeline/Pipeline";

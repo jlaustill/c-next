@@ -11,7 +11,13 @@
  *   uint8_t lowByte(uint16_t* value)  // WRONG - pointer instead of value
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import {
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import Pipeline from "../../src/pipeline/Pipeline";
