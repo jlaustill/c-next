@@ -14,6 +14,7 @@ import SymbolTable from "../symbols/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ESymbolKind from "../types/ESymbolKind";
 import IFunctionCallError from "./types/IFunctionCallError";
+import ParserUtils from "../utils/ParserUtils";
 
 /**
  * C-Next built-in functions
@@ -375,8 +376,7 @@ class FunctionCallListener extends CNextListener {
 
     // If we found a call, check if the function is defined
     if (callOpIndex >= 0) {
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
+      const { line, column } = ParserUtils.getPosition(ctx);
       this.analyzer.checkFunctionCall(
         resolvedName,
         line,

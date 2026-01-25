@@ -4,6 +4,10 @@
 
 **Always ask the user what they want to work on.** Do not assume based on the roadmap or queue.
 
+## Before Starting an Issue
+
+Check if work was already done: `git log --oneline --grep="<issue-number>"` — Issues may have been completed in PRs referencing different issue numbers.
+
 ## Workflow: Research First
 
 1. **Always start with research/planning** before implementation
@@ -56,6 +60,11 @@ scripts/types/ITools.ts
 
 See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
+### Shared Code Organization
+
+- `src/utils/` — Utility functions (ParserUtils, LiteralUtils, ExpressionUtils)
+- `src/constants/` — Static data definitions (TypeConstants)
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**
@@ -66,10 +75,12 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **Test Commands:**
 
-- `npm test` — Run all tests with full output
+- `npm test` — Run C-Next integration tests (.test.cnx files)
 - `npm test -- --quiet` or `-q` — Minimal output (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
 - `npm test -- tests/enum/my.test.cnx` — Run single test file
+- `npm run unit` — Run TypeScript unit tests (vitest)
+- `npm run test:all` — Run both test suites
 
 ### Test File Patterns
 

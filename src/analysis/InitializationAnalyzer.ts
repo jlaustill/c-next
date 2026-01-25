@@ -17,7 +17,8 @@ import * as Parser from "../parser/grammar/CNextParser";
 import IInitializationError from "./types/IInitializationError";
 import IDeclarationInfo from "./types/IDeclarationInfo";
 import ScopeStack from "./ScopeStack";
-import ExpressionUtils from "./ExpressionUtils";
+import ExpressionUtils from "../utils/ExpressionUtils";
+import ParserUtils from "../utils/ParserUtils";
 
 /**
  * Tracks the initialization state of a variable
@@ -72,8 +73,7 @@ class InitializationListener extends CNextListener {
     if (paramList) {
       for (const param of paramList.parameter()) {
         const name = param.IDENTIFIER().getText();
-        const line = param.start?.line ?? 0;
-        const column = param.start?.column ?? 0;
+        const { line, column } = ParserUtils.getPosition(param);
 
         // Get type name for struct tracking
         const typeCtx = param.type();
@@ -115,8 +115,7 @@ class InitializationListener extends CNextListener {
     }
 
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
-    const column = ctx.start?.column ?? 0;
+    const { line, column } = ParserUtils.getPosition(ctx);
     const hasInitializer = ctx.expression() !== null;
 
     // Get type name for struct tracking
@@ -235,8 +234,7 @@ class InitializationListener extends CNextListener {
     // Check for simple identifier
     if (ctx.IDENTIFIER()) {
       const name = ctx.IDENTIFIER()!.getText();
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
+      const { line, column } = ParserUtils.getPosition(ctx);
 
       // Check if this is part of a postfixExpression with member access
       const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
@@ -298,8 +296,7 @@ class InitializationListener extends CNextListener {
     if (identifiers.length >= 2) {
       const varName = identifiers[0].getText();
       const fieldName = identifiers[1].getText();
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
+      const { line, column } = ParserUtils.getPosition(ctx);
 
       // Check if the specific field is initialized
       this.analyzer.checkRead(varName, line, column, fieldName);
@@ -477,8 +474,7 @@ class InitializationAnalyzer {
       const varDecl = decl.variableDeclaration();
       if (varDecl) {
         const name = varDecl.IDENTIFIER().getText();
-        const line = varDecl.start?.line ?? 0;
-        const column = varDecl.start?.column ?? 0;
+        const { line, column } = ParserUtils.getPosition(varDecl);
 
         // Get type for struct tracking
         const typeCtx = varDecl.type();
@@ -500,8 +496,7 @@ class InitializationAnalyzer {
           if (memberVar) {
             const varName = memberVar.IDENTIFIER().getText();
             const fullName = `${scopeName}_${varName}`; // Mangled name
-            const line = memberVar.start?.line ?? 0;
-            const column = memberVar.start?.column ?? 0;
+            const { line, column } = ParserUtils.getPosition(memberVar);
 
             const typeCtx = memberVar.type();
             let typeName: string | null = null;

@@ -14,8 +14,9 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IFloatModuloError from "./types/IFloatModuloError";
-import LiteralUtils from "./LiteralUtils";
-import TypeConstants from "./TypeConstants";
+import LiteralUtils from "../utils/LiteralUtils";
+import ParserUtils from "../utils/ParserUtils";
+import TypeConstants from "../constants/TypeConstants";
 
 /**
  * First pass: Collect variable declarations with float types
@@ -102,8 +103,7 @@ class FloatModuloListener extends CNextListener {
       const rightIsFloat = this.isFloatOperand(rightOperand);
 
       if (leftIsFloat || rightIsFloat) {
-        const line = leftOperand.start?.line ?? 0;
-        const column = leftOperand.start?.column ?? 0;
+        const { line, column } = ParserUtils.getPosition(leftOperand);
         this.analyzer.addError(line, column);
       }
     }
