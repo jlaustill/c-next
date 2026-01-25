@@ -62,10 +62,10 @@ import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
 // ADR-109: Assignment decomposition (Phase 2)
-// Infrastructure ready - handlers registered via assignment module import
-// TODO: Replace generateAssignment() body with classifier + dispatch pattern
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import _assignmentHandlers from "./assignment/index";
+import assignmentHandlers from "./assignment/index";
+import AssignmentClassifier from "./assignment/AssignmentClassifier";
+import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
+import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -6130,6 +6130,53 @@ export default class CodeGenerator implements IOrchestrator {
     return result;
   }
 
+  // ADR-109: Build handler dependencies for assignment dispatch
+  private buildHandlerDeps(): IHandlerDeps {
+    return {
+      symbols: this.symbols!,
+      typeRegistry: this.context.typeRegistry,
+      currentScope: this.context.currentScope,
+      currentParameters: this.context.currentParameters,
+      targetCapabilities: this.context.targetCapabilities,
+      generateExpression: (ctx) => this._generateExpression(ctx),
+      tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
+      generateAssignmentTarget: (ctx) => this._generateAssignmentTarget(ctx),
+      isKnownStruct: (name) => this.isKnownStruct(name),
+      isKnownScope: (name) => this.symbols!.knownScopes.has(name),
+      getMemberTypeInfo: (structType, memberName) => {
+        const fields = this.symbols!.structFields.get(structType);
+        const fieldType = fields?.get(memberName);
+        if (fieldType) {
+          const dims =
+            this.symbols!.structFieldDimensions.get(structType)?.get(
+              memberName,
+            );
+          return {
+            baseType: fieldType,
+            bitWidth: TYPE_WIDTH[fieldType] ?? 32,
+            isConst: false,
+            isArray:
+              this.symbols!.structFieldArrays.get(structType)?.has(
+                memberName,
+              ) ?? false,
+            arrayDimensions: dims ? [...dims] : undefined,
+          };
+        }
+        return null;
+      },
+      validateBitmapFieldLiteral: (expr, width, fieldName) =>
+        this.typeValidator!.validateBitmapFieldLiteral(expr, width, fieldName),
+      validateCrossScopeVisibility: (scopeName, memberName) =>
+        this.validateCrossScopeVisibility(scopeName, memberName),
+      markNeedsString: () => {
+        this.needsString = true;
+      },
+      markClampOpUsed: (op, typeName) => this.markClampOpUsed(op, typeName),
+      generateAtomicRMW: (target, cOp, value, typeInfo) =>
+        this.generateAtomicRMW(target, cOp, value, typeInfo),
+    };
+  }
+
   // ADR-001: <- becomes = in C, with compound assignment operators
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
@@ -7788,7 +7835,28 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    return `${target} ${cOp} ${value};`;
+    // ADR-109: Use classifier + handler dispatch for fallback
+    // Build context with already-generated value to avoid re-evaluation
+    const assignCtx = buildAssignmentContext(ctx, {
+      typeRegistry: this.context.typeRegistry,
+      generateExpression: () => value, // Use already-generated value
+    });
+
+    // Create classifier with current context
+    const deps = this.buildHandlerDeps();
+    const classifier = new AssignmentClassifier({
+      symbols: deps.symbols,
+      typeRegistry: deps.typeRegistry,
+      currentScope: deps.currentScope,
+      isKnownStruct: deps.isKnownStruct,
+      isKnownScope: deps.isKnownScope,
+      getMemberTypeInfo: deps.getMemberTypeInfo,
+    });
+
+    // Classify and dispatch
+    const kind = classifier.classify(assignCtx);
+    const handler = assignmentHandlers.getHandler(kind);
+    return handler(assignCtx, deps);
   }
 
   /**
