@@ -3621,7 +3621,10 @@ export default class CodeGenerator implements IOrchestrator {
       const arrayName = arrayAccessMatch[1];
       const typeInfo = this.context.typeRegistry.get(arrayName);
       // Check if base type is a string type
-      if (typeInfo?.isString || typeInfo?.baseType?.startsWith("string<")) {
+      if (
+        typeInfo?.isString ||
+        (typeInfo?.baseType && TypeCheckUtils.isString(typeInfo.baseType))
+      ) {
         return true;
       }
     }
@@ -6800,10 +6803,10 @@ export default class CodeGenerator implements IOrchestrator {
               const structFields = this.symbols!.structFields.get(structType);
               const fieldType = structFields?.get(fieldName);
 
-              // String arrays: field type starts with "string<" and has multi-dimensional array
+              // String arrays: field type is string<N> with multi-dimensional array
               if (
                 fieldType &&
-                fieldType.startsWith("string<") &&
+                TypeCheckUtils.isString(fieldType) &&
                 isArrayField &&
                 dimensions &&
                 dimensions.length > 1
@@ -7571,7 +7574,7 @@ export default class CodeGenerator implements IOrchestrator {
         typeInfo &&
         typeInfo.overflowBehavior === "clamp" &&
         TYPE_WIDTH[typeInfo.baseType] &&
-        !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic (overflow to infinity)
+        !TypeCheckUtils.usesNativeArithmetic(typeInfo.baseType) // Floats use native C arithmetic
       ) {
         // Clamp behavior: use helper function (integers only)
         const opMap: Record<string, string> = {
@@ -7602,7 +7605,7 @@ export default class CodeGenerator implements IOrchestrator {
         typeInfo &&
         typeInfo.overflowBehavior === "clamp" &&
         TYPE_WIDTH[typeInfo.baseType] &&
-        !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
+        !TypeCheckUtils.usesNativeArithmetic(typeInfo.baseType) // Floats use native C arithmetic
       ) {
         // Clamp behavior: use helper function (integers only)
         const opMap: Record<string, string> = {
@@ -7646,10 +7649,10 @@ export default class CodeGenerator implements IOrchestrator {
           const structFields = this.symbols!.structFields.get(structType);
           const fieldType = structFields?.get(fieldName);
 
-          // String arrays in structs: field type starts with "string<" and has multi-dimensional array
+          // String arrays in structs: field type is string<N> with multi-dimensional array
           if (
             fieldType &&
-            fieldType.startsWith("string<") &&
+            TypeCheckUtils.isString(fieldType) &&
             isArrayField &&
             dimensions &&
             dimensions.length > 1
@@ -7763,23 +7766,22 @@ export default class CodeGenerator implements IOrchestrator {
           const fieldType = structFields?.get(fieldName);
 
           // Check if field is a string type (non-array)
-          if (fieldType && fieldType.startsWith("string<")) {
-            const match = /^string<(\d+)>$/.exec(fieldType);
-            if (match) {
-              if (cOp !== "=") {
-                throw new Error(
-                  `Error: Compound operators not supported for string assignment: ${cnextOp}`,
-                );
-              }
-              const capacity = parseInt(match[1], 10);
-              this.needsString = true;
-              return StringUtils.copyToStructField(
-                structName,
-                fieldName,
-                value,
-                capacity,
+          const capacity = fieldType
+            ? TypeCheckUtils.getStringCapacity(fieldType)
+            : null;
+          if (capacity !== null) {
+            if (cOp !== "=") {
+              throw new Error(
+                `Error: Compound operators not supported for string assignment: ${cnextOp}`,
               );
             }
+            this.needsString = true;
+            return StringUtils.copyToStructField(
+              structName,
+              fieldName,
+              value,
+              capacity,
+            );
           }
         }
       }
@@ -8564,7 +8566,7 @@ export default class CodeGenerator implements IOrchestrator {
                 const memberType = fieldInfo.type;
                 const dimensions = fieldInfo.dimensions;
                 // ADR-045: Check if this is a string field
-                const isStringField = memberType.startsWith("string<");
+                const isStringField = TypeCheckUtils.isString(memberType);
 
                 if (dimensions && dimensions.length > 1 && isStringField) {
                   // String array field: string<64> arr[4]
@@ -8701,7 +8703,7 @@ export default class CodeGenerator implements IOrchestrator {
                   // ADR-017: Enum array element .length returns 32 (default enum size)
                   result = "32";
                 } else if (
-                  typeInfo.baseType.startsWith("string<") ||
+                  TypeCheckUtils.isString(typeInfo.baseType) ||
                   typeInfo.isString
                 ) {
                   // ADR-045/Issue #136: String array element .length -> strlen(arr[index])
@@ -10451,7 +10453,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private markClampOpUsed(operation: string, cnxType: string): void {
     // Only generate helpers for integer types (not float/bool)
-    if (TYPE_WIDTH[cnxType] && !cnxType.startsWith("f") && cnxType !== "bool") {
+    if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
       this.usedClampOps.add(`${operation}_${cnxType}`);
     }
   }
