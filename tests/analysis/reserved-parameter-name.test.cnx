@@ -1,0 +1,11 @@
+// test-error
+// Tests: Parameter name starting with function name prefix is reserved (E0227)
+
+void process(u32 process_value) {
+    // process_value starts with "process_" which is reserved
+}
+
+u32 main() {
+    process(10);
+    return 0;
+}

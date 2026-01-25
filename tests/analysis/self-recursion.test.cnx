@@ -1,0 +1,13 @@
+// test-error
+// Tests: Self-recursion is forbidden per MISRA C:2012 Rule 17.2 (E0423)
+
+u32 factorial(u32 n) {
+    if (n = 0) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+u32 main() {
+    return factorial(5);
+}
