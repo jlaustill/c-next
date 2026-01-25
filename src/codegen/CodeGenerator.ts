@@ -52,6 +52,7 @@ import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 import BitUtils from "../utils/BitUtils";
 import FormatUtils from "../utils/FormatUtils";
 import StringUtils from "../utils/StringUtils";
+import TypeCheckUtils from "../utils/TypeCheckUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
@@ -3572,9 +3573,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (
         typeInfo &&
         !typeInfo.isEnum &&
-        ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-          typeInfo.baseType,
-        )
+        TypeCheckUtils.isInteger(typeInfo.baseType)
       ) {
         return true;
       }
@@ -6737,9 +6736,7 @@ export default class CodeGenerator implements IOrchestrator {
               const isPrimitiveInt =
                 lastMemberType &&
                 !lastMemberIsArray &&
-                ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-                  lastMemberType,
-                );
+                TypeCheckUtils.isInteger(lastMemberType);
               const isLastExpr = exprIndex === exprs.length - 1;
 
               if (isPrimitiveInt && isLastExpr && exprIndex < exprs.length) {
@@ -6955,7 +6952,7 @@ export default class CodeGenerator implements IOrchestrator {
               startConst !== undefined &&
               widthConst !== undefined &&
               startConst % 8 === 0 && // byte-aligned
-              [8, 16, 32].includes(widthConst) // standard width
+              TypeCheckUtils.isStandardWidth(widthConst) // standard width
             ) {
               // Issue #187: Generate width-appropriate memory access
               // Determine register name for base address lookup
@@ -7143,7 +7140,7 @@ export default class CodeGenerator implements IOrchestrator {
                 startConst !== undefined &&
                 widthConst !== undefined &&
                 startConst % 8 === 0 &&
-                [8, 16, 32].includes(widthConst)
+                TypeCheckUtils.isStandardWidth(widthConst)
               ) {
                 const baseAddr =
                   this.symbols!.registerBaseAddresses.get(scopedRegName);
@@ -9159,10 +9156,7 @@ export default class CodeGenerator implements IOrchestrator {
           // Priority: register access > tracked member array > struct member primitive int > primary array > default bit access
           // Bug #8: Check currentStructType BEFORE isPrimaryArray to handle items[0].byte[7] correctly
           const isPrimitiveIntMember =
-            currentStructType &&
-            ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-              currentStructType,
-            );
+            currentStructType && TypeCheckUtils.isInteger(currentStructType);
 
           if (isRegisterAccess) {
             // Register - use bit access: ((value >> index) & 1)
@@ -9206,10 +9200,7 @@ export default class CodeGenerator implements IOrchestrator {
             // Check identifierTypeInfo for simple variables (not through member access)
             const typeToCheck = identifierTypeInfo?.baseType;
             const isPrimitiveInt =
-              typeToCheck &&
-              ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-                typeToCheck,
-              );
+              typeToCheck && TypeCheckUtils.isInteger(typeToCheck);
             if (isPrimitiveInt) {
               // Primitive integer - use bit access: ((value >> index) & 1)
               result = `((${result} >> ${index}) & 1)`;
@@ -9851,9 +9842,7 @@ export default class CodeGenerator implements IOrchestrator {
               const isPrimitiveInt =
                 lastMemberType &&
                 !lastMemberIsArray &&
-                ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-                  lastMemberType,
-                );
+                TypeCheckUtils.isInteger(lastMemberType);
               const isLastExpr = exprIndex === expressions.length - 1;
 
               if (
