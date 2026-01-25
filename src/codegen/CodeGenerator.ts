@@ -36,7 +36,10 @@ import generateFunctionCall from "./generators/expressions/CallExprGenerator";
 import accessGenerators from "./generators/expressions/AccessExprGenerator";
 import expressionGenerators from "./generators/expressions/ExpressionGenerator";
 // ADR-053: Statement generators (A3)
-import statementGenerators from "./generators/statements";
+import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
+import generateCriticalStatement from "./generators/statements/CriticalGenerator";
+import atomicGenerators from "./generators/statements/AtomicGenerator";
+import switchGenerators from "./generators/statements/SwitchGenerator";
 // ADR-053: Declaration generators (A4)
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
@@ -7830,7 +7833,7 @@ export default class CodeGenerator implements IOrchestrator {
     value: string,
     typeInfo: TTypeInfo,
   ): string {
-    const result = statementGenerators.generateAtomicRMW(
+    const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
@@ -8062,7 +8065,7 @@ export default class CodeGenerator implements IOrchestrator {
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
 
   private generateIf(ctx: Parser.IfStatementContext): string {
-    const result = statementGenerators.generateIf(
+    const result = controlFlowGenerators.generateIf(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8073,7 +8076,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateWhile(ctx: Parser.WhileStatementContext): string {
-    const result = statementGenerators.generateWhile(
+    const result = controlFlowGenerators.generateWhile(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8084,7 +8087,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    const result = statementGenerators.generateDoWhile(
+    const result = controlFlowGenerators.generateDoWhile(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8095,7 +8098,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateFor(ctx: Parser.ForStatementContext): string {
-    const result = statementGenerators.generateFor(
+    const result = controlFlowGenerators.generateFor(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8106,7 +8109,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    const result = statementGenerators.generateReturn(
+    const result = controlFlowGenerators.generateReturn(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8127,7 +8130,7 @@ export default class CodeGenerator implements IOrchestrator {
   private generateCriticalStatement(
     ctx: Parser.CriticalStatementContext,
   ): string {
-    const result = statementGenerators.generateCriticalStatement(
+    const result = generateCriticalStatement(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8144,7 +8147,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    const result = statementGenerators.generateSwitch(
+    const result = switchGenerators.generateSwitch(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8155,7 +8158,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
-    const result = statementGenerators.generateSwitchCase(
+    const result = switchGenerators.generateSwitchCase(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8166,7 +8169,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
-    const result = statementGenerators.generateCaseLabel(
+    const result = switchGenerators.generateCaseLabel(
       ctx,
       this.getInput(),
       this.getState(),
@@ -8177,7 +8180,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateDefaultCase(ctx: Parser.DefaultCaseContext): string {
-    const result = statementGenerators.generateDefaultCase(
+    const result = switchGenerators.generateDefaultCase(
       ctx,
       this.getInput(),
       this.getState(),
