@@ -11,14 +11,9 @@
  *       symbols.json  - Cached symbols per file
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  statSync,
-} from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import CacheKeyGenerator from "./cache/CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
 import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
 import ICacheConfig from "./types/ICacheConfig";
@@ -27,7 +22,7 @@ import ICachedFileEntry from "./types/ICachedFileEntry";
 import ISerializedSymbol from "./types/ISerializedSymbol";
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 2; // Issue #208: Added enumBitWidth
+const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime
 
 // Read version from package.json
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -93,13 +88,7 @@ class CacheManager {
       return false;
     }
 
-    try {
-      const stats = statSync(filePath);
-      return stats.mtimeMs <= entry.mtime;
-    } catch {
-      // File doesn't exist or can't be read
-      return false;
-    }
+    return CacheKeyGenerator.isValid(filePath, entry.cacheKey);
   }
 
   /**
@@ -155,11 +144,10 @@ class CacheManager {
     needsStructKeyword?: string[],
     enumBitWidth?: Map<string, number>,
   ): void {
-    // Get current mtime
-    let mtime: number;
+    // Generate cache key for current file state
+    let cacheKey: string;
     try {
-      const stats = statSync(filePath);
-      mtime = stats.mtimeMs;
+      cacheKey = CacheKeyGenerator.generate(filePath);
     } catch {
       // If we can't stat the file, don't cache it
       return;
@@ -191,7 +179,7 @@ class CacheManager {
     // Create entry
     const entry: ICachedFileEntry = {
       filePath,
-      mtime,
+      cacheKey,
       symbols: serializedSymbols,
       structFields: serializedFields,
       needsStructKeyword,
@@ -318,15 +306,50 @@ class CacheManager {
 
     try {
       const content = readFileSync(this.symbolsPath, "utf-8");
-      const cacheSymbols = JSON.parse(content) as ICacheSymbols;
+      // Parse as generic object since disk format may be old (mtime) or new (cacheKey)
+      const cacheSymbols = JSON.parse(content) as {
+        entries: Record<string, unknown>[];
+      };
 
       for (const entry of cacheSymbols.entries) {
-        this.entries.set(entry.filePath, entry);
+        const migrated = this.migrateEntry(entry);
+        if (migrated) {
+          this.entries.set(migrated.filePath, migrated);
+        }
       }
     } catch {
       // Cache file is corrupted, start fresh
       this.entries.clear();
     }
+  }
+
+  /**
+   * Migrate cache entry from old format if needed.
+   * Handles conversion from mtime-based to cacheKey-based format.
+   */
+  private migrateEntry(data: Record<string, unknown>): ICachedFileEntry | null {
+    // Already has cacheKey - no migration needed
+    if (typeof data.cacheKey === "string") {
+      return data as unknown as ICachedFileEntry;
+    }
+
+    // Migration: convert old mtime to cacheKey format
+    if (typeof data.mtime === "number") {
+      return {
+        filePath: data.filePath as string,
+        cacheKey: `mtime:${data.mtime}`,
+        symbols: data.symbols as ISerializedSymbol[],
+        structFields: data.structFields as Record<
+          string,
+          Record<string, IStructFieldInfo>
+        >,
+        needsStructKeyword: data.needsStructKeyword as string[] | undefined,
+        enumBitWidth: data.enumBitWidth as Record<string, number> | undefined,
+      };
+    }
+
+    // Invalid entry - skip it
+    return null;
   }
 
   /**
