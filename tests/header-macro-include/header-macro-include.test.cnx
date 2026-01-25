@@ -1,0 +1,14 @@
+// Tests: Issue #424 - Generated header includes macro-defining headers
+// When a macro from an included header is used in an array size,
+// the generated .h file must include that header for the extern declaration.
+//
+// Note: We avoid accessing the array here because macro-defined array
+// sizes have a known limitation with bit-indexing detection.
+
+#include "config.h"
+
+u32 devices[DEVICE_COUNT];
+
+u32 main() {
+    return 0;
+}

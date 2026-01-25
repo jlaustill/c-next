@@ -10,6 +10,14 @@ interface IHeaderOptions {
 
   /** Only generate declarations for exported symbols */
   exportedOnly?: boolean;
+
+  /**
+   * Issue #424: User-provided includes from the source file.
+   * These will be added to the generated header if any extern declarations
+   * use macros (non-numeric array dimensions) from these headers.
+   * Example: ['#include "config.h"', '#include "sizes.h"']
+   */
+  userIncludes?: string[];
 }
 
 export default IHeaderOptions;
