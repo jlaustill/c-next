@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for SonarCloud blame data
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,9 +51,9 @@ jobs:
         run: npm test
         continue-on-error: true
 
-      - name: Run unit tests (vitest)
+      - name: Run unit tests with coverage (vitest)
         id: unit
-        run: npm run unit
+        run: npm run unit -- --coverage
         continue-on-error: true
 
       - name: Run CLI integration tests
@@ -72,6 +74,11 @@ jobs:
         id: grammar_coverage
         run: npm run coverage:grammar:check -- --threshold 80
         continue-on-error: true
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Report results
         if: always()
