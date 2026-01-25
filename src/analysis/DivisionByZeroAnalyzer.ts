@@ -14,8 +14,9 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
-import LiteralUtils from "./LiteralUtils";
-import ExpressionUtils from "./ExpressionUtils";
+import LiteralUtils from "../utils/LiteralUtils";
+import ExpressionUtils from "../utils/ExpressionUtils";
+import ParserUtils from "../utils/ParserUtils";
 
 /**
  * First pass: Collect const declarations that are zero
@@ -96,8 +97,7 @@ class DivisionByZeroListener extends CNextListener {
       }
 
       const rightOperand = operands[i + 1];
-      const line = rightOperand.start?.line ?? 0;
-      const column = rightOperand.start?.column ?? 0;
+      const { line, column } = ParserUtils.getPosition(rightOperand);
 
       // Check if right operand is zero
       if (this.isZero(rightOperand)) {

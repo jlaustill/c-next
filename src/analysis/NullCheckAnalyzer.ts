@@ -16,6 +16,7 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
+import ParserUtils from "../utils/ParserUtils";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -582,8 +583,7 @@ class NullCheckListener extends CNextListener {
 
     if (!isCall) return;
 
-    const line = ctx.start?.line ?? 0;
-    const column = ctx.start?.column ?? 0;
+    const { line, column } = ParserUtils.getPosition(ctx);
 
     // Check forbidden functions (always an error)
     if (FORBIDDEN_FUNCTIONS.has(funcName)) {
@@ -655,8 +655,7 @@ class NullCheckListener extends CNextListener {
 
     // Check for uppercase NULL (C library NULL)
     if (text === "NULL") {
-      const line = ctx.start?.line ?? 0;
-      const column = ctx.start?.column ?? 0;
+      const { line, column } = ParserUtils.getPosition(ctx);
 
       if (this.inEqualityComparison) {
         // Check if any compared variable lacks c_ prefix and is not a nullable C function
@@ -753,8 +752,7 @@ class NullCheckListener extends CNextListener {
     const funcName = this.extractFunctionCallName(expr);
     const target = ctx.assignmentTarget();
     const varName = target.getText();
-    const line = ctx.start?.line ?? 0;
-    const column = ctx.start?.column ?? 0;
+    const { line, column } = ParserUtils.getPosition(ctx);
 
     if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
       // ADR-046: Allow reassignment to c_ prefixed variables (e.g., in while loops)
