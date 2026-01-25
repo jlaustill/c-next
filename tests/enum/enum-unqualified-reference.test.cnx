@@ -1,0 +1,42 @@
+// test-execution
+// test-coverage: issue-452-unqualified-enum-reference
+// Tests: Unqualified enum value references must be prefixed in generated C
+// Bug: When referencing an enum value without EnumType.VALUE syntax,
+//      the generated C was missing the required EnumType_ prefix.
+// Issue: https://github.com/jlaustill/c-next/issues/452
+
+enum EPressureType {
+    PRESSURE_TYPE_PSIA <- 0,
+    PRESSURE_TYPE_PSIG <- 1
+}
+
+struct Config {
+    EPressureType pType;
+}
+
+void setDefault(Config config) {
+    // Unqualified reference - should generate EPressureType_PRESSURE_TYPE_PSIG
+    config.pType <- PRESSURE_TYPE_PSIG;
+}
+
+u32 main() {
+    Config cfg <- {pType: EPressureType.PRESSURE_TYPE_PSIA};
+
+    // Test 1: Verify initial value
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;
+
+    // Test 2: Call function that uses unqualified enum reference
+    setDefault(cfg);
+
+    // Test 3: Verify the value was changed correctly
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIG) return 2;
+
+    // Test 4: Direct unqualified assignment
+    cfg.pType <- PRESSURE_TYPE_PSIA;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 3;
+
+    // Test 5: Unqualified in comparison
+    if (cfg.pType != PRESSURE_TYPE_PSIA) return 4;
+
+    return 0;  // All tests passed
+}

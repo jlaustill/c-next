@@ -8,6 +8,10 @@
 
 Check if work was already done: `git log --oneline --grep="<issue-number>"` — Issues may have been completed in PRs referencing different issue numbers.
 
+### GitHub CLI Workaround
+
+`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+
 ## Workflow: Research First
 
 1. **Always start with research/planning** before implementation
@@ -89,6 +93,15 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
+### Code Generation Patterns
+
+- **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
+- **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
+
+### Error Messages
+
+- Use simple `Error: message` format (not `Error[EXXX]`) — matches 111/114 existing errors.
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**
@@ -108,6 +121,7 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
 - `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
+- Tests without `.expected.c` snapshots are **skipped** (not failed) — use `--update` to generate initial snapshot
 
 ### Unit Test File Location
 

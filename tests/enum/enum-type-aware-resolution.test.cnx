@@ -1,0 +1,67 @@
+// test-execution
+// test-coverage: issue-452-type-aware-resolution
+// Tests: Type-aware enum member resolution with overlapping names
+// When multiple enums have the same member name, the assignment target's type
+// determines which enum to use.
+
+enum Color {
+    RED <- 0,
+    GREEN <- 1,
+    BLUE <- 2
+}
+
+enum Status {
+    RED <- 10,
+    YELLOW <- 20,
+    GREEN <- 30
+}
+
+struct ColorConfig {
+    Color color;
+}
+
+struct StatusConfig {
+    Status status;
+}
+
+void setColorRed(ColorConfig cfg) {
+    // RED is in both enums, but cfg.color is type Color
+    // Should resolve to Color_RED (value 0)
+    cfg.color <- RED;
+}
+
+void setStatusRed(StatusConfig cfg) {
+    // RED is in both enums, but cfg.status is type Status
+    // Should resolve to Status_RED (value 10)
+    cfg.status <- RED;
+}
+
+u32 main() {
+    // Test 1: Color.RED via type-aware resolution
+    ColorConfig colorCfg <- {color: Color.BLUE};
+    setColorRed(colorCfg);
+    if ((u32)colorCfg.color != 0) return 1;  // Color_RED = 0
+
+    // Test 2: Status.RED via type-aware resolution
+    StatusConfig statusCfg <- {status: Status.YELLOW};
+    setStatusRed(statusCfg);
+    if ((u32)statusCfg.status != 10) return 2;  // Status_RED = 10
+
+    // Test 3: GREEN is also in both - verify Color resolution
+    colorCfg.color <- GREEN;
+    if ((u32)colorCfg.color != 1) return 3;  // Color_GREEN = 1
+
+    // Test 4: GREEN - verify Status resolution
+    statusCfg.status <- GREEN;
+    if ((u32)statusCfg.status != 30) return 4;  // Status_GREEN = 30
+
+    // Test 5: BLUE only in Color (unambiguous)
+    colorCfg.color <- BLUE;
+    if ((u32)colorCfg.color != 2) return 5;
+
+    // Test 6: YELLOW only in Status (unambiguous)
+    statusCfg.status <- YELLOW;
+    if ((u32)statusCfg.status != 20) return 6;
+
+    return 0;  // All tests passed
+}

@@ -6201,6 +6201,42 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
+    // Issue #452: Set expected type for member access targets (e.g., config.status <- value)
+    // This enables type-aware resolution of unqualified enum members
+    // Walk the chain of struct types for nested access (e.g., config.nested.field)
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      if (identifiers.length >= 2) {
+        const rootName = identifiers[0].getText();
+        const rootTypeInfo = this.context.typeRegistry.get(rootName);
+        if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
+          let currentStructType: string | undefined = rootTypeInfo.baseType;
+          // Walk through each member in the chain to find the final field's type
+          for (let i = 1; i < identifiers.length && currentStructType; i++) {
+            const memberName = identifiers[i].getText();
+            const structFieldTypes =
+              this.symbols!.structFields.get(currentStructType);
+            if (structFieldTypes && structFieldTypes.has(memberName)) {
+              const memberType = structFieldTypes.get(memberName)!;
+              if (i === identifiers.length - 1) {
+                // Last field in chain - this is the assignment target's type
+                this.context.expectedType = memberType;
+              } else if (this.isKnownStruct(memberType)) {
+                // Intermediate field - continue walking if it's a struct
+                currentStructType = memberType;
+              } else {
+                // Intermediate field is not a struct - can't walk further
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+        }
+      }
+    }
+
     const value = this._generateExpression(ctx.expression());
 
     // Restore expected type and assignment context
@@ -9382,6 +9418,37 @@ export default class CodeGenerator implements IOrchestrator {
         isLocalVariable,
         (name: string) => this.isKnownStruct(name),
       );
+
+      // Issue #452: Check if identifier is an unqualified enum member reference
+      // Use expectedType for type-aware resolution when assigning to enum fields
+      if (
+        this.context.expectedType &&
+        this.symbols!.knownEnums.has(this.context.expectedType)
+      ) {
+        // Type-aware resolution: check only the expected enum type
+        const expectedEnum = this.context.expectedType;
+        const members = this.symbols!.enumMembers.get(expectedEnum);
+        if (members && members.has(id)) {
+          return `${expectedEnum}${this.getScopeSeparator(false)}${id}`;
+        }
+      } else {
+        // No expected enum type - search all enums but error on ambiguity
+        // Note: This path is rare because most enum usages have type context
+        // (assignments, declarations, struct initializers all set expectedType)
+        const matchingEnums: string[] = [];
+        for (const [enumName, members] of this.symbols!.enumMembers) {
+          if (members.has(id)) {
+            matchingEnums.push(enumName);
+          }
+        }
+        if (matchingEnums.length === 1) {
+          return `${matchingEnums[0]}${this.getScopeSeparator(false)}${id}`;
+        } else if (matchingEnums.length > 1) {
+          throw new Error(
+            `Error: Ambiguous enum member '${id}' exists in multiple enums: ${matchingEnums.join(", ")}. Use qualified access (e.g., ${matchingEnums[0]}.${id})`,
+          );
+        }
+      }
 
       return id;
     }
