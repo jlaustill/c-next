@@ -156,6 +156,87 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0422");
     });
+
+    it("should allow this.name() qualified calls within scope", () => {
+      const code = `
+        scope Test {
+          void helper() {
+            u32 x <- 1;
+          }
+
+          public void callsHelper() {
+            this.helper();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should suggest this.name() for unqualified scope calls", () => {
+      const code = `
+        scope Test {
+          void helper() {
+            u32 x <- 1;
+          }
+
+          public void callsHelper() {
+            helper();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].functionName).toBe("helper");
+      expect(errors[0].message).toContain("scope");
+      expect(errors[0].message).toContain("this.helper()");
+    });
+
+    it("should not suggest this. for truly undefined in scope", () => {
+      const code = `
+        scope Test {
+          public void callsUnknown() {
+            unknownFunc();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("called before definition");
+      expect(errors[0].message).not.toContain("this.");
+    });
+
+    it("should not suggest this. for calls outside scope", () => {
+      const code = `
+        scope Test {
+          public void helper() {
+            u32 x <- 1;
+          }
+        }
+
+        void main() {
+          helper();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("called before definition");
+      expect(errors[0].message).not.toContain("this.");
+    });
   });
 
   // ========================================================================
