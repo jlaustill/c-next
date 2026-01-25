@@ -482,35 +482,18 @@ class SymbolCollector {
       }
     }
 
-    // Also check thisAccess, thisMemberAccess, thisArrayAccess in lvalue context
-    if (node instanceof Parser.ThisAccessContext) {
-      const identifier = node.IDENTIFIER();
-      if (identifier) {
-        const memberName = identifier.getText();
-        if (variableNames.has(memberName)) {
-          found.add(memberName);
-        }
-      }
-    }
-
-    if (node instanceof Parser.ThisMemberAccessContext) {
-      // First IDENTIFIER after 'this.'
-      const identifiers = node.IDENTIFIER();
-      if (identifiers.length > 0) {
-        const firstMember = identifiers[0].getText();
-        if (variableNames.has(firstMember)) {
-          found.add(firstMember);
-        }
-      }
-    }
-
-    if (node instanceof Parser.ThisArrayAccessContext) {
-      // First IDENTIFIER after 'this.'
-      const identifiers = node.IDENTIFIER();
-      if (identifiers.length > 0) {
-        const firstMember = identifiers[0].getText();
-        if (variableNames.has(firstMember)) {
-          found.add(firstMember);
+    // Issue #387: Check this.* patterns in assignment target context (unified grammar)
+    // The old ThisAccessContext, ThisMemberAccessContext, ThisArrayAccessContext
+    // are now unified into AssignmentTargetContext with THIS() and postfixTargetOp()
+    if (node instanceof Parser.AssignmentTargetContext) {
+      if (node.THIS() !== null) {
+        // this.member - the identifier after 'this.' is our member
+        const identifier = node.IDENTIFIER();
+        if (identifier) {
+          const memberName = identifier.getText();
+          if (variableNames.has(memberName)) {
+            found.add(memberName);
+          }
         }
       }
     }

@@ -1,0 +1,41 @@
+// test-execution
+// Tests: 2D struct array member assignment through global prefix (Issue #387)
+
+struct TReading {
+    i16 value;
+    u32 timestamp;
+    bool valid;
+}
+
+TReading readings[4][4];
+
+scope Test {
+    public u32 run() {
+        // The bug case: 2D array + member access via global prefix
+        global.readings[0][0].value <- 100;
+        if (global.readings[0][0].value != 100) return 1;
+
+        global.readings[0][0].timestamp <- 12345;
+        if (global.readings[0][0].timestamp != 12345) return 2;
+
+        global.readings[0][0].valid <- true;
+        if (global.readings[0][0].valid != true) return 3;
+
+        // Different indices
+        global.readings[1][2].value <- 200;
+        if (global.readings[1][2].value != 200) return 4;
+
+        global.readings[3][3].value <- 999;
+        if (global.readings[3][3].value != 999) return 5;
+
+        // Compound assignment
+        global.readings[0][0].value +<- 50;
+        if (global.readings[0][0].value != 150) return 6;
+
+        return 0;
+    }
+}
+
+u32 main() {
+    return Test.run();
+}
