@@ -6201,6 +6201,26 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
+    // Issue #452: Set expected type for member access targets (e.g., config.status <- value)
+    // This enables type-aware resolution of unqualified enum members
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      if (identifiers.length >= 2) {
+        const rootName = identifiers[0].getText();
+        const fieldName = identifiers[identifiers.length - 1].getText();
+        const rootTypeInfo = this.context.typeRegistry.get(rootName);
+        if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
+          const structFieldTypes = this.symbols!.structFields.get(
+            rootTypeInfo.baseType,
+          );
+          if (structFieldTypes && structFieldTypes.has(fieldName)) {
+            this.context.expectedType = structFieldTypes.get(fieldName)!;
+          }
+        }
+      }
+    }
+
     const value = this._generateExpression(ctx.expression());
 
     // Restore expected type and assignment context
@@ -9384,10 +9404,31 @@ export default class CodeGenerator implements IOrchestrator {
       );
 
       // Issue #452: Check if identifier is an unqualified enum member reference
-      // If so, prefix it with the enum type name (e.g., PRESSURE_TYPE_PSIG -> EPressureType_PRESSURE_TYPE_PSIG)
-      for (const [enumName, members] of this.symbols!.enumMembers) {
-        if (members.has(id)) {
-          return `${enumName}${this.getScopeSeparator(false)}${id}`;
+      // Use expectedType for type-aware resolution when assigning to enum fields
+      if (
+        this.context.expectedType &&
+        this.symbols!.knownEnums.has(this.context.expectedType)
+      ) {
+        // Type-aware resolution: check only the expected enum type
+        const expectedEnum = this.context.expectedType;
+        const members = this.symbols!.enumMembers.get(expectedEnum);
+        if (members && members.has(id)) {
+          return `${expectedEnum}${this.getScopeSeparator(false)}${id}`;
+        }
+      } else {
+        // No expected enum type - search all enums but error on ambiguity
+        const matchingEnums: string[] = [];
+        for (const [enumName, members] of this.symbols!.enumMembers) {
+          if (members.has(id)) {
+            matchingEnums.push(enumName);
+          }
+        }
+        if (matchingEnums.length === 1) {
+          return `${matchingEnums[0]}${this.getScopeSeparator(false)}${id}`;
+        } else if (matchingEnums.length > 1) {
+          throw new Error(
+            `Error: Ambiguous enum member '${id}' exists in multiple enums: ${matchingEnums.join(", ")}. Use qualified access (e.g., ${matchingEnums[0]}.${id})`,
+          );
         }
       }
 
