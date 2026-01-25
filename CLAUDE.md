@@ -20,8 +20,8 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 **All new and modified TypeScript code must pass linting:**
 
 - **Automated**: Pre-commit hooks automatically run prettier and eslint on staged files
-- **Manual** (if needed): `npm run prettier:fix` and `npm run eslint:check`
-- Fix any ESLint errors in code you write or modify
+- **Manual** (if needed): `npm run prettier:fix` and `npm run oxlint:check`
+- Fix any oxlint errors in code you write or modify
 - Legacy errors in untouched files can be ignored (fix as you go)
 - Pre-commit hooks use `lint-staged` to only check files you're committing
 
@@ -76,10 +76,12 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 **Test Commands:**
 
 - `npm test` — Run C-Next integration tests (.test.cnx files)
-- `npm test -- --quiet` or `-q` — Minimal output (errors + summary only, ideal for AI)
+- `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
 - `npm test -- tests/enum/my.test.cnx` — Run single test file
 - `npm run unit` — Run TypeScript unit tests (vitest)
+- `npm run unit -- <path>` — Run specific unit test file
+- `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
 
 ### Test File Patterns
