@@ -68,6 +68,35 @@ describe("BitUtils.maskHex", () => {
 });
 
 // ========================================================================
+// oneForType
+// ========================================================================
+describe("BitUtils.oneForType", () => {
+  it("returns 1ULL for u64", () => {
+    expect(BitUtils.oneForType("u64")).toBe("1ULL");
+  });
+
+  it("returns 1ULL for i64", () => {
+    expect(BitUtils.oneForType("i64")).toBe("1ULL");
+  });
+
+  it("returns 1 for u32", () => {
+    expect(BitUtils.oneForType("u32")).toBe("1");
+  });
+
+  it("returns 1 for i32", () => {
+    expect(BitUtils.oneForType("i32")).toBe("1");
+  });
+
+  it("returns 1 for u8", () => {
+    expect(BitUtils.oneForType("u8")).toBe("1");
+  });
+
+  it("returns 1 for unknown types", () => {
+    expect(BitUtils.oneForType("custom")).toBe("1");
+  });
+});
+
+// ========================================================================
 // generateMask
 // ========================================================================
 describe("BitUtils.generateMask", () => {

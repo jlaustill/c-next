@@ -6766,10 +6766,7 @@ export default class CodeGenerator implements IOrchestrator {
                 }
                 const bitIndex = this._generateExpression(exprs[exprIndex]);
                 // Use 1ULL for 64-bit types to avoid undefined behavior on large shifts
-                const one =
-                  lastMemberType === "u64" || lastMemberType === "i64"
-                    ? "1ULL"
-                    : "1";
+                const one = BitUtils.oneForType(lastMemberType);
                 return `${result} = (${result} & ~(${one} << ${bitIndex})) | ((${value} ? ${one} : 0) << ${bitIndex});`;
               }
 

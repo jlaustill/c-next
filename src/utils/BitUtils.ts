@@ -57,6 +57,17 @@ class BitUtils {
   }
 
   /**
+   * Return the appropriate "1" literal for a given type.
+   * Uses "1ULL" for 64-bit types to avoid undefined behavior on large shifts.
+   *
+   * @param typeName - The C-Next type name (e.g., "u64", "i32")
+   * @returns "1ULL" for 64-bit types, "1" otherwise
+   */
+  static oneForType(typeName: string): string {
+    return typeName === "u64" || typeName === "i64" ? "1ULL" : "1";
+  }
+
+  /**
    * Generate code to read a single bit from a value.
    * Pattern: ((target >> offset) & 1)
    *
