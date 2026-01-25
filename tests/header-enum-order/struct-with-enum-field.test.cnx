@@ -1,0 +1,35 @@
+// Test header generation order: enums before structs
+// Issue #449: Structs containing enum fields need enums defined first
+// This test verifies the generated header has correct declaration order
+
+enum EPressureType {
+    PRESSURE_TYPE_PSIA,
+    PRESSURE_TYPE_PSIG
+}
+
+enum EDeviceState {
+    STATE_IDLE,
+    STATE_RUNNING,
+    STATE_ERROR
+}
+
+struct TPressureInputConfig {
+    u16 assignedSpn;
+    EPressureType pressureType;
+}
+
+struct TDeviceStatus {
+    u32 deviceId;
+    EDeviceState state;
+    u8 errorCode;
+}
+
+void main() {
+    TPressureInputConfig config;
+    config.assignedSpn <- 100;
+    config.pressureType <- EPressureType.PRESSURE_TYPE_PSIA;
+
+    TDeviceStatus status;
+    status.deviceId <- 1;
+    status.state <- EDeviceState.STATE_IDLE;
+}
