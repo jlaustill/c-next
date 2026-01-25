@@ -176,6 +176,27 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
+    it("should detect undefined method via this.methodName()", () => {
+      const code = `
+        scope Test {
+          void helper() {
+            u32 x <- 1;
+          }
+
+          public void callsUndefined() {
+            this.undefinedMethod();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("called before definition");
+    });
+
     it("should suggest this.name() for unqualified scope calls", () => {
       const code = `
         scope Test {

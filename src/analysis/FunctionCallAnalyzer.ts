@@ -326,11 +326,17 @@ class FunctionCallListener extends CNextListener {
     // 3. Method-style call: obj.method() - not a C-Next function
 
     const primary = ctx.primaryExpression();
-    if (!primary.IDENTIFIER()) {
-      return; // Not a simple identifier-based call
+
+    // Determine the base name: could be an identifier or 'this'
+    let baseName: string;
+    if (primary.IDENTIFIER()) {
+      baseName = primary.IDENTIFIER()!.getText();
+    } else if (primary.THIS()) {
+      baseName = "this";
+    } else {
+      return; // Not a simple identifier-based or this-based call
     }
 
-    const baseName = primary.IDENTIFIER()!.getText();
     let resolvedName = baseName;
     let callOpIndex = -1;
 
@@ -338,12 +344,16 @@ class FunctionCallListener extends CNextListener {
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
 
-      // Member access: check if it's Scope.member pattern
+      // Member access: check if it's Scope.member or this.member pattern
       if (op.IDENTIFIER()) {
         const memberName = op.IDENTIFIER()!.getText();
 
+        // Handle this.member -> CurrentScope_member (when inside a scope)
+        if (resolvedName === "this" && this.currentScope) {
+          resolvedName = `${this.currentScope}_${memberName}`;
+        }
         // Check if base is a known scope
-        if (this.analyzer.isScope(resolvedName)) {
+        else if (this.analyzer.isScope(resolvedName)) {
           // Scope.member -> Scope_member
           resolvedName = `${resolvedName}_${memberName}`;
         } else {
