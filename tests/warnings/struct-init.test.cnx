@@ -1,0 +1,48 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Struct initialization should not trigger GCC warnings
+// Validates: Struct initializers are complete and warning-free
+// Coverage: Full struct init, nested structs, struct with mixed types
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Rectangle {
+    Point topLeft;
+    Point bottomRight;
+}
+
+struct Data {
+    u32 id;
+    u8 flags;
+    u16 count;
+}
+
+u32 main() {
+    // Test basic struct initialization
+    Point p <- {x: 10, y: 20};
+    if (p.x != 10) return 1;
+    if (p.y != 20) return 2;
+
+    // Test nested struct initialization
+    Rectangle rect <- {topLeft: {x: 0, y: 0}, bottomRight: {x: 100, y: 100}};
+    if (rect.topLeft.x != 0) return 3;
+    if (rect.bottomRight.y != 100) return 4;
+
+    // Test struct with mixed types
+    Data d <- {id: 42, flags: 0xFF, count: 1000};
+    if (d.id != 42) return 5;
+    if (d.flags != 0xFF) return 6;
+    if (d.count != 1000) return 7;
+
+    // Test struct field assignment
+    Point p2;
+    p2.x <- 10;
+    p2.y <- 20;
+    if (p2.x != 10) return 8;
+    if (p2.y != 20) return 9;
+
+    return 0;
+}

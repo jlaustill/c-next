@@ -1,0 +1,35 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Type widening conversions should not trigger -Wconversion warnings
+// Validates: Implicit widening from smaller to larger unsigned types is safe
+// Coverage: u8 -> u16 -> u32 -> u64 widening chain
+
+u32 main() {
+    // Test u8 -> u16 widening
+    u8 byte <- 255;
+    u16 word <- byte;
+    if (word != 255) return 1;
+
+    // Test u16 -> u32 widening
+    u32 dword <- word;
+    if (dword != 255) return 2;
+
+    // Test u32 -> u64 widening
+    u64 qword <- dword;
+    if (qword != 255) return 3;
+
+    // Test direct u8 -> u64 widening
+    u64 direct <- byte;
+    if (direct != 255) return 4;
+
+    // Test widening in expressions
+    u32 result <- byte + word;
+    if (result != 510) return 5;
+
+    // Test widening with larger values
+    u16 large_word <- 65535;
+    u32 large_dword <- large_word;
+    if (large_dword != 65535) return 6;
+
+    return 0;
+}
