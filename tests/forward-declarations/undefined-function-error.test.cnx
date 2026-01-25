@@ -1,0 +1,5 @@
+// ADR-030: Error - calling completely undefined function
+// Tests: calling a function that doesn't exist anywhere produces error
+void main() {
+    unknownFunction();
+}

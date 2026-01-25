@@ -1,0 +1,3 @@
+4:4 error[E0422]: function 'foo' called before definition
+5:4 error[E0422]: function 'bar' called before definition
+6:4 error[E0422]: function 'baz' called before definition

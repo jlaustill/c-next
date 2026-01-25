@@ -1,0 +1,7 @@
+// ADR-030/ADR-051: Built-in functions don't need definition
+// Tests: safe_div and safe_mod are recognized as built-ins
+void main() {
+    u32 result;
+    safe_div(result, 100, 0, 999);
+    safe_mod(result, 100, 0, 0);
+}

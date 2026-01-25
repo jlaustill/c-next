@@ -1,0 +1,7 @@
+// ADR-030: Error - multiple undefined functions
+// Tests: multiple errors are reported for multiple undefined calls
+void main() {
+    foo();
+    bar();
+    baz();
+}

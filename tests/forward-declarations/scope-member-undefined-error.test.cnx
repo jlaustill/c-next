@@ -1,0 +1,11 @@
+// ADR-030: Error - calling undefined scope member
+// Tests: calling a method that doesn't exist in a scope produces error
+scope LED {
+    public void on() {
+        u32 x <- 1;
+    }
+}
+
+void main() {
+    LED.off();
+}
