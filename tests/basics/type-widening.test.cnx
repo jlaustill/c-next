@@ -1,0 +1,45 @@
+// test-execution
+// Tests: Implicit type widening (safe conversions)
+// Demonstrates: smaller types implicitly widen to larger types
+
+u32 main() {
+    // u8 -> u16 -> u32 -> u64 (unsigned widening)
+    u8 byte <- 255;
+    u16 word <- byte;
+    if (word != 255) return 1;
+
+    u32 dword <- word;
+    if (dword != 255) return 2;
+
+    u64 qword <- dword;
+    if (qword != 255) return 3;
+
+    // i8 -> i16 -> i32 -> i64 (signed widening)
+    i8 sbyte <- -128;
+    i16 sword <- sbyte;
+    if (sword != -128) return 4;
+
+    i32 sdword <- sword;
+    if (sdword != -128) return 5;
+
+    i64 sqword <- sdword;
+    if (sqword != -128) return 6;
+
+    // Positive signed values widen correctly
+    i8 posByte <- 127;
+    i32 posWord <- posByte;
+    if (posWord != 127) return 7;
+
+    // f32 -> f64 (float widening)
+    f32 single <- 3.14;
+    f64 precise <- single;
+    if (precise < 3.13 || precise > 3.15) return 8;
+
+    // Widening in expressions
+    u8 a <- 200;
+    u8 b <- 200;
+    u16 sum <- a + b;  // Result fits in u16
+    if (sum != 400) return 9;
+
+    return 0;
+}

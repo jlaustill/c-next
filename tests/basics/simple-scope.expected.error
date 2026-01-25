@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Use 'this.value' to access scope member 'value' inside scope 'Counter'

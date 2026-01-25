@@ -1,0 +1,68 @@
+// test-execution
+// Tests: Basic switch statement
+// Demonstrates: switch cases, default, enum with switch
+
+enum Color {
+    RED,
+    GREEN,
+    BLUE
+}
+
+u32 colorToValue(Color c) {
+    u32 result <- 0;
+    switch (c) {
+        case Color.RED {
+            result <- 1;
+        }
+        case Color.GREEN {
+            result <- 2;
+        }
+        case Color.BLUE {
+            result <- 3;
+        }
+    }
+    return result;
+}
+
+u32 dayType(u32 day) {
+    u32 result <- 0;
+    switch (day) {
+        case 0 {
+            result <- 1;  // Sunday - weekend
+        }
+        case 6 {
+            result <- 1;  // Saturday - weekend
+        }
+        default {
+            result <- 2;  // Weekday
+        }
+    }
+    return result;
+}
+
+u32 main() {
+    // Switch with enum
+    Color c <- Color.RED;
+    u32 val <- colorToValue(c);
+    if (val != 1) return 1;
+
+    c <- Color.GREEN;
+    val <- colorToValue(c);
+    if (val != 2) return 2;
+
+    c <- Color.BLUE;
+    val <- colorToValue(c);
+    if (val != 3) return 3;
+
+    // Switch with integers and default
+    u32 result <- dayType(0);
+    if (result != 1) return 4;
+
+    result <- dayType(6);
+    if (result != 1) return 5;
+
+    result <- dayType(3);  // Wednesday
+    if (result != 2) return 6;
+
+    return 0;
+}

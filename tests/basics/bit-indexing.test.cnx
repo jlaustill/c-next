@@ -1,0 +1,49 @@
+// test-execution
+// Tests: Bit indexing syntax (C-Next specific)
+// Demonstrates: value[start, width] for bit extraction
+
+u32 main() {
+    // Extract low byte from u32
+    u32 value <- 0xDEADBEEF;
+    u8 lowByte <- value[0, 8];
+    if (lowByte != 0xEF) return 1;
+
+    // Extract second byte
+    u8 byte1 <- value[8, 8];
+    if (byte1 != 0xBE) return 2;
+
+    // Extract third byte
+    u8 byte2 <- value[16, 8];
+    if (byte2 != 0xAD) return 3;
+
+    // Extract high byte
+    u8 highByte <- value[24, 8];
+    if (highByte != 0xDE) return 4;
+
+    // Extract 4-bit nibbles
+    u8 lowNibble <- value[0, 4];
+    if (lowNibble != 0x0F) return 5;
+
+    u8 highNibble <- value[4, 4];
+    if (highNibble != 0x0E) return 6;
+
+    // Extract 16-bit values
+    u16 lowWord <- value[0, 16];
+    if (lowWord != 0xBEEF) return 7;
+
+    u16 highWord <- value[16, 16];
+    if (highWord != 0xDEAD) return 8;
+
+    // Single bit extraction
+    u8 testVal <- 0b10101010;
+    u8 bit0 <- testVal[0, 1];
+    if (bit0 != 0) return 9;
+
+    u8 bit1 <- testVal[1, 1];
+    if (bit1 != 1) return 10;
+
+    u8 bit7 <- testVal[7, 1];
+    if (bit7 != 1) return 11;
+
+    return 0;
+}

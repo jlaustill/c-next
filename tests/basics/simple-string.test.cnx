@@ -1,0 +1,40 @@
+// test-execution
+// Tests: Fixed-size string type
+// Demonstrates: string<N> declaration, assignment, properties
+
+u32 main() {
+    // String declaration and initialization
+    string<10> greeting <- "Hello";
+
+    // String length property
+    if (greeting.length != 5) return 1;
+
+    // String size (capacity) property
+    if (greeting.size != 11) return 2;  // 10 + null terminator
+
+    // Empty string
+    string<20> empty <- "";
+    if (empty.length != 0) return 3;
+
+    // String with spaces
+    string<20> message <- "Hi there";
+    if (message.length != 8) return 4;
+
+    // Longer string
+    string<50> longer <- "The quick brown fox";
+    if (longer.length != 19) return 5;
+
+    // String comparison
+    string<10> hello1 <- "Hello";
+    string<10> hello2 <- "Hello";
+    if (hello1 != hello2) return 6;
+
+    string<10> world <- "World";
+    if (hello1 = world) return 7;
+
+    // Capacity property
+    if (greeting.capacity != 10) return 8;
+    if (longer.capacity != 50) return 9;
+
+    return 0;
+}

@@ -1,0 +1,54 @@
+// test-execution
+// Tests: Basic arithmetic operators
+// Demonstrates: +, -, *, /, % with different types
+
+u32 main() {
+    // Addition
+    u32 a <- 10;
+    u32 b <- 20;
+    u32 sum <- a + b;
+    if (sum != 30) return 1;
+
+    // Subtraction
+    u32 diff <- b - a;
+    if (diff != 10) return 2;
+
+    // Multiplication
+    u32 product <- a * b;
+    if (product != 200) return 3;
+
+    // Division
+    u32 quotient <- b / a;
+    if (quotient != 2) return 4;
+
+    // Modulo
+    u32 remainder <- 17 % 5;
+    if (remainder != 2) return 5;
+
+    // Compound expressions
+    u32 result <- (a + b) * 2;
+    if (result != 60) return 6;
+
+    result <- a + b * 2;  // Precedence: multiply before add
+    if (result != 50) return 7;
+
+    // Signed arithmetic
+    i32 x <- -10;
+    i32 y <- 3;
+    i32 signedSum <- x + y;
+    if (signedSum != -7) return 8;
+
+    i32 signedProduct <- x * y;
+    if (signedProduct != -30) return 9;
+
+    // Float arithmetic
+    f32 f1 <- 10.5;
+    f32 f2 <- 3.0;
+    f32 fsum <- f1 + f2;
+    if (fsum < 13.4 || fsum > 13.6) return 10;
+
+    f32 fdiv <- f1 / f2;
+    if (fdiv < 3.4 || fdiv > 3.6) return 11;
+
+    return 0;
+}

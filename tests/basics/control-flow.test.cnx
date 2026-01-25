@@ -1,0 +1,81 @@
+// test-execution
+// Tests: Basic control flow structures
+// Demonstrates: if/else, while, for, do-while
+
+u32 main() {
+    u32 result <- 0;
+
+    // Simple if
+    u32 x <- 10;
+    if (x > 5) {
+        result <- 1;
+    }
+    if (result != 1) return 1;
+
+    // If-else
+    if (x < 5) {
+        result <- 100;
+    } else {
+        result <- 200;
+    }
+    if (result != 200) return 2;
+
+    // If-else-if chain
+    u32 score <- 85;
+    u32 grade;
+    if (score >= 90) {
+        grade <- 4;
+    } else if (score >= 80) {
+        grade <- 3;
+    } else if (score >= 70) {
+        grade <- 2;
+    } else {
+        grade <- 1;
+    }
+    if (grade != 3) return 3;
+
+    // While loop
+    u32 counter <- 0;
+    u32 sum <- 0;
+    while (counter < 5) {
+        sum <- sum + counter;
+        counter <- counter + 1;
+    }
+    if (sum != 10) return 4;  // 0+1+2+3+4 = 10
+
+    // For loop
+    sum <- 0;
+    for (u32 i <- 1; i <= 5; i <- i + 1) {
+        sum <- sum + i;
+    }
+    if (sum != 15) return 5;  // 1+2+3+4+5 = 15
+
+    // Do-while (executes at least once)
+    counter <- 0;
+    do {
+        counter <- counter + 1;
+    } while (counter < 3);
+    if (counter != 3) return 6;
+
+    // Break in loop
+    sum <- 0;
+    for (u32 i <- 0; i < 100; i <- i + 1) {
+        if (i = 5) {
+            break;
+        }
+        sum <- sum + 1;
+    }
+    if (sum != 5) return 7;
+
+    // Continue in loop
+    sum <- 0;
+    for (u32 i <- 0; i < 5; i <- i + 1) {
+        if (i = 2) {
+            continue;
+        }
+        sum <- sum + 1;
+    }
+    if (sum != 4) return 8;  // Skipped i=2, so 4 iterations counted
+
+    return 0;
+}

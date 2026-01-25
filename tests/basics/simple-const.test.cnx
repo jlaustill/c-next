@@ -1,0 +1,46 @@
+// test-execution
+// Tests: Const variable declarations and usage
+// Demonstrates: const primitives, const in expressions
+
+// Module-level constants
+const u32 MAX_VALUE <- 100;
+const u8 VERSION_MAJOR <- 1;
+const u8 VERSION_MINOR <- 2;
+const f32 PI <- 3.14159;
+const bool ENABLED <- true;
+
+u32 main() {
+    // Use module-level constants
+    if (MAX_VALUE != 100) return 1;
+    if (VERSION_MAJOR != 1) return 2;
+    if (VERSION_MINOR != 2) return 3;
+    if (ENABLED != true) return 4;
+
+    // Local constants
+    const u32 LOCAL_LIMIT <- 50;
+    if (LOCAL_LIMIT != 50) return 5;
+
+    // Constants in expressions
+    u32 result <- MAX_VALUE + LOCAL_LIMIT;
+    if (result != 150) return 6;
+
+    // Constant used in array operations
+    u32 data[3] <- [1, 2, 3];
+    const u32 EXPECTED_LENGTH <- 3;
+    if (data.length != EXPECTED_LENGTH) return 7;
+
+    // Constant in loop bound
+    u32 sum <- 0;
+    const u32 ITERATIONS <- 5;
+    for (u32 i <- 0; i < ITERATIONS; i <- i + 1) {
+        sum <- sum + 1;
+    }
+    if (sum != 5) return 8;
+
+    // Float constant precision
+    f32 radius <- 2.0;
+    f32 circumference <- 2.0 * PI * radius;
+    if (circumference < 12.5 || circumference > 12.6) return 9;
+
+    return 0;
+}

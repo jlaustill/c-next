@@ -1,0 +1,81 @@
+// test-execution
+// Tests: Basic struct definition and usage
+// Demonstrates: struct definition, field access, initialization, pass-by-reference
+
+// Simple struct definition
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+// Struct with different field types
+struct Sensor {
+    u16 id;
+    f32 temperature;
+    bool active;
+}
+
+// Function that reads struct fields (pass-by-reference, ADR-006)
+i32 getPointX(Point p) {
+    return p.x;
+}
+
+// Function that modifies struct (pass-by-reference modifies original)
+void setPointOrigin(Point p) {
+    p.x <- 0;
+    p.y <- 0;
+}
+
+// Function that uses struct values
+i32 manhattanDistance(Point p) {
+    i32 absX <- p.x;
+    if (absX < 0) {
+        absX <- 0 - absX;
+    }
+    i32 absY <- p.y;
+    if (absY < 0) {
+        absY <- 0 - absY;
+    }
+    return absX + absY;
+}
+
+u32 main() {
+    // Struct initialization with named fields
+    Point origin <- {x: 0, y: 0};
+    if (origin.x != 0) return 1;
+    if (origin.y != 0) return 2;
+
+    // Field assignment
+    Point p1;
+    p1.x <- 10;
+    p1.y <- 20;
+    if (p1.x != 10) return 3;
+    if (p1.y != 20) return 4;
+
+    // Initialization with values
+    Point p2 <- {x: 5, y: -3};
+    if (p2.x != 5) return 5;
+    if (p2.y != -3) return 6;
+
+    // Function reading struct
+    i32 xVal <- getPointX(p2);
+    if (xVal != 5) return 7;
+
+    // Pass-by-reference modification (ADR-006)
+    Point p3 <- {x: 100, y: 200};
+    setPointOrigin(p3);
+    if (p3.x != 0) return 8;
+    if (p3.y != 0) return 9;
+
+    // Function using struct values
+    Point p4 <- {x: -3, y: 4};
+    i32 dist <- manhattanDistance(p4);
+    if (dist != 7) return 10;
+
+    // Struct with mixed types
+    Sensor s1 <- {id: 42, temperature: 23.5, active: true};
+    if (s1.id != 42) return 11;
+    if (s1.active != true) return 12;
+
+    return 0;
+}
