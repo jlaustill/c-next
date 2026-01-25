@@ -177,3 +177,40 @@ describe("StringUtils.copyToStructFieldArrayElement", () => {
     ).toBe("strncpy(app.settings.labels[idx], text, 128);");
   });
 });
+
+// ========================================================================
+// literalLength
+// ========================================================================
+describe("StringUtils.literalLength", () => {
+  it("counts simple string without escapes", () => {
+    expect(StringUtils.literalLength('"hello"')).toBe(5);
+  });
+
+  it("counts empty string", () => {
+    expect(StringUtils.literalLength('""')).toBe(0);
+  });
+
+  it("counts newline escape as 1 character", () => {
+    expect(StringUtils.literalLength('"hello\\n"')).toBe(6);
+  });
+
+  it("counts tab escape as 1 character", () => {
+    expect(StringUtils.literalLength('"a\\tb"')).toBe(3);
+  });
+
+  it("counts backslash escape as 1 character", () => {
+    expect(StringUtils.literalLength('"a\\\\b"')).toBe(3);
+  });
+
+  it("counts quote escape as 1 character", () => {
+    expect(StringUtils.literalLength('"say \\"hi\\""')).toBe(8);
+  });
+
+  it("counts multiple escapes correctly", () => {
+    expect(StringUtils.literalLength('"\\n\\t\\r"')).toBe(3);
+  });
+
+  it("handles mixed content", () => {
+    expect(StringUtils.literalLength('"line1\\nline2"')).toBe(11);
+  });
+});

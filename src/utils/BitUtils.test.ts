@@ -97,6 +97,35 @@ describe("BitUtils.oneForType", () => {
 });
 
 // ========================================================================
+// formatHex
+// ========================================================================
+describe("BitUtils.formatHex", () => {
+  it("formats 255 as 0xFF", () => {
+    expect(BitUtils.formatHex(255)).toBe("0xFF");
+  });
+
+  it("formats 31 as 0x1F", () => {
+    expect(BitUtils.formatHex(31)).toBe("0x1F");
+  });
+
+  it("formats 0 as 0x0", () => {
+    expect(BitUtils.formatHex(0)).toBe("0x0");
+  });
+
+  it("formats 65535 as 0xFFFF", () => {
+    expect(BitUtils.formatHex(65535)).toBe("0xFFFF");
+  });
+
+  it("formats single digit as 0xN", () => {
+    expect(BitUtils.formatHex(10)).toBe("0xA");
+  });
+
+  it("formats large values correctly", () => {
+    expect(BitUtils.formatHex(0xdeadbeef)).toBe("0xDEADBEEF");
+  });
+});
+
+// ========================================================================
 // generateMask
 // ========================================================================
 describe("BitUtils.generateMask", () => {

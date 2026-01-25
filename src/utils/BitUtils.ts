@@ -68,6 +68,17 @@ class BitUtils {
   }
 
   /**
+   * Format a number as an uppercase hex string (e.g., 255 -> "0xFF").
+   * Used for generating hex mask literals in generated C code.
+   *
+   * @param value - The numeric value to format
+   * @returns Hex string like "0xFF" or "0x1F"
+   */
+  static formatHex(value: number): string {
+    return `0x${value.toString(16).toUpperCase()}`;
+  }
+
+  /**
    * Generate code to read a single bit from a value.
    * Pattern: ((target >> offset) & 1)
    *

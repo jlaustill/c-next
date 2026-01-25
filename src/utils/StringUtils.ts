@@ -159,6 +159,30 @@ class StringUtils {
       capacity,
     );
   }
+  /**
+   * Get the actual character length of a string literal,
+   * accounting for escape sequences like \n, \t, \\, etc.
+   *
+   * @param literal - The string literal including quotes (e.g., "hello\n")
+   * @returns The character count (escape sequences count as 1)
+   */
+  static literalLength(literal: string): number {
+    // Remove surrounding quotes
+    const content = literal.slice(1, -1);
+
+    let length = 0;
+    let i = 0;
+    while (i < content.length) {
+      if (content[i] === "\\" && i + 1 < content.length) {
+        // Escape sequence counts as 1 character
+        i += 2;
+      } else {
+        i += 1;
+      }
+      length += 1;
+    }
+    return length;
+  }
 }
 
 export default StringUtils;

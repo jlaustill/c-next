@@ -4028,21 +4028,7 @@ export default class CodeGenerator implements IOrchestrator {
    * accounting for escape sequences like \n, \t, \\, etc.
    */
   private _getStringLiteralLength(literal: string): number {
-    // Remove surrounding quotes
-    const content = literal.slice(1, -1);
-
-    let length = 0;
-    let i = 0;
-    while (i < content.length) {
-      if (content[i] === "\\" && i + 1 < content.length) {
-        // Escape sequence counts as 1 character
-        i += 2;
-      } else {
-        i += 1;
-      }
-      length += 1;
-    }
-    return length;
+    return StringUtils.literalLength(literal);
   }
 
   /**
@@ -6396,7 +6382,7 @@ export default class CodeGenerator implements IOrchestrator {
             );
 
             const mask = (1 << fieldInfo.width) - 1;
-            const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+            const maskHex = BitUtils.formatHex(mask);
 
             if (fieldInfo.width === 1) {
               // Single bit write: var = (var & ~(1 << offset)) | ((value ? 1 : 0) << offset)
@@ -6446,7 +6432,7 @@ export default class CodeGenerator implements IOrchestrator {
               );
 
               const mask = (1 << fieldInfo.width) - 1;
-              const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+              const maskHex = BitUtils.formatHex(mask);
 
               if (fieldInfo.width === 1) {
                 // Single bit write on register: REG_MEMBER = (REG_MEMBER & ~(1 << offset)) | ((value ? 1 : 0) << offset)
@@ -6499,7 +6485,7 @@ export default class CodeGenerator implements IOrchestrator {
                 );
 
                 const mask = (1 << structFieldInfo.width) - 1;
-                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+                const maskHex = BitUtils.formatHex(mask);
                 const memberPath = `${structVarName}.${structMemberName}`;
 
                 if (structFieldInfo.width === 1) {
@@ -6559,7 +6545,7 @@ export default class CodeGenerator implements IOrchestrator {
                 const isWriteOnly = accessMod === "wo";
 
                 const mask = (1 << fieldInfo.width) - 1;
-                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+                const maskHex = BitUtils.formatHex(mask);
 
                 if (isWriteOnly) {
                   // Write-only register: just write the value shifted to position (no RMW)
@@ -6872,7 +6858,7 @@ export default class CodeGenerator implements IOrchestrator {
                   );
 
                   const mask = (1 << fieldInfo.width) - 1;
-                  const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+                  const maskHex = BitUtils.formatHex(mask);
                   const index = this._generateExpression(exprs[0]);
                   const arrayElement = `${arrayName}[${index}]`;
 
@@ -7225,7 +7211,7 @@ export default class CodeGenerator implements IOrchestrator {
                 );
 
                 const mask = (1 << fieldInfo.width) - 1;
-                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+                const maskHex = BitUtils.formatHex(mask);
 
                 const accessMod =
                   this.symbols!.registerMemberAccess.get(fullRegMember);
@@ -7303,7 +7289,7 @@ export default class CodeGenerator implements IOrchestrator {
               );
 
               const mask = (1 << fieldInfo.width) - 1;
-              const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+              const maskHex = BitUtils.formatHex(mask);
 
               // Check if this is a write-only register
               const accessMod =
