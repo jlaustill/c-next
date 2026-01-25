@@ -6203,19 +6203,35 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #452: Set expected type for member access targets (e.g., config.status <- value)
     // This enables type-aware resolution of unqualified enum members
+    // Walk the chain of struct types for nested access (e.g., config.nested.field)
     if (targetCtx.memberAccess()) {
       const memberAccessCtx = targetCtx.memberAccess()!;
       const identifiers = memberAccessCtx.IDENTIFIER();
       if (identifiers.length >= 2) {
         const rootName = identifiers[0].getText();
-        const fieldName = identifiers[identifiers.length - 1].getText();
         const rootTypeInfo = this.context.typeRegistry.get(rootName);
         if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
-          const structFieldTypes = this.symbols!.structFields.get(
-            rootTypeInfo.baseType,
-          );
-          if (structFieldTypes && structFieldTypes.has(fieldName)) {
-            this.context.expectedType = structFieldTypes.get(fieldName)!;
+          let currentStructType: string | undefined = rootTypeInfo.baseType;
+          // Walk through each member in the chain to find the final field's type
+          for (let i = 1; i < identifiers.length && currentStructType; i++) {
+            const memberName = identifiers[i].getText();
+            const structFieldTypes =
+              this.symbols!.structFields.get(currentStructType);
+            if (structFieldTypes && structFieldTypes.has(memberName)) {
+              const memberType = structFieldTypes.get(memberName)!;
+              if (i === identifiers.length - 1) {
+                // Last field in chain - this is the assignment target's type
+                this.context.expectedType = memberType;
+              } else if (this.isKnownStruct(memberType)) {
+                // Intermediate field - continue walking if it's a struct
+                currentStructType = memberType;
+              } else {
+                // Intermediate field is not a struct - can't walk further
+                break;
+              }
+            } else {
+              break;
+            }
           }
         }
       }
@@ -9417,6 +9433,8 @@ export default class CodeGenerator implements IOrchestrator {
         }
       } else {
         // No expected enum type - search all enums but error on ambiguity
+        // Note: This path is rare because most enum usages have type context
+        // (assignments, declarations, struct initializers all set expectedType)
         const matchingEnums: string[] = [];
         for (const [enumName, members] of this.symbols!.enumMembers) {
           if (members.has(id)) {
