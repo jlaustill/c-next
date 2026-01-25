@@ -238,6 +238,10 @@ If implementing a feature, all documents must be current and memory must be upda
 - Use the `/commit-push-pr` skill or `git push` + `gh pr create` to push and create PRs
 - If the user says "commit this", only commit - ask before pushing
 
+## Development Tips
+
+**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnext` binary to test uncommitted transpiler changes.
+
 ## Release Checklist
 
 **See [`releasing.md`](releasing.md) for the complete release process.**
