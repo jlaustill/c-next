@@ -71,7 +71,7 @@ class Pipeline {
     ReadonlyMap<string, ReadonlySet<string>>
   > = new Map();
   /** Issue #424: Store user includes per file for header generation */
-  private userIncludesCollectors: Map<string, string[]> = new Map();
+  private readonly userIncludesCollectors: Map<string, string[]> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults

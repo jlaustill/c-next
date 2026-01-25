@@ -73,8 +73,8 @@ const transformIncludeDirective = (
   const { sourcePath, includeDirs = [], inputs = [] } = options;
 
   // Match: #include <file.cnx> or #include "file.cnx"
-  const angleMatch = includeText.match(/#\s*include\s*<([^>]+)\.cnx>/);
-  const quoteMatch = includeText.match(/#\s*include\s*"([^"]+)\.cnx"/);
+  const angleMatch = /#\s*include\s*<([^>]+)\.cnx>/.exec(includeText);
+  const quoteMatch = /#\s*include\s*"([^"]+)\.cnx"/.exec(includeText);
 
   if (angleMatch) {
     const filename = angleMatch[1];
@@ -128,7 +128,7 @@ const transformIncludeDirective = (
  * Extract the macro name from a #define directive
  */
 const extractDefineName = (text: string): string => {
-  const match = text.match(/#\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+  const match = /#\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)/.exec(text);
   return match ? match[1] : "unknown";
 };
 

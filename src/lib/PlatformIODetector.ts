@@ -76,14 +76,14 @@ function parsePlatformIOConfig(content: string): Record<string, string> {
     }
 
     // Section header
-    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
+    const sectionMatch = /^\[([^\]]+)\]$/.exec(trimmed);
     if (sectionMatch) {
       currentSection = sectionMatch[1];
       continue;
     }
 
     // Key = value pair
-    const kvMatch = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
+    const kvMatch = /^(\w+)\s*=\s*(.+)$/.exec(trimmed);
     if (kvMatch && currentSection) {
       const key = `${currentSection}.${kvMatch[1]}`;
       result[key] = kvMatch[2].trim();

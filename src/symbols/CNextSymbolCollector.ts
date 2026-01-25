@@ -391,7 +391,7 @@ class CNextSymbolCollector {
       const arrayDims = p.arrayDimension();
       const dimensions = arrayDims.map((d) => {
         const text = d.getText();
-        const match = text.match(/\[(\d*)\]/);
+        const match = /\[(\d*)\]/.exec(text);
         return match ? match[1] : ""; // "" means unbounded array
       });
 
@@ -472,13 +472,13 @@ class CNextSymbolCollector {
       for (const dim of arrayDims) {
         const dimText = dim.getText();
         // Extract dimension value (e.g., "[4]" -> "4", "[CONST]" -> "CONST")
-        const match = dimText.match(/\[([^\]]*)\]/);
+        const match = /\[([^\]]*)\]/.exec(dimText);
         if (match) {
           arrayDimensions.push(match[1]);
         }
       }
       // Get first dimension size for legacy size field
-      const firstMatch = arrayDims[0].getText().match(/\[(\d+)\]/);
+      const firstMatch = /\[(\d+)\]/.exec(arrayDims[0].getText());
       if (firstMatch) {
         size = parseInt(firstMatch[1], 10);
       }

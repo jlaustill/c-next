@@ -27,17 +27,17 @@ const tryParseNumericLiteral = (code: string): number | undefined => {
   const trimmed = code.trim();
 
   // Decimal integer (including negative)
-  if (/^-?\d+$/.test(trimmed)) {
+  if (/^-?\d+$/.exec(trimmed)) {
     return parseInt(trimmed, 10);
   }
 
   // Hex literal
-  if (/^0[xX][0-9a-fA-F]+$/.test(trimmed)) {
+  if (/^0[xX][0-9a-fA-F]+$/.exec(trimmed)) {
     return parseInt(trimmed, 16);
   }
 
   // Binary literal
-  if (/^0[bB][01]+$/.test(trimmed)) {
+  if (/^0[bB][01]+$/.exec(trimmed)) {
     return parseInt(trimmed.substring(2), 2);
   }
 

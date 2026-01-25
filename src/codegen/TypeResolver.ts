@@ -122,13 +122,13 @@ class TypeResolver {
     try {
       const cleanText = literalText.trim();
 
-      if (cleanText.match(/^-?\d+$/)) {
+      if (/^-?\d+$/.exec(cleanText)) {
         // Decimal integer
         value = BigInt(cleanText);
-      } else if (cleanText.match(/^0[xX][0-9a-fA-F]+$/)) {
+      } else if (/^0[xX][0-9a-fA-F]+$/.exec(cleanText)) {
         // Hex literal
         value = BigInt(cleanText);
-      } else if (cleanText.match(/^0[bB][01]+$/)) {
+      } else if (/^0[bB][01]+$/.exec(cleanText)) {
         // Binary literal
         value = BigInt(cleanText);
       } else {
@@ -167,7 +167,7 @@ class TypeResolver {
     if (text === "true" || text === "false") return "bool";
 
     // Check for type suffix on numeric literals
-    const suffixMatch = text.match(/([uUiI])(8|16|32|64)$/);
+    const suffixMatch = /([uUiI])(8|16|32|64)$/.exec(text);
     if (suffixMatch) {
       const signChar = suffixMatch[1].toLowerCase();
       const width = suffixMatch[2];
@@ -175,7 +175,7 @@ class TypeResolver {
     }
 
     // Float suffix
-    const floatMatch = text.match(/[fF](32|64)$/);
+    const floatMatch = /[fF](32|64)$/.exec(text);
     if (floatMatch) {
       return "f" + floatMatch[1];
     }

@@ -390,7 +390,7 @@ class InitializationListener extends CNextListener {
     // Check if condition is var < POSITIVE_CONSTANT
     const condText = cond.getText();
     // Match patterns like "i<4" or "ti<3" (no spaces in AST getText())
-    const match = condText.match(/^\w+<(\d+)$/);
+    const match = /^\w+<(\d+)$/.exec(condText);
     if (!match) return false;
     const bound = parseInt(match[1], 10);
     return bound > 0;
