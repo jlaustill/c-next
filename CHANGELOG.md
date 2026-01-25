@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.36] - 2026-01-25
+
+### Fixed
+
+- Unqualified enum member references now correctly prefixed in generated C with type-aware resolution (Issue #452, PR #453)
+
 ## [0.1.35] - 2026-01-25
 
 ### Fixed
@@ -417,6 +423,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.35...HEAD
+[0.1.36]: https://github.com/jlaustill/c-next/compare/v0.1.35...v0.1.36
 [0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
 [0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
 [0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
