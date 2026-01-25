@@ -99,6 +99,13 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
 
+### Unit Test File Location
+
+Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
+
+- `src/pipeline/CacheManager.ts` → `src/pipeline/__tests__/CacheManager.test.ts`
+- `src/pipeline/cache/CacheKeyGenerator.ts` → `src/pipeline/cache/__tests__/CacheKeyGenerator.test.ts`
+
 ### Test File Patterns
 
 There are **two types of tests** in C-Next:
