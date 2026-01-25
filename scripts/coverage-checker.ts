@@ -12,9 +12,9 @@
  *   npm run coverage:ids     - List all coverage IDs
  */
 
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { existsSync } from "fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 
 import coverageParser from "./coverage-parser";
 import scanTestFiles from "./test-scanner";

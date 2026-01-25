@@ -15,8 +15,8 @@
  *   with the SAME file appearing multiple times in the error message
  */
 
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import FileDiscovery from "../../../src/project/FileDiscovery";
 import Pipeline from "../../../src/pipeline/Pipeline";
 

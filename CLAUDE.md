@@ -24,6 +24,15 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 - Fix any oxlint errors in code you write or modify
 - Legacy errors in untouched files can be ignored (fix as you go)
 - Pre-commit hooks use `lint-staged` to only check files you're committing
+- **Lint scope**: `npm run oxlint:check` only covers `src/`, not `vscode-extension/` or `scripts/`
+
+### VS Code Extension Caveats
+
+- **Pre-commit hooks**: The vscode-extension has pre-existing lint violations (named exports, unused vars). Use `git commit --no-verify` when committing changes that touch vscode-extension files if hooks fail on unrelated issues.
+
+### SonarCloud
+
+- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
 
 ### TypeScript Coding Standards
 

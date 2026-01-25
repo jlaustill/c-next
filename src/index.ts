@@ -15,8 +15,8 @@ import {
   unlinkSync,
   statSync,
   renameSync,
-} from "fs";
-import { dirname, resolve } from "path";
+} from "node:fs";
+import { dirname, resolve } from "node:path";
 
 // Read version from package.json to ensure consistency
 // eslint-disable-next-line @typescript-eslint/no-var-requires

@@ -3,8 +3,8 @@
  * Deletes generated files (.c, .cpp, .h, .hpp) that have matching .cnx sources
  */
 
-import { basename, join, relative, resolve } from "path";
-import { existsSync, statSync, unlinkSync } from "fs";
+import { basename, join, relative, resolve } from "node:path";
+import { existsSync, statSync, unlinkSync } from "node:fs";
 import InputExpansion from "../lib/InputExpansion";
 
 /**

@@ -8,11 +8,11 @@
  * (e.g., validateMisra missing -I flag in one file but not the other).
  */
 
-import { readFileSync, existsSync, unlinkSync } from "fs";
-import { join, dirname, basename } from "path";
-import { execFileSync } from "child_process";
-import { tmpdir } from "os";
-import { randomBytes } from "crypto";
+import { readFileSync, existsSync, unlinkSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { randomBytes } from "node:crypto";
 import ITools from "./types/ITools";
 import IValidationResult from "./types/IValidationResult";
 

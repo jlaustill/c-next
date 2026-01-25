@@ -12,9 +12,9 @@ import {
   mkdirSync,
   existsSync,
   statSync,
-} from "fs";
+} from "node:fs";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { join, basename, relative, dirname, resolve } from "path";
+import { join, basename, relative, dirname, resolve } from "node:path";
 
 import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
 import { CNextParser } from "../antlr_parser/grammar/CNextParser";
@@ -267,10 +267,10 @@ class Pipeline {
       }
 
       const file = FileDiscovery.discoverFile(resolvedInput);
-      if (file && file.type === EFileType.CNext) {
+      if (file?.type === EFileType.CNext) {
         // It's a C-Next file
         cnextFiles.push(file);
-      } else if (file && file.type !== EFileType.Unknown) {
+      } else if (file?.type !== EFileType.Unknown && file !== null) {
         // It's another supported file type (direct header input)
         // Skip for now - we only want C-Next sources here
       } else {

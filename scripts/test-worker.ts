@@ -5,8 +5,8 @@
  * returning results to the main process.
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
-import { join, dirname, basename } from "path";
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
 import Pipeline from "../src/pipeline/Pipeline";
 import IFileResult from "../src/pipeline/types/IFileResult";
 

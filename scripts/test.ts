@@ -36,11 +36,11 @@ import {
   readdirSync,
   statSync,
   unlinkSync,
-} from "fs";
-import { join, dirname, basename } from "path";
-import { fileURLToPath } from "url";
-import { execFileSync, fork, ChildProcess } from "child_process";
-import { cpus } from "os";
+} from "node:fs";
+import { join, dirname, basename } from "node:path";
+import { fileURLToPath } from "node:url";
+import { execFileSync, fork, ChildProcess } from "node:child_process";
+import { cpus } from "node:os";
 import Pipeline from "../src/pipeline/Pipeline";
 import IFileResult from "../src/pipeline/types/IFileResult";
 import ITools from "./types/ITools";
@@ -805,8 +805,8 @@ async function main(): Promise<void> {
   let numJobs = cpus().length; // Default to CPU count
   const jobsIndex = args.findIndex((arg) => arg === "--jobs" || arg === "-j");
   if (jobsIndex !== -1 && args[jobsIndex + 1]) {
-    const parsed = parseInt(args[jobsIndex + 1], 10);
-    if (!isNaN(parsed) && parsed > 0) {
+    const parsed = Number.parseInt(args[jobsIndex + 1], 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
       numJobs = parsed;
     }
   }

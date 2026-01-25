@@ -134,7 +134,7 @@ class CommentFormatter {
     }
 
     if (lines.length > 1) {
-      result.push(`${indent}${lines[lines.length - 1]}*/`);
+      result.push(`${indent}${lines.at(-1)}*/`);
     }
 
     return result.join("\n");

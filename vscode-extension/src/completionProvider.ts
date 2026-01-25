@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import parseWithSymbols from "../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import TSymbolKind from "../../src/lib/types/TSymbolKind";
@@ -383,7 +383,7 @@ export default class CNextCompletionProvider
         document,
         position,
         context,
-        chain[chain.length - 1],
+        chain.at(-1)!,
       );
       return cppMembers;
     }
@@ -1000,7 +1000,7 @@ export default class CNextCompletionProvider
         `C-Next: Member completion query returned ${completionList?.items?.length || 0} items`,
       );
 
-      if (completionList && completionList.items) {
+      if (completionList?.items) {
         // Log first few items for debugging
         const firstFew = completionList.items
           .slice(0, 5)
@@ -1083,7 +1083,7 @@ export default class CNextCompletionProvider
 
       const allItems: vscode.CompletionItem[] = [];
 
-      if (completionList && completionList.items) {
+      if (completionList?.items) {
         // Log ALL items to a file for debugging
         const allLabels = completionList.items.map((item) =>
           typeof item.label === "string" ? item.label : item.label.label,
@@ -1121,7 +1121,7 @@ export default class CNextCompletionProvider
 
       // Write workspace symbols to separate debug file
       const wsDebugPath = "/tmp/cnext-workspace-symbols.txt";
-      if (symbols && symbols.length > 0) {
+      if (symbols?.length) {
         debug(`C-Next: Found ${symbols.length} workspace symbols`);
         const symbolDetails = symbols.map(
           (s) =>

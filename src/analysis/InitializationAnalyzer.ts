@@ -251,7 +251,7 @@ class InitializationListener extends CNextListener {
 
         // Check if chain ends with .length on non-string type
         if (!isStringType) {
-          const lastOp = ops[ops.length - 1].getText();
+          const lastOp = ops.at(-1)!.getText();
           if (lastOp === ".length") {
             const firstOpText = ops[0].getText();
             // Only skip if:
@@ -392,7 +392,7 @@ class InitializationListener extends CNextListener {
     // Match patterns like "i<4" or "ti<3" (no spaces in AST getText())
     const match = /^\w+<(\d+)$/.exec(condText);
     if (!match) return false;
-    const bound = parseInt(match[1], 10);
+    const bound = Number.parseInt(match[1], 10);
     return bound > 0;
   }
 

@@ -3,7 +3,7 @@
  * Extracted from CodeGenerator for better separation of concerns
  * Issue #63: Validation logic separated for independent testing
  */
-import { dirname, resolve, join } from "path";
+import { dirname, resolve, join } from "node:path";
 import * as Parser from "../antlr_parser/grammar/CNextParser";
 import ISymbolInfo from "./generators/ISymbolInfo";
 import SymbolTable from "../symbol_resolution/SymbolTable";
@@ -174,11 +174,11 @@ class TypeValidator {
     let value: number | null = null;
 
     if (/^\d+$/.exec(text)) {
-      value = parseInt(text, 10);
+      value = Number.parseInt(text, 10);
     } else if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
-      value = parseInt(text, 16);
+      value = Number.parseInt(text, 16);
     } else if (/^0[bB][01]+$/.exec(text)) {
-      value = parseInt(text.substring(2), 2);
+      value = Number.parseInt(text.substring(2), 2);
     }
 
     if (value !== null && value > maxValue) {
@@ -573,7 +573,7 @@ class TypeValidator {
   getDefaultCount(ctx: Parser.DefaultCaseContext): number | null {
     const intLiteral = ctx.INTEGER_LITERAL();
     if (intLiteral) {
-      return parseInt(intLiteral.getText(), 10);
+      return Number.parseInt(intLiteral.getText(), 10);
     }
     return null;
   }
@@ -1019,15 +1019,15 @@ class TypeValidator {
     // Handle different number formats
     if (text.startsWith("0x") || text.startsWith("0X")) {
       // Hex literal
-      value = parseInt(text.slice(2), 16);
+      value = Number.parseInt(text.slice(2), 16);
     } else if (text.startsWith("0b") || text.startsWith("0B")) {
       // Binary literal
-      value = parseInt(text.slice(2), 2);
+      value = Number.parseInt(text.slice(2), 2);
     } else {
       // Decimal literal (strip any type suffix)
       const numMatch = text.match(/^\d+/);
       if (numMatch) {
-        value = parseInt(numMatch[0], 10);
+        value = Number.parseInt(numMatch[0], 10);
       }
     }
 
@@ -1059,13 +1059,13 @@ class TypeValidator {
       let value: number | null = null;
 
       if (text.startsWith("0x") || text.startsWith("0X")) {
-        value = parseInt(text.slice(2), 16);
+        value = Number.parseInt(text.slice(2), 16);
       } else if (text.startsWith("0b") || text.startsWith("0B")) {
-        value = parseInt(text.slice(2), 2);
+        value = Number.parseInt(text.slice(2), 2);
       } else {
         const numMatch = /^\d+/.exec(text);
         if (numMatch) {
-          value = parseInt(numMatch[0], 10);
+          value = Number.parseInt(numMatch[0], 10);
         }
       }
 

@@ -2508,19 +2508,19 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check if it's a simple integer literal
     if (/^-?\d+$/.exec(text)) {
-      return parseInt(text, 10);
+      return Number.parseInt(text, 10);
     }
     // Check if it's a hex literal
     if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
-      return parseInt(text, 16);
+      return Number.parseInt(text, 16);
     }
     // Check if it's a binary literal
     if (/^0[bB][01]+$/.exec(text)) {
-      return parseInt(text.substring(2), 2);
+      return Number.parseInt(text.substring(2), 2);
     }
 
     // Bug #8: Check if it's a known const value (identifier)
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
+    if (/^[a-zA-Z_]\w*$/.exec(text)) {
       const constValue = this.constValues.get(text);
       if (constValue !== undefined) {
         return constValue;
@@ -2528,8 +2528,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
-    const addMatch =
-      /^([a-zA-Z_][a-zA-Z0-9_]*)\+([a-zA-Z_][a-zA-Z0-9_]*)$/.exec(text);
+    const addMatch = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/.exec(text);
     if (addMatch) {
       const left = this.constValues.get(addMatch[1]);
       const right = this.constValues.get(addMatch[2]);
@@ -2539,7 +2538,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) expressions for primitive types
-    const sizeofMatch = /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)$/.exec(text);
+    const sizeofMatch = /^sizeof\(([a-zA-Z_]\w*)\)$/.exec(text);
     if (sizeofMatch) {
       const typeName = sizeofMatch[1];
       const bitWidth = TYPE_WIDTH[typeName];
@@ -2556,27 +2555,23 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Handle sizeof(type) * N expressions
-    const sizeofMulMatch = /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\*(\d+)$/.exec(
-      text,
-    );
+    const sizeofMulMatch = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/.exec(text);
     if (sizeofMulMatch) {
       const typeName = sizeofMulMatch[1];
-      const multiplier = parseInt(sizeofMulMatch[2], 10);
+      const multiplier = Number.parseInt(sizeofMulMatch[2], 10);
       const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth && !isNaN(multiplier)) {
+      if (bitWidth && !Number.isNaN(multiplier)) {
         return (bitWidth / 8) * multiplier;
       }
     }
 
     // Handle sizeof(type) + N expressions
-    const sizeofAddMatch = /^sizeof\(([a-zA-Z_][a-zA-Z0-9_]*)\)\+(\d+)$/.exec(
-      text,
-    );
+    const sizeofAddMatch = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/.exec(text);
     if (sizeofAddMatch) {
       const typeName = sizeofAddMatch[1];
-      const addend = parseInt(sizeofAddMatch[2], 10);
+      const addend = Number.parseInt(sizeofAddMatch[2], 10);
       const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth && !isNaN(addend)) {
+      if (bitWidth && !Number.isNaN(addend)) {
         return bitWidth / 8 + addend;
       }
     }
@@ -2618,7 +2613,7 @@ export default class CodeGenerator implements IOrchestrator {
       const intLiteral = stringCtx.INTEGER_LITERAL();
 
       if (intLiteral) {
-        const capacity = parseInt(intLiteral.getText(), 10);
+        const capacity = Number.parseInt(intLiteral.getText(), 10);
         this.needsString = true;
         const stringDim = capacity + 1; // String capacity dimension (last)
 
@@ -2629,8 +2624,8 @@ export default class CodeGenerator implements IOrchestrator {
           for (const dim of arrayDim) {
             const sizeExpr = dim.expression();
             if (sizeExpr) {
-              const size = parseInt(sizeExpr.getText(), 10);
-              if (!isNaN(size) && size > 0) {
+              const size = Number.parseInt(sizeExpr.getText(), 10);
+              if (!Number.isNaN(size) && size > 0) {
                 dims.push(size);
               }
             }
@@ -2877,8 +2872,8 @@ export default class CodeGenerator implements IOrchestrator {
       const sizeExpr = arrayTypeCtx.expression();
       if (sizeExpr) {
         const sizeText = sizeExpr.getText();
-        const size = parseInt(sizeText, 10);
-        if (!isNaN(size)) {
+        const size = Number.parseInt(sizeText, 10);
+        if (!Number.isNaN(size)) {
           arrayDimensions.push(size);
         }
       }
@@ -3144,7 +3139,7 @@ export default class CodeGenerator implements IOrchestrator {
       const intLiteral = stringCtx.INTEGER_LITERAL();
 
       if (intLiteral) {
-        const capacity = parseInt(intLiteral.getText(), 10);
+        const capacity = Number.parseInt(intLiteral.getText(), 10);
         this.needsString = true;
         const stringDim = capacity + 1;
 
@@ -3154,8 +3149,8 @@ export default class CodeGenerator implements IOrchestrator {
           for (const dim of arrayDim) {
             const sizeExpr = dim.expression();
             if (sizeExpr) {
-              const size = parseInt(sizeExpr.getText(), 10);
-              if (!isNaN(size) && size > 0) {
+              const size = Number.parseInt(sizeExpr.getText(), 10);
+              if (!Number.isNaN(size) && size > 0) {
                 stringArrayDims.push(size);
               }
             }
@@ -3199,8 +3194,8 @@ export default class CodeGenerator implements IOrchestrator {
       const sizeExpr = arrayTypeCtx.expression();
       if (sizeExpr) {
         const sizeText = sizeExpr.getText();
-        const size = parseInt(sizeText, 10);
-        if (!isNaN(size)) {
+        const size = Number.parseInt(sizeText, 10);
+        if (!Number.isNaN(size)) {
           arrayDimensions.push(size);
         }
       }
@@ -3320,8 +3315,8 @@ export default class CodeGenerator implements IOrchestrator {
           const sizeExpr = dim.expression();
           if (sizeExpr) {
             const sizeText = sizeExpr.getText();
-            const size = parseInt(sizeText, 10);
-            if (!isNaN(size)) {
+            const size = Number.parseInt(sizeText, 10);
+            if (!Number.isNaN(size)) {
               arrayDimensions.push(size);
             }
           }
@@ -3333,7 +3328,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (isString && typeCtx.stringType()) {
         const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
         if (intLiteral) {
-          stringCapacity = parseInt(intLiteral.getText(), 10);
+          stringCapacity = Number.parseInt(intLiteral.getText(), 10);
           // For string arrays, add capacity+1 as second dimension for proper .length handling
           if (isArray && stringCapacity !== undefined) {
             arrayDimensions.push(stringCapacity + 1);
@@ -3499,7 +3494,7 @@ export default class CodeGenerator implements IOrchestrator {
     const text = ctx.getText();
 
     // Check if it's a simple identifier that's an enum variable
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
+    if (/^[a-zA-Z_]\w*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (typeInfo?.isEnum && typeInfo.enumTypeName) {
         return typeInfo.enumTypeName;
@@ -3576,7 +3571,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if it's a variable of primitive integer type
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
+    if (/^[a-zA-Z_]\w*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (
         typeInfo &&
@@ -3608,7 +3603,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if it's a simple variable of string type
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(text)) {
+    if (/^[a-zA-Z_]\w*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
       if (typeInfo?.isString) {
         return true;
@@ -3618,7 +3613,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #137: Check for array element access (e.g., names[0], arr[i])
     // Pattern: identifier[expression] or identifier[expression][expression]...
     // BUT NOT if accessing .length/.capacity/.size (those return numbers, not strings)
-    const arrayAccessMatch = /^([a-zA-Z_][a-zA-Z0-9_]*)\[/.exec(text);
+    const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
     if (arrayAccessMatch) {
       // ADR-045: String properties return numeric values, not strings
       if (
@@ -3727,7 +3722,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Variable - check type registry
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.exec(expr)) {
+    if (/^[a-zA-Z_]\w*$/.exec(expr)) {
       const typeInfo = this.context.typeRegistry.get(expr);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
@@ -4070,7 +4065,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ops.length === 0) return null;
 
     // Check the last operator to determine lvalue type
-    const lastOp = ops[ops.length - 1];
+    const lastOp = ops.at(-1)!;
 
     // Member access: .identifier
     if (lastOp.IDENTIFIER()) {
@@ -4141,7 +4136,7 @@ export default class CodeGenerator implements IOrchestrator {
     // function return member access (getConfig().member)
     // Check if the expression ends with member access preceded by array/function
     if (ops.length >= 2) {
-      const lastOp = ops[ops.length - 1];
+      const lastOp = ops.at(-1)!;
       // Last op must be member access (.identifier)
       if (lastOp.IDENTIFIER()) {
         const precedingOps = ops.slice(0, -1);
@@ -4199,7 +4194,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ops.length === 0) return false;
 
     // Last operator must be array access [expression]
-    const lastOp = ops[ops.length - 1];
+    const lastOp = ops.at(-1)!;
     if (!lastOp.expression()) return false;
 
     // Get the base identifier
@@ -4255,7 +4250,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ops.length === 0) return "not-array";
 
     // Last operator must be member access (.identifier)
-    const lastOp = ops[ops.length - 1];
+    const lastOp = ops.at(-1)!;
     const memberName = lastOp.IDENTIFIER()?.getText();
     if (!memberName) return "not-array";
 
@@ -4619,7 +4614,7 @@ export default class CodeGenerator implements IOrchestrator {
           const stringCtx = varDecl.type().stringType()!;
           const intLiteral = stringCtx.INTEGER_LITERAL();
           if (intLiteral) {
-            const capacity = parseInt(intLiteral.getText(), 10);
+            const capacity = Number.parseInt(intLiteral.getText(), 10);
             decl += `[${capacity + 1}]`;
           }
         }
@@ -5269,7 +5264,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ctx.type().stringType() && dims.length > 0) {
       const stringType = ctx.type().stringType()!;
       const capacity = stringType.INTEGER_LITERAL()
-        ? parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
+        ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
         : 256; // Default capacity
       const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
       return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
@@ -5408,7 +5403,7 @@ export default class CodeGenerator implements IOrchestrator {
       const intLiteral = stringCtx.INTEGER_LITERAL();
 
       if (intLiteral) {
-        const capacity = parseInt(intLiteral.getText(), 10);
+        const capacity = Number.parseInt(intLiteral.getText(), 10);
         const arrayDims = ctx.arrayDimension();
 
         // Check for string arrays: string<64> arr[4] -> char arr[4][65] = {0};
@@ -5466,7 +5461,7 @@ export default class CodeGenerator implements IOrchestrator {
                 if (firstDimExpr) {
                   const sizeText = firstDimExpr.getText();
                   if (/^\d+$/.exec(sizeText)) {
-                    const declaredSize = parseInt(sizeText, 10);
+                    const declaredSize = Number.parseInt(sizeText, 10);
                     if (
                       this.context.lastArrayFillValue === undefined &&
                       this.context.lastArrayInitCount !== declaredSize
@@ -5488,7 +5483,7 @@ export default class CodeGenerator implements IOrchestrator {
                 if (firstDimExpr) {
                   const sizeText = firstDimExpr.getText();
                   if (/^\d+$/.exec(sizeText)) {
-                    const declaredSize = parseInt(sizeText, 10);
+                    const declaredSize = Number.parseInt(sizeText, 10);
                     const fillVal = this.context.lastArrayFillValue;
                     // Only expand if not empty string (C handles {""} correctly for zeroing)
                     if (fillVal !== '""') {
@@ -5567,11 +5562,11 @@ export default class CodeGenerator implements IOrchestrator {
             }
 
             // For compile-time validation, we need numeric literals
-            const startNum = parseInt(substringOps.start, 10);
-            const lengthNum = parseInt(substringOps.length, 10);
+            const startNum = Number.parseInt(substringOps.start, 10);
+            const lengthNum = Number.parseInt(substringOps.length, 10);
 
             // Only validate bounds if both start and length are compile-time constants
-            if (!isNaN(startNum) && !isNaN(lengthNum)) {
+            if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
               // Bounds check: start + length <= sourceCapacity
               if (startNum + lengthNum > substringOps.sourceCapacity) {
                 throw new Error(
@@ -5581,7 +5576,7 @@ export default class CodeGenerator implements IOrchestrator {
             }
 
             // Validate destination capacity can hold the substring
-            if (!isNaN(lengthNum) && lengthNum > capacity) {
+            if (!Number.isNaN(lengthNum) && lengthNum > capacity) {
               throw new Error(
                 `Error: Substring length ${lengthNum} exceeds destination string<${capacity}> capacity`,
               );
@@ -5678,7 +5673,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (isArray && arrayDims[0].expression()) {
       const sizeText = arrayDims[0].expression()!.getText();
       if (/^\d+$/.exec(sizeText)) {
-        declaredSize = parseInt(sizeText, 10);
+        declaredSize = Number.parseInt(sizeText, 10);
       }
     }
 
@@ -6091,8 +6086,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private generateBitMask(width: string): string {
     // Check if width is a compile-time constant
-    const widthNum = parseInt(width, 10);
-    if (!isNaN(widthNum)) {
+    const widthNum = Number.parseInt(width, 10);
+    if (!Number.isNaN(widthNum)) {
       // Use explicit hex masks for common widths to avoid UB
       if (widthNum === 32) {
         return "0xFFFFFFFFU";
@@ -6865,7 +6860,7 @@ export default class CodeGenerator implements IOrchestrator {
                 dimensions &&
                 dimensions.length > 1
               ) {
-                const capacity = dimensions[dimensions.length - 1] - 1; // -1 because we added +1 for null terminator
+                const capacity = dimensions.at(-1)! - 1; // -1 because we added +1 for null terminator
                 if (cOp !== "=") {
                   throw new Error(
                     `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
@@ -7706,7 +7701,7 @@ export default class CodeGenerator implements IOrchestrator {
             dimensions.length > 1
           ) {
             // This is a string array: dimensions are [array_size, string_capacity]
-            const capacity = dimensions[dimensions.length - 1] - 1; // -1 because we added +1 for null terminator
+            const capacity = dimensions.at(-1)! - 1; // -1 because we added +1 for null terminator
 
             if (cOp !== "=") {
               throw new Error(
@@ -7816,7 +7811,7 @@ export default class CodeGenerator implements IOrchestrator {
                   `Error: Compound operators not supported for string assignment: ${cnextOp}`,
                 );
               }
-              const capacity = parseInt(match[1], 10);
+              const capacity = Number.parseInt(match[1], 10);
               this.needsString = true;
               return `strncpy(${structName}.${fieldName}, ${value}, ${capacity}); ${structName}.${fieldName}[${capacity}] = '\\0';`;
             }
@@ -9671,7 +9666,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check for function calls by looking for identifier followed by (
     // This is a heuristic - looking for "name(" pattern that's not a cast
-    if (/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/.exec(text)) {
+    if (/[a-zA-Z_]\w*\s*\(/.exec(text)) {
       // Could be a function call - walk the tree to confirm
       return this.hasPostfixFunctionCall(expr);
     }

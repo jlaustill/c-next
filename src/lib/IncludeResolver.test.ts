@@ -5,8 +5,8 @@
  * Pipeline.run() and Pipeline.transpileSource().
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
-import { join } from "path";
+import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import IncludeResolver from "./IncludeResolver";
 
 describe("IncludeResolver", () => {

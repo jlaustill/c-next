@@ -11,8 +11,8 @@
  *       symbols.json  - Cached symbols per file
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import CacheKeyGenerator from "./cache/CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
 import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
