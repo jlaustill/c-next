@@ -367,7 +367,12 @@ class FunctionCallListener extends CNextListener {
     if (callOpIndex >= 0) {
       const line = ctx.start?.line ?? 0;
       const column = ctx.start?.column ?? 0;
-      this.analyzer.checkFunctionCall(resolvedName, line, column);
+      this.analyzer.checkFunctionCall(
+        resolvedName,
+        line,
+        column,
+        this.currentScope,
+      );
     }
   };
 }
@@ -526,8 +531,17 @@ class FunctionCallAnalyzer {
 
   /**
    * Check if a function call is valid (function is defined or external)
+   * @param name The function name being called
+   * @param line Source line number
+   * @param column Source column number
+   * @param currentScope The current scope name (if inside a scope)
    */
-  public checkFunctionCall(name: string, line: number, column: number): void {
+  public checkFunctionCall(
+    name: string,
+    line: number,
+    column: number,
+    currentScope: string | null,
+  ): void {
     // Check for self-recursion (MISRA C:2012 Rule 17.2)
     if (this.currentFunctionName && name === this.currentFunctionName) {
       this.errors.push({
@@ -563,6 +577,22 @@ class FunctionCallAnalyzer {
     // ADR-040: Check if this is an ISR or callback variable being invoked
     if (this.callableVariables.has(name)) {
       return; // OK - invoking a function pointer variable
+    }
+
+    // Check if this is an unqualified call to a scope function
+    // e.g., calling helper() instead of this.helper() inside a scope
+    if (currentScope) {
+      const qualifiedName = `${currentScope}_${name}`;
+      if (this.definedFunctions.has(qualifiedName)) {
+        this.errors.push({
+          code: "E0422",
+          functionName: name,
+          line,
+          column,
+          message: `'${name}' is a scope function - use 'this.${name}()' to call it`,
+        });
+        return;
+      }
     }
 
     // Not defined - report error
