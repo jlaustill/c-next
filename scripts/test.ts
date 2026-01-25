@@ -173,10 +173,13 @@ async function runTest(
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
+  const expectedHFile = basePath + ".expected.h";
   const headerFile = basePath + ".test.h";
 
   // Issue #230: If test has a corresponding .test.h file, enable self-include generation
   const hasHeaderFile = existsSync(headerFile);
+  // Issue #424: If test has a corresponding .expected.h file, enable header validation
+  const hasExpectedHFile = existsSync(expectedHFile);
 
   // Use Pipeline for transpilation with header parsing support
   // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
@@ -187,10 +190,11 @@ async function runTest(
     noCache: true,
   });
 
+  // Enable header generation if we have either a self-include test file OR expected header to validate
   const result: IFileResult = await pipeline.transpileSource(source, {
     workingDir: dirname(cnxFile),
     sourcePath: cnxFile,
-    generateHeaders: hasHeaderFile, // Issue #230: Enable self-include for extern "C" tests
+    generateHeaders: hasHeaderFile || hasExpectedHFile, // Issue #424: Also generate for .expected.h validation
   });
 
   // Issue #322: Find and transpile helper .cnx files for cross-file execution tests
@@ -312,6 +316,10 @@ async function runTest(
 
     if (updateMode) {
       writeFileSync(expectedCFile, result.code);
+      // Issue #424: Also update header snapshot if header was generated
+      if (result.headerCode) {
+        writeFileSync(expectedHFile, result.headerCode);
+      }
       cleanupHelperFiles();
       return { passed: true, message: "Updated C snapshot", updated: true };
     }
@@ -400,6 +408,22 @@ async function runTest(
             passed: false,
             message: "Warning check failed (test-no-warnings)",
             warningError: noWarningsResult.message,
+          };
+        }
+      }
+
+      // Step 6.5: Header validation (if .expected.h file exists) - Issue #424
+      if (hasExpectedHFile) {
+        const expectedH = readFileSync(expectedHFile, "utf-8");
+        const actualH = result.headerCode ?? "";
+
+        if (TestUtils.normalize(actualH) !== TestUtils.normalize(expectedH)) {
+          cleanupHelperFiles();
+          return {
+            passed: false,
+            message: "Header output mismatch",
+            expected: expectedH,
+            actual: actualH,
           };
         }
       }

@@ -10,6 +10,9 @@ interface IFileResult {
   /** Generated C code (empty if failed) */
   code: string;
 
+  /** Generated header code (empty if headers not requested or failed) */
+  headerCode?: string;
+
   /** Output file path (if written to disk) */
   outputPath?: string;
 

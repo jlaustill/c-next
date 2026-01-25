@@ -58,6 +58,27 @@ class HeaderGenerator {
     if (options.includeSystemHeaders !== false) {
       lines.push("#include <stdint.h>");
       lines.push("#include <stdbool.h>");
+    }
+
+    // Issue #424: Include user headers if any extern declarations use macros in array dimensions
+    // We check all symbols upfront to determine if user includes are needed
+    if (options.userIncludes && options.userIncludes.length > 0) {
+      const needsUserIncludes = symbols.some(
+        (s) =>
+          s.isArray &&
+          s.arrayDimensions &&
+          s.arrayDimensions.some((dim) => this.isMacroDimension(dim)),
+      );
+
+      if (needsUserIncludes) {
+        for (const include of options.userIncludes) {
+          lines.push(include);
+        }
+      }
+    }
+
+    // Add blank line after includes
+    if (options.includeSystemHeaders !== false || options.userIncludes) {
       lines.push("");
     }
 
@@ -428,6 +449,26 @@ class HeaderGenerator {
     }
 
     return externalTypes;
+  }
+
+  /**
+   * Issue #424: Check if an array dimension is a macro (non-numeric identifier)
+   * Numeric dimensions: "4", "16", "256", ""
+   * Macro dimensions: "DEVICE_COUNT", "MAX_SIZE", "NUM_LEDS"
+   */
+  private isMacroDimension(dimension: string): boolean {
+    // Empty string is an unbounded array, not a macro
+    if (!dimension || dimension.trim() === "") {
+      return false;
+    }
+
+    // Pure numeric dimensions are not macros
+    if (/^\d+$/.test(dimension.trim())) {
+      return false;
+    }
+
+    // Anything else (identifier, expression) is treated as a macro
+    return true;
   }
 }
 

@@ -70,6 +70,8 @@ class Pipeline {
     string,
     ReadonlyMap<string, ReadonlySet<string>>
   > = new Map();
+  /** Issue #424: Store user includes per file for header generation */
+  private userIncludesCollectors: Map<string, string[]> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -674,6 +676,18 @@ class Pipeline {
       }
       this.passByValueParamsCollectors.set(file.path, passByValueCopy);
 
+      // Issue #424: Store user includes for header generation
+      // These may define macros used in array dimensions
+      const userIncludes: string[] = [];
+      for (const includeDir of tree.includeDirective()) {
+        const includeText = includeDir.getText();
+        // Only include quoted includes (user headers), not angle-bracket (system headers)
+        if (includeText.includes('"')) {
+          userIncludes.push(includeText);
+        }
+      }
+      this.userIncludesCollectors.set(file.path, userIncludes);
+
       // Issue #268: Update symbol parameters with auto-const info for header generation
       this.updateSymbolsAutoConst(file.path);
 
@@ -797,10 +811,13 @@ class Pipeline {
       this.passByValueParamsCollectors.get(file.path) ??
       new Map<string, Set<string>>();
 
+    // Issue #424: Get user includes for header generation
+    const userIncludes = this.userIncludesCollectors.get(file.path) ?? [];
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
-      { exportedOnly: true },
+      { exportedOnly: true, userIncludes },
       typeInput,
       passByValueParams,
     );
@@ -1044,6 +1061,81 @@ class Pipeline {
         },
       );
 
+      // Issue #424: Generate header content if requested
+      let headerCode: string | undefined;
+      if (options?.generateHeaders) {
+        // Issue #424: Collect symbols from main source file AFTER code generation
+        // This must happen after generate() to avoid interfering with type resolution
+        const collector = new CNextSymbolCollector(
+          sourcePath,
+          this.symbolTable,
+        );
+        const collectedSymbols = collector.collect(tree);
+        this.symbolTable.addSymbols(collectedSymbols);
+
+        const symbols = this.symbolTable.getSymbolsByFile(sourcePath);
+        const exportedSymbols = symbols.filter((s) => s.isExported);
+
+        if (exportedSymbols.length > 0) {
+          const headerName = basename(sourcePath).replace(
+            /\.cnx$|\.cnext$/,
+            ".h",
+          );
+
+          // Get type input from code generator (for struct/enum definitions)
+          const typeInput = this.codeGenerator.symbols ?? undefined;
+
+          // Get pass-by-value params (snapshot before next file clears it)
+          const passByValue = this.codeGenerator.getPassByValueParams();
+          const passByValueCopy = new Map<string, Set<string>>();
+          for (const [funcName, params] of passByValue) {
+            passByValueCopy.set(funcName, new Set(params));
+          }
+
+          // Update auto-const info on symbol parameters
+          const unmodifiedParams =
+            this.codeGenerator.getFunctionUnmodifiedParams();
+          for (const symbol of symbols) {
+            if (symbol.kind !== ESymbolKind.Function || !symbol.parameters) {
+              continue;
+            }
+            const unmodified = unmodifiedParams.get(symbol.name);
+            if (!unmodified) continue;
+
+            for (const param of symbol.parameters) {
+              const isPointerParam =
+                !param.isConst &&
+                !param.isArray &&
+                param.type !== "f32" &&
+                param.type !== "f64" &&
+                param.type !== "ISR";
+              if (isPointerParam && unmodified.has(param.name)) {
+                param.isAutoConst = true;
+              }
+            }
+          }
+
+          // Issue #424: Collect user includes for header generation
+          // These may define macros used in array dimensions
+          const userIncludes: string[] = [];
+          for (const includeDir of tree.includeDirective()) {
+            const includeText = includeDir.getText();
+            // Only include quoted includes (user headers), not angle-bracket (system headers)
+            if (includeText.includes('"')) {
+              userIncludes.push(includeText);
+            }
+          }
+
+          headerCode = this.headerGenerator.generate(
+            exportedSymbols,
+            headerName,
+            { exportedOnly: true, userIncludes },
+            typeInput,
+            passByValueCopy,
+          );
+        }
+      }
+
       // Flush cache to disk
       if (this.cacheManager) {
         await this.cacheManager.flush();
@@ -1052,6 +1144,7 @@ class Pipeline {
       return {
         sourcePath,
         code,
+        headerCode,
         success: true,
         errors: [],
         declarationCount,
