@@ -1302,6 +1302,66 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #387: Extract pattern information from unified postfix chain.
+   * This helper enables generateAssignment to detect special patterns
+   * (bitmap fields, register bits, strings) for appropriate code generation.
+   */
+  private extractAssignmentTargetInfo(ctx: Parser.AssignmentTargetContext): {
+    hasGlobal: boolean;
+    hasThis: boolean;
+    firstIdentifier: string;
+    /** All identifiers in the chain (firstIdentifier + member accesses) */
+    identifiers: string[];
+    /** All expressions from subscript operations */
+    expressions: Parser.ExpressionContext[];
+    /** Whether this has any postfix operations */
+    hasPostfixOps: boolean;
+    /** Whether this looks like array access (has subscripts) */
+    isArrayAccess: boolean;
+    /** Whether this looks like member access (has .member) */
+    isMemberAccess: boolean;
+    /** The postfix ops for detailed analysis */
+    postfixOps: Parser.PostfixTargetOpContext[];
+  } {
+    const hasGlobal = ctx.GLOBAL() !== null;
+    const hasThis = ctx.THIS() !== null;
+    const firstIdentifier = ctx.IDENTIFIER()?.getText() ?? "";
+    const postfixOps = ctx.postfixTargetOp();
+
+    const identifiers: string[] = [firstIdentifier];
+    const expressions: Parser.ExpressionContext[] = [];
+
+    let hasArrayOp = false;
+    let hasMemberOp = false;
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        identifiers.push(op.IDENTIFIER()!.getText());
+        hasMemberOp = true;
+      } else {
+        // Array subscript or bit range
+        const exprs = op.expression();
+        for (const expr of exprs) {
+          expressions.push(expr);
+        }
+        hasArrayOp = true;
+      }
+    }
+
+    return {
+      hasGlobal,
+      hasThis,
+      firstIdentifier,
+      identifiers,
+      expressions,
+      hasPostfixOps: postfixOps.length > 0,
+      isArrayAccess: hasArrayOp,
+      isMemberAccess: hasMemberOp,
+      postfixOps,
+    };
+  }
+
+  /**
    * Issue #304: Check if a type name is from a C++ header
    * Used to determine whether to use {} or {0} for initialization.
    * C++ types with constructors may fail with {0} but work with {}.
@@ -6971,200 +7031,272 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-016: Check if this is a global array access (e.g., global.GPIO7.DR_SET[LED_BIT])
-    const globalArrayAccessCtx = targetCtx.globalArrayAccess();
-    if (globalArrayAccessCtx) {
-      const identifiers = globalArrayAccessCtx.IDENTIFIER();
-      const parts = identifiers.map((id) => id.getText());
-      const expressions = globalArrayAccessCtx.expression();
-      const firstId = parts[0];
+    // Issue #387: Unified handling for global.* and this.* with postfix chains
+    // This replaces the old globalArrayAccess, thisArrayAccess, thisMemberAccess handlers
+    if (targetCtx.GLOBAL() || targetCtx.THIS()) {
+      const info = this.extractAssignmentTargetInfo(targetCtx);
+      const hasPostfixOps = info.postfixOps.length > 0;
 
-      // Handle single vs multi-expression (bit range) syntax
-      let indexExpr: string;
-      const isBitRange = expressions.length === 2;
-      if (isBitRange) {
-        const start = this._generateExpression(expressions[0]);
-        const width = this._generateExpression(expressions[1]);
-        indexExpr = `${start}, ${width}`;
-      } else {
-        indexExpr = this._generateExpression(expressions[0]);
+      if (targetCtx.GLOBAL() && hasPostfixOps) {
+        const firstId = info.firstIdentifier;
+
+        // Extract all identifiers and expressions from postfix chain
+        const parts = [firstId];
+        const expressions: Parser.ExpressionContext[] = [];
+        for (const op of info.postfixOps) {
+          if (op.IDENTIFIER()) {
+            parts.push(op.IDENTIFIER()!.getText());
+          } else {
+            for (const expr of op.expression()) {
+              expressions.push(expr);
+            }
+          }
+        }
+
+        // Handle cases with array subscripts
+        if (expressions.length > 0) {
+          // Handle single vs multi-expression (bit range) syntax
+          let indexExpr: string;
+          const isBitRange =
+            expressions.length === 2 &&
+            info.postfixOps.some((op) => op.COMMA());
+          if (isBitRange) {
+            const start = this._generateExpression(expressions[0]);
+            const width = this._generateExpression(expressions[1]);
+            indexExpr = `${start}, ${width}`;
+          } else {
+            // Multiple single subscripts (e.g., [0][0]) or single subscript
+            indexExpr = expressions
+              .map((e) => this._generateExpression(e))
+              .join("][");
+          }
+
+          if (this.symbols!.knownRegisters.has(firstId)) {
+            // Compound operators not supported for bit field access on registers
+            if (isCompound) {
+              throw new Error(
+                `Compound assignment operators not supported for bit field access: ${cnextOp}`,
+              );
+            }
+            const bitIndex = indexExpr;
+            // This is a register access: global.GPIO7.DR_SET[LED_BIT]
+            const regName = parts.join("_");
+
+            // Check if this is a write-only register
+            const accessMod = this.symbols!.registerMemberAccess.get(regName);
+            const isWriteOnly =
+              accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
+
+            if (isWriteOnly) {
+              if (value === "false" || value === "0") {
+                throw new Error(
+                  `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
+                    `Use the corresponding CLEAR register to clear bits.`,
+                );
+              }
+              return `${regName} = (1 << ${bitIndex});`;
+            } else {
+              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+            }
+          } else if (this.isKnownScope(firstId)) {
+            const memberName = parts[1];
+            this.validateCrossScopeVisibility(firstId, memberName);
+            const scopedName = parts.join("_");
+            return `${scopedName}[${indexExpr}] ${cOp} ${value};`;
+          } else {
+            // Issue #387: Handle complex postfix chains like global.readings[0][0].value
+            // Generate the full target and use normal assignment
+            const target = this.generateAssignmentTarget(targetCtx);
+            return `${target} ${cOp} ${value};`;
+          }
+        }
+
+        // Handle member-only access without subscripts (e.g., global.Counter.privateValue)
+        // Must validate cross-scope visibility for scope members
+        if (this.isKnownScope(firstId) && parts.length >= 2) {
+          const memberName = parts[1];
+          this.validateCrossScopeVisibility(firstId, memberName);
+          // Fall through to normal assignment generation
+        }
       }
 
-      if (this.symbols!.knownRegisters.has(firstId)) {
-        // Compound operators not supported for bit field access on registers
-        if (isCompound) {
-          throw new Error(
-            `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-          );
+      if (targetCtx.THIS() && hasPostfixOps) {
+        if (!this.context.currentScope) {
+          throw new Error("Error: 'this' can only be used inside a scope");
         }
-        const bitIndex = indexExpr;
-        // This is a register access: global.GPIO7.DR_SET[LED_BIT]
-        const regName = parts.join("_");
 
-        // Check if this is a write-only register
-        const accessMod = this.symbols!.registerMemberAccess.get(regName);
-        const isWriteOnly =
-          accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
+        const firstId = info.firstIdentifier;
+        const scopeName = this.context.currentScope;
 
-        if (isWriteOnly) {
-          // Write-only: assigning false/0 is semantically meaningless
-          if (value === "false" || value === "0") {
+        // Extract all identifiers and expressions from postfix chain
+        const parts = [firstId];
+        const expressions: Parser.ExpressionContext[] = [];
+        for (const op of info.postfixOps) {
+          if (op.IDENTIFIER()) {
+            parts.push(op.IDENTIFIER()!.getText());
+          } else {
+            for (const expr of op.expression()) {
+              expressions.push(expr);
+            }
+          }
+        }
+
+        // Check if first identifier is a scoped register
+        const scopedRegName = `${scopeName}_${parts[0]}`;
+
+        // Handle cases with array subscripts (register bit access)
+        if (
+          expressions.length > 0 &&
+          this.symbols!.knownRegisters.has(scopedRegName)
+        ) {
+          if (isCompound) {
             throw new Error(
-              `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
-                `Use the corresponding CLEAR register to clear bits.`,
+              `Compound assignment operators not supported for bit field access: ${cnextOp}`,
             );
           }
-          // Write-only: just write the mask, no read-modify-write needed
-          // global.GPIO7.DR_SET[LED_BIT] <- true  =>  GPIO7_DR_SET = (1 << LED_BIT)
-          return `${regName} = (1 << ${bitIndex});`;
-        } else {
-          // Read-write: need read-modify-write
-          return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-        }
-      } else if (this.isKnownScope(firstId)) {
-        // ADR-016: Validate visibility before allowing cross-scope access
-        const memberName = parts[1];
-        this.validateCrossScopeVisibility(firstId, memberName);
-        // Scope member array access: global.Counter.data[0] -> Counter_data[0]
-        // or bit range: global.Scope.reg[start, width] -> Scope_reg[start, width]
-        const scopedName = parts.join("_");
-        return `${scopedName}[${indexExpr}] ${cOp} ${value};`;
-      } else {
-        // Non-register, non-scope global array access - normal array indexing
-        if (parts.length === 1) {
-          return `${parts[0]}[${indexExpr}] ${cOp} ${value};`;
-        }
-        return `${parts[0]}.${parts.slice(1).join(".")}[${indexExpr}] ${cOp} ${value};`;
-      }
-    }
+          const regName = `${scopeName}_${parts.join("_")}`;
+          const accessMod = this.symbols!.registerMemberAccess.get(regName);
+          const isWriteOnly =
+            accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
 
-    // ADR-016: Check if this is a this array access (e.g., this.GPIO7.DR_SET[LED_BIT])
-    const thisArrayAccessCtx = targetCtx.thisArrayAccess();
-    if (thisArrayAccessCtx) {
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
+          if (
+            expressions.length === 2 &&
+            info.postfixOps.some((op) => op.COMMA())
+          ) {
+            // Multi-bit field access: this.GPIO7.ICR1[6, 2] <- value
+            const start = this._generateExpression(expressions[0]);
+            const width = this._generateExpression(expressions[1]);
+            const mask = `((1U << ${width}) - 1)`;
 
-      const identifiers = thisArrayAccessCtx.IDENTIFIER();
-      const parts = identifiers.map((id) => id.getText());
-      const expressions = thisArrayAccessCtx.expression();
-      const scopeName = this.context.currentScope;
+            if (isWriteOnly) {
+              if (value === "0") {
+                throw new Error(
+                  `Cannot assign 0 to write-only register bits ${regName}[${start}, ${width}]. ` +
+                    `Use the corresponding CLEAR register to clear bits.`,
+                );
+              }
 
-      // Check if first identifier is a scoped register
-      const scopedRegName = `${scopeName}_${parts[0]}`;
-      if (this.symbols!.knownRegisters.has(scopedRegName)) {
-        // Compound operators not supported for bit field access on registers
-        if (isCompound) {
-          throw new Error(
-            `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-          );
-        }
-        // This is a scoped register access: this.GPIO7.DR_SET[LED_BIT]
-        const regName = `${scopeName}_${parts.join("_")}`;
+              const startConst = this._tryEvaluateConstant(expressions[0]);
+              const widthConst = this._tryEvaluateConstant(expressions[1]);
 
-        // Check if this is a write-only register
-        const accessMod = this.symbols!.registerMemberAccess.get(regName);
-        const isWriteOnly =
-          accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
+              if (
+                startConst !== undefined &&
+                widthConst !== undefined &&
+                startConst % 8 === 0 &&
+                [8, 16, 32].includes(widthConst)
+              ) {
+                const baseAddr =
+                  this.symbols!.registerBaseAddresses.get(scopedRegName);
+                const memberOffset =
+                  this.symbols!.registerMemberOffsets.get(regName);
+                const byteOffset = startConst / 8;
 
-        if (expressions.length === 2) {
-          // Multi-bit field access: this.GPIO7.ICR1[6, 2] <- value
-          const start = this._generateExpression(expressions[0]);
-          const width = this._generateExpression(expressions[1]);
-          const mask = `((1U << ${width}) - 1)`;
+                if (baseAddr !== undefined && memberOffset !== undefined) {
+                  const accessType = `uint${widthConst}_t`;
+                  const totalOffset =
+                    byteOffset === 0
+                      ? memberOffset
+                      : `${memberOffset} + ${byteOffset}`;
+                  return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
+                }
+              }
 
-          if (isWriteOnly) {
-            // Write-only: assigning 0 is semantically meaningless for multi-bit
-            if (value === "0") {
-              throw new Error(
-                `Cannot assign 0 to write-only register bits ${regName}[${start}, ${width}]. ` +
-                  `Use the corresponding CLEAR register to clear bits.`,
-              );
+              return `${regName} = ((${value} & ${mask}) << ${start});`;
+            } else {
+              return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
             }
+          } else {
+            // Single bit access
+            const bitIndex = this._generateExpression(expressions[0]);
 
-            // Issue #187: Check if we can use width-appropriate memory access
-            const startConst = this._tryEvaluateConstant(expressions[0]);
-            const widthConst = this._tryEvaluateConstant(expressions[1]);
+            if (isWriteOnly) {
+              if (value === "false" || value === "0") {
+                throw new Error(
+                  `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
+                    `Use the corresponding CLEAR register to clear bits.`,
+                );
+              }
+              return `${regName} = (1 << ${bitIndex});`;
+            } else {
+              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
+            }
+          }
+        }
 
-            if (
-              startConst !== undefined &&
-              widthConst !== undefined &&
-              startConst % 8 === 0 && // byte-aligned
-              [8, 16, 32].includes(widthConst) // standard width
-            ) {
-              const baseAddr =
-                this.symbols!.registerBaseAddresses.get(scopedRegName);
-              const memberOffset =
-                this.symbols!.registerMemberOffsets.get(regName);
-              const byteOffset = startConst / 8;
+        // Handle bitmap field access: this.SysTick.CTRL.ENABLE <- true (3 identifiers, no subscripts)
+        if (parts.length === 3 && expressions.length === 0) {
+          const _regName = parts[0]; // Captured for documentation; we use scopedRegName instead
+          const memberName = parts[1];
+          const fieldName = parts[2];
 
-              if (baseAddr !== undefined && memberOffset !== undefined) {
-                const accessType = `uint${widthConst}_t`;
-                const totalOffset =
-                  byteOffset === 0
-                    ? memberOffset
-                    : `${memberOffset} + ${byteOffset}`;
-                return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
+          if (this.symbols!.knownRegisters.has(scopedRegName)) {
+            const fullRegMember = `${scopedRegName}_${memberName}`;
+            const bitmapType =
+              this.symbols!.registerMemberTypes.get(fullRegMember);
+
+            if (bitmapType) {
+              if (isCompound) {
+                throw new Error(
+                  `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
+                );
+              }
+
+              const fields = this.symbols!.bitmapFields.get(bitmapType);
+              if (fields && fields.has(fieldName)) {
+                const fieldInfo = fields.get(fieldName)!;
+
+                this.typeValidator!.validateBitmapFieldLiteral(
+                  ctx.expression(),
+                  fieldInfo.width,
+                  fieldName,
+                );
+
+                const mask = (1 << fieldInfo.width) - 1;
+                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
+
+                const accessMod =
+                  this.symbols!.registerMemberAccess.get(fullRegMember);
+                const isWriteOnly =
+                  accessMod === "wo" ||
+                  accessMod === "w1s" ||
+                  accessMod === "w1c";
+
+                if (isWriteOnly) {
+                  if (fieldInfo.width === 1) {
+                    return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                  } else {
+                    return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                  }
+                } else {
+                  if (fieldInfo.width === 1) {
+                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
+                  } else {
+                    return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+                  }
+                }
+              } else {
+                throw new Error(
+                  `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
+                );
               }
             }
-
-            // Fallback: write the value shifted to position
-            return `${regName} = ((${value} & ${mask}) << ${start});`;
-          } else {
-            // Read-write: need read-modify-write
-            return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
-          }
-        } else {
-          // Single bit access: this.GPIO7.DR_SET[LED_BIT] <- true
-          const bitIndex = this._generateExpression(expressions[0]);
-
-          if (isWriteOnly) {
-            // Write-only: assigning false/0 is semantically meaningless
-            if (value === "false" || value === "0") {
-              throw new Error(
-                `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
-                  `Use the corresponding CLEAR register to clear bits.`,
-              );
-            }
-            // Write-only: just write the mask, no read-modify-write needed
-            return `${regName} = (1 << ${bitIndex});`;
-          } else {
-            // Read-write: need read-modify-write
-            return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
           }
         }
-      } else {
-        // Non-register scoped array access
-        const expr = this._generateExpression(expressions[0]);
-        if (parts.length === 1) {
-          return `${scopeName}_${parts[0]}[${expr}] ${cOp} ${value};`;
+
+        // For other this.* patterns with postfix ops, use the target generator
+        if (expressions.length > 0 || parts.length > 1) {
+          const target = this.generateAssignmentTarget(targetCtx);
+          return `${target} ${cOp} ${value};`;
         }
-
-        // Check if this is array-then-field (this.arr[i].field) vs field-then-array (this.a.b[i])
-        // by examining the context text - if '[' comes right after first identifier, it's array-first
-        const ctxText = thisArrayAccessCtx.getText();
-        const firstIdEnd = ctxText.indexOf(parts[0]) + parts[0].length;
-
-        if (ctxText.charAt(firstIdEnd) === "[") {
-          // Array access comes first: this.buffer[i].field -> Scope_buffer[i].field
-          return `${scopeName}_${parts[0]}[${expr}].${parts.slice(1).join(".")} ${cOp} ${value};`;
-        }
-
-        // Field access comes first: this.GPIO7.DR_SET[i] -> Scope_GPIO7.DR_SET[i]
-        return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}[${expr}] ${cOp} ${value};`;
       }
     }
 
-    // ADR-034: Check if this is a thisMemberAccess bitmap field assignment (e.g., this.SysTick.CTRL.ENABLE <- true)
-    const thisMemberAccessCtx = targetCtx.thisMemberAccess();
+    // Keep old variable for backward compatibility with remaining code
+    const thisMemberAccessCtx = null; // Removed - now handled above
     if (thisMemberAccessCtx) {
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
-
-      const identifiers = thisMemberAccessCtx.IDENTIFIER();
-      const parts = identifiers.map((id) => id.getText());
-      const scopeName = this.context.currentScope;
+      // This block is now dead code but kept for structure
+      const scopeName = this.context.currentScope!;
+      const parts: string[] = [];
 
       // Check for scoped register member bitmap field: this.SysTick.CTRL.ENABLE (3 parts)
       if (parts.length === 3) {
@@ -7501,8 +7633,11 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // ADR-044: Handle compound assignments with overflow behavior for this.member access
-    if (isCompound && targetCtx.thisAccess() && this.context.currentScope) {
-      const memberName = targetCtx.thisAccess()!.IDENTIFIER().getText();
+    // Issue #387: Updated to use unified grammar (this. with no postfix ops = simple member)
+    const isSimpleThisAccess =
+      targetCtx.THIS() !== null && targetCtx.postfixTargetOp().length === 0;
+    if (isCompound && isSimpleThisAccess && this.context.currentScope) {
+      const memberName = targetCtx.IDENTIFIER()!.getText();
       const scopedName = `${this.context.currentScope}_${memberName}`;
       const typeInfo = this.context.typeRegistry.get(scopedName);
 
@@ -7605,8 +7740,9 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #139: Handle this.member string assignment (ADR-016 scopes)
-    if (targetCtx.thisAccess() && this.context.currentScope) {
-      const memberName = targetCtx.thisAccess()!.IDENTIFIER().getText();
+    // Issue #387: Updated to use unified grammar
+    if (isSimpleThisAccess && this.context.currentScope) {
+      const memberName = targetCtx.IDENTIFIER()!.getText();
       const scopedName = `${this.context.currentScope}_${memberName}`;
       const typeInfo = this.context.typeRegistry.get(scopedName);
 
@@ -7625,8 +7761,11 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #139: Handle global.member string assignment (ADR-016 global accessor)
-    if (targetCtx.globalAccess()) {
-      const id = targetCtx.globalAccess()!.IDENTIFIER().getText();
+    // Issue #387: Updated to use unified grammar (global. with no postfix ops = simple global)
+    const isSimpleGlobalAccess =
+      targetCtx.GLOBAL() !== null && targetCtx.postfixTargetOp().length === 0;
+    if (isSimpleGlobalAccess) {
+      const id = targetCtx.IDENTIFIER()!.getText();
       const typeInfo = this.context.typeRegistry.get(id);
 
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
@@ -7717,39 +7856,8 @@ export default class CodeGenerator implements IOrchestrator {
   private doGenerateAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
   ): string {
-    // ADR-016: Handle global.arr[i] or global.GPIO7.DR_SET[i] access
-    if (ctx.globalArrayAccess()) {
-      return this.generateGlobalArrayAccess(ctx.globalArrayAccess()!);
-    }
-
-    // ADR-016: Handle global.GPIO7.DR_SET access (member chain)
-    if (ctx.globalMemberAccess()) {
-      return this.generateGlobalMemberAccess(ctx.globalMemberAccess()!);
-    }
-
-    // ADR-016: Handle global.value access (simple)
-    if (ctx.globalAccess()) {
-      return ctx.globalAccess()!.IDENTIFIER().getText();
-    }
-
-    // ADR-016: Handle this.GPIO7.DR_SET[idx] access for scope-local array/bit assignment
-    if (ctx.thisArrayAccess()) {
-      return this.generateThisArrayAccess(ctx.thisArrayAccess()!);
-    }
-
-    // ADR-016: Handle this.GPIO7.DR_SET access for scope-local member chain assignment
-    if (ctx.thisMemberAccess()) {
-      return this.generateThisMemberAccess(ctx.thisMemberAccess()!);
-    }
-
-    // ADR-016: Handle this.member access for scope-local assignment
-    if (ctx.thisAccess()) {
-      const memberName = ctx.thisAccess()!.IDENTIFIER().getText();
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
-      return `${this.context.currentScope}_${memberName}`;
-    }
+    // Issue #387: Handle memberAccess and arrayAccess alternatives first
+    // These are separate sub-rules in the grammar (not unified with postfixTargetOp)
     if (ctx.memberAccess()) {
       return this.generateMemberAccess(ctx.memberAccess()!);
     }
@@ -7757,49 +7865,176 @@ export default class CodeGenerator implements IOrchestrator {
       return this.generateArrayAccess(ctx.arrayAccess()!);
     }
 
-    const id = ctx.IDENTIFIER()!.getText();
+    const hasGlobal = ctx.GLOBAL() !== null;
+    const hasThis = ctx.THIS() !== null;
+    const identifier = ctx.IDENTIFIER()?.getText();
+    const postfixOps = ctx.postfixTargetOp();
 
-    // ADR-006: Check if it's a function parameter
-    const paramInfo = this.context.currentParameters.get(id);
-    if (paramInfo) {
-      // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
-      if (paramInfo.isCallback) {
+    // Handle simple identifier (no postfix operations, no prefix)
+    if (!hasGlobal && !hasThis && postfixOps.length === 0) {
+      const id = identifier!;
+
+      // ADR-006: Check if it's a function parameter
+      const paramInfo = this.context.currentParameters.get(id);
+      if (paramInfo) {
+        // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
+        if (paramInfo.isCallback) {
+          return id;
+        }
+        // Float types use pass-by-value, no dereference needed
+        if (this._isFloatType(paramInfo.baseType)) {
+          return id;
+        }
+        // Enum types use pass-by-value, no dereference needed
+        if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
+          return id;
+        }
+        // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
+        if (
+          this.context.currentFunctionName &&
+          this._isParameterPassByValueByName(
+            this.context.currentFunctionName,
+            id,
+          )
+        ) {
+          return id;
+        }
+        // Parameter - allowed as bare identifier, but needs dereference
+        if (!paramInfo.isArray) {
+          return `(*${id})`;
+        }
         return id;
       }
-      // Float types use pass-by-value, no dereference needed
-      if (this._isFloatType(paramInfo.baseType)) {
-        return id;
-      }
-      // Enum types use pass-by-value, no dereference needed
-      if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
-        return id;
-      }
-      // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
-      if (
-        this.context.currentFunctionName &&
-        this._isParameterPassByValueByName(this.context.currentFunctionName, id)
-      ) {
-        return id;
-      }
-      // Parameter - allowed as bare identifier, but needs dereference
-      if (!paramInfo.isArray) {
-        return `(*${id})`;
-      }
+
+      // Check if it's a local variable
+      const isLocalVariable = this.context.localVariables.has(id);
+
+      // ADR-016: Enforce explicit qualification inside scopes
+      // Bare identifiers are ONLY allowed for local variables and parameters
+      this.typeValidator!.validateBareIdentifierInScope(
+        id,
+        isLocalVariable,
+        (name: string) => this.isKnownStruct(name),
+      );
+
       return id;
     }
 
-    // Check if it's a local variable
-    const isLocalVariable = this.context.localVariables.has(id);
+    // Build base identifier with scope prefix if needed
+    let result: string;
+    let firstId = identifier!;
 
-    // ADR-016: Enforce explicit qualification inside scopes
-    // Bare identifiers are ONLY allowed for local variables and parameters
-    this.typeValidator!.validateBareIdentifierInScope(
-      id,
-      isLocalVariable,
-      (name: string) => this.isKnownStruct(name),
-    );
+    if (hasGlobal) {
+      // global.x - firstId is x, no prefix needed for code generation
+      result = firstId;
+    } else if (hasThis) {
+      if (!this.context.currentScope) {
+        throw new Error("Error: 'this' can only be used inside a scope");
+      }
+      // this.x - prefix with current scope
+      result = `${this.context.currentScope}_${firstId}`;
+    } else {
+      // Bare identifier with postfix ops
+      result = firstId;
 
-    return id;
+      // ADR-006: Check if it's a function parameter (for -> access)
+      const paramInfo = this.context.currentParameters.get(firstId);
+      if (paramInfo && !paramInfo.isArray && paramInfo.isStruct) {
+        // Struct parameter needs (*param) when accessed alone, but -> when accessing members
+        // We'll handle the -> separator in the postfix processing
+      }
+    }
+
+    // No postfix operations - return base
+    if (postfixOps.length === 0) {
+      return result;
+    }
+
+    // Determine separator options for first postfix operation
+    const isCrossScope =
+      hasGlobal &&
+      (this.isKnownScope(firstId) || this.symbols!.knownRegisters.has(firstId));
+    const paramInfo = this.context.currentParameters.get(firstId);
+    const isStructParam = paramInfo?.isStruct ?? false;
+    const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
+
+    // Issue #387: Check if this is a scoped register (this.MOTOR_REG -> Scope_MOTOR_REG)
+    const scopedRegName =
+      hasThis && this.context.currentScope
+        ? `${this.context.currentScope}_${firstId}`
+        : null;
+    const isScopedRegister =
+      scopedRegName && this.symbols!.knownRegisters.has(scopedRegName);
+
+    // Process postfix operations in order
+    let identifierChain: string[] = [firstId]; // Track all identifiers for register detection
+    let isFirstOp = true;
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        // Member access: .identifier
+        const memberName = op.IDENTIFIER()!.getText();
+        identifierChain.push(memberName);
+
+        // Determine the appropriate separator
+        let separator: string;
+        if (isFirstOp) {
+          if (isCppAccess) {
+            separator = "::";
+          } else if (isStructParam) {
+            separator = "->";
+          } else if (isCrossScope) {
+            separator = "_";
+          } else if (
+            hasGlobal &&
+            this.symbols!.knownRegisters.has(identifierChain[0])
+          ) {
+            // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
+            separator = "_";
+          } else if (hasGlobal && this.isKnownScope(identifierChain[0])) {
+            // ADR-016: Validate visibility before allowing cross-scope access
+            this.validateCrossScopeVisibility(identifierChain[0], memberName);
+            separator = "_";
+          } else if (isScopedRegister) {
+            // Issue #387: Scoped register member access: this.MOTOR_REG.SPEED -> Scope_MOTOR_REG_SPEED
+            separator = "_";
+          } else {
+            separator = ".";
+          }
+          isFirstOp = false;
+        } else {
+          // After first separator, check for register chains (GPIO7_DR) or struct fields
+          const chainSoFar = identifierChain.slice(0, -1).join("_");
+          if (
+            this.symbols!.knownRegisters.has(identifierChain[0]) ||
+            this.symbols!.knownRegisters.has(chainSoFar) ||
+            (scopedRegName && this.symbols!.knownRegisters.has(scopedRegName))
+          ) {
+            separator = "_";
+          } else {
+            separator = ".";
+          }
+        }
+
+        result += `${separator}${memberName}`;
+      } else {
+        // Array subscript or bit range: [expr] or [expr, expr]
+        const expressions = op.expression();
+        if (expressions.length === 1) {
+          // Single subscript: array access or single bit
+          const indexExpr = this._generateExpression(expressions[0]);
+          result += `[${indexExpr}]`;
+        } else if (expressions.length === 2) {
+          // Bit range: [start, width]
+          const start = this._generateExpression(expressions[0]);
+          const width = this._generateExpression(expressions[1]);
+          result += `[${start}, ${width}]`;
+        }
+        isFirstOp = false;
+      }
+    }
+
+    return result;
   }
 
   // ADR-016: Validate cross-scope visibility (issue #165)
@@ -7823,178 +8058,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
   }
 
-  // ADR-016: Generate global member access for assignment targets
-  private generateGlobalMemberAccess(
-    ctx: Parser.GlobalMemberAccessContext,
-  ): string {
-    const identifiers = ctx.IDENTIFIER();
-    const parts = identifiers.map((id) => id.getText());
-    const firstId = parts[0];
-    // Issue #304: Check if first identifier is a C++ scope symbol
-    const isCppAccess = this.isCppScopeSymbol(firstId);
-    // Check if first identifier is a register
-    if (this.symbols!.knownRegisters.has(firstId)) {
-      // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
-      return parts.join("_");
-    }
-    // Check if first identifier is a scope
-    if (this.isKnownScope(firstId)) {
-      // ADR-016: Validate visibility before allowing cross-scope access
-      const memberName = parts[1];
-      this.validateCrossScopeVisibility(firstId, memberName);
-
-      // Check if the scope variable is a struct type - if so, remaining parts
-      // are struct field access and should use '.' not '_'
-      // e.g., global.Motor.current.speed -> Motor_current.speed
-      if (parts.length > 2) {
-        const scopeVarName = `${firstId}_${memberName}`;
-        const scopeVarType = this.context.typeRegistry.get(scopeVarName);
-        if (scopeVarType && this._isKnownStruct(scopeVarType.baseType)) {
-          // Scope variable is a struct - use '.' for field access
-          return `${scopeVarName}.${parts.slice(2).join(".")}`;
-        }
-      }
-
-      // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-      return parts.join(this.getScopeSeparator(isCppAccess));
-    }
-    // Issue #304: C++ class/enum access uses ::
-    if (isCppAccess) {
-      return parts.join("::");
-    }
-    // Non-register, non-scope member access: obj.field
-    return parts.join(".");
-  }
-
-  // ADR-016: Generate global array access for assignment targets
-  private generateGlobalArrayAccess(
-    ctx: Parser.GlobalArrayAccessContext,
-  ): string {
-    const identifiers = ctx.IDENTIFIER();
-    const parts = identifiers.map((id) => id.getText());
-    const expressions = ctx.expression();
-    const firstId = parts[0];
-    // Issue #304: Check if first identifier is a C++ scope symbol
-    const isCppAccess = this.isCppScopeSymbol(firstId);
-
-    // Handle single vs multi-expression (bit range) syntax
-    let indexExpr: string;
-    if (expressions.length === 1) {
-      indexExpr = this._generateExpression(expressions[0]);
-    } else {
-      // Bit range: [start, width]
-      const start = this._generateExpression(expressions[0]);
-      const width = this._generateExpression(expressions[1]);
-      indexExpr = `${start}, ${width}`;
-    }
-
-    if (this.symbols!.knownRegisters.has(firstId)) {
-      // Register bit access: GPIO7.DR_SET[idx] -> GPIO7_DR_SET |= (1 << idx) (handled elsewhere)
-      // For assignment target, just generate the left-hand side representation
-      const regName = parts.join("_");
-      return `${regName}[${indexExpr}]`;
-    }
-
-    // Check if first identifier is a scope
-    if (this.isKnownScope(firstId)) {
-      // ADR-016: Validate visibility before allowing cross-scope access
-      const memberName = parts[1];
-      this.validateCrossScopeVisibility(firstId, memberName);
-      // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-      const scopedName = parts.join(this.getScopeSeparator(isCppAccess));
-      return `${scopedName}[${indexExpr}]`;
-    }
-
-    // Issue #304: C++ class/enum access uses ::
-    if (isCppAccess) {
-      const baseName = parts.join("::");
-      return `${baseName}[${indexExpr}]`;
-    }
-
-    // Non-register, non-scope array access
-    const baseName = parts.join(".");
-    return `${baseName}[${indexExpr}]`;
-  }
-
-  // ADR-016: Generate this.member.member for scope-local chained member access
-  private generateThisMemberAccess(
-    ctx: Parser.ThisMemberAccessContext,
-  ): string {
-    if (!this.context.currentScope) {
-      throw new Error("Error: 'this' can only be used inside a scope");
-    }
-    const identifiers = ctx.IDENTIFIER();
-    const parts = identifiers.map((id) => id.getText());
-    const scopeName = this.context.currentScope;
-
-    // Check if first identifier is a scoped register: this.GPIO7.DR_SET -> Teensy4_GPIO7_DR_SET
-    const scopedRegName = `${scopeName}_${parts[0]}`;
-    if (this.symbols!.knownRegisters.has(scopedRegName)) {
-      // Scoped register member access: this.GPIO7.DR_SET -> Teensy4_GPIO7_DR_SET
-      return `${scopeName}_${parts.join("_")}`;
-    }
-
-    // Non-register scoped member access: this.config.value -> Teensy4_config.value
-    return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}`;
-  }
-
-  // ADR-016: Generate this.member[idx] or this.member.member[idx] for scope-local array/bit access
-  private generateThisArrayAccess(ctx: Parser.ThisArrayAccessContext): string {
-    if (!this.context.currentScope) {
-      throw new Error("Error: 'this' can only be used inside a scope");
-    }
-    const identifiers = ctx.IDENTIFIER();
-    const parts = identifiers.map((id) => id.getText());
-    const expressions = ctx.expression();
-    const scopeName = this.context.currentScope;
-
-    // Check if first identifier is a scoped register
-    const scopedRegName = `${scopeName}_${parts[0]}`;
-    if (this.symbols!.knownRegisters.has(scopedRegName)) {
-      // Scoped register bit access: this.GPIO7.DR_SET[idx] -> Teensy4_GPIO7_DR_SET[idx]
-      const regName = `${scopeName}_${parts.join("_")}`;
-
-      // Check if this register member has a bitmap type
-      const bitmapType = this.symbols!.registerMemberTypes.get(regName);
-      if (bitmapType) {
-        const line = ctx.start?.line ?? 0;
-        throw new Error(
-          `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-            `Use named field access instead (e.g., ${parts.join(".")}.FIELD_NAME).`,
-        );
-      }
-
-      if (expressions.length === 2) {
-        // Multi-bit field: this.GPIO7.ICR1[6, 2]
-        const offset = this._generateExpression(expressions[0]);
-        const width = this._generateExpression(expressions[1]);
-        return `${regName}[${offset}, ${width}]`;
-      } else {
-        const expr = this._generateExpression(expressions[0]);
-        return `${regName}[${expr}]`;
-      }
-    }
-
-    // Non-register scoped array access
-    const expr = this._generateExpression(expressions[0]);
-    if (parts.length === 1) {
-      return `${scopeName}_${parts[0]}[${expr}]`;
-    }
-
-    // Check if this is array-then-field (this.arr[i].field) vs field-then-array (this.a.b[i])
-    // by examining the context text - if '[' comes right after first identifier, it's array-first
-    const ctxText = ctx.getText();
-    const firstIdEnd = ctxText.indexOf(parts[0]) + parts[0].length;
-    const bracketPos = ctxText.indexOf("[");
-
-    if (bracketPos === firstIdEnd + 1 || ctxText.charAt(firstIdEnd) === "[") {
-      // Array access comes first: this.buffer[i].field -> Scope_buffer[i].field
-      return `${scopeName}_${parts[0]}[${expr}].${parts.slice(1).join(".")}`;
-    }
-
-    // Field access comes first: this.GPIO7.DR_SET[i] -> Scope_GPIO7.DR_SET[i]
-    return `${scopeName}_${parts[0]}.${parts.slice(1).join(".")}[${expr}]`;
-  }
+  // Issue #387: Dead methods removed (generateGlobalMemberAccess, generateGlobalArrayAccess,
+  // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
 
   private generateIf(ctx: Parser.IfStatementContext): string {
     const result = statementGenerators.generateIf(

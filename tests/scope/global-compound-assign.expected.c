@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // Test: Compound assignment with global.* patterns inside scopes
 // Tests global array access with compound operators
@@ -15,7 +25,7 @@ int32_t values[4] = {0};
 /* Scope: Worker */
 
 void Worker_updateGlobal(void) {
-    counter += 50;
+    counter = cnx_clamp_add_i32(counter, 50);
 }
 
 void Worker_updateGlobalArray(void) {

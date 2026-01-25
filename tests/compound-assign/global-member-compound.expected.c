@@ -5,6 +5,23 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a * b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // test-coverage: 2.3-global-member, 2.4-global-member, 2.5-global-member, 2.6-global-member, 2.7-global-member, 2.8-global-member, 2.9-global-member, 2.10-global-member, 2.11-global-member
 // Tests: All compound assignment operators with global.member syntax
@@ -19,23 +36,23 @@ uint32_t gBits = 0;
 
 int32_t Worker_testSubtraction(void) {
     gValue = 100;
-    gValue -= 30;
+    gValue = cnx_clamp_sub_i32(gValue, 30);
     if (gValue != 70) return 1;
     gValue = 50;
-    gValue -= 50;
+    gValue = cnx_clamp_sub_i32(gValue, 50);
     if (gValue != 0) return 2;
     return 0;
 }
 
 int32_t Worker_testMultiplication(void) {
     gValue = 7;
-    gValue *= 6;
+    gValue = cnx_clamp_mul_i32(gValue, 6);
     if (gValue != 42) return 10;
     gValue = 100;
-    gValue *= 1;
+    gValue = cnx_clamp_mul_i32(gValue, 1);
     if (gValue != 100) return 11;
     gValue = 25;
-    gValue *= 0;
+    gValue = cnx_clamp_mul_i32(gValue, 0);
     if (gValue != 0) return 12;
     return 0;
 }

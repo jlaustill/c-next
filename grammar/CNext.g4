@@ -247,51 +247,22 @@ assignmentOperator
     | '>><-'    // Right shift assignment
     ;
 
+// Assignment target with unified postfix chain approach (Issue #387)
+// global/this prefixes use postfixTargetOp* for any combination of member/array access
+// Bare identifiers fall back to existing memberAccess/arrayAccess rules for compatibility
 assignmentTarget
-    : globalArrayAccess                    // ADR-016: global.GPIO7.DR_SET[idx] (most specific first)
-    | globalMemberAccess                   // ADR-016: global.GPIO7.DR_SET
-    | globalAccess                         // ADR-016: global.value
-    | thisArrayAccess                      // ADR-016: this.GPIO7.DR_SET[idx] (most specific first)
-    | thisMemberAccess                     // ADR-016: this.GPIO7.DR_SET
-    | thisAccess                           // ADR-016: this.member access (must be before memberAccess)
-    | arrayAccess                          // Must be before memberAccess (both can match arr[i])
-    | memberAccess
-    | IDENTIFIER
+    : 'global' '.' IDENTIFIER postfixTargetOp*    // global.x, global.x[i][j].y, etc.
+    | 'this' '.' IDENTIFIER postfixTargetOp*      // this.x, this.x[i].y, etc.
+    | arrayAccess                                  // arr[i], reg[start, width]
+    | memberAccess                                 // GPIO7.DR_SET, arr[i].field
+    | IDENTIFIER                                   // Simple identifier
     ;
 
-// ADR-016: this.member for scope-local access in assignment targets
-thisAccess
-    : 'this' '.' IDENTIFIER
-    ;
-
-// ADR-016: this.member.member for chained scope-local access
-thisMemberAccess
-    : 'this' '.' IDENTIFIER ('.' IDENTIFIER)+
-    ;
-
-// ADR-016: this.member[idx] or this.member.member[idx] for scope-local array/bit access
-thisArrayAccess
-    : 'this' '.' IDENTIFIER '[' expression ']' ('.' IDENTIFIER)+         // this.arr[i].field.field2...
-    | 'this' '.' IDENTIFIER '[' expression ']'                           // this.arr[i]
-    | 'this' '.' IDENTIFIER '[' expression ',' expression ']'            // this.reg[offset, width]
-    | 'this' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'         // this.GPIO7.DR_SET[i]
-    | 'this' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']'  // this.GPIO7.ICR1[6, 2]
-    ;
-
-// ADR-016: global.member for global access in assignment targets
-globalAccess
-    : 'global' '.' IDENTIFIER
-    ;
-
-globalMemberAccess
-    : 'global' '.' IDENTIFIER ('.' IDENTIFIER)+
-    ;
-
-globalArrayAccess
-    : 'global' '.' IDENTIFIER '[' expression ']'                           // global.arr[i]
-    | 'global' '.' IDENTIFIER '[' expression ',' expression ']'            // global.arr[start, width]
-    | 'global' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ']'         // global.GPIO7.DR_SET[i]
-    | 'global' '.' IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']'  // global.GPIO7.REG[start, width]
+// Unified postfix operation for assignment targets (Issue #387)
+postfixTargetOp
+    : '.' IDENTIFIER                           // Member access
+    | '[' expression ']'                       // Array subscript / single bit
+    | '[' expression ',' expression ']'        // Bit range [start, width]
     ;
 
 expressionStatement
