@@ -13,7 +13,7 @@ import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../utils/BitUtils";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
-import { TAssignmentHandler } from "./index";
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
  * Check if register is write-only based on access modifier.

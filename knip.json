@@ -6,6 +6,7 @@
     "prettier-plugin/**",
     "vscode-extension/**",
     "tests/**",
-    "src/parser/grammar/**"
+    "src/parser/grammar/**",
+    "src/codegen/assignment/AssignmentContextBuilder.ts"
   ]
 }

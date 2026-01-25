@@ -13,7 +13,7 @@ import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../utils/BitUtils";
-import { TAssignmentHandler } from "./index";
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
  * Validate and get bitmap field info, throwing appropriate errors.

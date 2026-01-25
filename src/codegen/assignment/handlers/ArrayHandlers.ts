@@ -9,7 +9,7 @@
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
-import { TAssignmentHandler } from "./index";
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
  * Handle simple array element: arr[i] <- value

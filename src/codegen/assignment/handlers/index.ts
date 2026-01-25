@@ -6,20 +6,7 @@
  * code for one specific kind of assignment.
  */
 import AssignmentKind from "../AssignmentKind";
-import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
-
-/**
- * Handler function signature for assignment code generation.
- *
- * @param ctx - The assignment context with all extracted information
- * @param deps - Dependencies for code generation (symbols, type registry, etc.)
- * @returns The generated C code string
- */
-type TAssignmentHandler = (
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-) => string;
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
  * Registry mapping AssignmentKind to handler functions.

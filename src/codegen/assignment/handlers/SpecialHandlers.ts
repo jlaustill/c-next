@@ -9,7 +9,7 @@ import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
-import { TAssignmentHandler } from "./index";
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /** Maps C operators to clamp helper operation names */
 const CLAMP_OP_MAP: Record<string, string> = {

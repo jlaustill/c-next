@@ -11,7 +11,7 @@ import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../utils/BitUtils";
-import { TAssignmentHandler } from "./index";
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
  * Validate compound operators are not used with bit access.

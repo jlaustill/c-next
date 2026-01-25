@@ -85,9 +85,9 @@ function createMockDeps(
       knownScopes,
       knownStructs,
       knownRegisters,
-      knownEnums: new Set(),
-      knownBitmaps: new Set(),
-      scopeMembers: new Map(),
+      knownEnums: new Set<string>(),
+      knownBitmaps: new Set<string>(),
+      scopeMembers: new Map<string, Set<string>>(),
       scopeMemberVisibility: new Map(),
       structFields,
       structFieldArrays,
@@ -109,9 +109,9 @@ function createMockDeps(
     },
     typeRegistry,
     currentScope: overrides.currentScope ?? null,
-    isKnownStruct: (name) => knownStructs.has(name),
-    isKnownScope: (name) => knownScopes.has(name),
-    getMemberTypeInfo: (structType, memberName) => {
+    isKnownStruct: (name: string) => knownStructs.has(name),
+    isKnownScope: (name: string) => knownScopes.has(name),
+    getMemberTypeInfo: (structType: string, memberName: string) => {
       const fields = structFields.get(structType);
       const fieldType = fields?.get(memberName);
       if (fieldType) {

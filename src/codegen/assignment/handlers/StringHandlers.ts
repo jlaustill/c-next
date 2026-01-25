@@ -14,7 +14,7 @@ import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
 import StringUtils from "../../../utils/StringUtils";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
-import { TAssignmentHandler } from "./index";
+import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
  * Validate compound operators are not used with strings.
