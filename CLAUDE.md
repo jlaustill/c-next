@@ -8,6 +8,10 @@
 
 Check if work was already done: `git log --oneline --grep="<issue-number>"` — Issues may have been completed in PRs referencing different issue numbers.
 
+### GitHub CLI Workaround
+
+`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+
 ## Workflow: Research First
 
 1. **Always start with research/planning** before implementation
@@ -108,6 +112,7 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
 - `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
+- Tests without `.expected.c` snapshots are **skipped** (not failed) — use `--update` to generate initial snapshot
 
 ### Unit Test File Location
 
