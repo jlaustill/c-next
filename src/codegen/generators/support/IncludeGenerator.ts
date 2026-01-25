@@ -2,8 +2,8 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts as part of ADR-053 A5.
  */
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import * as Parser from "../../../antlr_parser/grammar/CNextParser";
 
 /**
@@ -128,7 +128,7 @@ const transformIncludeDirective = (
  * Extract the macro name from a #define directive
  */
 const extractDefineName = (text: string): string => {
-  const match = /#\s*define\s+([a-zA-Z_][a-zA-Z0-9_]*)/.exec(text);
+  const match = /#\s*define\s+([a-zA-Z_]\w*)/.exec(text);
   return match ? match[1] : "unknown";
 };
 

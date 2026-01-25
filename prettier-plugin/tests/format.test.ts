@@ -3,7 +3,7 @@
  */
 
 import * as prettier from "prettier";
-import * as path from "path";
+import * as path from "node:path";
 
 const pluginPath = path.resolve(__dirname, "../dist/index.js");
 

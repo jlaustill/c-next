@@ -101,6 +101,65 @@ describe("HeaderGenerator", () => {
     });
   });
 
+  describe("Issue #449: declaration ordering", () => {
+    // Helper to create an enum symbol
+    function makeEnumSymbol(name: string): ISymbol {
+      return {
+        name,
+        kind: ESymbolKind.Enum,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      };
+    }
+
+    // Helper to create a struct symbol
+    function makeStructSymbol(name: string): ISymbol {
+      return {
+        name,
+        kind: ESymbolKind.Struct,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      };
+    }
+
+    it("should output enums before structs (forward declarations)", () => {
+      // Symbols in any order - generator should reorder them
+      // Without typeInput, structs become forward declarations
+      const symbols = [makeStructSymbol("MyStruct"), makeEnumSymbol("MyEnum")];
+      const header = generator.generate(symbols, "test.h");
+
+      const enumIndex = header.indexOf("/* Enumerations */");
+      // Without typeInput, structs are output as "Forward declarations"
+      const structIndex = header.indexOf("/* Forward declarations */");
+
+      expect(enumIndex).toBeGreaterThan(-1);
+      expect(structIndex).toBeGreaterThan(-1);
+      expect(enumIndex).toBeLessThan(structIndex);
+    });
+
+    it("should output enums before structs even when struct is defined first", () => {
+      // Struct defined before enum in source - still should output enum first
+      const symbols = [
+        makeStructSymbol("TPressureInputConfig"),
+        makeEnumSymbol("EPressureType"),
+        makeStructSymbol("TDeviceStatus"),
+        makeEnumSymbol("EDeviceState"),
+      ];
+      const header = generator.generate(symbols, "test.h");
+
+      const enumIndex = header.indexOf("/* Enumerations */");
+      const structIndex = header.indexOf("/* Forward declarations */");
+
+      expect(enumIndex).toBeGreaterThan(-1);
+      expect(structIndex).toBeGreaterThan(-1);
+      expect(enumIndex).toBeLessThan(structIndex);
+    });
+  });
+
   describe("regular type handling (non-string)", () => {
     it("should handle primitive types normally", () => {
       const symbols = [makeVarSymbol("count", "u32")];

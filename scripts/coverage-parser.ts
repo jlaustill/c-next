@@ -3,7 +3,7 @@
  * Extracts all coverage items with generated unique IDs
  */
 
-import { readFileSync } from "fs";
+import { readFileSync } from "node:fs";
 import ICoverageItem from "./types/ICoverageItem";
 
 /**

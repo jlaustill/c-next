@@ -135,27 +135,9 @@ class HeaderGenerator {
       lines.push("");
     }
 
-    // Struct definitions or forward declarations
-    if (structs.length > 0 || classes.length > 0) {
-      if (typeInput) {
-        lines.push("/* Struct definitions */");
-        for (const sym of structs) {
-          lines.push(generateStructHeader(sym.name, typeInput));
-        }
-        for (const sym of classes) {
-          lines.push(generateStructHeader(sym.name, typeInput));
-        }
-      } else {
-        lines.push("/* Forward declarations */");
-        for (const sym of structs) {
-          lines.push(`typedef struct ${sym.name} ${sym.name};`);
-        }
-        for (const sym of classes) {
-          lines.push(`typedef struct ${sym.name} ${sym.name};`);
-        }
-      }
-      lines.push("");
-    }
+    // Issue #449: Output enums, bitmaps, and type aliases BEFORE structs
+    // Structs may reference these types, so they must be defined first
+    // C doesn't support forward declarations for enums
 
     // Enum definitions or comments
     if (enums.length > 0) {
@@ -192,6 +174,29 @@ class HeaderGenerator {
         if (sym.type) {
           const cType = mapType(sym.type);
           lines.push(`typedef ${cType} ${sym.name};`);
+        }
+      }
+      lines.push("");
+    }
+
+    // Struct definitions or forward declarations
+    // Now comes AFTER enums/bitmaps/type aliases that structs may reference
+    if (structs.length > 0 || classes.length > 0) {
+      if (typeInput) {
+        lines.push("/* Struct definitions */");
+        for (const sym of structs) {
+          lines.push(generateStructHeader(sym.name, typeInput));
+        }
+        for (const sym of classes) {
+          lines.push(generateStructHeader(sym.name, typeInput));
+        }
+      } else {
+        lines.push("/* Forward declarations */");
+        for (const sym of structs) {
+          lines.push(`typedef struct ${sym.name} ${sym.name};`);
+        }
+        for (const sym of classes) {
+          lines.push(`typedef struct ${sym.name} ${sym.name};`);
         }
       }
       lines.push("");

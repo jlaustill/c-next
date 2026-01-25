@@ -11,9 +11,15 @@
  * - Both should generate headers with pass-by-value (no pointer) signatures
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import {
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+} from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import Pipeline from "../../src/pipeline/Pipeline";
 
 const __filename = fileURLToPath(import.meta.url);

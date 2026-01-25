@@ -47,7 +47,7 @@ class StructCollector {
         const intLiteral = stringCtx.INTEGER_LITERAL();
 
         if (intLiteral) {
-          const capacity = parseInt(intLiteral.getText(), 10);
+          const capacity = Number.parseInt(intLiteral.getText(), 10);
 
           // If there are array dimensions, they come BEFORE string capacity
           if (arrayDims.length > 0) {
@@ -55,8 +55,8 @@ class StructCollector {
             for (const dim of arrayDims) {
               const sizeExpr = dim.expression();
               if (sizeExpr) {
-                const size = parseInt(sizeExpr.getText(), 10);
-                if (!isNaN(size)) {
+                const size = Number.parseInt(sizeExpr.getText(), 10);
+                if (!Number.isNaN(size)) {
                   dimensions.push(size);
                 }
               }
@@ -72,8 +72,8 @@ class StructCollector {
         for (const dim of arrayDims) {
           const sizeExpr = dim.expression();
           if (sizeExpr) {
-            const size = parseInt(sizeExpr.getText(), 10);
-            if (!isNaN(size)) {
+            const size = Number.parseInt(sizeExpr.getText(), 10);
+            if (!Number.isNaN(size)) {
               dimensions.push(size);
             }
           }

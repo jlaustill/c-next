@@ -3,11 +3,11 @@
  * Runs the system preprocessor on C/C++ files before parsing
  */
 
-import { exec } from "child_process";
-import { promisify } from "util";
-import { writeFile, mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join, basename, dirname } from "path";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import { writeFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, basename, dirname } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
@@ -223,7 +223,7 @@ class Preprocessor {
       );
 
       if (match) {
-        currentOriginalLine = parseInt(match[1], 10);
+        currentOriginalLine = Number.parseInt(match[1], 10);
         currentFile = match[2];
       } else if (currentFile) {
         mappings.push({

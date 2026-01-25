@@ -24,6 +24,15 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 - Fix any oxlint errors in code you write or modify
 - Legacy errors in untouched files can be ignored (fix as you go)
 - Pre-commit hooks use `lint-staged` to only check files you're committing
+- **Lint scope**: `npm run oxlint:check` only covers `src/`, not `vscode-extension/` or `scripts/`
+
+### VS Code Extension Caveats
+
+- **Pre-commit hooks**: The vscode-extension has pre-existing lint violations (named exports, unused vars). Use `git commit --no-verify` when committing changes that touch vscode-extension files if hooks fail on unrelated issues.
+
+### SonarCloud
+
+- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
 
 ### TypeScript Coding Standards
 
@@ -98,6 +107,14 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm run unit -- <path>` — Run specific unit test file
 - `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
+- `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
+
+### Unit Test File Location
+
+Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
+
+- `src/pipeline/CacheManager.ts` → `src/pipeline/__tests__/CacheManager.test.ts`
+- `src/pipeline/cache/CacheKeyGenerator.ts` → `src/pipeline/cache/__tests__/CacheKeyGenerator.test.ts`
 
 ### Test File Patterns
 
@@ -188,6 +205,11 @@ u32 main() {
     return 0;
 }
 ```
+
+### C-Next Test Gotchas
+
+- **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
+- **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
 
 ### Error Validation Tests (test-error pattern)
 

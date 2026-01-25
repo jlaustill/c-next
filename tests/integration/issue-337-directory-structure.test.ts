@@ -17,8 +17,8 @@ import {
   rmSync,
   readdirSync,
   statSync,
-} from "fs";
-import { join, resolve } from "path";
+} from "node:fs";
+import { join, resolve } from "node:path";
 import Pipeline from "../../src/pipeline/Pipeline";
 import Project from "../../src/project/Project";
 

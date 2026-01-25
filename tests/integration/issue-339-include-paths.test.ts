@@ -12,8 +12,14 @@
  * using -I include/ flag.
  */
 
-import { existsSync, writeFileSync, mkdirSync, rmSync, readFileSync } from "fs";
-import { join } from "path";
+import {
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  readFileSync,
+} from "node:fs";
+import { join } from "node:path";
 import Pipeline from "../../src/pipeline/Pipeline";
 import Project from "../../src/project/Project";
 

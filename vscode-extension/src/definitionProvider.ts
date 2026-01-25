@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
+import * as fs from "node:fs";
 import parseWithSymbols from "../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
@@ -29,10 +29,7 @@ export default class CNextDefinitionProvider
     position: vscode.Position,
   ): vscode.Definition | null {
     // Get the word at the cursor position
-    const wordRange = document.getWordRangeAtPosition(
-      position,
-      /[a-zA-Z_][a-zA-Z0-9_]*/,
-    );
+    const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
     if (!wordRange) {
       return null;
     }
@@ -67,7 +64,7 @@ export default class CNextDefinitionProvider
         word,
         document.uri,
       ) as ISymbolWithFile;
-      if (workspaceSymbol && workspaceSymbol.sourceFile) {
+      if (workspaceSymbol?.sourceFile) {
         const targetUri = vscode.Uri.file(workspaceSymbol.sourceFile);
         return this.createLocationFromFile(targetUri, workspaceSymbol);
       }

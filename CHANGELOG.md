@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.35] - 2026-01-25
+
+### Fixed
+
+- Output enums before structs that reference them in headers (Issue #449, PR #450)
+
+## [0.1.34] - 2026-01-25
+
+### Added
+
+- ADR-055: New symbol parser architecture with composable collectors and TSymbol discriminated union type system (PR #434)
+- SonarCloud CI-based analysis with coverage reporting (PR #435)
+- Dead code detection with knip (PR #439)
+- Refresh script for syncing main and rebuilding (PR #443)
+- Status badges to README (PR #440)
+
+### Fixed
+
+- ~150 SonarCloud low-hanging fruit issues (PR #446)
+- SonarCloud code smells (PR #438)
+- Generate `char[N+1]` instead of `string<N>` in headers (Issue #427, PR #433)
+- Include macro-defining headers in generated .h files (Issue #424, PR #430, #431)
+- Validate `this.method()` calls for undefined functions (PR #429)
+- Improve error message for unqualified scope function calls (Issue #422, PR #426)
+
+### Changed
+
+- Remove barrel files, use direct imports (PR #437)
+- Extract ParserUtils and reorganize shared utilities (PR #428)
+- Extract analyzer utilities for composition over inheritance (PR #423)
+
+### Testing
+
+- Foundational tests in basics directory (Issue #401, PR #445)
+- CacheManager unit tests (Issue #421, PR #444)
+- NullCheckAnalyzer unit tests (Issue #416, PR #441)
+- Analysis error validation tests (Issue #400, PR #442)
+- Compiler warning validation tests (Issue #407, PR #432)
+- Unsuffixed literal test coverage (Issue #413, PR #425)
+- HeaderGenerator unit tests for string<N> handling (PR #433)
+
 ## [0.1.33] - 2026-01-24
 
 ### Added
@@ -375,7 +416,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.33...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.35...HEAD
+[0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
+[0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
 [0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
 [0.1.32]: https://github.com/jlaustill/c-next/compare/v0.1.31...v0.1.32
 [0.1.31]: https://github.com/jlaustill/c-next/compare/v0.1.30...v0.1.31

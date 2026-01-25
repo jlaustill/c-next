@@ -1,0 +1,53 @@
+// test-execution
+// Tests: Compound assignment operators
+// Demonstrates: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
+
+u32 main() {
+    // Addition assignment
+    u32 a <- 10;
+    a +<- 5;
+    if (a != 15) return 1;
+
+    // Subtraction assignment
+    a -<- 3;
+    if (a != 12) return 2;
+
+    // Multiplication assignment
+    a *<- 2;
+    if (a != 24) return 3;
+
+    // Division assignment
+    a /<- 4;
+    if (a != 6) return 4;
+
+    // Modulo assignment
+    a <- 17;
+    a %<- 5;
+    if (a != 2) return 5;
+
+    // Bitwise AND assignment
+    u8 flags <- 0b11111111;
+    flags &<- 0b00001111;
+    if (flags != 0b00001111) return 6;
+
+    // Bitwise OR assignment
+    flags |<- 0b11110000;
+    if (flags != 0b11111111) return 7;
+
+    // Bitwise XOR assignment
+    flags <- 0b10101010;
+    flags ^<- 0b11110000;
+    if (flags != 0b01011010) return 8;
+
+    // Left shift assignment
+    u8 val <- 0b00000001;
+    val <<<- 4;
+    if (val != 0b00010000) return 9;
+
+    // Right shift assignment
+    val <- 0b10000000;
+    val >><- 4;
+    if (val != 0b00001000) return 10;
+
+    return 0;
+}

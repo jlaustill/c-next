@@ -1,0 +1,51 @@
+// test-execution
+// Tests: All primitive type declarations and basic assignment
+// Demonstrates: u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, bool
+
+u32 main() {
+    // Unsigned integers
+    u8 byte <- 255;
+    if (byte != 255) return 1;
+
+    u16 word <- 65535;
+    if (word != 65535) return 2;
+
+    u32 dword <- 4294967295;
+    if (dword != 4294967295) return 3;
+
+    u64 qword <- 18446744073709551615;
+    if (qword != 18446744073709551615) return 4;
+
+    // Signed integers
+    i8 sbyte <- -128;
+    if (sbyte != -128) return 5;
+
+    i16 sword <- -32768;
+    if (sword != -32768) return 6;
+
+    i32 sdword <- -2147483648;
+    if (sdword != -2147483648) return 7;
+
+    i64 sqword <- -9223372036854775808;
+    if (sqword != -9223372036854775808) return 8;
+
+    // Floating point
+    f32 single <- 3.14;
+    if (single < 3.13 || single > 3.15) return 9;
+
+    f64 precise <- 3.141592653589793;
+    if (precise < 3.141592653589792 || precise > 3.141592653589794) return 10;
+
+    // Boolean
+    bool flag <- true;
+    if (flag != true) return 11;
+
+    flag <- false;
+    if (flag != false) return 12;
+
+    // Zero initialization (ADR-015)
+    u32 uninitialized;
+    if (uninitialized != 0) return 13;
+
+    return 0;
+}

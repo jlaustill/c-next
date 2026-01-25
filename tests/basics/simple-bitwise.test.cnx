@@ -1,0 +1,50 @@
+// test-execution
+// Tests: Bitwise operators
+// Demonstrates: &, |, ^, ~, <<, >>
+
+u32 main() {
+    // Bitwise AND
+    u8 a <- 0b11110000;
+    u8 b <- 0b10101010;
+    u8 result <- a & b;
+    if (result != 0b10100000) return 1;  // 160
+
+    // Bitwise OR
+    result <- a | b;
+    if (result != 0b11111010) return 2;  // 250
+
+    // Bitwise XOR
+    result <- a ^ b;
+    if (result != 0b01011010) return 3;  // 90
+
+    // Bitwise NOT
+    u8 c <- 0b00001111;
+    u8 notC <- ~c;
+    if (notC != 0b11110000) return 4;  // 240
+
+    // Left shift
+    u8 d <- 0b00000001;
+    u8 shifted <- d << 4;
+    if (shifted != 0b00010000) return 5;  // 16
+
+    // Right shift
+    u8 e <- 0b10000000;
+    shifted <- e >> 4;
+    if (shifted != 0b00001000) return 6;  // 8
+
+    // Combined operations
+    u8 flags <- 0b00000000;
+    flags <- flags | 0b00000001;  // Set bit 0
+    flags <- flags | 0b00000100;  // Set bit 2
+    if (flags != 0b00000101) return 7;  // 5
+
+    // Clear a bit using AND with NOT
+    flags <- flags & ~0b00000001;  // Clear bit 0
+    if (flags != 0b00000100) return 8;  // 4
+
+    // Check if bit is set
+    bool bit2Set <- ((flags & 0b00000100) != 0);
+    if (bit2Set != true) return 9;
+
+    return 0;
+}

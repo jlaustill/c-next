@@ -1,0 +1,49 @@
+// test-execution
+// Tests: Basic enum definition and usage
+// Demonstrates: enum declaration, values, assignment, comparison
+
+enum Status {
+    IDLE,       // 0 (implicit)
+    RUNNING,    // 1
+    PAUSED,     // 2
+    STOPPED     // 3
+}
+
+enum Priority {
+    LOW <- 1,
+    MEDIUM <- 5,
+    HIGH <- 10,
+    CRITICAL <- 100
+}
+
+u32 main() {
+    // Enum variable declaration
+    Status s <- Status.IDLE;
+
+    // Enum comparison
+    if (s != Status.IDLE) return 1;
+
+    // Enum assignment
+    s <- Status.RUNNING;
+    if (s != Status.RUNNING) return 2;
+
+    // Enum with explicit values
+    Priority p <- Priority.HIGH;
+    if (p != Priority.HIGH) return 3;
+
+    // Compare different enum values
+    if (Status.IDLE = Status.RUNNING) return 4;
+    if (Priority.LOW = Priority.HIGH) return 5;
+
+    // Enum in conditional
+    s <- Status.PAUSED;
+    bool isPaused <- (s = Status.PAUSED);
+    if (isPaused != true) return 6;
+
+    // Multiple enum variables
+    Status s1 <- Status.IDLE;
+    Status s2 <- Status.STOPPED;
+    if (s1 = s2) return 7;
+
+    return 0;
+}

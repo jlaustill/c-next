@@ -3,7 +3,7 @@
  * Generates console and markdown reports
  */
 
-import { writeFileSync } from "fs";
+import { writeFileSync } from "node:fs";
 import ICoverageItem from "./types/ICoverageItem";
 import ITestAnnotation from "./types/ITestAnnotation";
 import ICoverageReport, {
@@ -102,8 +102,8 @@ function buildReport(
 
   // Sort sections by section number
   sections.sort((a, b) => {
-    const numA = parseInt(a.name.match(/^(\d+)/)?.[1] || "0");
-    const numB = parseInt(b.name.match(/^(\d+)/)?.[1] || "0");
+    const numA = Number.parseInt(a.name.match(/^(\d+)/)?.[1] || "0");
+    const numB = Number.parseInt(b.name.match(/^(\d+)/)?.[1] || "0");
     return numA - numB;
   });
 
@@ -237,8 +237,8 @@ function generateGapsReport(report: ICoverageReport): void {
 
   // Sort sections
   const sortedSections = Array.from(bySection.keys()).sort((a, b) => {
-    const numA = parseInt(a.match(/^(\d+)/)?.[1] || "0");
-    const numB = parseInt(b.match(/^(\d+)/)?.[1] || "0");
+    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
+    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
     return numA - numB;
   });
 
@@ -318,8 +318,8 @@ function generateMarkdownReport(
   }
 
   const sortedSections = Array.from(bySection.keys()).sort((a, b) => {
-    const numA = parseInt(a.match(/^(\d+)/)?.[1] || "0");
-    const numB = parseInt(b.match(/^(\d+)/)?.[1] || "0");
+    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
+    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
     return numA - numB;
   });
 
@@ -355,8 +355,8 @@ function listAllIds(items: ICoverageItem[]): void {
   }
 
   const sortedSections = Array.from(bySection.keys()).sort((a, b) => {
-    const numA = parseInt(a.match(/^(\d+)/)?.[1] || "0");
-    const numB = parseInt(b.match(/^(\d+)/)?.[1] || "0");
+    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
+    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
     return numA - numB;
   });
 

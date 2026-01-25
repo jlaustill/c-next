@@ -354,7 +354,7 @@ class NullCheckListener extends CNextListener {
     const conditionText = condition?.getText() ?? "";
 
     // Check for patterns like "c_var != NULL" or "c_var = NULL"
-    const nullCheckMatch = /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*(!?=)\s*NULL$/.exec(
+    const nullCheckMatch = /^(c_[a-zA-Z_]\w*)\s*(!?=)\s*NULL$/.exec(
       conditionText,
     );
 
@@ -411,9 +411,9 @@ class NullCheckListener extends CNextListener {
     if (
       this.currentIfCtx &&
       this.ifStack.length > 0 &&
-      !this.ifStack[this.ifStack.length - 1].isNullCheck
+      !this.ifStack.at(-1)!.isNullCheck
     ) {
-      const ifInfo = this.ifStack[this.ifStack.length - 1];
+      const ifInfo = this.ifStack.at(-1)!;
       if (ifInfo.varName) {
         // Get the statements from the if
         const statements = this.currentIfCtx.statement();
@@ -430,7 +430,7 @@ class NullCheckListener extends CNextListener {
 
     // Check if this is the body of a null-check while
     if (this.currentWhileCtx && this.whileStack.length > 0) {
-      const whileInfo = this.whileStack[this.whileStack.length - 1];
+      const whileInfo = this.whileStack.at(-1)!;
       if (whileInfo.varName && whileInfo.isNotNullCheck) {
         // Get the statement from the while (body)
         const whileBody = this.currentWhileCtx.statement();
@@ -451,7 +451,7 @@ class NullCheckListener extends CNextListener {
   ): void => {
     // Mark current if-statement (if any) as having a return
     if (this.ifStack.length > 0) {
-      this.ifStack[this.ifStack.length - 1].hasReturn = true;
+      this.ifStack.at(-1)!.hasReturn = true;
     }
   };
 
@@ -465,9 +465,7 @@ class NullCheckListener extends CNextListener {
     const conditionText = condition?.getText() ?? "";
 
     // Check for patterns like "c_var != NULL"
-    const nullCheckMatch = /^(c_[a-zA-Z_][a-zA-Z0-9_]*)\s*!=\s*NULL$/.exec(
-      conditionText,
-    );
+    const nullCheckMatch = /^(c_[a-zA-Z_]\w*)\s*!=\s*NULL$/.exec(conditionText);
 
     if (nullCheckMatch) {
       const varName = nullCheckMatch[1];
@@ -531,7 +529,7 @@ class NullCheckListener extends CNextListener {
     for (const child of children) {
       const text = child.getText();
       // Simple check: if it's a simple identifier and not NULL, add it
-      if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(text) && text !== "NULL") {
+      if (/^[a-zA-Z_]\w*$/.test(text) && text !== "NULL") {
         names.push(text);
       }
     }
@@ -629,7 +627,7 @@ class NullCheckListener extends CNextListener {
       for (const arg of args) {
         const argText = arg.getText();
         // Check if argument is a simple c_ prefixed variable
-        if (/^c_[a-zA-Z_][a-zA-Z0-9_]*$/.test(argText)) {
+        if (/^c_[a-zA-Z_]\w*$/.test(argText)) {
           const varState = this.lookupVariable(argText);
           if (varState && varState.state === NullCheckState.Unchecked) {
             const argLine = arg.start?.line ?? line;

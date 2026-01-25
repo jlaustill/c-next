@@ -45,8 +45,8 @@ class VariableCollector {
       for (const dim of arrayDims) {
         const sizeExpr = dim.expression();
         if (sizeExpr) {
-          const size = parseInt(sizeExpr.getText(), 10);
-          if (!isNaN(size)) {
+          const size = Number.parseInt(sizeExpr.getText(), 10);
+          if (!Number.isNaN(size)) {
             arrayDimensions.push(size);
           }
         }

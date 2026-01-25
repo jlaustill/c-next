@@ -132,7 +132,7 @@ export default class PreviewProvider implements vscode.Disposable {
       return;
     }
 
-    if (editor && editor.document.languageId === "cnext") {
+    if (editor?.document.languageId === "cnext") {
       this.currentDocument = editor.document;
       this.updateTitle();
       this.updatePreview();
