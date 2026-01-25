@@ -6,7 +6,7 @@
  * - Recursive unary (e.g., !!x, --x)
  * - Delegates to postfix for base case
  */
-import { UnaryExpressionContext } from "../../../parser/grammar/CNextParser";
+import { UnaryExpressionContext } from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";

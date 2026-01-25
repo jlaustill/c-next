@@ -1,5 +1,5 @@
 import { CommonTokenStream, Token } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
 import ECommentType from "./types/ECommentType";
 import IComment from "./types/IComment";
 import ICommentError from "./types/ICommentError";

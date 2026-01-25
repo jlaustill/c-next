@@ -10,8 +10,8 @@
  */
 
 import { CharStream, CommonTokenStream, ParseTreeWalker } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../antlr_parser/grammar/CNextParser";
 import CodeGenerator from "../codegen/CodeGenerator";
 import CommentExtractor from "../codegen/CommentExtractor";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer";

@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { Token } from "antlr4ng";
 import CommentExtractor from "./CommentExtractor";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
 import ECommentType from "./types/ECommentType";
 
 // Mock token factory

@@ -2,14 +2,14 @@
  * Cached entry for a single header file
  */
 
-import IStructFieldInfo from "../../symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../../symbol_resolution/types/IStructFieldInfo";
 import ISerializedSymbol from "./ISerializedSymbol";
 
 interface ICachedFileEntry {
   /** Absolute path to the header file */
   filePath: string;
-  /** File modification time (ms since epoch) */
-  mtime: number;
+  /** Cache key for invalidation (format: "mtime:<timestamp>" or future "hash:<sha256>") */
+  cacheKey: string;
   /** Symbols extracted from this file */
   symbols: ISerializedSymbol[];
   /** Struct fields: struct name -> (field name -> field info) */

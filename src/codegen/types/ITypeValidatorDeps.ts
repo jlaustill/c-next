@@ -2,16 +2,16 @@
  * Dependencies for TypeValidator - allows TypeValidator to be independent of CodeGenerator
  * Issue #63: Extracted dependencies for better separation of concerns
  */
-import SymbolCollector from "../SymbolCollector";
-import SymbolTable from "../../symbols/SymbolTable";
+import ISymbolInfo from "../generators/ISymbolInfo";
+import SymbolTable from "../../symbol_resolution/SymbolTable";
 import TTypeInfo from "./TTypeInfo";
 import TParameterInfo from "./TParameterInfo";
 import ICallbackTypeInfo from "./ICallbackTypeInfo";
 import TypeResolver from "../TypeResolver";
 
 interface ITypeValidatorDeps {
-  /** Symbol information from C-Next source (Issue #60) */
-  symbols: SymbolCollector | null;
+  /** Symbol information from C-Next source (ADR-055: ISymbolInfo) */
+  symbols: ISymbolInfo | null;
 
   /** Symbol table for C header struct lookups */
   symbolTable: SymbolTable | null;

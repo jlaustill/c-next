@@ -4,7 +4,7 @@
  */
 import * as fs from "fs";
 import * as path from "path";
-import * as Parser from "../../../parser/grammar/CNextParser";
+import * as Parser from "../../../antlr_parser/grammar/CNextParser";
 
 /**
  * Issue #349: Options for include transformation

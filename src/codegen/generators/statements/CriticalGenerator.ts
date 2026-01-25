@@ -5,7 +5,7 @@
  * - Wraps block with PRIMASK save/restore for interrupt safety
  * - Ensures atomic execution of multi-variable operations
  */
-import { CriticalStatementContext } from "../../../parser/grammar/CNextParser";
+import { CriticalStatementContext } from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

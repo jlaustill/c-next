@@ -15,7 +15,7 @@
  *   //   Reserved: bits 5-6 (2 bits)
  *   typedef uint8_t MotorFlags;
  */
-import * as Parser from "../../../parser/grammar/CNextParser";
+import * as Parser from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";

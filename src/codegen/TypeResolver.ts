@@ -3,9 +3,9 @@
  * Extracted from CodeGenerator for better separation of concerns
  * Issue #61: Now independent of CodeGenerator
  */
-import * as Parser from "../parser/grammar/CNextParser";
-import SymbolCollector from "./SymbolCollector";
-import SymbolTable from "../symbols/SymbolTable";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
+import ISymbolInfo from "./generators/ISymbolInfo";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import TTypeInfo from "./types/TTypeInfo";
 import ITypeResolverDeps from "./types/ITypeResolverDeps";
 import INTEGER_TYPES from "./types/INTEGER_TYPES";
@@ -16,7 +16,7 @@ import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 
 class TypeResolver {
-  private symbols: SymbolCollector | null;
+  private symbols: ISymbolInfo | null;
   private symbolTable: SymbolTable | null;
   private typeRegistry: Map<string, TTypeInfo>;
   private resolveIdentifierFn: (name: string) => string;

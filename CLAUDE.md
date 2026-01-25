@@ -65,6 +65,21 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `src/utils/` — Utility functions (ParserUtils, LiteralUtils, ExpressionUtils)
 - `src/constants/` — Static data definitions (TypeConstants)
 
+### Symbol Resolution Architecture (ADR-055)
+
+**Use the composable collectors** in `src/symbol_resolution/cnext/`:
+
+- `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
+- `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
+- `TSymbolInfoAdapter.convert(tSymbols)` → `ISymbolInfo` (for CodeGenerator)
+
+**Do NOT use** the deleted legacy collectors:
+
+- ~~`SymbolCollector`~~ (was in codegen/)
+- ~~`CNextSymbolCollector`~~ (was in symbol_resolution/)
+
+**TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**

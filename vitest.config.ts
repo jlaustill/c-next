@@ -13,7 +13,7 @@ export default defineConfig({
       include: ["src/**/*.ts", "scripts/**/*.ts"],
       exclude: [
         "**/*.test.ts",
-        "src/parser/**", // Generated ANTLR code
+        "src/antlr_parser/**", // Generated ANTLR code
         "scripts/test.ts", // Integration test runner
         "scripts/test-worker.ts", // Test worker
       ],

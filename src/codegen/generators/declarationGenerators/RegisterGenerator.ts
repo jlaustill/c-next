@@ -14,7 +14,7 @@
  *   #define GPIO7_DR (*(volatile uint32_t const *)(0x42004000 + 0x00))
  *   #define GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x04))
  */
-import * as Parser from "../../../parser/grammar/CNextParser";
+import * as Parser from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";

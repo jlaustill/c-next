@@ -7,7 +7,7 @@
  * - Integer literals with C-Next suffixes (u64 → ULL, i64 → LL, strip 8/16/32)
  * - String and numeric literals pass through unchanged
  */
-import { LiteralContext } from "../../../parser/grammar/CNextParser";
+import { LiteralContext } from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

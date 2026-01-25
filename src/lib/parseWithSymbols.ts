@@ -3,9 +3,11 @@
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
-import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import CNextResolver from "../symbol_resolution/cnext/index";
+import TSymbolAdapter from "../symbol_resolution/cnext/adapters/TSymbolAdapter";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESymbolKind from "../types/ESymbolKind";
 import ITranspileError from "./types/ITranspileError";
 import ISymbolInfo from "./types/ISymbolInfo";
@@ -121,9 +123,10 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
     };
   }
 
-  // Collect symbols from the parse tree
-  const collector = new CNextSymbolCollector("<source>");
-  const rawSymbols = collector.collect(tree);
+  // Collect symbols from the parse tree (ADR-055: use CNextResolver + TSymbolAdapter)
+  const tSymbols = CNextResolver.resolve(tree, "<source>");
+  const symbolTable = new SymbolTable();
+  const rawSymbols = TSymbolAdapter.toISymbols(tSymbols, symbolTable);
 
   // Transform ISymbol[] to ISymbolInfo[]
   const symbols: ISymbolInfo[] = rawSymbols.map((sym) => ({

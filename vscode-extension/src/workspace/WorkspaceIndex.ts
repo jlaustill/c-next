@@ -13,9 +13,9 @@ import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types";
 import parseWithSymbols from "../../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../../src/lib/types/ISymbolInfo";
 import IncludeResolver from "./IncludeResolver";
-import { CLexer } from "../../../src/parser/c/grammar/CLexer";
-import { CParser } from "../../../src/parser/c/grammar/CParser";
-import CSymbolCollector from "../../../src/symbols/CSymbolCollector";
+import { CLexer } from "../../../src/antlr_parser/c/grammar/CLexer";
+import { CParser } from "../../../src/antlr_parser/c/grammar/CParser";
+import CSymbolCollector from "../../../src/symbol_resolution/CSymbolCollector";
 
 /**
  * Workspace-wide symbol index

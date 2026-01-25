@@ -7,10 +7,10 @@
     "cnext": "./bin/cnext.js"
   },
   "scripts": {
-    "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser grammar/CNext.g4",
-    "antlr:c": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser/c grammar/C.g4",
-    "antlr:cpp:lexer": "antlr4ng -Dlanguage=TypeScript -o src/parser/cpp grammar/CPP14Lexer.g4",
-    "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/parser/cpp -lib src/parser/cpp/grammar grammar/CPP14Parser.g4",
+    "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/antlr_parser grammar/CNext.g4",
+    "antlr:c": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/antlr_parser/c grammar/C.g4",
+    "antlr:cpp:lexer": "antlr4ng -Dlanguage=TypeScript -o src/antlr_parser/cpp grammar/CPP14Lexer.g4",
+    "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/antlr_parser/cpp -lib src/antlr_parser/cpp/grammar grammar/CPP14Parser.g4",
     "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
     "antlr:all": "npm run antlr && npm run antlr:c && npm run antlr:cpp",
     "start": "tsx src/index.ts",
@@ -21,7 +21,7 @@
     "test:q": "tsx scripts/test.ts -q",
     "test:update": "tsx scripts/test.ts --update",
     "analyze": "./scripts/static-analysis.sh",
-    "clean": "rm -rf src/parser",
+    "clean": "rm -rf src/antlr_parser",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
     "oxlint:check": "oxlint src/",

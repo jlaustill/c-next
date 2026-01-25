@@ -11,8 +11,8 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener";
-import * as Parser from "../parser/grammar/CNextParser";
+import { CNextListener } from "../antlr_parser/grammar/CNextListener";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
 import IFloatModuloError from "./types/IFloatModuloError";
 import LiteralUtils from "../utils/LiteralUtils";
 import ParserUtils from "../utils/ParserUtils";

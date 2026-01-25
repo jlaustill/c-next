@@ -14,7 +14,7 @@
  *   static uint32_t Driver_counter = 0;
  *   void Driver_init(void) { Driver_counter = 0; }
  */
-import * as Parser from "../../../parser/grammar/CNextParser";
+import * as Parser from "../../../antlr_parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";

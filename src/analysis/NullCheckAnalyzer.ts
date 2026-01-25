@@ -13,8 +13,8 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener";
-import * as Parser from "../parser/grammar/CNextParser";
+import { CNextListener } from "../antlr_parser/grammar/CNextListener";
+import * as Parser from "../antlr_parser/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
 import ParserUtils from "../utils/ParserUtils";
 

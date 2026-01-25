@@ -7,7 +7,7 @@ import TTypeInfo from "../types/TTypeInfo";
 import IFunctionSignature from "../types/IFunctionSignature";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
 import ITargetCapabilities from "../types/ITargetCapabilities";
-import SymbolTable from "../../symbols/SymbolTable";
+import SymbolTable from "../../symbol_resolution/SymbolTable";
 import ISymbolInfo from "./ISymbolInfo";
 
 interface IGeneratorInput {

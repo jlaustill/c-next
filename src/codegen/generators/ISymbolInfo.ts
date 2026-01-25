@@ -100,6 +100,14 @@ interface ISymbolInfo {
    */
   readonly scopeVariableUsage: ReadonlyMap<string, ReadonlySet<string>>;
 
+  // === Issue #282: Scope Private Const Inlining ===
+
+  /**
+   * Private const values for inlining: "Scope_constName" -> literal value string.
+   * Used to inline private const values at usage sites.
+   */
+  readonly scopePrivateConstValues: ReadonlyMap<string, string>;
+
   /**
    * Check if a scope variable is used in only one function.
    * Returns the function name if single-function, null otherwise.
@@ -108,6 +116,12 @@ interface ISymbolInfo {
     scopeName: string,
     varName: string,
   ): string | null;
+
+  /**
+   * Check if any scope members are public (exported).
+   * Used to determine if a self-include header is needed for extern "C" linkage.
+   */
+  hasPublicSymbols(): boolean;
 }
 
 export default ISymbolInfo;

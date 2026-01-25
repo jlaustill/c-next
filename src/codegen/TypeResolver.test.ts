@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeResolver from "./TypeResolver";
-import SymbolTable from "../symbols/SymbolTable";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ITypeResolverDeps from "./types/ITypeResolverDeps";
 import TTypeInfo from "./types/TTypeInfo";
 

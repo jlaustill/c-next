@@ -26,7 +26,7 @@
   "ignorePatterns": [
     "dist/**",
     "node_modules/**",
-    "src/parser/**",
+    "src/antlr_parser/**",
     "prettier-plugin/**",
     "**/*.js"
   ]

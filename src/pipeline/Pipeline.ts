@@ -16,21 +16,23 @@ import {
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname, resolve } from "path";
 
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
-import { CLexer } from "../parser/c/grammar/CLexer";
-import { CParser } from "../parser/c/grammar/CParser";
-import { CPP14Lexer } from "../parser/cpp/grammar/CPP14Lexer";
-import { CPP14Parser } from "../parser/cpp/grammar/CPP14Parser";
+import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import { CLexer } from "../antlr_parser/c/grammar/CLexer";
+import { CParser } from "../antlr_parser/c/grammar/CParser";
+import { CPP14Lexer } from "../antlr_parser/cpp/grammar/CPP14Lexer";
+import { CPP14Parser } from "../antlr_parser/cpp/grammar/CPP14Parser";
 
 import CodeGenerator from "../codegen/CodeGenerator";
 import HeaderGenerator from "../codegen/HeaderGenerator";
-import SymbolCollector from "../codegen/SymbolCollector";
-import SymbolTable from "../symbols/SymbolTable";
+import ISymbolInfo from "../codegen/generators/ISymbolInfo";
+import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESymbolKind from "../types/ESymbolKind";
-import CNextSymbolCollector from "../symbols/CNextSymbolCollector";
-import CSymbolCollector from "../symbols/CSymbolCollector";
-import CppSymbolCollector from "../symbols/CppSymbolCollector";
+import CNextResolver from "../symbol_resolution/cnext";
+import TSymbolAdapter from "../symbol_resolution/cnext/adapters/TSymbolAdapter";
+import TSymbolInfoAdapter from "../symbol_resolution/cnext/adapters/TSymbolInfoAdapter";
+import CSymbolCollector from "../symbol_resolution/CSymbolCollector";
+import CppSymbolCollector from "../symbol_resolution/CppSymbolCollector";
 import Preprocessor from "../preprocessor/Preprocessor";
 
 import FileDiscovery from "../project/FileDiscovery";
@@ -45,7 +47,7 @@ import IPipelineResult from "./types/IPipelineResult";
 import IFileResult from "./types/IFileResult";
 import runAnalyzers from "./runAnalyzers";
 import CacheManager from "./CacheManager";
-import IStructFieldInfo from "../symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
 import detectCppSyntax from "./detectCppSyntax";
 
 /**
@@ -61,8 +63,8 @@ class Pipeline {
   private cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
-  /** Issue #220: Store SymbolCollector per file for header generation */
-  private symbolCollectors: Map<string, SymbolCollector> = new Map();
+  /** Issue #220: Store ISymbolInfo per file for header generation (ADR-055) */
+  private symbolCollectors: Map<string, ISymbolInfo> = new Map();
   /** Issue #321: Track processed headers to avoid cycles during recursive include resolution */
   private processedHeaders: Set<string> = new Set();
   /** Issue #280: Store pass-by-value params per file for header generation */
@@ -563,11 +565,11 @@ class Pipeline {
       throw new Error(errors.join("\n"));
     }
 
-    // Issue #332: Pass symbolTable to collector so struct fields are registered
-    // This enables TypeResolver.isStructType() to identify C-Next structs from included files
-    const collector = new CNextSymbolCollector(file.path, this.symbolTable);
-    const symbols = collector.collect(tree);
-    this.symbolTable.addSymbols(symbols);
+    // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
+    // TSymbolAdapter.toISymbols registers struct fields in symbolTable for TypeResolver.isStructType()
+    const tSymbols = CNextResolver.resolve(tree, file.path);
+    const iSymbols = TSymbolAdapter.toISymbols(tSymbols, this.symbolTable);
+    this.symbolTable.addSymbols(iSymbols);
   }
 
   /**
@@ -643,6 +645,10 @@ class Pipeline {
 
     // Generate code
     try {
+      // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
+      const tSymbols = CNextResolver.resolve(tree, file.path);
+      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
       const code = this.codeGenerator.generate(
         tree,
         this.symbolTable,
@@ -656,10 +662,12 @@ class Pipeline {
           sourceRelativePath: this.getSourceRelativePath(file.path), // Issue #339: For correct self-include paths
           includeDirs: this.config.includeDirs, // Issue #349: For angle-bracket include resolution
           inputs: this.config.inputs, // Issue #349: For calculating relative paths
+          symbolInfo, // ADR-055: Pre-collected symbol info
         },
       );
 
-      // Issue #220: Store SymbolCollector for header generation
+      // Issue #220: Store ISymbolInfo for header generation
+      // ADR-055: Now stores ISymbolInfo instead of SymbolCollector
       if (this.codeGenerator.symbols) {
         this.symbolCollectors.set(file.path, this.codeGenerator.symbols);
       }
@@ -1048,6 +1056,10 @@ class Pipeline {
       }
 
       // Step 7: Generate code with symbol table
+      // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
+      const tSymbols = CNextResolver.resolve(tree, sourcePath);
+      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
       const code = this.codeGenerator.generate(
         tree,
         this.symbolTable,
@@ -1058,19 +1070,20 @@ class Pipeline {
           sourcePath, // Issue #230: For self-include header generation
           generateHeaders: options?.generateHeaders, // Issue #230: Enable self-include for extern "C" tests
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
+          symbolInfo, // ADR-055: Pre-collected symbol info
         },
       );
 
       // Issue #424: Generate header content if requested
       let headerCode: string | undefined;
       if (options?.generateHeaders) {
-        // Issue #424: Collect symbols from main source file AFTER code generation
+        // Issue #424/ADR-055: Collect symbols from main source file AFTER code generation
         // This must happen after generate() to avoid interfering with type resolution
-        const collector = new CNextSymbolCollector(
-          sourcePath,
+        const tSymbols = CNextResolver.resolve(tree, sourcePath);
+        const collectedSymbols = TSymbolAdapter.toISymbols(
+          tSymbols,
           this.symbolTable,
         );
-        const collectedSymbols = collector.collect(tree);
         this.symbolTable.addSymbols(collectedSymbols);
 
         const symbols = this.symbolTable.getSymbolsByFile(sourcePath);
