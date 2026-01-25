@@ -242,6 +242,12 @@ If implementing a feature, all documents must be current and memory must be upda
 
 **Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnext` binary to test uncommitted transpiler changes.
 
+## Dead Code Detection
+
+- `npx knip` — Find unused files, exports, and dependencies
+- Config in `knip.json` — ignores vscode-extension, prettier-plugin, tests
+- `parseWithSymbols.ts` is a public API entry point (used by vscode-extension)
+
 ## Release Checklist
 
 **See [`releasing.md`](releasing.md) for the complete release process.**
