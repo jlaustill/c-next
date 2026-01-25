@@ -1,9 +1,0 @@
-11:15 error[E0422]: function 'add_integers' called before definition
-16:16 error[E0422]: function 'subtract_integers' called before definition
-21:21 error[E0422]: function 'get_constant_42' called before definition
-26:17 error[E0422]: function 'get_magic_number' called before definition
-31:19 error[E0422]: function 'multiply_u32' called before definition
-36:16 error[E0422]: function 'is_positive' called before definition
-39:16 error[E0422]: function 'is_positive' called before definition
-44:17 error[E0422]: function 'is_even' called before definition
-47:16 error[E0422]: function 'is_even' called before definition

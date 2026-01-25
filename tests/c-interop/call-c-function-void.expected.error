@@ -1,7 +1,0 @@
-11:4 error[E0422]: function 'no_return_no_params' called before definition
-16:4 error[E0422]: function 'set_global_flag' called before definition
-20:21 error[E0422]: function 'get_global_flag' called before definition
-25:4 error[E0422]: function 'set_global_flag' called before definition
-26:16 error[E0422]: function 'get_global_flag' called before definition
-31:20 error[E0422]: function 'get_constant_42' called before definition
-36:17 error[E0422]: function 'get_magic_number' called before definition
