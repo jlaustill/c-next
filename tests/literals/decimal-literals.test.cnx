@@ -1,0 +1,120 @@
+// test-coverage: 32.1-decimal-literals
+// test-execution
+// Tests: Unsuffixed decimal integer literals with type inference
+// Validates that plain integers work correctly when type is inferred from context
+
+u32 main() {
+    // ===== Basic decimal to various types =====
+
+    // Test decimal to u8
+    u8 byte <- 200;
+    if (byte != 200) return 1;
+
+    // Test decimal to u16
+    u16 word <- 50000;
+    if (word != 50000) return 2;
+
+    // Test decimal to u32
+    u32 dword <- 3000000000;
+    if (dword != 3000000000) return 3;
+
+    // Test decimal to i8
+    i8 sbyte <- 100;
+    if (sbyte != 100) return 4;
+
+    // Test decimal to i16
+    i16 sword <- 30000;
+    if (sword != 30000) return 5;
+
+    // Test decimal to i32
+    i32 sdword <- 2000000000;
+    if (sdword != 2000000000) return 6;
+
+    // ===== Zero and small values =====
+
+    // Test zero
+    u8 zero <- 0;
+    if (zero != 0) return 7;
+
+    // Test one
+    u8 one <- 1;
+    if (one != 1) return 8;
+
+    // Test single digit
+    u8 nine <- 9;
+    if (nine != 9) return 9;
+
+    // Test two digits
+    u8 ninetynine <- 99;
+    if (ninetynine != 99) return 10;
+
+    // ===== Type boundary values =====
+
+    // Test u8 max
+    u8 u8Max <- 255;
+    if (u8Max != 255) return 11;
+
+    // Test u16 max
+    u16 u16Max <- 65535;
+    if (u16Max != 65535) return 12;
+
+    // Test i8 max
+    i8 i8Max <- 127;
+    if (i8Max != 127) return 13;
+
+    // Test i16 max
+    i16 i16Max <- 32767;
+    if (i16Max != 32767) return 14;
+
+    // ===== Decimal in expressions =====
+
+    // Test addition
+    u16 sum <- 100 + 200;
+    if (sum != 300) return 15;
+
+    // Test subtraction
+    u16 diff <- 500 - 123;
+    if (diff != 377) return 16;
+
+    // Test multiplication
+    u32 product <- 1000 * 1000;
+    if (product != 1000000) return 17;
+
+    // Test division
+    u16 quotient <- 100 / 4;
+    if (quotient != 25) return 18;
+
+    // Test modulo
+    u16 remainder <- 17 % 5;
+    if (remainder != 2) return 19;
+
+    // ===== Decimal in array initializers =====
+
+    // Test decimal in array
+    u16 values[5] <- [10, 20, 30, 40, 50];
+    if (values[0] != 10) return 20;
+    if (values[1] != 20) return 21;
+    if (values[2] != 30) return 22;
+    if (values[3] != 40) return 23;
+    if (values[4] != 50) return 24;
+
+    // ===== Decimal in comparisons =====
+
+    // Test equality
+    u32 val <- 12345;
+    if (val != 12345) return 25;
+
+    // Test less than
+    if (100 >= 200) return 26;
+
+    // Test greater than
+    if (500 <= 400) return 27;
+
+    // Test less than or equal
+    if (100 > 100) return 28;
+
+    // Test greater than or equal
+    if (100 < 100) return 29;
+
+    return 0; // All tests passed
+}

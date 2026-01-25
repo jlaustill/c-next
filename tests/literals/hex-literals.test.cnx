@@ -1,0 +1,95 @@
+// test-coverage: 32.1-hex-literals
+// test-execution
+// Tests: Unsuffixed hex literals with type inference
+// Validates that 0x... literals work correctly when type is inferred from context
+
+u32 main() {
+    // ===== Basic hex to various types =====
+
+    // Test hex to u8
+    u8 byte <- 0xFF;
+    if (byte != 255) return 1;
+
+    // Test hex to u16
+    u16 word <- 0xABCD;
+    if (word != 43981) return 2;
+
+    // Test hex to u32
+    u32 dword <- 0xDEADBEEF;
+    if (dword != 3735928559) return 3;
+
+    // ===== Uppercase/lowercase X =====
+
+    // Test lowercase x
+    u8 lower <- 0xff;
+    if (lower != 255) return 4;
+
+    // Test uppercase X
+    u8 upper <- 0XFF;
+    if (upper != 255) return 5;
+
+    // ===== Mixed case hex digits =====
+
+    // Test mixed case digits
+    u32 mixed <- 0xAbCdEf;
+    if (mixed != 11259375) return 6;
+
+    // ===== Zero and small values =====
+
+    // Test hex zero
+    u8 zero <- 0x0;
+    if (zero != 0) return 7;
+
+    // Test single digit hex
+    u8 single <- 0xA;
+    if (single != 10) return 8;
+
+    // Test two digit hex
+    u8 two <- 0x1F;
+    if (two != 31) return 9;
+
+    // ===== Hex in expressions =====
+
+    // Test hex addition
+    u16 sum <- 0x10 + 0x20;
+    if (sum != 48) return 10;
+
+    // Test hex subtraction
+    u16 diff <- 0xFF - 0x0F;
+    if (diff != 240) return 11;
+
+    // Test hex multiplication
+    u32 product <- 0x10 * 0x10;
+    if (product != 256) return 12;
+
+    // Test hex bitwise AND
+    u8 andResult <- 0xFF & 0x0F;
+    if (andResult != 15) return 13;
+
+    // Test hex bitwise OR
+    u8 orResult <- 0xF0 | 0x0F;
+    if (orResult != 255) return 14;
+
+    // ===== Hex in array initializers =====
+
+    // Test hex in array
+    u8 bytes[4] <- [0x48, 0x65, 0x6C, 0x6C];
+    if (bytes[0] != 72) return 15;  // 'H'
+    if (bytes[1] != 101) return 16; // 'e'
+    if (bytes[2] != 108) return 17; // 'l'
+    if (bytes[3] != 108) return 18; // 'l'
+
+    // ===== Hex in comparisons =====
+
+    // Test hex equality
+    u8 val <- 0x42;
+    if (val != 0x42) return 19;
+
+    // Test hex less than
+    if (0x10 >= 0x20) return 20;
+
+    // Test hex greater than
+    if (0xFF <= 0xFE) return 21;
+
+    return 0; // All tests passed
+}

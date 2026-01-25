@@ -1,0 +1,107 @@
+// test-coverage: 32.1-binary-literals
+// test-execution
+// Tests: Unsuffixed binary literals with type inference
+// Validates that 0b... literals work correctly when type is inferred from context
+
+u32 main() {
+    // ===== Basic binary to various types =====
+
+    // Test binary to u8
+    u8 byte <- 0b11111111;
+    if (byte != 255) return 1;
+
+    // Test binary to u16
+    u16 word <- 0b1010101010101010;
+    if (word != 43690) return 2;
+
+    // Test binary to u32
+    u32 dword <- 0b11111111000000001111111100000000;
+    if (dword != 4278255360) return 3;
+
+    // ===== Uppercase/lowercase B =====
+
+    // Test lowercase b
+    u8 lower <- 0b1010;
+    if (lower != 10) return 4;
+
+    // Test uppercase B
+    u8 upper <- 0B1010;
+    if (upper != 10) return 5;
+
+    // ===== Common bit patterns =====
+
+    // Test all zeros
+    u8 zeros <- 0b00000000;
+    if (zeros != 0) return 6;
+
+    // Test all ones (8-bit)
+    u8 ones8 <- 0b11111111;
+    if (ones8 != 255) return 7;
+
+    // Test alternating 1010
+    u8 alt1 <- 0b10101010;
+    if (alt1 != 170) return 8;
+
+    // Test alternating 0101
+    u8 alt2 <- 0b01010101;
+    if (alt2 != 85) return 9;
+
+    // Test high nibble set
+    u8 highNibble <- 0b11110000;
+    if (highNibble != 240) return 10;
+
+    // Test low nibble set
+    u8 lowNibble <- 0b00001111;
+    if (lowNibble != 15) return 11;
+
+    // ===== Single bit positions =====
+
+    // Test bit 0
+    u8 bit0 <- 0b00000001;
+    if (bit0 != 1) return 12;
+
+    // Test bit 7
+    u8 bit7 <- 0b10000000;
+    if (bit7 != 128) return 13;
+
+    // ===== Binary in expressions =====
+
+    // Test binary OR (set bits)
+    u8 orResult <- 0b11110000 | 0b00001111;
+    if (orResult != 255) return 14;
+
+    // Test binary AND (mask bits)
+    u8 andResult <- 0b11111111 & 0b00001111;
+    if (andResult != 15) return 15;
+
+    // Test binary XOR (toggle bits)
+    u8 xorResult <- 0b11110000 ^ 0b10101010;
+    if (xorResult != 90) return 16;
+
+    // Test binary addition
+    u8 sum <- 0b0001 + 0b0010;
+    if (sum != 3) return 17;
+
+    // ===== Binary in array initializers =====
+
+    // Test binary in array (flag bits)
+    u8 flags[4] <- [0b0001, 0b0010, 0b0100, 0b1000];
+    if (flags[0] != 1) return 18;
+    if (flags[1] != 2) return 19;
+    if (flags[2] != 4) return 20;
+    if (flags[3] != 8) return 21;
+
+    // ===== Binary in comparisons =====
+
+    // Test binary equality
+    u8 val <- 0b11001100;
+    if (val != 0b11001100) return 22;
+
+    // Test binary less than
+    if (0b0001 >= 0b0010) return 23;
+
+    // Test binary greater than
+    if (0b1111 <= 0b0111) return 24;
+
+    return 0; // All tests passed
+}
