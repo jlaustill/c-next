@@ -5,6 +5,7 @@
 
 import * as Parser from "../../antlr_parser/grammar/CNextParser";
 import TSymbol from "../types/TSymbol";
+import LiteralUtils from "../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import StructCollector from "./collectors/StructCollector";
@@ -61,8 +62,8 @@ class CNextResolver {
           const name = varCtx.IDENTIFIER().getText();
           const exprCtx = varCtx.expression();
           if (exprCtx) {
-            const value = Number.parseInt(exprCtx.getText(), 10);
-            if (!Number.isNaN(value)) {
+            const value = LiteralUtils.parseIntegerLiteral(exprCtx.getText());
+            if (value !== undefined) {
               constValues.set(name, value);
             }
           }
@@ -82,8 +83,10 @@ class CNextResolver {
               const fullName = `${scopeName}_${name}`;
               const exprCtx = varCtx.expression();
               if (exprCtx) {
-                const value = Number.parseInt(exprCtx.getText(), 10);
-                if (!Number.isNaN(value)) {
+                const value = LiteralUtils.parseIntegerLiteral(
+                  exprCtx.getText(),
+                );
+                if (value !== undefined) {
                   // Store both bare name and scoped name for flexibility
                   constValues.set(name, value);
                   constValues.set(fullName, value);
