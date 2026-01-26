@@ -4,7 +4,11 @@
  */
 
 #include <stdint.h>
-#include <cmsis_gcc.h>
+
+// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+static inline void __cnx_disable_irq(void) { __disable_irq(); }
+static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
+static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -24,14 +28,14 @@ uint32_t overflows = 0;
 
 void safeIncrement(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         if (counter < 1000) {
             counter = cnx_clamp_add_u32(counter, 1);
         } else {
             overflows = cnx_clamp_add_u32(overflows, 1);
             counter = 0;
         }
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }

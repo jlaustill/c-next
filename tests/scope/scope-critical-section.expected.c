@@ -7,7 +7,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <cmsis_gcc.h>
+
+// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+static inline void __cnx_disable_irq(void) { __disable_irq(); }
+static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
+static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -54,131 +58,131 @@ static bool CriticalTest_locked = false;
 
 static void CriticalTest_internalEnqueue(uint8_t data) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         CriticalTest_buffer[CriticalTest_writeIndex] = data;
         CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
         CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 static uint8_t CriticalTest_internalDequeue(void) {
     uint8_t result = 0;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         if (CriticalTest_count > 0) {
             result = CriticalTest_buffer[CriticalTest_readIndex];
             CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
             CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
         }
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return result;
 }
 
 static void CriticalTest_internalUpdateGlobal(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
         globalBufferLock = true;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 static void CriticalTest_internalTransfer(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         uint8_t data = CriticalTest_buffer[CriticalTest_readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
         CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
         globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 static bool CriticalTest_internalTryLock(void) {
     bool acquired = false;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         if (!CriticalTest_locked) {
             CriticalTest_locked = true;
             acquired = true;
         }
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return acquired;
 }
 
 static void CriticalTest_internalUnlock(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         CriticalTest_locked = false;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 void CriticalTest_enqueue(uint8_t data) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         CriticalTest_buffer[CriticalTest_writeIndex] = data;
         CriticalTest_writeIndex = cnx_clamp_add_u32(CriticalTest_writeIndex, 1);
         CriticalTest_count = cnx_clamp_add_u8(CriticalTest_count, 1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 uint8_t CriticalTest_dequeue(void) {
     uint8_t result = 0;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         if (CriticalTest_count > 0) {
             result = CriticalTest_buffer[CriticalTest_readIndex];
             CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
             CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
         }
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return result;
 }
 
 void CriticalTest_updateGlobalIndex(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
         globalReadIndex = cnx_clamp_add_u32(globalReadIndex, 1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 void CriticalTest_transferToGlobal(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         uint8_t data = CriticalTest_buffer[CriticalTest_readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
         CriticalTest_readIndex = cnx_clamp_add_u32(CriticalTest_readIndex, 1);
         CriticalTest_count = cnx_clamp_sub_u8(CriticalTest_count, 1);
         globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 uint8_t CriticalTest_getCount(void) {
     uint8_t result = 0;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         result = CriticalTest_count;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return result;
 }
@@ -186,56 +190,56 @@ uint8_t CriticalTest_getCount(void) {
 bool CriticalTest_tryLock(void) {
     bool acquired = false;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         if (!CriticalTest_locked) {
             CriticalTest_locked = true;
             acquired = true;
         }
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return acquired;
 }
 
 void CriticalTest_unlock(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         CriticalTest_locked = false;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 bool CriticalTest_isLocked(void) {
     bool result = false;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         result = CriticalTest_locked;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return result;
 }
 
 void CriticalTest_resetAll(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         CriticalTest_writeIndex = 0;
         CriticalTest_readIndex = 0;
         CriticalTest_count = 0;
         CriticalTest_locked = false;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 bool CriticalTest_isInSync(void) {
     bool inSync = false;
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         inSync = CriticalTest_writeIndex == globalWriteIndex;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
     return inSync;
 }

@@ -10,6 +10,11 @@
 #include <stdint.h>
 #include <cmsis_gcc.h>
 
+// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+static inline void __cnx_disable_irq(void) { __disable_irq(); }
+static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
+static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
+
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
@@ -31,8 +36,8 @@ uint32_t writeIdx = 0;
 // Atomic operation within critical section
 void criticalUpdate(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, 1);
@@ -43,15 +48,15 @@ void criticalUpdate(void) {
             uint16_t __new = __old + 1;
             if (__STREXH(__new, &sequence) == 0) break;
         } while (1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 // Mixed atomic and non-atomic in critical
 void enqueueWithCount(uint8_t data) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         buffer[writeIdx] = data;
         writeIdx = cnx_clamp_add_u32(writeIdx, 1);
         do {
@@ -59,15 +64,15 @@ void enqueueWithCount(uint8_t data) {
             uint32_t __new = cnx_clamp_add_u32(__old, 1);
             if (__STREXW(__new, &sharedCounter) == 0) break;
         } while (1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 // Multiple atomic operations in critical
 void batchUpdate(uint32_t delta) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, delta);
@@ -78,15 +83,15 @@ void batchUpdate(uint32_t delta) {
             uint16_t __new = __old + 1;
             if (__STREXH(__new, &sequence) == 0) break;
         } while (1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
 // Read and write atomic in critical
 void conditionalIncrement(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         if (sharedCounter < 1000) {
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
@@ -94,7 +99,7 @@ void conditionalIncrement(void) {
                 if (__STREXW(__new, &sharedCounter) == 0) break;
             } while (1);
         }
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 
