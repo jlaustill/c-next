@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.39] - 2026-01-26
+
+### Fixed
+
+- Enum values from external (included) .cnx files now correctly get type prefix in generated C code (Issue #465, PR #466)
+
 ## [0.1.38] - 2026-01-26
 
 ### Added
