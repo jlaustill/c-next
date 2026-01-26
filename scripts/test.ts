@@ -372,8 +372,9 @@ async function runTest(
     if (TestUtils.normalize(result.code) === TestUtils.normalize(expectedC)) {
       // Snapshot matches - now run all validation steps
 
-      // Issue #455: Write header file to disk if generated (needed for GCC to find the include)
-      if (result.headerCode) {
+      // Issue #455: Write header file to disk if generated AND expected.h exists
+      // Only write headers for tests that expect header validation
+      if (result.headerCode && hasExpectedHFile) {
         writeFileSync(headerFile, result.headerCode);
       }
 
@@ -382,8 +383,11 @@ async function runTest(
         cleanupHelperFiles();
       };
 
+      // Issue #461: Skip all C compilation validation for transpile-only tests (e.g., C++ interop)
+      const isTranspileOnly = TestUtils.hasTranspileOnlyMarker(source);
+
       // Step 1: GCC compilation
-      if (tools.gcc) {
+      if (tools.gcc && !isTranspileOnly) {
         const compileResult = TestUtils.validateCompilation(
           expectedCFile,
           tools,
@@ -400,7 +404,7 @@ async function runTest(
       }
 
       // Step 2: Cppcheck static analysis
-      if (tools.cppcheck) {
+      if (tools.cppcheck && !isTranspileOnly) {
         const cppcheckResult = TestUtils.validateCppcheck(expectedCFile);
         if (!cppcheckResult.valid) {
           cleanupAllFiles();
@@ -413,7 +417,7 @@ async function runTest(
       }
 
       // Step 3: Clang-tidy analysis
-      if (tools.clangTidy) {
+      if (tools.clangTidy && !isTranspileOnly) {
         const clangTidyResult = TestUtils.validateClangTidy(expectedCFile);
         if (!clangTidyResult.valid) {
           cleanupAllFiles();
@@ -426,7 +430,7 @@ async function runTest(
       }
 
       // Step 4: MISRA compliance check
-      if (tools.misra) {
+      if (tools.misra && !isTranspileOnly) {
         const misraResult = TestUtils.validateMisra(expectedCFile, rootDir);
         if (!misraResult.valid) {
           cleanupAllFiles();
@@ -439,7 +443,7 @@ async function runTest(
       }
 
       // Step 5: Flawfinder security analysis
-      if (tools.flawfinder) {
+      if (tools.flawfinder && !isTranspileOnly) {
         const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
         if (!flawfinderResult.valid) {
           cleanupAllFiles();
@@ -452,7 +456,7 @@ async function runTest(
       }
 
       // Step 6: No-warnings check (if /* test-no-warnings */ marker present)
-      if (TestUtils.hasNoWarningsMarker(source)) {
+      if (TestUtils.hasNoWarningsMarker(source) && !isTranspileOnly) {
         const noWarningsResult = TestUtils.validateNoWarnings(
           expectedCFile,
           rootDir,
@@ -468,7 +472,8 @@ async function runTest(
       }
 
       // Step 6.5: Header validation (if .expected.h file exists AND headers were generated) - Issue #424
-      if (hasExpectedHFile && result.headerCode) {
+      // Issue #461: Skip header validation for transpile-only tests
+      if (hasExpectedHFile && result.headerCode && !isTranspileOnly) {
         const expectedH = readFileSync(expectedHFile, "utf-8");
         const actualH = result.headerCode;
 
@@ -516,9 +521,9 @@ async function runTest(
       const tempCFile = expectedCFile.replace(".expected.c", ".tmp.c");
       writeFileSync(tempCFile, result.code);
 
-      // Issue #461: Write header file if generated (needed for GCC to find the include)
+      // Issue #461: Write header file if generated AND expected.h exists
       let tempHeaderWritten = false;
-      if (result.headerCode) {
+      if (result.headerCode && hasExpectedHFile) {
         writeFileSync(headerFile, result.headerCode);
         tempHeaderWritten = true;
       }
