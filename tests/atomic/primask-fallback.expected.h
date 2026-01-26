@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t counter;
-extern uint16_t ticks;
+extern volatile uint32_t counter;
+extern volatile uint16_t ticks;
 
 #ifdef __cplusplus
 }

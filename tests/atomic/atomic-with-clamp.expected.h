@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t brightness;
-extern uint16_t volume;
-extern uint32_t counter;
-extern int8_t temperature;
-extern int16_t offset;
-extern int32_t position;
+extern volatile uint8_t brightness;
+extern volatile uint16_t volume;
+extern volatile uint32_t counter;
+extern volatile int8_t temperature;
+extern volatile int16_t offset;
+extern volatile int32_t position;
 
 #ifdef __cplusplus
 }

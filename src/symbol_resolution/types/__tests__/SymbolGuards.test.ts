@@ -56,6 +56,7 @@ describe("SymbolGuards", () => {
     kind: ESymbolKind.Variable,
     type: "u32",
     isConst: false,
+    isAtomic: false,
     isArray: false,
   };
 

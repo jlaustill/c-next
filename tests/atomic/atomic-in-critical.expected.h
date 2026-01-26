@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t sharedCounter;
-extern uint16_t sequence;
+extern volatile uint32_t sharedCounter;
+extern volatile uint16_t sequence;
 extern uint8_t buffer[64];
 extern uint32_t writeIdx;
 

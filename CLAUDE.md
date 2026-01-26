@@ -299,9 +299,15 @@ If implementing a feature, all documents must be current and memory must be upda
 - If unsure whether a change is related, ask the user
 - Unrelated changes are the user's responsibility — don't touch them
 
-### Git Workflow Gotchas
+### Generated Test Files
 
-- **Generated `.test.h` files**: Integration tests may generate/delete `.test.h` files - run `git restore tests/` before committing if you see unexpected deletions
+**Always commit generated test output files.** When running tests or the transpiler on `.test.cnx` files:
+
+- `.test.c` and `.test.h` files are generated alongside `.test.cnx` files
+- These generated files **MUST be committed** to the repository
+- They serve as additional validation that the transpiler output is correct
+- **NEVER delete generated test files** - they are part of the test suite
+- **NEVER run `git restore tests/`** to revert generated files
 
 ## Pull Request Workflow
 
