@@ -1,0 +1,13 @@
+// Helper file: defines types used by cross-file tests
+// This file is NOT a test file - it provides types for other tests
+
+enum EPriority {
+    LOW <- 0,
+    MEDIUM <- 1,
+    HIGH <- 2
+}
+
+struct Vec2 {
+    i32 x;
+    i32 y;
+}

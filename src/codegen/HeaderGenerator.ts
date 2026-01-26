@@ -63,18 +63,11 @@ class HeaderGenerator {
     }
 
     // Issue #424: Include user headers if any extern declarations use macros in array dimensions
-    // We check all symbols upfront to determine if user includes are needed
+    // Issue #478: Always include .cnx-derived headers (.h transformed from .cnx includes)
+    // These define types used in function signatures that need to be available in the header
     if (options.userIncludes && options.userIncludes.length > 0) {
-      const needsUserIncludes = symbols.some(
-        (s) =>
-          s.isArray &&
-          s.arrayDimensions?.some((dim) => this.isMacroDimension(dim)),
-      );
-
-      if (needsUserIncludes) {
-        for (const include of options.userIncludes) {
-          lines.push(include);
-        }
+      for (const include of options.userIncludes) {
+        lines.push(include);
       }
     }
 

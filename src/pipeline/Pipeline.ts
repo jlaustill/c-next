@@ -836,13 +836,17 @@ class Pipeline {
       // Issue #424: Store user includes for header generation
       // These may define macros used in array dimensions
       // Issue #461: Transform .cnx includes to .h for header generation
+      // Issue #478: Include both quoted and angle-bracket .cnx includes for cross-file types
       const userIncludes: string[] = [];
       for (const includeDir of tree.includeDirective()) {
         const includeText = includeDir.getText();
-        // Only include quoted includes (user headers), not angle-bracket (system headers)
-        if (includeText.includes('"')) {
+        // Include both quoted ("...") and angle-bracket (<...>) .cnx includes
+        // These define types used in function signatures that need to be in the header
+        if (includeText.includes(".cnx")) {
           // Transform .cnx includes to .h (the generated header for the included .cnx file)
-          const transformedInclude = includeText.replace(/\.cnx"/, '.h"');
+          const transformedInclude = includeText
+            .replace(/\.cnx"/, '.h"')
+            .replace(/\.cnx>/, ".h>");
           userIncludes.push(transformedInclude);
         }
       }
@@ -1368,23 +1372,30 @@ class Pipeline {
           // Issue #424: Collect user includes for header generation
           // These may define macros used in array dimensions
           // Issue #461: Transform .cnx includes to .h for header generation
+          // Issue #478: Include both quoted and angle-bracket .cnx includes for cross-file types
           const userIncludes: string[] = [];
           for (const includeDir of tree.includeDirective()) {
             const includeText = includeDir.getText();
-            // Only include quoted includes (user headers), not angle-bracket (system headers)
-            if (includeText.includes('"')) {
+            // Include both quoted ("...") and angle-bracket (<...>) .cnx includes
+            // These define types used in function signatures that need to be in the header
+            if (includeText.includes(".cnx")) {
               // Transform .cnx includes to .h (the generated header for the included .cnx file)
-              const transformedInclude = includeText.replace(/\.cnx"/, '.h"');
+              const transformedInclude = includeText
+                .replace(/\.cnx"/, '.h"')
+                .replace(/\.cnx>/, ".h>");
               userIncludes.push(transformedInclude);
             }
           }
 
+          // Issue #478: Pass all known enums for cross-file type handling
+          // This includes enums from this file and all transitively included .cnx files
           headerCode = this.headerGenerator.generate(
             exportedSymbols,
             headerName,
             { exportedOnly: true, userIncludes },
             typeInput,
             passByValueCopy,
+            symbolInfo.knownEnums,
           );
         }
       }

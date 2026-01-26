@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <issue-332-cnx-types.h>
 
 #ifdef __cplusplus
 extern "C" {
