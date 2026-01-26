@@ -1,0 +1,29 @@
+// test-execution
+// Tests: Cross-scope method call returning enum (global.Scope.method() pattern)
+
+enum ECategory {
+    CAT_A <- 0,
+    CAT_B <- 1
+}
+
+scope Provider {
+    public global.ECategory getCategory() {
+        return global.ECategory.CAT_A;
+    }
+}
+
+scope Consumer {
+    public u32 test() {
+        // This is the pattern that failed: global.Scope.method() returning enum
+        global.ECategory cat <- global.Provider.getCategory();
+        if (cat = global.ECategory.CAT_A) {
+            return 0;
+        }
+        return 1;
+    }
+}
+
+u32 main() {
+    u32 result <- Consumer.test();
+    return result;
+}

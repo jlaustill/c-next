@@ -3778,6 +3778,7 @@ export default class CodeGenerator implements IOrchestrator {
    * - Scope.method() or Scope.method(args) - scope method from outside
    * - this.method() or this.method(args) - scope method from inside
    * - global.func() or global.func(args) - global function from inside scope
+   * - global.Scope.method() or global.Scope.method(args) - scope method from inside another scope
    */
   private _getFunctionCallEnumType(text: string): string | null {
     // Check if this looks like a function call (contains parentheses)
@@ -3805,6 +3806,11 @@ export default class CodeGenerator implements IOrchestrator {
       } else if (this.symbols!.knownScopes.has(parts[0])) {
         // Scope.method() -> Scope_method
         fullFuncName = `${parts[0]}_${parts[1]}`;
+      }
+    } else if (parts.length === 3) {
+      if (parts[0] === "global" && this.symbols!.knownScopes.has(parts[1])) {
+        // global.Scope.method() -> Scope_method
+        fullFuncName = `${parts[1]}_${parts[2]}`;
       }
     }
 

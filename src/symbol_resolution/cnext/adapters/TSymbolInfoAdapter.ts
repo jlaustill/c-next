@@ -384,16 +384,19 @@ class TSymbolInfoAdapter {
   }
 
   /**
-   * Issue #465: Merge external enum info into an existing ISymbolInfo.
+   * Issue #465: Merge external symbol info into an existing ISymbolInfo.
    *
-   * When a file includes other .cnx files, the enum types from those external
-   * files need to be available for code generation (enum member prefixing).
+   * When a file includes other .cnx files, the enum types and scopes from those
+   * external files need to be available for code generation. This enables:
+   * - Enum member prefixing for external enums
+   * - Cross-scope method calls like global.Scope.method() returning enums
+   *
    * This method creates a new ISymbolInfo that includes both the base symbols
-   * and merged enum info from external sources.
+   * and merged info from external sources.
    *
    * @param base The ISymbolInfo from the current file
    * @param externalEnumSources Array of ISymbolInfo from included .cnx files
-   * @returns New ISymbolInfo with merged enum data
+   * @returns New ISymbolInfo with merged enum and scope data
    */
   static mergeExternalEnums(
     base: ISymbolInfo,
@@ -404,8 +407,9 @@ class TSymbolInfoAdapter {
       return base;
     }
 
-    // Create mutable copies of enum-related data
+    // Create mutable copies of enum-related data and scope info
     const mergedKnownEnums = new Set(base.knownEnums);
+    const mergedKnownScopes = new Set(base.knownScopes);
     const mergedEnumMembers = new Map<string, Map<string, number>>();
     const mergedFunctionReturnTypes = new Map<string, string>();
 
@@ -419,10 +423,14 @@ class TSymbolInfoAdapter {
       mergedFunctionReturnTypes.set(funcName, returnType);
     }
 
-    // Merge in external enum info and function return types
+    // Merge in external enum info, function return types, and scopes
     for (const external of externalEnumSources) {
       for (const enumName of external.knownEnums) {
         mergedKnownEnums.add(enumName);
+      }
+      // Merge scopes from external sources for cross-scope method calls
+      for (const scopeName of external.knownScopes) {
+        mergedKnownScopes.add(scopeName);
       }
       for (const [enumName, members] of external.enumMembers) {
         // Don't overwrite if already exists (local takes precedence)
@@ -438,11 +446,11 @@ class TSymbolInfoAdapter {
       }
     }
 
-    // Return new ISymbolInfo with merged enum data
+    // Return new ISymbolInfo with merged enum data and scope info
     // All other fields remain unchanged from base
     return {
-      // Type sets - only knownEnums is merged
-      knownScopes: base.knownScopes,
+      // Type sets - knownEnums and knownScopes are merged
+      knownScopes: mergedKnownScopes,
       knownStructs: base.knownStructs,
       knownEnums: mergedKnownEnums,
       knownBitmaps: base.knownBitmaps,
