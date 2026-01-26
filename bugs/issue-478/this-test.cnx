@@ -1,0 +1,11 @@
+scope Test {
+    enum ECategory {
+        CAT_A <- 0,
+        CAT_B <- 1
+    }
+
+    // Does this.ECategory work as a return type?
+    public this.ECategory getCategory() {
+        return this.ECategory.CAT_A;
+    }
+}

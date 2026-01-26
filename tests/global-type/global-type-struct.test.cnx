@@ -1,0 +1,57 @@
+// test-execution
+// Tests: global.StructType for struct types inside scope
+// Issue #478: global.EnumType not recognized as type reference inside scope
+
+// Define struct in same file to avoid cross-file header conflicts
+struct Point2D {
+    i32 x;
+    i32 y;
+}
+
+scope PointManager {
+    // Variable of global struct type
+    global.Point2D point;
+
+    public void setPoint(i32 px, i32 py) {
+        this.point.x <- px;
+        this.point.y <- py;
+    }
+
+    public i32 getX() {
+        return this.point.x;
+    }
+
+    public i32 getY() {
+        return this.point.y;
+    }
+
+    // Return global struct type
+    public global.Point2D getPoint() {
+        return this.point;
+    }
+
+    // Parameter of global struct type
+    public i32 sum(global.Point2D p) {
+        return p.x + p.y;
+    }
+}
+
+u32 main() {
+    PointManager.setPoint(10, 20);
+
+    // Extract function calls to variables (MISRA compliance)
+    i32 x <- PointManager.getX();
+    i32 y <- PointManager.getY();
+
+    if (x != 10) return 1;
+    if (y != 20) return 2;
+
+    Point2D p <- PointManager.getPoint();
+    if (p.x != 10) return 3;
+    if (p.y != 20) return 4;
+
+    i32 total <- PointManager.sum(p);
+    if (total != 30) return 5;
+
+    return 0;
+}

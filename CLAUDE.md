@@ -251,6 +251,7 @@ u32 main() {
 
 - **Fresh Pipeline per helper**: When transpiling helper .cnx files in tests, use a fresh `new Pipeline()` instance for each to avoid symbol pollution from accumulated symbols
 - **Helper header validation**: Helper .cnx files can have `.expected.h` files for header validation (same pattern as `.expected.c`)
+- **Prevent helper cleanup**: Create `.expected.h` for helper `.cnx` files to prevent test framework from deleting generated `.h` files needed by other tests
 
 ### Error Validation Tests (test-error pattern)
 
@@ -267,6 +268,19 @@ For compile-time error tests in `tests/analysis/`:
 **Symbol collection timing in `transpileSource()`**: When generating headers, symbol collection MUST happen AFTER `codeGenerator.generate()`. Placing it before breaks type resolution (e.g., `strlen()` becomes placeholder comments).
 
 **Test `.expected.h` files**: The test framework validates `.expected.h` files when present. Create one alongside `.expected.c` for header generation tests.
+
+### Pipeline Code Paths
+
+The Pipeline has two distinct entry points that must stay synchronized:
+
+- **`run()`** — CLI entry point, processes files with full symbol resolution across includes
+- **`transpileSource()`** — Test framework entry point, single-file transpilation
+
+When adding features involving cross-file symbols (enums, structs, types):
+
+1. Test with `npm test` (uses `transpileSource()`) — may pass with incomplete implementation
+2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full pipeline
+3. Ensure both paths receive the same symbol information (e.g., `allKnownEnums`)
 
 ## Task Completion Requirements
 

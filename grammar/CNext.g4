@@ -483,6 +483,7 @@ type
     : primitiveType
     | stringType                              // ADR-045: Bounded strings
     | scopedType                              // ADR-016: this.Type for scoped types
+    | globalType                              // Issue #478: global.Type for global types inside scope
     | qualifiedType                           // ADR-016: Scope.Type from outside scope
     | templateType                            // Issue #291: C++ template instantiation syntax
     | userType
@@ -493,6 +494,12 @@ type
 // ADR-016: Scoped type reference (this.State -> Motor_State)
 scopedType
     : 'this' '.' IDENTIFIER
+    ;
+
+// Issue #478: Global type reference (global.ECategory -> ECategory)
+// Used inside scopes to reference types defined at global level
+globalType
+    : 'global' '.' IDENTIFIER
     ;
 
 // ADR-016: Qualified type from outside scope (Motor.State -> Motor_State)

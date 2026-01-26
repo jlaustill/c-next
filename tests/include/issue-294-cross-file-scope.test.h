@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <issue-294-decoder.h>
 
 #ifdef __cplusplus
 extern "C" {
