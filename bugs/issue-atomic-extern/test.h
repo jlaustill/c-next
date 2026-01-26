@@ -20,8 +20,8 @@ typedef struct TReading {
 } TReading;
 
 /* External variables */
-extern TReading readings[4];
-extern uint32_t counter;
+extern volatile TReading readings[4];
+extern volatile uint32_t counter;
 
 /* Function prototypes */
 void Manager_test(void);

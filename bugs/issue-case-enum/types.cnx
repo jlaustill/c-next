@@ -1,0 +1,6 @@
+// External enum
+enum ECategory {
+    CAT_A <- 0,
+    CAT_B <- 1,
+    CAT_C <- 2
+}

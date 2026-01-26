@@ -1,0 +1,16 @@
+// Test: enum in if vs case
+#include "types.cnx"
+
+void test(ECategory cat) {
+    // If statement - does this get prefix?
+    if (cat = CAT_A) {
+        return;
+    }
+
+    // Switch case - does this get prefix?
+    switch (cat) {
+        case CAT_A { }
+        case CAT_B { }
+        case CAT_C { }
+    }
+}
