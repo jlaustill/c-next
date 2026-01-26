@@ -1,0 +1,35 @@
+// test-execution
+// Issue #465: Enum values from external files should get type prefix
+// Tests that PRESSURE_TYPE_PSIG from types.cnx becomes EPressureType_PRESSURE_TYPE_PSIG
+
+#include "types.cnx"
+
+struct Config {
+    EPressureType pType;
+}
+
+void setDefault(Config config) {
+    config.pType <- PRESSURE_TYPE_PSIG;
+}
+
+void setExplicit(Config config) {
+    // Qualified access should also work
+    config.pType <- EPressureType.PRESSURE_TYPE_PSIA;
+}
+
+u32 main() {
+    Config cfg <- {pType: PRESSURE_TYPE_PSIA};
+
+    // Test 1: Initial value via struct initializer
+    if (cfg.pType != PRESSURE_TYPE_PSIA) return 1;
+
+    // Test 2: Assignment via function (unqualified access)
+    setDefault(cfg);
+    if (cfg.pType != PRESSURE_TYPE_PSIG) return 2;
+
+    // Test 3: Assignment via function (qualified access)
+    setExplicit(cfg);
+    if (cfg.pType != PRESSURE_TYPE_PSIA) return 3;
+
+    return 0;
+}
