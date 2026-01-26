@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.38] - 2026-01-26
+
+### Added
+
+- Pre-push hook with comprehensive quality checks (PR #463)
+
+### Fixed
+
+- External const array dimensions in header generation (Issue #461, PR #462)
+- String<N> type filtering in header generation for C++ interop (PR #462)
+
 ## [0.1.37] - 2026-01-25
 
 ### Fixed
@@ -432,7 +443,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.35...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.38...HEAD
+[0.1.38]: https://github.com/jlaustill/c-next/compare/v0.1.37...v0.1.38
 [0.1.37]: https://github.com/jlaustill/c-next/compare/v0.1.36...v0.1.37
 [0.1.36]: https://github.com/jlaustill/c-next/compare/v0.1.35...v0.1.36
 [0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
