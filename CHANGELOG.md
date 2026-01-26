@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.40] - 2026-01-26
+
+### Fixed
+
+- Add `volatile` qualifier to extern declarations for atomic variables (Issue #468, PR #469)
+
 ## [0.1.39] - 2026-01-26
 
 ### Fixed
@@ -449,7 +455,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.38...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.40...HEAD
+[0.1.40]: https://github.com/jlaustill/c-next/compare/v0.1.39...v0.1.40
+[0.1.39]: https://github.com/jlaustill/c-next/compare/v0.1.38...v0.1.39
 [0.1.38]: https://github.com/jlaustill/c-next/compare/v0.1.37...v0.1.38
 [0.1.37]: https://github.com/jlaustill/c-next/compare/v0.1.36...v0.1.37
 [0.1.36]: https://github.com/jlaustill/c-next/compare/v0.1.35...v0.1.36
