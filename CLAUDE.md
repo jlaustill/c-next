@@ -252,6 +252,8 @@ u32 main() {
 - **Fresh Pipeline per helper**: When transpiling helper .cnx files in tests, use a fresh `new Pipeline()` instance for each to avoid symbol pollution from accumulated symbols
 - **Helper header validation**: Helper .cnx files can have `.expected.h` files for header validation (same pattern as `.expected.c`)
 - **Prevent helper cleanup**: Create `.expected.h` for helper `.cnx` files to prevent test framework from deleting generated `.h` files needed by other tests
+- **Auto-generating helper snapshots**: `npm test -- <path> --update` creates `.expected.h` for helper `.cnx` files; helper `.h` files must also be committed for CI
+- **Worker debug output**: `console.log` in `test-worker.ts` doesn't appear (forked process). Use `--jobs 1` for sequential mode, but note `test.ts` has duplicated logic
 
 ### Error Validation Tests (test-error pattern)
 
