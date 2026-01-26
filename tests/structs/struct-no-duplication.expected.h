@@ -21,7 +21,6 @@ typedef struct MyData {
 
 /* Function prototypes */
 uint8_t Handler_process(const MyData* data);
-int main(void);
 
 #ifdef __cplusplus
 }
