@@ -175,19 +175,39 @@ function handleRegisterMemberBitmapField(
 }
 
 /**
- * Handle scoped register member bitmap field: Scope.GPIO7.ICR1.LED <- value
+ * Handle scoped register member bitmap field.
+ * Two patterns:
+ * - this.REG.MEMBER.field (hasThis=true, 3 identifiers) - scope from currentScope
+ * - Scope.REG.MEMBER.field (hasThis=false, 4 identifiers) - scope from identifiers[0]
  */
 function handleScopedRegisterMemberBitmapField(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  const scopeName = ctx.identifiers[0];
-  const regName = ctx.identifiers[1];
-  const memberName = ctx.identifiers[2];
-  const fieldName = ctx.identifiers[3];
+  let scopeName: string;
+  let regName: string;
+  let memberName: string;
+  let fieldName: string;
 
-  // Validate cross-scope access
-  deps.validateCrossScopeVisibility(scopeName, regName);
+  if (ctx.hasThis) {
+    // this.REG.MEMBER.field - 3 identifiers
+    if (!deps.currentScope) {
+      throw new Error("Error: 'this' can only be used inside a scope");
+    }
+    scopeName = deps.currentScope;
+    regName = ctx.identifiers[0];
+    memberName = ctx.identifiers[1];
+    fieldName = ctx.identifiers[2];
+  } else {
+    // Scope.REG.MEMBER.field - 4 identifiers
+    scopeName = ctx.identifiers[0];
+    regName = ctx.identifiers[1];
+    memberName = ctx.identifiers[2];
+    fieldName = ctx.identifiers[3];
+
+    // Validate cross-scope access
+    deps.validateCrossScopeVisibility(scopeName, regName);
+  }
 
   const fullRegName = `${scopeName}_${regName}`;
   const fullRegMember = `${fullRegName}_${memberName}`;
@@ -195,9 +215,10 @@ function handleScopedRegisterMemberBitmapField(
 
   const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx, deps);
 
-  // Check for write-only register
+  // Check for write-only register (includes w1s, w1c)
   const accessMod = deps.symbols.registerMemberAccess.get(fullRegMember);
-  const isWriteOnly = accessMod === "wo";
+  const isWriteOnly =
+    accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
 
   if (isWriteOnly) {
     return generateWriteOnlyBitmapWrite(

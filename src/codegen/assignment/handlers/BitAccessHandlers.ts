@@ -76,8 +76,9 @@ function handleStructMemberBit(
   // Get the member type to determine if we need 1ULL for 64-bit
   // For now, use conservative approach with 1
   const one = "1";
+  const intValue = BitUtils.boolToInt(ctx.generatedValue);
 
-  return `${target} = (${target} & ~(${one} << ${bitIndex})) | ((${ctx.generatedValue} ? ${one} : 0) << ${bitIndex});`;
+  return `${target} = (${target} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
 }
 
 /**
@@ -109,8 +110,9 @@ function handleArrayElementBit(
 
   // Use 1ULL for 64-bit element types
   const one = BitUtils.oneForType(typeInfo.baseType);
+  const intValue = BitUtils.boolToInt(ctx.generatedValue);
 
-  return `${arrayElement} = (${arrayElement} & ~(${one} << ${bitIndex})) | ((${ctx.generatedValue} ? ${one} : 0) << ${bitIndex});`;
+  return `${arrayElement} = (${arrayElement} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
 }
 
 /**

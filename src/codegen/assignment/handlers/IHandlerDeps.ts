@@ -91,6 +91,16 @@ interface IHandlerDeps {
    */
   validateCrossScopeVisibility(scopeName: string, memberName: string): void;
 
+  /**
+   * Check array bounds for compile-time constant indices.
+   */
+  checkArrayBounds(
+    arrayName: string,
+    dimensions: readonly number[],
+    indexExprs: readonly Parser.ExpressionContext[],
+    line: number,
+  ): void;
+
   // === Side effects ===
 
   /**

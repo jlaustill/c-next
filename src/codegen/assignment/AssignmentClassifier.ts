@@ -348,11 +348,9 @@ class AssignmentClassifier {
     const typeInfo = this.deps.typeRegistry.get(name);
 
     // Check for actual array or string type
-    const isActualArray =
-      (typeInfo?.isArray &&
-        typeInfo.arrayDimensions &&
-        typeInfo.arrayDimensions.length > 0) ||
-      typeInfo?.isString;
+    // Note: isArray is true for both sized arrays (u8 arr[10]) and unsized parameters (u8 arr[])
+    // Unsized arrays may have empty arrayDimensions, so check isArray flag first
+    const isActualArray = typeInfo?.isArray || typeInfo?.isString;
 
     if (isActualArray) {
       // Slice assignment: arr[offset, length]

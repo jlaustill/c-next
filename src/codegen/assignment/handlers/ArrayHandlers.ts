@@ -32,6 +32,14 @@ function handleMultiDimArrayElement(
   deps: IHandlerDeps,
 ): string {
   const name = ctx.identifiers[0];
+  const typeInfo = deps.typeRegistry.get(name);
+
+  // ADR-036: Compile-time bounds checking for constant indices
+  if (typeInfo?.arrayDimensions) {
+    const line = ctx.subscripts[0]?.start?.line ?? 0;
+    deps.checkArrayBounds(name, typeInfo.arrayDimensions, ctx.subscripts, line);
+  }
+
   const indices = ctx.subscripts
     .map((e) => deps.generateExpression(e))
     .join("][");

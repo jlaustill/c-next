@@ -64,6 +64,7 @@ import memberAccessChain from "./memberAccessChain";
 // ADR-109: Assignment decomposition (Phase 2)
 import assignmentHandlers from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
+import AssignmentKind from "./assignment/AssignmentKind";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
 
@@ -6168,6 +6169,14 @@ export default class CodeGenerator implements IOrchestrator {
         this.typeValidator!.validateBitmapFieldLiteral(expr, width, fieldName),
       validateCrossScopeVisibility: (scopeName, memberName) =>
         this.validateCrossScopeVisibility(scopeName, memberName),
+      checkArrayBounds: (arrayName, dimensions, indexExprs, line) =>
+        this.typeValidator!.checkArrayBounds(
+          arrayName,
+          dimensions,
+          indexExprs,
+          line,
+          (expr) => this._tryEvaluateConstant(expr),
+        ),
       markNeedsString: () => {
         this.needsString = true;
       },
@@ -6397,6 +6406,72 @@ export default class CodeGenerator implements IOrchestrator {
           }
         }
       }
+    }
+
+    // ADR-109: Early dispatch for verified handler kinds
+    // Build context and classify once, then dispatch if handler is verified
+    const assignCtx = buildAssignmentContext(ctx, {
+      typeRegistry: this.context.typeRegistry,
+      generateExpression: () => value,
+    });
+    const handlerDeps = this.buildHandlerDeps();
+    const classifier = new AssignmentClassifier({
+      symbols: handlerDeps.symbols,
+      typeRegistry: handlerDeps.typeRegistry,
+      currentScope: handlerDeps.currentScope,
+      isKnownStruct: handlerDeps.isKnownStruct,
+      isKnownScope: handlerDeps.isKnownScope,
+      getMemberTypeInfo: handlerDeps.getMemberTypeInfo,
+    });
+    const assignmentKind = classifier.classify(assignCtx);
+
+    // Kinds with verified handlers - skip existing code
+    const handlerReadyKinds = new Set<AssignmentKind>([
+      // Batch 2: Bitmap kinds
+      AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
+      AssignmentKind.BITMAP_FIELD_MULTI_BIT,
+      AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
+      AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
+      AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
+      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
+      // Batch 3: Integer Bit kinds
+      AssignmentKind.INTEGER_BIT,
+      AssignmentKind.INTEGER_BIT_RANGE,
+      AssignmentKind.STRUCT_MEMBER_BIT,
+      AssignmentKind.ARRAY_ELEMENT_BIT,
+      // Batch 4: Register Bit kinds
+      AssignmentKind.REGISTER_BIT,
+      AssignmentKind.REGISTER_BIT_RANGE,
+      AssignmentKind.SCOPED_REGISTER_BIT,
+      AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
+      // Batch 5: Access Pattern kinds - PARTIAL
+      // MEMBER_CHAIN is too broad - incorrectly handles bit indexing on struct members
+      // TODO: Fix classifier or split MEMBER_CHAIN into more specific kinds
+      AssignmentKind.GLOBAL_MEMBER,
+      AssignmentKind.GLOBAL_ARRAY,
+      AssignmentKind.THIS_MEMBER,
+      AssignmentKind.THIS_ARRAY,
+      AssignmentKind.GLOBAL_REGISTER_BIT,
+      // MEMBER_CHAIN deferred - needs investigation (5 test failures)
+      // Batch 6: Array kinds
+      AssignmentKind.ARRAY_ELEMENT,
+      AssignmentKind.MULTI_DIM_ARRAY_ELEMENT,
+      AssignmentKind.ARRAY_SLICE,
+      // Batch 7: String kinds
+      AssignmentKind.STRING_SIMPLE,
+      AssignmentKind.STRING_THIS_MEMBER,
+      AssignmentKind.STRING_GLOBAL,
+      AssignmentKind.STRING_STRUCT_FIELD,
+      AssignmentKind.STRING_ARRAY_ELEMENT,
+      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
+      // Batch 8: Special kinds
+      AssignmentKind.ATOMIC_RMW,
+      AssignmentKind.OVERFLOW_CLAMP,
+    ]);
+
+    if (handlerReadyKinds.has(assignmentKind)) {
+      const handler = assignmentHandlers.getHandler(assignmentKind);
+      return handler(assignCtx, handlerDeps);
     }
 
     // ADR-034: Check if this is a bitmap field write (e.g., flags.Running <- true)
@@ -7835,23 +7910,9 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-109: Fallback - use classifier + handler dispatch
-    const assignCtx = buildAssignmentContext(ctx, {
-      typeRegistry: this.context.typeRegistry,
-      generateExpression: () => value,
-    });
-    const deps = this.buildHandlerDeps();
-    const classifier = new AssignmentClassifier({
-      symbols: deps.symbols,
-      typeRegistry: deps.typeRegistry,
-      currentScope: deps.currentScope,
-      isKnownStruct: deps.isKnownStruct,
-      isKnownScope: deps.isKnownScope,
-      getMemberTypeInfo: deps.getMemberTypeInfo,
-    });
-    const kind = classifier.classify(assignCtx);
-    const handler = assignmentHandlers.getHandler(kind);
-    return handler(assignCtx, deps);
+    // ADR-109: Fallback - dispatch using already-classified kind
+    const fallbackHandler = assignmentHandlers.getHandler(assignmentKind);
+    return fallbackHandler(assignCtx, handlerDeps);
   }
 
   /**
