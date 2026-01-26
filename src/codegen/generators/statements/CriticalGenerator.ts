@@ -15,13 +15,14 @@ import IOrchestrator from "../IOrchestrator";
 /**
  * Generate C code for a critical statement (ADR-050).
  *
- * Generates a PRIMASK-based interrupt disable wrapper:
+ * Generates a PRIMASK-based interrupt disable wrapper using __cnx_ prefixed
+ * wrappers to avoid macro collisions with platform headers (e.g., Teensy's imxrt.h):
  * ```c
  * {
- *     uint32_t __primask = __get_PRIMASK();
- *     __disable_irq();
+ *     uint32_t __primask = __cnx_get_PRIMASK();
+ *     __cnx_disable_irq();
  *     // ... block contents ...
- *     __set_PRIMASK(__primask);
+ *     __cnx_set_PRIMASK(__primask);
  * }
  * ```
  *
@@ -29,7 +30,7 @@ import IOrchestrator from "../IOrchestrator";
  * @param _input - Read-only context (unused)
  * @param _state - Current generation state (unused)
  * @param orchestrator - For delegating to generateBlock and validation
- * @returns Generated code and effects (cmsis include)
+ * @returns Generated code and effects (irq_wrappers)
  */
 const generateCriticalStatement = (
   node: CriticalStatementContext,
@@ -42,8 +43,9 @@ const generateCriticalStatement = (
   // Validate no early exits inside critical block
   orchestrator.validateNoEarlyExits(node.block());
 
-  // Mark that we need CMSIS headers
-  effects.push({ type: "include", header: "cmsis" });
+  // Mark that we need IRQ wrapper functions (not cmsis_gcc.h include)
+  // This avoids macro collisions with platform headers like Teensy's imxrt.h
+  effects.push({ type: "include", header: "irq_wrappers" });
 
   // Generate the block contents
   const blockCode = orchestrator.generateBlock(node.block());
@@ -51,12 +53,12 @@ const generateCriticalStatement = (
   // Remove outer braces from block since we're wrapping
   const innerCode = blockCode.slice(1, -1).trim();
 
-  // Generate PRIMASK save/restore wrapper
+  // Generate PRIMASK save/restore wrapper using __cnx_ prefixed functions
   const code = `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
+    uint32_t __primask = __cnx_get_PRIMASK();
+    __cnx_disable_irq();
     ${innerCode}
-    __set_PRIMASK(__primask);
+    __cnx_set_PRIMASK(__primask);
 }`;
 
   return { code, effects };

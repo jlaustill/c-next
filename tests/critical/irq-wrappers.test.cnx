@@ -1,0 +1,18 @@
+// Test: Critical blocks should use __cnx_ wrappers instead of direct intrinsic calls
+// This avoids macro collisions with platform headers (e.g., Teensy's imxrt.h)
+// See GitHub issue #473
+
+u8 buffer[64];
+u32 writeIdx <- 0;
+
+void enqueue(u8 data) {
+    critical {
+        buffer[writeIdx] <- data;
+        writeIdx +<- 1;
+    }
+}
+
+u32 main() {
+    enqueue(42);
+    return 0;
+}

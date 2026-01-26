@@ -20,6 +20,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+// Test: Critical blocks should use __cnx_ wrappers instead of direct intrinsic calls
+// This avoids macro collisions with platform headers (e.g., Teensy's imxrt.h)
+// See GitHub issue #473
 uint8_t buffer[64] = {0};
 
 uint32_t writeIdx = 0;
@@ -32,4 +35,9 @@ void enqueue(uint8_t data) {
         writeIdx = cnx_clamp_add_u32(writeIdx, 1);
         __cnx_set_PRIMASK(__primask);
     }
+}
+
+int main(void) {
+    enqueue(42);
+    return 0;
 }

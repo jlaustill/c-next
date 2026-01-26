@@ -256,6 +256,8 @@ export default class CodeGenerator implements IOrchestrator {
 
   private needsCMSIS: boolean = false; // ADR-049/050: For atomic intrinsics and critical sections
 
+  private needsIrqWrappers: boolean = false; // Issue #473: IRQ wrappers for critical sections
+
   /** External symbol table for cross-language interop */
   private symbolTable: SymbolTable | null = null;
 
@@ -417,6 +419,9 @@ export default class CodeGenerator implements IOrchestrator {
               break;
             case "cmsis":
               this.needsCMSIS = true;
+              break;
+            case "irq_wrappers":
+              this.needsIrqWrappers = true;
               break;
           }
           break;
@@ -1482,6 +1487,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.needsString = false; // ADR-045: Reset string header tracking
     this.needsISR = false; // ADR-040: Reset ISR typedef tracking
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
+    this.needsIrqWrappers = false; // Issue #473: Reset IRQ wrappers tracking
     this.selfIncludeAdded = false; // Issue #369: Reset self-include tracking
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
@@ -1665,6 +1671,24 @@ export default class CodeGenerator implements IOrchestrator {
     }
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes);
+      output.push("");
+    }
+
+    // Issue #473: IRQ wrapper functions to avoid macro collisions with platform headers
+    // (e.g., Teensy's imxrt.h defines __disable_irq/__enable_irq as macros)
+    if (this.needsIrqWrappers) {
+      output.push(
+        "// ADR-050: IRQ wrappers to avoid macro collisions with platform headers",
+      );
+      output.push(
+        "static inline void __cnx_disable_irq(void) { __disable_irq(); }",
+      );
+      output.push(
+        "static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }",
+      );
+      output.push(
+        "static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }",
+      );
       output.push("");
     }
 

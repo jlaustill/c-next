@@ -102,6 +102,11 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
+- **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
+  1. Add to `TIncludeHeader` union in `src/codegen/generators/TIncludeHeader.ts`
+  2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
+  3. Handle effect in `processEffects()` switch statement
+  4. Generate output in `assembleOutput()` where other effects are emitted
 
 ### Error Messages
 
