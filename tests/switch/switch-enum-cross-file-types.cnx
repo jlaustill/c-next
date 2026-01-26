@@ -1,0 +1,6 @@
+// Helper file: Enum definition for cross-file test
+enum EStatus {
+    PENDING <- 0,
+    ACTIVE <- 1,
+    COMPLETED <- 2
+}

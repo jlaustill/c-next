@@ -1,0 +1,27 @@
+// Issue #471: Mixed qualified and unqualified enum references
+// Tests that both syntaxes work correctly in the same switch
+
+enum EPriority {
+    LOW <- 0,
+    MEDIUM <- 1,
+    HIGH <- 2,
+    CRITICAL <- 3
+}
+
+u32 getPriorityValue(EPriority p) {
+    switch (p) {
+        case EPriority.LOW {
+            return 1;
+        }
+        case MEDIUM {
+            return 5;
+        }
+        case EPriority.HIGH {
+            return 10;
+        }
+        case CRITICAL {
+            return 100;
+        }
+    }
+    return 0;
+}
