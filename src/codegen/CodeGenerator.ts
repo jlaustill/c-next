@@ -173,6 +173,7 @@ interface AssignmentContext {
 interface GeneratorContext {
   currentScope: string | null; // ADR-016: renamed from currentNamespace
   currentFunctionName: string | null; // Issue #269: track current function for pass-by-value lookup
+  currentFunctionReturnType: string | null; // Issue #477: track return type for enum inference
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
   currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
@@ -202,6 +203,7 @@ export default class CodeGenerator implements IOrchestrator {
   private context: GeneratorContext = {
     currentScope: null, // ADR-016: renamed from currentNamespace
     currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
+    currentFunctionReturnType: null, // Issue #477: track return type for enum inference
     indentLevel: 0,
     scopeMembers: new Map(), // ADR-016: renamed from namespaceMembers
     currentParameters: new Map(),
@@ -513,6 +515,21 @@ export default class CodeGenerator implements IOrchestrator {
    */
   generateExpression(ctx: Parser.ExpressionContext): string {
     return this._generateExpression(ctx);
+  }
+
+  /**
+   * Issue #477: Generate expression with a specific expected type context.
+   * Used by return statements to resolve unqualified enum values.
+   */
+  generateExpressionWithExpectedType(
+    ctx: Parser.ExpressionContext,
+    expectedType: string | null,
+  ): string {
+    const savedExpectedType = this.context.expectedType;
+    this.context.expectedType = expectedType;
+    const result = this._generateExpression(ctx);
+    this.context.expectedType = savedExpectedType;
+    return result;
   }
 
   /**
@@ -998,6 +1015,21 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.currentFunctionName = name;
   }
 
+  /**
+   * Issue #477: Get the current function's return type for enum inference.
+   * Used by return statement generation to set expectedType.
+   */
+  getCurrentFunctionReturnType(): string | null {
+    return this.context.currentFunctionReturnType;
+  }
+
+  /**
+   * Issue #477: Set the current function's return type for enum inference.
+   */
+  setCurrentFunctionReturnType(returnType: string | null): void {
+    this.context.currentFunctionReturnType = returnType;
+  }
+
   // === Function Body Management (A4) ===
 
   enterFunctionBody(): void {
@@ -1455,6 +1487,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.context = {
       currentScope: null, // ADR-016
       currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
+      currentFunctionReturnType: null, // Issue #477: track return type for enum inference
       indentLevel: 0,
       scopeMembers: new Map(), // ADR-016
       currentParameters: new Map(),
@@ -4816,6 +4849,8 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Issue #269: Set current function name for pass-by-value lookup
         this.context.currentFunctionName = fullName;
+        // Issue #477: Set return type for enum inference in return statements
+        this.context.currentFunctionReturnType = funcDecl.type().getText();
 
         // Track parameters for ADR-006 pointer semantics
         this._setParameters(funcDecl.parameterList() ?? null);
@@ -4838,6 +4873,7 @@ export default class CodeGenerator implements IOrchestrator {
         // ADR-016: Exit function body context
         this.exitFunctionBody();
         this.context.currentFunctionName = null; // Issue #269: Clear function name
+        this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
         this._clearParameters();
 
         lines.push("");
@@ -5287,6 +5323,8 @@ export default class CodeGenerator implements IOrchestrator {
       ? `${this.context.currentScope}_${name}`
       : name;
     this.context.currentFunctionName = fullFuncName;
+    // Issue #477: Set return type for enum inference in return statements
+    this.context.currentFunctionReturnType = ctx.type().getText();
 
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
@@ -5340,6 +5378,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.localVariables.clear();
     this.context.mainArgsName = null;
     this.context.currentFunctionName = null; // Issue #269: Clear function name
+    this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
     this._clearParameters();
 
     const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
@@ -9660,8 +9699,7 @@ export default class CodeGenerator implements IOrchestrator {
         }
       } else {
         // No expected enum type - search all enums but error on ambiguity
-        // Note: This path is rare because most enum usages have type context
-        // (assignments, declarations, struct initializers all set expectedType)
+        // Note: This path is used for backward compatibility when expectedType is not set
         const matchingEnums: string[] = [];
         for (const [enumName, members] of this.symbols!.enumMembers) {
           if (members.has(id)) {

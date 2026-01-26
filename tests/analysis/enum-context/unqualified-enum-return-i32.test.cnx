@@ -1,0 +1,13 @@
+// test-error
+// Tests: Unqualified enum value in i32 return type should error (not just u8)
+
+enum Priority {
+    LOW <- 1,
+    MEDIUM <- 2,
+    HIGH <- 3
+}
+
+// Return type is i32, not Priority - unqualified enum should be rejected
+i32 getPriorityValue() {
+    return HIGH;
+}

@@ -128,20 +128,26 @@ async function runTest(
       // Always write to .h path for compilation, validate against .expected.h if exists
       if (helperResult.headerCode) {
         const tempHFile = join(dirname(helperCnx), `${helperBaseName}.h`);
-        const expectedHFile = join(
+        const helperExpectedHFile = join(
           dirname(helperCnx),
           `${helperBaseName}.expected.h`,
         );
 
         writeFileSync(tempHFile, helperResult.headerCode);
+
+        // Update mode: create .expected.h if it doesn't exist
+        if (updateMode && !existsSync(helperExpectedHFile)) {
+          writeFileSync(helperExpectedHFile, helperResult.headerCode);
+        }
+
         // Only clean up if there's no .expected.h - helpers with .expected.h are persistent
-        if (!existsSync(expectedHFile)) {
+        if (!existsSync(helperExpectedHFile)) {
           tempHelperFiles.push(tempHFile);
         }
 
         // Validate against expected header if it exists
-        if (existsSync(expectedHFile)) {
-          const expectedH = readFileSync(expectedHFile, "utf-8");
+        if (existsSync(helperExpectedHFile)) {
+          const expectedH = readFileSync(helperExpectedHFile, "utf-8");
           if (
             TestUtils.normalize(helperResult.headerCode) !==
             TestUtils.normalize(expectedH)
