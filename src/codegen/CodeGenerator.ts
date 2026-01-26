@@ -7835,14 +7835,11 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-109: Use classifier + handler dispatch for fallback
-    // Build context with already-generated value to avoid re-evaluation
+    // ADR-109: Fallback - use classifier + handler dispatch
     const assignCtx = buildAssignmentContext(ctx, {
       typeRegistry: this.context.typeRegistry,
-      generateExpression: () => value, // Use already-generated value
+      generateExpression: () => value,
     });
-
-    // Create classifier with current context
     const deps = this.buildHandlerDeps();
     const classifier = new AssignmentClassifier({
       symbols: deps.symbols,
@@ -7852,8 +7849,6 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownScope: deps.isKnownScope,
       getMemberTypeInfo: deps.getMemberTypeInfo,
     });
-
-    // Classify and dispatch
     const kind = classifier.classify(assignCtx);
     const handler = assignmentHandlers.getHandler(kind);
     return handler(assignCtx, deps);
