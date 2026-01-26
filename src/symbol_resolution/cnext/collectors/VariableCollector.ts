@@ -55,6 +55,13 @@ class VariableCollector {
           } else if (constValues?.has(dimText)) {
             // Issue #455: Resolve constant reference to its value
             arrayDimensions.push(constValues.get(dimText)!);
+          } else {
+            // Issue #455: Warn when dimension cannot be resolved
+            // This could be a complex expression or undefined constant
+            console.warn(
+              `Warning: Could not resolve array dimension '${dimText}' for variable '${fullName}' at line ${line}. ` +
+                `Only literal integers and simple const references are supported.`,
+            );
           }
         }
       }
