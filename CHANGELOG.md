@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.43] - 2026-01-26
+
+### Fixed
+
+- Function/method calls returning enum types now correctly recognized as valid enum assignments
+- Added `functionReturnTypes` tracking to ISymbolInfo for proper enum type validation
+- Supports all patterns: `func()`, `Scope.method()`, `this.method()`, `global.func()`
+
+### Added
+
+- Comprehensive enum test suite covering all usage scenarios (global, scope, cross-scope, loops, atomic, critical)
+
 ## [0.1.42] - 2026-01-26
 
 ### Fixed

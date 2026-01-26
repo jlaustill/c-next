@@ -13,6 +13,7 @@ import ESymbolKind from "../../../types/ESymbolKind";
 import TSymbol from "../../types/TSymbol";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
 import IEnumSymbol from "../../types/IEnumSymbol";
+import IFunctionSymbol from "../../types/IFunctionSymbol";
 import IStructSymbol from "../../types/IStructSymbol";
 import IRegisterSymbol from "../../types/IRegisterSymbol";
 import IScopeSymbol from "../../types/IScopeSymbol";
@@ -86,6 +87,9 @@ class TSymbolInfoAdapter {
     // === Issue #282: Private const values for inlining ===
     const scopePrivateConstValues = new Map<string, string>();
 
+    // === Function Return Types ===
+    const functionReturnTypes = new Map<string, string>();
+
     // Process each symbol
     for (const symbol of symbols) {
       switch (symbol.kind) {
@@ -141,8 +145,9 @@ class TSymbolInfoAdapter {
           TSymbolInfoAdapter.processVariable(symbol, scopePrivateConstValues);
           break;
 
-        // Functions don't add to ISymbolInfo directly
+        // Track function return types for enum validation
         case ESymbolKind.Function:
+          TSymbolInfoAdapter.processFunction(symbol, functionReturnTypes);
           break;
       }
     }
@@ -184,6 +189,9 @@ class TSymbolInfoAdapter {
 
       // Issue #282: Private const values for inlining
       scopePrivateConstValues,
+
+      // Function return types
+      functionReturnTypes,
 
       // Methods
       getSingleFunctionForVariable: (scopeName: string, varName: string) =>
@@ -346,6 +354,15 @@ class TSymbolInfoAdapter {
     }
   }
 
+  private static processFunction(
+    func: IFunctionSymbol,
+    functionReturnTypes: Map<string, string>,
+  ): void {
+    // Track function return types for enum validation in assignments
+    // This enables recognizing that Motor.getMode() returns Motor_EMode
+    functionReturnTypes.set(func.name, func.returnType);
+  }
+
   private static cnextTypeToCType(typeName: string): string {
     return CNEXT_TO_C_TYPE[typeName] || typeName;
   }
@@ -390,13 +407,19 @@ class TSymbolInfoAdapter {
     // Create mutable copies of enum-related data
     const mergedKnownEnums = new Set(base.knownEnums);
     const mergedEnumMembers = new Map<string, Map<string, number>>();
+    const mergedFunctionReturnTypes = new Map<string, string>();
 
     // Copy base enum members
     for (const [enumName, members] of base.enumMembers) {
       mergedEnumMembers.set(enumName, new Map(members));
     }
 
-    // Merge in external enum info
+    // Copy base function return types
+    for (const [funcName, returnType] of base.functionReturnTypes) {
+      mergedFunctionReturnTypes.set(funcName, returnType);
+    }
+
+    // Merge in external enum info and function return types
     for (const external of externalEnumSources) {
       for (const enumName of external.knownEnums) {
         mergedKnownEnums.add(enumName);
@@ -405,6 +428,12 @@ class TSymbolInfoAdapter {
         // Don't overwrite if already exists (local takes precedence)
         if (!mergedEnumMembers.has(enumName)) {
           mergedEnumMembers.set(enumName, new Map(members));
+        }
+      }
+      // Merge function return types from external sources
+      for (const [funcName, returnType] of external.functionReturnTypes) {
+        if (!mergedFunctionReturnTypes.has(funcName)) {
+          mergedFunctionReturnTypes.set(funcName, returnType);
         }
       }
     }
@@ -447,6 +476,9 @@ class TSymbolInfoAdapter {
 
       // Private const values
       scopePrivateConstValues: base.scopePrivateConstValues,
+
+      // Function return types - merged
+      functionReturnTypes: mergedFunctionReturnTypes,
 
       // Methods - delegate to base's implementation
       getSingleFunctionForVariable: base.getSingleFunctionForVariable,
