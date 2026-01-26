@@ -4,6 +4,7 @@ const u8 BUFFER_SIZE <- 8;
 const u8 ROWS <- 4;
 const u8 COLS <- 3;
 const u8 HEX_SIZE <- 0x10;
+const u8 BIN_SIZE <- 0b1010;
 
 struct TData {
     // Single dimension with constant
@@ -14,6 +15,9 @@ struct TData {
 
     // Hex constant dimension
     bool flags[HEX_SIZE];
+
+    // Binary constant dimension
+    u16 binary_arr[BIN_SIZE];
 
     // Literal dimension (control case)
     u32 literal_arr[5];

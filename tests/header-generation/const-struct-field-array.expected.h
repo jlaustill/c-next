@@ -18,6 +18,7 @@ typedef struct TData {
     uint8_t buffer[8];
     int16_t matrix[4][3];
     bool flags[16];
+    uint16_t binary_arr[10];
     uint32_t literal_arr[5];
     int32_t value;
 } TData;
@@ -27,6 +28,7 @@ extern const uint8_t BUFFER_SIZE;
 extern const uint8_t ROWS;
 extern const uint8_t COLS;
 extern const uint8_t HEX_SIZE;
+extern const uint8_t BIN_SIZE;
 extern TData data;
 
 #ifdef __cplusplus
