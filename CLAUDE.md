@@ -288,18 +288,7 @@ If implementing a feature, all documents must be current and memory must be upda
 - Never cite Research ADRs as examples of "how C-Next does X"
 - When exploring syntax patterns, check the ADR status first
 
-## Handling Unrelated Changes
-
-**The user often works on multiple things in parallel. Respect their work.**
-
-- When committing, ONLY stage and commit files related to the current task
-- If you see unrelated modified files in `git status`, IGNORE them completely
-- **NEVER revert or checkout unrelated files** without explicit user direction
-- **NEVER commit unrelated changes** as part of your work
-- If unsure whether a change is related, ask the user
-- Unrelated changes are the user's responsibility — don't touch them
-
-### Generated Test Files
+## Generated Test Files
 
 **Always commit generated test output files.** When running tests or the transpiler on `.test.cnx` files:
 
