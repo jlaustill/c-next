@@ -974,12 +974,16 @@ class Pipeline {
     // Issue #424: Get user includes for header generation
     const userIncludes = this.userIncludesCollectors.get(file.path) ?? [];
 
+    // Issue #478: Collect all known enum names from all files for cross-file type handling
+    const allKnownEnums = this.collectAllKnownEnums();
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
       { exportedOnly: true, userIncludes },
       typeInput,
       passByValueParams,
+      allKnownEnums,
     );
 
     writeFileSync(headerPath, headerContent, "utf-8");
@@ -1023,6 +1027,20 @@ class Pipeline {
         }
       }
     }
+  }
+
+  /**
+   * Issue #478: Collect all known enum names from all symbol collectors.
+   * This enables header generation to skip forward-declaring enums from included files.
+   */
+  private collectAllKnownEnums(): Set<string> {
+    const allEnums = new Set<string>();
+    for (const collector of this.symbolCollectors.values()) {
+      for (const enumName of collector.knownEnums) {
+        allEnums.add(enumName);
+      }
+    }
+    return allEnums;
   }
 
   /**

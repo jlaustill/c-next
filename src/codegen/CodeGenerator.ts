@@ -2773,6 +2773,69 @@ export default class CodeGenerator implements IOrchestrator {
         });
         return; // Early return, we've handled this case
       }
+    } else if (typeCtx.globalType()) {
+      // Issue #478: Handle global.Type for global types inside scope
+      // global.ECategory -> ECategory (no scope prefix)
+      baseType = typeCtx.globalType()!.IDENTIFIER().getText();
+      bitWidth = 0;
+
+      // ADR-017: Check if this is an enum type
+      if (this.symbols!.knownEnums.has(baseType)) {
+        this.context.typeRegistry.set(name, {
+          baseType,
+          bitWidth: 0,
+          isArray: false,
+          isConst,
+          isEnum: true,
+          enumTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(name, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
+        this.context.typeRegistry.set(name, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
     } else if (typeCtx.qualifiedType()) {
       // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
       // Issue #388: Also handles C++ namespace types (e.g., MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
@@ -3008,6 +3071,69 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.symbols!.knownBitmaps.has(baseType)) {
         if (arrayDim && arrayDim.length > 0) {
           // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(registryName, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+    } else if (typeCtx.globalType()) {
+      // Issue #478: Handle global.Type for global types inside scope
+      // global.ECategory -> ECategory (no scope prefix)
+      baseType = typeCtx.globalType()!.IDENTIFIER().getText();
+      bitWidth = 0;
+
+      // ADR-017: Check if this is an enum type
+      if (this.symbols!.knownEnums.has(baseType)) {
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: 0,
+          isArray: false,
+          isConst,
+          isEnum: true,
+          enumTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array
           const bitmapArrayDimensions: number[] = [];
           for (const dim of arrayDim) {
             const sizeExpr = dim.expression();
@@ -3328,6 +3454,11 @@ export default class CodeGenerator implements IOrchestrator {
         }
         // Check if this is a struct type
         isStruct = this.isStructType(typeName);
+      } else if (typeCtx.globalType()) {
+        // Issue #478: Handle global.Type for global types inside scope
+        typeName = typeCtx.globalType()!.IDENTIFIER().getText();
+        // Check if this is a struct type
+        isStruct = this.isStructType(typeName);
       } else if (typeCtx.stringType()) {
         // ADR-045: String parameter
         isString = true;
@@ -3556,6 +3687,14 @@ export default class CodeGenerator implements IOrchestrator {
         const scopedEnumName = `${this.context.currentScope}_${enumName}`;
         if (this.symbols!.knownEnums.has(scopedEnumName)) {
           return scopedEnumName;
+        }
+      }
+
+      // Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
+      if (parts[0] === "global" && parts.length >= 3) {
+        const enumName = parts[1];
+        if (this.symbols!.knownEnums.has(enumName)) {
+          return enumName;
         }
       }
 
@@ -5841,6 +5980,18 @@ export default class CodeGenerator implements IOrchestrator {
               );
             }
           }
+          // Issue #478: Handle global.Enum.MEMBER pattern
+          else if (parts[0] === "global" && parts.length >= 3) {
+            // global.ECategory.CAT_A -> ECategory
+            const globalEnumName = parts[1];
+            if (globalEnumName === typeName) {
+              // Valid global.Enum.Member access
+            } else {
+              throw new Error(
+                `Error: Cannot assign non-enum value to ${typeName} enum`,
+              );
+            }
+          }
           // Allow if it's an enum member access of the correct type
           else if (!exprText.startsWith(typeName + ".")) {
             // Check for scoped enum
@@ -5997,6 +6148,31 @@ export default class CodeGenerator implements IOrchestrator {
       const fullTypeName = this.context.currentScope
         ? `${this.context.currentScope}_${localTypeName}`
         : localTypeName;
+
+      // Check if it's an enum
+      if (this.symbols!.knownEnums.has(fullTypeName)) {
+        const members = this.symbols!.enumMembers.get(fullTypeName);
+        if (members) {
+          for (const [memberName, value] of members.entries()) {
+            if (value === 0) {
+              return `${fullTypeName}_${memberName}`;
+            }
+          }
+          const firstMember = members.keys().next().value;
+          if (firstMember) {
+            return `${fullTypeName}_${firstMember}`;
+          }
+        }
+        return `(${fullTypeName})0`;
+      }
+
+      // Otherwise it's a struct - use {0}
+      return "{0}";
+    }
+
+    // Issue #478: Check for global types (global.Type)
+    if (typeCtx.globalType()) {
+      const fullTypeName = typeCtx.globalType()!.IDENTIFIER().getText();
 
       // Check if it's an enum
       if (this.symbols!.knownEnums.has(fullTypeName)) {
@@ -6342,6 +6518,16 @@ export default class CodeGenerator implements IOrchestrator {
           ) {
             const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
             if (scopedEnumName !== targetEnumType) {
+              throw new Error(
+                `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
+              );
+            }
+          }
+          // Issue #478: Handle global.Enum.MEMBER pattern
+          else if (parts[0] === "global" && parts.length >= 3) {
+            // global.ECategory.CAT_A -> ECategory
+            const globalEnumName = parts[1];
+            if (globalEnumName !== targetEnumType) {
               throw new Error(
                 `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
               );
@@ -10216,6 +10402,10 @@ export default class CodeGenerator implements IOrchestrator {
       }
       return typeName;
     }
+    // Issue #478: Handle global.Type for global types inside scope
+    if (ctx.globalType()) {
+      return ctx.globalType()!.IDENTIFIER().getText();
+    }
     // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
     // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
     if (ctx.qualifiedType()) {
@@ -10257,6 +10447,10 @@ export default class CodeGenerator implements IOrchestrator {
         throw new Error("Error: 'this.Type' can only be used inside a scope");
       }
       return `${this.context.currentScope}_${typeName}`;
+    }
+    // Issue #478: Handle global.Type for global types inside scope
+    if (ctx.globalType()) {
+      return ctx.globalType()!.IDENTIFIER().getText();
     }
     // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
     // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)

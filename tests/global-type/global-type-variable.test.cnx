@@ -1,0 +1,39 @@
+// test-execution
+// Tests: global.EnumType for variable declarations inside scope
+// Issue #478: global.EnumType not recognized as type reference inside scope
+
+// Define enum in same file to avoid cross-file header conflicts
+enum EState {
+    IDLE <- 0,
+    RUNNING <- 1,
+    STOPPED <- 2
+}
+
+scope StateMachine {
+    // Variable declaration uses global.EState
+    global.EState currentState;
+
+    public void setState(global.EState state) {
+        this.currentState <- state;
+    }
+
+    public global.EState getState() {
+        return this.currentState;
+    }
+}
+
+u32 main() {
+    StateMachine.setState(global.EState.RUNNING);
+    i32 result <- (i32)StateMachine.getState();
+
+    // RUNNING has value 1
+    if (result != 1) return 1;
+
+    StateMachine.setState(global.EState.STOPPED);
+    result <- (i32)StateMachine.getState();
+
+    // STOPPED has value 2
+    if (result != 2) return 2;
+
+    return 0;
+}

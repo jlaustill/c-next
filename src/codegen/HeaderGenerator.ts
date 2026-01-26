@@ -31,6 +31,7 @@ class HeaderGenerator {
    * @param options - Header generation options
    * @param typeInput - Optional type information for full definitions (enums, structs, bitmaps)
    * @param passByValueParams - Issue #269: Map of function names to pass-by-value parameter names
+   * @param allKnownEnums - Issue #478: All known enum names from entire compilation (cross-file)
    */
   generate(
     symbols: ISymbol[],
@@ -38,6 +39,7 @@ class HeaderGenerator {
     options: IHeaderOptions = {},
     typeInput?: IHeaderTypeInput,
     passByValueParams?: TPassByValueParams,
+    allKnownEnums?: ReadonlySet<string>,
   ): string {
     const lines: string[] = [];
     const guard = this.makeGuard(filename, options.guardPrefix);
@@ -121,6 +123,7 @@ class HeaderGenerator {
       localEnumNames,
       localTypeNames,
       localBitmapNames,
+      allKnownEnums,
     );
 
     // Emit forward declarations for external types
@@ -260,7 +263,11 @@ class HeaderGenerator {
     if (functions.length > 0) {
       lines.push("/* Function prototypes */");
       for (const sym of functions) {
-        const proto = this.generateFunctionPrototype(sym, passByValueParams);
+        const proto = this.generateFunctionPrototype(
+          sym,
+          passByValueParams,
+          allKnownEnums,
+        );
         if (proto) {
           lines.push(proto);
         }
@@ -329,10 +336,12 @@ class HeaderGenerator {
    * Generate a function prototype from symbol info
    * Handles all parameter edge cases per ADR-006, ADR-029, and ADR-040
    * Issue #269: Also handles pass-by-value for small unmodified primitives
+   * Issue #478: Enum parameters are passed by value
    */
   private generateFunctionPrototype(
     sym: ISymbol,
     passByValueParams?: TPassByValueParams,
+    allKnownEnums?: ReadonlySet<string>,
   ): string | null {
     // Map return type from C-Next to C
     // Special case: main() always returns int for C/C++ compatibility
@@ -372,6 +381,11 @@ class HeaderGenerator {
           return `${constMod}${baseType} ${p.name}`;
         }
 
+        // Issue #478: Enum types use pass-by-value semantics (like primitives in C)
+        if (allKnownEnums?.has(p.type)) {
+          return `${constMod}${baseType} ${p.name}`;
+        }
+
         // Issue #269: Check if parameter should be passed by value
         if (passByValueSet?.has(p.name)) {
           return `${constMod}${baseType} ${p.name}`;
@@ -393,6 +407,7 @@ class HeaderGenerator {
    * Returns types that are:
    * - Not primitive types (not in TYPE_MAP)
    * - Not locally defined structs, enums, bitmaps, or type aliases
+   * - Issue #478: Not cross-file enums (which can't be forward-declared as structs)
    */
   private collectExternalTypes(
     functions: ISymbol[],
@@ -401,6 +416,7 @@ class HeaderGenerator {
     localEnums: Set<string>,
     localTypes: Set<string>,
     localBitmaps: Set<string>,
+    allKnownEnums?: ReadonlySet<string>,
   ): Set<string> {
     const externalTypes = new Set<string>();
 
@@ -428,6 +444,12 @@ class HeaderGenerator {
         return false;
       }
       if (localBitmaps.has(typeName)) {
+        return false;
+      }
+
+      // Issue #478: Skip cross-file enums (can't be forward-declared as structs in C)
+      // They must be included via the appropriate header file
+      if (allKnownEnums?.has(typeName)) {
         return false;
       }
 
