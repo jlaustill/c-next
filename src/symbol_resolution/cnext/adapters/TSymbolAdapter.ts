@@ -213,7 +213,7 @@ class TSymbolAdapter {
     const firstDim = variable.arrayDimensions?.[0];
     const size = typeof firstDim === "number" ? firstDim : undefined;
 
-    return {
+    const result: ISymbol = {
       name: variable.name,
       kind: ESymbolKind.Variable,
       type: variable.type,
@@ -226,6 +226,13 @@ class TSymbolAdapter {
       arrayDimensions,
       size,
     };
+
+    // Issue #461: Preserve initialValue for const variables (needed for external array dimension resolution)
+    if (variable.initialValue !== undefined) {
+      result.initialValue = variable.initialValue;
+    }
+
+    return result;
   }
 
   /**

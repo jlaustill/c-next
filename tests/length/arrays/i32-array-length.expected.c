@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i32-array-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -37,10 +39,6 @@ uint32_t checkArrayLength(const int32_t arr[16]) {
 uint32_t checkElementLength(const int32_t arr[16]) {
     return 32;
 }
-
-typedef struct TestStruct {
-    int32_t arr[16];
-} TestStruct;
 
 int main(void) {
     globalArr[0] = -100000;

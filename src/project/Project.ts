@@ -23,7 +23,6 @@ class Project {
   constructor(config: IProjectConfig) {
     this.config = {
       extensions: [".cnx", ".cnext"],
-      generateHeaders: true,
       preprocess: true,
       ...config,
     };
@@ -49,7 +48,6 @@ class Project {
       headerOutDir: this.config.headerOutDir,
       defines: this.config.defines,
       preprocess: this.config.preprocess,
-      generateHeaders: this.config.generateHeaders,
       cppRequired: this.config.cppRequired,
       noCache: this.config.noCache,
       parseOnly: this.config.parseOnly,

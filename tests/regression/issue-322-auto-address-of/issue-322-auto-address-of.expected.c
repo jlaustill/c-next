@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-322-auto-address-of.test.h"
+
 // test-execution
 // Issue #322: Auto address-of for external C++ functions expecting pointers
 // The transpiler should automatically add & when passing structs to external

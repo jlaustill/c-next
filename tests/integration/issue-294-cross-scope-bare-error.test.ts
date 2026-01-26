@@ -73,7 +73,6 @@ async function runTest() {
     inputs: [srcDir],
     outDir: testDir,
     includeDirs: [srcDir],
-    generateHeaders: true,
   });
 
   console.log("Testing bare scope access with included file...");

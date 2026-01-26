@@ -17,9 +17,6 @@ extern "C" {
 /* External variables */
 extern uint32_t devices[DEVICE_COUNT];
 
-/* Function prototypes */
-int main(void);
-
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "u8-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -30,10 +32,6 @@ uint32_t checkParamLength(uint8_t param) {
 }
 
 // Context 7: Struct member
-typedef struct TestStruct {
-    uint8_t member;
-} TestStruct;
-
 int main(void) {
     if (8 != 8) {
         return 1;

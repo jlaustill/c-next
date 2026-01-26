@@ -21,7 +21,6 @@ const config = {
     join(rootDir, "tests/include/TestConfig.h"),
     join(rootDir, "tests/primitives/length-property-c-header-struct.test.cnx"),
   ],
-  generateHeaders: false,
   preprocess: false,
 };
 

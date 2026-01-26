@@ -17,9 +17,6 @@ extern "C" {
 extern char greeting[33];
 extern const char labels[3][17];
 
-/* Function prototypes */
-int main(void);
-
 #ifdef __cplusplus
 }
 #endif

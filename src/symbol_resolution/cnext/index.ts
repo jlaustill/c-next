@@ -20,14 +20,27 @@ class CNextResolver {
    *
    * @param tree The program context from the parser
    * @param sourceFile Source file path
+   * @param externalConstValues Optional map of const values from external files (e.g., #included .cnx files)
    * @returns Array of all collected symbols
    */
-  static resolve(tree: Parser.ProgramContext, sourceFile: string): TSymbol[] {
+  static resolve(
+    tree: Parser.ProgramContext,
+    sourceFile: string,
+    externalConstValues?: Map<string, number>,
+  ): TSymbol[] {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
     const constValues = new Map<string, number>();
 
+    // Issue #461: Start with external const values from included files
+    if (externalConstValues) {
+      for (const [name, value] of externalConstValues) {
+        constValues.set(name, value);
+      }
+    }
+
     // Pass 0: Collect const values (needed for resolving array dimensions)
+    // Local constants override external ones (unlikely but handles shadowing)
     CNextResolver.collectConstValuesPass0(tree, constValues);
 
     // Pass 1: Collect all bitmap names (needed before registers reference them)

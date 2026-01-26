@@ -28,7 +28,6 @@ const packageJson = require("../package.json");
 interface ICNextConfig {
   /** Issue #211: Force C++ output. Auto-detection may also enable this. */
   cppRequired?: boolean;
-  generateHeaders?: boolean;
   debugMode?: boolean;
   target?: string; // ADR-049: Target platform (e.g., "teensy41", "cortex-m0")
 }
@@ -102,9 +101,6 @@ function showHelp(): void {
   );
   console.log(
     "                     Options: teensy41, cortex-m7/m4/m3/m0+/m0, avr",
-  );
-  console.log(
-    "  --exclude-headers  Don't generate header files (default: generate)",
   );
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  --no-cache         Disable symbol cache (.cnx/ directory)");
@@ -191,7 +187,6 @@ async function runUnifiedMode(
   outputPath: string,
   includeDirs: string[],
   defines: Record<string, string | boolean>,
-  generateHeaders: boolean,
   preprocess: boolean,
   verbose: boolean,
   cppRequired: boolean,
@@ -279,7 +274,6 @@ async function runUnifiedMode(
     includeDirs: allIncludePaths,
     outDir,
     headerOutDir,
-    generateHeaders,
     preprocess,
     defines,
     cppRequired,
@@ -491,7 +485,6 @@ async function main(): Promise<void> {
   let outputPath = "";
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
-  let cliGenerateHeaders: boolean | undefined;
   let cliCppRequired: boolean | undefined;
   let preprocess = true;
   let verbose = false;
@@ -509,8 +502,6 @@ async function main(): Promise<void> {
       includeDirs.push(args[++i]);
     } else if (arg === "--verbose") {
       verbose = true;
-    } else if (arg === "--exclude-headers") {
-      cliGenerateHeaders = false;
     } else if (arg === "--cpp") {
       cliCppRequired = true;
     } else if (arg === "--no-preprocess") {
@@ -561,7 +552,6 @@ async function main(): Promise<void> {
   const config = loadConfig(configDir);
 
   // Apply config defaults, CLI flags take precedence
-  const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
   const cppRequired = cliCppRequired ?? config.cppRequired ?? false;
 
   // Unified mode - always use Project class with header discovery
@@ -582,7 +572,6 @@ async function main(): Promise<void> {
     outputPath,
     includeDirs,
     defines,
-    generateHeaders,
     preprocess,
     verbose,
     cppRequired,

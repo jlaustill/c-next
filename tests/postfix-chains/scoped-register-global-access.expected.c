@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-register-global-access.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,16 +12,6 @@
 // Tests: Accessing scoped registers, bitmaps, and methods from outside the scope
 // Coverage: Section 13 - Scope Declaration (global context access)
 // Extracted from: scoped-register-bitmap-chain.test.cnx.skip (valid portions only)
-/* Bitmap: MotorFlags */
-/* Fields:
- *   Running: bit 0 (1 bit)
- *   Direction: bit 1 (1 bit)
- *   Fault: bit 2 (1 bit)
- *   Mode: bits 3-5 (3 bits)
- *   Reserved: bits 6-7 (2 bits)
- */
-typedef uint8_t MotorFlags;
-
 /* Scope: MotorController */
 
 /* Register: MotorController_MOTOR_REG @ 0x40002000 */

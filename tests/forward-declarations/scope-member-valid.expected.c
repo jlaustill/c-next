@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-member-valid.test.h"
+
 #include <stdint.h>
 
 // ADR-030: Valid scope member call

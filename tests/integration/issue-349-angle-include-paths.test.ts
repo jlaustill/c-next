@@ -103,7 +103,6 @@ async function testSiblingAngleBracketInclude() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -161,7 +160,6 @@ i32 main() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -205,7 +203,6 @@ async function testRootLevelAngleBracketInclude() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -260,7 +257,6 @@ i32 main() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -324,7 +320,6 @@ i32 main() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();

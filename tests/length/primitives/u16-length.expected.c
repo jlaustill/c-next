@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "u16-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -25,10 +27,6 @@ uint16_t TestScope_publicMember = 1000;
 uint32_t checkParamLength(uint16_t param) {
     return 16;
 }
-
-typedef struct TestStruct {
-    uint16_t member;
-} TestStruct;
 
 int main(void) {
     if (16 != 16) {

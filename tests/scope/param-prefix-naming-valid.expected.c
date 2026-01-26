@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "param-prefix-naming-valid.test.h"
+
 #include <stdint.h>
 
 // Test: Valid parameter names that should NOT trigger the prefix error

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-inside-scope.test.h"
+
 #include <stdint.h>
 
 // Coverage: Section 7.5 - switch statement inside scope

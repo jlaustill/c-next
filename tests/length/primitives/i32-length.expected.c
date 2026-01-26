@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i32-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -25,10 +27,6 @@ int32_t TestScope_publicMember = -100000;
 uint32_t checkParamLength(int32_t param) {
     return 32;
 }
-
-typedef struct TestStruct {
-    int32_t member;
-} TestStruct;
 
 int main(void) {
     if (32 != 32) {
