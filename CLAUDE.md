@@ -93,6 +93,11 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
+### Symbol Resolution Type Patterns
+
+- **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` - numbers for resolved constants, strings for C macros from headers
+- **C macro pass-through**: Unresolved array dimension identifiers (e.g., `DEVICE_COUNT` from included C headers) pass through as strings to generated headers
+
 ### Code Generation Patterns
 
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
@@ -288,6 +293,10 @@ If implementing a feature, all documents must be current and memory must be upda
 - **NEVER commit unrelated changes** as part of your work
 - If unsure whether a change is related, ask the user
 - Unrelated changes are the user's responsibility — don't touch them
+
+### Git Workflow Gotchas
+
+- **Generated `.test.h` files**: Integration tests may generate/delete `.test.h` files - run `git restore tests/` before committing if you see unexpected deletions
 
 ## Pull Request Workflow
 
