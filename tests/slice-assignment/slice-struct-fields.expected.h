@@ -13,11 +13,13 @@
 extern "C" {
 #endif
 
-/* Forward declarations */
-typedef struct Config Config;
-
-/* Function prototypes */
-u32 main();
+/* Struct definitions */
+typedef struct Config {
+    uint32_t magic;
+    uint16_t version;
+    uint8_t flags;
+    uint64_t timestamp;
+} Config;
 
 #ifdef __cplusplus
 }

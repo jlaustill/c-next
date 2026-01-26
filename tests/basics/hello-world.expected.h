@@ -13,15 +13,8 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-struct string;
-struct string<50>;
-
 /* External variables */
-extern string<50> userName;
-
-/* Function prototypes */
-uint32_t main(char* args[]);
+extern char userName[51];
 
 #ifdef __cplusplus
 }

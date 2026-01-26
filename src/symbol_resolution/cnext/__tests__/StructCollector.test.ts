@@ -92,6 +92,72 @@ describe("StructCollector", () => {
       expect(field?.isArray).toBe(true);
       expect(field?.dimensions).toEqual([4, 4]);
     });
+
+    it("resolves constant references in array dimensions", () => {
+      const code = `
+        struct Buffer {
+          u8 data[BUFFER_SIZE];
+        }
+      `;
+      const tree = parse(code);
+      const structCtx = tree.declaration(0)!.structDeclaration()!;
+      const constValues = new Map<string, number>([["BUFFER_SIZE", 256]]);
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        undefined,
+        constValues,
+      );
+
+      const field = symbol.fields.get("data");
+      expect(field?.isArray).toBe(true);
+      expect(field?.dimensions).toEqual([256]);
+    });
+
+    it("resolves multiple constant dimensions", () => {
+      const code = `
+        struct Matrix {
+          i16 values[ROWS][COLS];
+        }
+      `;
+      const tree = parse(code);
+      const structCtx = tree.declaration(0)!.structDeclaration()!;
+      const constValues = new Map<string, number>([
+        ["ROWS", 4],
+        ["COLS", 3],
+      ]);
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        undefined,
+        constValues,
+      );
+
+      const field = symbol.fields.get("values");
+      expect(field?.isArray).toBe(true);
+      expect(field?.dimensions).toEqual([4, 3]);
+    });
+
+    it("resolves hex constant dimensions", () => {
+      const code = `
+        struct Flags {
+          bool bits[HEX_SIZE];
+        }
+      `;
+      const tree = parse(code);
+      const structCtx = tree.declaration(0)!.structDeclaration()!;
+      const constValues = new Map<string, number>([["HEX_SIZE", 16]]);
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        undefined,
+        constValues,
+      );
+
+      const field = symbol.fields.get("bits");
+      expect(field?.isArray).toBe(true);
+      expect(field?.dimensions).toEqual([16]);
+    });
   });
 
   describe("string fields", () => {

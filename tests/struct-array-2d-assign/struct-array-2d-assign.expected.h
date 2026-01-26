@@ -25,7 +25,6 @@ extern TReading readings[4][4];
 
 /* Function prototypes */
 uint32_t Test_run(void);
-int main(void);
 
 #ifdef __cplusplus
 }

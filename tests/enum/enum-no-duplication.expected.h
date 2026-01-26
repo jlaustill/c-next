@@ -26,7 +26,6 @@ extern Motor_State Motor_current;
 /* Function prototypes */
 uint8_t Motor_start(void);
 bool Motor_isRunning(void);
-int main(void);
 
 #ifdef __cplusplus
 }
