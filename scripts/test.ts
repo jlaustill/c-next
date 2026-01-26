@@ -175,20 +175,9 @@ async function runTest(
   const expectedErrorFile = basePath + ".expected.error";
   const expectedHFile = basePath + ".expected.h";
   const headerFile = basePath + ".test.h";
-  const headerFileName = basename(headerFile);
 
-  // Issue #230: If test has a corresponding .test.h file, enable self-include generation
-  const hasHeaderFile = existsSync(headerFile);
-  // Issue #424: If test has a corresponding .expected.h file, enable header validation
+  // Issue #455: Check if .expected.h exists (for header validation tests)
   const hasExpectedHFile = existsSync(expectedHFile);
-  // Issue #455: Check if expected.c file includes the header (indicates header generation was intended)
-  let expectedCIncludesHeader = false;
-  if (existsSync(expectedCFile)) {
-    const expectedCContent = readFileSync(expectedCFile, "utf-8");
-    expectedCIncludesHeader = expectedCContent.includes(
-      `#include "${headerFileName}"`,
-    );
-  }
 
   // Use Pipeline for transpilation with header parsing support
   // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
@@ -252,7 +241,10 @@ async function runTest(
       // Always write to .h path for compilation, validate against .expected.h if exists
       if (helperResult.headerCode) {
         const tempHFile = join(dirname(helperCnx), `${helperBaseName}.h`);
-        const expectedHFile = join(dirname(helperCnx), `${helperBaseName}.expected.h`);
+        const expectedHFile = join(
+          dirname(helperCnx),
+          `${helperBaseName}.expected.h`,
+        );
 
         writeFileSync(tempHFile, helperResult.headerCode);
         tempHelperFiles.push(tempHFile);
@@ -260,7 +252,10 @@ async function runTest(
         // Validate against expected header if it exists
         if (existsSync(expectedHFile)) {
           const expectedH = readFileSync(expectedHFile, "utf-8");
-          if (TestUtils.normalize(helperResult.headerCode) !== TestUtils.normalize(expectedH)) {
+          if (
+            TestUtils.normalize(helperResult.headerCode) !==
+            TestUtils.normalize(expectedH)
+          ) {
             cleanupHelperFiles();
             return {
               passed: false,
