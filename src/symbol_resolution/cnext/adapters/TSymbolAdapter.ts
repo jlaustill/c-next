@@ -222,6 +222,7 @@ class TSymbolAdapter {
       sourceLanguage: variable.sourceLanguage,
       isExported: variable.isExported,
       isConst: variable.isConst,
+      isAtomic: variable.isAtomic,
       isArray: variable.isArray,
       arrayDimensions,
       size,

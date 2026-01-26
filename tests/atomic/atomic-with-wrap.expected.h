@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t tick8;
-extern uint16_t tick16;
-extern uint32_t tick32;
-extern uint8_t sequenceNumber;
-extern uint16_t frameCounter;
+extern volatile uint8_t tick8;
+extern volatile uint16_t tick16;
+extern volatile uint32_t tick32;
+extern volatile uint8_t sequenceNumber;
+extern volatile uint16_t frameCounter;
 
 #ifdef __cplusplus
 }

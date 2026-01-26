@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t counter;
-extern uint8_t brightness;
-extern uint32_t ticks;
+extern volatile uint32_t counter;
+extern volatile uint8_t brightness;
+extern volatile uint32_t ticks;
 
 #ifdef __cplusplus
 }

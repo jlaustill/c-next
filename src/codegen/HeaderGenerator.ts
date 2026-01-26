@@ -234,6 +234,8 @@ class HeaderGenerator {
       for (const sym of cCompatibleVariables) {
         // Issue #288: Include const qualifier for const variables
         const constPrefix = sym.isConst ? "const " : "";
+        // Issue #468: Include volatile qualifier for atomic variables
+        const volatilePrefix = sym.isAtomic ? "volatile " : "";
         // Issue #379: Include array dimensions for extern declarations
         const arrayDims =
           sym.isArray && sym.arrayDimensions
@@ -247,6 +249,7 @@ class HeaderGenerator {
           sym.name,
           arrayDims,
           constPrefix,
+          volatilePrefix,
         );
         lines.push(`extern ${declaration};`);
       }
@@ -520,6 +523,7 @@ class HeaderGenerator {
     name: string,
     additionalDims: string,
     constPrefix: string,
+    volatilePrefix: string = "",
   ): string {
     const cType = mapType(cnextType);
 
@@ -529,15 +533,15 @@ class HeaderGenerator {
     if (embeddedMatch) {
       const baseType = embeddedMatch[1];
       const embeddedDim = embeddedMatch[2];
-      // Format: const char name[additionalDims][embeddedDim]
+      // Format: volatile const char name[additionalDims][embeddedDim]
       // The additional array dimensions come first (e.g., [3] for array of 3),
       // then the embedded dimension (e.g., [17] for string capacity + 1)
       // Example: string<16> labels[3] -> char labels[3][17]
-      return `${constPrefix}${baseType} ${name}${additionalDims}[${embeddedDim}]`;
+      return `${volatilePrefix}${constPrefix}${baseType} ${name}${additionalDims}[${embeddedDim}]`;
     }
 
     // No embedded dimensions - standard format
-    return `${constPrefix}${cType} ${name}${additionalDims}`;
+    return `${volatilePrefix}${constPrefix}${cType} ${name}${additionalDims}`;
   }
 }
 

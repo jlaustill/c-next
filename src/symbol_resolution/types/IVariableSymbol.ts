@@ -14,6 +14,9 @@ interface IVariableSymbol extends IBaseSymbol {
   /** Whether this variable is const */
   isConst: boolean;
 
+  /** Issue #468: Whether this variable is atomic (volatile in C) */
+  isAtomic: boolean;
+
   /** Whether this variable is an array */
   isArray: boolean;
 

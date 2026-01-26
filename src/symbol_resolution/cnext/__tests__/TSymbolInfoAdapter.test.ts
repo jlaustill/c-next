@@ -405,6 +405,7 @@ describe("TSymbolInfoAdapter", () => {
         isExported: false, // private
         type: "u32",
         isConst: true,
+        isAtomic: false,
         isArray: false,
         initialValue: "255",
       };
@@ -424,6 +425,7 @@ describe("TSymbolInfoAdapter", () => {
         isExported: true, // public
         type: "u32",
         isConst: true,
+        isAtomic: false,
         isArray: false,
         initialValue: "100",
       };
@@ -445,6 +447,7 @@ describe("TSymbolInfoAdapter", () => {
         isExported: false,
         type: "u32",
         isConst: false, // not const
+        isAtomic: false,
         isArray: false,
       };
 

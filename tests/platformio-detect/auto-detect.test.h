@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t counter;
+extern volatile uint32_t counter;
 
 #ifdef __cplusplus
 }

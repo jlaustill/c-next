@@ -1,0 +1,4 @@
+enum EPressureType {
+    PRESSURE_TYPE_PSIA <- 0,
+    PRESSURE_TYPE_PSIG <- 1
+}

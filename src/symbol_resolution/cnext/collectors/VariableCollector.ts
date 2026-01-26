@@ -38,6 +38,9 @@ class VariableCollector {
     // Check for const modifier
     const isConst = ctx.constModifier() !== null;
 
+    // Issue #468: Check for atomic modifier
+    const isAtomic = ctx.atomicModifier() !== null;
+
     // Check for array dimensions
     const arrayDims = ctx.arrayDimension();
     const isArray = arrayDims.length > 0;
@@ -81,6 +84,7 @@ class VariableCollector {
       kind: ESymbolKind.Variable,
       type,
       isConst,
+      isAtomic,
       isArray,
     };
 

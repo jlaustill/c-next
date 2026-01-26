@@ -288,20 +288,15 @@ If implementing a feature, all documents must be current and memory must be upda
 - Never cite Research ADRs as examples of "how C-Next does X"
 - When exploring syntax patterns, check the ADR status first
 
-## Handling Unrelated Changes
+## Generated Test Files
 
-**The user often works on multiple things in parallel. Respect their work.**
+**Always commit generated test output files.** When running tests or the transpiler on `.test.cnx` files:
 
-- When committing, ONLY stage and commit files related to the current task
-- If you see unrelated modified files in `git status`, IGNORE them completely
-- **NEVER revert or checkout unrelated files** without explicit user direction
-- **NEVER commit unrelated changes** as part of your work
-- If unsure whether a change is related, ask the user
-- Unrelated changes are the user's responsibility — don't touch them
-
-### Git Workflow Gotchas
-
-- **Generated `.test.h` files**: Integration tests may generate/delete `.test.h` files - run `git restore tests/` before committing if you see unexpected deletions
+- `.test.c` and `.test.h` files are generated alongside `.test.cnx` files
+- These generated files **MUST be committed** to the repository
+- They serve as additional validation that the transpiler output is correct
+- **NEVER delete generated test files** - they are part of the test suite
+- **NEVER run `git restore tests/`** to revert generated files
 
 ## Pull Request Workflow
 
