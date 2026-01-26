@@ -250,6 +250,17 @@ async function runTest(
   if (existsSync(expectedErrorFile)) {
     const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
 
+    // Clean up stale success test artifacts (from when this was a success test)
+    for (const staleFile of [expectedCFile, expectedHFile, headerFile]) {
+      if (existsSync(staleFile)) {
+        try {
+          unlinkSync(staleFile);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
+
     if (result.success) {
       // In update mode, switch from error test to success test
       if (updateMode) {
@@ -339,22 +350,13 @@ async function runTest(
       // Snapshot matches - now run all validation steps
 
       // Issue #455: Write header file to disk if generated (needed for GCC to find the include)
-      let headerFileWritten = false;
       if (result.headerCode) {
         writeFileSync(headerFile, result.headerCode);
-        headerFileWritten = true;
       }
 
-      // Helper to cleanup header file along with other temp files
+      // Helper to cleanup temp files (header files are preserved for success tests)
       const cleanupAllFiles = (): void => {
         cleanupHelperFiles();
-        if (headerFileWritten) {
-          try {
-            unlinkSync(headerFile);
-          } catch {
-            // Ignore cleanup errors
-          }
-        }
       };
 
       // Step 1: GCC compilation
