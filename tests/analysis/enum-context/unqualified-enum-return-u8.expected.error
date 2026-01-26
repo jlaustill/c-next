@@ -1,0 +1,1 @@
+1:0 Code generation failed: 12:11 error[E0424]: 'RED' is not defined; did you mean 'Color.RED'?

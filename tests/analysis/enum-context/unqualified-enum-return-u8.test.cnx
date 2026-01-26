@@ -1,0 +1,13 @@
+// test-error
+// Tests: Unqualified enum value in non-enum return type should error
+
+enum Color {
+    RED <- 0,
+    GREEN <- 1,
+    BLUE <- 2
+}
+
+// Return type is u8, not Color - unqualified enum should be rejected
+u8 getColorValue() {
+    return RED;
+}

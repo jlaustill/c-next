@@ -63,6 +63,29 @@ const generateCaseLabel = (
       }
     }
 
+    // Issue #477: Reject unqualified enum members in non-enum switch context
+    // If switchEnumType is null (switching on non-enum like u8), but the
+    // identifier is an enum member, this is an error.
+    if (!switchEnumType && input.symbols) {
+      const matchingEnums: string[] = [];
+      for (const [enumName, members] of input.symbols.enumMembers) {
+        if (members.has(id)) {
+          matchingEnums.push(enumName);
+        }
+      }
+      if (matchingEnums.length > 0) {
+        const suggestion =
+          matchingEnums.length === 1
+            ? `did you mean '${matchingEnums[0]}.${id}'?`
+            : `exists in: ${matchingEnums.join(", ")}. Use qualified access.`;
+        const line = node.start?.line ?? 0;
+        const col = node.start?.column ?? 0;
+        throw new Error(
+          `${line}:${col} error[E0424]: '${id}' is not defined; ${suggestion}`,
+        );
+      }
+    }
+
     return { code: id, effects };
   }
 
