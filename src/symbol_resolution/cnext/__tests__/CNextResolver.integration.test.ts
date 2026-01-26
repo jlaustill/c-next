@@ -435,5 +435,38 @@ describe("CNextResolver Integration", () => {
       // Should still parse without error
       expect(symbols.length).toBe(2);
     });
+
+    it("passes through unresolved identifiers for C macros", () => {
+      const code = `
+        bool arr[DEVICE_COUNT];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      // Issue #455: Unresolved identifiers (like C macros) should pass through
+      const arrSymbol = symbols.find((s) => s.name === "arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.isArray).toBe(true);
+        expect(arrSymbol.arrayDimensions).toEqual(["DEVICE_COUNT"]);
+      }
+    });
+
+    it("passes through expressions in array dimension", () => {
+      const code = `
+        const u8 SIZE <- 4;
+        bool arr[SIZE * 2];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      // Issue #455: Complex expressions should pass through as strings
+      const arrSymbol = symbols.find((s) => s.name === "arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.isArray).toBe(true);
+        expect(arrSymbol.arrayDimensions).toEqual(["SIZE*2"]);
+      }
+    });
   });
 });
