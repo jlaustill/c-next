@@ -1,0 +1,186 @@
+// test-execution
+// Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
+
+// === GLOBAL ENUM ===
+enum EGlobalState {
+    IDLE <- 0,
+    RUNNING <- 1,
+    STOPPED <- 2
+}
+
+// === GLOBAL ENUM VARIABLE ===
+EGlobalState globalState <- EGlobalState.IDLE;
+
+// === SCOPE WITH ENUM ===
+scope Motor {
+    // Scoped enum (public for cross-scope access)
+    public enum EMode {
+        OFF <- 0,
+        LOW <- 1,
+        HIGH <- 2
+    }
+
+    // Scoped enum variable
+    private this.EMode mode <- this.EMode.OFF;
+
+    // Atomic enum variable
+    private atomic this.EMode atomicMode <- this.EMode.OFF;
+
+    // === GETTERS (return enum) ===
+    public this.EMode getMode() {
+        return this.mode;
+    }
+
+    public this.EMode getAtomicMode() {
+        return this.atomicMode;
+    }
+
+    // === SETTERS (accept enum parameter) ===
+    public void setMode(this.EMode newMode) {
+        this.mode <- newMode;
+    }
+
+    public void setAtomicMode(this.EMode newMode) {
+        this.atomicMode <- newMode;
+    }
+
+    // === INTERNAL: this.method() returning enum ===
+    public bool testThisMethodEnum() {
+        // Fixed: this.getMode() now correctly returns enum type
+        this.EMode currentMode <- this.getMode();
+        return (currentMode = this.EMode.OFF);
+    }
+
+    // === COMPARISONS ===
+    public bool isOff() {
+        return (this.mode = this.EMode.OFF);
+    }
+
+    public bool isMode(this.EMode checkMode) {
+        return (this.mode = checkMode);
+    }
+
+    // === GLOBAL ENUM ACCESS FROM SCOPE ===
+    public global.EGlobalState getGlobalState() {
+        return global.EGlobalState.IDLE;
+    }
+
+    // === CRITICAL BLOCK WITH ENUM ===
+    public void criticalEnumUpdate() {
+        critical {
+            this.mode <- this.EMode.HIGH;
+        }
+    }
+}
+
+// === SECOND SCOPE (for cross-scope testing) ===
+scope Controller {
+    public enum EStatus {
+        OK <- 0,
+        ERROR <- 1
+    }
+
+    private this.EStatus status <- this.EStatus.OK;
+
+    // Access Motor's enum (cross-scope)
+    public void setMotorMode() {
+        // Cross-scope enum access
+        global.Motor.setMode(global.Motor.EMode.HIGH);
+    }
+
+    // Return own enum
+    public this.EStatus getStatus() {
+        return this.status;
+    }
+}
+
+// === MAIN TEST FUNCTION ===
+u32 main() {
+    u32 errors <- 0;
+
+    // --- Test 1: Global enum define and read ---
+    EGlobalState state <- EGlobalState.IDLE;
+    if (state != EGlobalState.IDLE) {
+        errors <- errors + 1;
+    }
+
+    // --- Test 2: Global enum update ---
+    state <- EGlobalState.RUNNING;
+    if (state != EGlobalState.RUNNING) {
+        errors <- errors + 2;
+    }
+
+    // --- Test 3: Global enum comparison ---
+    if (state != EGlobalState.RUNNING) {
+        errors <- errors + 4;
+    }
+
+    // --- Test 4: Scope enum via setter ---
+    Motor.setMode(Motor.EMode.LOW);
+
+    // --- Test 5: Scope enum via getter ---
+    Motor.EMode motorMode <- Motor.getMode();
+    if (motorMode != Motor.EMode.LOW) {
+        errors <- errors + 8;
+    }
+
+    // --- Test 6: Scope enum direct comparison ---
+    bool isOff <- Motor.isOff();
+    if (isOff) {
+        errors <- errors + 16;  // Should NOT be off (it's LOW)
+    }
+
+    // --- Test 7: Scope enum parameter comparison ---
+    bool isLow <- Motor.isMode(Motor.EMode.LOW);
+    if (!isLow) {
+        errors <- errors + 32;
+    }
+
+    // --- Test 8: Atomic enum ---
+    Motor.setAtomicMode(Motor.EMode.HIGH);
+    Motor.EMode atomicResult <- Motor.getAtomicMode();
+    if (atomicResult != Motor.EMode.HIGH) {
+        errors <- errors + 64;
+    }
+
+    // --- Test 9: Critical block enum ---
+    Motor.criticalEnumUpdate();
+    Motor.EMode afterCritical <- Motor.getMode();
+    if (afterCritical != Motor.EMode.HIGH) {
+        errors <- errors + 128;
+    }
+
+    // --- Test 10: Cross-scope enum access ---
+    Controller.setMotorMode();
+    // Motor mode should now be HIGH (set by Controller)
+
+    // --- Test 11: Enum in loop ---
+    EGlobalState loopState <- EGlobalState.IDLE;
+    u32 i <- 0;
+    while (i < 3) {
+        if (loopState = EGlobalState.IDLE) {
+            loopState <- EGlobalState.RUNNING;
+        } else {
+            loopState <- EGlobalState.STOPPED;
+        }
+        i <- i + 1;
+    }
+    // After 3 iterations: IDLE->RUNNING->STOPPED->STOPPED
+    if (loopState != EGlobalState.STOPPED) {
+        errors <- errors + 256;
+    }
+
+    // --- Test 12: Global enum access from scope ---
+    EGlobalState fromScope <- Motor.getGlobalState();
+    if (fromScope != EGlobalState.IDLE) {
+        errors <- errors + 512;
+    }
+
+    // --- Test 13: Second scope enum ---
+    Controller.EStatus ctrlStatus <- Controller.getStatus();
+    if (ctrlStatus != Controller.EStatus.OK) {
+        errors <- errors + 1024;
+    }
+
+    return errors;
+}

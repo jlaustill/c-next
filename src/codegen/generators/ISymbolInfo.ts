@@ -108,6 +108,15 @@ interface ISymbolInfo {
    */
   readonly scopePrivateConstValues: ReadonlyMap<string, string>;
 
+  // === Function Return Types ===
+
+  /**
+   * Function return types: "functionName" -> return type string.
+   * Used to determine enum types for function call expressions.
+   * Keys are full function names (e.g., "Motor_getMode" for scope methods, "getState" for globals).
+   */
+  readonly functionReturnTypes: ReadonlyMap<string, string>;
+
   /**
    * Check if a scope variable is used in only one function.
    * Returns the function name if single-function, null otherwise.

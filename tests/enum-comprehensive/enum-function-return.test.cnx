@@ -1,0 +1,22 @@
+// test-execution
+// Tests: Function returning enum - the suspected bug
+
+scope Motor {
+    public enum EMode {
+        OFF <- 0,
+        LOW <- 1
+    }
+
+    private this.EMode mode <- this.EMode.OFF;
+
+    public this.EMode getMode() {
+        return this.mode;
+    }
+}
+
+u32 main() {
+    // BUG: Function call returning enum fails validation
+    Motor.EMode motorMode <- Motor.getMode();
+    if (motorMode != Motor.EMode.OFF) return 1;
+    return 0;
+}

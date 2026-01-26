@@ -3698,6 +3698,12 @@ export default class CodeGenerator implements IOrchestrator {
     // Get the text representation to analyze
     const text = ctx.getText();
 
+    // Check if it's a function call returning an enum
+    const enumReturnType = this._getFunctionCallEnumType(text);
+    if (enumReturnType) {
+      return enumReturnType;
+    }
+
     // Check if it's a simple identifier that's an enum variable
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
@@ -3760,6 +3766,61 @@ export default class CodeGenerator implements IOrchestrator {
           return scopedEnumName;
         }
       }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if an expression is a function call returning an enum type.
+   * Handles patterns:
+   * - func() or func(args) - global function
+   * - Scope.method() or Scope.method(args) - scope method from outside
+   * - this.method() or this.method(args) - scope method from inside
+   * - global.func() or global.func(args) - global function from inside scope
+   */
+  private _getFunctionCallEnumType(text: string): string | null {
+    // Check if this looks like a function call (contains parentheses)
+    const parenIndex = text.indexOf("(");
+    if (parenIndex === -1) {
+      return null;
+    }
+
+    // Extract the function reference (everything before the opening paren)
+    const funcRef = text.substring(0, parenIndex);
+    const parts = funcRef.split(".");
+
+    let fullFuncName: string | null = null;
+
+    if (parts.length === 1) {
+      // Simple function call: func()
+      fullFuncName = parts[0];
+    } else if (parts.length === 2) {
+      if (parts[0] === "this" && this.context.currentScope) {
+        // this.method() -> Scope_method
+        fullFuncName = `${this.context.currentScope}_${parts[1]}`;
+      } else if (parts[0] === "global") {
+        // global.func() -> func
+        fullFuncName = parts[1];
+      } else if (this.symbols!.knownScopes.has(parts[0])) {
+        // Scope.method() -> Scope_method
+        fullFuncName = `${parts[0]}_${parts[1]}`;
+      }
+    }
+
+    if (!fullFuncName) {
+      return null;
+    }
+
+    // Look up the function's return type
+    const returnType = this.symbols!.functionReturnTypes.get(fullFuncName);
+    if (!returnType) {
+      return null;
+    }
+
+    // Check if the return type is an enum
+    if (this.symbols!.knownEnums.has(returnType)) {
+      return returnType;
     }
 
     return null;
