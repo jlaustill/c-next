@@ -6452,7 +6452,8 @@ export default class CodeGenerator implements IOrchestrator {
       AssignmentKind.THIS_MEMBER,
       AssignmentKind.THIS_ARRAY,
       AssignmentKind.GLOBAL_REGISTER_BIT,
-      // MEMBER_CHAIN deferred - needs investigation (5 test failures)
+      // MEMBER_CHAIN deferred - requires bit indexing detection in handler
+      // Pattern: grid[2][3].flags[0] generates read expression instead of RMW
       // Batch 6: Array kinds
       AssignmentKind.ARRAY_ELEMENT,
       AssignmentKind.MULTI_DIM_ARRAY_ELEMENT,
