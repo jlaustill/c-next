@@ -41,7 +41,7 @@ class VariableCollector {
     // Check for array dimensions
     const arrayDims = ctx.arrayDimension();
     const isArray = arrayDims.length > 0;
-    const arrayDimensions: number[] = [];
+    const arrayDimensions: (number | string)[] = [];
 
     if (isArray) {
       for (const dim of arrayDims) {
@@ -55,6 +55,11 @@ class VariableCollector {
           } else if (constValues?.has(dimText)) {
             // Issue #455: Resolve constant reference to its value
             arrayDimensions.push(constValues.get(dimText)!);
+          } else {
+            // Issue #455: Store original text for unresolved dimensions
+            // This handles C macros from included headers (e.g., DEVICE_COUNT)
+            // which should pass through to the generated header unchanged
+            arrayDimensions.push(dimText);
           }
         }
       }

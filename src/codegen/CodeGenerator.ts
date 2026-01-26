@@ -1105,7 +1105,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getStructFieldInfo(
     structName: string,
     fieldName: string,
-  ): { type: string; dimensions?: number[] } | undefined {
+  ): { type: string; dimensions?: (number | string)[] } | undefined {
     // First check SymbolTable (C header structs)
     if (this.symbolTable) {
       const fieldInfo = this.symbolTable.getStructFieldInfo(

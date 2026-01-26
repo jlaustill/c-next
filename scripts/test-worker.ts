@@ -63,10 +63,22 @@ async function runTest(
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
+  const expectedHFile = basePath + ".expected.h";
   const headerFile = basePath + ".test.h";
+  const headerFileName = basename(headerFile);
 
   // Issue #230: If test has a corresponding .test.h file, enable self-include generation
   const hasHeaderFile = existsSync(headerFile);
+  // Issue #455: Also enable header generation if .expected.h exists (for header validation tests)
+  const hasExpectedHFile = existsSync(expectedHFile);
+  // Issue #455: Check if expected.c file includes the header (indicates header generation was intended)
+  let expectedCIncludesHeader = false;
+  if (existsSync(expectedCFile)) {
+    const expectedCContent = readFileSync(expectedCFile, "utf-8");
+    expectedCIncludesHeader = expectedCContent.includes(
+      `#include "${headerFileName}"`,
+    );
+  }
 
   // Use Pipeline for transpilation with header parsing support
   // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
@@ -77,10 +89,13 @@ async function runTest(
     noCache: true,
   });
 
+  // Enable header generation if:
+  // 1. .test.h file exists (legacy behavior), OR
+  // 2. .expected.c includes the header file (Issue #455)
   const result: IFileResult = await pipeline.transpileSource(source, {
     workingDir: dirname(cnxFile),
     sourcePath: cnxFile,
-    generateHeaders: hasHeaderFile, // Issue #230: Enable self-include for extern "C" tests
+    generateHeaders: hasHeaderFile || expectedCIncludesHeader,
   });
 
   // Issue #322: Find and transpile helper .cnx files for cross-file execution tests
@@ -180,12 +195,35 @@ async function runTest(
 
     if (updateMode) {
       writeFileSync(expectedCFile, result.code);
+      // Issue #455: Also update header snapshot if header was generated
+      if (result.headerCode) {
+        writeFileSync(expectedHFile, result.headerCode);
+      }
       cleanupHelperFiles();
       return { passed: true, message: "Updated C snapshot", updated: true };
     }
 
     if (TestUtils.normalize(result.code) === TestUtils.normalize(expectedC)) {
       // Snapshot matches - run all validation steps
+
+      // Issue #455: Write header file to disk if generated (needed for GCC to find the include)
+      let headerFileWritten = false;
+      if (result.headerCode) {
+        writeFileSync(headerFile, result.headerCode);
+        headerFileWritten = true;
+      }
+
+      // Helper to cleanup header file along with other temp files
+      const cleanupAllFiles = (): void => {
+        cleanupHelperFiles();
+        if (headerFileWritten) {
+          try {
+            unlinkSync(headerFile);
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+      };
 
       if (tools.gcc) {
         const compileResult = TestUtils.validateCompilation(
@@ -194,7 +232,7 @@ async function runTest(
           rootDir,
         );
         if (!compileResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "GCC compilation failed",
@@ -206,7 +244,7 @@ async function runTest(
       if (tools.cppcheck) {
         const cppcheckResult = TestUtils.validateCppcheck(expectedCFile);
         if (!cppcheckResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Cppcheck failed",
@@ -218,7 +256,7 @@ async function runTest(
       if (tools.clangTidy) {
         const clangTidyResult = TestUtils.validateClangTidy(expectedCFile);
         if (!clangTidyResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Clang-tidy failed",
@@ -230,7 +268,7 @@ async function runTest(
       if (tools.misra) {
         const misraResult = TestUtils.validateMisra(expectedCFile, rootDir);
         if (!misraResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "MISRA check failed",
@@ -243,11 +281,27 @@ async function runTest(
       if (tools.flawfinder) {
         const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
         if (!flawfinderResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Flawfinder security check failed",
             actual: flawfinderResult.message,
+          };
+        }
+      }
+
+      // Issue #455: Header validation (if .expected.h file exists AND headers were generated)
+      if (hasExpectedHFile && result.headerCode) {
+        const expectedH = readFileSync(expectedHFile, "utf-8");
+        const actualH = result.headerCode;
+
+        if (TestUtils.normalize(actualH) !== TestUtils.normalize(expectedH)) {
+          cleanupAllFiles();
+          return {
+            passed: false,
+            message: "Header output mismatch",
+            expected: expectedH,
+            actual: actualH,
           };
         }
       }
@@ -259,7 +313,7 @@ async function runTest(
           rootDir,
         );
         if (!noWarningsResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Warning check failed (test-no-warnings)",
@@ -271,7 +325,7 @@ async function runTest(
       // Execution test if marker present
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (TestUtils.requiresArmRuntime(result.code)) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return { passed: true, skippedExec: true };
         }
 
@@ -281,7 +335,7 @@ async function runTest(
           0,
           helperCFiles,
         );
-        cleanupHelperFiles();
+        cleanupAllFiles();
         if (!execResult.valid) {
           return {
             passed: false,
@@ -291,7 +345,7 @@ async function runTest(
         }
       }
 
-      cleanupHelperFiles();
+      cleanupAllFiles();
       return { passed: true };
     }
 
