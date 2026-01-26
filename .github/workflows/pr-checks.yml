@@ -80,6 +80,23 @@ jobs:
         run: npm run coverage:grammar:check -- --threshold 80
         continue-on-error: true
 
+      - name: Check for uncommitted changes
+        id: uncommitted
+        run: |
+          # Check for any modified, staged, or untracked files
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Uncommitted changes detected after build/test!"
+            echo ""
+            echo "The following files have changes or are untracked:"
+            git status --porcelain
+            echo ""
+            echo "This usually means generated files need to be committed."
+            echo "Run 'npm run antlr:all' and 'npm test' locally, then commit the changes."
+            exit 1
+          fi
+          echo "No uncommitted changes detected."
+        continue-on-error: true
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
@@ -161,6 +178,13 @@ jobs:
             FAILED=1
           else
             echo "✅ Grammar coverage check passed"
+          fi
+
+          if [ "${{ steps.uncommitted.outcome }}" != "success" ]; then
+            echo "❌ Uncommitted changes detected (generated files not committed)"
+            FAILED=1
+          else
+            echo "✅ No uncommitted changes"
           fi
 
           echo ""

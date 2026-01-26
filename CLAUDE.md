@@ -125,7 +125,7 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm test` — Run C-Next integration tests (.test.cnx files)
 - `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
-- `npm test -- tests/enum/my.test.cnx` — Run single test file
+- `npm test -- tests/enum/my.test.cnx` — Run single test file (multiple files: use directory pattern instead)
 - `npm run unit` — Run TypeScript unit tests (vitest)
 - `npm run unit -- <path>` — Run specific unit test file
 - `npm run unit:coverage` — Run unit tests with coverage report
@@ -139,6 +139,18 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 - `src/pipeline/CacheManager.ts` → `src/pipeline/__tests__/CacheManager.test.ts`
 - `src/pipeline/cache/CacheKeyGenerator.ts` → `src/pipeline/cache/__tests__/CacheKeyGenerator.test.ts`
+
+### Cross-File Testing
+
+- **Symbol resolution features** (enums, structs, types): Always test with symbols defined in included files, not just same-file
+- Create helper `.cnx` files (e.g., `test-types.cnx`) alongside test files for cross-file scenarios
+- The original bug scenario often involves `#include` - reproduce that exactly
+
+### Bug Reproduction Files
+
+- `bugs/issue-<name>/` directories contain minimal reproduction cases from GitHub issues
+- **Commit these with fixes** - they serve as additional regression prevention
+- Regenerate after fix to show corrected output
 
 ### Test File Patterns
 
