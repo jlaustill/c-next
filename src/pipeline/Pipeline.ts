@@ -75,6 +75,8 @@ class Pipeline {
   > = new Map();
   /** Issue #424: Store user includes per file for header generation */
   private readonly userIncludesCollectors: Map<string, string[]> = new Map();
+  /** Issue #465: Store ISymbolInfo per file during stage 3 for external enum resolution */
+  private readonly symbolInfoByFile: Map<string, ISymbolInfo> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -593,6 +595,54 @@ class Pipeline {
     const tSymbols = CNextResolver.resolve(tree, file.path);
     const iSymbols = TSymbolAdapter.toISymbols(tSymbols, this.symbolTable);
     this.symbolTable.addSymbols(iSymbols);
+
+    // Issue #465: Store ISymbolInfo for external enum resolution in stage 5
+    // This ensures enum member info is available for all files before code generation
+    const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+    this.symbolInfoByFile.set(file.path, symbolInfo);
+  }
+
+  /**
+   * Issue #465: Collect ISymbolInfo from all transitively included .cnx files.
+   *
+   * Recursively resolves includes to gather enum info from the entire include tree.
+   * This ensures that deeply nested enums (A includes B, B includes C with enum)
+   * are available for prefixing in the top-level file.
+   *
+   * @param filePath The file to collect transitive includes for
+   * @returns Array of ISymbolInfo from all transitively included .cnx files
+   */
+  private collectTransitiveEnumInfo(filePath: string): ISymbolInfo[] {
+    const result: ISymbolInfo[] = [];
+    const visited = new Set<string>();
+
+    const collectRecursively = (currentPath: string): void => {
+      if (visited.has(currentPath)) return;
+      visited.add(currentPath);
+
+      // Read and parse includes from current file
+      const content = readFileSync(currentPath, "utf-8");
+      const searchPaths = IncludeResolver.buildSearchPaths(
+        dirname(currentPath),
+        this.config.includeDirs,
+        [],
+      );
+      const resolver = new IncludeResolver(searchPaths);
+      const resolved = resolver.resolve(content, currentPath);
+
+      // Process each included .cnx file
+      for (const cnxInclude of resolved.cnextIncludes) {
+        const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
+        if (externalInfo) {
+          result.push(externalInfo);
+        }
+        // Recursively collect from this include's includes
+        collectRecursively(cnxInclude.path);
+      }
+    };
+
+    collectRecursively(filePath);
+    return result;
   }
 
   /**
@@ -735,7 +785,19 @@ class Pipeline {
     try {
       // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
       const tSymbols = CNextResolver.resolve(tree, file.path);
-      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Issue #465: Merge enum info from included .cnx files (including transitive)
+      // This enables external enum member references to get the correct type prefix
+      const externalEnumSources = this.collectTransitiveEnumInfo(file.path);
+
+      // Merge external enum info if any includes were found
+      if (externalEnumSources.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
+          symbolInfo,
+          externalEnumSources,
+        );
+      }
 
       const code = this.codeGenerator.generate(
         tree,
@@ -1044,15 +1106,39 @@ class Pipeline {
 
       // Step 4b: Issue #294 - Parse C-Next includes to populate symbol table
       // This enables cross-file scope references (e.g., decoder.getSpn() -> decoder_getSpn())
-      for (const cnxInclude of resolved.cnextIncludes) {
-        try {
-          this.collectCNextSymbols(cnxInclude);
-        } catch (err) {
-          this.warnings.push(
-            `Failed to process C-Next include ${cnxInclude.path}: ${err}`,
-          );
+      // Issue #465: Recursively process transitive includes for enum info
+      const processedCnxIncludes = new Set<string>();
+      const processCnxIncludesRecursively = (
+        includes: IDiscoveredFile[],
+      ): void => {
+        for (const cnxInclude of includes) {
+          if (processedCnxIncludes.has(cnxInclude.path)) continue;
+          processedCnxIncludes.add(cnxInclude.path);
+
+          try {
+            this.collectCNextSymbols(cnxInclude);
+
+            // Recursively process this include's includes
+            const nestedContent = readFileSync(cnxInclude.path, "utf-8");
+            const nestedSearchPaths = IncludeResolver.buildSearchPaths(
+              dirname(cnxInclude.path),
+              this.config.includeDirs,
+              [],
+            );
+            const nestedResolver = new IncludeResolver(nestedSearchPaths);
+            const nestedResolved = nestedResolver.resolve(
+              nestedContent,
+              cnxInclude.path,
+            );
+            processCnxIncludesRecursively(nestedResolved.cnextIncludes);
+          } catch (err) {
+            this.warnings.push(
+              `Failed to process C-Next include ${cnxInclude.path}: ${err}`,
+            );
+          }
         }
-      }
+      };
+      processCnxIncludesRecursively(resolved.cnextIncludes);
 
       // Step 5: Parse C-Next source from string
       const charStream = CharStream.fromString(source);
@@ -1147,7 +1233,49 @@ class Pipeline {
       // Step 7: Generate code with symbol table
       // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
       const tSymbols = CNextResolver.resolve(tree, sourcePath);
-      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Issue #465: Merge enum info from included .cnx files (including transitive)
+      // This enables external enum member references to get the correct type prefix
+      const externalEnumSources: ISymbolInfo[] = [];
+      const visitedIncludes = new Set<string>();
+
+      // Recursively collect enum info from all transitive includes
+      const collectFromIncludes = (includes: IDiscoveredFile[]): void => {
+        for (const cnxInclude of includes) {
+          if (visitedIncludes.has(cnxInclude.path)) continue;
+          visitedIncludes.add(cnxInclude.path);
+
+          const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
+          if (externalInfo) {
+            externalEnumSources.push(externalInfo);
+          }
+
+          // Recursively process this include's includes
+          const nestedContent = readFileSync(cnxInclude.path, "utf-8");
+          const nestedSearchPaths = IncludeResolver.buildSearchPaths(
+            dirname(cnxInclude.path),
+            this.config.includeDirs,
+            [],
+          );
+          const nestedResolver = new IncludeResolver(nestedSearchPaths);
+          const nestedResolved = nestedResolver.resolve(
+            nestedContent,
+            cnxInclude.path,
+          );
+          collectFromIncludes(nestedResolved.cnextIncludes);
+        }
+      };
+
+      collectFromIncludes(resolved.cnextIncludes);
+
+      // Merge external enum info if any includes were found
+      if (externalEnumSources.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
+          symbolInfo,
+          externalEnumSources,
+        );
+      }
 
       const code = this.codeGenerator.generate(
         tree,

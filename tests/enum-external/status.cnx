@@ -1,0 +1,7 @@
+// Helper file: defines second enum for multiple-enum testing
+
+enum EStatus {
+    STATUS_IDLE <- 0,
+    STATUS_ACTIVE <- 1,
+    STATUS_ERROR <- 2
+}

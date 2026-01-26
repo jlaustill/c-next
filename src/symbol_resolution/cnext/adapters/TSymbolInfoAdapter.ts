@@ -365,6 +365,94 @@ class TSymbolInfoAdapter {
     // Extract the single element from the Set (we know it exists since size === 1)
     return [...usedIn][0];
   }
+
+  /**
+   * Issue #465: Merge external enum info into an existing ISymbolInfo.
+   *
+   * When a file includes other .cnx files, the enum types from those external
+   * files need to be available for code generation (enum member prefixing).
+   * This method creates a new ISymbolInfo that includes both the base symbols
+   * and merged enum info from external sources.
+   *
+   * @param base The ISymbolInfo from the current file
+   * @param externalEnumSources Array of ISymbolInfo from included .cnx files
+   * @returns New ISymbolInfo with merged enum data
+   */
+  static mergeExternalEnums(
+    base: ISymbolInfo,
+    externalEnumSources: ISymbolInfo[],
+  ): ISymbolInfo {
+    // If no external sources, return base unchanged
+    if (externalEnumSources.length === 0) {
+      return base;
+    }
+
+    // Create mutable copies of enum-related data
+    const mergedKnownEnums = new Set(base.knownEnums);
+    const mergedEnumMembers = new Map<string, Map<string, number>>();
+
+    // Copy base enum members
+    for (const [enumName, members] of base.enumMembers) {
+      mergedEnumMembers.set(enumName, new Map(members));
+    }
+
+    // Merge in external enum info
+    for (const external of externalEnumSources) {
+      for (const enumName of external.knownEnums) {
+        mergedKnownEnums.add(enumName);
+      }
+      for (const [enumName, members] of external.enumMembers) {
+        // Don't overwrite if already exists (local takes precedence)
+        if (!mergedEnumMembers.has(enumName)) {
+          mergedEnumMembers.set(enumName, new Map(members));
+        }
+      }
+    }
+
+    // Return new ISymbolInfo with merged enum data
+    // All other fields remain unchanged from base
+    return {
+      // Type sets - only knownEnums is merged
+      knownScopes: base.knownScopes,
+      knownStructs: base.knownStructs,
+      knownEnums: mergedKnownEnums,
+      knownBitmaps: base.knownBitmaps,
+      knownRegisters: base.knownRegisters,
+
+      // Scope info
+      scopeMembers: base.scopeMembers,
+      scopeMemberVisibility: base.scopeMemberVisibility,
+      scopeVariableUsage: base.scopeVariableUsage,
+
+      // Struct info
+      structFields: base.structFields,
+      structFieldArrays: base.structFieldArrays,
+      structFieldDimensions: base.structFieldDimensions,
+
+      // Enum info - merged
+      enumMembers: mergedEnumMembers,
+
+      // Bitmap info
+      bitmapFields: base.bitmapFields,
+      bitmapBackingType: base.bitmapBackingType,
+      bitmapBitWidth: base.bitmapBitWidth,
+
+      // Register info
+      scopedRegisters: base.scopedRegisters,
+      registerMemberAccess: base.registerMemberAccess,
+      registerMemberTypes: base.registerMemberTypes,
+      registerBaseAddresses: base.registerBaseAddresses,
+      registerMemberOffsets: base.registerMemberOffsets,
+      registerMemberCTypes: base.registerMemberCTypes,
+
+      // Private const values
+      scopePrivateConstValues: base.scopePrivateConstValues,
+
+      // Methods - delegate to base's implementation
+      getSingleFunctionForVariable: base.getSingleFunctionForVariable,
+      hasPublicSymbols: base.hasPublicSymbols,
+    };
+  }
 }
 
 export default TSymbolInfoAdapter;
