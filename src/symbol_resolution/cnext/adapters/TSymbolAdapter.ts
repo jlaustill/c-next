@@ -206,11 +206,12 @@ class TSymbolAdapter {
    * Convert IVariableSymbol to ISymbol.
    */
   private static convertVariable(variable: IVariableSymbol): ISymbol {
-    // Convert numeric dimensions to string dimensions for ISymbol
+    // Convert dimensions to string dimensions for ISymbol
     const arrayDimensions = variable.arrayDimensions?.map((d) => String(d));
 
-    // Get first dimension for legacy size field
-    const size = variable.arrayDimensions?.[0];
+    // Get first dimension for legacy size field (only if numeric)
+    const firstDim = variable.arrayDimensions?.[0];
+    const size = typeof firstDim === "number" ? firstDim : undefined;
 
     return {
       name: variable.name,

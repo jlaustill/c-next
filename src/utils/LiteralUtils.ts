@@ -87,6 +87,40 @@ class LiteralUtils {
     const text = ctx.getText();
     return text.includes(".") && !text.startsWith('"');
   }
+
+  /**
+   * Parse an integer literal string to a numeric value.
+   *
+   * Handles all C-Next integer formats:
+   * - Decimal: 42, -17
+   * - Hex: 0x2A, 0X2a
+   * - Binary: 0b101010, 0B101010
+   *
+   * Issue #455: Used for resolving const values in array dimensions.
+   *
+   * @param text - The literal text to parse
+   * @returns The numeric value, or undefined if not a valid integer literal
+   */
+  static parseIntegerLiteral(text: string): number | undefined {
+    const trimmed = text.trim();
+
+    // Decimal integer (including negative)
+    if (/^-?\d+$/.test(trimmed)) {
+      return Number.parseInt(trimmed, 10);
+    }
+
+    // Hex literal (0x or 0X prefix)
+    if (/^0[xX][0-9a-fA-F]+$/.test(trimmed)) {
+      return Number.parseInt(trimmed, 16);
+    }
+
+    // Binary literal (0b or 0B prefix)
+    if (/^0[bB][01]+$/.test(trimmed)) {
+      return Number.parseInt(trimmed.substring(2), 2);
+    }
+
+    return undefined;
+  }
 }
 
 export default LiteralUtils;

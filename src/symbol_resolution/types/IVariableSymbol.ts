@@ -17,8 +17,8 @@ interface IVariableSymbol extends IBaseSymbol {
   /** Whether this variable is an array */
   isArray: boolean;
 
-  /** Array dimensions if isArray is true */
-  arrayDimensions?: number[];
+  /** Array dimensions if isArray is true - numbers for resolved dimensions, strings for macros */
+  arrayDimensions?: (number | string)[];
 
   /** Initial value expression (as string) */
   initialValue?: string;

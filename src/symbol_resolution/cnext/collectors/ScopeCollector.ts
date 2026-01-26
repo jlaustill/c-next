@@ -23,12 +23,14 @@ class ScopeCollector {
    * @param ctx The scope declaration context
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for register resolution
+   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @returns The scope symbol and all member symbols
    */
   static collect(
     ctx: Parser.ScopeDeclarationContext,
     sourceFile: string,
     knownBitmaps: Set<string>,
+    constValues?: Map<string, number>,
   ): IScopeCollectorResult {
     const scopeName = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -56,6 +58,7 @@ class ScopeCollector {
           sourceFile,
           scopeName,
           isPublic,
+          constValues,
         );
         memberSymbols.push(varSymbol);
       }

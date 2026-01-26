@@ -341,4 +341,110 @@ describe("LiteralUtils", () => {
       expect(LiteralUtils.isFloat(literal!)).toBe(false);
     });
   });
+
+  // ========================================================================
+  // parseIntegerLiteral (Issue #455)
+  // ========================================================================
+
+  describe("parseIntegerLiteral", () => {
+    describe("decimal literals", () => {
+      it("should parse simple decimal", () => {
+        expect(LiteralUtils.parseIntegerLiteral("42")).toBe(42);
+      });
+
+      it("should parse zero", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0")).toBe(0);
+      });
+
+      it("should parse negative decimal", () => {
+        expect(LiteralUtils.parseIntegerLiteral("-17")).toBe(-17);
+      });
+
+      it("should parse large decimal", () => {
+        expect(LiteralUtils.parseIntegerLiteral("1000000")).toBe(1000000);
+      });
+    });
+
+    describe("hex literals", () => {
+      it("should parse hex with lowercase prefix", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0x10")).toBe(16);
+      });
+
+      it("should parse hex with uppercase prefix", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0X10")).toBe(16);
+      });
+
+      it("should parse hex with mixed case digits", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0xDeAdBeEf")).toBe(0xdeadbeef);
+      });
+
+      it("should parse hex zero", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0x0")).toBe(0);
+      });
+
+      it("should parse hex FF", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0xFF")).toBe(255);
+      });
+    });
+
+    describe("binary literals", () => {
+      it("should parse binary with lowercase prefix", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0b1010")).toBe(10);
+      });
+
+      it("should parse binary with uppercase prefix", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0B1010")).toBe(10);
+      });
+
+      it("should parse binary zero", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0b0")).toBe(0);
+      });
+
+      it("should parse binary one", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0b1")).toBe(1);
+      });
+
+      it("should parse 8-bit binary", () => {
+        expect(LiteralUtils.parseIntegerLiteral("0b11111111")).toBe(255);
+      });
+    });
+
+    describe("invalid inputs", () => {
+      it("should return undefined for identifier", () => {
+        expect(
+          LiteralUtils.parseIntegerLiteral("DEVICE_COUNT"),
+        ).toBeUndefined();
+      });
+
+      it("should return undefined for float", () => {
+        expect(LiteralUtils.parseIntegerLiteral("3.14")).toBeUndefined();
+      });
+
+      it("should return undefined for string", () => {
+        expect(LiteralUtils.parseIntegerLiteral('"hello"')).toBeUndefined();
+      });
+
+      it("should return undefined for expression", () => {
+        expect(LiteralUtils.parseIntegerLiteral("2 + 2")).toBeUndefined();
+      });
+
+      it("should return undefined for empty string", () => {
+        expect(LiteralUtils.parseIntegerLiteral("")).toBeUndefined();
+      });
+    });
+
+    describe("whitespace handling", () => {
+      it("should handle leading whitespace", () => {
+        expect(LiteralUtils.parseIntegerLiteral("  42")).toBe(42);
+      });
+
+      it("should handle trailing whitespace", () => {
+        expect(LiteralUtils.parseIntegerLiteral("42  ")).toBe(42);
+      });
+
+      it("should handle both leading and trailing whitespace", () => {
+        expect(LiteralUtils.parseIntegerLiteral("  0xFF  ")).toBe(255);
+      });
+    });
+  });
 });
