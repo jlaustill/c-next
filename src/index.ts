@@ -30,6 +30,14 @@ interface ICNextConfig {
   cppRequired?: boolean;
   debugMode?: boolean;
   target?: string; // ADR-049: Target platform (e.g., "teensy41", "cortex-m0")
+  /** Disable symbol caching (.cnx/ directory) */
+  noCache?: boolean;
+  /** Additional include directories for C/C++ header discovery */
+  include?: string[];
+  /** Output directory for generated files */
+  output?: string;
+  /** Separate output directory for header files */
+  headerOut?: string;
 }
 
 /**
@@ -131,8 +139,22 @@ function showHelp(): void {
   console.log("Config files (searched in order, JSON format):");
   console.log("  cnext.config.json, .cnext.json, .cnextrc");
   console.log("");
+  console.log("Config options:");
+  console.log("  cppRequired    Output .cpp instead of .c (boolean)");
+  console.log("  noCache        Disable symbol caching (boolean)");
+  console.log("  include        Additional include directories (string[])");
+  console.log("  output         Output directory for generated files (string)");
+  console.log("  headerOut      Separate directory for header files (string)");
+  console.log("  target         Target platform for atomic code gen (string)");
+  console.log("  debugMode      Generate panic-on-overflow helpers (boolean)");
+  console.log("");
   console.log("Config example:");
-  console.log('  { "cppRequired": true }');
+  console.log("  {");
+  console.log('    "cppRequired": true,');
+  console.log('    "include": ["lib/", "vendor/include/"],');
+  console.log('    "output": "build/",');
+  console.log('    "headerOut": "include/"');
+  console.log("  }");
   console.log("");
   console.log("A safer C for embedded systems development.");
 }
@@ -552,7 +574,12 @@ async function main(): Promise<void> {
   const config = loadConfig(configDir);
 
   // Apply config defaults, CLI flags take precedence
-  const cppRequired = cliCppRequired ?? config.cppRequired ?? false;
+  const finalCppRequired = cliCppRequired ?? config.cppRequired ?? false;
+  const finalNoCache = noCache || config.noCache === true;
+  const finalOutputPath = outputPath || config.output || "";
+  const finalHeaderOutDir = headerOutDir ?? config.headerOut;
+  // Merge include dirs: CLI includes come after config includes (higher priority in search)
+  const finalIncludeDirs = [...(config.include ?? []), ...includeDirs];
 
   // Unified mode - always use Project class with header discovery
   if (inputFiles.length === 0) {
@@ -563,21 +590,21 @@ async function main(): Promise<void> {
 
   // Clean mode: delete generated files and exit
   if (cleanMode) {
-    CleanCommand.execute(inputFiles, outputPath, headerOutDir);
+    CleanCommand.execute(inputFiles, finalOutputPath, finalHeaderOutDir);
     process.exit(0);
   }
 
   await runUnifiedMode(
     inputFiles,
-    outputPath,
-    includeDirs,
+    finalOutputPath,
+    finalIncludeDirs,
     defines,
     preprocess,
     verbose,
-    cppRequired,
-    noCache,
+    finalCppRequired,
+    finalNoCache,
     parseOnly,
-    headerOutDir,
+    finalHeaderOutDir,
   );
 }
 
