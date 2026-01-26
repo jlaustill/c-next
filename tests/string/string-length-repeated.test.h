@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char text[65];
+
 #ifdef __cplusplus
 }
 #endif

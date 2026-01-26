@@ -18,6 +18,10 @@ typedef struct TestStruct {
     char arr[4][65][65];
 } TestStruct;
 
+/* External variables */
+extern char globalArr[4][65];
+extern char TestScope_publicArr[4][65];
+
 /* Function prototypes */
 uint32_t TestScope_getGlobalArrayLength(void);
 uint32_t TestScope_getScopeArrayLength(void);

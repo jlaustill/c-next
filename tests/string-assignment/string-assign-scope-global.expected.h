@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char globalBuffer[65];
+
 /* Function prototypes */
 void Handler_updateGlobal(void);
 void Handler_clearGlobal(void);

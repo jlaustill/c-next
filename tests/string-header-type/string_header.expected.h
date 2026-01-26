@@ -13,6 +13,10 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char greeting[33];
+extern const char labels[3][17];
+
 #ifdef __cplusplus
 }
 #endif

@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char Logger_message[65];
+
 /* Function prototypes */
 void Logger_setMessage(void);
 void Logger_clear(void);

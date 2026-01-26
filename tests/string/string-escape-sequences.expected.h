@@ -17,6 +17,16 @@ extern "C" {
 typedef struct string string;
 
 /* External variables */
+extern char withNewline[65];
+extern char withTab[65];
+extern char withCarriageReturn[65];
+extern char withBackslash[65];
+extern char withQuote[65];
+extern char multipleEscapes[65];
+extern char justNewline[9];
+extern char justTab[9];
+extern char escapeAtStart[33];
+extern char escapeAtEnd[33];
 extern const string VERSION_INFO;
 
 #ifdef __cplusplus

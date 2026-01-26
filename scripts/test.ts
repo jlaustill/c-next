@@ -247,7 +247,10 @@ async function runTest(
         );
 
         writeFileSync(tempHFile, helperResult.headerCode);
-        tempHelperFiles.push(tempHFile);
+        // Only clean up if there's no .expected.h - helpers with .expected.h are persistent
+        if (!existsSync(expectedHFile)) {
+          tempHelperFiles.push(tempHFile);
+        }
 
         // Validate against expected header if it exists
         if (existsSync(expectedHFile)) {

@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char haystack[65];
+
 #ifdef __cplusplus
 }
 #endif

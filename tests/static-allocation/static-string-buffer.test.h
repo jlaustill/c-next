@@ -13,6 +13,10 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char messageBuffer[65];
+extern char logBuffer[129];
+
 #ifdef __cplusplus
 }
 #endif

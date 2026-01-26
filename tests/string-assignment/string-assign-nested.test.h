@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern char nested[33];
+
 #ifdef __cplusplus
 }
 #endif
