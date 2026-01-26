@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-wrap-modifier.test.h"
+
 #include <stdint.h>
 
 // test-execution

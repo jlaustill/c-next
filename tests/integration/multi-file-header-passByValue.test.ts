@@ -88,7 +88,6 @@ async function runTest() {
     inputs: [file1Path, file2Path], // Explicit files instead of directory
     outDir: testDir,
     includeDirs: [],
-    generateHeaders: true,
   });
 
   console.log("Compiling multi-file project with header generation...");

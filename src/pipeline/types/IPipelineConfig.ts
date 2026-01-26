@@ -23,9 +23,6 @@ interface IPipelineConfig {
   /** Whether to preprocess C/C++ headers (default: true) */
   preprocess?: boolean;
 
-  /** Whether to generate .h files for exported symbols (default: true) */
-  generateHeaders?: boolean;
-
   /** Issue #211: Force C++ output (--cpp flag). Auto-detection may also enable this. */
   cppRequired?: boolean;
 

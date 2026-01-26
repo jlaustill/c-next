@@ -84,7 +84,6 @@ async function runTest() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -136,7 +135,6 @@ async function runTest() {
     inputs: [sourceDir],
     outDir: codeOutDir,
     includeDirs: [],
-    generateHeaders: true,
   });
 
   const result2 = await pipeline2.run();

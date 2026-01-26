@@ -60,7 +60,6 @@ async function runTest() {
     inputs: [testFile],
     outDir: testDir,
     includeDirs: [],
-    generateHeaders: true,
     cppRequired: true, // Force C++ output
   });
 

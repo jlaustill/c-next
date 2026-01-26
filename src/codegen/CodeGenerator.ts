@@ -56,6 +56,8 @@ import commentUtils from "./generators/support/CommentUtils";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
+// Issue #461: LiteralUtils for parsing const values from symbol table
+import LiteralUtils from "../utils/LiteralUtils";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1496,6 +1498,24 @@ export default class CodeGenerator implements IOrchestrator {
       this.context.scopeMembers.set(scopeName, new Set(members));
     }
 
+    // Issue #461: Initialize constValues from symbol table for external const resolution
+    // This allows array dimensions to reference constants from included .cnx files
+    this.constValues = new Map();
+    if (this.symbolTable) {
+      for (const symbol of this.symbolTable.getAllSymbols()) {
+        if (
+          symbol.kind === ESymbolKind.Variable &&
+          symbol.isConst &&
+          symbol.initialValue !== undefined
+        ) {
+          const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
+          if (value !== undefined) {
+            this.constValues.set(symbol.name, value);
+          }
+        }
+      }
+    }
+
     // Issue #61: Initialize type resolver with clean dependencies
     this.typeResolver = new TypeResolver({
       symbols: this.symbols,
@@ -1547,11 +1567,8 @@ export default class CodeGenerator implements IOrchestrator {
     // include own header to ensure proper C linkage
     // Issue #339: Use relative path from source root when available
     // Issue #369: Track self-include to skip type definitions in .c file
-    if (
-      options?.generateHeaders &&
-      this.symbols!.hasPublicSymbols() &&
-      this.sourcePath
-    ) {
+    // Issue #461: Always generate self-include when there are public symbols
+    if (this.symbols!.hasPublicSymbols() && this.sourcePath) {
       // Issue #339: Prefer sourceRelativePath for correct directory structure
       // Otherwise fall back to basename for backward compatibility
       const pathToUse =

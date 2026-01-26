@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-method-contexts.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

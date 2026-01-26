@@ -3,17 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-struct-loops.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Scoped structs in loops - reading and writing in for/while loops
 /* Scope: Sensor */
-
-typedef struct Sensor_Reading {
-    uint16_t value;
-    uint8_t channel;
-} Sensor_Reading;
-
 Sensor_Reading Sensor_buffer[4] = {0};
 uint8_t Sensor_count = 0;
 

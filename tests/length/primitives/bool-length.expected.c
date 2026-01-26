@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bool-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -27,10 +29,6 @@ bool TestScope_publicMember = true;
 uint32_t checkParamLength(bool param) {
     return 8;
 }
-
-typedef struct TestStruct {
-    bool member;
-} TestStruct;
 
 int main(void) {
     if (8 != 8) {

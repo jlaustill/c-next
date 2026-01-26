@@ -32,7 +32,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### VS Code Extension Caveats
 
-- **Pre-commit hooks**: The vscode-extension has pre-existing lint violations (named exports, unused vars). Use `git commit --no-verify` when committing changes that touch vscode-extension files if hooks fail on unrelated issues.
+- **Pre-commit hooks**: The vscode-extension requires named exports (`activate`, `deactivate`) per VS Code API. Use `git commit --no-verify` when committing vscode-extension changes, as oxlint's no-named-export rule conflicts with VS Code requirements.
 
 ### SonarCloud
 
@@ -229,6 +229,11 @@ u32 main() {
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
+
+### Test Framework Internals
+
+- **Fresh Pipeline per helper**: When transpiling helper .cnx files in tests, use a fresh `new Pipeline()` instance for each to avoid symbol pollution from accumulated symbols
+- **Helper header validation**: Helper .cnx files can have `.expected.h` files for header validation (same pattern as `.expected.c`)
 
 ### Error Validation Tests (test-error pattern)
 

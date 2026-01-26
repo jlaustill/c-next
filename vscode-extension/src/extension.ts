@@ -20,7 +20,6 @@ export { transpile, ITranspileResult, ITranspileError };
  */
 interface ICNextConfig {
   outputExtension?: ".c" | ".cpp";
-  generateHeaders?: boolean;
   debugMode?: boolean;
 }
 
@@ -43,7 +42,7 @@ function loadConfig(startDir: string): ICNextConfig {
         try {
           const content = fs.readFileSync(configPath, "utf-8");
           return JSON.parse(content) as ICNextConfig;
-        } catch (err) {
+        } catch {
           console.error(`C-Next: Failed to parse ${configPath}`);
           return {};
         }

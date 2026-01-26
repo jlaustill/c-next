@@ -49,6 +49,7 @@ import runAnalyzers from "./runAnalyzers";
 import CacheManager from "./CacheManager";
 import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
 import detectCppSyntax from "./detectCppSyntax";
+import LiteralUtils from "../utils/LiteralUtils";
 
 /**
  * Unified transpilation pipeline
@@ -84,7 +85,6 @@ class Pipeline {
       headerOutDir: config.headerOutDir ?? "",
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
-      generateHeaders: config.generateHeaders ?? true,
       cppRequired: config.cppRequired ?? false,
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
@@ -179,6 +179,11 @@ class Pipeline {
         return result;
       }
 
+      // Stage 3b: Issue #461 - Resolve external const array dimensions
+      // Now that all symbols are collected, resolve any unresolved array dimensions
+      // that reference external constants from included .cnx files
+      this.resolveExternalArrayDimensions();
+
       // Stage 4: Check for symbol conflicts
       const conflicts = this.symbolTable.getConflicts();
       for (const conflict of conflicts) {
@@ -213,8 +218,8 @@ class Pipeline {
         }
       }
 
-      // Stage 6: Generate headers if enabled
-      if (this.config.generateHeaders && result.success) {
+      // Stage 6: Generate headers (always - Issue #461)
+      if (result.success) {
         for (const file of cnextFiles) {
           const headerPath = this.generateHeader(file);
           if (headerPath) {
@@ -320,6 +325,24 @@ class Pipeline {
         );
         if (!cnextBaseNames.has(headerBaseName)) {
           headerSet.set(header.path, header);
+        }
+      }
+
+      // Issue #461: Collect included .cnx files for symbol resolution
+      // This ensures constants from included .cnx files are available for array dimension resolution
+      for (const cnxInclude of resolved.cnextIncludes) {
+        const includePath = resolve(cnxInclude.path);
+        const includeBaseName = basename(includePath).replace(
+          /\.cnx$|\.cnext$/,
+          "",
+        );
+        // Don't add if already in the list (by base name comparison)
+        if (
+          !cnextBaseNames.has(includeBaseName) &&
+          !cnextFiles.some((f) => resolve(f.path) === includePath)
+        ) {
+          cnextFiles.push(cnxInclude);
+          cnextBaseNames.add(includeBaseName);
         }
       }
 
@@ -573,6 +596,71 @@ class Pipeline {
   }
 
   /**
+   * Stage 3b: Issue #461 - Resolve external const array dimensions
+   *
+   * After all symbols are collected, scan for variable symbols with unresolved
+   * array dimensions (stored as strings instead of numbers). For each unresolved
+   * dimension, look up the const value in the symbol table and resolve it.
+   *
+   * This handles the case where array dimensions reference constants from
+   * external .cnx files that were not available during initial symbol collection.
+   */
+  private resolveExternalArrayDimensions(): void {
+    // Build a map of all const values from the symbol table
+    const constValues = new Map<string, number>();
+    for (const symbol of this.symbolTable.getAllSymbols()) {
+      if (
+        symbol.kind === ESymbolKind.Variable &&
+        symbol.isConst &&
+        symbol.initialValue !== undefined
+      ) {
+        const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
+        if (value !== undefined) {
+          constValues.set(symbol.name, value);
+        }
+      }
+    }
+
+    // If no const values found, nothing to resolve
+    if (constValues.size === 0) {
+      return;
+    }
+
+    // Scan all variable symbols for unresolved array dimensions
+    for (const symbol of this.symbolTable.getAllSymbols()) {
+      if (
+        symbol.kind === ESymbolKind.Variable &&
+        symbol.isArray &&
+        symbol.arrayDimensions
+      ) {
+        let modified = false;
+        const resolvedDimensions = symbol.arrayDimensions.map((dim) => {
+          // If dimension is numeric, keep it
+          const numericValue = Number.parseInt(dim, 10);
+          if (!Number.isNaN(numericValue)) {
+            return dim;
+          }
+
+          // Try to resolve from const values
+          const constValue = constValues.get(dim);
+          if (constValue !== undefined) {
+            modified = true;
+            return String(constValue);
+          }
+
+          // Keep original (unresolved macro reference)
+          return dim;
+        });
+
+        if (modified) {
+          // Update the symbol's array dimensions
+          symbol.arrayDimensions = resolvedDimensions;
+        }
+      }
+    }
+  }
+
+  /**
    * Stage 5: Analyze and transpile a single file
    */
   private async transpileFile(file: IDiscoveredFile): Promise<IFileResult> {
@@ -657,7 +745,6 @@ class Pipeline {
           debugMode: this.config.debugMode,
           target: this.config.target,
           sourcePath: file.path, // Issue #230: For self-include header generation
-          generateHeaders: this.config.generateHeaders, // Issue #230: Enable self-include when headers are generated
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
           sourceRelativePath: this.getSourceRelativePath(file.path), // Issue #339: For correct self-include paths
           includeDirs: this.config.includeDirs, // Issue #349: For angle-bracket include resolution
@@ -686,12 +773,15 @@ class Pipeline {
 
       // Issue #424: Store user includes for header generation
       // These may define macros used in array dimensions
+      // Issue #461: Transform .cnx includes to .h for header generation
       const userIncludes: string[] = [];
       for (const includeDir of tree.includeDirective()) {
         const includeText = includeDir.getText();
         // Only include quoted includes (user headers), not angle-bracket (system headers)
         if (includeText.includes('"')) {
-          userIncludes.push(includeText);
+          // Transform .cnx includes to .h (the generated header for the included .cnx file)
+          const transformedInclude = includeText.replace(/\.cnx"/, '.h"');
+          userIncludes.push(transformedInclude);
         }
       }
       this.userIncludesCollectors.set(file.path, userIncludes);
@@ -917,7 +1007,6 @@ class Pipeline {
       workingDir?: string; // For resolving relative #includes
       includeDirs?: string[]; // Additional include paths
       sourcePath?: string; // Optional source path for error messages
-      generateHeaders?: boolean; // Issue #230: Enable self-include for extern "C" tests
     },
   ): Promise<IFileResult> {
     const workingDir = options?.workingDir ?? process.cwd();
@@ -1068,15 +1157,14 @@ class Pipeline {
           debugMode: this.config.debugMode,
           target: this.config.target,
           sourcePath, // Issue #230: For self-include header generation
-          generateHeaders: options?.generateHeaders, // Issue #230: Enable self-include for extern "C" tests
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
           symbolInfo, // ADR-055: Pre-collected symbol info
         },
       );
 
-      // Issue #424: Generate header content if requested
+      // Issue #461: Always generate header content
       let headerCode: string | undefined;
-      if (options?.generateHeaders) {
+      {
         // Issue #424/ADR-055: Collect symbols from main source file AFTER code generation
         // This must happen after generate() to avoid interfering with type resolution
         const tSymbols = CNextResolver.resolve(tree, sourcePath);
@@ -1085,6 +1173,9 @@ class Pipeline {
           this.symbolTable,
         );
         this.symbolTable.addSymbols(collectedSymbols);
+
+        // Issue #461: Resolve external const array dimensions before header generation
+        this.resolveExternalArrayDimensions();
 
         const symbols = this.symbolTable.getSymbolsByFile(sourcePath);
         const exportedSymbols = symbols.filter((s) => s.isExported);
@@ -1130,12 +1221,15 @@ class Pipeline {
 
           // Issue #424: Collect user includes for header generation
           // These may define macros used in array dimensions
+          // Issue #461: Transform .cnx includes to .h for header generation
           const userIncludes: string[] = [];
           for (const includeDir of tree.includeDirective()) {
             const includeText = includeDir.getText();
             // Only include quoted includes (user headers), not angle-bracket (system headers)
             if (includeText.includes('"')) {
-              userIncludes.push(includeText);
+              // Transform .cnx includes to .h (the generated header for the included .cnx file)
+              const transformedInclude = includeText.replace(/\.cnx"/, '.h"');
+              userIncludes.push(transformedInclude);
             }
           }
 

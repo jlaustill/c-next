@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap-field-assignment.test.h"
+
 // Test that bitmap field assignment on register members generates correct bit manipulation
 // Tests this.SysTick.CTRL.ENABLE <- false pattern
 
@@ -10,20 +12,6 @@
 #include <stdbool.h>
 
 /* Scope: Timer */
-
-/* Bitmap: Timer_ControlBits */
-/* Fields:
- *   ENABLE: bit 0 (1 bit)
- *   TICKINT: bit 1 (1 bit)
- *   CLKSOURCE: bit 2 (1 bit)
- *   Reserved_3: bit 3 (1 bit)
- *   Reserved_4: bit 4 (1 bit)
- *   Reserved_5: bit 5 (1 bit)
- *   Reserved_6: bit 6 (1 bit)
- *   Reserved_7: bit 7 (1 bit)
- */
-typedef uint8_t Timer_ControlBits;
-
 
 /* Register: Timer_SysTick @ 0xE000E010 */
 #define Timer_SysTick_CTRL (*(volatile Timer_ControlBits*)(0xE000E010 + 0x00))

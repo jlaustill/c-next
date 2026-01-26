@@ -3,19 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "basic-scoped-struct.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Tests: Basic scoped struct declaration, read and write operations
 /* Scope: Motor */
-
-typedef struct Motor_Config {
-    uint8_t speed;
-    uint8_t direction;
-    bool enabled;
-} Motor_Config;
-
 Motor_Config Motor_current = {0};
 
 void Motor_setSpeed(uint8_t s) {

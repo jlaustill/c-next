@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap16-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,27 +12,6 @@
 // Comprehensive .length test for bitmap16 type across all contexts
 // Tests: .length returns 16 for bitmap16 in every possible scope and access pattern
 // Define bitmap16 type
-/* Bitmap: StatusFlags */
-/* Fields:
- *   bit0: bit 0 (1 bit)
- *   bit1: bit 1 (1 bit)
- *   bit2: bit 2 (1 bit)
- *   bit3: bit 3 (1 bit)
- *   bit4: bit 4 (1 bit)
- *   bit5: bit 5 (1 bit)
- *   bit6: bit 6 (1 bit)
- *   bit7: bit 7 (1 bit)
- *   bit8: bit 8 (1 bit)
- *   bit9: bit 9 (1 bit)
- *   bit10: bit 10 (1 bit)
- *   bit11: bit 11 (1 bit)
- *   bit12: bit 12 (1 bit)
- *   bit13: bit 13 (1 bit)
- *   bit14: bit 14 (1 bit)
- *   bit15: bit 15 (1 bit)
- */
-typedef uint16_t StatusFlags;
-
 StatusFlags globalVar = {0};
 
 /* Scope: TestScope */
@@ -48,10 +29,6 @@ StatusFlags TestScope_publicMember = {0};
 uint32_t checkParamLength(const StatusFlags* param) {
     return 16;
 }
-
-typedef struct TestStruct {
-    StatusFlags member;
-} TestStruct;
 
 int main(void) {
     globalVar = (globalVar & ~(1 << 0)) | (1 << 0);

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-critical-section.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <cmsis_gcc.h>

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-modifier-combos.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

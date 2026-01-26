@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "cpp-reinterpret-cast.test.h"
+
 // test-execution
 /* test-no-warnings */
 // Tests: Issue #267 - reinterpret_cast for string-to-pointer in C++ mode

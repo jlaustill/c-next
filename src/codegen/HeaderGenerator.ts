@@ -125,11 +125,19 @@ class HeaderGenerator {
 
     // Emit forward declarations for external types
     // Issue #296: Use typedef forward declaration for compatibility with named structs
-    if (externalTypes.size > 0) {
+    // Issue #461: Skip C++ types (templates with <>, namespaces with :: or .) - they can't be forward-declared in C
+    const cCompatibleExternalTypes = [...externalTypes].filter(
+      (t) =>
+        !t.includes("<") &&
+        !t.includes(">") &&
+        !t.includes("::") &&
+        !t.includes("."),
+    );
+    if (cCompatibleExternalTypes.length > 0) {
       lines.push(
         "/* External type dependencies - include appropriate headers */",
       );
-      for (const typeName of externalTypes) {
+      for (const typeName of cCompatibleExternalTypes) {
         lines.push(`typedef struct ${typeName} ${typeName};`);
       }
       lines.push("");
@@ -205,8 +213,21 @@ class HeaderGenerator {
     // Extern variable declarations
     // Issue #388: Filter out variables with C++ namespace types - they require
     // including C++ headers which is the user's responsibility
+    // Issue #461: Also filter out C++ template types and dot-notation namespace paths
+    // Dot paths (MockLib.Parse.Type) become :: in C++ and _ in headers, causing mismatches
+    // Note: C-Next's string<N> types (e.g., string<32>) are allowed - only filter C++ templates
+    const isCppTemplateType = (type: string | undefined): boolean => {
+      if (!type) return false;
+      // C-Next string<N> types are allowed (string followed by <digits>)
+      if (/^string<\d+>$/.test(type)) return false;
+      // Any other <> is a C++ template
+      return type.includes("<") || type.includes(">");
+    };
     const cCompatibleVariables = variables.filter(
-      (v) => !v.type?.includes("::"),
+      (v) =>
+        !v.type?.includes("::") &&
+        !v.type?.includes(".") &&
+        !isCppTemplateType(v.type),
     );
     if (cCompatibleVariables.length > 0) {
       lines.push("/* External variables */");

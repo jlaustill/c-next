@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-315-cross-file-primitive-args.test.h"
+
 // test-execution
 // Issue #315: Cross-file calls incorrectly add & to primitive struct member arguments
 // When calling a function in another file via global.ScopeName.function(),
@@ -10,11 +12,6 @@
 #include <TestFunc.h>
 
 #include <stdint.h>
-
-typedef struct TestData {
-    float value1;
-    float value2;
-} TestData;
 
 /* Scope: TestCaller */
 static TestData TestCaller_data = {0};

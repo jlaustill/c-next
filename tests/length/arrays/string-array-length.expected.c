@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-array-length.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -26,10 +28,6 @@ char TestScope_publicArr[4][65] = {0};
 uint32_t checkArrayLength(char arr[4][65]) {
     return 4;
 }
-
-typedef struct TestStruct {
-    char arr[4][65];
-} TestStruct;
 
 int main(void) {
     strncpy(globalArr[0], "Hello", 64);

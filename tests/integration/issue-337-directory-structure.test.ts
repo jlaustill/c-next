@@ -116,7 +116,6 @@ async function testPipelineWithDirectory() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -203,7 +202,6 @@ async function testProjectWithExpandedFiles() {
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
-    generateHeaders: true,
   });
 
   const result = await project.compile();
@@ -260,7 +258,6 @@ async function testProjectWithSrcDirs() {
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
-    generateHeaders: true,
   });
 
   const result = await project.compile();
@@ -302,7 +299,6 @@ async function testCompilationOrder() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();

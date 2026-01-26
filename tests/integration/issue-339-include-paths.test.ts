@@ -115,7 +115,6 @@ async function testSelfIncludePathsWithPipeline() {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -195,7 +194,6 @@ async function testSelfIncludePathsWithProject() {
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
-    generateHeaders: true,
   });
 
   const result = await project.compile();
@@ -256,7 +254,6 @@ scope RootModule {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();
@@ -315,7 +312,6 @@ scope Deep {
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
-    generateHeaders: true,
   });
 
   const result = await pipeline.run();

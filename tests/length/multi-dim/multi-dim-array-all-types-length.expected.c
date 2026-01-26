@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "multi-dim-array-all-types-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -30,10 +32,6 @@ uint32_t checkMatrixLength(const uint8_t matrix[4][8]) {
 }
 
 // Struct with multi-dim array
-typedef struct TestStruct {
-    uint8_t matrix[4][8];
-} TestStruct;
-
 int main(void) {
     globalU8Matrix[0][0] = 1;
     globalU32Matrix[0][0] = 100;
