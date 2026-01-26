@@ -1,0 +1,1 @@
+1:0 Code generation failed: 11:13 error[E0424]: 'SPN_CAT_TEMPERATURE' is not defined; did you mean 'ESpnCategory.SPN_CAT_TEMPERATURE'?

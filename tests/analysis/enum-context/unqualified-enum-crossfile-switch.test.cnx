@@ -1,0 +1,15 @@
+// test-error
+// Tests: Cross-file enum in switch on non-enum (from issue #477)
+
+#include "cross-file-types.cnx"
+
+void test(u16 spn) {
+    u8 category <- 0;
+
+    // ERROR: switch on u8 with unqualified enum case labels
+    switch (category) {
+        case SPN_CAT_TEMPERATURE { }
+        case SPN_CAT_PRESSURE { }
+        case SPN_CAT_UNKNOWN { }
+    }
+}

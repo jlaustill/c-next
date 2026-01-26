@@ -1,0 +1,41 @@
+// test-execution
+// Tests: Cross-file unqualified enum SHOULD work when return type is the enum
+
+#include "cross-file-types.cnx"
+
+// Valid: return type IS ESpnCategory - unqualified enum should work
+ESpnCategory getCategory(u16 spn) {
+    if (spn = 100) { return SPN_CAT_PRESSURE; }
+    return SPN_CAT_UNKNOWN;
+}
+
+// Valid: switch on enum type with unqualified case labels
+u32 categoryToValue(ESpnCategory cat) {
+    switch (cat) {
+        case SPN_CAT_TEMPERATURE { return 0; }
+        case SPN_CAT_PRESSURE { return 1; }
+        case SPN_CAT_UNKNOWN { return 2; }
+    }
+    return 99;
+}
+
+u32 main() {
+    // Test return from enum function
+    ESpnCategory cat <- getCategory(100);
+    if (cat != ESpnCategory.SPN_CAT_PRESSURE) return 1;
+
+    cat <- getCategory(0);
+    if (cat != ESpnCategory.SPN_CAT_UNKNOWN) return 2;
+
+    // Test switch on enum (extract to variable for MISRA compliance)
+    u32 val1 <- categoryToValue(ESpnCategory.SPN_CAT_TEMPERATURE);
+    if (val1 != 0) return 3;
+
+    u32 val2 <- categoryToValue(ESpnCategory.SPN_CAT_PRESSURE);
+    if (val2 != 1) return 4;
+
+    u32 val3 <- categoryToValue(ESpnCategory.SPN_CAT_UNKNOWN);
+    if (val3 != 2) return 5;
+
+    return 0;
+}
