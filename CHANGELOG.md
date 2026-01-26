@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.42] - 2026-01-26
+
+### Fixed
+
+- Reject unqualified enum values in non-enum type contexts with helpful "did you mean" suggestions (Issue #477, PR #480)
+- Global type references (e.g., `global.EnumType`) now work correctly inside scopes (Issue #478, PR #479)
+
+### Changed
+
+- Test framework now auto-generates `.expected.h` for helper files in update mode (PR #480)
+
 ## [0.1.41] - 2026-01-26
 
 ### Fixed
