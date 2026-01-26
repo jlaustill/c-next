@@ -80,7 +80,8 @@ function validateDocument(document: vscode.TextDocument): void {
   }
 
   const source = document.getText();
-  const result = transpile(source, { parseOnly: true });
+  // Full transpile to catch code generation errors (not just parse errors)
+  const result = transpile(source);
 
   // Clear diagnostics for this specific document
   diagnosticCollection.delete(document.uri);
@@ -115,7 +116,14 @@ function validateDocument(document: vscode.TextDocument): void {
         : vscode.DiagnosticSeverity.Warning,
     );
     diagnostic.source = "C-Next";
-    diagnostic.code = "parse-error";
+    // Categorize error type based on message content
+    if (error.message.includes("Code generation failed")) {
+      diagnostic.code = "codegen-error";
+    } else if (error.message.includes("error[")) {
+      diagnostic.code = "analysis-error";
+    } else {
+      diagnostic.code = "parse-error";
+    }
     return diagnostic;
   });
 

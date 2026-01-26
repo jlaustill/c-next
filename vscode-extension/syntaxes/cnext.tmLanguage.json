@@ -239,7 +239,7 @@
       "patterns": [
         {
           "name": "keyword.operator.assignment.compound.cnext",
-          "match": "(\\+<-|-<-|\\*<-|/<-|%<-|&<-|\\|<-|\\^<-|<<-|>><-)"
+          "match": "(\\+<-|-<-|\\*<-|/<-|%<-|&<-|\\|<-|\\^<-|<<<-|>><-)"
         },
         {
           "name": "keyword.operator.assignment.cnext",
@@ -279,7 +279,7 @@
         },
         {
           "name": "constant.language.null.cnext",
-          "match": "\\b(null|NULL)\\b"
+          "match": "\\b(NULL)\\b"
         },
         {
           "name": "constant.numeric.hex.cnext",

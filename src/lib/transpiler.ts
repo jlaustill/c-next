@@ -15,6 +15,8 @@ import { CNextParser } from "../antlr_parser/grammar/CNextParser";
 import CodeGenerator from "../codegen/CodeGenerator";
 import CommentExtractor from "../codegen/CommentExtractor";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
+import CNextResolver from "../symbol_resolution/cnext";
+import TSymbolInfoAdapter from "../symbol_resolution/cnext/adapters/TSymbolInfoAdapter";
 import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
@@ -296,10 +298,15 @@ function transpile(
 
   // Generate C code
   try {
+    // ADR-055: Collect symbols using CNextResolver + TSymbolInfoAdapter
+    const tSymbols = CNextResolver.resolve(tree, "<source>");
+    const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
     const generator = new CodeGenerator();
     const code = generator.generate(tree, undefined, tokenStream, {
       debugMode,
       target,
+      symbolInfo,
     });
 
     return {
