@@ -32,7 +32,13 @@ class CNextResolver {
 
     // Pass 1: Collect all bitmap names (needed before registers reference them)
     // This includes bitmaps in scopes
-    CNextResolver.collectBitmapsPass1(tree, sourceFile, symbols, knownBitmaps);
+    CNextResolver.collectBitmapsPass1(
+      tree,
+      sourceFile,
+      symbols,
+      knownBitmaps,
+      constValues,
+    );
 
     // Pass 2: Collect everything else (with bitmap set and const values available)
     CNextResolver.collectAllPass2(
@@ -108,6 +114,7 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
   ): void {
     for (const decl of tree.declaration()) {
       // Top-level bitmaps
@@ -142,6 +149,7 @@ class CNextResolver {
               structCtx,
               sourceFile,
               scopeName,
+              constValues,
             );
             symbols.push(symbol);
           }
@@ -194,7 +202,12 @@ class CNextResolver {
       // Top-level structs
       if (decl.structDeclaration()) {
         const structCtx = decl.structDeclaration()!;
-        const symbol = StructCollector.collect(structCtx, sourceFile);
+        const symbol = StructCollector.collect(
+          structCtx,
+          sourceFile,
+          undefined,
+          constValues,
+        );
         symbols.push(symbol);
       }
 

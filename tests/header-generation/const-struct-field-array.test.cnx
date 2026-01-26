@@ -1,0 +1,29 @@
+// Tests: Struct fields with const-based array dimensions in headers
+
+const u8 BUFFER_SIZE <- 8;
+const u8 ROWS <- 4;
+const u8 COLS <- 3;
+const u8 HEX_SIZE <- 0x10;
+
+struct TData {
+    // Single dimension with constant
+    u8 buffer[BUFFER_SIZE];
+
+    // Multi-dimensional with constants
+    i16 matrix[ROWS][COLS];
+
+    // Hex constant dimension
+    bool flags[HEX_SIZE];
+
+    // Literal dimension (control case)
+    u32 literal_arr[5];
+
+    // Non-array field
+    i32 value;
+}
+
+TData data;
+
+void main() {
+    data.buffer[0] <- 1;
+}
