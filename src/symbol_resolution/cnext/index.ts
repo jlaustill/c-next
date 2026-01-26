@@ -24,15 +24,76 @@ class CNextResolver {
   static resolve(tree: Parser.ProgramContext, sourceFile: string): TSymbol[] {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
+    const constValues = new Map<string, number>();
+
+    // Pass 0: Collect const values (needed for resolving array dimensions)
+    CNextResolver.collectConstValuesPass0(tree, constValues);
 
     // Pass 1: Collect all bitmap names (needed before registers reference them)
     // This includes bitmaps in scopes
     CNextResolver.collectBitmapsPass1(tree, sourceFile, symbols, knownBitmaps);
 
-    // Pass 2: Collect everything else (with bitmap set available)
-    CNextResolver.collectAllPass2(tree, sourceFile, symbols, knownBitmaps);
+    // Pass 2: Collect everything else (with bitmap set and const values available)
+    CNextResolver.collectAllPass2(
+      tree,
+      sourceFile,
+      symbols,
+      knownBitmaps,
+      constValues,
+    );
 
     return symbols;
+  }
+
+  /**
+   * Pass 0: Collect const values for resolving array dimensions.
+   * Only collects simple integer literals - complex expressions are not supported.
+   */
+  private static collectConstValuesPass0(
+    tree: Parser.ProgramContext,
+    constValues: Map<string, number>,
+  ): void {
+    for (const decl of tree.declaration()) {
+      // Top-level const variables
+      if (decl.variableDeclaration()) {
+        const varCtx = decl.variableDeclaration()!;
+        if (varCtx.constModifier()) {
+          const name = varCtx.IDENTIFIER().getText();
+          const exprCtx = varCtx.expression();
+          if (exprCtx) {
+            const value = Number.parseInt(exprCtx.getText(), 10);
+            if (!Number.isNaN(value)) {
+              constValues.set(name, value);
+            }
+          }
+        }
+      }
+
+      // Const variables inside scopes
+      if (decl.scopeDeclaration()) {
+        const scopeDecl = decl.scopeDeclaration()!;
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+
+        for (const member of scopeDecl.scopeMember()) {
+          if (member.variableDeclaration()) {
+            const varCtx = member.variableDeclaration()!;
+            if (varCtx.constModifier()) {
+              const name = varCtx.IDENTIFIER().getText();
+              const fullName = `${scopeName}_${name}`;
+              const exprCtx = varCtx.expression();
+              if (exprCtx) {
+                const value = Number.parseInt(exprCtx.getText(), 10);
+                if (!Number.isNaN(value)) {
+                  // Store both bare name and scoped name for flexibility
+                  constValues.set(name, value);
+                  constValues.set(fullName, value);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -95,6 +156,7 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
   ): void {
     for (const decl of tree.declaration()) {
       // Skip bitmaps (already collected in pass 1)
@@ -109,6 +171,7 @@ class CNextResolver {
           scopeCtx,
           sourceFile,
           knownBitmaps,
+          constValues,
         );
 
         symbols.push(result.scopeSymbol);
@@ -160,7 +223,13 @@ class CNextResolver {
       // Top-level variables
       if (decl.variableDeclaration()) {
         const varCtx = decl.variableDeclaration()!;
-        const symbol = VariableCollector.collect(varCtx, sourceFile);
+        const symbol = VariableCollector.collect(
+          varCtx,
+          sourceFile,
+          undefined,
+          true,
+          constValues,
+        );
         symbols.push(symbol);
       }
     }

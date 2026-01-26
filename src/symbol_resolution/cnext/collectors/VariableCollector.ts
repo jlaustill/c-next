@@ -17,6 +17,7 @@ class VariableCollector {
    * @param sourceFile Source file path
    * @param scopeName Optional scope name for scoped variables
    * @param isPublic Whether this variable is public (default true for top-level)
+   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @returns The variable symbol
    */
   static collect(
@@ -24,6 +25,7 @@ class VariableCollector {
     sourceFile: string,
     scopeName?: string,
     isPublic: boolean = true,
+    constValues?: Map<string, number>,
   ): IVariableSymbol {
     const name = ctx.IDENTIFIER().getText();
     const fullName = scopeName ? `${scopeName}_${name}` : name;
@@ -45,9 +47,14 @@ class VariableCollector {
       for (const dim of arrayDims) {
         const sizeExpr = dim.expression();
         if (sizeExpr) {
-          const size = Number.parseInt(sizeExpr.getText(), 10);
-          if (!Number.isNaN(size)) {
-            arrayDimensions.push(size);
+          const dimText = sizeExpr.getText();
+          // Try parsing as literal number first
+          const literalSize = Number.parseInt(dimText, 10);
+          if (!Number.isNaN(literalSize)) {
+            arrayDimensions.push(literalSize);
+          } else if (constValues?.has(dimText)) {
+            // Issue #455: Resolve constant reference to its value
+            arrayDimensions.push(constValues.get(dimText)!);
           }
         }
       }
