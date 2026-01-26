@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.37] - 2026-01-25
+
+### Fixed
+
+- Preserve const-based array dimensions in struct field declarations (Issue #455, PR #457)
+- Support C macro dimensions in array declarations for header interop (PR #456)
+- Handle hex and binary constants in array dimension expressions (PR #456)
+- Preserve const-based array dimensions in extern header declarations (PR #456)
+- Preserve tracked .test.h files and clean up stale test artifacts (PR #458)
+
 ## [0.1.36] - 2026-01-25
 
 ### Fixed
@@ -423,6 +433,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.35...HEAD
+[0.1.37]: https://github.com/jlaustill/c-next/compare/v0.1.36...v0.1.37
 [0.1.36]: https://github.com/jlaustill/c-next/compare/v0.1.35...v0.1.36
 [0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
 [0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
