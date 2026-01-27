@@ -38,6 +38,8 @@ interface ICNextConfig {
   output?: string;
   /** Separate output directory for header files */
   headerOut?: string;
+  /** Base path to strip from header output paths (only used with headerOut) */
+  basePath?: string;
   /** Internal: path to config file that was loaded (set by loadConfig) */
   _path?: string;
 }
@@ -117,6 +119,9 @@ function showHelp(): void {
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  --no-cache         Disable symbol cache (.cnx/ directory)");
   console.log("  --header-out <dir> Output directory for header files");
+  console.log(
+    "  --base-path <path> Strip path prefix from header output (use with --header-out)",
+  );
   console.log(
     "  --clean            Delete generated files for all .cnx sources",
   );
@@ -220,6 +225,7 @@ async function runUnifiedMode(
   noCache: boolean,
   parseOnly: boolean,
   headerOutDir?: string,
+  basePath?: string,
 ): Promise<void> {
   // Issue #337: Identify which inputs are directories (for structure preservation)
   // These will be passed to Project.srcDirs so Pipeline can preserve directory structure
@@ -301,6 +307,7 @@ async function runUnifiedMode(
     includeDirs: allIncludePaths,
     outDir,
     headerOutDir,
+    basePath,
     preprocess,
     defines,
     cppRequired,
@@ -518,6 +525,7 @@ async function main(): Promise<void> {
   let noCache = false;
   let parseOnly = false;
   let headerOutDir: string | undefined;
+  let basePath: string | undefined;
   let cleanMode = false;
   let showConfig = false;
 
@@ -540,6 +548,8 @@ async function main(): Promise<void> {
       parseOnly = true;
     } else if (arg === "--header-out" && i + 1 < args.length) {
       headerOutDir = args[++i];
+    } else if (arg === "--base-path" && i + 1 < args.length) {
+      basePath = args[++i];
     } else if (arg === "--clean") {
       cleanMode = true;
     } else if (arg === "--config") {
@@ -586,6 +596,7 @@ async function main(): Promise<void> {
   const finalNoCache = noCache || config.noCache === true;
   const finalOutputPath = outputPath || config.output || "";
   const finalHeaderOutDir = headerOutDir ?? config.headerOut;
+  const finalBasePath = basePath ?? config.basePath;
   // Merge include dirs: CLI includes come after config includes (higher priority in search)
   const finalIncludeDirs = [...(config.include ?? []), ...includeDirs];
 
@@ -605,6 +616,7 @@ async function main(): Promise<void> {
     console.log(
       "  headerOut:      " + (finalHeaderOutDir ?? "(same as output)"),
     );
+    console.log("  basePath:       " + (finalBasePath ?? "(none)"));
     console.log(
       "  include:        " + (finalIncludeDirs.length > 0 ? "" : "(none)"),
     );
@@ -647,6 +659,7 @@ async function main(): Promise<void> {
     finalNoCache,
     parseOnly,
     finalHeaderOutDir,
+    finalBasePath,
   );
 }
 

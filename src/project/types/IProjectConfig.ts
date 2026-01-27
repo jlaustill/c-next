@@ -17,6 +17,9 @@ interface IProjectConfig {
   /** Separate output directory for header files (defaults to outDir) */
   headerOutDir?: string;
 
+  /** Base path to strip from header output paths (only used with headerOutDir) */
+  basePath?: string;
+
   /** Specific files to compile (overrides srcDirs) */
   files?: string[];
 

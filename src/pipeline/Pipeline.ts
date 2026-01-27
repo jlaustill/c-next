@@ -85,6 +85,7 @@ class Pipeline {
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
+      basePath: config.basePath ?? "",
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
       cppRequired: config.cppRequired ?? false,
@@ -1056,10 +1057,29 @@ class Pipeline {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 
+    // Helper to strip basePath prefix from a relative path
+    // e.g., "src/AppConfig.cnx" with basePath "src" -> "AppConfig.cnx"
+    const stripBasePath = (relPath: string): string => {
+      if (!this.config.basePath || !this.config.headerOutDir) {
+        return relPath;
+      }
+      // Normalize basePath (remove trailing slashes)
+      const base = this.config.basePath.replace(/[/\\]+$/, "");
+      // Check if relPath starts with basePath (+ separator or exact match)
+      if (relPath === base) {
+        return "";
+      }
+      if (relPath.startsWith(base + "/") || relPath.startsWith(base + "\\")) {
+        return relPath.slice(base.length + 1);
+      }
+      return relPath;
+    };
+
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
-      // File is under an input directory - preserve structure
-      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
+      // File is under an input directory - preserve structure (minus basePath)
+      const strippedPath = stripBasePath(relativePath);
+      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
       const outputPath = join(headerDir, outputRelative);
 
       const outputDir = dirname(outputPath);
@@ -1077,7 +1097,8 @@ class Pipeline {
       const relativeFromCwd = relative(cwd, file.path);
       // Only use CWD-relative path if file is under CWD (not starting with ..)
       if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
-        const outputRelative = relativeFromCwd.replace(/\.cnx$|\.cnext$/, ".h");
+        const strippedPath = stripBasePath(relativeFromCwd);
+        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
         const outputPath = join(this.config.headerOutDir, outputRelative);
 
         const outputDir = dirname(outputPath);
