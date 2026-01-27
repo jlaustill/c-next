@@ -180,6 +180,8 @@ interface GeneratorContext {
   modifiedParameters: Set<string>; // Issue #268: track modified params for auto-const inference
   localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
   localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
+  floatBitShadows: Set<string>; // Track declared shadow variables for float bit indexing
+  floatShadowCurrent: Set<string>; // Track which shadows have current value (skip redundant memcpy reads)
   inFunctionBody: boolean; // ADR-016: track if we're inside a function body
   typeRegistry: Map<string, TTypeInfo>; // Track variable types for bit access and .length
   expectedType: string | null; // For inferred struct initializers
@@ -210,6 +212,8 @@ export default class CodeGenerator implements IOrchestrator {
     modifiedParameters: new Set(),
     localArrays: new Set(),
     localVariables: new Set(), // ADR-016: track local variables
+    floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
+    floatShadowCurrent: new Set(), // Track which shadows have current value
     inFunctionBody: false, // ADR-016: track if inside function body
     typeRegistry: new Map(),
     expectedType: null,
@@ -253,6 +257,8 @@ export default class CodeGenerator implements IOrchestrator {
   private needsStdbool: boolean = false; // For bool type
 
   private needsString: boolean = false; // ADR-045: For strlen, strncpy, etc.
+
+  private needsFloatStaticAssert: boolean = false; // For float bit indexing size verification
 
   private needsISR: boolean = false; // ADR-040: For ISR function pointer type
 
@@ -463,11 +469,15 @@ export default class CodeGenerator implements IOrchestrator {
           this.context.inFunctionBody = true;
           this.context.localVariables.clear();
           this.context.localArrays.clear();
+          this.context.floatBitShadows.clear();
+          this.context.floatShadowCurrent.clear();
           break;
         case "exit-function-body":
           this.context.inFunctionBody = false;
           this.context.localVariables.clear();
           this.context.localArrays.clear();
+          this.context.floatBitShadows.clear();
+          this.context.floatShadowCurrent.clear();
           break;
         case "set-parameters":
           this.context.currentParameters = new Map(effect.params);
@@ -1034,6 +1044,8 @@ export default class CodeGenerator implements IOrchestrator {
 
   enterFunctionBody(): void {
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.modifiedParameters.clear(); // Issue #268: Clear for new function
     this.context.inFunctionBody = true;
   }
@@ -1041,6 +1053,8 @@ export default class CodeGenerator implements IOrchestrator {
   exitFunctionBody(): void {
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
   }
 
@@ -1494,6 +1508,8 @@ export default class CodeGenerator implements IOrchestrator {
       modifiedParameters: new Set(),
       localArrays: new Set(),
       localVariables: new Set(), // ADR-016
+      floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
+      floatShadowCurrent: new Set(), // Track which shadows have current value
       inFunctionBody: false, // ADR-016
       typeRegistry: new Map(),
       expectedType: null,
@@ -1518,6 +1534,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.needsStdint = false;
     this.needsStdbool = false;
     this.needsString = false; // ADR-045: Reset string header tracking
+    this.needsFloatStaticAssert = false; // Reset float bit indexing assertion
     this.needsISR = false; // ADR-040: Reset ISR typedef tracking
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
     this.needsIrqWrappers = false; // Issue #473: Reset IRQ wrappers tracking
@@ -1704,6 +1721,17 @@ export default class CodeGenerator implements IOrchestrator {
     }
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes);
+      output.push("");
+    }
+
+    // Float bit indexing requires size verification at compile time
+    if (this.needsFloatStaticAssert) {
+      output.push(
+        '_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");',
+      );
+      output.push(
+        '_Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");',
+      );
       output.push("");
     }
 
@@ -5401,6 +5429,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-016: Clear local variables and mark that we're in a function body
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.inFunctionBody = true;
 
     // Check for main function with args parameter (u8 args[][])
@@ -5443,6 +5473,8 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-016: Clear local variables and mark that we're no longer in a function body
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
     this.context.currentFunctionName = null; // Issue #269: Clear function name
     this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
@@ -6406,28 +6438,30 @@ export default class CodeGenerator implements IOrchestrator {
    * Generate a safe bit mask expression.
    * Avoids undefined behavior when width >= 32 for 32-bit integers.
    * @param width The width expression (may be a literal or expression)
+   * @param isF64 If true, generate 64-bit masks with ULL suffix (for f64 bit indexing)
    */
-  private generateBitMask(width: string): string {
+  private generateBitMask(width: string, isF64: boolean = false): string {
+    const suffix = isF64 ? "ULL" : "U";
     // Check if width is a compile-time constant
     const widthNum = Number.parseInt(width, 10);
     if (!Number.isNaN(widthNum)) {
       // Use explicit hex masks for common widths to avoid UB
       if (widthNum === 32) {
-        return "0xFFFFFFFFU";
+        return isF64 ? "0xFFFFFFFFULL" : "0xFFFFFFFFU";
       }
       if (widthNum === 64) {
         return "0xFFFFFFFFFFFFFFFFULL";
       }
       if (widthNum === 16) {
-        return "0xFFFFU";
+        return isF64 ? "0xFFFFULL" : "0xFFFFU";
       }
       if (widthNum === 8) {
-        return "0xFFU";
+        return isF64 ? "0xFFULL" : "0xFFU";
       }
     }
     // For non-constant or other widths, use the shift expression
     // (safe as long as width < 32 for 32-bit operations)
-    return `((1U << ${width}) - 1)`;
+    return `((1${suffix} << ${width}) - 1)`;
   }
 
   // ========================================================================
@@ -6589,6 +6623,10 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.context.currentParameters.has(id)) {
         this.context.modifiedParameters.add(id);
       }
+
+      // Invalidate float shadow when variable is assigned directly
+      const shadowName = `__bits_${id}`;
+      this.context.floatShadowCurrent.delete(shadowName);
 
       // ADR-017: Validate enum type assignment
       const targetTypeInfo = this.context.typeRegistry.get(id);
@@ -7886,12 +7924,65 @@ export default class CodeGenerator implements IOrchestrator {
         return `${name}[${index}] ${cOp} ${value};`;
       }
 
-      // Bit manipulation for scalar integer types
+      // Bit manipulation for scalar types
       // Compound operators not supported for bit field access
       if (isCompound) {
         throw new Error(
           `Compound assignment operators not supported for bit field access: ${cnextOp}`,
         );
+      }
+
+      // Float bit indexing: use shadow variable + memcpy
+      const isFloatType =
+        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
+      if (isFloatType) {
+        this.needsString = true; // For memcpy
+        this.needsFloatStaticAssert = true; // For size verification
+        const isF64 = typeInfo?.baseType === "f64";
+        const shadowType = isF64 ? "uint64_t" : "uint32_t";
+        const shadowName = `__bits_${name}`;
+        const maskSuffix = isF64 ? "ULL" : "U";
+
+        // Check if shadow variable needs declaration
+        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
+        if (needsDeclaration) {
+          this.context.floatBitShadows.add(shadowName);
+        }
+
+        // Check if shadow already has current value (skip redundant memcpy read)
+        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+
+        if (exprs.length === 1) {
+          // Single bit assignment: floatVar[3] <- true
+          const bitIndex = this._generateExpression(exprs[0]);
+          const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
+          const readMemcpy = shadowIsCurrent
+            ? ""
+            : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+          // Mark shadow as current after this write
+          this.context.floatShadowCurrent.add(shadowName);
+          return (
+            `${decl}${readMemcpy}` +
+            `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
+            `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+          );
+        } else if (exprs.length === 2) {
+          // Bit range assignment: floatVar[0, 8] <- b0
+          const start = this._generateExpression(exprs[0]);
+          const width = this._generateExpression(exprs[1]);
+          const mask = this.generateBitMask(width, isF64);
+          const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
+          const readMemcpy = shadowIsCurrent
+            ? ""
+            : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+          // Mark shadow as current after this write
+          this.context.floatShadowCurrent.add(shadowName);
+          return (
+            `${decl}${readMemcpy}` +
+            `${shadowName} = (${shadowName} & ~(${mask} << ${start})) | (((${shadowType})${value} & ${mask}) << ${start}); ` +
+            `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+          );
+        }
       }
 
       if (exprs.length === 1) {
@@ -9623,13 +9714,64 @@ export default class CodeGenerator implements IOrchestrator {
           // Bit range: flags[start, width]
           const start = this._generateExpression(exprs[0]);
           const width = this._generateExpression(exprs[1]);
-          const mask = this.generateBitMask(width);
-          // Optimize: skip shift when start is 0
-          if (start === "0") {
-            result = `((${result}) & ${mask})`;
+
+          // Float bit indexing read: use shadow variable + memcpy
+          const isFloatType =
+            primaryTypeInfo?.baseType === "f32" ||
+            primaryTypeInfo?.baseType === "f64";
+          if (isFloatType && primaryId) {
+            // Global scope float bit reads are not valid C (initializers must be constant)
+            if (!this.context.inFunctionBody) {
+              throw new Error(
+                `Float bit indexing reads (${primaryId}[${start}, ${width}]) cannot be used at global scope. ` +
+                  `Move the initialization inside a function.`,
+              );
+            }
+
+            this.needsString = true; // For memcpy
+            this.needsFloatStaticAssert = true; // For size verification
+            const isF64 = primaryTypeInfo?.baseType === "f64";
+            const shadowType = isF64 ? "uint64_t" : "uint32_t";
+            const shadowName = `__bits_${primaryId}`;
+            const mask = this.generateBitMask(width, isF64);
+
+            // Check if shadow variable needs declaration
+            const needsDeclaration =
+              !this.context.floatBitShadows.has(shadowName);
+            if (needsDeclaration) {
+              this.context.floatBitShadows.add(shadowName);
+              // Push declaration to pending - will be emitted before the statement
+              this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+            }
+
+            // Check if shadow already has current value (skip redundant memcpy read)
+            const shadowIsCurrent =
+              this.context.floatShadowCurrent.has(shadowName);
+
+            // Use comma operator to combine memcpy with expression (no declaration inline)
+            // Mark shadow as current after this read
+            this.context.floatShadowCurrent.add(shadowName);
+            if (shadowIsCurrent) {
+              // Shadow already has current value - just use it directly
+              if (start === "0") {
+                result = `(${shadowName} & ${mask})`;
+              } else {
+                result = `((${shadowName} >> ${start}) & ${mask})`;
+              }
+            } else if (start === "0") {
+              result = `(memcpy(&${shadowName}, &${result}, sizeof(${result})), (${shadowName} & ${mask}))`;
+            } else {
+              result = `(memcpy(&${shadowName}, &${result}, sizeof(${result})), ((${shadowName} >> ${start}) & ${mask}))`;
+            }
           } else {
-            // Generate bit range read: ((value >> start) & mask)
-            result = `((${result} >> ${start}) & ${mask})`;
+            const mask = this.generateBitMask(width);
+            // Optimize: skip shift when start is 0
+            if (start === "0") {
+              result = `((${result}) & ${mask})`;
+            } else {
+              // Generate bit range read: ((value >> start) & mask)
+              result = `((${result} >> ${start}) & ${mask})`;
+            }
           }
         }
       }
@@ -10479,6 +10621,55 @@ export default class CodeGenerator implements IOrchestrator {
       // Bit range: flags[start, width]
       const start = this._generateExpression(exprs[0]);
       const width = this._generateExpression(exprs[1]);
+      const typeInfo = this.context.typeRegistry.get(rawName);
+
+      // Float bit indexing read: use shadow variable + memcpy
+      const isFloatType =
+        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
+      if (isFloatType) {
+        // Global scope float bit reads are not valid C (initializers must be constant)
+        if (!this.context.inFunctionBody) {
+          throw new Error(
+            `Float bit indexing reads (${rawName}[${start}, ${width}]) cannot be used at global scope. ` +
+              `Move the initialization inside a function.`,
+          );
+        }
+
+        this.needsString = true; // For memcpy
+        this.needsFloatStaticAssert = true; // For size verification
+        const isF64 = typeInfo?.baseType === "f64";
+        const shadowType = isF64 ? "uint64_t" : "uint32_t";
+        const shadowName = `__bits_${rawName}`;
+        const mask = this.generateBitMask(width, isF64);
+
+        // Check if shadow variable needs declaration
+        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
+        if (needsDeclaration) {
+          this.context.floatBitShadows.add(shadowName);
+          // Push declaration to pending - will be emitted before the statement
+          this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+        }
+
+        // Check if shadow already has current value (skip redundant memcpy read)
+        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+
+        // Mark shadow as current after this read
+        this.context.floatShadowCurrent.add(shadowName);
+
+        // Use comma operator to combine memcpy with expression (no declaration inline)
+        if (shadowIsCurrent) {
+          // Shadow already has current value - just use it directly
+          if (start === "0") {
+            return `(${shadowName} & ${mask})`;
+          }
+          return `((${shadowName} >> ${start}) & ${mask})`;
+        }
+        if (start === "0") {
+          return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), (${shadowName} & ${mask}))`;
+        }
+        return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), ((${shadowName} >> ${start}) & ${mask}))`;
+      }
+
       const mask = this.generateBitMask(width);
       // Optimize: skip shift when start is 0
       if (start === "0") {
