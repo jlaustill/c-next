@@ -65,10 +65,11 @@ class Project {
     // Compile each input file individually to avoid cross‑file symbol leakage.
     const results: any[] = [];
     // Build the full list of .cnx/.cnext files from srcDirs and explicit files
-    const allFiles = InputExpansion.expandInputs([
-      ...this.config.srcDirs,
-      ...(this.config.files ?? []),
-    ]);
+    const allFiles =
+      InputExpansion.expandInputs([
+        ...this.config.srcDirs,
+        ...(this.config.files ?? []),
+      ]) || [];
     for (const file of allFiles) {
       // Create a fresh pipeline instance per file with the same configuration.
       const perFilePipeline = new Pipeline({
