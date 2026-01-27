@@ -1070,7 +1070,36 @@ class Pipeline {
       return outputPath;
     }
 
-    // Fallback: output next to the source file (not in headerDir)
+    // Issue #489: If headerOutDir is explicitly set, use it with relative path from CWD
+    // This handles single-file inputs like "cnext src/AppConfig.cnx" with headerOut config
+    if (this.config.headerOutDir) {
+      const cwd = process.cwd();
+      const relativeFromCwd = relative(cwd, file.path);
+      // Only use CWD-relative path if file is under CWD (not starting with ..)
+      if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
+        const outputRelative = relativeFromCwd.replace(/\.cnx$|\.cnext$/, ".h");
+        const outputPath = join(this.config.headerOutDir, outputRelative);
+
+        const outputDir = dirname(outputPath);
+        if (!existsSync(outputDir)) {
+          mkdirSync(outputDir, { recursive: true });
+        }
+
+        return outputPath;
+      }
+
+      // File outside CWD: put in headerOutDir with just basename
+      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+      const outputPath = join(this.config.headerOutDir, headerName);
+
+      if (!existsSync(this.config.headerOutDir)) {
+        mkdirSync(this.config.headerOutDir, { recursive: true });
+      }
+
+      return outputPath;
+    }
+
+    // Fallback: output next to the source file (no headerDir specified)
     // This handles included files that aren't under any input directory
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
     return join(dirname(file.path), headerName);
