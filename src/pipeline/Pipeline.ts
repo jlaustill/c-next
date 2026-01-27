@@ -946,9 +946,10 @@ class Pipeline {
       return outputPath;
     }
 
-    // Fallback: flat output in outDir
+    // Fallback: output next to the source file (not in outDir)
+    // This handles included files that aren't under any input directory
     const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
-    return join(this.config.outDir, outputName);
+    return join(dirname(file.path), outputName);
   }
 
   /**
@@ -1069,9 +1070,10 @@ class Pipeline {
       return outputPath;
     }
 
-    // Fallback: flat output in headerDir
+    // Fallback: output next to the source file (not in headerDir)
+    // This handles included files that aren't under any input directory
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    return join(headerDir, headerName);
+    return join(dirname(file.path), headerName);
   }
 
   /**

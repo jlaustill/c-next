@@ -82,7 +82,7 @@ const ACCESS_MODIFIERS = ["rw", "ro", "wo", "w1c", "w1s"];
 /**
  * Boolean and null literals
  */
-const LITERALS = ["true", "false", "null", "NULL"];
+const LITERALS = ["true", "false", "NULL"];
 
 /**
  * Overflow behavior modifiers (ADR-044)
