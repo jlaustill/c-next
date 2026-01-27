@@ -6,15 +6,18 @@
 #include <stdint.h>
 #include <string.h>
 
+_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
+_Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
+
 // test-execution
 // Tests: f32/f64 bit indexing read/write operations
 // Helper to build f32 from LE bytes (like the user's use case)
 float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
     float result = 0.0;
     uint32_t __bits_result; memcpy(&__bits_result, &result, sizeof(result)); __bits_result = (__bits_result & ~(0xFFU << 0)) | (((uint32_t)b0 & 0xFFU) << 0); memcpy(&result, &__bits_result, sizeof(result));
-    memcpy(&__bits_result, &result, sizeof(result)); __bits_result = (__bits_result & ~(0xFFU << 8)) | (((uint32_t)b1 & 0xFFU) << 8); memcpy(&result, &__bits_result, sizeof(result));
-    memcpy(&__bits_result, &result, sizeof(result)); __bits_result = (__bits_result & ~(0xFFU << 16)) | (((uint32_t)b2 & 0xFFU) << 16); memcpy(&result, &__bits_result, sizeof(result));
-    memcpy(&__bits_result, &result, sizeof(result)); __bits_result = (__bits_result & ~(0xFFU << 24)) | (((uint32_t)b3 & 0xFFU) << 24); memcpy(&result, &__bits_result, sizeof(result));
+    __bits_result = (__bits_result & ~(0xFFU << 8)) | (((uint32_t)b1 & 0xFFU) << 8); memcpy(&result, &__bits_result, sizeof(result));
+    __bits_result = (__bits_result & ~(0xFFU << 16)) | (((uint32_t)b2 & 0xFFU) << 16); memcpy(&result, &__bits_result, sizeof(result));
+    __bits_result = (__bits_result & ~(0xFFU << 24)) | (((uint32_t)b3 & 0xFFU) << 24); memcpy(&result, &__bits_result, sizeof(result));
     return result;
 }
 
@@ -29,15 +32,15 @@ int main(void) {
     uint32_t __bits_testVal;
     uint8_t byte3 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), ((__bits_testVal >> 24) & 0xFFU));
     if (byte3 != 0x3F) return 4;
-    uint8_t byte2 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), ((__bits_testVal >> 16) & 0xFFU));
+    uint8_t byte2 = ((__bits_testVal >> 16) & 0xFFU);
     if (byte2 != 0x80) return 5;
-    uint8_t byte1 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), ((__bits_testVal >> 8) & 0xFFU));
+    uint8_t byte1 = ((__bits_testVal >> 8) & 0xFFU);
     if (byte1 != 0x00) return 6;
-    uint8_t byte0 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), (__bits_testVal & 0xFFU));
+    uint8_t byte0 = (__bits_testVal & 0xFFU);
     if (byte0 != 0x00) return 7;
     float val = 0.0;
     uint32_t __bits_val; memcpy(&__bits_val, &val, sizeof(val)); __bits_val = (__bits_val & ~(0xFFU << 24)) | (((uint32_t)0x3F & 0xFFU) << 24); memcpy(&val, &__bits_val, sizeof(val));
-    memcpy(&__bits_val, &val, sizeof(val)); __bits_val = (__bits_val & ~(0xFFU << 16)) | (((uint32_t)0x80 & 0xFFU) << 16); memcpy(&val, &__bits_val, sizeof(val));
+    __bits_val = (__bits_val & ~(0xFFU << 16)) | (((uint32_t)0x80 & 0xFFU) << 16); memcpy(&val, &__bits_val, sizeof(val));
     if (val != 1.0) return 8;
     return 0;
 }

@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <string.h>
 
+_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
+_Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
+
 // test-execution
 // Simple test for float bit read inside function
 int main(void) {
