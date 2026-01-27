@@ -6,8 +6,8 @@
  * For new code, consider using Pipeline directly.
  */
 
-import { readFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, basename, join } from "node:path";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import Pipeline from "../pipeline/Pipeline";
 import InputExpansion from "../lib/InputExpansion";
@@ -89,6 +89,17 @@ class Project {
         workingDir: dirname(file),
         sourcePath: file,
       });
+      // Write generated code to disk if transpilation succeeded
+      let outputPath: string | undefined;
+      if (fileResult.success && (fileResult as any).code) {
+        const outExt = perFilePipeline["config"]?.cppRequired ? ".cpp" : ".c";
+        const outDir = perFilePipeline["config"]?.outDir || dirname(file);
+        const baseName = basename(file).replace(/\.(cnx|cnext)$/i, outExt);
+        outputPath = join(outDir, baseName);
+        writeFileSync(outputPath, (fileResult as any).code, "utf-8");
+      }
+      // Attach the output path to the result for aggregation
+      (fileResult as any).outputPath = outputPath;
       results.push(fileResult);
     }
 
