@@ -46,6 +46,7 @@ class Project {
       includeDirs: this.config.includeDirs,
       outDir: this.config.outDir,
       headerOutDir: this.config.headerOutDir,
+      basePath: this.config.basePath,
       defines: this.config.defines,
       preprocess: this.config.preprocess,
       cppRequired: this.config.cppRequired,

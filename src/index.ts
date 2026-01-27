@@ -38,6 +38,10 @@ interface ICNextConfig {
   output?: string;
   /** Separate output directory for header files */
   headerOut?: string;
+  /** Base path to strip from header output paths (only used with headerOut) */
+  basePath?: string;
+  /** Internal: path to config file that was loaded (set by loadConfig) */
+  _path?: string;
 }
 
 /**
@@ -58,7 +62,9 @@ function loadConfig(startDir: string): ICNextConfig {
       if (existsSync(configPath)) {
         try {
           const content = readFileSync(configPath, "utf-8");
-          return JSON.parse(content) as ICNextConfig;
+          const config = JSON.parse(content) as ICNextConfig;
+          config._path = configPath;
+          return config;
         } catch (_err) {
           console.error(`Warning: Failed to parse ${configPath}`);
           return {};
@@ -114,11 +120,15 @@ function showHelp(): void {
   console.log("  --no-cache         Disable symbol cache (.cnx/ directory)");
   console.log("  --header-out <dir> Output directory for header files");
   console.log(
+    "  --base-path <path> Strip path prefix from header output (use with --header-out)",
+  );
+  console.log(
     "  --clean            Delete generated files for all .cnx sources",
   );
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --pio-install      Setup PlatformIO integration");
   console.log("  --pio-uninstall    Remove PlatformIO integration");
+  console.log("  --config           Show effective configuration and exit");
   console.log("  --version, -v      Show version");
   console.log("  --help, -h         Show this help");
   console.log("");
@@ -215,6 +225,7 @@ async function runUnifiedMode(
   noCache: boolean,
   parseOnly: boolean,
   headerOutDir?: string,
+  basePath?: string,
 ): Promise<void> {
   // Issue #337: Identify which inputs are directories (for structure preservation)
   // These will be passed to Project.srcDirs so Pipeline can preserve directory structure
@@ -296,6 +307,7 @@ async function runUnifiedMode(
     includeDirs: allIncludePaths,
     outDir,
     headerOutDir,
+    basePath,
     preprocess,
     defines,
     cppRequired,
@@ -513,7 +525,9 @@ async function main(): Promise<void> {
   let noCache = false;
   let parseOnly = false;
   let headerOutDir: string | undefined;
+  let basePath: string | undefined;
   let cleanMode = false;
+  let showConfig = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -534,8 +548,12 @@ async function main(): Promise<void> {
       parseOnly = true;
     } else if (arg === "--header-out" && i + 1 < args.length) {
       headerOutDir = args[++i];
+    } else if (arg === "--base-path" && i + 1 < args.length) {
+      basePath = args[++i];
     } else if (arg === "--clean") {
       cleanMode = true;
+    } else if (arg === "--config") {
+      showConfig = true;
     } else if (arg.startsWith("-D")) {
       const define = arg.slice(2);
       const eqIndex = define.indexOf("=");
@@ -578,8 +596,44 @@ async function main(): Promise<void> {
   const finalNoCache = noCache || config.noCache === true;
   const finalOutputPath = outputPath || config.output || "";
   const finalHeaderOutDir = headerOutDir ?? config.headerOut;
+  const finalBasePath = basePath ?? config.basePath;
   // Merge include dirs: CLI includes come after config includes (higher priority in search)
   const finalIncludeDirs = [...(config.include ?? []), ...includeDirs];
+
+  // Show config mode: print effective configuration and exit
+  if (showConfig) {
+    console.log("Effective configuration:");
+    console.log("");
+    console.log("  Config file:    " + (config._path ?? "(none)"));
+    console.log("  cppRequired:    " + finalCppRequired);
+    console.log("  debugMode:      " + (config.debugMode ?? false));
+    console.log("  target:         " + (config.target ?? "(none)"));
+    console.log("  noCache:        " + finalNoCache);
+    console.log("  preprocess:     " + preprocess);
+    console.log(
+      "  output:         " + (finalOutputPath || "(same dir as input)"),
+    );
+    console.log(
+      "  headerOut:      " + (finalHeaderOutDir ?? "(same as output)"),
+    );
+    console.log("  basePath:       " + (finalBasePath ?? "(none)"));
+    console.log(
+      "  include:        " + (finalIncludeDirs.length > 0 ? "" : "(none)"),
+    );
+    for (const dir of finalIncludeDirs) {
+      console.log("    - " + dir);
+    }
+    console.log(
+      "  defines:        " + (Object.keys(defines).length > 0 ? "" : "(none)"),
+    );
+    for (const [key, value] of Object.entries(defines)) {
+      console.log("    - " + key + (value === true ? "" : "=" + value));
+    }
+    console.log("");
+    console.log("Source:");
+    console.log("  CLI flags take precedence over config file values");
+    process.exit(0);
+  }
 
   // Unified mode - always use Project class with header discovery
   if (inputFiles.length === 0) {
@@ -605,6 +659,7 @@ async function main(): Promise<void> {
     finalNoCache,
     parseOnly,
     finalHeaderOutDir,
+    finalBasePath,
   );
 }
 

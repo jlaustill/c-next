@@ -85,6 +85,7 @@ class Pipeline {
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
+      basePath: config.basePath ?? "",
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
       cppRequired: config.cppRequired ?? false,
@@ -1056,10 +1057,29 @@ class Pipeline {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 
+    // Helper to strip basePath prefix from a relative path
+    // e.g., "src/AppConfig.cnx" with basePath "src" -> "AppConfig.cnx"
+    const stripBasePath = (relPath: string): string => {
+      if (!this.config.basePath || !this.config.headerOutDir) {
+        return relPath;
+      }
+      // Normalize basePath (remove trailing slashes)
+      const base = this.config.basePath.replace(/[/\\]+$/, "");
+      // Check if relPath starts with basePath (+ separator or exact match)
+      if (relPath === base) {
+        return "";
+      }
+      if (relPath.startsWith(base + "/") || relPath.startsWith(base + "\\")) {
+        return relPath.slice(base.length + 1);
+      }
+      return relPath;
+    };
+
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
-      // File is under an input directory - preserve structure
-      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
+      // File is under an input directory - preserve structure (minus basePath)
+      const strippedPath = stripBasePath(relativePath);
+      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
       const outputPath = join(headerDir, outputRelative);
 
       const outputDir = dirname(outputPath);
@@ -1070,7 +1090,37 @@ class Pipeline {
       return outputPath;
     }
 
-    // Fallback: output next to the source file (not in headerDir)
+    // Issue #489: If headerOutDir is explicitly set, use it with relative path from CWD
+    // This handles single-file inputs like "cnext src/AppConfig.cnx" with headerOut config
+    if (this.config.headerOutDir) {
+      const cwd = process.cwd();
+      const relativeFromCwd = relative(cwd, file.path);
+      // Only use CWD-relative path if file is under CWD (not starting with ..)
+      if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
+        const strippedPath = stripBasePath(relativeFromCwd);
+        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
+        const outputPath = join(this.config.headerOutDir, outputRelative);
+
+        const outputDir = dirname(outputPath);
+        if (!existsSync(outputDir)) {
+          mkdirSync(outputDir, { recursive: true });
+        }
+
+        return outputPath;
+      }
+
+      // File outside CWD: put in headerOutDir with just basename
+      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+      const outputPath = join(this.config.headerOutDir, headerName);
+
+      if (!existsSync(this.config.headerOutDir)) {
+        mkdirSync(this.config.headerOutDir, { recursive: true });
+      }
+
+      return outputPath;
+    }
+
+    // Fallback: output next to the source file (no headerDir specified)
     // This handles included files that aren't under any input directory
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
     return join(dirname(file.path), headerName);
