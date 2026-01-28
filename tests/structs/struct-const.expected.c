@@ -12,9 +12,9 @@ typedef struct Point {
     int32_t y;
 } Point;
 
-const Point ORIGIN = (Point){ .x = 0, .y = 0 };
+extern const Point ORIGIN = (Point){ .x = 0, .y = 0 };
 
-const Point UNIT = (Point){ .x = 1, .y = 1 };
+extern const Point UNIT = (Point){ .x = 1, .y = 1 };
 
 int main(void) {
     int32_t x = ORIGIN.x;

@@ -10,7 +10,7 @@
 
 // ADR-017: Scoped Enum Test
 // Tests enums declared inside scopes with proper prefixing
-const uint8_t defaultValue = 3;
+extern const uint8_t defaultValue = 3;
 
 /* Scope: Motor */
 Motor_State Motor_current = Motor_State_IDLE;

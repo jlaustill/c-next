@@ -8,9 +8,9 @@
 // test-coverage: 1.1-u8-with-const-modifier, 1.1-u32-with-const-modifier
 // ADR-013: Const variable usage
 // Tests: const variable can be read but not written
-const uint32_t MAX_SIZE = 100;
+extern const uint32_t MAX_SIZE = 100;
 
-const uint8_t FLAGS = 0x55;
+extern const uint8_t FLAGS = 0x55;
 
 int main(void) {
     uint32_t size = MAX_SIZE;

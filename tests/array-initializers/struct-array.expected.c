@@ -13,7 +13,7 @@ typedef struct Command {
 } Command;
 
 // Array of structs with explicit size
-const Command commands[3] = {(Command){ .code = 0x01, .len = 4 }, (Command){ .code = 0x02, .len = 8 }, (Command){ .code = 0x03, .len = 2 }};
+extern const Command commands[3] = {(Command){ .code = 0x01, .len = 4 }, (Command){ .code = 0x02, .len = 8 }, (Command){ .code = 0x03, .len = 2 }};
 
 // Array of structs with size inference
 Command moreCommands[2] = {(Command){ .code = 0x10, .len = 1 }, (Command){ .code = 0x20, .len = 2 }};

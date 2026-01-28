@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013 + ADR-044: Const wrap u8 combination
 // Tests: const wrap u8 declaration and read access
-const uint8_t FULL_CYCLE = 255;
+extern const uint8_t FULL_CYCLE = 255;
 
-const uint8_t HALF_CYCLE = 128;
+extern const uint8_t HALF_CYCLE = 128;
 
 int main(void) {
     uint8_t full = FULL_CYCLE;

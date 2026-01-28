@@ -14,4 +14,4 @@ uint16_t sensorValue = 0;
 uint32_t temperature = 2500;
 
 // Clamp with const
-const uint8_t MAX_BRIGHTNESS = 255;
+extern const uint8_t MAX_BRIGHTNESS = 255;

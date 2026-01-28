@@ -8,11 +8,11 @@
 // test-execution
 // ADR-013: Const f32 variable
 // Tests: const f32 declaration and read access
-const float PI = 3.14159;
+extern const float PI = 3.14159;
 
-const float GRAVITY = 9.81;
+extern const float GRAVITY = 9.81;
 
-const float ZERO = 0.0;
+extern const float ZERO = 0.0;
 
 int main(void) {
     float pi = PI;

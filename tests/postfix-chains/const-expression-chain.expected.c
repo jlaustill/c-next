@@ -8,17 +8,17 @@
 
 // Postfix Chain Test: Const Expressions in Chains
 // Tests: Using const values and expressions as indices in chains
-const uint32_t INDEX_0 = 0;
+extern const uint32_t INDEX_0 = 0;
 
-const uint32_t INDEX_1 = 1;
+extern const uint32_t INDEX_1 = 1;
 
-const uint32_t INDEX_2 = 2;
+extern const uint32_t INDEX_2 = 2;
 
-const uint32_t SENSOR_COUNT = 4;
+extern const uint32_t SENSOR_COUNT = 4;
 
-const uint32_t LED_BIT = 3;
+extern const uint32_t LED_BIT = 3;
 
-const uint32_t STATUS_BIT = 7;
+extern const uint32_t STATUS_BIT = 7;
 
 typedef struct Sensor {
     uint32_t id;

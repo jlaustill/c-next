@@ -9,7 +9,7 @@
 // test-execution
 // Issue #380: String array initializers - execution validation
 // Tests: array access, .length, .capacity after inline initialization
-const char LABELS[3][11] = {"One", "Two", "Three"};
+extern const char LABELS[3][11] = {"One", "Two", "Three"};
 
 char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 

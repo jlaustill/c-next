@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-051: Division by non-zero constant should compile
-const uint32_t TEN = 10;
+extern const uint32_t TEN = 10;
 
 void testNonZeroConst(void) {
     uint32_t result = 100 / TEN;

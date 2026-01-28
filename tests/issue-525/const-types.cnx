@@ -1,0 +1,16 @@
+// Helper file: Various const types at file scope
+// Tests that all const type variants get extern in generated .c
+
+// Basic integer const
+const u8 BYTE_CONST <- 42;
+const u16 WORD_CONST <- 1000;
+const u32 DWORD_CONST <- 100000;
+
+// Bounded string const
+const string<16> STRING_CONST <- "Hello";
+
+// Const array
+const u8 BYTE_ARRAY[4] <- [1, 2, 3, 4];
+
+// Const string array
+const string<8> STRING_ARRAY[3] <- ["one", "two", "three"];

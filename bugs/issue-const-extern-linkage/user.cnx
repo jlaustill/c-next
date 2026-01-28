@@ -1,0 +1,8 @@
+// Bug #525: Test accessing const from another file
+#include "config.cnx"
+
+scope User {
+    public u8 getMax() {
+        return global.MAX_COUNT;
+    }
+}

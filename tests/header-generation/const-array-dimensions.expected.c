@@ -10,9 +10,9 @@
 
 // Tests: Array dimensions using constants should be preserved in extern declarations
 // This reproduces issue #455
-const uint8_t DEVICE_COUNT = 4;
+extern const uint8_t DEVICE_COUNT = 4;
 
-const uint8_t CHANNEL_COUNT = 2;
+extern const uint8_t CHANNEL_COUNT = 2;
 
 // Single dimension with constant - should generate: extern bool enabled[4];
 bool enabled[4] = {false, false, false, false};

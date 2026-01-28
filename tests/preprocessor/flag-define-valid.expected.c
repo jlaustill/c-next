@@ -15,9 +15,9 @@
 #include <stdint.h>
 
 // Const values (the safe way to define constants)
-const uint32_t LED_PIN = 13;
+extern const uint32_t LED_PIN = 13;
 
-const uint32_t ALT_PIN = 10;
+extern const uint32_t ALT_PIN = 10;
 
 void setup(void) {
 }

@@ -7,15 +7,15 @@
 #include <stdbool.h>
 
 // Tests: Struct fields with const-based array dimensions in headers
-const uint8_t BUFFER_SIZE = 8;
+extern const uint8_t BUFFER_SIZE = 8;
 
-const uint8_t ROWS = 4;
+extern const uint8_t ROWS = 4;
 
-const uint8_t COLS = 3;
+extern const uint8_t COLS = 3;
 
-const uint8_t HEX_SIZE = 0x10;
+extern const uint8_t HEX_SIZE = 0x10;
 
-const uint8_t BIN_SIZE = 0b1010;
+extern const uint8_t BIN_SIZE = 0b1010;
 
 typedef struct TData {
     uint8_t buffer[8];

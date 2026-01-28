@@ -8,13 +8,13 @@
 
 #include <stdint.h>
 
-const uint8_t csPin = 10;
+extern const uint8_t csPin = 10;
 
-const uint8_t diPin = 11;
+extern const uint8_t diPin = 11;
 
-const uint8_t doPin = 12;
+extern const uint8_t doPin = 12;
 
-const uint8_t clkPin = 13;
+extern const uint8_t clkPin = 13;
 
 Adafruit_MAX31856 thermocouple(csPin, diPin, doPin, clkPin);
 

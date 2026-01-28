@@ -8,13 +8,13 @@
 
 // test-execution
 // ADR-045: Validate const string inference at runtime
-const char VERSION[6] = "1.0.0";
+extern const char VERSION[6] = "1.0.0";
 
-const char APP_NAME[8] = "TestApp";
+extern const char APP_NAME[8] = "TestApp";
 
-const char EMPTY_CONST[1] = "";
+extern const char EMPTY_CONST[1] = "";
 
-const char LONG_CONST[45] = "This is a longer constant string for testing";
+extern const char LONG_CONST[45] = "This is a longer constant string for testing";
 
 int main(void) {
     if (strlen(VERSION) != 5) return 1;
