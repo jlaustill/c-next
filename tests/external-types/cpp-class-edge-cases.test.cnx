@@ -1,0 +1,20 @@
+// Issue #517: C++ class edge cases
+// Tests various edge cases for C++ class struct initialization
+
+#include "CppTestClass.hpp"
+
+void test() {
+    // Edge case 1: Local with multiple fields
+    CppTestClass localMulti <- { value: 50, name: "local" };
+
+    // Edge case 2: Local with single field
+    CppTestClass localSingle <- { value: 42 };
+
+    // Edge case 3: Re-assignment of field after init
+    CppTestClass obj <- { value: 10 };
+    obj.name <- "updated";
+}
+
+void main() {
+    test();
+}

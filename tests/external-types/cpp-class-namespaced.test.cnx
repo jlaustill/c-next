@@ -1,0 +1,13 @@
+// Issue #517: Namespaced C++ class with constructor
+// Test that namespaced classes with constructors also use field assignment pattern
+
+#include "NamespacedCppClass.hpp"
+
+void test() {
+    // TestNS::MyClass has a constructor, so it should use assignment pattern
+    TestNS.MyClass obj <- { id: 123, data: "test" };
+}
+
+void main() {
+    test();
+}

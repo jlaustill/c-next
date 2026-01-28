@@ -1,0 +1,12 @@
+// test-error
+// Issue #517: C++ class with constructor at global scope should error
+// Cannot use struct initializer syntax for non-aggregate types at global scope
+
+#include "CppTestClass.hpp"
+
+// This should produce an error - C++ classes with constructors
+// cannot use struct initializer syntax at global scope
+CppTestClass globalObj <- { value: 42 };
+
+void main() {
+}

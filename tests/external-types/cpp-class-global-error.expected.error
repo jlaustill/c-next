@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: C++ class 'CppTestClass' with constructor cannot use struct initializer syntax at global scope. Use constructor syntax or initialize fields separately.

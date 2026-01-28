@@ -316,6 +316,9 @@ export default class CodeGenerator implements IOrchestrator {
   /** Issue #250: Counter for unique temp variable names */
   private tempVarCounter: number = 0;
 
+  /** Issue #517: Pending field assignments for C++ class struct init */
+  private pendingCppClassAssignments: string[] = [];
+
   /**
    * Issue #269: Tracks which parameters are modified (directly or transitively)
    * Map of functionName -> Set of modified parameter names
@@ -1220,6 +1223,32 @@ export default class CodeGenerator implements IOrchestrator {
     return false;
   }
 
+  /**
+   * Issue #517: Check if a type is a C++ class with a user-defined constructor.
+   * C++ classes with user-defined constructors are NOT aggregate types,
+   * so designated initializers { .field = value } don't work with them.
+   * We check for the existence of a constructor symbol (TypeName::ClassName).
+   */
+  private _isCppClassWithConstructor(typeName: string): boolean {
+    // Convert underscore format to :: for namespaced types
+    // e.g., TestNS_MyClass -> TestNS::MyClass
+    let qualifiedName = typeName;
+    if (typeName.includes("_") && !typeName.includes("::")) {
+      qualifiedName = typeName.replace(/_/g, "::");
+    }
+
+    // Extract just the class name (part after last ::)
+    // e.g., TestNS::MyClass -> MyClass, CppTestClass -> CppTestClass
+    const parts = qualifiedName.split("::");
+    const className = parts[parts.length - 1];
+
+    // Constructor name follows the pattern: FullTypeName::ClassName
+    // e.g., TestNS::MyClass::MyClass, CppTestClass::CppTestClass
+    const constructorName = `${qualifiedName}::${className}`;
+    const constructorSymbol = this.symbolTable?.getSymbol(constructorName);
+    return constructorSymbol?.kind === ESymbolKind.Function;
+  }
+
   private foldBooleanToInt(expr: string): string {
     if (expr === "true") return "1";
     if (expr === "false") return "0";
@@ -1479,6 +1508,8 @@ export default class CodeGenerator implements IOrchestrator {
     // Reset temp var state for each generation
     this.pendingTempDeclarations = [];
     this.tempVarCounter = 0;
+    // Issue #517: Reset C++ class assignments
+    this.pendingCppClassAssignments = [];
 
     // Initialize comment extraction (ADR-043)
     this.tokenStream = tokenStream ?? null;
@@ -5312,9 +5343,16 @@ export default class CodeGenerator implements IOrchestrator {
 
     const fieldList = ctx.fieldInitializerList();
 
+    // Issue #517: Check if this is a C++ class with a user-defined constructor.
+    // C++ classes with user-defined constructors are NOT aggregate types,
+    // so designated initializers { .field = value } don't work with them.
+    // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
+    const isCppClass =
+      this.cppMode && this._isCppClassWithConstructor(typeName);
+
     if (!fieldList) {
-      // Empty initializer: Point {} -> (Point){ 0 }
-      return `(${typeName}){ 0 }`;
+      // Empty initializer: Point {} -> (Point){ 0 } or {} for C++ classes
+      return isCppClass ? "{}" : `(${typeName}){ 0 }`;
     }
 
     // Get field type info for nested initializers
@@ -5347,10 +5385,20 @@ export default class CodeGenerator implements IOrchestrator {
       // Restore expected type
       this.context.expectedType = savedExpectedType;
 
-      return `.${fieldName} = ${value}`;
+      return { fieldName, value };
     });
 
-    return `(${typeName}){ ${fields.join(", ")} }`;
+    // Issue #517: For C++ classes, store assignments for later and return {}
+    if (isCppClass) {
+      for (const { fieldName, value } of fields) {
+        this.pendingCppClassAssignments.push(`${fieldName} = ${value};`);
+      }
+      return "{}";
+    }
+
+    // For C-Next/C structs, generate designated initializer
+    const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
+    return `(${typeName}){ ${fieldInits.join(", ")} }`;
   }
 
   /**
@@ -6177,6 +6225,26 @@ export default class CodeGenerator implements IOrchestrator {
     } else {
       // ADR-015: Zero initialization for uninitialized variables
       decl += ` = ${this._getZeroInitializer(typeCtx, isArray)}`;
+    }
+
+    // Issue #517: Emit pending C++ class field assignments
+    // Only emit as separate statements inside function bodies - global scope can't have statements
+    if (this.pendingCppClassAssignments.length > 0) {
+      if (this.context.inFunctionBody) {
+        const assignments = this.pendingCppClassAssignments
+          .map((a) => `${name}.${a}`)
+          .join("\n");
+        this.pendingCppClassAssignments = [];
+        return `${decl};\n${assignments}`;
+      } else {
+        // At global scope, we can't emit assignment statements.
+        // Clear pending assignments and throw an error for unsupported pattern.
+        this.pendingCppClassAssignments = [];
+        throw new Error(
+          `Error: C++ class '${this._getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
+            `syntax at global scope. Use constructor syntax or initialize fields separately.`,
+        );
+      }
     }
 
     return decl + ";";
