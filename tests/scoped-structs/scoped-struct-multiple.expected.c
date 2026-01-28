@@ -3,29 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-struct-multiple.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Multiple scoped structs in the same scope
 /* Scope: DataManager */
-
-typedef struct DataManager_Point {
-    int16_t x;
-    int16_t y;
-} DataManager_Point;
-
-
-typedef struct DataManager_Size {
-    uint16_t width;
-    uint16_t height;
-} DataManager_Size;
-
-
-typedef struct DataManager_Rect {
-    DataManager_Point origin;
-    DataManager_Size dimensions;
-} DataManager_Rect;
-
 DataManager_Point DataManager_cursor = {0};
 DataManager_Size DataManager_screenSize = {0};
 DataManager_Rect DataManager_viewport = {0};

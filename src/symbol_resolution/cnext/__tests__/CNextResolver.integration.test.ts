@@ -356,4 +356,117 @@ describe("CNextResolver Integration", () => {
       expect(symbols).toEqual([]);
     });
   });
+
+  describe("const value collection (Issue #455)", () => {
+    it("resolves array dimensions from top-level const", () => {
+      const code = `
+        const u8 SIZE <- 4;
+        bool arr[SIZE];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      expect(symbols.length).toBe(2);
+
+      const arrSymbol = symbols.find((s) => s.name === "arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.isArray).toBe(true);
+        expect(arrSymbol.arrayDimensions).toEqual([4]);
+      }
+    });
+
+    it("resolves array dimensions from scoped const", () => {
+      const code = `
+        scope Device {
+          const u8 BUF_SIZE <- 8;
+          public u8 buffer[BUF_SIZE];
+        }
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      const bufferSymbol = symbols.find((s) => s.name === "Device_buffer");
+      expect(bufferSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(bufferSymbol!)) {
+        expect(bufferSymbol.isArray).toBe(true);
+        expect(bufferSymbol.arrayDimensions).toEqual([8]);
+      }
+    });
+
+    it("resolves hex constant array dimensions", () => {
+      const code = `
+        const u8 HEX_SIZE <- 0x10;
+        bool hex_arr[HEX_SIZE];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      const arrSymbol = symbols.find((s) => s.name === "hex_arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.arrayDimensions).toEqual([16]);
+      }
+    });
+
+    it("resolves binary constant array dimensions", () => {
+      const code = `
+        const u8 BIN_SIZE <- 0b1010;
+        i16 bin_arr[BIN_SIZE];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      const arrSymbol = symbols.find((s) => s.name === "bin_arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.arrayDimensions).toEqual([10]);
+      }
+    });
+
+    it("ignores non-integer const values", () => {
+      const code = `
+        const u8 STR_VAL <- "hello";
+        bool arr[4];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      // Should still parse without error
+      expect(symbols.length).toBe(2);
+    });
+
+    it("passes through unresolved identifiers for C macros", () => {
+      const code = `
+        bool arr[DEVICE_COUNT];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      // Issue #455: Unresolved identifiers (like C macros) should pass through
+      const arrSymbol = symbols.find((s) => s.name === "arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.isArray).toBe(true);
+        expect(arrSymbol.arrayDimensions).toEqual(["DEVICE_COUNT"]);
+      }
+    });
+
+    it("passes through expressions in array dimension", () => {
+      const code = `
+        const u8 SIZE <- 4;
+        bool arr[SIZE * 2];
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(tree, "test.cnx");
+
+      // Issue #455: Complex expressions should pass through as strings
+      const arrSymbol = symbols.find((s) => s.name === "arr");
+      expect(arrSymbol).toBeDefined();
+      if (SymbolGuards.isVariable(arrSymbol!)) {
+        expect(arrSymbol.isArray).toBe(true);
+        expect(arrSymbol.arrayDimensions).toEqual(["SIZE*2"]);
+      }
+    });
+  });
 });

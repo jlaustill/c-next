@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "named-typedef-struct-array.test.h"
+
 // tests/functions/named-typedef-struct-array.test.cnx
 // test-execution
 // Tests: Issue #355 - Array member via pointer generates invalid static_cast in C++ mode

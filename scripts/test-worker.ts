@@ -63,10 +63,11 @@ async function runTest(
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCFile = basePath + ".expected.c";
   const expectedErrorFile = basePath + ".expected.error";
+  const expectedHFile = basePath + ".expected.h";
   const headerFile = basePath + ".test.h";
 
-  // Issue #230: If test has a corresponding .test.h file, enable self-include generation
-  const hasHeaderFile = existsSync(headerFile);
+  // Issue #455: Check if .expected.h exists (for header validation tests)
+  const hasExpectedHFile = existsSync(expectedHFile);
 
   // Use Pipeline for transpilation with header parsing support
   // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
@@ -80,7 +81,6 @@ async function runTest(
   const result: IFileResult = await pipeline.transpileSource(source, {
     workingDir: dirname(cnxFile),
     sourcePath: cnxFile,
-    generateHeaders: hasHeaderFile, // Issue #230: Enable self-include for extern "C" tests
   });
 
   // Issue #322: Find and transpile helper .cnx files for cross-file execution tests
@@ -90,12 +90,28 @@ async function runTest(
   const helperCFiles: string[] = [];
   const tempHelperFiles: string[] = [];
 
+  // Cleanup helper function for temp files (defined early for use in validation)
+  const cleanupHelperFiles = (): void => {
+    for (const f of tempHelperFiles) {
+      try {
+        if (existsSync(f)) unlinkSync(f);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  };
+
   for (const helperCnx of helperCnxFiles) {
     const helperSource = readFileSync(helperCnx, "utf-8");
-    const helperResult = await pipeline.transpileSource(helperSource, {
+    // Use fresh Pipeline for each helper to avoid symbol pollution from main test
+    const helperPipeline = new Pipeline({
+      inputs: [],
+      includeDirs: [join(rootDir, "tests/include")],
+      noCache: true,
+    });
+    const helperResult = await helperPipeline.transpileSource(helperSource, {
       workingDir: dirname(helperCnx),
       sourcePath: helperCnx,
-      generateHeaders: false,
     });
     if (helperResult.success) {
       // Write to temp file with unique name per test to avoid parallel collisions
@@ -107,23 +123,62 @@ async function runTest(
       writeFileSync(tempCFile, helperResult.code);
       helperCFiles.push(tempCFile);
       tempHelperFiles.push(tempCFile);
-    }
-  }
 
-  // Cleanup helper function for temp files
-  const cleanupHelperFiles = (): void => {
-    for (const f of tempHelperFiles) {
-      try {
-        if (existsSync(f)) unlinkSync(f);
-      } catch {
-        // Ignore cleanup errors
+      // Issue #461: Write helper header file if generated (needed for GCC to find includes)
+      // Always write to .h path for compilation, validate against .expected.h if exists
+      if (helperResult.headerCode) {
+        const tempHFile = join(dirname(helperCnx), `${helperBaseName}.h`);
+        const helperExpectedHFile = join(
+          dirname(helperCnx),
+          `${helperBaseName}.expected.h`,
+        );
+
+        writeFileSync(tempHFile, helperResult.headerCode);
+
+        // Update mode: create .expected.h if it doesn't exist
+        if (updateMode && !existsSync(helperExpectedHFile)) {
+          writeFileSync(helperExpectedHFile, helperResult.headerCode);
+        }
+
+        // Only clean up if there's no .expected.h - helpers with .expected.h are persistent
+        if (!existsSync(helperExpectedHFile)) {
+          tempHelperFiles.push(tempHFile);
+        }
+
+        // Validate against expected header if it exists
+        if (existsSync(helperExpectedHFile)) {
+          const expectedH = readFileSync(helperExpectedHFile, "utf-8");
+          if (
+            TestUtils.normalize(helperResult.headerCode) !==
+            TestUtils.normalize(expectedH)
+          ) {
+            cleanupHelperFiles();
+            return {
+              passed: false,
+              message: `Helper header mismatch: ${helperBaseName}.h`,
+              expected: expectedH,
+              actual: helperResult.headerCode,
+            };
+          }
+        }
       }
     }
-  };
+  }
 
   // Check if this is an error test
   if (existsSync(expectedErrorFile)) {
     const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
+
+    // Clean up stale success test artifacts (from when this was a success test)
+    for (const staleFile of [expectedCFile, expectedHFile, headerFile]) {
+      if (existsSync(staleFile)) {
+        try {
+          unlinkSync(staleFile);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
 
     if (result.success) {
       cleanupHelperFiles();
@@ -180,6 +235,10 @@ async function runTest(
 
     if (updateMode) {
       writeFileSync(expectedCFile, result.code);
+      // Issue #455: Also update header snapshot if header was generated
+      if (result.headerCode) {
+        writeFileSync(expectedHFile, result.headerCode);
+      }
       cleanupHelperFiles();
       return { passed: true, message: "Updated C snapshot", updated: true };
     }
@@ -187,14 +246,28 @@ async function runTest(
     if (TestUtils.normalize(result.code) === TestUtils.normalize(expectedC)) {
       // Snapshot matches - run all validation steps
 
-      if (tools.gcc) {
+      // Issue #455: Write header file to disk if generated AND expected.h exists
+      // Only write headers for tests that expect header validation
+      if (result.headerCode && hasExpectedHFile) {
+        writeFileSync(headerFile, result.headerCode);
+      }
+
+      // Helper to cleanup temp files (header files are preserved for success tests)
+      const cleanupAllFiles = (): void => {
+        cleanupHelperFiles();
+      };
+
+      // Issue #461: Skip GCC validation for transpile-only tests (e.g., C++ interop)
+      const isTranspileOnly = TestUtils.hasTranspileOnlyMarker(source);
+
+      if (tools.gcc && !isTranspileOnly) {
         const compileResult = TestUtils.validateCompilation(
           expectedCFile,
           tools,
           rootDir,
         );
         if (!compileResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "GCC compilation failed",
@@ -203,10 +276,10 @@ async function runTest(
         }
       }
 
-      if (tools.cppcheck) {
+      if (tools.cppcheck && !isTranspileOnly) {
         const cppcheckResult = TestUtils.validateCppcheck(expectedCFile);
         if (!cppcheckResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Cppcheck failed",
@@ -215,10 +288,10 @@ async function runTest(
         }
       }
 
-      if (tools.clangTidy) {
+      if (tools.clangTidy && !isTranspileOnly) {
         const clangTidyResult = TestUtils.validateClangTidy(expectedCFile);
         if (!clangTidyResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Clang-tidy failed",
@@ -227,10 +300,10 @@ async function runTest(
         }
       }
 
-      if (tools.misra) {
+      if (tools.misra && !isTranspileOnly) {
         const misraResult = TestUtils.validateMisra(expectedCFile, rootDir);
         if (!misraResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "MISRA check failed",
@@ -240,14 +313,31 @@ async function runTest(
       }
 
       // Flawfinder security analysis
-      if (tools.flawfinder) {
+      if (tools.flawfinder && !isTranspileOnly) {
         const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
         if (!flawfinderResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Flawfinder security check failed",
             actual: flawfinderResult.message,
+          };
+        }
+      }
+
+      // Issue #455: Header validation (if .expected.h file exists AND headers were generated)
+      // Issue #461: Skip header validation for transpile-only tests
+      if (hasExpectedHFile && result.headerCode && !isTranspileOnly) {
+        const expectedH = readFileSync(expectedHFile, "utf-8");
+        const actualH = result.headerCode;
+
+        if (TestUtils.normalize(actualH) !== TestUtils.normalize(expectedH)) {
+          cleanupAllFiles();
+          return {
+            passed: false,
+            message: "Header output mismatch",
+            expected: expectedH,
+            actual: actualH,
           };
         }
       }
@@ -259,7 +349,7 @@ async function runTest(
           rootDir,
         );
         if (!noWarningsResult.valid) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return {
             passed: false,
             message: "Warning check failed (test-no-warnings)",
@@ -271,7 +361,7 @@ async function runTest(
       // Execution test if marker present
       if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
         if (TestUtils.requiresArmRuntime(result.code)) {
-          cleanupHelperFiles();
+          cleanupAllFiles();
           return { passed: true, skippedExec: true };
         }
 
@@ -281,7 +371,7 @@ async function runTest(
           0,
           helperCFiles,
         );
-        cleanupHelperFiles();
+        cleanupAllFiles();
         if (!execResult.valid) {
           return {
             passed: false,
@@ -291,7 +381,7 @@ async function runTest(
         }
       }
 
-      cleanupHelperFiles();
+      cleanupAllFiles();
       return { passed: true };
     }
 
@@ -299,6 +389,13 @@ async function runTest(
     if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
       const tempCFile = expectedCFile.replace(".expected.c", ".tmp.c");
       writeFileSync(tempCFile, result.code);
+
+      // Issue #461: Write header file if generated AND expected.h exists
+      let tempHeaderWritten = false;
+      if (result.headerCode && hasExpectedHFile) {
+        writeFileSync(headerFile, result.headerCode);
+        tempHeaderWritten = true;
+      }
 
       try {
         if (!TestUtils.requiresArmRuntime(result.code)) {
@@ -324,6 +421,14 @@ async function runTest(
           unlinkSync(tempCFile);
         } catch {
           // Ignore cleanup errors
+        }
+        // Clean up temp header file if we created it and no expected.h exists
+        if (tempHeaderWritten && !hasExpectedHFile) {
+          try {
+            unlinkSync(headerFile);
+          } catch {
+            // Ignore cleanup errors
+          }
         }
       }
     }

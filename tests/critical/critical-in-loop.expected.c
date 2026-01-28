@@ -4,7 +4,11 @@
  */
 
 #include <stdint.h>
-#include <cmsis_gcc.h>
+
+// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+static inline void __cnx_disable_irq(void) { __disable_irq(); }
+static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
+static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -26,11 +30,11 @@ uint32_t counter = 0;
 void criticalInFor(void) {
     for (uint32_t i = 0; i < 10; i = i + 1) {
         {
-            uint32_t __primask = __get_PRIMASK();
-            __disable_irq();
+            uint32_t __primask = __cnx_get_PRIMASK();
+            __cnx_disable_irq();
             sharedData[i] = i * 2;
             counter = cnx_clamp_add_u32(counter, 1);
-            __set_PRIMASK(__primask);
+            __cnx_set_PRIMASK(__primask);
         }
     }
 }
@@ -39,10 +43,10 @@ void criticalInWhile(void) {
     uint32_t i = 0;
     while (i < 5) {
         {
-            uint32_t __primask = __get_PRIMASK();
-            __disable_irq();
+            uint32_t __primask = __cnx_get_PRIMASK();
+            __cnx_disable_irq();
             sharedData[i] += 1;
-            __set_PRIMASK(__primask);
+            __cnx_set_PRIMASK(__primask);
         }
         i = cnx_clamp_add_u32(i, 1);
     }
@@ -52,10 +56,10 @@ void criticalInDoWhile(void) {
     uint32_t i = 0;
     do {
         {
-            uint32_t __primask = __get_PRIMASK();
-            __disable_irq();
+            uint32_t __primask = __cnx_get_PRIMASK();
+            __cnx_disable_irq();
             counter = cnx_clamp_add_u32(counter, 1);
-            __set_PRIMASK(__primask);
+            __cnx_set_PRIMASK(__primask);
         }
         i = cnx_clamp_add_u32(i, 1);
     } while (i < 3);
@@ -65,10 +69,10 @@ void criticalInNestedLoop(void) {
     for (uint32_t i = 0; i < 3; i = i + 1) {
         for (uint32_t j = 0; j < 3; j = j + 1) {
             {
-                uint32_t __primask = __get_PRIMASK();
-                __disable_irq();
+                uint32_t __primask = __cnx_get_PRIMASK();
+                __cnx_disable_irq();
                 sharedData[i] += j;
-                __set_PRIMASK(__primask);
+                __cnx_set_PRIMASK(__primask);
             }
         }
     }

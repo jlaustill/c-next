@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "cross-scope-compound.test.h"
+
 #include <stdint.h>
 
 // test-execution

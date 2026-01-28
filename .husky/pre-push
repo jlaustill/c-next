@@ -1,0 +1,65 @@
+#!/usr/bin/env sh
+
+# Pre-push hook: Run all quality checks before pushing
+# If any check fails, the push is blocked
+
+echo "## Quality Check Results"
+echo ""
+
+# Track overall status
+all_passed=true
+
+# Helper function to run a check and report result
+run_check() {
+    local name="$1"
+    shift
+
+    if "$@" > /dev/null 2>&1; then
+        echo "✅ $name passed"
+        return 0
+    else
+        echo "❌ $name failed"
+        all_passed=false
+        return 1
+    fi
+}
+
+# Run all quality checks
+run_check "Prettier formatting check" npm run prettier:check
+run_check "oxlint check" npm run oxlint:check
+run_check "Dead code check" npx knip
+run_check "Parser generation" npm run antlr
+run_check "TypeScript type check" npm run typecheck
+run_check "Tests" npm run test:q
+run_check "Unit tests" npm run unit
+run_check "CLI integration tests" npm run test:cli
+run_check "CLI smoke test" node bin/cnext.js --version
+run_check "Grammar coverage check" npm run coverage:grammar:check
+
+# Check for uncommitted changes after build/test
+# This catches generated files that weren't committed
+echo ""
+echo "Checking for uncommitted changes..."
+if [ -n "$(git status --porcelain)" ]; then
+    echo "❌ Uncommitted changes detected after build/test!"
+    echo ""
+    echo "The following files have changes or are untracked:"
+    git status --porcelain
+    echo ""
+    echo "This usually means generated files need to be committed."
+    echo "Run 'npm run antlr' and 'npm test' locally, then commit the changes."
+    all_passed=false
+else
+    echo "✅ No uncommitted changes"
+fi
+
+echo ""
+
+# Block push if any check failed
+if [ "$all_passed" = false ]; then
+    echo "❌ Push blocked: One or more quality checks failed"
+    exit 1
+fi
+
+echo "✅ All quality checks passed - proceeding with push"
+exit 0

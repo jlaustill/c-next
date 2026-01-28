@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bool-array-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -38,10 +40,6 @@ uint32_t checkArrayLength(const bool arr[16]) {
 uint32_t checkElementLength(const bool arr[16]) {
     return 8;
 }
-
-typedef struct TestStruct {
-    bool arr[16];
-} TestStruct;
 
 int main(void) {
     globalArr[0] = true;

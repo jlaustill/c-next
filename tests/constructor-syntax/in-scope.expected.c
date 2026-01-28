@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "in-scope.test.h"
+
 // Issue #375: Constructor inside scope
 #include "constructor-stubs.h"
 

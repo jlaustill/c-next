@@ -1,0 +1,50 @@
+// test-execution
+// Tests: global.Type for cross-file type references (the actual bug scenario from #478)
+// The enum and struct are defined in cross-file-types.cnx
+
+#include <cross-file-types.cnx>
+
+scope TaskManager {
+    // Test 1: global.EnumType as return type (cross-file)
+    public global.EPriority getPriority() {
+        return global.EPriority.HIGH;
+    }
+
+    // Test 2: global.EnumType as parameter type (cross-file)
+    public i32 priorityToInt(global.EPriority p) {
+        return (i32)p;
+    }
+
+    // Test 3: global.StructType as return type (cross-file)
+    public global.Vec2 getPosition() {
+        global.Vec2 pos <- {x: 100, y: 200};
+        return pos;
+    }
+
+    // Test 4: global.StructType as parameter type (cross-file)
+    public i32 sumVec(global.Vec2 v) {
+        return v.x + v.y;
+    }
+}
+
+i32 main() {
+    // Test: global.EnumType variable declaration with literal (cross-file)
+    global.EPriority priority <- global.EPriority.HIGH;
+    if ((i32)priority != 2) return 1;
+
+    // Test parameter type with enum
+    i32 pval <- TaskManager.priorityToInt(global.EPriority.MEDIUM);
+    if (pval != 1) return 2;
+
+    // Test return type with struct (no enum validation issue)
+    global.Vec2 pos <- TaskManager.getPosition();
+    if (pos.x != 100) return 3;
+    if (pos.y != 200) return 4;
+
+    // Test parameter type with struct
+    global.Vec2 v <- {x: 15, y: 25};
+    i32 total <- TaskManager.sumVec(v);
+    if (total != 40) return 5;
+
+    return 0;
+}

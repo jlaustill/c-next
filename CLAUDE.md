@@ -8,6 +8,10 @@
 
 Check if work was already done: `git log --oneline --grep="<issue-number>"` — Issues may have been completed in PRs referencing different issue numbers.
 
+### GitHub CLI Workaround
+
+`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+
 ## Workflow: Research First
 
 1. **Always start with research/planning** before implementation
@@ -28,7 +32,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### VS Code Extension Caveats
 
-- **Pre-commit hooks**: The vscode-extension has pre-existing lint violations (named exports, unused vars). Use `git commit --no-verify` when committing changes that touch vscode-extension files if hooks fail on unrelated issues.
+- **Pre-commit hooks**: The vscode-extension requires named exports (`activate`, `deactivate`) per VS Code API. Use `git commit --no-verify` when committing vscode-extension changes, as oxlint's no-named-export rule conflicts with VS Code requirements.
 
 ### Git Merge Commits
 
@@ -95,6 +99,25 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
+### Symbol Resolution Type Patterns
+
+- **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` - numbers for resolved constants, strings for C macros from headers
+- **C macro pass-through**: Unresolved array dimension identifiers (e.g., `DEVICE_COUNT` from included C headers) pass through as strings to generated headers
+
+### Code Generation Patterns
+
+- **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
+- **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
+- **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
+  1. Add to `TIncludeHeader` union in `src/codegen/generators/TIncludeHeader.ts`
+  2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
+  3. Handle effect in `processEffects()` switch statement
+  4. Generate output in `assembleOutput()` where other effects are emitted
+
+### Error Messages
+
+- Use simple `Error: message` format (not `Error[EXXX]`) — matches 111/114 existing errors.
+
 ## Testing Requirements
 
 **Tests are mandatory for all feature work:**
@@ -108,12 +131,13 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm test` — Run C-Next integration tests (.test.cnx files)
 - `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
-- `npm test -- tests/enum/my.test.cnx` — Run single test file
+- `npm test -- tests/enum/my.test.cnx` — Run single test file (multiple files: use directory pattern instead)
 - `npm run unit` — Run TypeScript unit tests (vitest)
 - `npm run unit -- <path>` — Run specific unit test file
 - `npm run unit:coverage` — Run unit tests with coverage report
 - `npm run test:all` — Run both test suites
 - `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
+- Tests without `.expected.c` snapshots are **skipped** (not failed) — use `--update` to generate initial snapshot
 
 ### Unit Test File Location
 
@@ -121,6 +145,18 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 - `src/pipeline/CacheManager.ts` → `src/pipeline/__tests__/CacheManager.test.ts`
 - `src/pipeline/cache/CacheKeyGenerator.ts` → `src/pipeline/cache/__tests__/CacheKeyGenerator.test.ts`
+
+### Cross-File Testing
+
+- **Symbol resolution features** (enums, structs, types): Always test with symbols defined in included files, not just same-file
+- Create helper `.cnx` files (e.g., `test-types.cnx`) alongside test files for cross-file scenarios
+- The original bug scenario often involves `#include` - reproduce that exactly
+
+### Bug Reproduction Files
+
+- `bugs/issue-<name>/` directories contain minimal reproduction cases from GitHub issues
+- **Commit these with fixes** - they serve as additional regression prevention
+- Regenerate after fix to show corrected output
 
 ### Test File Patterns
 
@@ -217,6 +253,14 @@ u32 main() {
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
 
+### Test Framework Internals
+
+- **Fresh Pipeline per helper**: When transpiling helper .cnx files in tests, use a fresh `new Pipeline()` instance for each to avoid symbol pollution from accumulated symbols
+- **Helper header validation**: Helper .cnx files can have `.expected.h` files for header validation (same pattern as `.expected.c`)
+- **Prevent helper cleanup**: Create `.expected.h` for helper `.cnx` files to prevent test framework from deleting generated `.h` files needed by other tests
+- **Auto-generating helper snapshots**: `npm test -- <path> --update` creates `.expected.h` for helper `.cnx` files; helper `.h` files must also be committed for CI
+- **Worker debug output**: `console.log` in `test-worker.ts` doesn't appear (forked process). Use `--jobs 1` for sequential mode, but note `test.ts` has duplicated logic
+
 ### Error Validation Tests (test-error pattern)
 
 For compile-time error tests in `tests/analysis/`:
@@ -232,6 +276,19 @@ For compile-time error tests in `tests/analysis/`:
 **Symbol collection timing in `transpileSource()`**: When generating headers, symbol collection MUST happen AFTER `codeGenerator.generate()`. Placing it before breaks type resolution (e.g., `strlen()` becomes placeholder comments).
 
 **Test `.expected.h` files**: The test framework validates `.expected.h` files when present. Create one alongside `.expected.c` for header generation tests.
+
+### Pipeline Code Paths
+
+The Pipeline has two distinct entry points that must stay synchronized:
+
+- **`run()`** — CLI entry point, processes files with full symbol resolution across includes
+- **`transpileSource()`** — Test framework entry point, single-file transpilation
+
+When adding features involving cross-file symbols (enums, structs, types):
+
+1. Test with `npm test` (uses `transpileSource()`) — may pass with incomplete implementation
+2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full pipeline
+3. Ensure both paths receive the same symbol information (e.g., `allKnownEnums`)
 
 ## Task Completion Requirements
 
@@ -270,16 +327,15 @@ If implementing a feature, all documents must be current and memory must be upda
 - Never cite Research ADRs as examples of "how C-Next does X"
 - When exploring syntax patterns, check the ADR status first
 
-## Handling Unrelated Changes
+## Generated Test Files
 
-**The user often works on multiple things in parallel. Respect their work.**
+**Always commit generated test output files.** When running tests or the transpiler on `.test.cnx` files:
 
-- When committing, ONLY stage and commit files related to the current task
-- If you see unrelated modified files in `git status`, IGNORE them completely
-- **NEVER revert or checkout unrelated files** without explicit user direction
-- **NEVER commit unrelated changes** as part of your work
-- If unsure whether a change is related, ask the user
-- Unrelated changes are the user's responsibility — don't touch them
+- `.test.c` and `.test.h` files are generated alongside `.test.cnx` files
+- These generated files **MUST be committed** to the repository
+- They serve as additional validation that the transpiler output is correct
+- **NEVER delete generated test files** - they are part of the test suite
+- **NEVER run `git restore tests/`** to revert generated files
 
 ## Pull Request Workflow
 

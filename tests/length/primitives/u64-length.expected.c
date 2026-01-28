@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "u64-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -25,10 +27,6 @@ uint64_t TestScope_publicMember = 1000000;
 uint32_t checkParamLength(uint64_t param) {
     return 64;
 }
-
-typedef struct TestStruct {
-    uint64_t member;
-} TestStruct;
 
 int main(void) {
     if (64 != 64) {

@@ -23,17 +23,21 @@ import IOrchestrator from "../IOrchestrator";
  *
  * Handles:
  * - Qualified types (EState.IDLE → EState_IDLE)
- * - Plain identifiers
+ * - Plain identifiers (including unqualified enum members)
  * - Integer literals (with optional minus)
  * - Hex literals
  * - Binary literals (converted to hex)
  * - Character literals
+ *
+ * Issue #471: When switchEnumType is provided, unqualified identifiers that are
+ * members of that enum are resolved with the enum type prefix.
  */
 const generateCaseLabel = (
   node: CaseLabelContext,
-  _input: IGeneratorInput,
+  input: IGeneratorInput,
   _state: IGeneratorState,
   _orchestrator: IOrchestrator,
+  switchEnumType?: string,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -47,7 +51,42 @@ const generateCaseLabel = (
 
   // IDENTIFIER - const variable or plain enum member
   if (node.IDENTIFIER()) {
-    return { code: node.IDENTIFIER()!.getText(), effects };
+    const id = node.IDENTIFIER()!.getText();
+
+    // Issue #471: Resolve unqualified enum member with type prefix
+    // If the switch expression is an enum type, check if this identifier
+    // is a member of that enum and prefix it accordingly
+    if (switchEnumType && input.symbols) {
+      const members = input.symbols.enumMembers.get(switchEnumType);
+      if (members && members.has(id)) {
+        return { code: `${switchEnumType}_${id}`, effects };
+      }
+    }
+
+    // Issue #477: Reject unqualified enum members in non-enum switch context
+    // If switchEnumType is null (switching on non-enum like u8), but the
+    // identifier is an enum member, this is an error.
+    if (!switchEnumType && input.symbols) {
+      const matchingEnums: string[] = [];
+      for (const [enumName, members] of input.symbols.enumMembers) {
+        if (members.has(id)) {
+          matchingEnums.push(enumName);
+        }
+      }
+      if (matchingEnums.length > 0) {
+        const suggestion =
+          matchingEnums.length === 1
+            ? `did you mean '${matchingEnums[0]}.${id}'?`
+            : `exists in: ${matchingEnums.join(", ")}. Use qualified access.`;
+        const line = node.start?.line ?? 0;
+        const col = node.start?.column ?? 0;
+        throw new Error(
+          `${line}:${col} error[E0424]: '${id}' is not defined; ${suggestion}`,
+        );
+      }
+    }
+
+    return { code: id, effects };
   }
 
   // Numeric literals (may have optional minus prefix)
@@ -92,12 +131,16 @@ const generateCaseLabel = (
  * Generate C code for a switch case.
  *
  * Handles multiple labels (|| expansion) and generates proper indentation.
+ *
+ * Issue #471: switchEnumType is passed to case label generation for
+ * resolving unqualified enum members.
  */
 const generateSwitchCase = (
   node: SwitchCaseContext,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
+  switchEnumType?: string,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   const labels = node.caseLabel();
@@ -111,6 +154,7 @@ const generateSwitchCase = (
       input,
       state,
       orchestrator,
+      switchEnumType,
     );
     effects.push(...labelResult.effects);
 
@@ -174,6 +218,9 @@ const generateDefaultCase = (
 
 /**
  * Generate C code for a switch statement (ADR-025).
+ *
+ * Issue #471: Determines the enum type of the switch expression and passes
+ * it to case generation for resolving unqualified enum members.
  */
 const generateSwitch = (
   node: SwitchStatementContext,
@@ -188,12 +235,21 @@ const generateSwitch = (
   // ADR-025: Semantic validation
   orchestrator.validateSwitchStatement(node, switchExpr);
 
+  // Issue #471: Get the enum type of the switch expression for case label resolution
+  const switchEnumType = orchestrator.getExpressionEnumType(switchExpr);
+
   // Build the switch statement
   const lines: string[] = [`switch (${exprCode}) {`];
 
   // Generate cases
   for (const caseCtx of node.switchCase()) {
-    const caseResult = generateSwitchCase(caseCtx, input, state, orchestrator);
+    const caseResult = generateSwitchCase(
+      caseCtx,
+      input,
+      state,
+      orchestrator,
+      switchEnumType ?? undefined,
+    );
     lines.push(caseResult.code);
     effects.push(...caseResult.effects);
   }

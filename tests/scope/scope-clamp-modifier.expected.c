@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-clamp-modifier.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

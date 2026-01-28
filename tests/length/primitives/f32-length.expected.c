@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "f32-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -25,10 +27,6 @@ float TestScope_publicMember = 3.14;
 uint32_t checkParamLength(float param) {
     return 32;
 }
-
-typedef struct TestStruct {
-    float member;
-} TestStruct;
 
 int main(void) {
     if (32 != 32) {

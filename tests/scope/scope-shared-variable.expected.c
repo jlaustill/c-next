@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-shared-variable.test.h"
+
 #include <stdint.h>
 
 // test-execution

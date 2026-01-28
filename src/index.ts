@@ -28,9 +28,20 @@ const packageJson = require("../package.json");
 interface ICNextConfig {
   /** Issue #211: Force C++ output. Auto-detection may also enable this. */
   cppRequired?: boolean;
-  generateHeaders?: boolean;
   debugMode?: boolean;
   target?: string; // ADR-049: Target platform (e.g., "teensy41", "cortex-m0")
+  /** Disable symbol caching (.cnx/ directory) */
+  noCache?: boolean;
+  /** Additional include directories for C/C++ header discovery */
+  include?: string[];
+  /** Output directory for generated files */
+  output?: string;
+  /** Separate output directory for header files */
+  headerOut?: string;
+  /** Base path to strip from header output paths (only used with headerOut) */
+  basePath?: string;
+  /** Internal: path to config file that was loaded (set by loadConfig) */
+  _path?: string;
 }
 
 /**
@@ -51,7 +62,9 @@ function loadConfig(startDir: string): ICNextConfig {
       if (existsSync(configPath)) {
         try {
           const content = readFileSync(configPath, "utf-8");
-          return JSON.parse(content) as ICNextConfig;
+          const config = JSON.parse(content) as ICNextConfig;
+          config._path = configPath;
+          return config;
         } catch (_err) {
           console.error(`Warning: Failed to parse ${configPath}`);
           return {};
@@ -103,18 +116,19 @@ function showHelp(): void {
   console.log(
     "                     Options: teensy41, cortex-m7/m4/m3/m0+/m0, avr",
   );
-  console.log(
-    "  --exclude-headers  Don't generate header files (default: generate)",
-  );
   console.log("  --no-preprocess    Don't run C preprocessor on headers");
   console.log("  --no-cache         Disable symbol cache (.cnx/ directory)");
   console.log("  --header-out <dir> Output directory for header files");
+  console.log(
+    "  --base-path <path> Strip path prefix from header output (use with --header-out)",
+  );
   console.log(
     "  --clean            Delete generated files for all .cnx sources",
   );
   console.log("  -D<name>[=value]   Define preprocessor macro");
   console.log("  --pio-install      Setup PlatformIO integration");
   console.log("  --pio-uninstall    Remove PlatformIO integration");
+  console.log("  --config           Show effective configuration and exit");
   console.log("  --version, -v      Show version");
   console.log("  --help, -h         Show this help");
   console.log("");
@@ -135,8 +149,22 @@ function showHelp(): void {
   console.log("Config files (searched in order, JSON format):");
   console.log("  cnext.config.json, .cnext.json, .cnextrc");
   console.log("");
+  console.log("Config options:");
+  console.log("  cppRequired    Output .cpp instead of .c (boolean)");
+  console.log("  noCache        Disable symbol caching (boolean)");
+  console.log("  include        Additional include directories (string[])");
+  console.log("  output         Output directory for generated files (string)");
+  console.log("  headerOut      Separate directory for header files (string)");
+  console.log("  target         Target platform for atomic code gen (string)");
+  console.log("  debugMode      Generate panic-on-overflow helpers (boolean)");
+  console.log("");
   console.log("Config example:");
-  console.log('  { "cppRequired": true }');
+  console.log("  {");
+  console.log('    "cppRequired": true,');
+  console.log('    "include": ["lib/", "vendor/include/"],');
+  console.log('    "output": "build/",');
+  console.log('    "headerOut": "include/"');
+  console.log("  }");
   console.log("");
   console.log("A safer C for embedded systems development.");
 }
@@ -191,13 +219,13 @@ async function runUnifiedMode(
   outputPath: string,
   includeDirs: string[],
   defines: Record<string, string | boolean>,
-  generateHeaders: boolean,
   preprocess: boolean,
   verbose: boolean,
   cppRequired: boolean,
   noCache: boolean,
   parseOnly: boolean,
   headerOutDir?: string,
+  basePath?: string,
 ): Promise<void> {
   // Issue #337: Identify which inputs are directories (for structure preservation)
   // These will be passed to Project.srcDirs so Pipeline can preserve directory structure
@@ -279,7 +307,7 @@ async function runUnifiedMode(
     includeDirs: allIncludePaths,
     outDir,
     headerOutDir,
-    generateHeaders,
+    basePath,
     preprocess,
     defines,
     cppRequired,
@@ -491,14 +519,15 @@ async function main(): Promise<void> {
   let outputPath = "";
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
-  let cliGenerateHeaders: boolean | undefined;
   let cliCppRequired: boolean | undefined;
   let preprocess = true;
   let verbose = false;
   let noCache = false;
   let parseOnly = false;
   let headerOutDir: string | undefined;
+  let basePath: string | undefined;
   let cleanMode = false;
+  let showConfig = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -509,8 +538,6 @@ async function main(): Promise<void> {
       includeDirs.push(args[++i]);
     } else if (arg === "--verbose") {
       verbose = true;
-    } else if (arg === "--exclude-headers") {
-      cliGenerateHeaders = false;
     } else if (arg === "--cpp") {
       cliCppRequired = true;
     } else if (arg === "--no-preprocess") {
@@ -521,8 +548,12 @@ async function main(): Promise<void> {
       parseOnly = true;
     } else if (arg === "--header-out" && i + 1 < args.length) {
       headerOutDir = args[++i];
+    } else if (arg === "--base-path" && i + 1 < args.length) {
+      basePath = args[++i];
     } else if (arg === "--clean") {
       cleanMode = true;
+    } else if (arg === "--config") {
+      showConfig = true;
     } else if (arg.startsWith("-D")) {
       const define = arg.slice(2);
       const eqIndex = define.indexOf("=");
@@ -561,8 +592,48 @@ async function main(): Promise<void> {
   const config = loadConfig(configDir);
 
   // Apply config defaults, CLI flags take precedence
-  const generateHeaders = cliGenerateHeaders ?? config.generateHeaders ?? true;
-  const cppRequired = cliCppRequired ?? config.cppRequired ?? false;
+  const finalCppRequired = cliCppRequired ?? config.cppRequired ?? false;
+  const finalNoCache = noCache || config.noCache === true;
+  const finalOutputPath = outputPath || config.output || "";
+  const finalHeaderOutDir = headerOutDir ?? config.headerOut;
+  const finalBasePath = basePath ?? config.basePath;
+  // Merge include dirs: CLI includes come after config includes (higher priority in search)
+  const finalIncludeDirs = [...(config.include ?? []), ...includeDirs];
+
+  // Show config mode: print effective configuration and exit
+  if (showConfig) {
+    console.log("Effective configuration:");
+    console.log("");
+    console.log("  Config file:    " + (config._path ?? "(none)"));
+    console.log("  cppRequired:    " + finalCppRequired);
+    console.log("  debugMode:      " + (config.debugMode ?? false));
+    console.log("  target:         " + (config.target ?? "(none)"));
+    console.log("  noCache:        " + finalNoCache);
+    console.log("  preprocess:     " + preprocess);
+    console.log(
+      "  output:         " + (finalOutputPath || "(same dir as input)"),
+    );
+    console.log(
+      "  headerOut:      " + (finalHeaderOutDir ?? "(same as output)"),
+    );
+    console.log("  basePath:       " + (finalBasePath ?? "(none)"));
+    console.log(
+      "  include:        " + (finalIncludeDirs.length > 0 ? "" : "(none)"),
+    );
+    for (const dir of finalIncludeDirs) {
+      console.log("    - " + dir);
+    }
+    console.log(
+      "  defines:        " + (Object.keys(defines).length > 0 ? "" : "(none)"),
+    );
+    for (const [key, value] of Object.entries(defines)) {
+      console.log("    - " + key + (value === true ? "" : "=" + value));
+    }
+    console.log("");
+    console.log("Source:");
+    console.log("  CLI flags take precedence over config file values");
+    process.exit(0);
+  }
 
   // Unified mode - always use Project class with header discovery
   if (inputFiles.length === 0) {
@@ -573,22 +644,22 @@ async function main(): Promise<void> {
 
   // Clean mode: delete generated files and exit
   if (cleanMode) {
-    CleanCommand.execute(inputFiles, outputPath, headerOutDir);
+    CleanCommand.execute(inputFiles, finalOutputPath, finalHeaderOutDir);
     process.exit(0);
   }
 
   await runUnifiedMode(
     inputFiles,
-    outputPath,
-    includeDirs,
+    finalOutputPath,
+    finalIncludeDirs,
     defines,
-    generateHeaders,
     preprocess,
     verbose,
-    cppRequired,
-    noCache,
+    finalCppRequired,
+    finalNoCache,
     parseOnly,
-    headerOutDir,
+    finalHeaderOutDir,
+    finalBasePath,
   );
 }
 

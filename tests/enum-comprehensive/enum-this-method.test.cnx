@@ -1,0 +1,27 @@
+// test-execution
+// Tests: this.method() returning enum inside scope
+
+scope Motor {
+    public enum EMode {
+        OFF <- 0,
+        ON <- 1
+    }
+
+    private this.EMode mode <- this.EMode.OFF;
+
+    public this.EMode getMode() {
+        return this.mode;
+    }
+
+    // BUG: this.method() returning enum inside scope
+    public bool test() {
+        this.EMode current <- this.getMode();
+        return (current = this.EMode.OFF);
+    }
+}
+
+u32 main() {
+    bool result <- Motor.test();
+    if (!result) return 1;
+    return 0;
+}

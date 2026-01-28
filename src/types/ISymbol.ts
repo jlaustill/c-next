@@ -59,6 +59,12 @@ interface ISymbol {
 
   /** Issue #288: Whether this variable is const (for extern declarations) */
   isConst?: boolean;
+
+  /** Issue #468: Whether this variable is atomic (volatile in C) */
+  isAtomic?: boolean;
+
+  /** Issue #461: Initial value expression for const variables (for resolving external array dimensions) */
+  initialValue?: string;
 }
 
 export default ISymbol;

@@ -1,0 +1,2 @@
+// External config constants
+const u8 DEVICE_COUNT <- 4;

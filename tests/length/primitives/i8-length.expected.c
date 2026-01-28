@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i8-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -25,10 +27,6 @@ int8_t TestScope_publicMember = -42;
 uint32_t checkParamLength(int8_t param) {
     return 8;
 }
-
-typedef struct TestStruct {
-    int8_t member;
-} TestStruct;
 
 int main(void) {
     if (8 != 8) {

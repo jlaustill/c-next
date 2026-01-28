@@ -1,0 +1,9 @@
+#include "types.cnx"
+
+struct Config {
+    EPressureType pType;
+}
+
+void setDefault(Config config) {
+    config.pType <- PRESSURE_TYPE_PSIG;
+}

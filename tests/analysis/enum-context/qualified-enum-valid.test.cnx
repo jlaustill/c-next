@@ -1,0 +1,56 @@
+// test-execution
+// Tests: Unqualified enum values work correctly when type context is enum
+
+enum Priority {
+    LOW <- 1,
+    MEDIUM <- 2,
+    HIGH <- 3
+}
+
+// Valid: assignment to enum type
+Priority globalPriority <- LOW;
+
+// Valid: return type is Priority (enum)
+Priority getPriority() {
+    return HIGH;
+}
+
+// Valid: parameter has enum type - use qualified comparison for now
+// (Unqualified in comparison requires type inference from left operand - future enhancement)
+u32 priorityToValue(Priority p) {
+    if (p = Priority.LOW) { return 1; }
+    if (p = Priority.MEDIUM) { return 2; }
+    if (p = Priority.HIGH) { return 3; }
+    return 0;
+}
+
+// Valid: switch on enum type with unqualified case labels
+u32 switchPriority(Priority p) {
+    switch (p) {
+        case LOW { return 10; }
+        case MEDIUM { return 20; }
+        case HIGH { return 30; }
+    }
+    return 0;
+}
+
+u32 main() {
+    // Test global assignment worked
+    if (globalPriority != Priority.LOW) return 1;
+
+    // Test return from enum function
+    Priority p <- getPriority();
+    if (p != Priority.HIGH) return 2;
+
+    // Test comparison with enum parameter (qualified)
+    if (priorityToValue(Priority.LOW) != 1) return 3;
+    if (priorityToValue(Priority.MEDIUM) != 2) return 4;
+    if (priorityToValue(Priority.HIGH) != 3) return 5;
+
+    // Test switch on enum
+    if (switchPriority(Priority.LOW) != 10) return 6;
+    if (switchPriority(Priority.MEDIUM) != 20) return 7;
+    if (switchPriority(Priority.HIGH) != 30) return 8;
+
+    return 0;
+}

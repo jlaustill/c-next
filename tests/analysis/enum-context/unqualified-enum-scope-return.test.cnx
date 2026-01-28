@@ -1,0 +1,15 @@
+// test-error
+// Tests: Unqualified enum in scoped function with non-enum return
+
+enum Level {
+    LOW <- 0,
+    MEDIUM <- 1,
+    HIGH <- 2
+}
+
+scope Sensor {
+    // Return type is u8, not Level - should error even in scope
+    public u8 getLevel() {
+        return HIGH;
+    }
+}

@@ -1,0 +1,51 @@
+// test-execution
+// test-coverage: issue-452-nested-struct-resolution
+// Tests: Type-aware enum resolution through nested struct access
+// For config.nested.status <- RED, should correctly walk the chain:
+// config -> Config -> nested -> NestedConfig -> status -> Status
+
+enum Color {
+    RED <- 0,
+    GREEN <- 1
+}
+
+enum Status {
+    RED <- 10,
+    GREEN <- 20
+}
+
+struct NestedConfig {
+    Status status;
+    Color color;
+}
+
+struct Config {
+    NestedConfig nested;
+}
+
+void setNestedStatus(Config cfg) {
+    // Should resolve RED to Status_RED (value 10) via nested struct chain
+    cfg.nested.status <- RED;
+}
+
+void setNestedColor(Config cfg) {
+    // Should resolve GREEN to Color_GREEN (value 1) via nested struct chain
+    cfg.nested.color <- GREEN;
+}
+
+u32 main() {
+    Config cfg <- {nested: {status: Status.GREEN, color: Color.RED}};
+
+    // Test 1: Verify initial nested status
+    if ((u32)cfg.nested.status != 20) return 1;  // Status_GREEN = 20
+
+    // Test 2: Set via nested access, should use Status_RED
+    setNestedStatus(cfg);
+    if ((u32)cfg.nested.status != 10) return 2;  // Status_RED = 10
+
+    // Test 3: Set color via nested access, should use Color_GREEN
+    setNestedColor(cfg);
+    if ((u32)cfg.nested.color != 1) return 3;  // Color_GREEN = 1
+
+    return 0;
+}

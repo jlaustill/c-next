@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-register-bit-access.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

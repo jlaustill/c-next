@@ -46,6 +46,15 @@ interface IOrchestrator {
   /** Generate a C expression from any expression context */
   generateExpression(ctx: Parser.ExpressionContext): string;
 
+  /**
+   * Issue #477: Generate a C expression with a specific expected type context.
+   * Used by return statements to resolve unqualified enum values.
+   */
+  generateExpressionWithExpectedType(
+    ctx: Parser.ExpressionContext,
+    expectedType: string | null,
+  ): string;
+
   /** Generate type translation (C-Next type -> C type) */
   generateType(ctx: Parser.TypeContext): string;
 
@@ -282,6 +291,12 @@ interface IOrchestrator {
 
   /** Issue #269: Set the current function name for pass-by-value lookup */
   setCurrentFunctionName(name: string | null): void;
+
+  /** Issue #477: Get the current function's return type for enum inference */
+  getCurrentFunctionReturnType(): string | null;
+
+  /** Issue #477: Set the current function's return type for enum inference */
+  setCurrentFunctionReturnType(returnType: string | null): void;
 
   // === Function Body Management ===
 

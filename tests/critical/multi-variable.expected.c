@@ -4,7 +4,11 @@
  */
 
 #include <stdint.h>
-#include <cmsis_gcc.h>
+
+// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+static inline void __cnx_disable_irq(void) { __disable_irq(); }
+static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
+static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -26,12 +30,12 @@ uint8_t buffer[64] = {0};
 
 void transfer(void) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         uint8_t data = buffer[readIdx];
         readIdx = cnx_clamp_add_u32(readIdx, 1);
         buffer[writeIdx] = data;
         writeIdx = cnx_clamp_add_u32(writeIdx, 1);
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }

@@ -5,6 +5,7 @@
 
 import * as Parser from "../../antlr_parser/grammar/CNextParser";
 import TSymbol from "../types/TSymbol";
+import LiteralUtils from "../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import StructCollector from "./collectors/StructCollector";
@@ -19,20 +20,102 @@ class CNextResolver {
    *
    * @param tree The program context from the parser
    * @param sourceFile Source file path
+   * @param externalConstValues Optional map of const values from external files (e.g., #included .cnx files)
    * @returns Array of all collected symbols
    */
-  static resolve(tree: Parser.ProgramContext, sourceFile: string): TSymbol[] {
+  static resolve(
+    tree: Parser.ProgramContext,
+    sourceFile: string,
+    externalConstValues?: Map<string, number>,
+  ): TSymbol[] {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
+    const constValues = new Map<string, number>();
+
+    // Issue #461: Start with external const values from included files
+    if (externalConstValues) {
+      for (const [name, value] of externalConstValues) {
+        constValues.set(name, value);
+      }
+    }
+
+    // Pass 0: Collect const values (needed for resolving array dimensions)
+    // Local constants override external ones (unlikely but handles shadowing)
+    CNextResolver.collectConstValuesPass0(tree, constValues);
 
     // Pass 1: Collect all bitmap names (needed before registers reference them)
     // This includes bitmaps in scopes
-    CNextResolver.collectBitmapsPass1(tree, sourceFile, symbols, knownBitmaps);
+    CNextResolver.collectBitmapsPass1(
+      tree,
+      sourceFile,
+      symbols,
+      knownBitmaps,
+      constValues,
+    );
 
-    // Pass 2: Collect everything else (with bitmap set available)
-    CNextResolver.collectAllPass2(tree, sourceFile, symbols, knownBitmaps);
+    // Pass 2: Collect everything else (with bitmap set and const values available)
+    CNextResolver.collectAllPass2(
+      tree,
+      sourceFile,
+      symbols,
+      knownBitmaps,
+      constValues,
+    );
 
     return symbols;
+  }
+
+  /**
+   * Pass 0: Collect const values for resolving array dimensions.
+   * Only collects simple integer literals - complex expressions are not supported.
+   */
+  private static collectConstValuesPass0(
+    tree: Parser.ProgramContext,
+    constValues: Map<string, number>,
+  ): void {
+    for (const decl of tree.declaration()) {
+      // Top-level const variables
+      if (decl.variableDeclaration()) {
+        const varCtx = decl.variableDeclaration()!;
+        if (varCtx.constModifier()) {
+          const name = varCtx.IDENTIFIER().getText();
+          const exprCtx = varCtx.expression();
+          if (exprCtx) {
+            const value = LiteralUtils.parseIntegerLiteral(exprCtx.getText());
+            if (value !== undefined) {
+              constValues.set(name, value);
+            }
+          }
+        }
+      }
+
+      // Const variables inside scopes
+      if (decl.scopeDeclaration()) {
+        const scopeDecl = decl.scopeDeclaration()!;
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+
+        for (const member of scopeDecl.scopeMember()) {
+          if (member.variableDeclaration()) {
+            const varCtx = member.variableDeclaration()!;
+            if (varCtx.constModifier()) {
+              const name = varCtx.IDENTIFIER().getText();
+              const fullName = `${scopeName}_${name}`;
+              const exprCtx = varCtx.expression();
+              if (exprCtx) {
+                const value = LiteralUtils.parseIntegerLiteral(
+                  exprCtx.getText(),
+                );
+                if (value !== undefined) {
+                  // Store both bare name and scoped name for flexibility
+                  constValues.set(name, value);
+                  constValues.set(fullName, value);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -44,6 +127,7 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
   ): void {
     for (const decl of tree.declaration()) {
       // Top-level bitmaps
@@ -78,6 +162,7 @@ class CNextResolver {
               structCtx,
               sourceFile,
               scopeName,
+              constValues,
             );
             symbols.push(symbol);
           }
@@ -95,6 +180,7 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
   ): void {
     for (const decl of tree.declaration()) {
       // Skip bitmaps (already collected in pass 1)
@@ -109,6 +195,7 @@ class CNextResolver {
           scopeCtx,
           sourceFile,
           knownBitmaps,
+          constValues,
         );
 
         symbols.push(result.scopeSymbol);
@@ -128,7 +215,12 @@ class CNextResolver {
       // Top-level structs
       if (decl.structDeclaration()) {
         const structCtx = decl.structDeclaration()!;
-        const symbol = StructCollector.collect(structCtx, sourceFile);
+        const symbol = StructCollector.collect(
+          structCtx,
+          sourceFile,
+          undefined,
+          constValues,
+        );
         symbols.push(symbol);
       }
 
@@ -160,7 +252,13 @@ class CNextResolver {
       // Top-level variables
       if (decl.variableDeclaration()) {
         const varCtx = decl.variableDeclaration()!;
-        const symbol = VariableCollector.collect(varCtx, sourceFile);
+        const symbol = VariableCollector.collect(
+          varCtx,
+          sourceFile,
+          undefined,
+          true,
+          constValues,
+        );
         symbols.push(symbol);
       }
     }

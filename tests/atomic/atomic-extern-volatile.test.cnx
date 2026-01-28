@@ -1,0 +1,26 @@
+// test-coverage: atomic-extern-volatile
+// Tests: atomic variables have volatile qualifier in extern declarations
+// Bug #468: atomic/volatile qualifier missing from extern declarations in header
+#pragma target teensy41
+
+struct TReading {
+    i16 value;
+    bool valid;
+}
+
+// Global atomic variables should generate volatile extern declarations
+atomic TReading readings[4];
+atomic u32 counter <- 0;
+atomic u8 flags <- 0;
+
+scope Manager {
+    public void test() {
+        global.readings[0].valid <- true;
+        global.counter +<- 1;
+        global.flags <- 0xFF;
+    }
+}
+
+void main() {
+    Manager.test();
+}

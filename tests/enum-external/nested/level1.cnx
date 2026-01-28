@@ -1,0 +1,11 @@
+// Middle level - includes level2 and uses its enum
+
+#include "level2.cnx"
+
+struct Config {
+    ELevel level;
+}
+
+void setMedium(Config cfg) {
+    cfg.level <- LEVEL_MEDIUM;
+}

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap8-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,19 +12,6 @@
 // Comprehensive .length test for bitmap8 type across all contexts
 // Tests: .length returns 8 for bitmap8 in every possible scope and access pattern
 // Define bitmap8 type
-/* Bitmap: StatusFlags */
-/* Fields:
- *   bit0: bit 0 (1 bit)
- *   bit1: bit 1 (1 bit)
- *   bit2: bit 2 (1 bit)
- *   bit3: bit 3 (1 bit)
- *   bit4: bit 4 (1 bit)
- *   bit5: bit 5 (1 bit)
- *   bit6: bit 6 (1 bit)
- *   bit7: bit 7 (1 bit)
- */
-typedef uint8_t StatusFlags;
-
 StatusFlags globalVar = {0};
 
 /* Scope: TestScope */
@@ -40,10 +29,6 @@ StatusFlags TestScope_publicMember = {0};
 uint32_t checkParamLength(const StatusFlags* param) {
     return 8;
 }
-
-typedef struct TestStruct {
-    StatusFlags member;
-} TestStruct;
 
 int main(void) {
     globalVar = (globalVar & ~(1 << 0)) | (1 << 0);

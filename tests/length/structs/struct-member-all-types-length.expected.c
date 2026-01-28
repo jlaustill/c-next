@@ -3,26 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "struct-member-all-types-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Comprehensive .length test for struct members of all primitive types
 // Tests: .length returns correct bit width for each struct member type
-typedef struct AllTypes {
-    uint8_t u8Field;
-    uint16_t u16Field;
-    uint32_t u32Field;
-    uint64_t u64Field;
-    int8_t i8Field;
-    int16_t i16Field;
-    int32_t i32Field;
-    int64_t i64Field;
-    float f32Field;
-    double f64Field;
-    bool boolField;
-} AllTypes;
-
 // Test in global context
 AllTypes globalStruct = {0};
 

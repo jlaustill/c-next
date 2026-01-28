@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-315-small-primitive.test.h"
+
 // test-execution
 // Issue #315: Test SMALL_PRIMITIVE_TYPES path for cross-file calls
 // This test uses u8 parameters which are handled by the isSmallPrimitive check,
@@ -10,11 +12,6 @@
 #include <TestFuncSmall.h>
 
 #include <stdint.h>
-
-typedef struct ByteData {
-    uint8_t value1;
-    uint8_t value2;
-} ByteData;
 
 /* Scope: ByteCaller */
 static ByteData ByteCaller_data = {0};

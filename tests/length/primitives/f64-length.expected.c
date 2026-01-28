@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "f64-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -25,10 +27,6 @@ double TestScope_publicMember = 3.14159;
 uint32_t checkParamLength(double param) {
     return 64;
 }
-
-typedef struct TestStruct {
-    double member;
-} TestStruct;
 
 int main(void) {
     if (64 != 64) {

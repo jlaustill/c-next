@@ -1,0 +1,31 @@
+// Issue #471: Unqualified enum values in case labels
+// Tests that enum values without type prefix get resolved correctly
+// in both if conditions and case labels
+
+enum ECategory {
+    CAT_A <- 0,
+    CAT_B <- 1,
+    CAT_C <- 2
+}
+
+u32 categorize(ECategory cat) {
+    // If statement - should resolve to ECategory_CAT_A
+    if (cat = CAT_A) {
+        return 100;
+    }
+
+    // Switch case - should also resolve to ECategory_CAT_*
+    switch (cat) {
+        case CAT_A {
+            return 10;
+        }
+        case CAT_B {
+            return 20;
+        }
+        case CAT_C {
+            return 30;
+        }
+    }
+
+    return 0;
+}

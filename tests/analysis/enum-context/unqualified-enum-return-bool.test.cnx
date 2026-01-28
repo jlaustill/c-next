@@ -1,0 +1,12 @@
+// test-error
+// Tests: Unqualified enum value in bool return type should error
+
+enum State {
+    INACTIVE <- 0,
+    ACTIVE <- 1
+}
+
+// Return type is bool, not State - unqualified enum should be rejected
+bool isActive() {
+    return ACTIVE;
+}

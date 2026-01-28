@@ -17,14 +17,14 @@ interface IPipelineConfig {
   /** Separate output directory for header files (defaults to outDir) */
   headerOutDir?: string;
 
+  /** Base path to strip from header output paths (only used with headerOutDir) */
+  basePath?: string;
+
   /** Preprocessor defines for C/C++ headers */
   defines?: Record<string, string | boolean>;
 
   /** Whether to preprocess C/C++ headers (default: true) */
   preprocess?: boolean;
-
-  /** Whether to generate .h files for exported symbols (default: true) */
-  generateHeaders?: boolean;
 
   /** Issue #211: Force C++ output (--cpp flag). Auto-detection may also enable this. */
   cppRequired?: boolean;

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-332-cnx-struct-pointer.test.h"
+
 // Issue #332: Missing & for C-Next structs passed to external pointer parameters
 // When calling external C++ functions that expect pointer parameters,
 // the transpiler should add & for BOTH:

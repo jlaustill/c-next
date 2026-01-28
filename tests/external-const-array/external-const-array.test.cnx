@@ -1,0 +1,18 @@
+// Tests: Issue #461 - Array dimensions in header should use literal values
+// When a constant from an external .cnx file is used in an array size,
+// the generated .h file should contain the resolved literal value, not the constant name.
+// This is necessary because extern const values aren't compile-time constant expressions in C/C++.
+
+#include "config.cnx"
+
+bool enabled[DEVICE_COUNT] <- [false, false, false, false];
+
+u32 main() {
+    // Simple test - enable first device
+    enabled[0] <- true;
+
+    if (enabled[0] != true) return 1;
+    if (enabled[1] != false) return 2;
+
+    return 0;
+}

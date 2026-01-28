@@ -9,6 +9,7 @@ import ESymbolKind from "../../../types/ESymbolKind";
 import IStructSymbol from "../../types/IStructSymbol";
 import IFieldInfo from "../../types/IFieldInfo";
 import TypeUtils from "../utils/TypeUtils";
+import LiteralUtils from "../../../utils/LiteralUtils";
 
 class StructCollector {
   /**
@@ -17,12 +18,14 @@ class StructCollector {
    * @param ctx The struct declaration context
    * @param sourceFile Source file path
    * @param scopeName Optional scope name for nested structs
+   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @returns The struct symbol
    */
   static collect(
     ctx: Parser.StructDeclarationContext,
     sourceFile: string,
     scopeName?: string,
+    constValues?: Map<string, number>,
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
     const fullName = scopeName ? `${scopeName}_${name}` : name;
@@ -55,9 +58,12 @@ class StructCollector {
             for (const dim of arrayDims) {
               const sizeExpr = dim.expression();
               if (sizeExpr) {
-                const size = Number.parseInt(sizeExpr.getText(), 10);
-                if (!Number.isNaN(size)) {
-                  dimensions.push(size);
+                const dimText = sizeExpr.getText();
+                const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+                if (literalSize !== undefined) {
+                  dimensions.push(literalSize);
+                } else if (constValues?.has(dimText)) {
+                  dimensions.push(constValues.get(dimText)!);
                 }
               }
             }
@@ -72,9 +78,12 @@ class StructCollector {
         for (const dim of arrayDims) {
           const sizeExpr = dim.expression();
           if (sizeExpr) {
-            const size = Number.parseInt(sizeExpr.getText(), 10);
-            if (!Number.isNaN(size)) {
-              dimensions.push(size);
+            const dimText = sizeExpr.getText();
+            const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+            if (literalSize !== undefined) {
+              dimensions.push(literalSize);
+            } else if (constValues?.has(dimText)) {
+              dimensions.push(constValues.get(dimText)!);
             }
           }
         }

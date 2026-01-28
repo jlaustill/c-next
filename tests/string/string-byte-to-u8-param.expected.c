@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-byte-to-u8-param.test.h"
+
 #include <stdint.h>
 #include <string.h>
 

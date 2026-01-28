@@ -1,0 +1,16 @@
+// test-execution
+// Tests: Direct enum assignment (no method call)
+
+scope Motor {
+    public enum EMode {
+        OFF <- 0,
+        LOW <- 1
+    }
+}
+
+u32 main() {
+    // Direct assignment - should work
+    Motor.EMode motorMode <- Motor.EMode.OFF;
+    if (motorMode != Motor.EMode.OFF) return 1;
+    return 0;
+}

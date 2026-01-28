@@ -1,0 +1,32 @@
+// test-execution
+// Tests: global.EnumType as function parameter type inside scope
+// Issue #478: global.EnumType not recognized as type reference inside scope
+
+// Define enum in same file to avoid cross-file header conflicts
+enum EPriority {
+    LOW <- 0,
+    MEDIUM <- 1,
+    HIGH <- 2
+}
+
+scope Processor {
+    // Parameter type uses global.EPriority
+    public i32 process(global.EPriority priority) {
+        if ((i32)priority = 0) return 10;
+        if ((i32)priority = 1) return 20;
+        return 30;
+    }
+}
+
+u32 main() {
+    i32 result <- Processor.process(global.EPriority.LOW);
+    if (result != 10) return 1;
+
+    result <- Processor.process(global.EPriority.MEDIUM);
+    if (result != 20) return 2;
+
+    result <- Processor.process(global.EPriority.HIGH);
+    if (result != 30) return 3;
+
+    return 0;
+}

@@ -1,0 +1,37 @@
+// test-execution
+// Tests: global.Enum from inside scope
+
+enum EGlobal {
+    A <- 0,
+    B <- 1
+}
+
+EGlobal globalVar <- EGlobal.A;
+
+EGlobal getGlobal() {
+    return globalVar;
+}
+
+scope Test {
+    // Return global enum from scope method
+    public global.EGlobal getGlobalEnum() {
+        return global.EGlobal.A;
+    }
+
+    // Use global function result
+    public bool testGlobalFunction() {
+        global.EGlobal val <- global.getGlobal();
+        return (val = global.EGlobal.A);
+    }
+}
+
+u32 main() {
+    // Test scope method returning global enum
+    EGlobal fromScope <- Test.getGlobalEnum();
+    if (fromScope != EGlobal.A) return 1;
+
+    // Test using global function from scope
+    if (!Test.testGlobalFunction()) return 2;
+
+    return 0;
+}

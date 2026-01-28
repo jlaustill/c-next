@@ -1,0 +1,6 @@
+// Helper file defining enum for cross-file test
+enum ESpnCategory {
+    SPN_CAT_TEMPERATURE <- 0,
+    SPN_CAT_PRESSURE <- 1,
+    SPN_CAT_UNKNOWN <- 2
+}

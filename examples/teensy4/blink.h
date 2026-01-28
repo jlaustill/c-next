@@ -13,19 +13,80 @@
 extern "C" {
 #endif
 
+/* Enumerations */
+typedef enum {
+    Teensy4_InterruptType_LOW_LEVEL = 0,
+    Teensy4_InterruptType_HIGH_LEVEL = 1,
+    Teensy4_InterruptType_RISING_EDGE = 2,
+    Teensy4_InterruptType_FALLING_EDGE = 3
+} Teensy4_InterruptType;
+
+/* Bitmaps */
+/* Bitmap: Teensy4_GPIO7Pins
+ *   D10: bit 0
+ *   D12: bit 1
+ *   D11: bit 2
+ *   LED_BUILTIN: bit 3
+ *   Reserved_4: bit 4
+ *   Reserved_5: bit 5
+ *   Reserved_6: bit 6
+ *   Reserved_7: bit 7
+ *   Reserved_8: bit 8
+ *   Reserved_9: bit 9
+ *   D6: bit 10
+ *   D9: bit 11
+ *   D32: bit 12
+ *   Reserved_13: bit 13
+ *   Reserved_14: bit 14
+ *   Reserved_15: bit 15
+ *   D8: bit 16
+ *   D7: bit 17
+ *   D36: bit 18
+ *   D37: bit 19
+ *   Reserved_20: bit 20
+ *   Reserved_21: bit 21
+ *   Reserved_22: bit 22
+ *   Reserved_23: bit 23
+ *   Reserved_24: bit 24
+ *   Reserved_25: bit 25
+ *   Reserved_26: bit 26
+ *   Reserved_27: bit 27
+ *   D35: bit 28
+ *   D34: bit 29
+ *   Reserved_30: bit 30
+ *   Reserved_31: bit 31
+ */
+typedef uint32_t Teensy4_GPIO7Pins;
+/* Bitmap: Teensy4_ICR1Config
+ *   D10: bits 0-1 (2 bits)
+ *   D12: bits 2-3 (2 bits)
+ *   D11: bits 4-5 (2 bits)
+ *   LED_BUILTIN: bits 6-7 (2 bits)
+ *   Res4: bits 8-9 (2 bits)
+ *   Res5: bits 10-11 (2 bits)
+ *   Res6: bits 12-13 (2 bits)
+ *   Res7: bits 14-15 (2 bits)
+ *   Res8: bits 16-17 (2 bits)
+ *   Res9: bits 18-19 (2 bits)
+ *   D6: bits 20-21 (2 bits)
+ *   D9: bits 22-23 (2 bits)
+ *   D32: bits 24-25 (2 bits)
+ *   Res13: bits 26-27 (2 bits)
+ *   Res14: bits 28-29 (2 bits)
+ *   Res15: bits 30-31 (2 bits)
+ */
+typedef uint32_t Teensy4_ICR1Config;
+
 /* External variables */
-extern uint32_t BLINK_DELAY_MS;
+extern const uint32_t BLINK_DELAY_MS;
 
 /* Function prototypes */
-uint8_t Teensy4_doSomething(void);
 void LED_on(void);
 void LED_off(void);
 void LED_toggle(void);
 bool LED_isOn(void);
 void LED_configureInterrupt(void);
 void LED_clearInterrupt(void);
-void setup(void);
-void loop(void);
 
 #ifdef __cplusplus
 }

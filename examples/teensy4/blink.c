@@ -3,6 +3,35 @@
  * A safer C for embedded systems
  */
 
+#include "blink.h"
+
+// blink.cnx - LED Blink for Teensy 4.x (Scoped Register Demo)
+// Target: Teensy 4.x (NXP i.MX RT1062)
+// Built-in LED is on GPIO7, bit 3 (Arduino pin 13)
+//
+// Compile: cnx blink.cnx -o blink.c
+// Then use with Arduino/PlatformIO
+//
+// This example demonstrates SCOPED REGISTERS (ADR-016) with separation of concerns:
+//
+// Architecture:
+//   scope Teensy4 { ... }  - Platform layer: registers, bitmaps, enums, constants
+//   scope LED { ... }      - Application layer: high-level LED control functions
+//   global                 - Sketch config: BLINK_DELAY_MS, setup(), loop()
+//
+// Cross-scope access (ADR-016 requires global. prefix):
+//   LED.toggle()                                               - Call application function
+//   global.Teensy4.GPIO7.DataRegister_Set.LED_BUILTIN <- true  - Access platform register
+//
+// Why scoped registers?
+// - Avoids conflicts with HAL headers (Teensy's imxrt.h defines GPIO7_DR)
+// - Groups platform-specific types, registers, constants together
+// - Enables multi-platform codebases with clear organization
+//
+// See docs/README.md for GPIO7 pin mapping and register documentation.
+// =============================================================================
+// Includes - C-Next passes these through to generated C
+// =============================================================================
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -10,75 +39,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// =============================================================================
+// Teensy 4.x Platform Scope
+// =============================================================================
+// All platform-specific definitions are scoped to avoid HAL conflicts.
+// Generates: Teensy4_GPIO7_DR, Teensy4_GPIO7Pins, Teensy4_InterruptType, etc.
 /* Scope: Teensy4 */
-
-/* Bitmap: Teensy4_GPIO7Pins */
-/* Fields:
- *   D10: bit 0 (1 bit)
- *   D12: bit 1 (1 bit)
- *   D11: bit 2 (1 bit)
- *   LED_BUILTIN: bit 3 (1 bit)
- *   Reserved_4: bit 4 (1 bit)
- *   Reserved_5: bit 5 (1 bit)
- *   Reserved_6: bit 6 (1 bit)
- *   Reserved_7: bit 7 (1 bit)
- *   Reserved_8: bit 8 (1 bit)
- *   Reserved_9: bit 9 (1 bit)
- *   D6: bit 10 (1 bit)
- *   D9: bit 11 (1 bit)
- *   D32: bit 12 (1 bit)
- *   Reserved_13: bit 13 (1 bit)
- *   Reserved_14: bit 14 (1 bit)
- *   Reserved_15: bit 15 (1 bit)
- *   D8: bit 16 (1 bit)
- *   D7: bit 17 (1 bit)
- *   D36: bit 18 (1 bit)
- *   D37: bit 19 (1 bit)
- *   Reserved_20: bit 20 (1 bit)
- *   Reserved_21: bit 21 (1 bit)
- *   Reserved_22: bit 22 (1 bit)
- *   Reserved_23: bit 23 (1 bit)
- *   Reserved_24: bit 24 (1 bit)
- *   Reserved_25: bit 25 (1 bit)
- *   Reserved_26: bit 26 (1 bit)
- *   Reserved_27: bit 27 (1 bit)
- *   D35: bit 28 (1 bit)
- *   D34: bit 29 (1 bit)
- *   Reserved_30: bit 30 (1 bit)
- *   Reserved_31: bit 31 (1 bit)
- */
-typedef uint32_t Teensy4_GPIO7Pins;
-
-
-/* Bitmap: Teensy4_ICR1Config */
-/* Fields:
- *   D10: bits 0-1 (2 bits)
- *   D12: bits 2-3 (2 bits)
- *   D11: bits 4-5 (2 bits)
- *   LED_BUILTIN: bits 6-7 (2 bits)
- *   Res4: bits 8-9 (2 bits)
- *   Res5: bits 10-11 (2 bits)
- *   Res6: bits 12-13 (2 bits)
- *   Res7: bits 14-15 (2 bits)
- *   Res8: bits 16-17 (2 bits)
- *   Res9: bits 18-19 (2 bits)
- *   D6: bits 20-21 (2 bits)
- *   D9: bits 22-23 (2 bits)
- *   D32: bits 24-25 (2 bits)
- *   Res13: bits 26-27 (2 bits)
- *   Res14: bits 28-29 (2 bits)
- *   Res15: bits 30-31 (2 bits)
- */
-typedef uint32_t Teensy4_ICR1Config;
-
-
-typedef enum {
-    Teensy4_InterruptType_LOW_LEVEL = 0,
-    Teensy4_InterruptType_HIGH_LEVEL = 1,
-    Teensy4_InterruptType_RISING_EDGE = 2,
-    Teensy4_InterruptType_FALLING_EDGE = 3
-} Teensy4_InterruptType;
-
 
 /* Register: Teensy4_GPIO7 @ 0x42004000 */
 #define Teensy4_GPIO7_DataRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x00))
@@ -97,18 +63,22 @@ static uint8_t Teensy4_doSomething(void) {
     uint8_t nextByte = someByte;
 }
 
+// =============================================================================
+// LED Control (Application-level, not platform-specific)
+// =============================================================================
+// LED functions use the Teensy4 platform scope for hardware access.
 /* Scope: LED */
 
 void LED_on(void) {
-    Teensy4_GPIO7_DataRegister_Set_LED_BUILTIN = true;
+    Teensy4_GPIO7_DataRegister_Set.LED_BUILTIN = true;
 }
 
 void LED_off(void) {
-    Teensy4_GPIO7_DataRegister_Clear_LED_BUILTIN = true;
+    Teensy4_GPIO7_DataRegister_Clear.LED_BUILTIN = true;
 }
 
 void LED_toggle(void) {
-    Teensy4_GPIO7_DataRegister_Toggle_LED_BUILTIN = true;
+    Teensy4_GPIO7_DataRegister_Toggle.LED_BUILTIN = true;
 }
 
 bool LED_isOn(void) {
@@ -116,16 +86,22 @@ bool LED_isOn(void) {
 }
 
 void LED_configureInterrupt(void) {
-    Teensy4_GPIO7_InterruptConfig1_LED_BUILTIN = (uint8_t)Teensy4_InterruptType_RISING_EDGE;
-    Teensy4_GPIO7_InterruptMaskRegister_LED_BUILTIN = true;
+    Teensy4_GPIO7_InterruptConfig1.LED_BUILTIN = (uint8_t)Teensy4_InterruptType_RISING_EDGE;
+    Teensy4_GPIO7_InterruptMaskRegister.LED_BUILTIN = true;
 }
 
 void LED_clearInterrupt(void) {
-    Teensy4_GPIO7_InterruptStatus_LED_BUILTIN = true;
+    Teensy4_GPIO7_InterruptStatus.LED_BUILTIN = true;
 }
 
+// =============================================================================
+// Sketch Configuration (user-level, not platform-specific)
+// =============================================================================
 const uint32_t BLINK_DELAY_MS = 1000;
 
+// =============================================================================
+// Arduino Entry Points
+// =============================================================================
 void setup(void) {
     pinMode(LED_BUILTIN, OUTPUT);
 }

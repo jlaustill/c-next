@@ -3,18 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-struct-params.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Tests: Scoped structs passed as function parameters
 /* Scope: Math */
-
-typedef struct Math_Vec2 {
-    int32_t x;
-    int32_t y;
-} Math_Vec2;
-
 
 void Math_add(Math_Vec2* result, const Math_Vec2* a, const Math_Vec2* b) {
     result->x = a->x + b->x;

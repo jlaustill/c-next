@@ -1,0 +1,7 @@
+// Deepest level - defines the enum
+
+enum ELevel {
+    LEVEL_LOW <- 0,
+    LEVEL_MEDIUM <- 1,
+    LEVEL_HIGH <- 2
+}

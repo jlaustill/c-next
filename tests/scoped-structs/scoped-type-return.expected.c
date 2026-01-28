@@ -3,18 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-type-return.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: this.Type and Scope.Type as function return types
 // Coverage: Section 13.2 this.Type as return, 13.3 Scope.Type as return/parameter
 /* Scope: Geometry */
-
-typedef struct Geometry_Point {
-    int32_t x;
-    int32_t y;
-} Geometry_Point;
-
 
 Geometry_Point Geometry_makePoint(int32_t x, int32_t y) {
     Geometry_Point p = (Geometry_Point){ .x = x, .y = y };

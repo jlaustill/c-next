@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "u8-array-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -37,10 +39,6 @@ uint32_t checkArrayLength(const uint8_t arr[16]) {
 uint32_t checkElementLength(const uint8_t arr[16]) {
     return 8;
 }
-
-typedef struct TestStruct {
-    uint8_t arr[16];
-} TestStruct;
 
 int main(void) {
     globalArr[0] = 42;

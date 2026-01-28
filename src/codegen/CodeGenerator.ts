@@ -67,6 +67,8 @@ import AssignmentClassifier from "./assignment/AssignmentClassifier";
 import AssignmentKind from "./assignment/AssignmentKind";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
+// Issue #461: LiteralUtils for parsing const values from symbol table
+import LiteralUtils from "../utils/LiteralUtils";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -182,12 +184,15 @@ interface AssignmentContext {
 interface GeneratorContext {
   currentScope: string | null; // ADR-016: renamed from currentNamespace
   currentFunctionName: string | null; // Issue #269: track current function for pass-by-value lookup
+  currentFunctionReturnType: string | null; // Issue #477: track return type for enum inference
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
   currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
   modifiedParameters: Set<string>; // Issue #268: track modified params for auto-const inference
   localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
   localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
+  floatBitShadows: Set<string>; // Track declared shadow variables for float bit indexing
+  floatShadowCurrent: Set<string>; // Track which shadows have current value (skip redundant memcpy reads)
   inFunctionBody: boolean; // ADR-016: track if we're inside a function body
   typeRegistry: Map<string, TTypeInfo>; // Track variable types for bit access and .length
   expectedType: string | null; // For inferred struct initializers
@@ -211,12 +216,15 @@ export default class CodeGenerator implements IOrchestrator {
   private context: GeneratorContext = {
     currentScope: null, // ADR-016: renamed from currentNamespace
     currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
+    currentFunctionReturnType: null, // Issue #477: track return type for enum inference
     indentLevel: 0,
     scopeMembers: new Map(), // ADR-016: renamed from namespaceMembers
     currentParameters: new Map(),
     modifiedParameters: new Set(),
     localArrays: new Set(),
     localVariables: new Set(), // ADR-016: track local variables
+    floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
+    floatShadowCurrent: new Set(), // Track which shadows have current value
     inFunctionBody: false, // ADR-016: track if inside function body
     typeRegistry: new Map(),
     expectedType: null,
@@ -261,9 +269,13 @@ export default class CodeGenerator implements IOrchestrator {
 
   private needsString: boolean = false; // ADR-045: For strlen, strncpy, etc.
 
+  private needsFloatStaticAssert: boolean = false; // For float bit indexing size verification
+
   private needsISR: boolean = false; // ADR-040: For ISR function pointer type
 
   private needsCMSIS: boolean = false; // ADR-049/050: For atomic intrinsics and critical sections
+
+  private needsIrqWrappers: boolean = false; // Issue #473: IRQ wrappers for critical sections
 
   /** External symbol table for cross-language interop */
   private symbolTable: SymbolTable | null = null;
@@ -427,6 +439,9 @@ export default class CodeGenerator implements IOrchestrator {
             case "cmsis":
               this.needsCMSIS = true;
               break;
+            case "irq_wrappers":
+              this.needsIrqWrappers = true;
+              break;
           }
           break;
         case "isr":
@@ -465,11 +480,15 @@ export default class CodeGenerator implements IOrchestrator {
           this.context.inFunctionBody = true;
           this.context.localVariables.clear();
           this.context.localArrays.clear();
+          this.context.floatBitShadows.clear();
+          this.context.floatShadowCurrent.clear();
           break;
         case "exit-function-body":
           this.context.inFunctionBody = false;
           this.context.localVariables.clear();
           this.context.localArrays.clear();
+          this.context.floatBitShadows.clear();
+          this.context.floatShadowCurrent.clear();
           break;
         case "set-parameters":
           this.context.currentParameters = new Map(effect.params);
@@ -517,6 +536,21 @@ export default class CodeGenerator implements IOrchestrator {
    */
   generateExpression(ctx: Parser.ExpressionContext): string {
     return this._generateExpression(ctx);
+  }
+
+  /**
+   * Issue #477: Generate expression with a specific expected type context.
+   * Used by return statements to resolve unqualified enum values.
+   */
+  generateExpressionWithExpectedType(
+    ctx: Parser.ExpressionContext,
+    expectedType: string | null,
+  ): string {
+    const savedExpectedType = this.context.expectedType;
+    this.context.expectedType = expectedType;
+    const result = this._generateExpression(ctx);
+    this.context.expectedType = savedExpectedType;
+    return result;
   }
 
   /**
@@ -1002,10 +1036,27 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.currentFunctionName = name;
   }
 
+  /**
+   * Issue #477: Get the current function's return type for enum inference.
+   * Used by return statement generation to set expectedType.
+   */
+  getCurrentFunctionReturnType(): string | null {
+    return this.context.currentFunctionReturnType;
+  }
+
+  /**
+   * Issue #477: Set the current function's return type for enum inference.
+   */
+  setCurrentFunctionReturnType(returnType: string | null): void {
+    this.context.currentFunctionReturnType = returnType;
+  }
+
   // === Function Body Management (A4) ===
 
   enterFunctionBody(): void {
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.modifiedParameters.clear(); // Issue #268: Clear for new function
     this.context.inFunctionBody = true;
   }
@@ -1013,6 +1064,8 @@ export default class CodeGenerator implements IOrchestrator {
   exitFunctionBody(): void {
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
   }
 
@@ -1116,7 +1169,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getStructFieldInfo(
     structName: string,
     fieldName: string,
-  ): { type: string; dimensions?: number[] } | undefined {
+  ): { type: string; dimensions?: (number | string)[] } | undefined {
     // First check SymbolTable (C header structs)
     if (this.symbolTable) {
       const fieldInfo = this.symbolTable.getStructFieldInfo(
@@ -1166,6 +1219,12 @@ export default class CodeGenerator implements IOrchestrator {
       return true;
     }
     return false;
+  }
+
+  private foldBooleanToInt(expr: string): string {
+    if (expr === "true") return "1";
+    if (expr === "false") return "0";
+    return `(${expr} ? 1 : 0)`;
   }
 
   /**
@@ -1446,12 +1505,15 @@ export default class CodeGenerator implements IOrchestrator {
     this.context = {
       currentScope: null, // ADR-016
       currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
+      currentFunctionReturnType: null, // Issue #477: track return type for enum inference
       indentLevel: 0,
       scopeMembers: new Map(), // ADR-016
       currentParameters: new Map(),
       modifiedParameters: new Set(),
       localArrays: new Set(),
       localVariables: new Set(), // ADR-016
+      floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
+      floatShadowCurrent: new Set(), // Track which shadows have current value
       inFunctionBody: false, // ADR-016
       typeRegistry: new Map(),
       expectedType: null,
@@ -1476,8 +1538,10 @@ export default class CodeGenerator implements IOrchestrator {
     this.needsStdint = false;
     this.needsStdbool = false;
     this.needsString = false; // ADR-045: Reset string header tracking
+    this.needsFloatStaticAssert = false; // Reset float bit indexing assertion
     this.needsISR = false; // ADR-040: Reset ISR typedef tracking
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
+    this.needsIrqWrappers = false; // Issue #473: Reset IRQ wrappers tracking
     this.selfIncludeAdded = false; // Issue #369: Reset self-include tracking
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
@@ -1492,6 +1556,24 @@ export default class CodeGenerator implements IOrchestrator {
     for (const [scopeName, members] of this.symbols.scopeMembers) {
       // Convert ReadonlySet to mutable Set for context
       this.context.scopeMembers.set(scopeName, new Set(members));
+    }
+
+    // Issue #461: Initialize constValues from symbol table for external const resolution
+    // This allows array dimensions to reference constants from included .cnx files
+    this.constValues = new Map();
+    if (this.symbolTable) {
+      for (const symbol of this.symbolTable.getAllSymbols()) {
+        if (
+          symbol.kind === ESymbolKind.Variable &&
+          symbol.isConst &&
+          symbol.initialValue !== undefined
+        ) {
+          const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
+          if (value !== undefined) {
+            this.constValues.set(symbol.name, value);
+          }
+        }
+      }
     }
 
     // Issue #61: Initialize type resolver with clean dependencies
@@ -1545,11 +1627,8 @@ export default class CodeGenerator implements IOrchestrator {
     // include own header to ensure proper C linkage
     // Issue #339: Use relative path from source root when available
     // Issue #369: Track self-include to skip type definitions in .c file
-    if (
-      options?.generateHeaders &&
-      this.symbols!.hasPublicSymbols() &&
-      this.sourcePath
-    ) {
+    // Issue #461: Always generate self-include when there are public symbols
+    if (this.symbols!.hasPublicSymbols() && this.sourcePath) {
       // Issue #339: Prefer sourceRelativePath for correct directory structure
       // Otherwise fall back to basename for backward compatibility
       const pathToUse =
@@ -1646,6 +1725,35 @@ export default class CodeGenerator implements IOrchestrator {
     }
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes);
+      output.push("");
+    }
+
+    // Float bit indexing requires size verification at compile time
+    if (this.needsFloatStaticAssert) {
+      output.push(
+        '_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");',
+      );
+      output.push(
+        '_Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");',
+      );
+      output.push("");
+    }
+
+    // Issue #473: IRQ wrapper functions to avoid macro collisions with platform headers
+    // (e.g., Teensy's imxrt.h defines __disable_irq/__enable_irq as macros)
+    if (this.needsIrqWrappers) {
+      output.push(
+        "// ADR-050: IRQ wrappers to avoid macro collisions with platform headers",
+      );
+      output.push(
+        "static inline void __cnx_disable_irq(void) { __disable_irq(); }",
+      );
+      output.push(
+        "static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }",
+      );
+      output.push(
+        "static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }",
+      );
       output.push("");
     }
 
@@ -2730,6 +2838,69 @@ export default class CodeGenerator implements IOrchestrator {
         });
         return; // Early return, we've handled this case
       }
+    } else if (typeCtx.globalType()) {
+      // Issue #478: Handle global.Type for global types inside scope
+      // global.ECategory -> ECategory (no scope prefix)
+      baseType = typeCtx.globalType()!.IDENTIFIER().getText();
+      bitWidth = 0;
+
+      // ADR-017: Check if this is an enum type
+      if (this.symbols!.knownEnums.has(baseType)) {
+        this.context.typeRegistry.set(name, {
+          baseType,
+          bitWidth: 0,
+          isArray: false,
+          isConst,
+          isEnum: true,
+          enumTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(name, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
+        this.context.typeRegistry.set(name, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
     } else if (typeCtx.qualifiedType()) {
       // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
       // Issue #388: Also handles C++ namespace types (e.g., MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
@@ -2965,6 +3136,69 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.symbols!.knownBitmaps.has(baseType)) {
         if (arrayDim && arrayDim.length > 0) {
           // Bitmap array - need to track array dimensions too
+          const bitmapArrayDimensions: number[] = [];
+          for (const dim of arrayDim) {
+            const sizeExpr = dim.expression();
+            if (sizeExpr) {
+              const size = this._tryEvaluateConstant(sizeExpr);
+              if (size !== undefined && size > 0) {
+                bitmapArrayDimensions.push(size);
+              }
+            }
+          }
+          this.context.typeRegistry.set(registryName, {
+            baseType,
+            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+            isArray: true,
+            arrayDimensions:
+              bitmapArrayDimensions.length > 0
+                ? bitmapArrayDimensions
+                : undefined,
+            isConst,
+            isBitmap: true,
+            bitmapTypeName: baseType,
+            overflowBehavior, // ADR-044
+            isAtomic, // ADR-049
+          });
+          return;
+        }
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
+          isArray: false,
+          isConst,
+          isBitmap: true,
+          bitmapTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+    } else if (typeCtx.globalType()) {
+      // Issue #478: Handle global.Type for global types inside scope
+      // global.ECategory -> ECategory (no scope prefix)
+      baseType = typeCtx.globalType()!.IDENTIFIER().getText();
+      bitWidth = 0;
+
+      // ADR-017: Check if this is an enum type
+      if (this.symbols!.knownEnums.has(baseType)) {
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth: 0,
+          isArray: false,
+          isConst,
+          isEnum: true,
+          enumTypeName: baseType,
+          overflowBehavior, // ADR-044
+          isAtomic, // ADR-049
+        });
+        return; // Early return, we've handled this case
+      }
+
+      // ADR-034: Check if this is a bitmap type
+      if (this.symbols!.knownBitmaps.has(baseType)) {
+        if (arrayDim && arrayDim.length > 0) {
+          // Bitmap array
           const bitmapArrayDimensions: number[] = [];
           for (const dim of arrayDim) {
             const sizeExpr = dim.expression();
@@ -3285,6 +3519,11 @@ export default class CodeGenerator implements IOrchestrator {
         }
         // Check if this is a struct type
         isStruct = this.isStructType(typeName);
+      } else if (typeCtx.globalType()) {
+        // Issue #478: Handle global.Type for global types inside scope
+        typeName = typeCtx.globalType()!.IDENTIFIER().getText();
+        // Check if this is a struct type
+        isStruct = this.isStructType(typeName);
       } else if (typeCtx.stringType()) {
         // ADR-045: String parameter
         isString = true;
@@ -3491,6 +3730,12 @@ export default class CodeGenerator implements IOrchestrator {
     // Get the text representation to analyze
     const text = ctx.getText();
 
+    // Check if it's a function call returning an enum
+    const enumReturnType = this._getFunctionCallEnumType(text);
+    if (enumReturnType) {
+      return enumReturnType;
+    }
+
     // Check if it's a simple identifier that's an enum variable
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
       const typeInfo = this.context.typeRegistry.get(text);
@@ -3513,6 +3758,14 @@ export default class CodeGenerator implements IOrchestrator {
         const scopedEnumName = `${this.context.currentScope}_${enumName}`;
         if (this.symbols!.knownEnums.has(scopedEnumName)) {
           return scopedEnumName;
+        }
+      }
+
+      // Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
+      if (parts[0] === "global" && parts.length >= 3) {
+        const enumName = parts[1];
+        if (this.symbols!.knownEnums.has(enumName)) {
+          return enumName;
         }
       }
 
@@ -3545,6 +3798,67 @@ export default class CodeGenerator implements IOrchestrator {
           return scopedEnumName;
         }
       }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if an expression is a function call returning an enum type.
+   * Handles patterns:
+   * - func() or func(args) - global function
+   * - Scope.method() or Scope.method(args) - scope method from outside
+   * - this.method() or this.method(args) - scope method from inside
+   * - global.func() or global.func(args) - global function from inside scope
+   * - global.Scope.method() or global.Scope.method(args) - scope method from inside another scope
+   */
+  private _getFunctionCallEnumType(text: string): string | null {
+    // Check if this looks like a function call (contains parentheses)
+    const parenIndex = text.indexOf("(");
+    if (parenIndex === -1) {
+      return null;
+    }
+
+    // Extract the function reference (everything before the opening paren)
+    const funcRef = text.substring(0, parenIndex);
+    const parts = funcRef.split(".");
+
+    let fullFuncName: string | null = null;
+
+    if (parts.length === 1) {
+      // Simple function call: func()
+      fullFuncName = parts[0];
+    } else if (parts.length === 2) {
+      if (parts[0] === "this" && this.context.currentScope) {
+        // this.method() -> Scope_method
+        fullFuncName = `${this.context.currentScope}_${parts[1]}`;
+      } else if (parts[0] === "global") {
+        // global.func() -> func
+        fullFuncName = parts[1];
+      } else if (this.symbols!.knownScopes.has(parts[0])) {
+        // Scope.method() -> Scope_method
+        fullFuncName = `${parts[0]}_${parts[1]}`;
+      }
+    } else if (parts.length === 3) {
+      if (parts[0] === "global" && this.symbols!.knownScopes.has(parts[1])) {
+        // global.Scope.method() -> Scope_method
+        fullFuncName = `${parts[1]}_${parts[2]}`;
+      }
+    }
+
+    if (!fullFuncName) {
+      return null;
+    }
+
+    // Look up the function's return type
+    const returnType = this.symbols!.functionReturnTypes.get(fullFuncName);
+    if (!returnType) {
+      return null;
+    }
+
+    // Check if the return type is an enum
+    if (this.symbols!.knownEnums.has(returnType)) {
+      return returnType;
     }
 
     return null;
@@ -4621,6 +4935,8 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Issue #269: Set current function name for pass-by-value lookup
         this.context.currentFunctionName = fullName;
+        // Issue #477: Set return type for enum inference in return statements
+        this.context.currentFunctionReturnType = funcDecl.type().getText();
 
         // Track parameters for ADR-006 pointer semantics
         this._setParameters(funcDecl.parameterList() ?? null);
@@ -4643,6 +4959,7 @@ export default class CodeGenerator implements IOrchestrator {
         // ADR-016: Exit function body context
         this.exitFunctionBody();
         this.context.currentFunctionName = null; // Issue #269: Clear function name
+        this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
         this._clearParameters();
 
         lines.push("");
@@ -5092,6 +5409,8 @@ export default class CodeGenerator implements IOrchestrator {
       ? `${this.context.currentScope}_${name}`
       : name;
     this.context.currentFunctionName = fullFuncName;
+    // Issue #477: Set return type for enum inference in return statements
+    this.context.currentFunctionReturnType = ctx.type().getText();
 
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
@@ -5101,6 +5420,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-016: Clear local variables and mark that we're in a function body
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.inFunctionBody = true;
 
     // Check for main function with args parameter (u8 args[][])
@@ -5143,8 +5464,11 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-016: Clear local variables and mark that we're no longer in a function body
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
+    this.context.floatBitShadows.clear();
+    this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
     this.context.currentFunctionName = null; // Issue #269: Clear function name
+    this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
     this._clearParameters();
 
     const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
@@ -5785,6 +6109,18 @@ export default class CodeGenerator implements IOrchestrator {
               );
             }
           }
+          // Issue #478: Handle global.Enum.MEMBER pattern
+          else if (parts[0] === "global" && parts.length >= 3) {
+            // global.ECategory.CAT_A -> ECategory
+            const globalEnumName = parts[1];
+            if (globalEnumName === typeName) {
+              // Valid global.Enum.Member access
+            } else {
+              throw new Error(
+                `Error: Cannot assign non-enum value to ${typeName} enum`,
+              );
+            }
+          }
           // Allow if it's an enum member access of the correct type
           else if (!exprText.startsWith(typeName + ".")) {
             // Check for scoped enum
@@ -5963,6 +6299,31 @@ export default class CodeGenerator implements IOrchestrator {
       return "{0}";
     }
 
+    // Issue #478: Check for global types (global.Type)
+    if (typeCtx.globalType()) {
+      const fullTypeName = typeCtx.globalType()!.IDENTIFIER().getText();
+
+      // Check if it's an enum
+      if (this.symbols!.knownEnums.has(fullTypeName)) {
+        const members = this.symbols!.enumMembers.get(fullTypeName);
+        if (members) {
+          for (const [memberName, value] of members.entries()) {
+            if (value === 0) {
+              return `${fullTypeName}_${memberName}`;
+            }
+          }
+          const firstMember = members.keys().next().value;
+          if (firstMember) {
+            return `${fullTypeName}_${firstMember}`;
+          }
+        }
+        return `(${fullTypeName})0`;
+      }
+
+      // Otherwise it's a struct - use {0}
+      return "{0}";
+    }
+
     // ADR-016: Check for qualified types (Scope.Type)
     // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult)
     if (typeCtx.qualifiedType()) {
@@ -6062,6 +6423,36 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Default fallback
     return "0";
+  }
+
+  /**
+   * Generate a safe bit mask expression.
+   * Avoids undefined behavior when width >= 32 for 32-bit integers.
+   * @param width The width expression (may be a literal or expression)
+   * @param isF64 If true, generate 64-bit masks with ULL suffix (for f64 bit indexing)
+   */
+  private generateBitMask(width: string, isF64: boolean = false): string {
+    const suffix = isF64 ? "ULL" : "U";
+    // Check if width is a compile-time constant
+    const widthNum = Number.parseInt(width, 10);
+    if (!Number.isNaN(widthNum)) {
+      // Use explicit hex masks for common widths to avoid UB
+      if (widthNum === 32) {
+        return isF64 ? "0xFFFFFFFFULL" : "0xFFFFFFFFU";
+      }
+      if (widthNum === 64) {
+        return "0xFFFFFFFFFFFFFFFFULL";
+      }
+      if (widthNum === 16) {
+        return isF64 ? "0xFFFFULL" : "0xFFFFU";
+      }
+      if (widthNum === 8) {
+        return isF64 ? "0xFFULL" : "0xFFU";
+      }
+    }
+    // For non-constant or other widths, use the shift expression
+    // (safe as long as width < 32 for 32-bit operations)
+    return `((1${suffix} << ${width}) - 1)`;
   }
 
   // ========================================================================
@@ -6172,8 +6563,8 @@ export default class CodeGenerator implements IOrchestrator {
       checkArrayBounds: (arrayName, dimensions, indexExprs, line) =>
         this.typeValidator!.checkArrayBounds(
           arrayName,
-          dimensions,
-          indexExprs,
+          [...dimensions],
+          [...indexExprs],
           line,
           (expr) => this._tryEvaluateConstant(expr),
         ),
@@ -6332,6 +6723,42 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
+    // Issue #452: Set expected type for member access targets (e.g., config.status <- value)
+    // This enables type-aware resolution of unqualified enum members
+    // Walk the chain of struct types for nested access (e.g., config.nested.field)
+    if (targetCtx.memberAccess()) {
+      const memberAccessCtx = targetCtx.memberAccess()!;
+      const identifiers = memberAccessCtx.IDENTIFIER();
+      if (identifiers.length >= 2) {
+        const rootName = identifiers[0].getText();
+        const rootTypeInfo = this.context.typeRegistry.get(rootName);
+        if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
+          let currentStructType: string | undefined = rootTypeInfo.baseType;
+          // Walk through each member in the chain to find the final field's type
+          for (let i = 1; i < identifiers.length && currentStructType; i++) {
+            const memberName = identifiers[i].getText();
+            const structFieldTypes =
+              this.symbols!.structFields.get(currentStructType);
+            if (structFieldTypes && structFieldTypes.has(memberName)) {
+              const memberType = structFieldTypes.get(memberName)!;
+              if (i === identifiers.length - 1) {
+                // Last field in chain - this is the assignment target's type
+                this.context.expectedType = memberType;
+              } else if (this.isKnownStruct(memberType)) {
+                // Intermediate field - continue walking if it's a struct
+                currentStructType = memberType;
+              } else {
+                // Intermediate field is not a struct - can't walk further
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+        }
+      }
+    }
+
     const value = this._generateExpression(ctx.expression());
 
     // Restore expected type and assignment context
@@ -6361,6 +6788,10 @@ export default class CodeGenerator implements IOrchestrator {
       if (this.context.currentParameters.has(id)) {
         this.context.modifiedParameters.add(id);
       }
+
+      // Invalidate float shadow when variable is assigned directly
+      const shadowName = `__bits_${id}`;
+      this.context.floatShadowCurrent.delete(shadowName);
 
       // ADR-017: Validate enum type assignment
       const targetTypeInfo = this.context.typeRegistry.get(id);
@@ -6396,6 +6827,16 @@ export default class CodeGenerator implements IOrchestrator {
           ) {
             const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
             if (scopedEnumName !== targetEnumType) {
+              throw new Error(
+                `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
+              );
+            }
+          }
+          // Issue #478: Handle global.Enum.MEMBER pattern
+          else if (parts[0] === "global" && parts.length >= 3) {
+            // global.ECategory.CAT_A -> ECategory
+            const globalEnumName = parts[1];
+            if (globalEnumName !== targetEnumType) {
               throw new Error(
                 `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
               );
@@ -6554,8 +6995,8 @@ export default class CodeGenerator implements IOrchestrator {
       AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
       AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
       // Batch 3: Integer Bit kinds
-      AssignmentKind.INTEGER_BIT,
-      AssignmentKind.INTEGER_BIT_RANGE,
+      // Note: INTEGER_BIT and INTEGER_BIT_RANGE disabled - handlers don't support
+      // float bit indexing (shadow variable + memcpy). Let fallback code handle.
       AssignmentKind.STRUCT_MEMBER_BIT,
       AssignmentKind.ARRAY_ELEMENT_BIT,
       // Batch 4: Register Bit kinds
@@ -7716,12 +8157,65 @@ export default class CodeGenerator implements IOrchestrator {
         return `${name}[${index}] ${cOp} ${value};`;
       }
 
-      // Bit manipulation for scalar integer types
+      // Bit manipulation for scalar types
       // Compound operators not supported for bit field access
       if (isCompound) {
         throw new Error(
           `Compound assignment operators not supported for bit field access: ${cnextOp}`,
         );
+      }
+
+      // Float bit indexing: use shadow variable + memcpy
+      const isFloatType =
+        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
+      if (isFloatType) {
+        this.needsString = true; // For memcpy
+        this.needsFloatStaticAssert = true; // For size verification
+        const isF64 = typeInfo?.baseType === "f64";
+        const shadowType = isF64 ? "uint64_t" : "uint32_t";
+        const shadowName = `__bits_${name}`;
+        const maskSuffix = isF64 ? "ULL" : "U";
+
+        // Check if shadow variable needs declaration
+        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
+        if (needsDeclaration) {
+          this.context.floatBitShadows.add(shadowName);
+        }
+
+        // Check if shadow already has current value (skip redundant memcpy read)
+        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+
+        if (exprs.length === 1) {
+          // Single bit assignment: floatVar[3] <- true
+          const bitIndex = this._generateExpression(exprs[0]);
+          const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
+          const readMemcpy = shadowIsCurrent
+            ? ""
+            : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+          // Mark shadow as current after this write
+          this.context.floatShadowCurrent.add(shadowName);
+          return (
+            `${decl}${readMemcpy}` +
+            `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
+            `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+          );
+        } else if (exprs.length === 2) {
+          // Bit range assignment: floatVar[0, 8] <- b0
+          const start = this._generateExpression(exprs[0]);
+          const width = this._generateExpression(exprs[1]);
+          const mask = this.generateBitMask(width, isF64);
+          const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
+          const readMemcpy = shadowIsCurrent
+            ? ""
+            : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+          // Mark shadow as current after this write
+          this.context.floatShadowCurrent.add(shadowName);
+          return (
+            `${decl}${readMemcpy}` +
+            `${shadowName} = (${shadowName} & ~(${mask} << ${start})) | (((${shadowType})${value} & ${mask}) << ${start}); ` +
+            `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+          );
+        }
       }
 
       if (exprs.length === 1) {
@@ -9459,13 +9953,64 @@ export default class CodeGenerator implements IOrchestrator {
           // Bit range: flags[start, width]
           const start = this._generateExpression(exprs[0]);
           const width = this._generateExpression(exprs[1]);
-          const mask = BitUtils.generateMask(width);
-          // Optimize: skip shift when start is 0
-          if (start === "0") {
-            result = `((${result}) & ${mask})`;
+
+          // Float bit indexing read: use shadow variable + memcpy
+          const isFloatType =
+            primaryTypeInfo?.baseType === "f32" ||
+            primaryTypeInfo?.baseType === "f64";
+          if (isFloatType && primaryId) {
+            // Global scope float bit reads are not valid C (initializers must be constant)
+            if (!this.context.inFunctionBody) {
+              throw new Error(
+                `Float bit indexing reads (${primaryId}[${start}, ${width}]) cannot be used at global scope. ` +
+                  `Move the initialization inside a function.`,
+              );
+            }
+
+            this.needsString = true; // For memcpy
+            this.needsFloatStaticAssert = true; // For size verification
+            const isF64 = primaryTypeInfo?.baseType === "f64";
+            const shadowType = isF64 ? "uint64_t" : "uint32_t";
+            const shadowName = `__bits_${primaryId}`;
+            const mask = this.generateBitMask(width, isF64);
+
+            // Check if shadow variable needs declaration
+            const needsDeclaration =
+              !this.context.floatBitShadows.has(shadowName);
+            if (needsDeclaration) {
+              this.context.floatBitShadows.add(shadowName);
+              // Push declaration to pending - will be emitted before the statement
+              this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+            }
+
+            // Check if shadow already has current value (skip redundant memcpy read)
+            const shadowIsCurrent =
+              this.context.floatShadowCurrent.has(shadowName);
+
+            // Use comma operator to combine memcpy with expression (no declaration inline)
+            // Mark shadow as current after this read
+            this.context.floatShadowCurrent.add(shadowName);
+            if (shadowIsCurrent) {
+              // Shadow already has current value - just use it directly
+              if (start === "0") {
+                result = `(${shadowName} & ${mask})`;
+              } else {
+                result = `((${shadowName} >> ${start}) & ${mask})`;
+              }
+            } else if (start === "0") {
+              result = `(memcpy(&${shadowName}, &${result}, sizeof(${result})), (${shadowName} & ${mask}))`;
+            } else {
+              result = `(memcpy(&${shadowName}, &${result}, sizeof(${result})), ((${shadowName} >> ${start}) & ${mask}))`;
+            }
           } else {
-            // Generate bit range read: ((value >> start) & mask)
-            result = `((${result} >> ${start}) & ${mask})`;
+            const mask = this.generateBitMask(width);
+            // Optimize: skip shift when start is 0
+            if (start === "0") {
+              result = `((${result}) & ${mask})`;
+            } else {
+              // Generate bit range read: ((value >> start) & mask)
+              result = `((${result} >> ${start}) & ${mask})`;
+            }
           }
         }
       }
@@ -9587,6 +10132,36 @@ export default class CodeGenerator implements IOrchestrator {
         isLocalVariable,
         (name: string) => this.isKnownStruct(name),
       );
+
+      // Issue #452: Check if identifier is an unqualified enum member reference
+      // Use expectedType for type-aware resolution when assigning to enum fields
+      if (
+        this.context.expectedType &&
+        this.symbols!.knownEnums.has(this.context.expectedType)
+      ) {
+        // Type-aware resolution: check only the expected enum type
+        const expectedEnum = this.context.expectedType;
+        const members = this.symbols!.enumMembers.get(expectedEnum);
+        if (members && members.has(id)) {
+          return `${expectedEnum}${this.getScopeSeparator(false)}${id}`;
+        }
+      } else {
+        // No expected enum type - search all enums but error on ambiguity
+        // Note: This path is used for backward compatibility when expectedType is not set
+        const matchingEnums: string[] = [];
+        for (const [enumName, members] of this.symbols!.enumMembers) {
+          if (members.has(id)) {
+            matchingEnums.push(enumName);
+          }
+        }
+        if (matchingEnums.length === 1) {
+          return `${matchingEnums[0]}${this.getScopeSeparator(false)}${id}`;
+        } else if (matchingEnums.length > 1) {
+          throw new Error(
+            `Error: Ambiguous enum member '${id}' exists in multiple enums: ${matchingEnums.join(", ")}. Use qualified access (e.g., ${matchingEnums[0]}.${id})`,
+          );
+        }
+      }
 
       return id;
     }
@@ -10283,7 +10858,56 @@ export default class CodeGenerator implements IOrchestrator {
       // Bit range: flags[start, width]
       const start = this._generateExpression(exprs[0]);
       const width = this._generateExpression(exprs[1]);
-      const mask = BitUtils.generateMask(width);
+      const typeInfo = this.context.typeRegistry.get(rawName);
+
+      // Float bit indexing read: use shadow variable + memcpy
+      const isFloatType =
+        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
+      if (isFloatType) {
+        // Global scope float bit reads are not valid C (initializers must be constant)
+        if (!this.context.inFunctionBody) {
+          throw new Error(
+            `Float bit indexing reads (${rawName}[${start}, ${width}]) cannot be used at global scope. ` +
+              `Move the initialization inside a function.`,
+          );
+        }
+
+        this.needsString = true; // For memcpy
+        this.needsFloatStaticAssert = true; // For size verification
+        const isF64 = typeInfo?.baseType === "f64";
+        const shadowType = isF64 ? "uint64_t" : "uint32_t";
+        const shadowName = `__bits_${rawName}`;
+        const mask = this.generateBitMask(width, isF64);
+
+        // Check if shadow variable needs declaration
+        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
+        if (needsDeclaration) {
+          this.context.floatBitShadows.add(shadowName);
+          // Push declaration to pending - will be emitted before the statement
+          this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+        }
+
+        // Check if shadow already has current value (skip redundant memcpy read)
+        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+
+        // Mark shadow as current after this read
+        this.context.floatShadowCurrent.add(shadowName);
+
+        // Use comma operator to combine memcpy with expression (no declaration inline)
+        if (shadowIsCurrent) {
+          // Shadow already has current value - just use it directly
+          if (start === "0") {
+            return `(${shadowName} & ${mask})`;
+          }
+          return `((${shadowName} >> ${start}) & ${mask})`;
+        }
+        if (start === "0") {
+          return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), (${shadowName} & ${mask}))`;
+        }
+        return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), ((${shadowName} >> ${start}) & ${mask}))`;
+      }
+
+      const mask = this.generateBitMask(width);
       // Optimize: skip shift when start is 0
       if (start === "0") {
         return `((${name}) & ${mask})`;
@@ -10310,6 +10934,10 @@ export default class CodeGenerator implements IOrchestrator {
         return `${this.context.currentScope}_${typeName}`;
       }
       return typeName;
+    }
+    // Issue #478: Handle global.Type for global types inside scope
+    if (ctx.globalType()) {
+      return ctx.globalType()!.IDENTIFIER().getText();
     }
     // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
     // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
@@ -10352,6 +10980,10 @@ export default class CodeGenerator implements IOrchestrator {
         throw new Error("Error: 'this.Type' can only be used inside a scope");
       }
       return `${this.context.currentScope}_${typeName}`;
+    }
+    // Issue #478: Handle global.Type for global types inside scope
+    if (ctx.globalType()) {
+      return ctx.globalType()!.IDENTIFIER().getText();
     }
     // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
     // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)

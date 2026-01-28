@@ -1,0 +1,15 @@
+const u8 DEVICE_COUNT <- 4;
+
+struct TReading {
+    i16 value;
+    bool valid;
+}
+
+bool enabled[DEVICE_COUNT] <- [false, false, false, false];
+TReading readings[DEVICE_COUNT][4];
+
+scope Manager {
+    public void test() {
+        global.enabled[0] <- true;
+    }
+}

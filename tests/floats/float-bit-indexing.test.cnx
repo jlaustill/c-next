@@ -1,0 +1,55 @@
+// test-execution
+// Tests: f32/f64 bit indexing read/write operations
+
+// Helper to build f32 from LE bytes (like the user's use case)
+f32 fromBytesLE(u8 b0, u8 b1, u8 b2, u8 b3) {
+    f32 result <- 0.0;
+    result[0, 8] <- b0;
+    result[8, 8] <- b1;
+    result[16, 8] <- b2;
+    result[24, 8] <- b3;
+    return result;
+}
+
+u32 main() {
+    // Test 1: Write bytes to f32 to create 1.0f
+    // IEEE-754 binary32 for 1.0 = 0x3F800000
+    // LE bytes: 0x00, 0x00, 0x80, 0x3F
+    f32 one <- fromBytesLE(0x00, 0x00, 0x80, 0x3F);
+    if (one != 1.0) return 1;
+
+    // Test 2: Write bytes to f32 to create -1.0f
+    // IEEE-754 binary32 for -1.0 = 0xBF800000
+    // LE bytes: 0x00, 0x00, 0x80, 0xBF
+    f32 negOne <- fromBytesLE(0x00, 0x00, 0x80, 0xBF);
+    if (negOne != -1.0) return 2;
+
+    // Test 3: Write bytes to f32 to create 2.0f
+    // IEEE-754 binary32 for 2.0 = 0x40000000
+    // LE bytes: 0x00, 0x00, 0x00, 0x40
+    f32 two <- fromBytesLE(0x00, 0x00, 0x00, 0x40);
+    if (two != 2.0) return 3;
+
+    // Test 4: Read bytes from f32
+    f32 testVal <- 1.0;
+    u8 byte3 <- testVal[24, 8];
+    if (byte3 != 0x3F) return 4;
+
+    u8 byte2 <- testVal[16, 8];
+    if (byte2 != 0x80) return 5;
+
+    u8 byte1 <- testVal[8, 8];
+    if (byte1 != 0x00) return 6;
+
+    u8 byte0 <- testVal[0, 8];
+    if (byte0 != 0x00) return 7;
+
+    // Test 5: Inline bit write
+    f32 val <- 0.0;
+    val[24, 8] <- 0x3F;
+    val[16, 8] <- 0x80;
+    // Should now be 1.0
+    if (val != 1.0) return 8;
+
+    return 0;
+}

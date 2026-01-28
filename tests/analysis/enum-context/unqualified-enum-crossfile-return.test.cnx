@@ -1,0 +1,11 @@
+// test-error
+// Tests: Original bug case from issue #477 - cross-file unqualified enum in non-enum return
+
+#include "cross-file-types.cnx"
+
+// ERROR: return type is u8, not ESpnCategory
+// This was the original bug - transpiler accepted and generated broken C
+u8 getCategory(u16 spn) {
+    if (spn = 100) { return SPN_CAT_PRESSURE; }
+    return SPN_CAT_UNKNOWN;
+}

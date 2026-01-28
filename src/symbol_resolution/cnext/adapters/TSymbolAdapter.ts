@@ -206,13 +206,14 @@ class TSymbolAdapter {
    * Convert IVariableSymbol to ISymbol.
    */
   private static convertVariable(variable: IVariableSymbol): ISymbol {
-    // Convert numeric dimensions to string dimensions for ISymbol
+    // Convert dimensions to string dimensions for ISymbol
     const arrayDimensions = variable.arrayDimensions?.map((d) => String(d));
 
-    // Get first dimension for legacy size field
-    const size = variable.arrayDimensions?.[0];
+    // Get first dimension for legacy size field (only if numeric)
+    const firstDim = variable.arrayDimensions?.[0];
+    const size = typeof firstDim === "number" ? firstDim : undefined;
 
-    return {
+    const result: ISymbol = {
       name: variable.name,
       kind: ESymbolKind.Variable,
       type: variable.type,
@@ -221,10 +222,18 @@ class TSymbolAdapter {
       sourceLanguage: variable.sourceLanguage,
       isExported: variable.isExported,
       isConst: variable.isConst,
+      isAtomic: variable.isAtomic,
       isArray: variable.isArray,
       arrayDimensions,
       size,
     };
+
+    // Issue #461: Preserve initialValue for const variables (needed for external array dimension resolution)
+    if (variable.initialValue !== undefined) {
+      result.initialValue = variable.initialValue;
+    }
+
+    return result;
   }
 
   /**

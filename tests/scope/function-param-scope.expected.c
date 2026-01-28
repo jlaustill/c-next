@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "function-param-scope.test.h"
+
 #include <stdint.h>
 
 // Test: Function parameters should be scoped to their function

@@ -1,0 +1,26 @@
+// Tests: Edge cases for const-based array dimensions
+// Verifies comprehensive coverage for issue #455
+
+// Hex constant - should resolve to 16
+const u8 HEX_SIZE <- 0x10;
+
+// Binary constant - should resolve to 10
+const u8 BIN_SIZE <- 0b1010;
+
+// Array using hex constant
+bool hex_arr[HEX_SIZE];
+
+// Array using binary constant
+i16 bin_arr[BIN_SIZE];
+
+// Array inside a scope using top-level constant
+const u8 BUFFER_SIZE <- 8;
+
+scope Device {
+    // Scoped array using global constant
+    public u8 buffer[BUFFER_SIZE];
+}
+
+void main() {
+    Device.buffer[0] <- 1;
+}

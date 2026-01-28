@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i64-array-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -37,10 +39,6 @@ uint32_t checkArrayLength(const int64_t arr[16]) {
 uint32_t checkElementLength(const int64_t arr[16]) {
     return 64;
 }
-
-typedef struct TestStruct {
-    int64_t arr[16];
-} TestStruct;
 
 int main(void) {
     globalArr[0] = -1000000;

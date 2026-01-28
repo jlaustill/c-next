@@ -47,6 +47,12 @@ class TypeUtils {
       return typeName;
     }
 
+    // Issue #478: Handle global.Type for global types inside scope
+    // global.ECategory -> ECategory (just the type name, no scope prefix)
+    if (ctx.globalType()) {
+      return ctx.globalType()!.IDENTIFIER().getText();
+    }
+
     // Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
     if (ctx.qualifiedType()) {
       const identifiers = ctx.qualifiedType()!.IDENTIFIER();

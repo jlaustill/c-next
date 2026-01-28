@@ -267,6 +267,7 @@ describe("TSymbolAdapter", () => {
         isExported: true,
         type: "u32",
         isConst: false,
+        isAtomic: false,
         isArray: false,
       };
 
@@ -290,6 +291,7 @@ describe("TSymbolAdapter", () => {
         isExported: true,
         type: "u8",
         isConst: false,
+        isAtomic: false,
         isArray: true,
         arrayDimensions: [256],
       };
@@ -312,6 +314,7 @@ describe("TSymbolAdapter", () => {
         isExported: true,
         type: "u32",
         isConst: true,
+        isAtomic: false,
         isArray: false,
       };
 
@@ -422,6 +425,7 @@ describe("TSymbolAdapter", () => {
           isExported: true,
           type: "u32",
           isConst: false,
+          isAtomic: false,
           isArray: false,
         } as IVariableSymbol,
       ];

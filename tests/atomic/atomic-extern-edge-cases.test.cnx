@@ -1,0 +1,42 @@
+// test-coverage: atomic-extern-edge-cases
+// Tests: edge cases for atomic volatile qualifier in extern declarations
+// Bug #468: Comprehensive coverage to prevent regression
+#pragma target teensy41
+
+// Edge case 1: atomic + const combination
+atomic const u32 CONFIG <- 42;
+
+// Edge case 2: atomic 2D array
+atomic u8 matrix[4][4];
+
+// Edge case 3: atomic i64 (signed 64-bit)
+atomic i64 bigSignedCounter <- 0;
+
+// Edge case 4: atomic u64 (unsigned 64-bit)
+atomic u64 bigUnsignedCounter <- 0;
+
+// Edge case 5: atomic string type
+atomic string<16> statusMessage;
+
+// Edge case 6: atomic struct (non-array)
+struct TStatus {
+    u32 code;
+    bool active;
+}
+atomic TStatus currentStatus;
+
+// Edge case 7: atomic with wrap + const (multiple modifiers)
+atomic wrap u16 sequence <- 0;
+
+// Edge case 8: atomic with clamp (saturation)
+atomic clamp i8 temperature <- 0;
+
+void main() {
+    // Use all variables to prevent dead code elimination
+    matrix[0][0] <- 1;
+    bigSignedCounter +<- 1;
+    bigUnsignedCounter +<- 1;
+    currentStatus.active <- true;
+    sequence +<- 1;
+    temperature +<- 10;
+}

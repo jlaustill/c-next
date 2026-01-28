@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-enum.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -11,13 +13,6 @@
 const uint8_t defaultValue = 3;
 
 /* Scope: Motor */
-
-typedef enum {
-    Motor_State_IDLE = 0,
-    Motor_State_RUNNING = 1,
-    Motor_State_STALLED = 2
-} Motor_State;
-
 Motor_State Motor_current = Motor_State_IDLE;
 
 uint8_t Motor_start(void) {

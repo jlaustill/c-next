@@ -36,6 +36,14 @@ class TestUtils {
   }
 
   /**
+   * Issue #461: Check if source has test-transpile-only marker
+   * Tests with this marker skip GCC compilation (e.g., C++ interop tests)
+   */
+  static hasTranspileOnlyMarker(source: string): boolean {
+    return /\/\/\s*test-transpile-only/i.test(source);
+  }
+
+  /**
    * Check if generated C code requires ARM runtime (can't execute on x86)
    */
   static requiresArmRuntime(cCode: string): boolean {

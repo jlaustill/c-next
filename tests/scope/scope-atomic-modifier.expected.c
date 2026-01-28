@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-atomic-modifier.test.h"
+
 // Test: ADR-016 + ADR-049 Atomic variables inside scopes
 // Verifies that atomic modifier works correctly with integer types inside scope methods
 // Tests: atomic variables accessed via this. accessor with compound assignment operators

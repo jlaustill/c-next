@@ -66,7 +66,6 @@ async function runTest() {
     inputs: [filePath],
     outDir: testDir,
     includeDirs: [],
-    generateHeaders: true,
   });
 
   console.log("Compiling Issue #280 reproduction case...");

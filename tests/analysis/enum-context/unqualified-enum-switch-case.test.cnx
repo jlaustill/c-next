@@ -1,0 +1,17 @@
+// test-error
+// Tests: Unqualified enum values in switch cases on non-enum type should error
+
+enum Mode {
+    OFF <- 0,
+    ON <- 1,
+    AUTO <- 2
+}
+
+void handleMode(u8 mode) {
+    // mode is u8, not Mode - unqualified enum case labels should be rejected
+    switch (mode) {
+        case OFF { }
+        case ON { }
+        case AUTO { }
+    }
+}

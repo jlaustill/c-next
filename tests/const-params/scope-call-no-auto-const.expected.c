@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-call-no-auto-const.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,11 +12,6 @@
 // Tests: Issue #365 - scope-qualified calls should prevent auto-const
 // When a parameter is passed to a scope method that modifies it,
 // the parameter should NOT get const in the generated header.
-typedef struct AppConfig {
-    uint32_t value;
-    bool enabled;
-} AppConfig;
-
 // Simulates a storage manager that modifies the config it receives
 /* Scope: Storage */
 

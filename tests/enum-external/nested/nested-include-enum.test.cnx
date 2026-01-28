@@ -1,0 +1,27 @@
+// test-transpile-only
+// Issue #465: Test nested includes with enum at deepest level
+// A includes B, B includes C (with enum) - C's enum should work in A
+// Note: transpile-only because header generation for transitive includes is a separate issue
+
+#include "level1.cnx"
+
+void setHigh(Config cfg) {
+    cfg.level <- LEVEL_HIGH;
+}
+
+u32 main() {
+    Config cfg <- {level: LEVEL_LOW};
+
+    // Test 1: Initial value from deeply nested enum
+    if (cfg.level != LEVEL_LOW) return 1;
+
+    // Test 2: Direct assignment using deeply nested enum
+    cfg.level <- LEVEL_MEDIUM;
+    if (cfg.level != LEVEL_MEDIUM) return 2;
+
+    // Test 3: Assignment via local function using nested enum
+    setHigh(cfg);
+    if (cfg.level != LEVEL_HIGH) return 3;
+
+    return 0;
+}

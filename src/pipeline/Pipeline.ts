@@ -49,6 +49,7 @@ import runAnalyzers from "./runAnalyzers";
 import CacheManager from "./CacheManager";
 import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
 import detectCppSyntax from "./detectCppSyntax";
+import LiteralUtils from "../utils/LiteralUtils";
 
 /**
  * Unified transpilation pipeline
@@ -74,6 +75,8 @@ class Pipeline {
   > = new Map();
   /** Issue #424: Store user includes per file for header generation */
   private readonly userIncludesCollectors: Map<string, string[]> = new Map();
+  /** Issue #465: Store ISymbolInfo per file during stage 3 for external enum resolution */
+  private readonly symbolInfoByFile: Map<string, ISymbolInfo> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -82,9 +85,9 @@ class Pipeline {
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
+      basePath: config.basePath ?? "",
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
-      generateHeaders: config.generateHeaders ?? true,
       cppRequired: config.cppRequired ?? false,
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
@@ -179,6 +182,11 @@ class Pipeline {
         return result;
       }
 
+      // Stage 3b: Issue #461 - Resolve external const array dimensions
+      // Now that all symbols are collected, resolve any unresolved array dimensions
+      // that reference external constants from included .cnx files
+      this.resolveExternalArrayDimensions();
+
       // Stage 4: Check for symbol conflicts
       const conflicts = this.symbolTable.getConflicts();
       for (const conflict of conflicts) {
@@ -213,8 +221,8 @@ class Pipeline {
         }
       }
 
-      // Stage 6: Generate headers if enabled
-      if (this.config.generateHeaders && result.success) {
+      // Stage 6: Generate headers (always - Issue #461)
+      if (result.success) {
         for (const file of cnextFiles) {
           const headerPath = this.generateHeader(file);
           if (headerPath) {
@@ -320,6 +328,24 @@ class Pipeline {
         );
         if (!cnextBaseNames.has(headerBaseName)) {
           headerSet.set(header.path, header);
+        }
+      }
+
+      // Issue #461: Collect included .cnx files for symbol resolution
+      // This ensures constants from included .cnx files are available for array dimension resolution
+      for (const cnxInclude of resolved.cnextIncludes) {
+        const includePath = resolve(cnxInclude.path);
+        const includeBaseName = basename(includePath).replace(
+          /\.cnx$|\.cnext$/,
+          "",
+        );
+        // Don't add if already in the list (by base name comparison)
+        if (
+          !cnextBaseNames.has(includeBaseName) &&
+          !cnextFiles.some((f) => resolve(f.path) === includePath)
+        ) {
+          cnextFiles.push(cnxInclude);
+          cnextBaseNames.add(includeBaseName);
         }
       }
 
@@ -570,6 +596,119 @@ class Pipeline {
     const tSymbols = CNextResolver.resolve(tree, file.path);
     const iSymbols = TSymbolAdapter.toISymbols(tSymbols, this.symbolTable);
     this.symbolTable.addSymbols(iSymbols);
+
+    // Issue #465: Store ISymbolInfo for external enum resolution in stage 5
+    // This ensures enum member info is available for all files before code generation
+    const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+    this.symbolInfoByFile.set(file.path, symbolInfo);
+  }
+
+  /**
+   * Issue #465: Collect ISymbolInfo from all transitively included .cnx files.
+   *
+   * Recursively resolves includes to gather enum info from the entire include tree.
+   * This ensures that deeply nested enums (A includes B, B includes C with enum)
+   * are available for prefixing in the top-level file.
+   *
+   * @param filePath The file to collect transitive includes for
+   * @returns Array of ISymbolInfo from all transitively included .cnx files
+   */
+  private collectTransitiveEnumInfo(filePath: string): ISymbolInfo[] {
+    const result: ISymbolInfo[] = [];
+    const visited = new Set<string>();
+
+    const collectRecursively = (currentPath: string): void => {
+      if (visited.has(currentPath)) return;
+      visited.add(currentPath);
+
+      // Read and parse includes from current file
+      const content = readFileSync(currentPath, "utf-8");
+      const searchPaths = IncludeResolver.buildSearchPaths(
+        dirname(currentPath),
+        this.config.includeDirs,
+        [],
+      );
+      const resolver = new IncludeResolver(searchPaths);
+      const resolved = resolver.resolve(content, currentPath);
+
+      // Process each included .cnx file
+      for (const cnxInclude of resolved.cnextIncludes) {
+        const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
+        if (externalInfo) {
+          result.push(externalInfo);
+        }
+        // Recursively collect from this include's includes
+        collectRecursively(cnxInclude.path);
+      }
+    };
+
+    collectRecursively(filePath);
+    return result;
+  }
+
+  /**
+   * Stage 3b: Issue #461 - Resolve external const array dimensions
+   *
+   * After all symbols are collected, scan for variable symbols with unresolved
+   * array dimensions (stored as strings instead of numbers). For each unresolved
+   * dimension, look up the const value in the symbol table and resolve it.
+   *
+   * This handles the case where array dimensions reference constants from
+   * external .cnx files that were not available during initial symbol collection.
+   */
+  private resolveExternalArrayDimensions(): void {
+    // Build a map of all const values from the symbol table
+    const constValues = new Map<string, number>();
+    for (const symbol of this.symbolTable.getAllSymbols()) {
+      if (
+        symbol.kind === ESymbolKind.Variable &&
+        symbol.isConst &&
+        symbol.initialValue !== undefined
+      ) {
+        const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
+        if (value !== undefined) {
+          constValues.set(symbol.name, value);
+        }
+      }
+    }
+
+    // If no const values found, nothing to resolve
+    if (constValues.size === 0) {
+      return;
+    }
+
+    // Scan all variable symbols for unresolved array dimensions
+    for (const symbol of this.symbolTable.getAllSymbols()) {
+      if (
+        symbol.kind === ESymbolKind.Variable &&
+        symbol.isArray &&
+        symbol.arrayDimensions
+      ) {
+        let modified = false;
+        const resolvedDimensions = symbol.arrayDimensions.map((dim) => {
+          // If dimension is numeric, keep it
+          const numericValue = Number.parseInt(dim, 10);
+          if (!Number.isNaN(numericValue)) {
+            return dim;
+          }
+
+          // Try to resolve from const values
+          const constValue = constValues.get(dim);
+          if (constValue !== undefined) {
+            modified = true;
+            return String(constValue);
+          }
+
+          // Keep original (unresolved macro reference)
+          return dim;
+        });
+
+        if (modified) {
+          // Update the symbol's array dimensions
+          symbol.arrayDimensions = resolvedDimensions;
+        }
+      }
+    }
   }
 
   /**
@@ -647,7 +786,19 @@ class Pipeline {
     try {
       // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
       const tSymbols = CNextResolver.resolve(tree, file.path);
-      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Issue #465: Merge enum info from included .cnx files (including transitive)
+      // This enables external enum member references to get the correct type prefix
+      const externalEnumSources = this.collectTransitiveEnumInfo(file.path);
+
+      // Merge external enum info if any includes were found
+      if (externalEnumSources.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
+          symbolInfo,
+          externalEnumSources,
+        );
+      }
 
       const code = this.codeGenerator.generate(
         tree,
@@ -657,7 +808,6 @@ class Pipeline {
           debugMode: this.config.debugMode,
           target: this.config.target,
           sourcePath: file.path, // Issue #230: For self-include header generation
-          generateHeaders: this.config.generateHeaders, // Issue #230: Enable self-include when headers are generated
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
           sourceRelativePath: this.getSourceRelativePath(file.path), // Issue #339: For correct self-include paths
           includeDirs: this.config.includeDirs, // Issue #349: For angle-bracket include resolution
@@ -686,12 +836,19 @@ class Pipeline {
 
       // Issue #424: Store user includes for header generation
       // These may define macros used in array dimensions
+      // Issue #461: Transform .cnx includes to .h for header generation
+      // Issue #478: Include both quoted and angle-bracket .cnx includes for cross-file types
       const userIncludes: string[] = [];
       for (const includeDir of tree.includeDirective()) {
         const includeText = includeDir.getText();
-        // Only include quoted includes (user headers), not angle-bracket (system headers)
-        if (includeText.includes('"')) {
-          userIncludes.push(includeText);
+        // Include both quoted ("...") and angle-bracket (<...>) .cnx includes
+        // These define types used in function signatures that need to be in the header
+        if (includeText.includes(".cnx")) {
+          // Transform .cnx includes to .h (the generated header for the included .cnx file)
+          const transformedInclude = includeText
+            .replace(/\.cnx"/, '.h"')
+            .replace(/\.cnx>/, ".h>");
+          userIncludes.push(transformedInclude);
         }
       }
       this.userIncludesCollectors.set(file.path, userIncludes);
@@ -790,9 +947,10 @@ class Pipeline {
       return outputPath;
     }
 
-    // Fallback: flat output in outDir
+    // Fallback: output next to the source file (not in outDir)
+    // This handles included files that aren't under any input directory
     const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
-    return join(this.config.outDir, outputName);
+    return join(dirname(file.path), outputName);
   }
 
   /**
@@ -822,12 +980,16 @@ class Pipeline {
     // Issue #424: Get user includes for header generation
     const userIncludes = this.userIncludesCollectors.get(file.path) ?? [];
 
+    // Issue #478: Collect all known enum names from all files for cross-file type handling
+    const allKnownEnums = this.collectAllKnownEnums();
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
       { exportedOnly: true, userIncludes },
       typeInput,
       passByValueParams,
+      allKnownEnums,
     );
 
     writeFileSync(headerPath, headerContent, "utf-8");
@@ -874,6 +1036,20 @@ class Pipeline {
   }
 
   /**
+   * Issue #478: Collect all known enum names from all symbol collectors.
+   * This enables header generation to skip forward-declaring enums from included files.
+   */
+  private collectAllKnownEnums(): Set<string> {
+    const allEnums = new Set<string>();
+    for (const collector of this.symbolCollectors.values()) {
+      for (const enumName of collector.knownEnums) {
+        allEnums.add(enumName);
+      }
+    }
+    return allEnums;
+  }
+
+  /**
    * Get output path for a header file
    * Uses headerOutDir if specified, otherwise falls back to outDir
    */
@@ -881,10 +1057,29 @@ class Pipeline {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 
+    // Helper to strip basePath prefix from a relative path
+    // e.g., "src/AppConfig.cnx" with basePath "src" -> "AppConfig.cnx"
+    const stripBasePath = (relPath: string): string => {
+      if (!this.config.basePath || !this.config.headerOutDir) {
+        return relPath;
+      }
+      // Normalize basePath (remove trailing slashes)
+      const base = this.config.basePath.replace(/[/\\]+$/, "");
+      // Check if relPath starts with basePath (+ separator or exact match)
+      if (relPath === base) {
+        return "";
+      }
+      if (relPath.startsWith(base + "/") || relPath.startsWith(base + "\\")) {
+        return relPath.slice(base.length + 1);
+      }
+      return relPath;
+    };
+
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
-      // File is under an input directory - preserve structure
-      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ".h");
+      // File is under an input directory - preserve structure (minus basePath)
+      const strippedPath = stripBasePath(relativePath);
+      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
       const outputPath = join(headerDir, outputRelative);
 
       const outputDir = dirname(outputPath);
@@ -895,9 +1090,40 @@ class Pipeline {
       return outputPath;
     }
 
-    // Fallback: flat output in headerDir
+    // Issue #489: If headerOutDir is explicitly set, use it with relative path from CWD
+    // This handles single-file inputs like "cnext src/AppConfig.cnx" with headerOut config
+    if (this.config.headerOutDir) {
+      const cwd = process.cwd();
+      const relativeFromCwd = relative(cwd, file.path);
+      // Only use CWD-relative path if file is under CWD (not starting with ..)
+      if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
+        const strippedPath = stripBasePath(relativeFromCwd);
+        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
+        const outputPath = join(this.config.headerOutDir, outputRelative);
+
+        const outputDir = dirname(outputPath);
+        if (!existsSync(outputDir)) {
+          mkdirSync(outputDir, { recursive: true });
+        }
+
+        return outputPath;
+      }
+
+      // File outside CWD: put in headerOutDir with just basename
+      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+      const outputPath = join(this.config.headerOutDir, headerName);
+
+      if (!existsSync(this.config.headerOutDir)) {
+        mkdirSync(this.config.headerOutDir, { recursive: true });
+      }
+
+      return outputPath;
+    }
+
+    // Fallback: output next to the source file (no headerDir specified)
+    // This handles included files that aren't under any input directory
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    return join(headerDir, headerName);
+    return join(dirname(file.path), headerName);
   }
 
   /**
@@ -917,7 +1143,6 @@ class Pipeline {
       workingDir?: string; // For resolving relative #includes
       includeDirs?: string[]; // Additional include paths
       sourcePath?: string; // Optional source path for error messages
-      generateHeaders?: boolean; // Issue #230: Enable self-include for extern "C" tests
     },
   ): Promise<IFileResult> {
     const workingDir = options?.workingDir ?? process.cwd();
@@ -955,15 +1180,39 @@ class Pipeline {
 
       // Step 4b: Issue #294 - Parse C-Next includes to populate symbol table
       // This enables cross-file scope references (e.g., decoder.getSpn() -> decoder_getSpn())
-      for (const cnxInclude of resolved.cnextIncludes) {
-        try {
-          this.collectCNextSymbols(cnxInclude);
-        } catch (err) {
-          this.warnings.push(
-            `Failed to process C-Next include ${cnxInclude.path}: ${err}`,
-          );
+      // Issue #465: Recursively process transitive includes for enum info
+      const processedCnxIncludes = new Set<string>();
+      const processCnxIncludesRecursively = (
+        includes: IDiscoveredFile[],
+      ): void => {
+        for (const cnxInclude of includes) {
+          if (processedCnxIncludes.has(cnxInclude.path)) continue;
+          processedCnxIncludes.add(cnxInclude.path);
+
+          try {
+            this.collectCNextSymbols(cnxInclude);
+
+            // Recursively process this include's includes
+            const nestedContent = readFileSync(cnxInclude.path, "utf-8");
+            const nestedSearchPaths = IncludeResolver.buildSearchPaths(
+              dirname(cnxInclude.path),
+              this.config.includeDirs,
+              [],
+            );
+            const nestedResolver = new IncludeResolver(nestedSearchPaths);
+            const nestedResolved = nestedResolver.resolve(
+              nestedContent,
+              cnxInclude.path,
+            );
+            processCnxIncludesRecursively(nestedResolved.cnextIncludes);
+          } catch (err) {
+            this.warnings.push(
+              `Failed to process C-Next include ${cnxInclude.path}: ${err}`,
+            );
+          }
         }
-      }
+      };
+      processCnxIncludesRecursively(resolved.cnextIncludes);
 
       // Step 5: Parse C-Next source from string
       const charStream = CharStream.fromString(source);
@@ -1058,7 +1307,49 @@ class Pipeline {
       // Step 7: Generate code with symbol table
       // ADR-055 Phase 5: Create ISymbolInfo from TSymbol[] for CodeGenerator
       const tSymbols = CNextResolver.resolve(tree, sourcePath);
-      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Issue #465: Merge enum info from included .cnx files (including transitive)
+      // This enables external enum member references to get the correct type prefix
+      const externalEnumSources: ISymbolInfo[] = [];
+      const visitedIncludes = new Set<string>();
+
+      // Recursively collect enum info from all transitive includes
+      const collectFromIncludes = (includes: IDiscoveredFile[]): void => {
+        for (const cnxInclude of includes) {
+          if (visitedIncludes.has(cnxInclude.path)) continue;
+          visitedIncludes.add(cnxInclude.path);
+
+          const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
+          if (externalInfo) {
+            externalEnumSources.push(externalInfo);
+          }
+
+          // Recursively process this include's includes
+          const nestedContent = readFileSync(cnxInclude.path, "utf-8");
+          const nestedSearchPaths = IncludeResolver.buildSearchPaths(
+            dirname(cnxInclude.path),
+            this.config.includeDirs,
+            [],
+          );
+          const nestedResolver = new IncludeResolver(nestedSearchPaths);
+          const nestedResolved = nestedResolver.resolve(
+            nestedContent,
+            cnxInclude.path,
+          );
+          collectFromIncludes(nestedResolved.cnextIncludes);
+        }
+      };
+
+      collectFromIncludes(resolved.cnextIncludes);
+
+      // Merge external enum info if any includes were found
+      if (externalEnumSources.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
+          symbolInfo,
+          externalEnumSources,
+        );
+      }
 
       const code = this.codeGenerator.generate(
         tree,
@@ -1068,15 +1359,14 @@ class Pipeline {
           debugMode: this.config.debugMode,
           target: this.config.target,
           sourcePath, // Issue #230: For self-include header generation
-          generateHeaders: options?.generateHeaders, // Issue #230: Enable self-include for extern "C" tests
           cppMode: this.cppDetected, // Issue #250: C++ compatible code generation
           symbolInfo, // ADR-055: Pre-collected symbol info
         },
       );
 
-      // Issue #424: Generate header content if requested
+      // Issue #461: Always generate header content
       let headerCode: string | undefined;
-      if (options?.generateHeaders) {
+      {
         // Issue #424/ADR-055: Collect symbols from main source file AFTER code generation
         // This must happen after generate() to avoid interfering with type resolution
         const tSymbols = CNextResolver.resolve(tree, sourcePath);
@@ -1085,6 +1375,9 @@ class Pipeline {
           this.symbolTable,
         );
         this.symbolTable.addSymbols(collectedSymbols);
+
+        // Issue #461: Resolve external const array dimensions before header generation
+        this.resolveExternalArrayDimensions();
 
         const symbols = this.symbolTable.getSymbolsByFile(sourcePath);
         const exportedSymbols = symbols.filter((s) => s.isExported);
@@ -1130,21 +1423,31 @@ class Pipeline {
 
           // Issue #424: Collect user includes for header generation
           // These may define macros used in array dimensions
+          // Issue #461: Transform .cnx includes to .h for header generation
+          // Issue #478: Include both quoted and angle-bracket .cnx includes for cross-file types
           const userIncludes: string[] = [];
           for (const includeDir of tree.includeDirective()) {
             const includeText = includeDir.getText();
-            // Only include quoted includes (user headers), not angle-bracket (system headers)
-            if (includeText.includes('"')) {
-              userIncludes.push(includeText);
+            // Include both quoted ("...") and angle-bracket (<...>) .cnx includes
+            // These define types used in function signatures that need to be in the header
+            if (includeText.includes(".cnx")) {
+              // Transform .cnx includes to .h (the generated header for the included .cnx file)
+              const transformedInclude = includeText
+                .replace(/\.cnx"/, '.h"')
+                .replace(/\.cnx>/, ".h>");
+              userIncludes.push(transformedInclude);
             }
           }
 
+          // Issue #478: Pass all known enums for cross-file type handling
+          // This includes enums from this file and all transitively included .cnx files
           headerCode = this.headerGenerator.generate(
             exportedSymbols,
             headerName,
             { exportedOnly: true, userIncludes },
             typeInput,
             passByValueCopy,
+            symbolInfo.knownEnums,
           );
         }
       }

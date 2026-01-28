@@ -1,0 +1,16 @@
+// Minimal reproducer: atomic/volatile missing from extern declaration in header
+
+struct TReading {
+    i16 value;
+    bool valid;
+}
+
+atomic TReading readings[4];
+atomic u32 counter <- 0;
+
+scope Manager {
+    public void test() {
+        global.readings[0].valid <- true;
+        global.counter <- global.counter + 1;
+    }
+}

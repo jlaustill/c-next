@@ -42,14 +42,19 @@ function generateStructHeader(name: string, input: IHeaderTypeInput): string {
   for (const [fieldName, fieldType] of fields) {
     const cType = mapType(fieldType);
     const dims = dimensions?.get(fieldName);
+    const dimSuffix =
+      dims && dims.length > 0 ? dims.map((d) => `[${d}]`).join("") : "";
 
-    if (dims && dims.length > 0) {
-      // Array field: generate dimensions suffix
-      const dimSuffix = dims.map((d) => `[${d}]`).join("");
-      lines.push(`    ${cType} ${fieldName}${dimSuffix};`);
+    // Issue #461: Handle string<N> types which map to char[N+1]
+    // The embedded dimension must come after array dimensions in C syntax
+    // Example: string<64> arr[4] -> char arr[4][65], not char[65] arr[4]
+    const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
+    if (embeddedMatch) {
+      const baseType = embeddedMatch[1];
+      const embeddedDim = embeddedMatch[2];
+      lines.push(`    ${baseType} ${fieldName}${dimSuffix}[${embeddedDim}];`);
     } else {
-      // Regular field
-      lines.push(`    ${cType} ${fieldName};`);
+      lines.push(`    ${cType} ${fieldName}${dimSuffix};`);
     }
   }
 

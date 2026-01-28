@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "this-global-test.test.h"
+
 #include <stdint.h>
 
 // Test: ADR-016 this. and global. keywords for explicit scope qualification

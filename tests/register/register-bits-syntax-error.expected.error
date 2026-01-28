@@ -2,4 +2,4 @@
 6:21 missing IDENTIFIER at '.'
 6:22 mismatched input '2' expecting IDENTIFIER
 6:24 mismatched input ',' expecting {'rw', 'ro', 'wo', 'w1c', 'w1s'}
-7:5 extraneous input ',' expecting {<EOF>, 'scope', 'struct', 'enum', 'this', 'register', 'const', 'volatile', 'void', 'string', 'bitmap8', 'bitmap16', 'bitmap24', 'bitmap32', 'clamp', 'wrap', 'atomic', 'u8', 'u16', 'u32', 'u64', 'i8', 'i16', 'i32', 'i64', 'f32', 'f64', 'bool', 'ISR', IDENTIFIER}
+7:5 extraneous input ',' expecting {<EOF>, 'scope', 'struct', 'enum', 'this', 'global', 'register', 'const', 'volatile', 'void', 'string', 'bitmap8', 'bitmap16', 'bitmap24', 'bitmap32', 'clamp', 'wrap', 'atomic', 'u8', 'u16', 'u32', 'u64', 'i8', 'i16', 'i32', 'i64', 'f32', 'f64', 'bool', 'ISR', IDENTIFIER}

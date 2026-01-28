@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "scope-variable-reset.test.h"
+
 #include <stdint.h>
 
 // test-execution

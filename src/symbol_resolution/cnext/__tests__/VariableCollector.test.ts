@@ -96,6 +96,66 @@ describe("VariableCollector", () => {
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
+
+    it("resolves constant references in array dimensions (issue #455)", () => {
+      const code = `
+        bool flags[DEVICE_COUNT];
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const constValues = new Map<string, number>([["DEVICE_COUNT", 4]]);
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        undefined,
+        true,
+        constValues,
+      );
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual([4]);
+    });
+
+    it("resolves mixed literal and constant dimensions (issue #455)", () => {
+      const code = `
+        i32 matrix[ROWS][8];
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const constValues = new Map<string, number>([["ROWS", 4]]);
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        undefined,
+        true,
+        constValues,
+      );
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual([4, 8]);
+    });
+
+    it("resolves multiple constant dimensions (issue #455)", () => {
+      const code = `
+        u16 data[WIDTH][HEIGHT];
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const constValues = new Map<string, number>([
+        ["WIDTH", 10],
+        ["HEIGHT", 20],
+      ]);
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        undefined,
+        true,
+        constValues,
+      );
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual([10, 20]);
+    });
   });
 
   describe("scoped variables", () => {

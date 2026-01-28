@@ -7,6 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.45] - 2026-01-26
+
+### Fixed
+
+- Cross-scope method calls returning enum types now correctly resolved (Issue #483)
+
+### Note
+
+- Re-release of 0.1.44 content due to npm publish issue
+
+## [0.1.43] - 2026-01-26
+
+### Fixed
+
+- Function/method calls returning enum types now correctly recognized as valid enum assignments
+- Added `functionReturnTypes` tracking to ISymbolInfo for proper enum type validation
+- Supports all patterns: `func()`, `Scope.method()`, `this.method()`, `global.func()`
+
+### Added
+
+- Comprehensive enum test suite covering all usage scenarios (global, scope, cross-scope, loops, atomic, critical)
+
+## [0.1.42] - 2026-01-26
+
+### Fixed
+
+- Reject unqualified enum values in non-enum type contexts with helpful "did you mean" suggestions (Issue #477, PR #480)
+- Global type references (e.g., `global.EnumType`) now work correctly inside scopes (Issue #478, PR #479)
+
+### Changed
+
+- Test framework now auto-generates `.expected.h` for helper files in update mode (PR #480)
+
+## [0.1.41] - 2026-01-26
+
+### Fixed
+
+- Use `__cnx_` prefixed IRQ wrapper functions to avoid macro collisions with platform headers (Issue #473, PR #474)
+- Resolve unqualified enum members in switch case labels (Issue #471, PR #472)
+
+### Changed
+
+- Add uncommitted changes check to pre-push hook (PR #475)
+
+## [0.1.40] - 2026-01-26
+
+### Fixed
+
+- Add `volatile` qualifier to extern declarations for atomic variables (Issue #468, PR #469)
+
+## [0.1.39] - 2026-01-26
+
+### Fixed
+
+- Enum values from external (included) .cnx files now correctly get type prefix in generated C code (Issue #465, PR #466)
+
+## [0.1.38] - 2026-01-26
+
+### Added
+
+- Pre-push hook with comprehensive quality checks (PR #463)
+
+### Fixed
+
+- External const array dimensions in header generation (Issue #461, PR #462)
+- String<N> type filtering in header generation for C++ interop (PR #462)
+
+## [0.1.37] - 2026-01-25
+
+### Fixed
+
+- Preserve const-based array dimensions in struct field declarations (Issue #455, PR #457)
+- Support C macro dimensions in array declarations for header interop (PR #456)
+- Handle hex and binary constants in array dimension expressions (PR #456)
+- Preserve const-based array dimensions in extern header declarations (PR #456)
+- Preserve tracked .test.h files and clean up stale test artifacts (PR #458)
+
+## [0.1.36] - 2026-01-25
+
+### Fixed
+
+- Unqualified enum member references now correctly prefixed in generated C with type-aware resolution (Issue #452, PR #453)
+
 ## [0.1.35] - 2026-01-25
 
 ### Fixed
@@ -416,7 +499,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.35...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.45...HEAD
+[0.1.45]: https://github.com/jlaustill/c-next/compare/v0.1.44...v0.1.45
+[0.1.44]: https://github.com/jlaustill/c-next/compare/v0.1.43...v0.1.44
+[0.1.43]: https://github.com/jlaustill/c-next/compare/v0.1.42...v0.1.43
+[0.1.42]: https://github.com/jlaustill/c-next/compare/v0.1.41...v0.1.42
+[0.1.41]: https://github.com/jlaustill/c-next/compare/v0.1.40...v0.1.41
+[0.1.40]: https://github.com/jlaustill/c-next/compare/v0.1.39...v0.1.40
+[0.1.39]: https://github.com/jlaustill/c-next/compare/v0.1.38...v0.1.39
+[0.1.38]: https://github.com/jlaustill/c-next/compare/v0.1.37...v0.1.38
+[0.1.37]: https://github.com/jlaustill/c-next/compare/v0.1.36...v0.1.37
+[0.1.36]: https://github.com/jlaustill/c-next/compare/v0.1.35...v0.1.36
 [0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
 [0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
 [0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
