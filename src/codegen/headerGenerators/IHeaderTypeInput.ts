@@ -1,3 +1,5 @@
+import SymbolTable from "../../symbol_resolution/SymbolTable";
+
 /**
  * Input interface for header type generators.
  * Provides read-only access to symbol data needed for generating
@@ -7,6 +9,8 @@
  * the data needed for generating enums, structs, and bitmaps.
  */
 interface IHeaderTypeInput {
+  /** Issue #502: Optional SymbolTable for C++ type detection */
+  readonly symbolTable?: SymbolTable;
   /** Enum members and values: enumName -> (memberName -> value) */
   readonly enumMembers: ReadonlyMap<string, ReadonlyMap<string, number>>;
 
