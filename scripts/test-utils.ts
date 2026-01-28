@@ -928,8 +928,9 @@ class TestUtils {
         }
 
         // Step 6.5: Header validation (if .expected.h file exists AND headers were generated) - Issue #424
-        // Issue #461: Skip header validation for transpile-only tests
-        if (hasExpectedHFile && result.headerCode && !isTranspileOnly) {
+        // Note: Header validation runs even for transpile-only tests - snapshot comparison
+        // doesn't require compilation. Only execution/analysis tools are skipped.
+        if (hasExpectedHFile && result.headerCode) {
           const expectedH = readFileSync(expectedHFile, "utf-8");
           const actualH = result.headerCode;
 
