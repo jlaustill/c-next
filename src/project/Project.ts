@@ -98,6 +98,18 @@ class Project {
         const baseName = basename(file).replace(/\.(cnx|cnext)$/i, outExt);
         outputPath = join(outDir, baseName);
         writeFileSync(outputPath, (fileResult as any).code, "utf-8");
+
+        // Write header file if headerCode was generated
+        if ((fileResult as any).headerCode) {
+          const headerOutDir =
+            perFilePipeline["config"]?.headerOutDir || outDir;
+          const headerBaseName = basename(file).replace(
+            /\.(cnx|cnext)$/i,
+            ".h",
+          );
+          const headerPath = join(headerOutDir, headerBaseName);
+          writeFileSync(headerPath, (fileResult as any).headerCode, "utf-8");
+        }
       }
       // Attach the output path to the result for aggregation
       (fileResult as any).outputPath = outputPath;

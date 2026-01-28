@@ -91,4 +91,60 @@ describe("Project.compile", () => {
     expect(writeFileSyncMock).not.toHaveBeenCalled();
     expect(result.errors).toContain("error");
   });
+
+  it("writes header file when headerCode is present", async () => {
+    const project = new Project({
+      srcDirs: [],
+      includeDirs: [],
+      outDir: "./out",
+      files: [dummyFilePath],
+    });
+    transpileMock.mockResolvedValue({
+      success: true,
+      code: "int main() {}",
+      headerCode: "#ifndef TEMP_DUMMY_H\n#define TEMP_DUMMY_H\n#endif",
+    });
+    await (project as any).compile();
+
+    // Should write both .c and .h files
+    expect(writeFileSyncMock).toHaveBeenCalledTimes(2);
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      "out/temp_dummy.c",
+      "int main() {}",
+      "utf-8",
+    );
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      "out/temp_dummy.h",
+      "#ifndef TEMP_DUMMY_H\n#define TEMP_DUMMY_H\n#endif",
+      "utf-8",
+    );
+  });
+
+  it("writes header to headerOutDir when specified", async () => {
+    const project = new Project({
+      srcDirs: [],
+      includeDirs: [],
+      outDir: "./out",
+      headerOutDir: "./include",
+      files: [dummyFilePath],
+    });
+    transpileMock.mockResolvedValue({
+      success: true,
+      code: "int main() {}",
+      headerCode: "#ifndef TEMP_DUMMY_H\n#define TEMP_DUMMY_H\n#endif",
+    });
+    await (project as any).compile();
+
+    // .c goes to outDir, .h goes to headerOutDir
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      "out/temp_dummy.c",
+      "int main() {}",
+      "utf-8",
+    );
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      "include/temp_dummy.h",
+      "#ifndef TEMP_DUMMY_H\n#define TEMP_DUMMY_H\n#endif",
+      "utf-8",
+    );
+  });
 });
