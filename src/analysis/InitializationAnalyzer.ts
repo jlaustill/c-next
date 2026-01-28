@@ -19,6 +19,9 @@ import IDeclarationInfo from "./types/IDeclarationInfo";
 import ScopeStack from "./ScopeStack";
 import ExpressionUtils from "../utils/ExpressionUtils";
 import ParserUtils from "../utils/ParserUtils";
+import SymbolTable from "../symbol_resolution/SymbolTable";
+import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
 
 /**
  * Tracks the initialization state of a variable
@@ -425,6 +428,9 @@ class InitializationAnalyzer {
   /** Track if we're processing a write target (left side of assignment) */
   private inWriteContext: boolean = false;
 
+  /** Symbol table for checking C++ types (Issue #503) */
+  private symbolTable: SymbolTable | null = null;
+
   /**
    * Register external struct fields from C/C++ headers
    * This allows the analyzer to recognize types defined in headers
@@ -440,13 +446,43 @@ class InitializationAnalyzer {
   }
 
   /**
+   * Issue #503: Check if a type name is a C++ class/struct
+   * C++ classes with default constructors are automatically initialized.
+   *
+   * @param typeName The type name to check
+   * @returns true if the type is from C++ (has constructor-based init)
+   */
+  private isCppClass(typeName: string): boolean {
+    if (!this.symbolTable) {
+      return false;
+    }
+
+    const symbols = this.symbolTable.getOverloads(typeName);
+    for (const sym of symbols) {
+      if (sym.sourceLanguage === ESourceLanguage.Cpp) {
+        // C++ classes and structs have default constructors
+        if (sym.kind === ESymbolKind.Struct || sym.kind === ESymbolKind.Class) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Analyze a parsed program for initialization errors
    * @param tree The parsed program AST
+   * @param symbolTable Optional symbol table for C++ type detection
    * @returns Array of initialization errors
    */
-  public analyze(tree: Parser.ProgramContext): IInitializationError[] {
+  public analyze(
+    tree: Parser.ProgramContext,
+    symbolTable?: SymbolTable,
+  ): IInitializationError[] {
     this.errors = [];
     this.scopeStack = new ScopeStack();
+    this.symbolTable = symbolTable ?? null;
     // Don't clear structFields - external fields may have been registered
 
     // First pass: collect struct definitions
@@ -576,14 +612,18 @@ class InitializationAnalyzer {
       ? this.structFields.get(typeName)!
       : new Set<string>();
 
+    // Issue #503: C++ classes with default constructors are automatically initialized
+    const isCppClassType = typeName !== null && this.isCppClass(typeName);
+    const isInitialized = hasInitializer || isCppClassType;
+
     const state: IVariableState = {
       declaration: { name, line, column },
-      initialized: hasInitializer,
+      initialized: isInitialized,
       typeName,
       isStruct,
       isStringType,
-      // If initialized with full struct initializer, all fields are initialized
-      initializedFields: hasInitializer ? new Set(fields) : new Set(),
+      // If initialized with full struct initializer or C++ class, all fields are initialized
+      initializedFields: isInitialized ? new Set(fields) : new Set(),
     };
 
     this.scopeStack.declare(name, state);
