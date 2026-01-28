@@ -31,4 +31,37 @@ describe("CallExprUtils", () => {
       expect(CallExprUtils.mapTypeToCType("CustomType")).toBe("CustomType");
     });
   });
+
+  describe("isSmallPrimitiveType", () => {
+    it("returns true for small unsigned types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("u8")).toBe(true);
+      expect(CallExprUtils.isSmallPrimitiveType("u16")).toBe(true);
+    });
+
+    it("returns true for small signed types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("i8")).toBe(true);
+      expect(CallExprUtils.isSmallPrimitiveType("i16")).toBe(true);
+    });
+
+    it("returns true for bool", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("bool")).toBe(true);
+    });
+
+    it("returns false for larger types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("u32")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("u64")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("i32")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("i64")).toBe(false);
+    });
+
+    it("returns false for float types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("f32")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("f64")).toBe(false);
+    });
+
+    it("returns false for struct/custom types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("MyStruct")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("CustomType")).toBe(false);
+    });
+  });
 });
