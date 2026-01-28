@@ -8,5 +8,6 @@
     "tests/**",
     "src/parser/grammar/**",
     "src/codegen/assignment/AssignmentContextBuilder.ts"
-  ]
+  ],
+  "ignoreBinaries": ["jscpd", "jq"]
 }
