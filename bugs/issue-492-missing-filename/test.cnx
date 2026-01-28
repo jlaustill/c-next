@@ -1,0 +1,15 @@
+// Bug reproduction for issue #492
+// Error output should include filename, but currently shows:
+// Error: 11:15 error[E0381]: use of uninitialized variable 'p.x'
+// Should show:
+// Error: test.cnx:11:15 error[E0381]: use of uninitialized variable 'p.x'
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+void main() {
+    Point p;
+    i32 val <- p.x;  // E0381: use of uninitialized variable 'p.x'
+}
