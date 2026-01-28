@@ -70,15 +70,15 @@ static uint8_t Teensy4_doSomething(void) {
 /* Scope: LED */
 
 void LED_on(void) {
-    Teensy4_GPIO7_DataRegister_Set.LED_BUILTIN = true;
+    Teensy4_GPIO7_DataRegister_Set = (1 << 3);
 }
 
 void LED_off(void) {
-    Teensy4_GPIO7_DataRegister_Clear.LED_BUILTIN = true;
+    Teensy4_GPIO7_DataRegister_Clear = (1 << 3);
 }
 
 void LED_toggle(void) {
-    Teensy4_GPIO7_DataRegister_Toggle.LED_BUILTIN = true;
+    Teensy4_GPIO7_DataRegister_Toggle = (1 << 3);
 }
 
 bool LED_isOn(void) {
@@ -86,12 +86,12 @@ bool LED_isOn(void) {
 }
 
 void LED_configureInterrupt(void) {
-    Teensy4_GPIO7_InterruptConfig1.LED_BUILTIN = (uint8_t)Teensy4_InterruptType_RISING_EDGE;
-    Teensy4_GPIO7_InterruptMaskRegister.LED_BUILTIN = true;
+    Teensy4_GPIO7_InterruptConfig1 = (Teensy4_GPIO7_InterruptConfig1 & ~(0x3 << 6)) | (((uint8_t)Teensy4_InterruptType_RISING_EDGE & 0x3) << 6);
+    Teensy4_GPIO7_InterruptMaskRegister = (Teensy4_GPIO7_InterruptMaskRegister & ~(1 << 3)) | (1 << 3);
 }
 
 void LED_clearInterrupt(void) {
-    Teensy4_GPIO7_InterruptStatus.LED_BUILTIN = true;
+    Teensy4_GPIO7_InterruptStatus = (Teensy4_GPIO7_InterruptStatus & ~(1 << 3)) | (1 << 3);
 }
 
 // =============================================================================
