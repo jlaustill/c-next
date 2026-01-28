@@ -1,0 +1,11 @@
+// Reproducer for issue #516: C++ namespace function calls use wrong separator
+// Using quotes to ensure header is resolved (same directory)
+#include "SeaDash.hpp"
+
+scope Test {
+    public void run() {
+        // BUG 1: Type declaration - should use :: but uses _ when header not resolved
+        // BUG 2: Function call without global. prefix - keeps dots instead of ::
+        SeaDash.Parse.ParseResult result <- SeaDash.Parse.parse("1,2,3", ',');
+    }
+}

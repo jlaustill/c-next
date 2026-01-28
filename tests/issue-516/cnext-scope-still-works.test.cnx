@@ -1,0 +1,26 @@
+// test-transpile-only
+// Tests: C-Next scopes still use _ separator after issue #516 fix
+// Ensures we didn't break existing C-Next scope functionality
+
+scope Motor {
+    public u8 speed;
+
+    public void start() {
+        this.speed <- 100;
+    }
+
+    public void stop() {
+        this.speed <- 0;
+    }
+}
+
+scope Controller {
+    public void run() {
+        // C-Next scope call should use _ separator
+        Motor.start();
+        Motor.stop();
+
+        // C-Next scope member access should use _ separator
+        u8 s <- Motor.speed;
+    }
+}
