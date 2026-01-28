@@ -17,35 +17,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import ESymbolKind from "../../../types/ESymbolKind";
-
-/**
- * Issue #304: Map C-Next type to C type for static_cast.
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-};
-
-const mapTypeToCType = (cnxType: string): string => {
-  return TYPE_MAP[cnxType] || cnxType;
-};
-
-/**
- * Issue #315: Small primitive types that are always passed by value.
- * These match the types used in Issue #269 for pass-by-value optimization.
- * For cross-file function calls, we use these types directly since we can't
- * know if the parameter is modified (that info is only in the source file).
- */
-const SMALL_PRIMITIVE_TYPES = new Set(["u8", "u16", "i8", "i16", "bool"]);
+import CallExprUtils from "./CallExprUtils";
 
 /**
  * Issue #304: Wrap argument with static_cast if it's a C++ enum class
@@ -70,7 +42,7 @@ const wrapWithCppEnumCast = (
   const argType = orchestrator.getExpressionType(argExpr);
   if (argType && orchestrator.isCppEnumClass(argType)) {
     if (orchestrator.isIntegerType(targetParamBaseType)) {
-      const cType = mapTypeToCType(targetParamBaseType);
+      const cType = CallExprUtils.mapTypeToCType(targetParamBaseType);
       return `static_cast<${cType}>(${argCode})`;
     }
   }
@@ -207,7 +179,7 @@ const generateFunctionCall = (
       const isSmallPrimitive =
         isCrossFileFunction &&
         targetParam &&
-        SMALL_PRIMITIVE_TYPES.has(targetParam.baseType);
+        CallExprUtils.isSmallPrimitiveType(targetParam.baseType);
 
       if (
         isFloatParam ||
@@ -287,10 +259,10 @@ const generateSafeDivMod = (
   const divisorArg = orchestrator.generateExpression(argExprs[2]);
   const defaultArg = orchestrator.generateExpression(argExprs[3]);
 
-  const helperName =
-    funcName === "safe_div"
-      ? `cnx_safe_div_${cnxType}`
-      : `cnx_safe_mod_${cnxType}`;
+  const helperName = CallExprUtils.generateSafeDivModHelperName(
+    funcName as "safe_div" | "safe_mod",
+    cnxType,
+  );
 
   // Track that this operation is used for helper generation
   const opType: "div" | "mod" = funcName === "safe_div" ? "div" : "mod";
