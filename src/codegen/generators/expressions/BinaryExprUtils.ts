@@ -80,11 +80,34 @@ const tryFoldConstants = (
   return result;
 };
 
+/**
+ * Build a chained binary expression from operands and operators.
+ * Used by relational, shift, additive, and multiplicative generators.
+ */
+const buildChainedExpression = (
+  operands: string[],
+  operators: string[],
+  defaultOp: string,
+): string => {
+  if (operands.length === 0) {
+    return "";
+  }
+
+  let result = operands[0];
+  for (let i = 1; i < operands.length; i++) {
+    const op = operators[i - 1] || defaultOp;
+    result += ` ${op} ${operands[i]}`;
+  }
+
+  return result;
+};
+
 class BinaryExprUtils {
   static tryParseNumericLiteral = tryParseNumericLiteral;
   static tryFoldConstants = tryFoldConstants;
   static mapEqualityOperator = mapEqualityOperator;
   static generateStrcmpCode = generateStrcmpCode;
+  static buildChainedExpression = buildChainedExpression;
 }
 
 export default BinaryExprUtils;

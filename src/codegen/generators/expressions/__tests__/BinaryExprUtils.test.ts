@@ -162,4 +162,62 @@ describe("BinaryExprUtils", () => {
       ).toBe('strcmp(getName(), "test") == 0');
     });
   });
+
+  describe("buildChainedExpression", () => {
+    it("returns single operand unchanged", () => {
+      expect(BinaryExprUtils.buildChainedExpression(["x"], [], "+")).toBe("x");
+    });
+
+    it("joins two operands with operator", () => {
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b"], ["+"], "+"),
+      ).toBe("a + b");
+    });
+
+    it("chains multiple operands with their operators", () => {
+      expect(
+        BinaryExprUtils.buildChainedExpression(
+          ["a", "b", "c"],
+          ["+", "-"],
+          "+",
+        ),
+      ).toBe("a + b - c");
+    });
+
+    it("uses default operator when operator array is short", () => {
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b", "c"], ["+"], "*"),
+      ).toBe("a + b * c");
+    });
+
+    it("handles all bitwise operators", () => {
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b"], ["|"], "|"),
+      ).toBe("a | b");
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b"], ["^"], "^"),
+      ).toBe("a ^ b");
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b"], ["&"], "&"),
+      ).toBe("a & b");
+    });
+
+    it("handles shift operators", () => {
+      expect(
+        BinaryExprUtils.buildChainedExpression(["x", "2"], ["<<"], "<<"),
+      ).toBe("x << 2");
+      expect(
+        BinaryExprUtils.buildChainedExpression(["x", "2"], [">>"], ">>"),
+      ).toBe("x >> 2");
+    });
+
+    it("handles relational operators", () => {
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b"], ["<"], "<"),
+      ).toBe("a < b");
+      expect(
+        BinaryExprUtils.buildChainedExpression(["a", "b"], [">="], "<"),
+      ).toBe("a >= b");
+    });
+  });
 });
