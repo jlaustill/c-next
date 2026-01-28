@@ -117,15 +117,15 @@ class Project {
 
     for (const r of results) {
       aggregate.success &&= r.success;
-      if ((r as any).errors?.length) {
-        const formatted = (r as any).errors.map((e: any) =>
+      if (r.errors?.length) {
+        const formatted = r.errors.map((e: any) =>
           typeof e === "string" ? e : `${e.line}:${e.column} ${e.message}`,
         );
         aggregate.errors.push(...formatted);
       }
       // outputPath is the primary generated file for a single source
-      if ((r as any).outputPath) {
-        aggregate.outputFiles.push((r as any).outputPath);
+      if (r.outputPath) {
+        aggregate.outputFiles.push(r.outputPath);
       }
     }
 
