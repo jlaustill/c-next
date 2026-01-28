@@ -6,8 +6,11 @@
  * For new code, consider using Pipeline directly.
  */
 
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, basename, join } from "node:path";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import Pipeline from "../pipeline/Pipeline";
+import InputExpansion from "../lib/InputExpansion";
 import IProjectConfig from "./types/IProjectConfig";
 import IProjectResult from "./types/IProjectResult";
 
@@ -59,22 +62,87 @@ class Project {
    * Compile the project
    */
   async compile(): Promise<IProjectResult> {
-    const pipelineResult = await this.pipeline.run();
+    // Compile each input file individually to avoid cross‑file symbol leakage.
+    const results: any[] = [];
+    // Build the full list of .cnx/.cnext files from srcDirs and explicit files
+    const allFiles =
+      InputExpansion.expandInputs([
+        ...this.config.srcDirs,
+        ...(this.config.files ?? []),
+      ]) || [];
+    for (const file of allFiles) {
+      // Create a fresh pipeline instance per file with the same configuration.
+      const perFilePipeline = new Pipeline({
+        inputs: [file],
+        includeDirs: this.config.includeDirs,
+        outDir: this.config.outDir,
+        headerOutDir: this.config.headerOutDir,
+        basePath: this.config.basePath,
+        defines: this.config.defines,
+        preprocess: this.config.preprocess,
+        cppRequired: this.config.cppRequired,
+        noCache: this.config.noCache,
+        parseOnly: this.config.parseOnly,
+      });
 
-    // Convert IPipelineResult to IProjectResult for backwards compatibility
-    return {
-      success: pipelineResult.success,
-      filesProcessed: pipelineResult.filesProcessed,
-      symbolsCollected: pipelineResult.symbolsCollected,
-      conflicts: pipelineResult.conflicts,
-      errors: pipelineResult.errors.map(
-        (e) => `${e.line}:${e.column} ${e.message}`,
-      ),
-      warnings: pipelineResult.warnings,
-      outputFiles: pipelineResult.outputFiles,
+      const source = readFileSync(file, "utf-8");
+      const fileResult = await perFilePipeline.transpileSource(source, {
+        workingDir: dirname(file),
+        sourcePath: file,
+      });
+      // Write generated code to disk if transpilation succeeded
+      let outputPath: string | undefined;
+      if (fileResult.success && (fileResult as any).code) {
+        const outExt = perFilePipeline["config"]?.cppRequired ? ".cpp" : ".c";
+        const outDir = perFilePipeline["config"]?.outDir || dirname(file);
+        const baseName = basename(file).replace(/\.(cnx|cnext)$/i, outExt);
+        outputPath = join(outDir, baseName);
+        writeFileSync(outputPath, (fileResult as any).code, "utf-8");
+
+        // Write header file if headerCode was generated
+        if ((fileResult as any).headerCode) {
+          const headerOutDir =
+            perFilePipeline["config"]?.headerOutDir || outDir;
+          const headerBaseName = basename(file).replace(
+            /\.(cnx|cnext)$/i,
+            ".h",
+          );
+          const headerPath = join(headerOutDir, headerBaseName);
+          writeFileSync(headerPath, (fileResult as any).headerCode, "utf-8");
+        }
+      }
+      // Attach the output path to the result for aggregation
+      (fileResult as any).outputPath = outputPath;
+      results.push(fileResult);
+    }
+
+    // Aggregate the per‑file results into a single project result.
+    const aggregate = {
+      success: true,
+      filesProcessed: results.length,
+      symbolsCollected: 0, // not tracked per‑file in this path
+      conflicts: [] as string[],
+      errors: [] as string[],
+      warnings: [] as string[],
+      outputFiles: [] as string[],
     };
-  }
 
+    for (const r of results) {
+      aggregate.success &&= r.success;
+      if (r.errors?.length) {
+        const formatted = r.errors.map((e: any) =>
+          typeof e === "string" ? e : `${e.line}:${e.column} ${e.message}`,
+        );
+        aggregate.errors.push(...formatted);
+      }
+      // outputPath is the primary generated file for a single source
+      if (r.outputPath) {
+        aggregate.outputFiles.push(r.outputPath);
+      }
+    }
+
+    return aggregate;
+  }
   /**
    * Get the symbol table (for testing/inspection)
    */
