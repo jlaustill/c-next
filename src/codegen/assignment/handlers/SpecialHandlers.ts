@@ -19,17 +19,46 @@ const CLAMP_OP_MAP: Record<string, string> = {
 };
 
 /**
+ * Get typeInfo for assignment target.
+ * Handles simple identifiers, this.member, and global.member patterns.
+ */
+function getTargetTypeInfo(
+  ctx: IAssignmentContext,
+  deps: IHandlerDeps,
+): { typeInfo: ReturnType<typeof deps.typeRegistry.get> } {
+  const id = ctx.identifiers[0];
+
+  // Simple identifier
+  if (ctx.isSimpleIdentifier) {
+    return { typeInfo: deps.typeRegistry.get(id) };
+  }
+
+  // this.member: lookup using scoped name
+  if (ctx.isSimpleThisAccess && deps.currentScope) {
+    const scopedName = `${deps.currentScope}_${id}`;
+    return { typeInfo: deps.typeRegistry.get(scopedName) };
+  }
+
+  // global.member: lookup using direct name
+  if (ctx.isSimpleGlobalAccess) {
+    return { typeInfo: deps.typeRegistry.get(id) };
+  }
+
+  // Fallback to direct lookup
+  return { typeInfo: deps.typeRegistry.get(id) };
+}
+
+/**
  * Handle atomic read-modify-write: atomic counter +<- 1
  *
  * Delegates to CodeGenerator's generateAtomicRMW which uses
  * LDREX/STREX on supported platforms or PRIMASK otherwise.
  */
 function handleAtomicRMW(ctx: IAssignmentContext, deps: IHandlerDeps): string {
-  const id = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(id)!;
+  const { typeInfo } = getTargetTypeInfo(ctx, deps);
   const target = deps.generateAssignmentTarget(ctx.targetCtx);
 
-  return deps.generateAtomicRMW(target, ctx.cOp, ctx.generatedValue, typeInfo);
+  return deps.generateAtomicRMW(target, ctx.cOp, ctx.generatedValue, typeInfo!);
 }
 
 /**
@@ -42,20 +71,19 @@ function handleOverflowClamp(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  const id = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(id)!;
+  const { typeInfo } = getTargetTypeInfo(ctx, deps);
   const target = deps.generateAssignmentTarget(ctx.targetCtx);
 
   // Floats use native C arithmetic (overflow to infinity)
-  if (TypeCheckUtils.usesNativeArithmetic(typeInfo.baseType)) {
+  if (TypeCheckUtils.usesNativeArithmetic(typeInfo!.baseType)) {
     return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
   }
 
   const helperOp = CLAMP_OP_MAP[ctx.cOp];
 
   if (helperOp) {
-    deps.markClampOpUsed(helperOp, typeInfo.baseType);
-    return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${ctx.generatedValue});`;
+    deps.markClampOpUsed(helperOp, typeInfo!.baseType);
+    return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
   }
 
   // Fallback for operators without clamp helpers (e.g., /=)

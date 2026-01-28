@@ -395,27 +395,47 @@ class AssignmentClassifier {
 
   /**
    * Classify atomic and overflow-clamped compound assignments.
+   * Handles simple identifiers, this.member, and global.member patterns.
    */
   private classifySpecialCompound(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    if (!ctx.isCompound || !ctx.isSimpleIdentifier) {
+    if (!ctx.isCompound) {
       return null;
     }
 
-    const id = ctx.identifiers[0];
-    const typeInfo = this.deps.typeRegistry.get(id);
+    // Get typeInfo based on target pattern
+    let typeInfo;
+    if (ctx.isSimpleIdentifier) {
+      const id = ctx.identifiers[0];
+      typeInfo = this.deps.typeRegistry.get(id);
+    } else if (ctx.isSimpleThisAccess && this.deps.currentScope) {
+      // this.member pattern: lookup using scoped name
+      const memberName = ctx.identifiers[0];
+      const scopedName = `${this.deps.currentScope}_${memberName}`;
+      typeInfo = this.deps.typeRegistry.get(scopedName);
+    } else if (ctx.isSimpleGlobalAccess) {
+      // global.member pattern: lookup using direct name
+      const memberName = ctx.identifiers[0];
+      typeInfo = this.deps.typeRegistry.get(memberName);
+    } else {
+      return null;
+    }
 
     if (!typeInfo) {
       return null;
     }
 
-    // Atomic RMW
-    if (typeInfo.isAtomic) {
+    // Atomic RMW - for global atomic variables (simple identifiers or global.member)
+    // Scoped atomics (this.member) use overflow behavior, not LDREX/STREX
+    const isGlobalAtomic =
+      typeInfo.isAtomic && (ctx.isSimpleIdentifier || ctx.isSimpleGlobalAccess);
+    if (isGlobalAtomic) {
       return AssignmentKind.ATOMIC_RMW;
     }
 
     // Overflow clamp (integers only, not floats)
+    // Also applies to scoped atomic variables with clamp behavior
     if (
       typeInfo.overflowBehavior === "clamp" &&
       TypeCheckUtils.isInteger(typeInfo.baseType)
