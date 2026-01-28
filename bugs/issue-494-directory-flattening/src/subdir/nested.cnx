@@ -1,0 +1,4 @@
+// Nested file - should output to src/subdir/nested.c (NOT src/nested.c)
+void helper() {
+    u32 x <- 42;
+}

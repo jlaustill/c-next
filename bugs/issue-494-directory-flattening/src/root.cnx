@@ -1,0 +1,4 @@
+// Root level file - should output to src/root.c
+u32 main() {
+    return 0;
+}
