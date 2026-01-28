@@ -7770,6 +7770,13 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #304: Track if we're accessing C++ symbols that need :: syntax
     let isCppAccessChain = false;
 
+    // Issue #516: Initialize isCppAccessChain based on primary identifier
+    // This enables C++ namespace function calls to work without requiring global. prefix
+    // e.g., SeaDash.Parse.parse() should generate SeaDash::Parse::parse()
+    if (primaryId && this.isCppScopeSymbol(primaryId)) {
+      isCppAccessChain = true;
+    }
+
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
 
@@ -8252,7 +8259,9 @@ export default class CodeGenerator implements IOrchestrator {
               continue;
             }
 
-            result = `${result}.${memberName}`;
+            // Issue #516: Use :: for C++ namespace chains, . for struct member access
+            const separator = isCppAccessChain ? "::" : ".";
+            result = `${result}${separator}${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
             previousMemberName = memberName;

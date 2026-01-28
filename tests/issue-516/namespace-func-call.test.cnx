@@ -1,0 +1,21 @@
+// test-transpile-only
+// Tests: C++ namespace function calls WITHOUT global. prefix (Issue #516)
+// This test verifies that C-Next can call C++ namespaced functions
+// without requiring the global. prefix
+
+#include "CppNamespace.hpp"
+
+scope Test {
+    public void run() {
+        // BUG FIX: Function call without global. prefix should use :: separator
+        // Before fix: SeaDash_Parse.parse() - WRONG (mixed _ and .)
+        // After fix:  SeaDash::Parse::parse() - CORRECT (all ::)
+        SeaDash.Parse.ParseResult result <- SeaDash.Parse.parse("1,2,3", ',');
+
+        // Type declaration should also work (this already works per resolveQualifiedType)
+        SeaDash.Config cfg <- SeaDash.getDefaultConfig();
+
+        // Deep nested namespace function call
+        Deep.Level1.Level2.DeepType deep <- Deep.Level1.Level2.create(42);
+    }
+}
