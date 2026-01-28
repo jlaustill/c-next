@@ -13,6 +13,7 @@ import typeUtils from "./headerGenerators/mapType";
 import generateEnumHeader from "./headerGenerators/generateEnumHeader";
 import generateStructHeader from "./headerGenerators/generateStructHeader";
 import generateBitmapHeader from "./headerGenerators/generateBitmapHeader";
+import CppNamespaceUtils from "../utils/CppNamespaceUtils";
 
 const { mapType, isBuiltInType } = typeUtils;
 
@@ -148,13 +149,16 @@ class HeaderGenerator {
     // Emit forward declarations for external types that don't have known headers
     // Issue #296: Use typedef forward declaration for compatibility with named structs
     // Issue #461: Skip C++ types (templates with <>, namespaces with :: or .) - they can't be forward-declared in C
+    // Issue #522: Also skip underscore-format C++ namespace types (e.g., SeaDash_Parse_Result)
+    const symbolTable = typeInput?.symbolTable;
     const cCompatibleExternalTypes = [...externalTypes].filter(
       (t) =>
         !typesWithHeaders.has(t) &&
         !t.includes("<") &&
         !t.includes(">") &&
         !t.includes("::") &&
-        !t.includes("."),
+        !t.includes(".") &&
+        !CppNamespaceUtils.isCppNamespaceType(t, symbolTable),
     );
     if (cCompatibleExternalTypes.length > 0) {
       lines.push(
@@ -239,6 +243,7 @@ class HeaderGenerator {
     // Issue #461: Also filter out C++ template types and dot-notation namespace paths
     // Dot paths (MockLib.Parse.Type) become :: in C++ and _ in headers, causing mismatches
     // Note: C-Next's string<N> types (e.g., string<32>) are allowed - only filter C++ templates
+    // Issue #522: Also filter out underscore-format C++ namespace types (e.g., SeaDash_Parse_Result)
     const isCppTemplateType = (type: string | undefined): boolean => {
       if (!type) return false;
       // C-Next string<N> types are allowed (string followed by <digits>)
@@ -250,7 +255,8 @@ class HeaderGenerator {
       (v) =>
         !v.type?.includes("::") &&
         !v.type?.includes(".") &&
-        !isCppTemplateType(v.type),
+        !isCppTemplateType(v.type) &&
+        !CppNamespaceUtils.isCppNamespaceType(v.type ?? "", symbolTable),
     );
     if (cCompatibleVariables.length > 0) {
       lines.push("/* External variables */");

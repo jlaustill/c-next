@@ -7,59 +7,9 @@
 
 import IHeaderTypeInput from "./IHeaderTypeInput";
 import typeUtils from "./mapType";
-import ESourceLanguage from "../../types/ESourceLanguage";
-import ESymbolKind from "../../types/ESymbolKind";
+import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 
 const { mapType } = typeUtils;
-
-/**
- * Issue #502: Check if a symbol name refers to a C++ namespace
- * Uses the SymbolTable to detect C++ namespaces, classes, and enums
- */
-function isCppNamespace(name: string, input: IHeaderTypeInput): boolean {
-  const symbolTable = input.symbolTable;
-  if (!symbolTable) {
-    return false;
-  }
-
-  const symbols = symbolTable.getOverloads(name);
-  for (const sym of symbols) {
-    if (sym.sourceLanguage !== ESourceLanguage.Cpp) {
-      continue;
-    }
-    if (
-      sym.kind === ESymbolKind.Namespace ||
-      sym.kind === ESymbolKind.Class ||
-      sym.kind === ESymbolKind.Enum
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Issue #502: Convert underscore-separated type names to C++ namespace syntax
- * if the first part is a known C++ namespace
- */
-function convertToCppNamespaceIfNeeded(
-  fieldType: string,
-  input: IHeaderTypeInput,
-): string {
-  // Only process types that contain underscores
-  if (!fieldType.includes("_")) {
-    return fieldType;
-  }
-
-  // Check if this looks like a qualified type
-  const parts = fieldType.split("_");
-  if (parts.length > 1 && isCppNamespace(parts[0], input)) {
-    // It's a C++ namespaced type - convert _ to ::
-    return parts.join("::");
-  }
-
-  return fieldType;
-}
 
 /**
  * Generate a C typedef struct declaration for the given struct name.
@@ -91,8 +41,11 @@ function generateStructHeader(name: string, input: IHeaderTypeInput): string {
 
   // Iterate fields in insertion order (Map preserves order)
   for (const [fieldName, fieldType] of fields) {
-    // Issue #502: Convert C++ namespace types from _ to :: format
-    const convertedType = convertToCppNamespaceIfNeeded(fieldType, input);
+    // Issue #502/#522: Convert C++ namespace types from _ to :: format using shared utility
+    const convertedType = CppNamespaceUtils.convertToCppNamespace(
+      fieldType,
+      input.symbolTable,
+    );
     const cType = mapType(convertedType);
     const dims = dimensions?.get(fieldName);
     const dimSuffix =

@@ -1,0 +1,12 @@
+// test-transpile-only
+// Tests: Issue #522 - Mixed C-Next scopes and C++ namespaces
+// C-Next scope types should appear in header, C++ namespace types should not
+#include "Lib.hpp"
+
+// C-Next scope with public variable - should appear in header
+scope MyScope {
+    public i32 scopeVar <- 10;
+}
+
+// C++ namespace type - should NOT appear in header
+Lib.Sub.Data cppVar <- { value: 20, active: true };

@@ -1,12 +1,15 @@
 /**
  * Tests for HeaderGenerator
  * Issue #427: Tests for string<N> type handling in header generation
+ * Issue #522: Tests for C++ namespace type filtering
  */
 
 import HeaderGenerator from "./HeaderGenerator";
 import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ISymbol from "../types/ISymbol";
+import SymbolTable from "../symbol_resolution/SymbolTable";
+import IHeaderTypeInput from "./headerGenerators/IHeaderTypeInput";
 
 describe("HeaderGenerator", () => {
   const generator = new HeaderGenerator();
@@ -185,6 +188,165 @@ describe("HeaderGenerator", () => {
       const header = generator.generate(symbols, "test.h");
 
       expect(header).toContain("extern Configuration config;");
+    });
+  });
+
+  // ============================================================================
+  // Issue #522: C++ namespace type filtering
+  // ============================================================================
+
+  describe("Issue #522: C++ namespace type filtering", () => {
+    // Helper to create typeInput with a SymbolTable containing C++ namespace
+    function makeTypeInputWithCppNamespace(
+      namespaceName: string,
+    ): IHeaderTypeInput {
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: namespaceName,
+        kind: ESymbolKind.Namespace,
+        sourceLanguage: ESourceLanguage.Cpp,
+        sourceFile: `${namespaceName}.hpp`,
+        sourceLine: 1,
+        isExported: false,
+      });
+      return {
+        symbolTable,
+        enumMembers: new Map(),
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+      };
+    }
+
+    describe("extern variable filtering", () => {
+      it("should filter out variables with :: namespace types", () => {
+        const symbols = [makeVarSymbol("data", "Lib::Sub::Data")];
+        const header = generator.generate(symbols, "test.h");
+
+        // Should not have any extern variable declarations (extern "C" is OK)
+        expect(header).not.toContain("External variables");
+        expect(header).not.toContain("extern Lib::Sub::Data");
+        expect(header).not.toContain("extern Lib_Sub_Data");
+      });
+
+      it("should filter out variables with dot-notation namespace types", () => {
+        const symbols = [makeVarSymbol("data", "Lib.Sub.Data")];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).not.toContain("External variables");
+        expect(header).not.toContain("extern Lib.Sub.Data");
+      });
+
+      it("should filter out variables with underscore C++ namespace types when symbolTable provided", () => {
+        const symbols = [makeVarSymbol("data", "SeaDash_Parse_Result")];
+        const typeInput = makeTypeInputWithCppNamespace("SeaDash");
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
+
+        expect(header).not.toContain("External variables");
+        expect(header).not.toContain("extern SeaDash_Parse_Result");
+      });
+
+      it("should NOT filter snake_case types that are not C++ namespaces", () => {
+        const symbols = [makeVarSymbol("config", "my_config_struct")];
+        const typeInput = makeTypeInputWithCppNamespace("SomeOtherNamespace");
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
+
+        expect(header).toContain("extern my_config_struct config;");
+      });
+
+      it("should keep regular C types even when symbolTable is provided", () => {
+        const symbols = [makeVarSymbol("count", "u32")];
+        const typeInput = makeTypeInputWithCppNamespace("SeaDash");
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
+
+        expect(header).toContain("extern uint32_t count;");
+      });
+    });
+
+    describe("forward declaration filtering", () => {
+      // Helper to create a function symbol that references an external type
+      function makeFuncSymbol(name: string, paramType: string): ISymbol {
+        return {
+          name,
+          type: "void",
+          kind: ESymbolKind.Function,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+          parameters: [
+            { name: "param", type: paramType, isConst: false, isArray: false },
+          ],
+        };
+      }
+
+      it("should filter out forward declarations for :: namespace types", () => {
+        const symbols = [makeFuncSymbol("process", "Lib::Sub::Data")];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).not.toContain("typedef struct Lib::Sub::Data");
+        expect(header).not.toContain("typedef struct Lib_Sub_Data");
+        expect(header).not.toContain("External type dependencies");
+      });
+
+      it("should filter out forward declarations for dot-notation types", () => {
+        const symbols = [makeFuncSymbol("process", "Lib.Sub.Data")];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).not.toContain("typedef struct Lib.Sub.Data");
+        expect(header).not.toContain("External type dependencies");
+      });
+
+      it("should filter out forward declarations for underscore C++ namespace types", () => {
+        const symbols = [makeFuncSymbol("process", "SeaDash_Parse_Result")];
+        const typeInput = makeTypeInputWithCppNamespace("SeaDash");
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
+
+        expect(header).not.toContain("typedef struct SeaDash_Parse_Result");
+        expect(header).not.toContain("External type dependencies");
+      });
+
+      it("should keep forward declarations for regular external types", () => {
+        const symbols = [makeFuncSymbol("process", "ExternalConfig")];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).toContain(
+          "typedef struct ExternalConfig ExternalConfig;",
+        );
+        expect(header).toContain("External type dependencies");
+      });
+    });
+
+    describe("edge cases", () => {
+      it("should handle C++ template types (filter them out)", () => {
+        const symbols = [makeVarSymbol("vec", "std::vector<int>")];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).not.toContain("External variables");
+        expect(header).not.toContain("extern std::vector");
+        expect(header).not.toContain("vector<int>");
+      });
+
+      it("should allow C-Next string<N> types (not C++ templates)", () => {
+        const symbols = [makeVarSymbol("name", "string<32>")];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).toContain("extern char name[33];");
+      });
+
+      it("should handle mixed C++ and regular types correctly", () => {
+        const symbols = [
+          makeVarSymbol("cppData", "Lib::Data"),
+          makeVarSymbol("regularData", "MyStruct"),
+          makeVarSymbol("count", "u32"),
+        ];
+        const header = generator.generate(symbols, "test.h");
+
+        expect(header).not.toContain("Lib::Data");
+        expect(header).toContain("extern MyStruct regularData;");
+        expect(header).toContain("extern uint32_t count;");
+      });
     });
   });
 });

@@ -50,6 +50,7 @@ import functionGenerator from "./generators/declarationGenerators/FunctionGenera
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 // ADR-109: Extracted utilities
 import BitUtils from "../utils/BitUtils";
+import CppNamespaceUtils from "../utils/CppNamespaceUtils";
 import FormatUtils from "../utils/FormatUtils";
 import StringUtils from "../utils/StringUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
@@ -1331,30 +1332,14 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #304: Check if a name is a C++ scope-like symbol that requires :: syntax
    * This includes C++ namespaces, classes, and enum classes (scoped enums).
    * Returns true if the symbol comes from C++ and needs :: for member access.
+   *
+   * Issue #522: Delegates to shared CppNamespaceUtils for consistency.
    */
   private isCppScopeSymbol(name: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(name);
-    for (const sym of symbols) {
-      // Only consider C++ symbols
-      if (sym.sourceLanguage !== ESourceLanguage.Cpp) {
-        continue;
-      }
-
-      // C++ namespaces, classes, and enums (enum class) need :: syntax
-      if (
-        sym.kind === ESymbolKind.Namespace ||
-        sym.kind === ESymbolKind.Class ||
-        sym.kind === ESymbolKind.Enum
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return CppNamespaceUtils.isCppNamespace(
+      name,
+      this.symbolTable ?? undefined,
+    );
   }
 
   /**
