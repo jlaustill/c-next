@@ -215,7 +215,12 @@ class Pipeline {
 
         if (!fileResult.success) {
           result.success = false;
-          result.errors.push(...fileResult.errors);
+          result.errors.push(
+            ...fileResult.errors.map((e) => ({
+              ...e,
+              sourcePath: fileResult.sourcePath,
+            })),
+          );
         } else if (fileResult.outputPath) {
           result.outputFiles.push(fileResult.outputPath);
         }

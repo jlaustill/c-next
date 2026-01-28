@@ -10,6 +10,8 @@ interface ITranspileError {
   message: string;
   /** Severity: 'error' or 'warning' */
   severity: "error" | "warning";
+  /** Source file path (optional, for multi-file compilation) */
+  sourcePath?: string;
 }
 
 export default ITranspileError;

@@ -113,6 +113,8 @@ class Project {
       }
       // Attach the output path to the result for aggregation
       (fileResult as any).outputPath = outputPath;
+      // Attach sourcePath to the result for error formatting
+      (fileResult as any).sourcePath = file;
       results.push(fileResult);
     }
 
@@ -131,7 +133,11 @@ class Project {
       aggregate.success &&= r.success;
       if (r.errors?.length) {
         const formatted = r.errors.map((e: any) =>
-          typeof e === "string" ? e : `${e.line}:${e.column} ${e.message}`,
+          typeof e === "string"
+            ? e
+            : r.sourcePath
+              ? `${r.sourcePath}:${e.line}:${e.column} ${e.message}`
+              : `${e.line}:${e.column} ${e.message}`,
         );
         aggregate.errors.push(...formatted);
       }
