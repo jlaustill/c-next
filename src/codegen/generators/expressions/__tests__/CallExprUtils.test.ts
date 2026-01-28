@@ -1,0 +1,122 @@
+import { describe, it, expect } from "vitest";
+import CallExprUtils from "../CallExprUtils";
+
+describe("CallExprUtils", () => {
+  describe("mapTypeToCType", () => {
+    it("maps unsigned integer types", () => {
+      expect(CallExprUtils.mapTypeToCType("u8")).toBe("uint8_t");
+      expect(CallExprUtils.mapTypeToCType("u16")).toBe("uint16_t");
+      expect(CallExprUtils.mapTypeToCType("u32")).toBe("uint32_t");
+      expect(CallExprUtils.mapTypeToCType("u64")).toBe("uint64_t");
+    });
+
+    it("maps signed integer types", () => {
+      expect(CallExprUtils.mapTypeToCType("i8")).toBe("int8_t");
+      expect(CallExprUtils.mapTypeToCType("i16")).toBe("int16_t");
+      expect(CallExprUtils.mapTypeToCType("i32")).toBe("int32_t");
+      expect(CallExprUtils.mapTypeToCType("i64")).toBe("int64_t");
+    });
+
+    it("maps float types", () => {
+      expect(CallExprUtils.mapTypeToCType("f32")).toBe("float");
+      expect(CallExprUtils.mapTypeToCType("f64")).toBe("double");
+    });
+
+    it("maps bool type", () => {
+      expect(CallExprUtils.mapTypeToCType("bool")).toBe("bool");
+    });
+
+    it("returns unknown types unchanged", () => {
+      expect(CallExprUtils.mapTypeToCType("MyStruct")).toBe("MyStruct");
+      expect(CallExprUtils.mapTypeToCType("CustomType")).toBe("CustomType");
+    });
+  });
+
+  describe("isSmallPrimitiveType", () => {
+    it("returns true for small unsigned types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("u8")).toBe(true);
+      expect(CallExprUtils.isSmallPrimitiveType("u16")).toBe(true);
+    });
+
+    it("returns true for small signed types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("i8")).toBe(true);
+      expect(CallExprUtils.isSmallPrimitiveType("i16")).toBe(true);
+    });
+
+    it("returns true for bool", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("bool")).toBe(true);
+    });
+
+    it("returns false for larger types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("u32")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("u64")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("i32")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("i64")).toBe(false);
+    });
+
+    it("returns false for float types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("f32")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("f64")).toBe(false);
+    });
+
+    it("returns false for struct/custom types", () => {
+      expect(CallExprUtils.isSmallPrimitiveType("MyStruct")).toBe(false);
+      expect(CallExprUtils.isSmallPrimitiveType("CustomType")).toBe(false);
+    });
+  });
+
+  describe("generateSafeDivModHelperName", () => {
+    it("generates safe_div helper name", () => {
+      expect(
+        CallExprUtils.generateSafeDivModHelperName("safe_div", "u32"),
+      ).toBe("cnx_safe_div_u32");
+      expect(
+        CallExprUtils.generateSafeDivModHelperName("safe_div", "i64"),
+      ).toBe("cnx_safe_div_i64");
+    });
+
+    it("generates safe_mod helper name", () => {
+      expect(
+        CallExprUtils.generateSafeDivModHelperName("safe_mod", "u32"),
+      ).toBe("cnx_safe_mod_u32");
+      expect(
+        CallExprUtils.generateSafeDivModHelperName("safe_mod", "i16"),
+      ).toBe("cnx_safe_mod_i16");
+    });
+
+    it("works with all integer types", () => {
+      expect(CallExprUtils.generateSafeDivModHelperName("safe_div", "u8")).toBe(
+        "cnx_safe_div_u8",
+      );
+      expect(
+        CallExprUtils.generateSafeDivModHelperName("safe_mod", "u16"),
+      ).toBe("cnx_safe_mod_u16");
+    });
+  });
+
+  describe("generateStaticCast", () => {
+    it("wraps code with static_cast for C-Next types", () => {
+      expect(CallExprUtils.generateStaticCast("MyEnum::Value", "u32")).toBe(
+        "static_cast<uint32_t>(MyEnum::Value)",
+      );
+      expect(CallExprUtils.generateStaticCast("val", "i8")).toBe(
+        "static_cast<int8_t>(val)",
+      );
+    });
+
+    it("uses C type names in cast", () => {
+      expect(CallExprUtils.generateStaticCast("x", "u8")).toBe(
+        "static_cast<uint8_t>(x)",
+      );
+      expect(CallExprUtils.generateStaticCast("x", "f32")).toBe(
+        "static_cast<float>(x)",
+      );
+    });
+
+    it("passes through unknown types", () => {
+      expect(CallExprUtils.generateStaticCast("x", "CustomType")).toBe(
+        "static_cast<CustomType>(x)",
+      );
+    });
+  });
+});
