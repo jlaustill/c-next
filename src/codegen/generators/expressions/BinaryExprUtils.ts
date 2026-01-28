@@ -44,7 +44,7 @@ class BinaryExprUtils {
   ): number | undefined {
     const values = operandCodes.map(BinaryExprUtils.tryParseNumericLiteral);
 
-    if (values.some((v) => v === undefined)) {
+    if (values.includes(undefined)) {
       return undefined;
     }
 
