@@ -1,18 +1,38 @@
-// DEMO: Scoping bug - scope vars not tracked (ADR-016)
+// test-execution
+// Test: Scope member shadowing works correctly (ADR-016)
+// The scope member 'count' should shadow the global 'count'
 
-u8 count <- 0;        // Global - tracked in typeRegistry
-const u8 limit <- 10; // Global const - tracked in typeRegistry
+u8 globalCount <- 0;   // Global
+const u8 limit <- 10;  // Global const
 
 scope Counter {
-    u8 count <- 0;    // NOT tracked! Should shadow global 'count'
+    u8 count <- 0;  // Scope member shadows any global 'count'
 
-    void increment() {
+    public void increment() {
         count <- count + 1;  // Should reference Counter.count
-        // But checkConstAssignment looks up "count" and might find global
-        // Initialization analyzer has same problem
+    }
+
+    public u8 getCount() {
+        return count;
     }
 }
 
-void main() {
+u32 main() {
+    // Initially 0
+    u8 val <- Counter.getCount();
+    if (val != 0) return 1;
+
+    // Increment should modify Counter.count, not globalCount
     Counter.increment();
+    val <- Counter.getCount();
+    if (val != 1) return 2;
+
+    Counter.increment();
+    val <- Counter.getCount();
+    if (val != 2) return 3;
+
+    // Global should be unchanged
+    if (globalCount != 0) return 4;
+
+    return 0;
 }

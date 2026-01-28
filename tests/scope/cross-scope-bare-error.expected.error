@@ -1,1 +1,1 @@
-1:0 Code generation failed: Error: Use 'global.Counter.value' to access scope 'Counter' from inside scope 'Manager'
+1:0 Code generation failed: Cannot access private member 'value' of scope 'Counter' from scope 'Manager'. Only public members are accessible outside their scope.

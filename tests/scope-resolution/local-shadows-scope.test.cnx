@@ -1,0 +1,18 @@
+// Test local variable shadows scope member, this. accesses scope
+// test-execution
+
+scope State {
+    u32 value <- 100;
+
+    public u32 shadowTest() {
+        u32 value <- 5;       // Local shadows scope
+        this.value <- value;   // Assign local to scope via this.
+        return this.value;
+    }
+}
+
+u32 main() {
+    u32 result <- State.shadowTest();
+    if (result != 5) return 1;
+    return 0;
+}

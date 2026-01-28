@@ -1,13 +1,14 @@
-// Test: Bare scope access from inside another scope should error
-// ADR-016: Must use global. prefix for cross-scope access
+// test-error
+// Test: Cross-scope access to private member should error
+// ADR-016: Private scope members cannot be accessed from other scopes
 
 scope Counter {
-    i32 value <- 100;
+    i32 value <- 100;  // Private by default
 }
 
 scope Manager {
     void test() {
-        // ERROR: Must use global.Counter.value instead of Counter.value
+        // ERROR: value is private in Counter scope
         Counter.value <- 50;
     }
 }

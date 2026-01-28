@@ -1,0 +1,32 @@
+// Test global variable with same name as scope
+// Both can coexist - scope becomes prefix, variable stays as-is
+// test-execution
+
+u8 LED <- 5;  // Global variable named same as scope
+
+scope LED {
+    public u8 brightness <- 100;
+
+    public void on() {
+        brightness <- 255;
+    }
+}
+
+scope Motor {
+    public u32 test() {
+        u8 val <- global.LED;    // Access global variable (5)
+        LED.on();                 // Access scope function
+        // MISRA: get brightness into variable first
+        u8 bright <- LED.brightness;
+        // Need to return u32, so cast the sum
+        u32 result <- val;
+        result +<- bright;
+        return result;  // 5 + 255 = 260
+    }
+}
+
+u32 main() {
+    u32 result <- Motor.test();
+    if (result != 260) return 1;
+    return 0;
+}

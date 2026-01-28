@@ -589,19 +589,13 @@ class FunctionCallAnalyzer {
       return; // OK - invoking a function pointer variable
     }
 
+    // ADR-057: Allow implicit scope function calls without this. prefix
     // Check if this is an unqualified call to a scope function
     // e.g., calling helper() instead of this.helper() inside a scope
     if (currentScope) {
       const qualifiedName = `${currentScope}_${name}`;
       if (this.definedFunctions.has(qualifiedName)) {
-        this.errors.push({
-          code: "E0422",
-          functionName: name,
-          line,
-          column,
-          message: `'${name}' is a scope function - use 'this.${name}()' to call it`,
-        });
-        return;
+        return; // OK - implicit resolution will handle it
       }
     }
 

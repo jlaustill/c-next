@@ -7142,13 +7142,17 @@ export default class CodeGenerator implements IOrchestrator {
       // Check if it's a local variable
       const isLocalVariable = this.context.localVariables.has(id);
 
-      // ADR-016: Enforce explicit qualification inside scopes
-      // Bare identifiers are ONLY allowed for local variables and parameters
-      this.typeValidator!.validateBareIdentifierInScope(
+      // ADR-016: Resolve bare identifier using local -> scope -> global priority
+      const resolved = this.typeValidator!.resolveBareIdentifier(
         id,
         isLocalVariable,
         (name: string) => this.isKnownStruct(name),
       );
+
+      // If resolved to a different name, use it
+      if (resolved !== null) {
+        return resolved;
+      }
 
       return id;
     }
@@ -7765,6 +7769,15 @@ export default class CodeGenerator implements IOrchestrator {
           result = memberName;
           currentIdentifier = memberName; // Track for .length lookups
           isGlobalAccess = true; // Mark that we're in a global access chain
+
+          // ADR-057: Check if global variable would be shadowed by a local
+          // In C, local variables shadow globals and there's no way to access the global
+          if (this.context.localVariables.has(memberName)) {
+            throw new Error(
+              `Error: Cannot use 'global.${memberName}' when local variable '${memberName}' shadows it. ` +
+                `Rename the local variable to avoid shadowing.`,
+            );
+          }
           // Issue #304: Check if this is a C++ scope symbol (namespace, class, enum)
           // These require :: syntax for member access. Variable symbols (including
           // object instances like Arduino's extern HardwareSerial Serial;) should
@@ -8059,12 +8072,8 @@ export default class CodeGenerator implements IOrchestrator {
                   `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
                 );
               }
-              // ADR-016: Inside a scope, accessing another scope requires global. prefix
-              if (this.context.currentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
+              // ADR-057: Cross-scope access allowed without global. prefix
+              // Since result is a known scope name, allow bare Scope.member access
             }
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
@@ -8289,12 +8298,8 @@ export default class CodeGenerator implements IOrchestrator {
                   `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
                 );
               }
-              // ADR-016: Inside a scope, accessing another scope requires global. prefix
-              if (this.context.currentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
+              // ADR-057: Cross-scope access allowed without global. prefix
+              // Since result is a known scope name, allow bare Scope.member access
             }
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
@@ -8650,13 +8655,17 @@ export default class CodeGenerator implements IOrchestrator {
       // Local variables are those that were declared inside the current function
       const isLocalVariable = this.context.localVariables.has(id);
 
-      // ADR-016: Enforce explicit qualification inside scopes
-      // Bare identifiers are ONLY allowed for local variables and parameters
-      this.typeValidator!.validateBareIdentifierInScope(
+      // ADR-016: Resolve bare identifier using local -> scope -> global priority
+      const resolved = this.typeValidator!.resolveBareIdentifier(
         id,
         isLocalVariable,
         (name: string) => this.isKnownStruct(name),
       );
+
+      // If resolved to a different name, use it
+      if (resolved !== null) {
+        return resolved;
+      }
 
       // Issue #452: Check if identifier is an unqualified enum member reference
       // Use expectedType for type-aware resolution when assigning to enum fields
@@ -9122,6 +9131,7 @@ export default class CodeGenerator implements IOrchestrator {
           const isStructParam = paramInfo?.isStruct ?? false;
 
           // ADR-016: Inside a scope, accessing another scope requires global. prefix
+          // ADR-057: Cross-scope access allowed without global. prefix (just check self-reference)
           if (isCrossScope && this.context.currentScope) {
             // Self-referential access should use 'this.'
             if (firstPart === this.context.currentScope) {
@@ -9129,10 +9139,7 @@ export default class CodeGenerator implements IOrchestrator {
                 `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
               );
             }
-            // Cross-scope access should use 'global.'
-            throw new Error(
-              `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
-            );
+            // ADR-057: Allow cross-scope access without global. prefix
           }
 
           // Bug #8: Track struct types to detect bit access through chains
@@ -9283,6 +9290,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
     if (this.isKnownScope(firstPart)) {
       // ADR-016: Inside a scope, accessing another scope requires global. prefix
+      // ADR-057: Cross-scope access allowed without global. prefix (just check self-reference)
       if (this.context.currentScope) {
         // Self-referential access should use 'this.'
         if (firstPart === this.context.currentScope) {
@@ -9290,10 +9298,7 @@ export default class CodeGenerator implements IOrchestrator {
             `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
           );
         }
-        // Cross-scope access should use 'global.'
-        throw new Error(
-          `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
-        );
+        // ADR-057: Allow cross-scope access without global. prefix
       }
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];

@@ -1,0 +1,31 @@
+// Test bare function names call scope functions
+// test-execution
+
+scope Calculator {
+    u32 result <- 0;
+
+    void reset() {
+        result <- 0;
+    }
+
+    void addTen() {
+        result +<- 10;
+    }
+
+    public void compute() {
+        reset();      // Bare call to scope function
+        addTen();     // Bare call to scope function
+        addTen();
+    }
+
+    public u32 getResult() {
+        return result;
+    }
+}
+
+u32 main() {
+    Calculator.compute();
+    u32 result <- Calculator.getResult();
+    if (result != 20) return 1;
+    return 0;
+}

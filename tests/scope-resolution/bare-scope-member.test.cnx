@@ -1,0 +1,22 @@
+// Test bare identifier resolves to scope member
+// test-execution
+
+scope Counter {
+    u32 value <- 0;
+
+    public void increment() {
+        value +<- 1;  // Should resolve to this.value
+    }
+
+    public u32 getValue() {
+        return value;  // Should resolve to this.value
+    }
+}
+
+u32 main() {
+    Counter.increment();
+    Counter.increment();
+    u32 result <- Counter.getValue();
+    if (result != 2) return 1;
+    return 0;
+}

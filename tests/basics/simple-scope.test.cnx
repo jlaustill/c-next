@@ -43,24 +43,30 @@ scope Temperature {
 u32 main() {
     // Use Counter scope
     Counter.reset();
-    if (Counter.get() != 0) return 1;
+    u32 val <- Counter.get();
+    if (val != 0) return 1;
 
     Counter.increment();
-    if (Counter.get() != 1) return 2;
+    val <- Counter.get();
+    if (val != 1) return 2;
 
     Counter.increment();
     Counter.increment();
-    if (Counter.get() != 3) return 3;
+    val <- Counter.get();
+    if (val != 3) return 3;
 
     Counter.add(10);
-    if (Counter.get() != 13) return 4;
+    val <- Counter.get();
+    if (val != 13) return 4;
 
     Counter.reset();
-    if (Counter.get() != 0) return 5;
+    val <- Counter.get();
+    if (val != 0) return 5;
 
     // Use Temperature scope
     Temperature.set(25);
-    if (Temperature.getCelsius() != 25) return 6;
+    i32 celsius <- Temperature.getCelsius();
+    if (celsius != 25) return 6;
 
     i32 fahrenheit <- Temperature.getFahrenheit();
     if (fahrenheit != 77) return 7;
