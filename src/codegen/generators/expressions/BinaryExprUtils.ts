@@ -102,12 +102,38 @@ const buildChainedExpression = (
   return result;
 };
 
+/**
+ * ADR-017: Validate enum type safety for comparisons.
+ * Throws if comparing different enum types or enum to integer.
+ */
+const validateEnumComparison = (
+  leftEnumType: string | null,
+  rightEnumType: string | null,
+  leftIsInteger: boolean,
+  rightIsInteger: boolean,
+): void => {
+  if (leftEnumType && rightEnumType && leftEnumType !== rightEnumType) {
+    throw new Error(
+      `Error: Cannot compare ${leftEnumType} enum to ${rightEnumType} enum`,
+    );
+  }
+
+  if (leftEnumType && rightIsInteger) {
+    throw new Error(`Error: Cannot compare ${leftEnumType} enum to integer`);
+  }
+
+  if (rightEnumType && leftIsInteger) {
+    throw new Error(`Error: Cannot compare integer to ${rightEnumType} enum`);
+  }
+};
+
 class BinaryExprUtils {
   static tryParseNumericLiteral = tryParseNumericLiteral;
   static tryFoldConstants = tryFoldConstants;
   static mapEqualityOperator = mapEqualityOperator;
   static generateStrcmpCode = generateStrcmpCode;
   static buildChainedExpression = buildChainedExpression;
+  static validateEnumComparison = validateEnumComparison;
 }
 
 export default BinaryExprUtils;

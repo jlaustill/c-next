@@ -220,4 +220,42 @@ describe("BinaryExprUtils", () => {
       ).toBe("a >= b");
     });
   });
+
+  describe("validateEnumComparison", () => {
+    it("allows comparing same enum types", () => {
+      expect(() =>
+        BinaryExprUtils.validateEnumComparison("Color", "Color", false, false),
+      ).not.toThrow();
+    });
+
+    it("allows comparing non-enum values", () => {
+      expect(() =>
+        BinaryExprUtils.validateEnumComparison(null, null, true, true),
+      ).not.toThrow();
+    });
+
+    it("throws when comparing different enum types (ADR-017)", () => {
+      expect(() =>
+        BinaryExprUtils.validateEnumComparison("Color", "Size", false, false),
+      ).toThrow("Error: Cannot compare Color enum to Size enum");
+    });
+
+    it("throws when comparing enum to integer on left (ADR-017)", () => {
+      expect(() =>
+        BinaryExprUtils.validateEnumComparison("Color", null, false, true),
+      ).toThrow("Error: Cannot compare Color enum to integer");
+    });
+
+    it("throws when comparing enum to integer on right (ADR-017)", () => {
+      expect(() =>
+        BinaryExprUtils.validateEnumComparison(null, "Color", true, false),
+      ).toThrow("Error: Cannot compare integer to Color enum");
+    });
+
+    it("allows enum compared to non-integer non-enum", () => {
+      expect(() =>
+        BinaryExprUtils.validateEnumComparison("Color", null, false, false),
+      ).not.toThrow();
+    });
+  });
 });
