@@ -1,0 +1,19 @@
+// Test: Multiple types from same C header should only include header once
+#include "multi-type-same-header.h"
+
+scope Geometry {
+    public Point getOrigin() {
+        Point p <- { x: 0, y: 0 };
+        return p;
+    }
+
+    public Line makeLine(Point start, Point end) {
+        Line l <- { start: start, end: end };
+        return l;
+    }
+}
+
+void main() {
+    Point p <- Geometry.getOrigin();
+    Line l <- Geometry.makeLine(p, p);
+}

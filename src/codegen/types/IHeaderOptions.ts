@@ -18,6 +18,14 @@ interface IHeaderOptions {
    * Example: ['#include "config.h"', '#include "sizes.h"']
    */
   userIncludes?: string[];
+
+  /**
+   * Issue #497: Map of external type names to their C header include directives.
+   * When a type from a C header is used in public interfaces, the header should
+   * be included rather than generating a conflicting forward declaration.
+   * Example: Map { "Data" => '#include "data-types.h"' }
+   */
+  externalTypeHeaders?: ReadonlyMap<string, string>;
 }
 
 export default IHeaderOptions;

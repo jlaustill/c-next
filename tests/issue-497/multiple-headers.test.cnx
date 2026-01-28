@@ -1,0 +1,20 @@
+// Test: Types from different C headers should include both headers
+#include "known-header-types.h"
+#include "second-header.h"
+
+scope Graphics {
+    public Color getDefaultColor() {
+        Color c <- { r: 255, g: 255, b: 255 };
+        return c;
+    }
+
+    public Size getDefaultSize() {
+        Size s <- { width: 100, height: 100 };
+        return s;
+    }
+}
+
+void main() {
+    Color c <- Graphics.getDefaultColor();
+    Size s <- Graphics.getDefaultSize();
+}

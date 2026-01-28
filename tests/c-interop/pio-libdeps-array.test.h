@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "mock_can.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct MockCanMessage MockCanMessage;
 
 /* Function prototypes */
 void PioArrayTest_processBuffer(const uint8_t data[8], uint8_t len);

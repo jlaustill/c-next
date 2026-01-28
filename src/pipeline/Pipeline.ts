@@ -77,6 +77,11 @@ class Pipeline {
   private readonly userIncludesCollectors: Map<string, string[]> = new Map();
   /** Issue #465: Store ISymbolInfo per file during stage 3 for external enum resolution */
   private readonly symbolInfoByFile: Map<string, ISymbolInfo> = new Map();
+  /**
+   * Issue #497: Map resolved header paths to their include directives.
+   * Used to include C headers in generated .h files instead of forward-declaring types.
+   */
+  private readonly headerIncludeDirectives: Map<string, string> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -333,6 +338,11 @@ class Pipeline {
         );
         if (!cnextBaseNames.has(headerBaseName)) {
           headerSet.set(header.path, header);
+          // Issue #497: Store the include directive for this header
+          const directive = resolved.headerIncludeDirectives.get(header.path);
+          if (directive) {
+            this.headerIncludeDirectives.set(header.path, directive);
+          }
         }
       }
 
@@ -988,10 +998,13 @@ class Pipeline {
     // Issue #478: Collect all known enum names from all files for cross-file type handling
     const allKnownEnums = this.collectAllKnownEnums();
 
+    // Issue #497: Build mapping from external types to their C header includes
+    const externalTypeHeaders = this.buildExternalTypeHeaders();
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
-      { exportedOnly: true, userIncludes },
+      { exportedOnly: true, userIncludes, externalTypeHeaders },
       typeInput,
       passByValueParams,
       allKnownEnums,
@@ -1052,6 +1065,38 @@ class Pipeline {
       }
     }
     return allEnums;
+  }
+
+  /**
+   * Issue #497: Build a map from external type names to their C header include directives.
+   * This enables header generation to include the original C headers instead of
+   * generating conflicting forward declarations for types like anonymous struct typedefs.
+   */
+  private buildExternalTypeHeaders(): Map<string, string> {
+    const typeHeaders = new Map<string, string>();
+
+    // Check each header we have an include directive for
+    for (const [headerPath, directive] of this.headerIncludeDirectives) {
+      // Get all symbols defined in this header
+      const symbols = this.symbolTable.getSymbolsByFile(headerPath);
+
+      // Map each struct/type/enum name to the include directive
+      for (const sym of symbols) {
+        if (
+          sym.kind === ESymbolKind.Struct ||
+          sym.kind === ESymbolKind.Type ||
+          sym.kind === ESymbolKind.Enum ||
+          sym.kind === ESymbolKind.Class
+        ) {
+          // Only add if we don't already have a mapping (first include wins)
+          if (!typeHeaders.has(sym.name)) {
+            typeHeaders.set(sym.name, directive);
+          }
+        }
+      }
+    }
+
+    return typeHeaders;
   }
 
   /**
@@ -1178,6 +1223,11 @@ class Pipeline {
       for (const header of resolved.headers) {
         try {
           await this.collectHeaderSymbols(header);
+          // Issue #497: Store the include directive for this header
+          const directive = resolved.headerIncludeDirectives.get(header.path);
+          if (directive) {
+            this.headerIncludeDirectives.set(header.path, directive);
+          }
         } catch (err) {
           this.warnings.push(`Failed to process header ${header.path}: ${err}`);
         }
@@ -1444,12 +1494,15 @@ class Pipeline {
             }
           }
 
+          // Issue #497: Build mapping from external types to their C header includes
+          const externalTypeHeaders = this.buildExternalTypeHeaders();
+
           // Issue #478: Pass all known enums for cross-file type handling
           // This includes enums from this file and all transitively included .cnx files
           headerCode = this.headerGenerator.generate(
             exportedSymbols,
             headerName,
-            { exportedOnly: true, userIncludes },
+            { exportedOnly: true, userIncludes, externalTypeHeaders },
             typeInput,
             passByValueCopy,
             symbolInfo.knownEnums,

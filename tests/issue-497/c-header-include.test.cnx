@@ -1,0 +1,12 @@
+#include "data-types.h"
+
+scope Manager {
+    public Data getData() {
+        Data d <- { value: 0 };
+        return d;
+    }
+}
+
+void main() {
+    Data d <- Manager.getData();
+}

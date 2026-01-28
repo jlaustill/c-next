@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "array-struct-member-cpp.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct SensorReading SensorReading;
 
 /* External variables */
 extern SensorReading sensors[4];
