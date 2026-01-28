@@ -1,0 +1,12 @@
+// test-transpile-only
+// Tests: Issue #502 - Assignment after declaration (not just initialization)
+
+#include "SeaDash.hpp"
+
+void test() {
+    // Declaration without init
+    SeaDash.Parse.ParseResult result;
+
+    // Assignment after declaration - must use :: not _
+    result <- { data: [1, 2, 3], count: 3, success: true };
+}

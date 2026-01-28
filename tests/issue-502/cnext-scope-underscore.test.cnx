@@ -1,0 +1,25 @@
+// test-transpile-only
+// Tests: Issue #502 - C-Next scope types must use _ NOT ::
+// This ensures the fix doesn't incorrectly convert C-Next scope types
+
+// C-Next scope - Motor_State should stay as Motor_State (underscore)
+scope Motor {
+    public struct State {
+        i32 position;
+        bool running;
+    }
+}
+
+// Another scope to test nesting
+scope Sensor {
+    public struct Reading {
+        Motor.State motorState;  // Should be Motor_State, NOT Motor::State
+        i32 value;
+    }
+}
+
+// Test: C-Next nested types must use _ not ::
+Sensor.Reading reading <- {
+    motorState: { position: 0, running: false },
+    value: 42
+};

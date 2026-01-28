@@ -1,0 +1,24 @@
+// test-transpile-only
+// Tests: Issue #502 - Mixed C-Next scopes and C++ namespaces in struct initialization
+
+#include "SeaDash.hpp"
+
+// C-Next scope with a struct type
+scope Motor {
+    public struct State {
+        i32 position;
+        bool running;
+    }
+}
+
+// Wrapper combining C-Next scope type and C++ namespace type
+struct MixedWrapper {
+    Motor.State motor;
+    SeaDash.Parse.ParseResult parsed;
+}
+
+// Initialize with both types - Motor.State should use _, SeaDash.Parse.ParseResult should use ::
+MixedWrapper mw <- {
+    motor: { position: 0, running: false },
+    parsed: { data: [0], count: 0, success: false }
+};

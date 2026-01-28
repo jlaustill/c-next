@@ -1,0 +1,13 @@
+// test-transpile-only
+// Tests: Issue #502 - Function-local struct initialization with C++ namespaced types
+
+#include "SeaDash.hpp"
+
+void test() {
+    // Local variable with struct initializer
+    SeaDash.Parse.ParseResult result <- { data: [0], count: 0, success: false };
+
+    // Assignment after declaration
+    SeaDash.Parse.ParseResult result2;
+    result2 <- { data: [1, 2, 3], count: 3, success: true };
+}

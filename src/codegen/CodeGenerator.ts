@@ -5318,6 +5318,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Get field type info for nested initializers
+    // Issue #502: Check both local struct fields and SymbolTable (for C++ header structs)
     const structFieldTypes = this.symbols!.structFields.get(typeName);
 
     const fields = fieldList.fieldInitializer().map((field) => {
@@ -5326,7 +5327,19 @@ export default class CodeGenerator implements IOrchestrator {
       // Set expected type for nested initializers
       const savedExpectedType = this.context.expectedType;
       if (structFieldTypes && structFieldTypes.has(fieldName)) {
-        this.context.expectedType = structFieldTypes.get(fieldName)!;
+        // Issue #502: Convert underscore format to correct output format
+        // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
+        // but code generation needs :: for C++ types (e.g., SeaDash::Parse::ParseResult)
+        let fieldType = structFieldTypes.get(fieldName)!;
+        if (fieldType.includes("_")) {
+          // Check if this looks like a qualified type (contains _) and convert
+          const parts = fieldType.split("_");
+          if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
+            // It's a C++ namespaced type - convert _ to ::
+            fieldType = parts.join("::");
+          }
+        }
+        this.context.expectedType = fieldType;
       }
 
       const value = this._generateExpression(field.expression());

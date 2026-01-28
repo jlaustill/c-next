@@ -1001,11 +1001,16 @@ class Pipeline {
     // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = this.buildExternalTypeHeaders();
 
+    // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
+    const typeInputWithSymbolTable = typeInput
+      ? { ...typeInput, symbolTable: this.symbolTable }
+      : undefined;
+
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
       { exportedOnly: true, userIncludes, externalTypeHeaders },
-      typeInput,
+      typeInputWithSymbolTable,
       passByValueParams,
       allKnownEnums,
     );
@@ -1497,13 +1502,18 @@ class Pipeline {
           // Issue #497: Build mapping from external types to their C header includes
           const externalTypeHeaders = this.buildExternalTypeHeaders();
 
+          // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
+          const typeInputWithSymbolTable = typeInput
+            ? { ...typeInput, symbolTable: this.symbolTable }
+            : undefined;
+
           // Issue #478: Pass all known enums for cross-file type handling
           // This includes enums from this file and all transitively included .cnx files
           headerCode = this.headerGenerator.generate(
             exportedSymbols,
             headerName,
             { exportedOnly: true, userIncludes, externalTypeHeaders },
-            typeInput,
+            typeInputWithSymbolTable,
             passByValueCopy,
             symbolInfo.knownEnums,
           );

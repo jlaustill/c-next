@@ -1,0 +1,15 @@
+// test-transpile-only
+// Tests: Issue #502 - Deeply nested struct initialization with C++ namespaced types
+
+#include "SeaDash.hpp"
+
+struct Inner {
+    SeaDash.Parse.ParseResult result;
+}
+
+struct Outer {
+    Inner inner;
+}
+
+// Deep nesting: Outer -> Inner -> ParseResult
+Outer o <- { inner: { result: { data: [0], count: 0, success: false } } };

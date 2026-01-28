@@ -1,0 +1,15 @@
+// test-transpile-only
+// Tests: Issue #502 - Function parameters and return types with C++ namespaced types
+
+#include "SeaDash.hpp"
+
+// Function accepting namespaced type by value (auto pass-by-reference)
+void processResult(SeaDash.Parse.ParseResult result) {
+    i32 cnt <- result.count;
+}
+
+// Function returning namespaced type
+SeaDash.Parse.ParseResult createResult() {
+    SeaDash.Parse.ParseResult r <- { data: [0], count: 0, success: true };
+    return r;
+}
