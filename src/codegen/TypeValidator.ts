@@ -449,8 +449,11 @@ class TypeValidator {
       return currentScope ? identifier : null; // Only transform if inside scope
     }
 
-    // Check global functions
-    if (this.knownFunctions.has(identifier)) {
+    // Check global functions (but not ones already prefixed with current scope)
+    if (
+      this.knownFunctions.has(identifier) &&
+      !identifier.startsWith(currentScope + "_")
+    ) {
       return currentScope ? identifier : null;
     }
 

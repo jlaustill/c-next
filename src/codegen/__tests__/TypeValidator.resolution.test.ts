@@ -120,6 +120,16 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       // 'stop' should check if Motor_stop exists as a function
       expect(result).toBe("Motor_stop");
     });
+
+    it("returns null for unknown identifiers", () => {
+      const validator = createValidator();
+      const result = validator.resolveBareIdentifier(
+        "unknownName",
+        false,
+        () => false,
+      );
+      expect(result).toBeNull();
+    });
   });
 
   describe("outside a scope", () => {
