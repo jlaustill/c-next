@@ -13,12 +13,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct SeaDash_Parse_ParseResult SeaDash_Parse_ParseResult;
-
-/* External variables */
-extern SeaDash_Parse_ParseResult parsed;
-
 #ifdef __cplusplus
 }
 #endif
