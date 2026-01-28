@@ -92,7 +92,9 @@ function runAnalyzers(
     initAnalyzer.registerExternalStructFields(options.externalStructFields);
   }
 
-  const initErrors = initAnalyzer.analyze(tree);
+  // Issue #503: Pass symbol table so C++ classes with default constructors
+  // are recognized as initialized
+  const initErrors = initAnalyzer.analyze(tree, options?.symbolTable);
 
   for (const initError of initErrors) {
     errors.push({
