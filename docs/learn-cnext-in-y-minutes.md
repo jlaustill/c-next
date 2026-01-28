@@ -1537,6 +1537,50 @@ Counter.increment();  // count: 2 -> 3
 Counter.getCount();   // returns 3
 ```
 
+### Variable Resolution in Scopes
+
+Inside a scope, bare identifiers resolve using priority: local → scope → global.
+
+```cnx
+u32 globalCount <- 1000;
+
+scope Counter {
+    u32 count <- 0;
+
+    void increment() {
+        count +<- 1;           // Resolves to this.count (scope level)
+    }
+
+    void reset() {
+        u32 count <- 0;        // Local variable shadows scope
+        this.count <- count;   // Explicit this. accesses scope
+    }
+
+    void readGlobal() {
+        u32 g <- globalCount;  // Resolves to global
+    }
+}
+```
+
+Cross-scope access works without `global.` prefix:
+
+```cnx
+scope LED {
+    public void on() { }
+}
+
+scope Motor {
+    void start() {
+        LED.on();  // Works! No global. needed
+    }
+}
+```
+
+Explicit prefixes for precision:
+
+- `this.x` - Force scope-level access
+- `global.x` - Force global-level access
+
 ## Instance Pattern (C-Style OOP)
 
 ```cnx
