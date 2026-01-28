@@ -1,4 +1,6 @@
+// test-execution
 // Test: Scope shadowing between global and scope (no const) (ADR-016)
+// Scope member should shadow global with same name
 
 u8 globalFlags <- 0;  // Global with different name
 u8 flags <- 0;        // Global 'flags'
@@ -6,12 +8,31 @@ u8 flags <- 0;        // Global 'flags'
 scope Control {
     u8 flags <- 0b11111111;  // Scope member - shadows global!
 
-    void setFlag() {
+    public void setFlag() {
         // Should reference Control.flags, not global flags
         flags <- 0b10101010;
     }
+
+    public u8 getFlags() {
+        return flags;
+    }
 }
 
-void main() {
+u32 main() {
+    // Initially 0xFF
+    u8 val <- Control.getFlags();
+    if (val != 0b11111111) return 1;
+
+    // setFlag changes scope member, not global
     Control.setFlag();
+    val <- Control.getFlags();
+    if (val != 0b10101010) return 2;
+
+    // Global 'flags' should be unchanged
+    if (flags != 0) return 3;
+
+    // Other global should be unchanged
+    if (globalFlags != 0) return 4;
+
+    return 0;
 }

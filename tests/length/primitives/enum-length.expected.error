@@ -1,1 +1,0 @@
-1:0 Code generation failed: Error: Use 'global.State' to access global enum 'State' inside scope 'TestScope'

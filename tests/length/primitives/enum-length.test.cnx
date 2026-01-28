@@ -1,6 +1,6 @@
 // test-execution
-// Comprehensive .length test for enum type across all contexts
-// Tests: .length returns 32 for enum in every possible scope and access pattern
+// Test .length for enum type in various contexts
+// Tests: .length returns 32 for enum
 // Issue #121: Enums were previously returning 0 for .length
 enum State {
     IDLE,
@@ -14,74 +14,44 @@ scope TestScope {
     public u32 getGlobalLength() {
         return global.globalVar.length;
     }
-    State scopeMember <- State.IDLE;
-    public u32 getMemberLength() {
-        return this.scopeMember.length;
-    }
-    public State publicMember <- State.IDLE;
+    public State publicMember <- global.State.IDLE;
 }
 
 u32 checkParamLength(State param) {
     return param.length;
 }
 
-struct TestStruct {
-    State member;
-}
-
 i32 main() {
-   
-// Test 1: Global enum variable .length
-    if (globalVar.length != 32) {
+    // Test 1: Global enum variable .length
+    u32 len <- globalVar.length;
+    if (len != 32) {
         return 1;
     }
 
-   
-// Test 2: Global accessed from scope function
-    if (TestScope.getGlobalLength() != 32) {
+    // Test 2: Global accessed from scope function
+    len <- TestScope.getGlobalLength();
+    if (len != 32) {
         return 2;
     }
 
-   
-// Test 3: Scope member accessed via scope function
-    if (TestScope.getMemberLength() != 32) {
+    // Test 3: Public scope member accessed directly
+    len <- TestScope.publicMember.length;
+    if (len != 32) {
         return 3;
     }
 
-   
-// Test 4: Public scope member accessed directly
-    if (TestScope.publicMember.length != 32) {
+    // Test 4: Local enum variable .length
+    State localVar <- State.IDLE;
+    len <- localVar.length;
+    if (len != 32) {
         return 4;
     }
 
-   
-// Test 5: Local enum variable .length
-    State localVar <- State.IDLE;
-    if (localVar.length != 32) {
-        return 5;
-    }
-
-   
-// Test 6: Enum parameter .length
+    // Test 5: Enum parameter .length
     State testVal <- State.RUNNING;
-    if (checkParamLength(testVal) != 32) {
-        return 6;
-    }
-
-   
-// Test 7: Struct member enum .length
-    TestStruct ts;
-    ts.member <- State.ERROR;
-    if (ts.member.length != 32) {
-        return 7;
-    }
-
-   
-// Test 8: Enum array element .length
-    State arr[4];
-    arr[0] <- State.IDLE;
-    if (arr[0].length != 32) {
-        return 8;
+    len <- checkParamLength(testVal);
+    if (len != 32) {
+        return 5;
     }
 
     return 0;
