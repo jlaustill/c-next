@@ -17,89 +17,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-
-/**
- * Issue #235: Try to parse a string as a numeric constant.
- * Returns the numeric value if it's a simple integer literal, undefined otherwise.
- * Handles decimal, hex (0x), and binary (0b) formats.
- */
-const tryParseNumericLiteral = (code: string): number | undefined => {
-  const trimmed = code.trim();
-
-  // Decimal integer (including negative)
-  if (/^-?\d+$/.exec(trimmed)) {
-    return Number.parseInt(trimmed, 10);
-  }
-
-  // Hex literal
-  if (/^0[xX][0-9a-fA-F]+$/.exec(trimmed)) {
-    return Number.parseInt(trimmed, 16);
-  }
-
-  // Binary literal
-  if (/^0[bB][01]+$/.exec(trimmed)) {
-    return Number.parseInt(trimmed.substring(2), 2);
-  }
-
-  return undefined;
-};
-
-/**
- * Issue #235: Evaluate a constant arithmetic expression.
- * Returns the result if all operands are numeric and evaluation succeeds,
- * undefined otherwise (falls back to non-folded code).
- */
-const tryFoldConstants = (
-  operandCodes: string[],
-  operators: string[],
-): number | undefined => {
-  // Parse all operands as numbers
-  const values = operandCodes.map(tryParseNumericLiteral);
-
-  // If any operand is not a constant, we can't fold
-  if (values.some((v) => v === undefined)) {
-    return undefined;
-  }
-
-  // Evaluate left-to-right with the operators
-  let result = values[0] as number;
-  for (let i = 0; i < operators.length; i++) {
-    const op = operators[i];
-    const rightValue = values[i + 1] as number;
-
-    switch (op) {
-      case "*":
-        result = result * rightValue;
-        break;
-      case "/":
-        // Avoid division by zero - let C compiler handle it
-        if (rightValue === 0) {
-          return undefined;
-        }
-        // Integer division (truncate toward zero like C)
-        result = Math.trunc(result / rightValue);
-        break;
-      case "%":
-        // Avoid modulo by zero
-        if (rightValue === 0) {
-          return undefined;
-        }
-        result = result % rightValue;
-        break;
-      case "+":
-        result = result + rightValue;
-        break;
-      case "-":
-        result = result - rightValue;
-        break;
-      default:
-        // Unknown operator - don't fold
-        return undefined;
-    }
-  }
-
-  return result;
-};
+import BinaryExprUtils from "./BinaryExprUtils";
 
 /**
  * Generate C code for an OR expression (lowest precedence binary op).
@@ -166,21 +84,14 @@ const generateEqualityExpr = (
   if (exprs.length >= 2) {
     const leftEnumType = orchestrator.getExpressionEnumType(exprs[0]);
     const rightEnumType = orchestrator.getExpressionEnumType(exprs[1]);
-
-    // Check if comparing different enum types
-    if (leftEnumType && rightEnumType && leftEnumType !== rightEnumType) {
-      throw new Error(
-        `Error: Cannot compare ${leftEnumType} enum to ${rightEnumType} enum`,
-      );
-    }
-
-    // Check if comparing enum to integer
-    if (leftEnumType && orchestrator.isIntegerExpression(exprs[1])) {
-      throw new Error(`Error: Cannot compare ${leftEnumType} enum to integer`);
-    }
-    if (rightEnumType && orchestrator.isIntegerExpression(exprs[0])) {
-      throw new Error(`Error: Cannot compare integer to ${rightEnumType} enum`);
-    }
+    const leftIsInteger = orchestrator.isIntegerExpression(exprs[0]);
+    const rightIsInteger = orchestrator.isIntegerExpression(exprs[1]);
+    BinaryExprUtils.validateEnumComparison(
+      leftEnumType,
+      rightEnumType,
+      leftIsInteger,
+      rightIsInteger,
+    );
 
     // ADR-045: Check for string comparison
     const leftIsString = orchestrator.isStringExpression(exprs[0]);
@@ -206,10 +117,13 @@ const generateEqualityExpr = (
 
       const fullText = node.getText();
       const isNotEqual = fullText.includes("!=");
-      const cmpOp = isNotEqual ? "!= 0" : "== 0";
 
       return {
-        code: `strcmp(${leftResult.code}, ${rightResult.code}) ${cmpOp}`,
+        code: BinaryExprUtils.generateStrcmpCode(
+          leftResult.code,
+          rightResult.code,
+          isNotEqual,
+        ),
         effects,
       };
     }
@@ -231,7 +145,7 @@ const generateEqualityExpr = (
     // ADR-001: C-Next uses = for equality, transpile to ==
     // C-Next uses != for inequality, keep as !=
     const rawOp = operators[i - 1] || "=";
-    const op = rawOp === "=" ? "==" : rawOp;
+    const op = BinaryExprUtils.mapEqualityOperator(rawOp);
 
     const exprResult = generateRelationalExpr(
       exprs[i],
@@ -431,7 +345,10 @@ const generateAdditiveExpr = (
   operandResults.forEach((r) => effects.push(...r.effects));
 
   // Issue #235: Try constant folding for compile-time constant expressions
-  const foldedResult = tryFoldConstants(operandCodes, operators);
+  const foldedResult = BinaryExprUtils.tryFoldConstants(
+    operandCodes,
+    operators,
+  );
   if (foldedResult !== undefined) {
     return { code: String(foldedResult), effects };
   }
@@ -474,7 +391,10 @@ const generateMultiplicativeExpr = (
   );
 
   // Issue #235: Try constant folding for compile-time constant expressions
-  const foldedResult = tryFoldConstants(operandCodes, operators);
+  const foldedResult = BinaryExprUtils.tryFoldConstants(
+    operandCodes,
+    operators,
+  );
   if (foldedResult !== undefined) {
     return { code: String(foldedResult), effects: [] };
   }
