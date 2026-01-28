@@ -6570,6 +6570,9 @@ export default class CodeGenerator implements IOrchestrator {
         ),
       analyzeMemberChainForBitAccess: (targetCtx) =>
         this.analyzeMemberChainForBitAccess(targetCtx),
+      generateFloatBitWrite: (name, typeInfo, bitIndex, width, value) =>
+        this.generateFloatBitWrite(name, typeInfo, bitIndex, width, value),
+      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
       markNeedsString: () => {
         this.needsString = true;
       },
@@ -6694,6 +6697,69 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return { isBitAccess: false };
+  }
+
+  /**
+   * Generate float bit write using shadow variable + memcpy.
+   * Returns null if typeInfo is not a float type.
+   *
+   * For single bit: width is null, uses bitIndex only
+   * For bit range: width is provided, uses bitIndex as start position
+   */
+  private generateFloatBitWrite(
+    name: string,
+    typeInfo: TTypeInfo,
+    bitIndex: string,
+    width: string | null,
+    value: string,
+  ): string | null {
+    const isFloatType =
+      typeInfo.baseType === "f32" || typeInfo.baseType === "f64";
+    if (!isFloatType) {
+      return null;
+    }
+
+    this.needsString = true; // For memcpy
+    this.needsFloatStaticAssert = true; // For size verification
+
+    const isF64 = typeInfo.baseType === "f64";
+    const shadowType = isF64 ? "uint64_t" : "uint32_t";
+    const shadowName = `__bits_${name}`;
+    const maskSuffix = isF64 ? "ULL" : "U";
+
+    // Check if shadow variable needs declaration
+    const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
+    if (needsDeclaration) {
+      this.context.floatBitShadows.add(shadowName);
+    }
+
+    // Check if shadow already has current value (skip redundant memcpy read)
+    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+
+    const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
+    const readMemcpy = shadowIsCurrent
+      ? ""
+      : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+
+    // Mark shadow as current after this write
+    this.context.floatShadowCurrent.add(shadowName);
+
+    if (width === null) {
+      // Single bit assignment: floatVar[3] <- true
+      return (
+        `${decl}${readMemcpy}` +
+        `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
+        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+      );
+    } else {
+      // Bit range assignment: floatVar[0, 8] <- b0
+      const mask = this.generateBitMask(width, isF64);
+      return (
+        `${decl}${readMemcpy}` +
+        `${shadowName} = (${shadowName} & ~(${mask} << ${bitIndex})) | (((${shadowType})${value} & ${mask}) << ${bitIndex}); ` +
+        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+      );
+    }
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators
@@ -6994,9 +7060,9 @@ export default class CodeGenerator implements IOrchestrator {
       AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
       AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
       AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-      // Batch 3: Integer Bit kinds
-      // Note: INTEGER_BIT and INTEGER_BIT_RANGE disabled - handlers don't support
-      // float bit indexing (shadow variable + memcpy). Let fallback code handle.
+      // Batch 3: Integer Bit kinds (includes float bit indexing via generateFloatBitWrite)
+      AssignmentKind.INTEGER_BIT,
+      AssignmentKind.INTEGER_BIT_RANGE,
       AssignmentKind.STRUCT_MEMBER_BIT,
       AssignmentKind.ARRAY_ELEMENT_BIT,
       // Batch 4: Register Bit kinds

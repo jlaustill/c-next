@@ -113,6 +113,26 @@ interface IHandlerDeps {
     baseType?: string;
   };
 
+  // === Float bit indexing ===
+
+  /**
+   * Generate float bit write using shadow variable + memcpy.
+   * Returns the full statement for writing bits to a float variable.
+   * Returns null if typeInfo is not a float type.
+   */
+  generateFloatBitWrite(
+    name: string,
+    typeInfo: TTypeInfo,
+    bitIndex: string,
+    width: string | null,
+    value: string,
+  ): string | null;
+
+  /**
+   * Convert boolean expression to integer: true -> "1", false -> "0", else "(expr ? 1 : 0)"
+   */
+  foldBooleanToInt(expr: string): string;
+
   // === Side effects ===
 
   /**

@@ -26,18 +26,36 @@ function validateNotCompound(ctx: IAssignmentContext): void {
 
 /**
  * Handle single bit on integer variable: flags[3] <- true
+ * Also handles float bit indexing: f32Var[3] <- true
  */
 function handleIntegerBit(ctx: IAssignmentContext, deps: IHandlerDeps): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
   const bitIndex = deps.generateExpression(ctx.subscripts[0]);
+  const typeInfo = deps.typeRegistry.get(name);
 
+  // Check for float bit indexing
+  if (typeInfo) {
+    const floatResult = deps.generateFloatBitWrite(
+      name,
+      typeInfo,
+      bitIndex,
+      null, // single bit, no width
+      ctx.generatedValue,
+    );
+    if (floatResult !== null) {
+      return floatResult;
+    }
+  }
+
+  // Integer bit write
   return BitUtils.singleBitWrite(name, bitIndex, ctx.generatedValue);
 }
 
 /**
  * Handle bit range on integer variable: flags[0, 3] <- 5
+ * Also handles float bit range: f32Var[0, 8] <- 0xFF
  */
 function handleIntegerBitRange(
   ctx: IAssignmentContext,
@@ -48,7 +66,23 @@ function handleIntegerBitRange(
   const name = ctx.identifiers[0];
   const start = deps.generateExpression(ctx.subscripts[0]);
   const width = deps.generateExpression(ctx.subscripts[1]);
+  const typeInfo = deps.typeRegistry.get(name);
 
+  // Check for float bit indexing
+  if (typeInfo) {
+    const floatResult = deps.generateFloatBitWrite(
+      name,
+      typeInfo,
+      start,
+      width, // pass width for range writes
+      ctx.generatedValue,
+    );
+    if (floatResult !== null) {
+      return floatResult;
+    }
+  }
+
+  // Integer bit range write
   return BitUtils.multiBitWrite(name, start, width, ctx.generatedValue);
 }
 
