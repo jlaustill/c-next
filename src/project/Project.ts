@@ -6,8 +6,8 @@
  * For new code, consider using Pipeline directly.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, basename, join } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { dirname, basename, join, relative } from "node:path";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import Pipeline from "../pipeline/Pipeline";
 import InputExpansion from "../lib/InputExpansion";
@@ -94,20 +94,45 @@ class Project {
       let outputPath: string | undefined;
       if (fileResult.success && (fileResult as any).code) {
         const outExt = perFilePipeline["config"]?.cppRequired ? ".cpp" : ".c";
-        const outDir = perFilePipeline["config"]?.outDir || dirname(file);
+        const baseOutDir = perFilePipeline["config"]?.outDir || dirname(file);
         const baseName = basename(file).replace(/\.(cnx|cnext)$/i, outExt);
-        outputPath = join(outDir, baseName);
+
+        // Preserve subdirectory structure from srcDirs
+        const relativeSubpath = this.getRelativeSubpath(file);
+        const outputDir =
+          relativeSubpath !== null && relativeSubpath !== ""
+            ? join(baseOutDir, relativeSubpath)
+            : baseOutDir;
+
+        // Create output directory if it doesn't exist
+        if (!existsSync(outputDir)) {
+          mkdirSync(outputDir, { recursive: true });
+        }
+
+        outputPath = join(outputDir, baseName);
         writeFileSync(outputPath, (fileResult as any).code, "utf-8");
 
         // Write header file if headerCode was generated
         if ((fileResult as any).headerCode) {
-          const headerOutDir =
-            perFilePipeline["config"]?.headerOutDir || outDir;
+          const baseHeaderOutDir =
+            perFilePipeline["config"]?.headerOutDir || baseOutDir;
           const headerBaseName = basename(file).replace(
             /\.(cnx|cnext)$/i,
             ".h",
           );
-          const headerPath = join(headerOutDir, headerBaseName);
+
+          // Preserve subdirectory structure for headers too
+          const headerOutputDir =
+            relativeSubpath !== null && relativeSubpath !== ""
+              ? join(baseHeaderOutDir, relativeSubpath)
+              : baseHeaderOutDir;
+
+          // Create header output directory if it doesn't exist
+          if (!existsSync(headerOutputDir)) {
+            mkdirSync(headerOutputDir, { recursive: true });
+          }
+
+          const headerPath = join(headerOutputDir, headerBaseName);
           writeFileSync(headerPath, (fileResult as any).headerCode, "utf-8");
         }
       }
@@ -154,6 +179,22 @@ class Project {
    */
   getSymbolTable(): SymbolTable {
     return this.pipeline.getSymbolTable();
+  }
+
+  /**
+   * Get the relative subpath from the source directory to the file.
+   * Returns "" if file is directly in srcDir, "subdir" if nested, or null if not in any srcDir.
+   */
+  private getRelativeSubpath(file: string): string | null {
+    const fileDir = dirname(file);
+    for (const srcDir of this.config.srcDirs) {
+      const relativePath = relative(srcDir, fileDir);
+      // If relativePath doesn't start with "..", the file is within this srcDir
+      if (!relativePath.startsWith("..") && !relativePath.startsWith("/")) {
+        return relativePath; // "" if directly in srcDir, "subdir" if nested
+      }
+    }
+    return null;
   }
 }
 
