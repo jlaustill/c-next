@@ -44,4 +44,85 @@ describe("BinaryExprUtils", () => {
       expect(BinaryExprUtils.tryParseNumericLiteral("0b123")).toBeUndefined();
     });
   });
+
+  describe("tryFoldConstants", () => {
+    it("folds addition", () => {
+      expect(BinaryExprUtils.tryFoldConstants(["2", "3"], ["+"])).toBe(5);
+      expect(
+        BinaryExprUtils.tryFoldConstants(["1", "2", "3"], ["+", "+"]),
+      ).toBe(6);
+    });
+
+    it("folds subtraction", () => {
+      expect(BinaryExprUtils.tryFoldConstants(["10", "3"], ["-"])).toBe(7);
+      expect(
+        BinaryExprUtils.tryFoldConstants(["10", "3", "2"], ["-", "-"]),
+      ).toBe(5);
+    });
+
+    it("folds multiplication", () => {
+      expect(BinaryExprUtils.tryFoldConstants(["4", "5"], ["*"])).toBe(20);
+      expect(
+        BinaryExprUtils.tryFoldConstants(["2", "3", "4"], ["*", "*"]),
+      ).toBe(24);
+    });
+
+    it("folds division with truncation toward zero", () => {
+      expect(BinaryExprUtils.tryFoldConstants(["10", "3"], ["/"])).toBe(3);
+      expect(BinaryExprUtils.tryFoldConstants(["7", "2"], ["/"])).toBe(3);
+      expect(BinaryExprUtils.tryFoldConstants(["-7", "2"], ["/"])).toBe(-3);
+    });
+
+    it("folds modulo", () => {
+      expect(BinaryExprUtils.tryFoldConstants(["10", "3"], ["%"])).toBe(1);
+      expect(BinaryExprUtils.tryFoldConstants(["17", "5"], ["%"])).toBe(2);
+    });
+
+    it("folds mixed operations left-to-right", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(["2", "3", "4"], ["+", "*"]),
+      ).toBe(20);
+      expect(
+        BinaryExprUtils.tryFoldConstants(["10", "2", "3"], ["-", "+"]),
+      ).toBe(11);
+    });
+
+    it("folds hex and binary literals", () => {
+      expect(BinaryExprUtils.tryFoldConstants(["0xFF", "1"], ["+"])).toBe(256);
+      expect(BinaryExprUtils.tryFoldConstants(["0b1010", "2"], ["*"])).toBe(20);
+    });
+
+    it("returns undefined for division by zero", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(["10", "0"], ["/"]),
+      ).toBeUndefined();
+    });
+
+    it("returns undefined for modulo by zero", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(["10", "0"], ["%"]),
+      ).toBeUndefined();
+    });
+
+    it("returns undefined when any operand is not numeric", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(["x", "3"], ["+"]),
+      ).toBeUndefined();
+      expect(
+        BinaryExprUtils.tryFoldConstants(["2", "y"], ["+"]),
+      ).toBeUndefined();
+      expect(
+        BinaryExprUtils.tryFoldConstants(["a + b", "3"], ["+"]),
+      ).toBeUndefined();
+    });
+
+    it("returns undefined for unknown operators", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(["2", "3"], ["&"]),
+      ).toBeUndefined();
+      expect(
+        BinaryExprUtils.tryFoldConstants(["2", "3"], ["<<"]),
+      ).toBeUndefined();
+    });
+  });
 });

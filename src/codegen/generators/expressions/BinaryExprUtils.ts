@@ -11,8 +11,59 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 const tryParseNumericLiteral = (code: string): number | undefined =>
   LiteralUtils.parseIntegerLiteral(code);
 
+/**
+ * Issue #235: Evaluate a constant arithmetic expression.
+ * Returns the result if all operands are numeric and evaluation succeeds,
+ * undefined otherwise (falls back to non-folded code).
+ */
+const tryFoldConstants = (
+  operandCodes: string[],
+  operators: string[],
+): number | undefined => {
+  const values = operandCodes.map(tryParseNumericLiteral);
+
+  if (values.some((v) => v === undefined)) {
+    return undefined;
+  }
+
+  let result = values[0] as number;
+  for (let i = 0; i < operators.length; i++) {
+    const op = operators[i];
+    const rightValue = values[i + 1] as number;
+
+    switch (op) {
+      case "*":
+        result = result * rightValue;
+        break;
+      case "/":
+        if (rightValue === 0) {
+          return undefined;
+        }
+        result = Math.trunc(result / rightValue);
+        break;
+      case "%":
+        if (rightValue === 0) {
+          return undefined;
+        }
+        result = result % rightValue;
+        break;
+      case "+":
+        result = result + rightValue;
+        break;
+      case "-":
+        result = result - rightValue;
+        break;
+      default:
+        return undefined;
+    }
+  }
+
+  return result;
+};
+
 class BinaryExprUtils {
   static tryParseNumericLiteral = tryParseNumericLiteral;
+  static tryFoldConstants = tryFoldConstants;
 }
 
 export default BinaryExprUtils;
