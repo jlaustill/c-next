@@ -2,7 +2,7 @@
   "name": "c-next",
   "displayName": "C-Next",
   "description": "Syntax highlighting and live C preview for C-Next, a safer C for embedded systems",
-  "version": "0.1.46",
+  "version": "0.1.47",
   "publisher": "jlaustill",
   "license": "MIT",
   "repository": {

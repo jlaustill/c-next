@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.47] - 2026-01-28
+
+### Fixed
+
+- Add `extern` to top-level const for C++ external linkage (Issue #525, PR #526)
+- Test framework validates `.expected.h` for transpile-only tests (PR #528)
+
+### Changed
+
+- Consolidated TYPE_MAP into single source of truth (Issue #511, PR #527)
+
+## [0.1.46] - 2026-01-28
+
+### Fixed
+
+- Filter C++ namespace types from extern "C" headers (Issue #522, PR #524)
+- Recognize C++ class variables as initialized (Issue #503, PR #506)
+- Convert C++ namespaced types from `_` to `::` in struct init (Issue #502)
+- Generate field assignments for C++ classes with constructors (Issue #517, PR #521)
+- C++ namespace function calls work without `global.` prefix (Issue #516, PR #519)
+- Emit private const arrays instead of inlining (Issue #500, PR #501)
+- Include C headers instead of forward declarations for external types (Issue #497, PR #498)
+- Preserve subdirectory structure in directory mode output (Issue #494, PR #495)
+- Include filename in E0381 error output (Issue #492, PR #493)
+- Write header files when headerCode is present in directory mode (PR #491)
+- Respect `headerOut` config for single-file inputs + add `--config` option (PR #489)
+
+### Added
+
+- Float bit indexing support using shadow variable + memcpy (PR #490)
+- `basePath` option to strip path prefix from header output (PR #489)
+- ADR-057: Implicit scope resolution - bare function calls resolve to scope functions (PR #504)
+- ADR-109: CodeGenerator decomposition with extracted utilities (PR #447)
+- npm scripts for duplication detection (PR #518)
+- CallExprUtils and BinaryExprUtils extraction (PR #499, PR #496)
+
 ## [0.1.45] - 2026-01-26
 
 ### Fixed
@@ -499,7 +535,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.45...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.47...HEAD
+[0.1.47]: https://github.com/jlaustill/c-next/compare/v0.1.46...v0.1.47
+[0.1.46]: https://github.com/jlaustill/c-next/compare/v0.1.45...v0.1.46
 [0.1.45]: https://github.com/jlaustill/c-next/compare/v0.1.44...v0.1.45
 [0.1.44]: https://github.com/jlaustill/c-next/compare/v0.1.43...v0.1.44
 [0.1.43]: https://github.com/jlaustill/c-next/compare/v0.1.42...v0.1.43
