@@ -7769,6 +7769,15 @@ export default class CodeGenerator implements IOrchestrator {
           result = memberName;
           currentIdentifier = memberName; // Track for .length lookups
           isGlobalAccess = true; // Mark that we're in a global access chain
+
+          // ADR-057: Check if global variable would be shadowed by a local
+          // In C, local variables shadow globals and there's no way to access the global
+          if (this.context.localVariables.has(memberName)) {
+            throw new Error(
+              `Error: Cannot use 'global.${memberName}' when local variable '${memberName}' shadows it. ` +
+                `Rename the local variable to avoid shadowing.`,
+            );
+          }
           // Issue #304: Check if this is a C++ scope symbol (namespace, class, enum)
           // These require :: syntax for member access. Variable symbols (including
           // object instances like Arduino's extern HardwareSerial Serial;) should
