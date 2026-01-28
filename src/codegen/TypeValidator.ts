@@ -407,6 +407,70 @@ class TypeValidator {
     }
   }
 
+  /**
+   * Resolve a bare identifier to its qualified name using priority:
+   * 1. Local variables/parameters (return null - no transformation needed)
+   * 2. Scope members (return Scope_identifier)
+   * 3. Global variables/functions (return identifier)
+   *
+   * Returns null if no transformation needed, the resolved name otherwise.
+   * Used by implicit scope resolution feature.
+   */
+  resolveBareIdentifier(
+    identifier: string,
+    isLocalVariable: boolean,
+    isKnownStruct: (name: string) => boolean,
+  ): string | null {
+    // Priority 1: Local variables and parameters - no transformation
+    if (isLocalVariable) {
+      return null;
+    }
+
+    const currentScope = this.getCurrentScopeFn();
+
+    // Priority 2: If inside a scope, check scope members
+    if (currentScope) {
+      const scopeMembers = this.getScopeMembersFn().get(currentScope);
+      if (scopeMembers && scopeMembers.has(identifier)) {
+        return `${currentScope}_${identifier}`;
+      }
+
+      // Check if it's a scope function (exists as Scope_identifier in knownFunctions)
+      const scopedFuncName = `${currentScope}_${identifier}`;
+      if (this.knownFunctions.has(scopedFuncName)) {
+        return scopedFuncName;
+      }
+    }
+
+    // Priority 3: Global resolution
+    // Check global variables in type registry (no underscore = global)
+    const typeInfo = this.typeRegistry.get(identifier);
+    if (typeInfo && !identifier.includes("_")) {
+      return currentScope ? identifier : null; // Only transform if inside scope
+    }
+
+    // Check global functions
+    if (this.knownFunctions.has(identifier)) {
+      return currentScope ? identifier : null;
+    }
+
+    // Check known types (enums, structs, registers) - these are valid as identifiers
+    if (this.symbols!.knownEnums.has(identifier)) {
+      return currentScope ? identifier : null;
+    }
+
+    if (isKnownStruct(identifier)) {
+      return currentScope ? identifier : null;
+    }
+
+    if (this.symbols!.knownRegisters.has(identifier)) {
+      return currentScope ? identifier : null;
+    }
+
+    // Not found anywhere - let it pass through (may be enum member or error later)
+    return null;
+  }
+
   // ========================================================================
   // Critical Section Validation (ADR-050)
   // ========================================================================
