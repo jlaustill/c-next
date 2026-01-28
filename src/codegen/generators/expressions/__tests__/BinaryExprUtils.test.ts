@@ -125,4 +125,21 @@ describe("BinaryExprUtils", () => {
       ).toBeUndefined();
     });
   });
+
+  describe("mapEqualityOperator", () => {
+    it("maps = to == (ADR-001)", () => {
+      expect(BinaryExprUtils.mapEqualityOperator("=")).toBe("==");
+    });
+
+    it("preserves != unchanged", () => {
+      expect(BinaryExprUtils.mapEqualityOperator("!=")).toBe("!=");
+    });
+
+    it("preserves other operators unchanged", () => {
+      expect(BinaryExprUtils.mapEqualityOperator("<")).toBe("<");
+      expect(BinaryExprUtils.mapEqualityOperator(">")).toBe(">");
+      expect(BinaryExprUtils.mapEqualityOperator("<=")).toBe("<=");
+      expect(BinaryExprUtils.mapEqualityOperator(">=")).toBe(">=");
+    });
+  });
 });

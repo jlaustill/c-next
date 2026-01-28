@@ -12,6 +12,13 @@ const tryParseNumericLiteral = (code: string): number | undefined =>
   LiteralUtils.parseIntegerLiteral(code);
 
 /**
+ * ADR-001: Map C-Next equality operator to C.
+ * C-Next uses = for equality (mathematical notation), C uses ==.
+ */
+const mapEqualityOperator = (cnextOp: string): string =>
+  cnextOp === "=" ? "==" : cnextOp;
+
+/**
  * Issue #235: Evaluate a constant arithmetic expression.
  * Returns the result if all operands are numeric and evaluation succeeds,
  * undefined otherwise (falls back to non-folded code).
@@ -64,6 +71,7 @@ const tryFoldConstants = (
 class BinaryExprUtils {
   static tryParseNumericLiteral = tryParseNumericLiteral;
   static tryFoldConstants = tryFoldConstants;
+  static mapEqualityOperator = mapEqualityOperator;
 }
 
 export default BinaryExprUtils;
