@@ -1,0 +1,39 @@
+// test-execution
+// Tests: Issue #500 - Private const arrays should be emitted as static const
+
+scope ArrayTest {
+    const u16 VALUES[4] <- [10, 20, 30, 40];
+    u8 currentIndex <- 0;
+
+    public u16 getValue() {
+        return this.VALUES[this.currentIndex];
+    }
+
+    public u16 getAt(u8 index) {
+        return this.VALUES[index];
+    }
+
+    public void setIndex(u8 index) {
+        this.currentIndex <- index;
+    }
+}
+
+u32 main() {
+    u16 val0 <- ArrayTest.getAt(0);
+    if (val0 != 10) return 1;
+
+    u16 val1 <- ArrayTest.getAt(1);
+    if (val1 != 20) return 2;
+
+    u16 val2 <- ArrayTest.getAt(2);
+    if (val2 != 30) return 3;
+
+    u16 val3 <- ArrayTest.getAt(3);
+    if (val3 != 40) return 4;
+
+    ArrayTest.setIndex(2);
+    u16 stateful <- ArrayTest.getValue();
+    if (stateful != 30) return 5;
+
+    return 0;
+}

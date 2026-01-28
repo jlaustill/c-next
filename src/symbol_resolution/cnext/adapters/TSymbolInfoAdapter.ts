@@ -349,7 +349,14 @@ class TSymbolInfoAdapter {
     const isScoped = variable.name.includes("_");
     const isPrivate = !variable.isExported;
 
-    if (isScoped && isPrivate && variable.isConst && variable.initialValue) {
+    // Issue #500: Only inline SCALAR consts, not arrays - arrays must be emitted
+    if (
+      isScoped &&
+      isPrivate &&
+      variable.isConst &&
+      variable.initialValue &&
+      !variable.isArray
+    ) {
       scopePrivateConstValues.set(variable.name, variable.initialValue);
     }
   }
