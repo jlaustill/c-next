@@ -25,6 +25,7 @@ scope Calculator {
 
 u32 main() {
     Calculator.compute();
-    if (Calculator.getResult() != 20) return 1;
+    u32 result <- Calculator.getResult();
+    if (result != 20) return 1;
     return 0;
 }

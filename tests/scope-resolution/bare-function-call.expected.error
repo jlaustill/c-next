@@ -1,3 +1,0 @@
-16:8 error[E0422]: 'reset' is a scope function - use 'this.reset()' to call it
-17:8 error[E0422]: 'addTen' is a scope function - use 'this.addTen()' to call it
-18:8 error[E0422]: 'addTen' is a scope function - use 'this.addTen()' to call it
