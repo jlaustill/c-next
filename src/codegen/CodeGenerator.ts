@@ -8063,12 +8063,8 @@ export default class CodeGenerator implements IOrchestrator {
                   `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
                 );
               }
-              // ADR-016: Inside a scope, accessing another scope requires global. prefix
-              if (this.context.currentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
+              // ADR-057: Cross-scope access allowed without global. prefix
+              // Since result is a known scope name, allow bare Scope.member access
             }
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
@@ -8293,12 +8289,8 @@ export default class CodeGenerator implements IOrchestrator {
                   `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
                 );
               }
-              // ADR-016: Inside a scope, accessing another scope requires global. prefix
-              if (this.context.currentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access scope '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
+              // ADR-057: Cross-scope access allowed without global. prefix
+              // Since result is a known scope name, allow bare Scope.member access
             }
             // ADR-016: Validate visibility before allowing cross-scope access
             this.validateCrossScopeVisibility(result, memberName);
@@ -9130,6 +9122,7 @@ export default class CodeGenerator implements IOrchestrator {
           const isStructParam = paramInfo?.isStruct ?? false;
 
           // ADR-016: Inside a scope, accessing another scope requires global. prefix
+          // ADR-057: Cross-scope access allowed without global. prefix (just check self-reference)
           if (isCrossScope && this.context.currentScope) {
             // Self-referential access should use 'this.'
             if (firstPart === this.context.currentScope) {
@@ -9137,10 +9130,7 @@ export default class CodeGenerator implements IOrchestrator {
                 `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
               );
             }
-            // Cross-scope access should use 'global.'
-            throw new Error(
-              `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
-            );
+            // ADR-057: Allow cross-scope access without global. prefix
           }
 
           // Bug #8: Track struct types to detect bit access through chains
@@ -9291,6 +9281,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
     if (this.isKnownScope(firstPart)) {
       // ADR-016: Inside a scope, accessing another scope requires global. prefix
+      // ADR-057: Cross-scope access allowed without global. prefix (just check self-reference)
       if (this.context.currentScope) {
         // Self-referential access should use 'this.'
         if (firstPart === this.context.currentScope) {
@@ -9298,10 +9289,7 @@ export default class CodeGenerator implements IOrchestrator {
             `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
           );
         }
-        // Cross-scope access should use 'global.'
-        throw new Error(
-          `Error: Use 'global.${parts.join(".")}' to access scope '${firstPart}' from inside scope '${this.context.currentScope}'`,
-        );
+        // ADR-057: Allow cross-scope access without global. prefix
       }
       // ADR-016: Validate visibility before allowing cross-scope access
       const memberName = parts[1];
