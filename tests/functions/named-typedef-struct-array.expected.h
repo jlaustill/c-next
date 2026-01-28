@@ -8,14 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "named-typedef-struct-array.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct CAN_message_t CAN_message_t;
-typedef struct MultiArray_t MultiArray_t;
 
 /* Function prototypes */
 uint32_t Handler_processBuffer(const uint8_t data[8], uint8_t len);

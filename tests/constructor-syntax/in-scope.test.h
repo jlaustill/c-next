@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "constructor-stubs.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct Adafruit_MAX31856 Adafruit_MAX31856;
 
 /* External variables */
 extern const uint8_t Sensor_pin;

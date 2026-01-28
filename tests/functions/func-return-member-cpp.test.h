@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "func-return-member-cpp.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct DeviceConfig DeviceConfig;
 
 /* External variables */
 extern DeviceConfig globalConfig;

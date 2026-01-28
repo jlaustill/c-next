@@ -56,33 +56,7 @@ class HeaderGenerator {
     lines.push(" */");
     lines.push("");
 
-    // System includes
-    if (options.includeSystemHeaders !== false) {
-      lines.push("#include <stdint.h>");
-      lines.push("#include <stdbool.h>");
-    }
-
-    // Issue #424: Include user headers if any extern declarations use macros in array dimensions
-    // Issue #478: Always include .cnx-derived headers (.h transformed from .cnx includes)
-    // These define types used in function signatures that need to be available in the header
-    if (options.userIncludes && options.userIncludes.length > 0) {
-      for (const include of options.userIncludes) {
-        lines.push(include);
-      }
-    }
-
-    // Add blank line after includes
-    if (options.includeSystemHeaders !== false || options.userIncludes) {
-      lines.push("");
-    }
-
-    // C++ compatibility
-    lines.push("#ifdef __cplusplus");
-    lines.push('extern "C" {');
-    lines.push("#endif");
-    lines.push("");
-
-    // Filter symbols
+    // Filter symbols first (needed for include analysis)
     const exportedSymbols = options.exportedOnly
       ? symbols.filter((s) => s.isExported)
       : symbols;
@@ -119,11 +93,64 @@ class HeaderGenerator {
       allKnownEnums,
     );
 
-    // Emit forward declarations for external types
+    // Issue #497: Separate external types into those with known headers vs those without
+    const externalTypeHeaders = options.externalTypeHeaders;
+    const typesWithHeaders = new Set<string>();
+    const headersToInclude = new Set<string>();
+
+    if (externalTypeHeaders) {
+      for (const typeName of externalTypes) {
+        const directive = externalTypeHeaders.get(typeName);
+        if (directive) {
+          typesWithHeaders.add(typeName);
+          headersToInclude.add(directive);
+        }
+      }
+    }
+
+    // System includes
+    if (options.includeSystemHeaders !== false) {
+      lines.push("#include <stdint.h>");
+      lines.push("#include <stdbool.h>");
+    }
+
+    // Issue #424: Include user headers if any extern declarations use macros in array dimensions
+    // Issue #478: Always include .cnx-derived headers (.h transformed from .cnx includes)
+    // These define types used in function signatures that need to be available in the header
+    if (options.userIncludes && options.userIncludes.length > 0) {
+      for (const include of options.userIncludes) {
+        lines.push(include);
+      }
+    }
+
+    // Issue #497: Emit C header includes for external types (before #ifdef __cplusplus)
+    if (headersToInclude.size > 0) {
+      for (const directive of headersToInclude) {
+        lines.push(directive);
+      }
+    }
+
+    // Add blank line after all includes
+    const hasIncludes =
+      options.includeSystemHeaders !== false ||
+      (options.userIncludes && options.userIncludes.length > 0) ||
+      headersToInclude.size > 0;
+    if (hasIncludes) {
+      lines.push("");
+    }
+
+    // C++ compatibility
+    lines.push("#ifdef __cplusplus");
+    lines.push('extern "C" {');
+    lines.push("#endif");
+    lines.push("");
+
+    // Emit forward declarations for external types that don't have known headers
     // Issue #296: Use typedef forward declaration for compatibility with named structs
     // Issue #461: Skip C++ types (templates with <>, namespaces with :: or .) - they can't be forward-declared in C
     const cCompatibleExternalTypes = [...externalTypes].filter(
       (t) =>
+        !typesWithHeaders.has(t) &&
         !t.includes("<") &&
         !t.includes(">") &&
         !t.includes("::") &&

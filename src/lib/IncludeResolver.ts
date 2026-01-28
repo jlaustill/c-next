@@ -18,6 +18,14 @@ interface IResolvedIncludes {
 
   /** Warnings for unresolved local includes */
   warnings: string[];
+
+  /**
+   * Issue #497: Map from resolved header path to original include directive.
+   * Used to include C headers (instead of forward declarations) when their
+   * types are used in public interfaces.
+   * Example: "/abs/path/data-types.h" => '#include "data-types.h"'
+   */
+  headerIncludeDirectives: Map<string, string>;
 }
 
 /**
@@ -57,6 +65,7 @@ class IncludeResolver {
     const headers: IDiscoveredFile[] = [];
     const cnextIncludes: IDiscoveredFile[] = [];
     const warnings: string[] = [];
+    const headerIncludeDirectives = new Map<string, string>();
 
     const includes = IncludeDiscovery.extractIncludesWithInfo(content);
 
@@ -81,6 +90,11 @@ class IncludeResolver {
             file.type === EFileType.CppHeader
           ) {
             headers.push(file);
+            // Issue #497: Track the original include directive for this header
+            const directive = includeInfo.isLocal
+              ? `#include "${includeInfo.path}"`
+              : `#include <${includeInfo.path}>`;
+            headerIncludeDirectives.set(absolutePath, directive);
           } else if (file.type === EFileType.CNext) {
             cnextIncludes.push(file);
           }
@@ -96,7 +110,7 @@ class IncludeResolver {
       // System includes (<...>) that aren't found are silently ignored
     }
 
-    return { headers, cnextIncludes, warnings };
+    return { headers, cnextIncludes, warnings, headerIncludeDirectives };
   }
 
   /**
