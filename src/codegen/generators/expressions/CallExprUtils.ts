@@ -26,6 +26,26 @@ class CallExprUtils {
   static isSmallPrimitiveType(typeName: string): boolean {
     return SMALL_PRIMITIVE_TYPES.has(typeName);
   }
+
+  /**
+   * ADR-051: Generate the helper function name for safe_div/safe_mod.
+   */
+  static generateSafeDivModHelperName(
+    funcName: "safe_div" | "safe_mod",
+    cnxType: string,
+  ): string {
+    const op = funcName === "safe_div" ? "div" : "mod";
+    return `cnx_safe_${op}_${cnxType}`;
+  }
+
+  /**
+   * Issue #304: Generate a C++ static_cast expression.
+   * Used for enum class to integer conversions.
+   */
+  static generateStaticCast(code: string, targetType: string): string {
+    const cType = CallExprUtils.mapTypeToCType(targetType);
+    return `static_cast<${cType}>(${code})`;
+  }
 }
 
 export default CallExprUtils;
