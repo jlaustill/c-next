@@ -197,7 +197,9 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors[0].message).toContain("called before definition");
     });
 
-    it("should suggest this.name() for unqualified scope calls", () => {
+    // ADR-057: With implicit scope resolution, bare function calls to scope functions
+    // are now allowed (resolve automatically). This test verifies no error is thrown.
+    it("should allow unqualified scope function calls (ADR-057 implicit resolution)", () => {
       const code = `
         scope Test {
           void helper() {
@@ -213,11 +215,8 @@ describe("FunctionCallAnalyzer", () => {
       const analyzer = new FunctionCallAnalyzer();
       const errors = analyzer.analyze(tree);
 
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe("E0422");
-      expect(errors[0].functionName).toBe("helper");
-      expect(errors[0].message).toContain("scope");
-      expect(errors[0].message).toContain("this.helper()");
+      // ADR-057: Implicit resolution allows bare scope function calls
+      expect(errors).toHaveLength(0);
     });
 
     it("should not suggest this. for truly undefined in scope", () => {
