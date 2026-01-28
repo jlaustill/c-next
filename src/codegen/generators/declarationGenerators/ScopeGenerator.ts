@@ -89,9 +89,14 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       // Issue #282: Check if this is a const variable - const values should be inlined
       const isConst = varDecl.constModifier() !== null;
 
+      // Issue #500: Check if array before skipping - arrays must be emitted
+      const arrayDims = varDecl.arrayDimension();
+      const isArray = arrayDims.length > 0;
+
       // Issue #282: Private const variables should be inlined, not emitted at file scope
+      // Issue #500: EXCEPT arrays - arrays must be emitted as static const
       // The inlining happens in CodeGenerator when resolving this.CONST_NAME
-      if (isPrivate && isConst) {
+      if (isPrivate && isConst && !isArray) {
         continue;
       }
 
@@ -102,9 +107,7 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       const constPrefix = isConst ? "const " : "";
       const prefix = isPrivate ? "static " : "";
 
-      // ADR-036: arrayDimension() now returns an array
-      const arrayDims = varDecl.arrayDimension();
-      const isArray = arrayDims.length > 0;
+      // ADR-036: arrayDimension() now returns an array (arrayDims defined above)
       let decl = `${prefix}${constPrefix}${type} ${fullName}`;
       if (isArray) {
         decl += orchestrator.generateArrayDimensions(arrayDims);

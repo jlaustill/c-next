@@ -455,6 +455,53 @@ describe("TSymbolInfoAdapter", () => {
 
       expect(info.scopePrivateConstValues.has("Motor_counter")).toBe(false);
     });
+
+    it("should NOT track private const array values for inlining", () => {
+      // Issue #500: Array consts must be emitted, not inlined
+      const variable: IVariableSymbol = {
+        kind: ESymbolKind.Variable,
+        name: "Motor_LOOKUP_TABLE",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: "u16",
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: [4],
+        initialValue: "[10,20,30,40]",
+      };
+
+      const info = TSymbolInfoAdapter.convert([variable]);
+
+      // Arrays should NOT be in scopePrivateConstValues
+      expect(info.scopePrivateConstValues.has("Motor_LOOKUP_TABLE")).toBe(
+        false,
+      );
+    });
+
+    it("should NOT track private const multi-dimensional array values", () => {
+      // Issue #500: Multi-dimensional arrays must also be emitted
+      const variable: IVariableSymbol = {
+        kind: ESymbolKind.Variable,
+        name: "Motor_MATRIX",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: "u8",
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: [2, 3],
+        initialValue: "[[1,2,3],[4,5,6]]",
+      };
+
+      const info = TSymbolInfoAdapter.convert([variable]);
+
+      expect(info.scopePrivateConstValues.has("Motor_MATRIX")).toBe(false);
+    });
   });
 
   describe("hasPublicSymbols", () => {

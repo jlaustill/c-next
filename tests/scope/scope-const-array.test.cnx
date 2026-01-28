@@ -1,0 +1,136 @@
+// test-execution
+// Tests: Issue #500 - Private const arrays should be emitted as static const
+// Edge cases: public arrays, different types, multi-dimensional, computed indices
+
+scope ArrayTest {
+    // Private const arrays - should emit as static const, NOT inline
+    const u16 VALUES[4] <- [10, 20, 30, 40];
+    const u8 BYTES[3] <- [1, 2, 3];
+    const i32 OFFSETS[2] <- [-10, 10];
+
+    // Public const array - should emit as const (not static)
+    public const u8 PUBLIC_LOOKUP[4] <- [100, 101, 102, 103];
+
+    // Multi-dimensional private const array
+    const u8 MATRIX[2][3] <- [[1, 2, 3], [4, 5, 6]];
+
+    // Non-const state for testing dynamic index access
+    u8 currentIndex <- 0;
+
+    // Access private const array with literal index
+    public u16 getValueAt(u8 index) {
+        return this.VALUES[index];
+    }
+
+    // Access private const array with state variable
+    public u16 getCurrentValue() {
+        return this.VALUES[this.currentIndex];
+    }
+
+    // Access different typed const arrays
+    public u8 getByteAt(u8 index) {
+        return this.BYTES[index];
+    }
+
+    public i32 getOffsetAt(u8 index) {
+        return this.OFFSETS[index];
+    }
+
+    // Access public const array
+    public u8 getPublicAt(u8 index) {
+        return this.PUBLIC_LOOKUP[index];
+    }
+
+    // Access multi-dimensional array
+    public u8 getMatrixAt(u8 row, u8 col) {
+        return this.MATRIX[row][col];
+    }
+
+    // Setter for state
+    public void setIndex(u8 index) {
+        this.currentIndex <- index;
+    }
+
+    // Multiple array accesses in one expression
+    public u16 sumFirstTwo() {
+        return this.VALUES[0] + this.VALUES[1];
+    }
+}
+
+u32 main() {
+    // Test 1-4: Basic private const array access
+    u16 val0 <- ArrayTest.getValueAt(0);
+    if (val0 != 10) return 1;
+
+    u16 val1 <- ArrayTest.getValueAt(1);
+    if (val1 != 20) return 2;
+
+    u16 val2 <- ArrayTest.getValueAt(2);
+    if (val2 != 30) return 3;
+
+    u16 val3 <- ArrayTest.getValueAt(3);
+    if (val3 != 40) return 4;
+
+    // Test 5: State-based index access
+    ArrayTest.setIndex(2);
+    u16 stateful <- ArrayTest.getCurrentValue();
+    if (stateful != 30) return 5;
+
+    // Test 6-8: Different type array (u8)
+    u8 byte0 <- ArrayTest.getByteAt(0);
+    if (byte0 != 1) return 6;
+
+    u8 byte1 <- ArrayTest.getByteAt(1);
+    if (byte1 != 2) return 7;
+
+    u8 byte2 <- ArrayTest.getByteAt(2);
+    if (byte2 != 3) return 8;
+
+    // Test 9-10: Signed type array (i32)
+    i32 off0 <- ArrayTest.getOffsetAt(0);
+    if (off0 != -10) return 9;
+
+    i32 off1 <- ArrayTest.getOffsetAt(1);
+    if (off1 != 10) return 10;
+
+    // Test 11-14: Public const array access
+    u8 pub0 <- ArrayTest.getPublicAt(0);
+    if (pub0 != 100) return 11;
+
+    u8 pub1 <- ArrayTest.getPublicAt(1);
+    if (pub1 != 101) return 12;
+
+    u8 pub2 <- ArrayTest.getPublicAt(2);
+    if (pub2 != 102) return 13;
+
+    u8 pub3 <- ArrayTest.getPublicAt(3);
+    if (pub3 != 103) return 14;
+
+    // Test 15: Direct public const array access (external)
+    if (ArrayTest.PUBLIC_LOOKUP[0] != 100) return 15;
+
+    // Test 16-21: Multi-dimensional array
+    u8 m00 <- ArrayTest.getMatrixAt(0, 0);
+    if (m00 != 1) return 16;
+
+    u8 m01 <- ArrayTest.getMatrixAt(0, 1);
+    if (m01 != 2) return 17;
+
+    u8 m02 <- ArrayTest.getMatrixAt(0, 2);
+    if (m02 != 3) return 18;
+
+    u8 m10 <- ArrayTest.getMatrixAt(1, 0);
+    if (m10 != 4) return 19;
+
+    u8 m11 <- ArrayTest.getMatrixAt(1, 1);
+    if (m11 != 5) return 20;
+
+    u8 m12 <- ArrayTest.getMatrixAt(1, 2);
+    if (m12 != 6) return 21;
+
+    // Test 22: Multiple array accesses in expression
+    u16 sum <- ArrayTest.sumFirstTwo();
+    if (sum != 30) return 22;
+
+    return 0;
+}
