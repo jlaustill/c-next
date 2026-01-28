@@ -19,6 +19,18 @@ const mapEqualityOperator = (cnextOp: string): string =>
   cnextOp === "=" ? "==" : cnextOp;
 
 /**
+ * ADR-045: Generate strcmp comparison code for string equality.
+ */
+const generateStrcmpCode = (
+  left: string,
+  right: string,
+  isNotEqual: boolean,
+): string => {
+  const cmpOp = isNotEqual ? "!= 0" : "== 0";
+  return `strcmp(${left}, ${right}) ${cmpOp}`;
+};
+
+/**
  * Issue #235: Evaluate a constant arithmetic expression.
  * Returns the result if all operands are numeric and evaluation succeeds,
  * undefined otherwise (falls back to non-folded code).
@@ -72,6 +84,7 @@ class BinaryExprUtils {
   static tryParseNumericLiteral = tryParseNumericLiteral;
   static tryFoldConstants = tryFoldConstants;
   static mapEqualityOperator = mapEqualityOperator;
+  static generateStrcmpCode = generateStrcmpCode;
 }
 
 export default BinaryExprUtils;

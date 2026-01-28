@@ -142,4 +142,24 @@ describe("BinaryExprUtils", () => {
       expect(BinaryExprUtils.mapEqualityOperator(">=")).toBe(">=");
     });
   });
+
+  describe("generateStrcmpCode", () => {
+    it("generates strcmp equality check", () => {
+      expect(BinaryExprUtils.generateStrcmpCode("str1", "str2", false)).toBe(
+        "strcmp(str1, str2) == 0",
+      );
+    });
+
+    it("generates strcmp inequality check", () => {
+      expect(BinaryExprUtils.generateStrcmpCode("str1", "str2", true)).toBe(
+        "strcmp(str1, str2) != 0",
+      );
+    });
+
+    it("handles complex expressions as operands", () => {
+      expect(
+        BinaryExprUtils.generateStrcmpCode("getName()", '"test"', false),
+      ).toBe('strcmp(getName(), "test") == 0');
+    });
+  });
 });
