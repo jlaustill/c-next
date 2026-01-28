@@ -13,16 +13,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct MockLib_Parse_ParseResult MockLib_Parse_ParseResult;
-typedef struct MockLib_Config MockLib_Config;
-typedef struct Deep_Level1_Level2_DeepType Deep_Level1_Level2_DeepType;
-
-/* External variables */
-extern MockLib_Parse_ParseResult parsed;
-extern MockLib_Config config;
-extern Deep_Level1_Level2_DeepType deep;
-
 /* Function prototypes */
 void Test_init(void);
 
