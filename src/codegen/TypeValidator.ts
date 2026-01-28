@@ -474,6 +474,20 @@ class TypeValidator {
     return null;
   }
 
+  /**
+   * Resolve an identifier that appears before a '.' (member access).
+   * Prioritizes scope names for Scope.member() calls.
+   *
+   * Returns the resolved name or null if not a scope.
+   */
+  resolveForMemberAccess(identifier: string): string | null {
+    // For member access, check if it's a scope name first
+    if (this.symbols!.knownScopes.has(identifier)) {
+      return identifier;
+    }
+    return null;
+  }
+
   // ========================================================================
   // Critical Section Validation (ADR-050)
   // ========================================================================

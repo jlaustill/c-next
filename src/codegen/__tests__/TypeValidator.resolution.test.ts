@@ -157,4 +157,33 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("resolveForMemberAccess", () => {
+    it("prefers scope name over global variable for member access", () => {
+      // Setup: global variable 'LED' exists AND scope 'LED' exists
+      typeRegistry.set("LED", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+      });
+      const validator = createValidator();
+
+      const result = validator.resolveForMemberAccess("LED");
+      expect(result).toBe("LED"); // Returns scope name, not transformed
+      expect(result).not.toBe("Motor_LED"); // Should NOT be scope-prefixed
+    });
+
+    it("returns scope name when it exists", () => {
+      const validator = createValidator();
+      const result = validator.resolveForMemberAccess("LED");
+      expect(result).toBe("LED");
+    });
+
+    it("returns null for unknown identifiers", () => {
+      const validator = createValidator();
+      const result = validator.resolveForMemberAccess("Unknown");
+      expect(result).toBeNull();
+    });
+  });
 });
