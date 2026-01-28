@@ -6177,6 +6177,8 @@ export default class CodeGenerator implements IOrchestrator {
           line,
           (expr) => this._tryEvaluateConstant(expr),
         ),
+      analyzeMemberChainForBitAccess: (targetCtx) =>
+        this.analyzeMemberChainForBitAccess(targetCtx),
       markNeedsString: () => {
         this.needsString = true;
       },
@@ -6184,6 +6186,123 @@ export default class CodeGenerator implements IOrchestrator {
       generateAtomicRMW: (target, cOp, value, typeInfo) =>
         this.generateAtomicRMW(target, cOp, value, typeInfo),
     };
+  }
+
+  /**
+   * Analyze a member chain target to detect bit access at the end.
+   * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
+   *
+   * Uses the same tree-walking approach as generateMemberAccess to correctly
+   * track which expressions belong to which identifiers in the chain.
+   */
+  private analyzeMemberChainForBitAccess(
+    targetCtx: Parser.AssignmentTargetContext,
+  ): {
+    isBitAccess: boolean;
+    baseTarget?: string;
+    bitIndex?: string;
+    baseType?: string;
+  } {
+    const memberAccessCtx = targetCtx.memberAccess();
+    if (!memberAccessCtx) {
+      return { isBitAccess: false };
+    }
+
+    const parts = memberAccessCtx.IDENTIFIER().map((id) => id.getText());
+    const expressions = memberAccessCtx.expression();
+    const children = memberAccessCtx.children;
+
+    if (!children || parts.length < 1 || expressions.length === 0) {
+      return { isBitAccess: false };
+    }
+
+    // Walk the parse tree to determine if the LAST expression is bit access
+    // This mirrors the logic in generateMemberAccess
+    const firstPart = parts[0];
+    const firstTypeInfo = this.context.typeRegistry.get(firstPart);
+
+    let currentStructType: string | undefined;
+    if (firstTypeInfo) {
+      currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
+        ? firstTypeInfo.baseType
+        : undefined;
+    }
+
+    let result = firstPart;
+    let idIndex = 1;
+    let exprIndex = 0;
+    let lastMemberType: string | undefined;
+    let lastMemberIsArray = false;
+
+    let i = 1;
+    while (i < children.length) {
+      const childText = children[i].getText();
+
+      if (childText === ".") {
+        // Dot - next child is identifier
+        i++;
+        if (i < children.length && idIndex < parts.length) {
+          const memberName = parts[idIndex];
+          result += `.${memberName}`;
+          idIndex++;
+
+          // Update type tracking
+          if (currentStructType) {
+            const fields = this.symbols!.structFields.get(currentStructType);
+            lastMemberType = fields?.get(memberName);
+            const arrayFields =
+              this.symbols!.structFieldArrays.get(currentStructType);
+            lastMemberIsArray = arrayFields?.has(memberName) ?? false;
+
+            if (lastMemberType && this.isKnownStruct(lastMemberType)) {
+              currentStructType = lastMemberType;
+            } else {
+              currentStructType = undefined;
+            }
+          }
+        }
+      } else if (childText === "[") {
+        // Opening bracket - check if this is bit access
+        const isPrimitiveInt =
+          lastMemberType &&
+          !lastMemberIsArray &&
+          TypeCheckUtils.isInteger(lastMemberType);
+        const isLastExpr = exprIndex === expressions.length - 1;
+
+        if (isPrimitiveInt && isLastExpr && exprIndex < expressions.length) {
+          // This is bit access on a struct member
+          const bitIndex = this._generateExpression(expressions[exprIndex]);
+          return {
+            isBitAccess: true,
+            baseTarget: result,
+            bitIndex,
+            baseType: lastMemberType,
+          };
+        }
+
+        // Normal array subscript
+        if (exprIndex < expressions.length) {
+          const expr = this._generateExpression(expressions[exprIndex]);
+          result += `[${expr}]`;
+          exprIndex++;
+
+          // After subscripting an array, update type tracking
+          if (firstTypeInfo?.isArray && exprIndex === 1) {
+            const elementType = firstTypeInfo.baseType;
+            if (this.isKnownStruct(elementType)) {
+              currentStructType = elementType;
+            }
+          }
+        }
+        // Skip to closing bracket
+        while (i < children.length && children[i].getText() !== "]") {
+          i++;
+        }
+      }
+      i++;
+    }
+
+    return { isBitAccess: false };
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators
@@ -6452,8 +6571,7 @@ export default class CodeGenerator implements IOrchestrator {
       AssignmentKind.THIS_MEMBER,
       AssignmentKind.THIS_ARRAY,
       AssignmentKind.GLOBAL_REGISTER_BIT,
-      // MEMBER_CHAIN deferred - requires bit indexing detection in handler
-      // Pattern: grid[2][3].flags[0] generates read expression instead of RMW
+      AssignmentKind.MEMBER_CHAIN,
       // Batch 6: Array kinds
       AssignmentKind.ARRAY_ELEMENT,
       AssignmentKind.MULTI_DIM_ARRAY_ELEMENT,

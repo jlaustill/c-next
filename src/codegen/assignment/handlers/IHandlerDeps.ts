@@ -101,6 +101,18 @@ interface IHandlerDeps {
     line: number,
   ): void;
 
+  /**
+   * Analyze a member chain target for bit access.
+   * Returns { isBitAccess: false } if not bit access.
+   * Returns { isBitAccess: true, baseTarget, bitIndex, baseType } if bit access detected.
+   */
+  analyzeMemberChainForBitAccess(targetCtx: Parser.AssignmentTargetContext): {
+    isBitAccess: boolean;
+    baseTarget?: string;
+    bitIndex?: string;
+    baseType?: string;
+  };
+
   // === Side effects ===
 
   /**

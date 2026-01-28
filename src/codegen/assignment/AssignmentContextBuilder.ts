@@ -67,6 +67,9 @@ function buildAssignmentContext(
   const subscripts: Parser.ExpressionContext[] = [];
 
   // First identifier (may be from IDENTIFIER or memberAccess/arrayAccess)
+  // Track if we found array subscripts in legacyMemberAccess
+  let memberAccessHasSubscripts = false;
+
   if (targetCtx.IDENTIFIER()) {
     identifiers.push(targetCtx.IDENTIFIER()!.getText());
   } else if (legacyMemberAccess) {
@@ -76,9 +79,12 @@ function buildAssignmentContext(
       identifiers.push(id.getText());
     }
     // Extract subscripts from memberAccess
-    for (const expr of legacyMemberAccess.expression()) {
+    const memberExprs = legacyMemberAccess.expression();
+    for (const expr of memberExprs) {
       subscripts.push(expr);
     }
+    // Mark that we have array access if there were subscripts
+    memberAccessHasSubscripts = memberExprs.length > 0;
   } else if (legacyArrayAccess) {
     // Legacy arrayAccess
     identifiers.push(legacyArrayAccess.IDENTIFIER().getText());
@@ -89,7 +95,7 @@ function buildAssignmentContext(
 
   // Process postfix operations (unified grammar)
   let hasMemberAccess = legacyMemberAccess !== null;
-  let hasArrayAccess = legacyArrayAccess !== null;
+  let hasArrayAccess = legacyArrayAccess !== null || memberAccessHasSubscripts;
 
   for (const op of postfixOps) {
     if (op.IDENTIFIER()) {

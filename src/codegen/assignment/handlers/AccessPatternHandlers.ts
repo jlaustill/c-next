@@ -142,11 +142,33 @@ function handleThisArray(ctx: IAssignmentContext, deps: IHandlerDeps): string {
  *
  * This is the catch-all for complex member access patterns
  * that don't match more specific handlers.
+ *
+ * Special case: Detects bit access at the end of chain
+ * (e.g., grid[2][3].flags[0] <- true) and generates RMW.
  */
 function handleMemberChain(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
+  // Check if this is bit access on a struct member
+  const bitAnalysis = deps.analyzeMemberChainForBitAccess(ctx.targetCtx);
+
+  if (bitAnalysis.isBitAccess) {
+    // Validate compound operators not supported for bit access
+    if (ctx.isCompound) {
+      throw new Error(
+        `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
+      );
+    }
+
+    const { baseTarget, bitIndex, baseType } = bitAnalysis;
+    const one = BitUtils.oneForType(baseType!);
+    const intValue = BitUtils.boolToInt(ctx.generatedValue.trim());
+
+    return `${baseTarget} = (${baseTarget} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
+  }
+
+  // Normal member chain assignment
   const target = deps.generateAssignmentTarget(ctx.targetCtx);
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }

@@ -89,6 +89,12 @@ class AssignmentClassifier {
       return stringKind;
     }
 
+    // === Priority 7: Member chain fallback ===
+    // Any member access with subscripts that didn't match a more specific pattern
+    if (ctx.hasMemberAccess && ctx.hasArrayAccess) {
+      return AssignmentKind.MEMBER_CHAIN;
+    }
+
     // === Fallback: Simple assignment ===
     return AssignmentKind.SIMPLE;
   }
@@ -200,6 +206,11 @@ class AssignmentClassifier {
       return null;
     }
 
+    // Skip this.* and global.* patterns - they're handled by classifyPrefixPattern
+    if (ctx.hasThis || ctx.hasGlobal) {
+      return null;
+    }
+
     const ids = ctx.identifiers;
     const firstId = ids[0];
     const typeInfo = this.deps.typeRegistry.get(firstId);
@@ -254,8 +265,9 @@ class AssignmentClassifier {
       }
     }
 
-    // Member chain with subscripts (struct.field[i] etc.)
-    return AssignmentKind.MEMBER_CHAIN;
+    // Let other classifiers (e.g., classifyString) try to handle this pattern
+    // MEMBER_CHAIN will be the fallback in classify() method
+    return null;
   }
 
   /**
@@ -295,7 +307,7 @@ class AssignmentClassifier {
       const scopedRegName = `${this.deps.currentScope}_${firstId}`;
 
       if (ctx.hasArrayAccess) {
-        // this.reg[bit] (scoped register bit access)
+        // this.reg[bit] or this.REG.MEMBER[bit] (scoped register bit access)
         if (this.deps.symbols.knownRegisters.has(scopedRegName)) {
           // Check for bit range vs single bit
           const hasBitRange = ctx.postfixOps.some((op) => op.COMMA() !== null);
@@ -506,7 +518,7 @@ class AssignmentClassifier {
           TypeCheckUtils.isString(fieldType) &&
           fieldArrays?.has(fieldName) &&
           dimensions &&
-          dimensions.length > 1
+          dimensions.length >= 1
         ) {
           return AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT;
         }
