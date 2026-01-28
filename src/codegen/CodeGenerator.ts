@@ -7142,13 +7142,17 @@ export default class CodeGenerator implements IOrchestrator {
       // Check if it's a local variable
       const isLocalVariable = this.context.localVariables.has(id);
 
-      // ADR-016: Enforce explicit qualification inside scopes
-      // Bare identifiers are ONLY allowed for local variables and parameters
-      this.typeValidator!.validateBareIdentifierInScope(
+      // ADR-016: Resolve bare identifier using local -> scope -> global priority
+      const resolved = this.typeValidator!.resolveBareIdentifier(
         id,
         isLocalVariable,
         (name: string) => this.isKnownStruct(name),
       );
+
+      // If resolved to a different name, use it
+      if (resolved !== null) {
+        return resolved;
+      }
 
       return id;
     }
@@ -8650,13 +8654,17 @@ export default class CodeGenerator implements IOrchestrator {
       // Local variables are those that were declared inside the current function
       const isLocalVariable = this.context.localVariables.has(id);
 
-      // ADR-016: Enforce explicit qualification inside scopes
-      // Bare identifiers are ONLY allowed for local variables and parameters
-      this.typeValidator!.validateBareIdentifierInScope(
+      // ADR-016: Resolve bare identifier using local -> scope -> global priority
+      const resolved = this.typeValidator!.resolveBareIdentifier(
         id,
         isLocalVariable,
         (name: string) => this.isKnownStruct(name),
       );
+
+      // If resolved to a different name, use it
+      if (resolved !== null) {
+        return resolved;
+      }
 
       // Issue #452: Check if identifier is an unqualified enum member reference
       // Use expectedType for type-aware resolution when assigning to enum fields
