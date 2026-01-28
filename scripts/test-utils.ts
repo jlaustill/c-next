@@ -942,6 +942,17 @@ class TestUtils {
               actual: actualH,
             };
           }
+        } else if (!hasExpectedHFile && result.headerCode) {
+          // Headers were generated but .expected.h is missing - this is an error
+          // Prevents forgetting to commit .expected.h files when .expected.c exists
+          // Note: This check applies regardless of isTranspileOnly - if we generate headers,
+          // we must validate them
+          cleanupAllFiles();
+          return {
+            passed: false,
+            message:
+              "Missing .expected.h file - headers were generated but no snapshot exists. Run with --update to create.",
+          };
         }
 
         // Step 7: Execution test (if // test-execution marker present)
