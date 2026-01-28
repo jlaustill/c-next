@@ -39,7 +39,11 @@
     "unit:watch": "vitest",
     "unit:coverage": "vitest run --coverage",
     "unit:coverage:html": "vitest run --coverage && echo 'Coverage report: coverage/index.html'",
-    "test:all": "npm run unit && npm run test:q"
+    "test:all": "npm run unit && npm run test:q",
+    "duplication": "npx jscpd src/ scripts/ --reporters console",
+    "duplication:json": "npx jscpd src/ scripts/ --reporters json --output .jscpd",
+    "duplication:sonar": "curl -s 'https://sonarcloud.io/api/measures/component_tree?component=jlaustill_c-next&metricKeys=duplicated_blocks,duplicated_lines&s=metric&metricSort=duplicated_blocks&metricSortFilter=withMeasuresOnly&asc=false&ps=20' | jq -r '.components[] | \"\\(.path)\\t\\(.measures[0].value) blocks\\t\\(.measures[1].value) lines\"'",
+    "duplication:all": "echo '=== Local (jscpd) ===' && npm run duplication && echo '\n=== SonarCloud ===' && npm run duplication:sonar"
   },
   "keywords": [
     "c",
