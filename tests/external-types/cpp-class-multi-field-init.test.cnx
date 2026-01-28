@@ -1,0 +1,17 @@
+// Issue #517: C++ class multi-field struct initialization
+// Multiple fields should generate multiple assignments
+
+#include "CppTestClass.hpp"
+
+void test() {
+    // This should generate:
+    //   CppTestClass obj = {};
+    //   obj.value = 100;
+    //   obj.name = "test";
+    // NOT: CppTestClass obj = (CppTestClass){ .value = 100, .name = "test" };
+    CppTestClass obj <- { value: 100, name: "test" };
+}
+
+void main() {
+    test();
+}
