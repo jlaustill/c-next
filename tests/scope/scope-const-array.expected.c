@@ -9,33 +9,91 @@
 
 // test-execution
 // Tests: Issue #500 - Private const arrays should be emitted as static const
+// Edge cases: public arrays, different types, multi-dimensional, computed indices
 /* Scope: ArrayTest */
 static const uint16_t ArrayTest_VALUES[4] = {10, 20, 30, 40};
+static const uint8_t ArrayTest_BYTES[3] = {1, 2, 3};
+static const int32_t ArrayTest_OFFSETS[2] = {-10, 10};
+const uint8_t ArrayTest_PUBLIC_LOOKUP[4] = {100, 101, 102, 103};
+static const uint8_t ArrayTest_MATRIX[2][3] = {{1, 2, 3}, {4, 5, 6}};
 static uint8_t ArrayTest_currentIndex = 0;
 
-uint16_t ArrayTest_getValue(void) {
+uint16_t ArrayTest_getValueAt(uint8_t index) {
+    return ArrayTest_VALUES[index];
+}
+
+uint16_t ArrayTest_getCurrentValue(void) {
     return ArrayTest_VALUES[ArrayTest_currentIndex];
 }
 
-uint16_t ArrayTest_getAt(uint8_t index) {
-    return ArrayTest_VALUES[index];
+uint8_t ArrayTest_getByteAt(uint8_t index) {
+    return ArrayTest_BYTES[index];
+}
+
+int32_t ArrayTest_getOffsetAt(uint8_t index) {
+    return ArrayTest_OFFSETS[index];
+}
+
+uint8_t ArrayTest_getPublicAt(uint8_t index) {
+    return ArrayTest_PUBLIC_LOOKUP[index];
+}
+
+uint8_t ArrayTest_getMatrixAt(uint8_t row, uint8_t col) {
+    return ArrayTest_MATRIX[row][col];
 }
 
 void ArrayTest_setIndex(uint8_t index) {
     ArrayTest_currentIndex = index;
 }
 
+uint16_t ArrayTest_sumFirstTwo(void) {
+    return ArrayTest_VALUES[0] + ArrayTest_VALUES[1];
+}
+
 int main(void) {
-    uint16_t val0 = ArrayTest_getAt(0);
+    uint16_t val0 = ArrayTest_getValueAt(0);
     if (val0 != 10) return 1;
-    uint16_t val1 = ArrayTest_getAt(1);
+    uint16_t val1 = ArrayTest_getValueAt(1);
     if (val1 != 20) return 2;
-    uint16_t val2 = ArrayTest_getAt(2);
+    uint16_t val2 = ArrayTest_getValueAt(2);
     if (val2 != 30) return 3;
-    uint16_t val3 = ArrayTest_getAt(3);
+    uint16_t val3 = ArrayTest_getValueAt(3);
     if (val3 != 40) return 4;
     ArrayTest_setIndex(2);
-    uint16_t stateful = ArrayTest_getValue();
+    uint16_t stateful = ArrayTest_getCurrentValue();
     if (stateful != 30) return 5;
+    uint8_t byte0 = ArrayTest_getByteAt(0);
+    if (byte0 != 1) return 6;
+    uint8_t byte1 = ArrayTest_getByteAt(1);
+    if (byte1 != 2) return 7;
+    uint8_t byte2 = ArrayTest_getByteAt(2);
+    if (byte2 != 3) return 8;
+    int32_t off0 = ArrayTest_getOffsetAt(0);
+    if (off0 != -10) return 9;
+    int32_t off1 = ArrayTest_getOffsetAt(1);
+    if (off1 != 10) return 10;
+    uint8_t pub0 = ArrayTest_getPublicAt(0);
+    if (pub0 != 100) return 11;
+    uint8_t pub1 = ArrayTest_getPublicAt(1);
+    if (pub1 != 101) return 12;
+    uint8_t pub2 = ArrayTest_getPublicAt(2);
+    if (pub2 != 102) return 13;
+    uint8_t pub3 = ArrayTest_getPublicAt(3);
+    if (pub3 != 103) return 14;
+    if (ArrayTest_PUBLIC_LOOKUP[0] != 100) return 15;
+    uint8_t m00 = ArrayTest_getMatrixAt(0, 0);
+    if (m00 != 1) return 16;
+    uint8_t m01 = ArrayTest_getMatrixAt(0, 1);
+    if (m01 != 2) return 17;
+    uint8_t m02 = ArrayTest_getMatrixAt(0, 2);
+    if (m02 != 3) return 18;
+    uint8_t m10 = ArrayTest_getMatrixAt(1, 0);
+    if (m10 != 4) return 19;
+    uint8_t m11 = ArrayTest_getMatrixAt(1, 1);
+    if (m11 != 5) return 20;
+    uint8_t m12 = ArrayTest_getMatrixAt(1, 2);
+    if (m12 != 6) return 21;
+    uint16_t sum = ArrayTest_sumFirstTwo();
+    if (sum != 30) return 22;
     return 0;
 }

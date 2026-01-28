@@ -480,6 +480,28 @@ describe("TSymbolInfoAdapter", () => {
         false,
       );
     });
+
+    it("should NOT track private const multi-dimensional array values", () => {
+      // Issue #500: Multi-dimensional arrays must also be emitted
+      const variable: IVariableSymbol = {
+        kind: ESymbolKind.Variable,
+        name: "Motor_MATRIX",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: "u8",
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: [2, 3],
+        initialValue: "[[1,2,3],[4,5,6]]",
+      };
+
+      const info = TSymbolInfoAdapter.convert([variable]);
+
+      expect(info.scopePrivateConstValues.has("Motor_MATRIX")).toBe(false);
+    });
   });
 
   describe("hasPublicSymbols", () => {
