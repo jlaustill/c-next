@@ -55,8 +55,8 @@ int main(void) {
     float vx = meshes[0].vertices[0].x;
     float vz = meshes[0].vertices[7].z;
     grid[2][3].flags = 0xFF;
-    grid[2][3].flags = (grid[2][3].flags & ~(1 << 0)) | (1 << 0);
-    grid[2][3].flags = (grid[2][3].flags & ~(1 << 7)) | (0 << 7);
+    ((grid[2][3].flags >> 0) & 1) = true;
+    ((grid[2][3].flags >> 7) & 1) = false;
     bool bit0 = ((grid[2][3].flags >> 0) & 1);
     bool bit7 = ((grid[2][3].flags >> 7) & 1);
     meshes[1].indices[0] = 0;

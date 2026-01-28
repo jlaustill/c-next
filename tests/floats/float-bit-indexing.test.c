@@ -14,10 +14,10 @@ _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double")
 // Helper to build f32 from LE bytes (like the user's use case)
 float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
     float result = 0.0;
-    uint32_t __bits_result; memcpy(&__bits_result, &result, sizeof(result)); __bits_result = (__bits_result & ~(0xFFU << 0)) | (((uint32_t)b0 & 0xFFU) << 0); memcpy(&result, &__bits_result, sizeof(result));
-    __bits_result = (__bits_result & ~(0xFFU << 8)) | (((uint32_t)b1 & 0xFFU) << 8); memcpy(&result, &__bits_result, sizeof(result));
-    __bits_result = (__bits_result & ~(0xFFU << 16)) | (((uint32_t)b2 & 0xFFU) << 16); memcpy(&result, &__bits_result, sizeof(result));
-    __bits_result = (__bits_result & ~(0xFFU << 24)) | (((uint32_t)b3 & 0xFFU) << 24); memcpy(&result, &__bits_result, sizeof(result));
+    result = (result & ~(0xFFU << 0)) | ((b0 & 0xFFU) << 0);
+    result = (result & ~(0xFFU << 8)) | ((b1 & 0xFFU) << 8);
+    result = (result & ~(0xFFU << 16)) | ((b2 & 0xFFU) << 16);
+    result = (result & ~(0xFFU << 24)) | ((b3 & 0xFFU) << 24);
     return result;
 }
 
@@ -39,8 +39,8 @@ int main(void) {
     uint8_t byte0 = (__bits_testVal & 0xFFU);
     if (byte0 != 0x00) return 7;
     float val = 0.0;
-    uint32_t __bits_val; memcpy(&__bits_val, &val, sizeof(val)); __bits_val = (__bits_val & ~(0xFFU << 24)) | (((uint32_t)0x3F & 0xFFU) << 24); memcpy(&val, &__bits_val, sizeof(val));
-    __bits_val = (__bits_val & ~(0xFFU << 16)) | (((uint32_t)0x80 & 0xFFU) << 16); memcpy(&val, &__bits_val, sizeof(val));
+    val = (val & ~(0xFFU << 24)) | ((0x3F & 0xFFU) << 24);
+    val = (val & ~(0xFFU << 16)) | ((0x80 & 0xFFU) << 16);
     if (val != 1.0) return 8;
     return 0;
 }

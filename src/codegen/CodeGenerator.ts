@@ -48,6 +48,11 @@ import scopedRegisterGenerator from "./generators/declarationGenerators/ScopedRe
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
+// ADR-109: Extracted utilities
+import BitUtils from "../utils/BitUtils";
+import FormatUtils from "../utils/FormatUtils";
+import StringUtils from "../utils/StringUtils";
+import TypeCheckUtils from "../utils/TypeCheckUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
@@ -56,6 +61,11 @@ import commentUtils from "./generators/support/CommentUtils";
 import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
+// ADR-109: Assignment decomposition (Phase 2)
+import assignmentHandlers from "./assignment/index";
+import AssignmentClassifier from "./assignment/AssignmentClassifier";
+import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
+import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
 // Issue #461: LiteralUtils for parsing const values from symbol table
 import LiteralUtils from "../utils/LiteralUtils";
 
@@ -506,7 +516,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Get the current indentation string.
    */
   getIndent(): string {
-    return "    ".repeat(this.context.indentLevel);
+    return FormatUtils.indent(this.context.indentLevel);
   }
 
   /**
@@ -1210,13 +1220,6 @@ export default class CodeGenerator implements IOrchestrator {
     return false;
   }
 
-  /**
-   * Fold literal boolean values to integer constants for bitmap bit assignments.
-   * Issue #200: Avoid generating (true ? 1 : 0) when we can just use 1.
-   * - 'true'  → '1'
-   * - 'false' → '0'
-   * - anything else → '(expr ? 1 : 0)' (runtime ternary needed)
-   */
   private foldBooleanToInt(expr: string): string {
     if (expr === "true") return "1";
     if (expr === "false") return "0";
@@ -3884,9 +3887,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (
         typeInfo &&
         !typeInfo.isEnum &&
-        ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-          typeInfo.baseType,
-        )
+        TypeCheckUtils.isInteger(typeInfo.baseType)
       ) {
         return true;
       }
@@ -3934,7 +3935,10 @@ export default class CodeGenerator implements IOrchestrator {
       const arrayName = arrayAccessMatch[1];
       const typeInfo = this.context.typeRegistry.get(arrayName);
       // Check if base type is a string type
-      if (typeInfo?.isString || typeInfo?.baseType?.startsWith("string<")) {
+      if (
+        typeInfo?.isString ||
+        (typeInfo?.baseType && TypeCheckUtils.isString(typeInfo.baseType))
+      ) {
         return true;
       }
     }
@@ -4341,21 +4345,7 @@ export default class CodeGenerator implements IOrchestrator {
    * accounting for escape sequences like \n, \t, \\, etc.
    */
   private _getStringLiteralLength(literal: string): number {
-    // Remove surrounding quotes
-    const content = literal.slice(1, -1);
-
-    let length = 0;
-    let i = 0;
-    while (i < content.length) {
-      if (content[i] === "\\" && i + 1 < content.length) {
-        // Escape sequence counts as 1 character
-        i += 2;
-      } else {
-        i += 1;
-      }
-      length += 1;
-    }
-    return length;
+    return StringUtils.literalLength(literal);
   }
 
   /**
@@ -5853,7 +5843,7 @@ export default class CodeGenerator implements IOrchestrator {
 
             // Generate safe concatenation code
             const indent = this.context.inFunctionBody
-              ? "    ".repeat(this.context.indentLevel)
+              ? FormatUtils.indent(this.context.indentLevel)
               : "";
             const lines: string[] = [];
             lines.push(`${constMod}char ${name}[${capacity + 1}] = "";`);
@@ -5902,7 +5892,7 @@ export default class CodeGenerator implements IOrchestrator {
 
             // Generate safe substring extraction code
             const indent = this.context.inFunctionBody
-              ? "    ".repeat(this.context.indentLevel)
+              ? FormatUtils.indent(this.context.indentLevel)
               : "";
             const lines: string[] = [];
             lines.push(`${constMod}char ${name}[${capacity + 1}] = "";`);
@@ -6531,6 +6521,246 @@ export default class CodeGenerator implements IOrchestrator {
     return result;
   }
 
+  // ADR-109: Build handler dependencies for assignment dispatch
+  private buildHandlerDeps(): IHandlerDeps {
+    return {
+      symbols: this.symbols!,
+      typeRegistry: this.context.typeRegistry,
+      currentScope: this.context.currentScope,
+      currentParameters: this.context.currentParameters,
+      targetCapabilities: this.context.targetCapabilities,
+      generateExpression: (ctx) => this._generateExpression(ctx),
+      tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
+      generateAssignmentTarget: (ctx) => this._generateAssignmentTarget(ctx),
+      isKnownStruct: (name) => this.isKnownStruct(name),
+      isKnownScope: (name) => this.symbols!.knownScopes.has(name),
+      getMemberTypeInfo: (structType, memberName) => {
+        const fields = this.symbols!.structFields.get(structType);
+        const fieldType = fields?.get(memberName);
+        if (fieldType) {
+          const dims =
+            this.symbols!.structFieldDimensions.get(structType)?.get(
+              memberName,
+            );
+          return {
+            baseType: fieldType,
+            bitWidth: TYPE_WIDTH[fieldType] ?? 32,
+            isConst: false,
+            isArray:
+              this.symbols!.structFieldArrays.get(structType)?.has(
+                memberName,
+              ) ?? false,
+            arrayDimensions: dims ? [...dims] : undefined,
+          };
+        }
+        return null;
+      },
+      validateBitmapFieldLiteral: (expr, width, fieldName) =>
+        this.typeValidator!.validateBitmapFieldLiteral(expr, width, fieldName),
+      validateCrossScopeVisibility: (scopeName, memberName) =>
+        this.validateCrossScopeVisibility(scopeName, memberName),
+      checkArrayBounds: (arrayName, dimensions, indexExprs, line) =>
+        this.typeValidator!.checkArrayBounds(
+          arrayName,
+          [...dimensions],
+          [...indexExprs],
+          line,
+          (expr) => this._tryEvaluateConstant(expr),
+        ),
+      analyzeMemberChainForBitAccess: (targetCtx) =>
+        this.analyzeMemberChainForBitAccess(targetCtx),
+      generateFloatBitWrite: (name, typeInfo, bitIndex, width, value) =>
+        this.generateFloatBitWrite(name, typeInfo, bitIndex, width, value),
+      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
+      markNeedsString: () => {
+        this.needsString = true;
+      },
+      markClampOpUsed: (op, typeName) => this.markClampOpUsed(op, typeName),
+      generateAtomicRMW: (target, cOp, value, typeInfo) =>
+        this.generateAtomicRMW(target, cOp, value, typeInfo),
+    };
+  }
+
+  /**
+   * Analyze a member chain target to detect bit access at the end.
+   * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
+   *
+   * Uses the same tree-walking approach as generateMemberAccess to correctly
+   * track which expressions belong to which identifiers in the chain.
+   */
+  private analyzeMemberChainForBitAccess(
+    targetCtx: Parser.AssignmentTargetContext,
+  ): {
+    isBitAccess: boolean;
+    baseTarget?: string;
+    bitIndex?: string;
+    baseType?: string;
+  } {
+    const memberAccessCtx = targetCtx.memberAccess();
+    if (!memberAccessCtx) {
+      return { isBitAccess: false };
+    }
+
+    const parts = memberAccessCtx.IDENTIFIER().map((id) => id.getText());
+    const expressions = memberAccessCtx.expression();
+    const children = memberAccessCtx.children;
+
+    if (!children || parts.length < 1 || expressions.length === 0) {
+      return { isBitAccess: false };
+    }
+
+    // Walk the parse tree to determine if the LAST expression is bit access
+    // This mirrors the logic in generateMemberAccess
+    const firstPart = parts[0];
+    const firstTypeInfo = this.context.typeRegistry.get(firstPart);
+
+    let currentStructType: string | undefined;
+    if (firstTypeInfo) {
+      currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
+        ? firstTypeInfo.baseType
+        : undefined;
+    }
+
+    let result = firstPart;
+    let idIndex = 1;
+    let exprIndex = 0;
+    let lastMemberType: string | undefined;
+    let lastMemberIsArray = false;
+
+    let i = 1;
+    while (i < children.length) {
+      const childText = children[i].getText();
+
+      if (childText === ".") {
+        // Dot - next child is identifier
+        i++;
+        if (i < children.length && idIndex < parts.length) {
+          const memberName = parts[idIndex];
+          result += `.${memberName}`;
+          idIndex++;
+
+          // Update type tracking
+          if (currentStructType) {
+            const fields = this.symbols!.structFields.get(currentStructType);
+            lastMemberType = fields?.get(memberName);
+            const arrayFields =
+              this.symbols!.structFieldArrays.get(currentStructType);
+            lastMemberIsArray = arrayFields?.has(memberName) ?? false;
+
+            if (lastMemberType && this.isKnownStruct(lastMemberType)) {
+              currentStructType = lastMemberType;
+            } else {
+              currentStructType = undefined;
+            }
+          }
+        }
+      } else if (childText === "[") {
+        // Opening bracket - check if this is bit access
+        const isPrimitiveInt =
+          lastMemberType &&
+          !lastMemberIsArray &&
+          TypeCheckUtils.isInteger(lastMemberType);
+        const isLastExpr = exprIndex === expressions.length - 1;
+
+        if (isPrimitiveInt && isLastExpr && exprIndex < expressions.length) {
+          // This is bit access on a struct member
+          const bitIndex = this._generateExpression(expressions[exprIndex]);
+          return {
+            isBitAccess: true,
+            baseTarget: result,
+            bitIndex,
+            baseType: lastMemberType,
+          };
+        }
+
+        // Normal array subscript
+        if (exprIndex < expressions.length) {
+          const expr = this._generateExpression(expressions[exprIndex]);
+          result += `[${expr}]`;
+          exprIndex++;
+
+          // After subscripting an array, update type tracking
+          if (firstTypeInfo?.isArray && exprIndex === 1) {
+            const elementType = firstTypeInfo.baseType;
+            if (this.isKnownStruct(elementType)) {
+              currentStructType = elementType;
+            }
+          }
+        }
+        // Skip to closing bracket
+        while (i < children.length && children[i].getText() !== "]") {
+          i++;
+        }
+      }
+      i++;
+    }
+
+    return { isBitAccess: false };
+  }
+
+  /**
+   * Generate float bit write using shadow variable + memcpy.
+   * Returns null if typeInfo is not a float type.
+   *
+   * For single bit: width is null, uses bitIndex only
+   * For bit range: width is provided, uses bitIndex as start position
+   */
+  private generateFloatBitWrite(
+    name: string,
+    typeInfo: TTypeInfo,
+    bitIndex: string,
+    width: string | null,
+    value: string,
+  ): string | null {
+    const isFloatType =
+      typeInfo.baseType === "f32" || typeInfo.baseType === "f64";
+    if (!isFloatType) {
+      return null;
+    }
+
+    this.needsString = true; // For memcpy
+    this.needsFloatStaticAssert = true; // For size verification
+
+    const isF64 = typeInfo.baseType === "f64";
+    const shadowType = isF64 ? "uint64_t" : "uint32_t";
+    const shadowName = `__bits_${name}`;
+    const maskSuffix = isF64 ? "ULL" : "U";
+
+    // Check if shadow variable needs declaration
+    const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
+    if (needsDeclaration) {
+      this.context.floatBitShadows.add(shadowName);
+    }
+
+    // Check if shadow already has current value (skip redundant memcpy read)
+    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+
+    const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
+    const readMemcpy = shadowIsCurrent
+      ? ""
+      : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+
+    // Mark shadow as current after this write
+    this.context.floatShadowCurrent.add(shadowName);
+
+    if (width === null) {
+      // Single bit assignment: floatVar[3] <- true
+      return (
+        `${decl}${readMemcpy}` +
+        `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
+        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+      );
+    } else {
+      // Bit range assignment: floatVar[0, 8] <- b0
+      const mask = this.generateBitMask(width, isF64);
+      return (
+        `${decl}${readMemcpy}` +
+        `${shadowName} = (${shadowName} & ~(${mask} << ${bitIndex})) | (((${shadowType})${value} & ${mask}) << ${bitIndex}); ` +
+        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+      );
+    }
+  }
+
   // ADR-001: <- becomes = in C, with compound assignment operators
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
@@ -6803,1484 +7033,24 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-034: Check if this is a bitmap field write (e.g., flags.Running <- true)
-    if (targetCtx.memberAccess()) {
-      const memberAccessCtx = targetCtx.memberAccess()!;
-      const identifiers = memberAccessCtx.IDENTIFIER();
-      const exprs = memberAccessCtx.expression();
-
-      // Simple member access: var.field (2 identifiers, no subscripts)
-      if (identifiers.length === 2 && exprs.length === 0) {
-        const varName = identifiers[0].getText();
-        const fieldName = identifiers[1].getText();
-
-        const typeInfo = this.context.typeRegistry.get(varName);
-        if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-          // Compound operators not supported for bitmap field access
-          if (isCompound) {
-            throw new Error(
-              `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-            );
-          }
-
-          const bitmapType = typeInfo.bitmapTypeName;
-          const fields = this.symbols!.bitmapFields.get(bitmapType);
-          if (fields && fields.has(fieldName)) {
-            const fieldInfo = fields.get(fieldName)!;
-
-            // Validate compile-time literal overflow
-            this.typeValidator!.validateBitmapFieldLiteral(
-              ctx.expression(),
-              fieldInfo.width,
-              fieldName,
-            );
-
-            const mask = (1 << fieldInfo.width) - 1;
-            const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-
-            if (fieldInfo.width === 1) {
-              // Single bit write: var = (var & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-              return `${varName} = (${varName} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-            } else {
-              // Multi-bit write: var = (var & ~(mask << offset)) | ((value & mask) << offset)
-              return `${varName} = (${varName} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-            }
-          } else {
-            throw new Error(
-              `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-            );
-          }
-        }
-      }
-
-      // ADR-034: Register member bitmap field write: MOTOR.CTRL.Running <- true
-      // 3 identifiers: [register, member, bitmapField], no subscripts
-      if (identifiers.length === 3 && exprs.length === 0) {
-        const regName = identifiers[0].getText();
-        const memberName = identifiers[1].getText();
-        const fieldName = identifiers[2].getText();
-
-        // Check if first identifier is a register and second is a bitmap-typed member
-        if (this.symbols!.knownRegisters.has(regName)) {
-          const fullRegMember = `${regName}_${memberName}`;
-          const bitmapType =
-            this.symbols!.registerMemberTypes.get(fullRegMember);
-
-          if (bitmapType) {
-            // This is a bitmap field access on a register member
-            if (isCompound) {
-              throw new Error(
-                `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-              );
-            }
-
-            const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(fieldName)) {
-              const fieldInfo = fields.get(fieldName)!;
-
-              // Validate compile-time literal overflow
-              this.typeValidator!.validateBitmapFieldLiteral(
-                ctx.expression(),
-                fieldInfo.width,
-                fieldName,
-              );
-
-              const mask = (1 << fieldInfo.width) - 1;
-              const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-
-              if (fieldInfo.width === 1) {
-                // Single bit write on register: REG_MEMBER = (REG_MEMBER & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-                return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-              } else {
-                // Multi-bit write on register
-                return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-              }
-            } else {
-              throw new Error(
-                `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-              );
-            }
-          }
-        }
-
-        // ADR-034: Struct member bitmap field write: device.flags.Active <- true
-        // 3 identifiers: [structVar, bitmapMember, bitmapField], no subscripts
-        // Check if first identifier is a struct variable (not a register)
-        const structVarName = identifiers[0].getText();
-        const structMemberName = identifiers[1].getText();
-        if (!this.symbols!.knownRegisters.has(structVarName)) {
-          // Check if structVarName is a struct variable
-          const structTypeInfo = this.context.typeRegistry.get(structVarName);
-          if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
-            // Check if the struct member is a bitmap type
-            const memberInfo = this.getMemberTypeInfo(
-              structTypeInfo.baseType,
-              structMemberName,
-            );
-            if (memberInfo) {
-              const memberBitmapType = memberInfo.baseType;
-              const structBitmapFields =
-                this.symbols!.bitmapFields.get(memberBitmapType);
-              if (structBitmapFields && structBitmapFields.has(fieldName)) {
-                // This is a bitmap field access on a struct member
-                if (isCompound) {
-                  throw new Error(
-                    `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-                  );
-                }
-
-                const structFieldInfo = structBitmapFields.get(fieldName)!;
-
-                // Validate compile-time literal overflow
-                this.typeValidator!.validateBitmapFieldLiteral(
-                  ctx.expression(),
-                  structFieldInfo.width,
-                  fieldName,
-                );
-
-                const mask = (1 << structFieldInfo.width) - 1;
-                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-                const memberPath = `${structVarName}.${structMemberName}`;
-
-                if (structFieldInfo.width === 1) {
-                  // Single bit write: struct.member = (struct.member & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-                  return `${memberPath} = (${memberPath} & ~(1 << ${structFieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${structFieldInfo.offset});`;
-                } else {
-                  // Multi-bit write
-                  return `${memberPath} = (${memberPath} & ~(${maskHex} << ${structFieldInfo.offset})) | ((${value} & ${maskHex}) << ${structFieldInfo.offset});`;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // ADR-016: Scoped register member bitmap field write: Teensy4.GPIO7.ICR1.LED_BUILTIN <- value
-      // 4 identifiers: [scope, register, member, bitmapField], no subscripts
-      if (identifiers.length === 4 && exprs.length === 0) {
-        const scopeName = identifiers[0].getText();
-        const regName = identifiers[1].getText();
-        const memberName = identifiers[2].getText();
-        const fieldName = identifiers[3].getText();
-
-        // Check if first identifier is a scope
-        if (this.isKnownScope(scopeName)) {
-          // ADR-016: Validate visibility before allowing cross-scope access
-          this.validateCrossScopeVisibility(scopeName, regName);
-          const fullRegName = `${scopeName}_${regName}`;
-          // Check if this is a scoped register
-          if (this.symbols!.knownRegisters.has(fullRegName)) {
-            const fullRegMember = `${fullRegName}_${memberName}`;
-            const bitmapType =
-              this.symbols!.registerMemberTypes.get(fullRegMember);
-
-            if (bitmapType) {
-              // This is a bitmap field access on a scoped register member
-              if (isCompound) {
-                throw new Error(
-                  `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-                );
-              }
-
-              const fields = this.symbols!.bitmapFields.get(bitmapType);
-              if (fields && fields.has(fieldName)) {
-                const fieldInfo = fields.get(fieldName)!;
-
-                // Validate compile-time literal overflow
-                this.typeValidator!.validateBitmapFieldLiteral(
-                  ctx.expression(),
-                  fieldInfo.width,
-                  fieldName,
-                );
-
-                // Check if this is a write-only register
-                const accessMod =
-                  this.symbols!.registerMemberAccess.get(fullRegMember);
-                const isWriteOnly = accessMod === "wo";
-
-                const mask = (1 << fieldInfo.width) - 1;
-                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-
-                if (isWriteOnly) {
-                  // Write-only register: just write the value shifted to position (no RMW)
-                  if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                  } else {
-                    return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                  }
-                } else {
-                  // Read-write register: use read-modify-write pattern
-                  if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                  } else {
-                    return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                  }
-                }
-              } else {
-                throw new Error(
-                  `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Check if this is a member access with subscript (e.g., GPIO7.DR_SET[LED_BIT] or matrix[0][0])
-    const memberAccessCtx = targetCtx.memberAccess();
-    if (memberAccessCtx) {
-      const exprs = memberAccessCtx.expression();
-      const identifiers = memberAccessCtx.IDENTIFIER();
-
-      // ADR-036: Multi-dimensional array access (e.g., matrix[0][0])
-      // Has one identifier and multiple subscript expressions
-      if (identifiers.length === 1 && exprs.length > 0) {
-        const arrayName = identifiers[0].getText();
-
-        // ADR-036: Compile-time bounds checking for constant indices
-        const typeInfo = this.context.typeRegistry.get(arrayName);
-        if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-          this.typeValidator!.checkArrayBounds(
-            arrayName,
-            typeInfo.arrayDimensions,
-            exprs,
-            ctx.start?.line ?? 0,
-            (expr) => this._tryEvaluateConstant(expr),
-          );
-
-          // Bug #8: Check for bit indexing on array element
-          // e.g., matrix[ROW][COL][FIELD_BIT] where matrix is u8[4][4]
-          const numDims = typeInfo.arrayDimensions.length;
-          const numSubscripts = exprs.length;
-
-          if (numSubscripts === numDims + 1) {
-            const elementType = typeInfo.baseType;
-            const isPrimitiveInt = [
-              "u8",
-              "u16",
-              "u32",
-              "u64",
-              "i8",
-              "i16",
-              "i32",
-              "i64",
-            ].includes(elementType);
-
-            if (isPrimitiveInt) {
-              // Compound operators not supported for bit field access
-              if (isCompound) {
-                throw new Error(
-                  `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-                );
-              }
-
-              // Generate array access for dimensions, then bit assignment
-              const arrayIndices = exprs
-                .slice(0, numDims)
-                .map((e) => `[${this._generateExpression(e)}]`)
-                .join("");
-              const bitIndex = this._generateExpression(exprs[numDims]);
-              const arrayElement = `${arrayName}${arrayIndices}`;
-
-              // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
-              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-            }
-          }
-        }
-
-        // Generate all subscript indices
-        const indices = exprs
-          .map((e) => this._generateExpression(e))
-          .join("][");
-        return `${arrayName}[${indices}] ${cOp} ${value};`;
-      }
-
-      // ADR-036: Struct member multi-dimensional array access (e.g., screen.pixels[0][0])
-      // Has 2+ identifiers (struct.field), subscripts, and first identifier is NOT a register or scope
-      const firstId = identifiers[0].getText();
-      // Check if this is a scoped register: Scope.Register.Member[bit]
-      const scopedRegName =
-        identifiers.length >= 3 && this.isKnownScope(firstId)
-          ? `${firstId}_${identifiers[1].getText()}`
-          : null;
-      const isScopedRegister =
-        scopedRegName && this.symbols!.knownRegisters.has(scopedRegName);
-
-      if (
-        identifiers.length >= 2 &&
-        exprs.length > 0 &&
-        !this.symbols!.knownRegisters.has(firstId) &&
-        !isScopedRegister
-      ) {
-        // Fix for Bug #2: Walk children in order to preserve operation sequence
-        // For cfg.items[0].value, we need to emit: cfg.items[0].value
-        // Not: cfg.items.value[0] (which the old heuristic generated)
-
-        if (memberAccessCtx.children && identifiers.length > 1) {
-          // Walk parse tree children in order, building result incrementally
-          // Bug #8 fix: Use while loop with proper child iteration
-          // instead of fragile index arithmetic (i += 2)
-          let result = firstId;
-          let idIndex = 1; // Start at 1 since we already used firstId
-          let exprIndex = 0;
-
-          // Check if first identifier is a scope for special handling
-          const isCrossScope = this.isKnownScope(firstId);
-
-          // ADR-006: Check if first identifier is a struct parameter (needs -> access)
-          const paramInfo = this.context.currentParameters.get(firstId);
-          const isStructParam = paramInfo?.isStruct ?? false;
-
-          // Bug #8: Track struct types to detect bit access through chains
-          // e.g., items[0].byte[7] where byte is u8 - final [7] is bit access
-          let currentStructType: string | undefined;
-          let lastMemberType: string | undefined;
-          let lastMemberIsArray = false; // Track if last accessed member is an array
-          let _lastMemberStructType: string | undefined; // Struct type containing the last member (kept for future use)
-          const firstTypeInfo = this.context.typeRegistry.get(firstId);
-          if (firstTypeInfo) {
-            currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
-              ? firstTypeInfo.baseType
-              : undefined;
-          }
-
-          let i = 1;
-          while (i < memberAccessCtx.children.length) {
-            const child = memberAccessCtx.children[i];
-            const childText = child.getText();
-
-            if (childText === ".") {
-              // Dot found - consume it, then get the next identifier
-              i++;
-              if (
-                i < memberAccessCtx.children.length &&
-                idIndex < identifiers.length
-              ) {
-                const memberName = identifiers[idIndex].getText();
-                // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
-                const separator = memberAccessChain.determineSeparator(
-                  { isStructParam, isCrossScope },
-                  idIndex,
-                );
-                result += `${separator}${memberName}`;
-                idIndex++;
-
-                // Update type tracking for the member we just accessed
-                if (currentStructType) {
-                  const fields =
-                    this.symbols!.structFields.get(currentStructType);
-                  lastMemberType = fields?.get(memberName);
-                  _lastMemberStructType = currentStructType;
-                  // Check if this member is an array field
-                  const arrayFields =
-                    this.symbols!.structFieldArrays.get(currentStructType);
-                  lastMemberIsArray = arrayFields?.has(memberName) ?? false;
-                  // Check if this member is itself a struct
-                  if (lastMemberType && this.isKnownStruct(lastMemberType)) {
-                    currentStructType = lastMemberType;
-                  } else {
-                    currentStructType = undefined;
-                  }
-                }
-              }
-            } else if (childText === "[") {
-              // Opening bracket - check if this is bit access on primitive integer
-              // Must NOT be an array field (e.g., indices[12] is array, not bit access)
-              const isPrimitiveInt =
-                lastMemberType &&
-                !lastMemberIsArray &&
-                ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-                  lastMemberType,
-                );
-              const isLastExpr = exprIndex === exprs.length - 1;
-
-              if (isPrimitiveInt && isLastExpr && exprIndex < exprs.length) {
-                // Bug #8: This is bit access on a struct member!
-                // e.g., items[0].byte[7] <- true
-                // Generate: result = (result & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
-                if (isCompound) {
-                  throw new Error(
-                    `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-                  );
-                }
-                const bitIndex = this._generateExpression(exprs[exprIndex]);
-                // Use 1ULL for 64-bit types to avoid undefined behavior on large shifts
-                const one =
-                  lastMemberType === "u64" || lastMemberType === "i64"
-                    ? "1ULL"
-                    : "1";
-                return `${result} = (${result} & ~(${one} << ${bitIndex})) | ((${value} ? ${one} : 0) << ${bitIndex});`;
-              }
-
-              // Normal array subscript
-              if (exprIndex < exprs.length) {
-                const expr = this._generateExpression(exprs[exprIndex]);
-                result += `[${expr}]`;
-                exprIndex++;
-
-                // After subscripting an array, update type tracking
-                if (firstTypeInfo?.isArray && exprIndex === 1) {
-                  // First subscript on array - element type might be a struct
-                  const elementType = firstTypeInfo.baseType;
-                  if (this.isKnownStruct(elementType)) {
-                    currentStructType = elementType;
-                  }
-                }
-              }
-              // Skip forward to find and pass the closing bracket
-              while (
-                i < memberAccessCtx.children.length &&
-                memberAccessCtx.children[i].getText() !== "]"
-              ) {
-                i++;
-              }
-              // Reset lastMemberType after subscript (no longer on a member)
-              lastMemberType = undefined;
-            }
-            i++;
-          }
-
-          // Check if this is a string array element assignment before returning
-          // Pattern: struct.field[index] where field is a string array
-          if (identifiers.length === 2 && exprs.length === 1) {
-            const structName = firstId;
-            const fieldName = identifiers[1].getText();
-
-            const structTypeInfo = this.context.typeRegistry.get(structName);
-            if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
-              const structType = structTypeInfo.baseType;
-              const fieldDimensions =
-                this.symbols!.structFieldDimensions.get(structType);
-              const dimensions = fieldDimensions?.get(fieldName);
-              const fieldArrays =
-                this.symbols!.structFieldArrays.get(structType);
-              const isArrayField = fieldArrays?.has(fieldName);
-              const structFields = this.symbols!.structFields.get(structType);
-              const fieldType = structFields?.get(fieldName);
-
-              // String arrays: field type starts with "string<" and has multi-dimensional array
-              if (
-                fieldType &&
-                fieldType.startsWith("string<") &&
-                isArrayField &&
-                dimensions &&
-                dimensions.length > 1
-              ) {
-                const capacity = dimensions.at(-1)! - 1; // -1 because we added +1 for null terminator
-                if (cOp !== "=") {
-                  throw new Error(
-                    `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
-                  );
-                }
-                this.needsString = true; // Ensure #include <string.h>
-                const index = this._generateExpression(exprs[0]);
-                return `strncpy(${structName}.${fieldName}[${index}], ${value}, ${capacity});`;
-              }
-            }
-          }
-
-          // Issue #201: Check if this is a bitmap array element field assignment
-          // Pattern: arr[index].field where arr is a bitmap array
-          if (identifiers.length === 2 && exprs.length === 1) {
-            const arrayName = firstId;
-            const fieldName = identifiers[1].getText();
-
-            // Check if this is a bitmap array
-            if (firstTypeInfo?.isBitmap && firstTypeInfo?.isArray) {
-              const bitmapType = firstTypeInfo.bitmapTypeName;
-              if (bitmapType) {
-                const fields = this.symbols!.bitmapFields.get(bitmapType);
-                if (fields && fields.has(fieldName)) {
-                  const fieldInfo = fields.get(fieldName)!;
-
-                  // Compound operators not supported for bitmap field access
-                  if (isCompound) {
-                    throw new Error(
-                      `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-                    );
-                  }
-
-                  // Validate compile-time literal overflow
-                  this.typeValidator!.validateBitmapFieldLiteral(
-                    ctx.expression(),
-                    fieldInfo.width,
-                    fieldName,
-                  );
-
-                  const mask = (1 << fieldInfo.width) - 1;
-                  const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-                  const index = this._generateExpression(exprs[0]);
-                  const arrayElement = `${arrayName}[${index}]`;
-
-                  if (fieldInfo.width === 1) {
-                    // Single bit write: arr[i] = (arr[i] & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-                    return `${arrayElement} = (${arrayElement} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                  } else {
-                    // Multi-bit write: arr[i] = (arr[i] & ~(mask << offset)) | ((value & mask) << offset)
-                    return `${arrayElement} = (${arrayElement} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                  }
-                }
-              }
-            }
-          }
-
-          return `${result} ${cOp} ${value};`;
-        }
-
-        // Fallback for simple cases (shouldn't normally reach here)
-        const indices = exprs
-          .map((e) => this._generateExpression(e))
-          .join("][");
-        return `${firstId}[${indices}] ${cOp} ${value};`;
-      }
-
-      // Register access with bit indexing (e.g., GPIO7.DR_SET[LED_BIT] or Scope.GPIO7.DR_SET[LED_BIT])
-      if (identifiers.length >= 2 && exprs.length > 0) {
-        // Compound operators not supported for bit field access
-        if (isCompound) {
-          throw new Error(
-            `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-          );
-        }
-
-        // Determine if this is a scoped register access
-        // Pattern 1: GPIO7.DR_SET[bit] - 2 identifiers, first is register
-        // Pattern 2: Scope.GPIO7.DR_SET[bit] - 3 identifiers, first is scope
-        let fullName: string;
-        const leadingId = identifiers[0].getText();
-        if (this.isKnownScope(leadingId) && identifiers.length >= 3) {
-          // Scoped register: Scope.Register.Member
-          const scopeName = leadingId;
-          const regName = identifiers[1].getText();
-          const memberName = identifiers[2].getText();
-          fullName = `${scopeName}_${regName}_${memberName}`;
-        } else {
-          // Non-scoped register: Register.Member
-          const regName = firstId;
-          const memberName = identifiers[1].getText();
-          fullName = `${regName}_${memberName}`;
-        }
-
-        // Check if this is a write-only register
-        const accessMod = this.symbols!.registerMemberAccess.get(fullName);
-        const isWriteOnly =
-          accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
-
-        if (exprs.length === 1) {
-          const bitIndex = this._generateExpression(exprs[0]);
-          if (isWriteOnly) {
-            // Write-only: assigning false/0 is semantically meaningless
-            if (value === "false" || value === "0") {
-              throw new Error(
-                `Cannot assign false to write-only register bit ${fullName}[${bitIndex}]. ` +
-                  `Use the corresponding CLEAR register to clear bits.`,
-              );
-            }
-            // Write-only: just write the mask, no read-modify-write needed
-            // GPIO7.DR_SET[LED_BIT] <- true  =>  GPIO7_DR_SET = (1 << LED_BIT)
-            return `${fullName} = (1 << ${bitIndex});`;
-          } else {
-            // Read-write: need read-modify-write
-            return `${fullName} = (${fullName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-          }
-        } else if (exprs.length === 2) {
-          const start = this._generateExpression(exprs[0]);
-          const width = this._generateExpression(exprs[1]);
-          const mask = this.generateBitMask(width);
-          if (isWriteOnly) {
-            // Write-only: assigning 0 is semantically meaningless
-            if (value === "0") {
-              throw new Error(
-                `Cannot assign 0 to write-only register bits ${fullName}[${start}, ${width}]. ` +
-                  `Use the corresponding CLEAR register to clear bits.`,
-              );
-            }
-
-            // Issue #187: Check if we can use width-appropriate memory access
-            const startConst = this._tryEvaluateConstant(exprs[0]);
-            const widthConst = this._tryEvaluateConstant(exprs[1]);
-
-            if (
-              startConst !== undefined &&
-              widthConst !== undefined &&
-              startConst % 8 === 0 && // byte-aligned
-              [8, 16, 32].includes(widthConst) // standard width
-            ) {
-              // Issue #187: Generate width-appropriate memory access
-              // Determine register name for base address lookup
-              let regName: string;
-              if (this.isKnownScope(leadingId) && identifiers.length >= 3) {
-                regName = `${leadingId}_${identifiers[1].getText()}`;
-              } else {
-                regName = leadingId;
-              }
-
-              const baseAddr = this.symbols!.registerBaseAddresses.get(regName);
-              const memberOffset =
-                this.symbols!.registerMemberOffsets.get(fullName);
-              const byteOffset = startConst / 8;
-
-              if (baseAddr !== undefined && memberOffset !== undefined) {
-                const accessType = `uint${widthConst}_t`;
-                const totalOffset =
-                  byteOffset === 0
-                    ? memberOffset
-                    : `${memberOffset} + ${byteOffset}`;
-                return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
-              }
-            }
-
-            // Fallback: write the value shifted to position
-            return `${fullName} = ((${value} & ${mask}) << ${start});`;
-          } else {
-            // Read-write: need read-modify-write
-            return `${fullName} = (${fullName} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
-          }
-        }
-      }
-    }
-
-    // Issue #387: Unified handling for global.* and this.* with postfix chains
-    // This replaces the old globalArrayAccess, thisArrayAccess, thisMemberAccess handlers
-    if (targetCtx.GLOBAL() || targetCtx.THIS()) {
-      const info = this.extractAssignmentTargetInfo(targetCtx);
-      const hasPostfixOps = info.postfixOps.length > 0;
-
-      if (targetCtx.GLOBAL() && hasPostfixOps) {
-        const firstId = info.firstIdentifier;
-
-        // Extract all identifiers and expressions from postfix chain
-        const parts = [firstId];
-        const expressions: Parser.ExpressionContext[] = [];
-        for (const op of info.postfixOps) {
-          if (op.IDENTIFIER()) {
-            parts.push(op.IDENTIFIER()!.getText());
-          } else {
-            for (const expr of op.expression()) {
-              expressions.push(expr);
-            }
-          }
-        }
-
-        // Handle cases with array subscripts
-        if (expressions.length > 0) {
-          // Handle single vs multi-expression (bit range) syntax
-          let indexExpr: string;
-          const isBitRange =
-            expressions.length === 2 &&
-            info.postfixOps.some((op) => op.COMMA());
-          if (isBitRange) {
-            const start = this._generateExpression(expressions[0]);
-            const width = this._generateExpression(expressions[1]);
-            indexExpr = `${start}, ${width}`;
-          } else {
-            // Multiple single subscripts (e.g., [0][0]) or single subscript
-            indexExpr = expressions
-              .map((e) => this._generateExpression(e))
-              .join("][");
-          }
-
-          if (this.symbols!.knownRegisters.has(firstId)) {
-            // Compound operators not supported for bit field access on registers
-            if (isCompound) {
-              throw new Error(
-                `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-              );
-            }
-            const bitIndex = indexExpr;
-            // This is a register access: global.GPIO7.DR_SET[LED_BIT]
-            const regName = parts.join("_");
-
-            // Check if this is a write-only register
-            const accessMod = this.symbols!.registerMemberAccess.get(regName);
-            const isWriteOnly =
-              accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
-
-            if (isWriteOnly) {
-              if (value === "false" || value === "0") {
-                throw new Error(
-                  `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
-                    `Use the corresponding CLEAR register to clear bits.`,
-                );
-              }
-              return `${regName} = (1 << ${bitIndex});`;
-            } else {
-              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-            }
-          } else if (this.isKnownScope(firstId)) {
-            const memberName = parts[1];
-            this.validateCrossScopeVisibility(firstId, memberName);
-            const scopedName = parts.join("_");
-            return `${scopedName}[${indexExpr}] ${cOp} ${value};`;
-          } else {
-            // Issue #387: Handle complex postfix chains like global.readings[0][0].value
-            // Generate the full target and use normal assignment
-            const target = this.generateAssignmentTarget(targetCtx);
-            return `${target} ${cOp} ${value};`;
-          }
-        }
-
-        // Handle member-only access without subscripts (e.g., global.Counter.privateValue)
-        // Must validate cross-scope visibility for scope members
-        if (this.isKnownScope(firstId) && parts.length >= 2) {
-          const memberName = parts[1];
-          this.validateCrossScopeVisibility(firstId, memberName);
-          // Fall through to normal assignment generation
-        }
-      }
-
-      if (targetCtx.THIS() && hasPostfixOps) {
-        if (!this.context.currentScope) {
-          throw new Error("Error: 'this' can only be used inside a scope");
-        }
-
-        const firstId = info.firstIdentifier;
-        const scopeName = this.context.currentScope;
-
-        // Extract all identifiers and expressions from postfix chain
-        const parts = [firstId];
-        const expressions: Parser.ExpressionContext[] = [];
-        for (const op of info.postfixOps) {
-          if (op.IDENTIFIER()) {
-            parts.push(op.IDENTIFIER()!.getText());
-          } else {
-            for (const expr of op.expression()) {
-              expressions.push(expr);
-            }
-          }
-        }
-
-        // Check if first identifier is a scoped register
-        const scopedRegName = `${scopeName}_${parts[0]}`;
-
-        // Handle cases with array subscripts (register bit access)
-        if (
-          expressions.length > 0 &&
-          this.symbols!.knownRegisters.has(scopedRegName)
-        ) {
-          if (isCompound) {
-            throw new Error(
-              `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-            );
-          }
-          const regName = `${scopeName}_${parts.join("_")}`;
-          const accessMod = this.symbols!.registerMemberAccess.get(regName);
-          const isWriteOnly =
-            accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
-
-          if (
-            expressions.length === 2 &&
-            info.postfixOps.some((op) => op.COMMA())
-          ) {
-            // Multi-bit field access: this.GPIO7.ICR1[6, 2] <- value
-            const start = this._generateExpression(expressions[0]);
-            const width = this._generateExpression(expressions[1]);
-            const mask = `((1U << ${width}) - 1)`;
-
-            if (isWriteOnly) {
-              if (value === "0") {
-                throw new Error(
-                  `Cannot assign 0 to write-only register bits ${regName}[${start}, ${width}]. ` +
-                    `Use the corresponding CLEAR register to clear bits.`,
-                );
-              }
-
-              const startConst = this._tryEvaluateConstant(expressions[0]);
-              const widthConst = this._tryEvaluateConstant(expressions[1]);
-
-              if (
-                startConst !== undefined &&
-                widthConst !== undefined &&
-                startConst % 8 === 0 &&
-                [8, 16, 32].includes(widthConst)
-              ) {
-                const baseAddr =
-                  this.symbols!.registerBaseAddresses.get(scopedRegName);
-                const memberOffset =
-                  this.symbols!.registerMemberOffsets.get(regName);
-                const byteOffset = startConst / 8;
-
-                if (baseAddr !== undefined && memberOffset !== undefined) {
-                  const accessType = `uint${widthConst}_t`;
-                  const totalOffset =
-                    byteOffset === 0
-                      ? memberOffset
-                      : `${memberOffset} + ${byteOffset}`;
-                  return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
-                }
-              }
-
-              return `${regName} = ((${value} & ${mask}) << ${start});`;
-            } else {
-              return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
-            }
-          } else {
-            // Single bit access
-            const bitIndex = this._generateExpression(expressions[0]);
-
-            if (isWriteOnly) {
-              if (value === "false" || value === "0") {
-                throw new Error(
-                  `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
-                    `Use the corresponding CLEAR register to clear bits.`,
-                );
-              }
-              return `${regName} = (1 << ${bitIndex});`;
-            } else {
-              return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-            }
-          }
-        }
-
-        // Handle bitmap field access: this.SysTick.CTRL.ENABLE <- true (3 identifiers, no subscripts)
-        if (parts.length === 3 && expressions.length === 0) {
-          const _regName = parts[0]; // Captured for documentation; we use scopedRegName instead
-          const memberName = parts[1];
-          const fieldName = parts[2];
-
-          if (this.symbols!.knownRegisters.has(scopedRegName)) {
-            const fullRegMember = `${scopedRegName}_${memberName}`;
-            const bitmapType =
-              this.symbols!.registerMemberTypes.get(fullRegMember);
-
-            if (bitmapType) {
-              if (isCompound) {
-                throw new Error(
-                  `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-                );
-              }
-
-              const fields = this.symbols!.bitmapFields.get(bitmapType);
-              if (fields && fields.has(fieldName)) {
-                const fieldInfo = fields.get(fieldName)!;
-
-                this.typeValidator!.validateBitmapFieldLiteral(
-                  ctx.expression(),
-                  fieldInfo.width,
-                  fieldName,
-                );
-
-                const mask = (1 << fieldInfo.width) - 1;
-                const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-
-                const accessMod =
-                  this.symbols!.registerMemberAccess.get(fullRegMember);
-                const isWriteOnly =
-                  accessMod === "wo" ||
-                  accessMod === "w1s" ||
-                  accessMod === "w1c";
-
-                if (isWriteOnly) {
-                  if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                  } else {
-                    return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                  }
-                } else {
-                  if (fieldInfo.width === 1) {
-                    return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                  } else {
-                    return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                  }
-                }
-              } else {
-                throw new Error(
-                  `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-                );
-              }
-            }
-          }
-        }
-
-        // For other this.* patterns with postfix ops, use the target generator
-        if (expressions.length > 0 || parts.length > 1) {
-          const target = this.generateAssignmentTarget(targetCtx);
-          return `${target} ${cOp} ${value};`;
-        }
-      }
-    }
-
-    // Keep old variable for backward compatibility with remaining code
-    const thisMemberAccessCtx = null; // Removed - now handled above
-    if (thisMemberAccessCtx) {
-      // This block is now dead code but kept for structure
-      const scopeName = this.context.currentScope!;
-      const parts: string[] = [];
-
-      // Check for scoped register member bitmap field: this.SysTick.CTRL.ENABLE (3 parts)
-      if (parts.length === 3) {
-        const regName = parts[0];
-        const memberName = parts[1];
-        const fieldName = parts[2];
-
-        const scopedRegName = `${scopeName}_${regName}`;
-        if (this.symbols!.knownRegisters.has(scopedRegName)) {
-          const fullRegMember = `${scopedRegName}_${memberName}`;
-          const bitmapType =
-            this.symbols!.registerMemberTypes.get(fullRegMember);
-
-          if (bitmapType) {
-            // This is a bitmap field access on a scoped register member
-            if (isCompound) {
-              throw new Error(
-                `Compound assignment operators not supported for bitmap field access: ${cnextOp}`,
-              );
-            }
-
-            const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(fieldName)) {
-              const fieldInfo = fields.get(fieldName)!;
-
-              // Validate compile-time literal overflow
-              this.typeValidator!.validateBitmapFieldLiteral(
-                ctx.expression(),
-                fieldInfo.width,
-                fieldName,
-              );
-
-              const mask = (1 << fieldInfo.width) - 1;
-              const maskHex = `0x${mask.toString(16).toUpperCase()}`;
-
-              // Check if this is a write-only register
-              const accessMod =
-                this.symbols!.registerMemberAccess.get(fullRegMember);
-              const isWriteOnly =
-                accessMod === "wo" ||
-                accessMod === "w1s" ||
-                accessMod === "w1c";
-
-              if (isWriteOnly) {
-                // Write-only register: just write the value, no RMW needed
-                if (fieldInfo.width === 1) {
-                  return `${fullRegMember} = (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                } else {
-                  return `${fullRegMember} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                }
-              } else {
-                // Read-write register: use read-modify-write pattern
-                if (fieldInfo.width === 1) {
-                  return `${fullRegMember} = (${fullRegMember} & ~(1 << ${fieldInfo.offset})) | (${this.foldBooleanToInt(value)} << ${fieldInfo.offset});`;
-                } else {
-                  return `${fullRegMember} = (${fullRegMember} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-                }
-              }
-            } else {
-              throw new Error(
-                `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-              );
-            }
-          }
-        }
-      }
-    }
-
-    // Check if this is a simple array/bit access assignment (e.g., flags[3])
-    const arrayAccessCtx = targetCtx.arrayAccess();
-    if (arrayAccessCtx) {
-      const name = arrayAccessCtx.IDENTIFIER().getText();
-      const exprs = arrayAccessCtx.expression();
-      const typeInfo = this.context.typeRegistry.get(name);
-
-      // Issue #368: Check if this is an array parameter (e.g., void foo(u8 data[]))
-      // Array parameters may not have arrayDimensions in typeRegistry (for unsized params),
-      // but they ARE arrays and should use array indexing, not bit manipulation.
-      const paramInfo = this.context.currentParameters.get(name);
-      const isArrayParameter = paramInfo?.isArray ?? false;
-
-      // ADR-040: ISR arrays use normal array indexing, not bit manipulation
-      // Also handle any array type that isn't an integer scalar
-      // Issue #213: String parameters (isString=true) should also use memcpy for slice assignment
-      // Issue #368: Array parameters (even unsized like u8 data[]) should use array indexing
-      const isActualArray =
-        (typeInfo?.isArray &&
-          typeInfo.arrayDimensions &&
-          typeInfo.arrayDimensions.length > 0) ||
-        typeInfo?.isString ||
-        isArrayParameter;
-      const isISRType = typeInfo?.baseType === "ISR";
-
-      if (isActualArray || isISRType) {
-        // Check for slice assignment: array[offset, length] <- value
-        if (exprs.length === 2) {
-          // Issue #234: Slice assignment requires compile-time constant offset and length
-          // to ensure bounds safety at compile time, not runtime
-          const offsetValue = this._tryEvaluateConstant(exprs[0]);
-          const lengthValue = this._tryEvaluateConstant(exprs[1]);
-
-          const line = exprs[0].start?.line ?? arrayAccessCtx.start?.line ?? 0;
-
-          // Issue #234: Reject slice assignment on multi-dimensional arrays
-          // Slice assignment is only valid on 1D arrays (the innermost dimension)
-          // For multi-dimensional arrays like board[4][8], use board[row][offset, length]
-          // (Note: grammar currently doesn't support this - tracked as future work)
-          if (
-            typeInfo?.arrayDimensions &&
-            typeInfo.arrayDimensions.length > 1
-          ) {
-            throw new Error(
-              `${line}:0 Error: Slice assignment is only valid on one-dimensional arrays. ` +
-                `'${name}' has ${typeInfo.arrayDimensions.length} dimensions. ` +
-                `Access the innermost dimension first (e.g., ${name}[index][offset, length]).`,
-            );
-          }
-
-          // Validate offset is compile-time constant
-          if (offsetValue === undefined) {
-            throw new Error(
-              `${line}:0 Error: Slice assignment offset must be a compile-time constant. ` +
-                `Runtime offsets are not allowed to ensure bounds safety.`,
-            );
-          }
-
-          // Validate length is compile-time constant
-          if (lengthValue === undefined) {
-            throw new Error(
-              `${line}:0 Error: Slice assignment length must be a compile-time constant. ` +
-                `Runtime lengths are not allowed to ensure bounds safety.`,
-            );
-          }
-
-          // Compound operators not supported for slice assignment
-          if (cOp !== "=") {
-            throw new Error(
-              `Compound assignment operators not supported for slice assignment: ${cnextOp}`,
-            );
-          }
-
-          // Determine buffer capacity for compile-time bounds check
-          let capacity: number;
-          if (
-            typeInfo?.isString &&
-            typeInfo.stringCapacity &&
-            !typeInfo.isArray
-          ) {
-            capacity = typeInfo.stringCapacity + 1;
-          } else if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions[0]) {
-            capacity = typeInfo.arrayDimensions[0];
-          } else {
-            // Can't determine capacity at compile time - this shouldn't happen
-            // for properly tracked arrays, but fall back to error
-            throw new Error(
-              `${line}:0 Error: Cannot determine buffer size for '${name}' at compile time.`,
-            );
-          }
-
-          // Issue #234: Compile-time bounds validation
-          if (offsetValue + lengthValue > capacity) {
-            throw new Error(
-              `${line}:0 Error: Slice assignment out of bounds: ` +
-                `offset(${offsetValue}) + length(${lengthValue}) = ${offsetValue + lengthValue} ` +
-                `exceeds buffer capacity(${capacity}) for '${name}'.`,
-            );
-          }
-
-          if (offsetValue < 0) {
-            throw new Error(
-              `${line}:0 Error: Slice assignment offset cannot be negative: ${offsetValue}`,
-            );
-          }
-
-          if (lengthValue <= 0) {
-            throw new Error(
-              `${line}:0 Error: Slice assignment length must be positive: ${lengthValue}`,
-            );
-          }
-
-          // Set flag to include string.h for memcpy
-          this.needsString = true;
-
-          // Generate memcpy without runtime bounds check (already validated at compile time)
-          return `memcpy(&${name}[${offsetValue}], &${value}, ${lengthValue});`;
-        }
-
-        // Normal array element assignment (single index)
-        const index = this._generateExpression(exprs[0]);
-
-        // Check if this is a string array (e.g., string<64> arr[4])
-        // String arrays need strncpy, not direct assignment
-        if (
-          typeInfo?.isString &&
-          typeInfo.arrayDimensions &&
-          typeInfo.arrayDimensions.length > 1
-        ) {
-          // This is a string array (multi-dimensional: [array_size, string_capacity])
-          // arr[0] <- "value" should generate: strncpy(arr[index], value, capacity);
-          const capacity = typeInfo.stringCapacity;
-          if (!capacity) {
-            throw new Error(
-              `Error: String array ${name} missing capacity information`,
-            );
-          }
-          if (cOp !== "=") {
-            throw new Error(
-              `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
-            );
-          }
-          this.needsString = true; // Ensure #include <string.h>
-          return `strncpy(${name}[${index}], ${value}, ${capacity});`;
-        }
-
-        return `${name}[${index}] ${cOp} ${value};`;
-      }
-
-      // Bit manipulation for scalar types
-      // Compound operators not supported for bit field access
-      if (isCompound) {
-        throw new Error(
-          `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-        );
-      }
-
-      // Float bit indexing: use shadow variable + memcpy
-      const isFloatType =
-        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
-      if (isFloatType) {
-        this.needsString = true; // For memcpy
-        this.needsFloatStaticAssert = true; // For size verification
-        const isF64 = typeInfo?.baseType === "f64";
-        const shadowType = isF64 ? "uint64_t" : "uint32_t";
-        const shadowName = `__bits_${name}`;
-        const maskSuffix = isF64 ? "ULL" : "U";
-
-        // Check if shadow variable needs declaration
-        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
-        if (needsDeclaration) {
-          this.context.floatBitShadows.add(shadowName);
-        }
-
-        // Check if shadow already has current value (skip redundant memcpy read)
-        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-
-        if (exprs.length === 1) {
-          // Single bit assignment: floatVar[3] <- true
-          const bitIndex = this._generateExpression(exprs[0]);
-          const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
-          const readMemcpy = shadowIsCurrent
-            ? ""
-            : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
-          // Mark shadow as current after this write
-          this.context.floatShadowCurrent.add(shadowName);
-          return (
-            `${decl}${readMemcpy}` +
-            `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
-            `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
-          );
-        } else if (exprs.length === 2) {
-          // Bit range assignment: floatVar[0, 8] <- b0
-          const start = this._generateExpression(exprs[0]);
-          const width = this._generateExpression(exprs[1]);
-          const mask = this.generateBitMask(width, isF64);
-          const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
-          const readMemcpy = shadowIsCurrent
-            ? ""
-            : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
-          // Mark shadow as current after this write
-          this.context.floatShadowCurrent.add(shadowName);
-          return (
-            `${decl}${readMemcpy}` +
-            `${shadowName} = (${shadowName} & ~(${mask} << ${start})) | (((${shadowType})${value} & ${mask}) << ${start}); ` +
-            `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
-          );
-        }
-      }
-
-      if (exprs.length === 1) {
-        // Single bit assignment: flags[3] <- true
-        const bitIndex = this._generateExpression(exprs[0]);
-        // Generate: name = (name & ~(1 << index)) | ((value ? 1 : 0) << index)
-        return `${name} = (${name} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-      } else if (exprs.length === 2) {
-        // Bit range assignment: flags[0, 3] <- 5
-        const start = this._generateExpression(exprs[0]);
-        const width = this._generateExpression(exprs[1]);
-        // Generate: name = (name & ~(mask << start)) | ((value & mask) << start)
-        const mask = this.generateBitMask(width);
-        return `${name} = (${name} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
-      }
-    }
-
-    // Bug #8: Handle bit assignment on multi-dimensional array elements
-    // e.g., matrix[ROW][COL][FIELD_BIT] <- false
-    // where matrix is u8[4][4] and FIELD_BIT is a bit index on the u8 element
-    if (targetCtx.memberAccess()) {
-      const memberAccessCtx = targetCtx.memberAccess()!;
-      const identifiers = memberAccessCtx.IDENTIFIER();
-      const exprs = memberAccessCtx.expression();
-
-      // Check if first identifier is an array with known dimensions
-      if (identifiers.length === 1 && exprs.length > 0) {
-        const arrayName = identifiers[0].getText();
-        const typeInfo = this.context.typeRegistry.get(arrayName);
-
-        if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-          const numDims = typeInfo.arrayDimensions.length;
-          const numSubscripts = exprs.length;
-
-          // If we have more subscripts than dimensions, the extra one is a bit index
-          if (numSubscripts === numDims + 1) {
-            const elementType = typeInfo.baseType;
-            const isPrimitiveInt = [
-              "u8",
-              "u16",
-              "u32",
-              "u64",
-              "i8",
-              "i16",
-              "i32",
-              "i64",
-            ].includes(elementType);
-
-            if (isPrimitiveInt) {
-              // Compound operators not supported for bit field access
-              if (isCompound) {
-                throw new Error(
-                  `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-                );
-              }
-
-              // Generate array access for dimensions, then bit assignment
-              const arrayIndices = exprs
-                .slice(0, numDims)
-                .map((e) => `[${this._generateExpression(e)}]`)
-                .join("");
-              const bitIndex = this._generateExpression(exprs[numDims]);
-              const arrayElement = `${arrayName}${arrayIndices}`;
-
-              // Generate: arr[i][j] = (arr[i][j] & ~(1 << bitIndex)) | ((value ? 1 : 0) << bitIndex)
-              return `${arrayElement} = (${arrayElement} & ~(1 << ${bitIndex})) | (${this.foldBooleanToInt(value)} << ${bitIndex});`;
-            }
-          }
-        }
-      }
-    }
-
-    // Normal assignment (simple or compound)
-    const target = this.generateAssignmentTarget(targetCtx);
-
-    // ADR-049: Handle atomic compound assignments with LDREX/STREX or PRIMASK
-    if (isCompound && targetCtx.IDENTIFIER()) {
-      const id = targetCtx.IDENTIFIER()!.getText();
-      const typeInfo = this.context.typeRegistry.get(id);
-
-      if (typeInfo?.isAtomic) {
-        return this.generateAtomicRMW(target, cOp, value, typeInfo);
-      }
-    }
-
-    // ADR-044: Handle compound assignments with overflow behavior (non-atomic)
-    if (isCompound && targetCtx.IDENTIFIER()) {
-      const id = targetCtx.IDENTIFIER()!.getText();
-      const typeInfo = this.context.typeRegistry.get(id);
-
-      if (
-        typeInfo &&
-        typeInfo.overflowBehavior === "clamp" &&
-        TYPE_WIDTH[typeInfo.baseType] &&
-        !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic (overflow to infinity)
-      ) {
-        // Clamp behavior: use helper function (integers only)
-        const opMap: Record<string, string> = {
-          "+=": "add",
-          "-=": "sub",
-          "*=": "mul",
-        };
-        const helperOp = opMap[cOp];
-
-        if (helperOp) {
-          this.markClampOpUsed(helperOp, typeInfo.baseType);
-          return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
-        }
-      }
-      // Wrap behavior or non-integer: use natural C arithmetic (fall through)
-    }
-
-    // ADR-044: Handle compound assignments with overflow behavior for this.member access
-    // Issue #387: Updated to use unified grammar (this. with no postfix ops = simple member)
-    const isSimpleThisAccess =
-      targetCtx.THIS() !== null && targetCtx.postfixTargetOp().length === 0;
-    if (isCompound && isSimpleThisAccess && this.context.currentScope) {
-      const memberName = targetCtx.IDENTIFIER()!.getText();
-      const scopedName = `${this.context.currentScope}_${memberName}`;
-      const typeInfo = this.context.typeRegistry.get(scopedName);
-
-      if (
-        typeInfo &&
-        typeInfo.overflowBehavior === "clamp" &&
-        TYPE_WIDTH[typeInfo.baseType] &&
-        !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-      ) {
-        // Clamp behavior: use helper function (integers only)
-        const opMap: Record<string, string> = {
-          "+=": "add",
-          "-=": "sub",
-          "*=": "mul",
-        };
-        const helperOp = opMap[cOp];
-
-        if (helperOp) {
-          this.markClampOpUsed(helperOp, typeInfo.baseType);
-          return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
-        }
-      }
-      // Wrap behavior or non-integer: use natural C arithmetic (fall through)
-    }
-
-    // Check for struct member string array assignment: struct.arr[0] <- "value"
-    if (targetCtx.memberAccess()) {
-      const structMemberAccessCtx = targetCtx.memberAccess()!;
-      const identifiers = structMemberAccessCtx.IDENTIFIER();
-      const exprs = structMemberAccessCtx.expression();
-
-      // Pattern: struct.field[index] (2 identifiers, 1 expression)
-      if (identifiers.length === 2 && exprs.length === 1) {
-        const structName = identifiers[0].getText();
-        const fieldName = identifiers[1].getText();
-
-        const structTypeInfo = this.context.typeRegistry.get(structName);
-        if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
-          const structType = structTypeInfo.baseType;
-
-          // Check if this field is a string array in the struct
-          const fieldDimensions =
-            this.symbols!.structFieldDimensions.get(structType);
-          const dimensions = fieldDimensions?.get(fieldName);
-          const fieldArrays = this.symbols!.structFieldArrays.get(structType);
-          const isArrayField = fieldArrays?.has(fieldName);
-
-          // Check if field type is string (stored as "string<N>" in C-Next)
-          const structFields = this.symbols!.structFields.get(structType);
-          const fieldType = structFields?.get(fieldName);
-
-          // String arrays in structs: field type starts with "string<" and has multi-dimensional array
-          if (
-            fieldType &&
-            fieldType.startsWith("string<") &&
-            isArrayField &&
-            dimensions &&
-            dimensions.length > 1
-          ) {
-            // This is a string array: dimensions are [array_size, string_capacity]
-            const capacity = dimensions.at(-1)! - 1; // -1 because we added +1 for null terminator
-
-            if (cOp !== "=") {
-              throw new Error(
-                `Error: Compound operators not supported for string array assignment: ${cnextOp}`,
-              );
-            }
-            this.needsString = true; // Ensure #include <string.h>
-            const index = this._generateExpression(exprs[0]);
-            return `strncpy(${structName}.${fieldName}[${index}], ${value}, ${capacity});`;
-          }
-        }
-      }
-    }
-
-    // Issue #139: Handle simple string variable assignment
-    // Pattern: identifier <- stringValue (where identifier is a string type, not an array)
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      const id = targetCtx.IDENTIFIER()!.getText();
-      const typeInfo = this.context.typeRegistry.get(id);
-
-      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-        // String arrays are handled earlier (line ~4969), this handles simple string variables
-        // Check that this is not a string array (single dimension = just the capacity)
-        if (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1) {
-          if (cOp !== "=") {
-            throw new Error(
-              `Error: Compound operators not supported for string assignment: ${cnextOp}`,
-            );
-          }
-          this.needsString = true;
-          const capacity = typeInfo.stringCapacity;
-          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
-        }
-      }
-    }
-
-    // Issue #139: Handle this.member string assignment (ADR-016 scopes)
-    // Issue #387: Updated to use unified grammar
-    if (isSimpleThisAccess && this.context.currentScope) {
-      const memberName = targetCtx.IDENTIFIER()!.getText();
-      const scopedName = `${this.context.currentScope}_${memberName}`;
-      const typeInfo = this.context.typeRegistry.get(scopedName);
-
-      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-        if (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1) {
-          if (cOp !== "=") {
-            throw new Error(
-              `Error: Compound operators not supported for string assignment: ${cnextOp}`,
-            );
-          }
-          this.needsString = true;
-          const capacity = typeInfo.stringCapacity;
-          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
-        }
-      }
-    }
-
-    // Issue #139: Handle global.member string assignment (ADR-016 global accessor)
-    // Issue #387: Updated to use unified grammar (global. with no postfix ops = simple global)
-    const isSimpleGlobalAccess =
-      targetCtx.GLOBAL() !== null && targetCtx.postfixTargetOp().length === 0;
-    if (isSimpleGlobalAccess) {
-      const id = targetCtx.IDENTIFIER()!.getText();
-      const typeInfo = this.context.typeRegistry.get(id);
-
-      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-        if (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1) {
-          if (cOp !== "=") {
-            throw new Error(
-              `Error: Compound operators not supported for string assignment: ${cnextOp}`,
-            );
-          }
-          this.needsString = true;
-          const capacity = typeInfo.stringCapacity;
-          return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
-        }
-      }
-    }
-
-    // Issue #139: Handle struct.field string assignment (non-array string field)
-    if (targetCtx.memberAccess()) {
-      const memberAccessCtx = targetCtx.memberAccess()!;
-      const identifiers = memberAccessCtx.IDENTIFIER();
-      const exprs = memberAccessCtx.expression();
-
-      // Pattern: struct.field (2 identifiers, 0 expressions) - non-array member
-      if (identifiers.length === 2 && exprs.length === 0) {
-        const structName = identifiers[0].getText();
-        const fieldName = identifiers[1].getText();
-
-        const structTypeInfo = this.context.typeRegistry.get(structName);
-        if (structTypeInfo && this.isKnownStruct(structTypeInfo.baseType)) {
-          const structType = structTypeInfo.baseType;
-          const structFields = this.symbols!.structFields.get(structType);
-          const fieldType = structFields?.get(fieldName);
-
-          // Check if field is a string type (non-array)
-          if (fieldType && fieldType.startsWith("string<")) {
-            const match = /^string<(\d+)>$/.exec(fieldType);
-            if (match) {
-              if (cOp !== "=") {
-                throw new Error(
-                  `Error: Compound operators not supported for string assignment: ${cnextOp}`,
-                );
-              }
-              const capacity = Number.parseInt(match[1], 10);
-              this.needsString = true;
-              return `strncpy(${structName}.${fieldName}, ${value}, ${capacity}); ${structName}.${fieldName}[${capacity}] = '\\0';`;
-            }
-          }
-        }
-      }
-    }
-
-    return `${target} ${cOp} ${value};`;
+    // ADR-109: Dispatch to assignment handlers
+    // Build context, classify, and dispatch - all patterns handled by handlers
+    const assignCtx = buildAssignmentContext(ctx, {
+      typeRegistry: this.context.typeRegistry,
+      generateExpression: () => value,
+    });
+    const handlerDeps = this.buildHandlerDeps();
+    const classifier = new AssignmentClassifier({
+      symbols: handlerDeps.symbols,
+      typeRegistry: handlerDeps.typeRegistry,
+      currentScope: handlerDeps.currentScope,
+      isKnownStruct: handlerDeps.isKnownStruct,
+      isKnownScope: handlerDeps.isKnownScope,
+      getMemberTypeInfo: handlerDeps.getMemberTypeInfo,
+    });
+    const assignmentKind = classifier.classify(assignCtx);
+    const handler = assignmentHandlers.getHandler(assignmentKind);
+    return handler(assignCtx, handlerDeps);
   }
 
   /**
@@ -9059,7 +7829,7 @@ export default class CodeGenerator implements IOrchestrator {
                 const memberType = fieldInfo.type;
                 const dimensions = fieldInfo.dimensions;
                 // ADR-045: Check if this is a string field
-                const isStringField = memberType.startsWith("string<");
+                const isStringField = TypeCheckUtils.isString(memberType);
 
                 if (dimensions && dimensions.length > 1 && isStringField) {
                   // String array field: string<64> arr[4]
@@ -9196,7 +7966,7 @@ export default class CodeGenerator implements IOrchestrator {
                   // ADR-017: Enum array element .length returns 32 (default enum size)
                   result = "32";
                 } else if (
-                  typeInfo.baseType.startsWith("string<") ||
+                  TypeCheckUtils.isString(typeInfo.baseType) ||
                   typeInfo.isString
                 ) {
                   // ADR-045/Issue #136: String array element .length -> strlen(arr[index])
@@ -9651,10 +8421,7 @@ export default class CodeGenerator implements IOrchestrator {
           // Priority: register access > tracked member array > struct member primitive int > primary array > default bit access
           // Bug #8: Check currentStructType BEFORE isPrimaryArray to handle items[0].byte[7] correctly
           const isPrimitiveIntMember =
-            currentStructType &&
-            ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-              currentStructType,
-            );
+            currentStructType && TypeCheckUtils.isInteger(currentStructType);
 
           if (isRegisterAccess) {
             // Register - use bit access: ((value >> index) & 1)
@@ -9698,10 +8465,7 @@ export default class CodeGenerator implements IOrchestrator {
             // Check identifierTypeInfo for simple variables (not through member access)
             const typeToCheck = identifierTypeInfo?.baseType;
             const isPrimitiveInt =
-              typeToCheck &&
-              ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-                typeToCheck,
-              );
+              typeToCheck && TypeCheckUtils.isInteger(typeToCheck);
             if (isPrimitiveInt) {
               // Primitive integer - use bit access: ((value >> index) & 1)
               result = `((${result} >> ${index}) & 1)`;
@@ -10308,7 +9072,7 @@ export default class CodeGenerator implements IOrchestrator {
         } else if (expressions.length === 2) {
           const start = this._generateExpression(expressions[0]);
           const width = this._generateExpression(expressions[1]);
-          const mask = this.generateBitMask(width);
+          const mask = BitUtils.generateMask(width);
           if (start === "0") {
             return `((${registerName}) & ${mask})`;
           }
@@ -10424,9 +9188,7 @@ export default class CodeGenerator implements IOrchestrator {
               const isPrimitiveInt =
                 lastMemberType &&
                 !lastMemberIsArray &&
-                ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-                  lastMemberType,
-                );
+                TypeCheckUtils.isInteger(lastMemberType);
               const isLastExpr = exprIndex === expressions.length - 1;
 
               if (
@@ -10808,7 +9570,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private _indent(text: string): string {
-    const spaces = "    ".repeat(this.context.indentLevel);
+    const spaces = FormatUtils.indent(this.context.indentLevel);
     return text
       .split("\n")
       .map((line) => spaces + line)
@@ -11092,7 +9854,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private markClampOpUsed(operation: string, cnxType: string): void {
     // Only generate helpers for integer types (not float/bool)
-    if (TYPE_WIDTH[cnxType] && !cnxType.startsWith("f") && cnxType !== "bool") {
+    if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
       this.usedClampOps.add(`${operation}_${cnxType}`);
     }
   }
@@ -11138,7 +9900,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
-    const indent = "    ".repeat(this.context.indentLevel);
+    const indent = FormatUtils.indent(this.context.indentLevel);
     return commentFormatLeadingComments(
       comments,
       this.commentFormatter,

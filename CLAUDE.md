@@ -34,6 +34,10 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 - **Pre-commit hooks**: The vscode-extension requires named exports (`activate`, `deactivate`) per VS Code API. Use `git commit --no-verify` when committing vscode-extension changes, as oxlint's no-named-export rule conflicts with VS Code requirements.
 
+### Git Merge Commits
+
+- **Pre-commit hooks during merges**: Hooks run on ALL files from both branches, not just conflict-resolved files. If unrelated files have lint issues, use `--no-verify` for the merge commit (tests must still pass).
+
 ### SonarCloud
 
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
@@ -41,6 +45,8 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 ### TypeScript Coding Standards
 
 **Default exports only** - The project uses oxlint's `no-named-export` rule.
+
+**No re-exports for public APIs** - Don't create barrel files that re-export types (causes unused import errors). Consumers should import directly from source files.
 
 **Static classes for utilities** - Use static classes (not object literals) for modules with multiple related functions:
 
