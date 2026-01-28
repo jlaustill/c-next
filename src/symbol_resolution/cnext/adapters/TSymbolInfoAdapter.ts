@@ -9,6 +9,7 @@
  */
 
 import ISymbolInfo from "../../../codegen/generators/ISymbolInfo";
+import CNEXT_TO_C_TYPE_MAP from "../../../constants/TypeMappings";
 import ESymbolKind from "../../../types/ESymbolKind";
 import TSymbol from "../../types/TSymbol";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
@@ -18,20 +19,6 @@ import IStructSymbol from "../../types/IStructSymbol";
 import IRegisterSymbol from "../../types/IRegisterSymbol";
 import IScopeSymbol from "../../types/IScopeSymbol";
 import IVariableSymbol from "../../types/IVariableSymbol";
-
-/**
- * Maps C-Next types to C types (for register member type conversion).
- */
-const CNEXT_TO_C_TYPE: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-};
 
 /**
  * Converts TSymbol[] to ISymbolInfo for CodeGenerator.
@@ -371,7 +358,7 @@ class TSymbolInfoAdapter {
   }
 
   private static cnextTypeToCType(typeName: string): string {
-    return CNEXT_TO_C_TYPE[typeName] || typeName;
+    return CNEXT_TO_C_TYPE_MAP[typeName] || typeName;
   }
 
   private static getSingleFunctionForVariable(

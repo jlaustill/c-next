@@ -3,27 +3,11 @@
  *
  * Provides shared type mapping functionality for both header
  * and implementation code generation.
+ *
+ * Source of truth: src/constants/TypeMappings.ts
  */
 
-/**
- * Maps C-Next types to C types
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-  void: "void",
-  ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
-  cstring: "char*", // ADR-046: C string pointer type (nullable)
-};
+import CNEXT_TO_C_TYPE_MAP from "../../constants/TypeMappings";
 
 /**
  * Map a C-Next type to C type
@@ -40,8 +24,8 @@ const TYPE_MAP: Record<string, string> = {
  */
 function mapType(type: string): string {
   // Check direct mapping first
-  if (TYPE_MAP[type]) {
-    return TYPE_MAP[type];
+  if (CNEXT_TO_C_TYPE_MAP[type]) {
+    return CNEXT_TO_C_TYPE_MAP[type];
   }
 
   // Issue #427: Handle string<N> types -> char[N+1]
@@ -75,7 +59,7 @@ function mapType(type: string): string {
  */
 function isBuiltInType(typeName: string): boolean {
   // Direct primitive types
-  if (TYPE_MAP[typeName]) {
+  if (CNEXT_TO_C_TYPE_MAP[typeName]) {
     return true;
   }
 
@@ -87,4 +71,4 @@ function isBuiltInType(typeName: string): boolean {
   return false;
 }
 
-export default { TYPE_MAP, mapType, isBuiltInType };
+export default { TYPE_MAP: CNEXT_TO_C_TYPE_MAP, mapType, isBuiltInType };

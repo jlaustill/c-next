@@ -3,24 +3,7 @@
  */
 
 import * as Parser from "../../../antlr_parser/grammar/CNextParser";
-
-/**
- * C-Next to C type mapping
- */
-const CNEXT_TO_C_TYPE: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-  void: "void",
-};
+import CNEXT_TO_C_TYPE_MAP from "../../../constants/TypeMappings";
 
 class TypeUtils {
   /**
@@ -90,7 +73,7 @@ class TypeUtils {
    * @returns The C type name
    */
   static cnextTypeToCType(typeName: string): string {
-    return CNEXT_TO_C_TYPE[typeName] ?? typeName;
+    return CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
   }
 }
 

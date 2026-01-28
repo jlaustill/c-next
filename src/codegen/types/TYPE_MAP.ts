@@ -1,21 +1,11 @@
 /**
  * Maps C-Next types to C types
+ *
+ * Re-exports shared type mapping for backwards compatibility.
+ * Source of truth: src/constants/TypeMappings.ts
  */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-  f32: "float",
-  f64: "double",
-  bool: "bool",
-  void: "void",
-  ISR: "ISR", // ADR-040: Interrupt Service Routine function pointer
-  cstring: "char*", // ADR-046: C string pointer type (nullable)
-};
+import CNEXT_TO_C_TYPE_MAP from "../../constants/TypeMappings";
+
+const TYPE_MAP: Record<string, string> = CNEXT_TO_C_TYPE_MAP;
 
 export default TYPE_MAP;
