@@ -5705,6 +5705,11 @@ export default class CodeGenerator implements IOrchestrator {
     const atomicMod = ctx.atomicModifier() ? "volatile " : "";
     // Explicit volatile modifier
     const volatileMod = ctx.volatileModifier() ? "volatile " : "";
+    // Issue #525: Add extern for top-level const in C++ for external linkage
+    // In C++, const at file scope has internal linkage by default (like static).
+    // To match the extern declaration in the header, we need extern on the definition too.
+    const externMod =
+      ctx.constModifier() && !this.context.inFunctionBody ? "extern " : "";
 
     // Error if both atomic and volatile are specified
     if (ctx.atomicModifier() && ctx.volatileModifier()) {
@@ -5762,7 +5767,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Check for string arrays: string<64> arr[4] -> char arr[4][65] = {0};
         if (arrayDims.length > 0) {
-          let decl = `${constMod}${atomicMod}${volatileMod}char ${name}`;
+          let decl = `${externMod}${constMod}${atomicMod}${volatileMod}char ${name}`;
 
           // Issue #380: Handle array initializers for string arrays
           if (ctx.expression()) {
@@ -5968,10 +5973,10 @@ export default class CodeGenerator implements IOrchestrator {
             );
           }
 
-          return `${constMod}char ${name}[${capacity + 1}] = ${this._generateExpression(ctx.expression()!)};`;
+          return `${externMod}${constMod}char ${name}[${capacity + 1}] = ${this._generateExpression(ctx.expression()!)};`;
         } else {
           // Empty string initialization
-          return `${constMod}char ${name}[${capacity + 1}] = "";`;
+          return `${externMod}${constMod}char ${name}[${capacity + 1}] = "";`;
         }
       } else {
         // ADR-045: Unsized string - requires const and string literal for inference
@@ -6011,11 +6016,11 @@ export default class CodeGenerator implements IOrchestrator {
           stringCapacity: inferredCapacity,
         });
 
-        return `const char ${name}[${inferredCapacity + 1}] = ${exprText};`;
+        return `${externMod}const char ${name}[${inferredCapacity + 1}] = ${exprText};`;
       }
     }
 
-    let decl = `${constMod}${atomicMod}${volatileMod}${type} ${name}`;
+    let decl = `${externMod}${constMod}${atomicMod}${volatileMod}${type} ${name}`;
     // ADR-036: arrayDimension() now returns an array for multi-dimensional support
     const arrayDims = ctx.arrayDimension();
     const isArray = arrayDims.length > 0;

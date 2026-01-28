@@ -10,15 +10,15 @@
 // Tests: Const variable declarations and usage
 // Demonstrates: const primitives, const in expressions
 // Module-level constants
-const uint32_t MAX_VALUE = 100;
+extern const uint32_t MAX_VALUE = 100;
 
-const uint8_t VERSION_MAJOR = 1;
+extern const uint8_t VERSION_MAJOR = 1;
 
-const uint8_t VERSION_MINOR = 2;
+extern const uint8_t VERSION_MINOR = 2;
 
-const float PI = 3.14159;
+extern const float PI = 3.14159;
 
-const bool ENABLED = true;
+extern const bool ENABLED = true;
 
 int main(void) {
     if (MAX_VALUE != 100) return 1;

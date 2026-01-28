@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // Test: ADR-016 this. and global. keywords for explicit scope qualification
-const uint8_t globalValue = 10;
+extern const uint8_t globalValue = 10;
 
 /* Scope: Motor */
 static uint8_t Motor_state = 0;

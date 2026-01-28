@@ -12,7 +12,7 @@
 // Issue #380: String array initializers
 // Tests: const string array with inline initialization
 // Array of bounded strings with initializer
-const char LABELS[3][11] = {"One", "Two", "Three"};
+extern const char LABELS[3][11] = {"One", "Two", "Three"};
 
 // Non-const string array with initializer
 char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};

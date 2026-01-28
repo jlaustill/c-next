@@ -1,0 +1,23 @@
+// test-execution
+// Issue #525: Top-level const variables need extern for C++ external linkage
+// When const is at file scope, the generated .c file should include extern
+// to give the definition external linkage (matching the header declaration)
+
+// Define top-level const - should generate "extern const uint8_t MAX_COUNT = 8;"
+const u8 MAX_COUNT <- 8;
+const u16 BUFFER_SIZE <- 256;
+
+// Non-const global should NOT have extern
+u8 mutableGlobal <- 0;
+
+u32 main() {
+    // Test const values
+    if (MAX_COUNT != 8) return 1;
+    if (BUFFER_SIZE != 256) return 2;
+
+    // Test mutable global
+    mutableGlobal <- 42;
+    if (mutableGlobal != 42) return 3;
+
+    return 0;
+}

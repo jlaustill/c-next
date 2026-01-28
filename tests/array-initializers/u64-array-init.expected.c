@@ -32,7 +32,7 @@ uint64_t buffer[100] = {0};
 uint64_t ones[50] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 // Const lookup table (factorials)
-const uint64_t factorials[10] = {1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880};
+extern const uint64_t factorials[10] = {1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880};
 
 int main(void) {
     if (timestamps[0] != 1000000000000) return 1;

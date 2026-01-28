@@ -10,17 +10,17 @@
 // Tests: Issue #234 - Slice assignment with const variable offsets
 // Validates that const variables are recognized as compile-time constants
 // and can be used for slice offset and length parameters.
-const uint32_t OFFSET_MAGIC = 0;
+extern const uint32_t OFFSET_MAGIC = 0;
 
-const uint32_t OFFSET_VERSION = 4;
+extern const uint32_t OFFSET_VERSION = 4;
 
-const uint32_t OFFSET_FLAGS = 6;
+extern const uint32_t OFFSET_FLAGS = 6;
 
-const uint8_t LEN_MAGIC = 4;
+extern const uint8_t LEN_MAGIC = 4;
 
-const uint8_t LEN_VERSION = 2;
+extern const uint8_t LEN_VERSION = 2;
 
-const uint8_t LEN_FLAGS = 1;
+extern const uint8_t LEN_FLAGS = 1;
 
 int main(void) {
     uint8_t buffer[64] = {0};

@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-027: Do-while with equality condition
-const uint8_t END_MARKER = 0xFF;
+extern const uint8_t END_MARKER = 0xFF;
 
 void readUntilEnd(void) {
     uint8_t byte = 0;

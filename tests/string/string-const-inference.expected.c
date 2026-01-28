@@ -6,6 +6,6 @@
 #include <string.h>
 
 // ADR-045: Test const string capacity inference from literal
-const char VERSION[6] = "1.0.0";
+extern const char VERSION[6] = "1.0.0";
 
-const char APP_NAME[6] = "MyApp";
+extern const char APP_NAME[6] = "MyApp";

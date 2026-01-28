@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013 + ADR-044: Const clamp u16 combination
 // Tests: const clamp u16 declaration and read access
-const uint16_t MAX_ADC = 4095;
+extern const uint16_t MAX_ADC = 4095;
 
-const uint16_t THRESHOLD = 2048;
+extern const uint16_t THRESHOLD = 2048;
 
 int main(void) {
     uint16_t maxAdc = MAX_ADC;

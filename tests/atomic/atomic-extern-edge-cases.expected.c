@@ -36,7 +36,7 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 }
 
 // Edge case 1: atomic + const combination
-const volatile uint32_t CONFIG = 42;
+extern const volatile uint32_t CONFIG = 42;
 
 // Edge case 2: atomic 2D array
 volatile uint8_t matrix[4][4] = {0};

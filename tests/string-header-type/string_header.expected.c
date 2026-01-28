@@ -10,7 +10,7 @@
 // Bug #427: Headers emit string<N> instead of char[N+1]
 char greeting[33] = "Hello";
 
-const char labels[3][17] = {"one", "two", "three"};
+extern const char labels[3][17] = {"one", "two", "three"};
 
 int main(void) {
     uint8_t len = strlen(greeting);
