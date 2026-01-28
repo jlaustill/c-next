@@ -97,7 +97,7 @@ void LED_clearInterrupt(void) {
 // =============================================================================
 // Sketch Configuration (user-level, not platform-specific)
 // =============================================================================
-const uint32_t BLINK_DELAY_MS = 1000;
+extern const uint32_t BLINK_DELAY_MS = 1000;
 
 // =============================================================================
 // Arduino Entry Points
