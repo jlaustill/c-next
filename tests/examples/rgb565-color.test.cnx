@@ -1,0 +1,84 @@
+// Example: RGB565 Color Manipulation
+// test-execution
+//
+// Demonstrates C-Next's bit indexing syntax with a real-world use case.
+// RGB565 is a common 16-bit color format used in embedded displays,
+// game consoles, and graphics applications.
+//
+// Format (16 bits total):
+//   Bits 15-11: Red   (5 bits, values 0-31)
+//   Bits 10-5:  Green (6 bits, values 0-63)
+//   Bits 4-0:   Blue  (5 bits, values 0-31)
+//
+// Fun fact: Green gets an extra bit because the human eye has more
+// green-sensitive cone cells, so displays allocate more precision
+// to green for better perceived color quality.
+//
+// C-Next syntax:  pixel[start, width]
+// Meaning:        "width bits starting at bit position start"
+
+u32 main() {
+    // === Reading color components ===
+
+    // A sample pixel value
+    u16 pixel <- 0x7BEF;
+
+    // Extract each color channel using bit indexing
+    u8 red   <- pixel[11, 5];   // 5 bits at position 11
+    u8 green <- pixel[5, 6];    // 6 bits at position 5
+    u8 blue  <- pixel[0, 5];    // 5 bits at position 0
+
+    // Verify extraction
+    if (red != 15) return 1;
+    if (green != 31) return 2;
+    if (blue != 15) return 3;
+
+    // === Common color constants ===
+
+    // Pure red: all red bits set, others zero
+    u16 pureRed <- 0xF800;
+    if (pureRed[11, 5] != 31) return 4;
+    if (pureRed[5, 6] != 0) return 5;
+    if (pureRed[0, 5] != 0) return 6;
+
+    // Pure green: all green bits set
+    u16 pureGreen <- 0x07E0;
+    if (pureGreen[11, 5] != 0) return 7;
+    if (pureGreen[5, 6] != 63) return 8;
+    if (pureGreen[0, 5] != 0) return 9;
+
+    // Pure blue: all blue bits set
+    u16 pureBlue <- 0x001F;
+    if (pureBlue[11, 5] != 0) return 10;
+    if (pureBlue[5, 6] != 0) return 11;
+    if (pureBlue[0, 5] != 31) return 12;
+
+    // === Modifying a single channel ===
+
+    // Start with our original color and boost green to max
+    u16 modified <- 0x7BEF;
+    modified[5, 6] <- 63;
+
+    // Red and blue should be unchanged
+    if (modified[11, 5] != 15) return 13;
+    if (modified[5, 6] != 63) return 14;
+    if (modified[0, 5] != 15) return 15;
+
+    // === Building a color from scratch ===
+
+    u16 custom <- 0;
+    custom[11, 5] <- 31;   // Red = max (31)
+    custom[5, 6] <- 32;    // Green = half (32 of 63)
+    custom[0, 5] <- 16;    // Blue = half (16 of 31)
+
+    // Verify each channel
+    if (custom[11, 5] != 31) return 16;
+    if (custom[5, 6] != 32) return 17;
+    if (custom[0, 5] != 16) return 18;
+
+    // Verify the final packed value
+    // Binary: 11111 100000 10000 = 0xFC10
+    if (custom != 0xFC10) return 19;
+
+    return 0;
+}
