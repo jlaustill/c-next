@@ -12,8 +12,8 @@
  *   npm run test:cli
  */
 
-import { execFileSync, execSync } from "node:child_process";
-import { existsSync, unlinkSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 

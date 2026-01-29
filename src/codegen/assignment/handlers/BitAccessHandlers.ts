@@ -103,9 +103,7 @@ function handleStructMemberBit(
   const target = deps.generateAssignmentTarget(ctx.targetCtx);
 
   // Extract the bit index from the last subscript
-  const bitIndex = deps.generateExpression(
-    ctx.subscripts[ctx.subscripts.length - 1],
-  );
+  const bitIndex = deps.generateExpression(ctx.subscripts.at(-1)!);
 
   // Get the member type to determine if we need 1ULL for 64-bit
   // For now, use conservative approach with 1

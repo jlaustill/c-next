@@ -1243,7 +1243,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Extract just the class name (part after last ::)
     // e.g., TestNS::MyClass -> MyClass, CppTestClass -> CppTestClass
     const parts = qualifiedName.split("::");
-    const className = parts[parts.length - 1];
+    const className = parts.at(-1)!;
 
     // Constructor name follows the pattern: FullTypeName::ClassName
     // e.g., TestNS::MyClass::MyClass, CppTestClass::CppTestClass
@@ -8361,7 +8361,7 @@ export default class CodeGenerator implements IOrchestrator {
             const line = primary.start?.line ?? 0;
             throw new Error(
               `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-                `Use named field access instead (e.g., ${result.split("_").slice(-1)[0]}.FIELD_NAME).`,
+                `Use named field access instead (e.g., ${result.split("_").at(-1)}.FIELD_NAME).`,
             );
           }
 
