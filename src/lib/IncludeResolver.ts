@@ -50,9 +50,9 @@ class IncludeResolver {
   /** Resolved includes interface for external use */
   static readonly ResolvedIncludesType: IResolvedIncludes = undefined as never;
 
-  private resolvedPaths: Set<string> = new Set();
+  private readonly resolvedPaths: Set<string> = new Set();
 
-  constructor(private searchPaths: string[]) {}
+  constructor(private readonly searchPaths: string[]) {}
 
   /**
    * Extract includes from source content and resolve them to files

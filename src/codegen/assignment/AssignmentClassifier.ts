@@ -47,7 +47,7 @@ interface IClassifierDeps {
  * 7. Simple fallback
  */
 class AssignmentClassifier {
-  constructor(private deps: IClassifierDeps) {}
+  constructor(private readonly deps: IClassifierDeps) {}
 
   /**
    * Classify an assignment context into an AssignmentKind.

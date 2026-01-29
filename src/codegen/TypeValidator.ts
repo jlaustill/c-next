@@ -22,19 +22,19 @@ const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
  * TypeValidator class - validates types, assignments, and control flow at compile time
  */
 class TypeValidator {
-  private symbols: ISymbolInfo | null;
-  private symbolTable: SymbolTable | null;
-  private typeRegistry: Map<string, TTypeInfo>;
-  private typeResolver: TypeResolver;
-  private callbackTypes: Map<string, ICallbackTypeInfo>;
-  private knownFunctions: Set<string>;
-  private knownGlobals: Set<string>;
-  private getCurrentScopeFn: () => string | null;
-  private getScopeMembersFn: () => Map<string, Set<string>>;
-  private getCurrentParametersFn: () => Map<string, TParameterInfo>;
-  private getLocalVariablesFn: () => Set<string>;
-  private resolveIdentifierFn: (name: string) => string;
-  private getExpressionTypeFn: (ctx: unknown) => string | null;
+  private readonly symbols: ISymbolInfo | null;
+  private readonly symbolTable: SymbolTable | null;
+  private readonly typeRegistry: Map<string, TTypeInfo>;
+  private readonly typeResolver: TypeResolver;
+  private readonly callbackTypes: Map<string, ICallbackTypeInfo>;
+  private readonly knownFunctions: Set<string>;
+  private readonly knownGlobals: Set<string>;
+  private readonly getCurrentScopeFn: () => string | null;
+  private readonly getScopeMembersFn: () => Map<string, Set<string>>;
+  private readonly getCurrentParametersFn: () => Map<string, TParameterInfo>;
+  private readonly getLocalVariablesFn: () => Set<string>;
+  private readonly resolveIdentifierFn: (name: string) => string;
+  private readonly getExpressionTypeFn: (ctx: unknown) => string | null;
 
   constructor(deps: ITypeValidatorDeps) {
     this.symbols = deps.symbols;

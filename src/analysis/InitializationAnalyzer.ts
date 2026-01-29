@@ -45,10 +45,10 @@ interface IVariableState {
  * Listener that walks the parse tree and tracks initialization
  */
 class InitializationListener extends CNextListener {
-  private analyzer: InitializationAnalyzer;
+  private readonly analyzer: InitializationAnalyzer;
 
   /** Stack of saved states before each if statement */
-  private savedStates: Map<string, IVariableState>[] = [];
+  private readonly savedStates: Map<string, IVariableState>[] = [];
 
   /** Track when we're inside a function call's argument list */
   private inFunctionCallArgs: number = 0;
@@ -423,7 +423,7 @@ class InitializationAnalyzer {
   private scopeStack: ScopeStack<IVariableState> = new ScopeStack();
 
   /** Known struct types and their fields */
-  private structFields: Map<string, Set<string>> = new Map();
+  private readonly structFields: Map<string, Set<string>> = new Map();
 
   /** Track if we're processing a write target (left side of assignment) */
   private inWriteContext: boolean = false;

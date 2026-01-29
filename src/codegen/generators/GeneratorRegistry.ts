@@ -39,19 +39,28 @@ export default class GeneratorRegistry {
    * Declaration generators indexed by declaration kind.
    * Example kinds: 'scope', 'struct', 'enum', 'function', 'variable'
    */
-  private declarations = new Map<string, TGeneratorFn<ParserRuleContext>>();
+  private readonly declarations = new Map<
+    string,
+    TGeneratorFn<ParserRuleContext>
+  >();
 
   /**
    * Statement generators indexed by statement kind.
    * Example kinds: 'if', 'while', 'for', 'assignment', 'return', 'switch'
    */
-  private statements = new Map<string, TGeneratorFn<ParserRuleContext>>();
+  private readonly statements = new Map<
+    string,
+    TGeneratorFn<ParserRuleContext>
+  >();
 
   /**
    * Expression generators indexed by expression kind.
    * Example kinds: 'ternary', 'binary', 'unary', 'call', 'member', 'literal'
    */
-  private expressions = new Map<string, TGeneratorFn<ParserRuleContext>>();
+  private readonly expressions = new Map<
+    string,
+    TGeneratorFn<ParserRuleContext>
+  >();
 
   // =========================================================================
   // Registration Methods

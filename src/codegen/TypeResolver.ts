@@ -16,10 +16,10 @@ import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 
 class TypeResolver {
-  private symbols: ISymbolInfo | null;
-  private symbolTable: SymbolTable | null;
-  private typeRegistry: Map<string, TTypeInfo>;
-  private resolveIdentifierFn: (name: string) => string;
+  private readonly symbols: ISymbolInfo | null;
+  private readonly symbolTable: SymbolTable | null;
+  private readonly typeRegistry: Map<string, TTypeInfo>;
+  private readonly resolveIdentifierFn: (name: string) => string;
 
   constructor(deps: ITypeResolverDeps) {
     this.symbols = deps.symbols;

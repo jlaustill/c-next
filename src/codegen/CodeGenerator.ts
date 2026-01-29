@@ -295,7 +295,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   private commentExtractor: CommentExtractor | null = null;
 
-  private commentFormatter: CommentFormatter = new CommentFormatter();
+  private readonly commentFormatter: CommentFormatter = new CommentFormatter();
 
   /** Type resolution and classification */
   private typeResolver: TypeResolver | null = null;
@@ -307,7 +307,7 @@ export default class CodeGenerator implements IOrchestrator {
   private typeValidator: TypeValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
-  private registry: GeneratorRegistry = new GeneratorRegistry();
+  private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
   /** Issue #250: C++ mode - use temp vars instead of compound literals */
   private cppMode: boolean = false;
@@ -325,20 +325,20 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #269: Tracks which parameters are modified (directly or transitively)
    * Map of functionName -> Set of modified parameter names
    */
-  private modifiedParameters: Map<string, Set<string>> = new Map();
+  private readonly modifiedParameters: Map<string, Set<string>> = new Map();
 
   /**
    * Issue #269: Tracks which parameters should pass by value
    * Map of functionName -> Set of passByValue parameter names
    */
-  private passByValueParams: Map<string, Set<string>> = new Map();
+  private readonly passByValueParams: Map<string, Set<string>> = new Map();
 
   /**
    * Issue #269: Tracks function call relationships for transitive modification analysis
    * Map of functionName -> Array of {callee, paramIndex, argParamName}
    * where argParamName is the caller's parameter passed as argument
    */
-  private functionCallGraph: Map<
+  private readonly functionCallGraph: Map<
     string,
     Array<{ callee: string; paramIndex: number; argParamName: string }>
   > = new Map();
@@ -347,7 +347,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #269: Tracks function parameter lists for call graph analysis
    * Map of functionName -> Array of parameter names in order
    */
-  private functionParamLists: Map<string, string[]> = new Map();
+  private readonly functionParamLists: Map<string, string[]> = new Map();
 
   /**
    * Issue #369: Tracks whether self-include was added.
@@ -1093,7 +1093,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Maps function name -> Set of parameter names that were NOT modified.
    * Used by Pipeline to update symbol info before header generation.
    */
-  private functionUnmodifiedParams: Map<string, Set<string>> = new Map();
+  private readonly functionUnmodifiedParams: Map<string, Set<string>> =
+    new Map();
 
   /**
    * Issue #268: Get unmodified parameters info for all functions.

@@ -20,8 +20,8 @@ import IProjectResult from "./types/IProjectResult";
  * @deprecated Consider using Pipeline directly for new code
  */
 class Project {
-  private config: IProjectConfig;
-  private pipeline: Pipeline;
+  private readonly config: IProjectConfig;
+  private readonly pipeline: Pipeline;
 
   constructor(config: IProjectConfig) {
     this.config = {

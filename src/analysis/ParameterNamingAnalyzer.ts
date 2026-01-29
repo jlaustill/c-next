@@ -47,7 +47,7 @@ function formatParameterNamingError(
  * Listener that walks the parse tree to find parameter naming violations
  */
 class ParameterNamingListener extends CNextListener {
-  private analyzer: ParameterNamingAnalyzer;
+  private readonly analyzer: ParameterNamingAnalyzer;
 
   constructor(analyzer: ParameterNamingAnalyzer) {
     super();

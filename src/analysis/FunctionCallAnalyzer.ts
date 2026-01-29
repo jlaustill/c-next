@@ -220,7 +220,7 @@ const STDLIB_FUNCTIONS: Map<string, Set<string>> = new Map([
  * Listener that walks the parse tree and checks function calls
  */
 class FunctionCallListener extends CNextListener {
-  private analyzer: FunctionCallAnalyzer;
+  private readonly analyzer: FunctionCallAnalyzer;
 
   /** Current scope name (for member function resolution) */
   private currentScope: string | null = null;

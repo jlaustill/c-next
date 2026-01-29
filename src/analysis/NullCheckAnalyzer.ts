@@ -201,7 +201,7 @@ interface INullCheckScope {
  * Listener that walks the parse tree and checks NULL usage
  */
 class NullCheckListener extends CNextListener {
-  private analyzer: NullCheckAnalyzer;
+  private readonly analyzer: NullCheckAnalyzer;
 
   /** Whether we're currently inside an equality comparison (= or !=) */
   private inEqualityComparison = false;
@@ -226,20 +226,20 @@ class NullCheckListener extends CNextListener {
   private currentScope: INullCheckScope | null = null;
 
   /** Stack of if-statement info for tracking nested conditions */
-  private ifStack: Array<{
+  private readonly ifStack: Array<{
     varName: string | null;
     isNullCheck: boolean;
     hasReturn: boolean;
   }> = [];
 
   /** Track if we're in the body of an if statement (first statement) */
-  private inIfBody = false;
+  private readonly inIfBody = false;
 
   /** Track the current if-statement context for body detection */
   private currentIfCtx: Parser.IfStatementContext | null = null;
 
   /** Stack of while-statement info for tracking nested while conditions */
-  private whileStack: Array<{
+  private readonly whileStack: Array<{
     varName: string | null;
     isNotNullCheck: boolean;
   }> = [];

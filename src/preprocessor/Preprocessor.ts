@@ -20,9 +20,9 @@ const execAsync = promisify(exec);
  * Handles preprocessing of C/C++ files
  */
 class Preprocessor {
-  private toolchain: IToolchain | null;
+  private readonly toolchain: IToolchain | null;
 
-  private defaultIncludePaths: string[] = [];
+  private readonly defaultIncludePaths: string[] = [];
 
   constructor(toolchain?: IToolchain) {
     this.toolchain = toolchain ?? ToolchainDetector.detect();

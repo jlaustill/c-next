@@ -22,7 +22,7 @@ import ParserUtils from "../utils/ParserUtils";
  * First pass: Collect const declarations that are zero
  */
 class ConstZeroCollector extends CNextListener {
-  private constZeros: Set<string> = new Set();
+  private readonly constZeros: Set<string> = new Set();
 
   public getConstZeros(): Set<string> {
     return this.constZeros;
@@ -63,9 +63,9 @@ class ConstZeroCollector extends CNextListener {
  * Second pass: Detect division by zero (including const identifiers)
  */
 class DivisionByZeroListener extends CNextListener {
-  private analyzer: DivisionByZeroAnalyzer;
+  private readonly analyzer: DivisionByZeroAnalyzer;
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private constZeros: Set<string>;
+  private readonly constZeros: Set<string>;
 
   constructor(analyzer: DivisionByZeroAnalyzer, constZeros: Set<string>) {
     super();

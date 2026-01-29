@@ -24,7 +24,7 @@ type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
  * Collects symbols from a C++ parse tree
  */
 class CppSymbolCollector {
-  private ctx: ICollectorContext;
+  private readonly ctx: ICollectorContext;
 
   private currentNamespace: string | undefined;
 

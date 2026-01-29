@@ -22,7 +22,7 @@ import TypeConstants from "../constants/TypeConstants";
  * First pass: Collect variable declarations with float types
  */
 class FloatVariableCollector extends CNextListener {
-  private floatVars: Set<string> = new Set();
+  private readonly floatVars: Set<string> = new Set();
 
   public getFloatVars(): Set<string> {
     return this.floatVars;
@@ -67,10 +67,10 @@ class FloatVariableCollector extends CNextListener {
  * Second pass: Detect modulo operations with float operands
  */
 class FloatModuloListener extends CNextListener {
-  private analyzer: FloatModuloAnalyzer;
+  private readonly analyzer: FloatModuloAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private floatVars: Set<string>;
+  private readonly floatVars: Set<string>;
 
   constructor(analyzer: FloatModuloAnalyzer, floatVars: Set<string>) {
     super();
