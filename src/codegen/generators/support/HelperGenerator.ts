@@ -308,7 +308,7 @@ const generateOverflowHelpers = (
   }
 
   // Sort for deterministic output
-  const sortedOps = Array.from(usedClampOps).sort();
+  const sortedOps = Array.from(usedClampOps).sort((a, b) => a.localeCompare(b));
 
   for (const op of sortedOps) {
     const [operation, cnxType] = op.split("_");

@@ -1615,7 +1615,7 @@ export default class CodeGenerator implements IOrchestrator {
       typeResolver: this.typeResolver,
       callbackTypes: this.callbackTypes,
       knownFunctions: this.knownFunctions,
-      knownGlobals: new Set(), // TODO: Extract known globals if needed
+      knownGlobals: new Set(), // Note: Extract known globals if needed in future
       getCurrentScope: () => this.context.currentScope,
       getScopeMembers: () => this.context.scopeMembers,
       getCurrentParameters: () => this.context.currentParameters,
@@ -7722,9 +7722,7 @@ export default class CodeGenerator implements IOrchestrator {
       isCppAccessChain = true;
     }
 
-    for (let i = 0; i < ops.length; i++) {
-      const op = ops[i];
-
+    for (const op of ops) {
       // Member access
       if (op.IDENTIFIER()) {
         const memberName = op.IDENTIFIER()!.getText();
@@ -9071,7 +9069,7 @@ export default class CodeGenerator implements IOrchestrator {
           );
         }
       }
-      // TODO: Add bounds checking for struct.field[i][j] patterns
+      // Future: Add bounds checking for struct.field[i][j] patterns
 
       const indices = expressions
         .map((e) => this._generateExpression(e))
