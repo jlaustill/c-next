@@ -73,8 +73,7 @@ const generateBitmap: TGeneratorFn<Parser.BitmapDeclarationContext> = (
     lines.push(" */");
   }
 
-  lines.push(`typedef ${backingType} ${fullName};`);
-  lines.push("");
+  lines.push(`typedef ${backingType} ${fullName};`, "");
 
   return {
     code: lines.join("\n"),

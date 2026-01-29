@@ -162,14 +162,8 @@ class IncludeResolver {
   ): string[] {
     const paths: string[] = [];
 
-    // 1. Source file's directory (highest priority)
-    paths.push(sourceDir);
-
-    // 2. Additional include directories
-    paths.push(...additionalIncludeDirs);
-
-    // 3. Config include directories
-    paths.push(...includeDirs);
+    // Search path priority: 1) source dir, 2) additional dirs, 3) config dirs
+    paths.push(sourceDir, ...additionalIncludeDirs, ...includeDirs);
 
     // 4. Project-level common directories
     const root = projectRoot ?? IncludeDiscovery.findProjectRoot(sourceDir);

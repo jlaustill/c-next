@@ -237,8 +237,7 @@ class TestUtils {
       ];
 
       if (useCpp) {
-        args.push("--language=c++");
-        args.push("--std=c++14");
+        args.push("--language=c++", "--std=c++14");
       }
 
       args.push(cFile);

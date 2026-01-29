@@ -264,29 +264,27 @@ function generateMarkdownReport(
   const { summary, mismatches, gaps } = report;
   const lines: string[] = [];
 
-  lines.push("# C-Next Coverage Report");
-  lines.push("");
-  lines.push(`Generated: ${report.generated.toISOString().split("T")[0]}`);
-  lines.push("");
-
-  // Summary table
-  lines.push("## Summary");
-  lines.push("");
-  lines.push("| Metric | Count | Percentage |");
-  lines.push("|--------|-------|------------|");
-  lines.push(`| Total Points | ${summary.totalItems} | 100% |`);
   lines.push(
+    "# C-Next Coverage Report",
+    "",
+    `Generated: ${report.generated.toISOString().split("T")[0]}`,
+    "",
+    // Summary table
+    "## Summary",
+    "",
+    "| Metric | Count | Percentage |",
+    "|--------|-------|------------|",
+    `| Total Points | ${summary.totalItems} | 100% |`,
     `| Tested | ${summary.testedItems} | ${summary.coveragePercentage}% |`,
+    `| With Annotations | ${summary.annotatedItems} | - |`,
+    `| Gaps | ${summary.untestedItems} | - |`,
+    "",
+    // Section breakdown
+    "## Section Breakdown",
+    "",
+    "| Section | Tested | Total | Coverage |",
+    "|---------|--------|-------|----------|",
   );
-  lines.push(`| With Annotations | ${summary.annotatedItems} | - |`);
-  lines.push(`| Gaps | ${summary.untestedItems} | - |`);
-  lines.push("");
-
-  // Section breakdown
-  lines.push("## Section Breakdown");
-  lines.push("");
-  lines.push("| Section | Tested | Total | Coverage |");
-  lines.push("|---------|--------|-------|----------|");
   for (const section of summary.sections) {
     lines.push(
       `| ${section.name} | ${section.tested} | ${section.total} | ${section.percentage}% |`,
@@ -296,10 +294,7 @@ function generateMarkdownReport(
 
   // Mismatches
   if (mismatches.length > 0) {
-    lines.push("## Mismatches");
-    lines.push("");
-    lines.push("| Type | Issue |");
-    lines.push("|------|-------|");
+    lines.push("## Mismatches", "", "| Type | Issue |", "|------|-------|");
     for (const mismatch of mismatches) {
       lines.push(`| ${mismatch.type} | ${mismatch.issue} |`);
     }
@@ -307,8 +302,7 @@ function generateMarkdownReport(
   }
 
   // Gaps by section
-  lines.push("## Gaps by Section");
-  lines.push("");
+  lines.push("## Gaps by Section", "");
 
   const bySection = new Map<string, ICoverageItem[]>();
   for (const gap of gaps) {
@@ -325,8 +319,7 @@ function generateMarkdownReport(
 
   for (const section of sortedSections) {
     const sectionGaps = bySection.get(section)!;
-    lines.push(`### ${section}`);
-    lines.push("");
+    lines.push(`### ${section}`, "");
     for (const gap of sectionGaps) {
       lines.push(`- [ ] \`${gap.id}\``);
     }

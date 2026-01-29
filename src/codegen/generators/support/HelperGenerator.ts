@@ -294,15 +294,18 @@ const generateOverflowHelpers = (
   if (debugMode) {
     lines.push(
       "// ADR-044: Debug overflow helper functions (panic on overflow)",
+      "#include <limits.h>",
+      "#include <stdio.h>",
+      "#include <stdlib.h>",
+      "",
     );
-    lines.push("#include <limits.h>");
-    lines.push("#include <stdio.h>");
-    lines.push("#include <stdlib.h>");
   } else {
-    lines.push("// ADR-044: Overflow helper functions");
-    lines.push("#include <limits.h>");
+    lines.push(
+      "// ADR-044: Overflow helper functions",
+      "#include <limits.h>",
+      "",
+    );
   }
-  lines.push("");
 
   // Sort for deterministic output
   const sortedOps = Array.from(usedClampOps).sort();
@@ -313,8 +316,7 @@ const generateOverflowHelpers = (
       ? generateDebugHelper(operation, cnxType)
       : generateSingleHelper(operation, cnxType);
     if (helper) {
-      lines.push(helper);
-      lines.push("");
+      lines.push(helper, "");
     }
   }
 
@@ -334,9 +336,11 @@ const generateSafeDivHelpers = (
 
   const lines: string[] = [];
 
-  lines.push("// ADR-051: Safe division helper functions");
-  lines.push("#include <stdbool.h>");
-  lines.push("");
+  lines.push(
+    "// ADR-051: Safe division helper functions",
+    "#include <stdbool.h>",
+    "",
+  );
 
   const integerTypes = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"];
 
@@ -354,30 +358,30 @@ const generateSafeDivHelpers = (
     if (needsDiv) {
       lines.push(
         `static inline bool cnx_safe_div_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
+        `    if (divisor == 0) {`,
+        `        *output = defaultValue;`,
+        `        return true;  // Error occurred`,
+        `    }`,
+        `    *output = numerator / divisor;`,
+        `    return false;  // Success`,
+        `}`,
+        "",
       );
-      lines.push(`    if (divisor == 0) {`);
-      lines.push(`        *output = defaultValue;`);
-      lines.push(`        return true;  // Error occurred`);
-      lines.push(`    }`);
-      lines.push(`    *output = numerator / divisor;`);
-      lines.push(`    return false;  // Success`);
-      lines.push(`}`);
-      lines.push("");
     }
 
     // Generate safe_mod helper if needed
     if (needsMod) {
       lines.push(
         `static inline bool cnx_safe_mod_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
+        `    if (divisor == 0) {`,
+        `        *output = defaultValue;`,
+        `        return true;  // Error occurred`,
+        `    }`,
+        `    *output = numerator % divisor;`,
+        `    return false;  // Success`,
+        `}`,
+        "",
       );
-      lines.push(`    if (divisor == 0) {`);
-      lines.push(`        *output = defaultValue;`);
-      lines.push(`        return true;  // Error occurred`);
-      lines.push(`    }`);
-      lines.push(`    *output = numerator % divisor;`);
-      lines.push(`    return false;  // Success`);
-      lines.push(`}`);
-      lines.push("");
     }
   }
 
