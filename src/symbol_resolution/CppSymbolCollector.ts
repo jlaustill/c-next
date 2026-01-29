@@ -14,6 +14,8 @@ import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
 import SymbolUtils from "./SymbolUtils";
+import SymbolCollectorContext from "./SymbolCollectorContext";
+import ICollectorContext from "./types/ICollectorContext";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
@@ -22,50 +24,42 @@ type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
  * Collects symbols from a C++ parse tree
  */
 class CppSymbolCollector {
-  private sourceFile: string;
-
-  private symbols: ISymbol[] = [];
-
-  private warnings: string[] = [];
+  private ctx: ICollectorContext;
 
   private currentNamespace: string | undefined;
 
-  private symbolTable: SymbolTable | null;
-
   constructor(sourceFile: string, symbolTable?: SymbolTable) {
-    this.sourceFile = sourceFile;
-    this.symbolTable = symbolTable ?? null;
+    this.ctx = SymbolCollectorContext.create(sourceFile, symbolTable);
   }
 
   /**
    * Get warnings generated during symbol collection
    */
   getWarnings(): string[] {
-    return this.warnings;
+    return this.ctx.warnings;
   }
 
   /**
    * Collect all symbols from a C++ translation unit
    */
   collect(tree: TranslationUnitContext): ISymbol[] {
-    this.symbols = [];
-    this.warnings = [];
+    SymbolCollectorContext.reset(this.ctx);
     this.currentNamespace = undefined;
 
     if (!tree) {
-      return this.symbols;
+      return this.ctx.symbols;
     }
 
     const declSeq = tree.declarationseq?.();
     if (!declSeq) {
-      return this.symbols;
+      return this.ctx.symbols;
     }
 
     for (const decl of declSeq.declaration()) {
       this.collectDeclaration(decl);
     }
 
-    return this.symbols;
+    return this.ctx.symbols;
   }
 
   private collectDeclaration(decl: any): void {
@@ -119,11 +113,11 @@ class CppSymbolCollector {
     // Issue #322: Extract function parameters
     const params = this.extractFunctionParameters(declarator);
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name: fullName,
       kind: ESymbolKind.Function,
       type: returnType,
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
       isExported: true,
@@ -139,10 +133,10 @@ class CppSymbolCollector {
     const name = identifier?.getText() ?? originalNs?.getText();
     if (!name) return;
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name,
       kind: ESymbolKind.Namespace,
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
       isExported: true,
@@ -182,10 +176,10 @@ class CppSymbolCollector {
     if (aliasDecl) {
       const identifier = aliasDecl.Identifier?.();
       if (identifier) {
-        this.symbols.push({
+        this.ctx.symbols.push({
           name: identifier.getText(),
           kind: ESymbolKind.Type,
-          sourceFile: this.sourceFile,
+          sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.Cpp,
           isExported: true,
@@ -249,14 +243,14 @@ class CppSymbolCollector {
 
         // Issue #342: If we have an anonymous struct and this is a typedef,
         // collect struct fields using the typedef name
-        if (anonymousClassSpec && this.symbolTable) {
+        if (anonymousClassSpec && this.ctx.symbolTable) {
           const memberSpec = anonymousClassSpec.memberSpecification?.();
           if (memberSpec) {
             // Add the type symbol
-            this.symbols.push({
+            this.ctx.symbols.push({
               name: fullName,
               kind: ESymbolKind.Class, // Treat typedef'd structs as classes
-              sourceFile: this.sourceFile,
+              sourceFile: this.ctx.sourceFile,
               sourceLine: line,
               sourceLanguage: ESourceLanguage.Cpp,
               isExported: true,
@@ -273,11 +267,11 @@ class CppSymbolCollector {
           ? this.extractFunctionParameters(declarator)
           : [];
 
-        this.symbols.push({
+        this.ctx.symbols.push({
           name: fullName,
           kind: isFunction ? ESymbolKind.Function : ESymbolKind.Variable,
           type: baseType,
-          sourceFile: this.sourceFile,
+          sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.Cpp,
           isExported: true,
@@ -307,10 +301,10 @@ class CppSymbolCollector {
       ? `${this.currentNamespace}::${name}`
       : name;
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name: fullName,
       kind: ESymbolKind.Class,
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
       isExported: true,
@@ -318,7 +312,7 @@ class CppSymbolCollector {
     });
 
     // Extract struct/class field information if SymbolTable is available
-    if (this.symbolTable) {
+    if (this.ctx.symbolTable) {
       const memberSpec = classSpec.memberSpecification?.();
       if (memberSpec) {
         this.collectClassMembers(fullName, memberSpec);
@@ -356,11 +350,11 @@ class CppSymbolCollector {
           const params = this.extractFunctionParameters(declarator);
           const fullName = `${className}::${funcName}`;
 
-          this.symbols.push({
+          this.ctx.symbols.push({
             name: fullName,
             kind: ESymbolKind.Function,
             type: returnType,
-            sourceFile: this.sourceFile,
+            sourceFile: this.ctx.sourceFile,
             sourceLine: line,
             sourceLanguage: ESourceLanguage.Cpp,
             isExported: true,
@@ -394,11 +388,11 @@ class CppSymbolCollector {
         const params = this.extractFunctionParameters(declarator);
         const fullName = `${className}::${fieldName}`;
 
-        this.symbols.push({
+        this.ctx.symbols.push({
           name: fullName,
           kind: ESymbolKind.Function,
           type: fieldType,
-          sourceFile: this.sourceFile,
+          sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.Cpp,
           isExported: true,
@@ -411,7 +405,7 @@ class CppSymbolCollector {
 
       // Warn if field name conflicts with C-Next reserved property names
       if (SymbolUtils.isReservedFieldName(fieldName)) {
-        this.warnings.push(
+        this.ctx.warnings.push(
           `Warning: C++ header struct '${className}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
             `Consider renaming the field or be aware that '${className}.${fieldName}' may not work as expected in C-Next code.`,
         );
@@ -421,7 +415,7 @@ class CppSymbolCollector {
       const arrayDimensions = this.extractArrayDimensions(declarator);
 
       // Add to SymbolTable
-      this.symbolTable!.addStructField(
+      this.ctx.symbolTable!.addStructField(
         className,
         fieldName,
         fieldType,
@@ -473,10 +467,10 @@ class CppSymbolCollector {
       ? `${this.currentNamespace}::${name}`
       : name;
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name: fullName,
       kind: ESymbolKind.Enum,
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
       isExported: true,
@@ -484,7 +478,7 @@ class CppSymbolCollector {
     });
 
     // Issue #208: Extract enum backing type for typed enums (e.g., enum EPressureType : uint8_t)
-    if (this.symbolTable) {
+    if (this.ctx.symbolTable) {
       const enumbase = enumHead.enumbase?.();
       if (enumbase) {
         const typeSpecSeq = enumbase.typeSpecifierSeq?.();
@@ -492,7 +486,7 @@ class CppSymbolCollector {
           const typeName = typeSpecSeq.getText();
           const bitWidth = this.getTypeWidth(typeName);
           if (bitWidth > 0) {
-            this.symbolTable.addEnumBitWidth(fullName, bitWidth);
+            this.ctx.symbolTable.addEnumBitWidth(fullName, bitWidth);
           }
         }
       }
