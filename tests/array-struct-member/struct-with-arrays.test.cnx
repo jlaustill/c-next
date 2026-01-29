@@ -1,0 +1,80 @@
+// test-execution
+// Tests: Structs containing array members of various types
+// Coverage: u8, u16, u32, u64 arrays inside structs
+
+struct ByteBuffer {
+    u8 data[8];
+    u32 len;
+}
+
+struct WordBuffer {
+    u16 values[4];
+    u32 count;
+}
+
+struct LongBuffer {
+    u32 items[4];
+    u32 cap;
+}
+
+struct WideBuffer {
+    u64 entries[2];
+    u32 used;
+}
+
+u32 main() {
+    // Test u8 array member
+    ByteBuffer bytes;
+    bytes.len <- 4;
+    bytes.data[0] <- 0x10;
+    bytes.data[1] <- 0x20;
+    bytes.data[2] <- 0x30;
+    bytes.data[3] <- 0x40;
+
+    if (bytes.len != 4) return 1;
+    if (bytes.data[0] != 0x10) return 2;
+    if (bytes.data[1] != 0x20) return 3;
+    if (bytes.data[2] != 0x30) return 4;
+    if (bytes.data[3] != 0x40) return 5;
+
+    // Test u16 array member
+    WordBuffer words;
+    words.count <- 3;
+    words.values[0] <- 1000;
+    words.values[1] <- 2000;
+    words.values[2] <- 3000;
+
+    if (words.count != 3) return 6;
+    if (words.values[0] != 1000) return 7;
+    if (words.values[1] != 2000) return 8;
+    if (words.values[2] != 3000) return 9;
+
+    // Test u32 array member
+    LongBuffer longs;
+    longs.cap <- 2;
+    longs.items[0] <- 100000;
+    longs.items[1] <- 200000;
+
+    if (longs.cap != 2) return 10;
+    if (longs.items[0] != 100000) return 11;
+    if (longs.items[1] != 200000) return 12;
+
+    // Test u64 array member
+    WideBuffer wides;
+    wides.used <- 2;
+    wides.entries[0] <- 1000000000;
+    wides.entries[1] <- 2000000000;
+
+    if (wides.used != 2) return 13;
+    if (wides.entries[0] != 1000000000) return 14;
+    if (wides.entries[1] != 2000000000) return 15;
+
+    // Test compound assignment on array member
+    bytes.data[0] +<- 5;
+    if (bytes.data[0] != 0x15) return 16;
+
+    words.values[0] -<- 100;
+    if (words.values[0] != 900) return 17;
+
+    return 0;
+}

@@ -1,0 +1,80 @@
+// test-execution
+// Tests: Array member initialization patterns
+// Coverage: Struct initialization with array members
+
+struct Config {
+    u8 flags[4];
+    u32 version;
+}
+
+struct Packet {
+    u8 header[4];
+    u8 payload[8];
+    u32 checksum;
+}
+
+u32 main() {
+    // Test struct with array - individual assignment
+    Config cfg;
+    cfg.version <- 1;
+    cfg.flags[0] <- 0x01;
+    cfg.flags[1] <- 0x02;
+    cfg.flags[2] <- 0x04;
+    cfg.flags[3] <- 0x08;
+
+    if (cfg.version != 1) return 1;
+    if (cfg.flags[0] != 0x01) return 2;
+    if (cfg.flags[1] != 0x02) return 3;
+    if (cfg.flags[2] != 0x04) return 4;
+    if (cfg.flags[3] != 0x08) return 5;
+
+    // Test struct with multiple arrays
+    Packet pkt;
+    pkt.checksum <- 0;
+
+    // Initialize header
+    pkt.header[0] <- 0xAA;
+    pkt.header[1] <- 0xBB;
+    pkt.header[2] <- 0xCC;
+    pkt.header[3] <- 0xDD;
+
+    // Initialize payload explicitly
+    pkt.payload[0] <- 1;
+    pkt.payload[1] <- 2;
+    pkt.payload[2] <- 3;
+    pkt.payload[3] <- 4;
+    pkt.payload[4] <- 5;
+    pkt.payload[5] <- 6;
+    pkt.payload[6] <- 7;
+    pkt.payload[7] <- 8;
+
+    // Compute simple checksum from header
+    pkt.checksum +<- pkt.header[0];
+    pkt.checksum +<- pkt.header[1];
+    pkt.checksum +<- pkt.header[2];
+    pkt.checksum +<- pkt.header[3];
+
+    // Add payload to checksum
+    pkt.checksum +<- pkt.payload[0];
+    pkt.checksum +<- pkt.payload[1];
+    pkt.checksum +<- pkt.payload[2];
+    pkt.checksum +<- pkt.payload[3];
+    pkt.checksum +<- pkt.payload[4];
+    pkt.checksum +<- pkt.payload[5];
+    pkt.checksum +<- pkt.payload[6];
+    pkt.checksum +<- pkt.payload[7];
+
+    // Verify header
+    if (pkt.header[0] != 0xAA) return 6;
+    if (pkt.header[3] != 0xDD) return 7;
+
+    // Verify payload
+    if (pkt.payload[0] != 1) return 8;
+    if (pkt.payload[7] != 8) return 9;
+
+    // Verify checksum: 0xAA+0xBB+0xCC+0xDD + 1+2+3+4+5+6+7+8
+    // = 170+187+204+221 + 36 = 818
+    if (pkt.checksum != 818) return 10;
+
+    return 0;
+}
