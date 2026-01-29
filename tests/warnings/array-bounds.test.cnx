@@ -1,0 +1,49 @@
+/* test-no-warnings */
+// test-execution
+// Tests: Array access patterns should not trigger -Warray-bounds warnings
+// Validates: Array indexing and iteration generate bounds-safe code
+// Coverage: Direct indexing, loop iteration, constant indices
+
+u32 main() {
+    // Test direct constant indexing
+    u32 arr[5] <- [10, 20, 30, 40, 50];
+
+    if (arr[0] != 10) return 1;
+    if (arr[4] != 50) return 2;
+
+    // Test variable indexing within bounds
+    u32 idx <- 2;
+    if (arr[idx] != 30) return 3;
+
+    // Test loop iteration over array
+    u32 sum <- 0;
+    u32 i <- 0;
+    while (i < 5) {
+        sum +<- arr[i];
+        i +<- 1;
+    }
+    if (sum != 150) return 4;
+
+    // Test array with computed index
+    u32 offset <- 1;
+    u32 base <- 2;
+    if (arr[base + offset] != 40) return 5;
+
+    // Test 2D array bounds
+    u32 matrix[3][3] <- [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ];
+
+    if (matrix[0][0] != 1) return 6;
+    if (matrix[2][2] != 9) return 7;
+    if (matrix[1][1] != 5) return 8;
+
+    // Test small arrays (edge case for bounds checking)
+    u8 tiny[2] <- [100, 200];
+    if (tiny[0] != 100) return 9;
+    if (tiny[1] != 200) return 10;
+
+    return 0;
+}
