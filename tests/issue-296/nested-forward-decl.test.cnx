@@ -1,0 +1,46 @@
+// Issue #404: Forward declarations with nested struct types
+// test-execution
+// Tests that forward declarations work correctly when structs contain
+// other structs from external files.
+#include <nested-forward-decl-types.cnx>
+
+scope Collision {
+    BoundingBox bounds;
+
+    public void setBounds(BoundingBox newBounds) {
+        this.bounds <- newBounds;
+    }
+
+    public BoundingBox getBounds() {
+        return this.bounds;
+    }
+
+    public bool contains(Vector2D point) {
+        bool xInRange <- point.x >= this.bounds.min.x && point.x <= this.bounds.max.x;
+        bool yInRange <- point.y >= this.bounds.min.y && point.y <= this.bounds.max.y;
+        return xInRange && yInRange;
+    }
+}
+
+u32 main() {
+    Vector2D minPt <- {x: 0.0, y: 0.0};
+    Vector2D maxPt <- {x: 100.0, y: 100.0};
+    BoundingBox box <- {min: minPt, max: maxPt};
+
+    Collision.setBounds(box);
+
+    BoundingBox retrieved <- Collision.getBounds();
+    if (retrieved.min.x != 0.0) return 1;
+    if (retrieved.max.x != 100.0) return 2;
+
+    Vector2D inside <- {x: 50.0, y: 50.0};
+    Vector2D outside <- {x: 150.0, y: 50.0};
+
+    bool insideResult <- Collision.contains(inside);
+    if (insideResult != true) return 3;
+
+    bool outsideResult <- Collision.contains(outside);
+    if (outsideResult != false) return 4;
+
+    return 0;
+}
