@@ -14,13 +14,7 @@ import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../utils/BitUtils";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-
-/**
- * Check if register is write-only based on access modifier.
- */
-function isWriteOnlyRegister(accessMod: string | undefined): boolean {
-  return accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
-}
+import RegisterUtils from "./RegisterUtils";
 
 /**
  * Validate write-only register assignment value.
@@ -119,7 +113,7 @@ function handleRegisterBit(
 
   const { fullName } = buildRegisterFullName(ctx.identifiers, deps);
   const accessMod = deps.symbols.registerMemberAccess.get(fullName);
-  const isWriteOnly = isWriteOnlyRegister(accessMod);
+  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const bitIndex = deps.generateExpression(ctx.subscripts[0]);
 
@@ -146,7 +140,7 @@ function handleRegisterBitRange(
 
   const { fullName, regName } = buildRegisterFullName(ctx.identifiers, deps);
   const accessMod = deps.symbols.registerMemberAccess.get(fullName);
-  const isWriteOnly = isWriteOnlyRegister(accessMod);
+  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const start = deps.generateExpression(ctx.subscripts[0]);
   const width = deps.generateExpression(ctx.subscripts[1]);
@@ -206,7 +200,7 @@ function handleScopedRegisterBit(
   const regName = `${scopeName}_${parts.join("_")}`;
 
   const accessMod = deps.symbols.registerMemberAccess.get(regName);
-  const isWriteOnly = isWriteOnlyRegister(accessMod);
+  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const bitIndex = deps.generateExpression(ctx.subscripts[0]);
 
@@ -241,7 +235,7 @@ function handleScopedRegisterBitRange(
   const scopedRegName = `${scopeName}_${parts[0]}`;
 
   const accessMod = deps.symbols.registerMemberAccess.get(regName);
-  const isWriteOnly = isWriteOnlyRegister(accessMod);
+  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const start = deps.generateExpression(ctx.subscripts[0]);
   const width = deps.generateExpression(ctx.subscripts[1]);

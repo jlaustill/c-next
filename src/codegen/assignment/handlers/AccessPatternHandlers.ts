@@ -14,18 +14,14 @@ import IAssignmentContext from "../IAssignmentContext";
 import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
+import RegisterUtils from "./RegisterUtils";
 
 /**
- * Check if register is write-only.
+ * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
+ *
+ * Validates cross-scope visibility and generates standard assignment.
  */
-function isWriteOnlyRegister(accessMod: string | undefined): boolean {
-  return accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
-}
-
-/**
- * Handle global.member: global.Counter.value <- 5
- */
-function handleGlobalMember(
+function handleGlobalAccess(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
@@ -41,17 +37,13 @@ function handleGlobalMember(
 }
 
 /**
- * Handle global.arr[i]: global.arr[i] <- value
+ * Common handler for this access patterns (THIS_MEMBER and THIS_ARRAY).
+ *
+ * Validates scope context and generates standard assignment.
  */
-function handleGlobalArray(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
-  const firstId = ctx.identifiers[0];
-
-  // Validate cross-scope visibility if first id is a scope
-  if (deps.isKnownScope(firstId) && ctx.identifiers.length >= 2) {
-    deps.validateCrossScopeVisibility(firstId, ctx.identifiers[1]);
+function handleThisAccess(ctx: IAssignmentContext, deps: IHandlerDeps): string {
+  if (!deps.currentScope) {
+    throw new Error("Error: 'this' can only be used inside a scope");
   }
 
   const target = deps.generateAssignmentTarget(ctx.targetCtx);
@@ -76,7 +68,7 @@ function handleGlobalRegisterBit(
 
   // Check for write-only register
   const accessMod = deps.symbols.registerMemberAccess.get(regName);
-  const isWriteOnly = isWriteOnlyRegister(accessMod);
+  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   // Handle bit range vs single bit
   if (ctx.subscripts.length === 2) {
@@ -111,30 +103,6 @@ function handleGlobalRegisterBit(
   }
 
   return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
-}
-
-/**
- * Handle this.member: this.count <- 5
- */
-function handleThisMember(ctx: IAssignmentContext, deps: IHandlerDeps): string {
-  if (!deps.currentScope) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
-  return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
-}
-
-/**
- * Handle this.arr[i]: this.items[i] <- value
- */
-function handleThisArray(ctx: IAssignmentContext, deps: IHandlerDeps): string {
-  if (!deps.currentScope) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
-  return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
 /**
@@ -179,11 +147,11 @@ function handleMemberChain(
 const accessPatternHandlers: ReadonlyArray<
   [AssignmentKind, TAssignmentHandler]
 > = [
-  [AssignmentKind.GLOBAL_MEMBER, handleGlobalMember],
-  [AssignmentKind.GLOBAL_ARRAY, handleGlobalArray],
+  [AssignmentKind.GLOBAL_MEMBER, handleGlobalAccess],
+  [AssignmentKind.GLOBAL_ARRAY, handleGlobalAccess],
   [AssignmentKind.GLOBAL_REGISTER_BIT, handleGlobalRegisterBit],
-  [AssignmentKind.THIS_MEMBER, handleThisMember],
-  [AssignmentKind.THIS_ARRAY, handleThisArray],
+  [AssignmentKind.THIS_MEMBER, handleThisAccess],
+  [AssignmentKind.THIS_ARRAY, handleThisAccess],
   [AssignmentKind.MEMBER_CHAIN, handleMemberChain],
 ];
 
