@@ -28,9 +28,11 @@ function validateNotCompound(ctx: IAssignmentContext): void {
 }
 
 /**
- * Handle simple string variable: str <- "hello"
+ * Common handler for simple string assignments (STRING_SIMPLE and STRING_GLOBAL).
+ *
+ * Gets capacity from typeRegistry and generates strncpy with null terminator.
  */
-function handleStringSimple(
+function handleSimpleStringAssignment(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
@@ -44,6 +46,32 @@ function handleStringSimple(
 
   const target = deps.generateAssignmentTarget(ctx.targetCtx);
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
+}
+
+/**
+ * Get struct field type information.
+ *
+ * Shared helper for struct field string handlers.
+ */
+function getStructFieldType(
+  structName: string,
+  fieldName: string,
+  deps: IHandlerDeps,
+): string {
+  const structTypeInfo = deps.typeRegistry.get(structName);
+  const structType = structTypeInfo!.baseType;
+  const structFields = deps.symbols.structFields.get(structType);
+  return structFields!.get(fieldName)!;
+}
+
+/**
+ * Get struct type from a variable name.
+ *
+ * Shared helper for struct field handlers.
+ */
+function getStructType(structName: string, deps: IHandlerDeps): string {
+  const structTypeInfo = deps.typeRegistry.get(structName);
+  return structTypeInfo!.baseType;
 }
 
 /**
@@ -71,25 +99,6 @@ function handleStringThisMember(
 }
 
 /**
- * Handle global.member string: global.name <- "value"
- */
-function handleStringGlobal(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
-  validateNotCompound(ctx);
-
-  const id = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(id);
-  const capacity = typeInfo!.stringCapacity!;
-
-  deps.markNeedsString();
-
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
-  return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
-}
-
-/**
  * Handle struct.field string: person.name <- "Alice"
  */
 function handleStringStructField(
@@ -101,10 +110,7 @@ function handleStringStructField(
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const structTypeInfo = deps.typeRegistry.get(structName);
-  const structType = structTypeInfo!.baseType;
-  const structFields = deps.symbols.structFields.get(structType);
-  const fieldType = structFields!.get(fieldName)!;
+  const fieldType = getStructFieldType(structName, fieldName, deps);
   const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
 
   deps.markNeedsString();
@@ -153,8 +159,7 @@ function handleStringStructArrayElement(
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const structTypeInfo = deps.typeRegistry.get(structName);
-  const structType = structTypeInfo!.baseType;
+  const structType = getStructType(structName, deps);
   const dimensions = deps.symbols.structFieldDimensions
     .get(structType)
     ?.get(fieldName);
@@ -179,9 +184,9 @@ function handleStringStructArrayElement(
  * All string handlers for registration.
  */
 const stringHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
-  [AssignmentKind.STRING_SIMPLE, handleStringSimple],
+  [AssignmentKind.STRING_SIMPLE, handleSimpleStringAssignment],
   [AssignmentKind.STRING_THIS_MEMBER, handleStringThisMember],
-  [AssignmentKind.STRING_GLOBAL, handleStringGlobal],
+  [AssignmentKind.STRING_GLOBAL, handleSimpleStringAssignment],
   [AssignmentKind.STRING_STRUCT_FIELD, handleStringStructField],
   [AssignmentKind.STRING_ARRAY_ELEMENT, handleStringArrayElement],
   [AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT, handleStringStructArrayElement],
