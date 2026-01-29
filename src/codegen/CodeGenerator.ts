@@ -1219,11 +1219,24 @@ export default class CodeGenerator implements IOrchestrator {
     if (this.symbols!.knownStructs.has(typeName)) {
       return true;
     }
+    // Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access)
+    if (this.symbols!.knownBitmaps.has(typeName)) {
+      return true;
+    }
     // Check SymbolTable for C header structs
     if (this.symbolTable?.getStructFields(typeName)) {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Issue #551: Check if a type is a known primitive type.
+   * Known primitives use pass-by-reference with dereference.
+   * Unknown types (external enums, typedefs) use pass-by-value.
+   */
+  private _isKnownPrimitive(typeName: string): boolean {
+    return !!TYPE_MAP[typeName];
   }
 
   /**
@@ -5537,12 +5550,26 @@ export default class CodeGenerator implements IOrchestrator {
       return `${constMod}${type} ${name}`;
     }
 
-    // ADR-006: Pass by reference for non-array types
-    // Add pointer for primitive types to enable pass-by-reference semantics
-    // Issue #268: Add const for unmodified pointer parameters
-    const wasModified = this.context.modifiedParameters.has(name);
-    const autoConst = !wasModified && !constMod ? "const " : "";
-    return `${autoConst}${constMod}${type}* ${name}`;
+    // ADR-045: String parameters (non-array) are passed as char*
+    // Issue #551: Handle before unknown type check
+    if (ctx.type().stringType() && dims.length === 0) {
+      // Issue #268: Add const for unmodified string parameters
+      const wasModified = this.context.modifiedParameters.has(name);
+      const autoConst = !wasModified && !constMod ? "const " : "";
+      return `${autoConst}${constMod}char* ${name}`;
+    }
+
+    // ADR-006: Pass by reference for known struct types and known primitives
+    // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
+    if (this._isKnownStruct(typeName) || this._isKnownPrimitive(typeName)) {
+      // Issue #268: Add const for unmodified pointer parameters
+      const wasModified = this.context.modifiedParameters.has(name);
+      const autoConst = !wasModified && !constMod ? "const " : "";
+      return `${autoConst}${constMod}${type}* ${name}`;
+    }
+
+    // Unknown types use pass-by-value (standard C semantics)
+    return `${constMod}${type} ${name}`;
   }
 
   private _generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
@@ -7082,8 +7109,14 @@ export default class CodeGenerator implements IOrchestrator {
         ) {
           return id;
         }
-        // Parameter - allowed as bare identifier, but needs dereference
-        if (!paramInfo.isArray) {
+        // Issue #551: Dereference only known primitives (pass-by-reference)
+        // - Structs use -> notation for member access (no dereference here)
+        // - Unknown types (external enums, typedefs) use pass-by-value
+        if (
+          !paramInfo.isArray &&
+          !paramInfo.isStruct &&
+          this._isKnownPrimitive(paramInfo.baseType)
+        ) {
           return `(*${id})`;
         }
         return id;
@@ -8600,11 +8633,16 @@ export default class CodeGenerator implements IOrchestrator {
         ) {
           return id;
         }
-        // Parameter - allowed as bare identifier
-        if (!paramInfo.isArray && !paramInfo.isStruct) {
+        // Issue #551: Dereference only known primitives (pass-by-reference)
+        // - Structs use -> notation for member access (no dereference here)
+        // - Unknown types (external enums, typedefs) use pass-by-value
+        if (
+          !paramInfo.isArray &&
+          !paramInfo.isStruct &&
+          this._isKnownPrimitive(paramInfo.baseType)
+        ) {
           return `(*${id})`;
         }
-        // For struct parameters, return as-is here (will use -> in member access)
         return id;
       }
 

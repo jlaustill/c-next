@@ -28,6 +28,23 @@ class CallExprUtils {
   }
 
   /**
+   * Issue #551: Check if a type is a known primitive type.
+   * Known primitives use pass-by-reference (except floats and small types).
+   * Unknown types (external enums, typedefs) use pass-by-value.
+   */
+  static isKnownPrimitiveType(typeName: string): boolean {
+    return !!TYPE_MAP[typeName];
+  }
+
+  /**
+   * Issue #551: Check if a type is a string type (string<N>).
+   * String parameters use pass-by-reference (passed as char*).
+   */
+  static isStringType(typeName: string): boolean {
+    return typeName.startsWith("string<") || typeName === "string";
+  }
+
+  /**
    * ADR-051: Generate the helper function name for safe_div/safe_mod.
    */
   static generateSafeDivModHelperName(

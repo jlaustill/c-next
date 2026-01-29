@@ -67,6 +67,10 @@ class TypeResolver {
     if (this.symbols?.knownStructs.has(typeName)) {
       return true;
     }
+    // Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access)
+    if (this.symbols?.knownBitmaps.has(typeName)) {
+      return true;
+    }
     // Check SymbolTable for C header structs
     if (this.symbolTable?.getStructFields(typeName)) {
       return true;
