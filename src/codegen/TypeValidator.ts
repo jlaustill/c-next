@@ -210,7 +210,8 @@ class TypeValidator {
           throw new Error(
             `Array index out of bounds: ${constValue} is negative for '${arrayName}' dimension ${i + 1} (line ${line})`,
           );
-        } else if (constValue >= dimensions[i]) {
+        } else if (dimensions[i] > 0 && constValue >= dimensions[i]) {
+          // Issue #547: Skip upper bound check for unsized dimensions (size 0)
           throw new Error(
             `Array index out of bounds: ${constValue} >= ${dimensions[i]} for '${arrayName}' dimension ${i + 1} (line ${line})`,
           );

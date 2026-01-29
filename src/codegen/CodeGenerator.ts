@@ -3448,6 +3448,7 @@ export default class CodeGenerator implements IOrchestrator {
       const isBitmap = this.symbols!.knownBitmaps.has(typeName);
 
       // Extract array dimensions if this is an array parameter
+      // Issue #547: Always count each dimension, even if unsized (use 0 for unsized)
       const arrayDimensions: number[] = [];
       if (isArray) {
         const arrayDims = param.arrayDimension();
@@ -3458,7 +3459,13 @@ export default class CodeGenerator implements IOrchestrator {
             const size = Number.parseInt(sizeText, 10);
             if (!Number.isNaN(size)) {
               arrayDimensions.push(size);
+            } else {
+              // Non-numeric size (e.g., constant identifier) - still count the dimension
+              arrayDimensions.push(0);
             }
+          } else {
+            // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
+            arrayDimensions.push(0);
           }
         }
       }
