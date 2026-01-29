@@ -1,0 +1,76 @@
+// test-execution
+// Tests: Auto-const with compound assignments
+// Coverage: Parameters modified via compound assignment operators
+
+// Compound add - should NOT get const
+void addToValue(u32 val, u32 amount) {
+    val +<- amount;
+}
+
+// Compound subtract - should NOT get const
+void subtractFromValue(i32 val, i32 amount) {
+    val -<- amount;
+}
+
+// Compound multiply - should NOT get const
+void multiplyValue(u32 val, u32 factor) {
+    val *<- factor;
+}
+
+// Read then compound - should NOT get const
+u32 readAndAdd(u32 val, u32 amount) {
+    u32 original <- val;
+    val +<- amount;
+    return original;
+}
+
+// Multiple compound ops - should NOT get const
+void multipleCompound(u32 val) {
+    val +<- 10;
+    val *<- 2;
+    val -<- 5;
+}
+
+// Only reads with arithmetic - SHOULD get const
+u32 onlyReads(u32 a, u32 b) {
+    return a + b * 2;
+}
+
+u32 main() {
+    // Test compound add
+    u32 x <- 100;
+    addToValue(x, 50);
+    if (x != 150) return 1;
+
+    // Test compound subtract
+    i32 y <- 100;
+    subtractFromValue(y, 30);
+    if (y != 70) return 2;
+
+    // Test compound multiply
+    u32 z <- 10;
+    multiplyValue(z, 5);
+    if (z != 50) return 3;
+
+    // Test read and add
+    u32 w <- 25;
+    u32 original <- readAndAdd(w, 10);
+    if (original != 25) return 4;
+    if (w != 35) return 5;
+
+    // Test multiple compounds
+    u32 m <- 10;
+    multipleCompound(m);
+    // m = 10 + 10 = 20, * 2 = 40, - 5 = 35
+    if (m != 35) return 6;
+
+    // Test only reads
+    u32 a <- 5;
+    u32 b <- 3;
+    u32 result <- onlyReads(a, b);
+    if (result != 11) return 7;
+    if (a != 5) return 8;
+    if (b != 3) return 9;
+
+    return 0;
+}
