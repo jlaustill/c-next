@@ -1,0 +1,64 @@
+// test-execution
+// Tests: 2D struct arrays with various member types
+// Coverage: u8, u16, u32, u64, i8, i16, i32, bool members
+
+struct MixedData {
+    u8 byteVal;
+    u16 shortVal;
+    u32 intVal;
+    i8 signedByte;
+    i16 signedShort;
+    i32 signedInt;
+    bool flag;
+}
+
+MixedData matrix[2][2];
+
+u32 main() {
+    // Set first element with all types
+    matrix[0][0].byteVal <- 255;
+    matrix[0][0].shortVal <- 65535;
+    matrix[0][0].intVal <- 4294967295;
+    matrix[0][0].signedByte <- -128;
+    matrix[0][0].signedShort <- -32768;
+    matrix[0][0].signedInt <- -2147483648;
+    matrix[0][0].flag <- true;
+
+    // Verify first element
+    if (matrix[0][0].byteVal != 255) return 1;
+    if (matrix[0][0].shortVal != 65535) return 2;
+    if (matrix[0][0].intVal != 4294967295) return 3;
+    if (matrix[0][0].signedByte != -128) return 4;
+    if (matrix[0][0].signedShort != -32768) return 5;
+    if (matrix[0][0].signedInt != -2147483648) return 6;
+    if (matrix[0][0].flag != true) return 7;
+
+    // Set opposite corner with positive values
+    matrix[1][1].byteVal <- 0;
+    matrix[1][1].shortVal <- 1000;
+    matrix[1][1].intVal <- 100000;
+    matrix[1][1].signedByte <- 127;
+    matrix[1][1].signedShort <- 32767;
+    matrix[1][1].signedInt <- 2147483647;
+    matrix[1][1].flag <- false;
+
+    // Verify opposite corner
+    if (matrix[1][1].byteVal != 0) return 8;
+    if (matrix[1][1].shortVal != 1000) return 9;
+    if (matrix[1][1].intVal != 100000) return 10;
+    if (matrix[1][1].signedByte != 127) return 11;
+    if (matrix[1][1].signedShort != 32767) return 12;
+    if (matrix[1][1].signedInt != 2147483647) return 13;
+    if (matrix[1][1].flag != false) return 14;
+
+    // Test compound assignment on different types
+    matrix[0][1].byteVal <- 100;
+    matrix[0][1].byteVal +<- 50;
+    if (matrix[0][1].byteVal != 150) return 15;
+
+    matrix[0][1].signedInt <- -100;
+    matrix[0][1].signedInt +<- 50;
+    if (matrix[0][1].signedInt != -50) return 16;
+
+    return 0;
+}

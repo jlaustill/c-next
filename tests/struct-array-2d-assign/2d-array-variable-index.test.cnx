@@ -1,0 +1,60 @@
+// test-execution
+// Tests: 2D struct array access with variable indices
+// Coverage: Runtime index computation, nested loops
+
+struct Pixel {
+    u8 r;
+    u8 g;
+    u8 b;
+}
+
+Pixel image[4][4];
+
+u32 main() {
+    // Fill with gradient using variable indices
+    u32 y <- 0;
+    while (y < 4) {
+        u32 x <- 0;
+        while (x < 4) {
+            image[y][x].r <- y * 64;
+            image[y][x].g <- x * 64;
+            image[y][x].b <- (y + x) * 32;
+            x +<- 1;
+        }
+        y +<- 1;
+    }
+
+    // Verify using variable indices
+    u32 testY <- 2;
+    u32 testX <- 3;
+    if (image[testY][testX].r != 128) return 1;
+    if (image[testY][testX].g != 192) return 2;
+    if (image[testY][testX].b != 160) return 3;
+
+    // Verify corners
+    if (image[0][0].r != 0) return 4;
+    if (image[0][0].g != 0) return 5;
+    if (image[0][0].b != 0) return 6;
+
+    if (image[3][3].r != 192) return 7;
+    if (image[3][3].g != 192) return 8;
+    if (image[3][3].b != 192) return 9;
+
+    // Computed index access
+    u32 baseRow <- 1;
+    u32 offset <- 1;
+    if (image[baseRow + offset][offset].r != 128) return 10;
+
+    // Modify via computed index
+    u32 targetRow <- 2;
+    u32 targetCol <- 2;
+    image[targetRow][targetCol].r <- 255;
+    image[targetRow][targetCol].g <- 255;
+    image[targetRow][targetCol].b <- 255;
+
+    if (image[2][2].r != 255) return 11;
+    if (image[2][2].g != 255) return 12;
+    if (image[2][2].b != 255) return 13;
+
+    return 0;
+}

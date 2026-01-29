@@ -1,0 +1,50 @@
+// test-execution
+// Tests: 2D struct array direct access (no scope/global prefix)
+// Coverage: Basic 2D array indexing, row/column patterns
+
+struct Cell {
+    u8 row;
+    u8 col;
+    u32 data;
+}
+
+Cell grid[3][4];
+
+u32 main() {
+    // Initialize entire grid
+    u32 r <- 0;
+    while (r < 3) {
+        u32 c <- 0;
+        while (c < 4) {
+            grid[r][c].row <- r;
+            grid[r][c].col <- c;
+            grid[r][c].data <- r * 4 + c;
+            c +<- 1;
+        }
+        r +<- 1;
+    }
+
+    // Verify corners
+    if (grid[0][0].data != 0) return 1;
+    if (grid[0][3].data != 3) return 2;
+    if (grid[2][0].data != 8) return 3;
+    if (grid[2][3].data != 11) return 4;
+
+    // Verify row/col tracking
+    if (grid[1][2].row != 1) return 5;
+    if (grid[1][2].col != 2) return 6;
+
+    // Verify center
+    if (grid[1][1].data != 5) return 7;
+    if (grid[1][2].data != 6) return 8;
+
+    // Modify single cell
+    grid[1][1].data <- 999;
+    if (grid[1][1].data != 999) return 9;
+
+    // Compound assignment
+    grid[0][0].data +<- 100;
+    if (grid[0][0].data != 100) return 10;
+
+    return 0;
+}
