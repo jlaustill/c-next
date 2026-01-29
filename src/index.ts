@@ -65,8 +65,9 @@ function loadConfig(startDir: string): ICNextConfig {
           const config = JSON.parse(content) as ICNextConfig;
           config._path = configPath;
           return config;
-        } catch (_err) {
-          console.error(`Warning: Failed to parse ${configPath}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(`Warning: Failed to parse ${configPath}: ${message}`);
           return {};
         }
       }

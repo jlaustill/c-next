@@ -109,8 +109,8 @@ class IncludeDiscovery {
               }
             }
           }
-        } catch (_error: unknown) {
-          // Silently ignore errors reading directories
+        } catch {
+          // Expected: directory may not exist or be readable
         }
       }
     }
@@ -156,8 +156,8 @@ class IncludeDiscovery {
           }
         }
       }
-    } catch (_error: unknown) {
-      // Silently ignore errors reading directories
+    } catch {
+      // Expected: .pio directory may not exist
     }
 
     return paths;
@@ -229,8 +229,8 @@ class IncludeDiscovery {
           }
         }
       }
-    } catch (_error: unknown) {
-      // Silently ignore errors reading platformio.ini
+    } catch {
+      // Expected: platformio.ini may not exist or be malformed
     }
 
     return paths;

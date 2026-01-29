@@ -4873,8 +4873,7 @@ export default class CodeGenerator implements IOrchestrator {
         this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
         this._clearParameters();
 
-        lines.push("");
-        lines.push(`${prefix}${returnType} ${fullName}(${params}) ${body}`);
+        lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
 
         // ADR-029: Generate callback typedef only if used as a type
         if (this._isCallbackTypeUsedAsFieldType(fullName)) {
@@ -5042,8 +5041,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    lines.push(`} ${name};`);
-    lines.push("");
+    lines.push(`} ${name};`, "");
 
     // ADR-029: Generate init function if struct has callback fields
     if (callbackFields.length > 0) {
@@ -5122,8 +5120,7 @@ export default class CodeGenerator implements IOrchestrator {
       lines.push(`    ${fullMemberName} = ${value}${comma}`);
     }
 
-    lines.push(`} ${fullName};`);
-    lines.push("");
+    lines.push(`} ${fullName};`, "");
 
     return lines.join("\n");
   }
@@ -5179,8 +5176,7 @@ export default class CodeGenerator implements IOrchestrator {
       lines.push(" */");
     }
 
-    lines.push(`typedef ${backingType} ${fullName};`);
-    lines.push("");
+    lines.push(`typedef ${backingType} ${fullName};`, "");
 
     return lines.join("\n");
   }
