@@ -1,0 +1,12 @@
+// Issue #404: Type definitions for nested forward declaration tests
+// Tests nested structs used across files
+
+struct Vector2D {
+    f32 x;
+    f32 y;
+}
+
+struct BoundingBox {
+    Vector2D min;
+    Vector2D max;
+}

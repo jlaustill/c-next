@@ -1,0 +1,49 @@
+// Issue #404: Chained forward declarations across multiple files
+// test-execution
+// Tests forward declarations when types form a chain: test -> mid -> base
+// This validates transitive include handling.
+#include <chain-types-mid.cnx>
+
+scope Navigator {
+    Waypoint current;
+    Waypoint destination;
+
+    public void setDestination(Waypoint wp) {
+        this.destination <- wp;
+    }
+
+    public Waypoint getDestination() {
+        return this.destination;
+    }
+
+    public void moveTo(Coordinate pos) {
+        this.current.position <- pos;
+    }
+
+    public Coordinate getCurrentPosition() {
+        return this.current.position;
+    }
+}
+
+u32 main() {
+    Coordinate dest <- {x: 100, y: 200, z: 50};
+    Waypoint wp <- {position: dest, id: 42};
+
+    Navigator.setDestination(wp);
+
+    Waypoint retrieved <- Navigator.getDestination();
+    if (retrieved.id != 42) return 1;
+    if (retrieved.position.x != 100) return 2;
+    if (retrieved.position.y != 200) return 3;
+    if (retrieved.position.z != 50) return 4;
+
+    Coordinate newPos <- {x: 10, y: 20, z: 5};
+    Navigator.moveTo(newPos);
+
+    Coordinate currentPos <- Navigator.getCurrentPosition();
+    if (currentPos.x != 10) return 5;
+    if (currentPos.y != 20) return 6;
+    if (currentPos.z != 5) return 7;
+
+    return 0;
+}
