@@ -1,0 +1,31 @@
+// Tests: External struct types with multiple fields
+// Coverage: Using structs from external C headers
+
+#include "external-config.h"
+
+void configureSerial(ExternalSerialConfig cfg) {
+    cfg.baudRate <- 115200;
+    cfg.dataBits <- 8;
+    cfg.stopBits <- 1;
+    cfg.parityEnabled <- false;
+}
+
+void configureI2C(ExternalI2CConfig cfg) {
+    cfg.address <- 0x50;
+    cfg.channel <- 1;
+    cfg.enabled <- true;
+}
+
+u32 readBaudRate(ExternalSerialConfig cfg) {
+    return cfg.baudRate;
+}
+
+void main() {
+    ExternalSerialConfig serial;
+    configureSerial(serial);
+
+    ExternalI2CConfig i2c;
+    configureI2C(i2c);
+
+    u32 baud <- readBaudRate(serial);
+}

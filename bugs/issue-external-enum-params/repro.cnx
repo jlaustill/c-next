@@ -1,0 +1,14 @@
+// Bug: External enum parameters treated as pass-by-reference
+// When an enum is defined in an external header (not parsed by transpiler),
+// the transpiler doesn't know it's an enum and treats it as an unknown type,
+// using pass-by-reference which fails for enum literals.
+
+#include "external-enum.h"
+
+void useStatus(Status s) {
+    Status local <- s;
+}
+
+void main() {
+    useStatus(STATUS_OK);  // ERROR: &STATUS_OK is invalid
+}
