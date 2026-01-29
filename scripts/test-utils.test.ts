@@ -5,9 +5,9 @@
  * It verifies the public API contract for the shared test utilities.
  */
 
-import { mkdtempSync, writeFileSync, rmSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import TestUtils from "./test-utils";
 
 // Import shared types

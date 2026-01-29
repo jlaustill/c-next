@@ -1243,7 +1243,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Extract just the class name (part after last ::)
     // e.g., TestNS::MyClass -> MyClass, CppTestClass -> CppTestClass
     const parts = qualifiedName.split("::");
-    const className = parts[parts.length - 1];
+    const className = parts.at(-1)!;
 
     // Constructor name follows the pattern: FullTypeName::ClassName
     // e.g., TestNS::MyClass::MyClass, CppTestClass::CppTestClass
@@ -1615,7 +1615,7 @@ export default class CodeGenerator implements IOrchestrator {
       typeResolver: this.typeResolver,
       callbackTypes: this.callbackTypes,
       knownFunctions: this.knownFunctions,
-      knownGlobals: new Set(), // TODO: Extract known globals if needed
+      knownGlobals: new Set(), // Note: Extract known globals if needed in future
       getCurrentScope: () => this.context.currentScope,
       getScopeMembers: () => this.context.scopeMembers,
       getCurrentParameters: () => this.context.currentParameters,
@@ -2109,7 +2109,7 @@ export default class CodeGenerator implements IOrchestrator {
       const assign = stmt.assignmentStatement()!;
       // Get the target - use assignmentTarget() which has IDENTIFIER()
       const target = assign.assignmentTarget();
-      if (target && target.IDENTIFIER()) {
+      if (target?.IDENTIFIER()) {
         // Simple identifier assignment (not array/member access)
         if (!target.arrayAccess() && !target.memberAccess()) {
           const targetName = target.IDENTIFIER()!.getText();
@@ -2515,7 +2515,7 @@ export default class CodeGenerator implements IOrchestrator {
           const calleeModified = this.modifiedParameters.get(callee);
 
           // If callee's parameter is modified, mark caller's parameter as modified
-          if (calleeModified && calleeModified.has(calleeParamName)) {
+          if (calleeModified?.has(calleeParamName)) {
             const callerModified = this.modifiedParameters.get(funcName);
             if (callerModified && !callerModified.has(argParamName)) {
               callerModified.add(argParamName);
@@ -2851,7 +2851,6 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         // Unsized string - for const inference (handled in generateVariableDecl)
         baseType = "string";
-        bitWidth = 0;
       }
     } else if (typeCtx.scopedType()) {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
@@ -2861,7 +2860,6 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         baseType = typeName;
       }
-      bitWidth = 0;
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -2880,7 +2878,6 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #478: Handle global.Type for global types inside scope
       // global.ECategory -> ECategory (no scope prefix)
       baseType = typeCtx.globalType()!.IDENTIFIER().getText();
-      bitWidth = 0;
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -2901,7 +2898,6 @@ export default class CodeGenerator implements IOrchestrator {
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       baseType = this.resolveQualifiedType(identifierNames);
-      bitWidth = 0;
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -2919,7 +2915,7 @@ export default class CodeGenerator implements IOrchestrator {
     } else if (typeCtx.userType()) {
       // Track struct/class/enum/bitmap types for inferred struct initializers and type safety
       baseType = typeCtx.userType()!.getText();
-      bitWidth = 0; // User types don't have fixed bit width
+      // Note: bitWidth stays 0 for user types (no fixed bit width)
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -3018,7 +3014,6 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         baseType = typeName;
       }
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -3082,7 +3077,6 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #478: Handle global.Type for global types inside scope
       // global.ECategory -> ECategory (no scope prefix)
       baseType = typeCtx.globalType()!.IDENTIFIER().getText();
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -3147,7 +3141,6 @@ export default class CodeGenerator implements IOrchestrator {
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       baseType = this.resolveQualifiedType(identifierNames);
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -3209,7 +3202,6 @@ export default class CodeGenerator implements IOrchestrator {
       }
     } else if (typeCtx.userType()) {
       baseType = typeCtx.userType()!.getText();
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -4177,7 +4169,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Check current scope first (inner scope shadows outer)
     if (this.context.currentScope) {
       const members = this.context.scopeMembers.get(this.context.currentScope);
-      if (members && members.has(identifier)) {
+      if (members?.has(identifier)) {
         return `${this.context.currentScope}_${identifier}`;
       }
     }
@@ -4647,7 +4639,7 @@ export default class CodeGenerator implements IOrchestrator {
         const members = this.context.scopeMembers.get(
           this.context.currentScope,
         );
-        if (members && members.has(id)) {
+        if (members?.has(id)) {
           return `&${this.context.currentScope}_${id}`;
         }
       }
@@ -4873,8 +4865,7 @@ export default class CodeGenerator implements IOrchestrator {
         this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
         this._clearParameters();
 
-        lines.push("");
-        lines.push(`${prefix}${returnType} ${fullName}(${params}) ${body}`);
+        lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
 
         // ADR-029: Generate callback typedef only if used as a type
         if (this._isCallbackTypeUsedAsFieldType(fullName)) {
@@ -5042,8 +5033,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    lines.push(`} ${name};`);
-    lines.push("");
+    lines.push(`} ${name};`, "");
 
     // ADR-029: Generate init function if struct has callback fields
     if (callbackFields.length > 0) {
@@ -5122,8 +5112,7 @@ export default class CodeGenerator implements IOrchestrator {
       lines.push(`    ${fullMemberName} = ${value}${comma}`);
     }
 
-    lines.push(`} ${fullName};`);
-    lines.push("");
+    lines.push(`} ${fullName};`, "");
 
     return lines.join("\n");
   }
@@ -5179,8 +5168,7 @@ export default class CodeGenerator implements IOrchestrator {
       lines.push(" */");
     }
 
-    lines.push(`typedef ${backingType} ${fullName};`);
-    lines.push("");
+    lines.push(`typedef ${backingType} ${fullName};`, "");
 
     return lines.join("\n");
   }
@@ -5242,7 +5230,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       // Set expected type for nested initializers
       const savedExpectedType = this.context.expectedType;
-      if (structFieldTypes && structFieldTypes.has(fieldName)) {
+      if (structFieldTypes?.has(fieldName)) {
         // Issue #502: Convert underscore format to correct output format
         // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
         // but code generation needs :: for C++ types (e.g., SeaDash::Parse::ParseResult)
@@ -6766,7 +6754,7 @@ export default class CodeGenerator implements IOrchestrator {
             const memberName = identifiers[i].getText();
             const structFieldTypes =
               this.symbols!.structFields.get(currentStructType);
-            if (structFieldTypes && structFieldTypes.has(memberName)) {
+            if (structFieldTypes?.has(memberName)) {
               const memberType = structFieldTypes.get(memberName)!;
               if (i === identifiers.length - 1) {
                 // Last field in chain - this is the assignment target's type
@@ -7726,9 +7714,7 @@ export default class CodeGenerator implements IOrchestrator {
       isCppAccessChain = true;
     }
 
-    for (let i = 0; i < ops.length; i++) {
-      const op = ops[i];
-
+    for (const op of ops) {
       // Member access
       if (op.IDENTIFIER()) {
         const memberName = op.IDENTIFIER()!.getText();
@@ -7774,7 +7760,7 @@ export default class CodeGenerator implements IOrchestrator {
           const members = this.context.scopeMembers.get(
             this.context.currentScope,
           );
-          if (members && members.has("length")) {
+          if (members?.has("length")) {
             // This is a scope variable named 'length', not a property accessor
             result = `${this.context.currentScope}_${memberName}`;
             currentIdentifier = result;
@@ -8016,7 +8002,7 @@ export default class CodeGenerator implements IOrchestrator {
           if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
             const bitmapType = typeInfo.bitmapTypeName;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(memberName)) {
+            if (fields?.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               // Use extracted generator for bitmap field access
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
@@ -8113,7 +8099,7 @@ export default class CodeGenerator implements IOrchestrator {
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(memberName)) {
+            if (fields?.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8147,7 +8133,7 @@ export default class CodeGenerator implements IOrchestrator {
             const bitmapFieldsPtr = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
-            if (bitmapFieldsPtr && bitmapFieldsPtr.has(memberName)) {
+            if (bitmapFieldsPtr?.has(memberName)) {
               const fieldInfo = bitmapFieldsPtr.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8195,7 +8181,7 @@ export default class CodeGenerator implements IOrchestrator {
             const bitmapFields = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
-            if (bitmapFields && bitmapFields.has(memberName)) {
+            if (bitmapFields?.has(memberName)) {
               const fieldInfo = bitmapFields.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8316,7 +8302,7 @@ export default class CodeGenerator implements IOrchestrator {
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(memberName)) {
+            if (fields?.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8375,7 +8361,7 @@ export default class CodeGenerator implements IOrchestrator {
             const line = primary.start?.line ?? 0;
             throw new Error(
               `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-                `Use named field access instead (e.g., ${result.split("_").slice(-1)[0]}.FIELD_NAME).`,
+                `Use named field access instead (e.g., ${result.split("_").at(-1)}.FIELD_NAME).`,
             );
           }
 
@@ -8647,7 +8633,7 @@ export default class CodeGenerator implements IOrchestrator {
         // Type-aware resolution: check only the expected enum type
         const expectedEnum = this.context.expectedType;
         const members = this.symbols!.enumMembers.get(expectedEnum);
-        if (members && members.has(id)) {
+        if (members?.has(id)) {
           return `${expectedEnum}${this.getScopeSeparator(false)}${id}`;
         }
       } else {
@@ -9075,7 +9061,7 @@ export default class CodeGenerator implements IOrchestrator {
           );
         }
       }
-      // TODO: Add bounds checking for struct.field[i][j] patterns
+      // Future: Add bounds checking for struct.field[i][j] patterns
 
       const indices = expressions
         .map((e) => this._generateExpression(e))

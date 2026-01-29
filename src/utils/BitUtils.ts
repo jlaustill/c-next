@@ -26,8 +26,9 @@ class BitUtils {
    * @returns C code string for the mask
    */
   static generateMask(width: string | number): string {
-    const widthNum = typeof width === "number" ? width : parseInt(width, 10);
-    if (!isNaN(widthNum)) {
+    const widthNum =
+      typeof width === "number" ? width : Number.parseInt(width, 10);
+    if (!Number.isNaN(widthNum)) {
       const hex = BitUtils.maskHex(widthNum);
       if (hex) return hex;
     }

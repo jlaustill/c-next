@@ -77,7 +77,8 @@ class FunctionCollector {
       if (isArray) {
         for (const dim of arrayDims) {
           const text = dim.getText();
-          const match = text.match(/\[([^\]]*)\]/);
+          const regex = /\[([^\]]*)\]/;
+          const match = regex.exec(text);
           arrayDimensions.push(match ? match[1] : ""); // "" means unbounded
         }
       }

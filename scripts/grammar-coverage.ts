@@ -326,11 +326,16 @@ async function main(): Promise<void> {
   let mode = "report";
   let threshold = DEFAULT_THRESHOLD;
 
+  let skipNext = false;
   for (let i = 0; i < args.length; i++) {
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
     const arg = args[i];
-    if (arg === "--threshold" && args[i + 1]) {
-      threshold = parseFloat(args[i + 1]);
-      i++;
+    if (arg === "--threshold" && i + 1 < args.length) {
+      threshold = Number.parseFloat(args[i + 1]);
+      skipNext = true;
     } else if (!arg.startsWith("--")) {
       mode = arg;
     }

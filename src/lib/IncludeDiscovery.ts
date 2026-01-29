@@ -109,8 +109,8 @@ class IncludeDiscovery {
               }
             }
           }
-        } catch (_error: unknown) {
-          // Silently ignore errors reading directories
+        } catch {
+          // Expected: directory may not exist or be readable
         }
       }
     }
@@ -156,8 +156,8 @@ class IncludeDiscovery {
           }
         }
       }
-    } catch (_error: unknown) {
-      // Silently ignore errors reading directories
+    } catch {
+      // Expected: .pio directory may not exist
     }
 
     return paths;
@@ -201,9 +201,11 @@ class IncludeDiscovery {
           .split(/[\n,]/)
           .map((d) => {
             // Strip inline comments (e.g., "path ; comment" or "path # comment")
+            const semicolonIdx = d.indexOf(";");
+            const hashIdx = d.indexOf("#");
             const commentIndex = Math.min(
-              d.indexOf(";") === -1 ? Infinity : d.indexOf(";"),
-              d.indexOf("#") === -1 ? Infinity : d.indexOf("#"),
+              semicolonIdx === -1 ? Infinity : semicolonIdx,
+              hashIdx === -1 ? Infinity : hashIdx,
             );
             return d.slice(0, commentIndex).trim();
           })
@@ -227,8 +229,8 @@ class IncludeDiscovery {
           }
         }
       }
-    } catch (_error: unknown) {
-      // Silently ignore errors reading platformio.ini
+    } catch {
+      // Expected: platformio.ini may not exist or be malformed
     }
 
     return paths;
