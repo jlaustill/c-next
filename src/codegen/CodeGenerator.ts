@@ -2109,7 +2109,7 @@ export default class CodeGenerator implements IOrchestrator {
       const assign = stmt.assignmentStatement()!;
       // Get the target - use assignmentTarget() which has IDENTIFIER()
       const target = assign.assignmentTarget();
-      if (target && target.IDENTIFIER()) {
+      if (target?.IDENTIFIER()) {
         // Simple identifier assignment (not array/member access)
         if (!target.arrayAccess() && !target.memberAccess()) {
           const targetName = target.IDENTIFIER()!.getText();
@@ -2515,7 +2515,7 @@ export default class CodeGenerator implements IOrchestrator {
           const calleeModified = this.modifiedParameters.get(callee);
 
           // If callee's parameter is modified, mark caller's parameter as modified
-          if (calleeModified && calleeModified.has(calleeParamName)) {
+          if (calleeModified?.has(calleeParamName)) {
             const callerModified = this.modifiedParameters.get(funcName);
             if (callerModified && !callerModified.has(argParamName)) {
               callerModified.add(argParamName);
@@ -4169,7 +4169,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Check current scope first (inner scope shadows outer)
     if (this.context.currentScope) {
       const members = this.context.scopeMembers.get(this.context.currentScope);
-      if (members && members.has(identifier)) {
+      if (members?.has(identifier)) {
         return `${this.context.currentScope}_${identifier}`;
       }
     }
@@ -4639,7 +4639,7 @@ export default class CodeGenerator implements IOrchestrator {
         const members = this.context.scopeMembers.get(
           this.context.currentScope,
         );
-        if (members && members.has(id)) {
+        if (members?.has(id)) {
           return `&${this.context.currentScope}_${id}`;
         }
       }
@@ -5230,7 +5230,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       // Set expected type for nested initializers
       const savedExpectedType = this.context.expectedType;
-      if (structFieldTypes && structFieldTypes.has(fieldName)) {
+      if (structFieldTypes?.has(fieldName)) {
         // Issue #502: Convert underscore format to correct output format
         // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
         // but code generation needs :: for C++ types (e.g., SeaDash::Parse::ParseResult)
@@ -6754,7 +6754,7 @@ export default class CodeGenerator implements IOrchestrator {
             const memberName = identifiers[i].getText();
             const structFieldTypes =
               this.symbols!.structFields.get(currentStructType);
-            if (structFieldTypes && structFieldTypes.has(memberName)) {
+            if (structFieldTypes?.has(memberName)) {
               const memberType = structFieldTypes.get(memberName)!;
               if (i === identifiers.length - 1) {
                 // Last field in chain - this is the assignment target's type
@@ -7760,7 +7760,7 @@ export default class CodeGenerator implements IOrchestrator {
           const members = this.context.scopeMembers.get(
             this.context.currentScope,
           );
-          if (members && members.has("length")) {
+          if (members?.has("length")) {
             // This is a scope variable named 'length', not a property accessor
             result = `${this.context.currentScope}_${memberName}`;
             currentIdentifier = result;
@@ -8002,7 +8002,7 @@ export default class CodeGenerator implements IOrchestrator {
           if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
             const bitmapType = typeInfo.bitmapTypeName;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(memberName)) {
+            if (fields?.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               // Use extracted generator for bitmap field access
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
@@ -8099,7 +8099,7 @@ export default class CodeGenerator implements IOrchestrator {
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(memberName)) {
+            if (fields?.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8133,7 +8133,7 @@ export default class CodeGenerator implements IOrchestrator {
             const bitmapFieldsPtr = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
-            if (bitmapFieldsPtr && bitmapFieldsPtr.has(memberName)) {
+            if (bitmapFieldsPtr?.has(memberName)) {
               const fieldInfo = bitmapFieldsPtr.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8181,7 +8181,7 @@ export default class CodeGenerator implements IOrchestrator {
             const bitmapFields = this.symbols!.bitmapFields.get(
               currentStructType || "",
             );
-            if (bitmapFields && bitmapFields.has(memberName)) {
+            if (bitmapFields?.has(memberName)) {
               const fieldInfo = bitmapFields.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8302,7 +8302,7 @@ export default class CodeGenerator implements IOrchestrator {
           else if (this.symbols!.registerMemberTypes.has(result)) {
             const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
             const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields && fields.has(memberName)) {
+            if (fields?.has(memberName)) {
               const fieldInfo = fields.get(memberName)!;
               const bitmapResult = accessGenerators.generateBitmapFieldAccess(
                 result,
@@ -8633,7 +8633,7 @@ export default class CodeGenerator implements IOrchestrator {
         // Type-aware resolution: check only the expected enum type
         const expectedEnum = this.context.expectedType;
         const members = this.symbols!.enumMembers.get(expectedEnum);
-        if (members && members.has(id)) {
+        if (members?.has(id)) {
           return `${expectedEnum}${this.getScopeSeparator(false)}${id}`;
         }
       } else {
