@@ -1,0 +1,108 @@
+// test-execution
+// Tests: Pass-by-value in nested function calls
+// Coverage: Values passed through call chains
+
+// Level 3: deepest functions
+u32 addOne(u32 val) {
+    return val + 1;
+}
+
+void modifyAddOne(u32 val) {
+    val +<- 1;
+}
+
+// Level 2: middle functions
+u32 addTwo(u32 val) {
+    u32 temp <- addOne(val);
+    return addOne(temp);
+}
+
+void modifyAddTwo(u32 val) {
+    modifyAddOne(val);
+    modifyAddOne(val);
+}
+
+u32 mixedChain(u32 val) {
+    u32 result <- addOne(val);
+    modifyAddOne(val);
+    return result + val;
+}
+
+// Level 1: top functions
+u32 addFour(u32 val) {
+    u32 temp <- addTwo(val);
+    return addTwo(temp);
+}
+
+void modifyAddFour(u32 val) {
+    modifyAddTwo(val);
+    modifyAddTwo(val);
+}
+
+// Multiple parameters through chain
+u32 sumThree(u32 a, u32 b, u32 c) {
+    return a + b + c;
+}
+
+u32 sumSix(u32 a, u32 b, u32 c, u32 d, u32 e, u32 f) {
+    u32 first <- sumThree(a, b, c);
+    u32 second <- sumThree(d, e, f);
+    return first + second;
+}
+
+// Mixed modification through chain
+void incrementBoth(u32 x, u32 y) {
+    modifyAddOne(x);
+    modifyAddOne(y);
+}
+
+u32 main() {
+    // Test unmodified nested calls
+    u32 val <- 10;
+    u32 result <- addOne(val);
+    if (val != 10) return 1;
+    if (result != 11) return 2;
+
+    result <- addTwo(val);
+    if (val != 10) return 3;
+    if (result != 12) return 4;
+
+    result <- addFour(val);
+    if (val != 10) return 5;
+    if (result != 14) return 6;
+
+    // Test modified nested calls
+    u32 modVal <- 100;
+    modifyAddOne(modVal);
+    if (modVal != 101) return 7;
+
+    modVal <- 100;
+    modifyAddTwo(modVal);
+    if (modVal != 102) return 8;
+
+    modVal <- 100;
+    modifyAddFour(modVal);
+    if (modVal != 104) return 9;
+
+    // Test mixed chain (both modified and unmodified)
+    u32 mixedVal <- 50;
+    result <- mixedChain(mixedVal);
+    if (mixedVal != 51) return 10;
+    if (result != 102) return 11;
+
+    // Test multiple parameters through chain
+    result <- sumThree(1, 2, 3);
+    if (result != 6) return 12;
+
+    result <- sumSix(1, 2, 3, 4, 5, 6);
+    if (result != 21) return 13;
+
+    // Test both parameters modified
+    u32 x <- 10;
+    u32 y <- 20;
+    incrementBoth(x, y);
+    if (x != 11) return 14;
+    if (y != 21) return 15;
+
+    return 0;
+}
