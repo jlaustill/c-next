@@ -456,7 +456,7 @@ class CSymbolCollector {
   ): boolean {
     for (const spec of declSpecs.declarationSpecifier()) {
       const storageSpec = spec.storageClassSpecifier();
-      if (storageSpec && storageSpec.getText() === storage) {
+      if (storageSpec?.getText() === storage) {
         return true;
       }
     }

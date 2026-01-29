@@ -688,7 +688,7 @@ class InitializationAnalyzer {
       if (state.isStruct && state.typeName) {
         // Struct type: check if this is a real field
         const structFields = this.structFields.get(state.typeName);
-        if (structFields && structFields.has(field)) {
+        if (structFields?.has(field)) {
           // This is a real struct field - check initialization
           if (!state.initializedFields.has(field)) {
             this.addError(

@@ -25,7 +25,7 @@ function getBitmapFieldInfo(
   deps: IHandlerDeps,
 ): { offset: number; width: number } {
   const fields = deps.symbols.bitmapFields.get(bitmapType);
-  if (!fields || !fields.has(fieldName)) {
+  if (!fields?.has(fieldName)) {
     throw new Error(
       `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
     );

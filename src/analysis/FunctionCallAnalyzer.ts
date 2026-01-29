@@ -477,7 +477,7 @@ class FunctionCallAnalyzer {
   private isStdlibFunction(name: string): boolean {
     for (const header of this.includedHeaders) {
       const funcs = STDLIB_FUNCTIONS.get(header);
-      if (funcs && funcs.has(name)) {
+      if (funcs?.has(name)) {
         return true;
       }
     }

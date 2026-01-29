@@ -128,7 +128,7 @@ const generateLengthProperty = (ctx: PropertyContext): PropertyResult => {
             skipContinue: true,
           };
         }
-      } else if (dimensions && dimensions.length === 1 && isStringField) {
+      } else if (dimensions?.length === 1 && isStringField) {
         // Single string field: string<64> str
         // ts.str.length -> strlen(ts.str)
         effects.push({ type: "include", header: "string" });
@@ -205,23 +205,22 @@ const generateLengthProperty = (ctx: PropertyContext): PropertyResult => {
         effects.push({ type: "include", header: "string" });
         return { code: `strlen(${ctx.result})`, effects, skipContinue: false };
       }
+    } else if (
+      ctx.currentIdentifier &&
+      ctx.lengthCache?.has(ctx.currentIdentifier)
+    ) {
+      // Single string with cached length
+      return {
+        code: ctx.lengthCache.get(ctx.currentIdentifier)!,
+        effects,
+        skipContinue: false,
+      };
     } else {
       // Single string: arrayDimensions: [65]
       // str.length -> strlen(str)
-      if (
-        ctx.currentIdentifier &&
-        ctx.lengthCache?.has(ctx.currentIdentifier)
-      ) {
-        return {
-          code: ctx.lengthCache.get(ctx.currentIdentifier)!,
-          effects,
-          skipContinue: false,
-        };
-      } else {
-        effects.push({ type: "include", header: "string" });
-        const target = ctx.currentIdentifier ?? ctx.result;
-        return { code: `strlen(${target})`, effects, skipContinue: false };
-      }
+      effects.push({ type: "include", header: "string" });
+      const target = ctx.currentIdentifier ?? ctx.result;
+      return { code: `strlen(${target})`, effects, skipContinue: false };
     }
   } else if (
     typeInfo.isArray &&

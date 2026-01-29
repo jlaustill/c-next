@@ -363,7 +363,7 @@ class TypeValidator {
 
     // Check if this identifier is a scope member
     const scopeMembers = this.getScopeMembersFn().get(currentScope);
-    if (scopeMembers && scopeMembers.has(identifier)) {
+    if (scopeMembers?.has(identifier)) {
       throw new Error(
         `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScope}'`,
       );
@@ -431,7 +431,7 @@ class TypeValidator {
     // Priority 2: If inside a scope, check scope members
     if (currentScope) {
       const scopeMembers = this.getScopeMembersFn().get(currentScope);
-      if (scopeMembers && scopeMembers.has(identifier)) {
+      if (scopeMembers?.has(identifier)) {
         return `${currentScope}_${identifier}`;
       }
 
@@ -637,14 +637,12 @@ class TypeValidator {
         }
       }
       // Plain default: no exhaustiveness check needed
-    } else {
+    } else if (explicitCaseCount !== totalVariants) {
       // No default: must cover all variants explicitly
-      if (explicitCaseCount !== totalVariants) {
-        const missing = totalVariants - explicitCaseCount;
-        throw new Error(
-          `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
-        );
-      }
+      const missing = totalVariants - explicitCaseCount;
+      throw new Error(
+        `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
+      );
     }
   }
 
@@ -867,7 +865,7 @@ class TypeValidator {
 
     // Check if it's a known boolean variable
     const typeInfo = this.typeRegistry.get(text);
-    if (typeInfo && typeInfo.baseType === "bool") {
+    if (typeInfo?.baseType === "bool") {
       return true;
     }
 

@@ -187,7 +187,7 @@ class Preprocessor {
       });
 
       // Log warnings to console but don't fail
-      if (stderr && stderr.trim()) {
+      if (stderr?.trim()) {
         console.warn(`Preprocessor warnings for ${filePath}:\n${stderr}`);
       }
 

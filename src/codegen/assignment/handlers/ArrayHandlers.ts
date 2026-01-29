@@ -99,7 +99,7 @@ function handleArraySlice(ctx: IAssignmentContext, deps: IHandlerDeps): string {
   let capacity: number;
   if (typeInfo?.isString && typeInfo.stringCapacity && !typeInfo.isArray) {
     capacity = typeInfo.stringCapacity + 1;
-  } else if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions[0]) {
+  } else if (typeInfo?.arrayDimensions?.[0]) {
     capacity = typeInfo.arrayDimensions[0];
   } else {
     throw new Error(

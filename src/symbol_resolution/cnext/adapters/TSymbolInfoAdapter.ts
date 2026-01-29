@@ -369,7 +369,7 @@ class TSymbolInfoAdapter {
     const fullVarName = `${scopeName}_${varName}`;
     const usedIn = scopeVariableUsage.get(fullVarName);
 
-    if (!usedIn || usedIn.size !== 1) {
+    if (usedIn?.size !== 1) {
       return null;
     }
 

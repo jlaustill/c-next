@@ -629,7 +629,7 @@ class NullCheckListener extends CNextListener {
         // Check if argument is a simple c_ prefixed variable
         if (/^c_[a-zA-Z_]\w*$/.test(argText)) {
           const varState = this.lookupVariable(argText);
-          if (varState && varState.state === NullCheckState.Unchecked) {
+          if (varState?.state === NullCheckState.Unchecked) {
             const argLine = arg.start?.line ?? line;
             const argColumn = arg.start?.column ?? 0;
             this.analyzer.reportMissingNullCheckBeforeUse(
