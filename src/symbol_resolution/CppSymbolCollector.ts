@@ -36,7 +36,7 @@ class CppSymbolCollector {
    * Get warnings generated during symbol collection
    */
   getWarnings(): string[] {
-    return this.ctx.warnings;
+    return SymbolCollectorContext.getWarnings(this.ctx);
   }
 
   /**
@@ -47,19 +47,19 @@ class CppSymbolCollector {
     this.currentNamespace = undefined;
 
     if (!tree) {
-      return this.ctx.symbols;
+      return SymbolCollectorContext.getSymbols(this.ctx);
     }
 
     const declSeq = tree.declarationseq?.();
     if (!declSeq) {
-      return this.ctx.symbols;
+      return SymbolCollectorContext.getSymbols(this.ctx);
     }
 
     for (const decl of declSeq.declaration()) {
       this.collectDeclaration(decl);
     }
 
-    return this.ctx.symbols;
+    return SymbolCollectorContext.getSymbols(this.ctx);
   }
 
   private collectDeclaration(decl: any): void {
@@ -113,7 +113,7 @@ class CppSymbolCollector {
     // Issue #322: Extract function parameters
     const params = this.extractFunctionParameters(declarator);
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
       kind: ESymbolKind.Function,
       type: returnType,
@@ -133,7 +133,7 @@ class CppSymbolCollector {
     const name = identifier?.getText() ?? originalNs?.getText();
     if (!name) return;
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name,
       kind: ESymbolKind.Namespace,
       sourceFile: this.ctx.sourceFile,
@@ -176,7 +176,7 @@ class CppSymbolCollector {
     if (aliasDecl) {
       const identifier = aliasDecl.Identifier?.();
       if (identifier) {
-        this.ctx.symbols.push({
+        SymbolCollectorContext.addSymbol(this.ctx, {
           name: identifier.getText(),
           kind: ESymbolKind.Type,
           sourceFile: this.ctx.sourceFile,
@@ -247,7 +247,7 @@ class CppSymbolCollector {
           const memberSpec = anonymousClassSpec.memberSpecification?.();
           if (memberSpec) {
             // Add the type symbol
-            this.ctx.symbols.push({
+            SymbolCollectorContext.addSymbol(this.ctx, {
               name: fullName,
               kind: ESymbolKind.Class, // Treat typedef'd structs as classes
               sourceFile: this.ctx.sourceFile,
@@ -267,7 +267,7 @@ class CppSymbolCollector {
           ? this.extractFunctionParameters(declarator)
           : [];
 
-        this.ctx.symbols.push({
+        SymbolCollectorContext.addSymbol(this.ctx, {
           name: fullName,
           kind: isFunction ? ESymbolKind.Function : ESymbolKind.Variable,
           type: baseType,
@@ -301,7 +301,7 @@ class CppSymbolCollector {
       ? `${this.currentNamespace}::${name}`
       : name;
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
       kind: ESymbolKind.Class,
       sourceFile: this.ctx.sourceFile,
@@ -350,7 +350,7 @@ class CppSymbolCollector {
           const params = this.extractFunctionParameters(declarator);
           const fullName = `${className}::${funcName}`;
 
-          this.ctx.symbols.push({
+          SymbolCollectorContext.addSymbol(this.ctx, {
             name: fullName,
             kind: ESymbolKind.Function,
             type: returnType,
@@ -388,7 +388,7 @@ class CppSymbolCollector {
         const params = this.extractFunctionParameters(declarator);
         const fullName = `${className}::${fieldName}`;
 
-        this.ctx.symbols.push({
+        SymbolCollectorContext.addSymbol(this.ctx, {
           name: fullName,
           kind: ESymbolKind.Function,
           type: fieldType,
@@ -405,7 +405,8 @@ class CppSymbolCollector {
 
       // Warn if field name conflicts with C-Next reserved property names
       if (SymbolUtils.isReservedFieldName(fieldName)) {
-        this.ctx.warnings.push(
+        SymbolCollectorContext.addWarning(
+          this.ctx,
           `Warning: C++ header struct '${className}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
             `Consider renaming the field or be aware that '${className}.${fieldName}' may not work as expected in C-Next code.`,
         );
@@ -467,7 +468,7 @@ class CppSymbolCollector {
       ? `${this.currentNamespace}::${name}`
       : name;
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
       kind: ESymbolKind.Enum,
       sourceFile: this.ctx.sourceFile,

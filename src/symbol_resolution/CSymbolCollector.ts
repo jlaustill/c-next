@@ -35,7 +35,7 @@ class CSymbolCollector {
    * Get warnings generated during symbol collection
    */
   getWarnings(): string[] {
-    return this.ctx.warnings;
+    return SymbolCollectorContext.getWarnings(this.ctx);
   }
 
   /**
@@ -46,14 +46,14 @@ class CSymbolCollector {
 
     const translationUnit = tree.translationUnit();
     if (!translationUnit) {
-      return this.ctx.symbols;
+      return SymbolCollectorContext.getSymbols(this.ctx);
     }
 
     for (const extDecl of translationUnit.externalDeclaration()) {
       this.collectExternalDeclaration(extDecl);
     }
 
-    return this.ctx.symbols;
+    return SymbolCollectorContext.getSymbols(this.ctx);
   }
 
   private collectExternalDeclaration(
@@ -89,7 +89,7 @@ class CSymbolCollector {
       ? this.extractTypeFromDeclSpecs(declSpecs)
       : "int";
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name,
       kind: ESymbolKind.Function,
       type: returnType,
@@ -172,7 +172,7 @@ class CSymbolCollector {
       const isFunction = this.declaratorIsFunction(declarator);
 
       if (isTypedef) {
-        this.ctx.symbols.push({
+        SymbolCollectorContext.addSymbol(this.ctx, {
           name,
           kind: ESymbolKind.Type,
           type: baseType,
@@ -182,7 +182,7 @@ class CSymbolCollector {
           isExported: true,
         });
       } else if (isFunction) {
-        this.ctx.symbols.push({
+        SymbolCollectorContext.addSymbol(this.ctx, {
           name,
           kind: ESymbolKind.Function,
           type: baseType,
@@ -193,7 +193,7 @@ class CSymbolCollector {
           isDeclaration: true,
         });
       } else {
-        this.ctx.symbols.push({
+        SymbolCollectorContext.addSymbol(this.ctx, {
           name,
           kind: ESymbolKind.Variable,
           type: baseType,
@@ -221,7 +221,7 @@ class CSymbolCollector {
 
     const isUnion = structSpec.structOrUnion()?.getText() === "union";
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name,
       kind: ESymbolKind.Struct,
       type: isUnion ? "union" : "struct",
@@ -256,7 +256,7 @@ class CSymbolCollector {
 
     const name = identifier.getText();
 
-    this.ctx.symbols.push({
+    SymbolCollectorContext.addSymbol(this.ctx, {
       name,
       kind: ESymbolKind.Enum,
       sourceFile: this.ctx.sourceFile,
@@ -273,7 +273,7 @@ class CSymbolCollector {
         if (enumConst) {
           const memberName = enumConst.Identifier()?.getText();
           if (memberName) {
-            this.ctx.symbols.push({
+            SymbolCollectorContext.addSymbol(this.ctx, {
               name: memberName,
               kind: ESymbolKind.EnumMember,
               sourceFile: this.ctx.sourceFile,
@@ -312,7 +312,8 @@ class CSymbolCollector {
 
       // Warn if field name conflicts with C-Next reserved property names
       if (SymbolUtils.isReservedFieldName(fieldName)) {
-        this.ctx.warnings.push(
+        SymbolCollectorContext.addWarning(
+          this.ctx,
           `Warning: C header struct '${structName}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
             `Consider renaming the field or be aware that '${structName}.${fieldName}' may not work as expected in C-Next code.`,
         );

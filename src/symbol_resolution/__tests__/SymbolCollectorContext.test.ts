@@ -113,6 +113,91 @@ describe("SymbolCollectorContext", () => {
     });
   });
 
+  describe("getSymbols", () => {
+    it("returns empty array for new context", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+
+      expect(SymbolCollectorContext.getSymbols(ctx)).toEqual([]);
+    });
+
+    it("returns symbols added to context", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+      ctx.symbols.push(createMockSymbol("sym1"));
+      ctx.symbols.push(createMockSymbol("sym2"));
+
+      const symbols = SymbolCollectorContext.getSymbols(ctx);
+      expect(symbols).toHaveLength(2);
+      expect(symbols[0].name).toBe("sym1");
+      expect(symbols[1].name).toBe("sym2");
+    });
+  });
+
+  describe("getWarnings", () => {
+    it("returns empty array for new context", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+
+      expect(SymbolCollectorContext.getWarnings(ctx)).toEqual([]);
+    });
+
+    it("returns warnings added to context", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+      ctx.warnings.push("warning1");
+      ctx.warnings.push("warning2");
+
+      const warnings = SymbolCollectorContext.getWarnings(ctx);
+      expect(warnings).toHaveLength(2);
+      expect(warnings[0]).toBe("warning1");
+      expect(warnings[1]).toBe("warning2");
+    });
+  });
+
+  describe("addSymbol", () => {
+    it("adds symbol to context", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+      const symbol = createMockSymbol("testFunc");
+
+      SymbolCollectorContext.addSymbol(ctx, symbol);
+
+      expect(ctx.symbols).toHaveLength(1);
+      expect(ctx.symbols[0].name).toBe("testFunc");
+    });
+
+    it("adds multiple symbols in order", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+
+      SymbolCollectorContext.addSymbol(ctx, createMockSymbol("first"));
+      SymbolCollectorContext.addSymbol(ctx, createMockSymbol("second"));
+      SymbolCollectorContext.addSymbol(ctx, createMockSymbol("third"));
+
+      expect(ctx.symbols).toHaveLength(3);
+      expect(ctx.symbols[0].name).toBe("first");
+      expect(ctx.symbols[1].name).toBe("second");
+      expect(ctx.symbols[2].name).toBe("third");
+    });
+  });
+
+  describe("addWarning", () => {
+    it("adds warning to context", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+
+      SymbolCollectorContext.addWarning(ctx, "Test warning message");
+
+      expect(ctx.warnings).toHaveLength(1);
+      expect(ctx.warnings[0]).toBe("Test warning message");
+    });
+
+    it("adds multiple warnings in order", () => {
+      const ctx = SymbolCollectorContext.create("/path/to/file.h");
+
+      SymbolCollectorContext.addWarning(ctx, "first warning");
+      SymbolCollectorContext.addWarning(ctx, "second warning");
+
+      expect(ctx.warnings).toHaveLength(2);
+      expect(ctx.warnings[0]).toBe("first warning");
+      expect(ctx.warnings[1]).toBe("second warning");
+    });
+  });
+
   describe("integration patterns", () => {
     it("supports C symbol collection pattern", () => {
       const symbolTable = new SymbolTable();
