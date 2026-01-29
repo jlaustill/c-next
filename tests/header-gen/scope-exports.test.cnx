@@ -1,0 +1,31 @@
+// Issue #403: Scope exports header generation test
+// Tests that public scope functions are exported in the header.
+
+scope LED {
+    u8 brightness <- 0;
+
+    public void on() {
+        brightness <- 255;
+    }
+
+    public void off() {
+        brightness <- 0;
+    }
+
+    public void setBrightness(u8 level) {
+        brightness <- level;
+    }
+
+    public u8 getBrightness() {
+        return brightness;
+    }
+
+    void privateReset() {
+        brightness <- 128;
+    }
+}
+
+void main() {
+    LED.on();
+    LED.setBrightness(100);
+}

@@ -1,0 +1,22 @@
+// Issue #403: Function declarations header generation test
+// Tests that top-level functions generate prototypes in the header.
+// Note: In C-Next, 'public' is only used inside scopes.
+
+u32 globalCounter <- 0;
+
+void incrementCounter() {
+    globalCounter +<- 1;
+}
+
+u32 getCounter() {
+    return globalCounter;
+}
+
+void resetCounter() {
+    globalCounter <- 0;
+}
+
+void main() {
+    incrementCounter();
+    incrementCounter();
+}

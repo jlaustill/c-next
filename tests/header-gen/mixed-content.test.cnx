@@ -1,0 +1,35 @@
+// Issue #403: Mixed content header generation test
+// Tests header generation with enums, structs, and functions.
+
+enum EStatus {
+    STATUS_IDLE <- 0,
+    STATUS_RUNNING <- 1,
+    STATUS_ERROR <- 2
+}
+
+struct Config {
+    u32 timeout;
+    u8 retries;
+    EStatus status;
+}
+
+Config globalConfig <- {timeout: 1000, retries: 3, status: STATUS_IDLE};
+
+void initConfig() {
+    globalConfig.timeout <- 5000;
+    globalConfig.retries <- 5;
+    globalConfig.status <- STATUS_IDLE;
+}
+
+EStatus getStatus() {
+    return globalConfig.status;
+}
+
+void setStatus(EStatus newStatus) {
+    globalConfig.status <- newStatus;
+}
+
+void main() {
+    initConfig();
+    setStatus(STATUS_RUNNING);
+}
