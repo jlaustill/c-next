@@ -9,10 +9,10 @@
 // using pass-by-reference which fails for enum literals.
 #include "external-enum.h"
 
-void useStatus(const Status* s) {
-    Status local = (*s);
+void useStatus(Status s) {
+    Status local = s;
 }
 
 int main(void) {
-    useStatus(&STATUS_OK);
+    useStatus(STATUS_OK);
 }

@@ -180,12 +180,23 @@ const generateFunctionCall = (
         isCrossFileFunction &&
         targetParam &&
         CallExprUtils.isSmallPrimitiveType(targetParam.baseType);
+      // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
+      // Known structs, known primitives, and strings use pass-by-reference
+      const isUnknownType =
+        targetParam &&
+        !orchestrator.isStructType(targetParam.baseType) &&
+        !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
+        !CallExprUtils.isStringType(targetParam.baseType) &&
+        !isFloatParam &&
+        !isEnumParam &&
+        !isSmallPrimitive;
 
       if (
         isFloatParam ||
         isEnumParam ||
         isPrimitivePassByValue ||
-        isSmallPrimitive
+        isSmallPrimitive ||
+        isUnknownType
       ) {
         // Target parameter is pass-by-value: pass value directly
         const argCode = orchestrator.generateExpression(e);
