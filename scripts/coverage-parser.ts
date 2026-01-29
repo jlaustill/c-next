@@ -12,10 +12,10 @@ import ICoverageItem from "./types/ICoverageItem";
 function toKebabCase(str: string): string {
   return str
     .toLowerCase()
-    .replace(/\*\*\(error\)\*\*/gi, "") // Remove error marker
-    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, "") // Trim leading/trailing hyphens
-    .replace(/-+/g, "-"); // Collapse multiple hyphens
+    .replaceAll(/\*\*\(error\)\*\*/gi, "") // Remove error marker
+    .replaceAll(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+    .replaceAll(/^-+|-+$/g, "") // Trim leading/trailing hyphens
+    .replaceAll(/-+/g, "-"); // Collapse multiple hyphens
 }
 
 /**
@@ -125,7 +125,7 @@ function parseTableRow(
 
   // Check for error test marker
   const isErrorTest = context.includes("**(ERROR)**");
-  const cleanContext = context.replace(/\*\*\(ERROR\)\*\*/g, "").trim();
+  const cleanContext = context.replaceAll(/\*\*\(ERROR\)\*\*/g, "").trim();
 
   const id = generateCoverageId(
     sectionNum,

@@ -1236,7 +1236,7 @@ export default class CodeGenerator implements IOrchestrator {
     // e.g., TestNS_MyClass -> TestNS::MyClass
     let qualifiedName = typeName;
     if (typeName.includes("_") && !typeName.includes("::")) {
-      qualifiedName = typeName.replace(/_/g, "::");
+      qualifiedName = typeName.replaceAll("_", "::");
     }
 
     // Extract just the class name (part after last ::)

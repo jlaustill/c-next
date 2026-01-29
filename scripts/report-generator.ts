@@ -24,6 +24,13 @@ const colors = {
   cyan: "\x1b[36m",
 };
 
+/** Get color based on percentage threshold */
+function getPercentageColor(pct: number): string {
+  if (pct >= 80) return colors.green;
+  if (pct >= 50) return colors.yellow;
+  return colors.red;
+}
+
 /**
  * Build a complete coverage report
  */
@@ -167,12 +174,7 @@ function generateConsoleReport(report: ICoverageReport): void {
   // Section breakdown
   console.log(`${colors.cyan}Section Breakdown:${colors.reset}`);
   for (const section of summary.sections) {
-    const pctColor =
-      section.percentage >= 80
-        ? colors.green
-        : section.percentage >= 50
-          ? colors.yellow
-          : colors.red;
+    const pctColor = getPercentageColor(section.percentage);
     const sectionDisplay = section.name.substring(0, 35).padEnd(35);
     console.log(
       `  ${sectionDisplay} ${pctColor}${section.tested}/${section.total}${colors.reset} (${section.percentage}%)`,
