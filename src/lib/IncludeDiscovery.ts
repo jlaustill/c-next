@@ -201,9 +201,11 @@ class IncludeDiscovery {
           .split(/[\n,]/)
           .map((d) => {
             // Strip inline comments (e.g., "path ; comment" or "path # comment")
+            const semicolonIdx = d.indexOf(";");
+            const hashIdx = d.indexOf("#");
             const commentIndex = Math.min(
-              d.indexOf(";") === -1 ? Infinity : d.indexOf(";"),
-              d.indexOf("#") === -1 ? Infinity : d.indexOf("#"),
+              semicolonIdx === -1 ? Infinity : semicolonIdx,
+              hashIdx === -1 ? Infinity : hashIdx,
             );
             return d.slice(0, commentIndex).trim();
           })
