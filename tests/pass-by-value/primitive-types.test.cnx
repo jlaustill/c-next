@@ -1,0 +1,124 @@
+// test-execution
+// Tests: Pass-by-value for all primitive types
+// Coverage: u8, u16, u32, u64, i8, i16, i32, i64, bool
+
+// Unmodified functions - should pass by value
+u8 doubleU8(u8 val) {
+    return val * 2;
+}
+
+u16 doubleU16(u16 val) {
+    return val * 2;
+}
+
+u32 doubleU32(u32 val) {
+    return val * 2;
+}
+
+u64 doubleU64(u64 val) {
+    return val * 2;
+}
+
+i8 negateI8(i8 val) {
+    return -val;
+}
+
+i16 negateI16(i16 val) {
+    return -val;
+}
+
+i32 negateI32(i32 val) {
+    return -val;
+}
+
+i64 negateI64(i64 val) {
+    return -val;
+}
+
+bool flipBool(bool val) {
+    return !val;
+}
+
+// Modified functions - should pass by pointer
+void incrementU8(u8 val) {
+    val +<- 1;
+}
+
+void incrementU32(u32 val) {
+    val +<- 1;
+}
+
+void incrementI32(i32 val) {
+    val +<- 1;
+}
+
+void toggleBool(bool val) {
+    val <- !val;
+}
+
+u32 main() {
+    // Test unmodified pass-by-value (original unchanged)
+    u8 u8Val <- 10;
+    u8 u8Result <- doubleU8(u8Val);
+    if (u8Val != 10) return 1;
+    if (u8Result != 20) return 2;
+
+    u16 u16Val <- 1000;
+    u16 u16Result <- doubleU16(u16Val);
+    if (u16Val != 1000) return 3;
+    if (u16Result != 2000) return 4;
+
+    u32 u32Val <- 100000;
+    u32 u32Result <- doubleU32(u32Val);
+    if (u32Val != 100000) return 5;
+    if (u32Result != 200000) return 6;
+
+    u64 u64Val <- 1000000000;
+    u64 u64Result <- doubleU64(u64Val);
+    if (u64Val != 1000000000) return 7;
+    if (u64Result != 2000000000) return 8;
+
+    i8 i8Val <- 50;
+    i8 i8Result <- negateI8(i8Val);
+    if (i8Val != 50) return 9;
+    if (i8Result != -50) return 10;
+
+    i16 i16Val <- 1000;
+    i16 i16Result <- negateI16(i16Val);
+    if (i16Val != 1000) return 11;
+    if (i16Result != -1000) return 12;
+
+    i32 i32Val <- 100000;
+    i32 i32Result <- negateI32(i32Val);
+    if (i32Val != 100000) return 13;
+    if (i32Result != -100000) return 14;
+
+    i64 i64Val <- 1000000000;
+    i64 i64Result <- negateI64(i64Val);
+    if (i64Val != 1000000000) return 15;
+    if (i64Result != -1000000000) return 16;
+
+    bool boolVal <- true;
+    bool boolResult <- flipBool(boolVal);
+    if (boolVal != true) return 17;
+    if (boolResult != false) return 18;
+
+    // Test modified pass-by-pointer (original changed)
+    u8 modU8 <- 100;
+    incrementU8(modU8);
+    if (modU8 != 101) return 19;
+
+    u32 modU32 <- 1000;
+    incrementU32(modU32);
+    if (modU32 != 1001) return 20;
+
+    i32 modI32 <- -50;
+    incrementI32(modI32);
+    if (modI32 != -49) return 21;
+
+    bool modBool <- false;
+    toggleBool(modBool);
+    if (modBool != true) return 22;
+
+    return 0;
+}
