@@ -18,48 +18,42 @@ import ESymbolKind from "../types/ESymbolKind";
 import ESourceLanguage from "../types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
 import SymbolUtils from "./SymbolUtils";
+import SymbolCollectorContext from "./SymbolCollectorContext";
+import ICollectorContext from "./types/ICollectorContext";
 
 /**
  * Collects symbols from a C parse tree
  */
 class CSymbolCollector {
-  private sourceFile: string;
-
-  private symbols: ISymbol[] = [];
-
-  private warnings: string[] = [];
-
-  private symbolTable: SymbolTable | null;
+  private ctx: ICollectorContext;
 
   constructor(sourceFile: string, symbolTable?: SymbolTable) {
-    this.sourceFile = sourceFile;
-    this.symbolTable = symbolTable ?? null;
+    this.ctx = SymbolCollectorContext.create(sourceFile, symbolTable);
   }
 
   /**
    * Get warnings generated during symbol collection
    */
   getWarnings(): string[] {
-    return this.warnings;
+    return this.ctx.warnings;
   }
 
   /**
    * Collect all symbols from a C compilation unit
    */
   collect(tree: CompilationUnitContext): ISymbol[] {
-    this.symbols = [];
-    this.warnings = [];
+    SymbolCollectorContext.reset(this.ctx);
 
     const translationUnit = tree.translationUnit();
     if (!translationUnit) {
-      return this.symbols;
+      return this.ctx.symbols;
     }
 
     for (const extDecl of translationUnit.externalDeclaration()) {
       this.collectExternalDeclaration(extDecl);
     }
 
-    return this.symbols;
+    return this.ctx.symbols;
   }
 
   private collectExternalDeclaration(
@@ -95,11 +89,11 @@ class CSymbolCollector {
       ? this.extractTypeFromDeclSpecs(declSpecs)
       : "int";
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name,
       kind: ESymbolKind.Function,
       type: returnType,
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
       isExported: true,
@@ -178,32 +172,32 @@ class CSymbolCollector {
       const isFunction = this.declaratorIsFunction(declarator);
 
       if (isTypedef) {
-        this.symbols.push({
+        this.ctx.symbols.push({
           name,
           kind: ESymbolKind.Type,
           type: baseType,
-          sourceFile: this.sourceFile,
+          sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.C,
           isExported: true,
         });
       } else if (isFunction) {
-        this.symbols.push({
+        this.ctx.symbols.push({
           name,
           kind: ESymbolKind.Function,
           type: baseType,
-          sourceFile: this.sourceFile,
+          sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.C,
           isExported: !isExtern,
           isDeclaration: true,
         });
       } else {
-        this.symbols.push({
+        this.ctx.symbols.push({
           name,
           kind: ESymbolKind.Variable,
           type: baseType,
-          sourceFile: this.sourceFile,
+          sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.C,
           isExported: !isExtern,
@@ -227,11 +221,11 @@ class CSymbolCollector {
 
     const isUnion = structSpec.structOrUnion()?.getText() === "union";
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name,
       kind: ESymbolKind.Struct,
       type: isUnion ? "union" : "struct",
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
       isExported: true,
@@ -241,12 +235,12 @@ class CSymbolCollector {
     // These require 'struct' keyword when referenced in C
     // Example: "struct NamedPoint { ... };" -> needs "struct NamedPoint var"
     // But "typedef struct { ... } Rectangle;" -> just "Rectangle var"
-    if (this.symbolTable && identifier && !isTypedef) {
-      this.symbolTable.markNeedsStructKeyword(name);
+    if (this.ctx.symbolTable && identifier && !isTypedef) {
+      this.ctx.symbolTable.markNeedsStructKeyword(name);
     }
 
     // Extract struct field information if SymbolTable is available
-    if (this.symbolTable) {
+    if (this.ctx.symbolTable) {
       const declList = structSpec.structDeclarationList();
       if (declList) {
         for (const structDecl of declList.structDeclaration()) {
@@ -262,10 +256,10 @@ class CSymbolCollector {
 
     const name = identifier.getText();
 
-    this.symbols.push({
+    this.ctx.symbols.push({
       name,
       kind: ESymbolKind.Enum,
-      sourceFile: this.sourceFile,
+      sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
       isExported: true,
@@ -279,10 +273,10 @@ class CSymbolCollector {
         if (enumConst) {
           const memberName = enumConst.Identifier()?.getText();
           if (memberName) {
-            this.symbols.push({
+            this.ctx.symbols.push({
               name: memberName,
               kind: ESymbolKind.EnumMember,
-              sourceFile: this.sourceFile,
+              sourceFile: this.ctx.sourceFile,
               sourceLine: enumeratorDef.start?.line ?? line,
               sourceLanguage: ESourceLanguage.C,
               isExported: true,
@@ -318,7 +312,7 @@ class CSymbolCollector {
 
       // Warn if field name conflicts with C-Next reserved property names
       if (SymbolUtils.isReservedFieldName(fieldName)) {
-        this.warnings.push(
+        this.ctx.warnings.push(
           `Warning: C header struct '${structName}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
             `Consider renaming the field or be aware that '${structName}.${fieldName}' may not work as expected in C-Next code.`,
         );
@@ -328,7 +322,7 @@ class CSymbolCollector {
       const arrayDimensions = this.extractArrayDimensions(declarator);
 
       // Add to SymbolTable
-      this.symbolTable!.addStructField(
+      this.ctx.symbolTable!.addStructField(
         structName,
         fieldName,
         fieldType,
