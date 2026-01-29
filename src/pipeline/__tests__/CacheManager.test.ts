@@ -4,9 +4,15 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
+import {
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  existsSync,
+  readFileSync,
+} from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import CacheManager from "../CacheManager";
 import ISymbol from "../../types/ISymbol";
 import ESymbolKind from "../../types/ESymbolKind";
