@@ -18,6 +18,7 @@ import { join, basename, relative, dirname, resolve } from "node:path";
 
 import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
 import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import CNextSourceParser from "./CNextSourceParser";
 import { CLexer } from "../antlr_parser/c/grammar/CLexer";
 import { CParser } from "../antlr_parser/c/grammar/CParser";
 import { CPP14Lexer } from "../antlr_parser/cpp/grammar/CPP14Lexer";
@@ -40,7 +41,6 @@ import EFileType from "../project/types/EFileType";
 import IDiscoveredFile from "../project/types/IDiscoveredFile";
 import IncludeDiscovery from "../lib/IncludeDiscovery";
 import IncludeResolver from "../lib/IncludeResolver";
-import ITranspileError from "../lib/types/ITranspileError";
 
 import IPipelineConfig from "./types/IPipelineConfig";
 import IPipelineResult from "./types/IPipelineResult";
@@ -731,35 +731,8 @@ class Pipeline {
    */
   private async transpileFile(file: IDiscoveredFile): Promise<IFileResult> {
     const content = readFileSync(file.path, "utf-8");
-    const charStream = CharStream.fromString(content);
-    const lexer = new CNextLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
-
-    const errors: ITranspileError[] = [];
-    parser.removeErrorListeners();
-    parser.addErrorListener({
-      syntaxError(
-        _recognizer,
-        _offendingSymbol,
-        line,
-        charPositionInLine,
-        msg,
-      ) {
-        errors.push({
-          line,
-          column: charPositionInLine,
-          message: msg,
-          severity: "error",
-        });
-      },
-      reportAmbiguity() {},
-      reportAttemptingFullContext() {},
-      reportContextSensitivity() {},
-    });
-
-    const tree = parser.program();
-    const declarationCount = tree.declaration().length;
+    const { tree, tokenStream, errors, declarationCount } =
+      CNextSourceParser.parse(content);
 
     // Check for parse errors
     if (errors.length > 0) {
@@ -1275,35 +1248,8 @@ class Pipeline {
       processCnxIncludesRecursively(resolved.cnextIncludes);
 
       // Step 5: Parse C-Next source from string
-      const charStream = CharStream.fromString(source);
-      const lexer = new CNextLexer(charStream);
-      const tokenStream = new CommonTokenStream(lexer);
-      const parser = new CNextParser(tokenStream);
-
-      const errors: ITranspileError[] = [];
-      parser.removeErrorListeners();
-      parser.addErrorListener({
-        syntaxError(
-          _recognizer,
-          _offendingSymbol,
-          line,
-          charPositionInLine,
-          msg,
-        ) {
-          errors.push({
-            line,
-            column: charPositionInLine,
-            message: msg,
-            severity: "error",
-          });
-        },
-        reportAmbiguity() {},
-        reportAttemptingFullContext() {},
-        reportContextSensitivity() {},
-      });
-
-      const tree = parser.program();
-      const declarationCount = tree.declaration().length;
+      const { tree, tokenStream, errors, declarationCount } =
+        CNextSourceParser.parse(source);
 
       // Check for parse errors
       if (errors.length > 0) {
