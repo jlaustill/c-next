@@ -164,8 +164,7 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
       orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
       orchestrator.clearParameters();
 
-      lines.push("");
-      lines.push(`${prefix}${returnType} ${fullName}(${params}) ${body}`);
+      lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
 
       // ADR-029: Generate callback typedef only if used as a type
       if (orchestrator.isCallbackTypeUsedAsFieldType(fullName)) {
@@ -181,16 +180,17 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
     // Issue #369: Skip enum definition if self-include was added (it will be in the header)
     if (member.enumDeclaration() && !state.selfIncludeAdded) {
       const enumDecl = member.enumDeclaration()!;
-      lines.push("");
-      lines.push(generateScopedEnumInline(enumDecl, name, input, orchestrator));
+      lines.push(
+        "",
+        generateScopedEnumInline(enumDecl, name, input, orchestrator),
+      );
     }
 
     // ADR-034: Handle bitmap declarations inside scopes
     // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
     if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
       const bitmapDecl = member.bitmapDeclaration()!;
-      lines.push("");
-      lines.push(generateScopedBitmapInline(bitmapDecl, name, input));
+      lines.push("", generateScopedBitmapInline(bitmapDecl, name, input));
     }
 
     // Handle register declarations inside scopes
@@ -211,8 +211,8 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
     // Issue #369: Skip struct definition if self-include was added (it will be in the header)
     if (member.structDeclaration() && !state.selfIncludeAdded) {
       const structDecl = member.structDeclaration()!;
-      lines.push("");
       lines.push(
+        "",
         generateScopedStructInline(structDecl, name, input, orchestrator),
       );
     }
@@ -280,8 +280,7 @@ function generateScopedEnumInline(
     }
   }
 
-  lines.push(`} ${fullName};`);
-  lines.push("");
+  lines.push(`} ${fullName};`, "");
 
   return lines.join("\n");
 }
@@ -360,8 +359,7 @@ function generateScopedBitmapInline(
     }
   }
 
-  lines.push(`typedef ${backingType} ${fullName};`);
-  lines.push("");
+  lines.push(`typedef ${backingType} ${fullName};`, "");
 
   return lines.join("\n");
 }
@@ -407,8 +405,7 @@ function generateScopedStructInline(
     lines.push(`    ${fieldType} ${fieldName}${dimStr};`);
   }
 
-  lines.push(`} ${fullName};`);
-  lines.push("");
+  lines.push(`} ${fullName};`, "");
 
   return lines.join("\n");
 }

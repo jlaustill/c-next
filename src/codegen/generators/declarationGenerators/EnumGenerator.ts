@@ -56,8 +56,7 @@ const generateEnum: TGeneratorFn<Parser.EnumDeclarationContext> = (
     lines.push(`    ${fullMemberName} = ${value}${comma}`);
   }
 
-  lines.push(`} ${fullName};`);
-  lines.push("");
+  lines.push(`} ${fullName};`, "");
 
   // No side effects needed for enum generation
   return {

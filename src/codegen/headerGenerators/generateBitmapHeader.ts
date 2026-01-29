@@ -49,8 +49,7 @@ function generateBitmapHeader(name: string, input: IHeaderTypeInput): string {
     }
   }
 
-  lines.push(" */");
-  lines.push(`typedef ${backingType} ${name};`);
+  lines.push(" */", `typedef ${backingType} ${name};`);
 
   return lines.join("\n");
 }

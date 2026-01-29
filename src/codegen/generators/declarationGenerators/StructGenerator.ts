@@ -92,8 +92,7 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
     }
   }
 
-  lines.push(`} ${name};`);
-  lines.push("");
+  lines.push(`} ${name};`, "");
 
   // ADR-029: Generate init function if struct has callback fields
   if (callbackFields.length > 0) {
@@ -124,8 +123,10 @@ function generateStructInitFunction(
   callbackFields: Array<{ fieldName: string; callbackType: string }>,
 ): string {
   const lines: string[] = [];
-  lines.push(`${structName} ${structName}_init(void) {`);
-  lines.push(`    return (${structName}){`);
+  lines.push(
+    `${structName} ${structName}_init(void) {`,
+    `    return (${structName}){`,
+  );
 
   for (let i = 0; i < callbackFields.length; i++) {
     const field = callbackFields[i];
@@ -133,9 +134,7 @@ function generateStructInitFunction(
     lines.push(`        .${field.fieldName} = ${field.callbackType}${comma}`);
   }
 
-  lines.push(`    };`);
-  lines.push(`}`);
-  lines.push("");
+  lines.push(`    };`, `}`, "");
 
   return lines.join("\n");
 }

@@ -211,34 +211,28 @@ function generateMarkdownReport(report: IGrammarCoverageReport): string {
   const lines: string[] = [];
   const timestamp = new Date().toISOString();
 
-  lines.push("# Grammar Rule Coverage Report");
-  lines.push("");
-  lines.push(`> Generated: ${timestamp}`);
-  lines.push("");
-
-  // Summary
-  lines.push("## Summary");
-  lines.push("");
-  lines.push("| Category | Total | Covered | Percentage |");
-  lines.push("|----------|-------|---------|------------|");
   lines.push(
+    "# Grammar Rule Coverage Report",
+    "",
+    `> Generated: ${timestamp}`,
+    "",
+    // Summary
+    "## Summary",
+    "",
+    "| Category | Total | Covered | Percentage |",
+    "|----------|-------|---------|------------|",
     `| Parser Rules | ${report.totalParserRules} | ${report.visitedParserRules} | ${report.parserCoveragePercentage.toFixed(1)}% |`,
-  );
-  lines.push(
     `| Lexer Rules | ${report.totalLexerRules} | ${report.visitedLexerRules} | ${report.lexerCoveragePercentage.toFixed(1)}% |`,
-  );
-  lines.push(
     `| **Combined** | ${report.totalParserRules + report.totalLexerRules} | ${report.visitedParserRules + report.visitedLexerRules} | **${report.combinedCoveragePercentage.toFixed(1)}%** |`,
+    "",
+    // Parser rules coverage
+    "## Parser Rules",
+    "",
+    "### Covered Parser Rules",
+    "",
+    "| Rule | Visit Count |",
+    "|------|-------------|",
   );
-  lines.push("");
-
-  // Parser rules coverage
-  lines.push("## Parser Rules");
-  lines.push("");
-  lines.push("### Covered Parser Rules");
-  lines.push("");
-  lines.push("| Rule | Visit Count |");
-  lines.push("|------|-------------|");
 
   const sortedParser = Array.from(report.parserRuleVisits.entries()).sort(
     (a, b) => b[1] - a[1],
@@ -251,28 +245,29 @@ function generateMarkdownReport(report: IGrammarCoverageReport): string {
 
   // Never visited parser rules
   if (report.neverVisitedParserRules.length > 0) {
-    lines.push("### Never Visited Parser Rules");
-    lines.push("");
     lines.push(
+      "### Never Visited Parser Rules",
+      "",
       "These parser rules were never executed during test runs. Consider adding tests for these language constructs.",
+      "",
     );
-    lines.push("");
     for (const rule of report.neverVisitedParserRules) {
       lines.push(`- [ ] \`${rule}\``);
     }
     lines.push("");
   } else {
-    lines.push("### ✅ All Parser Rules Covered");
-    lines.push("");
+    lines.push("### ✅ All Parser Rules Covered", "");
   }
 
   // Lexer rules coverage
-  lines.push("## Lexer Rules (Token Types)");
-  lines.push("");
-  lines.push("### Covered Lexer Rules");
-  lines.push("");
-  lines.push("| Rule | Match Count |");
-  lines.push("|------|-------------|");
+  lines.push(
+    "## Lexer Rules (Token Types)",
+    "",
+    "### Covered Lexer Rules",
+    "",
+    "| Rule | Match Count |",
+    "|------|-------------|",
+  );
 
   const sortedLexer = Array.from(report.lexerRuleVisits.entries()).sort(
     (a, b) => b[1] - a[1],
@@ -285,19 +280,18 @@ function generateMarkdownReport(report: IGrammarCoverageReport): string {
 
   // Never visited lexer rules
   if (report.neverVisitedLexerRules.length > 0) {
-    lines.push("### Never Matched Lexer Rules");
-    lines.push("");
     lines.push(
+      "### Never Matched Lexer Rules",
+      "",
       "These token types were never matched during test runs. Some may be expected (comments, whitespace) while others may indicate missing test coverage.",
+      "",
     );
-    lines.push("");
     for (const rule of report.neverVisitedLexerRules) {
       lines.push(`- [ ] \`${rule}\``);
     }
     lines.push("");
   } else {
-    lines.push("### ✅ All Lexer Rules Matched");
-    lines.push("");
+    lines.push("### ✅ All Lexer Rules Matched", "");
   }
 
   return lines.join("\n");

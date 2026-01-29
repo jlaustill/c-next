@@ -177,8 +177,10 @@ const generateSwitchCase = (
   }
 
   // Add break and close block
-  lines.push(orchestrator.indent(orchestrator.indent("break;")));
-  lines.push(orchestrator.indent("}"));
+  lines.push(
+    orchestrator.indent(orchestrator.indent("break;")),
+    orchestrator.indent("}"),
+  );
 
   return { code: lines.join("\n"), effects };
 };
@@ -210,8 +212,10 @@ const generateDefaultCase = (
   }
 
   // Add break and close block
-  lines.push(orchestrator.indent(orchestrator.indent("break;")));
-  lines.push(orchestrator.indent("}"));
+  lines.push(
+    orchestrator.indent(orchestrator.indent("break;")),
+    orchestrator.indent("}"),
+  );
 
   return { code: lines.join("\n"), effects };
 };
