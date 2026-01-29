@@ -654,6 +654,14 @@ pio run -t upload
 
 See `examples/blink.cnx` for the complete LED blink example.
 
+## Projects Using C-Next
+
+| Project                                   | Description                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------------- |
+| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control |
+
+_Using C-Next in your project? Open an issue to get listed!_
+
 ## Project Structure
 
 ```
