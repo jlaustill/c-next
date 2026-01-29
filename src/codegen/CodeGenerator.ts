@@ -2851,7 +2851,6 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         // Unsized string - for const inference (handled in generateVariableDecl)
         baseType = "string";
-        bitWidth = 0;
       }
     } else if (typeCtx.scopedType()) {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
@@ -2861,7 +2860,6 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         baseType = typeName;
       }
-      bitWidth = 0;
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -2880,7 +2878,6 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #478: Handle global.Type for global types inside scope
       // global.ECategory -> ECategory (no scope prefix)
       baseType = typeCtx.globalType()!.IDENTIFIER().getText();
-      bitWidth = 0;
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -2901,7 +2898,6 @@ export default class CodeGenerator implements IOrchestrator {
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       baseType = this.resolveQualifiedType(identifierNames);
-      bitWidth = 0;
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -2919,7 +2915,7 @@ export default class CodeGenerator implements IOrchestrator {
     } else if (typeCtx.userType()) {
       // Track struct/class/enum/bitmap types for inferred struct initializers and type safety
       baseType = typeCtx.userType()!.getText();
-      bitWidth = 0; // User types don't have fixed bit width
+      // Note: bitWidth stays 0 for user types (no fixed bit width)
 
       // ADR-017/ADR-034: Check if enum or bitmap type
       if (
@@ -3018,7 +3014,6 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         baseType = typeName;
       }
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -3082,7 +3077,6 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #478: Handle global.Type for global types inside scope
       // global.ECategory -> ECategory (no scope prefix)
       baseType = typeCtx.globalType()!.IDENTIFIER().getText();
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -3147,7 +3141,6 @@ export default class CodeGenerator implements IOrchestrator {
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       baseType = this.resolveQualifiedType(identifierNames);
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
@@ -3209,7 +3202,6 @@ export default class CodeGenerator implements IOrchestrator {
       }
     } else if (typeCtx.userType()) {
       baseType = typeCtx.userType()!.getText();
-      bitWidth = 0;
 
       // ADR-017: Check if this is an enum type
       if (this.symbols!.knownEnums.has(baseType)) {
