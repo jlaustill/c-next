@@ -11,19 +11,11 @@
  * - E0907: NULL comparison on non-nullable variable
  * - E0908: Nullable c_ variable used without prior NULL check (flow analysis)
  */
-interface INullCheckError {
-  /** Error code (E0901-E0908) */
-  code: string;
+import IBaseAnalysisError from "./IBaseAnalysisError";
+
+interface INullCheckError extends IBaseAnalysisError {
   /** Name of the function or literal involved */
   functionName: string;
-  /** Line number where the error occurred */
-  line: number;
-  /** Column number where the error occurred */
-  column: number;
-  /** Human-readable error message */
-  message: string;
-  /** Optional help text with suggested fix */
-  helpText?: string;
 }
 
 export default INullCheckError;
