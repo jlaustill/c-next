@@ -88,7 +88,7 @@ class TypeCheckUtils {
    */
   static getStringCapacity(typeName: string): number | null {
     const match = /^string<(\d+)>$/.exec(typeName);
-    return match ? parseInt(match[1], 10) : null;
+    return match ? Number.parseInt(match[1], 10) : null;
   }
 
   /**

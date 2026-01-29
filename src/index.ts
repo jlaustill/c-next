@@ -534,9 +534,11 @@ async function main(): Promise<void> {
     const arg = args[i];
 
     if (arg === "-o" && i + 1 < args.length) {
-      outputPath = args[++i];
+      outputPath = args[i + 1];
+      i++;
     } else if (arg === "--include" && i + 1 < args.length) {
-      includeDirs.push(args[++i]);
+      includeDirs.push(args[i + 1]);
+      i++;
     } else if (arg === "--verbose") {
       verbose = true;
     } else if (arg === "--cpp") {
@@ -548,9 +550,11 @@ async function main(): Promise<void> {
     } else if (arg === "--parse") {
       parseOnly = true;
     } else if (arg === "--header-out" && i + 1 < args.length) {
-      headerOutDir = args[++i];
+      headerOutDir = args[i + 1];
+      i++;
     } else if (arg === "--base-path" && i + 1 < args.length) {
-      basePath = args[++i];
+      basePath = args[i + 1];
+      i++;
     } else if (arg === "--clean") {
       cleanMode = true;
     } else if (arg === "--config") {
