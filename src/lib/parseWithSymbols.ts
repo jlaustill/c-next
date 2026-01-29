@@ -2,14 +2,11 @@
  * Parse C-Next source and extract symbols for IDE features
  */
 
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
-import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import CNextSourceParser from "../pipeline/CNextSourceParser";
 import CNextResolver from "../symbol_resolution/cnext/index";
 import TSymbolAdapter from "../symbol_resolution/cnext/adapters/TSymbolAdapter";
 import SymbolTable from "../symbol_resolution/SymbolTable";
 import ESymbolKind from "../types/ESymbolKind";
-import ITranspileError from "./types/ITranspileError";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
@@ -68,60 +65,8 @@ function extractLocalName(fullName: string, parent?: string): string {
  * ```
  */
 function parseWithSymbols(source: string): IParseWithSymbolsResult {
-  const errors: ITranspileError[] = [];
-
-  // Create the lexer and parser
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-
-  // Custom error listener to collect errors
-  lexer.removeErrorListeners();
-  parser.removeErrorListeners();
-
-  const errorListener = {
-    syntaxError(
-      _recognizer: unknown,
-      _offendingSymbol: unknown,
-      line: number,
-      charPositionInLine: number,
-      msg: string,
-      _e: unknown,
-    ): void {
-      errors.push({
-        line,
-        column: charPositionInLine,
-        message: msg,
-        severity: "error",
-      });
-    },
-    reportAmbiguity(): void {},
-    reportAttemptingFullContext(): void {},
-    reportContextSensitivity(): void {},
-  };
-
-  lexer.addErrorListener(errorListener);
-  parser.addErrorListener(errorListener);
-
-  // Parse the input - continue even with errors to get partial symbols
-  let tree;
-  try {
-    tree = parser.program();
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    errors.push({
-      line: 1,
-      column: 0,
-      message: `Parse failed: ${errorMessage}`,
-      severity: "error",
-    });
-    return {
-      success: false,
-      errors,
-      symbols: [],
-    };
-  }
+  // Parse C-Next source
+  const { tree, errors } = CNextSourceParser.parse(source);
 
   // Collect symbols from the parse tree (ADR-055: use CNextResolver + TSymbolAdapter)
   const tSymbols = CNextResolver.resolve(tree, "<source>");

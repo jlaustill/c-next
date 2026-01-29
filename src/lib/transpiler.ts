@@ -9,9 +9,10 @@
  * use Pipeline from '../pipeline/Pipeline' directly.
  */
 
-import { CharStream, CommonTokenStream, ParseTreeWalker } from "antlr4ng";
+import { ParseTreeWalker } from "antlr4ng";
 import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
 import { CNextParser } from "../antlr_parser/grammar/CNextParser";
+import CNextSourceParser from "../pipeline/CNextSourceParser";
 import CodeGenerator from "../codegen/CodeGenerator";
 import CommentExtractor from "../codegen/CommentExtractor";
 import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
@@ -23,7 +24,6 @@ import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "../analysis/FloatModuloAnalyzer";
 import GrammarCoverageListener from "../analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
-import ITranspileError from "./types/ITranspileError";
 import ITranspileOptions from "./types/ITranspileOptions";
 import IGrammarCoverageReport from "../analysis/types/IGrammarCoverageReport";
 
@@ -56,70 +56,16 @@ function transpile(
     target,
     collectGrammarCoverage = false,
   } = options;
-  const errors: ITranspileError[] = [];
   let grammarCoverage: IGrammarCoverageReport | undefined;
 
-  // Create the lexer and parser
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-
-  // Custom error listener to collect errors with line/column info
-  lexer.removeErrorListeners();
-  parser.removeErrorListeners();
-
-  const errorListener = {
-    syntaxError(
-      _recognizer: unknown,
-      _offendingSymbol: unknown,
-      line: number,
-      charPositionInLine: number,
-      msg: string,
-      _e: unknown,
-    ): void {
-      errors.push({
-        line,
-        column: charPositionInLine,
-        message: msg,
-        severity: "error",
-      });
-    },
-    reportAmbiguity(): void {},
-    reportAttemptingFullContext(): void {},
-    reportContextSensitivity(): void {},
-  };
-
-  lexer.addErrorListener(errorListener);
-  parser.addErrorListener(errorListener);
-
-  // Parse the input
-  let tree;
-  try {
-    tree = parser.program();
-  } catch (e) {
-    // Handle catastrophic parse failures
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    errors.push({
-      line: 1,
-      column: 0,
-      message: `Parse failed: ${errorMessage}`,
-      severity: "error",
-    });
-    return {
-      success: false,
-      code: "",
-      errors,
-      declarationCount: 0,
-    };
-  }
-
-  const declarationCount = tree.declaration().length;
+  // Parse C-Next source
+  const { tree, tokenStream, errors, declarationCount } =
+    CNextSourceParser.parse(source);
 
   // Collect grammar coverage if requested (Issue #35)
   if (collectGrammarCoverage) {
     const coverageListener = new GrammarCoverageListener(
-      parser.ruleNames,
+      CNextParser.ruleNames,
       CNextLexer.ruleNames,
     );
     ParseTreeWalker.DEFAULT.walk(coverageListener, tree);
