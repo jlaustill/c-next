@@ -1105,7 +1105,7 @@ class TypeValidator {
       value = Number.parseInt(text.slice(2), 2);
     } else {
       // Decimal literal (strip any type suffix)
-      const numMatch = text.match(/^\d+/);
+      const numMatch = /^\d+/.exec(text);
       if (numMatch) {
         value = Number.parseInt(numMatch[0], 10);
       }

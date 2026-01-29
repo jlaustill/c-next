@@ -98,10 +98,10 @@ function getReservedFieldNames(): string[] {
 }
 
 class SymbolUtils {
-  static parseArrayDimensions = parseArrayDimensions;
-  static getTypeWidth = getTypeWidth;
-  static isReservedFieldName = isReservedFieldName;
-  static getReservedFieldNames = getReservedFieldNames;
+  static readonly parseArrayDimensions = parseArrayDimensions;
+  static readonly getTypeWidth = getTypeWidth;
+  static readonly isReservedFieldName = isReservedFieldName;
+  static readonly getReservedFieldNames = getReservedFieldNames;
 }
 
 export default SymbolUtils;

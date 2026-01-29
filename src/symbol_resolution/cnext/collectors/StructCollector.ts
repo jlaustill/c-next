@@ -54,7 +54,6 @@ class StructCollector {
 
           // If there are array dimensions, they come BEFORE string capacity
           if (arrayDims.length > 0) {
-            isArray = true;
             for (const dim of arrayDims) {
               const sizeExpr = dim.expression();
               if (sizeExpr) {
