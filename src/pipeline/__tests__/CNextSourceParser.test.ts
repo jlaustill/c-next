@@ -62,5 +62,24 @@ describe("CNextSourceParser", () => {
       expect(result.errors).toHaveLength(0);
       expect(result.declarationCount).toBe(0);
     });
+
+    it("collects lexer errors for invalid characters", () => {
+      // Backtick is not a valid C-Next character - should trigger lexer error
+      const source = "u32 x <- `invalid`;";
+
+      const result = CNextSourceParser.parse(source);
+
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0].severity).toBe("error");
+    });
+
+    it("does not throw on malformed input", () => {
+      // Even severely malformed input should return a result, not throw
+      const source = "{{{{[[[[";
+
+      expect(() => CNextSourceParser.parse(source)).not.toThrow();
+      const result = CNextSourceParser.parse(source);
+      expect(result.tree).toBeDefined();
+    });
   });
 });

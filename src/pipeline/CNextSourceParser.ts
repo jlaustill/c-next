@@ -44,26 +44,31 @@ class CNextSourceParser {
     const parser = new CNextParser(tokenStream);
 
     const errors: ITranspileError[] = [];
-    parser.removeErrorListeners();
-    parser.addErrorListener({
+    const errorListener = {
       syntaxError(
-        _recognizer,
-        _offendingSymbol,
-        line,
-        charPositionInLine,
-        msg,
+        _recognizer: unknown,
+        _offendingSymbol: unknown,
+        line: number,
+        charPositionInLine: number,
+        msg: string,
       ) {
         errors.push({
           line,
           column: charPositionInLine,
           message: msg,
-          severity: "error",
+          severity: "error" as const,
         });
       },
       reportAmbiguity() {},
       reportAttemptingFullContext() {},
       reportContextSensitivity() {},
-    });
+    };
+
+    // Add error listener to both lexer and parser
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(errorListener);
+    parser.removeErrorListeners();
+    parser.addErrorListener(errorListener);
 
     const tree = parser.program();
     const declarationCount = tree.declaration().length;
