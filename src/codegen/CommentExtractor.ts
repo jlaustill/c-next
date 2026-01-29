@@ -12,7 +12,7 @@ import ICommentError from "./types/ICommentError";
  * - Validates MISRA C:2012 Rule 3.2 (no line-splice in line comments)
  */
 class CommentExtractor {
-  private tokenStream: CommonTokenStream;
+  private readonly tokenStream: CommonTokenStream;
 
   private comments: IComment[] | null = null;
 

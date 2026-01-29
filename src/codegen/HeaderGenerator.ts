@@ -345,7 +345,7 @@ class HeaderGenerator {
     const base = filename.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, "");
 
     // Convert to uppercase and replace non-alphanumeric with underscore
-    const sanitized = base.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const sanitized = base.toUpperCase().replaceAll(/[^A-Z0-9]/g, "_");
 
     if (prefix) {
       return `${prefix.toUpperCase()}_${sanitized}_H`;

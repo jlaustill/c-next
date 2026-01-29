@@ -15,7 +15,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
  * Use getHandler() to retrieve the handler for a given kind.
  */
 class AssignmentHandlerRegistry {
-  private handlers = new Map<AssignmentKind, TAssignmentHandler>();
+  private readonly handlers = new Map<AssignmentKind, TAssignmentHandler>();
 
   /**
    * Register a handler for an assignment kind.

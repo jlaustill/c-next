@@ -22,19 +22,19 @@ const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
  * TypeValidator class - validates types, assignments, and control flow at compile time
  */
 class TypeValidator {
-  private symbols: ISymbolInfo | null;
-  private symbolTable: SymbolTable | null;
-  private typeRegistry: Map<string, TTypeInfo>;
-  private typeResolver: TypeResolver;
-  private callbackTypes: Map<string, ICallbackTypeInfo>;
-  private knownFunctions: Set<string>;
-  private knownGlobals: Set<string>;
-  private getCurrentScopeFn: () => string | null;
-  private getScopeMembersFn: () => Map<string, Set<string>>;
-  private getCurrentParametersFn: () => Map<string, TParameterInfo>;
-  private getLocalVariablesFn: () => Set<string>;
-  private resolveIdentifierFn: (name: string) => string;
-  private getExpressionTypeFn: (ctx: unknown) => string | null;
+  private readonly symbols: ISymbolInfo | null;
+  private readonly symbolTable: SymbolTable | null;
+  private readonly typeRegistry: Map<string, TTypeInfo>;
+  private readonly typeResolver: TypeResolver;
+  private readonly callbackTypes: Map<string, ICallbackTypeInfo>;
+  private readonly knownFunctions: Set<string>;
+  private readonly knownGlobals: Set<string>;
+  private readonly getCurrentScopeFn: () => string | null;
+  private readonly getScopeMembersFn: () => Map<string, Set<string>>;
+  private readonly getCurrentParametersFn: () => Map<string, TParameterInfo>;
+  private readonly getLocalVariablesFn: () => Set<string>;
+  private readonly resolveIdentifierFn: (name: string) => string;
+  private readonly getExpressionTypeFn: (ctx: unknown) => string | null;
 
   constructor(deps: ITypeValidatorDeps) {
     this.symbols = deps.symbols;
@@ -364,7 +364,7 @@ class TypeValidator {
 
     // Check if this identifier is a scope member
     const scopeMembers = this.getScopeMembersFn().get(currentScope);
-    if (scopeMembers && scopeMembers.has(identifier)) {
+    if (scopeMembers?.has(identifier)) {
       throw new Error(
         `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScope}'`,
       );
@@ -432,7 +432,7 @@ class TypeValidator {
     // Priority 2: If inside a scope, check scope members
     if (currentScope) {
       const scopeMembers = this.getScopeMembersFn().get(currentScope);
-      if (scopeMembers && scopeMembers.has(identifier)) {
+      if (scopeMembers?.has(identifier)) {
         return `${currentScope}_${identifier}`;
       }
 
@@ -638,14 +638,12 @@ class TypeValidator {
         }
       }
       // Plain default: no exhaustiveness check needed
-    } else {
+    } else if (explicitCaseCount !== totalVariants) {
       // No default: must cover all variants explicitly
-      if (explicitCaseCount !== totalVariants) {
-        const missing = totalVariants - explicitCaseCount;
-        throw new Error(
-          `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
-        );
-      }
+      const missing = totalVariants - explicitCaseCount;
+      throw new Error(
+        `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
+      );
     }
   }
 
@@ -868,7 +866,7 @@ class TypeValidator {
 
     // Check if it's a known boolean variable
     const typeInfo = this.typeRegistry.get(text);
-    if (typeInfo && typeInfo.baseType === "bool") {
+    if (typeInfo?.baseType === "bool") {
       return true;
     }
 

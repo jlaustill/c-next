@@ -143,12 +143,12 @@ function generateDebugHelper(
   }
 
   const isUnsigned = cnxType.startsWith("u");
-  const opName =
-    operation === "add"
-      ? "addition"
-      : operation === "sub"
-        ? "subtraction"
-        : "multiplication";
+  const opNames: Record<string, string> = {
+    add: "addition",
+    sub: "subtraction",
+    mul: "multiplication",
+  };
+  const opName = opNames[operation] ?? "operation";
 
   // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
   const useWiderArithmetic =

@@ -55,21 +55,21 @@ import LiteralUtils from "../utils/LiteralUtils";
  * Unified transpilation pipeline
  */
 class Pipeline {
-  private config: Required<IPipelineConfig>;
-  private symbolTable: SymbolTable;
-  private preprocessor: Preprocessor;
-  private codeGenerator: CodeGenerator;
-  private headerGenerator: HeaderGenerator;
-  private warnings: string[];
-  private cacheManager: CacheManager | null;
+  private readonly config: Required<IPipelineConfig>;
+  private readonly symbolTable: SymbolTable;
+  private readonly preprocessor: Preprocessor;
+  private readonly codeGenerator: CodeGenerator;
+  private readonly headerGenerator: HeaderGenerator;
+  private readonly warnings: string[];
+  private readonly cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
   /** Issue #220: Store ISymbolInfo per file for header generation (ADR-055) */
-  private symbolCollectors: Map<string, ISymbolInfo> = new Map();
+  private readonly symbolCollectors: Map<string, ISymbolInfo> = new Map();
   /** Issue #321: Track processed headers to avoid cycles during recursive include resolution */
-  private processedHeaders: Set<string> = new Set();
+  private readonly processedHeaders: Set<string> = new Set();
   /** Issue #280: Store pass-by-value params per file for header generation */
-  private passByValueParamsCollectors: Map<
+  private readonly passByValueParamsCollectors: Map<
     string,
     ReadonlyMap<string, ReadonlySet<string>>
   > = new Map();

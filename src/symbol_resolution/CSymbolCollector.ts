@@ -25,7 +25,7 @@ import ICollectorContext from "./types/ICollectorContext";
  * Collects symbols from a C parse tree
  */
 class CSymbolCollector {
-  private ctx: ICollectorContext;
+  private readonly ctx: ICollectorContext;
 
   constructor(sourceFile: string, symbolTable?: SymbolTable) {
     this.ctx = SymbolCollectorContext.create(sourceFile, symbolTable);
@@ -456,7 +456,7 @@ class CSymbolCollector {
   ): boolean {
     for (const spec of declSpecs.declarationSpecifier()) {
       const storageSpec = spec.storageClassSpecifier();
-      if (storageSpec && storageSpec.getText() === storage) {
+      if (storageSpec?.getText() === storage) {
         return true;
       }
     }

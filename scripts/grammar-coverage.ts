@@ -36,6 +36,13 @@ const colors = {
 // Default coverage threshold (percentage)
 const DEFAULT_THRESHOLD = 80;
 
+/** Get color based on percentage threshold */
+function getPercentageColor(pct: number): string {
+  if (pct >= 80) return colors.green;
+  if (pct >= 60) return colors.yellow;
+  return colors.red;
+}
+
 /**
  * Recursively find all .test.cnx files
  */
@@ -149,12 +156,7 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
   console.log(`  Missing:  ${report.neverVisitedLexerRules.length}`);
 
   console.log(`\n${colors.cyan}Combined Coverage:${colors.reset}`);
-  const combinedColor =
-    report.combinedCoveragePercentage >= 80
-      ? colors.green
-      : report.combinedCoveragePercentage >= 60
-        ? colors.yellow
-        : colors.red;
+  const combinedColor = getPercentageColor(report.combinedCoveragePercentage);
   console.log(
     `  ${combinedColor}${report.combinedCoveragePercentage.toFixed(1)}%${colors.reset}`,
   );

@@ -33,13 +33,13 @@ const TRANSPILER_VERSION = packageJson.version as string;
  * Manages symbol cache for faster incremental builds
  */
 class CacheManager {
-  private projectRoot: string;
-  private cacheDir: string;
-  private configPath: string;
-  private symbolsPath: string;
+  private readonly projectRoot: string;
+  private readonly cacheDir: string;
+  private readonly configPath: string;
+  private readonly symbolsPath: string;
 
   /** In-memory cache of file entries */
-  private entries: Map<string, ICachedFileEntry> = new Map();
+  private readonly entries: Map<string, ICachedFileEntry> = new Map();
 
   /** Whether the cache has been modified and needs flushing */
   private dirty = false;

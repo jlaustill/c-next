@@ -19,26 +19,27 @@ import IStructFieldInfo from "./types/IStructFieldInfo";
  */
 class SymbolTable {
   /** All symbols indexed by name */
-  private symbols: Map<string, ISymbol[]> = new Map();
+  private readonly symbols: Map<string, ISymbol[]> = new Map();
 
   /** Symbols indexed by source file */
-  private byFile: Map<string, ISymbol[]> = new Map();
+  private readonly byFile: Map<string, ISymbol[]> = new Map();
 
   /** Struct field information: struct name -> (field name -> field info) */
-  private structFields: Map<string, Map<string, IStructFieldInfo>> = new Map();
+  private readonly structFields: Map<string, Map<string, IStructFieldInfo>> =
+    new Map();
 
   /**
    * Issue #196 Bug 3: Track C struct names that need the 'struct' keyword
    * These are structs defined as 'struct Name { ... }' without typedef
    * In C, they must be referred to as 'struct Name', not just 'Name'
    */
-  private needsStructKeyword: Set<string> = new Set();
+  private readonly needsStructKeyword: Set<string> = new Set();
 
   /**
    * Issue #208: Track enum backing type bit widths
    * C++14 typed enums: enum Name : uint8_t { ... } have explicit bit widths
    */
-  private enumBitWidth: Map<string, number> = new Map();
+  private readonly enumBitWidth: Map<string, number> = new Map();
 
   /**
    * Add a symbol to the table

@@ -20,9 +20,9 @@ const execAsync = promisify(exec);
  * Handles preprocessing of C/C++ files
  */
 class Preprocessor {
-  private toolchain: IToolchain | null;
+  private readonly toolchain: IToolchain | null;
 
-  private defaultIncludePaths: string[] = [];
+  private readonly defaultIncludePaths: string[] = [];
 
   constructor(toolchain?: IToolchain) {
     this.toolchain = toolchain ?? ToolchainDetector.detect();
@@ -187,7 +187,7 @@ class Preprocessor {
       });
 
       // Log warnings to console but don't fail
-      if (stderr && stderr.trim()) {
+      if (stderr?.trim()) {
         console.warn(`Preprocessor warnings for ${filePath}:\n${stderr}`);
       }
 

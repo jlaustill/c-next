@@ -20,8 +20,8 @@ import IProjectResult from "./types/IProjectResult";
  * @deprecated Consider using Pipeline directly for new code
  */
 class Project {
-  private config: IProjectConfig;
-  private pipeline: Pipeline;
+  private readonly config: IProjectConfig;
+  private readonly pipeline: Pipeline;
 
   constructor(config: IProjectConfig) {
     this.config = {
@@ -157,13 +157,12 @@ class Project {
     for (const r of results) {
       aggregate.success &&= r.success;
       if (r.errors?.length) {
-        const formatted = r.errors.map((e: any) =>
-          typeof e === "string"
-            ? e
-            : r.sourcePath
-              ? `${r.sourcePath}:${e.line}:${e.column} ${e.message}`
-              : `${e.line}:${e.column} ${e.message}`,
-        );
+        const formatted = r.errors.map((e: any) => {
+          if (typeof e === "string") return e;
+          if (r.sourcePath)
+            return `${r.sourcePath}:${e.line}:${e.column} ${e.message}`;
+          return `${e.line}:${e.column} ${e.message}`;
+        });
         aggregate.errors.push(...formatted);
       }
       // outputPath is the primary generated file for a single source

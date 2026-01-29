@@ -220,7 +220,7 @@ const STDLIB_FUNCTIONS: Map<string, Set<string>> = new Map([
  * Listener that walks the parse tree and checks function calls
  */
 class FunctionCallListener extends CNextListener {
-  private analyzer: FunctionCallAnalyzer;
+  private readonly analyzer: FunctionCallAnalyzer;
 
   /** Current scope name (for member function resolution) */
   private currentScope: string | null = null;
@@ -477,7 +477,7 @@ class FunctionCallAnalyzer {
   private isStdlibFunction(name: string): boolean {
     for (const header of this.includedHeaders) {
       const funcs = STDLIB_FUNCTIONS.get(header);
-      if (funcs && funcs.has(name)) {
+      if (funcs?.has(name)) {
         return true;
       }
     }

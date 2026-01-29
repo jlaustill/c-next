@@ -30,7 +30,7 @@ function formatStructFieldError(fieldName: string, structName: string): string {
  * Listener that walks the parse tree to find struct field naming violations
  */
 class StructFieldListener extends CNextListener {
-  private analyzer: StructFieldAnalyzer;
+  private readonly analyzer: StructFieldAnalyzer;
 
   constructor(analyzer: StructFieldAnalyzer) {
     super();

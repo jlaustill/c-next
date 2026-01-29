@@ -166,46 +166,42 @@ function printResult(
           `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
         );
       }
-    } else {
-      if (!quietMode) {
-        console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
-      }
+    } else if (!quietMode) {
+      console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
     }
+  } else if (result.noSnapshot) {
+    console.log(
+      `${colors.yellow}SKIP${colors.reset}    ${relativePath} (no snapshot)`,
+    );
   } else {
-    if (result.noSnapshot) {
+    console.log(`${colors.red}FAIL${colors.reset}    ${relativePath}`);
+    console.log(`        ${colors.dim}${result.message}${colors.reset}`);
+    if (result.expected && result.actual) {
+      console.log(`        ${colors.dim}Expected:${colors.reset}`);
       console.log(
-        `${colors.yellow}SKIP${colors.reset}    ${relativePath} (no snapshot)`,
+        `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
       );
-    } else {
-      console.log(`${colors.red}FAIL${colors.reset}    ${relativePath}`);
-      console.log(`        ${colors.dim}${result.message}${colors.reset}`);
-      if (result.expected && result.actual) {
-        console.log(`        ${colors.dim}Expected:${colors.reset}`);
-        console.log(
-          `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
-        );
-        console.log(`        ${colors.dim}Actual:${colors.reset}`);
-        console.log(
-          `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
-        );
-      } else if (result.actual) {
-        // Just actual (no expected) - for compilation/analysis errors
-        console.log(
-          `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
-        );
-      }
-      // Show execution error if present
-      if (result.execError) {
-        console.log(
-          `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
-        );
-      }
-      // Show warning error if present (test-no-warnings failure)
-      if (result.warningError) {
-        console.log(
-          `        ${colors.red}Warning:${colors.reset} ${result.warningError}`,
-        );
-      }
+      console.log(`        ${colors.dim}Actual:${colors.reset}`);
+      console.log(
+        `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+      );
+    } else if (result.actual) {
+      // Just actual (no expected) - for compilation/analysis errors
+      console.log(
+        `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+      );
+    }
+    // Show execution error if present
+    if (result.execError) {
+      console.log(
+        `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
+      );
+    }
+    // Show warning error if present (test-no-warnings failure)
+    if (result.warningError) {
+      console.log(
+        `        ${colors.red}Warning:${colors.reset} ${result.warningError}`,
+      );
     }
   }
 }

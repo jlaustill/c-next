@@ -58,7 +58,7 @@ const generateCaseLabel = (
     // is a member of that enum and prefix it accordingly
     if (switchEnumType && input.symbols) {
       const members = input.symbols.enumMembers.get(switchEnumType);
-      if (members && members.has(id)) {
+      if (members?.has(id)) {
         return { code: `${switchEnumType}_${id}`, effects };
       }
     }

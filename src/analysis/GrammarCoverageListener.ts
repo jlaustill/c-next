@@ -18,8 +18,8 @@ import {
 import IGrammarCoverageReport from "./types/IGrammarCoverageReport";
 
 class GrammarCoverageListener implements ParseTreeListener {
-  private parserRuleVisits: Map<string, number> = new Map();
-  private lexerRuleVisits: Map<string, number> = new Map();
+  private readonly parserRuleVisits: Map<string, number> = new Map();
+  private readonly lexerRuleVisits: Map<string, number> = new Map();
   private readonly parserRuleNames: string[];
   private readonly lexerRuleNames: string[];
 

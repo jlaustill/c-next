@@ -20,6 +20,13 @@ import IVariableSymbol from "../../types/IVariableSymbol";
 import IRegisterSymbol from "../../types/IRegisterSymbol";
 import IScopeSymbol from "../../types/IScopeSymbol";
 
+/** Get minimum unsigned type width for a bit count */
+function getMinBitWidth(width: number): number {
+  if (width <= 8) return 8;
+  if (width <= 16) return 16;
+  return 32;
+}
+
 /**
  * Adapts TSymbol[] to ISymbol[] and registers struct fields in SymbolTable.
  */
@@ -93,8 +100,7 @@ class TSymbolAdapter {
       result.push({
         name: `${bitmap.name}_${fieldName}`,
         kind: ESymbolKind.BitmapField,
-        type:
-          width === 1 ? "bool" : `u${width <= 8 ? 8 : width <= 16 ? 16 : 32}`,
+        type: width === 1 ? "bool" : `u${getMinBitWidth(width)}`,
         sourceFile: bitmap.sourceFile,
         sourceLine: bitmap.sourceLine,
         sourceLanguage: bitmap.sourceLanguage,

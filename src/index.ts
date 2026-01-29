@@ -468,9 +468,9 @@ function uninstallPlatformIO(): void {
       // Remove standalone "extra_scripts = pre:cnext_build.py" line (with newline)
       .replace(/^extra_scripts\s*=\s*pre:cnext_build\.py\s*\n/m, "")
       // Remove from multi-line extra_scripts (e.g., "    pre:cnext_build.py")
-      .replace(/\s+pre:cnext_build\.py/g, "")
+      .replaceAll(/\s+pre:cnext_build\.py/g, "")
       // Clean up multiple consecutive blank lines
-      .replace(/\n\n\n+/g, "\n\n");
+      .replaceAll(/\n\n\n+/g, "\n\n");
 
     writeFileSync(pioIniPath, pioIni, "utf-8");
     console.log(`✓ Modified: ${pioIniPath}`);
