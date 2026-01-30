@@ -6,8 +6,9 @@
 #include "blink.h"
 
 // =============================================================================
-// ESP32-S3 LED Blink Example
-// Target: ESP32-S3 with RGB LED on GPIO38
+// ESP32-S3 WS2812 RGB LED Blink Example
+// Target: ESP32-S3-DevKitC-1 v1.1 (Addressable RGB LED on GPIO38)
+// Uses RMT peripheral for precise WS2812 timing
 // =============================================================================
 #include <stdint.h>
 #include <stdbool.h>
@@ -25,12 +26,24 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
 // =============================================================================
-// GPIO Pin Bitmaps
+// GPIO Pin Bitmaps (for GPIO32-48)
 // =============================================================================
-// GPIO pins 32-48 (bits 0-16 map to GPIO32-48)
 // =============================================================================
 // IO_MUX Configuration
+// =============================================================================
+// =============================================================================
+// RMT TX Channel Configuration (RMT_CHnCONF0_REG)
+// =============================================================================
+// =============================================================================
+// RMT System Configuration (RMT_SYS_CONF_REG)
 // =============================================================================
 // =============================================================================
 // ESP32S3 Hardware Scope
@@ -47,43 +60,132 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 #define ESP32S3_GPIO_IN1 (*(volatile GPIOPins32_48 const *)(0x60004000 + 0x0040))
 
 
+/* Register: ESP32S3_GPIO_MATRIX @ 0x60004000 */
+#define ESP32S3_GPIO_MATRIX_FUNC38_OUT_SEL (*(volatile uint32_t*)(0x60004000 + 0x064C))
+
+
 /* Register: ESP32S3_IO_MUX @ 0x60009000 */
 #define ESP32S3_IO_MUX_GPIO38 (*(volatile IOMuxPinConfig*)(0x60009000 + 0x009C))
 
 
-// =============================================================================
-// LED Control Scope (RGB LED on GPIO38)
-// =============================================================================
-/* Scope: LED */
+/* Register: ESP32S3_RMT @ 0x60016000 */
+#define ESP32S3_RMT_CH0DATA (*(volatile uint32_t*)(0x60016000 + 0x0000))
+#define ESP32S3_RMT_CH0CONF0 (*(volatile RMTTxConfig*)(0x60016000 + 0x0020))
+#define ESP32S3_RMT_CH0STATUS (*(volatile uint32_t const *)(0x60016000 + 0x0050))
+#define ESP32S3_RMT_INT_RAW (*(volatile uint32_t const *)(0x60016000 + 0x0070))
+#define ESP32S3_RMT_INT_ST (*(volatile uint32_t const *)(0x60016000 + 0x0074))
+#define ESP32S3_RMT_INT_ENA (*(volatile uint32_t*)(0x60016000 + 0x0078))
+#define ESP32S3_RMT_INT_CLR (*(volatile uint32_t*)(0x60016000 + 0x007C))
+#define ESP32S3_RMT_CH0CARRIER (*(volatile uint32_t*)(0x60016000 + 0x0080))
+#define ESP32S3_RMT_CH0_TX_LIM (*(volatile uint32_t*)(0x60016000 + 0x00A0))
+#define ESP32S3_RMT_SYS_CONF (*(volatile RMTSysConfig*)(0x60016000 + 0x00C0))
+#define ESP32S3_RMT_REF_CNT_RST (*(volatile uint32_t*)(0x60016000 + 0x00C8))
 
-void LED_init(void) {
+
+// =============================================================================
+// WS2812 Timing Constants
+// At 80MHz APB clock with divider=1: 1 tick = 12.5ns
+// WS2812 timing: T0H=400ns, T0L=850ns, T1H=800ns, T1L=450ns
+// =============================================================================
+extern const uint16_t WS2812_T0H = 32;
+
+// ~400ns (32 * 12.5ns)
+extern const uint16_t WS2812_T0L = 68;
+
+// ~850ns (68 * 12.5ns)
+extern const uint16_t WS2812_T1H = 64;
+
+// ~800ns (64 * 12.5ns)
+extern const uint16_t WS2812_T1L = 36;
+
+// ~450ns (36 * 12.5ns)
+// RMT output signal for channel 0
+extern const uint8_t RMT_SIG_OUT0 = 83;
+
+// RMT channel 0 output signal number
+// =============================================================================
+// RGB LED Scope
+// =============================================================================
+/* Scope: RGB */
+
+void RGB_init(void) {
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(0x7 << 12)) | ((0 & 0x7) << 12);
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 9)) | (0 << 9);
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 8)) | (0 << 8);
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 7)) | (0 << 7);
-    ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(0x3 << 10)) | (((uint8_t)IODriveStrength_DRIVE_5MA & 0x3) << 10);
+    ESP32S3_GPIO_MATRIX_FUNC38_OUT_SEL = (uint32_t)RMT_SIG_OUT0;
     ESP32S3_GPIO_ENABLE1_W1TS = (1 << 6);
-    ESP32S3_GPIO_OUT1_W1TC = (1 << 6);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 31)) | (1 << 31);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 1)) | (1 << 1);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 0)) | (1 << 0);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(0x3 << 24)) | ((1 & 0x3) << 24);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(0xFF << 4)) | ((1 & 0xFF) << 4);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 26)) | (1 << 26);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(0xFF << 8)) | ((1 & 0xFF) << 8);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(0xF << 16)) | ((1 & 0xF) << 16);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 21)) | (0 << 21);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 6)) | (1 << 6);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 5)) | (0 << 5);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 31)) | (1 << 31);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 1)) | (1 << 1);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 2)) | (1 << 2);
 }
 
-void LED_on(void) {
-    ESP32S3_GPIO_OUT1_W1TS = (1 << 6);
-}
-
-void LED_off(void) {
-    ESP32S3_GPIO_OUT1_W1TC = (1 << 6);
-}
-
-void LED_toggle(void) {
-    if (((ESP32S3_GPIO_OUT1 >> 6) & 1)) {
-        LED_off();
+static void RGB_sendBit(bool bit) {
+    uint32_t item = 0;
+    if (bit) {
+        item = ((uint32_t)WS2812_T1H) | (1 << 15) | ((uint32_t)WS2812_T1L << 16);
     } else {
-        LED_on();
+        item = ((uint32_t)WS2812_T0H) | (1 << 15) | ((uint32_t)WS2812_T0L << 16);
+    }
+    ESP32S3_RMT_CH0DATA = item;
+}
+
+static void RGB_sendByte(uint8_t value) {
+    uint8_t i = 0;
+    while (i < 8) {
+        bool bit = ((value >> (7 - i)) & 1) != 0;
+        RGB_sendBit(bit);
+        i = cnx_clamp_add_u8(i, 1);
     }
 }
 
+void RGB_setColor(uint8_t r, uint8_t g, uint8_t b) {
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 1)) | (1 << 1);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 2)) | (1 << 2);
+    RGB_sendByte(g);
+    RGB_sendByte(r);
+    RGB_sendByte(b);
+    ESP32S3_RMT_CH0DATA = 0;
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 31)) | (1 << 31);
+    ESP32S3_RMT_CH0CONF0 = (ESP32S3_RMT_CH0CONF0 & ~(1 << 0)) | (1 << 0);
+    while ((ESP32S3_RMT_INT_RAW & 1) == 0) {
+    }
+    ESP32S3_RMT_INT_CLR = 1;
+}
+
+void RGB_red(void) {
+    RGB_setColor(255, 0, 0);
+}
+
+void RGB_green(void) {
+    RGB_setColor(0, 255, 0);
+}
+
+void RGB_blue(void) {
+    RGB_setColor(0, 0, 255);
+}
+
+void RGB_white(void) {
+    RGB_setColor(255, 255, 255);
+}
+
+void RGB_off(void) {
+    RGB_setColor(0, 0, 0);
+}
+
 // =============================================================================
-// Simple Delay (busy-wait)
+// Simple Delay
 // =============================================================================
 void delay(uint32_t cycles) {
     uint32_t i = 0;
@@ -93,15 +195,19 @@ void delay(uint32_t cycles) {
 }
 
 // =============================================================================
-// Main Entry Point
+// Main - Cycle through RGB colors
 // =============================================================================
 int main(void) {
-    LED_init();
+    RGB_init();
     while (true) {
-        LED_on();
-        delay(1000000);
-        LED_off();
-        delay(1000000);
+        RGB_red();
+        delay(2000000);
+        RGB_green();
+        delay(2000000);
+        RGB_blue();
+        delay(2000000);
+        RGB_off();
+        delay(2000000);
     }
     return 0;
 }

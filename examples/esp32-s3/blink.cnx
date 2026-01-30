@@ -1,15 +1,14 @@
 // =============================================================================
-// ESP32-S3 LED Blink Example
-// Target: ESP32-S3 with RGB LED on GPIO38
+// ESP32-S3 WS2812 RGB LED Blink Example
+// Target: ESP32-S3-DevKitC-1 v1.1 (Addressable RGB LED on GPIO38)
+// Uses RMT peripheral for precise WS2812 timing
 // =============================================================================
 #include <stdint.h>
 #include <stdbool.h>
 
 // =============================================================================
-// GPIO Pin Bitmaps
+// GPIO Pin Bitmaps (for GPIO32-48)
 // =============================================================================
-
-// GPIO pins 32-48 (bits 0-16 map to GPIO32-48)
 bitmap32 GPIOPins32_48 {
     GPIO32, GPIO33, GPIO34, GPIO35, GPIO36, GPIO37, GPIO38, GPIO39,
     GPIO40, GPIO41, GPIO42, GPIO43, GPIO44, GPIO45, GPIO46, GPIO47,
@@ -19,28 +18,58 @@ bitmap32 GPIOPins32_48 {
 // =============================================================================
 // IO_MUX Configuration
 // =============================================================================
-
-enum IODriveStrength {
-    DRIVE_5MA  <- 0,
-    DRIVE_10MA <- 1,
-    DRIVE_20MA <- 2,
-    DRIVE_40MA <- 3
+bitmap32 IOMuxPinConfig {
+    MCU_OE,          // bit 0
+    SLP_SEL,         // bit 1
+    MCU_WPD,         // bit 2
+    MCU_WPU,         // bit 3
+    MCU_IE,          // bit 4
+    MCU_DRV[2],      // bits 5-6
+    FUN_WPD,         // bit 7
+    FUN_WPU,         // bit 8
+    FUN_IE,          // bit 9
+    FUN_DRV[2],      // bits 10-11
+    MCU_SEL[3],      // bits 12-14: Function select (0=GPIO)
+    FILTER_EN,       // bit 15
+    Reserved_16[16]  // bits 16-31
 }
 
-bitmap32 IOMuxPinConfig {
-    MCU_OE,          // bit 0: Output enable in sleep mode
-    SLP_SEL,         // bit 1: Sleep mode selection
-    MCU_WPD,         // bit 2: Pull-down during sleep
-    MCU_WPU,         // bit 3: Pull-up during sleep
-    MCU_IE,          // bit 4: Input enable during sleep
-    MCU_DRV[2],      // bits 5-6: Drive strength during sleep
-    FUN_WPD,         // bit 7: Pull-down enable
-    FUN_WPU,         // bit 8: Pull-up enable
-    FUN_IE,          // bit 9: Input enable
-    FUN_DRV[2],      // bits 10-11: Drive strength
-    MCU_SEL[3],      // bits 12-14: Function select (0=GPIO)
-    FILTER_EN,       // bit 15: Input glitch filter
-    Reserved_16[16]  // bits 16-31
+// =============================================================================
+// RMT TX Channel Configuration (RMT_CHnCONF0_REG)
+// =============================================================================
+bitmap32 RMTTxConfig {
+    TX_START,           // bit 0: Start TX (write-trigger)
+    MEM_RD_RST,         // bit 1: Reset RAM read address (write-trigger)
+    APB_MEM_RST,        // bit 2: Reset APB FIFO address (write-trigger)
+    TX_CONTI_MODE,      // bit 3: Continuous TX mode
+    MEM_TX_WRAP_EN,     // bit 4: Wrap TX mode
+    IDLE_OUT_LV,        // bit 5: Idle output level
+    IDLE_OUT_EN,        // bit 6: Enable idle output level control
+    TX_STOP,            // bit 7: Stop TX
+    DIV_CNT[8],         // bits 8-15: Clock divider
+    MEM_SIZE[4],        // bits 16-19: Memory blocks allocated
+    CARRIER_EFF_EN,     // bit 20: Carrier only during data
+    CARRIER_EN,         // bit 21: Enable carrier modulation
+    CARRIER_OUT_LV,     // bit 22: Carrier wave position
+    Reserved_23[8],     // bits 23-30
+    CONF_UPDATE         // bit 31: Sync config (write-trigger)
+}
+
+// =============================================================================
+// RMT System Configuration (RMT_SYS_CONF_REG)
+// =============================================================================
+bitmap32 RMTSysConfig {
+    APB_FIFO_MASK,      // bit 0: 1=direct memory, 0=FIFO mode
+    MEM_CLK_FORCE_ON,   // bit 1: Force memory clock on
+    MEM_FORCE_PD,       // bit 2: Force memory power down
+    MEM_FORCE_PU,       // bit 3: Force memory power up
+    SCLK_DIV_NUM[8],    // bits 4-11: Clock divider integer part
+    SCLK_DIV_A[6],      // bits 12-17: Fractional divider numerator
+    SCLK_DIV_B[6],      // bits 18-23: Fractional divider denominator
+    SCLK_SEL[2],        // bits 24-25: Clock source (1=APB, 2=RC_FAST, 3=XTAL)
+    SCLK_ACTIVE,        // bit 26: Clock switch enable
+    Reserved_27[4],     // bits 27-30
+    CLK_EN              // bit 31: Register clock gate enable
 }
 
 // =============================================================================
@@ -48,63 +77,171 @@ bitmap32 IOMuxPinConfig {
 // =============================================================================
 scope ESP32S3 {
     // GPIO Register Block @ 0x60004000
-    // Using OUT1/ENABLE1/IN1 for GPIO32-48
     public register GPIO @ 0x60004000 {
-        OUT1:         GPIOPins32_48 rw @ 0x0010,
-        OUT1_W1TS:    GPIOPins32_48 wo @ 0x0014,
-        OUT1_W1TC:    GPIOPins32_48 wo @ 0x0018,
-        ENABLE1:      GPIOPins32_48 rw @ 0x002C,
-        ENABLE1_W1TS: GPIOPins32_48 wo @ 0x0030,
-        ENABLE1_W1TC: GPIOPins32_48 wo @ 0x0034,
-        IN1:          GPIOPins32_48 ro @ 0x0040,
+        OUT1:          GPIOPins32_48 rw @ 0x0010,
+        OUT1_W1TS:     GPIOPins32_48 wo @ 0x0014,
+        OUT1_W1TC:     GPIOPins32_48 wo @ 0x0018,
+        ENABLE1:       GPIOPins32_48 rw @ 0x002C,
+        ENABLE1_W1TS:  GPIOPins32_48 wo @ 0x0030,
+        ENABLE1_W1TC:  GPIOPins32_48 wo @ 0x0034,
+        IN1:           GPIOPins32_48 ro @ 0x0040,
+    }
+
+    // GPIO Matrix - output signal selection (to route RMT to GPIO38)
+    // GPIO_FUNCn_OUT_SEL_CFG_REG at 0x0554 + n*4
+    public register GPIO_MATRIX @ 0x60004000 {
+        FUNC38_OUT_SEL: u32 rw @ 0x064C,  // 0x0554 + 38*4 = 0x064C
     }
 
     // IO_MUX Register Block @ 0x60009000
-    // GPIO38 is at offset 0x009C (0x0004 + 38*4 = 0x009C)
     public register IO_MUX @ 0x60009000 {
         GPIO38: IOMuxPinConfig rw @ 0x009C,
+    }
+
+    // RMT Register Block @ 0x60016000
+    public register RMT @ 0x60016000 {
+        // TX Channel 0 Data (write pulse data here)
+        CH0DATA:       u32         rw @ 0x0000,
+
+        // TX Channel 0 Configuration
+        CH0CONF0:      RMTTxConfig rw @ 0x0020,
+
+        // Status registers
+        CH0STATUS:     u32         ro @ 0x0050,
+
+        // Interrupt registers
+        INT_RAW:       u32         ro @ 0x0070,
+        INT_ST:        u32         ro @ 0x0074,
+        INT_ENA:       u32         rw @ 0x0078,
+        INT_CLR:       u32         wo @ 0x007C,
+
+        // Carrier duty (for WS2812 we don't use carrier)
+        CH0CARRIER:    u32         rw @ 0x0080,
+
+        // TX limit
+        CH0_TX_LIM:    u32         rw @ 0x00A0,
+
+        // System configuration
+        SYS_CONF:      RMTSysConfig rw @ 0x00C0,
+
+        // Reference counter reset
+        REF_CNT_RST:   u32         rw @ 0x00C8,
     }
 }
 
 // =============================================================================
-// LED Control Scope (RGB LED on GPIO38)
+// WS2812 Timing Constants
+// At 80MHz APB clock with divider=1: 1 tick = 12.5ns
+// WS2812 timing: T0H=400ns, T0L=850ns, T1H=800ns, T1L=450ns
 // =============================================================================
-scope LED {
+const u16 WS2812_T0H <- 32;   // ~400ns (32 * 12.5ns)
+const u16 WS2812_T0L <- 68;   // ~850ns (68 * 12.5ns)
+const u16 WS2812_T1H <- 64;   // ~800ns (64 * 12.5ns)
+const u16 WS2812_T1L <- 36;   // ~450ns (36 * 12.5ns)
+
+// RMT output signal for channel 0
+const u8 RMT_SIG_OUT0 <- 83;  // RMT channel 0 output signal number
+
+// =============================================================================
+// RGB LED Scope
+// =============================================================================
+scope RGB {
+    /// Initialize RMT for WS2812 on GPIO38
     public void init() {
-        // Configure IO_MUX for GPIO38: GPIO function, no pulls, 5mA drive
-        // (RGB LEDs typically need less current)
+        // 1. Configure IO_MUX: GPIO function
         global.ESP32S3.IO_MUX.GPIO38.MCU_SEL <- 0;
         global.ESP32S3.IO_MUX.GPIO38.FUN_IE <- false;
         global.ESP32S3.IO_MUX.GPIO38.FUN_WPU <- false;
         global.ESP32S3.IO_MUX.GPIO38.FUN_WPD <- false;
-        global.ESP32S3.IO_MUX.GPIO38.FUN_DRV <- (u8)global.IODriveStrength.DRIVE_5MA;
 
-        // Enable GPIO38 as output
+        // 2. Route RMT channel 0 output to GPIO38 via GPIO matrix
+        global.ESP32S3.GPIO_MATRIX.FUNC38_OUT_SEL <- (u32)RMT_SIG_OUT0;
+
+        // 3. Enable GPIO38 output
         global.ESP32S3.GPIO.ENABLE1_W1TS.GPIO38 <- true;
 
-        // Start with LED off
-        global.ESP32S3.GPIO.OUT1_W1TC.GPIO38 <- true;
+        // 4. Configure RMT system
+        global.ESP32S3.RMT.SYS_CONF.CLK_EN <- true;
+        global.ESP32S3.RMT.SYS_CONF.MEM_CLK_FORCE_ON <- true;
+        global.ESP32S3.RMT.SYS_CONF.APB_FIFO_MASK <- true;  // Direct memory access
+        global.ESP32S3.RMT.SYS_CONF.SCLK_SEL <- 1;          // APB clock (80MHz)
+        global.ESP32S3.RMT.SYS_CONF.SCLK_DIV_NUM <- 1;      // Divider = 1
+        global.ESP32S3.RMT.SYS_CONF.SCLK_ACTIVE <- true;
+
+        // 5. Configure TX channel 0
+        global.ESP32S3.RMT.CH0CONF0.DIV_CNT <- 1;           // Channel divider = 1
+        global.ESP32S3.RMT.CH0CONF0.MEM_SIZE <- 1;          // 1 memory block (48 items)
+        global.ESP32S3.RMT.CH0CONF0.CARRIER_EN <- false;    // No carrier for WS2812
+        global.ESP32S3.RMT.CH0CONF0.IDLE_OUT_EN <- true;
+        global.ESP32S3.RMT.CH0CONF0.IDLE_OUT_LV <- false;   // Low when idle
+        global.ESP32S3.RMT.CH0CONF0.CONF_UPDATE <- true;    // Apply config
+
+        // 6. Reset memory pointer
+        global.ESP32S3.RMT.CH0CONF0.MEM_RD_RST <- true;
+        global.ESP32S3.RMT.CH0CONF0.APB_MEM_RST <- true;
     }
 
-    public void on() {
-        global.ESP32S3.GPIO.OUT1_W1TS.GPIO38 <- true;
-    }
-
-    public void off() {
-        global.ESP32S3.GPIO.OUT1_W1TC.GPIO38 <- true;
-    }
-
-    public void toggle() {
-        if (global.ESP32S3.GPIO.OUT1.GPIO38) {
-            this.off();
+    /// Send a single WS2812 bit (encode as RMT item)
+    /// RMT item format: [15:0]=duration0, [16]=level0, [31:17]=duration1, [32]=level1
+    void sendBit(bool bit) {
+        u32 item;
+        if (bit) {
+            // Bit 1: High for T1H, Low for T1L
+            item <- ((u32)WS2812_T1H) | (1 << 15) | ((u32)WS2812_T1L << 16);
         } else {
-            this.on();
+            // Bit 0: High for T0H, Low for T0L
+            item <- ((u32)WS2812_T0H) | (1 << 15) | ((u32)WS2812_T0L << 16);
+        }
+        global.ESP32S3.RMT.CH0DATA <- item;
+    }
+
+    /// Send 8 bits (one color channel) MSB first
+    void sendByte(u8 value) {
+        u8 i <- 0;
+        while (i < 8) {
+            bool bit <- ((value >> (7 - i)) & 1) != 0;
+            this.sendBit(bit);
+            i +<- 1;
         }
     }
+
+    /// Set RGB color (WS2812 order is GRB)
+    public void setColor(u8 r, u8 g, u8 b) {
+        // Reset memory pointer
+        global.ESP32S3.RMT.CH0CONF0.MEM_RD_RST <- true;
+        global.ESP32S3.RMT.CH0CONF0.APB_MEM_RST <- true;
+
+        // Send GRB data (24 bits)
+        this.sendByte(g);
+        this.sendByte(r);
+        this.sendByte(b);
+
+        // Send end marker (duration=0)
+        global.ESP32S3.RMT.CH0DATA <- 0;
+
+        // Start transmission
+        global.ESP32S3.RMT.CH0CONF0.CONF_UPDATE <- true;
+        global.ESP32S3.RMT.CH0CONF0.TX_START <- true;
+
+        // Wait for completion (TX_END interrupt flag for channel 0 is bit 0)
+        while ((global.ESP32S3.RMT.INT_RAW & 1) = 0) {
+            // Busy wait
+        }
+
+        // Clear interrupt flag
+        global.ESP32S3.RMT.INT_CLR <- 1;
+    }
+
+    // Predefined colors
+    public void red()     { this.setColor(255, 0, 0); }
+    public void green()   { this.setColor(0, 255, 0); }
+    public void blue()    { this.setColor(0, 0, 255); }
+    public void white()   { this.setColor(255, 255, 255); }
+    public void off()     { this.setColor(0, 0, 0); }
 }
 
 // =============================================================================
-// Simple Delay (busy-wait)
+// Simple Delay
 // =============================================================================
 void delay(u32 cycles) {
     u32 i <- 0;
@@ -114,17 +251,23 @@ void delay(u32 cycles) {
 }
 
 // =============================================================================
-// Main Entry Point
+// Main - Cycle through RGB colors
 // =============================================================================
 i32 main() {
-    LED.init();
+    RGB.init();
 
     while (true) {
-        LED.on();
-        delay(1000000);
+        RGB.red();
+        delay(2000000);
 
-        LED.off();
-        delay(1000000);
+        RGB.green();
+        delay(2000000);
+
+        RGB.blue();
+        delay(2000000);
+
+        RGB.off();
+        delay(2000000);
     }
 
     return 0;

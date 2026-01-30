@@ -13,14 +13,6 @@
 extern "C" {
 #endif
 
-/* Enumerations */
-typedef enum {
-    IODriveStrength_DRIVE_5MA = 0,
-    IODriveStrength_DRIVE_10MA = 1,
-    IODriveStrength_DRIVE_20MA = 2,
-    IODriveStrength_DRIVE_40MA = 3
-} IODriveStrength;
-
 /* Bitmaps */
 /* Bitmap: GPIOPins32_48
  *   GPIO32: bit 0
@@ -59,12 +51,54 @@ typedef uint32_t GPIOPins32_48;
  *   Reserved_16: bits 16-31 (16 bits)
  */
 typedef uint32_t IOMuxPinConfig;
+/* Bitmap: RMTTxConfig
+ *   TX_START: bit 0
+ *   MEM_RD_RST: bit 1
+ *   APB_MEM_RST: bit 2
+ *   TX_CONTI_MODE: bit 3
+ *   MEM_TX_WRAP_EN: bit 4
+ *   IDLE_OUT_LV: bit 5
+ *   IDLE_OUT_EN: bit 6
+ *   TX_STOP: bit 7
+ *   DIV_CNT: bits 8-15 (8 bits)
+ *   MEM_SIZE: bits 16-19 (4 bits)
+ *   CARRIER_EFF_EN: bit 20
+ *   CARRIER_EN: bit 21
+ *   CARRIER_OUT_LV: bit 22
+ *   Reserved_23: bits 23-30 (8 bits)
+ *   CONF_UPDATE: bit 31
+ */
+typedef uint32_t RMTTxConfig;
+/* Bitmap: RMTSysConfig
+ *   APB_FIFO_MASK: bit 0
+ *   MEM_CLK_FORCE_ON: bit 1
+ *   MEM_FORCE_PD: bit 2
+ *   MEM_FORCE_PU: bit 3
+ *   SCLK_DIV_NUM: bits 4-11 (8 bits)
+ *   SCLK_DIV_A: bits 12-17 (6 bits)
+ *   SCLK_DIV_B: bits 18-23 (6 bits)
+ *   SCLK_SEL: bits 24-25 (2 bits)
+ *   SCLK_ACTIVE: bit 26
+ *   Reserved_27: bits 27-30 (4 bits)
+ *   CLK_EN: bit 31
+ */
+typedef uint32_t RMTSysConfig;
+
+/* External variables */
+extern const uint16_t WS2812_T0H;
+extern const uint16_t WS2812_T0L;
+extern const uint16_t WS2812_T1H;
+extern const uint16_t WS2812_T1L;
+extern const uint8_t RMT_SIG_OUT0;
 
 /* Function prototypes */
-void LED_init(void);
-void LED_on(void);
-void LED_off(void);
-void LED_toggle(void);
+void RGB_init(void);
+void RGB_setColor(uint8_t r, uint8_t g, uint8_t b);
+void RGB_red(void);
+void RGB_green(void);
+void RGB_blue(void);
+void RGB_white(void);
+void RGB_off(void);
 
 #ifdef __cplusplus
 }
