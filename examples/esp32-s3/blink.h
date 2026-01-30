@@ -22,41 +22,27 @@ typedef enum {
 } IODriveStrength;
 
 /* Bitmaps */
-/* Bitmap: GPIOPins0_31
- *   GPIO0: bit 0
- *   GPIO1: bit 1
- *   GPIO2: bit 2
- *   GPIO3: bit 3
- *   GPIO4: bit 4
- *   GPIO5: bit 5
- *   GPIO6: bit 6
- *   GPIO7: bit 7
- *   GPIO8: bit 8
- *   GPIO9: bit 9
- *   GPIO10: bit 10
- *   GPIO11: bit 11
- *   GPIO12: bit 12
- *   GPIO13: bit 13
- *   GPIO14: bit 14
- *   GPIO15: bit 15
- *   GPIO16: bit 16
- *   GPIO17: bit 17
- *   GPIO18: bit 18
- *   GPIO19: bit 19
- *   GPIO20: bit 20
- *   GPIO21: bit 21
- *   Reserved22: bit 22
- *   Reserved23: bit 23
- *   Reserved24: bit 24
- *   Reserved25: bit 25
- *   GPIO26: bit 26
- *   GPIO27: bit 27
- *   GPIO28: bit 28
- *   GPIO29: bit 29
- *   GPIO30: bit 30
- *   GPIO31: bit 31
+/* Bitmap: GPIOPins32_48
+ *   GPIO32: bit 0
+ *   GPIO33: bit 1
+ *   GPIO34: bit 2
+ *   GPIO35: bit 3
+ *   GPIO36: bit 4
+ *   GPIO37: bit 5
+ *   GPIO38: bit 6
+ *   GPIO39: bit 7
+ *   GPIO40: bit 8
+ *   GPIO41: bit 9
+ *   GPIO42: bit 10
+ *   GPIO43: bit 11
+ *   GPIO44: bit 12
+ *   GPIO45: bit 13
+ *   GPIO46: bit 14
+ *   GPIO47: bit 15
+ *   GPIO48: bit 16
+ *   Reserved: bits 17-31 (15 bits)
  */
-typedef uint32_t GPIOPins0_31;
+typedef uint32_t GPIOPins32_48;
 /* Bitmap: IOMuxPinConfig
  *   MCU_OE: bit 0
  *   SLP_SEL: bit 1

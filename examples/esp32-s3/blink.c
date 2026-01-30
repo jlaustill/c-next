@@ -6,9 +6,8 @@
 #include "blink.h"
 
 // =============================================================================
-// ESP32-S3 LED Blink Example (Self-Contained)
-// Target: ESP32-S3 DevKitC or similar
-// LED Pin: GPIO2 (common on many dev boards, adjust as needed)
+// ESP32-S3 LED Blink Example
+// Target: ESP32-S3 with RGB LED on GPIO38
 // =============================================================================
 #include <stdint.h>
 #include <stdbool.h>
@@ -29,7 +28,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // =============================================================================
 // GPIO Pin Bitmaps
 // =============================================================================
-// GPIO pins 0-31 (one bit per pin)
+// GPIO pins 32-48 (bits 0-16 map to GPIO32-48)
 // =============================================================================
 // IO_MUX Configuration
 // =============================================================================
@@ -39,44 +38,44 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: ESP32S3 */
 
 /* Register: ESP32S3_GPIO @ 0x60004000 */
-#define ESP32S3_GPIO_OUT (*(volatile GPIOPins0_31*)(0x60004000 + 0x0004))
-#define ESP32S3_GPIO_OUT_W1TS (*(volatile GPIOPins0_31*)(0x60004000 + 0x0008))
-#define ESP32S3_GPIO_OUT_W1TC (*(volatile GPIOPins0_31*)(0x60004000 + 0x000C))
-#define ESP32S3_GPIO_ENABLE (*(volatile GPIOPins0_31*)(0x60004000 + 0x0020))
-#define ESP32S3_GPIO_ENABLE_W1TS (*(volatile GPIOPins0_31*)(0x60004000 + 0x0024))
-#define ESP32S3_GPIO_ENABLE_W1TC (*(volatile GPIOPins0_31*)(0x60004000 + 0x0028))
-#define ESP32S3_GPIO_IN (*(volatile GPIOPins0_31 const *)(0x60004000 + 0x003C))
+#define ESP32S3_GPIO_OUT1 (*(volatile GPIOPins32_48*)(0x60004000 + 0x0010))
+#define ESP32S3_GPIO_OUT1_W1TS (*(volatile GPIOPins32_48*)(0x60004000 + 0x0014))
+#define ESP32S3_GPIO_OUT1_W1TC (*(volatile GPIOPins32_48*)(0x60004000 + 0x0018))
+#define ESP32S3_GPIO_ENABLE1 (*(volatile GPIOPins32_48*)(0x60004000 + 0x002C))
+#define ESP32S3_GPIO_ENABLE1_W1TS (*(volatile GPIOPins32_48*)(0x60004000 + 0x0030))
+#define ESP32S3_GPIO_ENABLE1_W1TC (*(volatile GPIOPins32_48*)(0x60004000 + 0x0034))
+#define ESP32S3_GPIO_IN1 (*(volatile GPIOPins32_48 const *)(0x60004000 + 0x0040))
 
 
 /* Register: ESP32S3_IO_MUX @ 0x60009000 */
-#define ESP32S3_IO_MUX_GPIO2 (*(volatile IOMuxPinConfig*)(0x60009000 + 0x000C))
+#define ESP32S3_IO_MUX_GPIO38 (*(volatile IOMuxPinConfig*)(0x60009000 + 0x009C))
 
 
 // =============================================================================
-// LED Control Scope
+// LED Control Scope (RGB LED on GPIO38)
 // =============================================================================
 /* Scope: LED */
 
 void LED_init(void) {
-    ESP32S3_IO_MUX_GPIO2 = (ESP32S3_IO_MUX_GPIO2 & ~(0x7 << 12)) | ((0 & 0x7) << 12);
-    ESP32S3_IO_MUX_GPIO2 = (ESP32S3_IO_MUX_GPIO2 & ~(1 << 9)) | (0 << 9);
-    ESP32S3_IO_MUX_GPIO2 = (ESP32S3_IO_MUX_GPIO2 & ~(1 << 8)) | (0 << 8);
-    ESP32S3_IO_MUX_GPIO2 = (ESP32S3_IO_MUX_GPIO2 & ~(1 << 7)) | (0 << 7);
-    ESP32S3_IO_MUX_GPIO2 = (ESP32S3_IO_MUX_GPIO2 & ~(0x3 << 10)) | (((uint8_t)IODriveStrength_DRIVE_20MA & 0x3) << 10);
-    ESP32S3_GPIO_ENABLE_W1TS = (1 << 2);
-    ESP32S3_GPIO_OUT_W1TC = (1 << 2);
+    ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(0x7 << 12)) | ((0 & 0x7) << 12);
+    ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 9)) | (0 << 9);
+    ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 8)) | (0 << 8);
+    ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 7)) | (0 << 7);
+    ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(0x3 << 10)) | (((uint8_t)IODriveStrength_DRIVE_5MA & 0x3) << 10);
+    ESP32S3_GPIO_ENABLE1_W1TS = (1 << 6);
+    ESP32S3_GPIO_OUT1_W1TC = (1 << 6);
 }
 
 void LED_on(void) {
-    ESP32S3_GPIO_OUT_W1TS = (1 << 2);
+    ESP32S3_GPIO_OUT1_W1TS = (1 << 6);
 }
 
 void LED_off(void) {
-    ESP32S3_GPIO_OUT_W1TC = (1 << 2);
+    ESP32S3_GPIO_OUT1_W1TC = (1 << 6);
 }
 
 void LED_toggle(void) {
-    if (((ESP32S3_GPIO_OUT >> 2) & 1)) {
+    if (((ESP32S3_GPIO_OUT1 >> 6) & 1)) {
         LED_off();
     } else {
         LED_on();

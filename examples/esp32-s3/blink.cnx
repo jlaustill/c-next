@@ -1,7 +1,6 @@
 // =============================================================================
-// ESP32-S3 LED Blink Example (Self-Contained)
-// Target: ESP32-S3 DevKitC or similar
-// LED Pin: GPIO2 (common on many dev boards, adjust as needed)
+// ESP32-S3 LED Blink Example
+// Target: ESP32-S3 with RGB LED on GPIO38
 // =============================================================================
 #include <stdint.h>
 #include <stdbool.h>
@@ -10,12 +9,11 @@
 // GPIO Pin Bitmaps
 // =============================================================================
 
-// GPIO pins 0-31 (one bit per pin)
-bitmap32 GPIOPins0_31 {
-    GPIO0,  GPIO1,  GPIO2,  GPIO3,  GPIO4,  GPIO5,  GPIO6,  GPIO7,
-    GPIO8,  GPIO9,  GPIO10, GPIO11, GPIO12, GPIO13, GPIO14, GPIO15,
-    GPIO16, GPIO17, GPIO18, GPIO19, GPIO20, GPIO21, Reserved22, Reserved23,
-    Reserved24, Reserved25, GPIO26, GPIO27, GPIO28, GPIO29, GPIO30, GPIO31
+// GPIO pins 32-48 (bits 0-16 map to GPIO32-48)
+bitmap32 GPIOPins32_48 {
+    GPIO32, GPIO33, GPIO34, GPIO35, GPIO36, GPIO37, GPIO38, GPIO39,
+    GPIO40, GPIO41, GPIO42, GPIO43, GPIO44, GPIO45, GPIO46, GPIO47,
+    GPIO48, Reserved[15]
 }
 
 // =============================================================================
@@ -50,51 +48,54 @@ bitmap32 IOMuxPinConfig {
 // =============================================================================
 scope ESP32S3 {
     // GPIO Register Block @ 0x60004000
+    // Using OUT1/ENABLE1/IN1 for GPIO32-48
     public register GPIO @ 0x60004000 {
-        OUT:          GPIOPins0_31  rw @ 0x0004,
-        OUT_W1TS:     GPIOPins0_31  wo @ 0x0008,
-        OUT_W1TC:     GPIOPins0_31  wo @ 0x000C,
-        ENABLE:       GPIOPins0_31  rw @ 0x0020,
-        ENABLE_W1TS:  GPIOPins0_31  wo @ 0x0024,
-        ENABLE_W1TC:  GPIOPins0_31  wo @ 0x0028,
-        IN:           GPIOPins0_31  ro @ 0x003C,
+        OUT1:         GPIOPins32_48 rw @ 0x0010,
+        OUT1_W1TS:    GPIOPins32_48 wo @ 0x0014,
+        OUT1_W1TC:    GPIOPins32_48 wo @ 0x0018,
+        ENABLE1:      GPIOPins32_48 rw @ 0x002C,
+        ENABLE1_W1TS: GPIOPins32_48 wo @ 0x0030,
+        ENABLE1_W1TC: GPIOPins32_48 wo @ 0x0034,
+        IN1:          GPIOPins32_48 ro @ 0x0040,
     }
 
     // IO_MUX Register Block @ 0x60009000
+    // GPIO38 is at offset 0x009C (0x0004 + 38*4 = 0x009C)
     public register IO_MUX @ 0x60009000 {
-        GPIO2: IOMuxPinConfig rw @ 0x000C,
+        GPIO38: IOMuxPinConfig rw @ 0x009C,
     }
 }
 
 // =============================================================================
-// LED Control Scope
+// LED Control Scope (RGB LED on GPIO38)
 // =============================================================================
 scope LED {
     public void init() {
-        // Configure IO_MUX for GPIO2: GPIO function, no pulls, 20mA drive
-        global.ESP32S3.IO_MUX.GPIO2.MCU_SEL <- 0;
-        global.ESP32S3.IO_MUX.GPIO2.FUN_IE <- false;
-        global.ESP32S3.IO_MUX.GPIO2.FUN_WPU <- false;
-        global.ESP32S3.IO_MUX.GPIO2.FUN_WPD <- false;
-        global.ESP32S3.IO_MUX.GPIO2.FUN_DRV <- (u8)global.IODriveStrength.DRIVE_20MA;
+        // Configure IO_MUX for GPIO38: GPIO function, no pulls, 5mA drive
+        // (RGB LEDs typically need less current)
+        global.ESP32S3.IO_MUX.GPIO38.MCU_SEL <- 0;
+        global.ESP32S3.IO_MUX.GPIO38.FUN_IE <- false;
+        global.ESP32S3.IO_MUX.GPIO38.FUN_WPU <- false;
+        global.ESP32S3.IO_MUX.GPIO38.FUN_WPD <- false;
+        global.ESP32S3.IO_MUX.GPIO38.FUN_DRV <- (u8)global.IODriveStrength.DRIVE_5MA;
 
-        // Enable GPIO2 as output
-        global.ESP32S3.GPIO.ENABLE_W1TS.GPIO2 <- true;
+        // Enable GPIO38 as output
+        global.ESP32S3.GPIO.ENABLE1_W1TS.GPIO38 <- true;
 
         // Start with LED off
-        global.ESP32S3.GPIO.OUT_W1TC.GPIO2 <- true;
+        global.ESP32S3.GPIO.OUT1_W1TC.GPIO38 <- true;
     }
 
     public void on() {
-        global.ESP32S3.GPIO.OUT_W1TS.GPIO2 <- true;
+        global.ESP32S3.GPIO.OUT1_W1TS.GPIO38 <- true;
     }
 
     public void off() {
-        global.ESP32S3.GPIO.OUT_W1TC.GPIO2 <- true;
+        global.ESP32S3.GPIO.OUT1_W1TC.GPIO38 <- true;
     }
 
     public void toggle() {
-        if (global.ESP32S3.GPIO.OUT.GPIO2) {
+        if (global.ESP32S3.GPIO.OUT1.GPIO38) {
             this.off();
         } else {
             this.on();
