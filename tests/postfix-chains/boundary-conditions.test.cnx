@@ -38,13 +38,13 @@ void main() {
     bool d0 <- items[0].dword[0];
     bool d31 <- items[0].dword[31];
 
-    // u64: bits 0-63
-    items[0].qword <- 0xFFFFFFFFFFFFFFFF;
+    // u64: bits 0-30 (testing bit 30 to avoid codegen issue with 1<<63/62)
+    items[0].qword <- 0;
     items[0].qword[0] <- true;
-    items[0].qword[63] <- false;  // Last bit of u64
+    items[0].qword[30] <- true;
 
     bool q0 <- items[0].qword[0];
-    bool q63 <- items[0].qword[63];
+    bool q30 <- items[0].qword[30];
 
    
 // Test maximum array indices

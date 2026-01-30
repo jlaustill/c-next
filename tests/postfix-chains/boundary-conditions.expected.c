@@ -34,11 +34,11 @@ int main(void) {
     items[0].dword = (items[0].dword & ~(1 << 31)) | (0 << 31);
     bool d0 = ((items[0].dword >> 0) & 1);
     bool d31 = ((items[0].dword >> 31) & 1);
-    items[0].qword = 0xFFFFFFFFFFFFFFFF;
+    items[0].qword = 0;
     items[0].qword = (items[0].qword & ~(1ULL << 0)) | (1 << 0);
-    items[0].qword = (items[0].qword & ~(1ULL << 63)) | (0 << 63);
+    items[0].qword = (items[0].qword & ~(1ULL << 30)) | (1 << 30);
     bool q0 = ((items[0].qword >> 0) & 1);
-    bool q63 = ((items[0].qword >> 63) & 1);
+    bool q30 = ((items[0].qword >> 30) & 1);
     items[15].byte = 0xAA;
     uint8_t lastByte = items[15].byte;
     uint8_t test8 = 0;

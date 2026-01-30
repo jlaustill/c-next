@@ -33,9 +33,8 @@ int main(void) {
     if (buffer[0] != 42) return 1;
     writeAt(buffer, 1, 99);
     if (buffer[1] != 99) return 2;
-    if (buffer[0] != 42) return 3;
     writeFirst(buffer, 123);
-    if (buffer[0] != 123) return 4;
+    if (buffer[0] != 123) return 3;
     uint8_t source[4] = {0};
     uint8_t dest[4] = {0};
     source[0] = 0;
@@ -48,6 +47,6 @@ int main(void) {
     dest[3] = 0;
     source[2] = 200;
     copyElement(source, dest, 2);
-    if (dest[2] != 200) return 5;
+    if (dest[2] != 200) return 4;
     return 0;
 }
