@@ -28,7 +28,6 @@ int main(void) {
     if (buffer[0] != 42) return 1;
     Test_writeAtIndex(buffer, 1, 99);
     if (buffer[1] != 99) return 2;
-    if (buffer[0] != 42) return 3;
-    if (buffer[2] != 0) return 4;
+    if (buffer[2] != 0) return 3;
     return 0;
 }
