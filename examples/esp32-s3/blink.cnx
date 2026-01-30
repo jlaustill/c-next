@@ -1,0 +1,130 @@
+// =============================================================================
+// ESP32-S3 LED Blink Example (Self-Contained)
+// Target: ESP32-S3 DevKitC or similar
+// LED Pin: GPIO2 (common on many dev boards, adjust as needed)
+// =============================================================================
+#include <stdint.h>
+#include <stdbool.h>
+
+// =============================================================================
+// GPIO Pin Bitmaps
+// =============================================================================
+
+// GPIO pins 0-31 (one bit per pin)
+bitmap32 GPIOPins0_31 {
+    GPIO0,  GPIO1,  GPIO2,  GPIO3,  GPIO4,  GPIO5,  GPIO6,  GPIO7,
+    GPIO8,  GPIO9,  GPIO10, GPIO11, GPIO12, GPIO13, GPIO14, GPIO15,
+    GPIO16, GPIO17, GPIO18, GPIO19, GPIO20, GPIO21, Reserved22, Reserved23,
+    Reserved24, Reserved25, GPIO26, GPIO27, GPIO28, GPIO29, GPIO30, GPIO31
+}
+
+// =============================================================================
+// IO_MUX Configuration
+// =============================================================================
+
+enum IODriveStrength {
+    DRIVE_5MA  <- 0,
+    DRIVE_10MA <- 1,
+    DRIVE_20MA <- 2,
+    DRIVE_40MA <- 3
+}
+
+bitmap32 IOMuxPinConfig {
+    MCU_OE,          // bit 0: Output enable in sleep mode
+    SLP_SEL,         // bit 1: Sleep mode selection
+    MCU_WPD,         // bit 2: Pull-down during sleep
+    MCU_WPU,         // bit 3: Pull-up during sleep
+    MCU_IE,          // bit 4: Input enable during sleep
+    MCU_DRV[2],      // bits 5-6: Drive strength during sleep
+    FUN_WPD,         // bit 7: Pull-down enable
+    FUN_WPU,         // bit 8: Pull-up enable
+    FUN_IE,          // bit 9: Input enable
+    FUN_DRV[2],      // bits 10-11: Drive strength
+    MCU_SEL[3],      // bits 12-14: Function select (0=GPIO)
+    FILTER_EN,       // bit 15: Input glitch filter
+    Reserved_16[16]  // bits 16-31
+}
+
+// =============================================================================
+// ESP32S3 Hardware Scope
+// =============================================================================
+scope ESP32S3 {
+    // GPIO Register Block @ 0x60004000
+    public register GPIO @ 0x60004000 {
+        OUT:          GPIOPins0_31  rw @ 0x0004,
+        OUT_W1TS:     GPIOPins0_31  wo @ 0x0008,
+        OUT_W1TC:     GPIOPins0_31  wo @ 0x000C,
+        ENABLE:       GPIOPins0_31  rw @ 0x0020,
+        ENABLE_W1TS:  GPIOPins0_31  wo @ 0x0024,
+        ENABLE_W1TC:  GPIOPins0_31  wo @ 0x0028,
+        IN:           GPIOPins0_31  ro @ 0x003C,
+    }
+
+    // IO_MUX Register Block @ 0x60009000
+    public register IO_MUX @ 0x60009000 {
+        GPIO2: IOMuxPinConfig rw @ 0x000C,
+    }
+}
+
+// =============================================================================
+// LED Control Scope
+// =============================================================================
+scope LED {
+    public void init() {
+        // Configure IO_MUX for GPIO2: GPIO function, no pulls, 20mA drive
+        global.ESP32S3.IO_MUX.GPIO2.MCU_SEL <- 0;
+        global.ESP32S3.IO_MUX.GPIO2.FUN_IE <- false;
+        global.ESP32S3.IO_MUX.GPIO2.FUN_WPU <- false;
+        global.ESP32S3.IO_MUX.GPIO2.FUN_WPD <- false;
+        global.ESP32S3.IO_MUX.GPIO2.FUN_DRV <- (u8)global.IODriveStrength.DRIVE_20MA;
+
+        // Enable GPIO2 as output
+        global.ESP32S3.GPIO.ENABLE_W1TS.GPIO2 <- true;
+
+        // Start with LED off
+        global.ESP32S3.GPIO.OUT_W1TC.GPIO2 <- true;
+    }
+
+    public void on() {
+        global.ESP32S3.GPIO.OUT_W1TS.GPIO2 <- true;
+    }
+
+    public void off() {
+        global.ESP32S3.GPIO.OUT_W1TC.GPIO2 <- true;
+    }
+
+    public void toggle() {
+        if (global.ESP32S3.GPIO.OUT.GPIO2) {
+            this.off();
+        } else {
+            this.on();
+        }
+    }
+}
+
+// =============================================================================
+// Simple Delay (busy-wait)
+// =============================================================================
+void delay(u32 cycles) {
+    u32 i <- 0;
+    while (i < cycles) {
+        i +<- 1;
+    }
+}
+
+// =============================================================================
+// Main Entry Point
+// =============================================================================
+i32 main() {
+    LED.init();
+
+    while (true) {
+        LED.on();
+        delay(1000000);
+
+        LED.off();
+        delay(1000000);
+    }
+
+    return 0;
+}
