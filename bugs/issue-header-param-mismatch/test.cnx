@@ -1,0 +1,14 @@
+// Minimal reproducer for header/implementation parameter mismatch
+// When a scope function takes a struct by value, the generated header
+// uses a pointer but the implementation uses value
+
+struct Config {
+    i32 value;
+}
+
+scope Manager {
+    public void initialize(const Config config) {
+        // This should generate matching signatures in header and implementation
+        // Bug: Header has `const Config*` but implementation has `const Config`
+    }
+}

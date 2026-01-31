@@ -7209,9 +7209,10 @@ export default class CodeGenerator implements IOrchestrator {
           if (isCppAccess) {
             separator = "::";
           } else if (isStructParam) {
-            // Issue #409: In C++ mode, struct params are references (use .)
-            // In C mode, struct params are pointers (use ->)
-            separator = this.cppMode ? "." : "->";
+            // Issue #409: Use centralized helper for C/C++ struct param access
+            separator = memberAccessChain.getStructParamSeparator({
+              cppMode: this.cppMode,
+            });
           } else if (isCrossScope) {
             separator = "_";
           } else if (
@@ -8188,9 +8189,10 @@ export default class CodeGenerator implements IOrchestrator {
               continue;
             }
 
-            // Issue #409: In C++ mode, struct params are references (use .)
-            // In C mode, struct params are pointers (use ->)
-            const structParamSep = this.cppMode ? "." : "->";
+            // Issue #409: Use centralized helper for C/C++ struct param access
+            const structParamSep = memberAccessChain.getStructParamSeparator({
+              cppMode: this.cppMode,
+            });
             result = `${result}${structParamSep}${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
@@ -8563,10 +8565,12 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // ADR-006: If a struct parameter is used as a whole value (no postfix ops),
-    // it needs to be dereferenced since it's a pointer in C.
-    // With postfix ops (member access), -> is already used in the loop above.
+    // it needs to be dereferenced in C (pointer) but not in C++ (reference).
+    // With postfix ops (member access), separator is already handled above.
     if (isStructParam && ops.length === 0) {
-      return `(*${result})`;
+      return memberAccessChain.wrapStructParamValue(result, {
+        cppMode: this.cppMode,
+      });
     }
 
     return result;
@@ -9173,7 +9177,7 @@ export default class CodeGenerator implements IOrchestrator {
                 const memberName = parts[idIndex];
                 // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
                 const separator = memberAccessChain.determineSeparator(
-                  { isStructParam, isCrossScope },
+                  { isStructParam, isCrossScope, cppMode: this.cppMode },
                   idIndex,
                 );
                 result += `${separator}${memberName}`;
@@ -9328,11 +9332,12 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-006: Check if the first part is a struct parameter
     const paramInfo = this.context.currentParameters.get(firstPart);
     if (paramInfo && paramInfo.isStruct) {
-      // Use -> for struct parameter member access
-      if (parts.length === 1) {
-        return firstPart;
-      }
-      return `${firstPart}->${parts.slice(1).join(".")}`;
+      // Use centralized helper for C/C++ struct param member access
+      return memberAccessChain.buildStructParamMemberAccess(
+        firstPart,
+        parts.slice(1),
+        { cppMode: this.cppMode },
+      );
     }
 
     return parts.join(".");

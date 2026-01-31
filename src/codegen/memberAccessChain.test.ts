@@ -9,12 +9,19 @@ import { vi } from "vitest";
 import { ParseTree } from "antlr4ng";
 import memberAccessChain from "./memberAccessChain";
 
-const { determineSeparator, buildMemberAccessChain } = memberAccessChain;
+const {
+  determineSeparator,
+  buildMemberAccessChain,
+  getStructParamSeparator,
+  wrapStructParamValue,
+  buildStructParamMemberAccess,
+} = memberAccessChain;
 
 // Local type definition for separator options (mirrors internal type)
 interface SeparatorOptions {
   isStructParam: boolean;
   isCrossScope: boolean;
+  cppMode?: boolean;
 }
 
 describe("determineSeparator", () => {
@@ -74,6 +81,112 @@ describe("determineSeparator", () => {
       };
       expect(determineSeparator(options, 1)).toBe(".");
       expect(determineSeparator(options, 2)).toBe(".");
+    });
+  });
+
+  describe("C++ mode (cppMode)", () => {
+    it("should return . for struct param at idIndex 1 in C++ mode", () => {
+      const options: SeparatorOptions = {
+        isStructParam: true,
+        isCrossScope: false,
+        cppMode: true,
+      };
+      expect(determineSeparator(options, 1)).toBe(".");
+    });
+
+    it("should return -> for struct param at idIndex 1 in C mode (cppMode: false)", () => {
+      const options: SeparatorOptions = {
+        isStructParam: true,
+        isCrossScope: false,
+        cppMode: false,
+      };
+      expect(determineSeparator(options, 1)).toBe("->");
+    });
+
+    it("should return -> for struct param when cppMode is undefined (default C mode)", () => {
+      const options: SeparatorOptions = {
+        isStructParam: true,
+        isCrossScope: false,
+        // cppMode not specified
+      };
+      expect(determineSeparator(options, 1)).toBe("->");
+    });
+  });
+});
+
+describe("getStructParamSeparator", () => {
+  it("should return -> in C mode", () => {
+    expect(getStructParamSeparator({ cppMode: false })).toBe("->");
+  });
+
+  it("should return . in C++ mode", () => {
+    expect(getStructParamSeparator({ cppMode: true })).toBe(".");
+  });
+});
+
+describe("wrapStructParamValue", () => {
+  it("should dereference in C mode", () => {
+    expect(wrapStructParamValue("config", { cppMode: false })).toBe(
+      "(*config)",
+    );
+  });
+
+  it("should return unchanged in C++ mode", () => {
+    expect(wrapStructParamValue("config", { cppMode: true })).toBe("config");
+  });
+
+  it("should handle parameter names with underscores", () => {
+    expect(wrapStructParamValue("my_config", { cppMode: false })).toBe(
+      "(*my_config)",
+    );
+    expect(wrapStructParamValue("my_config", { cppMode: true })).toBe(
+      "my_config",
+    );
+  });
+});
+
+describe("buildStructParamMemberAccess", () => {
+  describe("C mode", () => {
+    it("should use -> for single member access", () => {
+      expect(
+        buildStructParamMemberAccess("config", ["magic"], { cppMode: false }),
+      ).toBe("config->magic");
+    });
+
+    it("should use -> then . for chained member access", () => {
+      expect(
+        buildStructParamMemberAccess("config", ["inner", "value"], {
+          cppMode: false,
+        }),
+      ).toBe("config->inner.value");
+    });
+
+    it("should return just param name when no members", () => {
+      expect(
+        buildStructParamMemberAccess("config", [], { cppMode: false }),
+      ).toBe("config");
+    });
+  });
+
+  describe("C++ mode", () => {
+    it("should use . for single member access", () => {
+      expect(
+        buildStructParamMemberAccess("config", ["magic"], { cppMode: true }),
+      ).toBe("config.magic");
+    });
+
+    it("should use . for chained member access", () => {
+      expect(
+        buildStructParamMemberAccess("config", ["inner", "value"], {
+          cppMode: true,
+        }),
+      ).toBe("config.inner.value");
+    });
+
+    it("should return just param name when no members", () => {
+      expect(
+        buildStructParamMemberAccess("config", [], { cppMode: true }),
+      ).toBe("config");
     });
   });
 });

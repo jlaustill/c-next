@@ -4,21 +4,79 @@
  * This module extracts the shared logic for building member access chains
  * like `conf->tempInputs[idx].assignedSpn` from both read and write contexts.
  *
- * ADR-006: Struct parameters need -> access (passed by pointer in C)
+ * ADR-006: Struct parameters need -> access (passed by pointer in C),
+ *          or . access (passed by reference in C++)
  * ADR-016: Cross-scope access uses _ separator
  */
 
 import { ParseTree } from "antlr4ng";
 
 /**
+ * Options for struct parameter access helpers.
+ */
+interface StructParamOptions {
+  /** Whether we're in C++ mode (struct params are references) */
+  cppMode: boolean;
+}
+
+/**
+ * Get the member access separator for struct parameters.
+ * C mode: -> (pointer), C++ mode: . (reference)
+ *
+ * @param options - The struct param options
+ * @returns "->" for C mode, "." for C++ mode
+ */
+function getStructParamSeparator(options: StructParamOptions): string {
+  return options.cppMode ? "." : "->";
+}
+
+/**
+ * Wrap a struct parameter used as a whole value (not member access).
+ * C mode: (*param) - dereference the pointer
+ * C++ mode: param - reference can be used directly
+ *
+ * @param paramName - The parameter name
+ * @param options - The struct param options
+ * @returns The wrapped parameter expression
+ */
+function wrapStructParamValue(
+  paramName: string,
+  options: StructParamOptions,
+): string {
+  return options.cppMode ? paramName : `(*${paramName})`;
+}
+
+/**
+ * Build member access for a struct parameter: param->a.b or param.a.b
+ *
+ * @param paramName - The struct parameter name
+ * @param members - Array of member names to access (can be empty)
+ * @param options - The struct param options
+ * @returns The complete member access expression
+ */
+function buildStructParamMemberAccess(
+  paramName: string,
+  members: string[],
+  options: StructParamOptions,
+): string {
+  if (members.length === 0) {
+    return paramName;
+  }
+  const separator = getStructParamSeparator(options);
+  return `${paramName}${separator}${members.join(".")}`;
+}
+
+/**
  * Options for determining the separator between the first identifier and
  * the first member in a member access chain.
  */
 interface SeparatorOptions {
-  /** Whether the first identifier is a struct parameter (needs -> in C) */
+  /** Whether the first identifier is a struct parameter (needs -> in C, . in C++) */
   isStructParam: boolean;
   /** Whether the first identifier is a cross-scope access (needs _ in C) */
   isCrossScope: boolean;
+  /** Whether we're in C++ mode (struct params are references, use . instead of ->) */
+  cppMode?: boolean;
 }
 
 /**
@@ -37,9 +95,9 @@ function determineSeparator(
     return ".";
   }
 
-  // ADR-006: Struct parameters are passed as pointers, need -> access
+  // ADR-006: Struct parameters are passed as pointers in C (->), references in C++ (.)
   if (options.isStructParam) {
-    return "->";
+    return options.cppMode ? "." : "->";
   }
 
   // ADR-016: Cross-scope access uses underscore (scope_member)
@@ -277,4 +335,10 @@ function buildMemberAccessChain<TExpr>(
   };
 }
 
-export default { determineSeparator, buildMemberAccessChain };
+export default {
+  determineSeparator,
+  buildMemberAccessChain,
+  getStructParamSeparator,
+  wrapStructParamValue,
+  buildStructParamMemberAccess,
+};
