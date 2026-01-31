@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/spiffs",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/spiffs"
+  }
+}

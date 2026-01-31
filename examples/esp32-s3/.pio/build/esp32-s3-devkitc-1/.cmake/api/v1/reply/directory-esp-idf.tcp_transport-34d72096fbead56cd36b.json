@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/tcp_transport",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/tcp_transport"
+  }
+}

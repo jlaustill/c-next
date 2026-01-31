@@ -1,0 +1,2 @@
+source /home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader/gdbinit/symbols
+source /home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader/gdbinit/connect

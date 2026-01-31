@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/log",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/log"
+  }
+}

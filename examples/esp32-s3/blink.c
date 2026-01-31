@@ -50,6 +50,11 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // =============================================================================
 /* Scope: ESP32S3 */
 
+/* Register: ESP32S3_SYSTEM @ 0x600C0000 */
+#define ESP32S3_SYSTEM_PERIP_CLK_EN0 (*(volatile uint32_t*)(0x600C0000 + 0x0018))
+#define ESP32S3_SYSTEM_PERIP_RST_EN0 (*(volatile uint32_t*)(0x600C0000 + 0x0024))
+
+
 /* Register: ESP32S3_GPIO @ 0x60004000 */
 #define ESP32S3_GPIO_OUT1 (*(volatile GPIOPins32_48*)(0x60004000 + 0x0010))
 #define ESP32S3_GPIO_OUT1_W1TS (*(volatile GPIOPins32_48*)(0x60004000 + 0x0014))
@@ -109,6 +114,8 @@ extern const uint8_t RMT_SIG_OUT0 = 83;
 /* Scope: RGB */
 
 void RGB_init(void) {
+    ESP32S3_SYSTEM_PERIP_CLK_EN0 = ESP32S3_SYSTEM_PERIP_CLK_EN0 | (1 << 4);
+    ESP32S3_SYSTEM_PERIP_RST_EN0 = ESP32S3_SYSTEM_PERIP_RST_EN0 & ~(1 << 4);
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(0x7 << 12)) | ((0 & 0x7) << 12);
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 9)) | (0 << 9);
     ESP32S3_IO_MUX_GPIO38 = (ESP32S3_IO_MUX_GPIO38 & ~(1 << 8)) | (0 << 8);
@@ -117,7 +124,7 @@ void RGB_init(void) {
     ESP32S3_GPIO_ENABLE1_W1TS = (1 << 6);
     ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 31)) | (1 << 31);
     ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 1)) | (1 << 1);
-    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 0)) | (1 << 0);
+    ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 0)) | (0 << 0);
     ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(0x3 << 24)) | ((1 & 0x3) << 24);
     ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(0xFF << 4)) | ((1 & 0xFF) << 4);
     ESP32S3_RMT_SYS_CONF = (ESP32S3_RMT_SYS_CONF & ~(1 << 26)) | (1 << 26);
@@ -196,8 +203,9 @@ void delay(uint32_t cycles) {
 
 // =============================================================================
 // Main - Cycle through RGB colors
+// ESP-IDF entry point is app_main (void return)
 // =============================================================================
-int main(void) {
+void app_main(void) {
     RGB_init();
     while (true) {
         RGB_red();
@@ -209,5 +217,4 @@ int main(void) {
         RGB_off();
         delay(2000000);
     }
-    return 0;
 }

@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/esp_https_ota",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/esp_https_ota"
+  }
+}

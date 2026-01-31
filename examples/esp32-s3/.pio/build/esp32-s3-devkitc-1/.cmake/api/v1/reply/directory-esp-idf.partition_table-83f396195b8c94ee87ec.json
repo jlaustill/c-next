@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/partition_table",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/partition_table"
+  }
+}

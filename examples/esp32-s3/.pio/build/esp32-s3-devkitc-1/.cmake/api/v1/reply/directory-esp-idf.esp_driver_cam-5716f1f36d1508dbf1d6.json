@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/esp_driver_cam",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/esp_driver_cam"
+  }
+}

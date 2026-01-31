@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/esptool_py",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/esptool_py"
+  }
+}

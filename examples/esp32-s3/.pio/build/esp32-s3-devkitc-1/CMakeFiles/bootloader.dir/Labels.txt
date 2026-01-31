@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/CMakeFiles/bootloader
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/CMakeFiles/bootloader.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/CMakeFiles/bootloader-complete.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/linux/code/c-next3/examples/esp32-s3/.pio/build/esp32-s3-devkitc-1/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

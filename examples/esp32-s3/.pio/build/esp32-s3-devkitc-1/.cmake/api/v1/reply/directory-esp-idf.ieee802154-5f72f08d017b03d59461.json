@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/ieee802154",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/ieee802154"
+  }
+}

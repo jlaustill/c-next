@@ -76,6 +76,12 @@ bitmap32 RMTSysConfig {
 // ESP32S3 Hardware Scope
 // =============================================================================
 scope ESP32S3 {
+    // System Peripheral Clock Control @ 0x600C0000
+    public register SYSTEM @ 0x600C0000 {
+        PERIP_CLK_EN0: u32 rw @ 0x0018,  // Peripheral clock enable
+        PERIP_RST_EN0: u32 rw @ 0x0024,  // Peripheral reset control
+    }
+
     // GPIO Register Block @ 0x60004000
     public register GPIO @ 0x60004000 {
         OUT1:          GPIOPins32_48 rw @ 0x0010,
@@ -148,6 +154,10 @@ const u8 RMT_SIG_OUT0 <- 83;  // RMT channel 0 output signal number
 scope RGB {
     /// Initialize RMT for WS2812 on GPIO38
     public void init() {
+        // 0. Enable RMT peripheral clock (bit 4) and clear reset
+        global.ESP32S3.SYSTEM.PERIP_CLK_EN0 <- global.ESP32S3.SYSTEM.PERIP_CLK_EN0 | (1 << 4);
+        global.ESP32S3.SYSTEM.PERIP_RST_EN0 <- global.ESP32S3.SYSTEM.PERIP_RST_EN0 & ~(1 << 4);
+
         // 1. Configure IO_MUX: GPIO function
         global.ESP32S3.IO_MUX.GPIO38.MCU_SEL <- 0;
         global.ESP32S3.IO_MUX.GPIO38.FUN_IE <- false;
@@ -163,7 +173,7 @@ scope RGB {
         // 4. Configure RMT system
         global.ESP32S3.RMT.SYS_CONF.CLK_EN <- true;
         global.ESP32S3.RMT.SYS_CONF.MEM_CLK_FORCE_ON <- true;
-        global.ESP32S3.RMT.SYS_CONF.APB_FIFO_MASK <- true;  // Direct memory access
+        global.ESP32S3.RMT.SYS_CONF.APB_FIFO_MASK <- false;  // FIFO mode (write to CH0DATA)
         global.ESP32S3.RMT.SYS_CONF.SCLK_SEL <- 1;          // APB clock (80MHz)
         global.ESP32S3.RMT.SYS_CONF.SCLK_DIV_NUM <- 1;      // Divider = 1
         global.ESP32S3.RMT.SYS_CONF.SCLK_ACTIVE <- true;
@@ -252,8 +262,9 @@ void delay(u32 cycles) {
 
 // =============================================================================
 // Main - Cycle through RGB colors
+// ESP-IDF entry point is app_main (void return)
 // =============================================================================
-i32 main() {
+void app_main() {
     RGB.init();
 
     while (true) {
@@ -269,6 +280,4 @@ i32 main() {
         RGB.off();
         delay(2000000);
     }
-
-    return 0;
 }

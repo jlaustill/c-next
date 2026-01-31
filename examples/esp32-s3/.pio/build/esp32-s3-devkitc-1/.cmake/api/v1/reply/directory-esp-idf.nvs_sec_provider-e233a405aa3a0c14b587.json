@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/nvs_sec_provider",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/nvs_sec_provider"
+  }
+}

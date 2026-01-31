@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/app_trace",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/app_trace"
+  }
+}

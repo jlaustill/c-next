@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/touch_element",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/touch_element"
+  }
+}

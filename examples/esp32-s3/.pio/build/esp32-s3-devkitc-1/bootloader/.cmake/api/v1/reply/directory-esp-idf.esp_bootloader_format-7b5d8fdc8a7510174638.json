@@ -1,0 +1,12 @@
+{
+  "backtraceGraph": {
+    "commands": [],
+    "files": [],
+    "nodes": []
+  },
+  "installers": [],
+  "paths": {
+    "build": "esp-idf/esp_bootloader_format",
+    "source": "/home/linux/.platformio/packages/framework-espidf/components/esp_bootloader_format"
+  }
+}
