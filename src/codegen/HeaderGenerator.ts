@@ -289,6 +289,7 @@ class HeaderGenerator {
           sym,
           passByValueParams,
           allKnownEnums,
+          options.cppMode,
         );
         if (proto) {
           lines.push(proto);
@@ -359,11 +360,13 @@ class HeaderGenerator {
    * Handles all parameter edge cases per ADR-006, ADR-029, and ADR-040
    * Issue #269: Also handles pass-by-value for small unmodified primitives
    * Issue #478: Enum parameters are passed by value
+   * Issue #409: In C++ mode, use references instead of pointers
    */
   private generateFunctionPrototype(
     sym: ISymbol,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
+    cppMode?: boolean,
   ): string | null {
     // Map return type from C-Next to C
     // Special case: main() always returns int for C/C++ compatibility
@@ -415,8 +418,10 @@ class HeaderGenerator {
 
         // ADR-006: Pass by reference - non-array, non-float params become pointers
         // Issue #268: Add auto-const for unmodified parameters
+        // Issue #409: In C++ mode, use references (&) instead of pointers (*)
         // This applies to primitives (u32, i16, etc.) and struct types
-        return `${autoConst}${constMod}${baseType}* ${p.name}`;
+        const refOrPtr = cppMode ? "&" : "*";
+        return `${autoConst}${constMod}${baseType}${refOrPtr} ${p.name}`;
       });
       params = translatedParams.join(", ");
     }

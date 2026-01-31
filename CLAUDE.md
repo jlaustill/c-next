@@ -268,7 +268,7 @@ u32 main() {
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
-- **C++ callback interop**: C-Next `const T` struct params become `const T*` (pointer), not `const T&` (reference). C++ callbacks expecting references won't match — use pointer-based callback typedefs instead.
+- **C++ mode uses references**: In C++ mode, `const T` struct params become `const T&` (reference) with `.` member access and direct argument passing. In C mode, they become `const T*` (pointer) with `->` and `&` prefix.
 
 ### Test Framework Internals
 

@@ -331,10 +331,9 @@ void testCallbackInterop() {
     // C++ expects: void(*)(int) - matches our i32 callback
     global.registerIntCallback(intCallback);
 
-    // Note: C-Next transpiles 'const T' struct params to 'const T*' (pointer),
-    // not 'const T&' (reference). So we use registerResultPtrCallback which
-    // expects a pointer, not registerResultCallback which expects a reference.
-    global.registerResultPtrCallback(resultCallback);
+    // Issue #409: C-Next now generates references (const T&) in C++ mode,
+    // so we can use the standard registerResultCallback that expects const Result&
+    global.registerResultCallback(resultCallback);
 
     // Also test with Registry::registerHandler which takes void(*)()
     global.Registry.registerHandler(1, simpleCallback);

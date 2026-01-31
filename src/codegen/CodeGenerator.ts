@@ -4653,12 +4653,15 @@ export default class CodeGenerator implements IOrchestrator {
           this.context.currentScope,
         );
         if (members?.has(id)) {
-          return `&${this.context.currentScope}_${id}`;
+          // Issue #409: In C++ mode, references don't need &
+          const scopedName = `${this.context.currentScope}_${id}`;
+          return this.cppMode ? scopedName : `&${scopedName}`;
         }
       }
 
-      // Local variable - add &
-      return `&${id}`;
+      // Local variable - add & (except in C++ mode where references are used)
+      // Issue #409: In C++ mode, parameters are references, so no & needed
+      return this.cppMode ? id : `&${id}`;
     }
 
     // Check if it's a member access or array access (lvalue) - needs &
@@ -4689,12 +4692,15 @@ export default class CodeGenerator implements IOrchestrator {
           this.pendingTempDeclarations.push(
             `${cType} ${tempName} = static_cast<${cType}>(${value});`,
           );
-          return `&${tempName}`;
+          // Issue #409: In C++ mode, references don't need &
+          return this.cppMode ? tempName : `&${tempName}`;
         }
       }
 
-      // Generate the expression and wrap with &
-      const expr = `&${this._generateExpression(ctx)}`;
+      // Generate the expression and wrap with & (except in C++ mode)
+      // Issue #409: In C++ mode, parameters are references, so no & needed
+      const generatedExpr = this._generateExpression(ctx);
+      const expr = this.cppMode ? generatedExpr : `&${generatedExpr}`;
 
       // Issue #246: When passing string bytes to integer pointer parameters
       // (C-Next's by-reference semantics), cast from char* to the appropriate
@@ -4724,12 +4730,10 @@ export default class CodeGenerator implements IOrchestrator {
       if (cType && cType !== "void") {
         const value = this._generateExpression(ctx);
 
-        // Issue #250: In C++ mode, compound literals are rvalues and can't have their
-        // address taken. Use temporary variables instead.
+        // Issue #409: In C++ mode with references, rvalues can bind to const T&
+        // No need for temp variables or address-of
         if (this.cppMode) {
-          const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
-          this.pendingTempDeclarations.push(`${cType} ${tempName} = ${value};`);
-          return `&${tempName}`;
+          return value;
         }
 
         // C mode: Use C99 compound literal syntax: &(type){value}
@@ -5565,7 +5569,10 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #268: Add const for unmodified pointer parameters
       const wasModified = this.context.modifiedParameters.has(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}${type}* ${name}`;
+      // Issue #409: In C++ mode, use references (&) instead of pointers (*)
+      // This allows C-Next callbacks to match C++ function pointer signatures
+      const refOrPtr = this.cppMode ? "&" : "*";
+      return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
     }
 
     // Unknown types use pass-by-value (standard C semantics)
@@ -7202,7 +7209,9 @@ export default class CodeGenerator implements IOrchestrator {
           if (isCppAccess) {
             separator = "::";
           } else if (isStructParam) {
-            separator = "->";
+            // Issue #409: In C++ mode, struct params are references (use .)
+            // In C mode, struct params are pointers (use ->)
+            separator = this.cppMode ? "." : "->";
           } else if (isCrossScope) {
             separator = "_";
           } else if (
@@ -8179,7 +8188,10 @@ export default class CodeGenerator implements IOrchestrator {
               continue;
             }
 
-            result = `${result}->${memberName}`;
+            // Issue #409: In C++ mode, struct params are references (use .)
+            // In C mode, struct params are pointers (use ->)
+            const structParamSep = this.cppMode ? "." : "->";
+            result = `${result}${structParamSep}${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
             previousMemberName = memberName;

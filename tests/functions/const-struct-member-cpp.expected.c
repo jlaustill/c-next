@@ -16,9 +16,9 @@ uint32_t process(uint32_t crc, uint8_t byte) {
     return crc ^ byte;
 }
 
-uint32_t testConstStruct(const TestConfig* cfg) {
+uint32_t testConstStruct(const TestConfig& cfg) {
     uint32_t crc = 0;
-    crc = process(crc, cfg->value);
+    crc = process(crc, cfg.value);
     return crc;
 }
 
@@ -26,7 +26,7 @@ int main(void) {
     TestConfig cfg = {};
     cfg.value = 0x42;
     cfg.flags = 0xFF;
-    uint32_t result = testConstStruct(&cfg);
+    uint32_t result = testConstStruct(cfg);
     if (result != 0x42) return 1;
     return 0;
 }

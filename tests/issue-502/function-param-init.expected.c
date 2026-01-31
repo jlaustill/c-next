@@ -11,8 +11,8 @@
 #include <stdbool.h>
 
 // Function accepting namespaced type by value (auto pass-by-reference)
-void processResult(const SeaDash::Parse::ParseResult* result) {
-    int32_t cnt = result->count;
+void processResult(const SeaDash::Parse::ParseResult& result) {
+    int32_t cnt = result.count;
 }
 
 // Function returning namespaced type

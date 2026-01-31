@@ -6,17 +6,7 @@
 
 ## Problem
 
-The `tests/cpp-interop/comprehensive-cpp.test.cnx` had Section 13 (Callbacks) defined in the C++ header but never tested. The callback registration functions were:
-
-```cpp
-using Callback = void(*)();
-using IntCallback = void(*)(int);
-using ResultCallback = void(*)(const Result&);
-
-void registerCallback(Callback cb);
-void registerIntCallback(IntCallback cb);
-void registerResultCallback(ResultCallback cb);
-```
+The `tests/cpp-interop/comprehensive-cpp.test.cnx` had Section 13 (Callbacks) defined in the C++ header but never tested. Additionally, C-Next was generating pointer-based parameters (`const T*`) even in C++ mode, which prevented callbacks from matching idiomatic C++ function pointer signatures that use references (`const T&`).
 
 ## Solution
 
@@ -32,39 +22,49 @@ void resultCallback(const Result result) { }
 void testCallbackInterop() {
     global.registerCallback(simpleCallback);
     global.registerIntCallback(intCallback);
-    global.registerResultPtrCallback(resultCallback);
+    global.registerResultCallback(resultCallback);  // Now works with const T&!
     global.Registry.registerHandler(1, simpleCallback);
 }
 ```
 
-### 2. Discovered Reference vs Pointer Limitation
+### 2. Implemented C++ Reference Semantics
 
-During implementation, discovered that C-Next cannot pass callbacks to C++ functions expecting reference parameters:
+In C++ mode, the transpiler now generates idiomatic C++ code:
 
-- C-Next transpiles `const T` struct params to `const T*` (pointer)
-- C++ reference-based callbacks expect `const T&` (reference)
-- These have different function pointer signatures
+| C-Next              | C Mode          | C++ Mode       |
+| ------------------- | --------------- | -------------- |
+| Parameter `const T` | `const T*`      | `const T&`     |
+| Member access       | `param->member` | `param.member` |
+| Argument passing    | `func(&local)`  | `func(local)`  |
 
-**Workaround:** Added `ResultPtrCallback` typedef in C++ header that uses pointer instead of reference:
+**Changes made:**
 
-```cpp
-using ResultPtrCallback = void(*)(const Result*);  // C-Next compatible
-void registerResultPtrCallback(ResultPtrCallback cb);
-```
+1. **CodeGenerator.ts** (`generateParameter`): Use `&` instead of `*` in C++ mode
+2. **CodeGenerator.ts** (member access at lines ~7207, ~8190): Use `.` instead of `->` in C++ mode
+3. **CodeGenerator.ts** (`_generateFunctionArg`): Remove `&` prefix in C++ mode
+4. **HeaderGenerator.ts** (`generateFunctionPrototype`): Use `&` instead of `*` in C++ mode
+5. **IHeaderOptions.ts**: Added `cppMode` option
+6. **Pipeline.ts**: Pass `cppDetected` to header generator
 
 ### 3. Updated Documentation
 
-- `README.md`: Added Issue #409 to table and new "Callback Interop" section
-- `comprehensive-cpp.patterns.md`: Added Section 15 expected output patterns
+- `README.md`: Updated callback interop section with working examples
+- `comprehensive-cpp.patterns.md`: Updated expected output patterns
 
 ## Files Changed
 
-- `tests/cpp-interop/comprehensive-cpp.test.cnx` — Added Section 15 tests
+- `src/codegen/CodeGenerator.ts` — C++ reference semantics for parameters, member access, arguments
+- `src/codegen/HeaderGenerator.ts` — C++ reference semantics for function prototypes
+- `src/codegen/types/IHeaderOptions.ts` — Added `cppMode` option
+- `src/pipeline/Pipeline.ts` — Pass `cppDetected` to header generator
+- `tests/cpp-interop/comprehensive-cpp.test.cnx` — Added Section 15 callback tests
 - `tests/cpp-interop/comprehensive-cpp.expected.c` — Updated expected output
-- `tests/cpp-interop/comprehensive-cpp.hpp` — Added `ResultPtrCallback` typedef
-- `tests/cpp-interop/comprehensive-cpp-stubs.cpp` — Added stub for new function
-- `tests/cpp-interop/comprehensive-cpp.patterns.md` — Documented callback patterns
-- `tests/cpp-interop/README.md` — Documented callback interop and limitation
+- `tests/cpp-interop/comprehensive-cpp.hpp` — Cleaned up (removed workaround)
+- `tests/cpp-interop/comprehensive-cpp-stubs.cpp` — Cleaned up (removed workaround)
+- `tests/cpp-interop/README.md` — Documented C++ reference semantics
+- `tests/functions/const-struct-member-cpp.expected.c` — Updated for references
+- `tests/functions/enum-bool-member-cpp.expected.c` — Updated for references
+- `tests/issue-502/function-param-init.expected.c` — Updated for references
 
 ## Test Results
 
@@ -72,6 +72,11 @@ void registerResultPtrCallback(ResultPtrCallback cb);
 - Unit tests: 1450 passed
 - C++ compilation: `g++ -std=c++14 -fsyntax-only` passes
 
-## Known Limitation
+## Technical Details
 
-C-Next callbacks cannot directly match C++ function pointer types that use reference parameters (`const T&`). For C++ libraries using reference-parameter callbacks, the library must provide pointer-based alternatives for C-Next compatibility.
+The key insight is that C++ references and pointers have different semantics:
+
+- **C mode (ADR-006)**: Uses pointers for pass-by-reference. Local variables need `&` to get their address, and member access uses `->`.
+- **C++ mode**: Uses references for pass-by-reference. Values are passed directly (no `&`), and member access uses `.`.
+
+This change only affects C++ mode (`--cpp` flag or when C++ headers are detected). C mode remains unchanged.

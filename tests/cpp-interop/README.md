@@ -87,16 +87,22 @@ C-Next callbacks can be passed to C++ callback registration functions. Section 1
 // Define C-Next callback matching C++ void(*)() signature
 void simpleCallback() { }
 
-// Pass to C++ registration function
+// C-Next callback with struct parameter - matches C++ void(*)(const Result&)
+void resultCallback(const Result result) { }
+
+// Pass to C++ registration functions
 global.registerCallback(simpleCallback);
+global.registerResultCallback(resultCallback);  // Works with const T& in C++ mode!
 ```
 
-### Known Limitation: References vs Pointers
+### C++ Mode Reference Semantics
 
-C-Next transpiles `const T` struct parameters to `const T*` (pointers), not `const T&` (references). This means:
+In C++ mode (`--cpp` flag or `.hpp` include detected), C-Next generates idiomatic C++ code:
 
-- **Works:** C++ callbacks expecting `void(*)()` or `void(*)(int)`
-- **Works:** C++ callbacks expecting `void(*)(const T*)` (pointer)
-- **Does NOT work:** C++ callbacks expecting `void(*)(const T&)` (reference)
+| C-Next          | C Mode Output    | C++ Mode Output  |
+| --------------- | ---------------- | ---------------- |
+| `const T param` | `const T* param` | `const T& param` |
+| `param.member`  | `param->member`  | `param.member`   |
+| `func(local)`   | `func(&local)`   | `func(local)`    |
 
-For C++ libraries using reference-parameter callbacks, the library must provide pointer-based alternatives for C-Next compatibility. See `ResultPtrCallback` in the test header for an example.
+This allows C-Next callbacks to match standard C++ function pointer signatures like `void(*)(const T&)`.

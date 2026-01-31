@@ -26,6 +26,12 @@ interface IHeaderOptions {
    * Example: Map { "Data" => '#include "data-types.h"' }
    */
   externalTypeHeaders?: ReadonlyMap<string, string>;
+
+  /**
+   * Issue #409: C++ mode - use references instead of pointers for parameters.
+   * This allows C-Next callbacks to match C++ function pointer signatures.
+   */
+  cppMode?: boolean;
 }
 
 export default IHeaderOptions;

@@ -240,13 +240,13 @@ void intCallback(int32_t value) {
 }
 
 // Define callback matching C++ ResultCallback typedef: void(*)(const Result&)
-void resultCallback(const Result* result) {
+void resultCallback(const Result& result) {
 }
 
 void testCallbackInterop(void) {
     registerCallback(simpleCallback);
     registerIntCallback(intCallback);
-    registerResultPtrCallback(resultCallback);
+    registerResultCallback(resultCallback);
     Registry::registerHandler(1, simpleCallback);
     Registry::registerHandler(2, simpleCallback);
     int32_t count = Registry::getHandlerCount();

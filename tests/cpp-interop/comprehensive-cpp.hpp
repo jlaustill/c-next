@@ -293,14 +293,10 @@ private:
 using Callback = void(*)();
 using IntCallback = void(*)(int);
 using ResultCallback = void(*)(const Result&);
-// C-Next compatible callback (uses pointer, not reference)
-// C-Next transpiles 'const T' params to 'const T*' for structs
-using ResultPtrCallback = void(*)(const Result*);
 
 void registerCallback(Callback cb);
 void registerIntCallback(IntCallback cb);
 void registerResultCallback(ResultCallback cb);
-void registerResultPtrCallback(ResultPtrCallback cb);
 
 // ============================================================================
 // SECTION 14: OPERATOR OVERLOADING
