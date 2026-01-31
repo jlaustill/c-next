@@ -55,6 +55,7 @@ class Project {
       cppRequired: this.config.cppRequired,
       noCache: this.config.noCache,
       parseOnly: this.config.parseOnly,
+      target: this.config.target,
     });
   }
 
@@ -83,6 +84,7 @@ class Project {
         cppRequired: this.config.cppRequired,
         noCache: this.config.noCache,
         parseOnly: this.config.parseOnly,
+        target: this.config.target,
       });
 
       const source = readFileSync(file, "utf-8");

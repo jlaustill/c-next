@@ -40,6 +40,9 @@ interface IProjectConfig {
 
   /** Parse only mode - validate syntax without generating output */
   parseOnly?: boolean;
+
+  /** ADR-049: Target platform for atomic code generation (e.g., "teensy41", "cortex-m0") */
+  target?: string;
 }
 
 export default IProjectConfig;

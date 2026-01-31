@@ -227,6 +227,7 @@ async function runUnifiedMode(
   parseOnly: boolean,
   headerOutDir?: string,
   basePath?: string,
+  target?: string,
 ): Promise<void> {
   // Issue #337: Identify which inputs are directories (for structure preservation)
   // These will be passed to Project.srcDirs so Pipeline can preserve directory structure
@@ -314,6 +315,7 @@ async function runUnifiedMode(
     cppRequired,
     noCache,
     parseOnly,
+    target,
   });
 
   // Step 5: Compile
@@ -521,6 +523,7 @@ async function main(): Promise<void> {
   const includeDirs: string[] = [];
   const defines: Record<string, string | boolean> = {};
   let cliCppRequired: boolean | undefined;
+  let cliTarget: string | undefined;
   let preprocess = true;
   let verbose = false;
   let noCache = false;
@@ -554,6 +557,9 @@ async function main(): Promise<void> {
       i++;
     } else if (arg === "--base-path" && i + 1 < args.length) {
       basePath = args[i + 1];
+      i++;
+    } else if (arg === "--target" && i + 1 < args.length) {
+      cliTarget = args[i + 1];
       i++;
     } else if (arg === "--clean") {
       cleanMode = true;
@@ -598,6 +604,7 @@ async function main(): Promise<void> {
 
   // Apply config defaults, CLI flags take precedence
   const finalCppRequired = cliCppRequired ?? config.cppRequired ?? false;
+  const finalTarget = cliTarget ?? config.target;
   const finalNoCache = noCache || config.noCache === true;
   const finalOutputPath = outputPath || config.output || "";
   const finalHeaderOutDir = headerOutDir ?? config.headerOut;
@@ -612,7 +619,7 @@ async function main(): Promise<void> {
     console.log("  Config file:    " + (config._path ?? "(none)"));
     console.log("  cppRequired:    " + finalCppRequired);
     console.log("  debugMode:      " + (config.debugMode ?? false));
-    console.log("  target:         " + (config.target ?? "(none)"));
+    console.log("  target:         " + (finalTarget ?? "(none)"));
     console.log("  noCache:        " + finalNoCache);
     console.log("  preprocess:     " + preprocess);
     console.log(
@@ -665,6 +672,7 @@ async function main(): Promise<void> {
     parseOnly,
     finalHeaderOutDir,
     finalBasePath,
+    finalTarget,
   );
 }
 
