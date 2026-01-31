@@ -228,6 +228,31 @@ void testArrayParams(void) {
 }
 
 // ============================================================================
+// SECTION 15: CALLBACK INTEROP (Issue #409)
+// ============================================================================
+// Test passing C-Next callbacks to C++ registration functions
+// Define callback matching C++ Callback typedef: void(*)()
+void simpleCallback(void) {
+}
+
+// Define callback matching C++ IntCallback typedef: void(*)(int)
+void intCallback(int32_t value) {
+}
+
+// Define callback matching C++ ResultCallback typedef: void(*)(const Result&)
+void resultCallback(const Result& result) {
+}
+
+void testCallbackInterop(void) {
+    registerCallback(simpleCallback);
+    registerIntCallback(intCallback);
+    registerResultCallback(resultCallback);
+    Registry::registerHandler(1, simpleCallback);
+    Registry::registerHandler(2, simpleCallback);
+    int32_t count = Registry::getHandlerCount();
+}
+
+// ============================================================================
 // MAIN - Call all test sections
 // ============================================================================
 int main(void) {
@@ -245,4 +270,5 @@ int main(void) {
     testRefsAndPtrs();
     testStrictInit();
     testArrayParams();
+    testCallbackInterop();
 }

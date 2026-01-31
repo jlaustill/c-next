@@ -16,6 +16,7 @@ These tests exercise all C++ syntax patterns to ensure correct transpilation.
 | #296  | Forward declarations for named structs                         |
 | #256  | array[i].member access                                         |
 | #252  | enum/bool → u8 type conversions                                |
+| #409  | Callback interop - passing C-Next functions to C++ registrars  |
 
 ## Root Cause
 
@@ -77,3 +78,31 @@ C-Next syntax uses dots for all scope resolution:
 - `global.EMode.ON` → `EMode::ON`
 
 The CodeGenerator checks `symbol.sourceLanguage` to determine output syntax.
+
+## Callback Interop (Issue #409)
+
+C-Next callbacks can be passed to C++ callback registration functions. Section 15 of the comprehensive test exercises this pattern:
+
+```cnx
+// Define C-Next callback matching C++ void(*)() signature
+void simpleCallback() { }
+
+// C-Next callback with struct parameter - matches C++ void(*)(const Result&)
+void resultCallback(const Result result) { }
+
+// Pass to C++ registration functions
+global.registerCallback(simpleCallback);
+global.registerResultCallback(resultCallback);  // Works with const T& in C++ mode!
+```
+
+### C++ Mode Reference Semantics
+
+In C++ mode (`--cpp` flag or `.hpp` include detected), C-Next generates idiomatic C++ code:
+
+| C-Next          | C Mode Output    | C++ Mode Output  |
+| --------------- | ---------------- | ---------------- |
+| `const T param` | `const T* param` | `const T& param` |
+| `param.member`  | `param->member`  | `param.member`   |
+| `func(local)`   | `func(&local)`   | `func(local)`    |
+
+This allows C-Next callbacks to match standard C++ function pointer signatures like `void(*)(const T&)`.

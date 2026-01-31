@@ -304,6 +304,46 @@ void testArrayParams() {
 }
 
 // ============================================================================
+// SECTION 15: CALLBACK INTEROP (Issue #409)
+// ============================================================================
+// Test passing C-Next callbacks to C++ registration functions
+
+// Define callback matching C++ Callback typedef: void(*)()
+void simpleCallback() {
+    // no-op - just testing registration
+}
+
+// Define callback matching C++ IntCallback typedef: void(*)(int)
+void intCallback(i32 value) {
+    // no-op - just testing registration
+}
+
+// Define callback matching C++ ResultCallback typedef: void(*)(const Result&)
+void resultCallback(const Result result) {
+    // no-op - just testing registration
+}
+
+void testCallbackInterop() {
+    // Pass C-Next functions to C++ callback registration functions
+    // C++ expects: void(*)() - C-Next function should decay to function pointer
+    global.registerCallback(simpleCallback);
+
+    // C++ expects: void(*)(int) - matches our i32 callback
+    global.registerIntCallback(intCallback);
+
+    // Issue #409: C-Next now generates references (const T&) in C++ mode,
+    // so we can use the standard registerResultCallback that expects const Result&
+    global.registerResultCallback(resultCallback);
+
+    // Also test with Registry::registerHandler which takes void(*)()
+    global.Registry.registerHandler(1, simpleCallback);
+    global.Registry.registerHandler(2, simpleCallback);
+
+    // Verify registration worked
+    i32 count <- global.Registry.getHandlerCount();
+}
+
+// ============================================================================
 // MAIN - Call all test sections
 // ============================================================================
 
@@ -322,4 +362,5 @@ void main() {
     testRefsAndPtrs();
     testStrictInit();
     testArrayParams();
+    testCallbackInterop();
 }

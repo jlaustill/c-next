@@ -982,7 +982,12 @@ class Pipeline {
     const headerContent = this.headerGenerator.generate(
       exportedSymbols,
       headerName,
-      { exportedOnly: true, userIncludes, externalTypeHeaders },
+      {
+        exportedOnly: true,
+        userIncludes,
+        externalTypeHeaders,
+        cppMode: this.cppDetected,
+      },
       typeInputWithSymbolTable,
       passByValueParams,
       allKnownEnums,
@@ -1458,7 +1463,12 @@ class Pipeline {
           headerCode = this.headerGenerator.generate(
             exportedSymbols,
             headerName,
-            { exportedOnly: true, userIncludes, externalTypeHeaders },
+            {
+              exportedOnly: true,
+              userIncludes,
+              externalTypeHeaders,
+              cppMode: this.cppDetected,
+            },
             typeInputWithSymbolTable,
             passByValueCopy,
             symbolInfo.knownEnums,
