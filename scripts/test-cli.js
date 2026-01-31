@@ -13,9 +13,18 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  unlinkSync,
+  writeFileSync,
+  readFileSync,
+  mkdirSync,
+  rmSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -240,6 +249,421 @@ test("syntax error in file exits 1", () => {
   assert(result.exitCode === 1, "Exit code should be 1");
 
   cleanup([tempFile]);
+});
+
+// ============================================================================
+// PlatformIO Integration Tests (Issue #405)
+// ============================================================================
+
+/**
+ * Create a temporary PlatformIO project directory
+ * @param {string} pioIniContent - Content for platformio.ini
+ * @returns {string} Path to temp directory
+ */
+function createTempPioProject(pioIniContent) {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
+  writeFileSync(join(tempDir, "platformio.ini"), pioIniContent, "utf-8");
+  return tempDir;
+}
+
+/**
+ * Run CLI command in a specific directory
+ * @param {string} cwd - Working directory
+ * @param {string[]} args - CLI arguments
+ * @param {boolean} expectError - Whether to expect an error
+ */
+function runCliInDir(cwd, args = [], expectError = false) {
+  try {
+    const output = execFileSync("node", [cliPath, ...args], {
+      encoding: "utf-8",
+      cwd,
+      timeout: 10000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return { success: true, output, exitCode: 0 };
+  } catch (error) {
+    if (expectError) {
+      return {
+        success: false,
+        output: error.stdout || "",
+        stderr: error.stderr || "",
+        exitCode: error.status || 1,
+      };
+    }
+    throw error;
+  }
+}
+
+/**
+ * Assert file contains substring
+ */
+function assertFileContains(filePath, substring, message) {
+  assert(existsSync(filePath), `File should exist: ${filePath}`);
+  const content = readFileSync(filePath, "utf-8");
+  assert(
+    content.includes(substring),
+    message || `File ${filePath} should contain "${substring}"`,
+  );
+}
+
+/**
+ * Assert file does not exist
+ */
+function assertFileNotExists(filePath, message) {
+  assert(
+    !existsSync(filePath),
+    message || `File should not exist: ${filePath}`,
+  );
+}
+
+/**
+ * Clean up a temp directory
+ */
+function cleanupTempDir(dir) {
+  try {
+    rmSync(dir, { recursive: true, force: true });
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
+// Minimal platformio.ini for tests
+const minimalPioIni = `[env:teensy41]
+platform = teensy
+board = teensy41
+framework = arduino
+`;
+
+// Multi-environment platformio.ini
+const multiEnvPioIni = `[env:teensy41]
+platform = teensy
+board = teensy41
+framework = arduino
+
+[env:esp32]
+platform = espressif32
+board = esp32dev
+framework = arduino
+
+[env:uno]
+platform = atmelavr
+board = uno
+framework = arduino
+`;
+
+// platformio.ini with existing extra_scripts
+const pioIniWithExtraScripts = `[env:teensy41]
+platform = teensy
+board = teensy41
+framework = arduino
+extra_scripts = pre:custom_script.py
+`;
+
+// Simple atomic .cnx file for target tests
+const atomicCnx = `atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}
+`;
+
+// ----------------------------------------------------------------------------
+// Category 1: --pio-install tests
+// ----------------------------------------------------------------------------
+
+test("--pio-install creates cnext_build.py and modifies platformio.ini", () => {
+  const tempDir = createTempPioProject(minimalPioIni);
+  try {
+    const result = runCliInDir(tempDir, ["--pio-install"]);
+    assert(result.success, `Command should succeed: ${result.output}`);
+
+    // Verify cnext_build.py was created
+    assertFileContains(
+      join(tempDir, "cnext_build.py"),
+      "def transpile_cnext",
+      "cnext_build.py should contain transpile function",
+    );
+
+    // Verify platformio.ini was modified
+    assertFileContains(
+      join(tempDir, "platformio.ini"),
+      "extra_scripts",
+      "platformio.ini should have extra_scripts",
+    );
+    assertFileContains(
+      join(tempDir, "platformio.ini"),
+      "cnext_build.py",
+      "platformio.ini should reference cnext_build.py",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-install is idempotent (safe to run twice)", () => {
+  const tempDir = createTempPioProject(minimalPioIni);
+  try {
+    // First install
+    runCliInDir(tempDir, ["--pio-install"]);
+
+    // Second install should succeed without duplicating entries
+    const result = runCliInDir(tempDir, ["--pio-install"]);
+    assert(result.success, "Second install should succeed");
+    assert(
+      result.output.includes("already configured"),
+      "Should indicate already configured",
+    );
+
+    // Verify no duplicate entries
+    const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
+    const matches = pioIni.match(/cnext_build\.py/g) || [];
+    assert(
+      matches.length === 1,
+      "Should have exactly one cnext_build.py entry",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-install fails without platformio.ini", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
+  try {
+    const result = runCliInDir(tempDir, ["--pio-install"], true);
+    assert(!result.success, "Should fail without platformio.ini");
+    assert(result.exitCode === 1, "Exit code should be 1");
+    assert(
+      result.stderr.includes("platformio.ini not found") ||
+        result.output.includes("platformio.ini not found"),
+      "Should mention missing platformio.ini",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-install preserves existing extra_scripts", () => {
+  const tempDir = createTempPioProject(pioIniWithExtraScripts);
+  try {
+    runCliInDir(tempDir, ["--pio-install"]);
+
+    const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
+    assert(
+      pioIni.includes("custom_script.py"),
+      "Should preserve existing custom_script.py",
+    );
+    assert(pioIni.includes("cnext_build.py"), "Should add cnext_build.py");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// Category 2: --pio-uninstall tests
+// ----------------------------------------------------------------------------
+
+test("--pio-uninstall removes integration cleanly", () => {
+  const tempDir = createTempPioProject(minimalPioIni);
+  try {
+    // First install
+    runCliInDir(tempDir, ["--pio-install"]);
+    assert(
+      existsSync(join(tempDir, "cnext_build.py")),
+      "Script should exist after install",
+    );
+
+    // Then uninstall
+    const result = runCliInDir(tempDir, ["--pio-uninstall"]);
+    assert(result.success, `Uninstall should succeed: ${result.output}`);
+
+    // Verify cnext_build.py was removed
+    assertFileNotExists(
+      join(tempDir, "cnext_build.py"),
+      "cnext_build.py should be removed",
+    );
+
+    // Verify platformio.ini was cleaned
+    const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
+    assert(
+      !pioIni.includes("cnext_build.py"),
+      "platformio.ini should not reference cnext_build.py",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-uninstall is idempotent (safe on clean project)", () => {
+  const tempDir = createTempPioProject(minimalPioIni);
+  try {
+    // Uninstall on project that was never installed
+    const result = runCliInDir(tempDir, ["--pio-uninstall"]);
+    assert(result.success, "Uninstall should succeed on clean project");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-uninstall fails without platformio.ini", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
+  try {
+    const result = runCliInDir(tempDir, ["--pio-uninstall"], true);
+    assert(!result.success, "Should fail without platformio.ini");
+    assert(result.exitCode === 1, "Exit code should be 1");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-uninstall preserves other extra_scripts", () => {
+  const tempDir = createTempPioProject(pioIniWithExtraScripts);
+  try {
+    // Install then uninstall
+    runCliInDir(tempDir, ["--pio-install"]);
+    runCliInDir(tempDir, ["--pio-uninstall"]);
+
+    const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
+    assert(
+      pioIni.includes("custom_script.py"),
+      "Should preserve custom_script.py after uninstall",
+    );
+    assert(!pioIni.includes("cnext_build.py"), "Should remove cnext_build.py");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// Category 3: --target flag tests
+// ----------------------------------------------------------------------------
+
+test("--target teensy41 generates LDREX/STREX code", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
+  const cnxFile = join(tempDir, "test.cnx");
+  const cFile = join(tempDir, "test.c");
+
+  try {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    const result = runCliInDir(tempDir, ["--target", "teensy41", cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    assertFileContains(cFile, "__LDREXW", "Should use LDREX for teensy41");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--target cortex-m0 generates PRIMASK fallback code", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
+  const cnxFile = join(tempDir, "test.cnx");
+  const cFile = join(tempDir, "test.c");
+
+  try {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    const result = runCliInDir(tempDir, ["--target", "cortex-m0", cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    assertFileContains(
+      cFile,
+      "__get_PRIMASK",
+      "Should use PRIMASK for cortex-m0",
+    );
+    // Should NOT contain LDREX
+    const content = readFileSync(cFile, "utf-8");
+    assert(!content.includes("__LDREX"), "Should NOT use LDREX for cortex-m0");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--target avr generates PRIMASK fallback code", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
+  const cnxFile = join(tempDir, "test.cnx");
+  const cFile = join(tempDir, "test.c");
+
+  try {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    const result = runCliInDir(tempDir, ["--target", "avr", cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    // AVR should use PRIMASK fallback (no LDREX support)
+    assertFileContains(cFile, "__get_PRIMASK", "Should use PRIMASK for avr");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--target with unknown target still compiles (uses default)", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
+  const cnxFile = join(tempDir, "test.cnx");
+
+  try {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    // Unknown target should fall back to default (PRIMASK)
+    const result = runCliInDir(tempDir, ["--target", "unknown-board", cnxFile]);
+    assert(
+      result.success,
+      "Should compile with unknown target (using default)",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// Category 4: Config file target tests
+// ----------------------------------------------------------------------------
+
+test("cnext.config.json target is respected", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-config-test-"));
+  const cnxFile = join(tempDir, "test.cnx");
+  const cFile = join(tempDir, "test.c");
+  const configFile = join(tempDir, "cnext.config.json");
+
+  try {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    writeFileSync(
+      configFile,
+      JSON.stringify({ target: "cortex-m0" }, null, 2),
+      "utf-8",
+    );
+
+    const result = runCliInDir(tempDir, [cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    assertFileContains(cFile, "__get_PRIMASK", "Config target should be used");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("CLI --target overrides config file target", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-config-test-"));
+  const cnxFile = join(tempDir, "test.cnx");
+  const cFile = join(tempDir, "test.c");
+  const configFile = join(tempDir, "cnext.config.json");
+
+  try {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    // Config says cortex-m0 (PRIMASK)
+    writeFileSync(
+      configFile,
+      JSON.stringify({ target: "cortex-m0" }, null, 2),
+      "utf-8",
+    );
+
+    // CLI says teensy41 (LDREX) - should override
+    const result = runCliInDir(tempDir, ["--target", "teensy41", cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    assertFileContains(
+      cFile,
+      "__LDREXW",
+      "CLI --target should override config",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
 });
 
 // ============================================================================

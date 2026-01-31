@@ -114,6 +114,16 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
   3. Handle effect in `processEffects()` switch statement
   4. Generate output in `assembleOutput()` where other effects are emitted
 
+### Adding CLI Flags
+
+When adding a new CLI flag that affects code generation, update all layers:
+
+1. `src/index.ts` — Parse the argument and compute `final<Flag>` value
+2. `src/index.ts` — Pass to `runUnifiedMode()`
+3. `src/project/types/IProjectConfig.ts` — Add to interface
+4. `src/project/Project.ts` — Pass to `Pipeline` constructor (both locations)
+5. `src/pipeline/types/IPipelineConfig.ts` — Already has most fields, verify it exists
+
 ### Error Messages
 
 - Use simple `Error: message` format (not `Error[EXXX]`) — matches 111/114 existing errors.
@@ -138,6 +148,12 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - `npm run test:all` — Run both test suites
 - `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
 - Tests without `.expected.c` snapshots are **skipped** (not failed) — use `--update` to generate initial snapshot
+
+### Test Architecture
+
+- **`npm test`** — Tests transpilation via `Pipeline.transpileSource()` API (parallelized, fast)
+- **`npm run test:cli`** — Tests CLI behavior via subprocess in `scripts/test-cli.js` (flags, exit codes, file I/O)
+- CLI-specific features (PlatformIO detection, `--target` flag) need `test:cli` tests, not `npm test`
 
 ### Unit Test File Location
 
