@@ -157,6 +157,7 @@ int Registry::getHandlerCount() { return handlerCount; }
 void registerCallback(Callback) {}
 void registerIntCallback(IntCallback) {}
 void registerResultCallback(ResultCallback) {}
+void registerResultPtrCallback(ResultPtrCallback) {}
 
 // ============================================================================
 // SECTION 14: OPERATOR OVERLOADING

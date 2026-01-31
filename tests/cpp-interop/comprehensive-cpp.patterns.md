@@ -182,6 +182,36 @@ Registry::callHandler(1);
 int32_t count = Registry::getHandlerCount();
 
 // =============================================================================
+// SECTION 15: CALLBACK INTEROP (Issue #409)
+// =============================================================================
+// C-Next: void simpleCallback() { }
+// Expected C++:
+void simpleCallback(void) { }
+
+// C-Next: global.registerCallback(simpleCallback)
+// Expected C++ (function name decays to function pointer):
+registerCallback(simpleCallback);
+
+// C-Next: void intCallback(i32 value) { }
+// Expected C++:
+void intCallback(int32_t value) { }
+
+// C-Next: global.registerIntCallback(intCallback)
+// Expected C++:
+registerIntCallback(intCallback);
+
+// NOTE: C-Next 'const T' struct params become 'const T\*' (pointer),
+// NOT 'const T&' (reference). Use pointer-based callbacks for struct params.
+
+// C-Next: void resultCallback(const Result result) { }
+// Expected C++ (pointer, NOT reference):
+void resultCallback(const Result\* result) { }
+
+// C-Next: global.registerResultPtrCallback(resultCallback)
+// Expected C++ (requires pointer-based callback typedef):
+registerResultPtrCallback(resultCallback);
+
+// =============================================================================
 // VALIDATION PATTERNS (grep/regex)
 // =============================================================================
 // These patterns can be used to validate correct output:
