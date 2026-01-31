@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.48] - 2026-01-31
+
+### Added
+
+- C++ reference semantics for struct parameters - params become `const T&` with `.` access (Issue #409, PR #555)
+- `--target` CLI flag for PlatformIO project integration (Issue #405, PR #554)
+- Comprehensive test coverage: forward declarations, headers, warnings, external types, const params, pass-by-value, 2D arrays (Issues #403-412)
+- Practical examples directory (`tests/examples/`)
+- CppSymbolCollector unit tests (Issue #418, PR #553)
+
+### Fixed
+
+- C++ mode struct param access uses centralized helpers for consistent `->` vs `.` handling (PR #556)
+- External types use pass-by-value semantics (Issue #402, PR #552)
+- 2D array parameters generate proper array access (PR #547)
+- SonarCloud fixes: optional chaining (S6582), node: prefix (S7772), Number methods (S7773), readonly properties (S2933)
+
+### Changed
+
+- Extract CNextSourceParser from Pipeline.ts (Issue #509, PR #530)
+- Consolidate parser setup into CNextSourceParser (Issue #513, PR #531)
+- Extract shared context from C/C++ symbol collectors (Issue #512, PR #532)
+- Extract shared patterns in AccessPatternHandlers and StringHandlers (Issues #514-515)
+- Extract enum/bitmap type registration helpers (Issue #510, PR #535)
+- Extract IBaseAnalysisError interface for shared error fields (Issue #399, PR #536)
+- Add composition helpers to SymbolCollectorContext (Issue #396, PR #537)
+- Consolidate multiple array push() calls for performance (SonarCloud S7778)
+
 ## [0.1.47] - 2026-01-28
 
 ### Fixed
