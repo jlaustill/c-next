@@ -1,0 +1,29 @@
+// Minimal reproducer for reference body syntax mismatch
+// When a function takes a struct by reference, the body still uses pointer syntax
+
+struct Config {
+    i32 magic;
+    i32 version;
+}
+
+scope Storage {
+    // This function reads - body should use config.member
+    public bool validate(const Config config) {
+        if (config.magic != 123) {
+            return false;
+        }
+        return true;
+    }
+
+    // This function writes - body should use config.member, not config->member
+    public void loadDefaults(Config config) {
+        config.magic <- 123;
+        config.version <- 1;
+    }
+
+    // This function copies - body should use config, not (*config)
+    public Config copy(const Config config) {
+        Config result <- config;
+        return result;
+    }
+}
