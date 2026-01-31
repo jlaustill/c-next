@@ -108,6 +108,7 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
+- **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access at ~7207 and ~8190 for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
   1. Add to `TIncludeHeader` union in `src/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
