@@ -1,5 +1,9 @@
 # C-Next Project Instructions
 
+## Git Worktrees
+
+**NEVER use git worktrees. ZERO EXCEPTIONS.** This repo is always unique per session and won't be touched by anyone else. Work directly on the main repo.
+
 ## Starting a Task
 
 **Always ask the user what they want to work on.** Do not assume based on the roadmap or queue.
