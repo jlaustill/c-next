@@ -1,0 +1,3 @@
+struct Config {
+    i32 value;
+}
