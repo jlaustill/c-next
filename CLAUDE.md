@@ -50,7 +50,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 **Default exports only** - The project uses oxlint's `no-named-export` rule.
 
-**No re-exports for public APIs** - Don't create barrel files that re-export types (causes unused import errors). Consumers should import directly from source files.
+**No re-exports/barrel files** - Don't create `index.ts` files that re-export (violates `no-named-export` rule). Import directly from source files.
 
 **Static classes for utilities** - Use static classes (not object literals) for modules with multiple related functions:
 
@@ -79,20 +79,31 @@ normalize(actualErrors) === normalize(expectedErrors);
 **Shared types in `/types` directories** - One interface per file with default export:
 
 ```
-src/pipeline/types/IFileResult.ts
+src/transpiler/types/IFileResult.ts
 scripts/types/ITools.ts
 ```
 
 See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
-### Shared Code Organization
+### 3-Layer Architecture (PR #571, #572)
 
-- `src/utils/` — Utility functions (ParserUtils, LiteralUtils, ExpressionUtils)
-- `src/constants/` — Static data definitions (TypeConstants)
+The codebase is organized into three layers under `src/transpiler/`:
+
+- `src/transpiler/data/` — Discovery layer (FileDiscovery, IncludeResolver, DependencyGraph)
+- `src/transpiler/logic/` — Business logic (parser/, symbols/, analysis/, preprocessor/)
+- `src/transpiler/output/` — Generation (codegen/, headers/)
+- `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
+- `src/utils/` — Shared utilities (constants/, cache/, types/)
+
+### ANTLR Parser Generation
+
+- ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/CNext.g4` → `src/transpiler/logic/parser/grammar/`
+- Grammar directories excluded from prettier/oxlint via ignore patterns
+- `npm run antlr` — C-Next grammar, `npm run antlr:all` — All grammars (C-Next, C, C++)
 
 ### Symbol Resolution Architecture (ADR-055)
 
-**Use the composable collectors** in `src/symbol_resolution/cnext/`:
+**Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
 
 - `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
 - `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
@@ -100,8 +111,8 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **Do NOT use** the deleted legacy collectors:
 
-- ~~`SymbolCollector`~~ (was in codegen/)
-- ~~`CNextSymbolCollector`~~ (was in symbol_resolution/)
+- ~~`SymbolCollector`~~ (was in transpiler/output/codegen/)
+- ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
@@ -128,7 +139,7 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access at ~7207 and ~8190 for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
-  1. Add to `TIncludeHeader` union in `src/codegen/generators/TIncludeHeader.ts`
+  1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
   3. Handle effect in `processEffects()` switch statement
   4. Generate output in `assembleOutput()` where other effects are emitted
@@ -138,10 +149,8 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 When adding a new CLI flag that affects code generation, update all layers:
 
 1. `src/index.ts` — Parse the argument and compute `final<Flag>` value
-2. `src/index.ts` — Pass to `runUnifiedMode()`
-3. `src/project/types/IProjectConfig.ts` — Add to interface
-4. `src/project/Project.ts` — Pass to `Pipeline` constructor (both locations)
-5. `src/pipeline/types/IPipelineConfig.ts` — Already has most fields, verify it exists
+2. `src/index.ts` — Pass to `Transpiler` constructor
+3. `src/transpiler/types/ITranspilerConfig.ts` — Add to interface
 
 ### Error Messages
 
@@ -170,7 +179,7 @@ When adding a new CLI flag that affects code generation, update all layers:
 
 ### Test Architecture
 
-- **`npm test`** — Tests transpilation via `Pipeline.transpileSource()` API (parallelized, fast)
+- **`npm test`** — Tests transpilation via `Transpiler.transpileSource()` API (parallelized, fast)
 - **`npm run test:cli`** — Tests CLI behavior via subprocess in `scripts/test-cli.js` (flags, exit codes, file I/O)
 - CLI-specific features (PlatformIO detection, `--target` flag) need `test:cli` tests, not `npm test`
 
@@ -178,13 +187,13 @@ When adding a new CLI flag that affects code generation, update all layers:
 
 Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
-- `src/pipeline/CacheManager.ts` → `src/pipeline/__tests__/CacheManager.test.ts`
-- `src/pipeline/cache/CacheKeyGenerator.ts` → `src/pipeline/cache/__tests__/CacheKeyGenerator.test.ts`
+- `src/utils/cache/CacheManager.ts` → `src/utils/cache/__tests__/CacheManager.test.ts`
+- `src/utils/cache/CacheKeyGenerator.ts` → `src/utils/cache/__tests__/CacheKeyGenerator.test.ts`
 
 ### Unit Test Parser Imports
 
-- **Parser type namespace**: Use `import * as Parser from "../../antlr_parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
-- **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Pipeline()` when you just need the AST - Pipeline requires inputs configuration
+- **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
+- **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
 
 ### Cross-File Testing
 
@@ -297,7 +306,7 @@ u32 main() {
 
 ### Test Framework Internals
 
-- **Fresh Pipeline per helper**: When transpiling helper .cnx files in tests, use a fresh `new Pipeline()` instance for each to avoid symbol pollution from accumulated symbols
+- **Fresh Transpiler per helper**: When transpiling helper .cnx files in tests, use a fresh `new Transpiler()` instance for each to avoid symbol pollution from accumulated symbols
 - **Helper header validation**: Helper .cnx files can have `.expected.h` files for header validation (same pattern as `.expected.c`)
 - **Prevent helper cleanup**: Create `.expected.h` for helper `.cnx` files to prevent test framework from deleting generated `.h` files needed by other tests
 - **Auto-generating helper snapshots**: `npm test -- <path> --update` creates `.expected.h` for helper `.cnx` files; helper `.h` files must also be committed for CI
@@ -319,9 +328,9 @@ For compile-time error tests in `tests/analysis/`:
 
 **Test `.expected.h` files**: The test framework validates `.expected.h` files when present. Create one alongside `.expected.c` for header generation tests.
 
-### Pipeline Code Paths
+### Transpiler Code Paths
 
-The Pipeline has two distinct entry points that must stay synchronized:
+The Transpiler has two distinct entry points that must stay synchronized:
 
 - **`run()`** — CLI entry point, processes files with full symbol resolution across includes
 - **`transpileSource()`** — Test framework entry point, single-file transpilation
@@ -329,7 +338,7 @@ The Pipeline has two distinct entry points that must stay synchronized:
 When adding features involving cross-file symbols (enums, structs, types):
 
 1. Test with `npm test` (uses `transpileSource()`) — may pass with incomplete implementation
-2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full pipeline
+2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full transpiler
 3. Ensure both paths receive the same symbol information (e.g., `allKnownEnums`)
 
 **Cross-file modification tracking**: Both paths now accumulate modifications via `accumulatedModifications` (Issue #561). If CLI works but tests don't (or vice versa), check if the feature relies on cross-file state that only one path handles.
