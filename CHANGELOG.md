@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.49] - 2026-01-31
+
+### Fixed
+
+- C++ mode: primitive references no longer wrapped in dereference `(*val)` → `val` (Issue #558, PR #559)
+- C++ mode: cross-file const inference now correctly tracks parameters passed to modifying functions in other files (Issue #558, PR #559)
+
+### Changed
+
+- Unified parameter modification tracking into single analysis-phase system, removing duplicate generation-phase tracking (Issue #558)
+
 ## [0.1.48] - 2026-01-31
 
 ### Added
@@ -563,7 +574,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.47...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.49...HEAD
+[0.1.49]: https://github.com/jlaustill/c-next/compare/v0.1.48...v0.1.49
+[0.1.48]: https://github.com/jlaustill/c-next/compare/v0.1.47...v0.1.48
 [0.1.47]: https://github.com/jlaustill/c-next/compare/v0.1.46...v0.1.47
 [0.1.46]: https://github.com/jlaustill/c-next/compare/v0.1.45...v0.1.46
 [0.1.45]: https://github.com/jlaustill/c-next/compare/v0.1.44...v0.1.45
