@@ -204,14 +204,8 @@ describe("ArgParser", () => {
       });
     });
 
-    describe("help and version (handled by yargs)", () => {
-      it("showHelp and showVersion are always false (yargs handles them)", () => {
-        const result = ArgParser.parse(argv("input.cnx"));
-
-        expect(result.showHelp).toBe(false);
-        expect(result.showVersion).toBe(false);
-      });
-    });
+    // Note: --help and --version are handled directly by yargs with process.exit()
+    // so they don't appear in the parsed result
 
     describe("complex argument combinations", () => {
       it("parses all options together", () => {

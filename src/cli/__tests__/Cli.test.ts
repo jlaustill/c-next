@@ -47,8 +47,6 @@ describe("Cli", () => {
       parseOnly: false,
       cleanMode: false,
       showConfig: false,
-      showHelp: false,
-      showVersion: false,
       pioInstall: false,
       pioUninstall: false,
       debugMode: false,
@@ -294,8 +292,6 @@ describe("Cli", () => {
         debugMode: true,
         cleanMode: false,
         showConfig: false,
-        showHelp: false,
-        showVersion: false,
         pioInstall: false,
         pioUninstall: false,
       };

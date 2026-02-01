@@ -250,8 +250,6 @@ class ArgParser {
       basePath: parsed["base-path"],
       cleanMode: parsed.clean,
       showConfig: parsed.config,
-      showHelp: false, // Handled by yargs
-      showVersion: false, // Handled by yargs
       pioInstall: parsed["pio-install"],
       pioUninstall: parsed["pio-uninstall"],
       debugMode: parsed.debug,

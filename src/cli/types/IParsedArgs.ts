@@ -30,10 +30,6 @@ interface IParsedArgs {
   cleanMode: boolean;
   /** --config flag */
   showConfig: boolean;
-  /** --help or -h flag */
-  showHelp: boolean;
-  /** --version or -v flag */
-  showVersion: boolean;
   /** --pio-install flag */
   pioInstall: boolean;
   /** --pio-uninstall flag */

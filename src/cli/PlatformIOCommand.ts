@@ -145,9 +145,10 @@ env.AddPreAction("buildprog", transpile_cnext)
       // Handle both standalone and appended cases
       pioIni = pioIni
         // Remove standalone "extra_scripts = pre:cnext_build.py" line (with newline)
-        .replace(/^extra_scripts\s*=\s*pre:cnext_build\.py\s*\n/m, "")
+        .replace(/^extra_scripts[ \t]*=[ \t]*pre:cnext_build\.py[ \t]*\n/m, "")
         // Remove from multi-line extra_scripts (e.g., "    pre:cnext_build.py")
-        .replaceAll(/\s+pre:cnext_build\.py/g, "")
+        // Use explicit whitespace chars to avoid backtracking with \s+
+        .replaceAll(/[\n\t ]+pre:cnext_build\.py/g, "")
         // Clean up multiple consecutive blank lines
         .replaceAll(/\n\n\n+/g, "\n\n");
 
