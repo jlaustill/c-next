@@ -63,6 +63,8 @@ class TestUtils {
 export default TestUtils;
 ```
 
+**Readonly Map restoration** - Can't reassign `readonly` Map properties. Use `map.clear()` then `for (const [k, v] of saved) map.set(k, v)` to restore state.
+
 **No destructuring** - Always use the class name prefix for self-documenting code:
 
 ```typescript
@@ -116,6 +118,10 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
   - `forInit.forAssignment().expression()` and `forInit.forVarDecl().expression()` - for-loop init
   - `forUpdate.expression()` - for-loop update
   - See issue #566 for refactoring opportunity
+
+### Parser Keyword Tokens
+
+- **Keyword tokens vs IDENTIFIER**: Keywords like `this`, `global` are separate tokens, not IDENTIFIERs. Use `ctx.THIS()` not `ctx.IDENTIFIER()?.getText() === "this"` - the latter returns undefined.
 
 ### Code Generation Patterns
 
@@ -322,6 +328,8 @@ When adding features involving cross-file symbols (enums, structs, types):
 1. Test with `npm test` (uses `transpileSource()`) — may pass with incomplete implementation
 2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full pipeline
 3. Ensure both paths receive the same symbol information (e.g., `allKnownEnums`)
+
+**Cross-file modification tracking**: Both paths now accumulate modifications via `accumulatedModifications` (Issue #561). If CLI works but tests don't (or vice versa), check if the feature relies on cross-file state that only one path handles.
 
 ## Task Completion Requirements
 
