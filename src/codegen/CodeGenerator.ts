@@ -189,7 +189,7 @@ interface GeneratorContext {
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
   currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
-  modifiedParameters: Set<string>; // Issue #268: track modified params for auto-const inference
+  // Issue #558: modifiedParameters removed - now uses analysis-phase results from this.modifiedParameters
   localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
   localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
   floatBitShadows: Set<string>; // Track declared shadow variables for float bit indexing
@@ -221,7 +221,7 @@ export default class CodeGenerator implements IOrchestrator {
     indentLevel: 0,
     scopeMembers: new Map(), // ADR-016: renamed from namespaceMembers
     currentParameters: new Map(),
-    modifiedParameters: new Set(),
+    // Issue #558: modifiedParameters removed - now uses analysis-phase results
     localArrays: new Set(),
     localVariables: new Set(), // ADR-016: track local variables
     floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
@@ -326,6 +326,17 @@ export default class CodeGenerator implements IOrchestrator {
    * Map of functionName -> Set of modified parameter names
    */
   private readonly modifiedParameters: Map<string, Set<string>> = new Map();
+
+  /**
+   * Issue #558: Pending cross-file modifications to inject after analyzePassByValue clears.
+   * Set by Pipeline before generate() to share modifications from previously processed files.
+   */
+  private pendingCrossFileModifications: Map<string, Set<string>> | null = null;
+
+  /**
+   * Issue #558: Pending cross-file parameter lists to inject for transitive propagation.
+   */
+  private pendingCrossFileParamLists: Map<string, string[]> | null = null;
 
   /**
    * Issue #269: Tracks which parameters should pass by value
@@ -1061,7 +1072,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.localVariables.clear();
     this.context.floatBitShadows.clear();
     this.context.floatShadowCurrent.clear();
-    this.context.modifiedParameters.clear(); // Issue #268: Clear for new function
+    // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
     this.context.inFunctionBody = true;
   }
 
@@ -1106,13 +1117,14 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #268: Update symbol parameters with auto-const info.
-   * Call after generating function body to track unmodified parameters.
+   * Issue #558: Now uses analysis-phase results for modification tracking.
    */
   updateFunctionParamsAutoConst(functionName: string): void {
-    // Collect unmodified parameters for this function
+    // Collect unmodified parameters for this function using analysis results
     const unmodifiedParams = new Set<string>();
+    const modifiedSet = this.modifiedParameters.get(functionName);
     for (const [paramName] of this.context.currentParameters) {
-      if (!this.context.modifiedParameters.has(paramName)) {
+      if (!modifiedSet?.has(paramName)) {
         unmodifiedParams.add(paramName);
       }
     }
@@ -1121,11 +1133,49 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #268: Mark a parameter as modified for auto-const tracking.
+   * Issue #558: Now a no-op - analysis phase handles all modification tracking
+   * including transitive propagation across function calls and files.
    */
-  markParameterModified(paramName: string): void {
-    if (this.context.currentParameters.has(paramName)) {
-      this.context.modifiedParameters.add(paramName);
-    }
+  markParameterModified(_paramName: string): void {
+    // No-op: Analysis phase (analyzePassByValue) now handles all modification
+    // tracking including cross-file and transitive propagation.
+  }
+
+  /**
+   * Issue #558: Check if a parameter is modified using analysis-phase results.
+   * This is the unified source of truth for modification tracking.
+   */
+  private _isCurrentParameterModified(paramName: string): boolean {
+    const funcName = this.context.currentFunctionName;
+    if (!funcName) return false;
+    return this.modifiedParameters.get(funcName)?.has(paramName) ?? false;
+  }
+
+  /**
+   * Issue #558: Get the modified parameters map for cross-file propagation.
+   * Returns function name -> set of modified parameter names.
+   */
+  getModifiedParameters(): ReadonlyMap<string, Set<string>> {
+    return this.modifiedParameters;
+  }
+
+  /**
+   * Issue #558: Set cross-file modification data to inject during analyzePassByValue.
+   * Called by Pipeline before generate() to share modifications from previously processed files.
+   */
+  setCrossFileModifications(
+    modifications: Map<string, Set<string>>,
+    paramLists: Map<string, string[]>,
+  ): void {
+    this.pendingCrossFileModifications = modifications;
+    this.pendingCrossFileParamLists = paramLists;
+  }
+
+  /**
+   * Issue #558: Get the function parameter lists for cross-file propagation.
+   */
+  getFunctionParamLists(): ReadonlyMap<string, string[]> {
+    return this.functionParamLists;
   }
 
   /**
@@ -1539,7 +1589,7 @@ export default class CodeGenerator implements IOrchestrator {
       indentLevel: 0,
       scopeMembers: new Map(), // ADR-016
       currentParameters: new Map(),
-      modifiedParameters: new Set(),
+      // Issue #558: modifiedParameters removed - uses analysis-phase results
       localArrays: new Set(),
       localVariables: new Set(), // ADR-016
       floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
@@ -2025,6 +2075,29 @@ export default class CodeGenerator implements IOrchestrator {
     // Phase 1: Collect function parameter lists and direct modifications
     this.collectFunctionParametersAndModifications(tree);
 
+    // Issue #558: Inject cross-file data before transitive propagation
+    if (this.pendingCrossFileModifications) {
+      for (const [funcName, params] of this.pendingCrossFileModifications) {
+        const existing = this.modifiedParameters.get(funcName);
+        if (existing) {
+          for (const param of params) {
+            existing.add(param);
+          }
+        } else {
+          this.modifiedParameters.set(funcName, new Set(params));
+        }
+      }
+      this.pendingCrossFileModifications = null; // Clear after use
+    }
+    if (this.pendingCrossFileParamLists) {
+      for (const [funcName, params] of this.pendingCrossFileParamLists) {
+        if (!this.functionParamLists.has(funcName)) {
+          this.functionParamLists.set(funcName, params);
+        }
+      }
+      this.pendingCrossFileParamLists = null; // Clear after use
+    }
+
     // Phase 2: Fixed-point iteration for transitive modifications
     this.propagateTransitiveModifications();
 
@@ -2120,17 +2193,31 @@ export default class CodeGenerator implements IOrchestrator {
     // Check for assignment statements
     if (stmt.assignmentStatement()) {
       const assign = stmt.assignmentStatement()!;
-      // Get the target - use assignmentTarget() which has IDENTIFIER()
       const target = assign.assignmentTarget();
+
+      // Issue #558: Extract base identifier from assignment target
+      // - Simple identifier: x <- value
+      // - Member access: x.field <- value (first IDENTIFIER is the base)
+      // - Array access: x[i] <- value
+      let baseIdentifier: string | null = null;
+
       if (target?.IDENTIFIER()) {
-        // Simple identifier assignment (not array/member access)
-        if (!target.arrayAccess() && !target.memberAccess()) {
-          const targetName = target.IDENTIFIER()!.getText();
-          if (paramSet.has(targetName)) {
-            // Direct assignment to parameter
-            this.modifiedParameters.get(funcName)!.add(targetName);
-          }
+        // Simple identifier assignment
+        baseIdentifier = target.IDENTIFIER()!.getText();
+      } else if (target?.memberAccess()) {
+        // Member access: first IDENTIFIER is the base (e.g., cfg.value -> cfg)
+        const identifiers = target.memberAccess()!.IDENTIFIER();
+        if (identifiers.length > 0) {
+          baseIdentifier = identifiers[0].getText();
         }
+      } else if (target?.arrayAccess()) {
+        // Array access: IDENTIFIER is the base (e.g., arr[0] -> arr)
+        baseIdentifier = target.arrayAccess()!.IDENTIFIER()?.getText() ?? null;
+      }
+
+      if (baseIdentifier && paramSet.has(baseIdentifier)) {
+        // Direct or member/array assignment modifies the parameter
+        this.modifiedParameters.get(funcName)!.add(baseIdentifier);
       }
     }
 
@@ -5358,8 +5445,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
 
-    // Issue #268: Clear modified parameters tracking for this function
-    this.context.modifiedParameters.clear();
+    // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
 
     // ADR-016: Clear local variables and mark that we're in a function body
     this.context.localVariables.clear();
@@ -5525,8 +5611,8 @@ export default class CodeGenerator implements IOrchestrator {
     // Arrays pass naturally as pointers
     if (dims.length > 0) {
       const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
-      // Issue #268: Add const for unmodified array parameters
-      const wasModified = this.context.modifiedParameters.has(name);
+      // Issue #268/#558: Add const for unmodified array parameters (uses analysis results)
+      const wasModified = this._isCurrentParameterModified(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
       return `${autoConst}${constMod}${type} ${name}${dimStr}`;
     }
@@ -5557,8 +5643,8 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-045: String parameters (non-array) are passed as char*
     // Issue #551: Handle before unknown type check
     if (ctx.type().stringType() && dims.length === 0) {
-      // Issue #268: Add const for unmodified string parameters
-      const wasModified = this.context.modifiedParameters.has(name);
+      // Issue #268/#558: Add const for unmodified string parameters (uses analysis results)
+      const wasModified = this._isCurrentParameterModified(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
       return `${autoConst}${constMod}char* ${name}`;
     }
@@ -5566,8 +5652,8 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-006: Pass by reference for known struct types and known primitives
     // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
     if (this._isKnownStruct(typeName) || this._isKnownPrimitive(typeName)) {
-      // Issue #268: Add const for unmodified pointer parameters
-      const wasModified = this.context.modifiedParameters.has(name);
+      // Issue #268/#558: Add const for unmodified pointer parameters (uses analysis results)
+      const wasModified = this._isCurrentParameterModified(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
       // Issue #409: In C++ mode, use references (&) instead of pointers (*)
       // This allows C-Next callbacks to match C++ function pointer signatures
@@ -6833,10 +6919,7 @@ export default class CodeGenerator implements IOrchestrator {
         throw new Error(constError);
       }
 
-      // Issue #268: Track parameter modification for auto-const inference
-      if (this.context.currentParameters.has(id)) {
-        this.context.modifiedParameters.add(id);
-      }
+      // Issue #558: Parameter modification tracking removed - uses analysis-phase results
 
       // Invalidate float shadow when variable is assigned directly
       const shadowName = `__bits_${id}`;
@@ -6962,10 +7045,7 @@ export default class CodeGenerator implements IOrchestrator {
         );
       }
 
-      // Issue #268: Track parameter modification for auto-const inference (array element)
-      if (this.context.currentParameters.has(arrayName)) {
-        this.context.modifiedParameters.add(arrayName);
-      }
+      // Issue #558: Parameter modification tracking removed - uses analysis-phase results
     }
 
     // Check member access on const struct - validate the root is not const
@@ -6978,10 +7058,7 @@ export default class CodeGenerator implements IOrchestrator {
           throw new Error(`${constError} (member access)`);
         }
 
-        // Issue #268: Track parameter modification for auto-const inference (member access)
-        if (this.context.currentParameters.has(rootName)) {
-          this.context.modifiedParameters.add(rootName);
-        }
+        // Issue #558: Parameter modification tracking removed - uses analysis-phase results
 
         // ADR-013: Check for read-only register members (ro = implicitly const)
         if (identifiers.length >= 2) {

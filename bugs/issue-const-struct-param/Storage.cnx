@@ -1,0 +1,7 @@
+#include "Config.cnx"
+
+scope Storage {
+    public void loadDefaults(Config cfg) {
+        cfg.value <- 42;
+    }
+}

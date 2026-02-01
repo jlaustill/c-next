@@ -1,0 +1,4 @@
+// Shared config struct
+struct Config {
+    u32 value;
+}

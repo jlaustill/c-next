@@ -63,6 +63,13 @@ class Project {
    * Compile the project
    */
   async compile(): Promise<IProjectResult> {
+    // Issue #558: For C++ mode, use Pipeline.run() to enable cross-file const inference.
+    // This is needed because struct parameters passed to modifying functions in other
+    // files must not be marked const.
+    if (this.config.cppRequired) {
+      return this.compileWithPipeline();
+    }
+
     // Compile each input file individually to avoid cross‑file symbol leakage.
     const results: any[] = [];
     // Build the full list of .cnx/.cnext files from srcDirs and explicit files
@@ -174,6 +181,30 @@ class Project {
     }
 
     return aggregate;
+  }
+
+  /**
+   * Issue #558: Compile using Pipeline.run() for cross-file const inference in C++ mode.
+   */
+  private async compileWithPipeline(): Promise<IProjectResult> {
+    const pipelineResult = await this.pipeline.run();
+
+    // Convert Pipeline result to Project result format
+    return {
+      success: pipelineResult.success,
+      filesProcessed: pipelineResult.filesProcessed,
+      symbolsCollected: pipelineResult.symbolsCollected,
+      conflicts: pipelineResult.conflicts,
+      errors: pipelineResult.errors.map((e) => {
+        if (typeof e === "string") return e;
+        const path = (e as any).sourcePath ?? "";
+        return path
+          ? `${path}:${e.line}:${e.column} ${e.message}`
+          : `${e.line}:${e.column} ${e.message}`;
+      }),
+      warnings: pipelineResult.warnings,
+      outputFiles: pipelineResult.outputFiles,
+    };
   }
   /**
    * Get the symbol table (for testing/inspection)

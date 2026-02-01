@@ -1,0 +1,16 @@
+// Bug: Implicit reference conversion uses pointer dereference syntax
+// When a by-value parameter is reassigned, transpiler converts to reference
+// but generates (*param) instead of just (param)
+
+scope Test {
+    u32 helper(u32 x) {
+        return x + 1;
+    }
+
+    // This function reassigns 'val', causing implicit reference conversion
+    public u32 process(u32 val) {
+        val <- this.helper(val);  // Generates: (*val) = Test_helper((*val))
+        val <- this.helper(val);  // Should be: val = Test_helper(val)
+        return val;
+    }
+}

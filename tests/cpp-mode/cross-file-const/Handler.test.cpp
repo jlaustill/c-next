@@ -17,7 +17,7 @@
 
 /* Scope: Handler */
 
-uint8_t Handler_reset(const Config& cfg) {
+uint8_t Handler_reset(Config& cfg) {
     Storage_loadDefaults(cfg);
     return 0;
 }
