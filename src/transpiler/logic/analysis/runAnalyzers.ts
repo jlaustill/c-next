@@ -14,7 +14,7 @@ import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
 import NullCheckAnalyzer from "./NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
-import CommentExtractor from "../../output/codegen/CommentExtractor";
+import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
 

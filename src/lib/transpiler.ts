@@ -14,7 +14,7 @@ import { CNextLexer } from "../transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../transpiler/logic/parser/grammar/CNextParser";
 import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
 import CodeGenerator from "../transpiler/output/codegen/CodeGenerator";
-import CommentExtractor from "../transpiler/output/codegen/CommentExtractor";
+import CommentExtractor from "../transpiler/logic/analysis/CommentExtractor";
 import InitializationAnalyzer from "../transpiler/logic/analysis/InitializationAnalyzer";
 import CNextResolver from "../transpiler/logic/symbols/cnext";
 import TSymbolInfoAdapter from "../transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter";

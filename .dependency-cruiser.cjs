@@ -38,17 +38,7 @@ module.exports = {
         "If you need shared types, move them to transpiler/types/.",
       severity: "error",
       from: { path: "^src/transpiler/logic/" },
-      to: {
-        path: "^src/transpiler/output/",
-        pathNot: [
-          // =================================================================
-          // KNOWN VIOLATION - TODO: Fix by moving to logic/analysis/
-          // =================================================================
-          // Issue: runAnalyzers needs CommentExtractor
-          // Fix: Move CommentExtractor.ts to logic/analysis/ (it's parse-tree analysis)
-          "^src/transpiler/output/codegen/CommentExtractor\\.ts$",
-        ],
-      },
+      to: { path: "^src/transpiler/output/" },
     },
 
     // ==========================================================================

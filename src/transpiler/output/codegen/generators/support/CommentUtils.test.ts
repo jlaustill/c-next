@@ -4,10 +4,10 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import commentUtils from "./CommentUtils";
-import CommentExtractor from "../../CommentExtractor";
+import CommentExtractor from "../../../../logic/analysis/CommentExtractor";
 import CommentFormatter from "../../CommentFormatter";
-import ECommentType from "../../types/ECommentType";
-import IComment from "../../types/IComment";
+import ECommentType from "../../../../types/ECommentType";
+import IComment from "../../../../types/IComment";
 
 const {
   getLeadingComments,

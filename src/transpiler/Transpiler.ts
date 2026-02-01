@@ -1472,7 +1472,9 @@ class Transpiler {
         }
 
         const symbols = symbolTable.getSymbolsByFile(sourcePath);
-        const exportedSymbols = symbols.filter((s: { isExported?: boolean }) => s.isExported);
+        const exportedSymbols = symbols.filter(
+          (s: { isExported?: boolean }) => s.isExported,
+        );
 
         if (exportedSymbols.length > 0) {
           const headerName = basename(sourcePath).replace(
