@@ -3,23 +3,7 @@
  * Prints transpiler compilation results
  */
 
-/**
- * Transpiler result structure
- */
-interface ITranspilerResult {
-  success: boolean;
-  filesProcessed: number;
-  symbolsCollected: number;
-  conflicts: string[];
-  errors: Array<{
-    line: number;
-    column: number;
-    message: string;
-    sourcePath?: string;
-  }>;
-  warnings: string[];
-  outputFiles: string[];
-}
+import ITranspilerResult from "../transpiler/types/ITranspilerResult";
 
 /**
  * Print transpiler compilation results

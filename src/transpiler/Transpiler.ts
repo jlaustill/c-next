@@ -16,11 +16,7 @@ import {
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname, resolve } from "node:path";
 
-import { CNextLexer } from "./logic/parser/grammar/CNextLexer";
-import {
-  CNextParser,
-  ProgramContext,
-} from "./logic/parser/grammar/CNextParser";
+import { ProgramContext } from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
 import { CLexer } from "./logic/parser/c/grammar/CLexer";
 import { CParser } from "./logic/parser/c/grammar/CParser";
@@ -662,32 +658,14 @@ class Transpiler {
    */
   private collectCNextSymbols(file: IDiscoveredFile): void {
     const content = readFileSync(file.path, "utf-8");
-    const charStream = CharStream.fromString(content);
-    const lexer = new CNextLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
-
-    const errors: string[] = [];
-    parser.removeErrorListeners();
-    parser.addErrorListener({
-      syntaxError(
-        _recognizer,
-        _offendingSymbol,
-        line,
-        charPositionInLine,
-        msg,
-      ) {
-        errors.push(`${file.path}:${line}:${charPositionInLine} - ${msg}`);
-      },
-      reportAmbiguity() {},
-      reportAttemptingFullContext() {},
-      reportContextSensitivity() {},
-    });
-
-    const tree = parser.program();
+    const { tree, errors } = CNextSourceParser.parse(content);
 
     if (errors.length > 0) {
-      throw new Error(errors.join("\n"));
+      // Format errors with file path for better diagnostics
+      const formattedErrors = errors.map(
+        (e) => `${file.path}:${e.line}:${e.column} - ${e.message}`,
+      );
+      throw new Error(formattedErrors.join("\n"));
     }
 
     // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter

@@ -4,6 +4,26 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ResultPrinter from "../ResultPrinter";
+import ITranspilerResult from "../../transpiler/types/ITranspilerResult";
+
+/**
+ * Create a minimal ITranspilerResult with sensible defaults
+ */
+function createResult(
+  overrides: Partial<ITranspilerResult> = {},
+): ITranspilerResult {
+  return {
+    success: true,
+    files: [],
+    filesProcessed: 0,
+    symbolsCollected: 0,
+    conflicts: [],
+    errors: [],
+    warnings: [],
+    outputFiles: [],
+    ...overrides,
+  };
+}
 
 describe("ResultPrinter", () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -37,86 +57,76 @@ describe("ResultPrinter", () => {
 
   describe("print", () => {
     it("prints warnings to console.warn", () => {
-      ResultPrinter.print({
-        success: true,
-        filesProcessed: 1,
-        symbolsCollected: 0,
-        conflicts: [],
-        errors: [],
-        warnings: ["Unused variable 'x'", "Deprecated function"],
-        outputFiles: ["output.c"],
-      });
+      ResultPrinter.print(
+        createResult({
+          filesProcessed: 1,
+          warnings: ["Unused variable 'x'", "Deprecated function"],
+          outputFiles: ["output.c"],
+        }),
+      );
 
       expect(warnOutput).toContain("Warning: Unused variable 'x'");
       expect(warnOutput).toContain("Warning: Deprecated function");
     });
 
     it("prints conflicts to console.error", () => {
-      ResultPrinter.print({
-        success: true,
-        filesProcessed: 1,
-        symbolsCollected: 0,
-        conflicts: ["Symbol 'foo' defined twice", "Type mismatch"],
-        errors: [],
-        warnings: [],
-        outputFiles: ["output.c"],
-      });
+      ResultPrinter.print(
+        createResult({
+          filesProcessed: 1,
+          conflicts: ["Symbol 'foo' defined twice", "Type mismatch"],
+          outputFiles: ["output.c"],
+        }),
+      );
 
       expect(errorOutput).toContain("Conflict: Symbol 'foo' defined twice");
       expect(errorOutput).toContain("Conflict: Type mismatch");
     });
 
     it("prints errors with source path when available", () => {
-      ResultPrinter.print({
-        success: false,
-        filesProcessed: 0,
-        symbolsCollected: 0,
-        conflicts: [],
-        errors: [
-          {
-            line: 10,
-            column: 5,
-            message: "Syntax error",
-            sourcePath: "src/main.cnx",
-          },
-        ],
-        warnings: [],
-        outputFiles: [],
-      });
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          errors: [
+            {
+              line: 10,
+              column: 5,
+              message: "Syntax error",
+              sourcePath: "src/main.cnx",
+              severity: "error",
+            },
+          ],
+        }),
+      );
 
       expect(errorOutput).toContain("Error: src/main.cnx:10:5 Syntax error");
     });
 
     it("prints errors without source path", () => {
-      ResultPrinter.print({
-        success: false,
-        filesProcessed: 0,
-        symbolsCollected: 0,
-        conflicts: [],
-        errors: [
-          {
-            line: 15,
-            column: 3,
-            message: "Unknown type",
-          },
-        ],
-        warnings: [],
-        outputFiles: [],
-      });
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          errors: [
+            {
+              line: 15,
+              column: 3,
+              message: "Unknown type",
+              severity: "error",
+            },
+          ],
+        }),
+      );
 
       expect(errorOutput).toContain("Error: 15:3 Unknown type");
     });
 
     it("prints success summary when compilation succeeds", () => {
-      ResultPrinter.print({
-        success: true,
-        filesProcessed: 5,
-        symbolsCollected: 42,
-        conflicts: [],
-        errors: [],
-        warnings: [],
-        outputFiles: ["a.c", "b.c", "c.c"],
-      });
+      ResultPrinter.print(
+        createResult({
+          filesProcessed: 5,
+          symbolsCollected: 42,
+          outputFiles: ["a.c", "b.c", "c.c"],
+        }),
+      );
 
       const fullLog = logOutput.join("\n");
       expect(fullLog).toContain("Compiled 5 files");
@@ -128,63 +138,60 @@ describe("ResultPrinter", () => {
     });
 
     it("prints failure message when compilation fails", () => {
-      ResultPrinter.print({
-        success: false,
-        filesProcessed: 0,
-        symbolsCollected: 0,
-        conflicts: [],
-        errors: [],
-        warnings: [],
-        outputFiles: [],
-      });
+      ResultPrinter.print(createResult({ success: false }));
 
       expect(errorOutput).toContain("Compilation failed");
     });
 
     it("prints all output files with indentation", () => {
-      ResultPrinter.print({
-        success: true,
-        filesProcessed: 2,
-        symbolsCollected: 10,
-        conflicts: [],
-        errors: [],
-        warnings: [],
-        outputFiles: ["/path/to/output/main.c", "/path/to/output/main.h"],
-      });
+      ResultPrinter.print(
+        createResult({
+          filesProcessed: 2,
+          symbolsCollected: 10,
+          outputFiles: ["/path/to/output/main.c", "/path/to/output/main.h"],
+        }),
+      );
 
       expect(logOutput).toContain("  /path/to/output/main.c");
       expect(logOutput).toContain("  /path/to/output/main.h");
     });
 
     it("prints empty line before summary", () => {
-      ResultPrinter.print({
-        success: true,
-        filesProcessed: 1,
-        symbolsCollected: 1,
-        conflicts: [],
-        errors: [],
-        warnings: [],
-        outputFiles: ["out.c"],
-      });
+      ResultPrinter.print(
+        createResult({
+          filesProcessed: 1,
+          symbolsCollected: 1,
+          outputFiles: ["out.c"],
+        }),
+      );
 
       // First call should be empty string (blank line)
       expect(logOutput[0]).toBe("");
     });
 
     it("handles multiple errors", () => {
-      ResultPrinter.print({
-        success: false,
-        filesProcessed: 0,
-        symbolsCollected: 0,
-        conflicts: [],
-        errors: [
-          { line: 1, column: 1, message: "Error 1", sourcePath: "a.cnx" },
-          { line: 2, column: 2, message: "Error 2", sourcePath: "b.cnx" },
-          { line: 3, column: 3, message: "Error 3" },
-        ],
-        warnings: [],
-        outputFiles: [],
-      });
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          errors: [
+            {
+              line: 1,
+              column: 1,
+              message: "Error 1",
+              sourcePath: "a.cnx",
+              severity: "error",
+            },
+            {
+              line: 2,
+              column: 2,
+              message: "Error 2",
+              sourcePath: "b.cnx",
+              severity: "error",
+            },
+            { line: 3, column: 3, message: "Error 3", severity: "error" },
+          ],
+        }),
+      );
 
       expect(errorOutput).toContain("Error: a.cnx:1:1 Error 1");
       expect(errorOutput).toContain("Error: b.cnx:2:2 Error 2");
@@ -198,15 +205,16 @@ describe("ResultPrinter", () => {
         allOutput.push(`error:${msg}`),
       );
 
-      ResultPrinter.print({
-        success: false,
-        filesProcessed: 0,
-        symbolsCollected: 0,
-        conflicts: ["Conflict 1"],
-        errors: [{ line: 1, column: 1, message: "Error 1" }],
-        warnings: ["Warning 1"],
-        outputFiles: [],
-      });
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          conflicts: ["Conflict 1"],
+          errors: [
+            { line: 1, column: 1, message: "Error 1", severity: "error" },
+          ],
+          warnings: ["Warning 1"],
+        }),
+      );
 
       // Warnings come first, then conflicts, then errors
       const warningIndex = allOutput.findIndex((s) => s.includes("Warning 1"));
