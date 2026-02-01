@@ -9,5 +9,5 @@
     "src/parser/grammar/**",
     "src/codegen/assignment/AssignmentContextBuilder.ts"
   ],
-  "ignoreBinaries": ["jscpd", "jq"]
+  "ignoreBinaries": ["jscpd", "jq", "dot"]
 }
