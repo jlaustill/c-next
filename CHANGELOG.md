@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.50] - 2026-01-31
+
+### Fixed
+
+- C++ mode: `this.method()` calls now correctly resolve for const inference - private functions calling cross-file modifying functions are properly tracked (Issue #561, PR #562)
+
+### Changed
+
+- Unified `Pipeline.run()` and `Pipeline.transpileSource()` code paths for cross-file const inference - both now use the same modification tracking mechanism (Issue #561, PR #562)
+- Added `CodeGenerator.analyzeModificationsOnly()` for standalone modification analysis without full code generation
+
 ## [0.1.49] - 2026-01-31
 
 ### Fixed
@@ -574,7 +585,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.49...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.50...HEAD
+[0.1.50]: https://github.com/jlaustill/c-next/compare/v0.1.49...v0.1.50
 [0.1.49]: https://github.com/jlaustill/c-next/compare/v0.1.48...v0.1.49
 [0.1.48]: https://github.com/jlaustill/c-next/compare/v0.1.47...v0.1.48
 [0.1.47]: https://github.com/jlaustill/c-next/compare/v0.1.46...v0.1.47
