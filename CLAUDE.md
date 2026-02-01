@@ -112,12 +112,10 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 ### Const Inference Architecture
 
-- **walkStatementForModifications()** walks AST for parameter modifications - must handle ALL expression contexts:
-  - `assignmentStatement.expression()` - RHS of assignments
-  - `variableDeclaration.expression()` - initializers
-  - `forInit.forAssignment().expression()` and `forInit.forVarDecl().expression()` - for-loop init
-  - `forUpdate.expression()` - for-loop update
-  - See issue #566 for refactoring opportunity
+- **walkStatementForModifications()** uses two helper methods (issue #566 refactoring):
+  - `collectExpressionsFromStatement()` - returns all expressions from any statement type
+  - `getChildStatementsAndBlocks()` - returns child statements/blocks for recursion
+- **Adding new statement types**: Update both helpers - they serve as checklists for expression contexts and child statements
 
 ### Parser Keyword Tokens
 
@@ -182,6 +180,11 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 - `src/pipeline/CacheManager.ts` → `src/pipeline/__tests__/CacheManager.test.ts`
 - `src/pipeline/cache/CacheKeyGenerator.ts` → `src/pipeline/cache/__tests__/CacheKeyGenerator.test.ts`
+
+### Unit Test Parser Imports
+
+- **Parser type namespace**: Use `import * as Parser from "../../antlr_parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
+- **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Pipeline()` when you just need the AST - Pipeline requires inputs configuration
 
 ### Cross-File Testing
 
