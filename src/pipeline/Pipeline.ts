@@ -82,6 +82,17 @@ class Pipeline {
    * Used to include C headers in generated .h files instead of forward-declaring types.
    */
   private readonly headerIncludeDirectives: Map<string, string> = new Map();
+  /**
+   * Issue #558: Accumulated parameter modifications across all processed files.
+   * Used for cross-file const inference in C++ mode.
+   */
+  private readonly accumulatedModifications: Map<string, Set<string>> =
+    new Map();
+  /**
+   * Issue #558: Accumulated function parameter lists across all processed files.
+   * Used for cross-file const inference transitive propagation.
+   */
+  private readonly accumulatedParamLists: Map<string, string[]> = new Map();
 
   constructor(config: IPipelineConfig) {
     // Apply defaults
@@ -137,6 +148,10 @@ class Pipeline {
         await this.cacheManager.initialize();
       }
 
+      // Issue #558: Reset cross-file modification tracking for new run
+      this.accumulatedModifications.clear();
+      this.accumulatedParamLists.clear();
+
       // Stage 1: Discover source files
       const { cnextFiles, headerFiles } = await this.discoverSources();
 
@@ -144,6 +159,15 @@ class Pipeline {
         result.warnings.push("No C-Next source files found");
         result.warnings = [...result.warnings, ...this.warnings];
         return result;
+      }
+
+      // Issue #558: Sort files by dependency order for correct cross-file const inference.
+      // Files that are included by others should be processed first so their
+      // parameter modifications are available during transitive propagation.
+      // Simple heuristic: reverse the discovery order since includes are added
+      // after the files that include them.
+      if (this.cppDetected) {
+        cnextFiles.reverse();
       }
 
       // Ensure output directory exists if specified
@@ -788,6 +812,14 @@ class Pipeline {
         );
       }
 
+      // Issue #558: Inject cross-file data for const inference
+      if (this.cppDetected && this.accumulatedModifications.size > 0) {
+        this.codeGenerator.setCrossFileModifications(
+          this.accumulatedModifications,
+          this.accumulatedParamLists,
+        );
+      }
+
       const code = this.codeGenerator.generate(
         tree,
         this.symbolTable,
@@ -821,6 +853,27 @@ class Pipeline {
         passByValueCopy.set(funcName, new Set(params));
       }
       this.passByValueParamsCollectors.set(file.path, passByValueCopy);
+
+      // Issue #558: Collect modifications and param lists for cross-file const inference
+      if (this.cppDetected) {
+        const fileModifications = this.codeGenerator.getModifiedParameters();
+        for (const [funcName, params] of fileModifications) {
+          const existing = this.accumulatedModifications.get(funcName);
+          if (existing) {
+            for (const param of params) {
+              existing.add(param);
+            }
+          } else {
+            this.accumulatedModifications.set(funcName, new Set(params));
+          }
+        }
+        const fileParamLists = this.codeGenerator.getFunctionParamLists();
+        for (const [funcName, params] of fileParamLists) {
+          if (!this.accumulatedParamLists.has(funcName)) {
+            this.accumulatedParamLists.set(funcName, [...params]);
+          }
+        }
+      }
 
       // Issue #424: Store user includes for header generation
       // These may define macros used in array dimensions

@@ -1,0 +1,9 @@
+#include "Config.cnx"
+#include "Storage.cnx"
+
+scope Handler {
+    public u8 reset(Config cfg) {
+        global.Storage.loadDefaults(cfg);
+        return 0;
+    }
+}

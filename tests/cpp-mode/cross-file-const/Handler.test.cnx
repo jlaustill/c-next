@@ -1,0 +1,20 @@
+// test-cpp-mode
+// test-transpile-only
+// Bug #558: Cross-file const inference
+// Handler.reset passes cfg to Storage.loadDefaults which modifies it
+// Therefore cfg should NOT be const in Handler.reset
+
+#include "Config.cnx"
+#include "Storage.cnx"
+
+scope Handler {
+    public u8 reset(Config cfg) {
+        global.Storage.loadDefaults(cfg);
+        return 0;
+    }
+}
+
+void main() {
+    Config c <- {value: 0};
+    global.Handler.reset(c);
+}

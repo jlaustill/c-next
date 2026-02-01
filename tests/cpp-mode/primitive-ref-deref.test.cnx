@@ -1,0 +1,20 @@
+// test-cpp-mode
+// test-transpile-only
+// Bug #558: Primitive parameter reassigned should not use pointer dereference in C++ mode
+// When a primitive is reassigned, it becomes a reference (uint32_t&)
+// The body should use 'val' directly, not '(*val)'
+
+scope Test {
+    u32 helper(u32 x) {
+        return x + 1;
+    }
+
+    public u32 process(u32 val) {
+        val <- this.helper(val);
+        return val;
+    }
+}
+
+void main() {
+    u32 result <- global.Test.process(5);
+}
