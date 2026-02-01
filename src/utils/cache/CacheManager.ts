@@ -15,11 +15,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
-import IStructFieldInfo from "../../logic/symbols/types/IStructFieldInfo";
-import ICacheConfig from "../../pipeline/types/ICacheConfig";
-import ICacheSymbols from "../../pipeline/types/ICacheSymbols";
-import ICachedFileEntry from "../../pipeline/types/ICachedFileEntry";
-import ISerializedSymbol from "../../pipeline/types/ISerializedSymbol";
+import IStructFieldInfo from "../../transpiler/logic/symbols/types/IStructFieldInfo";
+import ICacheConfig from "../../transpiler/types/ICacheConfig";
+import ICacheSymbols from "../../transpiler/types/ICacheSymbols";
+import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
+import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
 
 /** Current cache format version - increment when serialization format changes */
 const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime

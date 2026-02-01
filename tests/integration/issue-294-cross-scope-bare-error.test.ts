@@ -22,7 +22,7 @@ import {
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import Pipeline from "../../src/pipeline/Pipeline";
+import Transpiler from "../../src/transpiler/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -69,7 +69,7 @@ async function runTest() {
   writeFileSync(providerPath, providerSource, "utf-8");
   writeFileSync(consumerPath, consumerSource, "utf-8");
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [srcDir],
     outDir: testDir,
     includeDirs: [srcDir],

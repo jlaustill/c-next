@@ -1,5 +1,5 @@
 import ITranspileError from "./ITranspileError";
-import IGrammarCoverageReport from "../../logic/analysis/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../../transpiler/logic/analysis/types/IGrammarCoverageReport";
 
 /**
  * Result of transpiling C-Next source to C

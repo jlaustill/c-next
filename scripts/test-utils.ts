@@ -11,8 +11,8 @@
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { execFileSync } from "node:child_process";
-import Pipeline from "../src/pipeline/Pipeline";
-import IFileResult from "../src/pipeline/types/IFileResult";
+import Transpiler from "../src/transpiler/Transpiler";
+import IFileResult from "../src/transpiler/types/IFileResult";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
 import ITools from "./types/ITools";
@@ -631,10 +631,10 @@ class TestUtils {
     // Issue #558: Check for C++ mode marker
     const cppMode = TestUtils.hasCppModeMarker(source);
 
-    // Use Pipeline for transpilation with header parsing support
+    // Use Transpiler for transpilation with header parsing support
     // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
-    // Caching can cause stale symbols when Pipeline code changes
-    const pipeline = new Pipeline({
+    // Caching can cause stale symbols when Transpiler code changes
+    const pipeline = new Transpiler({
       inputs: [],
       includeDirs: [join(rootDir, "tests/include")],
       noCache: true,
@@ -671,17 +671,20 @@ class TestUtils {
       const helperSource = readFileSync(helperCnx, "utf-8");
       // Issue #558: Check if helper has cpp-mode marker, or inherit from main test
       const helperCppMode = TestUtils.hasCppModeMarker(helperSource) || cppMode;
-      // Use fresh Pipeline for each helper to avoid symbol pollution from main test
-      const helperPipeline = new Pipeline({
+      // Use fresh Transpiler for each helper to avoid symbol pollution from main test
+      const helperTranspiler = new Transpiler({
         inputs: [],
         includeDirs: [join(rootDir, "tests/include")],
         noCache: true,
         cppRequired: helperCppMode, // Issue #558: Inherit C++ mode
       });
-      const helperResult = await helperPipeline.transpileSource(helperSource, {
-        workingDir: dirname(helperCnx),
-        sourcePath: helperCnx,
-      });
+      const helperResult = await helperTranspiler.transpileSource(
+        helperSource,
+        {
+          workingDir: dirname(helperCnx),
+          sourcePath: helperCnx,
+        },
+      );
       if (helperResult.success) {
         // Write to temp file with unique name per test to avoid parallel collisions
         const helperBaseName = basename(helperCnx, ".cnx");

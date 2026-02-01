@@ -20,8 +20,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import Pipeline from "../../src/pipeline/Pipeline";
-import Project from "../../src/project/Project";
+import Transpiler from "../../src/transpiler/Transpiler";
 
 // Test source files - Utils has a public function which triggers header generation
 const utilsSource = `
@@ -110,7 +109,7 @@ async function testSelfIncludePathsWithPipeline() {
 
   setup();
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -176,9 +175,13 @@ async function testSelfIncludePathsWithPipeline() {
   }
 }
 
-async function testSelfIncludePathsWithProject() {
-  console.log("\n=== Test 2: Self-include paths with Project ===\n");
-  console.log("Verifies the same behavior when using Project API directly.\n");
+async function testSelfIncludePathsWithPipelineDirectory() {
+  console.log(
+    "\n=== Test 2: Self-include paths with Pipeline (directory) ===\n",
+  );
+  console.log(
+    "Verifies the same behavior when using Pipeline with directory input.\n",
+  );
 
   setup();
 
@@ -188,16 +191,15 @@ async function testSelfIncludePathsWithProject() {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  const project = new Project({
-    srcDirs: [sourceDir],
-    files: [],
+  const pipeline = new Transpiler({
+    inputs: [sourceDir],
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
   });
 
-  const result = await project.compile();
-  check(result.success, "Project compilation succeeds");
+  const result = await pipeline.run();
+  check(result.success, "Pipeline compilation succeeds");
 
   // Check Utils.c
   const utilsCodePath = join(codeOutDir, "Display", "Utils.c");
@@ -208,7 +210,7 @@ async function testSelfIncludePathsWithProject() {
 
     check(
       includes.includes("Display/Utils.h"),
-      'Utils.c includes "Display/Utils.h" via Project',
+      'Utils.c includes "Display/Utils.h" via Pipeline',
     );
   }
 
@@ -221,7 +223,7 @@ async function testSelfIncludePathsWithProject() {
 
     check(
       includes.includes("Domain/App.h"),
-      'App.c includes "Domain/App.h" via Project',
+      'App.c includes "Domain/App.h" via Pipeline',
     );
   }
 }
@@ -249,7 +251,7 @@ scope RootModule {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -307,7 +309,7 @@ scope Deep {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -344,7 +346,7 @@ async function runTests() {
   console.log("=".repeat(60));
 
   await testSelfIncludePathsWithPipeline();
-  await testSelfIncludePathsWithProject();
+  await testSelfIncludePathsWithPipelineDirectory();
   await testRootLevelFileHasNoPrefix();
   await testNestedSubdirectories();
 

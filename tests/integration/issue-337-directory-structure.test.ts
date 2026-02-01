@@ -19,8 +19,7 @@ import {
   statSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import Pipeline from "../../src/pipeline/Pipeline";
-import Project from "../../src/project/Project";
+import Transpiler from "../../src/transpiler/Transpiler";
 
 // Test source files matching the bug report structure
 const mainSource = `
@@ -111,7 +110,7 @@ async function testPipelineWithDirectory() {
 
   setup();
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir], // Directory as input - should work
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -161,14 +160,13 @@ async function testPipelineWithDirectory() {
   );
 }
 
-async function testProjectWithExpandedFiles() {
+async function testPipelineWithExpandedFiles() {
   console.log(
     "\n=== Test 2: CLI simulation (correct behavior after fix) ===\n",
   );
   console.log("This simulates what the CLI should do after the fix:");
   console.log("- Identify directory inputs");
-  console.log("- Pass directories to srcDirs");
-  console.log("- Pass only explicit files to files array\n");
+  console.log("- Pass directories and explicit files to Pipeline inputs\n");
 
   setup();
 
@@ -195,17 +193,16 @@ async function testProjectWithExpandedFiles() {
   console.log("Input directories (srcDirs):", srcDirs);
   console.log("Explicit files:", explicitFiles);
 
-  // This is what the CLI should do after the fix
-  const project = new Project({
-    srcDirs, // Directory inputs preserved for structure calculation
-    files: explicitFiles, // Only non-directory inputs
+  // This is what the CLI does - combine directories and files into inputs
+  const pipeline = new Transpiler({
+    inputs: [...srcDirs, ...explicitFiles],
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
   });
 
-  const result = await project.compile();
-  check(result.success, "Project compilation succeeds");
+  const result = await pipeline.run();
+  check(result.success, "Pipeline compilation succeeds");
 
   // Check output structure
   const codeFiles = getAllFiles(codeOutDir);
@@ -239,9 +236,9 @@ async function testProjectWithExpandedFiles() {
   );
 }
 
-async function testProjectWithSrcDirs() {
-  console.log("\n=== Test 3: Project with srcDirs (proper usage) ===\n");
-  console.log("This tests that Project works when srcDirs is properly set.\n");
+async function testPipelineWithSrcDirs() {
+  console.log("\n=== Test 3: Pipeline with directory input ===\n");
+  console.log("This tests that Pipeline works when given a directory.\n");
 
   setup();
 
@@ -251,17 +248,16 @@ async function testProjectWithSrcDirs() {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  // Pass directory via srcDirs - this should work
-  const project = new Project({
-    srcDirs: [sourceDir], // Properly set!
-    files: [],
+  // Pass directory as input
+  const pipeline = new Transpiler({
+    inputs: [sourceDir],
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
   });
 
-  const result = await project.compile();
-  check(result.success, "Project compilation succeeds");
+  const result = await pipeline.run();
+  check(result.success, "Pipeline compilation succeeds");
 
   const codeFiles = getAllFiles(codeOutDir);
   const headerFiles = getAllFiles(headerOutDir);
@@ -294,7 +290,7 @@ async function testCompilationOrder() {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -339,8 +335,8 @@ async function runTests() {
   console.log("=".repeat(60));
 
   await testPipelineWithDirectory();
-  await testProjectWithExpandedFiles();
-  await testProjectWithSrcDirs();
+  await testPipelineWithExpandedFiles();
+  await testPipelineWithSrcDirs();
   await testCompilationOrder();
 
   // Summary

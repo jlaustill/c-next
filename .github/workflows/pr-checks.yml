@@ -41,6 +41,11 @@ jobs:
         run: npx knip
         continue-on-error: true
 
+      - name: Check architecture boundaries (dependency-cruiser)
+        id: depcruise
+        run: npm run depcruise
+        continue-on-error: true
+
       - name: Generate parser files
         id: generate
         run: npm run antlr:all
@@ -129,6 +134,13 @@ jobs:
             FAILED=1
           else
             echo "✅ Dead code check passed"
+          fi
+
+          if [ "${{ steps.depcruise.outcome }}" != "success" ]; then
+            echo "❌ Architecture boundary check failed (dependency-cruiser)"
+            FAILED=1
+          else
+            echo "✅ Architecture boundary check passed"
           fi
 
           if [ "${{ steps.generate.outcome }}" != "success" ]; then

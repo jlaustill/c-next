@@ -21,7 +21,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import Pipeline from "../../src/pipeline/Pipeline";
+import Transpiler from "../../src/transpiler/Transpiler";
 
 // Test source files - Utils has a public function which triggers header generation
 const utilsSource = `
@@ -98,7 +98,7 @@ async function testSiblingAngleBracketInclude() {
   writeFileSync(join(displayDir, "utils.cnx"), utilsSource, "utf-8");
   writeFileSync(join(displayDir, "main.cnx"), mainSource, "utf-8");
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -155,7 +155,7 @@ i32 main() {
   if (existsSync(codeOutDir)) rmSync(codeOutDir, { recursive: true });
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -198,7 +198,7 @@ async function testRootLevelAngleBracketInclude() {
   if (existsSync(codeOutDir)) rmSync(codeOutDir, { recursive: true });
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -252,7 +252,7 @@ i32 main() {
   if (existsSync(codeOutDir)) rmSync(codeOutDir, { recursive: true });
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -315,7 +315,7 @@ i32 main() {
   if (existsSync(codeOutDir)) rmSync(codeOutDir, { recursive: true });
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,

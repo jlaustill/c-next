@@ -8,7 +8,7 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import Pipeline from "../../src/pipeline/Pipeline";
+import Transpiler from "../../src/transpiler/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,7 +56,7 @@ async function runTest() {
   writeFileSync(testFile, testSource, "utf-8");
 
   // Configure pipeline with C++ output and header generation
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [testFile],
     outDir: testDir,
     includeDirs: [],

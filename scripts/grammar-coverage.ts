@@ -15,9 +15,9 @@ import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import transpile from "../src/lib/transpiler";
-import IGrammarCoverageReport from "../src/logic/analysis/types/IGrammarCoverageReport";
-import { CNextLexer } from "../src/logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../src/logic/parser/grammar/CNextParser";
+import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGrammarCoverageReport";
+import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
+import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
