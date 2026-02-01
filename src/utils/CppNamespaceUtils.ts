@@ -9,9 +9,9 @@
  * - generateStructHeader.ts (isCppNamespace, convertToCppNamespaceIfNeeded)
  */
 
-import SymbolTable from "../symbol_resolution/SymbolTable";
-import ESourceLanguage from "../types/ESourceLanguage";
-import ESymbolKind from "../types/ESymbolKind";
+import SymbolTable from "../logic/symbols/SymbolTable";
+import ESourceLanguage from "./types/ESourceLanguage";
+import ESymbolKind from "./types/ESymbolKind";
 
 /**
  * Static utility methods for C++ namespace operations

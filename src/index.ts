@@ -5,8 +5,8 @@
  */
 
 import CleanCommand from "./commands/CleanCommand";
-import IncludeDiscovery from "./lib/IncludeDiscovery";
-import InputExpansion from "./lib/InputExpansion";
+import IncludeDiscovery from "./data/IncludeDiscovery";
+import InputExpansion from "./data/InputExpansion";
 import Project from "./project/Project";
 import {
   readFileSync,

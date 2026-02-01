@@ -2,11 +2,11 @@
  * Parse C-Next source and extract symbols for IDE features
  */
 
-import CNextSourceParser from "../pipeline/CNextSourceParser";
-import CNextResolver from "../symbol_resolution/cnext/index";
-import TSymbolAdapter from "../symbol_resolution/cnext/adapters/TSymbolAdapter";
-import SymbolTable from "../symbol_resolution/SymbolTable";
-import ESymbolKind from "../types/ESymbolKind";
+import CNextSourceParser from "../logic/parser/CNextSourceParser";
+import CNextResolver from "../logic/symbols/cnext/index";
+import TSymbolAdapter from "../logic/symbols/cnext/adapters/TSymbolAdapter";
+import SymbolTable from "../logic/symbols/SymbolTable";
+import ESymbolKind from "../utils/types/ESymbolKind";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";

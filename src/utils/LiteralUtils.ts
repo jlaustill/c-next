@@ -5,7 +5,7 @@
  * to eliminate duplicate literal checking code.
  */
 
-import * as Parser from "../antlr_parser/grammar/CNextParser";
+import * as Parser from "../logic/parser/grammar/CNextParser";
 
 /**
  * Static utility methods for literal analysis
