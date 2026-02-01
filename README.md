@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=jlaustill_c-next)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=coverage)](https://sonarcloud.io/summary/new_code?id=jlaustill_c-next)
+[![Coverage Report](https://img.shields.io/badge/Coverage-Report-blue)](https://jlaustill.github.io/c-next/coverage/)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=jlaustill_c-next)
 
 A safer C for embedded systems development. Transpiles to clean, readable C.
