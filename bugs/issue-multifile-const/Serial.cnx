@@ -1,0 +1,13 @@
+#include "Config.cnx"
+#include "Handler.cnx"
+
+scope Serial {
+    // Multi-level: calls Handler.reset -> Storage.loadDefaults
+    void handleReset(Config config) {
+        global.Handler.reset(config);
+    }
+
+    public void process(Config config) {
+        this.handleReset(config);
+    }
+}

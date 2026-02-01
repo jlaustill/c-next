@@ -1,0 +1,52 @@
+// test-execution
+// Tests: For loop init and update expressions should be walked for modifying calls
+// This tests that function calls in for-init and for-update are detected
+
+struct Config {
+    u32 value;
+}
+
+scope Handler {
+    public u8 setValue(Config cfg, u32 val) {
+        cfg.value <- val;
+        return 0;
+    }
+
+    public u32 getNext(Config cfg, u32 current) {
+        cfg.value <- current + 1;
+        return current + 1;
+    }
+}
+
+// For loop with modifying call in the UPDATE part
+void handleForUpdate(Config config) {
+    for (u32 i <- 0; i < 1; i <- global.Handler.getNext(config, i)) {
+        // Body is empty - the modification happens in the update
+    }
+}
+
+// For loop with modifying call in the INIT part (via forAssignment)
+void handleForInit(Config config) {
+    u32 start <- 0;
+    // Note: forInit can be forVarDecl or forAssignment
+    // forAssignment: start <- modifyingCall(config)
+    for (start <- global.Handler.setValue(config, 10); start < 1; start <- start + 1) {
+        // Body is empty - modification happened in init
+    }
+}
+
+u32 main() {
+    Config cfg;
+
+    // Test handleForUpdate
+    cfg.value <- 0;
+    handleForUpdate(cfg);
+    if (cfg.value != 1) return 1;
+
+    // Test handleForInit
+    cfg.value <- 0;
+    handleForInit(cfg);
+    if (cfg.value != 10) return 2;
+
+    return 0;
+}

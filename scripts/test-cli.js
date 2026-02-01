@@ -667,6 +667,160 @@ test("CLI --target overrides config file target", () => {
 });
 
 // ============================================================================
+// Category 5: Multi-file const inference tests (Issue #565)
+// ============================================================================
+
+// Multi-file const inference test files
+const multiFileConstConfig = `struct Config {
+    i32 value;
+}
+`;
+
+const multiFileConstStorage = `#include "Config.cnx"
+
+scope Storage {
+    public void loadDefaults(Config config) {
+        config.value <- 42;
+    }
+}
+`;
+
+const multiFileConstHandler = `#include "Config.cnx"
+#include "Storage.cnx"
+
+scope Handler {
+    public u8 reset(Config cfg) {
+        global.Storage.loadDefaults(cfg);
+        return 0;
+    }
+}
+`;
+
+const multiFileConstSerial = `#include "Config.cnx"
+#include "Handler.cnx"
+
+scope Serial {
+    void handleReset(Config config) {
+        global.Handler.reset(config);
+    }
+
+    public void process(Config config) {
+        this.handleReset(config);
+    }
+}
+`;
+
+test("Issue #565: multi-file transitive const inference propagates correctly", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-multifile-const-"));
+
+  try {
+    // Create the multi-file test case
+    writeFileSync(join(tempDir, "Config.cnx"), multiFileConstConfig, "utf-8");
+    writeFileSync(join(tempDir, "Storage.cnx"), multiFileConstStorage, "utf-8");
+    writeFileSync(join(tempDir, "Handler.cnx"), multiFileConstHandler, "utf-8");
+    writeFileSync(join(tempDir, "Serial.cnx"), multiFileConstSerial, "utf-8");
+
+    // Transpile with --cpp flag (const inference only applies in C++ mode)
+    const result = runCliInDir(tempDir, ["Serial.cnx", "--cpp"]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    // Read the generated Serial.cpp
+    const serialCpp = readFileSync(join(tempDir, "Serial.cpp"), "utf-8");
+
+    // Key assertion: Serial_handleReset should have NON-const Config&
+    // because it calls Handler.reset which calls Storage.loadDefaults which modifies config
+    assert(
+      serialCpp.includes("Serial_handleReset(Config& config)"),
+      "Serial_handleReset should have non-const Config& (transitive modification)",
+    );
+    assert(
+      !serialCpp.includes("Serial_handleReset(const Config& config)"),
+      "Serial_handleReset should NOT have const (it transitively modifies)",
+    );
+
+    // Also verify the intermediate functions are correct
+    const handlerCpp = readFileSync(join(tempDir, "Handler.cpp"), "utf-8");
+    assert(
+      handlerCpp.includes("Handler_reset(Config& cfg)"),
+      "Handler_reset should have non-const Config&",
+    );
+
+    const storageCpp = readFileSync(join(tempDir, "Storage.cpp"), "utf-8");
+    assert(
+      storageCpp.includes("Storage_loadDefaults(Config& config)"),
+      "Storage_loadDefaults should have non-const Config&",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("Issue #565: read-only multi-file calls preserve const", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-multifile-const-"));
+
+  // Test that read-only calls still get const correctly
+  const readOnlyStorage = `#include "Config.cnx"
+
+scope Storage {
+    public i32 getValue(Config config) {
+        return config.value;
+    }
+}
+`;
+
+  const readOnlyHandler = `#include "Config.cnx"
+#include "Storage.cnx"
+
+scope Handler {
+    public i32 read(Config cfg) {
+        return global.Storage.getValue(cfg);
+    }
+}
+`;
+
+  const readOnlySerial = `#include "Config.cnx"
+#include "Handler.cnx"
+
+scope Serial {
+    public i32 readValue(Config config) {
+        return global.Handler.read(config);
+    }
+}
+`;
+
+  try {
+    writeFileSync(join(tempDir, "Config.cnx"), multiFileConstConfig, "utf-8");
+    writeFileSync(join(tempDir, "Storage.cnx"), readOnlyStorage, "utf-8");
+    writeFileSync(join(tempDir, "Handler.cnx"), readOnlyHandler, "utf-8");
+    writeFileSync(join(tempDir, "Serial.cnx"), readOnlySerial, "utf-8");
+
+    const result = runCliInDir(tempDir, ["Serial.cnx", "--cpp"]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    // All functions should have const since none modify
+    const serialCpp = readFileSync(join(tempDir, "Serial.cpp"), "utf-8");
+    assert(
+      serialCpp.includes("Serial_readValue(const Config& config)"),
+      "Serial_readValue should have const Config& (read-only chain)",
+    );
+
+    const handlerCpp = readFileSync(join(tempDir, "Handler.cpp"), "utf-8");
+    assert(
+      handlerCpp.includes("Handler_read(const Config& cfg)"),
+      "Handler_read should have const Config&",
+    );
+
+    const storageCpp = readFileSync(join(tempDir, "Storage.cpp"), "utf-8");
+    assert(
+      storageCpp.includes("Storage_getValue(const Config& config)"),
+      "Storage_getValue should have const Config&",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// ============================================================================
 // Summary
 // ============================================================================
 

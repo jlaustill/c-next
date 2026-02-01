@@ -644,9 +644,14 @@ class Pipeline {
 
     // Issue #561: Collect modification analysis in C++ mode for cross-file const inference
     // This unifies behavior between run() and transpileSource() code paths
+    // Issue #565: Pass accumulated cross-file data for transitive propagation
     if (this.cppDetected) {
       const { modifications, paramLists } =
-        this.codeGenerator.analyzeModificationsOnly(tree);
+        this.codeGenerator.analyzeModificationsOnly(
+          tree,
+          this.accumulatedModifications,
+          this.accumulatedParamLists,
+        );
 
       // Accumulate modifications
       for (const [funcName, params] of modifications) {

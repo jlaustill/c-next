@@ -1183,9 +1183,17 @@ export default class CodeGenerator implements IOrchestrator {
    * Used by Pipeline.transpileSource() to collect modification info from includes
    * for cross-file const inference (unified with Pipeline.run() behavior).
    *
+   * Issue #565: Now accepts optional cross-file data for transitive propagation.
+   * When a file calls a function from an included file that modifies its param,
+   * we need that info available during analysis to propagate correctly.
+   *
    * Returns the modifications and param lists discovered in this tree.
    */
-  analyzeModificationsOnly(tree: Parser.ProgramContext): {
+  analyzeModificationsOnly(
+    tree: Parser.ProgramContext,
+    crossFileModifications?: Map<string, Set<string>>,
+    crossFileParamLists?: Map<string, string[]>,
+  ): {
     modifications: Map<string, Set<string>>;
     paramLists: Map<string, string[]>;
   } {
@@ -1199,17 +1207,56 @@ export default class CodeGenerator implements IOrchestrator {
     this.functionParamLists.clear();
     this.functionCallGraph.clear();
 
-    // Run modification analysis on the tree
+    // Issue #565: Inject cross-file data BEFORE collecting this file's info
+    // This allows transitive propagation to work across file boundaries
+    if (crossFileModifications) {
+      for (const [funcName, params] of crossFileModifications) {
+        this.modifiedParameters.set(funcName, new Set(params));
+      }
+    }
+    if (crossFileParamLists) {
+      for (const [funcName, params] of crossFileParamLists) {
+        this.functionParamLists.set(funcName, [...params]);
+      }
+    }
+
+    // Track which functions were injected (not from this file)
+    const injectedFuncs = new Set(crossFileModifications?.keys() ?? []);
+
+    // Run modification analysis on the tree (adds to what was injected)
     this.collectFunctionParametersAndModifications(tree);
 
-    // Capture results before restoring state
+    // Issue #565: Run transitive propagation with full context
+    // This propagates modifications from included files' functions to this file's functions
+    this.propagateTransitiveModifications();
+
+    // Capture results - only include functions NOT from cross-file injection
+    // (return only what this file contributes, including transitively discovered mods)
     const modifications = new Map<string, Set<string>>();
     for (const [funcName, params] of this.modifiedParameters) {
-      modifications.set(funcName, new Set(params));
+      // Include if: not injected, OR has new params beyond what was injected
+      const injectedParams = crossFileModifications?.get(funcName);
+      if (!injectedFuncs.has(funcName)) {
+        // Function defined in this file - include all its modifications
+        modifications.set(funcName, new Set(params));
+      } else if (injectedParams) {
+        // Check if we discovered new modifications for an injected function
+        const newParams = new Set<string>();
+        for (const p of params) {
+          if (!injectedParams.has(p)) {
+            newParams.add(p);
+          }
+        }
+        if (newParams.size > 0) {
+          modifications.set(funcName, newParams);
+        }
+      }
     }
     const paramLists = new Map<string, string[]>();
     for (const [funcName, params] of this.functionParamLists) {
-      paramLists.set(funcName, [...params]);
+      if (!crossFileParamLists?.has(funcName)) {
+        paramLists.set(funcName, [...params]);
+      }
     }
 
     // Restore previous state by clearing and repopulating (readonly maps)
@@ -2270,6 +2317,10 @@ export default class CodeGenerator implements IOrchestrator {
         // Direct or member/array assignment modifies the parameter
         this.modifiedParameters.get(funcName)!.add(baseIdentifier);
       }
+
+      // Issue #565: Walk the RHS expression for function calls
+      // This detects calls like: errorCode <- modifyingFunction(param)
+      this.walkExpressionForCalls(funcName, paramSet, assign.expression());
     }
 
     // Check for expressions that contain function calls
@@ -2329,9 +2380,29 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         this.walkStatementForModifications(funcName, paramSet, bodyStmt);
       }
-      // Check condition and update for calls
+      // Check condition for calls
       if (forStmt.expression()) {
         this.walkExpressionForCalls(funcName, paramSet, forStmt.expression()!);
+      }
+      // Issue #565: Check forInit for calls (forAssignment has an expression)
+      const forInit = forStmt.forInit();
+      if (forInit?.forAssignment()) {
+        this.walkExpressionForCalls(
+          funcName,
+          paramSet,
+          forInit.forAssignment()!.expression(),
+        );
+      } else if (forInit?.forVarDecl()?.expression()) {
+        this.walkExpressionForCalls(
+          funcName,
+          paramSet,
+          forInit.forVarDecl()!.expression()!,
+        );
+      }
+      // Issue #565: Check forUpdate for calls
+      const forUpdate = forStmt.forUpdate();
+      if (forUpdate) {
+        this.walkExpressionForCalls(funcName, paramSet, forUpdate.expression());
       }
     }
 
