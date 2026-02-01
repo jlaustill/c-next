@@ -1,7 +1,7 @@
 node_modules/
 dist/
-src/logic/parser/grammar/
-src/logic/parser/c/grammar/
-src/logic/parser/cpp/grammar/
+src/transpiler/logic/parser/grammar/
+src/transpiler/logic/parser/c/grammar/
+src/transpiler/logic/parser/cpp/grammar/
 package-lock.json
 .claude/

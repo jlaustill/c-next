@@ -21,7 +21,7 @@
     "test:q": "tsx scripts/test.ts -q",
     "test:update": "tsx scripts/test.ts --update",
     "analyze": "./scripts/static-analysis.sh",
-    "clean": "rm -rf src/logic/parser/grammar src/logic/parser/c/grammar src/logic/parser/cpp/grammar",
+    "clean": "rm -rf src/transpiler/logic/parser/grammar src/transpiler/logic/parser/c/grammar src/transpiler/logic/parser/cpp/grammar",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
     "oxlint:check": "oxlint src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**'",
