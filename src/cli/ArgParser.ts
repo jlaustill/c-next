@@ -26,8 +26,8 @@ interface IYargsResult {
   config: boolean;
   verbose: boolean;
   debug: boolean;
-  "no-preprocess": boolean;
-  "no-cache": boolean;
+  preprocess: boolean;
+  cache: boolean;
   "pio-install": boolean;
   "pio-uninstall": boolean;
 }
@@ -121,15 +121,16 @@ A safer C for embedded systems development.`,
         describe: "Generate panic-on-overflow helpers (ADR-044)",
         default: false,
       })
-      .option("no-preprocess", {
+      .option("preprocess", {
         type: "boolean",
-        describe: "Don't run C preprocessor on headers",
-        default: false,
+        describe:
+          "Run C preprocessor on headers (use --no-preprocess to disable)",
+        default: true,
       })
-      .option("no-cache", {
+      .option("cache", {
         type: "boolean",
-        describe: "Disable symbol cache (.cnx/ directory)",
-        default: false,
+        describe: "Enable symbol cache (use --no-cache to disable)",
+        default: true,
       })
 
       // PlatformIO integration
@@ -241,9 +242,9 @@ class ArgParser {
       defines,
       cppRequired: parsed.cpp,
       target: parsed.target,
-      preprocess: !parsed["no-preprocess"],
+      preprocess: parsed.preprocess,
       verbose: parsed.verbose,
-      noCache: parsed["no-cache"],
+      noCache: !parsed.cache,
       parseOnly: parsed.parse,
       headerOutDir: parsed["header-out"],
       basePath: parsed["base-path"],
