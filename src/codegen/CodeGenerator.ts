@@ -2281,14 +2281,146 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #566: Collect all expressions from a statement that need to be walked for function calls.
+   * This centralizes expression extraction to prevent missing cases (like issue #565).
+   */
+  private collectExpressionsFromStatement(
+    stmt: Parser.StatementContext,
+  ): Parser.ExpressionContext[] {
+    const expressions: Parser.ExpressionContext[] = [];
+
+    // Simple statements with expressions
+    if (stmt.expressionStatement()) {
+      expressions.push(stmt.expressionStatement()!.expression());
+    }
+    if (stmt.assignmentStatement()) {
+      expressions.push(stmt.assignmentStatement()!.expression());
+    }
+    if (stmt.variableDeclaration()?.expression()) {
+      expressions.push(stmt.variableDeclaration()!.expression()!);
+    }
+    if (stmt.returnStatement()?.expression()) {
+      expressions.push(stmt.returnStatement()!.expression()!);
+    }
+
+    // Control flow conditions
+    if (stmt.ifStatement()) {
+      expressions.push(stmt.ifStatement()!.expression());
+    }
+    if (stmt.whileStatement()) {
+      expressions.push(stmt.whileStatement()!.expression());
+    }
+    if (stmt.doWhileStatement()) {
+      expressions.push(stmt.doWhileStatement()!.expression());
+    }
+    if (stmt.switchStatement()) {
+      expressions.push(stmt.switchStatement()!.expression());
+    }
+
+    // For statement has multiple expression contexts
+    if (stmt.forStatement()) {
+      const forStmt = stmt.forStatement()!;
+      // Condition (optional)
+      if (forStmt.expression()) {
+        expressions.push(forStmt.expression()!);
+      }
+      // forInit expressions
+      const forInit = forStmt.forInit();
+      if (forInit?.forAssignment()) {
+        expressions.push(forInit.forAssignment()!.expression());
+      } else if (forInit?.forVarDecl()?.expression()) {
+        expressions.push(forInit.forVarDecl()!.expression()!);
+      }
+      // forUpdate expression
+      if (forStmt.forUpdate()) {
+        expressions.push(forStmt.forUpdate()!.expression());
+      }
+    }
+
+    return expressions;
+  }
+
+  /**
+   * Issue #566: Collect child statements and blocks from control flow statements.
+   * This centralizes recursion patterns to prevent missing nested statements.
+   */
+  private getChildStatementsAndBlocks(stmt: Parser.StatementContext): {
+    statements: Parser.StatementContext[];
+    blocks: Parser.BlockContext[];
+  } {
+    const statements: Parser.StatementContext[] = [];
+    const blocks: Parser.BlockContext[] = [];
+
+    // if statement: has statement() children (can be blocks or single statements)
+    if (stmt.ifStatement()) {
+      for (const childStmt of stmt.ifStatement()!.statement()) {
+        if (childStmt.block()) {
+          blocks.push(childStmt.block()!);
+        } else {
+          statements.push(childStmt);
+        }
+      }
+    }
+
+    // while statement: single statement() child
+    if (stmt.whileStatement()) {
+      const bodyStmt = stmt.whileStatement()!.statement();
+      if (bodyStmt.block()) {
+        blocks.push(bodyStmt.block()!);
+      } else {
+        statements.push(bodyStmt);
+      }
+    }
+
+    // for statement: single statement() child
+    if (stmt.forStatement()) {
+      const bodyStmt = stmt.forStatement()!.statement();
+      if (bodyStmt.block()) {
+        blocks.push(bodyStmt.block()!);
+      } else {
+        statements.push(bodyStmt);
+      }
+    }
+
+    // do-while statement: has block() directly
+    if (stmt.doWhileStatement()) {
+      blocks.push(stmt.doWhileStatement()!.block());
+    }
+
+    // switch statement: case blocks and optional default block
+    if (stmt.switchStatement()) {
+      const switchStmt = stmt.switchStatement()!;
+      for (const caseCtx of switchStmt.switchCase()) {
+        blocks.push(caseCtx.block());
+      }
+      if (switchStmt.defaultCase()) {
+        blocks.push(switchStmt.defaultCase()!.block());
+      }
+    }
+
+    // critical statement: has block() directly (ADR-050)
+    if (stmt.criticalStatement()) {
+      blocks.push(stmt.criticalStatement()!.block());
+    }
+
+    // Nested block statement
+    if (stmt.block()) {
+      blocks.push(stmt.block()!);
+    }
+
+    return { statements, blocks };
+  }
+
+  /**
    * Walk a statement recursively looking for modifications and calls.
+   * Issue #566: Refactored to use helper methods for expression and child collection.
    */
   private walkStatementForModifications(
     funcName: string,
     paramSet: Set<string>,
     stmt: Parser.StatementContext,
   ): void {
-    // Check for assignment statements
+    // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
       const assign = stmt.assignmentStatement()!;
       const target = assign.assignmentTarget();
@@ -2300,172 +2432,33 @@ export default class CodeGenerator implements IOrchestrator {
       let baseIdentifier: string | null = null;
 
       if (target?.IDENTIFIER()) {
-        // Simple identifier assignment
         baseIdentifier = target.IDENTIFIER()!.getText();
       } else if (target?.memberAccess()) {
-        // Member access: first IDENTIFIER is the base (e.g., cfg.value -> cfg)
         const identifiers = target.memberAccess()!.IDENTIFIER();
         if (identifiers.length > 0) {
           baseIdentifier = identifiers[0].getText();
         }
       } else if (target?.arrayAccess()) {
-        // Array access: IDENTIFIER is the base (e.g., arr[0] -> arr)
         baseIdentifier = target.arrayAccess()!.IDENTIFIER()?.getText() ?? null;
       }
 
       if (baseIdentifier && paramSet.has(baseIdentifier)) {
-        // Direct or member/array assignment modifies the parameter
         this.modifiedParameters.get(funcName)!.add(baseIdentifier);
       }
-
-      // Issue #565: Walk the RHS expression for function calls
-      // This detects calls like: errorCode <- modifyingFunction(param)
-      this.walkExpressionForCalls(funcName, paramSet, assign.expression());
     }
 
-    // Check for expressions that contain function calls
-    if (stmt.expressionStatement()) {
-      this.walkExpressionForCalls(
-        funcName,
-        paramSet,
-        stmt.expressionStatement()!.expression(),
-      );
+    // 2. Walk all expressions in this statement for function calls
+    for (const expr of this.collectExpressionsFromStatement(stmt)) {
+      this.walkExpressionForCalls(funcName, paramSet, expr);
     }
 
-    // Recurse into control flow statements
-    if (stmt.ifStatement()) {
-      const ifStmt = stmt.ifStatement()!;
-      // ifStatement has statement() children, not block()
-      for (const childStmt of ifStmt.statement()) {
-        if (childStmt.block()) {
-          this.walkBlockForModifications(
-            funcName,
-            [...paramSet],
-            childStmt.block()!,
-          );
-        } else {
-          this.walkStatementForModifications(funcName, paramSet, childStmt);
-        }
-      }
-      // Check condition for calls
-      this.walkExpressionForCalls(funcName, paramSet, ifStmt.expression());
+    // 3. Recurse into child statements and blocks
+    const { statements, blocks } = this.getChildStatementsAndBlocks(stmt);
+    for (const childStmt of statements) {
+      this.walkStatementForModifications(funcName, paramSet, childStmt);
     }
-
-    if (stmt.whileStatement()) {
-      const whileStmt = stmt.whileStatement()!;
-      // whileStatement has a single statement() child
-      const bodyStmt = whileStmt.statement();
-      if (bodyStmt.block()) {
-        this.walkBlockForModifications(
-          funcName,
-          [...paramSet],
-          bodyStmt.block()!,
-        );
-      } else {
-        this.walkStatementForModifications(funcName, paramSet, bodyStmt);
-      }
-      this.walkExpressionForCalls(funcName, paramSet, whileStmt.expression());
-    }
-
-    if (stmt.forStatement()) {
-      const forStmt = stmt.forStatement()!;
-      // forStatement has a single statement() child
-      const bodyStmt = forStmt.statement();
-      if (bodyStmt.block()) {
-        this.walkBlockForModifications(
-          funcName,
-          [...paramSet],
-          bodyStmt.block()!,
-        );
-      } else {
-        this.walkStatementForModifications(funcName, paramSet, bodyStmt);
-      }
-      // Check condition for calls
-      if (forStmt.expression()) {
-        this.walkExpressionForCalls(funcName, paramSet, forStmt.expression()!);
-      }
-      // Issue #565: Check forInit for calls (forAssignment has an expression)
-      const forInit = forStmt.forInit();
-      if (forInit?.forAssignment()) {
-        this.walkExpressionForCalls(
-          funcName,
-          paramSet,
-          forInit.forAssignment()!.expression(),
-        );
-      } else if (forInit?.forVarDecl()?.expression()) {
-        this.walkExpressionForCalls(
-          funcName,
-          paramSet,
-          forInit.forVarDecl()!.expression()!,
-        );
-      }
-      // Issue #565: Check forUpdate for calls
-      const forUpdate = forStmt.forUpdate();
-      if (forUpdate) {
-        this.walkExpressionForCalls(funcName, paramSet, forUpdate.expression());
-      }
-    }
-
-    if (stmt.doWhileStatement()) {
-      const doWhile = stmt.doWhileStatement()!;
-      // doWhileStatement has block()
-      this.walkBlockForModifications(funcName, [...paramSet], doWhile.block());
-      this.walkExpressionForCalls(funcName, paramSet, doWhile.expression());
-    }
-
-    // Check return statement for calls
-    if (stmt.returnStatement()) {
-      const retStmt = stmt.returnStatement()!;
-      if (retStmt.expression()) {
-        this.walkExpressionForCalls(funcName, paramSet, retStmt.expression()!);
-      }
-    }
-
-    // Check variable declaration for calls in initializer
-    if (stmt.variableDeclaration()) {
-      const varDecl = stmt.variableDeclaration()!;
-      if (varDecl.expression()) {
-        this.walkExpressionForCalls(funcName, paramSet, varDecl.expression()!);
-      }
-    }
-
-    // Issue #269: Handle switch statements - modifications can occur in any case
-    if (stmt.switchStatement()) {
-      const switchStmt = stmt.switchStatement()!;
-      // Check switch expression for calls
-      this.walkExpressionForCalls(funcName, paramSet, switchStmt.expression());
-      // Walk each case block
-      for (const caseCtx of switchStmt.switchCase()) {
-        this.walkBlockForModifications(
-          funcName,
-          [...paramSet],
-          caseCtx.block(),
-        );
-      }
-      // Walk default case if present
-      const defaultCase = switchStmt.defaultCase();
-      if (defaultCase) {
-        this.walkBlockForModifications(
-          funcName,
-          [...paramSet],
-          defaultCase.block(),
-        );
-      }
-    }
-
-    // ADR-050: Handle critical statements - recurse into the block
-    if (stmt.criticalStatement()) {
-      const criticalStmt = stmt.criticalStatement()!;
-      this.walkBlockForModifications(
-        funcName,
-        [...paramSet],
-        criticalStmt.block(),
-      );
-    }
-
-    // Recurse into nested blocks
-    if (stmt.block()) {
-      this.walkBlockForModifications(funcName, [...paramSet], stmt.block()!);
+    for (const block of blocks) {
+      this.walkBlockForModifications(funcName, [...paramSet], block);
     }
   }
 
