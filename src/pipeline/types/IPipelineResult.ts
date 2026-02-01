@@ -1,5 +1,5 @@
 import ITranspileError from "../../lib/types/ITranspileError";
-import IGrammarCoverageReport from "../../analysis/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../../logic/analysis/types/IGrammarCoverageReport";
 import IFileResult from "./IFileResult";
 
 /**

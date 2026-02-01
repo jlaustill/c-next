@@ -1,4 +1,4 @@
-import ISymbolInfo from "../../codegen/generators/ISymbolInfo";
+import ISymbolInfo from "../../output/codegen/generators/ISymbolInfo";
 
 /**
  * Data contributed by transpiling a single file.

@@ -47,7 +47,7 @@ vi.mock("../../pipeline/Pipeline", () => ({
 }));
 
 // Mock InputExpansion to bypass filesystem scanning
-vi.mock("../../lib/InputExpansion", () => ({
+vi.mock("../../data/InputExpansion", () => ({
   default: {
     expandInputs: vi.fn().mockImplementation((inputs: string[]) => inputs),
   },
@@ -165,7 +165,7 @@ describe("Project.compile", () => {
 
   it("preserves subdirectory structure when compiling from srcDirs", async () => {
     // Mock InputExpansion to return nested file path
-    const InputExpansion = await import("../../lib/InputExpansion");
+    const InputExpansion = await import("../../data/InputExpansion");
     vi.mocked(InputExpansion.default.expandInputs).mockReturnValueOnce([
       nestedFilePath,
     ]);
@@ -196,7 +196,7 @@ describe("Project.compile", () => {
 
   it("preserves subdirectory structure for headers with headerOutDir", async () => {
     // Mock InputExpansion to return nested file path
-    const InputExpansion = await import("../../lib/InputExpansion");
+    const InputExpansion = await import("../../data/InputExpansion");
     vi.mocked(InputExpansion.default.expandInputs).mockReturnValueOnce([
       nestedFilePath,
     ]);
@@ -233,7 +233,7 @@ describe("Project.compile", () => {
 
   it("outputs file directly in srcDir to outDir root (no extra subdirectory)", async () => {
     // Edge case: file directly in srcDir should NOT create empty subpath
-    const InputExpansion = await import("../../lib/InputExpansion");
+    const InputExpansion = await import("../../data/InputExpansion");
     vi.mocked(InputExpansion.default.expandInputs).mockReturnValueOnce([
       rootFilePath,
     ]);
@@ -264,7 +264,7 @@ describe("Project.compile", () => {
 
   it("handles deeply nested subdirectories", async () => {
     // Edge case: multiple levels of nesting (src/a/b/c/deep.cnx)
-    const InputExpansion = await import("../../lib/InputExpansion");
+    const InputExpansion = await import("../../data/InputExpansion");
     vi.mocked(InputExpansion.default.expandInputs).mockReturnValueOnce([
       deepNestedFilePath,
     ]);
@@ -295,7 +295,7 @@ describe("Project.compile", () => {
 
   it("uses dirname when file is not in any srcDir (files-only mode)", async () => {
     // Edge case: no srcDirs, using files array - should use dirname(file) as base
-    const InputExpansion = await import("../../lib/InputExpansion");
+    const InputExpansion = await import("../../data/InputExpansion");
     vi.mocked(InputExpansion.default.expandInputs).mockReturnValueOnce([
       dummyFilePath,
     ]);
@@ -325,7 +325,7 @@ describe("Project.compile", () => {
 
   it("handles mixed srcDirs and nested files", async () => {
     // Edge case: both root-level and nested files in same compile
-    const InputExpansion = await import("../../lib/InputExpansion");
+    const InputExpansion = await import("../../data/InputExpansion");
     vi.mocked(InputExpansion.default.expandInputs).mockReturnValueOnce([
       rootFilePath,
       nestedFilePath,

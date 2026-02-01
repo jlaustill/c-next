@@ -8,11 +8,11 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, basename, join, relative } from "node:path";
-import SymbolTable from "../symbol_resolution/SymbolTable";
+import SymbolTable from "../logic/symbols/SymbolTable";
 import Pipeline from "../pipeline/Pipeline";
-import InputExpansion from "../lib/InputExpansion";
-import IProjectConfig from "./types/IProjectConfig";
-import IProjectResult from "./types/IProjectResult";
+import InputExpansion from "../data/InputExpansion";
+import IProjectConfig from "../data/types/IProjectConfig";
+import IProjectResult from "../data/types/IProjectResult";
 
 /**
  * Manages multi-file C-Next projects

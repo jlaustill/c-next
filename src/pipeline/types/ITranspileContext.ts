@@ -1,5 +1,5 @@
-import ISymbolInfo from "../../codegen/generators/ISymbolInfo";
-import SymbolTable from "../../symbol_resolution/SymbolTable";
+import ISymbolInfo from "../../output/codegen/generators/ISymbolInfo";
+import SymbolTable from "../../logic/symbols/SymbolTable";
 
 /**
  * Cross-file context passed to transpileSource() when called from run().

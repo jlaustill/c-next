@@ -7,10 +7,10 @@
     "cnext": "./bin/cnext.js"
   },
   "scripts": {
-    "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/antlr_parser grammar/CNext.g4",
-    "antlr:c": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/antlr_parser/c grammar/C.g4",
-    "antlr:cpp:lexer": "antlr4ng -Dlanguage=TypeScript -o src/antlr_parser/cpp grammar/CPP14Lexer.g4",
-    "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/antlr_parser/cpp -lib src/antlr_parser/cpp/grammar grammar/CPP14Parser.g4",
+    "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/logic/parser grammar/CNext.g4",
+    "antlr:c": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/logic/parser/c grammar/C.g4",
+    "antlr:cpp:lexer": "antlr4ng -Dlanguage=TypeScript -o src/logic/parser/cpp grammar/CPP14Lexer.g4",
+    "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/logic/parser/cpp -lib src/logic/parser/cpp/grammar grammar/CPP14Parser.g4",
     "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
     "antlr:all": "npm run antlr && npm run antlr:c && npm run antlr:cpp",
     "start": "tsx src/index.ts",
@@ -21,11 +21,11 @@
     "test:q": "tsx scripts/test.ts -q",
     "test:update": "tsx scripts/test.ts --update",
     "analyze": "./scripts/static-analysis.sh",
-    "clean": "rm -rf src/antlr_parser",
+    "clean": "rm -rf src/logic/parser/grammar src/logic/parser/c/grammar src/logic/parser/cpp/grammar",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
-    "oxlint:check": "oxlint src/",
-    "oxlint:fix": "oxlint src/ --fix",
+    "oxlint:check": "oxlint src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**'",
+    "oxlint:fix": "oxlint src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**' --fix",
     "prepare": "husky",
     "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm test",
     "coverage:check": "tsx scripts/coverage-checker.ts check",
@@ -84,6 +84,7 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
+    "@n1ru4l/toposort": "^0.0.1",
     "antlr4ng": "^3.0.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

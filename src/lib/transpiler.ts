@@ -10,22 +10,22 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
-import { CNextParser } from "../antlr_parser/grammar/CNextParser";
-import CNextSourceParser from "../pipeline/CNextSourceParser";
-import CodeGenerator from "../codegen/CodeGenerator";
-import CommentExtractor from "../codegen/CommentExtractor";
-import InitializationAnalyzer from "../analysis/InitializationAnalyzer";
-import CNextResolver from "../symbol_resolution/cnext";
-import TSymbolInfoAdapter from "../symbol_resolution/cnext/adapters/TSymbolInfoAdapter";
-import FunctionCallAnalyzer from "../analysis/FunctionCallAnalyzer";
-import NullCheckAnalyzer from "../analysis/NullCheckAnalyzer";
-import DivisionByZeroAnalyzer from "../analysis/DivisionByZeroAnalyzer";
-import FloatModuloAnalyzer from "../analysis/FloatModuloAnalyzer";
-import GrammarCoverageListener from "../analysis/GrammarCoverageListener";
+import { CNextLexer } from "../logic/parser/grammar/CNextLexer";
+import { CNextParser } from "../logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../logic/parser/CNextSourceParser";
+import CodeGenerator from "../output/codegen/CodeGenerator";
+import CommentExtractor from "../output/codegen/CommentExtractor";
+import InitializationAnalyzer from "../logic/analysis/InitializationAnalyzer";
+import CNextResolver from "../logic/symbols/cnext";
+import TSymbolInfoAdapter from "../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
+import FunctionCallAnalyzer from "../logic/analysis/FunctionCallAnalyzer";
+import NullCheckAnalyzer from "../logic/analysis/NullCheckAnalyzer";
+import DivisionByZeroAnalyzer from "../logic/analysis/DivisionByZeroAnalyzer";
+import FloatModuloAnalyzer from "../logic/analysis/FloatModuloAnalyzer";
+import GrammarCoverageListener from "../logic/analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileOptions from "./types/ITranspileOptions";
-import IGrammarCoverageReport from "../analysis/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../logic/analysis/types/IGrammarCoverageReport";
 
 /**
  * Transpile C-Next source code to C

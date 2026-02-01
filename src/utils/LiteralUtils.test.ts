@@ -4,11 +4,11 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextLexer } from "../logic/parser/grammar/CNextLexer";
 import {
   CNextParser,
   LiteralContext,
-} from "../antlr_parser/grammar/CNextParser";
+} from "../logic/parser/grammar/CNextParser";
 import LiteralUtils from "./LiteralUtils";
 
 /**

@@ -1,0 +1,114 @@
+/**
+ * DependencyGraph
+ *
+ * Manages file dependencies and provides topological sorting for correct
+ * processing order. Files are sorted so that dependencies are processed
+ * before dependents.
+ *
+ * Uses @n1ru4l/toposort for cycle-aware topological sorting.
+ */
+
+import { toposortReverse } from "@n1ru4l/toposort";
+
+/**
+ * Manages file dependencies for topological sorting
+ */
+class DependencyGraph {
+  /** Maps each file to its dependencies (files it includes) */
+  private readonly dependencies: Map<string, string[]> = new Map();
+  private readonly warnings: string[] = [];
+
+  /**
+   * Add a file to the graph without dependencies
+   */
+  addFile(path: string): void {
+    if (!this.dependencies.has(path)) {
+      this.dependencies.set(path, []);
+    }
+  }
+
+  /**
+   * Add a dependency relationship
+   * @param dependent - The file that depends on another (the includer)
+   * @param dependency - The file being depended on (the included file)
+   */
+  addDependency(dependent: string, dependency: string): void {
+    // Ensure both nodes exist
+    if (!this.dependencies.has(dependent)) {
+      this.dependencies.set(dependent, []);
+    }
+    if (!this.dependencies.has(dependency)) {
+      this.dependencies.set(dependency, []);
+    }
+
+    // Add the dependency relationship
+    const deps = this.dependencies.get(dependent)!;
+    if (!deps.includes(dependency)) {
+      deps.push(dependency);
+    }
+  }
+
+  /**
+   * Get files in topological order (dependencies first)
+   *
+   * Uses toposortReverse which expects a map of [node -> dependencies].
+   * The result is batches of files that can be processed in parallel,
+   * but we flatten it to a single array.
+   *
+   * If a cycle is detected, returns nodes in arbitrary order with a warning.
+   */
+  getSortedFiles(): string[] {
+    if (this.dependencies.size === 0) {
+      return [];
+    }
+
+    try {
+      // toposortReverse returns batches (Set[]) - flatten to array
+      const batches = toposortReverse(this.dependencies);
+      const result: string[] = [];
+      for (const batch of batches) {
+        for (const file of batch) {
+          result.push(file);
+        }
+      }
+      return result;
+    } catch (_e) {
+      // Cycle detected - return nodes in arbitrary order with warning
+      this.warnings.push(
+        `Warning: Circular dependency detected in include graph. Files may be processed in incorrect order.`,
+      );
+      return [...this.dependencies.keys()];
+    }
+  }
+
+  /**
+   * Get any warnings generated during sorting
+   */
+  getWarnings(): string[] {
+    return [...this.warnings];
+  }
+
+  /**
+   * Check if the graph has any files
+   */
+  isEmpty(): boolean {
+    return this.dependencies.size === 0;
+  }
+
+  /**
+   * Get the number of files in the graph
+   */
+  size(): number {
+    return this.dependencies.size;
+  }
+
+  /**
+   * Clear the graph
+   */
+  clear(): void {
+    this.dependencies.clear();
+    this.warnings.length = 0;
+  }
+}
+
+export default DependencyGraph;

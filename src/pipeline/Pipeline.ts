@@ -16,44 +16,44 @@ import {
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname, resolve } from "node:path";
 
-import { CNextLexer } from "../antlr_parser/grammar/CNextLexer";
+import { CNextLexer } from "../logic/parser/grammar/CNextLexer";
 import {
   CNextParser,
   ProgramContext,
-} from "../antlr_parser/grammar/CNextParser";
-import CNextSourceParser from "./CNextSourceParser";
-import { CLexer } from "../antlr_parser/c/grammar/CLexer";
-import { CParser } from "../antlr_parser/c/grammar/CParser";
-import { CPP14Lexer } from "../antlr_parser/cpp/grammar/CPP14Lexer";
-import { CPP14Parser } from "../antlr_parser/cpp/grammar/CPP14Parser";
+} from "../logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../logic/parser/CNextSourceParser";
+import { CLexer } from "../logic/parser/c/grammar/CLexer";
+import { CParser } from "../logic/parser/c/grammar/CParser";
+import { CPP14Lexer } from "../logic/parser/cpp/grammar/CPP14Lexer";
+import { CPP14Parser } from "../logic/parser/cpp/grammar/CPP14Parser";
 
-import CodeGenerator from "../codegen/CodeGenerator";
-import HeaderGenerator from "../codegen/HeaderGenerator";
-import ISymbolInfo from "../codegen/generators/ISymbolInfo";
-import SymbolTable from "../symbol_resolution/SymbolTable";
-import ESymbolKind from "../types/ESymbolKind";
-import CNextResolver from "../symbol_resolution/cnext";
-import TSymbolAdapter from "../symbol_resolution/cnext/adapters/TSymbolAdapter";
-import TSymbolInfoAdapter from "../symbol_resolution/cnext/adapters/TSymbolInfoAdapter";
-import CSymbolCollector from "../symbol_resolution/CSymbolCollector";
-import CppSymbolCollector from "../symbol_resolution/CppSymbolCollector";
-import Preprocessor from "../preprocessor/Preprocessor";
+import CodeGenerator from "../output/codegen/CodeGenerator";
+import HeaderGenerator from "../output/headers/HeaderGenerator";
+import ISymbolInfo from "../output/codegen/generators/ISymbolInfo";
+import SymbolTable from "../logic/symbols/SymbolTable";
+import ESymbolKind from "../utils/types/ESymbolKind";
+import CNextResolver from "../logic/symbols/cnext";
+import TSymbolAdapter from "../logic/symbols/cnext/adapters/TSymbolAdapter";
+import TSymbolInfoAdapter from "../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
+import CSymbolCollector from "../logic/symbols/CSymbolCollector";
+import CppSymbolCollector from "../logic/symbols/CppSymbolCollector";
+import Preprocessor from "../logic/preprocessor/Preprocessor";
 
-import FileDiscovery from "../project/FileDiscovery";
-import EFileType from "../project/types/EFileType";
-import IDiscoveredFile from "../project/types/IDiscoveredFile";
-import IncludeDiscovery from "../lib/IncludeDiscovery";
-import IncludeResolver from "../lib/IncludeResolver";
+import FileDiscovery from "../data/FileDiscovery";
+import EFileType from "../data/types/EFileType";
+import IDiscoveredFile from "../data/types/IDiscoveredFile";
+import IncludeDiscovery from "../data/IncludeDiscovery";
+import IncludeResolver from "../data/IncludeResolver";
 
 import IPipelineConfig from "./types/IPipelineConfig";
 import IPipelineResult from "./types/IPipelineResult";
 import IFileResult from "./types/IFileResult";
 import ITranspileContext from "./types/ITranspileContext";
 import ITranspileContribution from "./types/ITranspileContribution";
-import runAnalyzers from "./runAnalyzers";
-import CacheManager from "./CacheManager";
-import IStructFieldInfo from "../symbol_resolution/types/IStructFieldInfo";
-import detectCppSyntax from "./detectCppSyntax";
+import runAnalyzers from "../logic/analysis/runAnalyzers";
+import CacheManager from "../utils/cache/CacheManager";
+import IStructFieldInfo from "../logic/symbols/types/IStructFieldInfo";
+import detectCppSyntax from "../logic/detectCppSyntax";
 import LiteralUtils from "../utils/LiteralUtils";
 
 /**
