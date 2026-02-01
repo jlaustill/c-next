@@ -18,6 +18,7 @@ type TTypeInfo = {
   stringCapacity?: number;
   isAtomic?: boolean;
   isExternalCppType?: boolean; // Issue #375: C++ types instantiated via constructor
+  isParameter?: boolean; // Issue #579: Track if this is a function parameter (becomes pointer in C)
 };
 
 export default TTypeInfo;

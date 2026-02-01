@@ -6,16 +6,21 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+static inline void __cnx_disable_irq(void) { __disable_irq(); }
+static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
+static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
+
 // test-execution
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.
 // --- Unmodified parameters: should pass by value ---
-uint8_t getLowByte(uint16_t value) {
+uint8_t getLowByte(const uint16_t* value) {
     return ((value) & 0xFFU);
 }
 
-uint8_t getHighByte(uint16_t value) {
+uint8_t getHighByte(const uint16_t* value) {
     return ((value >> 8) & 0xFFU);
 }
 
@@ -48,12 +53,41 @@ uint32_t addAndIncrement(uint32_t* a, uint32_t b) {
     return (*a) + b;
 }
 
+// --- Modification in switch statement (Issue #269 bug fix) ---
+// Parameters modified inside switch cases must still pass by pointer
+void modifyInSwitch(uint32_t* x, uint32_t mode) {
+    switch (mode) {
+        case 1: {
+            (*x) = (*x) + 10;
+            break;
+        }
+        case 2: {
+            (*x) = (*x) + 20;
+            break;
+        }
+        default: {
+            (*x) = (*x) + 1;
+            break;
+        }
+    }
+}
+
+// --- Modification in critical section (ADR-050) ---
+void modifyInCritical(uint32_t* x) {
+    {
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
+        (*x) = (*x) * 2;
+        __cnx_set_PRIMASK(__primask);
+    }
+}
+
 // --- Main test ---
 int main(void) {
     uint16_t testVal = 0x1234;
-    uint8_t low = getLowByte(testVal);
+    uint8_t low = getLowByte(&testVal);
     if (low != 0x34) return 1;
-    uint8_t high = getHighByte(testVal);
+    uint8_t high = getHighByte(&testVal);
     if (high != 0x12) return 2;
     uint32_t sum = addTwo(100, 200);
     if (sum != 300) return 3;
@@ -75,5 +109,17 @@ int main(void) {
     uint32_t mixedResult = addAndIncrement(&mixedA, mixedB);
     if (mixedResult != 16) return 9;
     if (mixedA != 6) return 10;
+    uint32_t switchVal = 100;
+    modifyInSwitch(&switchVal, 1);
+    if (switchVal != 110) return 11;
+    switchVal = 100;
+    modifyInSwitch(&switchVal, 2);
+    if (switchVal != 120) return 12;
+    switchVal = 100;
+    modifyInSwitch(&switchVal, 99);
+    if (switchVal != 101) return 13;
+    uint32_t criticalVal = 50;
+    modifyInCritical(&criticalVal);
+    if (criticalVal != 100) return 14;
     return 0;
 }
