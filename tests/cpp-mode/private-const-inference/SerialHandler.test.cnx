@@ -1,0 +1,27 @@
+// test-cpp-mode
+// test-transpile-only
+// Bug #561: Private function const inference
+// handleSet is a PRIVATE function that passes config to CommandHandler.setValue
+// which modifies cfg.value. Therefore:
+// 1. handleSet's config param should NOT be const (it's passed to a modifying function)
+// 2. process's config param should NOT be const (it calls handleSet which transitively modifies)
+
+#include "Config.cnx"
+#include "CommandHandler.cnx"
+
+scope SerialHandler {
+    // Private helper - passes config to CommandHandler
+    void handleSet(Config config) {
+        u8 result <- global.CommandHandler.setValue(config, 42);
+    }
+
+    // Public entry point - calls private helper
+    public void process(Config config) {
+        this.handleSet(config);
+    }
+}
+
+void main() {
+    Config c <- {value: 0};
+    global.SerialHandler.process(c);
+}

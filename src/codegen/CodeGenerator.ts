@@ -1179,6 +1179,57 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #561: Analyze modifications in a parse tree without full code generation.
+   * Used by Pipeline.transpileSource() to collect modification info from includes
+   * for cross-file const inference (unified with Pipeline.run() behavior).
+   *
+   * Returns the modifications and param lists discovered in this tree.
+   */
+  analyzeModificationsOnly(tree: Parser.ProgramContext): {
+    modifications: Map<string, Set<string>>;
+    paramLists: Map<string, string[]>;
+  } {
+    // Save current state
+    const savedModifications = new Map(this.modifiedParameters);
+    const savedParamLists = new Map(this.functionParamLists);
+    const savedCallGraph = new Map(this.functionCallGraph);
+
+    // Clear for fresh analysis
+    this.modifiedParameters.clear();
+    this.functionParamLists.clear();
+    this.functionCallGraph.clear();
+
+    // Run modification analysis on the tree
+    this.collectFunctionParametersAndModifications(tree);
+
+    // Capture results before restoring state
+    const modifications = new Map<string, Set<string>>();
+    for (const [funcName, params] of this.modifiedParameters) {
+      modifications.set(funcName, new Set(params));
+    }
+    const paramLists = new Map<string, string[]>();
+    for (const [funcName, params] of this.functionParamLists) {
+      paramLists.set(funcName, [...params]);
+    }
+
+    // Restore previous state by clearing and repopulating (readonly maps)
+    this.modifiedParameters.clear();
+    for (const [k, v] of savedModifications) {
+      this.modifiedParameters.set(k, v);
+    }
+    this.functionParamLists.clear();
+    for (const [k, v] of savedParamLists) {
+      this.functionParamLists.set(k, v);
+    }
+    this.functionCallGraph.clear();
+    for (const [k, v] of savedCallGraph) {
+      this.functionCallGraph.set(k, v);
+    }
+
+    return { modifications, paramLists };
+  }
+
+  /**
    * Issue #268: Check if a callee function's parameter at given index is modified.
    * Returns true if the callee modifies that parameter (should not have const).
    */
@@ -2473,9 +2524,17 @@ export default class CodeGenerator implements IOrchestrator {
       const memberNames: string[] = [];
 
       // Start with primary identifier if it's a scope name (not 'global' or 'this')
+      // Issue #561: When 'this' is used, resolve to the current scope name from funcName
       const primaryId = primary.IDENTIFIER()?.getText();
-      if (primaryId && primaryId !== "global" && primaryId !== "this") {
+      if (primaryId && primaryId !== "global") {
         memberNames.push(primaryId);
+      } else if (primary.THIS()) {
+        // Issue #561: 'this' keyword - resolve to current scope name from funcName
+        // funcName format: "ScopeName_methodName" -> extract "ScopeName"
+        const scopeName = funcName.split("_")[0];
+        if (scopeName && scopeName !== funcName) {
+          memberNames.push(scopeName);
+        }
       }
 
       // Collect member access names until we hit a function call
