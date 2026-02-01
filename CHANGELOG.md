@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.51] - 2026-02-01
+
+### Fixed
+
+- Const inference: propagate transitive modifications across files (Issue #565)
+- Const inference: walk RHS of assignments and for-loop init/update (Issue #565)
+- GitHub Pages: add .nojekyll to disable Jekyll processing
+- Update oxlint ignore pattern for relocated grammar files
+- Update paths in package.json and .prettierignore for new structure
+
+### Changed
+
+- 3-layer architecture refactoring: data/, logic/, output/ separation (PR #571, #572)
+- Move Transpiler to root as orchestrator with Pipeline renamed to Transpiler
+- Move CommentExtractor to logic/analysis/
+- Unify run() and transpileSource() code paths (PR #568)
+- Extract generic expression walker helpers for const inference (Issue #566)
+
+### Added
+
+- Unit test coverage report for GitHub Pages
+- Coverage report badge linking to GitHub Pages
+- Bare function call edge cases for const inference tests
+
 ## [0.1.50] - 2026-01-31
 
 ### Fixed
@@ -585,7 +609,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.50...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.51...HEAD
+[0.1.51]: https://github.com/jlaustill/c-next/compare/v0.1.50...v0.1.51
 [0.1.50]: https://github.com/jlaustill/c-next/compare/v0.1.49...v0.1.50
 [0.1.49]: https://github.com/jlaustill/c-next/compare/v0.1.48...v0.1.49
 [0.1.48]: https://github.com/jlaustill/c-next/compare/v0.1.47...v0.1.48
