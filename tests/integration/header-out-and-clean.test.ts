@@ -14,7 +14,7 @@ import {
   readdirSync,
 } from "node:fs";
 import { join } from "node:path";
-import Pipeline from "../../src/pipeline/Pipeline";
+import Transpiler from "../../src/transpiler/Transpiler";
 import CleanCommand from "../../src/commands/CleanCommand";
 
 // Test source file content
@@ -79,7 +79,7 @@ async function runTest() {
   // Test 1: --header-out separates headers from code
   console.log("\n=== Test 1: --header-out option ===\n");
 
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -131,7 +131,7 @@ async function runTest() {
   console.log("\n=== Test 3: --clean without --header-out ===\n");
 
   // Regenerate files to same directory
-  const pipeline2 = new Pipeline({
+  const pipeline2 = new Transpiler({
     inputs: [sourceDir],
     outDir: codeOutDir,
     includeDirs: [],

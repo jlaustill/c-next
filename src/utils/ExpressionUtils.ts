@@ -11,7 +11,7 @@
  * This utility extracts common traversal patterns used by multiple analyzers.
  */
 
-import * as Parser from "../logic/parser/grammar/CNextParser";
+import * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
 
 /**
  * Static utility methods for expression tree traversal

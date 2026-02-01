@@ -17,7 +17,7 @@ import CacheManager from "../CacheManager";
 import ISymbol from "../../types/ISymbol";
 import ESymbolKind from "../../types/ESymbolKind";
 import ESourceLanguage from "../../types/ESourceLanguage";
-import IStructFieldInfo from "../../../logic/symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../../../transpiler/logic/symbols/types/IStructFieldInfo";
 
 describe("CacheManager", () => {
   let testDir: string;

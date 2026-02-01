@@ -20,7 +20,7 @@ import {
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import Pipeline from "../../src/pipeline/Pipeline";
+import Transpiler from "../../src/transpiler/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -84,7 +84,7 @@ async function runTest() {
 
   // Configure pipeline with header generation (process both files explicitly)
   // Use explicit file list to ensure deterministic processing order
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [file1Path, file2Path], // Explicit files instead of directory
     outDir: testDir,
     includeDirs: [],

@@ -6,26 +6,26 @@
  * transpilation without header parsing.
  *
  * For multi-file builds or file-based transpilation with header support,
- * use Pipeline from '../pipeline/Pipeline' directly.
+ * use Transpiler from '../transpiler/Transpiler' directly.
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextLexer } from "../logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../logic/parser/grammar/CNextParser";
-import CNextSourceParser from "../logic/parser/CNextSourceParser";
-import CodeGenerator from "../output/codegen/CodeGenerator";
-import CommentExtractor from "../output/codegen/CommentExtractor";
-import InitializationAnalyzer from "../logic/analysis/InitializationAnalyzer";
-import CNextResolver from "../logic/symbols/cnext";
-import TSymbolInfoAdapter from "../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
-import FunctionCallAnalyzer from "../logic/analysis/FunctionCallAnalyzer";
-import NullCheckAnalyzer from "../logic/analysis/NullCheckAnalyzer";
-import DivisionByZeroAnalyzer from "../logic/analysis/DivisionByZeroAnalyzer";
-import FloatModuloAnalyzer from "../logic/analysis/FloatModuloAnalyzer";
-import GrammarCoverageListener from "../logic/analysis/GrammarCoverageListener";
+import { CNextLexer } from "../transpiler/logic/parser/grammar/CNextLexer";
+import { CNextParser } from "../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
+import CodeGenerator from "../transpiler/output/codegen/CodeGenerator";
+import CommentExtractor from "../transpiler/output/codegen/CommentExtractor";
+import InitializationAnalyzer from "../transpiler/logic/analysis/InitializationAnalyzer";
+import CNextResolver from "../transpiler/logic/symbols/cnext";
+import TSymbolInfoAdapter from "../transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter";
+import FunctionCallAnalyzer from "../transpiler/logic/analysis/FunctionCallAnalyzer";
+import NullCheckAnalyzer from "../transpiler/logic/analysis/NullCheckAnalyzer";
+import DivisionByZeroAnalyzer from "../transpiler/logic/analysis/DivisionByZeroAnalyzer";
+import FloatModuloAnalyzer from "../transpiler/logic/analysis/FloatModuloAnalyzer";
+import GrammarCoverageListener from "../transpiler/logic/analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileOptions from "./types/ITranspileOptions";
-import IGrammarCoverageReport from "../logic/analysis/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../transpiler/logic/analysis/types/IGrammarCoverageReport";
 
 /**
  * Transpile C-Next source code to C

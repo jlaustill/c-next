@@ -18,7 +18,7 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import FileDiscovery from "../../../src/project/FileDiscovery";
-import Pipeline from "../../../src/pipeline/Pipeline";
+import Transpiler from "../../../src/transpiler/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
   console.log("Test 2: Pipeline symbol conflict detection");
 
   // Create pipeline with overlapping include paths (like the bug report)
-  const pipeline = new Pipeline({
+  const pipeline = new Transpiler({
     inputs: [appFile],
     includeDirs: [moduleDir, srcDir], // Overlapping: moduleDir is inside srcDir
     outDir: join(__dirname, "output"),

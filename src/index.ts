@@ -5,9 +5,9 @@
  */
 
 import CleanCommand from "./commands/CleanCommand";
-import IncludeDiscovery from "./data/IncludeDiscovery";
-import InputExpansion from "./data/InputExpansion";
-import Project from "./project/Project";
+import IncludeDiscovery from "./transpiler/data/IncludeDiscovery";
+import InputExpansion from "./transpiler/data/InputExpansion";
+import Transpiler from "./transpiler/Transpiler";
 import {
   readFileSync,
   writeFileSync,
@@ -171,14 +171,19 @@ function showHelp(): void {
 }
 
 /**
- * Print project compilation result
+ * Print pipeline compilation result
  */
-function printProjectResult(result: {
+function printTranspilerResult(result: {
   success: boolean;
   filesProcessed: number;
   symbolsCollected: number;
   conflicts: string[];
-  errors: string[];
+  errors: Array<{
+    line: number;
+    column: number;
+    message: string;
+    sourcePath?: string;
+  }>;
   warnings: string[];
   outputFiles: string[];
 }): void {
@@ -194,7 +199,11 @@ function printProjectResult(result: {
 
   // Print errors
   for (const error of result.errors) {
-    console.error(`Error: ${error}`);
+    // Format error with source path if available
+    const location = error.sourcePath
+      ? `${error.sourcePath}:${error.line}:${error.column}`
+      : `${error.line}:${error.column}`;
+    console.error(`Error: ${location} ${error.message}`);
   }
 
   // Summary
@@ -230,7 +239,7 @@ async function runUnifiedMode(
   target?: string,
 ): Promise<void> {
   // Issue #337: Identify which inputs are directories (for structure preservation)
-  // These will be passed to Project.srcDirs so Pipeline can preserve directory structure
+  // These will be passed to Project.srcDirs so Transpiler can preserve directory structure
   const srcDirs: string[] = [];
   const explicitFiles: string[] = [];
 
@@ -300,12 +309,13 @@ async function runUnifiedMode(
     outDir = dirname(files[0]);
   }
 
-  // Step 4: Create Project
+  // Step 4: Create Transpiler
   // Issue #337: Pass srcDirs to preserve directory structure in output
-  // srcDirs contains resolved directory inputs that Pipeline uses for relative path calculation
-  const project = new Project({
-    srcDirs,
-    files: explicitFiles, // Only non-directory inputs (individual files)
+  // srcDirs contains resolved directory inputs that Transpiler uses for relative path calculation
+  // Combine srcDirs and explicitFiles into inputs - Transpiler handles both
+  const pipelineInputs = [...srcDirs, ...explicitFiles];
+  const pipeline = new Transpiler({
+    inputs: pipelineInputs,
     includeDirs: allIncludePaths,
     outDir,
     headerOutDir,
@@ -319,7 +329,7 @@ async function runUnifiedMode(
   });
 
   // Step 5: Compile
-  const result = await project.compile();
+  const result = await pipeline.run();
 
   // Step 6: Rename output file if explicit filename was specified
   if (explicitOutputFile && result.success && result.outputFiles.length > 0) {
@@ -332,7 +342,7 @@ async function runUnifiedMode(
     }
   }
 
-  printProjectResult(result);
+  printTranspilerResult(result);
   process.exit(result.success ? 0 : 1);
 }
 

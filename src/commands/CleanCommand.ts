@@ -5,7 +5,7 @@
 
 import { basename, join, relative, resolve } from "node:path";
 import { existsSync, statSync, unlinkSync } from "node:fs";
-import InputExpansion from "../data/InputExpansion";
+import InputExpansion from "../transpiler/data/InputExpansion";
 
 /**
  * Command to clean generated output files
