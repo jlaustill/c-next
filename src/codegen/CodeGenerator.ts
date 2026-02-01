@@ -7124,7 +7124,8 @@ export default class CodeGenerator implements IOrchestrator {
           !paramInfo.isStruct &&
           this._isKnownPrimitive(paramInfo.baseType)
         ) {
-          return `(*${id})`;
+          // Issue #558: In C++ mode, primitives that become references don't need dereferencing
+          return this.cppMode ? id : `(*${id})`;
         }
         return id;
       }
@@ -8657,7 +8658,8 @@ export default class CodeGenerator implements IOrchestrator {
           !paramInfo.isStruct &&
           this._isKnownPrimitive(paramInfo.baseType)
         ) {
-          return `(*${id})`;
+          // Issue #558: In C++ mode, primitives that become references don't need dereferencing
+          return this.cppMode ? id : `(*${id})`;
         }
         return id;
       }

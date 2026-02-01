@@ -47,6 +47,14 @@ class TestUtils {
   }
 
   /**
+   * Issue #558: Check if source has test-cpp-mode marker
+   * Tests with this marker run in C++ mode (generates .cpp files with reference semantics)
+   */
+  static hasCppModeMarker(source: string): boolean {
+    return /\/\/\s*test-cpp-mode/i.test(source);
+  }
+
+  /**
    * Check if generated C code requires ARM runtime (can't execute on x86)
    */
   static requiresArmRuntime(cCode: string): boolean {
@@ -620,6 +628,9 @@ class TestUtils {
     // Issue #455: Check if .expected.h exists (for header validation tests)
     const hasExpectedHFile = existsSync(expectedHFile);
 
+    // Issue #558: Check for C++ mode marker
+    const cppMode = TestUtils.hasCppModeMarker(source);
+
     // Use Pipeline for transpilation with header parsing support
     // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
     // Caching can cause stale symbols when Pipeline code changes
@@ -627,6 +638,7 @@ class TestUtils {
       inputs: [],
       includeDirs: [join(rootDir, "tests/include")],
       noCache: true,
+      cppRequired: cppMode, // Issue #558: Enable C++ mode when marker present
     });
 
     // Enable header generation if:
