@@ -1,0 +1,9 @@
+// test-cpp-mode
+// Named with Z prefix to come AFTER AHandler alphabetically
+#include "Config.cnx"
+
+scope ZModifier {
+    public void reset(Config c) {
+        c.value <- 42;
+    }
+}

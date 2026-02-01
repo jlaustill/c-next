@@ -1,0 +1,10 @@
+// test-cpp-mode
+#include "Config.cnx"
+#include "Level3.cnx"
+
+scope Level2 {
+    // Just passes through to Level3
+    public void passToLevel3(Config c) {
+        global.Level3.modify(c);
+    }
+}

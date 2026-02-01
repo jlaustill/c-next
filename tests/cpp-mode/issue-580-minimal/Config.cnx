@@ -1,0 +1,4 @@
+// test-cpp-mode
+struct Config {
+    u32 value;
+}

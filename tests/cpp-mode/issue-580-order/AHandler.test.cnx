@@ -1,0 +1,19 @@
+// test-cpp-mode
+// test-transpile-only
+// Issue #580 order test: AHandler comes before ZModifier alphabetically
+// Tests if file order affects const inference
+
+#include "Config.cnx"
+#include "ZModifier.cnx"
+
+scope AHandler {
+    // Pass through to ZModifier (which may be processed later)
+    public void passThrough(Config config) {
+        global.ZModifier.reset(config);
+    }
+}
+
+void main() {
+    Config c <- {value: 0};
+    global.AHandler.passThrough(c);
+}

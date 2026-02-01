@@ -1,0 +1,19 @@
+// test-cpp-mode
+// test-transpile-only
+// Issue #580 minimal reproduction: function with ONLY a pass-through call
+
+#include "Config.cnx"
+#include "Modifier.cnx"
+
+scope Handler {
+    // This function does NOTHING except pass config to reset()
+    // It should NOT get const because reset() modifies config
+    public void passThrough(Config config) {
+        global.Modifier.reset(config);
+    }
+}
+
+void main() {
+    Config c <- {value: 0};
+    global.Handler.passThrough(c);
+}
