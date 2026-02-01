@@ -155,6 +155,16 @@ void handleCompoundModify(Config* config) {
     total = cnx_clamp_add_u32(total, code);
 }
 
+// Edge case 12: Bare function call (expression statement, no assignment)
+void handleBareCall(Config* config) {
+    Handler_setValue(config, 90);
+}
+
+// Edge case 13: Bare function call that only reads (should be const)
+void handleBareReadOnly(const Config* config) {
+    Handler_getValue(config);
+}
+
 int main(void) {
     Config cfg = {0};
     cfg.value = 0;
@@ -190,5 +200,11 @@ int main(void) {
     cfg.value = 0;
     handleCompoundModify(&cfg);
     if (cfg.value != 80) return 11;
+    cfg.value = 0;
+    handleBareCall(&cfg);
+    if (cfg.value != 90) return 12;
+    cfg.value = 123;
+    handleBareReadOnly(&cfg);
+    if (cfg.value != 123) return 13;
     return 0;
 }

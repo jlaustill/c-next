@@ -138,6 +138,16 @@ void handleCompoundModify(Config config) {
     total +<- code;  // This is safe, but the line above should mark config as modified
 }
 
+// Edge case 12: Bare function call (expression statement, no assignment)
+void handleBareCall(Config config) {
+    global.Handler.setValue(config, 90);  // No assignment, just call
+}
+
+// Edge case 13: Bare function call that only reads (should be const)
+void handleBareReadOnly(Config config) {
+    global.Handler.getValue(config);  // No assignment, read-only call
+}
+
 u32 main() {
     Config cfg;
 
@@ -195,6 +205,16 @@ u32 main() {
     cfg.value <- 0;
     handleCompoundModify(cfg);
     if (cfg.value != 80) return 11;
+
+    // Test 12: Bare function call (modifying)
+    cfg.value <- 0;
+    handleBareCall(cfg);
+    if (cfg.value != 90) return 12;
+
+    // Test 13: Bare function call (read-only) - cfg should NOT be modified
+    cfg.value <- 123;
+    handleBareReadOnly(cfg);
+    if (cfg.value != 123) return 13;  // Should stay unchanged
 
     return 0;
 }
