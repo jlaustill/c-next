@@ -1,0 +1,5 @@
+// test-cpp-mode
+// Shared config struct for Issue #580 test
+struct Config {
+    u32 value;
+}

@@ -1,0 +1,8 @@
+// test-cpp-mode
+// Mock Serial for logging - does NOT modify Config
+
+scope Serial {
+    public void println(u32 msg) {
+        // Just prints - doesn't modify anything
+    }
+}

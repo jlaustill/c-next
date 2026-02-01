@@ -1,0 +1,14 @@
+// test-cpp-mode
+#include "Config.cnx"
+
+scope CommandHandler {
+    // This function modifies config
+    public void reset(Config config) {
+        config.value <- 42;
+    }
+
+    // This also modifies config
+    public void applyPreset(Config config, u8 input, u8 preset) {
+        config.value <- input + preset;
+    }
+}

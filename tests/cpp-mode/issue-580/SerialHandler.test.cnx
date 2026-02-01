@@ -1,0 +1,40 @@
+// test-cpp-mode
+// test-transpile-only
+// Issue #580: Incorrect const inference when parameter is only passed to mutating function
+// handleReset was incorrectly marked const even though it passes config to reset() which mutates it
+
+#include "Config.cnx"
+#include "CommandHandler.cnx"
+#include "Serial.cnx"
+
+scope SerialHandler {
+    // BUG: This was incorrectly marked const in v0.1.51
+    // Has minimal control flow - only passes through to mutating function
+    // with other non-modifying calls (Serial.println)
+    public void handleReset(Config config) {
+        global.Serial.println(1);
+        global.CommandHandler.reset(config);  // reset() mutates config
+        global.Serial.println(2);
+    }
+
+    // This correctly avoided const - has more code
+    public void handlePreset(Config config) {
+        if (config.value < 10) {
+            global.Serial.println(3);
+            return;
+        }
+        u8 input <- 1;
+        u8 preset <- 2;
+        global.CommandHandler.applyPreset(config, input, preset);
+    }
+
+    // Another minimal function - should NOT get const
+    public void handleSave(Config config) {
+        global.CommandHandler.reset(config);
+    }
+}
+
+void main() {
+    Config c <- {value: 0};
+    global.SerialHandler.handleReset(c);
+}

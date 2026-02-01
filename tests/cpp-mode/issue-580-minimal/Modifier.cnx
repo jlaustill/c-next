@@ -1,0 +1,8 @@
+// test-cpp-mode
+#include "Config.cnx"
+
+scope Modifier {
+    public void reset(Config c) {
+        c.value <- 42;
+    }
+}

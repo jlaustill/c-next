@@ -331,12 +331,18 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #558: Pending cross-file modifications to inject after analyzePassByValue clears.
    * Set by Pipeline before generate() to share modifications from previously processed files.
    */
-  private pendingCrossFileModifications: Map<string, Set<string>> | null = null;
+  private pendingCrossFileModifications: ReadonlyMap<
+    string,
+    ReadonlySet<string>
+  > | null = null;
 
   /**
    * Issue #558: Pending cross-file parameter lists to inject for transitive propagation.
    */
-  private pendingCrossFileParamLists: Map<string, string[]> | null = null;
+  private pendingCrossFileParamLists: ReadonlyMap<
+    string,
+    readonly string[]
+  > | null = null;
 
   /**
    * Issue #269: Tracks which parameters should pass by value
@@ -1164,8 +1170,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Called by Pipeline before generate() to share modifications from previously processed files.
    */
   setCrossFileModifications(
-    modifications: Map<string, Set<string>>,
-    paramLists: Map<string, string[]>,
+    modifications: ReadonlyMap<string, ReadonlySet<string>>,
+    paramLists: ReadonlyMap<string, readonly string[]>,
   ): void {
     this.pendingCrossFileModifications = modifications;
     this.pendingCrossFileParamLists = paramLists;
@@ -1191,8 +1197,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   analyzeModificationsOnly(
     tree: Parser.ProgramContext,
-    crossFileModifications?: Map<string, Set<string>>,
-    crossFileParamLists?: Map<string, string[]>,
+    crossFileModifications?: ReadonlyMap<string, ReadonlySet<string>>,
+    crossFileParamLists?: ReadonlyMap<string, readonly string[]>,
   ): {
     modifications: Map<string, Set<string>>;
     paramLists: Map<string, string[]>;
@@ -2190,7 +2196,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (this.pendingCrossFileParamLists) {
       for (const [funcName, params] of this.pendingCrossFileParamLists) {
         if (!this.functionParamLists.has(funcName)) {
-          this.functionParamLists.set(funcName, params);
+          this.functionParamLists.set(funcName, [...params]);
         }
       }
       this.pendingCrossFileParamLists = null; // Clear after use

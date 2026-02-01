@@ -1,0 +1,19 @@
+// test-cpp-mode
+// test-transpile-only
+// Issue #580 chain test: 3-level deep pass-through chain
+// Level1 -> Level2 -> Level3 (modifies)
+
+#include "Config.cnx"
+#include "Level2.cnx"
+
+scope Level1 {
+    // Just passes through to Level2 (which passes to Level3)
+    public void entry(Config config) {
+        global.Level2.passToLevel3(config);
+    }
+}
+
+void main() {
+    Config c <- {value: 0};
+    global.Level1.entry(c);
+}

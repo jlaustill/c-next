@@ -51,6 +51,7 @@ import IFileResult from "./types/IFileResult";
 import ITranspileContext from "./types/ITranspileContext";
 import ITranspileContribution from "./types/ITranspileContribution";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
+import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import IStructFieldInfo from "./logic/symbols/types/IStructFieldInfo";
 import detectCppSyntax from "./logic/detectCppSyntax";
@@ -88,16 +89,10 @@ class Transpiler {
    */
   private readonly headerIncludeDirectives: Map<string, string> = new Map();
   /**
-   * Issue #558: Accumulated parameter modifications across all processed files.
-   * Used for cross-file const inference in C++ mode.
+   * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
+   * Accumulates parameter modifications and param lists across all processed files.
    */
-  private readonly accumulatedModifications: Map<string, Set<string>> =
-    new Map();
-  /**
-   * Issue #558: Accumulated function parameter lists across all processed files.
-   * Used for cross-file const inference transitive propagation.
-   */
-  private readonly accumulatedParamLists: Map<string, string[]> = new Map();
+  private readonly modificationAnalyzer = new ModificationAnalyzer();
 
   constructor(config: ITranspilerConfig) {
     // Apply defaults
@@ -153,9 +148,8 @@ class Transpiler {
         await this.cacheManager.initialize();
       }
 
-      // Issue #558: Reset cross-file modification tracking for new run
-      this.accumulatedModifications.clear();
-      this.accumulatedParamLists.clear();
+      // Issue #593: Reset cross-file modification tracking for new run
+      this.modificationAnalyzer.clear();
 
       // Stage 1: Discover source files
       const { cnextFiles, headerFiles } = await this.discoverSources();
@@ -245,8 +239,8 @@ class Transpiler {
       const transpileContext: ITranspileContext = {
         symbolTable: this.symbolTable,
         symbolInfoByFile: this.symbolInfoByFile,
-        accumulatedModifications: this.accumulatedModifications,
-        accumulatedParamLists: this.accumulatedParamLists,
+        accumulatedModifications: this.modificationAnalyzer.getModifications(),
+        accumulatedParamLists: this.modificationAnalyzer.getParamLists(),
         headerIncludeDirectives: this.headerIncludeDirectives,
         cppMode: this.cppDetected,
         includeDirs: this.config.includeDirs,
@@ -278,28 +272,16 @@ class Transpiler {
             ...fileResult.contribution.userIncludes,
           ]);
 
-          // Merge C++ mode modifications for cross-file const inference
+          // Issue #593: Merge C++ mode modifications via centralized analyzer
           if (fileResult.contribution.modifiedParameters) {
-            for (const [funcName, params] of fileResult.contribution
-              .modifiedParameters) {
-              const existing = this.accumulatedModifications.get(funcName);
-              if (existing) {
-                for (const param of params) {
-                  existing.add(param);
-                }
-              } else {
-                this.accumulatedModifications.set(funcName, new Set(params));
-              }
-            }
+            this.modificationAnalyzer.accumulateModifications(
+              fileResult.contribution.modifiedParameters,
+            );
           }
-
           if (fileResult.contribution.functionParamLists) {
-            for (const [funcName, params] of fileResult.contribution
-              .functionParamLists) {
-              if (!this.accumulatedParamLists.has(funcName)) {
-                this.accumulatedParamLists.set(funcName, [...params]);
-              }
-            }
+            this.modificationAnalyzer.accumulateParamLists(
+              fileResult.contribution.functionParamLists,
+            );
           }
 
           // Update symbol parameters with auto-const info for header generation
@@ -719,35 +701,18 @@ class Transpiler {
     const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
     this.symbolInfoByFile.set(file.path, symbolInfo);
 
-    // Issue #561: Collect modification analysis in C++ mode for cross-file const inference
+    // Issue #593: Collect modification analysis in C++ mode for cross-file const inference
     // This unifies behavior between run() and transpileSource() code paths
     // Issue #565: Pass accumulated cross-file data for transitive propagation
     if (this.cppDetected) {
-      const { modifications, paramLists } =
-        this.codeGenerator.analyzeModificationsOnly(
-          tree,
-          this.accumulatedModifications,
-          this.accumulatedParamLists,
-        );
+      const results = this.codeGenerator.analyzeModificationsOnly(
+        tree,
+        this.modificationAnalyzer.getModifications(),
+        this.modificationAnalyzer.getParamLists(),
+      );
 
-      // Accumulate modifications
-      for (const [funcName, params] of modifications) {
-        const existing = this.accumulatedModifications.get(funcName);
-        if (existing) {
-          for (const param of params) {
-            existing.add(param);
-          }
-        } else {
-          this.accumulatedModifications.set(funcName, new Set(params));
-        }
-      }
-
-      // Accumulate param lists
-      for (const [funcName, params] of paramLists) {
-        if (!this.accumulatedParamLists.has(funcName)) {
-          this.accumulatedParamLists.set(funcName, [...params]);
-        }
-      }
+      // Issue #593: Accumulate via centralized analyzer
+      this.modificationAnalyzer.accumulateResults(results);
     }
   }
 
@@ -1218,11 +1183,10 @@ class Transpiler {
         await this.cacheManager.initialize();
       }
 
-      // Issue #561: Clear cross-file modification tracking for fresh analysis
+      // Issue #593: Clear cross-file modification tracking for fresh analysis
       // Skip if context provided - run() manages the shared accumulated state
       if (!context) {
-        this.accumulatedModifications.clear();
-        this.accumulatedParamLists.clear();
+        this.modificationAnalyzer.clear();
       }
 
       // Step 1: Build search paths using unified IncludeResolver
@@ -1421,12 +1385,14 @@ class Transpiler {
         );
       }
 
-      // Issue #561: Inject cross-file modification data for const inference
-      // When context is provided, use its accumulated modifications; otherwise use this.accumulatedModifications
+      // Issue #593: Inject cross-file modification data for const inference
+      // When context is provided, use its accumulated data; otherwise use the analyzer
       const accumulatedModifications =
-        context?.accumulatedModifications ?? this.accumulatedModifications;
+        context?.accumulatedModifications ??
+        this.modificationAnalyzer.getModifications();
       const accumulatedParamLists =
-        context?.accumulatedParamLists ?? this.accumulatedParamLists;
+        context?.accumulatedParamLists ??
+        this.modificationAnalyzer.getParamLists();
 
       if (cppMode && accumulatedModifications.size > 0) {
         this.codeGenerator.setCrossFileModifications(

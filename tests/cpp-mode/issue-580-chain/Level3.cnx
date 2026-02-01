@@ -1,0 +1,8 @@
+// test-cpp-mode
+#include "Config.cnx"
+
+scope Level3 {
+    public void modify(Config c) {
+        c.value <- 42;
+    }
+}

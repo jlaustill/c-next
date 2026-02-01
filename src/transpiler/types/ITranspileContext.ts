@@ -25,10 +25,10 @@ interface ITranspileContext {
   readonly symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>;
 
   /** Cross-file parameter modifications for C++ const inference (Issue #558) */
-  readonly accumulatedModifications: Map<string, Set<string>>;
+  readonly accumulatedModifications: ReadonlyMap<string, ReadonlySet<string>>;
 
   /** Cross-file function parameter lists for transitive propagation (Issue #558) */
-  readonly accumulatedParamLists: Map<string, string[]>;
+  readonly accumulatedParamLists: ReadonlyMap<string, readonly string[]>;
 
   /** C header include directives for type headers (Issue #497) */
   readonly headerIncludeDirectives: ReadonlyMap<string, string>;
