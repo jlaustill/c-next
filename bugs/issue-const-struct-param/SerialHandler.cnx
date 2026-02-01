@@ -1,0 +1,14 @@
+#include "Config.cnx"
+#include "CommandHandler.cnx"
+
+scope SerialHandler {
+    // Private helper - passes config to CommandHandler
+    void handleSet(Config config) {
+        u8 result <- global.CommandHandler.setValue(config, 42);
+    }
+
+    // Public entry point
+    public void process(Config config) {
+        this.handleSet(config);
+    }
+}

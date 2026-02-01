@@ -599,6 +599,7 @@ class Pipeline {
 
   /**
    * Stage 3: Collect symbols from a C-Next file
+   * Issue #561: Also collects modification analysis in C++ mode for unified cross-file const inference
    */
   private collectCNextSymbols(file: IDiscoveredFile): void {
     const content = readFileSync(file.path, "utf-8");
@@ -640,6 +641,32 @@ class Pipeline {
     // This ensures enum member info is available for all files before code generation
     const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
     this.symbolInfoByFile.set(file.path, symbolInfo);
+
+    // Issue #561: Collect modification analysis in C++ mode for cross-file const inference
+    // This unifies behavior between run() and transpileSource() code paths
+    if (this.cppDetected) {
+      const { modifications, paramLists } =
+        this.codeGenerator.analyzeModificationsOnly(tree);
+
+      // Accumulate modifications
+      for (const [funcName, params] of modifications) {
+        const existing = this.accumulatedModifications.get(funcName);
+        if (existing) {
+          for (const param of params) {
+            existing.add(param);
+          }
+        } else {
+          this.accumulatedModifications.set(funcName, new Set(params));
+        }
+      }
+
+      // Accumulate param lists
+      for (const [funcName, params] of paramLists) {
+        if (!this.accumulatedParamLists.has(funcName)) {
+          this.accumulatedParamLists.set(funcName, [...params]);
+        }
+      }
+    }
   }
 
   /**
@@ -1241,6 +1268,11 @@ class Pipeline {
         await this.cacheManager.initialize();
       }
 
+      // Issue #561: Clear cross-file modification tracking for fresh analysis
+      // This ensures each transpileSource() call starts with a clean slate
+      this.accumulatedModifications.clear();
+      this.accumulatedParamLists.clear();
+
       // Step 1: Build search paths using unified IncludeResolver
       const searchPaths = IncludeResolver.buildSearchPaths(
         workingDir,
@@ -1412,6 +1444,15 @@ class Pipeline {
         symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
           symbolInfo,
           externalEnumSources,
+        );
+      }
+
+      // Issue #561: Inject cross-file modification data for const inference
+      // This unifies behavior with run() - both paths now share modifications from includes
+      if (this.cppDetected && this.accumulatedModifications.size > 0) {
+        this.codeGenerator.setCrossFileModifications(
+          this.accumulatedModifications,
+          this.accumulatedParamLists,
         );
       }
 

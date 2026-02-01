@@ -1,0 +1,9 @@
+// test-cpp-mode
+#include "Config.cnx"
+
+scope CommandHandler {
+    public u8 setValue(Config cfg, u32 val) {
+        cfg.value <- val;
+        return 0;
+    }
+}

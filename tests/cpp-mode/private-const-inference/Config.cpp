@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+// test-cpp-mode
 typedef struct Config {
     uint32_t value;
 } Config;

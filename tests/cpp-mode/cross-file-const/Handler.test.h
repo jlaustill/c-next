@@ -19,7 +19,7 @@ extern "C" {
 typedef struct Config Config;
 
 /* Function prototypes */
-uint8_t Handler_reset(const Config& cfg);
+uint8_t Handler_reset(Config& cfg);
 
 #ifdef __cplusplus
 }
