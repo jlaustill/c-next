@@ -2270,6 +2270,10 @@ export default class CodeGenerator implements IOrchestrator {
         // Direct or member/array assignment modifies the parameter
         this.modifiedParameters.get(funcName)!.add(baseIdentifier);
       }
+
+      // Issue #565: Walk the RHS expression for function calls
+      // This detects calls like: errorCode <- modifyingFunction(param)
+      this.walkExpressionForCalls(funcName, paramSet, assign.expression());
     }
 
     // Check for expressions that contain function calls
@@ -2329,9 +2333,29 @@ export default class CodeGenerator implements IOrchestrator {
       } else {
         this.walkStatementForModifications(funcName, paramSet, bodyStmt);
       }
-      // Check condition and update for calls
+      // Check condition for calls
       if (forStmt.expression()) {
         this.walkExpressionForCalls(funcName, paramSet, forStmt.expression()!);
+      }
+      // Issue #565: Check forInit for calls (forAssignment has an expression)
+      const forInit = forStmt.forInit();
+      if (forInit?.forAssignment()) {
+        this.walkExpressionForCalls(
+          funcName,
+          paramSet,
+          forInit.forAssignment()!.expression(),
+        );
+      } else if (forInit?.forVarDecl()?.expression()) {
+        this.walkExpressionForCalls(
+          funcName,
+          paramSet,
+          forInit.forVarDecl()!.expression()!,
+        );
+      }
+      // Issue #565: Check forUpdate for calls
+      const forUpdate = forStmt.forUpdate();
+      if (forUpdate) {
+        this.walkExpressionForCalls(funcName, paramSet, forUpdate.expression());
       }
     }
 

@@ -108,6 +108,15 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` - numbers for resolved constants, strings for C macros from headers
 - **C macro pass-through**: Unresolved array dimension identifiers (e.g., `DEVICE_COUNT` from included C headers) pass through as strings to generated headers
 
+### Const Inference Architecture
+
+- **walkStatementForModifications()** walks AST for parameter modifications - must handle ALL expression contexts:
+  - `assignmentStatement.expression()` - RHS of assignments
+  - `variableDeclaration.expression()` - initializers
+  - `forInit.forAssignment().expression()` and `forInit.forVarDecl().expression()` - for-loop init
+  - `forUpdate.expression()` - for-loop update
+  - See issue #566 for refactoring opportunity
+
 ### Code Generation Patterns
 
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
@@ -275,6 +284,7 @@ u32 main() {
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
 - **C++ mode uses references**: In C++ mode, `const T` struct params become `const T&` (reference) with `.` member access and direct argument passing. In C mode, they become `const T*` (pointer) with `->` and `&` prefix.
+- **Struct tests need expected headers**: Tests using struct types require `.expected.h` files alongside `.expected.c` to prevent header deletion by test framework.
 
 ### Test Framework Internals
 

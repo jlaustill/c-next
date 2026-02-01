@@ -1,0 +1,200 @@
+// test-execution
+// Tests: Issue #565 edge cases - comprehensive coverage for reassignment const inference
+// Covers: nested conditionals, switch, do-while, critical, compound assignments,
+// this.method calls, nested calls, multiple params
+
+struct Config {
+    u32 value;
+    bool enabled;
+}
+
+scope Handler {
+    // Modifies first param
+    public u8 setValue(Config cfg, u32 val) {
+        cfg.value <- val;
+        return 0;
+    }
+
+    // Modifies second param only
+    public u8 setSecond(u32 dummy, Config cfg) {
+        cfg.value <- 999;
+        return 0;
+    }
+
+    // Reads only - should allow const
+    public u32 getValue(Config cfg) {
+        return cfg.value;
+    }
+
+    // Wrapper that calls setValue - transitive modification
+    public u8 wrapSetValue(Config cfg, u32 val) {
+        return this.setValue(cfg, val);
+    }
+}
+
+// Edge case 1: Nested conditionals
+void handleNestedIf(Config config) {
+    u8 errorCode <- 0;
+    bool a <- true;
+    bool b <- true;
+    if (a) {
+        if (b) {
+            errorCode <- global.Handler.setValue(config, 10);  // Deeply nested
+        }
+    }
+}
+
+// Edge case 2: Switch statement
+void handleSwitch(Config config) {
+    u8 errorCode <- 0;
+    u32 choice <- 1;
+    switch (choice) {
+        case 0 {
+            errorCode <- 0;
+        }
+        case 1 {
+            errorCode <- global.Handler.setValue(config, 20);  // In switch case
+        }
+        default {
+            errorCode <- 2;
+        }
+    }
+}
+
+// Edge case 3: do-while loop
+void handleDoWhile(Config config) {
+    u8 errorCode <- 0;
+    u32 count <- 0;
+    do {
+        errorCode <- global.Handler.setValue(config, 30);
+        count <- count + 1;
+    } while (count < 1);
+}
+
+// Edge case 4: Critical block
+void handleCritical(Config config) {
+    u8 errorCode <- 0;
+    critical {
+        errorCode <- global.Handler.setValue(config, 40);  // Inside critical
+    }
+}
+
+// Edge case 5: this.method() call in reassignment (within a scope)
+scope Processor {
+    // Helper defined first to avoid forward reference
+    u8 helper(Config cfg) {
+        cfg.value <- 50;
+        return 0;
+    }
+
+    public void process(Config config) {
+        u8 errorCode <- 0;
+        errorCode <- this.helper(config);  // this.method call in reassignment
+    }
+}
+
+// Edge case 6: Second parameter is modified (not first)
+void handleSecondParam(Config config) {
+    u8 errorCode <- 0;
+    u32 dummy <- 0;
+    errorCode <- global.Handler.setSecond(dummy, config);  // config is 2nd param
+}
+
+// Edge case 7: Nested function call in RHS
+void handleNestedCall(Config config) {
+    u32 result <- 0;
+    // getValue returns u32, which we assign - but config passed to modifying inner call first
+    // Actually this tests that we walk ALL expressions in the RHS
+    result <- global.Handler.getValue(config);  // This should be const since getValue only reads
+}
+
+// Edge case 8: Transitive modification via wrapper
+void handleTransitive(Config config) {
+    u8 errorCode <- 0;
+    errorCode <- global.Handler.wrapSetValue(config, 60);  // Calls setValue internally
+}
+
+// Edge case 9: Multiple reassignments, only one modifies
+void handleMultipleReassign(Config config) {
+    u8 errorCode <- 0;
+    u32 readVal <- 0;
+
+    readVal <- global.Handler.getValue(config);  // Read-only call
+    errorCode <- global.Handler.setValue(config, 70);  // Modifying call
+}
+
+// Edge case 10: Compound assignment with modifying call
+// Note: compound assignment like a +<- b is equivalent to a <- a + b
+// The RHS here is an expression, so we need to ensure it's walked
+void handleCompoundAssign(Config config) {
+    u32 total <- 0;
+    total +<- global.Handler.getValue(config);  // RHS is a call - though this one is read-only
+}
+
+// Edge case 11: Compound assignment where the call modifies
+void handleCompoundModify(Config config) {
+    u32 total <- 0;
+    u8 code <- global.Handler.setValue(config, 80);  // First modification
+    total +<- code;  // This is safe, but the line above should mark config as modified
+}
+
+u32 main() {
+    Config cfg;
+
+    // Test 1: Nested if
+    cfg.value <- 0;
+    handleNestedIf(cfg);
+    if (cfg.value != 10) return 1;
+
+    // Test 2: Switch
+    cfg.value <- 0;
+    handleSwitch(cfg);
+    if (cfg.value != 20) return 2;
+
+    // Test 3: do-while
+    cfg.value <- 0;
+    handleDoWhile(cfg);
+    if (cfg.value != 30) return 3;
+
+    // Test 4: Critical
+    cfg.value <- 0;
+    handleCritical(cfg);
+    if (cfg.value != 40) return 4;
+
+    // Test 5: this.method
+    cfg.value <- 0;
+    global.Processor.process(cfg);
+    if (cfg.value != 50) return 5;
+
+    // Test 6: Second param modified
+    cfg.value <- 0;
+    handleSecondParam(cfg);
+    if (cfg.value != 999) return 6;
+
+    // Test 7: Nested call (read-only) - cfg should NOT be modified
+    cfg.value <- 123;
+    handleNestedCall(cfg);
+    if (cfg.value != 123) return 7;  // Should stay unchanged
+
+    // Test 8: Transitive modification
+    cfg.value <- 0;
+    handleTransitive(cfg);
+    if (cfg.value != 60) return 8;
+
+    // Test 9: Multiple reassignments
+    cfg.value <- 0;
+    handleMultipleReassign(cfg);
+    if (cfg.value != 70) return 9;
+
+    // Test 10: Compound assign (read-only)
+    cfg.value <- 100;
+    handleCompoundAssign(cfg);
+    if (cfg.value != 100) return 10;  // Should stay unchanged
+
+    // Test 11: Compound modify
+    cfg.value <- 0;
+    handleCompoundModify(cfg);
+    if (cfg.value != 80) return 11;
+
+    return 0;
+}
