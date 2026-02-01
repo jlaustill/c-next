@@ -669,11 +669,14 @@ class TestUtils {
 
     for (const helperCnx of helperCnxFiles) {
       const helperSource = readFileSync(helperCnx, "utf-8");
+      // Issue #558: Check if helper has cpp-mode marker, or inherit from main test
+      const helperCppMode = TestUtils.hasCppModeMarker(helperSource) || cppMode;
       // Use fresh Pipeline for each helper to avoid symbol pollution from main test
       const helperPipeline = new Pipeline({
         inputs: [],
         includeDirs: [join(rootDir, "tests/include")],
         noCache: true,
+        cppRequired: helperCppMode, // Issue #558: Inherit C++ mode
       });
       const helperResult = await helperPipeline.transpileSource(helperSource, {
         workingDir: dirname(helperCnx),
