@@ -1,0 +1,303 @@
+/**
+ * Header Generator Utilities
+ *
+ * Pure utility functions for header generation, shared by both
+ * CHeaderGenerator and CppHeaderGenerator.
+ */
+
+import ISymbol from "../../../utils/types/ISymbol";
+import ESymbolKind from "../../../utils/types/ESymbolKind";
+import SymbolTable from "../../logic/symbols/SymbolTable";
+import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
+import typeUtils from "./generators/mapType";
+import IGroupedSymbols from "./types/IGroupedSymbols";
+
+const { mapType, isBuiltInType } = typeUtils;
+
+/**
+ * Static utility class with pure functions for header generation
+ */
+class HeaderGeneratorUtils {
+  /**
+   * Create an include guard macro from filename
+   */
+  static makeGuard(filename: string, prefix?: string): string {
+    // Remove path and extension
+    const base = filename.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, "");
+
+    // Convert to uppercase and replace non-alphanumeric with underscore
+    const sanitized = base.toUpperCase().replaceAll(/[^A-Z0-9]/g, "_");
+
+    if (prefix) {
+      return `${prefix.toUpperCase()}_${sanitized}_H`;
+    }
+
+    return `${sanitized}_H`;
+  }
+
+  /**
+   * Group symbols by their kind for organized header output
+   */
+  static groupSymbolsByKind(symbols: ISymbol[]): IGroupedSymbols {
+    return {
+      structs: symbols.filter((s) => s.kind === ESymbolKind.Struct),
+      classes: symbols.filter((s) => s.kind === ESymbolKind.Class),
+      functions: symbols.filter((s) => s.kind === ESymbolKind.Function),
+      variables: symbols.filter((s) => s.kind === ESymbolKind.Variable),
+      enums: symbols.filter((s) => s.kind === ESymbolKind.Enum),
+      types: symbols.filter((s) => s.kind === ESymbolKind.Type),
+      bitmaps: symbols.filter((s) => s.kind === ESymbolKind.Bitmap),
+    };
+  }
+
+  /**
+   * Extract the base type from a type string, removing pointers, arrays, and const
+   */
+  static extractBaseType(type: string): string {
+    // Remove pointer suffix
+    let baseType = type.replace(/\*+$/, "").trim();
+
+    // Remove array brackets
+    baseType = baseType.replace(/\[\d*\]$/, "").trim();
+
+    // Handle const prefix
+    baseType = baseType.replace(/^const\s+/, "").trim();
+
+    return baseType;
+  }
+
+  /**
+   * Check if a type is a C++ template type (excluding C-Next string<N>)
+   */
+  static isCppTemplateType(type: string | undefined): boolean {
+    if (!type) return false;
+    // C-Next string<N> types are allowed (string followed by <digits>)
+    if (/^string<\d+>$/.test(type)) return false;
+    // Any other <> is a C++ template
+    return type.includes("<") || type.includes(">");
+  }
+
+  /**
+   * Check if an array dimension is a macro (non-numeric identifier)
+   * Numeric dimensions: "4", "16", "256", ""
+   * Macro dimensions: "DEVICE_COUNT", "MAX_SIZE", "NUM_LEDS"
+   */
+  static isMacroDimension(dimension: string): boolean {
+    // Empty string is an unbounded array, not a macro
+    if (!dimension || dimension.trim() === "") {
+      return false;
+    }
+
+    // Pure numeric dimensions are not macros
+    if (/^\d+$/.test(dimension.trim())) {
+      return false;
+    }
+
+    // Anything else (identifier, expression) is treated as a macro
+    return true;
+  }
+
+  /**
+   * Collect external type dependencies from function signatures and variables
+   * Returns types that are:
+   * - Not primitive types (not in TYPE_MAP)
+   * - Not locally defined structs, enums, bitmaps, or type aliases
+   * - Not cross-file enums (which can't be forward-declared as structs)
+   */
+  static collectExternalTypes(
+    functions: ISymbol[],
+    variables: ISymbol[],
+    localStructs: Set<string>,
+    localEnums: Set<string>,
+    localTypes: Set<string>,
+    localBitmaps: Set<string>,
+    allKnownEnums?: ReadonlySet<string>,
+  ): Set<string> {
+    const externalTypes = new Set<string>();
+
+    const isExternalType = (typeName: string): boolean => {
+      // Skip if it's a built-in type (primitives and string<N>)
+      if (isBuiltInType(typeName)) {
+        return false;
+      }
+
+      // Skip C++ namespace types (e.g., MockLib::Parse::ParseResult)
+      if (typeName.includes("::")) {
+        return false;
+      }
+
+      // Skip if locally defined
+      if (localStructs.has(typeName)) {
+        return false;
+      }
+      if (localEnums.has(typeName)) {
+        return false;
+      }
+      if (localTypes.has(typeName)) {
+        return false;
+      }
+      if (localBitmaps.has(typeName)) {
+        return false;
+      }
+
+      // Skip cross-file enums (can't be forward-declared as structs in C)
+      if (allKnownEnums?.has(typeName)) {
+        return false;
+      }
+
+      // Skip pointer markers and array brackets
+      if (typeName === "" || typeName === "*") {
+        return false;
+      }
+
+      return true;
+    };
+
+    // Check function return types and parameters
+    for (const fn of functions) {
+      // Check return type
+      if (fn.type) {
+        const baseType = HeaderGeneratorUtils.extractBaseType(fn.type);
+        if (isExternalType(baseType)) {
+          externalTypes.add(baseType);
+        }
+      }
+
+      // Check parameter types
+      if (fn.parameters) {
+        for (const param of fn.parameters) {
+          if (param.type) {
+            const baseType = HeaderGeneratorUtils.extractBaseType(param.type);
+            if (isExternalType(baseType)) {
+              externalTypes.add(baseType);
+            }
+          }
+        }
+      }
+    }
+
+    // Check variable types
+    for (const v of variables) {
+      if (v.type) {
+        const baseType = HeaderGeneratorUtils.extractBaseType(v.type);
+        if (isExternalType(baseType)) {
+          externalTypes.add(baseType);
+        }
+      }
+    }
+
+    return externalTypes;
+  }
+
+  /**
+   * Filter external types to those that are C-compatible (can be forward-declared)
+   * Excludes C++ templates, namespaces, and underscore-format namespace types
+   */
+  static filterCCompatibleTypes(
+    externalTypes: Set<string>,
+    typesWithHeaders: Set<string>,
+    symbolTable?: SymbolTable,
+  ): string[] {
+    return [...externalTypes].filter(
+      (t) =>
+        !typesWithHeaders.has(t) &&
+        !t.includes("<") &&
+        !t.includes(">") &&
+        !t.includes("::") &&
+        !t.includes(".") &&
+        !CppNamespaceUtils.isCppNamespaceType(t, symbolTable),
+    );
+  }
+
+  /**
+   * Filter variables to those that are C-compatible
+   * Excludes C++ namespace types, templates, and underscore-format namespace types
+   */
+  static filterCCompatibleVariables(
+    variables: ISymbol[],
+    symbolTable?: SymbolTable,
+  ): ISymbol[] {
+    return variables.filter(
+      (v) =>
+        !v.type?.includes("::") &&
+        !v.type?.includes(".") &&
+        !HeaderGeneratorUtils.isCppTemplateType(v.type) &&
+        !CppNamespaceUtils.isCppNamespaceType(v.type ?? "", symbolTable),
+    );
+  }
+
+  /**
+   * Format a variable declaration with proper C syntax
+   *
+   * In C, array dimensions follow the variable name, not the type:
+   *   char greeting[33];      // Correct
+   *   char[33] greeting;      // Wrong
+   *
+   * Handles types that include embedded dimensions (like char[33] from
+   * mapType("string<32>")) and places them correctly after the variable name.
+   */
+  static formatVariableDeclaration(
+    cnextType: string,
+    name: string,
+    additionalDims: string,
+    constPrefix: string,
+    volatilePrefix: string = "",
+  ): string {
+    const cType = mapType(cnextType);
+
+    // Check if the mapped type has embedded array dimensions (e.g., char[33])
+    // This happens for string<N> types which map to char[N+1]
+    const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
+    if (embeddedMatch) {
+      const baseType = embeddedMatch[1];
+      const embeddedDim = embeddedMatch[2];
+      // Format: volatile const char name[additionalDims][embeddedDim]
+      return `${volatilePrefix}${constPrefix}${baseType} ${name}${additionalDims}[${embeddedDim}]`;
+    }
+
+    // No embedded dimensions - standard format
+    return `${volatilePrefix}${constPrefix}${cType} ${name}${additionalDims}`;
+  }
+
+  /**
+   * Build headers to include from external type header mappings
+   */
+  static buildExternalTypeIncludes(
+    externalTypes: Set<string>,
+    externalTypeHeaders?: ReadonlyMap<string, string>,
+  ): { typesWithHeaders: Set<string>; headersToInclude: Set<string> } {
+    const typesWithHeaders = new Set<string>();
+    const headersToInclude = new Set<string>();
+
+    if (externalTypeHeaders) {
+      for (const typeName of externalTypes) {
+        const directive = externalTypeHeaders.get(typeName);
+        if (directive) {
+          typesWithHeaders.add(typeName);
+          headersToInclude.add(directive);
+        }
+      }
+    }
+
+    return { typesWithHeaders, headersToInclude };
+  }
+
+  /**
+   * Get local type names from grouped symbols
+   */
+  static getLocalTypeNames(groups: IGroupedSymbols): {
+    localStructNames: Set<string>;
+    localEnumNames: Set<string>;
+    localTypeNames: Set<string>;
+    localBitmapNames: Set<string>;
+  } {
+    return {
+      localStructNames: new Set(groups.structs.map((s) => s.name)),
+      localEnumNames: new Set(groups.enums.map((s) => s.name)),
+      localTypeNames: new Set(groups.types.map((s) => s.name)),
+      localBitmapNames: new Set(groups.bitmaps.map((s) => s.name)),
+    };
+  }
+}
+
+export default HeaderGeneratorUtils;

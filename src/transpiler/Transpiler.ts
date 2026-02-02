@@ -121,7 +121,9 @@ class Transpiler {
     const projectRoot = this.config.noCache
       ? undefined
       : this.determineProjectRoot();
-    this.cacheManager = projectRoot ? new CacheManager(projectRoot, this.fs) : null;
+    this.cacheManager = projectRoot
+      ? new CacheManager(projectRoot, this.fs)
+      : null;
   }
 
   /**
@@ -1194,7 +1196,7 @@ class Transpiler {
     const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
 
     // Get type input from code generator (for struct/enum definitions)
-    const typeInput = this.codeGenerator.symbols ?? undefined;
+    const typeInput = this.codeGenerator.symbols;
 
     // Update auto-const info on symbol parameters
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
