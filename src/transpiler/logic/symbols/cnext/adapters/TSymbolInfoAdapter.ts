@@ -21,6 +21,20 @@ import IScopeSymbol from "../../types/IScopeSymbol";
 import IVariableSymbol from "../../types/IVariableSymbol";
 
 /**
+ * Groups register-related maps for processRegister method.
+ * Reduces parameter count for SonarCloud compliance.
+ */
+interface IRegisterMaps {
+  knownRegisters: Set<string>;
+  scopedRegisters: Map<string, string>;
+  registerMemberAccess: Map<string, string>;
+  registerMemberTypes: Map<string, string>;
+  registerBaseAddresses: Map<string, string>;
+  registerMemberOffsets: Map<string, string>;
+  registerMemberCTypes: Map<string, string>;
+}
+
+/**
  * Converts TSymbol[] to ISymbolInfo for CodeGenerator.
  * Replaces the need for SymbolCollector during code generation.
  */
@@ -114,17 +128,15 @@ class TSymbolInfoAdapter {
           break;
 
         case ESymbolKind.Register:
-          TSymbolInfoAdapter.processRegister(
-            symbol,
+          TSymbolInfoAdapter.processRegister(symbol, knownBitmaps, {
             knownRegisters,
-            knownBitmaps,
             scopedRegisters,
             registerMemberAccess,
             registerMemberTypes,
             registerBaseAddresses,
             registerMemberOffsets,
             registerMemberCTypes,
-          );
+          });
           break;
 
         case ESymbolKind.Variable:
@@ -293,36 +305,30 @@ class TSymbolInfoAdapter {
 
   private static processRegister(
     register: IRegisterSymbol,
-    knownRegisters: Set<string>,
     knownBitmaps: Set<string>,
-    scopedRegisters: Map<string, string>,
-    registerMemberAccess: Map<string, string>,
-    registerMemberTypes: Map<string, string>,
-    registerBaseAddresses: Map<string, string>,
-    registerMemberOffsets: Map<string, string>,
-    registerMemberCTypes: Map<string, string>,
+    maps: IRegisterMaps,
   ): void {
-    knownRegisters.add(register.name);
-    registerBaseAddresses.set(register.name, register.baseAddress);
+    maps.knownRegisters.add(register.name);
+    maps.registerBaseAddresses.set(register.name, register.baseAddress);
 
     // Check if this is a scoped register (name contains underscore)
     if (register.name.includes("_")) {
-      scopedRegisters.set(register.name, register.baseAddress);
+      maps.scopedRegisters.set(register.name, register.baseAddress);
     }
 
     for (const [memberName, memberInfo] of register.members) {
       const fullName = `${register.name}_${memberName}`;
 
-      registerMemberAccess.set(fullName, memberInfo.access);
-      registerMemberOffsets.set(fullName, memberInfo.offset);
-      registerMemberCTypes.set(
+      maps.registerMemberAccess.set(fullName, memberInfo.access);
+      maps.registerMemberOffsets.set(fullName, memberInfo.offset);
+      maps.registerMemberCTypes.set(
         fullName,
         TSymbolInfoAdapter.cnextTypeToCType(memberInfo.cType),
       );
 
       // Track bitmap types for register members
       if (memberInfo.bitmapType && knownBitmaps.has(memberInfo.bitmapType)) {
-        registerMemberTypes.set(fullName, memberInfo.bitmapType);
+        maps.registerMemberTypes.set(fullName, memberInfo.bitmapType);
       }
     }
   }

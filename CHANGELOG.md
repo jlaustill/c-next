@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Resolve 25+ SonarCloud issues: String.raw, type assertions, negated conditions (PR #624, #625)
+- Reduce processRegister parameter count from 9 to 3 using IRegisterMaps interface
 - Rewrite determineProjectRoot to use real project markers (PR #623)
 
 ## [0.1.53] - 2026-02-02
