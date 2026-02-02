@@ -13,15 +13,11 @@ import {
   existsSync,
   statSync,
 } from "node:fs";
-import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname, resolve } from "node:path";
 
 import { ProgramContext } from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
-import { CLexer } from "./logic/parser/c/grammar/CLexer";
-import { CParser } from "./logic/parser/c/grammar/CParser";
-import { CPP14Lexer } from "./logic/parser/cpp/grammar/CPP14Lexer";
-import { CPP14Parser } from "./logic/parser/cpp/grammar/CPP14Parser";
+import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
@@ -614,21 +610,13 @@ class Transpiler {
    * Issue #208: Parse a pure C header (no C++ syntax detected)
    */
   private parsePureCHeader(content: string, filePath: string): void {
-    try {
-      const charStream = CharStream.fromString(content);
-      const lexer = new CLexer(charStream);
-      const tokenStream = new CommonTokenStream(lexer);
-      const parser = new CParser(tokenStream);
-      parser.removeErrorListeners();
-
-      const tree = parser.compilationUnit();
+    const { tree } = HeaderParser.parseC(content);
+    if (tree) {
       const collector = new CSymbolCollector(filePath, this.symbolTable);
       const symbols = collector.collect(tree);
       if (symbols.length > 0) {
         this.symbolTable.addSymbols(symbols);
       }
-    } catch {
-      // Silently ignore parse errors in headers
     }
   }
 
@@ -636,19 +624,11 @@ class Transpiler {
    * Parse a C++ header
    */
   private parseCppHeader(content: string, filePath: string): void {
-    const charStream = CharStream.fromString(content);
-    const lexer = new CPP14Lexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CPP14Parser(tokenStream);
-    parser.removeErrorListeners();
-
-    try {
-      const tree = parser.translationUnit();
+    const { tree } = HeaderParser.parseCpp(content);
+    if (tree) {
       const collector = new CppSymbolCollector(filePath, this.symbolTable);
       const symbols = collector.collect(tree);
       this.symbolTable.addSymbols(symbols);
-    } catch {
-      // Silently ignore parse errors in headers (they may have complex C++ features)
     }
   }
 
