@@ -13,7 +13,7 @@ import {
   existsSync,
   statSync,
 } from "node:fs";
-import { join, basename, relative, dirname, resolve } from "node:path";
+import { join, basename, dirname, resolve } from "node:path";
 
 import { ProgramContext } from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
@@ -37,6 +37,7 @@ import IDiscoveredFile from "./data/types/IDiscoveredFile";
 import IncludeDiscovery from "./data/IncludeDiscovery";
 import IncludeResolver from "./data/IncludeResolver";
 import DependencyGraph from "./data/DependencyGraph";
+import PathResolver from "./data/PathResolver";
 
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
@@ -86,6 +87,8 @@ class Transpiler {
    * Accumulates parameter modifications and param lists across all processed files.
    */
   private readonly modificationAnalyzer = new ModificationAnalyzer();
+  /** Issue #586: Centralized path resolution for output files */
+  private readonly pathResolver: PathResolver;
 
   constructor(config: ITranspilerConfig) {
     // Apply defaults
@@ -113,6 +116,14 @@ class Transpiler {
     this.codeGenerator = new CodeGenerator();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
+
+    // Issue #586: Initialize path resolver
+    this.pathResolver = new PathResolver({
+      inputs: this.config.inputs,
+      outDir: this.config.outDir,
+      headerOutDir: this.config.headerOutDir,
+      basePath: this.config.basePath,
+    });
 
     // Initialize cache manager if caching is enabled
     this.cacheManager = this.config.noCache
@@ -285,7 +296,7 @@ class Transpiler {
         // Write output file if output directory specified
         let outputPath: string | undefined;
         if (this.config.outDir && fileResult.success && fileResult.code) {
-          outputPath = this.getOutputPath(file);
+          outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
           writeFileSync(outputPath, fileResult.code, "utf-8");
         }
 
@@ -698,67 +709,46 @@ class Transpiler {
   }
 
   /**
-   * Get relative path from any input directory for a file.
-   * Returns the relative path (e.g., "Display/Utils.cnx") or null if the file
-   * is not under any input directory.
+   * Issue #465: Collect ICodeGenSymbols from all transitively included .cnx files.
    *
-   * This is the shared logic used by getSourceRelativePath, getOutputPath,
-   * and getHeaderOutputPath for directory structure preservation.
+   * Recursively resolves includes to gather enum info from the entire include tree.
+   * This ensures that deeply nested enums (A includes B, B includes C with enum)
+   * are available for prefixing in the top-level file.
+   *
+   * @param filePath The file to collect transitive includes for
+   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
    */
-  private getRelativePathFromInputs(filePath: string): string | null {
-    for (const input of this.config.inputs) {
-      const resolvedInput = resolve(input);
+  private collectTransitiveEnumInfo(filePath: string): ICodeGenSymbols[] {
+    const result: ICodeGenSymbols[] = [];
+    const visited = new Set<string>();
 
-      // Skip if input is a file (not a directory) - can't preserve structure
-      if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
-        continue;
+    const collectRecursively = (currentPath: string): void => {
+      if (visited.has(currentPath)) return;
+      visited.add(currentPath);
+
+      // Read and parse includes from current file
+      const content = readFileSync(currentPath, "utf-8");
+      const searchPaths = IncludeResolver.buildSearchPaths(
+        dirname(currentPath),
+        this.config.includeDirs,
+        [],
+      );
+      const resolver = new IncludeResolver(searchPaths);
+      const resolved = resolver.resolve(content, currentPath);
+
+      // Process each included .cnx file
+      for (const cnxInclude of resolved.cnextIncludes) {
+        const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
+        if (externalInfo) {
+          result.push(externalInfo);
+        }
+        // Recursively collect from this include's includes
+        collectRecursively(cnxInclude.path);
       }
+    };
 
-      const relativePath = relative(resolvedInput, filePath);
-
-      // Check if file is under this input directory
-      if (relativePath && !relativePath.startsWith("..")) {
-        return relativePath;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Issue #339: Get relative path from input directory for self-include generation.
-   * Returns the relative path (e.g., "Display/Utils.cnx") or just the basename
-   * if the file is not in any input directory.
-   */
-  private getSourceRelativePath(filePath: string): string {
-    return this.getRelativePathFromInputs(filePath) ?? basename(filePath);
-  }
-
-  /**
-   * Get output path for a file
-   */
-  private getOutputPath(file: IDiscoveredFile): string {
-    // Issue #211: Derive extension from cppDetected flag
-    const ext = this.cppDetected ? ".cpp" : ".c";
-
-    const relativePath = this.getRelativePathFromInputs(file.path);
-    if (relativePath) {
-      // File is under an input directory - preserve structure
-      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
-      const outputPath = join(this.config.outDir, outputRelative);
-
-      const outputDir = dirname(outputPath);
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
-      }
-
-      return outputPath;
-    }
-
-    // Fallback: output next to the source file (not in outDir)
-    // This handles included files that aren't under any input directory
-    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
-    return join(dirname(file.path), outputName);
+    collectRecursively(filePath);
+    return result;
   }
 
   /**
@@ -773,7 +763,7 @@ class Transpiler {
     }
 
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    const headerPath = this.getHeaderOutputPath(file);
+    const headerPath = this.pathResolver.getHeaderOutputPath(file);
 
     // Issue #220: Get SymbolCollector for full type definitions
     const typeInput = this.symbolCollectors.get(file.path);
@@ -875,83 +865,6 @@ class Transpiler {
     }
 
     return typeHeaders;
-  }
-
-  /**
-   * Get output path for a header file
-   * Uses headerOutDir if specified, otherwise falls back to outDir
-   */
-  private getHeaderOutputPath(file: IDiscoveredFile): string {
-    // Use headerOutDir if specified, otherwise fall back to outDir
-    const headerDir = this.config.headerOutDir || this.config.outDir;
-
-    // Helper to strip basePath prefix from a relative path
-    // e.g., "src/AppConfig.cnx" with basePath "src" -> "AppConfig.cnx"
-    const stripBasePath = (relPath: string): string => {
-      if (!this.config.basePath || !this.config.headerOutDir) {
-        return relPath;
-      }
-      // Normalize basePath (remove trailing slashes)
-      const base = this.config.basePath.replace(/[/\\]+$/, "");
-      // Check if relPath starts with basePath (+ separator or exact match)
-      if (relPath === base) {
-        return "";
-      }
-      if (relPath.startsWith(base + "/") || relPath.startsWith(base + "\\")) {
-        return relPath.slice(base.length + 1);
-      }
-      return relPath;
-    };
-
-    const relativePath = this.getRelativePathFromInputs(file.path);
-    if (relativePath) {
-      // File is under an input directory - preserve structure (minus basePath)
-      const strippedPath = stripBasePath(relativePath);
-      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
-      const outputPath = join(headerDir, outputRelative);
-
-      const outputDir = dirname(outputPath);
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
-      }
-
-      return outputPath;
-    }
-
-    // Issue #489: If headerOutDir is explicitly set, use it with relative path from CWD
-    // This handles single-file inputs like "cnext src/AppConfig.cnx" with headerOut config
-    if (this.config.headerOutDir) {
-      const cwd = process.cwd();
-      const relativeFromCwd = relative(cwd, file.path);
-      // Only use CWD-relative path if file is under CWD (not starting with ..)
-      if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
-        const strippedPath = stripBasePath(relativeFromCwd);
-        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
-        const outputPath = join(this.config.headerOutDir, outputRelative);
-
-        const outputDir = dirname(outputPath);
-        if (!existsSync(outputDir)) {
-          mkdirSync(outputDir, { recursive: true });
-        }
-
-        return outputPath;
-      }
-
-      // File outside CWD: put in headerOutDir with just basename
-      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-      const outputPath = join(this.config.headerOutDir, headerName);
-
-      if (!existsSync(this.config.headerOutDir)) {
-        mkdirSync(this.config.headerOutDir, { recursive: true });
-      }
-
-      return outputPath;
-    }
-
-    // Fallback: output next to the source file (no headerDir specified)
-    // This handles included files that aren't under any input directory
-    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    return join(dirname(file.path), headerName);
   }
 
   /**

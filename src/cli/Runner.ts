@@ -5,7 +5,6 @@
 
 import { dirname, resolve } from "node:path";
 import { existsSync, statSync, renameSync } from "node:fs";
-import IncludeDiscovery from "../transpiler/data/IncludeDiscovery";
 import InputExpansion from "../transpiler/data/InputExpansion";
 import Transpiler from "../transpiler/Transpiler";
 import ICliConfig from "./types/ICliConfig";
@@ -48,18 +47,8 @@ class Runner {
       process.exit(1);
     }
 
-    // Step 2: Auto-discover include paths from first file
-    const autoIncludePaths = IncludeDiscovery.discoverIncludePaths(files[0]);
-    const allIncludePaths = [...autoIncludePaths, ...config.includeDirs];
-
-    if (config.verbose) {
-      console.log("Include paths:");
-      for (const path of allIncludePaths) {
-        console.log(`  ${path}`);
-      }
-    }
-
-    // Step 3: Determine output directory and explicit filename
+    // Step 2: Determine output directory and explicit filename
+    // Note: Include path auto-discovery happens inside Transpiler.discoverSources()
     let outDir: string;
     let explicitOutputFile: string | null = null;
 
@@ -95,12 +84,12 @@ class Runner {
       outDir = dirname(files[0]);
     }
 
-    // Step 4: Create Transpiler
+    // Step 3: Create Transpiler
     // Combine srcDirs and explicitFiles into inputs - Transpiler handles both
     const pipelineInputs = [...srcDirs, ...explicitFiles];
     const pipeline = new Transpiler({
       inputs: pipelineInputs,
-      includeDirs: allIncludePaths,
+      includeDirs: config.includeDirs,
       outDir,
       headerOutDir: config.headerOutDir,
       basePath: config.basePath,
@@ -113,10 +102,10 @@ class Runner {
       debugMode: config.debugMode,
     });
 
-    // Step 5: Compile
+    // Step 4: Compile
     const result = await pipeline.run();
 
-    // Step 6: Rename output file if explicit filename was specified
+    // Step 5: Rename output file if explicit filename was specified
     if (explicitOutputFile && result.success && result.outputFiles.length > 0) {
       const generatedFile = result.outputFiles[0];
       // Only rename if it's different from the desired path

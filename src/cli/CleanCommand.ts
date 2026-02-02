@@ -3,9 +3,10 @@
  * Deletes generated files (.c, .cpp, .h, .hpp) that have matching .cnx sources
  */
 
-import { basename, join, relative, resolve } from "node:path";
-import { existsSync, statSync, unlinkSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
+import { unlinkSync } from "node:fs";
 import InputExpansion from "../transpiler/data/InputExpansion";
+import PathResolver from "../transpiler/data/PathResolver";
 
 /**
  * Command to clean generated output files
@@ -48,6 +49,13 @@ class CleanCommand {
       ? resolve(headerOutDir)
       : resolvedOutDir;
 
+    // Issue #586: Use PathResolver for consistent path calculation
+    const pathResolver = new PathResolver({
+      inputs,
+      outDir,
+      headerOutDir,
+    });
+
     let deletedCount = 0;
 
     // For each .cnx file, calculate and delete generated files
@@ -55,7 +63,7 @@ class CleanCommand {
       const baseName = basename(cnxFile).replace(/\.cnx$|\.cnext$/, "");
 
       // Calculate relative path from input directories
-      const relativePath = this.getRelativePath(cnxFile, inputs);
+      const relativePath = pathResolver.getRelativePathFromInputs(cnxFile);
 
       // Code files (.c and .cpp) go to outDir
       const codeExtensions = [".c", ".cpp"];
@@ -90,39 +98,6 @@ class CleanCommand {
     } else {
       console.log(`Deleted ${deletedCount} generated file(s).`);
     }
-  }
-
-  /**
-   * Get relative path of a file from input directories.
-   * Returns undefined if file is not under any input directory.
-   *
-   * When undefined is returned (e.g., for single file inputs), the caller
-   * falls back to using just the basename, which is correct behavior since
-   * there's no directory structure to preserve.
-   */
-  private static getRelativePath(
-    filePath: string,
-    inputs: string[],
-  ): string | undefined {
-    for (const input of inputs) {
-      const resolvedInput = resolve(input);
-
-      // Skip file inputs - only directories can establish relative structure.
-      // For single file inputs like "cnext myfile.cnx -o build", we return
-      // undefined and the caller uses baseName, which is the correct behavior.
-      if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
-        continue;
-      }
-
-      const rel = relative(resolvedInput, filePath);
-
-      // Check if file is under this input directory
-      if (rel && !rel.startsWith("..")) {
-        return rel;
-      }
-    }
-
-    return undefined;
   }
 
   /**
