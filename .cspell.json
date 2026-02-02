@@ -318,7 +318,10 @@
     "templ",
     "tolower",
     "toupper",
-    "unqual"
+    "unqual",
+    "Mtimes",
+    "mtimes",
+    "scandir"
   ],
   "ignorePaths": [
     "node_modules/**",
