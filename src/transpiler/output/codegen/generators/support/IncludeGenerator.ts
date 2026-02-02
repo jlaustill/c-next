@@ -2,9 +2,9 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts as part of ADR-053 A5.
  */
-import * as fs from "node:fs";
 import * as path from "node:path";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
+import CnxFileResolver from "../../../../data/CnxFileResolver";
 
 /**
  * Issue #349: Options for include transformation
@@ -14,49 +14,6 @@ interface IIncludeTransformOptions {
   includeDirs?: string[];
   inputs?: string[];
 }
-
-/**
- * Issue #349: Find a .cnx file in the given search paths.
- * Returns the absolute path if found, null otherwise.
- */
-const findCnxFile = (
-  filename: string,
-  searchPaths: string[],
-): string | null => {
-  for (const searchPath of searchPaths) {
-    const cnxPath = path.resolve(searchPath, `${filename}.cnx`);
-    if (fs.existsSync(cnxPath)) {
-      return cnxPath;
-    }
-  }
-  return null;
-};
-
-/**
- * Issue #349: Calculate the relative path from input directories.
- * Returns the relative path (e.g., "Display/utils.cnx") or null if not found.
- */
-const getRelativePathFromInputs = (
-  filePath: string,
-  inputs: string[],
-): string | null => {
-  for (const input of inputs) {
-    const resolvedInput = path.resolve(input);
-
-    // Skip if input is a file (not a directory)
-    if (fs.existsSync(resolvedInput) && fs.statSync(resolvedInput).isFile()) {
-      continue;
-    }
-
-    const relativePath = path.relative(resolvedInput, filePath);
-
-    // If relative path doesn't start with '..' it's under this input
-    if (!relativePath.startsWith("..") && !path.isAbsolute(relativePath)) {
-      return relativePath;
-    }
-  }
-  return null;
-};
 
 /**
  * ADR-010: Transform #include directives, converting .cnx to .h
@@ -85,10 +42,13 @@ const transformIncludeDirective = (
       // Build search paths: source directory first, then include directories
       const searchPaths = [sourceDir, ...includeDirs];
 
-      const foundPath = findCnxFile(filename, searchPaths);
+      const foundPath = CnxFileResolver.findCnxFile(filename, searchPaths);
       if (foundPath && inputs.length > 0) {
         // Calculate relative path from inputs for correct header path
-        const relativePath = getRelativePathFromInputs(foundPath, inputs);
+        const relativePath = CnxFileResolver.getRelativePathFromInputs(
+          foundPath,
+          inputs,
+        );
         if (relativePath) {
           // Transform .cnx to .h
           const headerPath = relativePath.replace(/\.cnx$/, ".h");
@@ -107,7 +67,7 @@ const transformIncludeDirective = (
       const sourceDir = path.dirname(sourcePath);
       const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
 
-      if (!fs.existsSync(cnxPath)) {
+      if (!CnxFileResolver.cnxFileExists(cnxPath)) {
         throw new Error(
           `Error: Included C-Next file not found: ${filepath}.cnx\n` +
             `  Searched at: ${cnxPath}\n` +
