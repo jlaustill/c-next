@@ -176,20 +176,47 @@ u32 main() {
     value <- 0; value[17, 3] <- 0x7;
     if (value != 0x000E0000) return 49;  // 0x7 << 17 = 0xE0000
 
-    // NOTE: u64 shift positions at bits >= 32 are tested in a separate file
-    // due to code generation issues with 64-bit literals (see GitHub issue #187)
+    // ========================================================
+    // Part 6: u64 shift positions at bits >= 32 (bug #187 fixed)
+    // ========================================================
+
+    u64 val64 <- 0;
+
+    // Single bit at position 32
+    val64 <- 0; val64[32] <- true;
+    if (val64 != 0x0000000100000000) return 52;
+
+    // Single bit at position 48
+    val64 <- 0; val64[48] <- true;
+    if (val64 != 0x0001000000000000) return 53;
+
+    // Single bit at position 63 (highest bit)
+    val64 <- 0; val64[63] <- true;
+    if (val64 != 0x8000000000000000) return 54;
+
+    // 8-bit value at position 32
+    val64 <- 0; val64[32, 8] <- 0xFF;
+    if (val64 != 0x000000FF00000000) return 55;
+
+    // 16-bit value at position 40
+    val64 <- 0; val64[40, 16] <- 0xABCD;
+    if (val64 != 0x00ABCD0000000000) return 56;
+
+    // 8-bit value at position 56 (top byte)
+    val64 <- 0; val64[56, 8] <- 0x12;
+    if (val64 != 0x1200000000000000) return 57;
 
     // ========================================================
-    // Part 6: Boundary cases
+    // Part 7: Boundary cases
     // ========================================================
 
     // Write spanning byte boundaries: 5 bits at position 6
     value <- 0; value[6, 5] <- 0x1F;  // 11111
-    if (value != 0x000007C0) return 50;  // 0x1F << 6 = 0x7C0
+    if (value != 0x000007C0) return 58;  // 0x1F << 6 = 0x7C0
 
     // Write spanning word boundaries: 8 bits at position 12
     value <- 0; value[12, 8] <- 0xAA;
-    if (value != 0x000AA000) return 51;  // 0xAA << 12 = 0xAA000
+    if (value != 0x000AA000) return 59;  // 0xAA << 12 = 0xAA000
 
     return 0;  // All tests passed
 }

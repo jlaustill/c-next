@@ -49,8 +49,13 @@ function handleIntegerBit(ctx: IAssignmentContext, deps: IHandlerDeps): string {
     }
   }
 
-  // Integer bit write
-  return BitUtils.singleBitWrite(name, bitIndex, ctx.generatedValue);
+  // Integer bit write - pass type for 64-bit aware code generation
+  return BitUtils.singleBitWrite(
+    name,
+    bitIndex,
+    ctx.generatedValue,
+    typeInfo?.baseType,
+  );
 }
 
 /**
@@ -82,8 +87,14 @@ function handleIntegerBitRange(
     }
   }
 
-  // Integer bit range write
-  return BitUtils.multiBitWrite(name, start, width, ctx.generatedValue);
+  // Integer bit range write - pass type for 64-bit aware code generation
+  return BitUtils.multiBitWrite(
+    name,
+    start,
+    width,
+    ctx.generatedValue,
+    typeInfo?.baseType,
+  );
 }
 
 /**
@@ -105,8 +116,8 @@ function handleStructMemberBit(
   // Extract the bit index from the last subscript
   const bitIndex = deps.generateExpression(ctx.subscripts.at(-1)!);
 
-  // Get the member type to determine if we need 1ULL for 64-bit
-  // For now, use conservative approach with 1
+  // TODO: Track member type through struct chain for 64-bit awareness
+  // For now, use conservative "1" which works for most cases
   const one = "1";
   const intValue = BitUtils.boolToInt(ctx.generatedValue);
 

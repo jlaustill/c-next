@@ -23,16 +23,20 @@ class BitUtils {
    * Uses pre-computed hex values for common widths to avoid undefined behavior.
    *
    * @param width - The bit width (number or string expression)
+   * @param targetType - Optional target type for 64-bit aware mask generation
    * @returns C code string for the mask
    */
-  static generateMask(width: string | number): string {
+  static generateMask(width: string | number, targetType?: string): string {
     const widthNum =
       typeof width === "number" ? width : Number.parseInt(width, 10);
+    const is64Bit = targetType === "u64" || targetType === "i64";
     if (!Number.isNaN(widthNum)) {
-      const hex = BitUtils.maskHex(widthNum);
+      const hex = BitUtils.maskHex(widthNum, is64Bit);
       if (hex) return hex;
     }
-    return `((1U << ${width}) - 1)`;
+    // Use ULL for 64-bit types to avoid overflow on large shifts
+    const one = is64Bit ? "1ULL" : "1U";
+    return `((${one} << ${width}) - 1)`;
   }
 
   /**
@@ -40,9 +44,25 @@ class BitUtils {
    * Returns null for uncommon widths.
    *
    * @param width - The bit width
+   * @param is64Bit - Whether the target is a 64-bit type (use ULL suffix)
    * @returns Hex mask string or null
    */
-  static maskHex(width: number): string | null {
+  static maskHex(width: number, is64Bit = false): string | null {
+    // For 64-bit targets, use ULL suffix to prevent overflow on shifts >= 32
+    if (is64Bit) {
+      switch (width) {
+        case 8:
+          return "0xFFULL";
+        case 16:
+          return "0xFFFFULL";
+        case 32:
+          return "0xFFFFFFFFULL";
+        case 64:
+          return "0xFFFFFFFFFFFFFFFFULL";
+        default:
+          return null;
+      }
+    }
     switch (width) {
       case 8:
         return "0xFFU";
@@ -123,15 +143,23 @@ class BitUtils {
    * @param target - The variable to modify
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
+   * @param targetType - Optional target type for 64-bit aware code generation
    * @returns C code string for the assignment
    */
   static singleBitWrite(
     target: string,
     offset: string | number,
     value: string,
+    targetType?: string,
   ): string {
     const intValue = BitUtils.boolToInt(value);
-    return `${target} = (${target} & ~(1 << ${offset})) | (${intValue} << ${offset});`;
+    const is64Bit = targetType === "u64" || targetType === "i64";
+    const one = is64Bit ? "1ULL" : "1";
+    // For 64-bit types, cast the value to ensure shift doesn't overflow
+    const valueShift = is64Bit
+      ? `((uint64_t)${intValue} << ${offset})`
+      : `(${intValue} << ${offset})`;
+    return `${target} = (${target} & ~(${one} << ${offset})) | ${valueShift};`;
   }
 
   /**
@@ -142,6 +170,7 @@ class BitUtils {
    * @param offset - Starting bit position (0-indexed)
    * @param width - Number of bits to write
    * @param value - Value to write
+   * @param targetType - Optional target type for 64-bit aware code generation
    * @returns C code string for the assignment
    */
   static multiBitWrite(
@@ -149,8 +178,9 @@ class BitUtils {
     offset: string | number,
     width: string | number,
     value: string,
+    targetType?: string,
   ): string {
-    const mask = BitUtils.generateMask(width);
+    const mask = BitUtils.generateMask(width, targetType);
     return `${target} = (${target} & ~(${mask} << ${offset})) | ((${value} & ${mask}) << ${offset});`;
   }
 
@@ -162,15 +192,20 @@ class BitUtils {
    * @param target - The register to write
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
+   * @param targetType - Optional target type for 64-bit aware code generation
    * @returns C code string for the assignment
    */
   static writeOnlySingleBit(
     target: string,
     offset: string | number,
     value: string,
+    targetType?: string,
   ): string {
     const intValue = BitUtils.boolToInt(value);
-    return `${target} = (${intValue} << ${offset});`;
+    // For 64-bit types, cast to ensure correct shift width
+    const castPrefix =
+      targetType === "u64" || targetType === "i64" ? "(uint64_t)" : "";
+    return `${target} = (${castPrefix}${intValue} << ${offset});`;
   }
 
   /**
@@ -182,6 +217,7 @@ class BitUtils {
    * @param offset - Starting bit position (0-indexed)
    * @param width - Number of bits to write
    * @param value - Value to write
+   * @param targetType - Optional target type for 64-bit aware code generation
    * @returns C code string for the assignment
    */
   static writeOnlyMultiBit(
@@ -189,8 +225,9 @@ class BitUtils {
     offset: string | number,
     width: string | number,
     value: string,
+    targetType?: string,
   ): string {
-    const mask = BitUtils.generateMask(width);
+    const mask = BitUtils.generateMask(width, targetType);
     return `${target} = ((${value} & ${mask}) << ${offset});`;
   }
 }

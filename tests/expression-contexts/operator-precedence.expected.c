@@ -10,7 +10,6 @@
 // test-execution
 // Tests: multiple operators with same precedence (left-to-right associativity)
 // Coverage: Section 33.1 - Nested/Complex Expressions
-// Note: Mixed operator tests (a + b - c) deferred due to bug #152
 // Helper functions to get boolean values (prevents static analysis false positives)
 bool getTrue(uint32_t x) {
     return x > 0;
@@ -82,5 +81,15 @@ int main(void) {
     if (result != 90) return 21;
     result = ((50) * 2);
     if (result != 100) return 22;
+    result = 8;
+    if (result != 8) return 23;
+    result = 7;
+    if (result != 7) return 24;
+    result = 65;
+    if (result != 65) return 25;
+    result = 50;
+    if (result != 50) return 26;
+    result = 10;
+    if (result != 10) return 27;
     return 0;
 }
