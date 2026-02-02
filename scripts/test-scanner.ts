@@ -94,4 +94,11 @@ function scanTestFiles(testsDir: string): ITestAnnotation[] {
   return annotations;
 }
 
-export default scanTestFiles;
+const testScanner = {
+  scanTestFiles,
+  // Exported for testing
+  findTestFiles,
+  extractAnnotations,
+};
+
+export default testScanner;

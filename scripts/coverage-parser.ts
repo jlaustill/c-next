@@ -278,6 +278,14 @@ const coverageParser = {
   checkForDuplicates,
   generateCoverageId,
   toKebabCase,
+  // Exported for testing
+  extractSectionNumber,
+  extractSubsectionNumber,
+  extractSectionTitle,
+  extractSubsectionTitle,
+  extractTypeHeader,
+  parseTableRow,
+  shouldSkipSection,
 };
 
 export default coverageParser;
