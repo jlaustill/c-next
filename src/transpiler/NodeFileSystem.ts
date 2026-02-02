@@ -11,6 +11,7 @@ import {
   existsSync,
   statSync,
   mkdirSync,
+  readdirSync,
 } from "node:fs";
 import IFileSystem from "./types/IFileSystem";
 
@@ -46,6 +47,10 @@ class NodeFileSystem implements IFileSystem {
 
   mkdir(path: string, options?: { recursive?: boolean }): void {
     mkdirSync(path, options);
+  }
+
+  readdir(path: string): string[] {
+    return readdirSync(path);
   }
 }
 

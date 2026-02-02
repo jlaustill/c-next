@@ -3,11 +3,15 @@
  * Scans directories for source files
  */
 
-import { readdirSync, statSync, existsSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IDiscoveryOptions from "./types/IDiscoveryOptions";
+import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = new NodeFileSystem();
 
 /**
  * Default extensions for each file type
@@ -34,10 +38,15 @@ class FileDiscovery {
    *
    * Issue #331: Uses a Set to track discovered file paths and avoid duplicates
    * when overlapping directories are provided (e.g., both src/Display and src).
+   *
+   * @param directories - Directories to scan
+   * @param options - Discovery options
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    */
   static discover(
     directories: string[],
     options: IDiscoveryOptions = {},
+    fs: IFileSystem = defaultFs,
   ): IDiscoveredFile[] {
     const files: IDiscoveredFile[] = [];
     const recursive = options.recursive ?? true;
@@ -55,7 +64,7 @@ class FileDiscovery {
     for (const dir of directories) {
       const resolvedDir = resolve(dir);
 
-      if (!existsSync(resolvedDir)) {
+      if (!fs.exists(resolvedDir)) {
         console.warn(`Warning: Directory not found: ${dir}`);
         continue;
       }
@@ -67,6 +76,7 @@ class FileDiscovery {
         options.extensions,
         excludePatterns,
         discoveredPaths,
+        fs,
       );
     }
 
@@ -75,11 +85,17 @@ class FileDiscovery {
 
   /**
    * Discover a single file
+   *
+   * @param filePath - Path to the file
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    */
-  static discoverFile(filePath: string): IDiscoveredFile | null {
+  static discoverFile(
+    filePath: string,
+    fs: IFileSystem = defaultFs,
+  ): IDiscoveredFile | null {
     const resolvedPath = resolve(filePath);
 
-    if (!existsSync(resolvedPath)) {
+    if (!fs.exists(resolvedPath)) {
       return null;
     }
 
@@ -95,12 +111,18 @@ class FileDiscovery {
 
   /**
    * Discover multiple specific files
+   *
+   * @param filePaths - Paths to the files
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    */
-  static discoverFiles(filePaths: string[]): IDiscoveredFile[] {
+  static discoverFiles(
+    filePaths: string[],
+    fs: IFileSystem = defaultFs,
+  ): IDiscoveredFile[] {
     const files: IDiscoveredFile[] = [];
 
     for (const filePath of filePaths) {
-      const file = this.discoverFile(filePath);
+      const file = this.discoverFile(filePath, fs);
       if (file) {
         files.push(file);
       } else {
@@ -150,11 +172,12 @@ class FileDiscovery {
     extensions: string[] | undefined,
     excludePatterns: RegExp[],
     discoveredPaths: Set<string>,
+    fs: IFileSystem,
   ): void {
     let entries: string[];
 
     try {
-      entries = readdirSync(dir);
+      entries = fs.readdir(dir);
     } catch {
       console.warn(`Warning: Cannot read directory: ${dir}`);
       return;
@@ -168,14 +191,11 @@ class FileDiscovery {
         continue;
       }
 
-      let stats;
-      try {
-        stats = statSync(fullPath);
-      } catch {
-        continue;
-      }
+      // Check if it's a directory or file
+      const isDir = fs.isDirectory(fullPath);
+      const isFile = fs.isFile(fullPath);
 
-      if (stats.isDirectory()) {
+      if (isDir) {
         if (recursive) {
           this.scanDirectory(
             fullPath,
@@ -184,9 +204,10 @@ class FileDiscovery {
             extensions,
             excludePatterns,
             discoveredPaths,
+            fs,
           );
         }
-      } else if (stats.isFile()) {
+      } else if (isFile) {
         // Issue #331: Skip already-discovered files (from overlapping directories)
         if (discoveredPaths.has(fullPath)) {
           continue;

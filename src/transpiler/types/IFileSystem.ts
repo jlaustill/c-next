@@ -39,6 +39,13 @@ interface IFileSystem {
    * Create a directory (and parent directories if recursive is true).
    */
   mkdir(path: string, options?: { recursive?: boolean }): void;
+
+  /**
+   * Read directory contents.
+   * @returns Array of entry names (not full paths)
+   * @throws Error if directory doesn't exist or can't be read
+   */
+  readdir(path: string): string[];
 }
 
 export default IFileSystem;

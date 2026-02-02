@@ -227,35 +227,167 @@ describe("Transpiler", () => {
       });
     });
 
-    describe("file system operations via run()", () => {
-      // Note: run() depends on FileDiscovery which uses real fs internally.
-      // These tests verify that our IFileSystem is used where possible.
-      // Full coverage requires FileDiscovery to also accept IFileSystem.
-
-      it("uses injected fs for output directory creation", async () => {
-        // For this test to work fully, FileDiscovery would need IFileSystem
-        // For now, we verify the pattern works with noCache
-        mockFs.addFile("/project/main.cnx", "void main() { }");
+    describe("run() with MockFileSystem", () => {
+      it("transpiles a single file", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "u32 getValue() { return 42; }",
+        );
 
         const transpiler = new Transpiler(
           {
-            inputs: ["/project/main.cnx"],
+            inputs: ["/project/src/main.cnx"],
             outDir: "/project/build",
             noCache: true,
           },
           mockFs,
         );
 
-        // This will fail at FileDiscovery level (using real fs),
-        // but demonstrates the injection pattern is in place
-        try {
-          await transpiler.run();
-        } catch {
-          // Expected - FileDiscovery uses real fs
-        }
+        const result = await transpiler.run();
 
-        // The transpiler accepted the mock fs - pattern is correct
-        expect(mockFs).toBeDefined();
+        expect(result.success).toBe(true);
+        expect(result.filesProcessed).toBe(1);
+        expect(result.outputFiles.length).toBeGreaterThan(0);
+
+        // Verify output was written
+        const writeCalls = mockFs.getWriteLog();
+        expect(writeCalls.some((w) => w.path.endsWith(".c"))).toBe(true);
+      });
+
+      it("creates output directory when it does not exist", async () => {
+        mockFs.addFile("/project/src/main.cnx", "void main() { }");
+
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/project/src/main.cnx"],
+            outDir: "/project/build",
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        await transpiler.run();
+
+        const mkdirCalls = mockFs.getMkdirLog();
+        expect(mkdirCalls.some((c) => c.path === "/project/build")).toBe(true);
+      });
+
+      it("creates header output directory when specified separately", async () => {
+        mockFs.addFile("/project/src/main.cnx", "void main() { }");
+
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/project/src/main.cnx"],
+            outDir: "/project/build",
+            headerOutDir: "/project/include",
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        await transpiler.run();
+
+        const mkdirCalls = mockFs.getMkdirLog();
+        expect(mkdirCalls.some((c) => c.path === "/project/include")).toBe(
+          true,
+        );
+      });
+
+      it("generates header files for exported symbols", async () => {
+        mockFs.addFile(
+          "/project/src/lib.cnx",
+          `
+            scope Math {
+              public u32 add(u32 a, u32 b) { return a + b; }
+            }
+          `,
+        );
+
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/project/src/lib.cnx"],
+            outDir: "/project/build",
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.run();
+
+        expect(result.success).toBe(true);
+
+        const writeCalls = mockFs.getWriteLog();
+        const hFile = writeCalls.find((w) => w.path.endsWith(".h"));
+        expect(hFile).toBeDefined();
+        expect(hFile?.content).toContain("Math_add");
+      });
+
+      it("discovers files in a directory", async () => {
+        mockFs.addDirectory("/project/src");
+        mockFs.addFile("/project/src/a.cnx", "void a() { }");
+        mockFs.addFile("/project/src/b.cnx", "void b() { }");
+
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/project/src"],
+            outDir: "/project/build",
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.run();
+
+        expect(result.success).toBe(true);
+        expect(result.filesProcessed).toBe(2);
+      });
+
+      it("returns error for non-existent input", async () => {
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/nonexistent/file.cnx"],
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.run();
+
+        expect(result.success).toBe(false);
+        expect(result.errors[0].message).toContain("Input not found");
+      });
+
+      it("returns warning when no C-Next files found", async () => {
+        mockFs.addDirectory("/project/empty");
+
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/project/empty"],
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.run();
+
+        expect(result.warnings).toContain("No C-Next source files found");
+      });
+
+      it("handles parse errors gracefully", async () => {
+        mockFs.addFile("/project/src/invalid.cnx", "@@@invalid");
+
+        const transpiler = new Transpiler(
+          {
+            inputs: ["/project/src/invalid.cnx"],
+            noCache: true,
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.run();
+
+        expect(result.success).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
       });
     });
   });

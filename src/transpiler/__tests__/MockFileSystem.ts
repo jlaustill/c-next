@@ -6,6 +6,7 @@
  * without touching the actual file system.
  */
 
+import { dirname, basename } from "node:path";
 import IFileSystem from "../types/IFileSystem";
 
 /**
@@ -25,18 +26,32 @@ class MockFileSystem implements IFileSystem {
   private mkdirLog: Array<{ path: string; recursive?: boolean }> = [];
 
   /**
-   * Add a virtual file to the mock file system
+   * Add a virtual file to the mock file system.
+   * Also adds parent directories automatically.
    */
   addFile(path: string, content: string): this {
     this.files.set(path, content);
+    // Auto-create parent directories
+    let dir = dirname(path);
+    while (dir && dir !== "/" && dir !== ".") {
+      this.directories.add(dir);
+      dir = dirname(dir);
+    }
     return this;
   }
 
   /**
-   * Add a virtual directory to the mock file system
+   * Add a virtual directory to the mock file system.
+   * Also adds parent directories automatically.
    */
   addDirectory(path: string): this {
     this.directories.add(path);
+    // Auto-create parent directories
+    let dir = dirname(path);
+    while (dir && dir !== "/" && dir !== ".") {
+      this.directories.add(dir);
+      dir = dirname(dir);
+    }
     return this;
   }
 
@@ -102,6 +117,30 @@ class MockFileSystem implements IFileSystem {
   mkdir(path: string, options?: { recursive?: boolean }): void {
     this.directories.add(path);
     this.mkdirLog.push({ path, recursive: options?.recursive });
+  }
+
+  readdir(path: string): string[] {
+    if (!this.directories.has(path)) {
+      throw new Error(`ENOENT: no such file or directory, scandir '${path}'`);
+    }
+
+    const entries: string[] = [];
+
+    // Find all files in this directory
+    for (const filePath of this.files.keys()) {
+      if (dirname(filePath) === path) {
+        entries.push(basename(filePath));
+      }
+    }
+
+    // Find all immediate subdirectories
+    for (const dirPath of this.directories) {
+      if (dirname(dirPath) === path && dirPath !== path) {
+        entries.push(basename(dirPath));
+      }
+    }
+
+    return entries;
   }
 }
 

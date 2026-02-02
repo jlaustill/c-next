@@ -107,12 +107,15 @@ class Transpiler {
     this.warnings = [];
 
     // Issue #586: Initialize path resolver
-    this.pathResolver = new PathResolver({
-      inputs: this.config.inputs,
-      outDir: this.config.outDir,
-      headerOutDir: this.config.headerOutDir,
-      basePath: this.config.basePath,
-    });
+    this.pathResolver = new PathResolver(
+      {
+        inputs: this.config.inputs,
+        outDir: this.config.outDir,
+        headerOutDir: this.config.headerOutDir,
+        basePath: this.config.basePath,
+      },
+      this.fs,
+    );
 
     // Initialize cache manager if caching is enabled
     this.cacheManager = this.config.noCache
@@ -384,7 +387,7 @@ class Transpiler {
         throw new Error(`Input not found: ${input}`);
       }
 
-      const file = FileDiscovery.discoverFile(resolvedInput);
+      const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
       if (file?.type === EFileType.CNext) {
         // It's a C-Next file
         cnextFiles.push(file);
@@ -394,9 +397,11 @@ class Transpiler {
         // Skip for now - we only want C-Next sources here
       } else {
         // It's a directory - scan for C-Next files
-        const discovered = FileDiscovery.discover([resolvedInput], {
-          recursive: true,
-        });
+        const discovered = FileDiscovery.discover(
+          [resolvedInput],
+          { recursive: true },
+          this.fs,
+        );
         for (const f of FileDiscovery.getCNextFiles(discovered)) {
           cnextFiles.push(f);
           fileByPath.set(resolve(f.path), f);
