@@ -7,10 +7,8 @@
  * nested includes (A includes B, B includes C with enum).
  */
 
-import { dirname } from "node:path";
-import { readFileSync } from "node:fs";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
-import IncludeResolver from "../../data/IncludeResolver";
+import IncludeTreeWalker from "../../data/IncludeTreeWalker";
 
 /**
  * Collects symbol information by traversing the include graph.
@@ -61,70 +59,46 @@ class TransitiveEnumCollector {
     includeDirs: readonly string[],
   ): ICodeGenSymbols[] {
     const result: ICodeGenSymbols[] = [];
-    const visited = new Set<string>();
 
-    TransitiveEnumCollector.collectRecursively(
-      filePath,
-      symbolInfoByFile,
-      includeDirs,
-      visited,
-      result,
-    );
+    // Issue #591: Use shared IncludeTreeWalker for traversal
+    IncludeTreeWalker.walkFromFile(filePath, includeDirs, (file) => {
+      const externalInfo = symbolInfoByFile.get(file.path);
+      if (externalInfo) {
+        result.push(externalInfo);
+      }
+    });
 
     return result;
   }
 
   /**
-   * Internal recursive collection helper.
+   * Collect symbol info for standalone mode from resolved includes.
    *
-   * @param currentPath - Current file being processed
+   * Issue #591: Extracted from Transpiler.transpileSource() to unify enum collection.
+   * Unlike collect() which starts from a file path and parses it, this method
+   * starts from already-resolved includes (from IncludeResolver.resolve()).
+   *
+   * @param cnextIncludes - Array of resolved C-Next include files
    * @param symbolInfoByFile - Map of file paths to their symbol info
-   * @param includeDirs - Additional directories to search for includes
-   * @param visited - Set of already-visited file paths
-   * @param result - Accumulator for collected symbol info
+   * @param includeDirs - Additional directories to search for nested includes
+   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
    */
-  private static collectRecursively(
-    currentPath: string,
+  static collectForStandalone(
+    cnextIncludes: ReadonlyArray<{ path: string }>,
     symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
     includeDirs: readonly string[],
-    visited: Set<string>,
-    result: ICodeGenSymbols[],
-  ): void {
-    if (visited.has(currentPath)) return;
-    visited.add(currentPath);
+  ): ICodeGenSymbols[] {
+    const result: ICodeGenSymbols[] = [];
 
-    // Read and parse includes from current file
-    let content: string;
-    try {
-      content = readFileSync(currentPath, "utf-8");
-    } catch {
-      // File doesn't exist or can't be read - skip
-      return;
-    }
-
-    const searchPaths = IncludeResolver.buildSearchPaths(
-      dirname(currentPath),
-      [...includeDirs],
-      [],
-    );
-    const resolver = new IncludeResolver(searchPaths);
-    const resolved = resolver.resolve(content, currentPath);
-
-    // Process each included .cnx file
-    for (const cnxInclude of resolved.cnextIncludes) {
-      const externalInfo = symbolInfoByFile.get(cnxInclude.path);
+    // Issue #591: Use shared IncludeTreeWalker for traversal
+    IncludeTreeWalker.walk(cnextIncludes, includeDirs, (file) => {
+      const externalInfo = symbolInfoByFile.get(file.path);
       if (externalInfo) {
         result.push(externalInfo);
       }
-      // Recursively collect from this include's includes
-      TransitiveEnumCollector.collectRecursively(
-        cnxInclude.path,
-        symbolInfoByFile,
-        includeDirs,
-        visited,
-        result,
-      );
-    }
+    });
+
+    return result;
   }
 }
 

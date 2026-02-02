@@ -210,12 +210,14 @@ describe("TransitiveEnumCollector", () => {
         [],
       );
 
-      // When collecting from A: A includes B (add B's info), B includes A (add A's info)
-      // Each file is only visited once (no infinite loop), but both infos are collected
-      expect(result).toHaveLength(2);
+      // When collecting from A: we get B's info (since A includes B)
+      // The circular include from B->A doesn't add A's info because:
+      // 1. A is the root file we're collecting FOR (its enums are already known)
+      // 2. Each file is visited only once to prevent infinite loops
+      expect(result).toHaveLength(1);
       const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
-      expect(allEnums).toContain("EnumA");
       expect(allEnums).toContain("EnumB");
+      expect(allEnums).not.toContain("EnumA"); // Root file's enums are not "external"
     });
 
     it("should handle missing files gracefully", () => {
