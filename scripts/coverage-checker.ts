@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 
 import coverageParser from "./coverage-parser";
-import scanTestFiles from "./test-scanner";
+import testScanner from "./test-scanner";
 import reportGenerator from "./report-generator";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -93,7 +93,7 @@ async function main(): Promise<void> {
 
   // Scan test files for annotations
   console.log(`${colors.yellow}Scanning test files...${colors.reset}`);
-  const annotations = scanTestFiles(testsDir);
+  const annotations = testScanner.scanTestFiles(testsDir);
   console.log(`  Found ${annotations.length} coverage annotations`);
 
   // Build report

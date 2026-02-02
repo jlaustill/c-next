@@ -372,6 +372,9 @@ const reportGenerator = {
   generateGapsReport,
   generateMarkdownReport,
   listAllIds,
+  // Exported for testing
+  getPercentageColor,
+  colors,
 };
 
 export default reportGenerator;
