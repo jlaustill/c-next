@@ -3309,6 +3309,118 @@ export default class CodeGenerator implements IOrchestrator {
     }
   }
 
+  // =========================================================================
+  // Type Registration Helpers - Extracted to reduce cognitive complexity
+  // =========================================================================
+
+  /**
+   * Extract array dimensions from ArrayDimensionContext array (simple parseInt version)
+   * Used for string array dimensions where const evaluation is not needed.
+   */
+  private extractArrayDimensionsSimple(
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+  ): number[] {
+    const dimensions: number[] = [];
+    if (!arrayDim || arrayDim.length === 0) {
+      return dimensions;
+    }
+
+    for (const dim of arrayDim) {
+      const sizeExpr = dim.expression();
+      if (sizeExpr) {
+        const size = Number.parseInt(sizeExpr.getText(), 10);
+        if (!Number.isNaN(size) && size > 0) {
+          dimensions.push(size);
+        }
+      }
+    }
+    return dimensions;
+  }
+
+  /**
+   * Register a string type in the type registry
+   * Returns true if registration was successful
+   */
+  private tryRegisterStringType(
+    registryName: string,
+    typeCtx: Parser.TypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+  ): boolean {
+    const stringCtx = typeCtx.stringType();
+    if (!stringCtx) {
+      return false;
+    }
+
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      return false;
+    }
+
+    const capacity = Number.parseInt(intLiteral.getText(), 10);
+    this.needsString = true;
+    const stringDim = capacity + 1;
+
+    // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
+    const additionalDims = this.extractArrayDimensionsSimple(arrayDim);
+    const allDims =
+      additionalDims.length > 0 ? [...additionalDims, stringDim] : [stringDim];
+
+    this.context.typeRegistry.set(registryName, {
+      baseType: "char",
+      bitWidth: 8,
+      isArray: true,
+      arrayDimensions: allDims,
+      isConst,
+      isString: true,
+      stringCapacity: capacity,
+      overflowBehavior,
+      isAtomic,
+    });
+    return true;
+  }
+
+  /**
+   * Resolve base type name from a type context
+   * Handles scoped, global, qualified, and user types
+   */
+  private resolveBaseTypeFromContext(
+    typeCtx: Parser.TypeContext,
+  ): string | null {
+    if (typeCtx.primitiveType()) {
+      return typeCtx.primitiveType()!.getText();
+    }
+
+    if (typeCtx.scopedType()) {
+      // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+      const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+      return this.context.currentScope
+        ? `${this.context.currentScope}_${typeName}`
+        : typeName;
+    }
+
+    if (typeCtx.globalType()) {
+      // Issue #478: Handle global.Type for global types inside scope
+      return typeCtx.globalType()!.IDENTIFIER().getText();
+    }
+
+    if (typeCtx.qualifiedType()) {
+      // ADR-016: Handle Scope.Type from outside scope
+      // Issue #388: Also handles C++ namespace types
+      const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
+      const identifierNames = identifiers.map((id) => id.getText());
+      return this.resolveQualifiedType(identifierNames);
+    }
+
+    if (typeCtx.userType()) {
+      return typeCtx.userType()!.getText();
+    }
+
+    return null;
+  }
+
   /**
    * Track variable type with a specific name (for namespace/class members)
    * This allows tracking with mangled names for proper scope resolution
@@ -3329,365 +3441,95 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-049: Extract atomic modifier
     const isAtomic = varDecl.atomicModifier() !== null;
 
-    let baseType = "";
-    let bitWidth = 0;
-    let isArray = false;
-    const arrayDimensions: number[] = []; // ADR-036: Track all dimensions
+    // ADR-045: Handle bounded string type first (special case)
+    if (
+      this.tryRegisterStringType(
+        registryName,
+        typeCtx,
+        arrayDim,
+        isConst,
+        overflowBehavior,
+        isAtomic,
+      )
+    ) {
+      return;
+    }
 
-    if (typeCtx.primitiveType()) {
-      baseType = typeCtx.primitiveType()!.getText();
-      bitWidth = TYPE_WIDTH[baseType] || 0;
-    } else if (typeCtx.scopedType()) {
-      // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-      const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      if (this.context.currentScope) {
-        baseType = `${this.context.currentScope}_${typeName}`;
-      } else {
-        baseType = typeName;
-      }
-
-      // ADR-017: Check if this is an enum type
-      if (this.symbols!.knownEnums.has(baseType)) {
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: 0,
-          isArray: false,
-          isConst,
-          isEnum: true,
-          enumTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-
-      // ADR-034: Check if this is a bitmap type
-      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
-      if (this.symbols!.knownBitmaps.has(baseType)) {
-        if (arrayDim && arrayDim.length > 0) {
-          // Bitmap array - need to track array dimensions too
-          const bitmapArrayDimensions: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = this._tryEvaluateConstant(sizeExpr);
-              if (size !== undefined && size > 0) {
-                bitmapArrayDimensions.push(size);
-              }
-            }
-          }
-          this.context.typeRegistry.set(registryName, {
-            baseType,
-            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-            isArray: true,
-            arrayDimensions:
-              bitmapArrayDimensions.length > 0
-                ? bitmapArrayDimensions
-                : undefined,
-            isConst,
-            isBitmap: true,
-            bitmapTypeName: baseType,
-            overflowBehavior, // ADR-044
-            isAtomic, // ADR-049
-          });
-          return;
-        }
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-          isArray: false,
-          isConst,
-          isBitmap: true,
-          bitmapTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-    } else if (typeCtx.globalType()) {
-      // Issue #478: Handle global.Type for global types inside scope
-      // global.ECategory -> ECategory (no scope prefix)
-      baseType = typeCtx.globalType()!.IDENTIFIER().getText();
-
-      // ADR-017: Check if this is an enum type
-      if (this.symbols!.knownEnums.has(baseType)) {
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: 0,
-          isArray: false,
-          isConst,
-          isEnum: true,
-          enumTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-
-      // ADR-034: Check if this is a bitmap type
-      if (this.symbols!.knownBitmaps.has(baseType)) {
-        if (arrayDim && arrayDim.length > 0) {
-          // Bitmap array
-          const bitmapArrayDimensions: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = this._tryEvaluateConstant(sizeExpr);
-              if (size !== undefined && size > 0) {
-                bitmapArrayDimensions.push(size);
-              }
-            }
-          }
-          this.context.typeRegistry.set(registryName, {
-            baseType,
-            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-            isArray: true,
-            arrayDimensions:
-              bitmapArrayDimensions.length > 0
-                ? bitmapArrayDimensions
-                : undefined,
-            isConst,
-            isBitmap: true,
-            bitmapTypeName: baseType,
-            overflowBehavior, // ADR-044
-            isAtomic, // ADR-049
-          });
-          return;
-        }
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-          isArray: false,
-          isConst,
-          isBitmap: true,
-          bitmapTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-    } else if (typeCtx.qualifiedType()) {
-      // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
-      // Issue #388: Also handles C++ namespace types (e.g., MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
-      const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-      const identifierNames = identifiers.map((id) => id.getText());
-      baseType = this.resolveQualifiedType(identifierNames);
-
-      // ADR-017: Check if this is an enum type
-      if (this.symbols!.knownEnums.has(baseType)) {
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: 0,
-          isArray: false,
-          isConst,
-          isEnum: true,
-          enumTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-
-      // ADR-034: Check if this is a bitmap type
-      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
-      if (this.symbols!.knownBitmaps.has(baseType)) {
-        if (arrayDim && arrayDim.length > 0) {
-          // Bitmap array - need to track array dimensions too
-          const bitmapArrayDimensions: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = this._tryEvaluateConstant(sizeExpr);
-              if (size !== undefined && size > 0) {
-                bitmapArrayDimensions.push(size);
-              }
-            }
-          }
-          this.context.typeRegistry.set(registryName, {
-            baseType,
-            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-            isArray: true,
-            arrayDimensions:
-              bitmapArrayDimensions.length > 0
-                ? bitmapArrayDimensions
-                : undefined,
-            isConst,
-            isBitmap: true,
-            bitmapTypeName: baseType,
-            overflowBehavior, // ADR-044
-            isAtomic, // ADR-049
-          });
-          return;
-        }
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-          isArray: false,
-          isConst,
-          isBitmap: true,
-          bitmapTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-    } else if (typeCtx.userType()) {
-      baseType = typeCtx.userType()!.getText();
-
-      // ADR-017: Check if this is an enum type
-      if (this.symbols!.knownEnums.has(baseType)) {
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: 0,
-          isArray: false,
-          isConst,
-          isEnum: true,
-          enumTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-
-      // ADR-034: Check if this is a bitmap type
-      // Issue #201: Handle bitmap arrays - check for array dimensions before early return
-      if (this.symbols!.knownBitmaps.has(baseType)) {
-        if (arrayDim && arrayDim.length > 0) {
-          // Bitmap array - need to track array dimensions too
-          const bitmapArrayDimensions: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = this._tryEvaluateConstant(sizeExpr);
-              if (size !== undefined && size > 0) {
-                bitmapArrayDimensions.push(size);
-              }
-            }
-          }
-          this.context.typeRegistry.set(registryName, {
-            baseType,
-            bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-            isArray: true,
-            arrayDimensions:
-              bitmapArrayDimensions.length > 0
-                ? bitmapArrayDimensions
-                : undefined,
-            isConst,
-            isBitmap: true,
-            bitmapTypeName: baseType,
-            overflowBehavior, // ADR-044
-            isAtomic, // ADR-049
-          });
-          return;
-        }
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth: this.symbols!.bitmapBitWidth.get(baseType) || 0,
-          isArray: false,
-          isConst,
-          isBitmap: true,
-          bitmapTypeName: baseType,
-          overflowBehavior, // ADR-044
-          isAtomic, // ADR-049
-        });
-        return; // Early return, we've handled this case
-      }
-    } else if (typeCtx.stringType()) {
-      // ADR-045: Handle bounded string type
-      const stringCtx = typeCtx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-
-      if (intLiteral) {
-        const capacity = Number.parseInt(intLiteral.getText(), 10);
-        this.needsString = true;
-        const stringDim = capacity + 1;
-
-        // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
-        if (arrayDim && arrayDim.length > 0) {
-          const stringArrayDims: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = Number.parseInt(sizeExpr.getText(), 10);
-              if (!Number.isNaN(size) && size > 0) {
-                stringArrayDims.push(size);
-              }
-            }
-          }
-          stringArrayDims.push(stringDim);
-
-          this.context.typeRegistry.set(registryName, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: stringArrayDims,
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-            overflowBehavior,
-            isAtomic,
-          });
-        } else {
-          // Single string: string<64> s
-          this.context.typeRegistry.set(registryName, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: [stringDim],
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-            overflowBehavior,
-            isAtomic,
-          });
-        }
-        return; // Early return, we've handled this case
-      }
-    } else if (typeCtx.arrayType()) {
-      isArray = true;
+    // Handle array type syntax: u8[10]
+    if (typeCtx.arrayType()) {
       const arrayTypeCtx = typeCtx.arrayType()!;
+      let baseType = "";
+      let bitWidth = 0;
+
       if (arrayTypeCtx.primitiveType()) {
         baseType = arrayTypeCtx.primitiveType()!.getText();
         bitWidth = TYPE_WIDTH[baseType] || 0;
       }
+
+      const arrayDimensions: number[] = [];
       const sizeExpr = arrayTypeCtx.expression();
       if (sizeExpr) {
-        const sizeText = sizeExpr.getText();
-        const size = Number.parseInt(sizeText, 10);
+        const size = Number.parseInt(sizeExpr.getText(), 10);
         if (!Number.isNaN(size)) {
           arrayDimensions.push(size);
         }
       }
-    }
 
-    // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
-    // arrayDim is now an array of ArrayDimensionContext
-    // Bug #8: Use tryEvaluateConstant to resolve const identifiers in array sizes
-    if (arrayDim && arrayDim.length > 0) {
-      isArray = true;
-      for (const dim of arrayDim) {
-        const sizeExpr = dim.expression();
-        if (sizeExpr) {
-          const size = this._tryEvaluateConstant(sizeExpr);
-          if (size !== undefined && size > 0) {
-            arrayDimensions.push(size);
-          }
-        }
+      // Also check for additional dimensions using const evaluation
+      const additionalDims = this._evaluateArrayDimensions(arrayDim);
+      if (additionalDims) {
+        arrayDimensions.push(...additionalDims);
       }
+
+      if (baseType) {
+        this.context.typeRegistry.set(registryName, {
+          baseType,
+          bitWidth,
+          isArray: true,
+          arrayDimensions:
+            arrayDimensions.length > 0 ? arrayDimensions : undefined,
+          isConst,
+          overflowBehavior,
+          isAtomic,
+        });
+      }
+      return;
     }
 
-    if (baseType) {
-      this.context.typeRegistry.set(registryName, {
-        baseType,
-        bitWidth,
-        isArray,
-        arrayDimensions:
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
-        isConst,
-        overflowBehavior, // ADR-044: Store overflow behavior
-        isAtomic, // ADR-049: Store atomic status
-      });
+    // Resolve base type from context (handles scoped, global, qualified, user types)
+    const baseType = this.resolveBaseTypeFromContext(typeCtx);
+    if (!baseType) {
+      return;
     }
+
+    // ADR-017/ADR-034: Check if enum or bitmap type (reuse existing helper)
+    if (
+      this._tryRegisterEnumOrBitmapType(
+        registryName,
+        baseType,
+        isConst,
+        arrayDim,
+        overflowBehavior,
+        isAtomic,
+      )
+    ) {
+      return;
+    }
+
+    // Standard type registration
+    const bitWidth = TYPE_WIDTH[baseType] || 0;
+    const arrayDimensions = this._evaluateArrayDimensions(arrayDim);
+    const isArray = arrayDimensions !== undefined && arrayDimensions.length > 0;
+
+    this.context.typeRegistry.set(registryName, {
+      baseType,
+      bitWidth,
+      isArray,
+      arrayDimensions: isArray ? arrayDimensions : undefined,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    });
   }
 
   /**
