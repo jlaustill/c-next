@@ -72,9 +72,10 @@ describe("Runner", () => {
         errors: [],
       }),
     };
-    vi.mocked(Transpiler).mockImplementation(
-      () => mockTranspilerInstance as unknown as Transpiler,
-    );
+    // vitest v4 requires function keyword for constructor mocks (not arrow functions)
+    vi.mocked(Transpiler).mockImplementation(function () {
+      return mockTranspilerInstance as unknown as Transpiler;
+    });
   });
 
   afterEach(() => {
