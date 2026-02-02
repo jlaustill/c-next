@@ -22,8 +22,8 @@ type TResolvedIncludes = ReturnType<
  * This decouples the builder from the concrete Transpiler class.
  */
 interface IStandaloneTranspiler {
-  /** Parse and collect symbols from a C/C++ header file */
-  collectHeaderSymbols(header: IDiscoveredFile): Promise<void>;
+  /** Parse and collect symbols from a C/C++ header file (no recursion, Issue #592) */
+  collectHeaderSymbols(header: IDiscoveredFile): void;
 
   /** Parse and collect symbols from a C-Next include file */
   collectCNextSymbols(cnxInclude: IDiscoveredFile): void;
@@ -36,6 +36,12 @@ interface IStandaloneTranspiler {
 
   /** Add a warning message */
   addWarning(message: string): void;
+
+  /** Get already-processed header paths (for deduplication) */
+  getProcessedHeaders(): Set<string>;
+
+  /** Is debug mode enabled? */
+  isDebugMode(): boolean;
 }
 
 // Interface is not exported - Transpiler uses duck typing
@@ -56,12 +62,13 @@ class StandaloneContextBuilder {
    * @param transpiler - The transpiler instance (via interface)
    * @param resolved - The resolved includes from IncludeResolver
    */
-  static async build(
+  static build(
     transpiler: IStandaloneTranspiler,
     resolved: TResolvedIncludes,
-  ): Promise<void> {
+  ): void {
     // Step 4a: Parse C/C++ headers to populate symbol table
-    await StandaloneContextBuilder.processHeaders(transpiler, resolved);
+    // Issue #592: Use resolveHeadersTransitively for recursive include discovery
+    StandaloneContextBuilder.processHeaders(transpiler, resolved);
 
     // Step 4b: Recursively parse C-Next includes for cross-file symbols
     StandaloneContextBuilder.processCNextIncludes(
@@ -72,14 +79,36 @@ class StandaloneContextBuilder {
 
   /**
    * Process C/C++ headers to collect symbols.
+   * Issue #592: Uses IncludeResolver.resolveHeadersTransitively() for recursive discovery
    */
-  private static async processHeaders(
+  private static processHeaders(
     transpiler: IStandaloneTranspiler,
     resolved: TResolvedIncludes,
-  ): Promise<void> {
-    for (const header of resolved.headers) {
+  ): void {
+    const includeDirs = transpiler.getIncludeDirs();
+
+    // Issue #592: Resolve all headers transitively (including nested includes)
+    const { headers: allHeaders, warnings: headerWarnings } =
+      IncludeResolver.resolveHeadersTransitively(
+        resolved.headers,
+        [...includeDirs],
+        {
+          onDebug: transpiler.isDebugMode()
+            ? (msg) => console.log(`[DEBUG] ${msg}`)
+            : undefined,
+          processedPaths: transpiler.getProcessedHeaders(),
+        },
+      );
+
+    // Add any warnings from header resolution
+    for (const warning of headerWarnings) {
+      transpiler.addWarning(warning);
+    }
+
+    // Process all headers (now in dependency order, no recursion needed)
+    for (const header of allHeaders) {
       try {
-        await transpiler.collectHeaderSymbols(header);
+        transpiler.collectHeaderSymbols(header);
         // Issue #497: Store the include directive for this header
         const directive = resolved.headerIncludeDirectives.get(header.path);
         if (directive) {
