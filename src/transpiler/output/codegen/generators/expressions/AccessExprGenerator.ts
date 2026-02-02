@@ -270,19 +270,19 @@ const generateLengthProperty = (ctx: PropertyContext): PropertyResult => {
         };
       }
     }
-  } else if (typeInfo.isEnum && !typeInfo.isArray) {
-    // ADR-017: Enum types default to 32-bit width
-    return { code: "32", effects, skipContinue: false };
-  } else if (!typeInfo.isArray) {
-    // Integer bit width - return the compile-time constant
-    return { code: String(typeInfo.bitWidth), effects, skipContinue: false };
-  } else {
-    // Unknown length
+  } else if (typeInfo.isArray) {
+    // Unknown length for array type
     return {
       code: `/* .length unknown for ${ctx.currentIdentifier} */0`,
       effects,
       skipContinue: false,
     };
+  } else if (typeInfo.isEnum) {
+    // ADR-017: Enum types default to 32-bit width
+    return { code: "32", effects, skipContinue: false };
+  } else {
+    // Integer bit width - return the compile-time constant
+    return { code: String(typeInfo.bitWidth), effects, skipContinue: false };
   }
 };
 

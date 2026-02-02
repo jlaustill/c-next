@@ -90,6 +90,9 @@ const {
   formatTrailingComment: commentFormatTrailingComment,
 } = commentUtils;
 
+/** C null terminator character literal for generated code */
+const C_NULL_CHAR = String.raw`'\0'`;
+
 /**
  * Maps C-Next assignment operators to C assignment operators
  */
@@ -3778,11 +3781,11 @@ export default class CodeGenerator implements IOrchestrator {
           if (sizeExpr) {
             const sizeText = sizeExpr.getText();
             const size = Number.parseInt(sizeText, 10);
-            if (!Number.isNaN(size)) {
-              arrayDimensions.push(size);
-            } else {
+            if (Number.isNaN(size)) {
               // Non-numeric size (e.g., constant identifier) - still count the dimension
               arrayDimensions.push(0);
+            } else {
+              arrayDimensions.push(size);
             }
           } else {
             // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
@@ -6131,7 +6134,7 @@ export default class CodeGenerator implements IOrchestrator {
               `${constMod}char ${name}[${capacity + 1}] = "";`,
               `${indent}strncpy(${name}, ${concatOps.left}, ${capacity});`,
               `${indent}strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
-              `${indent}${name}[${capacity}] = '\\0';`,
+              `${indent}${name}[${capacity}] = ${C_NULL_CHAR};`,
             );
             return lines.join("\n");
           }
@@ -6177,7 +6180,7 @@ export default class CodeGenerator implements IOrchestrator {
             lines.push(
               `${constMod}char ${name}[${capacity + 1}] = "";`,
               `${indent}strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
-              `${indent}${name}[${substringOps.length}] = '\\0';`,
+              `${indent}${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
             );
             return lines.join("\n");
           }
@@ -8329,17 +8332,17 @@ export default class CodeGenerator implements IOrchestrator {
                     result = `/* .length: unsupported element type ${typeInfo.baseType} */0`;
                   }
                 }
-              } else if (typeInfo.isEnum && !typeInfo.isArray) {
+              } else if (typeInfo.isArray) {
+                // Unknown length, generate error placeholder
+                result = `/* .length unknown for ${currentIdentifier} */0`;
+              } else if (typeInfo.isEnum) {
                 // ADR-017: Enum types default to 32-bit width like C
                 // Issue #121: Enums were previously returning 0 for .length
                 // Only applies to non-array enum variables
                 result = "32";
-              } else if (!typeInfo.isArray) {
+              } else {
                 // Integer bit width - return the compile-time constant
                 result = String(typeInfo.bitWidth);
-              } else {
-                // Unknown length, generate error placeholder
-                result = `/* .length unknown for ${currentIdentifier} */0`;
               }
             }
           }
@@ -8598,11 +8601,7 @@ export default class CodeGenerator implements IOrchestrator {
             const fullName = `${this.context.currentScope}_${memberName}`;
             const constValue =
               this.symbols!.scopePrivateConstValues.get(fullName);
-            if (constValue !== undefined) {
-              // Inline the const value directly
-              result = constValue;
-              currentIdentifier = fullName; // Track for .length lookups
-            } else {
+            if (constValue === undefined) {
               // Transform this.member to Scope_member
               result = fullName;
               currentIdentifier = result; // Track for .length lookups
@@ -8618,6 +8617,10 @@ export default class CodeGenerator implements IOrchestrator {
                   currentStructType = resolvedTypeInfo.baseType;
                 }
               }
+            } else {
+              // Inline the const value directly
+              result = constValue;
+              currentIdentifier = fullName; // Track for .length lookups
             }
           } else if (this.isKnownScope(result)) {
             // ADR-016: Skip validation if we're already in a global. access chain

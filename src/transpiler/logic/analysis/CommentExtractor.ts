@@ -214,8 +214,7 @@ class CommentExtractor {
     if (content.endsWith("\\")) {
       this.errors.push({
         rule: "3.2",
-        message:
-          "Line comment ends with '\\' which causes line-splice (MISRA C:2012 Rule 3.2)",
+        message: String.raw`Line comment ends with '\' which causes line-splice (MISRA C:2012 Rule 3.2)`,
         line: comment.line,
         column: comment.column,
       });

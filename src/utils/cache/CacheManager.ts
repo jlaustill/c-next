@@ -112,12 +112,16 @@ class CacheManager {
   isValid(filePath: string): boolean {
     if (!this.cache) return false;
 
-    const entry = this.cache.getKey(filePath) as ICachedFileEntry | undefined;
+    const entry = this.cache.getKey(filePath);
     if (!entry) {
       return false;
     }
 
-    return CacheKeyGenerator.isValid(filePath, entry.cacheKey, this.fs);
+    return CacheKeyGenerator.isValid(
+      filePath,
+      (entry as ICachedFileEntry).cacheKey,
+      this.fs,
+    );
   }
 
   /**
@@ -131,17 +135,20 @@ class CacheManager {
   } | null {
     if (!this.cache) return null;
 
-    const entry = this.cache.getKey(filePath) as ICachedFileEntry | undefined;
+    const entry = this.cache.getKey(filePath);
     if (!entry) {
       return null;
     }
+    const cachedEntry = entry as ICachedFileEntry;
 
     // Deserialize symbols
-    const symbols = entry.symbols.map((s) => this.deserializeSymbol(s));
+    const symbols = cachedEntry.symbols.map((s) => this.deserializeSymbol(s));
 
     // Convert struct fields from plain objects to Maps
     const structFields = new Map<string, Map<string, IStructFieldInfo>>();
-    for (const [structName, fields] of Object.entries(entry.structFields)) {
+    for (const [structName, fields] of Object.entries(
+      cachedEntry.structFields,
+    )) {
       const fieldMap = new Map<string, IStructFieldInfo>();
       for (const [fieldName, fieldInfo] of Object.entries(fields)) {
         fieldMap.set(fieldName, fieldInfo);
@@ -151,8 +158,10 @@ class CacheManager {
 
     // Issue #208: Convert enum bit widths from plain object to Map
     const enumBitWidth = new Map<string, number>();
-    if (entry.enumBitWidth) {
-      for (const [enumName, width] of Object.entries(entry.enumBitWidth)) {
+    if (cachedEntry.enumBitWidth) {
+      for (const [enumName, width] of Object.entries(
+        cachedEntry.enumBitWidth,
+      )) {
         enumBitWidth.set(enumName, width);
       }
     }
@@ -160,7 +169,7 @@ class CacheManager {
     return {
       symbols,
       structFields,
-      needsStructKeyword: entry.needsStructKeyword ?? [],
+      needsStructKeyword: cachedEntry.needsStructKeyword ?? [],
       enumBitWidth,
     };
   }
