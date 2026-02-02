@@ -8,44 +8,27 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import reportGenerator from "../report-generator";
+import Colors from "../colors";
 import ICoverageItem from "../types/ICoverageItem";
 import ITestAnnotation from "../types/ITestAnnotation";
 
 describe("getPercentageColor", () => {
   it("should return green for percentage >= 80", () => {
-    expect(reportGenerator.getPercentageColor(80)).toBe(
-      reportGenerator.colors.green,
-    );
-    expect(reportGenerator.getPercentageColor(100)).toBe(
-      reportGenerator.colors.green,
-    );
-    expect(reportGenerator.getPercentageColor(95)).toBe(
-      reportGenerator.colors.green,
-    );
+    expect(reportGenerator.getPercentageColor(80)).toBe(Colors.green);
+    expect(reportGenerator.getPercentageColor(100)).toBe(Colors.green);
+    expect(reportGenerator.getPercentageColor(95)).toBe(Colors.green);
   });
 
   it("should return yellow for percentage >= 50 and < 80", () => {
-    expect(reportGenerator.getPercentageColor(50)).toBe(
-      reportGenerator.colors.yellow,
-    );
-    expect(reportGenerator.getPercentageColor(79)).toBe(
-      reportGenerator.colors.yellow,
-    );
-    expect(reportGenerator.getPercentageColor(65)).toBe(
-      reportGenerator.colors.yellow,
-    );
+    expect(reportGenerator.getPercentageColor(50)).toBe(Colors.yellow);
+    expect(reportGenerator.getPercentageColor(79)).toBe(Colors.yellow);
+    expect(reportGenerator.getPercentageColor(65)).toBe(Colors.yellow);
   });
 
   it("should return red for percentage < 50", () => {
-    expect(reportGenerator.getPercentageColor(49)).toBe(
-      reportGenerator.colors.red,
-    );
-    expect(reportGenerator.getPercentageColor(0)).toBe(
-      reportGenerator.colors.red,
-    );
-    expect(reportGenerator.getPercentageColor(25)).toBe(
-      reportGenerator.colors.red,
-    );
+    expect(reportGenerator.getPercentageColor(49)).toBe(Colors.red);
+    expect(reportGenerator.getPercentageColor(0)).toBe(Colors.red);
+    expect(reportGenerator.getPercentageColor(25)).toBe(Colors.red);
   });
 });
 

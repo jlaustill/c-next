@@ -18,29 +18,20 @@ import transpile from "../src/lib/transpiler";
 import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGrammarCoverageReport";
 import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
+import Colors from "./colors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
 
-// ANSI colors
-const colors = {
-  reset: "\x1b[0m",
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  cyan: "\x1b[36m",
-  dim: "\x1b[2m",
-};
-
 // Default coverage threshold (percentage)
 const DEFAULT_THRESHOLD = 80;
 
-/** Get color based on percentage threshold */
-function getPercentageColor(pct: number): string {
-  if (pct >= 80) return colors.green;
-  if (pct >= 60) return colors.yellow;
-  return colors.red;
+/** Get color function based on percentage threshold */
+function getPercentageColor(pct: number): (text: string) => string {
+  if (pct >= 80) return Colors.green;
+  if (pct >= 60) return Colors.yellow;
+  return Colors.red;
 }
 
 /**
@@ -141,28 +132,26 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
   console.log("=".repeat(50) + "\n");
 
   // Summary
-  console.log(`${colors.cyan}Parser Rules:${colors.reset}`);
+  console.log(Colors.cyan("Parser Rules:"));
   console.log(`  Total:    ${report.totalParserRules}`);
   console.log(
     `  Covered:  ${report.visitedParserRules} (${report.parserCoveragePercentage.toFixed(1)}%)`,
   );
   console.log(`  Missing:  ${report.neverVisitedParserRules.length}`);
 
-  console.log(`\n${colors.cyan}Lexer Rules (Token Types):${colors.reset}`);
+  console.log(`\n${Colors.cyan("Lexer Rules (Token Types):")}`);
   console.log(`  Total:    ${report.totalLexerRules}`);
   console.log(
     `  Covered:  ${report.visitedLexerRules} (${report.lexerCoveragePercentage.toFixed(1)}%)`,
   );
   console.log(`  Missing:  ${report.neverVisitedLexerRules.length}`);
 
-  console.log(`\n${colors.cyan}Combined Coverage:${colors.reset}`);
+  console.log(`\n${Colors.cyan("Combined Coverage:")}`);
   const combinedColor = getPercentageColor(report.combinedCoveragePercentage);
-  console.log(
-    `  ${combinedColor}${report.combinedCoveragePercentage.toFixed(1)}%${colors.reset}`,
-  );
+  console.log(`  ${combinedColor(`${report.combinedCoveragePercentage.toFixed(1)}%`)}`);
 
   // Top 10 most used parser rules
-  console.log(`\n${colors.cyan}Top 10 Most Used Parser Rules:${colors.reset}`);
+  console.log(`\n${Colors.cyan("Top 10 Most Used Parser Rules:")}`);
   const sortedParser = Array.from(report.parserRuleVisits.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
@@ -173,12 +162,12 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
 
   // Never visited parser rules
   if (report.neverVisitedParserRules.length > 0) {
-    console.log(`\n${colors.yellow}Never Visited Parser Rules:${colors.reset}`);
+    console.log(`\n${Colors.yellow("Never Visited Parser Rules:")}`);
     for (const rule of report.neverVisitedParserRules) {
-      console.log(`  ${colors.red}✗${colors.reset} ${rule}`);
+      console.log(`  ${Colors.red("✗")} ${rule}`);
     }
   } else {
-    console.log(`\n${colors.green}✓ All parser rules covered!${colors.reset}`);
+    console.log(`\n${Colors.green("✓ All parser rules covered!")}`);
   }
 
   // Never visited lexer rules (only show notable ones)
@@ -190,16 +179,12 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
   );
 
   if (notableMissing.length > 0) {
-    console.log(
-      `\n${colors.yellow}Never Matched Lexer Rules (Notable):${colors.reset}`,
-    );
+    console.log(`\n${Colors.yellow("Never Matched Lexer Rules (Notable):")}`);
     for (const rule of notableMissing.slice(0, 20)) {
-      console.log(`  ${colors.red}✗${colors.reset} ${rule}`);
+      console.log(`  ${Colors.red("✗")} ${rule}`);
     }
     if (notableMissing.length > 20) {
-      console.log(
-        `  ${colors.dim}... and ${notableMissing.length - 20} more${colors.reset}`,
-      );
+      console.log(Colors.dim(`  ... and ${notableMissing.length - 20} more`));
     }
   }
 
@@ -344,14 +329,12 @@ async function main(): Promise<void> {
   const testsDir = join(rootDir, "tests");
   const reportPath = join(rootDir, "GRAMMAR-COVERAGE.md");
 
-  console.log(
-    `${colors.yellow}Scanning test files for grammar coverage...${colors.reset}`,
-  );
+  console.log(Colors.yellow("Scanning test files for grammar coverage..."));
 
   const testFiles = findTestFiles(testsDir);
   console.log(`  Found ${testFiles.length} test files`);
 
-  console.log(`${colors.yellow}Aggregating grammar coverage...${colors.reset}`);
+  console.log(Colors.yellow("Aggregating grammar coverage..."));
   const report = aggregateCoverage(testsDir);
 
   switch (mode) {
@@ -363,12 +346,14 @@ async function main(): Promise<void> {
       generateConsoleReport(report);
       if (report.combinedCoveragePercentage < threshold) {
         console.error(
-          `\n${colors.red}Error: Grammar coverage (${report.combinedCoveragePercentage.toFixed(1)}%) is below threshold (${threshold}%)${colors.reset}`,
+          Colors.red(
+            `\nError: Grammar coverage (${report.combinedCoveragePercentage.toFixed(1)}%) is below threshold (${threshold}%)`,
+          ),
         );
         process.exit(1);
       }
       console.log(
-        `\n${colors.green}✓ Grammar coverage meets threshold (${threshold}%)${colors.reset}`,
+        Colors.green(`\n✓ Grammar coverage meets threshold (${threshold}%)`),
       );
       break;
 
@@ -378,13 +363,13 @@ async function main(): Promise<void> {
       const markdown = generateMarkdownReport(report);
       writeFileSync(reportPath, markdown, "utf-8");
       console.log(
-        `${colors.green}Report written to ${relative(rootDir, reportPath)}${colors.reset}`,
+        Colors.green(`Report written to ${relative(rootDir, reportPath)}`),
       );
       break;
   }
 }
 
 main().catch((err) => {
-  console.error(`${colors.red}Error: ${err.message}${colors.reset}`);
+  console.error(Colors.red(`Error: ${err.message}`));
   process.exit(1);
 });

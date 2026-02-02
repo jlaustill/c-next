@@ -39,20 +39,11 @@ import ITestResult from "./types/ITestResult";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
+import Colors from "./colors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
-
-// ANSI colors for terminal output
-const colors = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  yellow: "\x1b[33m",
-  cyan: "\x1b[36m",
-  dim: "\x1b[2m",
-};
 
 interface IWorkerResult {
   type: "result" | "ready" | "loaded";
@@ -158,30 +149,30 @@ function printResult(
   if (result.passed) {
     if (result.updated) {
       if (!quietMode) {
-        console.log(`${colors.yellow}UPDATED${colors.reset} ${relativePath}`);
+        console.log(`${Colors.yellow("UPDATED")} ${relativePath}`);
       }
     } else if (result.skippedExec) {
       if (!quietMode) {
         console.log(
-          `${colors.green}PASS${colors.reset}    ${relativePath} ${colors.dim}(exec skipped: ARM)${colors.reset}`,
+          `${Colors.green("PASS")}    ${relativePath} ${Colors.dim("(exec skipped: ARM)")}`,
         );
       }
     } else if (!quietMode) {
-      console.log(`${colors.green}PASS${colors.reset}    ${relativePath}`);
+      console.log(`${Colors.green("PASS")}    ${relativePath}`);
     }
   } else if (result.noSnapshot) {
     console.log(
-      `${colors.yellow}SKIP${colors.reset}    ${relativePath} (no snapshot)`,
+      `${Colors.yellow("SKIP")}    ${relativePath} (no snapshot)`,
     );
   } else {
-    console.log(`${colors.red}FAIL${colors.reset}    ${relativePath}`);
-    console.log(`        ${colors.dim}${result.message}${colors.reset}`);
+    console.log(`${Colors.red("FAIL")}    ${relativePath}`);
+    console.log(`        ${Colors.dim(result.message ?? "")}`);
     if (result.expected && result.actual) {
-      console.log(`        ${colors.dim}Expected:${colors.reset}`);
+      console.log(`        ${Colors.dim("Expected:")}`);
       console.log(
         `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
       );
-      console.log(`        ${colors.dim}Actual:${colors.reset}`);
+      console.log(`        ${Colors.dim("Actual:")}`);
       console.log(
         `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
       );
@@ -194,13 +185,13 @@ function printResult(
     // Show execution error if present
     if (result.execError) {
       console.log(
-        `        ${colors.red}Exec error:${colors.reset} ${result.execError}`,
+        `        ${Colors.red("Exec error:")} ${result.execError}`,
       );
     }
     // Show warning error if present (test-no-warnings failure)
     if (result.warningError) {
       console.log(
-        `        ${colors.red}Warning:${colors.reset} ${result.warningError}`,
+        `        ${Colors.red("Warning:")} ${result.warningError}`,
       );
     }
   }
@@ -446,9 +437,7 @@ async function main(): Promise<void> {
 
   // Check if path exists and determine if it's a file or directory
   if (!existsSync(testPath)) {
-    console.error(
-      `${colors.red}Error: Test path not found: ${testPath}${colors.reset}`,
-    );
+    console.error(Colors.red(`Error: Test path not found: ${testPath}`));
     process.exit(1);
   }
 
@@ -458,7 +447,7 @@ async function main(): Promise<void> {
   // Validate single file has correct extension
   if (isSingleFile && !testPath.endsWith(".test.cnx")) {
     console.error(
-      `${colors.red}Error: Test file must end with .test.cnx: ${testPath}${colors.reset}`,
+      Colors.red(`Error: Test file must end with .test.cnx: ${testPath}`),
     );
     process.exit(1);
   }
@@ -469,19 +458,19 @@ async function main(): Promise<void> {
   // Require at least GCC for compilation check
   if (!tools.gcc) {
     console.error(
-      `${colors.red}Error: gcc is required for C compilation validation${colors.reset}`,
+      Colors.red("Error: gcc is required for C compilation validation"),
     );
     process.exit(1);
   }
 
   if (!quietMode) {
-    console.log(`${colors.cyan}C-Next Integration Tests${colors.reset}`);
+    console.log(Colors.cyan("C-Next Integration Tests"));
     console.log(
-      `${colors.dim}Test ${isSingleFile ? "file" : "directory"}: ${testPath}${colors.reset}`,
+      Colors.dim(`Test ${isSingleFile ? "file" : "directory"}: ${testPath}`),
     );
     if (updateMode) {
       console.log(
-        `${colors.yellow}Update mode: snapshots will be created/updated${colors.reset}`,
+        Colors.yellow("Update mode: snapshots will be created/updated"),
       );
     }
 
@@ -492,15 +481,13 @@ async function main(): Promise<void> {
     if (tools.clangTidy) toolList.push("clang-tidy");
     if (tools.misra) toolList.push("MISRA");
     if (tools.flawfinder) toolList.push("flawfinder");
-    console.log(
-      `${colors.cyan}Validation: ${toolList.join(" → ")}${colors.reset}`,
-    );
+    console.log(Colors.cyan(`Validation: ${toolList.join(" → ")}`));
 
     // Show parallelism info
     if (numJobs > 1) {
-      console.log(`${colors.cyan}Workers: ${numJobs} parallel${colors.reset}`);
+      console.log(Colors.cyan(`Workers: ${numJobs} parallel`));
     } else {
-      console.log(`${colors.dim}Mode: sequential${colors.reset}`);
+      console.log(Colors.dim("Mode: sequential"));
     }
     console.log();
   }
@@ -509,7 +496,7 @@ async function main(): Promise<void> {
   const cnxFiles = isSingleFile ? [testPath] : findCnxFiles(testPath);
 
   if (cnxFiles.length === 0) {
-    console.log(`${colors.yellow}No .test.cnx test files found${colors.reset}`);
+    console.log(Colors.yellow("No .test.cnx test files found"));
     process.exit(0);
   }
 
@@ -539,26 +526,26 @@ async function main(): Promise<void> {
     // Single-line summary for AI-friendly output
     if (failed > 0) {
       console.log(
-        `${passed}/${cnxFiles.length} tests passed, ${colors.red}${failed} failed${colors.reset}`,
+        `${passed}/${cnxFiles.length} tests passed, ${Colors.red(`${failed} failed`)}`,
       );
     } else {
       console.log(
-        `${colors.green}${cnxFiles.length}/${cnxFiles.length} tests passed${colors.reset}`,
+        Colors.green(`${cnxFiles.length}/${cnxFiles.length} tests passed`),
       );
     }
   } else {
     console.log();
-    console.log(`${colors.cyan}Results:${colors.reset}`);
-    console.log(`  ${colors.green}Passed:${colors.reset}  ${passed}`);
+    console.log(Colors.cyan("Results:"));
+    console.log(`  ${Colors.green("Passed:")}  ${passed}`);
     if (failed > 0) {
-      console.log(`  ${colors.red}Failed:${colors.reset}  ${failed}`);
+      console.log(`  ${Colors.red("Failed:")}  ${failed}`);
     }
     if (updated > 0) {
-      console.log(`  ${colors.yellow}Updated:${colors.reset} ${updated}`);
+      console.log(`  ${Colors.yellow("Updated:")} ${updated}`);
     }
     if (noSnapshot > 0) {
       console.log(
-        `  ${colors.yellow}Skipped:${colors.reset} ${noSnapshot} (no snapshot)`,
+        `  ${Colors.yellow("Skipped:")} ${noSnapshot} (no snapshot)`,
       );
     }
   }
