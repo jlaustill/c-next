@@ -153,9 +153,9 @@ class BitUtils {
     targetType?: string,
   ): string {
     const intValue = BitUtils.boolToInt(value);
-    const one = BitUtils.oneForType(targetType ?? "");
-    // For 64-bit types, cast the value to ensure shift doesn't overflow
     const is64Bit = targetType === "u64" || targetType === "i64";
+    const one = is64Bit ? "1ULL" : "1";
+    // For 64-bit types, cast the value to ensure shift doesn't overflow
     const valueShift = is64Bit
       ? `((uint64_t)${intValue} << ${offset})`
       : `(${intValue} << ${offset})`;

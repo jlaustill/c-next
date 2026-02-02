@@ -65,6 +65,23 @@ describe("BitUtils.maskHex", () => {
   it("returns null for width 0", () => {
     expect(BitUtils.maskHex(0)).toBeNull();
   });
+
+  // 64-bit target tests (is64Bit parameter)
+  it("returns 0xFFULL for width 8 with is64Bit=true", () => {
+    expect(BitUtils.maskHex(8, true)).toBe("0xFFULL");
+  });
+
+  it("returns 0xFFFFULL for width 16 with is64Bit=true", () => {
+    expect(BitUtils.maskHex(16, true)).toBe("0xFFFFULL");
+  });
+
+  it("returns 0xFFFFFFFFULL for width 32 with is64Bit=true", () => {
+    expect(BitUtils.maskHex(32, true)).toBe("0xFFFFFFFFULL");
+  });
+
+  it("returns 0xFFFFFFFFFFFFFFFFULL for width 64 with is64Bit=true", () => {
+    expect(BitUtils.maskHex(64, true)).toBe("0xFFFFFFFFFFFFFFFFULL");
+  });
 });
 
 // ========================================================================
@@ -163,6 +180,31 @@ describe("BitUtils.generateMask", () => {
 
   it("handles expression-based width", () => {
     expect(BitUtils.generateMask("width + 1")).toBe("((1U << width + 1) - 1)");
+  });
+
+  // 64-bit target tests (targetType parameter)
+  it("uses ULL hex mask for width 8 with u64 target", () => {
+    expect(BitUtils.generateMask(8, "u64")).toBe("0xFFULL");
+  });
+
+  it("uses ULL hex mask for width 16 with u64 target", () => {
+    expect(BitUtils.generateMask(16, "u64")).toBe("0xFFFFULL");
+  });
+
+  it("uses ULL hex mask for width 32 with u64 target", () => {
+    expect(BitUtils.generateMask(32, "u64")).toBe("0xFFFFFFFFULL");
+  });
+
+  it("uses ULL hex mask for width 16 with i64 target", () => {
+    expect(BitUtils.generateMask(16, "i64")).toBe("0xFFFFULL");
+  });
+
+  it("generates ULL shift expression for width 4 with u64 target", () => {
+    expect(BitUtils.generateMask(4, "u64")).toBe("((1ULL << 4) - 1)");
+  });
+
+  it("generates ULL shift expression for dynamic width with u64 target", () => {
+    expect(BitUtils.generateMask("n", "u64")).toBe("((1ULL << n) - 1)");
   });
 });
 
@@ -273,6 +315,31 @@ describe("BitUtils.singleBitWrite", () => {
       "status = (status & ~(1 << 0)) | ((x > 5 ? 1 : 0) << 0);",
     );
   });
+
+  // 64-bit target tests (targetType parameter)
+  it("generates 64-bit RMW for u64 target at high position", () => {
+    expect(BitUtils.singleBitWrite("val64", 32, "true", "u64")).toBe(
+      "val64 = (val64 & ~(1ULL << 32)) | ((uint64_t)1 << 32);",
+    );
+  });
+
+  it("generates 64-bit RMW for u64 target at position 63", () => {
+    expect(BitUtils.singleBitWrite("val64", 63, "true", "u64")).toBe(
+      "val64 = (val64 & ~(1ULL << 63)) | ((uint64_t)1 << 63);",
+    );
+  });
+
+  it("generates 64-bit RMW with expression value for u64", () => {
+    expect(BitUtils.singleBitWrite("flags", 48, "isSet", "u64")).toBe(
+      "flags = (flags & ~(1ULL << 48)) | ((uint64_t)(isSet ? 1 : 0) << 48);",
+    );
+  });
+
+  it("generates 64-bit RMW for i64 target", () => {
+    expect(BitUtils.singleBitWrite("val64", 40, "false", "i64")).toBe(
+      "val64 = (val64 & ~(1ULL << 40)) | ((uint64_t)0 << 40);",
+    );
+  });
 });
 
 // ========================================================================
@@ -306,6 +373,31 @@ describe("BitUtils.multiBitWrite", () => {
   it("handles dynamic width", () => {
     expect(BitUtils.multiBitWrite("data", 0, "width", "bits")).toBe(
       "data = (data & ~(((1U << width) - 1) << 0)) | ((bits & ((1U << width) - 1)) << 0);",
+    );
+  });
+
+  // 64-bit target tests (targetType parameter)
+  it("generates 64-bit RMW for u64 target with 16-bit width at position 32", () => {
+    expect(BitUtils.multiBitWrite("val64", 32, 16, "0xABCD", "u64")).toBe(
+      "val64 = (val64 & ~(0xFFFFULL << 32)) | ((0xABCD & 0xFFFFULL) << 32);",
+    );
+  });
+
+  it("generates 64-bit RMW for u64 target with 8-bit width at position 48", () => {
+    expect(BitUtils.multiBitWrite("val64", 48, 8, "0xFF", "u64")).toBe(
+      "val64 = (val64 & ~(0xFFULL << 48)) | ((0xFF & 0xFFULL) << 48);",
+    );
+  });
+
+  it("generates 64-bit RMW for i64 target", () => {
+    expect(BitUtils.multiBitWrite("val64", 40, 16, "data", "i64")).toBe(
+      "val64 = (val64 & ~(0xFFFFULL << 40)) | ((data & 0xFFFFULL) << 40);",
+    );
+  });
+
+  it("generates 64-bit RMW with dynamic width for u64 target", () => {
+    expect(BitUtils.multiBitWrite("val64", 32, "width", "bits", "u64")).toBe(
+      "val64 = (val64 & ~(((1ULL << width) - 1) << 32)) | ((bits & ((1ULL << width) - 1)) << 32);",
     );
   });
 });
