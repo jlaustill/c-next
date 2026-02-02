@@ -11,7 +11,13 @@
  *       symbols.json  - Cached symbols per file (managed by flat-cache)
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+} from "node:fs";
 import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
@@ -80,13 +86,19 @@ class CacheManager {
         }
       }
       // Create fresh cache
-      this.cache = createFlatCache({ cacheId: "symbols", cacheDir: this.cacheSubdir });
+      this.cache = createFlatCache({
+        cacheId: "symbols",
+        cacheDir: this.cacheSubdir,
+      });
       this.saveConfig();
       return;
     }
 
     // Load existing cache - create also loads if file exists
-    this.cache = createFlatCache({ cacheId: "symbols", cacheDir: this.cacheSubdir });
+    this.cache = createFlatCache({
+      cacheId: "symbols",
+      cacheDir: this.cacheSubdir,
+    });
 
     // Migrate old entries if needed
     this.migrateOldEntries();
@@ -331,7 +343,10 @@ class CacheManager {
   invalidateAll(): void {
     if (!this.cache) {
       // Create fresh cache if not initialized
-      this.cache = createFlatCache({ cacheId: "symbols", cacheDir: this.cacheSubdir });
+      this.cache = createFlatCache({
+        cacheId: "symbols",
+        cacheDir: this.cacheSubdir,
+      });
     } else {
       // Clear all entries
       this.cache.clear();

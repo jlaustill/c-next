@@ -148,7 +148,9 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
 
   console.log(`\n${Colors.cyan("Combined Coverage:")}`);
   const combinedColor = getPercentageColor(report.combinedCoveragePercentage);
-  console.log(`  ${combinedColor(`${report.combinedCoveragePercentage.toFixed(1)}%`)}`);
+  console.log(
+    `  ${combinedColor(`${report.combinedCoveragePercentage.toFixed(1)}%`)}`,
+  );
 
   // Top 10 most used parser rules
   console.log(`\n${Colors.cyan("Top 10 Most Used Parser Rules:")}`);

@@ -161,9 +161,7 @@ function printResult(
       console.log(`${Colors.green("PASS")}    ${relativePath}`);
     }
   } else if (result.noSnapshot) {
-    console.log(
-      `${Colors.yellow("SKIP")}    ${relativePath} (no snapshot)`,
-    );
+    console.log(`${Colors.yellow("SKIP")}    ${relativePath} (no snapshot)`);
   } else {
     console.log(`${Colors.red("FAIL")}    ${relativePath}`);
     console.log(`        ${Colors.dim(result.message ?? "")}`);
@@ -184,15 +182,11 @@ function printResult(
     }
     // Show execution error if present
     if (result.execError) {
-      console.log(
-        `        ${Colors.red("Exec error:")} ${result.execError}`,
-      );
+      console.log(`        ${Colors.red("Exec error:")} ${result.execError}`);
     }
     // Show warning error if present (test-no-warnings failure)
     if (result.warningError) {
-      console.log(
-        `        ${Colors.red("Warning:")} ${result.warningError}`,
-      );
+      console.log(`        ${Colors.red("Warning:")} ${result.warningError}`);
     }
   }
 }
@@ -544,9 +538,7 @@ async function main(): Promise<void> {
       console.log(`  ${Colors.yellow("Updated:")} ${updated}`);
     }
     if (noSnapshot > 0) {
-      console.log(
-        `  ${Colors.yellow("Skipped:")} ${noSnapshot} (no snapshot)`,
-      );
+      console.log(`  ${Colors.yellow("Skipped:")} ${noSnapshot} (no snapshot)`);
     }
   }
 
