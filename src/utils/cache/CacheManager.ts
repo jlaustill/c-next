@@ -343,15 +343,15 @@ class CacheManager {
    * Invalidate all cached entries
    */
   invalidateAll(): void {
-    if (!this.cache) {
+    if (this.cache) {
+      // Clear all entries
+      this.cache.clear();
+    } else {
       // Create fresh cache if not initialized
       this.cache = createFlatCache({
         cacheId: "symbols",
         cacheDir: this.cacheSubdir,
       });
-    } else {
-      // Clear all entries
-      this.cache.clear();
     }
     this.dirty = true;
   }

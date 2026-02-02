@@ -25,7 +25,7 @@ mkdir -p "$TEMP_DIR"
 
 # Check for cppcheck
 if ! command -v cppcheck &> /dev/null; then
-    echo -e "${RED}Error: cppcheck not found. Install with: sudo apt install cppcheck${NC}"
+    echo -e "${RED}Error: cppcheck not found. Install with: sudo apt install cppcheck${NC}" >&2
     exit 1
 fi
 
@@ -33,7 +33,7 @@ echo -e "${BLUE}cppcheck version:${NC} $(cppcheck --version)"
 echo ""
 
 # Generate parser files if needed
-if [ ! -d "${PROJECT_ROOT}/src/parser" ]; then
+if [[ ! -d "${PROJECT_ROOT}/src/parser" ]]; then
     echo -e "${YELLOW}Generating parser files...${NC}"
     cd "$PROJECT_ROOT" && npm run antlr:all
 fi
@@ -66,7 +66,7 @@ done
 echo ""
 echo -e "${BLUE}Transpiled: ${TRANSPILED}/${TOTAL_FILES}${NC}"
 
-if [ "$TRANSPILED" -eq 0 ]; then
+if [[ "$TRANSPILED" -eq 0 ]]; then
     echo -e "${RED}No files to analyze.${NC}"
     exit 1
 fi
@@ -85,7 +85,7 @@ CPPCHECK_ARGS=(
 )
 
 # Add suppressions file if it exists
-if [ -f "${TOOLS_DIR}/cppcheck-suppressions.txt" ]; then
+if [[ -f "${TOOLS_DIR}/cppcheck-suppressions.txt" ]]; then
     CPPCHECK_ARGS+=("--suppressions-list=${TOOLS_DIR}/cppcheck-suppressions.txt")
 fi
 
@@ -101,6 +101,7 @@ count_matches() {
     local count
     count=$(echo "$CPPCHECK_OUTPUT" | grep -c "$pattern" 2>/dev/null) || count=0
     echo "$count"
+    return 0
 }
 
 ERRORS=$(count_matches "error:")
@@ -114,7 +115,7 @@ INFORMATION=$(count_matches "information:")
 echo -e "${BLUE}=== cppcheck Results ===${NC}"
 echo ""
 
-if [ -n "$CPPCHECK_OUTPUT" ]; then
+if [[ -n "$CPPCHECK_OUTPUT" ]]; then
     echo "$CPPCHECK_OUTPUT"
     echo ""
 fi
@@ -130,7 +131,7 @@ echo ""
 
 TOTAL_ISSUES=$((ERRORS + WARNINGS + STYLE + PERFORMANCE + PORTABILITY))
 
-if [ "$TOTAL_ISSUES" -eq 0 ]; then
+if [[ "$TOTAL_ISSUES" -eq 0 ]]; then
     echo -e "${GREEN}No issues found!${NC}"
 else
     echo -e "${YELLOW}Total issues: ${TOTAL_ISSUES}${NC}"
@@ -161,18 +162,18 @@ if command -v rats &> /dev/null; then
     echo -e "${BLUE}=== rats Results ===${NC}"
     echo ""
 
-    if [ "$RATS_TOTAL" -gt 0 ]; then
+    if [[ "$RATS_TOTAL" -gt 0 ]]; then
         echo "$RATS_OUTPUT"
         echo ""
     fi
 
     echo -e "${BLUE}Summary:${NC}"
-    if [ "$RATS_HIGH" -gt 0 ]; then
+    if [[ "$RATS_HIGH" -gt 0 ]]; then
         echo -e "  High:   ${RED}${RATS_HIGH}${NC}"
     else
         echo -e "  High:   ${RATS_HIGH}"
     fi
-    if [ "$RATS_MEDIUM" -gt 0 ]; then
+    if [[ "$RATS_MEDIUM" -gt 0 ]]; then
         echo -e "  Medium: ${YELLOW}${RATS_MEDIUM}${NC}"
     else
         echo -e "  Medium: ${RATS_MEDIUM}"
@@ -180,7 +181,7 @@ if command -v rats &> /dev/null; then
     echo -e "  Low:    ${RATS_LOW}"
     echo ""
 
-    if [ "$RATS_TOTAL" -eq 0 ]; then
+    if [[ "$RATS_TOTAL" -eq 0 ]]; then
         echo -e "${GREEN}No security issues found!${NC}"
     else
         echo -e "${YELLOW}Total security findings: ${RATS_TOTAL}${NC}"
@@ -209,6 +210,7 @@ if command -v flawfinder &> /dev/null; then
         local count
         count=$(echo "$FLAWFINDER_OUTPUT" | grep -c "\[${level}\]" 2>/dev/null) || count=0
         echo "$count"
+        return 0
     }
 
     LEVEL_5=$(count_level 5)
@@ -220,7 +222,7 @@ if command -v flawfinder &> /dev/null; then
     echo -e "${BLUE}=== flawfinder Results ===${NC}"
     echo ""
 
-    if [ -n "$FLAWFINDER_OUTPUT" ]; then
+    if [[ -n "$FLAWFINDER_OUTPUT" ]]; then
         echo "$FLAWFINDER_OUTPUT"
         echo ""
     fi
@@ -234,7 +236,7 @@ if command -v flawfinder &> /dev/null; then
     echo ""
 
     TOTAL_FLAWFINDER=$((LEVEL_5 + LEVEL_4 + LEVEL_3 + LEVEL_2 + LEVEL_1))
-    if [ "$TOTAL_FLAWFINDER" -eq 0 ]; then
+    if [[ "$TOTAL_FLAWFINDER" -eq 0 ]]; then
         echo -e "${GREEN}No security issues found!${NC}"
     else
         echo -e "${YELLOW}Total security findings: ${TOTAL_FLAWFINDER}${NC}"
@@ -249,13 +251,13 @@ echo -e "${BLUE}Generated files are in: ${TEMP_DIR}${NC}"
 echo ""
 
 # Exit with error if there are cppcheck errors or high-severity RATS findings
-if [ "$ERRORS" -gt 0 ]; then
-    echo -e "${RED}Failed: cppcheck found $ERRORS error(s)${NC}"
+if [[ "$ERRORS" -gt 0 ]]; then
+    echo -e "${RED}Failed: cppcheck found $ERRORS error(s)${NC}" >&2
     exit 1
 fi
 
-if [ "$RATS_HIGH" -gt 0 ]; then
-    echo -e "${RED}Failed: rats found $RATS_HIGH high-severity security issue(s)${NC}"
+if [[ "$RATS_HIGH" -gt 0 ]]; then
+    echo -e "${RED}Failed: rats found $RATS_HIGH high-severity security issue(s)${NC}" >&2
     exit 1
 fi
 

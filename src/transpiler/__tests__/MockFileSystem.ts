@@ -14,13 +14,13 @@ import IFileSystem from "../types/IFileSystem";
  */
 class MockFileSystem implements IFileSystem {
   /** In-memory file storage: path -> content */
-  private files = new Map<string, string>();
+  private readonly files = new Map<string, string>();
 
   /** In-memory file mtime storage: path -> mtimeMs */
-  private fileMtimes = new Map<string, number>();
+  private readonly fileMtimes = new Map<string, number>();
 
   /** In-memory directory storage */
-  private directories = new Set<string>();
+  private readonly directories = new Set<string>();
 
   /** Track write operations for assertions */
   private writeLog: Array<{ path: string; content: string }> = [];

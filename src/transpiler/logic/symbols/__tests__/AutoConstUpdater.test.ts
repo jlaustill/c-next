@@ -187,8 +187,9 @@ describe("AutoConstUpdater", () => {
       const unmodifiedParams = new Map<string, Set<string>>();
       const knownEnums = new Set<string>();
 
-      // Should not throw
+      // Should not throw - symbol remains unchanged
       AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
+      expect(symbols[0].kind).toBe(ESymbolKind.Variable);
     });
 
     it("should skip functions without parameters", () => {
@@ -208,8 +209,9 @@ describe("AutoConstUpdater", () => {
       ]);
       const knownEnums = new Set<string>();
 
-      // Should not throw
+      // Should not throw - function remains unchanged
       AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
+      expect(symbols[0].parameters).toBeUndefined();
     });
 
     it("should skip functions not in unmodifiedParams map", () => {

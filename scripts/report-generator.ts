@@ -163,8 +163,9 @@ function generateConsoleReport(report: ICoverageReport): void {
   for (const section of summary.sections) {
     const pctColor = getPercentageColor(section.percentage);
     const sectionDisplay = section.name.substring(0, 35).padEnd(35);
+    const ratio = section.tested + "/" + section.total;
     console.log(
-      `  ${sectionDisplay} ${pctColor(`${section.tested}/${section.total}`)} (${section.percentage}%)`,
+      `  ${sectionDisplay} ${pctColor(ratio)} (${section.percentage}%)`,
     );
   }
   console.log("");
