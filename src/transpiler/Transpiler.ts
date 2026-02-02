@@ -45,7 +45,6 @@ import ITranspileContribution from "./types/ITranspileContribution";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
-import IStructFieldInfo from "./logic/symbols/types/IStructFieldInfo";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import LiteralUtils from "../utils/LiteralUtils";
 
@@ -572,21 +571,9 @@ class Transpiler {
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
-    // After parsing, cache the results
+    // Issue #590: Cache the results using simplified API
     if (this.cacheManager) {
-      const symbols = this.symbolTable.getSymbolsByFile(file.path);
-      const structFields = this.extractStructFieldsForFile(file.path);
-      const needsStructKeyword = this.extractNeedsStructKeywordForFile(
-        file.path,
-      );
-      const enumBitWidth = this.extractEnumBitWidthsForFile(file.path);
-      this.cacheManager.setSymbols(
-        file.path,
-        symbols,
-        structFields,
-        needsStructKeyword,
-        enumBitWidth,
-      );
+      this.cacheManager.setSymbolsFromTable(file.path, this.symbolTable);
     }
   }
 
@@ -1566,68 +1553,6 @@ class Transpiler {
 
     // Fallback: use first input's directory
     return startDir;
-  }
-
-  /**
-   * Extract struct fields for a specific file
-   * Returns only struct fields for structs defined in that file
-   */
-  private extractStructFieldsForFile(
-    filePath: string,
-  ): Map<string, Map<string, IStructFieldInfo>> {
-    const result = new Map<string, Map<string, IStructFieldInfo>>();
-
-    // Get struct names defined in this file
-    const structNames = this.symbolTable.getStructNamesByFile(filePath);
-
-    // Get fields for each struct
-    const allStructFields = this.symbolTable.getAllStructFields();
-    for (const structName of structNames) {
-      const fields = allStructFields.get(structName);
-      if (fields) {
-        result.set(structName, fields);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Issue #196 Bug 3: Extract struct names requiring 'struct' keyword for a specific file
-   * Returns struct names from this file that need the 'struct' keyword in C
-   */
-  private extractNeedsStructKeywordForFile(filePath: string): string[] {
-    // Get struct names defined in this file
-    const structNames = this.symbolTable.getStructNamesByFile(filePath);
-
-    // Filter to only those that need struct keyword
-    const allNeedsKeyword = this.symbolTable.getAllNeedsStructKeyword();
-    return structNames.filter((name) => allNeedsKeyword.includes(name));
-  }
-
-  /**
-   * Issue #208: Extract enum bit widths for a specific file
-   * Returns enum bit widths for enums defined in that file
-   */
-  private extractEnumBitWidthsForFile(filePath: string): Map<string, number> {
-    const result = new Map<string, number>();
-
-    // Get enum names defined in this file
-    const fileSymbols = this.symbolTable.getSymbolsByFile(filePath);
-    const enumNames = fileSymbols
-      .filter((s) => s.kind === "enum")
-      .map((s) => s.name);
-
-    // Get bit widths for each enum
-    const allBitWidths = this.symbolTable.getAllEnumBitWidths();
-    for (const enumName of enumNames) {
-      const width = allBitWidths.get(enumName);
-      if (width !== undefined) {
-        result.set(enumName, width);
-      }
-    }
-
-    return result;
   }
 }
 
