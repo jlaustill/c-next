@@ -1,9 +1,10 @@
 /**
  * File Discovery
- * Scans directories for source files
+ * Scans directories for source files using fast-glob
  */
 
-import { join, extname, resolve } from "node:path";
+import fg from "fast-glob";
+import { extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IDiscoveryOptions from "./types/IDiscoveryOptions";
@@ -30,14 +31,55 @@ const EXTENSION_MAP: Record<string, EFileType> = {
 };
 
 /**
+ * Default ignore patterns for fast-glob
+ * Issue #355: Exclude .pio/build (compiled artifacts) but allow .pio/libdeps (library headers)
+ */
+const DEFAULT_IGNORE_GLOBS = [
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/.build/**",
+  "**/.pio/build/**",
+];
+
+/**
  * Discovers source files in directories
  */
 class FileDiscovery {
   /**
+   * Convert RegExp patterns to glob ignore patterns
+   */
+  private static regexToGlob(pattern: RegExp): string {
+    // Convert common patterns
+    const src = pattern.source;
+    if (src === "node_modules") return "**/node_modules/**";
+    if (src === "\\.git") return "**/.git/**";
+    if (src === "\\.build") return "**/.build/**";
+    if (src === "\\.pio[/\\\\]build") return "**/.pio/build/**";
+    // Fallback: wrap in wildcards
+    return `**/*${src.replace(/\\/g, "")}*/**`;
+  }
+
+  /**
+   * Classify a file path into a discovered file
+   */
+  private static classifyFile(filePath: string): IDiscoveredFile {
+    const ext = extname(filePath).toLowerCase();
+    const type = EXTENSION_MAP[ext] ?? EFileType.Unknown;
+    return {
+      path: filePath,
+      type,
+      extension: ext,
+    };
+  }
+
+  /**
    * Discover files in the given directories
    *
-   * Issue #331: Uses a Set to track discovered file paths and avoid duplicates
-   * when overlapping directories are provided (e.g., both src/Display and src).
+   * Issue #331: Uses fast-glob's unique option to avoid duplicates
+   * when overlapping directories are provided.
+   *
+   * Note: fast-glob accesses the filesystem directly; the fs parameter
+   * is used only for directory existence checks.
    *
    * @param directories - Directories to scan
    * @param options - Discovery options
@@ -48,18 +90,25 @@ class FileDiscovery {
     options: IDiscoveryOptions = {},
     fs: IFileSystem = defaultFs,
   ): IDiscoveredFile[] {
-    const files: IDiscoveredFile[] = [];
     const recursive = options.recursive ?? true;
-    // Issue #355: Exclude .pio/build (compiled artifacts) but allow .pio/libdeps (library headers)
-    // Previously excluded all of .pio/, which prevented PlatformIO library headers from being parsed
-    const excludePatterns = options.excludePatterns ?? [
-      /node_modules/,
-      /\.git/,
-      /\.build/,
-      /\.pio[/\\]build/,
-    ];
-    // Issue #331: Track discovered paths to avoid duplicates from overlapping dirs
-    const discoveredPaths = new Set<string>();
+    const extensions = options.extensions ?? Object.keys(EXTENSION_MAP);
+
+    // Build ignore patterns
+    let ignorePatterns: string[];
+    if (options.excludePatterns) {
+      ignorePatterns = options.excludePatterns.map((r) => this.regexToGlob(r));
+    } else {
+      ignorePatterns = DEFAULT_IGNORE_GLOBS;
+    }
+
+    // Build glob pattern for extensions
+    const extPattern =
+      extensions.length === 1
+        ? `*${extensions[0]}`
+        : `*{${extensions.join(",")}}`;
+    const pattern = recursive ? `**/${extPattern}` : extPattern;
+
+    const allFiles: IDiscoveredFile[] = [];
 
     for (const dir of directories) {
       const resolvedDir = resolve(dir);
@@ -69,18 +118,34 @@ class FileDiscovery {
         continue;
       }
 
-      this.scanDirectory(
-        resolvedDir,
-        files,
-        recursive,
-        options.extensions,
-        excludePatterns,
-        discoveredPaths,
-        fs,
-      );
+      try {
+        // Use fast-glob to find files
+        const files = fg.sync(pattern, {
+          cwd: resolvedDir,
+          absolute: true,
+          ignore: ignorePatterns,
+          deep: recursive ? Infinity : 1,
+          onlyFiles: true,
+          followSymbolicLinks: false,
+        });
+
+        for (const file of files) {
+          allFiles.push(this.classifyFile(file));
+        }
+      } catch {
+        console.warn(`Warning: Cannot read directory: ${dir}`);
+      }
     }
 
-    return files;
+    // Issue #331: Remove duplicates from overlapping directories
+    const seenPaths = new Set<string>();
+    return allFiles.filter((file) => {
+      if (seenPaths.has(file.path)) {
+        return false;
+      }
+      seenPaths.add(file.path);
+      return true;
+    });
   }
 
   /**
@@ -99,14 +164,11 @@ class FileDiscovery {
       return null;
     }
 
-    const ext = extname(resolvedPath).toLowerCase();
-    const type = EXTENSION_MAP[ext] ?? EFileType.Unknown;
+    if (!fs.isFile(resolvedPath)) {
+      return null;
+    }
 
-    return {
-      path: resolvedPath,
-      type,
-      extension: ext,
-    };
+    return this.classifyFile(resolvedPath);
   }
 
   /**
@@ -157,80 +219,6 @@ class FileDiscovery {
     return files.filter(
       (f) => f.type === EFileType.CHeader || f.type === EFileType.CppHeader,
     );
-  }
-
-  /**
-   * Scan a directory for source files
-   *
-   * Issue #331: discoveredPaths parameter tracks already-discovered files
-   * to avoid duplicates when scanning overlapping directories.
-   */
-  private static scanDirectory(
-    dir: string,
-    files: IDiscoveredFile[],
-    recursive: boolean,
-    extensions: string[] | undefined,
-    excludePatterns: RegExp[],
-    discoveredPaths: Set<string>,
-    fs: IFileSystem,
-  ): void {
-    let entries: string[];
-
-    try {
-      entries = fs.readdir(dir);
-    } catch {
-      console.warn(`Warning: Cannot read directory: ${dir}`);
-      return;
-    }
-
-    for (const entry of entries) {
-      const fullPath = join(dir, entry);
-
-      // Check exclude patterns
-      if (excludePatterns.some((pattern) => pattern.test(fullPath))) {
-        continue;
-      }
-
-      // Check if it's a directory or file
-      const isDir = fs.isDirectory(fullPath);
-      const isFile = fs.isFile(fullPath);
-
-      if (isDir) {
-        if (recursive) {
-          this.scanDirectory(
-            fullPath,
-            files,
-            recursive,
-            extensions,
-            excludePatterns,
-            discoveredPaths,
-            fs,
-          );
-        }
-      } else if (isFile) {
-        // Issue #331: Skip already-discovered files (from overlapping directories)
-        if (discoveredPaths.has(fullPath)) {
-          continue;
-        }
-
-        const ext = extname(fullPath).toLowerCase();
-
-        // Check extension filter
-        if (extensions && !extensions.includes(ext)) {
-          continue;
-        }
-
-        const type = EXTENSION_MAP[ext];
-        if (type) {
-          discoveredPaths.add(fullPath);
-          files.push({
-            path: fullPath,
-            type,
-            extension: ext,
-          });
-        }
-      }
-    }
   }
 }
 
