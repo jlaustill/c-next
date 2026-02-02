@@ -46,6 +46,13 @@ interface IFileSystem {
    * @throws Error if directory doesn't exist or can't be read
    */
   readdir(path: string): string[];
+
+  /**
+   * Get file stats (for cache key generation).
+   * @returns Object with at least mtimeMs (modification time in milliseconds)
+   * @throws Error if file doesn't exist or can't be read
+   */
+  stat(path: string): { mtimeMs: number };
 }
 
 export default IFileSystem;

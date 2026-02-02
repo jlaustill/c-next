@@ -52,6 +52,11 @@ class NodeFileSystem implements IFileSystem {
   readdir(path: string): string[] {
     return readdirSync(path);
   }
+
+  stat(path: string): { mtimeMs: number } {
+    const stats = statSync(path);
+    return { mtimeMs: stats.mtimeMs };
+  }
 }
 
 export default NodeFileSystem;

@@ -120,7 +120,7 @@ class Transpiler {
     // Initialize cache manager if caching is enabled
     this.cacheManager = this.config.noCache
       ? null
-      : new CacheManager(this.determineProjectRoot());
+      : new CacheManager(this.determineProjectRoot(), this.fs);
   }
 
   /**

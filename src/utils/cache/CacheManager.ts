@@ -11,7 +11,6 @@
  *       symbols.json  - Cached symbols per file
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
@@ -21,6 +20,11 @@ import ICacheConfig from "../../transpiler/types/ICacheConfig";
 import ICacheSymbols from "../../transpiler/types/ICacheSymbols";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
 import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
+import IFileSystem from "../../transpiler/types/IFileSystem";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = new NodeFileSystem();
 
 /** Current cache format version - increment when serialization format changes */
 const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime
@@ -38,6 +42,7 @@ class CacheManager {
   private readonly cacheDir: string;
   private readonly configPath: string;
   private readonly symbolsPath: string;
+  private readonly fs: IFileSystem;
 
   /** In-memory cache of file entries */
   private readonly entries: Map<string, ICachedFileEntry> = new Map();
@@ -45,8 +50,9 @@ class CacheManager {
   /** Whether the cache has been modified and needs flushing */
   private dirty = false;
 
-  constructor(projectRoot: string) {
+  constructor(projectRoot: string, fs: IFileSystem = defaultFs) {
     this.projectRoot = projectRoot;
+    this.fs = fs;
     this.cacheDir = join(projectRoot, ".cnx");
     this.configPath = join(this.cacheDir, "config.json");
     this.symbolsPath = join(this.cacheDir, "cache", "symbols.json");
@@ -57,13 +63,13 @@ class CacheManager {
    */
   async initialize(): Promise<void> {
     // Create .cnx directory structure
-    if (!existsSync(this.cacheDir)) {
-      mkdirSync(this.cacheDir, { recursive: true });
+    if (!this.fs.exists(this.cacheDir)) {
+      this.fs.mkdir(this.cacheDir, { recursive: true });
     }
 
     const cacheSubdir = join(this.cacheDir, "cache");
-    if (!existsSync(cacheSubdir)) {
-      mkdirSync(cacheSubdir, { recursive: true });
+    if (!this.fs.exists(cacheSubdir)) {
+      this.fs.mkdir(cacheSubdir, { recursive: true });
     }
 
     // Load or create config
@@ -89,7 +95,7 @@ class CacheManager {
       return false;
     }
 
-    return CacheKeyGenerator.isValid(filePath, entry.cacheKey);
+    return CacheKeyGenerator.isValid(filePath, entry.cacheKey, this.fs);
   }
 
   /**
@@ -148,7 +154,7 @@ class CacheManager {
     // Generate cache key for current file state
     let cacheKey: string;
     try {
-      cacheKey = CacheKeyGenerator.generate(filePath);
+      cacheKey = CacheKeyGenerator.generate(filePath, this.fs);
     } catch {
       // If we can't stat the file, don't cache it
       return;
@@ -329,11 +335,7 @@ class CacheManager {
     };
 
     // Write symbols cache
-    writeFileSync(
-      this.symbolsPath,
-      JSON.stringify(cacheSymbols, null, 2),
-      "utf-8",
-    );
+    this.fs.writeFile(this.symbolsPath, JSON.stringify(cacheSymbols, null, 2));
 
     this.dirty = false;
   }
@@ -349,9 +351,9 @@ class CacheManager {
    * Load or create config file
    */
   private loadOrCreateConfig(): ICacheConfig {
-    if (existsSync(this.configPath)) {
+    if (this.fs.exists(this.configPath)) {
       try {
-        const content = readFileSync(this.configPath, "utf-8");
+        const content = this.fs.readFile(this.configPath);
         return JSON.parse(content) as ICacheConfig;
       } catch {
         // Config is corrupted, create new one
@@ -379,11 +381,7 @@ class CacheManager {
       transpilerVersion: TRANSPILER_VERSION,
     };
 
-    writeFileSync(
-      this.configPath,
-      JSON.stringify(configToSave, null, 2),
-      "utf-8",
-    );
+    this.fs.writeFile(this.configPath, JSON.stringify(configToSave, null, 2));
   }
 
   /**
@@ -407,12 +405,12 @@ class CacheManager {
    * Load symbols cache from disk
    */
   private loadSymbolsCache(): void {
-    if (!existsSync(this.symbolsPath)) {
+    if (!this.fs.exists(this.symbolsPath)) {
       return;
     }
 
     try {
-      const content = readFileSync(this.symbolsPath, "utf-8");
+      const content = this.fs.readFile(this.symbolsPath);
       // Parse as generic object since disk format may be old (mtime) or new (cacheKey)
       const cacheSymbols = JSON.parse(content) as {
         entries: Record<string, unknown>[];

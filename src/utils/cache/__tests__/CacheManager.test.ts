@@ -19,6 +19,7 @@ import ESymbolKind from "../../types/ESymbolKind";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/logic/symbols/types/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -1352,6 +1353,235 @@ describe("CacheManager", () => {
         "func2",
         "func3",
       ]);
+    });
+  });
+
+  describe("with MockFileSystem (IFileSystem integration)", () => {
+    let mockFs: MockFileSystem;
+    let cacheManager: CacheManager;
+
+    beforeEach(() => {
+      mockFs = new MockFileSystem();
+      mockFs.addDirectory("/project");
+      cacheManager = new CacheManager("/project", mockFs);
+    });
+
+    it("should create cache directories via IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      const mkdirCalls = mockFs.getMkdirLog();
+      expect(mkdirCalls.some((c) => c.path === "/project/.cnx")).toBe(true);
+      expect(mkdirCalls.some((c) => c.path === "/project/.cnx/cache")).toBe(
+        true,
+      );
+    });
+
+    it("should write config.json via IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      const content = mockFs.getWrittenContent("/project/.cnx/config.json");
+      expect(content).toBeDefined();
+
+      const config = JSON.parse(content!);
+      expect(config).toHaveProperty("version");
+      expect(config).toHaveProperty("created");
+      expect(config).toHaveProperty("transpilerVersion");
+    });
+
+    it("should store and retrieve symbols without real file I/O", async () => {
+      await cacheManager.initialize();
+
+      // Add a virtual test file
+      mockFs.addFile("/project/test.h", "// test header");
+
+      const symbol: ISymbol = {
+        name: "testFunc",
+        kind: ESymbolKind.Function,
+        sourceFile: "/project/test.h",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      };
+
+      cacheManager.setSymbols("/project/test.h", [symbol], new Map());
+
+      const cached = cacheManager.getSymbols("/project/test.h");
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(1);
+      expect(cached!.symbols[0].name).toBe("testFunc");
+    });
+
+    it("should flush cache via IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      mockFs.addFile("/project/test.h", "// test header");
+
+      const symbol: ISymbol = {
+        name: "myFunc",
+        kind: ESymbolKind.Function,
+        sourceFile: "/project/test.h",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      };
+
+      cacheManager.setSymbols("/project/test.h", [symbol], new Map());
+      await cacheManager.flush();
+
+      const content = mockFs.getWrittenContent(
+        "/project/.cnx/cache/symbols.json",
+      );
+      expect(content).toBeDefined();
+
+      const cacheData = JSON.parse(content!);
+      expect(cacheData.entries).toHaveLength(1);
+      expect(cacheData.entries[0].symbols[0].name).toBe("myFunc");
+    });
+
+    it("should validate cache using mtime from IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      // Add file with specific mtime
+      mockFs.addFile("/project/test.h", "// test header", 1000);
+
+      cacheManager.setSymbols("/project/test.h", [], new Map());
+      expect(cacheManager.isValid("/project/test.h")).toBe(true);
+
+      // Change mtime to simulate file modification
+      mockFs.setMtime("/project/test.h", 2000);
+      expect(cacheManager.isValid("/project/test.h")).toBe(false);
+    });
+
+    it("should load existing cache via IFileSystem", async () => {
+      // Pre-populate cache files in mock fs
+      mockFs.addDirectory("/project/.cnx");
+      mockFs.addDirectory("/project/.cnx/cache");
+
+      // Add config.json
+      const config = {
+        version: 3,
+        created: Date.now(),
+        transpilerVersion: require("../../../../package.json").version,
+      };
+      mockFs.addFile("/project/.cnx/config.json", JSON.stringify(config));
+
+      // Add test file and its cache entry
+      mockFs.addFile("/project/cached.h", "// cached header", 5000);
+
+      const cacheSymbols = {
+        entries: [
+          {
+            filePath: "/project/cached.h",
+            cacheKey: "mtime:5000",
+            symbols: [
+              {
+                name: "cachedFunc",
+                kind: "function",
+                sourceFile: "/project/cached.h",
+                sourceLine: 1,
+                sourceLanguage: "c",
+                isExported: true,
+              },
+            ],
+            structFields: {},
+          },
+        ],
+      };
+      mockFs.addFile(
+        "/project/.cnx/cache/symbols.json",
+        JSON.stringify(cacheSymbols),
+      );
+
+      // Initialize and verify cache is loaded
+      await cacheManager.initialize();
+
+      const cached = cacheManager.getSymbols("/project/cached.h");
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols[0].name).toBe("cachedFunc");
+    });
+
+    it("should handle struct fields with IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      mockFs.addFile("/project/structs.h", "// struct header");
+
+      const structFields = new Map<string, Map<string, IStructFieldInfo>>();
+      const pointFields = new Map<string, IStructFieldInfo>();
+      pointFields.set("x", { type: "int32_t" });
+      pointFields.set("y", { type: "int32_t" });
+      structFields.set("Point", pointFields);
+
+      cacheManager.setSymbols("/project/structs.h", [], structFields);
+      await cacheManager.flush();
+
+      // Reload with new manager using same mock fs
+      const newManager = new CacheManager("/project", mockFs);
+      await newManager.initialize();
+
+      const cached = newManager.getSymbols("/project/structs.h");
+      expect(cached).not.toBeNull();
+      expect(cached!.structFields.get("Point")!.get("x")).toEqual({
+        type: "int32_t",
+      });
+    });
+
+    it("should invalidate cache when version changes", async () => {
+      // Pre-populate with old version cache
+      mockFs.addDirectory("/project/.cnx");
+      mockFs.addDirectory("/project/.cnx/cache");
+
+      const oldConfig = {
+        version: 1, // Old version
+        created: Date.now(),
+        transpilerVersion: "0.0.1",
+      };
+      mockFs.addFile("/project/.cnx/config.json", JSON.stringify(oldConfig));
+
+      mockFs.addFile("/project/test.h", "// test", 1000);
+      const oldCache = {
+        entries: [
+          {
+            filePath: "/project/test.h",
+            cacheKey: "mtime:1000",
+            symbols: [],
+            structFields: {},
+          },
+        ],
+      };
+      mockFs.addFile(
+        "/project/.cnx/cache/symbols.json",
+        JSON.stringify(oldCache),
+      );
+
+      await cacheManager.initialize();
+
+      // Cache should be invalidated due to version mismatch
+      const cached = cacheManager.getSymbols("/project/test.h");
+      expect(cached).toBeNull();
+    });
+
+    it("should not cache files that do not exist in IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      // Try to cache non-existent file
+      cacheManager.setSymbols(
+        "/project/nonexistent.h",
+        [
+          {
+            name: "func",
+            kind: ESymbolKind.Function,
+            sourceFile: "/project/nonexistent.h",
+            sourceLine: 1,
+            sourceLanguage: ESourceLanguage.C,
+            isExported: true,
+          },
+        ],
+        new Map(),
+      );
+
+      // Should not be cached (stat() will fail)
+      const cached = cacheManager.getSymbols("/project/nonexistent.h");
+      expect(cached).toBeNull();
     });
   });
 });

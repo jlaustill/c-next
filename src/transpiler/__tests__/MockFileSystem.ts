@@ -16,6 +16,9 @@ class MockFileSystem implements IFileSystem {
   /** In-memory file storage: path -> content */
   private files = new Map<string, string>();
 
+  /** In-memory file mtime storage: path -> mtimeMs */
+  private fileMtimes = new Map<string, number>();
+
   /** In-memory directory storage */
   private directories = new Set<string>();
 
@@ -28,9 +31,13 @@ class MockFileSystem implements IFileSystem {
   /**
    * Add a virtual file to the mock file system.
    * Also adds parent directories automatically.
+   * @param path File path
+   * @param content File content
+   * @param mtime Optional modification time in milliseconds (defaults to Date.now())
    */
-  addFile(path: string, content: string): this {
+  addFile(path: string, content: string, mtime?: number): this {
     this.files.set(path, content);
+    this.fileMtimes.set(path, mtime ?? Date.now());
     // Auto-create parent directories
     let dir = dirname(path);
     while (dir && dir !== "/" && dir !== ".") {
@@ -82,9 +89,19 @@ class MockFileSystem implements IFileSystem {
    */
   reset(): void {
     this.files.clear();
+    this.fileMtimes.clear();
     this.directories.clear();
     this.writeLog = [];
     this.mkdirLog = [];
+  }
+
+  /**
+   * Set/update the modification time for a file (for cache testing)
+   */
+  setMtime(path: string, mtime: number): void {
+    if (this.files.has(path)) {
+      this.fileMtimes.set(path, mtime);
+    }
   }
 
   // === IFileSystem implementation ===
@@ -141,6 +158,14 @@ class MockFileSystem implements IFileSystem {
     }
 
     return entries;
+  }
+
+  stat(path: string): { mtimeMs: number } {
+    const mtime = this.fileMtimes.get(path);
+    if (mtime === undefined) {
+      throw new Error(`ENOENT: no such file or directory, stat '${path}'`);
+    }
+    return { mtimeMs: mtime };
   }
 }
 
