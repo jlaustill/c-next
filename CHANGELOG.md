@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.53] - 2026-02-02
+
+### Fixed
+
+- Array indexing on global external struct field generates bit-slice code instead of array access (Issue #612, PR #613)
+
+### Added
+
+- Unit tests for declaration generators: EnumGenerator, BitmapGenerator, RegisterGenerator, ScopedRegisterGenerator, StructGenerator (47 tests, PR #615)
+
+## [0.1.52] - 2026-02-02
+
+### Changed
+
+- Extract file discovery from IncludeGenerator to data layer (PR #611)
+- Extract recursive include processing to IncludeResolver (Issue #592, PR #610)
+- Encapsulate transpiler state in TranspilerState class (Issue #587, PR #609)
+- Extract include/type-header utilities from Transpiler (PR #607)
+- Move include path auto-discovery from CLI to Transpiler (PR #604)
+- Extract path calculation to PathResolver (PR #603)
+- Move symbol mutation methods to logic layer (Issue #588)
+- Move resolveExternalArrayDimensions to SymbolTable (PR #601)
+- Extract C++ mode modification analysis to ModificationAnalyzer (Issue #593, PR #596)
+- Create HeaderParser wrapper for C/C++ header parsing (PR #599)
+- Extract CLI logic from index.ts into src/cli/ (PR #581)
+
+### Fixed
+
+- Use DependencyGraph for file ordering (Issue #580, PR #604)
+- Reduce transpileSource() complexity (Issue #591, PR #604)
+- Array indexing on parameter generates array access (Issue #579)
+- Deploy coverage report to GitHub Pages on merge to main
+
+### Added
+
+- Unit tests for SubscriptClassifier (16 tests, PR #600)
+- Unit tests for Transpiler parse error handling (PR #597)
+- Unit tests for src/cli modules (120 tests, PR #581)
+
 ## [0.1.51] - 2026-02-01
 
 ### Fixed
@@ -609,7 +648,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.51...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.53...HEAD
+[0.1.53]: https://github.com/jlaustill/c-next/compare/v0.1.52...v0.1.53
+[0.1.52]: https://github.com/jlaustill/c-next/compare/v0.1.51...v0.1.52
 [0.1.51]: https://github.com/jlaustill/c-next/compare/v0.1.50...v0.1.51
 [0.1.50]: https://github.com/jlaustill/c-next/compare/v0.1.49...v0.1.50
 [0.1.49]: https://github.com/jlaustill/c-next/compare/v0.1.48...v0.1.49
