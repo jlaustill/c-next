@@ -71,7 +71,7 @@ function createMockInput(
     callbackFieldTypes: new Map(),
     targetCapabilities: { hasAtomicSupport: false },
     debugMode: false,
-  } as IGeneratorInput;
+  } as unknown as IGeneratorInput;
 }
 
 /**
