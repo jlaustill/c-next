@@ -5,7 +5,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Runner from "../Runner";
 import InputExpansion from "../../transpiler/data/InputExpansion";
-import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
 import Transpiler from "../../transpiler/Transpiler";
 import ResultPrinter from "../ResultPrinter";
 import ICliConfig from "../types/ICliConfig";
@@ -13,7 +12,6 @@ import * as fs from "node:fs";
 
 // Mock dependencies
 vi.mock("../../transpiler/data/InputExpansion");
-vi.mock("../../transpiler/data/IncludeDiscovery");
 vi.mock("../../transpiler/Transpiler");
 vi.mock("../ResultPrinter");
 vi.mock("node:fs", async () => {
@@ -64,11 +62,6 @@ describe("Runner", () => {
     // Mock InputExpansion
     vi.mocked(InputExpansion.expandInputs).mockReturnValue([
       "/project/src/main.cnx",
-    ]);
-
-    // Mock IncludeDiscovery
-    vi.mocked(IncludeDiscovery.discoverIncludePaths).mockReturnValue([
-      "/project/lib",
     ]);
 
     // Mock Transpiler
@@ -130,17 +123,9 @@ describe("Runner", () => {
       );
     });
 
-    it("auto-discovers include paths from first file", async () => {
-      await expect(Runner.execute(mockConfig)).rejects.toThrow(
-        "process.exit(0)",
-      );
-
-      expect(IncludeDiscovery.discoverIncludePaths).toHaveBeenCalledWith(
-        "/project/src/main.cnx",
-      );
-    });
-
-    it("combines auto and manual include paths", async () => {
+    it("passes include paths to Transpiler", async () => {
+      // Include discovery now happens inside Transpiler.discoverSources()
+      // Runner just passes config.includeDirs directly
       mockConfig.includeDirs = ["/extra/include"];
 
       await expect(Runner.execute(mockConfig)).rejects.toThrow(
@@ -148,18 +133,7 @@ describe("Runner", () => {
       );
 
       const transpilerCall = vi.mocked(Transpiler).mock.calls[0][0];
-      expect(transpilerCall.includeDirs).toContain("/project/lib");
-      expect(transpilerCall.includeDirs).toContain("/extra/include");
-    });
-
-    it("prints include paths in verbose mode", async () => {
-      mockConfig.verbose = true;
-
-      await expect(Runner.execute(mockConfig)).rejects.toThrow(
-        "process.exit(0)",
-      );
-
-      expect(consoleLogSpy).toHaveBeenCalledWith("Include paths:");
+      expect(transpilerCall.includeDirs).toEqual(["/extra/include"]);
     });
 
     it("uses output directory when specified", async () => {
