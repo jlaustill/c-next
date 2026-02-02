@@ -57,6 +57,16 @@ class NodeFileSystem implements IFileSystem {
     const stats = statSync(path);
     return { mtimeMs: stats.mtimeMs };
   }
+
+  /** Shared singleton instance for use across all modules */
+  private static _instance: NodeFileSystem | null = null;
+
+  static get instance(): NodeFileSystem {
+    if (!NodeFileSystem._instance) {
+      NodeFileSystem._instance = new NodeFileSystem();
+    }
+    return NodeFileSystem._instance;
+  }
 }
 
 export default NodeFileSystem;

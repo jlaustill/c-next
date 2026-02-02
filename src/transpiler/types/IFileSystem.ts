@@ -4,6 +4,11 @@
  *
  * This interface allows the Transpiler to be tested with a mock file system
  * instead of requiring actual file I/O during unit tests.
+ *
+ * Design notes:
+ * - All methods are synchronous (matching current Node.js fs usage patterns)
+ * - File deletion (unlink/rmSync) intentionally omitted - not needed for transpilation
+ * - Add async variants if performance optimization requires it in the future
  */
 
 interface IFileSystem {

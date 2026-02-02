@@ -2,7 +2,7 @@ import IFileSystem from "../../transpiler/types/IFileSystem";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 /** Default file system instance (singleton for performance) */
-const defaultFs = new NodeFileSystem();
+const defaultFs = NodeFileSystem.instance;
 
 /**
  * Generates and validates cache keys for files.

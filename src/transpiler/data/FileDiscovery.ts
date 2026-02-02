@@ -11,7 +11,7 @@ import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
 /** Default file system instance (singleton for performance) */
-const defaultFs = new NodeFileSystem();
+const defaultFs = NodeFileSystem.instance;
 
 /**
  * Default extensions for each file type

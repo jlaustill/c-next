@@ -24,7 +24,7 @@ import IFileSystem from "../../transpiler/types/IFileSystem";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 /** Default file system instance (singleton for performance) */
-const defaultFs = new NodeFileSystem();
+const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
 const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime

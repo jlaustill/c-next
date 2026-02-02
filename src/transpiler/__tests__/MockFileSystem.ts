@@ -29,6 +29,14 @@ class MockFileSystem implements IFileSystem {
   private mkdirLog: Array<{ path: string; recursive?: boolean }> = [];
 
   /**
+   * Normalize path by removing trailing slashes (except for root "/")
+   */
+  private normalizePath(path: string): string {
+    if (path === "/") return path;
+    return path.replace(/\/+$/, "");
+  }
+
+  /**
    * Add a virtual file to the mock file system.
    * Also adds parent directories automatically.
    * @param path File path
@@ -120,24 +128,27 @@ class MockFileSystem implements IFileSystem {
   }
 
   exists(path: string): boolean {
-    return this.files.has(path) || this.directories.has(path);
+    const normalized = this.normalizePath(path);
+    return this.files.has(normalized) || this.directories.has(normalized);
   }
 
   isDirectory(path: string): boolean {
-    return this.directories.has(path);
+    return this.directories.has(this.normalizePath(path));
   }
 
   isFile(path: string): boolean {
-    return this.files.has(path);
+    return this.files.has(this.normalizePath(path));
   }
 
   mkdir(path: string, options?: { recursive?: boolean }): void {
-    this.directories.add(path);
-    this.mkdirLog.push({ path, recursive: options?.recursive });
+    const normalized = this.normalizePath(path);
+    this.directories.add(normalized);
+    this.mkdirLog.push({ path: normalized, recursive: options?.recursive });
   }
 
   readdir(path: string): string[] {
-    if (!this.directories.has(path)) {
+    const normalized = this.normalizePath(path);
+    if (!this.directories.has(normalized)) {
       throw new Error(`ENOENT: no such file or directory, scandir '${path}'`);
     }
 
@@ -145,14 +156,14 @@ class MockFileSystem implements IFileSystem {
 
     // Find all files in this directory
     for (const filePath of this.files.keys()) {
-      if (dirname(filePath) === path) {
+      if (dirname(filePath) === normalized) {
         entries.push(basename(filePath));
       }
     }
 
     // Find all immediate subdirectories
     for (const dirPath of this.directories) {
-      if (dirname(dirPath) === path && dirPath !== path) {
+      if (dirname(dirPath) === normalized && dirPath !== normalized) {
         entries.push(basename(dirPath));
       }
     }
