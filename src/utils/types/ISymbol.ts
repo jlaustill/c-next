@@ -1,5 +1,6 @@
 import ESymbolKind from "./ESymbolKind";
 import ESourceLanguage from "./ESourceLanguage";
+import IParameterSymbol from "./IParameterSymbol";
 
 /**
  * Represents a symbol collected from a source file
@@ -33,14 +34,7 @@ interface ISymbol {
   signature?: string;
 
   /** Function parameters with names, types, and modifiers for header generation */
-  parameters?: Array<{
-    name: string;
-    type: string; // C-Next type (u32, Configuration, etc.)
-    isConst: boolean;
-    isArray: boolean;
-    arrayDimensions?: string[]; // e.g., ["10", "20"] or ["", ""] for unbounded
-    isAutoConst?: boolean; // Issue #268: true if parameter should get auto-const (unmodified pointer)
-  }>;
+  parameters?: IParameterSymbol[];
 
   /** Parent namespace or class name */
   parent?: string;

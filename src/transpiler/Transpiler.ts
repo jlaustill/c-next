@@ -117,10 +117,13 @@ class Transpiler {
       this.fs,
     );
 
-    // Initialize cache manager if caching is enabled
-    this.cacheManager = this.config.noCache
-      ? null
-      : new CacheManager(this.determineProjectRoot(), this.fs);
+    // Initialize cache manager if caching is enabled and project root can be determined
+    const projectRoot = this.config.noCache
+      ? undefined
+      : this.determineProjectRoot();
+    this.cacheManager = projectRoot
+      ? new CacheManager(projectRoot, this.fs)
+      : null;
   }
 
   /**
@@ -1193,7 +1196,7 @@ class Transpiler {
     const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
 
     // Get type input from code generator (for struct/enum definitions)
-    const typeInput = this.codeGenerator.symbols ?? undefined;
+    const typeInput = this.codeGenerator.symbols;
 
     // Update auto-const info on symbol parameters
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
@@ -1246,42 +1249,61 @@ class Transpiler {
   }
 
   /**
-   * Determine the project root directory for cache storage
-   * Uses first input's directory, walking up to find existing .cnx/ or config
+   * Determine the project root by walking up from the first input looking for
+   * project markers. Returns undefined if no project root can be established,
+   * which disables caching to avoid polluting the filesystem with .cnx directories.
    */
-  private determineProjectRoot(): string {
+  private determineProjectRoot(): string | undefined {
     // Start from first input
     const firstInput = this.config.inputs[0];
     if (!firstInput) {
-      return process.cwd();
+      return undefined;
     }
 
     const resolvedInput = resolve(firstInput);
     let startDir: string;
 
-    // If input is a file, start from its directory
-    if (this.fs.exists(resolvedInput) && this.fs.isFile(resolvedInput)) {
-      startDir = dirname(resolvedInput);
+    // Determine starting directory based on whether input exists
+    if (this.fs.exists(resolvedInput)) {
+      // Input exists - use its directory if file, or itself if directory
+      startDir = this.fs.isFile(resolvedInput)
+        ? dirname(resolvedInput)
+        : resolvedInput;
     } else {
-      startDir = resolvedInput;
+      // Input doesn't exist - assume it's a file path, use parent directory
+      startDir = dirname(resolvedInput);
     }
 
-    // Walk up looking for existing .cnx/ or cnext.config.json
+    // Project root indicators (in priority order)
+    const projectMarkers = [
+      "cnext.config.json", // C-Next config file
+      "platformio.ini", // PlatformIO project
+      ".git", // Git repository root
+      "package.json", // Node.js project
+    ];
+
+    // Walk up looking for project markers
     let dir = startDir;
-    while (dir !== dirname(dir)) {
-      // Check for existing .cnx directory
-      if (this.fs.exists(join(dir, ".cnx"))) {
-        return dir;
+    while (true) {
+      // Check each project marker
+      for (const marker of projectMarkers) {
+        const markerPath = join(dir, marker);
+        if (this.fs.exists(markerPath)) {
+          return dir;
+        }
       }
-      // Check for config file
-      if (this.fs.exists(join(dir, "cnext.config.json"))) {
-        return dir;
+
+      // Move to parent directory
+      const parent = dirname(dir);
+      if (parent === dir) {
+        // Reached filesystem root without finding project markers
+        break;
       }
-      dir = dirname(dir);
+      dir = parent;
     }
 
-    // Fallback: use first input's directory
-    return startDir;
+    // No project root found - return undefined to disable caching
+    return undefined;
   }
 }
 
