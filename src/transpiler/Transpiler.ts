@@ -46,6 +46,8 @@ import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import detectCppSyntax from "./logic/detectCppSyntax";
+import AutoConstUpdater from "./logic/symbols/AutoConstUpdater";
+import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 
 /**
  * Unified transpiler
@@ -274,8 +276,14 @@ class Transpiler {
             );
           }
 
-          // Update symbol parameters with auto-const info for header generation
-          this.updateSymbolsAutoConst(file.path);
+          // Issue #588: Update symbol parameters with auto-const info for header generation
+          const symbols = this.symbolTable.getSymbolsByFile(file.path);
+          const unmodifiedParams =
+            this.codeGenerator.getFunctionUnmodifiedParams();
+          const knownEnums =
+            this.symbolCollectors.get(file.path)?.knownEnums ??
+            new Set<string>();
+          AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
         }
 
         // Write output file if output directory specified
@@ -661,49 +669,6 @@ class Transpiler {
   }
 
   /**
-   * Issue #465: Collect ICodeGenSymbols from all transitively included .cnx files.
-   *
-   * Recursively resolves includes to gather enum info from the entire include tree.
-   * This ensures that deeply nested enums (A includes B, B includes C with enum)
-   * are available for prefixing in the top-level file.
-   *
-   * @param filePath The file to collect transitive includes for
-   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
-   */
-  private collectTransitiveEnumInfo(filePath: string): ICodeGenSymbols[] {
-    const result: ICodeGenSymbols[] = [];
-    const visited = new Set<string>();
-
-    const collectRecursively = (currentPath: string): void => {
-      if (visited.has(currentPath)) return;
-      visited.add(currentPath);
-
-      // Read and parse includes from current file
-      const content = readFileSync(currentPath, "utf-8");
-      const searchPaths = IncludeResolver.buildSearchPaths(
-        dirname(currentPath),
-        this.config.includeDirs,
-        [],
-      );
-      const resolver = new IncludeResolver(searchPaths);
-      const resolved = resolver.resolve(content, currentPath);
-
-      // Process each included .cnx file
-      for (const cnxInclude of resolved.cnextIncludes) {
-        const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
-        if (externalInfo) {
-          result.push(externalInfo);
-        }
-        // Recursively collect from this include's includes
-        collectRecursively(cnxInclude.path);
-      }
-    };
-
-    collectRecursively(filePath);
-    return result;
-  }
-
-  /**
    * Get relative path from any input directory for a file.
    * Returns the relative path (e.g., "Display/Utils.cnx") or null if the file
    * is not under any input directory.
@@ -794,8 +759,10 @@ class Transpiler {
     // Issue #424: Get user includes for header generation
     const userIncludes = this.userIncludesCollectors.get(file.path) ?? [];
 
-    // Issue #478: Collect all known enum names from all files for cross-file type handling
-    const allKnownEnums = this.collectAllKnownEnums();
+    // Issue #478, #588: Collect all known enum names from all files for cross-file type handling
+    const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
+      this.symbolCollectors.values(),
+    );
 
     // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = this.buildExternalTypeHeaders();
@@ -821,59 +788,6 @@ class Transpiler {
 
     writeFileSync(headerPath, headerContent, "utf-8");
     return headerPath;
-  }
-
-  /**
-   * Issue #268: Update symbol parameters with auto-const info from code generation.
-   * This must be called after code generation to set isAutoConst on parameters
-   * that were not modified, enabling correct header generation.
-   */
-  private updateSymbolsAutoConst(filePath: string): void {
-    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-    const symbols = this.symbolTable.getSymbolsByFile(filePath);
-    const symbolCollector = this.symbolCollectors.get(filePath);
-
-    for (const symbol of symbols) {
-      if (symbol.kind !== ESymbolKind.Function || !symbol.parameters) {
-        continue;
-      }
-
-      const unmodified = unmodifiedParams.get(symbol.name);
-      if (!unmodified) continue;
-
-      // Update each parameter's isAutoConst
-      for (const param of symbol.parameters) {
-        // Only set auto-const for parameters that would get pointer semantics
-        const isPointerParam =
-          !param.isConst &&
-          !param.isArray &&
-          param.type !== "f32" &&
-          param.type !== "f64" &&
-          param.type !== "ISR" &&
-          !(symbolCollector?.knownEnums.has(param.type) ?? false);
-
-        // Also check array params (they become pointers in C)
-        const isArrayParam = param.isArray && !param.isConst;
-
-        if (isPointerParam || isArrayParam) {
-          param.isAutoConst = unmodified.has(param.name);
-        }
-      }
-    }
-  }
-
-  /**
-   * Issue #478: Collect all known enum names from all symbol collectors.
-   * This enables header generation to skip forward-declaring enums from included files.
-   */
-  private collectAllKnownEnums(): Set<string> {
-    const allEnums = new Set<string>();
-    for (const collector of this.symbolCollectors.values()) {
-      for (const enumName of collector.knownEnums) {
-        allEnums.add(enumName);
-      }
-    }
-    return allEnums;
   }
 
   /**
@@ -1220,9 +1134,13 @@ class Transpiler {
         context?.symbolInfoByFile ?? this.symbolInfoByFile;
 
       if (context) {
-        // When context is provided, use collectTransitiveEnumInfo which uses symbolInfoByFile
+        // Issue #588: When context is provided, use TransitiveEnumCollector
         // This is more efficient as run() has already populated symbolInfoByFile
-        const transitiveInfo = this.collectTransitiveEnumInfo(sourcePath);
+        const transitiveInfo = TransitiveEnumCollector.collect(
+          sourcePath,
+          this.symbolInfoByFile,
+          this.config.includeDirs,
+        );
         externalEnumSources.push(...transitiveInfo);
       } else if (resolved) {
         // Standalone mode: recursively collect enum info from all transitive includes
