@@ -172,8 +172,11 @@ class PathResolver {
     if (!this.config.basePath || !this.config.headerOutDir) {
       return relPath;
     }
-    // Normalize basePath (remove trailing slashes)
-    const base = this.config.basePath.replace(/[/\\]+$/, "");
+    // Normalize basePath (remove trailing slashes) using string methods
+    let base = this.config.basePath;
+    while (base.endsWith("/") || base.endsWith("\\")) {
+      base = base.slice(0, -1);
+    }
     // Check if relPath starts with basePath (+ separator or exact match)
     if (relPath === base) {
       return "";

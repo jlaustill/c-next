@@ -248,5 +248,81 @@ describe("PathResolver", () => {
 
       expect(result).toBe(join(headerDir, "subdir", "utils.h"));
     });
+
+    it("outputs header next to source when no headerOutDir and file not under input", () => {
+      const otherDir = join(testDir, "other");
+      mkdirSync(otherDir, { recursive: true });
+
+      const resolver = new PathResolver({
+        inputs: [srcDir],
+        outDir,
+        // No headerOutDir specified
+      });
+
+      const filePath = join(otherDir, "external.cnx");
+      writeFileSync(filePath, "");
+      const file = createFile(filePath);
+
+      const result = resolver.getHeaderOutputPath(file);
+
+      expect(result).toBe(join(otherDir, "external.h"));
+    });
+
+    it("uses headerOutDir with CWD-relative path for single file input", () => {
+      // This tests the case where file is not under input dirs but headerOutDir is set
+      // and file is under CWD
+      const resolver = new PathResolver({
+        inputs: [srcDir],
+        outDir,
+        headerOutDir: headerDir,
+      });
+
+      // Create file in testDir (not under srcDir input)
+      const filePath = join(testDir, "standalone.cnx");
+      writeFileSync(filePath, "");
+      const file = createFile(filePath);
+
+      const result = resolver.getHeaderOutputPath(file);
+
+      // Should use basename since file is not under any input
+      expect(result).toContain("standalone.h");
+    });
+
+    it("strips trailing slashes from basePath", () => {
+      const filePath = join(srcDir, "subdir", "utils.cnx");
+      writeFileSync(filePath, "");
+
+      // basePath with trailing slashes
+      const resolver = new PathResolver({
+        inputs: [testDir],
+        outDir,
+        headerOutDir: headerDir,
+        basePath: "src///",
+      });
+
+      const file = createFile(filePath);
+      const result = resolver.getHeaderOutputPath(file);
+
+      expect(result).toBe(join(headerDir, "subdir", "utils.h"));
+    });
+
+    it("handles basePath that exactly matches relative path", () => {
+      // When relPath equals basePath exactly, should return empty string for that part
+      const filePath = join(srcDir, "main.cnx");
+      writeFileSync(filePath, "");
+
+      const resolver = new PathResolver({
+        inputs: [testDir],
+        outDir,
+        headerOutDir: headerDir,
+        basePath: "src",
+      });
+
+      const file = createFile(filePath);
+      const result = resolver.getHeaderOutputPath(file);
+
+      // src/main.cnx with basePath "src" -> main.h in headerDir
+      expect(result).toBe(join(headerDir, "main.h"));
+    });
   });
 });
