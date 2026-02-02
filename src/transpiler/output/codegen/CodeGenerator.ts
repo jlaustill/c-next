@@ -8701,6 +8701,20 @@ export default class CodeGenerator implements IOrchestrator {
           ) {
             result = `${result}::${memberName}`;
           } else {
+            // Issue #612: If currentStructType is not set yet, check if current result is a struct
+            // This handles cases like global.structVar.field where primaryId is undefined
+            // (because 'global' is a keyword, not an identifier)
+            if (!currentStructType && currentIdentifier) {
+              const identifierTypeInfo =
+                this.context.typeRegistry.get(currentIdentifier);
+              if (
+                identifierTypeInfo &&
+                this.isKnownStruct(identifierTypeInfo.baseType)
+              ) {
+                currentStructType = identifierTypeInfo.baseType;
+              }
+            }
+
             result = `${result}.${memberName}`;
             // Track this member for potential .length access (save BEFORE updating)
             previousStructType = currentStructType;
