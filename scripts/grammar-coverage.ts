@@ -18,7 +18,7 @@ import transpile from "../src/lib/transpiler";
 import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGrammarCoverageReport";
 import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
-import Colors from "./colors";
+import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,9 +29,9 @@ const DEFAULT_THRESHOLD = 80;
 
 /** Get color function based on percentage threshold */
 function getPercentageColor(pct: number): (text: string) => string {
-  if (pct >= 80) return Colors.green;
-  if (pct >= 60) return Colors.yellow;
-  return Colors.red;
+  if (pct >= 80) return chalk.green;
+  if (pct >= 60) return chalk.yellow;
+  return chalk.red;
 }
 
 /**
@@ -132,28 +132,28 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
   console.log("=".repeat(50) + "\n");
 
   // Summary
-  console.log(Colors.cyan("Parser Rules:"));
+  console.log(chalk.cyan("Parser Rules:"));
   console.log(`  Total:    ${report.totalParserRules}`);
   console.log(
     `  Covered:  ${report.visitedParserRules} (${report.parserCoveragePercentage.toFixed(1)}%)`,
   );
   console.log(`  Missing:  ${report.neverVisitedParserRules.length}`);
 
-  console.log(`\n${Colors.cyan("Lexer Rules (Token Types):")}`);
+  console.log(`\n${chalk.cyan("Lexer Rules (Token Types):")}`);
   console.log(`  Total:    ${report.totalLexerRules}`);
   console.log(
     `  Covered:  ${report.visitedLexerRules} (${report.lexerCoveragePercentage.toFixed(1)}%)`,
   );
   console.log(`  Missing:  ${report.neverVisitedLexerRules.length}`);
 
-  console.log(`\n${Colors.cyan("Combined Coverage:")}`);
+  console.log(`\n${chalk.cyan("Combined Coverage:")}`);
   const combinedColor = getPercentageColor(report.combinedCoveragePercentage);
   console.log(
     `  ${combinedColor(`${report.combinedCoveragePercentage.toFixed(1)}%`)}`,
   );
 
   // Top 10 most used parser rules
-  console.log(`\n${Colors.cyan("Top 10 Most Used Parser Rules:")}`);
+  console.log(`\n${chalk.cyan("Top 10 Most Used Parser Rules:")}`);
   const sortedParser = Array.from(report.parserRuleVisits.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
@@ -164,12 +164,12 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
 
   // Never visited parser rules
   if (report.neverVisitedParserRules.length > 0) {
-    console.log(`\n${Colors.yellow("Never Visited Parser Rules:")}`);
+    console.log(`\n${chalk.yellow("Never Visited Parser Rules:")}`);
     for (const rule of report.neverVisitedParserRules) {
-      console.log(`  ${Colors.red("✗")} ${rule}`);
+      console.log(`  ${chalk.red("✗")} ${rule}`);
     }
   } else {
-    console.log(`\n${Colors.green("✓ All parser rules covered!")}`);
+    console.log(`\n${chalk.green("✓ All parser rules covered!")}`);
   }
 
   // Never visited lexer rules (only show notable ones)
@@ -181,12 +181,12 @@ function generateConsoleReport(report: IGrammarCoverageReport): void {
   );
 
   if (notableMissing.length > 0) {
-    console.log(`\n${Colors.yellow("Never Matched Lexer Rules (Notable):")}`);
+    console.log(`\n${chalk.yellow("Never Matched Lexer Rules (Notable):")}`);
     for (const rule of notableMissing.slice(0, 20)) {
-      console.log(`  ${Colors.red("✗")} ${rule}`);
+      console.log(`  ${chalk.red("✗")} ${rule}`);
     }
     if (notableMissing.length > 20) {
-      console.log(Colors.dim(`  ... and ${notableMissing.length - 20} more`));
+      console.log(chalk.dim(`  ... and ${notableMissing.length - 20} more`));
     }
   }
 
@@ -331,12 +331,12 @@ async function main(): Promise<void> {
   const testsDir = join(rootDir, "tests");
   const reportPath = join(rootDir, "GRAMMAR-COVERAGE.md");
 
-  console.log(Colors.yellow("Scanning test files for grammar coverage..."));
+  console.log(chalk.yellow("Scanning test files for grammar coverage..."));
 
   const testFiles = findTestFiles(testsDir);
   console.log(`  Found ${testFiles.length} test files`);
 
-  console.log(Colors.yellow("Aggregating grammar coverage..."));
+  console.log(chalk.yellow("Aggregating grammar coverage..."));
   const report = aggregateCoverage(testsDir);
 
   switch (mode) {
@@ -348,14 +348,14 @@ async function main(): Promise<void> {
       generateConsoleReport(report);
       if (report.combinedCoveragePercentage < threshold) {
         console.error(
-          Colors.red(
+          chalk.red(
             `\nError: Grammar coverage (${report.combinedCoveragePercentage.toFixed(1)}%) is below threshold (${threshold}%)`,
           ),
         );
         process.exit(1);
       }
       console.log(
-        Colors.green(`\n✓ Grammar coverage meets threshold (${threshold}%)`),
+        chalk.green(`\n✓ Grammar coverage meets threshold (${threshold}%)`),
       );
       break;
 
@@ -365,13 +365,13 @@ async function main(): Promise<void> {
       const markdown = generateMarkdownReport(report);
       writeFileSync(reportPath, markdown, "utf-8");
       console.log(
-        Colors.green(`Report written to ${relative(rootDir, reportPath)}`),
+        chalk.green(`Report written to ${relative(rootDir, reportPath)}`),
       );
       break;
   }
 }
 
 main().catch((err) => {
-  console.error(Colors.red(`Error: ${err.message}`));
+  console.error(chalk.red(`Error: ${err.message}`));
   process.exit(1);
 });

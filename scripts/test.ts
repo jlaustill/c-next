@@ -39,7 +39,7 @@ import ITestResult from "./types/ITestResult";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
-import Colors from "./colors";
+import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -149,28 +149,28 @@ function printResult(
   if (result.passed) {
     if (result.updated) {
       if (!quietMode) {
-        console.log(`${Colors.yellow("UPDATED")} ${relativePath}`);
+        console.log(`${chalk.yellow("UPDATED")} ${relativePath}`);
       }
     } else if (result.skippedExec) {
       if (!quietMode) {
         console.log(
-          `${Colors.green("PASS")}    ${relativePath} ${Colors.dim("(exec skipped: ARM)")}`,
+          `${chalk.green("PASS")}    ${relativePath} ${chalk.dim("(exec skipped: ARM)")}`,
         );
       }
     } else if (!quietMode) {
-      console.log(`${Colors.green("PASS")}    ${relativePath}`);
+      console.log(`${chalk.green("PASS")}    ${relativePath}`);
     }
   } else if (result.noSnapshot) {
-    console.log(`${Colors.yellow("SKIP")}    ${relativePath} (no snapshot)`);
+    console.log(`${chalk.yellow("SKIP")}    ${relativePath} (no snapshot)`);
   } else {
-    console.log(`${Colors.red("FAIL")}    ${relativePath}`);
-    console.log(`        ${Colors.dim(result.message ?? "")}`);
+    console.log(`${chalk.red("FAIL")}    ${relativePath}`);
+    console.log(`        ${chalk.dim(result.message ?? "")}`);
     if (result.expected && result.actual) {
-      console.log(`        ${Colors.dim("Expected:")}`);
+      console.log(`        ${chalk.dim("Expected:")}`);
       console.log(
         `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
       );
-      console.log(`        ${Colors.dim("Actual:")}`);
+      console.log(`        ${chalk.dim("Actual:")}`);
       console.log(
         `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
       );
@@ -182,11 +182,11 @@ function printResult(
     }
     // Show execution error if present
     if (result.execError) {
-      console.log(`        ${Colors.red("Exec error:")} ${result.execError}`);
+      console.log(`        ${chalk.red("Exec error:")} ${result.execError}`);
     }
     // Show warning error if present (test-no-warnings failure)
     if (result.warningError) {
-      console.log(`        ${Colors.red("Warning:")} ${result.warningError}`);
+      console.log(`        ${chalk.red("Warning:")} ${result.warningError}`);
     }
   }
 }
@@ -431,7 +431,7 @@ async function main(): Promise<void> {
 
   // Check if path exists and determine if it's a file or directory
   if (!existsSync(testPath)) {
-    console.error(Colors.red(`Error: Test path not found: ${testPath}`));
+    console.error(chalk.red(`Error: Test path not found: ${testPath}`));
     process.exit(1);
   }
 
@@ -441,7 +441,7 @@ async function main(): Promise<void> {
   // Validate single file has correct extension
   if (isSingleFile && !testPath.endsWith(".test.cnx")) {
     console.error(
-      Colors.red(`Error: Test file must end with .test.cnx: ${testPath}`),
+      chalk.red(`Error: Test file must end with .test.cnx: ${testPath}`),
     );
     process.exit(1);
   }
@@ -452,19 +452,19 @@ async function main(): Promise<void> {
   // Require at least GCC for compilation check
   if (!tools.gcc) {
     console.error(
-      Colors.red("Error: gcc is required for C compilation validation"),
+      chalk.red("Error: gcc is required for C compilation validation"),
     );
     process.exit(1);
   }
 
   if (!quietMode) {
-    console.log(Colors.cyan("C-Next Integration Tests"));
+    console.log(chalk.cyan("C-Next Integration Tests"));
     console.log(
-      Colors.dim(`Test ${isSingleFile ? "file" : "directory"}: ${testPath}`),
+      chalk.dim(`Test ${isSingleFile ? "file" : "directory"}: ${testPath}`),
     );
     if (updateMode) {
       console.log(
-        Colors.yellow("Update mode: snapshots will be created/updated"),
+        chalk.yellow("Update mode: snapshots will be created/updated"),
       );
     }
 
@@ -475,13 +475,13 @@ async function main(): Promise<void> {
     if (tools.clangTidy) toolList.push("clang-tidy");
     if (tools.misra) toolList.push("MISRA");
     if (tools.flawfinder) toolList.push("flawfinder");
-    console.log(Colors.cyan(`Validation: ${toolList.join(" → ")}`));
+    console.log(chalk.cyan(`Validation: ${toolList.join(" → ")}`));
 
     // Show parallelism info
     if (numJobs > 1) {
-      console.log(Colors.cyan(`Workers: ${numJobs} parallel`));
+      console.log(chalk.cyan(`Workers: ${numJobs} parallel`));
     } else {
-      console.log(Colors.dim("Mode: sequential"));
+      console.log(chalk.dim("Mode: sequential"));
     }
     console.log();
   }
@@ -490,7 +490,7 @@ async function main(): Promise<void> {
   const cnxFiles = isSingleFile ? [testPath] : findCnxFiles(testPath);
 
   if (cnxFiles.length === 0) {
-    console.log(Colors.yellow("No .test.cnx test files found"));
+    console.log(chalk.yellow("No .test.cnx test files found"));
     process.exit(0);
   }
 
@@ -520,25 +520,25 @@ async function main(): Promise<void> {
     // Single-line summary for AI-friendly output
     if (failed > 0) {
       console.log(
-        `${passed}/${cnxFiles.length} tests passed, ${Colors.red(`${failed} failed`)}`,
+        `${passed}/${cnxFiles.length} tests passed, ${chalk.red(`${failed} failed`)}`,
       );
     } else {
       console.log(
-        Colors.green(`${cnxFiles.length}/${cnxFiles.length} tests passed`),
+        chalk.green(`${cnxFiles.length}/${cnxFiles.length} tests passed`),
       );
     }
   } else {
     console.log();
-    console.log(Colors.cyan("Results:"));
-    console.log(`  ${Colors.green("Passed:")}  ${passed}`);
+    console.log(chalk.cyan("Results:"));
+    console.log(`  ${chalk.green("Passed:")}  ${passed}`);
     if (failed > 0) {
-      console.log(`  ${Colors.red("Failed:")}  ${failed}`);
+      console.log(`  ${chalk.red("Failed:")}  ${failed}`);
     }
     if (updated > 0) {
-      console.log(`  ${Colors.yellow("Updated:")} ${updated}`);
+      console.log(`  ${chalk.yellow("Updated:")} ${updated}`);
     }
     if (noSnapshot > 0) {
-      console.log(`  ${Colors.yellow("Skipped:")} ${noSnapshot} (no snapshot)`);
+      console.log(`  ${chalk.yellow("Skipped:")} ${noSnapshot} (no snapshot)`);
     }
   }
 

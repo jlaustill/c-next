@@ -11,13 +11,13 @@ import ICoverageReport, {
   IMismatch,
   ISectionSummary,
 } from "./types/ICoverageReport";
-import Colors from "./colors";
+import chalk from "chalk";
 
 /** Get color function based on percentage threshold */
 function getPercentageColor(pct: number): (text: string) => string {
-  if (pct >= 80) return Colors.green;
-  if (pct >= 50) return Colors.yellow;
-  return Colors.red;
+  if (pct >= 80) return chalk.green;
+  if (pct >= 50) return chalk.yellow;
+  return chalk.red;
 }
 
 /**
@@ -134,32 +134,32 @@ function generateConsoleReport(report: ICoverageReport): void {
 
   console.log("");
   console.log(
-    Colors.bright("═══════════════════════════════════════════════════════"),
+    chalk.bold("═══════════════════════════════════════════════════════"),
   );
-  console.log(Colors.bright("  C-Next Coverage Tracking Report"));
+  console.log(chalk.bold("  C-Next Coverage Tracking Report"));
   console.log(
-    Colors.bright("═══════════════════════════════════════════════════════"),
+    chalk.bold("═══════════════════════════════════════════════════════"),
   );
   console.log("");
 
   // Summary
-  console.log(Colors.cyan("Summary:"));
+  console.log(chalk.cyan("Summary:"));
   console.log(
-    `  Total Coverage Points:  ${Colors.bright(String(summary.totalItems))}`,
+    `  Total Coverage Points:  ${chalk.bold(String(summary.totalItems))}`,
   );
   console.log(
-    `  Tested (coverage.md):   ${Colors.green(String(summary.testedItems))} (${summary.coveragePercentage}%)`,
+    `  Tested (coverage.md):   ${chalk.green(String(summary.testedItems))} (${summary.coveragePercentage}%)`,
   );
   console.log(
-    `  With Annotations:       ${Colors.blue(String(summary.annotatedItems))}`,
+    `  With Annotations:       ${chalk.blue(String(summary.annotatedItems))}`,
   );
   console.log(
-    `  Gaps Remaining:         ${Colors.yellow(String(summary.untestedItems))}`,
+    `  Gaps Remaining:         ${chalk.yellow(String(summary.untestedItems))}`,
   );
   console.log("");
 
   // Section breakdown
-  console.log(Colors.cyan("Section Breakdown:"));
+  console.log(chalk.cyan("Section Breakdown:"));
   for (const section of summary.sections) {
     const pctColor = getPercentageColor(section.percentage);
     const sectionDisplay = section.name.substring(0, 35).padEnd(35);
@@ -171,28 +171,28 @@ function generateConsoleReport(report: ICoverageReport): void {
 
   // Mismatches
   if (mismatches.length > 0) {
-    console.log(Colors.red(`Mismatches Found: ${mismatches.length}`));
+    console.log(chalk.red(`Mismatches Found: ${mismatches.length}`));
     for (const mismatch of mismatches.slice(0, 10)) {
-      console.log(`  ${Colors.yellow("⚠")}  ${mismatch.issue}`);
+      console.log(`  ${chalk.yellow("⚠")}  ${mismatch.issue}`);
     }
     if (mismatches.length > 10) {
-      console.log(Colors.dim(`  ... and ${mismatches.length - 10} more`));
+      console.log(chalk.dim(`  ... and ${mismatches.length - 10} more`));
     }
     console.log("");
   } else {
-    console.log(Colors.green("No mismatches found."));
+    console.log(chalk.green("No mismatches found."));
     console.log("");
   }
 
   // Top gaps
   if (gaps.length > 0) {
-    console.log(Colors.cyan("Top 10 Gaps:"));
+    console.log(chalk.cyan("Top 10 Gaps:"));
     for (const gap of gaps.slice(0, 10)) {
-      console.log(`  ${Colors.dim("[ ]")} ${gap.id}`);
+      console.log(`  ${chalk.dim("[ ]")} ${gap.id}`);
     }
     if (gaps.length > 10) {
       console.log(
-        Colors.dim(`  ... and ${gaps.length - 10} more untested items`),
+        chalk.dim(`  ... and ${gaps.length - 10} more untested items`),
       );
     }
   }
@@ -207,7 +207,7 @@ function generateGapsReport(report: ICoverageReport): void {
   const { gaps } = report;
 
   console.log("");
-  console.log(Colors.bright(`Coverage Gaps (${gaps.length} untested items)`));
+  console.log(chalk.bold(`Coverage Gaps (${gaps.length} untested items)`));
   console.log("");
 
   // Group by section
@@ -227,7 +227,7 @@ function generateGapsReport(report: ICoverageReport): void {
 
   for (const section of sortedSections) {
     const sectionGaps = bySection.get(section)!;
-    console.log(`${Colors.cyan(section)} (${sectionGaps.length} gaps)`);
+    console.log(`${chalk.cyan(section)} (${sectionGaps.length} gaps)`);
     for (const gap of sectionGaps) {
       console.log(`  [ ] ${gap.id}`);
     }
@@ -315,7 +315,7 @@ function generateMarkdownReport(
  */
 function listAllIds(items: ICoverageItem[]): void {
   console.log("");
-  console.log(Colors.bright(`All Coverage IDs (${items.length} total)`));
+  console.log(chalk.bold(`All Coverage IDs (${items.length} total)`));
   console.log("");
 
   // Group by section
@@ -334,9 +334,9 @@ function listAllIds(items: ICoverageItem[]): void {
 
   for (const section of sortedSections) {
     const sectionItems = bySection.get(section)!;
-    console.log(Colors.cyan(section));
+    console.log(chalk.cyan(section));
     for (const item of sectionItems) {
-      const status = item.tested ? Colors.green("[x]") : Colors.dim("[ ]");
+      const status = item.tested ? chalk.green("[x]") : chalk.dim("[ ]");
       console.log(`  ${status} ${item.id}`);
     }
     console.log("");
@@ -351,7 +351,6 @@ const reportGenerator = {
   listAllIds,
   // Exported for testing
   getPercentageColor,
-  Colors,
 };
 
 export default reportGenerator;

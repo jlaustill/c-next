@@ -19,7 +19,7 @@ import { existsSync } from "node:fs";
 import coverageParser from "./coverage-parser";
 import testScanner from "./test-scanner";
 import reportGenerator from "./report-generator";
-import Colors from "./colors";
+import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,21 +55,19 @@ async function main(): Promise<void> {
 
   // Verify paths exist
   if (!existsSync(coveragePath)) {
-    console.error(
-      Colors.red(`Error: coverage.md not found at ${coveragePath}`),
-    );
+    console.error(chalk.red(`Error: coverage.md not found at ${coveragePath}`));
     process.exit(1);
   }
 
   if (!existsSync(testsDir)) {
     console.error(
-      Colors.red(`Error: tests/ directory not found at ${testsDir}`),
+      chalk.red(`Error: tests/ directory not found at ${testsDir}`),
     );
     process.exit(1);
   }
 
   // Parse coverage.md
-  console.log(Colors.yellow("Parsing coverage.md..."));
+  console.log(chalk.yellow("Parsing coverage.md..."));
   const coverageItems = coverageParser.parseCoverageDocument(coveragePath);
   console.log(`  Found ${coverageItems.length} coverage items`);
 
@@ -77,7 +75,7 @@ async function main(): Promise<void> {
   const duplicates = coverageParser.checkForDuplicates(coverageItems);
   if (duplicates.size > 0) {
     console.log(
-      Colors.yellow(`Warning: ${duplicates.size} duplicate IDs found:`),
+      chalk.yellow(`Warning: ${duplicates.size} duplicate IDs found:`),
     );
     for (const [id, lines] of duplicates) {
       console.log(`  - "${id}" at lines ${lines.join(", ")}`);
@@ -85,7 +83,7 @@ async function main(): Promise<void> {
   }
 
   // Scan test files for annotations
-  console.log(Colors.yellow("Scanning test files..."));
+  console.log(chalk.yellow("Scanning test files..."));
   const annotations = testScanner.scanTestFiles(testsDir);
   console.log(`  Found ${annotations.length} coverage annotations`);
 
@@ -103,7 +101,7 @@ async function main(): Promise<void> {
 
     case "report":
       reportGenerator.generateMarkdownReport(report, reportPath);
-      console.log(Colors.green(`Report written to ${reportPath}`));
+      console.log(chalk.green(`Report written to ${reportPath}`));
       break;
 
     case "gaps":
@@ -115,13 +113,13 @@ async function main(): Promise<void> {
       break;
 
     default:
-      console.error(Colors.red(`Unknown mode: ${mode}`));
+      console.error(chalk.red(`Unknown mode: ${mode}`));
       printUsage();
       process.exit(1);
   }
 }
 
 main().catch((err) => {
-  console.error(Colors.red(`Error: ${err.message}`));
+  console.error(chalk.red(`Error: ${err.message}`));
   process.exit(1);
 });
