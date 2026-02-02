@@ -1,0 +1,78 @@
+// Issue #612 comprehensive tests: Array indexing on struct fields via global/this
+// Tests various edge cases to prevent regression
+
+#include "External.h"
+
+// C-Next defined struct with array field
+struct CNextStruct {
+    u8 buffer[16];
+    u32 values[4];
+}
+
+// Nested struct
+struct Outer {
+    ExternalStruct inner;
+    u8 direct[8];
+}
+
+// Global variables
+ExternalStruct globalExternal;
+CNextStruct globalCNext;
+Outer globalOuter;
+
+scope ArrayTests {
+    // Scope-level struct variable
+    ExternalStruct scopeExternal;
+    CNextStruct scopeCNext;
+
+    // Test 1: Global external struct array access
+    public u8 testGlobalExternal() {
+        return global.globalExternal.data[2];
+    }
+
+    // Test 2: Global C-Next struct array access
+    public u8 testGlobalCNext() {
+        return global.globalCNext.buffer[3];
+    }
+
+    // Test 3: Global C-Next struct u32 array access
+    public u32 testGlobalCNextU32() {
+        return global.globalCNext.values[1];
+    }
+
+    // Test 4: Nested struct array access via global
+    public u8 testNestedViaGlobal() {
+        return global.globalOuter.inner.data[4];
+    }
+
+    // Test 5: Direct array field on nested struct
+    public u8 testNestedDirect() {
+        return global.globalOuter.direct[5];
+    }
+
+    // Test 6: Scope variable array access via this
+    public u8 testThisExternal() {
+        return this.scopeExternal.data[6];
+    }
+
+    // Test 7: Scope C-Next struct via this
+    public u8 testThisCNext() {
+        return this.scopeCNext.buffer[7];
+    }
+
+    // Test 8: Multiple index operations
+    public u8 testMultipleIndex() {
+        // First access array element, then access its field
+        return global.globalExternal.data[0];
+    }
+
+    // Test 9: Parameter struct array access (should still work)
+    public u8 testParameter(ExternalStruct param) {
+        return param.data[1];
+    }
+
+    // Test 10: Parameter C-Next struct
+    public u8 testParameterCNext(CNextStruct param) {
+        return param.buffer[2];
+    }
+}

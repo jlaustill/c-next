@@ -1,0 +1,23 @@
+// Bug: Array indexing on global external struct field generates bit-slice code
+//
+// Expected: globalExt.data[1]
+// Actual:   ((globalExt.data >> 1) & 1)
+//
+// Note: When passed as parameter, array indexing works correctly.
+// The bug only occurs when accessing via global. prefix.
+
+#include "External.h"
+
+ExternalStruct globalExt;
+
+scope Test {
+    // BUG: This generates bit-slice code instead of array access
+    public u8 getBroken() {
+        return global.globalExt.data[1];
+    }
+
+    // WORKS: Parameter version generates correct code
+    public u8 getWorking(ExternalStruct ext) {
+        return ext.data[1];
+    }
+}

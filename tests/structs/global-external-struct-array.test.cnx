@@ -1,0 +1,24 @@
+// Issue #612: Array indexing on global external struct field
+// This tests that global.structVar.arrayField[N] generates array access,
+// not bit-slice code.
+
+#include "External.h"
+
+ExternalStruct globalExt;
+
+scope Test {
+    // Access array field on global external struct via global. prefix
+    public u8 getFromGlobal() {
+        return global.globalExt.data[1];
+    }
+
+    // Access array field on external struct parameter
+    public u8 getFromParam(ExternalStruct ext) {
+        return ext.data[1];
+    }
+
+    // Access non-array field on global external struct
+    public u8 getCount() {
+        return global.globalExt.count;
+    }
+}
