@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.54] - 2026-02-02
+
+### Added
+
+- Spell checking with cspell for quality checks (PR #622)
+- Unit tests for trackVariableTypeWithName helpers (16 tests, PR #627)
+- Unit tests for HeaderGeneratorUtils (27 tests, PR #626)
+- Unit tests for assignment handlers (PR #618)
+
+### Changed
+
+- Reduce CodeGenerator.trackVariableTypeWithName complexity from 168 to ~15 (PR #627)
+- Extract header section generators to HeaderGeneratorUtils (PR #626)
+- Separate C and C++ header generators (PR #623)
+- Add IFileSystem abstraction to Transpiler for testability (PR #618, #620)
+- Migrate to established libraries for reduced maintenance (PR #620)
+- Update dependencies to latest versions (PR #619)
+
+### Fixed
+
+- Resolve 25+ SonarCloud issues: String.raw, type assertions, negated conditions (PR #624, #625)
+- Rewrite determineProjectRoot to use real project markers (PR #623)
+
 ## [0.1.53] - 2026-02-02
 
 ### Fixed
@@ -649,6 +672,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.53...HEAD
+[0.1.53]: https://github.com/jlaustill/c-next/compare/v0.1.52...v0.1.53
+[0.1.52]: https://github.com/jlaustill/c-next/compare/v0.1.51...v0.1.52
+[0.1.51]: https://github.com/jlaustill/c-next/compare/v0.1.50...v0.1.51
+[0.1.50]: https://github.com/jlaustill/c-next/compare/v0.1.49...v0.1.50
+[0.1.49]: https://github.com/jlaustill/c-next/compare/v0.1.48...v0.1.49
+[0.1.48]: https://github.com/jlaustill/c-next/compare/v0.1.47...v0.1.48
+[0.1.47]: https://github.com/jlaustill/c-next/compare/v0.1.46...v0.1.47
+[0.1.46]: https://github.com/jlaustill/c-next/compare/v0.1.45...v0.1.46
+[0.1.45]: https://github.com/jlaustill/c-next/compare/v0.1.44...v0.1.45
+[0.1.44]: https://github.com/jlaustill/c-next/compare/v0.1.43...v0.1.44
+[0.1.43]: https://github.com/jlaustill/c-next/compare/v0.1.42...v0.1.43
+[0.1.42]: https://github.com/jlaustill/c-next/compare/v0.1.41...v0.1.42
+[0.1.41]: https://github.com/jlaustill/c-next/compare/v0.1.40...v0.1.41
+[0.1.40]: https://github.com/jlaustill/c-next/compare/v0.1.39...v0.1.40
+[0.1.39]: https://github.com/jlaustill/c-next/compare/v0.1.38...v0.1.39
+[0.1.38]: https://github.com/jlaustill/c-next/compare/v0.1.37...v0.1.38
+[0.1.37]: https://github.com/jlaustill/c-next/compare/v0.1.36...v0.1.37
+[0.1.36]: https://github.com/jlaustill/c-next/compare/v0.1.35...v0.1.36
+[0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
+[0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
+[0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
+[0.1.54]: https://github.com/jlaustill/c-next/compare/v0.1.53...v0.1.54
 [0.1.53]: https://github.com/jlaustill/c-next/compare/v0.1.52...v0.1.53
 [0.1.52]: https://github.com/jlaustill/c-next/compare/v0.1.51...v0.1.52
 [0.1.51]: https://github.com/jlaustill/c-next/compare/v0.1.50...v0.1.51
