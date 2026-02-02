@@ -7,6 +7,10 @@
 import Cli from "./cli/Cli";
 import Runner from "./cli/Runner";
 
+/**
+ * Main entry point for the CLI
+ * Exported for testability
+ */
 async function main(): Promise<void> {
   const result = Cli.run();
 
@@ -17,7 +21,13 @@ async function main(): Promise<void> {
   process.exit(result.exitCode);
 }
 
-main().catch((err) => {
-  console.error("Unexpected error:", err);
-  process.exit(1);
-});
+// Only auto-execute when run directly (not when imported for testing)
+// Check for vitest environment variable set by the test runner
+if (!process.env.VITEST) {
+  main().catch((err) => {
+    console.error("Unexpected error:", err);
+    process.exit(1);
+  });
+}
+
+export default main;

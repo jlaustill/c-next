@@ -4,11 +4,15 @@
  */
 
 import fg from "fast-glob";
-import { existsSync, statSync } from "node:fs";
 import { extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IDiscoveryOptions from "./types/IDiscoveryOptions";
+import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = NodeFileSystem.instance;
 
 /**
  * Default extensions for each file type
@@ -73,10 +77,18 @@ class FileDiscovery {
    *
    * Issue #331: Uses fast-glob's unique option to avoid duplicates
    * when overlapping directories are provided.
+   *
+   * Note: fast-glob accesses the filesystem directly; the fs parameter
+   * is used only for directory existence checks.
+   *
+   * @param directories - Directories to scan
+   * @param options - Discovery options
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    */
   static discover(
     directories: string[],
     options: IDiscoveryOptions = {},
+    fs: IFileSystem = defaultFs,
   ): IDiscoveredFile[] {
     const recursive = options.recursive ?? true;
     const extensions = options.extensions ?? Object.keys(EXTENSION_MAP);
@@ -101,7 +113,7 @@ class FileDiscovery {
     for (const dir of directories) {
       const resolvedDir = resolve(dir);
 
-      if (!existsSync(resolvedDir)) {
+      if (!fs.exists(resolvedDir)) {
         console.warn(`Warning: Directory not found: ${dir}`);
         continue;
       }
@@ -138,20 +150,21 @@ class FileDiscovery {
 
   /**
    * Discover a single file
+   *
+   * @param filePath - Path to the file
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    */
-  static discoverFile(filePath: string): IDiscoveredFile | null {
+  static discoverFile(
+    filePath: string,
+    fs: IFileSystem = defaultFs,
+  ): IDiscoveredFile | null {
     const resolvedPath = resolve(filePath);
 
-    if (!existsSync(resolvedPath)) {
+    if (!fs.exists(resolvedPath)) {
       return null;
     }
 
-    try {
-      const stats = statSync(resolvedPath);
-      if (!stats.isFile()) {
-        return null;
-      }
-    } catch {
+    if (!fs.isFile(resolvedPath)) {
       return null;
     }
 
@@ -160,12 +173,18 @@ class FileDiscovery {
 
   /**
    * Discover multiple specific files
+   *
+   * @param filePaths - Paths to the files
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    */
-  static discoverFiles(filePaths: string[]): IDiscoveredFile[] {
+  static discoverFiles(
+    filePaths: string[],
+    fs: IFileSystem = defaultFs,
+  ): IDiscoveredFile[] {
     const files: IDiscoveredFile[] = [];
 
     for (const filePath of filePaths) {
-      const file = this.discoverFile(filePath);
+      const file = this.discoverFile(filePath, fs);
       if (file) {
         files.push(file);
       } else {

@@ -1,5 +1,10 @@
 import { dirname, resolve, join, isAbsolute } from "node:path";
-import { existsSync, statSync, readdirSync, readFileSync } from "node:fs";
+
+import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = NodeFileSystem.instance;
 
 /**
  * Auto-discovery of include paths for C-Next compilation
@@ -18,9 +23,13 @@ class IncludeDiscovery {
    * Discover include paths for a file
    *
    * @param inputFile - Path to .cnx file being compiled
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    * @returns Array of include directory paths
    */
-  static discoverIncludePaths(inputFile: string): string[] {
+  static discoverIncludePaths(
+    inputFile: string,
+    fs: IFileSystem = defaultFs,
+  ): string[] {
     const paths: string[] = [];
 
     // Tier 1: File's own directory (highest priority)
@@ -28,13 +37,13 @@ class IncludeDiscovery {
     paths.push(fileDir);
 
     // Tier 2: Project root detection
-    const projectRoot = this.findProjectRoot(fileDir);
+    const projectRoot = this.findProjectRoot(fileDir, fs);
     if (projectRoot) {
       // Add common include directories if they exist
       const commonDirs = ["include", "src", "lib"];
       for (const dir of commonDirs) {
         const includePath = join(projectRoot, dir);
-        if (existsSync(includePath) && statSync(includePath).isDirectory()) {
+        if (fs.exists(includePath) && fs.isDirectory(includePath)) {
           paths.push(includePath);
         }
       }
@@ -42,10 +51,10 @@ class IncludeDiscovery {
       // Tier 3: Issue #355 - PlatformIO library dependencies
       // When platformio.ini exists, check for .pio/libdeps/ and add all library paths
       const pioIniPath = join(projectRoot, "platformio.ini");
-      if (existsSync(pioIniPath)) {
+      if (fs.exists(pioIniPath)) {
         const libDepsPath = join(projectRoot, ".pio", "libdeps");
-        if (existsSync(libDepsPath) && statSync(libDepsPath).isDirectory()) {
-          const pioLibPaths = this.discoverPlatformIOLibPaths(libDepsPath);
+        if (fs.exists(libDepsPath) && fs.isDirectory(libDepsPath)) {
+          const pioLibPaths = this.discoverPlatformIOLibPaths(libDepsPath, fs);
           paths.push(...pioLibPaths);
         }
 
@@ -53,6 +62,7 @@ class IncludeDiscovery {
         const extraDirs = this.parsePlatformIOLibExtraDirs(
           pioIniPath,
           projectRoot,
+          fs,
         );
         paths.push(...extraDirs);
       }
@@ -60,7 +70,7 @@ class IncludeDiscovery {
 
     // Tier 4: Issue #355 - Arduino library paths
     // Check for Arduino libraries in common locations
-    const arduinoPaths = this.discoverArduinoLibPaths();
+    const arduinoPaths = this.discoverArduinoLibPaths(fs);
     paths.push(...arduinoPaths);
 
     // Remove duplicates
@@ -75,9 +85,10 @@ class IncludeDiscovery {
    * - macOS: ~/Documents/Arduino/libraries/
    * - Windows: %USERPROFILE%\Documents\Arduino\libraries\
    *
+   * @param fs - File system abstraction
    * @returns Array of library directory paths
    */
-  private static discoverArduinoLibPaths(): string[] {
+  private static discoverArduinoLibPaths(fs: IFileSystem): string[] {
     const paths: string[] = [];
     const home = process.env.HOME || process.env.USERPROFILE || "";
 
@@ -90,20 +101,20 @@ class IncludeDiscovery {
     ];
 
     for (const libDir of arduinoLibDirs) {
-      if (existsSync(libDir) && statSync(libDir).isDirectory()) {
+      if (fs.exists(libDir) && fs.isDirectory(libDir)) {
         try {
           // Add each library directory
-          const libs = readdirSync(libDir);
+          const libs = fs.readdir(libDir);
           for (const lib of libs) {
             const libPath = join(libDir, lib);
-            if (statSync(libPath).isDirectory()) {
+            if (fs.isDirectory(libPath)) {
               paths.push(libPath);
 
               // Also check for common subdirectories where headers might live
               const subDirs = ["src", "include", "src/include"];
               for (const subDir of subDirs) {
                 const subPath = join(libPath, subDir);
-                if (existsSync(subPath) && statSync(subPath).isDirectory()) {
+                if (fs.exists(subPath) && fs.isDirectory(subPath)) {
                   paths.push(subPath);
                 }
               }
@@ -125,22 +136,26 @@ class IncludeDiscovery {
    * This function finds all library directories across all environments.
    *
    * @param libDepsPath - Path to .pio/libdeps/
+   * @param fs - File system abstraction
    * @returns Array of library directory paths
    */
-  private static discoverPlatformIOLibPaths(libDepsPath: string): string[] {
+  private static discoverPlatformIOLibPaths(
+    libDepsPath: string,
+    fs: IFileSystem,
+  ): string[] {
     const paths: string[] = [];
 
     try {
       // Iterate through environment directories (e.g., teensy40, teensy41, esp32)
-      const envDirs = readdirSync(libDepsPath);
+      const envDirs = fs.readdir(libDepsPath);
       for (const envDir of envDirs) {
         const envPath = join(libDepsPath, envDir);
-        if (statSync(envPath).isDirectory()) {
+        if (fs.isDirectory(envPath)) {
           // Iterate through library directories within each environment
-          const libDirs = readdirSync(envPath);
+          const libDirs = fs.readdir(envPath);
           for (const libDir of libDirs) {
             const libPath = join(envPath, libDir);
-            if (statSync(libPath).isDirectory()) {
+            if (fs.isDirectory(libPath)) {
               // Add the library root (most headers are here)
               paths.push(libPath);
 
@@ -148,7 +163,7 @@ class IncludeDiscovery {
               const subDirs = ["src", "include", "src/include"];
               for (const subDir of subDirs) {
                 const subPath = join(libPath, subDir);
-                if (existsSync(subPath) && statSync(subPath).isDirectory()) {
+                if (fs.exists(subPath) && fs.isDirectory(subPath)) {
                   paths.push(subPath);
                 }
               }
@@ -172,16 +187,18 @@ class IncludeDiscovery {
    *
    * @param pioIniPath - Path to platformio.ini
    * @param projectRoot - Project root directory for resolving relative paths
+   * @param fs - File system abstraction
    * @returns Array of library directory paths
    */
   private static parsePlatformIOLibExtraDirs(
     pioIniPath: string,
     projectRoot: string,
+    fs: IFileSystem,
   ): string[] {
     const paths: string[] = [];
 
     try {
-      const content = readFileSync(pioIniPath, "utf-8");
+      const content = fs.readFile(pioIniPath);
 
       // Match lib_extra_dirs in any section
       // Format can be:
@@ -224,7 +241,7 @@ class IncludeDiscovery {
         for (const dir of dirs) {
           // Resolve relative to project root
           const fullPath = isAbsolute(dir) ? dir : join(projectRoot, dir);
-          if (existsSync(fullPath) && statSync(fullPath).isDirectory()) {
+          if (fs.exists(fullPath) && fs.isDirectory(fullPath)) {
             paths.push(fullPath);
           }
         }
@@ -245,9 +262,13 @@ class IncludeDiscovery {
    * - .git/ (Git repository root)
    *
    * @param startDir - Directory to start search from
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    * @returns Project root path or null if not found
    */
-  static findProjectRoot(startDir: string): string | null {
+  static findProjectRoot(
+    startDir: string,
+    fs: IFileSystem = defaultFs,
+  ): string | null {
     let dir = resolve(startDir);
 
     const markers = [
@@ -262,7 +283,7 @@ class IncludeDiscovery {
     while (dir !== dirname(dir)) {
       for (const marker of markers) {
         const markerPath = join(dir, marker);
-        if (existsSync(markerPath)) {
+        if (fs.exists(markerPath)) {
           return dir;
         }
       }
@@ -321,21 +342,23 @@ class IncludeDiscovery {
    *
    * @param includePath - The include path from #include directive
    * @param searchPaths - Directories to search in
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    * @returns Resolved absolute path or null if not found
    */
   static resolveInclude(
     includePath: string,
     searchPaths: string[],
+    fs: IFileSystem = defaultFs,
   ): string | null {
     // If already absolute, check if it exists
     if (isAbsolute(includePath)) {
-      return existsSync(includePath) ? includePath : null;
+      return fs.exists(includePath) ? includePath : null;
     }
 
     // Search in each directory
     for (const searchDir of searchPaths) {
       const fullPath = join(searchDir, includePath);
-      if (existsSync(fullPath) && statSync(fullPath).isFile()) {
+      if (fs.exists(fullPath) && fs.isFile(fullPath)) {
         return fullPath;
       }
     }

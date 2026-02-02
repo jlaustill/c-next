@@ -11,13 +11,7 @@
  *       symbols.json  - Cached symbols per file (managed by flat-cache)
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  unlinkSync,
-} from "node:fs";
+import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
@@ -27,6 +21,11 @@ import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
 import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
+import IFileSystem from "../../transpiler/types/IFileSystem";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
 const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime
@@ -44,6 +43,7 @@ class CacheManager {
   private readonly cacheDir: string;
   private readonly cacheSubdir: string;
   private readonly configPath: string;
+  private readonly fs: IFileSystem;
 
   /** flat-cache instance for symbol storage */
   private cache: FlatCache | null = null;
@@ -51,8 +51,9 @@ class CacheManager {
   /** Whether the cache has been modified and needs flushing */
   private dirty = false;
 
-  constructor(projectRoot: string) {
+  constructor(projectRoot: string, fs: IFileSystem = defaultFs) {
     this.projectRoot = projectRoot;
+    this.fs = fs;
     this.cacheDir = join(projectRoot, ".cnx");
     this.cacheSubdir = join(this.cacheDir, "cache");
     this.configPath = join(this.cacheDir, "config.json");
@@ -63,12 +64,12 @@ class CacheManager {
    */
   async initialize(): Promise<void> {
     // Create .cnx directory structure
-    if (!existsSync(this.cacheDir)) {
-      mkdirSync(this.cacheDir, { recursive: true });
+    if (!this.fs.exists(this.cacheDir)) {
+      this.fs.mkdir(this.cacheDir, { recursive: true });
     }
 
-    if (!existsSync(this.cacheSubdir)) {
-      mkdirSync(this.cacheSubdir, { recursive: true });
+    if (!this.fs.exists(this.cacheSubdir)) {
+      this.fs.mkdir(this.cacheSubdir, { recursive: true });
     }
 
     // Load or create config
@@ -77,6 +78,7 @@ class CacheManager {
     // Check if cache should be invalidated
     if (this.shouldInvalidateCache(config)) {
       // Remove old cache file if it exists
+      // Note: flat-cache manages the actual file, so we use existsSync/unlinkSync here
       const oldCacheFile = join(this.cacheSubdir, "symbols");
       if (existsSync(oldCacheFile)) {
         try {
@@ -115,7 +117,7 @@ class CacheManager {
       return false;
     }
 
-    return CacheKeyGenerator.isValid(filePath, entry.cacheKey);
+    return CacheKeyGenerator.isValid(filePath, entry.cacheKey, this.fs);
   }
 
   /**
@@ -178,7 +180,7 @@ class CacheManager {
     // Generate cache key for current file state
     let cacheKey: string;
     try {
-      cacheKey = CacheKeyGenerator.generate(filePath);
+      cacheKey = CacheKeyGenerator.generate(filePath, this.fs);
     } catch {
       // If we can't stat the file, don't cache it
       return;
@@ -377,9 +379,9 @@ class CacheManager {
    * Load or create config file
    */
   private loadOrCreateConfig(): ICacheConfig {
-    if (existsSync(this.configPath)) {
+    if (this.fs.exists(this.configPath)) {
       try {
-        const content = readFileSync(this.configPath, "utf-8");
+        const content = this.fs.readFile(this.configPath);
         return JSON.parse(content) as ICacheConfig;
       } catch {
         // Config is corrupted, create new one
@@ -407,11 +409,7 @@ class CacheManager {
       transpilerVersion: TRANSPILER_VERSION,
     };
 
-    writeFileSync(
-      this.configPath,
-      JSON.stringify(configToSave, null, 2),
-      "utf-8",
-    );
+    this.fs.writeFile(this.configPath, JSON.stringify(configToSave, null, 2));
   }
 
   /**
