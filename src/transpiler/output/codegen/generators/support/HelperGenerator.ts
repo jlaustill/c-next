@@ -159,33 +159,33 @@ function generateDebugHelper(
       if (isUnsigned) {
         // Issue #231: Hybrid approach - check wide operand first, then use builtin
         // Issue #94: Wide operand check prevents truncation issues
-        return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
     if (b > (${widerType})(${maxValue} - a)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     ${cType} result;
     if (__builtin_add_overflow(a, (${cType})b, &result)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed addition: compute in wider type, check bounds (Issue #94)
-        return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${widerType} b) {
     ${widerType} result = (${widerType})a + b;
     if (result > ${maxValue} || result < ${minValue}) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return (${cType})result;
 }`;
       } else {
         // i64: already widest type, use original check logic
-        return `static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_add_${cnxType}(${cType} a, ${cType} b) {
     if ((b > 0 && a > ${maxValue} - b) || (b < 0 && a < ${minValue} - b)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return a + b;
@@ -197,33 +197,33 @@ function generateDebugHelper(
         // Issue #231: Hybrid approach - check wide operand first, then use builtin
         // Issue #94: Wide operand check prevents truncation issues
         // Use > (not >=) since b == a produces valid result 0 via the builtin path
-        return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
     if (b > (${widerType})a) {
-        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\n");
         abort();
     }
     ${cType} result;
     if (__builtin_sub_overflow(a, (${cType})b, &result)) {
-        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer underflow in ${cnxType} ${opName}\n");
         abort();
     }
     return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed subtraction: compute in wider type, check bounds (Issue #94)
-        return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${widerType} b) {
     ${widerType} result = (${widerType})a - b;
     if (result > ${maxValue} || result < ${minValue}) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return (${cType})result;
 }`;
       } else {
         // i64: already widest type, use original check logic
-        return `static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_sub_${cnxType}(${cType} a, ${cType} b) {
     if ((b < 0 && a > ${maxValue} + b) || (b > 0 && a < ${minValue} + b)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return a - b;
@@ -234,37 +234,37 @@ function generateDebugHelper(
       if (isUnsigned) {
         // Issue #231: Hybrid approach - check wide operand first, then use builtin
         // Issue #94: Wide operand check prevents truncation issues
-        return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
     if (b != 0 && a > ${maxValue} / b) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     ${cType} result;
     if (__builtin_mul_overflow(a, (${cType})b, &result)) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return result;
 }`;
       } else if (useWiderArithmetic) {
         // Signed multiplication: compute in wider type, check bounds (Issue #94)
-        return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${widerType} b) {
     ${widerType} result = (${widerType})a * b;
     if (result > ${maxValue} || result < ${minValue}) {
-        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
         abort();
     }
     return (${cType})result;
 }`;
       } else {
         // i64: already widest type, use original check logic
-        return `static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
+        return String.raw`static inline ${cType} cnx_clamp_mul_${cnxType}(${cType} a, ${cType} b) {
     if (a != 0 && b != 0) {
         if ((a > 0 && b > 0 && a > ${maxValue} / b) ||
             (a < 0 && b < 0 && a < ${maxValue} / b) ||
             (a > 0 && b < 0 && b < ${minValue} / a) ||
             (a < 0 && b > 0 && a < ${minValue} / b)) {
-            fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+            fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\n");
             abort();
         }
     }

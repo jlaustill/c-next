@@ -18,12 +18,11 @@ import {
   unlinkSync,
   writeFileSync,
   readFileSync,
-  mkdirSync,
   rmSync,
+  mkdtempSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import chalk from "chalk";
 

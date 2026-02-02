@@ -4,6 +4,9 @@
  *
  * Extracted from CodeGenerator.ts as part of ADR-109 decomposition.
  */
+/** C null terminator character literal for generated code */
+const C_NULL_CHAR = String.raw`'\0'`;
+
 class StringUtils {
   /**
    * Generate strncpy with explicit null termination.
@@ -17,7 +20,7 @@ class StringUtils {
    * @returns C code string for the copy operation
    */
   static copyWithNull(target: string, value: string, capacity: number): string {
-    return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = '\\0';`;
+    return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = ${C_NULL_CHAR};`;
   }
 
   /**
@@ -61,7 +64,7 @@ class StringUtils {
     return [
       `${indent}strncpy(${target}, ${left}, ${capacity});`,
       `${indent}strncat(${target}, ${right}, ${capacity} - strlen(${target}));`,
-      `${indent}${target}[${capacity}] = '\\0';`,
+      `${indent}${target}[${capacity}] = ${C_NULL_CHAR};`,
     ];
   }
 
@@ -89,7 +92,7 @@ class StringUtils {
   ): string[] {
     return [
       `${indent}strncpy(${target}, ${source} + ${start}, ${length});`,
-      `${indent}${target}[${length}] = '\\0';`,
+      `${indent}${target}[${length}] = ${C_NULL_CHAR};`,
     ];
   }
 

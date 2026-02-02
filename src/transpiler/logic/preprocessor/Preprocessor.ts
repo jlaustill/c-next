@@ -69,9 +69,9 @@ class Preprocessor {
     try {
       const content = await this.runPreprocessor(filePath, options);
       const sourceMappings =
-        options.keepLineDirectives !== false
-          ? this.parseLineDirectives(content)
-          : [];
+        options.keepLineDirectives === false
+          ? []
+          : this.parseLineDirectives(content);
 
       // Optionally strip #line directives for cleaner output
       const cleanContent =
