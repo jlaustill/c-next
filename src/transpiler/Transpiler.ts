@@ -6,14 +6,10 @@
  * with one .cnx file."
  */
 
-import {
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-  existsSync,
-  statSync,
-} from "node:fs";
 import { join, basename, dirname, resolve } from "node:path";
+
+import IFileSystem from "./types/IFileSystem";
+import NodeFileSystem from "./NodeFileSystem";
 
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
 import HeaderParser from "./logic/parser/HeaderParser";
@@ -78,8 +74,12 @@ class Transpiler {
   private readonly modificationAnalyzer = new ModificationAnalyzer();
   /** Issue #586: Centralized path resolution for output files */
   private readonly pathResolver: PathResolver;
+  /** File system abstraction for testability */
+  private readonly fs: IFileSystem;
 
-  constructor(config: ITranspilerConfig) {
+  constructor(config: ITranspilerConfig, fs?: IFileSystem) {
+    // Use injected file system or default to Node.js implementation
+    this.fs = fs ?? new NodeFileSystem();
     // Apply defaults
     this.config = {
       inputs: config.inputs,
@@ -107,17 +107,20 @@ class Transpiler {
     this.warnings = [];
 
     // Issue #586: Initialize path resolver
-    this.pathResolver = new PathResolver({
-      inputs: this.config.inputs,
-      outDir: this.config.outDir,
-      headerOutDir: this.config.headerOutDir,
-      basePath: this.config.basePath,
-    });
+    this.pathResolver = new PathResolver(
+      {
+        inputs: this.config.inputs,
+        outDir: this.config.outDir,
+        headerOutDir: this.config.headerOutDir,
+        basePath: this.config.basePath,
+      },
+      this.fs,
+    );
 
     // Initialize cache manager if caching is enabled
     this.cacheManager = this.config.noCache
       ? null
-      : new CacheManager(this.determineProjectRoot());
+      : new CacheManager(this.determineProjectRoot(), this.fs);
   }
 
   /**
@@ -161,13 +164,16 @@ class Transpiler {
       // cross-file const inference regardless of when C++ mode is detected.
 
       // Ensure output directory exists if specified
-      if (this.config.outDir && !existsSync(this.config.outDir)) {
-        mkdirSync(this.config.outDir, { recursive: true });
+      if (this.config.outDir && !this.fs.exists(this.config.outDir)) {
+        this.fs.mkdir(this.config.outDir, { recursive: true });
       }
 
       // Ensure header output directory exists if specified separately
-      if (this.config.headerOutDir && !existsSync(this.config.headerOutDir)) {
-        mkdirSync(this.config.headerOutDir, { recursive: true });
+      if (
+        this.config.headerOutDir &&
+        !this.fs.exists(this.config.headerOutDir)
+      ) {
+        this.fs.mkdir(this.config.headerOutDir, { recursive: true });
       }
 
       // Stage 2: Collect symbols from C/C++ headers
@@ -182,6 +188,7 @@ class Transpiler {
               ? (msg) => console.log(`[DEBUG] ${msg}`)
               : undefined,
             processedPaths: this.state.getProcessedHeadersSet(),
+            fs: this.fs,
           },
         );
       this.warnings.push(...headerWarnings);
@@ -257,7 +264,7 @@ class Transpiler {
 
       // Stage 5: Analyze and transpile each C-Next file via transpileSource
       for (const file of cnextFiles) {
-        const source = readFileSync(file.path, "utf-8");
+        const source = this.fs.readFile(file.path);
         const fileResult = await this.transpileSource(source, {
           workingDir: dirname(file.path),
           sourcePath: file.path,
@@ -305,7 +312,7 @@ class Transpiler {
         let outputPath: string | undefined;
         if (this.config.outDir && fileResult.success && fileResult.code) {
           outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
-          writeFileSync(outputPath, fileResult.code, "utf-8");
+          this.fs.writeFile(outputPath, fileResult.code);
         }
 
         result.files.push({
@@ -377,11 +384,11 @@ class Transpiler {
     for (const input of this.config.inputs) {
       const resolvedInput = resolve(input);
 
-      if (!existsSync(resolvedInput)) {
+      if (!this.fs.exists(resolvedInput)) {
         throw new Error(`Input not found: ${input}`);
       }
 
-      const file = FileDiscovery.discoverFile(resolvedInput);
+      const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
       if (file?.type === EFileType.CNext) {
         // It's a C-Next file
         cnextFiles.push(file);
@@ -391,9 +398,11 @@ class Transpiler {
         // Skip for now - we only want C-Next sources here
       } else {
         // It's a directory - scan for C-Next files
-        const discovered = FileDiscovery.discover([resolvedInput], {
-          recursive: true,
-        });
+        const discovered = FileDiscovery.discover(
+          [resolvedInput],
+          { recursive: true },
+          this.fs,
+        );
         for (const f of FileDiscovery.getCNextFiles(discovered)) {
           cnextFiles.push(f);
           fileByPath.set(resolve(f.path), f);
@@ -419,21 +428,24 @@ class Transpiler {
       const cnxPath = resolve(cnxFile.path);
       depGraph.addFile(cnxPath);
 
-      const content = readFileSync(cnxFile.path, "utf-8");
+      const content = this.fs.readFile(cnxFile.path);
 
       // Build search paths for this file
       const sourceDir = dirname(cnxFile.path);
       const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
         cnxFile.path,
+        this.fs,
       );
       const searchPaths = IncludeResolver.buildSearchPaths(
         sourceDir,
         this.config.includeDirs,
         additionalIncludeDirs,
+        undefined,
+        this.fs,
       );
 
       // Resolve includes
-      const resolver = new IncludeResolver(searchPaths);
+      const resolver = new IncludeResolver(searchPaths, this.fs);
       const resolved = resolver.resolve(content, cnxFile.path);
 
       // Collect headers, filtering out generated ones
@@ -522,7 +534,7 @@ class Transpiler {
         // Issue #211: Still check for C++ syntax even on cache hit
         // The detection is cheap (regex only) and ensures cppDetected is set correctly
         if (file.type === EFileType.CHeader) {
-          const content = readFileSync(file.path, "utf-8");
+          const content = this.fs.readFile(file.path);
           if (detectCppSyntax(content)) {
             this.cppDetected = true;
           }
@@ -536,7 +548,7 @@ class Transpiler {
     }
 
     // Read content for parsing
-    const content = readFileSync(file.path, "utf-8");
+    const content = this.fs.readFile(file.path);
 
     // Parse based on file type
     if (file.type === EFileType.CHeader) {
@@ -612,7 +624,7 @@ class Transpiler {
    * Issue #561: Also collects modification analysis in C++ mode for unified cross-file const inference
    */
   private doCollectCNextSymbols(file: IDiscoveredFile): void {
-    const content = readFileSync(file.path, "utf-8");
+    const content = this.fs.readFile(file.path);
     const { tree, errors } = CNextSourceParser.parse(content);
 
     if (errors.length > 0) {
@@ -668,13 +680,15 @@ class Transpiler {
       visited.add(currentPath);
 
       // Read and parse includes from current file
-      const content = readFileSync(currentPath, "utf-8");
+      const content = this.fs.readFile(currentPath);
       const searchPaths = IncludeResolver.buildSearchPaths(
         dirname(currentPath),
         this.config.includeDirs,
         [],
+        undefined,
+        this.fs,
       );
-      const resolver = new IncludeResolver(searchPaths);
+      const resolver = new IncludeResolver(searchPaths, this.fs);
       const resolved = resolver.resolve(content, currentPath);
 
       // Process each included .cnx file
@@ -749,7 +763,7 @@ class Transpiler {
       allKnownEnums,
     );
 
-    writeFileSync(headerPath, headerContent, "utf-8");
+    this.fs.writeFile(headerPath, headerContent);
     return headerPath;
   }
 
@@ -817,10 +831,12 @@ class Transpiler {
           ? [...context.includeDirs]
           : this.config.includeDirs,
         additionalIncludeDirs,
+        undefined,
+        this.fs,
       );
 
       // Step 2: Resolve includes from source content
-      const resolver = new IncludeResolver(searchPaths);
+      const resolver = new IncludeResolver(searchPaths, this.fs);
       resolved = resolver.resolve(source, sourcePath);
 
       // Step 3: Collect warnings
@@ -1244,7 +1260,7 @@ class Transpiler {
     let startDir: string;
 
     // If input is a file, start from its directory
-    if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
+    if (this.fs.exists(resolvedInput) && this.fs.isFile(resolvedInput)) {
       startDir = dirname(resolvedInput);
     } else {
       startDir = resolvedInput;
@@ -1254,11 +1270,11 @@ class Transpiler {
     let dir = startDir;
     while (dir !== dirname(dir)) {
       // Check for existing .cnx directory
-      if (existsSync(join(dir, ".cnx"))) {
+      if (this.fs.exists(join(dir, ".cnx"))) {
         return dir;
       }
       // Check for config file
-      if (existsSync(join(dir, "cnext.config.json"))) {
+      if (this.fs.exists(join(dir, "cnext.config.json"))) {
         return dir;
       }
       dir = dirname(dir);

@@ -200,12 +200,10 @@ describe("ResultPrinter", () => {
 
     it("prints warnings, conflicts, and errors in order", () => {
       const allOutput: string[] = [];
-      consoleWarnSpy.mockImplementation((msg: string) =>
-        allOutput.push(`warn:${msg}`),
-      );
-      consoleErrorSpy.mockImplementation((msg: string) =>
-        allOutput.push(`error:${msg}`),
-      );
+      consoleWarnSpy.mockImplementation(((msg: string) =>
+        allOutput.push(`warn:${msg}`)) as typeof console.warn);
+      consoleErrorSpy.mockImplementation(((msg: string) =>
+        allOutput.push(`error:${msg}`)) as typeof console.error);
 
       ResultPrinter.print(
         createResult({

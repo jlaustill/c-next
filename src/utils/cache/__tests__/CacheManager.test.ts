@@ -19,6 +19,7 @@ import ESymbolKind from "../../types/ESymbolKind";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/logic/symbols/types/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -1325,6 +1326,131 @@ describe("CacheManager", () => {
         "func2",
         "func3",
       ]);
+    });
+  });
+
+  describe("with MockFileSystem (IFileSystem integration)", () => {
+    // Note: CacheManager now uses flat-cache for symbol storage, which manages
+    // its own file I/O. IFileSystem is used only for:
+    // - Directory existence checks and creation
+    // - Config file operations (read/write config.json)
+    // - Cache key validation (via CacheKeyGenerator)
+    //
+    // Tests that depend on symbol cache file contents are skipped because
+    // flat-cache writes directly to the real filesystem.
+
+    let mockFs: MockFileSystem;
+    let cacheManager: CacheManager;
+
+    beforeEach(() => {
+      mockFs = new MockFileSystem();
+      mockFs.addDirectory("/project");
+      cacheManager = new CacheManager("/project", mockFs);
+    });
+
+    it("should create cache directories via IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      const mkdirCalls = mockFs.getMkdirLog();
+      expect(mkdirCalls.some((c) => c.path === "/project/.cnx")).toBe(true);
+      expect(mkdirCalls.some((c) => c.path === "/project/.cnx/cache")).toBe(
+        true,
+      );
+    });
+
+    it("should write config.json via IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      const content = mockFs.getWrittenContent("/project/.cnx/config.json");
+      expect(content).toBeDefined();
+
+      const config = JSON.parse(content!);
+      expect(config).toHaveProperty("version");
+      expect(config).toHaveProperty("created");
+      expect(config).toHaveProperty("transpilerVersion");
+    });
+
+    it("should store and retrieve symbols in memory (before flush)", async () => {
+      await cacheManager.initialize();
+
+      // Add a virtual test file
+      mockFs.addFile("/project/test.h", "// test header");
+
+      const symbol: ISymbol = {
+        name: "testFunc",
+        kind: ESymbolKind.Function,
+        sourceFile: "/project/test.h",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      };
+
+      cacheManager.setSymbols("/project/test.h", [symbol], new Map());
+
+      // Symbols are stored in flat-cache memory before flush
+      const cached = cacheManager.getSymbols("/project/test.h");
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(1);
+      expect(cached!.symbols[0].name).toBe("testFunc");
+    });
+
+    it("should validate cache using mtime from IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      // Add file with specific mtime
+      mockFs.addFile("/project/test.h", "// test header", 1000);
+
+      cacheManager.setSymbols("/project/test.h", [], new Map());
+      expect(cacheManager.isValid("/project/test.h")).toBe(true);
+
+      // Change mtime to simulate file modification
+      mockFs.setMtime("/project/test.h", 2000);
+      expect(cacheManager.isValid("/project/test.h")).toBe(false);
+    });
+
+    it("should invalidate cache when version changes", async () => {
+      // Pre-populate with old version config
+      mockFs.addDirectory("/project/.cnx");
+      mockFs.addDirectory("/project/.cnx/cache");
+
+      const oldConfig = {
+        version: 1, // Old version
+        created: Date.now(),
+        transpilerVersion: "0.0.1",
+      };
+      mockFs.addFile("/project/.cnx/config.json", JSON.stringify(oldConfig));
+
+      await cacheManager.initialize();
+
+      // Config should be updated with new version
+      const content = mockFs.getWrittenContent("/project/.cnx/config.json");
+      expect(content).toBeDefined();
+      const newConfig = JSON.parse(content!);
+      expect(newConfig.version).toBe(3); // Current CACHE_VERSION
+    });
+
+    it("should not cache files that do not exist in IFileSystem", async () => {
+      await cacheManager.initialize();
+
+      // Try to cache non-existent file
+      cacheManager.setSymbols(
+        "/project/nonexistent.h",
+        [
+          {
+            name: "func",
+            kind: ESymbolKind.Function,
+            sourceFile: "/project/nonexistent.h",
+            sourceLine: 1,
+            sourceLanguage: ESourceLanguage.C,
+            isExported: true,
+          },
+        ],
+        new Map(),
+      );
+
+      // Should not be cached (stat() will fail)
+      const cached = cacheManager.getSymbols("/project/nonexistent.h");
+      expect(cached).toBeNull();
     });
   });
 });

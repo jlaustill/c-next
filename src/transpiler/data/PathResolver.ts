@@ -6,10 +6,14 @@
  * including directory structure preservation and basePath stripping.
  */
 
-import { existsSync, statSync, mkdirSync } from "node:fs";
 import { join, basename, relative, dirname, resolve } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
+import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = NodeFileSystem.instance;
 
 /**
  * Configuration for PathResolver
@@ -30,9 +34,11 @@ interface IPathResolverConfig {
  */
 class PathResolver {
   private readonly config: IPathResolverConfig;
+  private readonly fs: IFileSystem;
 
-  constructor(config: IPathResolverConfig) {
+  constructor(config: IPathResolverConfig, fs: IFileSystem = defaultFs) {
     this.config = config;
+    this.fs = fs;
   }
 
   /**
@@ -48,7 +54,7 @@ class PathResolver {
       const resolvedInput = resolve(input);
 
       // Skip if input is a file (not a directory) - can't preserve structure
-      if (existsSync(resolvedInput) && statSync(resolvedInput).isFile()) {
+      if (this.fs.exists(resolvedInput) && this.fs.isFile(resolvedInput)) {
         continue;
       }
 
@@ -89,8 +95,8 @@ class PathResolver {
       const outputPath = join(this.config.outDir, outputRelative);
 
       const outputDir = dirname(outputPath);
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
+      if (!this.fs.exists(outputDir)) {
+        this.fs.mkdir(outputDir, { recursive: true });
       }
 
       return outputPath;
@@ -121,8 +127,8 @@ class PathResolver {
       const outputPath = join(headerDir, outputRelative);
 
       const outputDir = dirname(outputPath);
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
+      if (!this.fs.exists(outputDir)) {
+        this.fs.mkdir(outputDir, { recursive: true });
       }
 
       return outputPath;
@@ -140,8 +146,8 @@ class PathResolver {
         const outputPath = join(this.config.headerOutDir, outputRelative);
 
         const outputDir = dirname(outputPath);
-        if (!existsSync(outputDir)) {
-          mkdirSync(outputDir, { recursive: true });
+        if (!this.fs.exists(outputDir)) {
+          this.fs.mkdir(outputDir, { recursive: true });
         }
 
         return outputPath;
@@ -151,8 +157,8 @@ class PathResolver {
       const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
       const outputPath = join(this.config.headerOutDir, headerName);
 
-      if (!existsSync(this.config.headerOutDir)) {
-        mkdirSync(this.config.headerOutDir, { recursive: true });
+      if (!this.fs.exists(this.config.headerOutDir)) {
+        this.fs.mkdir(this.config.headerOutDir, { recursive: true });
       }
 
       return outputPath;
