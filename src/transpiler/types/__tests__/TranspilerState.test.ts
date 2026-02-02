@@ -207,6 +207,16 @@ describe("TranspilerState", () => {
 
       expect(state.isHeaderProcessed("/header.h")).toBe(true);
     });
+
+    it("should expose the Set via getProcessedHeadersSet", () => {
+      state.markHeaderProcessed("/a.h");
+      state.markHeaderProcessed("/b.h");
+
+      const set = state.getProcessedHeadersSet();
+      expect(set.size).toBe(2);
+      expect(set.has("/a.h")).toBe(true);
+      expect(set.has("/b.h")).toBe(true);
+    });
   });
 
   describe("State Isolation", () => {

@@ -186,6 +186,14 @@ class TranspilerState {
   isHeaderProcessed(absolutePath: string): boolean {
     return this.processedHeaders.has(absolutePath);
   }
+
+  /**
+   * Get the processed headers Set (for external APIs that require Set access).
+   * Issue #592: Used by IncludeResolver.resolveHeadersTransitively() and IStandaloneTranspiler.
+   */
+  getProcessedHeadersSet(): Set<string> {
+    return this.processedHeaders;
+  }
 }
 
 export default TranspilerState;
