@@ -26,6 +26,7 @@ run_check() {
 
 # Run all quality checks
 run_check "Prettier formatting check" npm run prettier:check
+run_check "Spelling check" npm run cspell:check
 run_check "oxlint check" npm run oxlint:check
 run_check "Dead code check" npx knip
 run_check "Parser generation" npm run antlr
