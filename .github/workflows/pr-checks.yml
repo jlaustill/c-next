@@ -12,15 +12,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  quality-checks:
-    name: Code Quality & Tests
+  # ============================================================================
+  # PARALLEL GROUP 1: Static Analysis (no build needed)
+  # These checks run immediately and in parallel with build-and-test
+  # ============================================================================
+  lint:
+    name: Static Analysis
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Full history for SonarCloud blame data
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -56,6 +58,80 @@ jobs:
         run: npm run depcruise
         continue-on-error: true
 
+      - name: Report lint results
+        if: always()
+        run: |
+          echo "## Static Analysis Results"
+          echo ""
+
+          FAILED=0
+
+          if [ "${{ steps.prettier.outcome }}" != "success" ]; then
+            echo "❌ Prettier formatting check failed"
+            FAILED=1
+          else
+            echo "✅ Prettier formatting check passed"
+          fi
+
+          if [ "${{ steps.cspell.outcome }}" != "success" ]; then
+            echo "❌ Spelling check failed"
+            FAILED=1
+          else
+            echo "✅ Spelling check passed"
+          fi
+
+          if [ "${{ steps.oxlint.outcome }}" != "success" ]; then
+            echo "❌ oxlint check failed"
+            FAILED=1
+          else
+            echo "✅ oxlint check passed"
+          fi
+
+          if [ "${{ steps.knip.outcome }}" != "success" ]; then
+            echo "❌ Dead code check failed (knip found unused exports/files)"
+            FAILED=1
+          else
+            echo "✅ Dead code check passed"
+          fi
+
+          if [ "${{ steps.depcruise.outcome }}" != "success" ]; then
+            echo "❌ Architecture boundary check failed (dependency-cruiser)"
+            FAILED=1
+          else
+            echo "✅ Architecture boundary check passed"
+          fi
+
+          echo ""
+          if [ $FAILED -eq 1 ]; then
+            echo "::error::One or more static analysis checks failed"
+            exit 1
+          else
+            echo "::notice::All static analysis checks passed!"
+          fi
+
+  # ============================================================================
+  # PARALLEL GROUP 2: Build & Test (requires parser generation)
+  # Runs in parallel with static analysis
+  # ============================================================================
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for SonarCloud blame data
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Generate parser files
         id: generate
         run: npm run antlr:all
@@ -77,7 +153,6 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
@@ -119,53 +194,13 @@ jobs:
           echo "No uncommitted changes detected."
         continue-on-error: true
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: Report results
+      - name: Report build/test results
         if: always()
         run: |
-          echo "## Quality Check Results"
+          echo "## Build & Test Results"
           echo ""
 
           FAILED=0
-
-          if [ "${{ steps.prettier.outcome }}" != "success" ]; then
-            echo "❌ Prettier formatting check failed"
-            FAILED=1
-          else
-            echo "✅ Prettier formatting check passed"
-          fi
-
-          if [ "${{ steps.cspell.outcome }}" != "success" ]; then
-            echo "❌ Spelling check failed"
-            FAILED=1
-          else
-            echo "✅ Spelling check passed"
-          fi
-
-          if [ "${{ steps.oxlint.outcome }}" != "success" ]; then
-            echo "❌ oxlint check failed"
-            FAILED=1
-          else
-            echo "✅ oxlint check passed"
-          fi
-
-          if [ "${{ steps.knip.outcome }}" != "success" ]; then
-            echo "❌ Dead code check failed (knip found unused exports/files)"
-            FAILED=1
-          else
-            echo "✅ Dead code check passed"
-          fi
-
-          if [ "${{ steps.depcruise.outcome }}" != "success" ]; then
-            echo "❌ Architecture boundary check failed (dependency-cruiser)"
-            FAILED=1
-          else
-            echo "✅ Architecture boundary check passed"
-          fi
 
           if [ "${{ steps.generate.outcome }}" != "success" ]; then
             echo "❌ Parser generation failed"
@@ -225,33 +260,90 @@ jobs:
 
           echo ""
           if [ $FAILED -eq 1 ]; then
+            echo "::error::One or more build/test checks failed"
+            exit 1
+          else
+            echo "::notice::All build/test checks passed!"
+          fi
+
+  # ============================================================================
+  # SEQUENTIAL: SonarCloud (needs coverage from build-and-test)
+  # ============================================================================
+  sonar:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for SonarCloud blame data
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: ./coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ============================================================================
+  # FINAL: Summary job that all checks must pass
+  # ============================================================================
+  all-checks-passed:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, build-and-test, sonar]
+    if: always()
+
+    steps:
+      - name: Verify all jobs succeeded
+        run: |
+          echo "## Final Results"
+          echo ""
+
+          FAILED=0
+
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "❌ Static analysis failed"
+            FAILED=1
+          else
+            echo "✅ Static analysis passed"
+          fi
+
+          if [ "${{ needs.build-and-test.result }}" != "success" ]; then
+            echo "❌ Build & test failed"
+            FAILED=1
+          else
+            echo "✅ Build & test passed"
+          fi
+
+          if [ "${{ needs.sonar.result }}" != "success" ]; then
+            echo "❌ SonarCloud analysis failed"
+            FAILED=1
+          else
+            echo "✅ SonarCloud analysis passed"
+          fi
+
+          echo ""
+          if [ $FAILED -eq 1 ]; then
             echo "::error::One or more quality checks failed"
             exit 1
           else
             echo "::notice::All quality checks passed!"
           fi
 
-  # Summary job that all checks must pass
-  all-checks-passed:
-    name: All Checks Passed
-    runs-on: ubuntu-latest
-    needs: [quality-checks]
-    if: always()
-
-    steps:
-      - name: Verify all jobs succeeded
-        run: |
-          if [ "${{ needs.quality-checks.result }}" != "success" ]; then
-            echo "Quality checks failed!"
-            exit 1
-          fi
-          echo "✅ All quality checks passed!"
-
-  # Deploy coverage report to GitHub Pages (only on push to main)
+  # ============================================================================
+  # DEPLOY: Coverage report to GitHub Pages (only on push to main)
+  # ============================================================================
   deploy-coverage:
     name: Deploy Coverage to Pages
     runs-on: ubuntu-latest
-    needs: [quality-checks]
+    needs: [build-and-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
