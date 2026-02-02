@@ -18,6 +18,7 @@ import ISymbol from "../../types/ISymbol";
 import ESymbolKind from "../../types/ESymbolKind";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/logic/symbols/types/IStructFieldInfo";
+import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -838,6 +839,518 @@ describe("CacheManager", () => {
         ESourceLanguage.C,
         ESourceLanguage.Cpp,
         ESourceLanguage.CNext,
+      ]);
+    });
+  });
+
+  describe("setSymbolsFromTable (Issue #590)", () => {
+    let symbolTable: SymbolTable;
+
+    beforeEach(async () => {
+      await cacheManager.initialize();
+      symbolTable = new SymbolTable();
+    });
+
+    it("should extract and cache symbols from SymbolTable", async () => {
+      const testFile = join(testDir, "test.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add symbols to SymbolTable
+      const symbol: ISymbol = {
+        name: "myFunction",
+        kind: ESymbolKind.Function,
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: "void",
+      };
+      symbolTable.addSymbol(symbol);
+
+      // Cache via setSymbolsFromTable
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      // Verify cached data
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(1);
+      expect(cached!.symbols[0]).toMatchObject({
+        name: "myFunction",
+        kind: ESymbolKind.Function,
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: "void",
+      });
+    });
+
+    it("should extract struct fields for structs defined in the file", async () => {
+      const testFile = join(testDir, "structs.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add struct symbol to SymbolTable
+      const structSymbol: ISymbol = {
+        name: "Point",
+        kind: ESymbolKind.Struct,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      };
+      symbolTable.addSymbol(structSymbol);
+
+      // Add struct fields
+      symbolTable.addStructField("Point", "x", "int32_t");
+      symbolTable.addStructField("Point", "y", "int32_t");
+      symbolTable.addStructField("Point", "data", "uint8_t", [10]);
+
+      // Cache via setSymbolsFromTable
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      // Verify cached data
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.structFields.has("Point")).toBe(true);
+
+      const pointFields = cached!.structFields.get("Point")!;
+      expect(pointFields.get("x")).toEqual({ type: "int32_t" });
+      expect(pointFields.get("y")).toEqual({ type: "int32_t" });
+      expect(pointFields.get("data")).toEqual({
+        type: "uint8_t",
+        arrayDimensions: [10],
+      });
+    });
+
+    it("should only extract struct fields for structs in the specified file", async () => {
+      const file1 = join(testDir, "file1.cnx");
+      const file2 = join(testDir, "file2.cnx");
+      writeFileSync(file1, "// file1");
+      writeFileSync(file2, "// file2");
+
+      // Add struct in file1
+      symbolTable.addSymbol({
+        name: "PointA",
+        kind: ESymbolKind.Struct,
+        sourceFile: file1,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addStructField("PointA", "x", "int32_t");
+
+      // Add struct in file2
+      symbolTable.addSymbol({
+        name: "PointB",
+        kind: ESymbolKind.Struct,
+        sourceFile: file2,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addStructField("PointB", "y", "int32_t");
+
+      // Cache file1 only
+      cacheManager.setSymbolsFromTable(file1, symbolTable);
+
+      // Verify only file1's struct fields are cached
+      const cached = cacheManager.getSymbols(file1);
+      expect(cached).not.toBeNull();
+      expect(cached!.structFields.has("PointA")).toBe(true);
+      expect(cached!.structFields.has("PointB")).toBe(false);
+    });
+
+    it("should extract needsStructKeyword for structs in the file", async () => {
+      const testFile = join(testDir, "cstructs.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add struct symbols
+      symbolTable.addSymbol({
+        name: "TypedefStruct",
+        kind: ESymbolKind.Struct,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "NamedStruct",
+        kind: ESymbolKind.Struct,
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      // Add struct fields (required for getStructNamesByFile)
+      symbolTable.addStructField("TypedefStruct", "a", "int32_t");
+      symbolTable.addStructField("NamedStruct", "b", "int32_t");
+
+      // Mark one struct as needing 'struct' keyword
+      symbolTable.markNeedsStructKeyword("NamedStruct");
+
+      // Cache via setSymbolsFromTable
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      // Verify cached data
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.needsStructKeyword).toEqual(["NamedStruct"]);
+    });
+
+    it("should only extract needsStructKeyword for structs in the specified file", async () => {
+      const file1 = join(testDir, "file1.cnx");
+      const file2 = join(testDir, "file2.cnx");
+      writeFileSync(file1, "// file1");
+      writeFileSync(file2, "// file2");
+
+      // Add structs in different files
+      symbolTable.addSymbol({
+        name: "StructA",
+        kind: ESymbolKind.Struct,
+        sourceFile: file1,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "StructB",
+        kind: ESymbolKind.Struct,
+        sourceFile: file2,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      // Add struct fields
+      symbolTable.addStructField("StructA", "a", "int32_t");
+      symbolTable.addStructField("StructB", "b", "int32_t");
+
+      // Mark both as needing struct keyword
+      symbolTable.markNeedsStructKeyword("StructA");
+      symbolTable.markNeedsStructKeyword("StructB");
+
+      // Cache file1 only
+      cacheManager.setSymbolsFromTable(file1, symbolTable);
+
+      // Verify only file1's needsStructKeyword is cached
+      const cached = cacheManager.getSymbols(file1);
+      expect(cached).not.toBeNull();
+      expect(cached!.needsStructKeyword).toEqual(["StructA"]);
+      expect(cached!.needsStructKeyword).not.toContain("StructB");
+    });
+
+    it("should extract enum bit widths for enums in the file", async () => {
+      const testFile = join(testDir, "enums.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add enum symbols
+      symbolTable.addSymbol({
+        name: "Status",
+        kind: ESymbolKind.Enum,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "Priority",
+        kind: ESymbolKind.Enum,
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      // Add enum bit widths
+      symbolTable.addEnumBitWidth("Status", 8);
+      symbolTable.addEnumBitWidth("Priority", 16);
+
+      // Cache via setSymbolsFromTable
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      // Verify cached data
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.enumBitWidth.get("Status")).toBe(8);
+      expect(cached!.enumBitWidth.get("Priority")).toBe(16);
+    });
+
+    it("should only extract enum bit widths for enums in the specified file", async () => {
+      const file1 = join(testDir, "file1.cnx");
+      const file2 = join(testDir, "file2.cnx");
+      writeFileSync(file1, "// file1");
+      writeFileSync(file2, "// file2");
+
+      // Add enums in different files
+      symbolTable.addSymbol({
+        name: "EnumA",
+        kind: ESymbolKind.Enum,
+        sourceFile: file1,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "EnumB",
+        kind: ESymbolKind.Enum,
+        sourceFile: file2,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      // Add bit widths for both
+      symbolTable.addEnumBitWidth("EnumA", 8);
+      symbolTable.addEnumBitWidth("EnumB", 32);
+
+      // Cache file1 only
+      cacheManager.setSymbolsFromTable(file1, symbolTable);
+
+      // Verify only file1's enum bit widths are cached
+      const cached = cacheManager.getSymbols(file1);
+      expect(cached).not.toBeNull();
+      expect(cached!.enumBitWidth.get("EnumA")).toBe(8);
+      expect(cached!.enumBitWidth.has("EnumB")).toBe(false);
+    });
+
+    it("should handle file with all data types (symbols, structs, enums)", async () => {
+      const testFile = join(testDir, "complete.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add function symbol
+      symbolTable.addSymbol({
+        name: "processData",
+        kind: ESymbolKind.Function,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: "void",
+      });
+
+      // Add struct symbol and fields
+      symbolTable.addSymbol({
+        name: "DataPacket",
+        kind: ESymbolKind.Struct,
+        sourceFile: testFile,
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addStructField("DataPacket", "id", "uint32_t");
+      symbolTable.addStructField("DataPacket", "buffer", "uint8_t", [256]);
+      symbolTable.markNeedsStructKeyword("DataPacket");
+
+      // Add enum symbol and bit width
+      symbolTable.addSymbol({
+        name: "DataType",
+        kind: ESymbolKind.Enum,
+        sourceFile: testFile,
+        sourceLine: 20,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addEnumBitWidth("DataType", 8);
+
+      // Cache via setSymbolsFromTable
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      // Verify all data is cached correctly
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+
+      // Verify symbols
+      expect(cached!.symbols).toHaveLength(3);
+      expect(cached!.symbols.map((s) => s.name).sort()).toEqual([
+        "DataPacket",
+        "DataType",
+        "processData",
+      ]);
+
+      // Verify struct fields
+      expect(cached!.structFields.has("DataPacket")).toBe(true);
+      const fields = cached!.structFields.get("DataPacket")!;
+      expect(fields.get("id")).toEqual({ type: "uint32_t" });
+      expect(fields.get("buffer")).toEqual({
+        type: "uint8_t",
+        arrayDimensions: [256],
+      });
+
+      // Verify needsStructKeyword
+      expect(cached!.needsStructKeyword).toEqual(["DataPacket"]);
+
+      // Verify enumBitWidth
+      expect(cached!.enumBitWidth.get("DataType")).toBe(8);
+    });
+
+    it("should persist data from setSymbolsFromTable across flush and reload", async () => {
+      const testFile = join(testDir, "persist.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add data to SymbolTable
+      symbolTable.addSymbol({
+        name: "MyStruct",
+        kind: ESymbolKind.Struct,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addStructField("MyStruct", "value", "int32_t");
+      symbolTable.markNeedsStructKeyword("MyStruct");
+
+      symbolTable.addSymbol({
+        name: "MyEnum",
+        kind: ESymbolKind.Enum,
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addEnumBitWidth("MyEnum", 16);
+
+      // Cache and flush
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      await cacheManager.flush();
+
+      // Reload with new manager
+      const newManager = new CacheManager(testDir);
+      await newManager.initialize();
+
+      // Verify all data persisted
+      const cached = newManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(2);
+      expect(cached!.structFields.get("MyStruct")!.get("value")).toEqual({
+        type: "int32_t",
+      });
+      expect(cached!.needsStructKeyword).toEqual(["MyStruct"]);
+      expect(cached!.enumBitWidth.get("MyEnum")).toBe(16);
+    });
+
+    it("should not cache non-existent file", () => {
+      const nonExistent = join(testDir, "does-not-exist.cnx");
+
+      // Add symbol for non-existent file
+      symbolTable.addSymbol({
+        name: "orphanFunc",
+        kind: ESymbolKind.Function,
+        sourceFile: nonExistent,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      // Should not throw, but should not cache
+      cacheManager.setSymbolsFromTable(nonExistent, symbolTable);
+
+      expect(cacheManager.getSymbols(nonExistent)).toBeNull();
+    });
+
+    it("should handle empty SymbolTable", async () => {
+      const testFile = join(testDir, "empty.cnx");
+      writeFileSync(testFile, "// empty file");
+
+      // Empty SymbolTable
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      // Should cache with empty data
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(0);
+      expect(cached!.structFields.size).toBe(0);
+      expect(cached!.needsStructKeyword).toEqual([]);
+      expect(cached!.enumBitWidth.size).toBe(0);
+    });
+
+    it("should handle structs without fields", async () => {
+      const testFile = join(testDir, "emptystructs.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add struct symbol without adding any fields
+      symbolTable.addSymbol({
+        name: "EmptyStruct",
+        kind: ESymbolKind.Struct,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      // Note: not adding fields, so getStructNamesByFile won't include it
+
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      // Symbol should be there
+      expect(cached!.symbols).toHaveLength(1);
+      // But no struct fields (struct wasn't in getStructNamesByFile)
+      expect(cached!.structFields.has("EmptyStruct")).toBe(false);
+    });
+
+    it("should handle enums without bit width", async () => {
+      const testFile = join(testDir, "simpleenums.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add enum symbol without adding bit width
+      symbolTable.addSymbol({
+        name: "SimpleEnum",
+        kind: ESymbolKind.Enum,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(1);
+      // Enum bit width should not be present
+      expect(cached!.enumBitWidth.has("SimpleEnum")).toBe(false);
+    });
+
+    it("should handle multiple symbols of same kind", async () => {
+      const testFile = join(testDir, "multifuncs.cnx");
+      writeFileSync(testFile, "// test");
+
+      // Add multiple functions
+      symbolTable.addSymbol({
+        name: "func1",
+        kind: ESymbolKind.Function,
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "func2",
+        kind: ESymbolKind.Function,
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "func3",
+        kind: ESymbolKind.Function,
+        sourceFile: testFile,
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+      });
+
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(cached!.symbols).toHaveLength(3);
+      expect(cached!.symbols.map((s) => s.name).sort()).toEqual([
+        "func1",
+        "func2",
+        "func3",
       ]);
     });
   });

@@ -16,6 +16,7 @@ import { join } from "node:path";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
 import IStructFieldInfo from "../../transpiler/logic/symbols/types/IStructFieldInfo";
+import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
 import ICacheSymbols from "../../transpiler/types/ICacheSymbols";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
@@ -188,6 +189,112 @@ class CacheManager {
 
     this.entries.set(filePath, entry);
     this.dirty = true;
+  }
+
+  /**
+   * Issue #590: Store symbols from a SymbolTable for a specific file.
+   * Extracts all necessary data (symbols, struct fields, enum bit widths)
+   * from the SymbolTable and caches it.
+   *
+   * This method encapsulates the serialization logic that was previously
+   * scattered in Transpiler, providing a cleaner API for callers.
+   *
+   * @param filePath - Path to the file being cached
+   * @param symbolTable - SymbolTable containing all parsed symbols
+   */
+  setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
+    // Extract symbols for this file
+    const symbols = symbolTable.getSymbolsByFile(filePath);
+
+    // Extract struct fields for structs defined in this file
+    const structFields = this.extractStructFieldsForFile(filePath, symbolTable);
+
+    // Extract struct names that need 'struct' keyword
+    const needsStructKeyword = this.extractNeedsStructKeywordForFile(
+      filePath,
+      symbolTable,
+    );
+
+    // Extract enum bit widths for enums defined in this file
+    const enumBitWidth = this.extractEnumBitWidthsForFile(
+      filePath,
+      symbolTable,
+    );
+
+    // Delegate to existing setSymbols method
+    this.setSymbols(
+      filePath,
+      symbols,
+      structFields,
+      needsStructKeyword,
+      enumBitWidth,
+    );
+  }
+
+  /**
+   * Issue #590: Extract struct fields for structs defined in a specific file.
+   */
+  private extractStructFieldsForFile(
+    filePath: string,
+    symbolTable: SymbolTable,
+  ): Map<string, Map<string, IStructFieldInfo>> {
+    const result = new Map<string, Map<string, IStructFieldInfo>>();
+
+    // Get struct names defined in this file
+    const structNames = symbolTable.getStructNamesByFile(filePath);
+
+    // Get fields for each struct
+    const allStructFields = symbolTable.getAllStructFields();
+    for (const structName of structNames) {
+      const fields = allStructFields.get(structName);
+      if (fields) {
+        result.set(structName, fields);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Issue #590: Extract struct names requiring 'struct' keyword for a specific file.
+   */
+  private extractNeedsStructKeywordForFile(
+    filePath: string,
+    symbolTable: SymbolTable,
+  ): string[] {
+    // Get struct names defined in this file
+    const structNames = symbolTable.getStructNamesByFile(filePath);
+
+    // Filter to only those that need struct keyword
+    const allNeedsKeyword = symbolTable.getAllNeedsStructKeyword();
+    return structNames.filter((name) => allNeedsKeyword.includes(name));
+  }
+
+  /**
+   * Issue #590: Extract enum bit widths for enums defined in a specific file.
+   */
+  private extractEnumBitWidthsForFile(
+    filePath: string,
+    symbolTable: SymbolTable,
+  ): Map<string, number> {
+    const result = new Map<string, number>();
+
+    // Get enum names defined in this file
+    const fileSymbols = symbolTable.getSymbolsByFile(filePath);
+    const enumNames = fileSymbols
+      .filter((s) => s.kind === "enum")
+      .map((s) => s.name);
+
+    // Get bit widths for each enum
+    const allBitWidths = symbolTable.getAllEnumBitWidths();
+    for (const enumName of enumNames) {
+      const width = allBitWidths.get(enumName);
+      if (width !== undefined) {
+        result.set(enumName, width);
+      }
+    }
+
+    return result;
   }
 
   /**
