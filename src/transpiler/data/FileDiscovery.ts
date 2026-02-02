@@ -52,11 +52,11 @@ class FileDiscovery {
     // Convert common patterns
     const src = pattern.source;
     if (src === "node_modules") return "**/node_modules/**";
-    if (src === "\\.git") return "**/.git/**";
-    if (src === "\\.build") return "**/.build/**";
-    if (src === "\\.pio[/\\\\]build") return "**/.pio/build/**";
+    if (src === String.raw`\.git`) return "**/.git/**";
+    if (src === String.raw`\.build`) return "**/.build/**";
+    if (src === String.raw`\.pio[/\\]build`) return "**/.pio/build/**";
     // Fallback: wrap in wildcards
-    return `**/*${src.replace(/\\/g, "")}*/**`;
+    return `**/*${src.replaceAll("\\", "")}*/**`;
   }
 
   /**

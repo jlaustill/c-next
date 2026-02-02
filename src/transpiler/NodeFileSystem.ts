@@ -62,9 +62,7 @@ class NodeFileSystem implements IFileSystem {
   private static _instance: NodeFileSystem | null = null;
 
   static get instance(): NodeFileSystem {
-    if (!NodeFileSystem._instance) {
-      NodeFileSystem._instance = new NodeFileSystem();
-    }
+    NodeFileSystem._instance ??= new NodeFileSystem();
     return NodeFileSystem._instance;
   }
 }

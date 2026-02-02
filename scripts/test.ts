@@ -519,9 +519,8 @@ async function main(): Promise<void> {
   if (quietMode) {
     // Single-line summary for AI-friendly output
     if (failed > 0) {
-      console.log(
-        `${passed}/${cnxFiles.length} tests passed, ${chalk.red(`${failed} failed`)}`,
-      );
+      const failedMsg = chalk.red(failed + " failed");
+      console.log(`${passed}/${cnxFiles.length} tests passed, ${failedMsg}`);
     } else {
       console.log(
         chalk.green(`${cnxFiles.length}/${cnxFiles.length} tests passed`),

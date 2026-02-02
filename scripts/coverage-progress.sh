@@ -38,10 +38,12 @@ echo ""
 # GitHub Issues
 if command -v gh &> /dev/null; then
     echo "🎫 GitHub Issues:"
+    # jq filter for counting array length
+    JQ_LENGTH='. | length'
     OPEN_ISSUES=$(gh api repos/jlaustill/c-next/issues?state=open 2>/dev/null | jq -r '.[] | .number' | wc -l)
-    HIGH=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20high" 2>/dev/null | jq '. | length')
-    MEDIUM=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20medium" 2>/dev/null | jq '. | length')
-    LOW=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20low" 2>/dev/null | jq '. | length')
+    HIGH=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20high" 2>/dev/null | jq "$JQ_LENGTH")
+    MEDIUM=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20medium" 2>/dev/null | jq "$JQ_LENGTH")
+    LOW=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20low" 2>/dev/null | jq "$JQ_LENGTH")
 
     echo "  Open Issues:        $OPEN_ISSUES"
     echo "    - HIGH:           $HIGH 🔴"
@@ -70,7 +72,7 @@ if command -v gh &> /dev/null; then
 fi
 
 # Recent test changes
-if [ -d .git ]; then
+if [[ -d .git ]]; then
     echo "📝 Recent Test Activity:"
     RECENT_TESTS=$(git log --since="7 days ago" --oneline --name-only | grep "tests/.*\.test\.cnx$" | sort -u | wc -l)
     echo "  New/modified tests (7d): $RECENT_TESTS"
@@ -82,18 +84,18 @@ if [ -d .git ]; then
 fi
 
 echo "🔥 Priority Actions:"
-if [ "$SKIPPED" -gt 0 ]; then
+if [[ "$SKIPPED" -gt 0 ]]; then
     echo "  ⚠️  $SKIPPED tests blocked by bugs (Issues #7, #8)"
 fi
 
 if command -v gh &> /dev/null; then
-    TEST_BLOCKED=$(gh api repos/jlaustill/c-next/issues?labels=test-blocked 2>/dev/null | jq '. | length')
-    if [ "$TEST_BLOCKED" -gt 0 ]; then
+    TEST_BLOCKED=$(gh api repos/jlaustill/c-next/issues?labels=test-blocked 2>/dev/null | jq "$JQ_LENGTH")
+    if [[ "$TEST_BLOCKED" -gt 0 ]]; then
         echo "  🔨 Fix $TEST_BLOCKED bug(s) to unblock tests"
     fi
 
-    GOOD_FIRST=$(gh api repos/jlaustill/c-next/issues?labels="good%20first%20issue" 2>/dev/null | jq '. | length')
-    if [ "$GOOD_FIRST" -gt 0 ]; then
+    GOOD_FIRST=$(gh api repos/jlaustill/c-next/issues?labels="good%20first%20issue" 2>/dev/null | jq "$JQ_LENGTH")
+    if [[ "$GOOD_FIRST" -gt 0 ]]; then
         echo "  ✨ $GOOD_FIRST good first issue(s) available"
     fi
 fi

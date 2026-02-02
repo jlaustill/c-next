@@ -68,9 +68,9 @@ const cnxFileExists = (cnxPath: string): boolean => {
 };
 
 class CnxFileResolver {
-  static findCnxFile = findCnxFile;
-  static getRelativePathFromInputs = getRelativePathFromInputs;
-  static cnxFileExists = cnxFileExists;
+  static readonly findCnxFile = findCnxFile;
+  static readonly getRelativePathFromInputs = getRelativePathFromInputs;
+  static readonly cnxFileExists = cnxFileExists;
 }
 
 export default CnxFileResolver;
