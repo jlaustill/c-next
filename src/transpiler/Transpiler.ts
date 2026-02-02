@@ -45,6 +45,7 @@ import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
 import ITranspileContext from "./types/ITranspileContext";
 import ITranspileContribution from "./types/ITranspileContribution";
+import TranspilerState from "./types/TranspilerState";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import AnalyzerContextBuilder from "./logic/analysis/AnalyzerContextBuilder";
@@ -67,24 +68,8 @@ class Transpiler {
   private readonly cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
-  /** Issue #220: Store ICodeGenSymbols per file for header generation (ADR-055) */
-  private readonly symbolCollectors: Map<string, ICodeGenSymbols> = new Map();
-  /** Issue #321: Track processed headers to avoid cycles during recursive include resolution */
-  private readonly processedHeaders: Set<string> = new Set();
-  /** Issue #280: Store pass-by-value params per file for header generation */
-  private readonly passByValueParamsCollectors: Map<
-    string,
-    ReadonlyMap<string, ReadonlySet<string>>
-  > = new Map();
-  /** Issue #424: Store user includes per file for header generation */
-  private readonly userIncludesCollectors: Map<string, string[]> = new Map();
-  /** Issue #465: Store ICodeGenSymbols per file during stage 3 for external enum resolution */
-  private readonly symbolInfoByFile: Map<string, ICodeGenSymbols> = new Map();
-  /**
-   * Issue #497: Map resolved header paths to their include directives.
-   * Used to include C headers in generated .h files instead of forward-declaring types.
-   */
-  private readonly headerIncludeDirectives: Map<string, string> = new Map();
+  /** Issue #587: Encapsulated state for accumulated Maps/Sets */
+  private readonly state = new TranspilerState();
   /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
@@ -157,6 +142,9 @@ class Transpiler {
 
       // Issue #593: Reset cross-file modification tracking for new run
       this.modificationAnalyzer.clear();
+
+      // Issue #587: Reset accumulated state for new run
+      this.state.reset();
 
       // Stage 1: Discover source files
       const { cnextFiles, headerFiles } = await this.discoverSources();
@@ -240,10 +228,10 @@ class Transpiler {
       // Build shared context after Stage 4 for transpileSource delegation
       const transpileContext: ITranspileContext = {
         symbolTable: this.symbolTable,
-        symbolInfoByFile: this.symbolInfoByFile,
+        symbolInfoByFile: this.state.getSymbolInfoByFileMap(),
         accumulatedModifications: this.modificationAnalyzer.getModifications(),
         accumulatedParamLists: this.modificationAnalyzer.getParamLists(),
-        headerIncludeDirectives: this.headerIncludeDirectives,
+        headerIncludeDirectives: this.state.getAllHeaderDirectives(),
         cppMode: this.cppDetected,
         includeDirs: this.config.includeDirs,
         target: this.config.target,
@@ -262,15 +250,15 @@ class Transpiler {
         // Accumulate contributions from this file
         if (fileResult.contribution) {
           // Store symbol info for header generation
-          this.symbolCollectors.set(
+          this.state.setSymbolInfo(
             file.path,
             fileResult.contribution.symbolInfo,
           );
-          this.passByValueParamsCollectors.set(
+          this.state.setPassByValueParams(
             file.path,
             fileResult.contribution.passByValueParams,
           );
-          this.userIncludesCollectors.set(file.path, [
+          this.state.setUserIncludes(file.path, [
             ...fileResult.contribution.userIncludes,
           ]);
 
@@ -291,7 +279,7 @@ class Transpiler {
           const unmodifiedParams =
             this.codeGenerator.getFunctionUnmodifiedParams();
           const knownEnums =
-            this.symbolCollectors.get(file.path)?.knownEnums ??
+            this.state.getSymbolInfo(file.path)?.knownEnums ??
             new Set<string>();
           AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
         }
@@ -442,7 +430,7 @@ class Transpiler {
           // Issue #497: Store the include directive for this header
           const directive = resolved.headerIncludeDirectives.get(header.path);
           if (directive) {
-            this.headerIncludeDirectives.set(header.path, directive);
+            this.state.setHeaderDirective(header.path, directive);
           }
         }
       }
@@ -503,10 +491,10 @@ class Transpiler {
   private async doCollectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
     // Issue #321: Check if already processed to avoid cycles
     const absolutePath = resolve(file.path);
-    if (this.processedHeaders.has(absolutePath)) {
+    if (this.state.isHeaderProcessed(absolutePath)) {
       return;
     }
-    this.processedHeaders.add(absolutePath);
+    this.state.markHeaderProcessed(absolutePath);
 
     // Check cache first
     if (this.cacheManager?.isValid(file.path)) {
@@ -694,7 +682,7 @@ class Transpiler {
     // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
     // This ensures enum member info is available for all files before code generation
     const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
-    this.symbolInfoByFile.set(file.path, symbolInfo);
+    this.state.setFileSymbolInfo(file.path, symbolInfo);
 
     // Issue #593: Collect modification analysis in C++ mode for cross-file const inference
     // This unifies behavior between run() and transpileSource() code paths
@@ -741,7 +729,7 @@ class Transpiler {
 
       // Process each included .cnx file
       for (const cnxInclude of resolved.cnextIncludes) {
-        const externalInfo = this.symbolInfoByFile.get(cnxInclude.path);
+        const externalInfo = this.state.getFileSymbolInfo(cnxInclude.path);
         if (externalInfo) {
           result.push(externalInfo);
         }
@@ -769,21 +757,21 @@ class Transpiler {
     const headerPath = this.pathResolver.getHeaderOutputPath(file);
 
     // Issue #220: Get SymbolCollector for full type definitions
-    const typeInput = this.symbolCollectors.get(file.path);
+    const typeInput = this.state.getSymbolInfo(file.path);
 
     // Issue #280: Get pass-by-value params from per-file storage for multi-file consistency
     // This uses the snapshot taken during transpilation, not the current (stale) codeGenerator state.
     // Fallback to empty map if not found (defensive - should always exist after transpilation).
     const passByValueParams =
-      this.passByValueParamsCollectors.get(file.path) ??
+      this.state.getPassByValueParams(file.path) ??
       new Map<string, Set<string>>();
 
     // Issue #424: Get user includes for header generation
-    const userIncludes = this.userIncludesCollectors.get(file.path) ?? [];
+    const userIncludes = this.state.getUserIncludes(file.path);
 
     // Issue #478, #588: Collect all known enum names from all files for cross-file type handling
     const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
-      this.symbolCollectors.values(),
+      this.state.getAllSymbolInfo(),
     );
 
     // Issue #497: Build mapping from external types to their C header includes
@@ -847,7 +835,7 @@ class Transpiler {
     const typeHeaders = new Map<string, string>();
 
     // Check each header we have an include directive for
-    for (const [headerPath, directive] of this.headerIncludeDirectives) {
+    for (const [headerPath, directive] of this.state.getAllHeaderDirectives()) {
       // Get all symbols defined in this header
       const symbols = this.symbolTable.getSymbolsByFile(headerPath);
 
@@ -993,16 +981,16 @@ class Transpiler {
       // This enables external enum member references to get the correct type prefix
       const externalEnumSources: ICodeGenSymbols[] = [];
 
-      // Use context.symbolInfoByFile when provided, otherwise use this.symbolInfoByFile
+      // Use context.symbolInfoByFile when provided, otherwise use state's map
       const symbolInfoByFile =
-        context?.symbolInfoByFile ?? this.symbolInfoByFile;
+        context?.symbolInfoByFile ?? this.state.getSymbolInfoByFileMap();
 
       if (context) {
         // Issue #588: When context is provided, use TransitiveEnumCollector
         // This is more efficient as run() has already populated symbolInfoByFile
         const transitiveInfo = TransitiveEnumCollector.collect(
           sourcePath,
-          this.symbolInfoByFile,
+          this.state.getSymbolInfoByFileMap(),
           this.config.includeDirs,
         );
         externalEnumSources.push(...transitiveInfo);
@@ -1140,7 +1128,7 @@ class Transpiler {
 
   /** @implements IStandaloneTranspiler.setHeaderIncludeDirective */
   setHeaderIncludeDirective(headerPath: string, directive: string): void {
-    this.headerIncludeDirectives.set(headerPath, directive);
+    this.state.setHeaderDirective(headerPath, directive);
   }
 
   /** @implements IStandaloneTranspiler.addWarning */
