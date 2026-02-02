@@ -16,11 +16,11 @@ static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.
 // --- Unmodified parameters: should pass by value ---
-uint8_t getLowByte(const uint16_t* value) {
+uint8_t getLowByte(uint16_t value) {
     return ((value) & 0xFFU);
 }
 
-uint8_t getHighByte(const uint16_t* value) {
+uint8_t getHighByte(uint16_t value) {
     return ((value >> 8) & 0xFFU);
 }
 
@@ -85,9 +85,9 @@ void modifyInCritical(uint32_t* x) {
 // --- Main test ---
 int main(void) {
     uint16_t testVal = 0x1234;
-    uint8_t low = getLowByte(&testVal);
+    uint8_t low = getLowByte(testVal);
     if (low != 0x34) return 1;
-    uint8_t high = getHighByte(&testVal);
+    uint8_t high = getHighByte(testVal);
     if (high != 0x12) return 2;
     uint32_t sum = addTwo(100, 200);
     if (sum != 300) return 3;
