@@ -146,23 +146,54 @@ u32 main() {
     value[11, 13] <- 0x0;
     if (value != 0xFF0007FF) return 24;
 
-    // NOTE: u64 bit-range tests are deferred due to code generation issues
-    // with 64-bit literals - even small masks like ~(0xFFFFU) produce wrong
-    // results because inversion happens at 32-bit width (see #187)
+    // ========================================================
+    // Part 6: u64 bit-range tests (bug #187 fixed)
+    // ========================================================
+
+    u64 val64 <- 0xFFFFFFFFFFFFFFFF;
+
+    // Clear lower 16 bits on u64
+    val64[0, 16] <- 0;
+    if (val64 != 0xFFFFFFFFFFFF0000) return 28;
+
+    // Clear bits 32-47 on u64
+    val64 <- 0xFFFFFFFFFFFFFFFF;
+    val64[32, 16] <- 0;
+    if (val64 != 0xFFFF0000FFFFFFFF) return 29;
+
+    // Clear bits 48-63 on u64
+    val64 <- 0xFFFFFFFFFFFFFFFF;
+    val64[48, 16] <- 0;
+    if (val64 != 0x0000FFFFFFFFFFFF) return 30;
+
+    // Write non-zero value to bits 32-47
+    val64 <- 0;
+    val64[32, 16] <- 0xABCD;
+    if (val64 != 0x0000ABCD00000000) return 31;
+
+    // Clear single bit 63 (highest bit of u64)
+    val64 <- 0xFFFFFFFFFFFFFFFF;
+    val64[63] <- false;
+    if (val64 != 0x7FFFFFFFFFFFFFFF) return 32;
+
+    // Clear single bit 32
+    val64 <- 0xFFFFFFFFFFFFFFFF;
+    val64[32] <- false;
+    if (val64 != 0xFFFFFFFEFFFFFFFF) return 33;
 
     // ========================================================
-    // Part 6: Write non-zero patterns and verify preservation
+    // Part 7: Write non-zero patterns and verify preservation
     // ========================================================
 
     // Pattern: 0xAA in lower byte, rest should stay 0x55
     value <- 0x55555555;
     value[0, 8] <- 0xAA;
-    if (value != 0x555555AA) return 25;
+    if (value != 0x555555AA) return 34;
 
     // Pattern: 0x12 in second byte, rest should stay as-is
     value <- 0xABCDEF00;
     value[8, 8] <- 0x12;
-    if (value != 0xABCD1200) return 26;
+    if (value != 0xABCD1200) return 35;
 
     // Multiple non-adjacent writes
     value <- 0x00000000;
@@ -170,7 +201,7 @@ u32 main() {
     value[8, 4] <- 0xF;
     value[16, 4] <- 0xF;
     value[24, 4] <- 0xF;
-    if (value != 0x0F0F0F0F) return 27;
+    if (value != 0x0F0F0F0F) return 36;
 
     return 0;  // All tests passed
 }
