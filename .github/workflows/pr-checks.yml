@@ -36,6 +36,11 @@ jobs:
         run: npm run prettier:check
         continue-on-error: true
 
+      - name: Check spelling (cspell)
+        id: cspell
+        run: npm run cspell:check
+        continue-on-error: true
+
       - name: Check linting (oxlint)
         id: oxlint
         run: npm run oxlint:check
@@ -132,6 +137,13 @@ jobs:
             FAILED=1
           else
             echo "✅ Prettier formatting check passed"
+          fi
+
+          if [ "${{ steps.cspell.outcome }}" != "success" ]; then
+            echo "❌ Spelling check failed"
+            FAILED=1
+          else
+            echo "✅ Spelling check passed"
           fi
 
           if [ "${{ steps.oxlint.outcome }}" != "success" ]; then
