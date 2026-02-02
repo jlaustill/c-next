@@ -75,6 +75,65 @@ class TransitiveEnumCollector {
   }
 
   /**
+   * Collect symbol info for standalone mode from resolved includes.
+   *
+   * Issue #591: Extracted from Transpiler.transpileSource() to unify enum collection.
+   * Unlike collect() which starts from a file path and parses it, this method
+   * starts from already-resolved includes (from IncludeResolver.resolve()).
+   *
+   * @param cnextIncludes - Array of resolved C-Next include files
+   * @param symbolInfoByFile - Map of file paths to their symbol info
+   * @param includeDirs - Additional directories to search for nested includes
+   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
+   */
+  static collectForStandalone(
+    cnextIncludes: ReadonlyArray<{ path: string }>,
+    symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
+    includeDirs: readonly string[],
+  ): ICodeGenSymbols[] {
+    const result: ICodeGenSymbols[] = [];
+    const visited = new Set<string>();
+
+    const collectFromIncludes = (
+      includes: ReadonlyArray<{ path: string }>,
+    ): void => {
+      for (const cnxInclude of includes) {
+        if (visited.has(cnxInclude.path)) continue;
+        visited.add(cnxInclude.path);
+
+        const externalInfo = symbolInfoByFile.get(cnxInclude.path);
+        if (externalInfo) {
+          result.push(externalInfo);
+        }
+
+        // Recursively process this include's includes
+        let nestedContent: string;
+        try {
+          nestedContent = readFileSync(cnxInclude.path, "utf-8");
+        } catch {
+          // File doesn't exist or can't be read - skip
+          continue;
+        }
+
+        const nestedSearchPaths = IncludeResolver.buildSearchPaths(
+          dirname(cnxInclude.path),
+          [...includeDirs],
+          [],
+        );
+        const nestedResolver = new IncludeResolver(nestedSearchPaths);
+        const nestedResolved = nestedResolver.resolve(
+          nestedContent,
+          cnxInclude.path,
+        );
+        collectFromIncludes(nestedResolved.cnextIncludes);
+      }
+    };
+
+    collectFromIncludes(cnextIncludes);
+    return result;
+  }
+
+  /**
    * Internal recursive collection helper.
    *
    * @param currentPath - Current file being processed
