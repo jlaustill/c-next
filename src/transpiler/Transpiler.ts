@@ -13,19 +13,11 @@ import {
   existsSync,
   statSync,
 } from "node:fs";
-import { CharStream, CommonTokenStream } from "antlr4ng";
 import { join, basename, relative, dirname, resolve } from "node:path";
 
-import { CNextLexer } from "./logic/parser/grammar/CNextLexer";
-import {
-  CNextParser,
-  ProgramContext,
-} from "./logic/parser/grammar/CNextParser";
+import { ProgramContext } from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
-import { CLexer } from "./logic/parser/c/grammar/CLexer";
-import { CParser } from "./logic/parser/c/grammar/CParser";
-import { CPP14Lexer } from "./logic/parser/cpp/grammar/CPP14Lexer";
-import { CPP14Parser } from "./logic/parser/cpp/grammar/CPP14Parser";
+import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
@@ -54,7 +46,6 @@ import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import detectCppSyntax from "./logic/detectCppSyntax";
-import LiteralUtils from "../utils/LiteralUtils";
 import AutoConstUpdater from "./logic/symbols/AutoConstUpdater";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 
@@ -214,7 +205,7 @@ class Transpiler {
       // Stage 3b: Issue #461 - Resolve external const array dimensions
       // Now that all symbols are collected, resolve any unresolved array dimensions
       // that reference external constants from included .cnx files
-      this.resolveExternalArrayDimensions();
+      this.symbolTable.resolveExternalArrayDimensions();
 
       // Stage 4: Check for symbol conflicts
       const conflicts = this.symbolTable.getConflicts();
@@ -613,21 +604,13 @@ class Transpiler {
    * Issue #208: Parse a pure C header (no C++ syntax detected)
    */
   private parsePureCHeader(content: string, filePath: string): void {
-    try {
-      const charStream = CharStream.fromString(content);
-      const lexer = new CLexer(charStream);
-      const tokenStream = new CommonTokenStream(lexer);
-      const parser = new CParser(tokenStream);
-      parser.removeErrorListeners();
-
-      const tree = parser.compilationUnit();
+    const { tree } = HeaderParser.parseC(content);
+    if (tree) {
       const collector = new CSymbolCollector(filePath, this.symbolTable);
       const symbols = collector.collect(tree);
       if (symbols.length > 0) {
         this.symbolTable.addSymbols(symbols);
       }
-    } catch {
-      // Silently ignore parse errors in headers
     }
   }
 
@@ -635,19 +618,11 @@ class Transpiler {
    * Parse a C++ header
    */
   private parseCppHeader(content: string, filePath: string): void {
-    const charStream = CharStream.fromString(content);
-    const lexer = new CPP14Lexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CPP14Parser(tokenStream);
-    parser.removeErrorListeners();
-
-    try {
-      const tree = parser.translationUnit();
+    const { tree } = HeaderParser.parseCpp(content);
+    if (tree) {
       const collector = new CppSymbolCollector(filePath, this.symbolTable);
       const symbols = collector.collect(tree);
       this.symbolTable.addSymbols(symbols);
-    } catch {
-      // Silently ignore parse errors in headers (they may have complex C++ features)
     }
   }
 
@@ -657,32 +632,14 @@ class Transpiler {
    */
   private collectCNextSymbols(file: IDiscoveredFile): void {
     const content = readFileSync(file.path, "utf-8");
-    const charStream = CharStream.fromString(content);
-    const lexer = new CNextLexer(charStream);
-    const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
-
-    const errors: string[] = [];
-    parser.removeErrorListeners();
-    parser.addErrorListener({
-      syntaxError(
-        _recognizer,
-        _offendingSymbol,
-        line,
-        charPositionInLine,
-        msg,
-      ) {
-        errors.push(`${file.path}:${line}:${charPositionInLine} - ${msg}`);
-      },
-      reportAmbiguity() {},
-      reportAttemptingFullContext() {},
-      reportContextSensitivity() {},
-    });
-
-    const tree = parser.program();
+    const { tree, errors } = CNextSourceParser.parse(content);
 
     if (errors.length > 0) {
-      throw new Error(errors.join("\n"));
+      // Format errors with file path for better diagnostics
+      const formattedErrors = errors.map(
+        (e) => `${file.path}:${e.line}:${e.column} - ${e.message}`,
+      );
+      throw new Error(formattedErrors.join("\n"));
     }
 
     // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
@@ -708,71 +665,6 @@ class Transpiler {
 
       // Issue #593: Accumulate via centralized analyzer
       this.modificationAnalyzer.accumulateResults(results);
-    }
-  }
-
-  /**
-   * Stage 3b: Issue #461 - Resolve external const array dimensions
-   *
-   * After all symbols are collected, scan for variable symbols with unresolved
-   * array dimensions (stored as strings instead of numbers). For each unresolved
-   * dimension, look up the const value in the symbol table and resolve it.
-   *
-   * This handles the case where array dimensions reference constants from
-   * external .cnx files that were not available during initial symbol collection.
-   */
-  private resolveExternalArrayDimensions(): void {
-    // Build a map of all const values from the symbol table
-    const constValues = new Map<string, number>();
-    for (const symbol of this.symbolTable.getAllSymbols()) {
-      if (
-        symbol.kind === ESymbolKind.Variable &&
-        symbol.isConst &&
-        symbol.initialValue !== undefined
-      ) {
-        const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
-        if (value !== undefined) {
-          constValues.set(symbol.name, value);
-        }
-      }
-    }
-
-    // If no const values found, nothing to resolve
-    if (constValues.size === 0) {
-      return;
-    }
-
-    // Scan all variable symbols for unresolved array dimensions
-    for (const symbol of this.symbolTable.getAllSymbols()) {
-      if (
-        symbol.kind === ESymbolKind.Variable &&
-        symbol.isArray &&
-        symbol.arrayDimensions
-      ) {
-        let modified = false;
-        const resolvedDimensions = symbol.arrayDimensions.map((dim) => {
-          // If dimension is numeric, keep it
-          const numericValue = Number.parseInt(dim, 10);
-          if (!Number.isNaN(numericValue)) {
-            return dim;
-          }
-
-          // Try to resolve from const values
-          const constValue = constValues.get(dim);
-          if (constValue !== undefined) {
-            modified = true;
-            return String(constValue);
-          }
-
-          // Keep original (unresolved macro reference)
-          return dim;
-        });
-
-        if (modified) {
-          // Update the symbol's array dimensions
-          symbol.arrayDimensions = resolvedDimensions;
-        }
-      }
     }
   }
 
@@ -1339,7 +1231,7 @@ class Transpiler {
           symbolTable.addSymbols(collectedSymbols);
 
           // Issue #461: Resolve external const array dimensions before header generation
-          this.resolveExternalArrayDimensions();
+          this.symbolTable.resolveExternalArrayDimensions();
         }
 
         const symbols = symbolTable.getSymbolsByFile(sourcePath);
