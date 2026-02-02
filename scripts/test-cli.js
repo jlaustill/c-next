@@ -821,6 +821,100 @@ scope Serial {
 });
 
 // ============================================================================
+// Category 6: Issue #580 - C++ detection from headers tests
+// ============================================================================
+
+// C++ header that triggers C++ mode detection (has C++ class)
+const cppHeaderContent = `// C++ header with class to trigger C++ mode detection
+#ifndef CPP_SERIAL_H
+#define CPP_SERIAL_H
+
+class SerialClass {
+public:
+    void println(int value);
+};
+
+extern SerialClass Serial;
+
+#endif
+`;
+
+const issue580Config = `struct Config {
+    i32 value;
+}
+`;
+
+const issue580Modifier = `#include "Config.cnx"
+
+scope Modifier {
+    public void reset(Config c) {
+        c.value <- 42;
+    }
+}
+`;
+
+// Handler that includes C++ header (triggers detection) and calls modifier
+const issue580Handler = `#include "CppSerial.h"
+#include "Config.cnx"
+#include "Modifier.cnx"
+
+scope Handler {
+    // This function ONLY passes config through to reset()
+    // Issue #580: was incorrectly marked const when C++ detected from headers
+    public void passThrough(Config config) {
+        global.Modifier.reset(config);
+    }
+}
+`;
+
+test("Issue #580: C++ detected from headers triggers correct const inference", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-issue580-"));
+
+  try {
+    // Create the test files
+    writeFileSync(join(tempDir, "CppSerial.h"), cppHeaderContent, "utf-8");
+    writeFileSync(join(tempDir, "Config.cnx"), issue580Config, "utf-8");
+    writeFileSync(join(tempDir, "Modifier.cnx"), issue580Modifier, "utf-8");
+    writeFileSync(join(tempDir, "Handler.cnx"), issue580Handler, "utf-8");
+
+    // Transpile WITHOUT --cpp flag - C++ mode should be auto-detected from header
+    const result = runCliInDir(tempDir, ["Handler.cnx"]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+
+    // Should generate .cpp file (C++ mode detected from header)
+    assert(
+      existsSync(join(tempDir, "Handler.cpp")),
+      "Should generate .cpp when C++ detected from header",
+    );
+
+    // Key assertion: Handler_passThrough should have NON-const Config&
+    // because it calls Modifier.reset which modifies config
+    const handlerCpp = readFileSync(join(tempDir, "Handler.cpp"), "utf-8");
+    assert(
+      handlerCpp.includes("Handler_passThrough(Config& config)"),
+      "Handler_passThrough should have non-const Config& (calls mutating function)",
+    );
+    assert(
+      !handlerCpp.includes("Handler_passThrough(const Config& config)"),
+      "Handler_passThrough should NOT have const (it transitively modifies)",
+    );
+
+    // Also verify Modifier was processed correctly
+    assert(
+      existsSync(join(tempDir, "Modifier.cpp")),
+      "Should generate Modifier.cpp",
+    );
+    const modifierCpp = readFileSync(join(tempDir, "Modifier.cpp"), "utf-8");
+    assert(
+      modifierCpp.includes("Modifier_reset(Config& c)"),
+      "Modifier_reset should have non-const Config&",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// ============================================================================
 // Summary
 // ============================================================================
 

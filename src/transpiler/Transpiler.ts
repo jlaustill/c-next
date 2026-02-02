@@ -36,6 +36,7 @@ import EFileType from "./data/types/EFileType";
 import IDiscoveredFile from "./data/types/IDiscoveredFile";
 import IncludeDiscovery from "./data/IncludeDiscovery";
 import IncludeResolver from "./data/IncludeResolver";
+import DependencyGraph from "./data/DependencyGraph";
 
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
@@ -152,14 +153,9 @@ class Transpiler {
         return result;
       }
 
-      // Issue #558: Sort files by dependency order for correct cross-file const inference.
-      // Files that are included by others should be processed first so their
-      // parameter modifications are available during transitive propagation.
-      // Simple heuristic: reverse the discovery order since includes are added
-      // after the files that include them.
-      if (this.cppDetected) {
-        cnextFiles.reverse();
-      }
+      // Issue #580: Files are now sorted by DependencyGraph in discoverSources()
+      // using proper topological sorting (dependencies first). This ensures correct
+      // cross-file const inference regardless of when C++ mode is detected.
 
       // Ensure output directory exists if specified
       if (this.config.outDir && !existsSync(this.config.outDir)) {
@@ -357,6 +353,7 @@ class Transpiler {
   }> {
     // Step 1: Discover C-Next files from inputs (files or directories)
     const cnextFiles: IDiscoveredFile[] = [];
+    const fileByPath = new Map<string, IDiscoveredFile>();
 
     for (const input of this.config.inputs) {
       const resolvedInput = resolve(input);
@@ -369,6 +366,7 @@ class Transpiler {
       if (file?.type === EFileType.CNext) {
         // It's a C-Next file
         cnextFiles.push(file);
+        fileByPath.set(resolve(file.path), file);
       } else if (file?.type !== EFileType.Unknown && file !== null) {
         // It's another supported file type (direct header input)
         // Skip for now - we only want C-Next sources here
@@ -377,7 +375,10 @@ class Transpiler {
         const discovered = FileDiscovery.discover([resolvedInput], {
           recursive: true,
         });
-        cnextFiles.push(...FileDiscovery.getCNextFiles(discovered));
+        for (const f of FileDiscovery.getCNextFiles(discovered)) {
+          cnextFiles.push(f);
+          fileByPath.set(resolve(f.path), f);
+        }
       }
     }
 
@@ -386,7 +387,9 @@ class Transpiler {
     }
 
     // Step 2: For each C-Next file, resolve its #include directives
+    // Issue #580: Use DependencyGraph for proper topological sorting
     const headerSet = new Map<string, IDiscoveredFile>();
+    const depGraph = new DependencyGraph();
 
     // Build set of base names from C-Next files to exclude generated headers
     const cnextBaseNames = new Set(
@@ -394,6 +397,9 @@ class Transpiler {
     );
 
     for (const cnxFile of cnextFiles) {
+      const cnxPath = resolve(cnxFile.path);
+      depGraph.addFile(cnxPath);
+
       const content = readFileSync(cnxFile.path, "utf-8");
 
       // Build search paths for this file
@@ -429,12 +435,17 @@ class Transpiler {
 
       // Issue #461: Collect included .cnx files for symbol resolution
       // This ensures constants from included .cnx files are available for array dimension resolution
+      // Issue #580: Track dependencies for topological sorting
       for (const cnxInclude of resolved.cnextIncludes) {
         const includePath = resolve(cnxInclude.path);
         const includeBaseName = basename(includePath).replace(
           /\.cnx$|\.cnext$/,
           "",
         );
+
+        // Track dependency: cnxFile depends on cnxInclude
+        depGraph.addDependency(cnxPath, includePath);
+
         // Don't add if already in the list (by base name comparison)
         if (
           !cnextBaseNames.has(includeBaseName) &&
@@ -442,6 +453,7 @@ class Transpiler {
         ) {
           cnextFiles.push(cnxInclude);
           cnextBaseNames.add(includeBaseName);
+          fileByPath.set(includePath, cnxInclude);
         }
       }
 
@@ -449,7 +461,24 @@ class Transpiler {
       this.warnings.push(...resolved.warnings);
     }
 
-    return { cnextFiles, headerFiles: [...headerSet.values()] };
+    // Issue #580: Sort files topologically (dependencies first) for correct
+    // cross-file const inference. This replaces the simple reversal heuristic.
+    const sortedPaths = depGraph.getSortedFiles();
+    this.warnings.push(...depGraph.getWarnings());
+
+    // Convert sorted paths back to IDiscoveredFile array
+    const sortedCnextFiles: IDiscoveredFile[] = [];
+    for (const path of sortedPaths) {
+      const file = fileByPath.get(path);
+      if (file) {
+        sortedCnextFiles.push(file);
+      }
+    }
+
+    return {
+      cnextFiles: sortedCnextFiles,
+      headerFiles: [...headerSet.values()],
+    };
   }
 
   /**
