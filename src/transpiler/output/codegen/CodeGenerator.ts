@@ -2520,53 +2520,20 @@ export default class CodeGenerator implements IOrchestrator {
     const ternary = expr.ternaryExpression();
     if (ternary) {
       for (const orExpr of ternary.orExpression()) {
-        this.walkOrExpressionForSubscriptAccess(funcName, paramSet, orExpr);
+        this.walkOrExpression(orExpr, (unaryExpr) => {
+          this.handleSubscriptAccess(funcName, paramSet, unaryExpr);
+        });
       }
     }
   }
 
   /**
-   * Issue #579: Walk an orExpression tree for subscript access.
-   */
-  private walkOrExpressionForSubscriptAccess(
-    funcName: string,
-    paramSet: Set<string>,
-    orExpr: Parser.OrExpressionContext,
-  ): void {
-    for (const andExpr of orExpr.andExpression()) {
-      for (const eqExpr of andExpr.equalityExpression()) {
-        for (const relExpr of eqExpr.relationalExpression()) {
-          for (const bitOrExpr of relExpr.bitwiseOrExpression()) {
-            for (const bitXorExpr of bitOrExpr.bitwiseXorExpression()) {
-              for (const bitAndExpr of bitXorExpr.bitwiseAndExpression()) {
-                for (const shiftExpr of bitAndExpr.shiftExpression()) {
-                  for (const addExpr of shiftExpr.additiveExpression()) {
-                    for (const mulExpr of addExpr.multiplicativeExpression()) {
-                      for (const unaryExpr of mulExpr.unaryExpression()) {
-                        this.walkUnaryExpressionForSubscriptAccess(
-                          funcName,
-                          paramSet,
-                          unaryExpr,
-                        );
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Issue #579: Walk a unary expression for subscript access.
+   * Issue #579: Handle subscript access on a unary expression.
    * Only tracks single-index subscript access (which could be array access).
    * Two-index subscript (e.g., value[start, width]) is always bit extraction,
    * so it doesn't require the parameter to become a pointer.
    */
-  private walkUnaryExpressionForSubscriptAccess(
+  private handleSubscriptAccess(
     funcName: string,
     paramSet: Set<string>,
     unaryExpr: Parser.UnaryExpressionContext,
@@ -2594,12 +2561,13 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Walk an orExpression tree for function calls.
+   * Generic walker for orExpression trees.
+   * Walks through the expression hierarchy and calls the handler for each unaryExpression.
+   * Used by both function call tracking and subscript access tracking.
    */
-  private walkOrExpressionForCalls(
-    funcName: string,
-    paramSet: Set<string>,
+  private walkOrExpression(
     orExpr: Parser.OrExpressionContext,
+    handler: (unaryExpr: Parser.UnaryExpressionContext) => void,
   ): void {
     for (const andExpr of orExpr.andExpression()) {
       for (const eqExpr of andExpr.equalityExpression()) {
@@ -2611,11 +2579,7 @@ export default class CodeGenerator implements IOrchestrator {
                   for (const addExpr of shiftExpr.additiveExpression()) {
                     for (const mulExpr of addExpr.multiplicativeExpression()) {
                       for (const unaryExpr of mulExpr.unaryExpression()) {
-                        this.walkUnaryExpressionForCalls(
-                          funcName,
-                          paramSet,
-                          unaryExpr,
-                        );
+                        handler(unaryExpr);
                       }
                     }
                   }
@@ -2626,6 +2590,19 @@ export default class CodeGenerator implements IOrchestrator {
         }
       }
     }
+  }
+
+  /**
+   * Walk an orExpression tree for function calls.
+   */
+  private walkOrExpressionForCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    orExpr: Parser.OrExpressionContext,
+  ): void {
+    this.walkOrExpression(orExpr, (unaryExpr) => {
+      this.walkUnaryExpressionForCalls(funcName, paramSet, unaryExpr);
+    });
   }
 
   /**
