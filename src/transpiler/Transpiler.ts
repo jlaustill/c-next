@@ -15,13 +15,14 @@ import {
 } from "node:fs";
 import { join, basename, dirname, resolve } from "node:path";
 
-import { ProgramContext } from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
 import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
+import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
+import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
 import ESymbolKind from "../utils/types/ESymbolKind";
 import ISymbol from "../utils/types/ISymbol";
@@ -787,7 +788,10 @@ class Transpiler {
     );
 
     // Issue #497: Build mapping from external types to their C header includes
-    const externalTypeHeaders = this.buildExternalTypeHeaders();
+    const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
+      this.headerIncludeDirectives,
+      this.symbolTable,
+    );
 
     // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
     const typeInputWithSymbolTable = typeInput
@@ -810,64 +814,6 @@ class Transpiler {
 
     writeFileSync(headerPath, headerContent, "utf-8");
     return headerPath;
-  }
-
-  /**
-   * Issue #424, #461, #478: Collect user includes from parse tree for header generation.
-   *
-   * Extracts #include directives for .cnx files and transforms them to .h includes.
-   * This enables cross-file type definitions in generated headers.
-   *
-   * @param tree The parsed C-Next program
-   * @returns Array of transformed include strings (e.g., '#include "types.h"')
-   */
-  private collectUserIncludes(tree: ProgramContext): string[] {
-    const userIncludes: string[] = [];
-    for (const includeDir of tree.includeDirective()) {
-      const includeText = includeDir.getText();
-      // Include both quoted ("...") and angle-bracket (<...>) .cnx includes
-      // These define types used in function signatures that need to be in the header
-      if (includeText.includes(".cnx")) {
-        // Transform .cnx includes to .h (the generated header for the included .cnx file)
-        const transformedInclude = includeText
-          .replace(/\.cnx"/, '.h"')
-          .replace(/\.cnx>/, ".h>");
-        userIncludes.push(transformedInclude);
-      }
-    }
-    return userIncludes;
-  }
-
-  /**
-   * Issue #497: Build a map from external type names to their C header include directives.
-   * This enables header generation to include the original C headers instead of
-   * generating conflicting forward declarations for types like anonymous struct typedefs.
-   */
-  private buildExternalTypeHeaders(): Map<string, string> {
-    const typeHeaders = new Map<string, string>();
-
-    // Check each header we have an include directive for
-    for (const [headerPath, directive] of this.headerIncludeDirectives) {
-      // Get all symbols defined in this header
-      const symbols = this.symbolTable.getSymbolsByFile(headerPath);
-
-      // Map each struct/type/enum name to the include directive
-      for (const sym of symbols) {
-        if (
-          sym.kind === ESymbolKind.Struct ||
-          sym.kind === ESymbolKind.Type ||
-          sym.kind === ESymbolKind.Enum ||
-          sym.kind === ESymbolKind.Class
-        ) {
-          // Only add if we don't already have a mapping (first include wins)
-          if (!typeHeaders.has(sym.name)) {
-            typeHeaders.set(sym.name, directive);
-          }
-        }
-      }
-    }
-
-    return typeHeaders;
   }
 
   /**
@@ -1050,7 +996,7 @@ class Transpiler {
 
       // Issue #461: Always generate header content
       // Collect user includes for both header generation and contribution
-      const userIncludes = this.collectUserIncludes(tree);
+      const userIncludes = IncludeExtractor.collectUserIncludes(tree);
 
       // Get pass-by-value params (snapshot before next file clears it)
       const passByValue = this.codeGenerator.getPassByValueParams();
@@ -1309,7 +1255,10 @@ class Transpiler {
     }
 
     // Issue #497: Build mapping from external types to their C header includes
-    const externalTypeHeaders = this.buildExternalTypeHeaders();
+    const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
+      this.headerIncludeDirectives,
+      symbolTable,
+    );
 
     // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
     const typeInputWithSymbolTable = typeInput
