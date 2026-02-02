@@ -188,6 +188,7 @@ class Transpiler {
               ? (msg) => console.log(`[DEBUG] ${msg}`)
               : undefined,
             processedPaths: this.state.getProcessedHeadersSet(),
+            fs: this.fs,
           },
         );
       this.warnings.push(...headerWarnings);
@@ -433,15 +434,18 @@ class Transpiler {
       const sourceDir = dirname(cnxFile.path);
       const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
         cnxFile.path,
+        this.fs,
       );
       const searchPaths = IncludeResolver.buildSearchPaths(
         sourceDir,
         this.config.includeDirs,
         additionalIncludeDirs,
+        undefined,
+        this.fs,
       );
 
       // Resolve includes
-      const resolver = new IncludeResolver(searchPaths);
+      const resolver = new IncludeResolver(searchPaths, this.fs);
       const resolved = resolver.resolve(content, cnxFile.path);
 
       // Collect headers, filtering out generated ones
@@ -681,8 +685,10 @@ class Transpiler {
         dirname(currentPath),
         this.config.includeDirs,
         [],
+        undefined,
+        this.fs,
       );
-      const resolver = new IncludeResolver(searchPaths);
+      const resolver = new IncludeResolver(searchPaths, this.fs);
       const resolved = resolver.resolve(content, currentPath);
 
       // Process each included .cnx file
@@ -825,10 +831,12 @@ class Transpiler {
           ? [...context.includeDirs]
           : this.config.includeDirs,
         additionalIncludeDirs,
+        undefined,
+        this.fs,
       );
 
       // Step 2: Resolve includes from source content
-      const resolver = new IncludeResolver(searchPaths);
+      const resolver = new IncludeResolver(searchPaths, this.fs);
       resolved = resolver.resolve(source, sourcePath);
 
       // Step 3: Collect warnings

@@ -1,4 +1,3 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import IncludeDiscovery from "./IncludeDiscovery";
@@ -6,6 +5,11 @@ import FileDiscovery from "./FileDiscovery";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
+import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+
+/** Default file system instance (singleton for performance) */
+const defaultFs = new NodeFileSystem();
 
 /**
  * Result of resolving includes from source content
@@ -55,8 +59,14 @@ class IncludeResolver {
   static readonly _resolvedIncludesType: IResolvedIncludes = undefined as never;
 
   private readonly resolvedPaths: Set<string> = new Set();
+  private readonly fs: IFileSystem;
 
-  constructor(private readonly searchPaths: string[]) {}
+  constructor(
+    private readonly searchPaths: string[],
+    fs: IFileSystem = defaultFs,
+  ) {
+    this.fs = fs;
+  }
 
   /**
    * Extract includes from source content and resolve them to files
@@ -77,6 +87,7 @@ class IncludeResolver {
       const resolved = IncludeDiscovery.resolveInclude(
         includeInfo.path,
         this.searchPaths,
+        this.fs,
       );
 
       if (resolved) {
@@ -87,7 +98,7 @@ class IncludeResolver {
         }
         this.resolvedPaths.add(absolutePath);
 
-        const file = FileDiscovery.discoverFile(resolved);
+        const file = FileDiscovery.discoverFile(resolved, this.fs);
         if (file) {
           if (
             file.type === EFileType.CHeader ||
@@ -163,8 +174,11 @@ class IncludeResolver {
       onDebug?: (message: string) => void;
       /** Set of already-processed paths to skip */
       processedPaths?: Set<string>;
+      /** File system abstraction (defaults to NodeFileSystem) */
+      fs?: IFileSystem;
     },
   ): { headers: IDiscoveredFile[]; warnings: string[] } {
+    const fs = options?.fs ?? defaultFs;
     const visited = new Set<string>(options?.processedPaths);
     const warnings: string[] = [];
     const depGraph = new DependencyGraph();
@@ -182,7 +196,7 @@ class IncludeResolver {
       // Read content to check for generated headers and extract includes
       let content: string;
       try {
-        content = readFileSync(file.path, "utf-8");
+        content = fs.readFile(file.path);
       } catch {
         warnings.push(`Warning: Could not read header ${file.path}`);
         return;
@@ -210,6 +224,7 @@ class IncludeResolver {
         const resolved = IncludeDiscovery.resolveInclude(
           includeInfo.path,
           searchPaths,
+          fs,
         );
 
         options?.onDebug?.(
@@ -217,7 +232,7 @@ class IncludeResolver {
         );
 
         if (resolved) {
-          const includedFile = FileDiscovery.discoverFile(resolved);
+          const includedFile = FileDiscovery.discoverFile(resolved, fs);
           if (
             includedFile &&
             (includedFile.type === EFileType.CHeader ||
@@ -280,6 +295,7 @@ class IncludeResolver {
    * @param includeDirs - Include directories from config
    * @param additionalIncludeDirs - Extra include directories (e.g., from API options)
    * @param projectRoot - Optional project root for common directory discovery
+   * @param fs - File system abstraction (defaults to NodeFileSystem)
    * @returns Array of search paths in priority order
    */
   static buildSearchPaths(
@@ -287,6 +303,7 @@ class IncludeResolver {
     includeDirs: string[],
     additionalIncludeDirs: string[] = [],
     projectRoot?: string,
+    fs: IFileSystem = defaultFs,
   ): string[] {
     const paths: string[] = [];
 
@@ -294,12 +311,12 @@ class IncludeResolver {
     paths.push(sourceDir, ...additionalIncludeDirs, ...includeDirs);
 
     // 4. Project-level common directories
-    const root = projectRoot ?? IncludeDiscovery.findProjectRoot(sourceDir);
+    const root = projectRoot ?? IncludeDiscovery.findProjectRoot(sourceDir, fs);
     if (root) {
       const commonDirs = ["include", "src", "lib"];
       for (const dir of commonDirs) {
         const includePath = join(root, dir);
-        if (existsSync(includePath) && statSync(includePath).isDirectory()) {
+        if (fs.exists(includePath) && fs.isDirectory(includePath)) {
           paths.push(includePath);
         }
       }
