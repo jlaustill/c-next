@@ -120,7 +120,7 @@ class FileDiscovery {
         for (const file of files) {
           allFiles.push(this.classifyFile(file));
         }
-      } catch (err) {
+      } catch {
         console.warn(`Warning: Cannot read directory: ${dir}`);
       }
     }
