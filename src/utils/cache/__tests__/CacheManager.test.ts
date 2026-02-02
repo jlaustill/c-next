@@ -614,23 +614,24 @@ describe("CacheManager", () => {
     });
   });
 
-  describe("cache entry migration", () => {
-    it("should migrate old mtime-based entries to cacheKey format", async () => {
-      // Create cache with old format (mtime instead of cacheKey)
+  describe("cache persistence", () => {
+    // Note: Migration from old mtime-based format to cacheKey format is handled
+    // by CacheManager.migrateOldEntries(). However, testing this directly is
+    // impractical because flat-cache v6 uses its own serialization format (flatted).
+    // The migration code exists for users upgrading from older C-Next versions
+    // where the cache file was manually written as JSON. New installs use
+    // flat-cache's internal format from the start.
+
+    it("should persist and reload cache entries correctly", async () => {
       await cacheManager.initialize();
 
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test content");
 
-      // flat-cache v6 uses filename without extension and stores data in "flatted" format
-      // We need to write directly in flat-cache's format for this test
-      // The old format is now a legacy concern - flat-cache handles its own format
-      // This test verifies migration of our internal data format (mtime -> cacheKey)
-
-      // Use the new manager API to set an entry, then manually modify it
+      // Set an entry
       cacheManager.setSymbols(
         testFile,
-        [createTestSymbol({ sourceFile: testFile, name: "oldFunc" })],
+        [createTestSymbol({ sourceFile: testFile, name: "persistedFunc" })],
         new Map(),
       );
       await cacheManager.flush();
@@ -642,22 +643,14 @@ describe("CacheManager", () => {
       // Entry should be accessible
       const cached = newManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols[0].name).toBe("oldFunc");
+      expect(cached!.symbols[0].name).toBe("persistedFunc");
     });
 
-    it("should skip invalid entries during migration", async () => {
+    it("should return null for non-existent entries", async () => {
       await cacheManager.initialize();
 
-      // flat-cache v6 uses its own serialization format (flatted)
-      // Invalid entries are entries without cacheKey or mtime
-      // For this test, we just verify the cache handles missing entries gracefully
-
-      // Reload - should not throw
-      const newManager = new CacheManager(testDir);
-      await newManager.initialize();
-
       // Non-existent entry should be null
-      expect(newManager.getSymbols("/some/file.h")).toBeNull();
+      expect(cacheManager.getSymbols("/some/nonexistent/file.h")).toBeNull();
     });
   });
 
