@@ -1,16 +1,10 @@
 /**
  * ConfigLoader
- * Loads configuration from project config files
+ * Loads configuration from project config files using cosmiconfig
  */
 
-import { dirname, resolve } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
+import { cosmiconfigSync } from "cosmiconfig";
 import IFileConfig from "./types/IFileConfig";
-
-/**
- * Config file names in priority order (highest first)
- */
-const CONFIG_FILES = ["cnext.config.json", ".cnext.json", ".cnextrc"];
 
 /**
  * Load configuration from project directory
@@ -22,26 +16,26 @@ class ConfigLoader {
    * @returns Loaded configuration (empty object if no config found)
    */
   static load(startDir: string): IFileConfig {
-    let dir = resolve(startDir);
+    const explorer = cosmiconfigSync("cnext", {
+      searchPlaces: ["cnext.config.json", ".cnext.json", ".cnextrc"],
+      loaders: {
+        ".cnextrc": (_filepath: string, content: string) => JSON.parse(content),
+      },
+      // Search up to filesystem root
+      stopDir: "/",
+    });
 
-    while (dir !== dirname(dir)) {
-      // Stop at filesystem root
-      for (const configFile of CONFIG_FILES) {
-        const configPath = resolve(dir, configFile);
-        if (existsSync(configPath)) {
-          try {
-            const content = readFileSync(configPath, "utf-8");
-            const config = JSON.parse(content) as IFileConfig;
-            config._path = configPath;
-            return config;
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            console.error(`Warning: Failed to parse ${configPath}: ${message}`);
-            return {};
-          }
-        }
+    try {
+      const result = explorer.search(startDir);
+      if (result?.config) {
+        const config = result.config as IFileConfig;
+        config._path = result.filepath;
+        return config;
       }
-      dir = dirname(dir);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Warning: Failed to parse config: ${message}`);
+      return {};
     }
 
     return {}; // No config found

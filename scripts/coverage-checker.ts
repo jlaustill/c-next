@@ -19,18 +19,11 @@ import { existsSync } from "node:fs";
 import coverageParser from "./coverage-parser";
 import testScanner from "./test-scanner";
 import reportGenerator from "./report-generator";
+import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
-
-// ANSI colors
-const colors = {
-  reset: "\x1b[0m",
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-};
 
 function printUsage(): void {
   console.log(`
@@ -62,21 +55,19 @@ async function main(): Promise<void> {
 
   // Verify paths exist
   if (!existsSync(coveragePath)) {
-    console.error(
-      `${colors.red}Error: coverage.md not found at ${coveragePath}${colors.reset}`,
-    );
+    console.error(chalk.red(`Error: coverage.md not found at ${coveragePath}`));
     process.exit(1);
   }
 
   if (!existsSync(testsDir)) {
     console.error(
-      `${colors.red}Error: tests/ directory not found at ${testsDir}${colors.reset}`,
+      chalk.red(`Error: tests/ directory not found at ${testsDir}`),
     );
     process.exit(1);
   }
 
   // Parse coverage.md
-  console.log(`${colors.yellow}Parsing coverage.md...${colors.reset}`);
+  console.log(chalk.yellow("Parsing coverage.md..."));
   const coverageItems = coverageParser.parseCoverageDocument(coveragePath);
   console.log(`  Found ${coverageItems.length} coverage items`);
 
@@ -84,7 +75,7 @@ async function main(): Promise<void> {
   const duplicates = coverageParser.checkForDuplicates(coverageItems);
   if (duplicates.size > 0) {
     console.log(
-      `${colors.yellow}Warning: ${duplicates.size} duplicate IDs found:${colors.reset}`,
+      chalk.yellow(`Warning: ${duplicates.size} duplicate IDs found:`),
     );
     for (const [id, lines] of duplicates) {
       console.log(`  - "${id}" at lines ${lines.join(", ")}`);
@@ -92,7 +83,7 @@ async function main(): Promise<void> {
   }
 
   // Scan test files for annotations
-  console.log(`${colors.yellow}Scanning test files...${colors.reset}`);
+  console.log(chalk.yellow("Scanning test files..."));
   const annotations = testScanner.scanTestFiles(testsDir);
   console.log(`  Found ${annotations.length} coverage annotations`);
 
@@ -110,9 +101,7 @@ async function main(): Promise<void> {
 
     case "report":
       reportGenerator.generateMarkdownReport(report, reportPath);
-      console.log(
-        `${colors.green}Report written to ${reportPath}${colors.reset}`,
-      );
+      console.log(chalk.green(`Report written to ${reportPath}`));
       break;
 
     case "gaps":
@@ -124,13 +113,13 @@ async function main(): Promise<void> {
       break;
 
     default:
-      console.error(`${colors.red}Unknown mode: ${mode}${colors.reset}`);
+      console.error(chalk.red(`Unknown mode: ${mode}`));
       printUsage();
       process.exit(1);
   }
 }
 
 main().catch((err) => {
-  console.error(`${colors.red}Error: ${err.message}${colors.reset}`);
+  console.error(chalk.red(`Error: ${err.message}`));
   process.exit(1);
 });

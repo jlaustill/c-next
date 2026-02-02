@@ -8,44 +8,27 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import reportGenerator from "../report-generator";
+import chalk from "chalk";
 import ICoverageItem from "../types/ICoverageItem";
 import ITestAnnotation from "../types/ITestAnnotation";
 
 describe("getPercentageColor", () => {
   it("should return green for percentage >= 80", () => {
-    expect(reportGenerator.getPercentageColor(80)).toBe(
-      reportGenerator.colors.green,
-    );
-    expect(reportGenerator.getPercentageColor(100)).toBe(
-      reportGenerator.colors.green,
-    );
-    expect(reportGenerator.getPercentageColor(95)).toBe(
-      reportGenerator.colors.green,
-    );
+    expect(reportGenerator.getPercentageColor(80)).toBe(chalk.green);
+    expect(reportGenerator.getPercentageColor(100)).toBe(chalk.green);
+    expect(reportGenerator.getPercentageColor(95)).toBe(chalk.green);
   });
 
   it("should return yellow for percentage >= 50 and < 80", () => {
-    expect(reportGenerator.getPercentageColor(50)).toBe(
-      reportGenerator.colors.yellow,
-    );
-    expect(reportGenerator.getPercentageColor(79)).toBe(
-      reportGenerator.colors.yellow,
-    );
-    expect(reportGenerator.getPercentageColor(65)).toBe(
-      reportGenerator.colors.yellow,
-    );
+    expect(reportGenerator.getPercentageColor(50)).toBe(chalk.yellow);
+    expect(reportGenerator.getPercentageColor(79)).toBe(chalk.yellow);
+    expect(reportGenerator.getPercentageColor(65)).toBe(chalk.yellow);
   });
 
   it("should return red for percentage < 50", () => {
-    expect(reportGenerator.getPercentageColor(49)).toBe(
-      reportGenerator.colors.red,
-    );
-    expect(reportGenerator.getPercentageColor(0)).toBe(
-      reportGenerator.colors.red,
-    );
-    expect(reportGenerator.getPercentageColor(25)).toBe(
-      reportGenerator.colors.red,
-    );
+    expect(reportGenerator.getPercentageColor(49)).toBe(chalk.red);
+    expect(reportGenerator.getPercentageColor(0)).toBe(chalk.red);
+    expect(reportGenerator.getPercentageColor(25)).toBe(chalk.red);
   });
 });
 

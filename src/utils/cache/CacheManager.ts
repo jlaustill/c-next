@@ -1,24 +1,30 @@
 /**
  * CacheManager
  *
- * Manages persistent cache for parsed C/C++ header symbols.
+ * Manages persistent cache for parsed C/C++ header symbols using flat-cache.
  * Cache is stored in .cnx/ directory (similar to .git/).
  *
  * Cache structure:
  *   .cnx/
  *     config.json     - Cache metadata (version, timestamps)
  *     cache/
- *       symbols.json  - Cached symbols per file
+ *       symbols.json  - Cached symbols per file (managed by flat-cache)
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+} from "node:fs";
 import { join } from "node:path";
+import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
 import IStructFieldInfo from "../../transpiler/logic/symbols/types/IStructFieldInfo";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
-import ICacheSymbols from "../../transpiler/types/ICacheSymbols";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
 import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
 
@@ -36,11 +42,11 @@ const TRANSPILER_VERSION = packageJson.version as string;
 class CacheManager {
   private readonly projectRoot: string;
   private readonly cacheDir: string;
+  private readonly cacheSubdir: string;
   private readonly configPath: string;
-  private readonly symbolsPath: string;
 
-  /** In-memory cache of file entries */
-  private readonly entries: Map<string, ICachedFileEntry> = new Map();
+  /** flat-cache instance for symbol storage */
+  private cache: FlatCache | null = null;
 
   /** Whether the cache has been modified and needs flushing */
   private dirty = false;
@@ -48,8 +54,8 @@ class CacheManager {
   constructor(projectRoot: string) {
     this.projectRoot = projectRoot;
     this.cacheDir = join(projectRoot, ".cnx");
+    this.cacheSubdir = join(this.cacheDir, "cache");
     this.configPath = join(this.cacheDir, "config.json");
-    this.symbolsPath = join(this.cacheDir, "cache", "symbols.json");
   }
 
   /**
@@ -61,9 +67,8 @@ class CacheManager {
       mkdirSync(this.cacheDir, { recursive: true });
     }
 
-    const cacheSubdir = join(this.cacheDir, "cache");
-    if (!existsSync(cacheSubdir)) {
-      mkdirSync(cacheSubdir, { recursive: true });
+    if (!existsSync(this.cacheSubdir)) {
+      mkdirSync(this.cacheSubdir, { recursive: true });
     }
 
     // Load or create config
@@ -71,20 +76,41 @@ class CacheManager {
 
     // Check if cache should be invalidated
     if (this.shouldInvalidateCache(config)) {
-      this.invalidateAll();
+      // Remove old cache file if it exists
+      const oldCacheFile = join(this.cacheSubdir, "symbols");
+      if (existsSync(oldCacheFile)) {
+        try {
+          unlinkSync(oldCacheFile);
+        } catch {
+          // Ignore if we can't delete
+        }
+      }
+      // Create fresh cache
+      this.cache = createFlatCache({
+        cacheId: "symbols",
+        cacheDir: this.cacheSubdir,
+      });
       this.saveConfig();
       return;
     }
 
-    // Load existing symbols cache
-    this.loadSymbolsCache();
+    // Load existing cache - create also loads if file exists
+    this.cache = createFlatCache({
+      cacheId: "symbols",
+      cacheDir: this.cacheSubdir,
+    });
+
+    // Migrate old entries if needed
+    this.migrateOldEntries();
   }
 
   /**
    * Check if a file's cache is valid (not modified since cached)
    */
   isValid(filePath: string): boolean {
-    const entry = this.entries.get(filePath);
+    if (!this.cache) return false;
+
+    const entry = this.cache.getKey(filePath) as ICachedFileEntry | undefined;
     if (!entry) {
       return false;
     }
@@ -101,7 +127,9 @@ class CacheManager {
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
   } | null {
-    const entry = this.entries.get(filePath);
+    if (!this.cache) return null;
+
+    const entry = this.cache.getKey(filePath) as ICachedFileEntry | undefined;
     if (!entry) {
       return null;
     }
@@ -145,6 +173,8 @@ class CacheManager {
     needsStructKeyword?: string[],
     enumBitWidth?: Map<string, number>,
   ): void {
+    if (!this.cache) return;
+
     // Generate cache key for current file state
     let cacheKey: string;
     try {
@@ -187,7 +217,7 @@ class CacheManager {
       enumBitWidth: serializedEnumBitWidth,
     };
 
-    this.entries.set(filePath, entry);
+    this.cache.setKey(filePath, entry);
     this.dirty = true;
   }
 
@@ -301,17 +331,26 @@ class CacheManager {
    * Invalidate cache for a specific file
    */
   invalidate(filePath: string): void {
-    if (this.entries.has(filePath)) {
-      this.entries.delete(filePath);
-      this.dirty = true;
-    }
+    if (!this.cache) return;
+
+    this.cache.removeKey(filePath);
+    this.dirty = true;
   }
 
   /**
    * Invalidate all cached entries
    */
   invalidateAll(): void {
-    this.entries.clear();
+    if (!this.cache) {
+      // Create fresh cache if not initialized
+      this.cache = createFlatCache({
+        cacheId: "symbols",
+        cacheDir: this.cacheSubdir,
+      });
+    } else {
+      // Clear all entries
+      this.cache.clear();
+    }
     this.dirty = true;
   }
 
@@ -319,22 +358,11 @@ class CacheManager {
    * Flush cache to disk if modified
    */
   async flush(): Promise<void> {
-    if (!this.dirty) {
+    if (!this.dirty || !this.cache) {
       return;
     }
 
-    // Convert entries map to array
-    const cacheSymbols: ICacheSymbols = {
-      entries: Array.from(this.entries.values()),
-    };
-
-    // Write symbols cache
-    writeFileSync(
-      this.symbolsPath,
-      JSON.stringify(cacheSymbols, null, 2),
-      "utf-8",
-    );
-
+    this.cache.save();
     this.dirty = false;
   }
 
@@ -404,59 +432,41 @@ class CacheManager {
   }
 
   /**
-   * Load symbols cache from disk
+   * Migrate old cache entries from mtime-based to cacheKey-based format
    */
-  private loadSymbolsCache(): void {
-    if (!existsSync(this.symbolsPath)) {
-      return;
-    }
+  private migrateOldEntries(): void {
+    if (!this.cache) return;
 
-    try {
-      const content = readFileSync(this.symbolsPath, "utf-8");
-      // Parse as generic object since disk format may be old (mtime) or new (cacheKey)
-      const cacheSymbols = JSON.parse(content) as {
-        entries: Record<string, unknown>[];
-      };
+    const allEntries = this.cache.all();
+    for (const [key, value] of Object.entries(allEntries)) {
+      const data = value as Record<string, unknown>;
 
-      for (const entry of cacheSymbols.entries) {
-        const migrated = this.migrateEntry(entry);
-        if (migrated) {
-          this.entries.set(migrated.filePath, migrated);
-        }
+      // Already has cacheKey - no migration needed
+      if (typeof data.cacheKey === "string") {
+        continue;
       }
-    } catch {
-      // Cache file is corrupted, start fresh
-      this.entries.clear();
-    }
-  }
 
-  /**
-   * Migrate cache entry from old format if needed.
-   * Handles conversion from mtime-based to cacheKey-based format.
-   */
-  private migrateEntry(data: Record<string, unknown>): ICachedFileEntry | null {
-    // Already has cacheKey - no migration needed
-    if (typeof data.cacheKey === "string") {
-      return data as unknown as ICachedFileEntry;
+      // Migration: convert old mtime to cacheKey format
+      if (typeof data.mtime === "number") {
+        const migratedEntry: ICachedFileEntry = {
+          filePath: data.filePath as string,
+          cacheKey: `mtime:${data.mtime}`,
+          symbols: data.symbols as ISerializedSymbol[],
+          structFields: data.structFields as Record<
+            string,
+            Record<string, IStructFieldInfo>
+          >,
+          needsStructKeyword: data.needsStructKeyword as string[] | undefined,
+          enumBitWidth: data.enumBitWidth as Record<string, number> | undefined,
+        };
+        this.cache.setKey(key, migratedEntry);
+        this.dirty = true;
+      } else {
+        // Invalid entry - remove it
+        this.cache.removeKey(key);
+        this.dirty = true;
+      }
     }
-
-    // Migration: convert old mtime to cacheKey format
-    if (typeof data.mtime === "number") {
-      return {
-        filePath: data.filePath as string,
-        cacheKey: `mtime:${data.mtime}`,
-        symbols: data.symbols as ISerializedSymbol[],
-        structFields: data.structFields as Record<
-          string,
-          Record<string, IStructFieldInfo>
-        >,
-        needsStructKeyword: data.needsStructKeyword as string[] | undefined,
-        enumBitWidth: data.enumBitWidth as Record<string, number> | undefined,
-      };
-    }
-
-    // Invalid entry - skip it
-    return null;
   }
 
   /**

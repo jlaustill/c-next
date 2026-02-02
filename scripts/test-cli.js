@@ -25,21 +25,12 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
+import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
 const cliPath = join(rootDir, "bin", "cnext.js");
-
-// ANSI colors for terminal output
-const colors = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  yellow: "\x1b[33m",
-  cyan: "\x1b[36m",
-  dim: "\x1b[2m",
-};
 
 let passed = 0;
 let failed = 0;
@@ -75,11 +66,11 @@ function runCli(args = [], expectError = false) {
 function test(name, fn) {
   try {
     fn();
-    console.log(`${colors.green}PASS${colors.reset}    ${name}`);
+    console.log(`${chalk.green("PASS")}    ${name}`);
     passed++;
   } catch (error) {
-    console.log(`${colors.red}FAIL${colors.reset}    ${name}`);
-    console.log(`        ${colors.dim}${error.message}${colors.reset}`);
+    console.log(`${chalk.red("FAIL")}    ${name}`);
+    console.log(`        ${chalk.dim(error.message)}`);
     failed++;
   }
 }
@@ -108,8 +99,8 @@ function cleanup(files) {
 // Test Cases
 // ============================================================================
 
-console.log(`${colors.cyan}C-Next CLI Integration Tests${colors.reset}`);
-console.log(`${colors.dim}CLI path: ${cliPath}${colors.reset}`);
+console.log(chalk.cyan("C-Next CLI Integration Tests"));
+console.log(chalk.dim(`CLI path: ${cliPath}`));
 console.log();
 
 // --version flag
@@ -919,10 +910,10 @@ test("Issue #580: C++ detected from headers triggers correct const inference", (
 // ============================================================================
 
 console.log();
-console.log(`${colors.cyan}Results:${colors.reset}`);
-console.log(`  ${colors.green}Passed:${colors.reset}  ${passed}`);
+console.log(chalk.cyan("Results:"));
+console.log(`  ${chalk.green("Passed:")}  ${passed}`);
 if (failed > 0) {
-  console.log(`  ${colors.red}Failed:${colors.reset}  ${failed}`);
+  console.log(`  ${chalk.red("Failed:")}  ${failed}`);
 }
 
 process.exit(failed > 0 ? 1 : 0);
