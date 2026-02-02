@@ -70,6 +70,8 @@ import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
 // Issue #461: LiteralUtils for parsing const values from symbol table
 import LiteralUtils from "../../../utils/LiteralUtils";
+// Issue #579: Shared subscript classification for array vs bit access
+import SubscriptClassifier from "./subscript/SubscriptClassifier";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -326,6 +328,14 @@ export default class CodeGenerator implements IOrchestrator {
    * Map of functionName -> Set of modified parameter names
    */
   private readonly modifiedParameters: Map<string, Set<string>> = new Map();
+
+  /**
+   * Issue #579: Tracks which parameters have subscript access (read or write)
+   * These parameters must become pointers to support array access semantics
+   * Map of functionName -> Set of parameter names with subscript access
+   */
+  private readonly subscriptAccessedParameters: Map<string, Set<string>> =
+    new Map();
 
   /**
    * Issue #558: Pending cross-file modifications to inject after analyzePassByValue clears.
@@ -2262,6 +2272,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Initialize modified set
     this.modifiedParameters.set(funcName, new Set());
+    // Issue #579: Initialize subscript access tracking
+    this.subscriptAccessedParameters.set(funcName, new Set());
     this.functionCallGraph.set(funcName, []);
 
     // Walk the function body to find modifications and calls
@@ -2445,7 +2457,19 @@ export default class CodeGenerator implements IOrchestrator {
           baseIdentifier = identifiers[0].getText();
         }
       } else if (target?.arrayAccess()) {
-        baseIdentifier = target.arrayAccess()!.IDENTIFIER()?.getText() ?? null;
+        const arrayAccessCtx = target.arrayAccess()!;
+        baseIdentifier = arrayAccessCtx.IDENTIFIER()?.getText() ?? null;
+        // Issue #579: Track subscript access on parameters (for write path)
+        // Only track single-index subscript (potential array access)
+        // Two-index subscript like value[0, 8] is bit extraction, not array access
+        const isSingleIndexSubscript = arrayAccessCtx.expression().length === 1;
+        if (
+          isSingleIndexSubscript &&
+          baseIdentifier &&
+          paramSet.has(baseIdentifier)
+        ) {
+          this.subscriptAccessedParameters.get(funcName)!.add(baseIdentifier);
+        }
       }
 
       if (baseIdentifier && paramSet.has(baseIdentifier)) {
@@ -2453,9 +2477,11 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // 2. Walk all expressions in this statement for function calls
+    // 2. Walk all expressions in this statement for function calls and subscript access
     for (const expr of this.collectExpressionsFromStatement(stmt)) {
       this.walkExpressionForCalls(funcName, paramSet, expr);
+      // Issue #579: Also track subscript read access on parameters
+      this.walkExpressionForSubscriptAccess(funcName, paramSet, expr);
     }
 
     // 3. Recurse into child statements and blocks
@@ -2488,12 +2514,66 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Walk an orExpression tree for function calls.
+   * Issue #579: Walk an expression tree to find subscript access on parameters.
+   * This tracks read access like `buf[i]` where buf is a parameter.
+   * Parameters with subscript access must become pointers.
    */
-  private walkOrExpressionForCalls(
+  private walkExpressionForSubscriptAccess(
     funcName: string,
     paramSet: Set<string>,
+    expr: Parser.ExpressionContext,
+  ): void {
+    const ternary = expr.ternaryExpression();
+    if (ternary) {
+      for (const orExpr of ternary.orExpression()) {
+        this.walkOrExpression(orExpr, (unaryExpr) => {
+          this.handleSubscriptAccess(funcName, paramSet, unaryExpr);
+        });
+      }
+    }
+  }
+
+  /**
+   * Issue #579: Handle subscript access on a unary expression.
+   * Only tracks single-index subscript access (which could be array access).
+   * Two-index subscript (e.g., value[start, width]) is always bit extraction,
+   * so it doesn't require the parameter to become a pointer.
+   */
+  private handleSubscriptAccess(
+    funcName: string,
+    paramSet: Set<string>,
+    unaryExpr: Parser.UnaryExpressionContext,
+  ): void {
+    const postfixExpr = unaryExpr.postfixExpression();
+    if (!postfixExpr) return;
+
+    const primary = postfixExpr.primaryExpression();
+    const ops = postfixExpr.postfixOp();
+
+    // Check if primary is a parameter and there's subscript access
+    const primaryId = primary.IDENTIFIER()?.getText();
+    if (!primaryId || !paramSet.has(primaryId)) {
+      return;
+    }
+
+    // Only track SINGLE-index subscript access (potential array access)
+    // Two-index subscript like value[0, 8] is bit extraction, not array access
+    const hasSingleIndexSubscript = ops.some(
+      (op) => op.expression().length === 1,
+    );
+    if (hasSingleIndexSubscript) {
+      this.subscriptAccessedParameters.get(funcName)!.add(primaryId);
+    }
+  }
+
+  /**
+   * Generic walker for orExpression trees.
+   * Walks through the expression hierarchy and calls the handler for each unaryExpression.
+   * Used by both function call tracking and subscript access tracking.
+   */
+  private walkOrExpression(
     orExpr: Parser.OrExpressionContext,
+    handler: (unaryExpr: Parser.UnaryExpressionContext) => void,
   ): void {
     for (const andExpr of orExpr.andExpression()) {
       for (const eqExpr of andExpr.equalityExpression()) {
@@ -2505,11 +2585,7 @@ export default class CodeGenerator implements IOrchestrator {
                   for (const addExpr of shiftExpr.additiveExpression()) {
                     for (const mulExpr of addExpr.multiplicativeExpression()) {
                       for (const unaryExpr of mulExpr.unaryExpression()) {
-                        this.walkUnaryExpressionForCalls(
-                          funcName,
-                          paramSet,
-                          unaryExpr,
-                        );
+                        handler(unaryExpr);
                       }
                     }
                   }
@@ -2520,6 +2596,19 @@ export default class CodeGenerator implements IOrchestrator {
         }
       }
     }
+  }
+
+  /**
+   * Walk an orExpression tree for function calls.
+   */
+  private walkOrExpressionForCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    orExpr: Parser.OrExpressionContext,
+  ): void {
+    this.walkOrExpression(orExpr, (unaryExpr) => {
+      this.walkUnaryExpressionForCalls(funcName, paramSet, unaryExpr);
+    });
   }
 
   /**
@@ -2793,11 +2882,21 @@ export default class CodeGenerator implements IOrchestrator {
           // - Is a small primitive type
           // - Not an array
           // - Not modified
+          // - Not accessed via subscript (Issue #579)
           const isSmallPrimitive = smallPrimitives.has(paramSig.baseType);
           const isArray = paramSig.isArray ?? false;
           const isModified = modified.has(paramName);
+          // Issue #579: Parameters with subscript access must become pointers
+          const hasSubscriptAccess =
+            this.subscriptAccessedParameters.get(funcName)?.has(paramName) ??
+            false;
 
-          if (isSmallPrimitive && !isArray && !isModified) {
+          if (
+            isSmallPrimitive &&
+            !isArray &&
+            !isModified &&
+            !hasSubscriptAccess
+          ) {
             passByValue.add(paramName);
           }
         }
@@ -3720,6 +3819,7 @@ export default class CodeGenerator implements IOrchestrator {
         bitmapTypeName: isBitmap ? typeName : undefined,
         isString: isString,
         stringCapacity: stringCapacity,
+        isParameter: true, // Issue #579: Mark as parameter for subscript classification
       });
     }
   }
@@ -7915,7 +8015,20 @@ export default class CodeGenerator implements IOrchestrator {
       : null;
     const isStructParam = paramInfo?.isStruct ?? false;
 
-    let result = this.generatePrimaryExpr(primary);
+    // Issue #579: Check if we have subscript access on a non-array parameter
+    // In this case, the parameter becomes a pointer in C, and we should NOT dereference it
+    // because subscript access on a pointer is valid (buf[i] = buf + i dereference)
+    const hasSubscriptOps = ops.some((op) => op.expression().length > 0);
+    const isNonArrayParamWithSubscript =
+      paramInfo && !paramInfo.isArray && !paramInfo.isStruct && hasSubscriptOps;
+
+    let result: string;
+    if (isNonArrayParamWithSubscript) {
+      // Don't dereference - use raw identifier for subscript access
+      result = primaryId!;
+    } else {
+      result = this.generatePrimaryExpr(primary);
+    }
 
     // ADR-016: Track if we've encountered a register in the access chain
     let isRegisterChain = primaryId
@@ -7927,9 +8040,15 @@ export default class CodeGenerator implements IOrchestrator {
     // Note: This tracks STRUCT MEMBER arrays only, not the primary identifier being an array
     // Primary identifier arrays are handled by remainingArrayDims and isPrimaryArray
     let currentMemberIsArray = false;
-    let currentStructType = primaryId
+    // Issue #579: Only set currentStructType if the primary identifier is actually a struct
+    // Otherwise, isPrimitiveIntMember incorrectly triggers for primitive parameters like u8
+    const primaryBaseType = primaryId
       ? this.context.typeRegistry.get(primaryId)?.baseType
       : undefined;
+    let currentStructType =
+      primaryBaseType && this.isKnownStruct(primaryBaseType)
+        ? primaryBaseType
+        : undefined;
 
     // Track previous struct type and member name for .length on struct members (cfg.magic.length)
     let previousStructType: string | undefined = undefined;
@@ -8654,12 +8773,11 @@ export default class CodeGenerator implements IOrchestrator {
             result = `${result}[${index}]`;
             remainingArrayDims--;
             subscriptDepth++; // Track dimension depth for .length
-            // After consuming all array dimensions, set struct type if element is struct
+            // After consuming all array dimensions, set currentStructType to element type
+            // This enables isPrimitiveIntMember to detect bit access on array elements
+            // e.g., matrix[0][1][BIT] where matrix is u8[4][4]
             if (remainingArrayDims === 0 && primaryTypeInfo) {
-              const elementType = primaryTypeInfo.baseType;
-              if (this.isKnownStruct(elementType)) {
-                currentStructType = elementType;
-              }
+              currentStructType = primaryTypeInfo.baseType;
             }
           } else if (isPrimitiveIntMember) {
             // Bug #8: Struct member is primitive integer - use bit access
@@ -8678,15 +8796,20 @@ export default class CodeGenerator implements IOrchestrator {
               }
             }
           } else {
-            // Check identifierTypeInfo for simple variables (not through member access)
-            const typeToCheck = identifierTypeInfo?.baseType;
-            const isPrimitiveInt =
-              typeToCheck && TypeCheckUtils.isInteger(typeToCheck);
-            if (isPrimitiveInt) {
+            // Issue #579: Use shared SubscriptClassifier for consistent array/bit decision
+            // This handles the case where a parameter is declared without [] but used with indexing
+            // In C, non-array parameters become pointers (ADR-006), so buf[i] is array access
+            const subscriptKind = SubscriptClassifier.classify({
+              typeInfo: identifierTypeInfo ?? null,
+              subscriptCount: 1,
+              isRegisterAccess: false,
+            });
+
+            if (subscriptKind === "bit_single") {
               // Primitive integer - use bit access: ((value >> index) & 1)
               result = `((${result} >> ${index}) & 1)`;
             } else {
-              // Non-primitive type or unknown - default to array access
+              // Array access (including non-array parameters which become pointers)
               result = `${result}[${index}]`;
             }
           }

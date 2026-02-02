@@ -8,6 +8,7 @@
 import AssignmentKind from "./AssignmentKind";
 import IAssignmentContext from "./IAssignmentContext";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
+import SubscriptClassifier from "../subscript/SubscriptClassifier";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 
@@ -343,6 +344,9 @@ class AssignmentClassifier {
   /**
    * Classify simple array/bit access (no prefix, no member access).
    * Pattern: arr[i] or flags[bit]
+   *
+   * Issue #579: Uses shared SubscriptClassifier to ensure consistent behavior
+   * with the expression path in CodeGenerator._generatePostfixExpr.
    */
   private classifyArrayOrBitAccess(
     ctx: IAssignmentContext,
@@ -357,40 +361,36 @@ class AssignmentClassifier {
     }
 
     const name = ctx.identifiers[0];
-    const typeInfo = this.deps.typeRegistry.get(name);
+    const typeInfo = this.deps.typeRegistry.get(name) ?? null;
 
-    // Check for actual array or string type
-    // Note: isArray is true for both sized arrays (u8 arr[10]) and unsized parameters (u8 arr[])
-    // Unsized arrays may have empty arrayDimensions, so check isArray flag first
-    const isActualArray = typeInfo?.isArray || typeInfo?.isString;
+    // Use shared classifier for array vs bit access decision
+    const subscriptKind = SubscriptClassifier.classify({
+      typeInfo,
+      subscriptCount: ctx.subscripts.length,
+      isRegisterAccess: false,
+    });
 
-    if (isActualArray) {
-      // Slice assignment: arr[offset, length]
-      if (ctx.subscripts.length === 2) {
+    switch (subscriptKind) {
+      case "array_element":
+        // String array element (special case for 2D string arrays)
+        if (
+          typeInfo?.isString &&
+          typeInfo.arrayDimensions &&
+          typeInfo.arrayDimensions.length > 1
+        ) {
+          return AssignmentKind.STRING_ARRAY_ELEMENT;
+        }
+        return AssignmentKind.ARRAY_ELEMENT;
+
+      case "array_slice":
         return AssignmentKind.ARRAY_SLICE;
-      }
 
-      // String array element
-      if (
-        typeInfo?.isString &&
-        typeInfo.arrayDimensions &&
-        typeInfo.arrayDimensions.length > 1
-      ) {
-        return AssignmentKind.STRING_ARRAY_ELEMENT;
-      }
+      case "bit_single":
+        return AssignmentKind.INTEGER_BIT;
 
-      // Normal array element
-      return AssignmentKind.ARRAY_ELEMENT;
+      case "bit_range":
+        return AssignmentKind.INTEGER_BIT_RANGE;
     }
-
-    // Bit manipulation on scalar integer
-    if (ctx.subscripts.length === 1) {
-      return AssignmentKind.INTEGER_BIT;
-    } else if (ctx.subscripts.length === 2) {
-      return AssignmentKind.INTEGER_BIT_RANGE;
-    }
-
-    return null;
   }
 
   /**
