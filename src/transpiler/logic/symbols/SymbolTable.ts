@@ -6,6 +6,7 @@
 import ISymbol from "../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
+import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "./types/IConflict";
 import IStructFieldInfo from "./types/IStructFieldInfo";
 
@@ -458,6 +459,71 @@ class SymbolTable {
     }
 
     return null;
+  }
+
+  /**
+   * Issue #461: Resolve external const array dimensions
+   *
+   * After all symbols are collected, scan for variable symbols with unresolved
+   * array dimensions (stored as strings instead of numbers). For each unresolved
+   * dimension, look up the const value in the symbol table and resolve it.
+   *
+   * This handles the case where array dimensions reference constants from
+   * external .cnx files that were not available during initial symbol collection.
+   */
+  resolveExternalArrayDimensions(): void {
+    // Build a map of all const values from the symbol table
+    const constValues = new Map<string, number>();
+    for (const symbol of this.getAllSymbols()) {
+      if (
+        symbol.kind === ESymbolKind.Variable &&
+        symbol.isConst &&
+        symbol.initialValue !== undefined
+      ) {
+        const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
+        if (value !== undefined) {
+          constValues.set(symbol.name, value);
+        }
+      }
+    }
+
+    // If no const values found, nothing to resolve
+    if (constValues.size === 0) {
+      return;
+    }
+
+    // Scan all variable symbols for unresolved array dimensions
+    for (const symbol of this.getAllSymbols()) {
+      if (
+        symbol.kind === ESymbolKind.Variable &&
+        symbol.isArray &&
+        symbol.arrayDimensions
+      ) {
+        let modified = false;
+        const resolvedDimensions = symbol.arrayDimensions.map((dim) => {
+          // If dimension is numeric, keep it
+          const numericValue = Number.parseInt(dim, 10);
+          if (!Number.isNaN(numericValue)) {
+            return dim;
+          }
+
+          // Try to resolve from const values
+          const constValue = constValues.get(dim);
+          if (constValue !== undefined) {
+            modified = true;
+            return String(constValue);
+          }
+
+          // Keep original (unresolved macro reference)
+          return dim;
+        });
+
+        if (modified) {
+          // Update the symbol's array dimensions
+          symbol.arrayDimensions = resolvedDimensions;
+        }
+      }
+    }
   }
 }
 
