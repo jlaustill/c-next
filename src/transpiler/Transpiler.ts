@@ -177,7 +177,7 @@ class Transpiler {
       // Stage 2: Collect symbols from C/C++ headers
       for (const file of headerFiles) {
         try {
-          await this.collectHeaderSymbols(file);
+          await this.doCollectHeaderSymbols(file);
           result.filesProcessed++;
         } catch (err) {
           this.warnings.push(`Failed to process header ${file.path}: ${err}`);
@@ -187,7 +187,7 @@ class Transpiler {
       // Stage 3: Collect symbols from C-Next files
       for (const file of cnextFiles) {
         try {
-          this.collectCNextSymbols(file);
+          this.doCollectCNextSymbols(file);
         } catch (err) {
           result.errors.push({
             line: 1,
@@ -460,7 +460,7 @@ class Transpiler {
    * Issue #321: Now recursively processes #include directives to handle
    * nested headers (e.g., Arduino's HardwareSerial.h including Stream.h)
    */
-  private async collectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
+  private async doCollectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
     // Issue #321: Check if already processed to avoid cycles
     const absolutePath = resolve(file.path);
     if (this.processedHeaders.has(absolutePath)) {
@@ -543,7 +543,7 @@ class Transpiler {
               `[DEBUG]     → Recursively processing ${includedFile.path}`,
             );
           }
-          await this.collectHeaderSymbols(includedFile);
+          await this.doCollectHeaderSymbols(includedFile);
         }
       } else if (includeInfo.isLocal) {
         // Issue #355: Warn when local includes can't be resolved
@@ -633,7 +633,7 @@ class Transpiler {
    * Stage 3: Collect symbols from a C-Next file
    * Issue #561: Also collects modification analysis in C++ mode for unified cross-file const inference
    */
-  private collectCNextSymbols(file: IDiscoveredFile): void {
+  private doCollectCNextSymbols(file: IDiscoveredFile): void {
     const content = readFileSync(file.path, "utf-8");
     const { tree, errors } = CNextSourceParser.parse(content);
 
@@ -1178,44 +1178,30 @@ class Transpiler {
     return this.symbolTable;
   }
 
-  // === Adapter methods for StandaloneContextBuilder interface ===
+  // === IStandaloneTranspiler implementation (Issue #591) ===
+  // These methods implement the interface used by StandaloneContextBuilder
 
-  /**
-   * Issue #591: Adapter method for StandaloneContextBuilder.
-   * Delegates to the private collectHeaderSymbols method.
-   */
-  async collectHeaderSymbolsPublic(header: IDiscoveredFile): Promise<void> {
-    await this.collectHeaderSymbols(header);
+  /** @implements IStandaloneTranspiler.collectHeaderSymbols */
+  async collectHeaderSymbols(header: IDiscoveredFile): Promise<void> {
+    await this.doCollectHeaderSymbols(header);
   }
 
-  /**
-   * Issue #591: Adapter method for StandaloneContextBuilder.
-   * Delegates to the private collectCNextSymbols method.
-   */
-  collectCNextSymbolsPublic(cnxInclude: IDiscoveredFile): void {
-    this.collectCNextSymbols(cnxInclude);
+  /** @implements IStandaloneTranspiler.collectCNextSymbols */
+  collectCNextSymbols(cnxInclude: IDiscoveredFile): void {
+    this.doCollectCNextSymbols(cnxInclude);
   }
 
-  /**
-   * Issue #591: Adapter method for StandaloneContextBuilder.
-   * Returns the configured include directories.
-   */
+  /** @implements IStandaloneTranspiler.getIncludeDirs */
   getIncludeDirs(): readonly string[] {
     return this.config.includeDirs;
   }
 
-  /**
-   * Issue #591: Adapter method for StandaloneContextBuilder.
-   * Stores a header include directive for type headers.
-   */
+  /** @implements IStandaloneTranspiler.setHeaderIncludeDirective */
   setHeaderIncludeDirective(headerPath: string, directive: string): void {
     this.headerIncludeDirectives.set(headerPath, directive);
   }
 
-  /**
-   * Issue #591: Adapter method for StandaloneContextBuilder.
-   * Adds a warning message.
-   */
+  /** @implements IStandaloneTranspiler.addWarning */
   addWarning(message: string): void {
     this.warnings.push(message);
   }

@@ -47,8 +47,11 @@ interface IResolvedIncludes {
  * // result.headers contains resolved header files
  */
 class IncludeResolver {
-  /** Resolved includes interface for external use */
-  static readonly ResolvedIncludesType: IResolvedIncludes = undefined as never;
+  /**
+   * Type helper for accessing IResolvedIncludes externally.
+   * Use: `type IResolvedIncludes = ReturnType<InstanceType<typeof IncludeResolver>["resolve"]>`
+   */
+  static readonly _resolvedIncludesType: IResolvedIncludes = undefined as never;
 
   private readonly resolvedPaths: Set<string> = new Set();
 

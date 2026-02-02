@@ -8,32 +8,25 @@
  * - Store header include directives
  */
 
-import { readFileSync } from "node:fs";
-import { dirname } from "node:path";
-
 import IDiscoveredFile from "../data/types/IDiscoveredFile";
+import IncludeTreeWalker from "../data/IncludeTreeWalker";
 import IncludeResolver from "../data/IncludeResolver";
 
-/**
- * Interface for the resolved includes from IncludeResolver
- */
-interface IResolvedIncludes {
-  headers: IDiscoveredFile[];
-  cnextIncludes: IDiscoveredFile[];
-  warnings: string[];
-  headerIncludeDirectives: Map<string, string>;
-}
+/** Inferred type from IncludeResolver.resolve() return type */
+type TResolvedIncludes = ReturnType<
+  InstanceType<typeof IncludeResolver>["resolve"]
+>;
 
 /**
  * Interface for the Transpiler methods needed by StandaloneContextBuilder.
  * This decouples the builder from the concrete Transpiler class.
  */
-interface ITranspilerForStandalone {
-  /** Parse and collect symbols from a C/C++ header file (public adapter) */
-  collectHeaderSymbolsPublic(header: IDiscoveredFile): Promise<void>;
+interface IStandaloneTranspiler {
+  /** Parse and collect symbols from a C/C++ header file */
+  collectHeaderSymbols(header: IDiscoveredFile): Promise<void>;
 
-  /** Parse and collect symbols from a C-Next include file (public adapter) */
-  collectCNextSymbolsPublic(cnxInclude: IDiscoveredFile): void;
+  /** Parse and collect symbols from a C-Next include file */
+  collectCNextSymbols(cnxInclude: IDiscoveredFile): void;
 
   /** Get the configured include directories */
   getIncludeDirs(): readonly string[];
@@ -44,6 +37,8 @@ interface ITranspilerForStandalone {
   /** Add a warning message */
   addWarning(message: string): void;
 }
+
+// Interface is not exported - Transpiler uses duck typing
 
 /**
  * Builds standalone context by processing headers and C-Next includes.
@@ -62,8 +57,8 @@ class StandaloneContextBuilder {
    * @param resolved - The resolved includes from IncludeResolver
    */
   static async build(
-    transpiler: ITranspilerForStandalone,
-    resolved: IResolvedIncludes,
+    transpiler: IStandaloneTranspiler,
+    resolved: TResolvedIncludes,
   ): Promise<void> {
     // Step 4a: Parse C/C++ headers to populate symbol table
     await StandaloneContextBuilder.processHeaders(transpiler, resolved);
@@ -79,12 +74,12 @@ class StandaloneContextBuilder {
    * Process C/C++ headers to collect symbols.
    */
   private static async processHeaders(
-    transpiler: ITranspilerForStandalone,
-    resolved: IResolvedIncludes,
+    transpiler: IStandaloneTranspiler,
+    resolved: TResolvedIncludes,
   ): Promise<void> {
     for (const header of resolved.headers) {
       try {
-        await transpiler.collectHeaderSymbolsPublic(header);
+        await transpiler.collectHeaderSymbols(header);
         // Issue #497: Store the include directive for this header
         const directive = resolved.headerIncludeDirectives.get(header.path);
         if (directive) {
@@ -102,44 +97,24 @@ class StandaloneContextBuilder {
    * Recursively process C-Next includes to collect symbols.
    * Issue #294: Enables cross-file scope references (e.g., decoder.getSpn() -> decoder_getSpn())
    * Issue #465: Recursively process transitive includes for enum info
+   * Issue #591: Uses shared IncludeTreeWalker to eliminate duplicate traversal code
    */
   private static processCNextIncludes(
-    transpiler: ITranspilerForStandalone,
+    transpiler: IStandaloneTranspiler,
     cnextIncludes: IDiscoveredFile[],
   ): void {
-    const processedIncludes = new Set<string>();
     const includeDirs = transpiler.getIncludeDirs();
 
-    const processRecursively = (includes: IDiscoveredFile[]): void => {
-      for (const cnxInclude of includes) {
-        if (processedIncludes.has(cnxInclude.path)) continue;
-        processedIncludes.add(cnxInclude.path);
-
-        try {
-          transpiler.collectCNextSymbolsPublic(cnxInclude);
-
-          // Recursively process this include's includes
-          const nestedContent = readFileSync(cnxInclude.path, "utf-8");
-          const nestedSearchPaths = IncludeResolver.buildSearchPaths(
-            dirname(cnxInclude.path),
-            [...includeDirs],
-            [],
-          );
-          const nestedResolver = new IncludeResolver(nestedSearchPaths);
-          const nestedResolved = nestedResolver.resolve(
-            nestedContent,
-            cnxInclude.path,
-          );
-          processRecursively(nestedResolved.cnextIncludes);
-        } catch (err) {
-          transpiler.addWarning(
-            `Failed to process C-Next include ${cnxInclude.path}: ${err}`,
-          );
-        }
+    IncludeTreeWalker.walk(cnextIncludes, includeDirs, (file) => {
+      try {
+        transpiler.collectCNextSymbols(file);
+      } catch (err) {
+        transpiler.addWarning(
+          `Failed to process C-Next include ${file.path}: ${err}`,
+        );
+        return false; // Stop traversing this branch on error
       }
-    };
-
-    processRecursively(cnextIncludes);
+    });
   }
 }
 
