@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.55] - 2026-02-03
+
+### Fixed
+
+- Float to integer casts now clamp instead of wrap (Issue #632, PR #633)
+  - `(u8)261.7` now produces `255` (clamped) instead of `5` (wrapped)
+  - Matches C-Next's default `clamp` overflow semantics
+  - Applies to all float-to-integer cast combinations (f32/f64 → u8/u16/u32/u64/i8/i16/i32/i64)
+
+### Added
+
+- ADR-056: Cast Overflow Behavior (Research status) for future discussion on unifying cast behavior
+- 11 new tests in `tests/float-cast/` covering all float-to-integer clamp scenarios
+
+### Documentation
+
+- CLAUDE.md updated to reference Issue #634 (dual code paths technical debt)
+
 ## [0.1.54] - 2026-02-02
 
 ### Added
