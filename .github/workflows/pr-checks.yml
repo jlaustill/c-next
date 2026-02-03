@@ -272,7 +272,17 @@ jobs:
   all-checks-passed:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, build, integration-tests, unit-tests, cli-tests, grammar-coverage, verify-clean, sonar]
+    needs:
+      [
+        lint,
+        build,
+        integration-tests,
+        unit-tests,
+        cli-tests,
+        grammar-coverage,
+        verify-clean,
+        sonar,
+      ]
     if: always()
 
     steps:
