@@ -28,11 +28,13 @@ describe("TypeRegistrationUtils", () => {
       const result = TypeRegistrationUtils.tryRegisterEnumType(
         typeRegistry,
         symbols,
-        "myVar",
-        "UnknownType",
-        false,
-        "clamp",
-        false,
+        {
+          name: "myVar",
+          baseType: "UnknownType",
+          isConst: false,
+          overflowBehavior: "clamp",
+          isAtomic: false,
+        },
       );
 
       expect(result).toBe(false);
@@ -48,11 +50,13 @@ describe("TypeRegistrationUtils", () => {
       const result = TypeRegistrationUtils.tryRegisterEnumType(
         typeRegistry,
         symbols,
-        "myVar",
-        "MyEnum",
-        false,
-        "clamp",
-        false,
+        {
+          name: "myVar",
+          baseType: "MyEnum",
+          isConst: false,
+          overflowBehavior: "clamp",
+          isAtomic: false,
+        },
       );
 
       expect(result).toBe(true);
@@ -71,15 +75,13 @@ describe("TypeRegistrationUtils", () => {
         knownEnums: new Set(["MyEnum"]),
       });
 
-      TypeRegistrationUtils.tryRegisterEnumType(
-        typeRegistry,
-        symbols,
-        "myVar",
-        "MyEnum",
-        true,
-        "clamp",
-        false,
-      );
+      TypeRegistrationUtils.tryRegisterEnumType(typeRegistry, symbols, {
+        name: "myVar",
+        baseType: "MyEnum",
+        isConst: true,
+        overflowBehavior: "clamp",
+        isAtomic: false,
+      });
 
       expect(typeRegistry.get("myVar")!.isConst).toBe(true);
     });
@@ -90,15 +92,13 @@ describe("TypeRegistrationUtils", () => {
         knownEnums: new Set(["MyEnum"]),
       });
 
-      TypeRegistrationUtils.tryRegisterEnumType(
-        typeRegistry,
-        symbols,
-        "myVar",
-        "MyEnum",
-        false,
-        "wrap",
-        false,
-      );
+      TypeRegistrationUtils.tryRegisterEnumType(typeRegistry, symbols, {
+        name: "myVar",
+        baseType: "MyEnum",
+        isConst: false,
+        overflowBehavior: "wrap",
+        isAtomic: false,
+      });
 
       expect(typeRegistry.get("myVar")!.overflowBehavior).toBe("wrap");
     });
@@ -109,15 +109,13 @@ describe("TypeRegistrationUtils", () => {
         knownEnums: new Set(["MyEnum"]),
       });
 
-      TypeRegistrationUtils.tryRegisterEnumType(
-        typeRegistry,
-        symbols,
-        "myVar",
-        "MyEnum",
-        false,
-        "clamp",
-        true,
-      );
+      TypeRegistrationUtils.tryRegisterEnumType(typeRegistry, symbols, {
+        name: "myVar",
+        baseType: "MyEnum",
+        isConst: false,
+        overflowBehavior: "clamp",
+        isAtomic: true,
+      });
 
       expect(typeRegistry.get("myVar")!.isAtomic).toBe(true);
     });
@@ -131,12 +129,14 @@ describe("TypeRegistrationUtils", () => {
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
         typeRegistry,
         symbols,
-        "myVar",
-        "UnknownType",
-        false,
+        {
+          name: "myVar",
+          baseType: "UnknownType",
+          isConst: false,
+          overflowBehavior: "clamp",
+          isAtomic: false,
+        },
         undefined,
-        "clamp",
-        false,
       );
 
       expect(result).toBe(false);
@@ -153,12 +153,14 @@ describe("TypeRegistrationUtils", () => {
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
         typeRegistry,
         symbols,
-        "flags",
-        "MyFlags",
-        false,
+        {
+          name: "flags",
+          baseType: "MyFlags",
+          isConst: false,
+          overflowBehavior: "clamp",
+          isAtomic: false,
+        },
         undefined,
-        "clamp",
-        false,
       );
 
       expect(result).toBe(true);
@@ -182,12 +184,14 @@ describe("TypeRegistrationUtils", () => {
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
         typeRegistry,
         symbols,
-        "flagsArray",
-        "MyFlags",
-        false,
+        {
+          name: "flagsArray",
+          baseType: "MyFlags",
+          isConst: false,
+          overflowBehavior: "clamp",
+          isAtomic: false,
+        },
         [10, 5], // Array dimensions
-        "clamp",
-        false,
       );
 
       expect(result).toBe(true);
@@ -208,12 +212,14 @@ describe("TypeRegistrationUtils", () => {
       TypeRegistrationUtils.tryRegisterBitmapType(
         typeRegistry,
         symbols,
-        "flags",
-        "MyFlags",
-        false,
+        {
+          name: "flags",
+          baseType: "MyFlags",
+          isConst: false,
+          overflowBehavior: "clamp",
+          isAtomic: false,
+        },
         undefined,
-        "clamp",
-        false,
       );
 
       expect(typeRegistry.get("flags")!.bitWidth).toBe(0);
