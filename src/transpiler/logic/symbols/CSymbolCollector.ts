@@ -151,6 +151,99 @@ class CSymbolCollector {
         isExtern,
         line,
       );
+    } else {
+      // Handle case where identifier is parsed as typedefName in declarationSpecifiers
+      // This happens for:
+      // - Simple typedefs: typedef int MyInt;
+      // - Variable declarations: int x;
+      // - Anonymous struct variables: struct { int x; } point;
+      // For structs/enums with their own name (struct Point {...};), the typedefName
+      // will be the same as the struct/enum name and we skip it to avoid duplicates.
+      this.collectFromDeclSpecsTypedefName(
+        declSpecs,
+        isTypedef,
+        isExtern,
+        line,
+        structSpec,
+        enumSpec,
+      );
+    }
+  }
+
+  /**
+   * Collect symbols when identifier appears as typedefName in declarationSpecifiers
+   * instead of in initDeclaratorList. This is a C grammar ambiguity.
+   */
+  private collectFromDeclSpecsTypedefName(
+    declSpecs: DeclarationSpecifiersContext,
+    isTypedef: boolean,
+    isExtern: boolean,
+    line: number,
+    structSpec?: StructOrUnionSpecifierContext | null,
+    enumSpec?: EnumSpecifierContext | null,
+  ): void {
+    // Find the last typedefName - that's the identifier being declared
+    // Everything before it is the type
+    const specs = declSpecs.declarationSpecifier();
+    let lastTypedefName: string | undefined;
+    let lastTypedefIndex = -1;
+
+    for (let i = 0; i < specs.length; i++) {
+      const typeSpec = specs[i].typeSpecifier();
+      if (typeSpec) {
+        const typedefName = typeSpec.typedefName?.();
+        if (typedefName) {
+          lastTypedefName = typedefName.getText();
+          lastTypedefIndex = i;
+        }
+      }
+    }
+
+    if (!lastTypedefName || lastTypedefIndex < 0) return;
+
+    // Skip if the typedefName is the same as a named struct/enum to avoid duplicates
+    // e.g., for "struct Point { ... };" - "Point" is both the struct name and typedefName
+    if (structSpec) {
+      const structName = structSpec.Identifier()?.getText();
+      if (structName === lastTypedefName) return;
+    }
+    if (enumSpec) {
+      const enumName = enumSpec.Identifier()?.getText();
+      if (enumName === lastTypedefName) return;
+    }
+
+    // Build the base type from all specifiers before the last typedefName
+    const typeParts: string[] = [];
+    for (let i = 0; i < lastTypedefIndex; i++) {
+      const spec = specs[i];
+      const typeSpec = spec.typeSpecifier();
+      if (typeSpec) {
+        typeParts.push(typeSpec.getText());
+      }
+    }
+    const baseType = typeParts.join(" ") || "int";
+
+    if (isTypedef) {
+      SymbolCollectorContext.addSymbol(this.ctx, {
+        name: lastTypedefName,
+        kind: ESymbolKind.Type,
+        type: baseType,
+        sourceFile: this.ctx.sourceFile,
+        sourceLine: line,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      });
+    } else {
+      SymbolCollectorContext.addSymbol(this.ctx, {
+        name: lastTypedefName,
+        kind: ESymbolKind.Variable,
+        type: baseType,
+        sourceFile: this.ctx.sourceFile,
+        sourceLine: line,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: !isExtern,
+        isDeclaration: isExtern,
+      });
     }
   }
 
@@ -314,8 +407,7 @@ class CSymbolCollector {
       if (SymbolUtils.isReservedFieldName(fieldName)) {
         SymbolCollectorContext.addWarning(
           this.ctx,
-          `Warning: C header struct '${structName}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
-            `Consider renaming the field or be aware that '${structName}.${fieldName}' may not work as expected in C-Next code.`,
+          SymbolUtils.getReservedFieldWarning("C", structName, fieldName),
         );
       }
 
@@ -431,8 +523,14 @@ class CSymbolCollector {
     const directDecl = declarator.directDeclarator?.();
     if (!directDecl) return false;
 
-    // Check for parameter type list (function)
-    return directDecl.parameterTypeList?.() !== null;
+    // Check for parameter type list (function with params) or empty parens (function without params)
+    // The C grammar: directDeclarator '(' parameterTypeList ')' | directDeclarator '(' identifierList? ')'
+    if (directDecl.parameterTypeList?.() !== null) return true;
+
+    // Check for LeftParen token - indicates function declarator even with empty params
+    if (directDecl.LeftParen?.()) return true;
+
+    return false;
   }
 
   private extractTypeFromDeclSpecs(

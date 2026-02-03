@@ -407,8 +407,7 @@ class CppSymbolCollector {
       if (SymbolUtils.isReservedFieldName(fieldName)) {
         SymbolCollectorContext.addWarning(
           this.ctx,
-          `Warning: C++ header struct '${className}' has field '${fieldName}' which conflicts with C-Next's .${fieldName} property. ` +
-            `Consider renaming the field or be aware that '${className}.${fieldName}' may not work as expected in C-Next code.`,
+          SymbolUtils.getReservedFieldWarning("C++", className, fieldName),
         );
       }
 
