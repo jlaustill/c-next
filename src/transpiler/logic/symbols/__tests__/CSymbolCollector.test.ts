@@ -627,10 +627,14 @@ describe("CSymbolCollector - Additional Edge Cases", () => {
     const collector = new CSymbolCollector("test.h");
     const symbols = collector.collect(tree);
 
-    // Should have struct Point and typedef Point, no duplicates
+    // Should have struct Point symbols and typedef Point
     const pointSymbols = symbols.filter((s) => s.name === "Point");
-    // Struct declaration + typedef = 2 symbols (struct appears twice due to forward decl + definition)
-    expect(pointSymbols.length).toBeGreaterThanOrEqual(2);
+    // 4 symbols total:
+    // - Struct from forward declaration (struct Point;)
+    // - Struct from typedef's struct specifier (typedef struct Point ...)
+    // - Type from typedef (... Point;)
+    // - Struct from definition (struct Point { ... })
+    expect(pointSymbols.length).toBe(4);
 
     const structSymbol = pointSymbols.find(
       (s) => s.kind === ESymbolKind.Struct,
