@@ -203,13 +203,16 @@ class CSymbolCollector {
 
     // Skip if the typedefName is the same as a named struct/enum to avoid duplicates
     // e.g., for "struct Point { ... };" - "Point" is both the struct name and typedefName
-    if (structSpec) {
-      const structName = structSpec.Identifier()?.getText();
-      if (structName === lastTypedefName) return;
-    }
-    if (enumSpec) {
-      const enumName = enumSpec.Identifier()?.getText();
-      if (enumName === lastTypedefName) return;
+    // But for "typedef struct Point Point;" we DO want to create the Type symbol
+    if (!isTypedef) {
+      if (structSpec) {
+        const structName = structSpec.Identifier()?.getText();
+        if (structName === lastTypedefName) return;
+      }
+      if (enumSpec) {
+        const enumName = enumSpec.Identifier()?.getText();
+        if (enumName === lastTypedefName) return;
+      }
     }
 
     // Build the base type from all specifiers before the last typedefName
