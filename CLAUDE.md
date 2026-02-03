@@ -330,6 +330,8 @@ For compile-time error tests in `tests/analysis/`:
 
 ### Transpiler Code Paths
 
+**⚠️ Technical Debt: Issue #634** — The dual code paths are a known architectural smell that should be consolidated.
+
 The Transpiler has two distinct entry points that must stay synchronized:
 
 - **`run()`** — CLI entry point, processes files with full symbol resolution across includes

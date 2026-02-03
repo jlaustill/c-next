@@ -1,0 +1,37 @@
+// test-execution
+// Tests: Float to i8 cast should clamp values to -128 to 127 range
+// Issue #632: Float casts currently wrap instead of clamping
+
+u32 main() {
+    f32 over <- 200.0;
+    f32 under <- -200.0;
+    f32 in_range <- 50.0;
+    f32 at_max <- 127.0;
+    f32 at_min <- -128.0;
+    f32 negative <- -50.5;
+
+    // Test overflow clamping (above 127)
+    i8 result <- (i8)over;
+    if (result != 127) return 1;  // 200.0 should clamp to 127
+
+    // Test underflow clamping (below -128)
+    result <- (i8)under;
+    if (result != -128) return 2;  // -200.0 should clamp to -128
+
+    // Test in-range positive value
+    result <- (i8)in_range;
+    if (result != 50) return 3;  // 50.0 -> 50
+
+    // Test boundary values
+    result <- (i8)at_max;
+    if (result != 127) return 4;  // 127.0 -> 127
+
+    result <- (i8)at_min;
+    if (result != -128) return 5;  // -128.0 -> -128
+
+    // Test negative in-range value
+    result <- (i8)negative;
+    if (result != -50) return 6;  // -50.5 -> -50 (truncates toward zero)
+
+    return 0;
+}

@@ -1,0 +1,16 @@
+// test-execution
+// Tests: f64 to u64 cast should clamp negative values to 0
+// Note: f64 can't represent values > UINT64_MAX precisely, so we test negative clamping
+
+u32 main() {
+    f64 negative <- -100.0;
+    f64 in_range <- 1000000000000.0;  // 1 trillion
+
+    u64 result <- (u64)negative;
+    if (result != 0) return 1;
+
+    result <- (u64)in_range;
+    if (result != 1000000000000) return 2;
+
+    return 0;
+}

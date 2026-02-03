@@ -1,0 +1,41 @@
+// test-execution
+// Tests: Float to u8 cast should clamp values to 0-255 range
+// Issue #632: Float casts currently wrap instead of clamping
+
+u32 main() {
+    f32 over <- 261.7;
+    f32 way_over <- 1000.0;
+    f32 negative <- -50.5;
+    f32 in_range <- 100.0;
+    f32 at_max <- 255.0;
+    f32 at_min <- 0.0;
+
+    // Test overflow clamping
+    u8 result <- (u8)over;
+    if (result != 255) return 1;  // 261.7 should clamp to 255, not wrap to 5
+
+    result <- (u8)way_over;
+    if (result != 255) return 2;  // 1000.0 should clamp to 255
+
+    // Test underflow clamping
+    result <- (u8)negative;
+    if (result != 0) return 3;  // -50.5 should clamp to 0
+
+    // Test in-range values (should truncate normally)
+    result <- (u8)in_range;
+    if (result != 100) return 4;  // 100.0 -> 100
+
+    // Test boundary values
+    result <- (u8)at_max;
+    if (result != 255) return 5;  // 255.0 -> 255
+
+    result <- (u8)at_min;
+    if (result != 0) return 6;  // 0.0 -> 0
+
+    // Test fractional truncation (within range)
+    f32 frac <- 127.9;
+    result <- (u8)frac;
+    if (result != 127) return 7;  // 127.9 -> 127 (truncates, not rounds)
+
+    return 0;
+}
