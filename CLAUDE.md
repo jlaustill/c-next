@@ -324,26 +324,20 @@ For compile-time error tests in `tests/analysis/`:
 
 ## Header Generation
 
-**Symbol collection timing in `transpileSource()`**: When generating headers, symbol collection MUST happen AFTER `codeGenerator.generate()`. Placing it before breaks type resolution (e.g., `strlen()` becomes placeholder comments).
-
 **Test `.expected.h` files**: The test framework validates `.expected.h` files when present. Create one alongside `.expected.c` for header generation tests.
 
 ### Transpiler Code Paths
 
-**⚠️ Technical Debt: Issue #634** — The dual code paths are a known architectural smell that should be consolidated.
+**Issue #634 Consolidation**: The dual code paths have been consolidated. Both `run()` and `transpileSource()` standalone now use the same symbol collection timing (symbols collected BEFORE code generation).
 
-The Transpiler has two distinct entry points that must stay synchronized:
+The Transpiler has two entry points with unified behavior:
 
 - **`run()`** — CLI entry point, processes files with full symbol resolution across includes
-- **`transpileSource()`** — Test framework entry point, single-file transpilation
+- **`transpileSource()`** — Test framework entry point, single-file transpilation (or called by `run()` with context)
 
-When adding features involving cross-file symbols (enums, structs, types):
+When `run()` calls `transpileSource()` with a context, it passes a pre-populated symbol table. When `transpileSource()` is called standalone (no context), it builds its own context via `StandaloneContextBuilder`.
 
-1. Test with `npm test` (uses `transpileSource()`) — may pass with incomplete implementation
-2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full transpiler
-3. Ensure both paths receive the same symbol information (e.g., `allKnownEnums`)
-
-**Cross-file modification tracking**: Both paths now accumulate modifications via `accumulatedModifications` (Issue #561). If CLI works but tests don't (or vice versa), check if the feature relies on cross-file state that only one path handles.
+**Testing cross-file features**: Both paths should produce identical output for the same input. The `DualCodePaths.test.ts` suite verifies this parity.
 
 ## Task Completion Requirements
 

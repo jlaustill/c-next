@@ -153,6 +153,10 @@ class Transpiler {
       // Issue #587: Reset accumulated state for new run
       this.state.reset();
 
+      // Issue #634: Reset symbol table for new run
+      // Without this, calling run() twice on the same Transpiler causes symbol conflicts
+      this.symbolTable.clear();
+
       // Stage 1: Discover source files
       const { cnextFiles, headerFiles } = await this.discoverSources();
 
@@ -777,15 +781,23 @@ class Transpiler {
    * Useful for test frameworks that need header type information without reading
    * the source file from disk.
    *
+   * ## Issue #634: Consolidated Code Paths
+   *
+   * Both run() and transpileSource() now use the same symbol collection timing:
+   * symbols are collected BEFORE code generation. This eliminates the previous
+   * architectural discrepancy where run() collected symbols first but standalone
+   * mode collected them after.
+   *
    * When called with a context (from run()), this method:
-   * - Uses the shared symbol table (already populated)
+   * - Uses the shared symbol table (already populated in Stage 3)
    * - Skips header/include parsing (Steps 4a, 4b)
    * - Uses pre-collected symbolInfoByFile for enum resolution
    * - Returns ITranspileContribution in the result
    *
    * When called without context (standalone mode):
-   * - Maintains backwards compatibility with existing test framework usage
-   * - Parses headers and includes from scratch
+   * - Parses headers and includes via StandaloneContextBuilder
+   * - Collects main file symbols BEFORE code generation (same as run())
+   * - Maintains isolation between calls (symbolTable cleared each time)
    *
    * @param source - The C-Next source code as a string
    * @param options - Options for transpilation
@@ -825,6 +837,10 @@ class Transpiler {
       // Skip if context provided - run() manages the shared accumulated state
       if (!context) {
         this.modificationAnalyzer.clear();
+        // Issue #634: Reset symbol table and state for standalone mode
+        // This ensures repeated standalone calls don't accumulate symbols
+        this.symbolTable.clear();
+        this.state.reset();
       }
 
       // Step 1: Build search paths using unified IncludeResolver
@@ -890,6 +906,17 @@ class Transpiler {
       // ADR-055 Phase 5: Create ICodeGenSymbols from TSymbol[] for CodeGenerator
       const tSymbols = CNextResolver.resolve(tree, sourcePath);
       let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Issue #634: Consolidate symbol collection timing with run() path
+      // In standalone mode, collect main file symbols BEFORE code generation (like run() does)
+      // This eliminates the duplicate CNextResolver.resolve() call that was after generate()
+      if (!context) {
+        const collectedSymbols = TSymbolAdapter.toISymbols(
+          tSymbols,
+          symbolTable,
+        );
+        symbolTable.addSymbols(collectedSymbols);
+      }
 
       // Issue #465: Merge enum info from included .cnx files (including transitive)
       // This enables external enum member references to get the correct type prefix
@@ -961,18 +988,10 @@ class Transpiler {
         passByValueCopy.set(funcName, new Set(params));
       }
 
-      // Issue #424/ADR-055: Collect symbols from main source file AFTER code generation
-      // This must happen after generate() to avoid interfering with type resolution
-      // Skip when context is provided - run() already added symbols in Stage 3
+      // Issue #634: Symbol collection moved to before code generation (line ~905)
+      // This consolidates the timing with run() path - both now collect symbols before generate()
+      // Issue #461: Resolve external const array dimensions before header generation
       if (!context) {
-        const tSymbols = CNextResolver.resolve(tree, sourcePath);
-        const collectedSymbols = TSymbolAdapter.toISymbols(
-          tSymbols,
-          symbolTable,
-        );
-        symbolTable.addSymbols(collectedSymbols);
-
-        // Issue #461: Resolve external const array dimensions before header generation
         this.symbolTable.resolveExternalArrayDimensions();
       }
 
