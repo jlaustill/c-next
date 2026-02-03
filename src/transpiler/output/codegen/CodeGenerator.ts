@@ -15,6 +15,7 @@ import IComment from "../../types/IComment";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
+import TYPE_LIMITS from "./types/TYPE_LIMITS";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "./types/TTypeInfo";
 import TParameterInfo from "./types/TParameterInfo";
@@ -280,6 +281,8 @@ export default class CodeGenerator implements IOrchestrator {
   private needsISR: boolean = false; // ADR-040: For ISR function pointer type
 
   private needsCMSIS: boolean = false; // ADR-049/050: For atomic intrinsics and critical sections
+
+  private needsLimits: boolean = false; // Issue #632: For float-to-int clamp casts
 
   private needsIrqWrappers: boolean = false; // Issue #473: IRQ wrappers for critical sections
 
@@ -1738,6 +1741,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.needsFloatStaticAssert = false; // Reset float bit indexing assertion
     this.needsISR = false; // ADR-040: Reset ISR typedef tracking
     this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
+    this.needsLimits = false; // Issue #632: Reset float-to-int clamp tracking
     this.needsIrqWrappers = false; // Issue #473: Reset IRQ wrappers tracking
     this.selfIncludeAdded = false; // Issue #369: Reset self-include tracking
 
@@ -1920,6 +1924,10 @@ export default class CodeGenerator implements IOrchestrator {
       // Note: For Arduino/Teensy, these are typically included via Arduino.h
       // For standalone ARM targets, cmsis_gcc.h provides __LDREX/__STREX/__get_PRIMASK etc.
       autoIncludes.push("#include <cmsis_gcc.h>");
+    }
+    if (this.needsLimits) {
+      // Issue #632: For float-to-int clamp casts (UINT8_MAX, INT8_MIN, etc.)
+      autoIncludes.push("#include <limits.h>");
     }
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes, "");
@@ -8956,6 +8964,20 @@ export default class CodeGenerator implements IOrchestrator {
 
     const expr = this.generateUnaryExpr(ctx.unaryExpression());
 
+    // Issue #632: Float-to-integer casts must clamp to avoid undefined behavior
+    // C-Next's default is "clamp" (saturate), so out-of-range values clamp to type limits
+    if (this._isIntegerType(targetTypeName)) {
+      const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
+      if (sourceType && this._isFloatType(sourceType)) {
+        return this.generateFloatToIntClampCast(
+          expr,
+          targetType,
+          targetTypeName,
+          sourceType,
+        );
+      }
+    }
+
     // Validate enum casts are only to unsigned types
     const allowedCastTypes = ["u8", "u16", "u32", "u64"];
 
@@ -8975,6 +8997,56 @@ export default class CodeGenerator implements IOrchestrator {
       return `static_cast<${targetType}>(${expr})`;
     }
     return `(${targetType})${expr}`;
+  }
+
+  /**
+   * Issue #632: Generate clamping cast for float-to-integer conversions
+   * In C, casting an out-of-range float to an integer is undefined behavior.
+   * C-Next's default overflow behavior is "clamp" (saturate), so we generate
+   * explicit bounds checks to ensure safe, deterministic results.
+   *
+   * @param expr The C expression for the float value
+   * @param targetType The C type name (e.g., "uint8_t")
+   * @param targetTypeName The C-Next type name (e.g., "u8")
+   * @param sourceType The source float type (e.g., "f32")
+   * @returns A clamping cast expression
+   */
+  private generateFloatToIntClampCast(
+    expr: string,
+    targetType: string,
+    targetTypeName: string,
+    sourceType: string,
+  ): string {
+    const maxValue = TYPE_LIMITS.TYPE_MAX[targetTypeName];
+    const minValue = TYPE_LIMITS.TYPE_MIN[targetTypeName];
+
+    if (!maxValue) {
+      // Unknown type, fall back to raw cast
+      return this.cppMode
+        ? `static_cast<${targetType}>(${expr})`
+        : `(${targetType})${expr}`;
+    }
+
+    // Mark that we need limits.h for the type limit macros
+    this.needsLimits = true;
+
+    // Use appropriate float suffix for comparisons
+    const floatSuffix = sourceType === "f32" ? "f" : "";
+
+    // For unsigned types, minValue is "0", for signed it's a macro like INT8_MIN
+    const minComparison =
+      minValue === "0"
+        ? `0.0${floatSuffix}`
+        : `((${sourceType === "f32" ? "float" : "double"})${minValue})`;
+    const maxComparison = `((${sourceType === "f32" ? "float" : "double"})${maxValue})`;
+
+    // Generate clamping expression:
+    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)expr
+    // Note: For unsigned targets, MIN is 0 so we check < 0.0
+    if (this.cppMode) {
+      return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : static_cast<${targetType}>(${expr}))`;
+    }
+    return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : (${targetType})(${expr}))`;
   }
 
   /**
