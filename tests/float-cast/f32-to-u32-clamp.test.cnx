@@ -1,0 +1,19 @@
+// test-execution
+// Tests: f32 to u32 cast should clamp values to 0-4294967295 range
+
+u32 main() {
+    f32 over <- 5000000000.0;  // > UINT32_MAX
+    f32 negative <- -100.0;
+    f32 in_range <- 1000000.0;
+
+    u32 result <- (u32)over;
+    if (result != 4294967295) return 1;
+
+    result <- (u32)negative;
+    if (result != 0) return 2;
+
+    result <- (u32)in_range;
+    if (result != 1000000) return 3;
+
+    return 0;
+}
