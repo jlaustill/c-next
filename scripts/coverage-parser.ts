@@ -125,7 +125,7 @@ function parseTableRow(
 
   // Check for error test marker
   const isErrorTest = context.includes("**(ERROR)**");
-  const cleanContext = context.replaceAll(/\*\*\(ERROR\)\*\*/g, "").trim();
+  const cleanContext = context.replaceAll("**(ERROR)**", "").trim();
 
   const id = generateCoverageId(
     sectionNum,

@@ -213,7 +213,7 @@ class TSymbolAdapter {
    */
   private static convertVariable(variable: IVariableSymbol): ISymbol {
     // Convert dimensions to string dimensions for ISymbol
-    const arrayDimensions = variable.arrayDimensions?.map((d) => String(d));
+    const arrayDimensions = variable.arrayDimensions?.map(String);
 
     // Get first dimension for legacy size field (only if numeric)
     const firstDim = variable.arrayDimensions?.[0];

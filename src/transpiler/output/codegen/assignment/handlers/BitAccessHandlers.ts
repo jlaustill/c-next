@@ -116,8 +116,8 @@ function handleStructMemberBit(
   // Extract the bit index from the last subscript
   const bitIndex = deps.generateExpression(ctx.subscripts.at(-1)!);
 
-  // TODO: Track member type through struct chain for 64-bit awareness
-  // For now, use conservative "1" which works for most cases
+  // Limitation: Uses literal "1" which works for types up to 32 bits.
+  // For 64-bit struct members, would need to track member type through chain.
   const one = "1";
   const intValue = BitUtils.boolToInt(ctx.generatedValue);
 
