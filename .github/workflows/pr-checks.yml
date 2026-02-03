@@ -321,7 +321,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report
-          path: ./coverage
+          path: ./pages/coverage
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -329,7 +329,7 @@ jobs:
       - name: Upload coverage to Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./coverage
+          path: ./pages
 
       - name: Deploy to GitHub Pages
         id: deployment
