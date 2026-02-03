@@ -20,6 +20,18 @@ interface ITypeSymbols {
 }
 
 /**
+ * Common options for type registration.
+ * Groups parameters shared by enum and bitmap registration.
+ */
+interface ITypeRegistrationOptions {
+  name: string;
+  baseType: string;
+  isConst: boolean;
+  overflowBehavior: TOverflowBehavior;
+  isAtomic: boolean;
+}
+
+/**
  * Utilities for registering enum and bitmap types in the type registry.
  */
 class TypeRegistrationUtils {
@@ -30,25 +42,21 @@ class TypeRegistrationUtils {
   static tryRegisterEnumType(
     typeRegistry: Map<string, TTypeInfo>,
     symbols: ITypeSymbols,
-    name: string,
-    baseType: string,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    options: ITypeRegistrationOptions,
   ): boolean {
-    if (!symbols.knownEnums.has(baseType)) {
+    if (!symbols.knownEnums.has(options.baseType)) {
       return false;
     }
 
-    typeRegistry.set(name, {
-      baseType,
+    typeRegistry.set(options.name, {
+      baseType: options.baseType,
       bitWidth: 0,
       isArray: false,
-      isConst,
+      isConst: options.isConst,
       isEnum: true,
-      enumTypeName: baseType,
-      overflowBehavior,
-      isAtomic,
+      enumTypeName: options.baseType,
+      overflowBehavior: options.overflowBehavior,
+      isAtomic: options.isAtomic,
     });
 
     return true;
@@ -63,43 +71,39 @@ class TypeRegistrationUtils {
   static tryRegisterBitmapType(
     typeRegistry: Map<string, TTypeInfo>,
     symbols: ITypeSymbols,
-    name: string,
-    baseType: string,
-    isConst: boolean,
+    options: ITypeRegistrationOptions,
     arrayDimensions: number[] | undefined,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
   ): boolean {
-    if (!symbols.knownBitmaps.has(baseType)) {
+    if (!symbols.knownBitmaps.has(options.baseType)) {
       return false;
     }
 
-    const bitWidth = symbols.bitmapBitWidth.get(baseType) || 0;
+    const bitWidth = symbols.bitmapBitWidth.get(options.baseType) || 0;
 
     if (arrayDimensions && arrayDimensions.length > 0) {
       // Bitmap array
-      typeRegistry.set(name, {
-        baseType,
+      typeRegistry.set(options.name, {
+        baseType: options.baseType,
         bitWidth,
         isArray: true,
         arrayDimensions,
-        isConst,
+        isConst: options.isConst,
         isBitmap: true,
-        bitmapTypeName: baseType,
-        overflowBehavior,
-        isAtomic,
+        bitmapTypeName: options.baseType,
+        overflowBehavior: options.overflowBehavior,
+        isAtomic: options.isAtomic,
       });
     } else {
       // Non-array bitmap
-      typeRegistry.set(name, {
-        baseType,
+      typeRegistry.set(options.name, {
+        baseType: options.baseType,
         bitWidth,
         isArray: false,
-        isConst,
+        isConst: options.isConst,
         isBitmap: true,
-        bitmapTypeName: baseType,
-        overflowBehavior,
-        isAtomic,
+        bitmapTypeName: options.baseType,
+        overflowBehavior: options.overflowBehavior,
+        isAtomic: options.isAtomic,
       });
     }
 

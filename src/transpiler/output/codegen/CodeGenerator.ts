@@ -1724,7 +1724,7 @@ export default class CodeGenerator implements IOrchestrator {
         overflowBehavior: "clamp",
       }, // ADR-044
       lastArrayInitCount: 0, // ADR-035: Track element count for size inference
-      lastArrayFillValue: undefined as string | undefined, // ADR-035: Track fill-all value
+      lastArrayFillValue: undefined, // ADR-035: Track fill-all value
       lengthCache: null, // strlen optimization: variable -> temp var name
       targetCapabilities, // ADR-049: Target platform capabilities
     };
@@ -3075,16 +3075,21 @@ export default class CodeGenerator implements IOrchestrator {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
   ): boolean {
+    // Common options for type registration
+    const registrationOptions = {
+      name,
+      baseType,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    };
+
     // ADR-017: Check if this is an enum type
     if (
       TypeRegistrationUtils.tryRegisterEnumType(
         this.context.typeRegistry,
         this.symbols!,
-        name,
-        baseType,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        registrationOptions,
       )
     ) {
       return true;
@@ -3096,12 +3101,8 @@ export default class CodeGenerator implements IOrchestrator {
       TypeRegistrationUtils.tryRegisterBitmapType(
         this.context.typeRegistry,
         this.symbols!,
-        name,
-        baseType,
-        isConst,
+        registrationOptions,
         bitmapDimensions,
-        overflowBehavior,
-        isAtomic,
       )
     ) {
       return true;

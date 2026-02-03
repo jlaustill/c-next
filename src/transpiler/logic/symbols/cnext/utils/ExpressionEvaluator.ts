@@ -29,7 +29,7 @@ class ExpressionEvaluator {
     // Handle decimal
     const value = Number.parseInt(expr, 10);
     if (Number.isNaN(value)) {
-      throw new Error(`Invalid constant expression: ${expr}`);
+      throw new TypeError(`Invalid constant expression: ${expr}`);
     }
 
     return value;
