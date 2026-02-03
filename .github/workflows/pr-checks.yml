@@ -14,7 +14,6 @@ concurrency:
 jobs:
   # ============================================================================
   # PARALLEL GROUP 1: Static Analysis (no build needed)
-  # These checks run immediately and in parallel with build-and-test
   # ============================================================================
   lint:
     name: Static Analysis
@@ -58,64 +57,74 @@ jobs:
         run: npm run depcruise
         continue-on-error: true
 
-      - name: Report lint results
+      - name: Report results
         if: always()
         run: |
-          echo "## Static Analysis Results"
-          echo ""
-
           FAILED=0
-
-          if [ "${{ steps.prettier.outcome }}" != "success" ]; then
-            echo "❌ Prettier formatting check failed"
-            FAILED=1
-          else
-            echo "✅ Prettier formatting check passed"
-          fi
-
-          if [ "${{ steps.cspell.outcome }}" != "success" ]; then
-            echo "❌ Spelling check failed"
-            FAILED=1
-          else
-            echo "✅ Spelling check passed"
-          fi
-
-          if [ "${{ steps.oxlint.outcome }}" != "success" ]; then
-            echo "❌ oxlint check failed"
-            FAILED=1
-          else
-            echo "✅ oxlint check passed"
-          fi
-
-          if [ "${{ steps.knip.outcome }}" != "success" ]; then
-            echo "❌ Dead code check failed (knip found unused exports/files)"
-            FAILED=1
-          else
-            echo "✅ Dead code check passed"
-          fi
-
-          if [ "${{ steps.depcruise.outcome }}" != "success" ]; then
-            echo "❌ Architecture boundary check failed (dependency-cruiser)"
-            FAILED=1
-          else
-            echo "✅ Architecture boundary check passed"
-          fi
-
-          echo ""
-          if [ $FAILED -eq 1 ]; then
-            echo "::error::One or more static analysis checks failed"
-            exit 1
-          else
-            echo "::notice::All static analysis checks passed!"
-          fi
+          [ "${{ steps.prettier.outcome }}" != "success" ] && echo "❌ Prettier" && FAILED=1 || echo "✅ Prettier"
+          [ "${{ steps.cspell.outcome }}" != "success" ] && echo "❌ Spelling" && FAILED=1 || echo "✅ Spelling"
+          [ "${{ steps.oxlint.outcome }}" != "success" ] && echo "❌ oxlint" && FAILED=1 || echo "✅ oxlint"
+          [ "${{ steps.knip.outcome }}" != "success" ] && echo "❌ Dead code (knip)" && FAILED=1 || echo "✅ Dead code (knip)"
+          [ "${{ steps.depcruise.outcome }}" != "success" ] && echo "❌ Architecture (depcruise)" && FAILED=1 || echo "✅ Architecture (depcruise)"
+          [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   # ============================================================================
-  # PARALLEL GROUP 2: Build & Test (requires parser generation)
-  # Runs in parallel with static analysis
+  # PARALLEL GROUP 1: Build (parser generation + typecheck)
   # ============================================================================
-  build-and-test:
-    name: Build & Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate parser files
+        run: npm run antlr:all
+
+      - name: Check TypeScript types
+        run: npm run typecheck
+
+  # ============================================================================
+  # PARALLEL GROUP 2: Test suites (all run in parallel after build)
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate parser files
+        run: npm run antlr:all
+
+      - name: Run integration tests
+        run: npm test
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [build]
 
     steps:
       - name: Checkout code
@@ -133,24 +142,10 @@ jobs:
         run: npm ci
 
       - name: Generate parser files
-        id: generate
         run: npm run antlr:all
-        continue-on-error: true
 
-      - name: Check TypeScript types
-        id: typecheck
-        run: npm run typecheck
-        continue-on-error: true
-
-      - name: Run tests
-        id: test
-        run: npm test
-        continue-on-error: true
-
-      - name: Run unit tests with coverage (vitest)
-        id: unit
+      - name: Run unit tests with coverage
         run: npm run unit -- --coverage
-        continue-on-error: true
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -158,127 +153,107 @@ jobs:
           name: coverage-report
           path: ./coverage
 
+  cli-tests:
+    name: CLI Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate parser files
+        run: npm run antlr:all
+
       - name: Run CLI integration tests
-        id: test_cli
         run: npm run test:cli
-        continue-on-error: true
 
       - name: Verify transpiler CLI
-        id: cli
         run: |
-          # Smoke test: Verify transpiler can process example file
           ./bin/cnext.js examples/teensy4/blink.cnx
-          # Check that output was generated
           test -f examples/teensy4/blink.c || exit 1
-        continue-on-error: true
 
-      - name: Check grammar coverage (Issue #35)
-        id: grammar_coverage
+  grammar-coverage:
+    name: Grammar Coverage
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate parser files
+        run: npm run antlr:all
+
+      - name: Check grammar coverage
         run: npm run coverage:grammar:check -- --threshold 80
-        continue-on-error: true
+
+  verify-clean:
+    name: Verify Clean
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate parser files
+        run: npm run antlr:all
+
+      - name: Run tests (generates output files)
+        run: npm test
 
       - name: Check for uncommitted changes
-        id: uncommitted
         run: |
-          # Check for any modified, staged, or untracked files
           if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Uncommitted changes detected after build/test!"
-            echo ""
-            echo "The following files have changes or are untracked:"
+            echo "::error::Uncommitted changes detected!"
             git status --porcelain
             echo ""
-            echo "This usually means generated files need to be committed."
-            echo "Run 'npm run antlr:all' and 'npm test' locally, then commit the changes."
+            echo "Run 'npm run antlr:all' and 'npm test' locally, then commit."
             exit 1
           fi
-          echo "No uncommitted changes detected."
-        continue-on-error: true
-
-      - name: Report build/test results
-        if: always()
-        run: |
-          echo "## Build & Test Results"
-          echo ""
-
-          FAILED=0
-
-          if [ "${{ steps.generate.outcome }}" != "success" ]; then
-            echo "❌ Parser generation failed"
-            FAILED=1
-          else
-            echo "✅ Parser generation passed"
-          fi
-
-          if [ "${{ steps.typecheck.outcome }}" != "success" ]; then
-            echo "❌ TypeScript type check failed"
-            FAILED=1
-          else
-            echo "✅ TypeScript type check passed"
-          fi
-
-          if [ "${{ steps.test.outcome }}" != "success" ]; then
-            echo "❌ Tests failed"
-            FAILED=1
-          else
-            echo "✅ Tests passed"
-          fi
-
-          if [ "${{ steps.unit.outcome }}" != "success" ]; then
-            echo "❌ Unit tests failed"
-            FAILED=1
-          else
-            echo "✅ Unit tests passed"
-          fi
-
-          if [ "${{ steps.test_cli.outcome }}" != "success" ]; then
-            echo "❌ CLI integration tests failed"
-            FAILED=1
-          else
-            echo "✅ CLI integration tests passed"
-          fi
-
-          if [ "${{ steps.cli.outcome }}" != "success" ]; then
-            echo "❌ CLI smoke test failed"
-            FAILED=1
-          else
-            echo "✅ CLI smoke test passed"
-          fi
-
-          if [ "${{ steps.grammar_coverage.outcome }}" != "success" ]; then
-            echo "❌ Grammar coverage check failed (below 80%)"
-            FAILED=1
-          else
-            echo "✅ Grammar coverage check passed"
-          fi
-
-          if [ "${{ steps.uncommitted.outcome }}" != "success" ]; then
-            echo "❌ Uncommitted changes detected (generated files not committed)"
-            FAILED=1
-          else
-            echo "✅ No uncommitted changes"
-          fi
-
-          echo ""
-          if [ $FAILED -eq 1 ]; then
-            echo "::error::One or more build/test checks failed"
-            exit 1
-          else
-            echo "::notice::All build/test checks passed!"
-          fi
+          echo "✅ No uncommitted changes"
 
   # ============================================================================
-  # SEQUENTIAL: SonarCloud (needs coverage from build-and-test)
+  # SEQUENTIAL: SonarCloud (needs coverage from unit-tests)
   # ============================================================================
   sonar:
-    name: SonarCloud Analysis
+    name: SonarCloud
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    needs: [unit-tests]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Full history for SonarCloud blame data
+          fetch-depth: 0
 
       - name: Download coverage artifact
         uses: actions/download-artifact@v4
@@ -292,58 +267,46 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # ============================================================================
-  # FINAL: Summary job that all checks must pass
+  # FINAL: All checks must pass
   # ============================================================================
   all-checks-passed:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, build-and-test, sonar]
+    needs:
+      [
+        lint,
+        build,
+        integration-tests,
+        unit-tests,
+        cli-tests,
+        grammar-coverage,
+        verify-clean,
+        sonar,
+      ]
     if: always()
 
     steps:
       - name: Verify all jobs succeeded
         run: |
-          echo "## Final Results"
-          echo ""
-
+          echo "## Results"
           FAILED=0
-
-          if [ "${{ needs.lint.result }}" != "success" ]; then
-            echo "❌ Static analysis failed"
-            FAILED=1
-          else
-            echo "✅ Static analysis passed"
-          fi
-
-          if [ "${{ needs.build-and-test.result }}" != "success" ]; then
-            echo "❌ Build & test failed"
-            FAILED=1
-          else
-            echo "✅ Build & test passed"
-          fi
-
-          if [ "${{ needs.sonar.result }}" != "success" ]; then
-            echo "❌ SonarCloud analysis failed"
-            FAILED=1
-          else
-            echo "✅ SonarCloud analysis passed"
-          fi
-
-          echo ""
-          if [ $FAILED -eq 1 ]; then
-            echo "::error::One or more quality checks failed"
-            exit 1
-          else
-            echo "::notice::All quality checks passed!"
-          fi
+          [ "${{ needs.lint.result }}" != "success" ] && echo "❌ Static Analysis" && FAILED=1 || echo "✅ Static Analysis"
+          [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
+          [ "${{ needs.integration-tests.result }}" != "success" ] && echo "❌ Integration Tests" && FAILED=1 || echo "✅ Integration Tests"
+          [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
+          [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
+          [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
+          [ "${{ needs.verify-clean.result }}" != "success" ] && echo "❌ Verify Clean" && FAILED=1 || echo "✅ Verify Clean"
+          [ "${{ needs.sonar.result }}" != "success" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
+          [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"
 
   # ============================================================================
-  # DEPLOY: Coverage report to GitHub Pages (only on push to main)
+  # DEPLOY: Coverage to GitHub Pages (only on push to main)
   # ============================================================================
   deploy-coverage:
-    name: Deploy Coverage to Pages
+    name: Deploy Coverage
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    needs: [unit-tests]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
