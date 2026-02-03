@@ -5,7 +5,7 @@
  * output for the same input, ensuring the refactoring doesn't break anything.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../types/ITranspilerConfig";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
