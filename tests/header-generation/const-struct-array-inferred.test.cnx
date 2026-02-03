@@ -1,0 +1,39 @@
+// Tests: Issue #636 - Const struct array with inferred size must include dimension in header
+// This is a regression test to ensure headers correctly declare array dimensions
+// when the size is inferred from an initializer.
+
+struct TItem {
+    u32 id;
+    u16 value;
+}
+
+// Key case: const struct array with inferred size []
+// Header MUST generate: extern const TItem ITEMS[3];
+// NOT: extern const TItem ITEMS;  (this breaks cross-file compilation)
+const TItem ITEMS[] <- [
+    { id: 1, value: 100 },
+    { id: 2, value: 200 },
+    { id: 3, value: 300 }
+];
+
+// Also test: non-const struct array with inferred size
+TItem mutableItems[] <- [
+    { id: 10, value: 1000 },
+    { id: 20, value: 2000 }
+];
+
+// Also test: const primitive array with inferred size
+const u8 SIZES[] <- [10, 20, 30, 40];
+
+// Also test: const array with explicit size (control case)
+const i32 EXPLICIT[2] <- [100, 200];
+
+const u8 ITEM_COUNT <- 3;
+
+void main() {
+    u32 total <- 0;
+    for (u8 i <- 0; i < ITEM_COUNT; i <- i + 1) {
+        TItem item <- ITEMS[i];
+        total <- total + item.value;
+    }
+}
