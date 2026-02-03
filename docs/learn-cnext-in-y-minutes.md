@@ -793,6 +793,16 @@ u8 field <- flags[4, 3];    // Read 3-bit field
 // .length on integers gives bit width
 u8 width8 <- flags.length;  // 8
 u32 width32 <- counter.length;  // 32
+
+// Float bit indexing (IEEE-754 byte access via memcpy)
+// Useful for serialization, CAN bus protocols, etc.
+f32 value <- 0.0;
+value[0, 8] <- 0x00;   // Write byte 0 (LSB)
+value[8, 8] <- 0x00;   // Write byte 1
+value[16, 8] <- 0x80;  // Write byte 2
+value[24, 8] <- 0x3F;  // Write byte 3 (MSB) → value is now 1.0f
+
+u8 byte <- value[24, 8];  // Read high byte from float
 ```
 
 ## Bitmap Types

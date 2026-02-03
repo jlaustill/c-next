@@ -237,6 +237,50 @@ for (u32 i <- 0; i < buffer.length; i <- i + 1) {
 }
 ```
 
+### Float Bit Indexing (IEEE-754 Byte Access)
+
+Float types (`f32`, `f64`) support bit indexing for type-safe access to their underlying IEEE-754 representation. Unlike integer bit indexing which uses direct bitwise operations, float bit indexing uses a shadow integer variable with `memcpy` to avoid undefined behavior.
+
+```cnx
+// Build an f32 from little-endian bytes
+f32 value <- 0.0;
+value[0, 8] <- 0x00;   // Byte 0 (LSB)
+value[8, 8] <- 0x00;   // Byte 1
+value[16, 8] <- 0x80;  // Byte 2
+value[24, 8] <- 0x3F;  // Byte 3 (MSB) → value is now 1.0f
+
+// Read bytes from a float
+u8 highByte <- value[24, 8];  // Read MSB
+```
+
+**Generated C:**
+
+```c
+float value = 0.0;
+uint32_t __bits_value;
+memcpy(&__bits_value, &value, sizeof(value));
+__bits_value = (__bits_value & ~(0xFFU << 0)) | (((uint32_t)0x00 & 0xFFU) << 0);
+memcpy(&value, &__bits_value, sizeof(value));
+// ... subsequent writes reuse __bits_value ...
+
+// Read operation
+uint8_t highByte = (memcpy(&__bits_value, &value, sizeof(value)), ((__bits_value >> 24) & 0xFFU));
+```
+
+**Type Mapping:**
+
+| Float Type | Shadow Type | Size |
+| ---------- | ----------- | ---- |
+| `f32`      | `uint32_t`  | 4    |
+| `f64`      | `uint64_t`  | 8    |
+
+**Use Cases:**
+
+- Serialization/deserialization of binary protocols
+- CAN bus message encoding (J1939, etc.)
+- Network byte order conversion
+- Low-level IEEE-754 manipulation
+
 ---
 
 ## Compile-Time Validation (Future Work)
