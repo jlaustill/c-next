@@ -333,6 +333,8 @@
     "*.expected.h",
     "*.expected.error",
     ".jscpd/**",
+    "vscode-extension/node_modules/**",
+    "vscode-extension/dist/**",
     "vscode-extension/**/*.vsix",
     "dependency-graph.svg",
     "bugs/**",
