@@ -7,6 +7,7 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IVariableSymbol from "../../types/IVariableSymbol";
+import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
 
 class VariableCollector {
@@ -63,6 +64,15 @@ class VariableCollector {
             // This handles C macros from included headers (e.g., DEVICE_COUNT)
             // which should pass through to the generated header unchanged
             arrayDimensions.push(dimText);
+          }
+        } else {
+          // Issue #636: Empty dimension [] - infer size from array initializer
+          const exprCtx = ctx.expression();
+          if (exprCtx) {
+            const inferredSize = ArrayInitializerUtils.getInferredSize(exprCtx);
+            if (inferredSize !== undefined) {
+              arrayDimensions.push(inferredSize);
+            }
           }
         }
       }

@@ -21,7 +21,7 @@ typedef struct Command {
 
 /* External variables */
 extern const Command commands[3];
-extern Command moreCommands;
+extern Command moreCommands[2];
 
 #ifdef __cplusplus
 }

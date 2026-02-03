@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const char DAYS[17];
+extern const char DAYS[3][17];
 
 #ifdef __cplusplus
 }
