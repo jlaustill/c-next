@@ -13,7 +13,10 @@ export default defineConfig({
       include: ["src/**/*.ts", "scripts/**/*.ts"],
       exclude: [
         "**/*.test.ts",
-        "src/antlr_parser/**", // Generated ANTLR code
+        "src/antlr_parser/**", // Generated ANTLR code (legacy path)
+        "src/transpiler/logic/parser/grammar/**", // Generated CNext parser
+        "src/transpiler/logic/parser/c/grammar/**", // Generated C parser
+        "src/transpiler/logic/parser/cpp/grammar/**", // Generated C++ parser
         "scripts/test.ts", // Integration test runner
         "scripts/test-worker.ts", // Test worker
       ],

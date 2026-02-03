@@ -97,11 +97,33 @@ function getReservedFieldNames(): string[] {
   return Array.from(RESERVED_FIELD_NAMES);
 }
 
+/**
+ * Generate a warning message for a reserved field name.
+ *
+ * @param language - "C" or "C++"
+ * @param structName - Name of the struct containing the field
+ * @param fieldName - The reserved field name
+ * @returns Warning message string
+ */
+function getReservedFieldWarning(
+  language: "C" | "C++",
+  structName: string,
+  fieldName: string,
+): string {
+  return (
+    `Warning: ${language} header struct '${structName}' has field '${fieldName}' ` +
+    `which conflicts with C-Next's .${fieldName} property. ` +
+    `Consider renaming the field or be aware that '${structName}.${fieldName}' ` +
+    `may not work as expected in C-Next code.`
+  );
+}
+
 class SymbolUtils {
   static readonly parseArrayDimensions = parseArrayDimensions;
   static readonly getTypeWidth = getTypeWidth;
   static readonly isReservedFieldName = isReservedFieldName;
   static readonly getReservedFieldNames = getReservedFieldNames;
+  static readonly getReservedFieldWarning = getReservedFieldWarning;
 }
 
 export default SymbolUtils;

@@ -134,4 +134,29 @@ describe("SymbolUtils", () => {
       expect(reserved).toContain("length");
     });
   });
+
+  describe("getReservedFieldWarning", () => {
+    it("should generate C warning message", () => {
+      const msg = SymbolUtils.getReservedFieldWarning(
+        "C",
+        "MyStruct",
+        "length",
+      );
+      expect(msg).toContain("C header struct");
+      expect(msg).toContain("MyStruct");
+      expect(msg).toContain("length");
+      expect(msg).toContain("conflicts with C-Next");
+    });
+
+    it("should generate C++ warning message", () => {
+      const msg = SymbolUtils.getReservedFieldWarning(
+        "C++",
+        "MyClass",
+        "length",
+      );
+      expect(msg).toContain("C++ header struct");
+      expect(msg).toContain("MyClass");
+      expect(msg).toContain("length");
+    });
+  });
 });
