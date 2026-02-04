@@ -42,7 +42,7 @@ function runCli(args = [], expectError = false) {
     const output = execFileSync("node", [cliPath, ...args], {
       encoding: "utf-8",
       cwd: rootDir,
-      timeout: 30000,
+      timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return { success: true, output, exitCode: 0 };
@@ -267,7 +267,7 @@ function runCliInDir(cwd, args = [], expectError = false) {
     const output = execFileSync("node", [cliPath, ...args], {
       encoding: "utf-8",
       cwd,
-      timeout: 30000,
+      timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
     });
     return { success: true, output, exitCode: 0 };
