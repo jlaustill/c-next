@@ -74,7 +74,11 @@ function createMockInput(overrides?: {
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    targetCapabilities: { hasAtomicSupport: false },
+    targetCapabilities: {
+      wordSize: 32,
+      hasLdrexStrex: false,
+      hasBasepri: false,
+    },
     debugMode: false,
   } as IGeneratorInput;
 }
@@ -116,6 +120,10 @@ function createMockState(overrides?: {
 function createMockOrchestrator(overrides?: {
   generatePrimaryExpr?: (ctx: Parser.PrimaryExpressionContext) => string;
   generateExpression?: (ctx: Parser.ExpressionContext) => string;
+  generateFunctionArg?: (
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ) => string;
   isKnownStruct?: (name: string) => boolean;
   isKnownScope?: (name: string) => boolean;
   isCppScopeSymbol?: (name: string) => boolean;
@@ -171,7 +179,7 @@ function createMockOrchestrator(overrides?: {
     validateLiteralFitsType: vi.fn(),
     validateTypeConversion: vi.fn(),
     getSimpleIdentifier: vi.fn(),
-    generateFunctionArg: vi.fn(),
+    generateFunctionArg: overrides?.generateFunctionArg ?? vi.fn(),
     isConstValue: vi.fn(),
     getKnownEnums: vi.fn(() => new Set()),
     isCppMode: overrides?.isCppMode ?? vi.fn(() => false),
