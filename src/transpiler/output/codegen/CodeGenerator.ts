@@ -6722,7 +6722,6 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.AssignmentTargetContext,
   ): string {
     // Issue #387: Handle memberAccess and arrayAccess alternatives first
-    // These are separate sub-rules in the grammar (not unified with postfixTargetOp)
     if (ctx.memberAccess()) {
       return this.generateMemberAccess(ctx.memberAccess()!);
     }
@@ -6737,183 +6736,292 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Handle simple identifier (no postfix operations, no prefix)
     if (!hasGlobal && !hasThis && postfixOps.length === 0) {
-      const id = identifier!;
-
-      // ADR-006: Check if it's a function parameter
-      const paramInfo = this.context.currentParameters.get(id);
-      if (paramInfo) {
-        // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
-        if (paramInfo.isCallback) {
-          return id;
-        }
-        // Float types use pass-by-value, no dereference needed
-        if (this._isFloatType(paramInfo.baseType)) {
-          return id;
-        }
-        // Enum types use pass-by-value, no dereference needed
-        if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
-          return id;
-        }
-        // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
-        if (
-          this.context.currentFunctionName &&
-          this._isParameterPassByValueByName(
-            this.context.currentFunctionName,
-            id,
-          )
-        ) {
-          return id;
-        }
-        // Issue #551: Dereference only known primitives (pass-by-reference)
-        // - Structs use -> notation for member access (no dereference here)
-        // - Unknown types (external enums, typedefs) use pass-by-value
-        if (
-          !paramInfo.isArray &&
-          !paramInfo.isStruct &&
-          this._isKnownPrimitive(paramInfo.baseType)
-        ) {
-          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppHelper!.maybeDereference(id);
-        }
-        return id;
-      }
-
-      // Check if it's a local variable
-      const isLocalVariable = this.context.localVariables.has(id);
-
-      // ADR-016: Resolve bare identifier using local -> scope -> global priority
-      const resolved = this.typeValidator!.resolveBareIdentifier(
-        id,
-        isLocalVariable,
-        (name: string) => this.isKnownStruct(name),
-      );
-
-      // If resolved to a different name, use it
-      if (resolved !== null) {
-        return resolved;
-      }
-
-      return id;
+      return this.handleSimpleAssignmentTarget(identifier!);
     }
 
-    // Build base identifier with scope prefix if needed
-    let result: string;
-    let firstId = identifier!;
+    // Build base identifier with scope prefix
+    const result = this.buildAssignmentTargetBase(
+      hasGlobal,
+      hasThis,
+      identifier!,
+    );
 
-    if (hasGlobal) {
-      // global.x - firstId is x, no prefix needed for code generation
-      result = firstId;
-    } else if (hasThis) {
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
-      // this.x - prefix with current scope
-      result = `${this.context.currentScope}_${firstId}`;
-    } else {
-      // Bare identifier with postfix ops
-      result = firstId;
-
-      // ADR-006: Check if it's a function parameter (for -> access)
-      const paramInfo = this.context.currentParameters.get(firstId);
-      if (paramInfo && !paramInfo.isArray && paramInfo.isStruct) {
-        // Struct parameter needs (*param) when accessed alone, but -> when accessing members
-        // We'll handle the -> separator in the postfix processing
-      }
-    }
-
-    // No postfix operations - return base
     if (postfixOps.length === 0) {
       return result;
     }
 
-    // Determine separator options for first postfix operation
+    // Process postfix operations
+    return this.processAssignmentTargetPostfixOps(
+      result,
+      identifier!,
+      postfixOps,
+      hasGlobal,
+      hasThis,
+    );
+  }
+
+  /**
+   * Handle simple assignment target (bare identifier without prefix or postfix)
+   */
+  private handleSimpleAssignmentTarget(id: string): string {
+    // ADR-006: Check if it's a function parameter
+    const paramInfo = this.context.currentParameters.get(id);
+    if (paramInfo) {
+      return this.resolveParameterTarget(id, paramInfo);
+    }
+
+    // Check if it's a local variable
+    const isLocalVariable = this.context.localVariables.has(id);
+
+    // ADR-016: Resolve bare identifier using local -> scope -> global priority
+    const resolved = this.typeValidator!.resolveBareIdentifier(
+      id,
+      isLocalVariable,
+      (name: string) => this.isKnownStruct(name),
+    );
+
+    return resolved ?? id;
+  }
+
+  /**
+   * Resolve a parameter used as assignment target, handling dereference rules
+   */
+  private resolveParameterTarget(
+    id: string,
+    paramInfo: TParameterInfo,
+  ): string {
+    // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
+    if (paramInfo.isCallback) {
+      return id;
+    }
+    // Float types use pass-by-value, no dereference needed
+    if (this._isFloatType(paramInfo.baseType)) {
+      return id;
+    }
+    // Enum types use pass-by-value, no dereference needed
+    if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
+      return id;
+    }
+    // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
+    if (
+      this.context.currentFunctionName &&
+      this._isParameterPassByValueByName(this.context.currentFunctionName, id)
+    ) {
+      return id;
+    }
+    // Issue #551: Dereference only known primitives (pass-by-reference)
+    // - Structs use -> notation for member access (no dereference here)
+    // - Unknown types (external enums, typedefs) use pass-by-value
+    if (
+      !paramInfo.isArray &&
+      !paramInfo.isStruct &&
+      this._isKnownPrimitive(paramInfo.baseType)
+    ) {
+      // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
+      return this.cppHelper!.maybeDereference(id);
+    }
+    return id;
+  }
+
+  /**
+   * Build the base identifier for assignment target with appropriate scope prefix
+   */
+  private buildAssignmentTargetBase(
+    hasGlobal: boolean,
+    hasThis: boolean,
+    identifier: string,
+  ): string {
+    if (hasGlobal) {
+      return identifier;
+    }
+    if (hasThis) {
+      if (!this.context.currentScope) {
+        throw new Error("Error: 'this' can only be used inside a scope");
+      }
+      return `${this.context.currentScope}_${identifier}`;
+    }
+    return identifier;
+  }
+
+  /**
+   * Process postfix operations for assignment target
+   */
+  private processAssignmentTargetPostfixOps(
+    baseResult: string,
+    firstId: string,
+    postfixOps: Parser.PostfixTargetOpContext[],
+    hasGlobal: boolean,
+    hasThis: boolean,
+  ): string {
+    let result = baseResult;
+
+    // Precompute separator context
+    const separatorCtx = this.buildSeparatorContext(
+      firstId,
+      hasGlobal,
+      hasThis,
+    );
+
+    let identifierChain: string[] = [firstId];
+    let isFirstOp = true;
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        const memberName = op.IDENTIFIER()!.getText();
+        identifierChain.push(memberName);
+
+        const separator = this.getMemberAccessSeparator(
+          isFirstOp,
+          identifierChain,
+          memberName,
+          separatorCtx,
+        );
+        result += `${separator}${memberName}`;
+        isFirstOp = false;
+      } else {
+        result += this.generatePostfixArrayOrBitAccess(op);
+        isFirstOp = false;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Build context needed for separator determination
+   */
+  private buildSeparatorContext(
+    firstId: string,
+    hasGlobal: boolean,
+    hasThis: boolean,
+  ): {
+    isCrossScope: boolean;
+    isStructParam: boolean;
+    isCppAccess: boolean;
+    scopedRegName: string | null;
+    isScopedRegister: boolean;
+    hasGlobal: boolean;
+  } {
     const isCrossScope =
       hasGlobal &&
       (this.isKnownScope(firstId) || this.symbols!.knownRegisters.has(firstId));
     const paramInfo = this.context.currentParameters.get(firstId);
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
-
-    // Issue #387: Check if this is a scoped register (this.MOTOR_REG -> Scope_MOTOR_REG)
     const scopedRegName =
       hasThis && this.context.currentScope
         ? `${this.context.currentScope}_${firstId}`
         : null;
     const isScopedRegister =
-      scopedRegName && this.symbols!.knownRegisters.has(scopedRegName);
+      scopedRegName !== null && this.symbols!.knownRegisters.has(scopedRegName);
 
-    // Process postfix operations in order
-    let identifierChain: string[] = [firstId]; // Track all identifiers for register detection
-    let isFirstOp = true;
+    return {
+      isCrossScope,
+      isStructParam,
+      isCppAccess,
+      scopedRegName,
+      isScopedRegister,
+      hasGlobal,
+    };
+  }
 
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        // Member access: .identifier
-        const memberName = op.IDENTIFIER()!.getText();
-        identifierChain.push(memberName);
-
-        // Determine the appropriate separator
-        let separator: string;
-        if (isFirstOp) {
-          if (isCppAccess) {
-            separator = "::";
-          } else if (isStructParam) {
-            // Issue #409: Use centralized helper for C/C++ struct param access
-            separator = memberAccessChain.getStructParamSeparator({
-              cppMode: this.cppMode,
-            });
-          } else if (isCrossScope) {
-            separator = "_";
-          } else if (
-            hasGlobal &&
-            this.symbols!.knownRegisters.has(identifierChain[0])
-          ) {
-            // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
-            separator = "_";
-          } else if (hasGlobal && this.isKnownScope(identifierChain[0])) {
-            // ADR-016: Validate visibility before allowing cross-scope access
-            this.validateCrossScopeVisibility(identifierChain[0], memberName);
-            separator = "_";
-          } else if (isScopedRegister) {
-            // Issue #387: Scoped register member access: this.MOTOR_REG.SPEED -> Scope_MOTOR_REG_SPEED
-            separator = "_";
-          } else {
-            separator = ".";
-          }
-          isFirstOp = false;
-        } else {
-          // After first separator, check for register chains (GPIO7_DR) or struct fields
-          const chainSoFar = identifierChain.slice(0, -1).join("_");
-          if (
-            this.symbols!.knownRegisters.has(identifierChain[0]) ||
-            this.symbols!.knownRegisters.has(chainSoFar) ||
-            (scopedRegName && this.symbols!.knownRegisters.has(scopedRegName))
-          ) {
-            separator = "_";
-          } else {
-            separator = ".";
-          }
-        }
-
-        result += `${separator}${memberName}`;
-      } else {
-        // Array subscript or bit range: [expr] or [expr, expr]
-        const expressions = op.expression();
-        if (expressions.length === 1) {
-          // Single subscript: array access or single bit
-          const indexExpr = this._generateExpression(expressions[0]);
-          result += `[${indexExpr}]`;
-        } else if (expressions.length === 2) {
-          // Bit range: [start, width]
-          const start = this._generateExpression(expressions[0]);
-          const width = this._generateExpression(expressions[1]);
-          result += `[${start}, ${width}]`;
-        }
-        isFirstOp = false;
-      }
+  /**
+   * Get appropriate separator for member access in assignment target
+   */
+  private getMemberAccessSeparator(
+    isFirstOp: boolean,
+    identifierChain: string[],
+    memberName: string,
+    ctx: {
+      isCrossScope: boolean;
+      isStructParam: boolean;
+      isCppAccess: boolean;
+      scopedRegName: string | null;
+      isScopedRegister: boolean;
+      hasGlobal: boolean;
+    },
+  ): string {
+    if (isFirstOp) {
+      return this.getFirstMemberSeparator(identifierChain, memberName, ctx);
     }
+    return this.getSubsequentMemberSeparator(
+      identifierChain,
+      ctx.scopedRegName,
+    );
+  }
 
-    return result;
+  /**
+   * Get separator for first member access operation
+   */
+  private getFirstMemberSeparator(
+    identifierChain: string[],
+    memberName: string,
+    ctx: {
+      isCrossScope: boolean;
+      isStructParam: boolean;
+      isCppAccess: boolean;
+      isScopedRegister: boolean;
+      hasGlobal: boolean;
+    },
+  ): string {
+    if (ctx.isCppAccess) {
+      return "::";
+    }
+    if (ctx.isStructParam) {
+      return memberAccessChain.getStructParamSeparator({
+        cppMode: this.cppMode,
+      });
+    }
+    if (ctx.isCrossScope) {
+      return "_";
+    }
+    if (ctx.hasGlobal && this.symbols!.knownRegisters.has(identifierChain[0])) {
+      return "_";
+    }
+    if (ctx.hasGlobal && this.isKnownScope(identifierChain[0])) {
+      this.validateCrossScopeVisibility(identifierChain[0], memberName);
+      return "_";
+    }
+    if (ctx.isScopedRegister) {
+      return "_";
+    }
+    return ".";
+  }
+
+  /**
+   * Get separator for subsequent member access operations
+   */
+  private getSubsequentMemberSeparator(
+    identifierChain: string[],
+    scopedRegName: string | null,
+  ): string {
+    const chainSoFar = identifierChain.slice(0, -1).join("_");
+    const isRegisterChain =
+      this.symbols!.knownRegisters.has(identifierChain[0]) ||
+      this.symbols!.knownRegisters.has(chainSoFar) ||
+      (scopedRegName !== null &&
+        this.symbols!.knownRegisters.has(scopedRegName));
+
+    return isRegisterChain ? "_" : ".";
+  }
+
+  /**
+   * Generate array subscript or bit range access for postfix operation
+   */
+  private generatePostfixArrayOrBitAccess(
+    op: Parser.PostfixTargetOpContext,
+  ): string {
+    const expressions = op.expression();
+    if (expressions.length === 1) {
+      const indexExpr = this._generateExpression(expressions[0]);
+      return `[${indexExpr}]`;
+    }
+    if (expressions.length === 2) {
+      const start = this._generateExpression(expressions[0]);
+      const width = this._generateExpression(expressions[1]);
+      return `[${start}, ${width}]`;
+    }
+    return "";
   }
 
   // ADR-016: Validate cross-scope visibility (issue #165)
