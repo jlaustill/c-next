@@ -37,6 +37,8 @@ import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
 import generateFunctionCall from "./generators/expressions/CallExprGenerator";
 import accessGenerators from "./generators/expressions/AccessExprGenerator";
 import expressionGenerators from "./generators/expressions/ExpressionGenerator";
+// Issue #644: PostfixExpressionGenerator created but not yet wired up
+// import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
 // ADR-053: Statement generators (A3)
 import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
 import generateCriticalStatement from "./generators/statements/CriticalGenerator";
