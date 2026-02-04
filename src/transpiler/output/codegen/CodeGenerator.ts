@@ -981,7 +981,27 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   generateBlock(ctx: Parser.BlockContext): string {
-    return this._generateBlock(ctx);
+    const lines: string[] = ["{"];
+    const innerIndent = FormatUtils.indent(1); // One level of relative indentation
+
+    for (const stmt of ctx.statement()) {
+      // Temporarily increment for any nested context that needs absolute level
+      this.context.indentLevel++;
+      const stmtCode = this._generateStatement(stmt);
+      this.context.indentLevel--;
+
+      if (stmtCode) {
+        // Add one level of indent to each line (relative indentation)
+        const indentedLines = stmtCode
+          .split("\n")
+          .map((line) => innerIndent + line);
+        lines.push(indentedLines.join("\n"));
+      }
+    }
+
+    lines.push("}");
+
+    return lines.join("\n");
   }
 
   /**
@@ -5272,7 +5292,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Issue #281: Generate body FIRST to track parameter modifications,
         // then generate parameter list using that tracking info
-        const body = this._generateBlock(funcDecl.block());
+        const body = this.generateBlock(funcDecl.block());
 
         // Issue #281: Update symbol's parameter info with auto-const before generating params
         this.updateFunctionParamsAutoConst(fullName);
@@ -5797,7 +5817,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Generate body first (this populates modifiedParameters)
-    const body = this._generateBlock(ctx.block());
+    const body = this.generateBlock(ctx.block());
 
     // Issue #268: Update symbol's parameter info with auto-const before clearing
     this.updateFunctionParamsAutoConst(name);
@@ -6458,30 +6478,6 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #644: _generateBitMask removed, now delegating to BitUtils.generateMask
   // ========================================================================
 
-  private _generateBlock(ctx: Parser.BlockContext): string {
-    const lines: string[] = ["{"];
-    const innerIndent = FormatUtils.indent(1); // One level of relative indentation
-
-    for (const stmt of ctx.statement()) {
-      // Temporarily increment for any nested context that needs absolute level
-      this.context.indentLevel++;
-      const stmtCode = this._generateStatement(stmt);
-      this.context.indentLevel--;
-
-      if (stmtCode) {
-        // Add one level of indent to each line (relative indentation)
-        const indentedLines = stmtCode
-          .split("\n")
-          .map((line) => innerIndent + line);
-        lines.push(indentedLines.join("\n"));
-      }
-    }
-
-    lines.push("}");
-
-    return lines.join("\n");
-  }
-
   private _generateStatement(ctx: Parser.StatementContext): string {
     let result = "";
 
@@ -6508,7 +6504,7 @@ export default class CodeGenerator implements IOrchestrator {
       // ADR-050: Critical statement for atomic multi-variable operations
       result = this.generateCriticalStatement(ctx.criticalStatement()!);
     } else if (ctx.block()) {
-      result = this._generateBlock(ctx.block()!);
+      result = this.generateBlock(ctx.block()!);
     }
 
     // Issue #250: Prepend any pending temp variable declarations (C++ mode)
