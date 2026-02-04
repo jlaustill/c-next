@@ -803,6 +803,15 @@ value[16, 8] <- 0x80;  // Write byte 2
 value[24, 8] <- 0x3F;  // Write byte 3 (MSB) → value is now 1.0f
 
 u8 byte <- value[24, 8];  // Read high byte from float
+
+// Two ways to extract bits from floats:
+// 1. Raw IEEE-754 bytes (for binary protocols):
+f32 pi <- 3.14159;
+u8 rawByte <- pi[0, 8];           // Gets raw IEEE-754 byte 0
+
+// 2. Integer truncation then bit extract (for numeric values):
+f32 temp <- 25.7;
+u8 intBits <- ((u32)temp)[0, 8];  // Truncates to 25, then extracts bits → 25
 ```
 
 ## Bitmap Types
