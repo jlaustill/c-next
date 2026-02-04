@@ -10,7 +10,7 @@ import packageJson from "../../package.json" with { type: "json" };
 /**
  * Version string from package.json
  */
-const VERSION = packageJson.version as string;
+const VERSION = packageJson.version;
 
 /**
  * Print effective configuration and version info
