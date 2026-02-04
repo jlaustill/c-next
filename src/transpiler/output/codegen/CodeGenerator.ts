@@ -651,7 +651,7 @@ export default class CodeGenerator implements IOrchestrator {
    *
    * @param header - The header to require (stdint, stdbool, string, etc.)
    */
-  requireInclude(header: TIncludeHeader | "isr"): void {
+  private requireInclude(header: TIncludeHeader): void {
     switch (header) {
       case "stdint":
         this.needsStdint = true;

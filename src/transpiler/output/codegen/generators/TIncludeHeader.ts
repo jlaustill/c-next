@@ -8,6 +8,7 @@
  * - irq_wrappers: IRQ wrapper functions for critical sections (avoids macro collisions)
  * - float_static_assert: Static assert for float bit indexing size verification
  * - limits: limits.h for float-to-int clamp casts
+ * - isr: ISR function pointer typedef (ADR-040)
  */
 type TIncludeHeader =
   | "stdint"
@@ -16,6 +17,7 @@ type TIncludeHeader =
   | "cmsis"
   | "irq_wrappers"
   | "float_static_assert"
-  | "limits";
+  | "limits"
+  | "isr";
 
 export default TIncludeHeader;
