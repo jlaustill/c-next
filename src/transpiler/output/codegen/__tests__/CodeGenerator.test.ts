@@ -6627,4 +6627,341 @@ describe("CodeGenerator", () => {
       expect(code).toContain("process(local)");
     });
   });
+
+  describe("Zero initializer helpers", () => {
+    describe("primitive type zero values", () => {
+      it("should initialize bool to false", () => {
+        const source = `
+          void main() {
+            bool flag;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("bool flag = false");
+      });
+
+      it("should initialize f32 to 0.0f", () => {
+        const source = `
+          void main() {
+            f32 value;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("float value = 0.0f");
+      });
+
+      it("should initialize f64 to 0.0", () => {
+        const source = `
+          void main() {
+            f64 value;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("double value = 0.0");
+      });
+
+      it("should initialize integer types to 0", () => {
+        const source = `
+          void main() {
+            u32 value;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint32_t value = 0");
+      });
+    });
+
+    describe("enum zero values", () => {
+      it("should initialize user-defined enum to first member", () => {
+        const source = `
+          enum Color { Red, Green, Blue }
+          void main() {
+            Color c;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Color c = Color_Red");
+      });
+
+      it("should initialize scoped enum to first member", () => {
+        const source = `
+          scope LED {
+            enum State { Off, On }
+            public void init() {
+              this.State s;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("LED_State s = LED_State_Off");
+      });
+
+      it("should initialize qualified enum to first member", () => {
+        const source = `
+          scope Motor {
+            public enum Direction { Forward, Reverse }
+          }
+          void main() {
+            Motor.Direction d;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Motor_Direction d = Motor_Direction_Forward");
+      });
+
+      it("should find enum member with explicit value 0", () => {
+        const source = `
+          enum Status { Unknown <- 1, Success <- 0, Error <- 2 }
+          void main() {
+            Status s;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Should find Success which has explicit value 0
+        expect(code).toContain("Status s = Status_Success");
+      });
+    });
+
+    describe("struct zero values", () => {
+      it("should initialize user-defined struct to {0}", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void main() {
+            Point p;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Point p = {0}");
+      });
+
+      it("should initialize scoped struct to {0}", () => {
+        const source = `
+          scope Sensor {
+            struct Data { i32 value; }
+            public void read() {
+              this.Data d;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Sensor_Data d = {0}");
+      });
+
+      it("should initialize qualified struct to {0}", () => {
+        const source = `
+          scope Config {
+            public struct Settings { i32 level; }
+          }
+          void main() {
+            Config.Settings cfg;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Config_Settings cfg = {0}");
+      });
+    });
+
+    describe("array zero values", () => {
+      it("should initialize POD arrays to {0}", () => {
+        const source = `
+          void main() {
+            u32 values[10];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint32_t values[10] = {0}");
+      });
+
+      it("should initialize struct arrays to {0}", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void main() {
+            Point points[5];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Point points[5] = {0}");
+      });
+    });
+
+    describe("C++ mode initialization", () => {
+      it("should initialize unknown user types to {} in C++ mode", () => {
+        const source = `
+          void main() {
+            ExternalClass obj;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // Unknown types in C++ mode use {} because they may have non-trivial constructors
+        expect(code).toContain("ExternalClass obj = {}");
+      });
+
+      it("should initialize known structs to {0} even in C++ mode", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void main() {
+            Point p;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // Known C-Next structs are POD types, {0} works fine
+        expect(code).toContain("Point p = {0}");
+      });
+
+      // Note: Template type tests skipped - template argument transformation
+      // (i32 -> int32_t) is a separate issue to be addressed in another PR
+    });
+  });
 });

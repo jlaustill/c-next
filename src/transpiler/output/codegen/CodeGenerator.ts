@@ -231,6 +231,14 @@ interface GeneratorContext {
  * Implements IOrchestrator to support modular generator extraction (ADR-053).
  */
 export default class CodeGenerator implements IOrchestrator {
+  /** Lookup map for primitive type zero initializers */
+  private static readonly PRIMITIVE_ZERO_VALUES: ReadonlyMap<string, string> =
+    new Map([
+      ["bool", "false"],
+      ["f32", "0.0f"],
+      ["f64", "0.0"],
+    ]);
+
   /** ADR-044: Debug mode generates panic-on-overflow helpers */
   private debugMode: boolean = false;
 
@@ -6331,181 +6339,147 @@ export default class CodeGenerator implements IOrchestrator {
     isArray: boolean,
   ): string {
     // Issue #379: Arrays need element type checking for C++ classes
-    // C++ class arrays must use {} instead of {0}
     if (isArray) {
-      // Check if element type is a C++ class or template type
-      if (typeCtx.userType()) {
-        const typeName = typeCtx.userType()!.getText();
-        // Use {} for C++ types (external libraries with constructors)
-        if (this.isCppType(typeName)) {
-          return "{}";
-        }
-        // In C++ mode, unknown user types may have non-trivial constructors
-        if (this.cppMode && !this._isKnownStruct(typeName)) {
-          return "{}";
-        }
+      return this._getArrayZeroInitializer(typeCtx);
+    }
+
+    // Handle named types (scoped, global, qualified, user)
+    const resolved = this._resolveTypeNameFromContext(typeCtx);
+    if (resolved) {
+      // Check if enum
+      if (this.symbols!.knownEnums.has(resolved.name)) {
+        return this._getEnumZeroValue(resolved.name, resolved.separator);
       }
-      // Template types are always C++ classes
-      if (typeCtx.templateType()) {
+      // Check if C++ type needing {} (only for userType, not qualified/scoped/global)
+      if (resolved.checkCppType && this._needsEmptyBraceInit(resolved.name)) {
         return "{}";
       }
-      // Default: POD arrays use {0}
       return "{0}";
     }
 
-    // ADR-016: Check for scoped types (this.Type)
-    // These are always struct/enum types defined in a scope
-    if (typeCtx.scopedType()) {
-      const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      const fullTypeName = this.context.currentScope
-        ? `${this.context.currentScope}_${localTypeName}`
-        : localTypeName;
+    // Issue #295: C++ template types use value initialization {}
+    if (typeCtx.templateType()) {
+      return "{}";
+    }
 
-      // Check if it's an enum
-      if (this.symbols!.knownEnums.has(fullTypeName)) {
-        const members = this.symbols!.enumMembers.get(fullTypeName);
-        if (members) {
-          for (const [memberName, value] of members.entries()) {
-            if (value === 0) {
-              return `${fullTypeName}_${memberName}`;
-            }
-          }
-          const firstMember = members.keys().next().value;
-          if (firstMember) {
-            return `${fullTypeName}_${firstMember}`;
-          }
-        }
-        return `(${fullTypeName})0`;
+    // Primitive types use lookup map
+    if (typeCtx.primitiveType()) {
+      const primType = typeCtx.primitiveType()!.getText();
+      return CodeGenerator.PRIMITIVE_ZERO_VALUES.get(primType) ?? "0";
+    }
+
+    // Default fallback
+    return "0";
+  }
+
+  /**
+   * Get zero initializer for array types.
+   * Issue #379: C++ class arrays must use {} instead of {0}
+   */
+  private _getArrayZeroInitializer(typeCtx: Parser.TypeContext): string {
+    // Check if element type is a C++ class or template type
+    if (typeCtx.userType()) {
+      const typeName = typeCtx.userType()!.getText();
+      if (this._needsEmptyBraceInit(typeName)) {
+        return "{}";
       }
+    }
+    // Template types are always C++ classes
+    if (typeCtx.templateType()) {
+      return "{}";
+    }
+    // Default: POD arrays use {0}
+    return "{0}";
+  }
 
-      // Otherwise it's a struct - use {0}
-      return "{0}";
+  /**
+   * Get zero initializer for an enum type.
+   * Returns member with value 0, or first member, or casted 0.
+   * ADR-017: Enums initialize to first member
+   */
+  private _getEnumZeroValue(enumName: string, separator: string = "_"): string {
+    const members = this.symbols!.enumMembers.get(enumName);
+    if (!members) {
+      return `(${enumName})0`;
+    }
+
+    // Find member with explicit value 0
+    for (const [memberName, value] of members.entries()) {
+      if (value === 0) {
+        return `${enumName}${separator}${memberName}`;
+      }
+    }
+
+    // Fall back to first member
+    const firstMember = members.keys().next().value;
+    if (firstMember) {
+      return `${enumName}${separator}${firstMember}`;
+    }
+
+    return `(${enumName})0`;
+  }
+
+  /**
+   * Resolve full type name from any TypeContext variant.
+   * Returns { name, separator, checkCppType } or null if not a named type.
+   * ADR-016: Handles scoped, global, qualified, and user types
+   * checkCppType: only true for userType (original behavior preserved)
+   */
+  private _resolveTypeNameFromContext(
+    typeCtx: Parser.TypeContext,
+  ): { name: string; separator: string; checkCppType: boolean } | null {
+    // ADR-016: Check for scoped types (this.Type)
+    if (typeCtx.scopedType()) {
+      const localName = typeCtx.scopedType()!.IDENTIFIER().getText();
+      const name = this.context.currentScope
+        ? `${this.context.currentScope}_${localName}`
+        : localName;
+      return { name, separator: "_", checkCppType: false };
     }
 
     // Issue #478: Check for global types (global.Type)
     if (typeCtx.globalType()) {
-      const fullTypeName = typeCtx.globalType()!.IDENTIFIER().getText();
-
-      // Check if it's an enum
-      if (this.symbols!.knownEnums.has(fullTypeName)) {
-        const members = this.symbols!.enumMembers.get(fullTypeName);
-        if (members) {
-          for (const [memberName, value] of members.entries()) {
-            if (value === 0) {
-              return `${fullTypeName}_${memberName}`;
-            }
-          }
-          const firstMember = members.keys().next().value;
-          if (firstMember) {
-            return `${fullTypeName}_${firstMember}`;
-          }
-        }
-        return `(${fullTypeName})0`;
-      }
-
-      // Otherwise it's a struct - use {0}
-      return "{0}";
+      return {
+        name: typeCtx.globalType()!.IDENTIFIER().getText(),
+        separator: "_",
+        checkCppType: false,
+      };
     }
 
     // ADR-016: Check for qualified types (Scope.Type)
     // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult)
     if (typeCtx.qualifiedType()) {
-      const qualifiedCtx = typeCtx.qualifiedType()!;
-      const parts = qualifiedCtx.IDENTIFIER();
-      const identifierNames = parts.map((id) => id.getText());
-      const fullTypeName = this.resolveQualifiedType(identifierNames);
-
-      // Check if it's an enum
-      if (this.symbols!.knownEnums.has(fullTypeName)) {
-        const members = this.symbols!.enumMembers.get(fullTypeName);
-        if (members) {
-          for (const [memberName, value] of members.entries()) {
-            if (value === 0) {
-              // For C++ enums, use :: separator; for C-Next enums, use _
-              const separator = fullTypeName.includes("::") ? "::" : "_";
-              return `${fullTypeName}${separator}${memberName}`;
-            }
-          }
-          const firstMember = members.keys().next().value;
-          if (firstMember) {
-            const separator = fullTypeName.includes("::") ? "::" : "_";
-            return `${fullTypeName}${separator}${firstMember}`;
-          }
-        }
-        return `(${fullTypeName})0`;
-      }
-
-      // Otherwise it's a struct - use {0}
-      return "{0}";
+      const parts = typeCtx.qualifiedType()!.IDENTIFIER();
+      const name = this.resolveQualifiedType(parts.map((id) => id.getText()));
+      const separator = name.includes("::") ? "::" : "_";
+      return { name, separator, checkCppType: false };
     }
 
     // Check for user-defined types (structs/classes/enums)
     if (typeCtx.userType()) {
-      const typeName = typeCtx.userType()!.getText();
-
-      // ADR-017: Check if this is an enum type
-      if (this.symbols!.knownEnums.has(typeName)) {
-        // Return the first member of the enum (which has value 0)
-        const members = this.symbols!.enumMembers.get(typeName);
-        if (members) {
-          // Find the member with value 0
-          for (const [memberName, value] of members.entries()) {
-            if (value === 0) {
-              return `${typeName}_${memberName}`;
-            }
-          }
-          // If no member has value 0, use the first member
-          const firstMember = members.keys().next().value;
-          if (firstMember) {
-            return `${typeName}_${firstMember}`;
-          }
-        }
-        // Fallback to casting 0 to the enum type
-        return `(${typeName})0`;
-      }
-
-      // Issue #304: C++ types with constructors may fail with {0}
-      // Use {} for C++ types, {0} for C types
-      if (this.isCppType(typeName)) {
-        return "{}";
-      }
-
-      // Issue #309: In C++ mode, unknown user types (external libraries)
-      // should use {} instead of {0} because they may have non-trivial
-      // constructors. Known structs (C-Next or C headers) are POD types
-      // where {0} works fine.
-      if (this.cppMode && !this._isKnownStruct(typeName)) {
-        return "{}";
-      }
-
-      return "{0}";
+      return {
+        name: typeCtx.userType()!.getText(),
+        separator: "_",
+        checkCppType: true,
+      };
     }
 
-    // Issue #295: C++ template types use value initialization {}
-    // Template types like FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> are non-trivial
-    // class types that cannot be initialized with = 0
-    if (typeCtx.templateType()) {
-      return "{}";
-    }
+    return null;
+  }
 
-    // Primitive types
-    if (typeCtx.primitiveType()) {
-      const primType = typeCtx.primitiveType()!.getText();
-      if (primType === "bool") {
-        return "false";
-      }
-      if (primType === "f32") {
-        return "0.0f";
-      }
-      if (primType === "f64") {
-        return "0.0";
-      }
-      // All integer types
-      return "0";
+  /**
+   * Check if a type needs empty brace initialization {}.
+   * Issue #304: C++ types with constructors may fail with {0}
+   * Issue #309: Unknown user types in C++ mode may have non-trivial constructors
+   */
+  private _needsEmptyBraceInit(typeName: string): boolean {
+    // C++ types (external libraries with constructors)
+    if (this.isCppType(typeName)) {
+      return true;
     }
-
-    // Default fallback
-    return "0";
+    // In C++ mode, unknown user types may have non-trivial constructors
+    // Known structs (C-Next or C headers) are POD types where {0} works
+    return this.cppMode && !this._isKnownStruct(typeName);
   }
 
   /**
