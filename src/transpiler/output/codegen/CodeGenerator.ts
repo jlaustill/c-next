@@ -74,6 +74,18 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
+// Issue #644: Array dimension parsing helper for consolidation
+import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
+// Issue #644: Member chain analyzer for bit access pattern detection
+import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
+// Issue #644: Float bit write helper for shadow variable pattern
+import FloatBitHelper from "./helpers/FloatBitHelper";
+// Issue #644: String declaration helper for bounded/array/concat strings
+import StringDeclHelper from "./helpers/StringDeclHelper";
+// Issue #644: Enum assignment validator for type-safe enum assignments
+import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
+// Issue #644: Array initialization helper for size inference and fill-all
+import ArrayInitHelper from "./helpers/ArrayInitHelper";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -91,9 +103,6 @@ const {
   formatLeadingComments: commentFormatLeadingComments,
   formatTrailingComment: commentFormatTrailingComment,
 } = commentUtils;
-
-/** C null terminator character literal for generated code */
-const C_NULL_CHAR = String.raw`'\0'`;
 
 /**
  * Maps C-Next assignment operators to C assignment operators
@@ -317,6 +326,21 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: String length counter for strlen caching optimization */
   private stringLengthCounter: StringLengthCounter | null = null;
+
+  /** Issue #644: Member chain analyzer for bit access pattern detection */
+  private memberChainAnalyzer: MemberChainAnalyzer | null = null;
+
+  /** Issue #644: Float bit write helper for shadow variable pattern */
+  private floatBitHelper: FloatBitHelper | null = null;
+
+  /** Issue #644: String declaration helper for bounded/array/concat strings */
+  private stringDeclHelper: StringDeclHelper | null = null;
+
+  /** Issue #644: Enum assignment validator for type-safe enum assignments */
+  private enumValidator: EnumAssignmentValidator | null = null;
+
+  /** Issue #644: Array initialization helper for size inference and fill-all */
+  private arrayInitHelper: ArrayInitHelper | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2054,6 +2078,83 @@ export default class CodeGenerator implements IOrchestrator {
       this.context.typeRegistry.get(name),
     );
 
+    // Issue #644: Initialize member chain analyzer for bit access detection
+    this.memberChainAnalyzer = new MemberChainAnalyzer({
+      typeRegistry: this.context.typeRegistry,
+      structFields: this.symbols!.structFields,
+      structFieldArrays: this.symbols!.structFieldArrays,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+      generateExpression: (ctx) => this._generateExpression(ctx),
+    });
+
+    // Issue #644: Initialize float bit helper for shadow variable pattern
+    this.floatBitHelper = new FloatBitHelper({
+      cppMode: this.cppMode,
+      state: {
+        floatBitShadows: this.context.floatBitShadows,
+        floatShadowCurrent: this.context.floatShadowCurrent,
+      },
+      generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
+      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
+      requireInclude: (header) => this.requireInclude(header),
+    });
+
+    // Issue #644: Initialize string declaration helper
+    // Create arrayInitState proxy that references context values
+    const context = this.context;
+    const arrayInitState = {
+      get lastArrayInitCount() {
+        return context.lastArrayInitCount;
+      },
+      set lastArrayInitCount(val: number) {
+        context.lastArrayInitCount = val;
+      },
+      get lastArrayFillValue() {
+        return context.lastArrayFillValue;
+      },
+      set lastArrayFillValue(val: string | undefined) {
+        context.lastArrayFillValue = val;
+      },
+    };
+    this.stringDeclHelper = new StringDeclHelper({
+      typeRegistry: this.context.typeRegistry,
+      getInFunctionBody: () => this.context.inFunctionBody,
+      getIndentLevel: () => this.context.indentLevel,
+      arrayInitState,
+      localArrays: this.context.localArrays,
+      generateExpression: (ctx) => this._generateExpression(ctx),
+      generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
+      getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
+      getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
+      getStringLiteralLength: (literal) =>
+        this._getStringLiteralLength(literal),
+      getStringExprCapacity: (exprCode) =>
+        this._getStringExprCapacity(exprCode),
+      requireStringInclude: () => this.requireInclude("string"),
+    });
+
+    // Issue #644: Initialize enum assignment validator
+    this.enumValidator = new EnumAssignmentValidator({
+      knownEnums: this.symbols!.knownEnums,
+      getCurrentScope: () => this.context.currentScope,
+      getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
+      isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
+    });
+
+    // Issue #644: Initialize array initialization helper
+    this.arrayInitHelper = new ArrayInitHelper({
+      typeRegistry: this.context.typeRegistry,
+      localArrays: this.context.localArrays,
+      arrayInitState: arrayInitState, // Reuse the proxy from stringDeclHelper
+      getExpectedType: () => this.context.expectedType,
+      setExpectedType: (type) => {
+        this.context.expectedType = type;
+      },
+      generateExpression: (ctx) => this._generateExpression(ctx),
+      getTypeName: (ctx) => this._getTypeName(ctx),
+      generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
+    });
+
     // Second pass: register all variable types in the type registry
     // This ensures .length and other type-dependent operations can resolve
     // variables regardless of declaration order
@@ -3200,85 +3301,16 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-036: Try to evaluate an expression as a compile-time constant.
    * Returns the numeric value if constant, undefined if not evaluable.
    * Bug #8: Extended to resolve const variable references for file-scope array sizes.
+   * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
   private _tryEvaluateConstant(
     ctx: Parser.ExpressionContext,
   ): number | undefined {
-    // Get the expression text and try to parse it as a simple integer literal
-    const text = ctx.getText().trim();
-
-    // Check if it's a simple integer literal
-    if (/^-?\d+$/.exec(text)) {
-      return Number.parseInt(text, 10);
-    }
-    // Check if it's a hex literal
-    if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
-      return Number.parseInt(text, 16);
-    }
-    // Check if it's a binary literal
-    if (/^0[bB][01]+$/.exec(text)) {
-      return Number.parseInt(text.substring(2), 2);
-    }
-
-    // Bug #8: Check if it's a known const value (identifier)
-    if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const constValue = this.constValues.get(text);
-      if (constValue !== undefined) {
-        return constValue;
-      }
-    }
-
-    // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
-    const addMatch = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/.exec(text);
-    if (addMatch) {
-      const left = this.constValues.get(addMatch[1]);
-      const right = this.constValues.get(addMatch[2]);
-      if (left !== undefined && right !== undefined) {
-        return left + right;
-      }
-    }
-
-    // Handle sizeof(type) expressions for primitive types
-    const sizeofMatch = /^sizeof\(([a-zA-Z_]\w*)\)$/.exec(text);
-    if (sizeofMatch) {
-      const typeName = sizeofMatch[1];
-      const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth) {
-        return bitWidth / 8; // Convert bits to bytes
-      }
-      // Check if it's a known struct
-      if (this.isKnownStruct(typeName)) {
-        // For structs, we can't easily compute size at this point
-        // Just return undefined and let the array work without dimension tracking
-        // The generated C will still work because sizeof() is evaluated at C compile time
-        return undefined;
-      }
-    }
-
-    // Handle sizeof(type) * N expressions
-    const sizeofMulMatch = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/.exec(text);
-    if (sizeofMulMatch) {
-      const typeName = sizeofMulMatch[1];
-      const multiplier = Number.parseInt(sizeofMulMatch[2], 10);
-      const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth && !Number.isNaN(multiplier)) {
-        return (bitWidth / 8) * multiplier;
-      }
-    }
-
-    // Handle sizeof(type) + N expressions
-    const sizeofAddMatch = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/.exec(text);
-    if (sizeofAddMatch) {
-      const typeName = sizeofAddMatch[1];
-      const addend = Number.parseInt(sizeofAddMatch[2], 10);
-      const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth && !Number.isNaN(addend)) {
-        return bitWidth / 8 + addend;
-      }
-    }
-
-    // For more complex expressions, we can't evaluate at compile time
-    return undefined;
+    return ArrayDimensionParser.parseSingleDimension(ctx, {
+      constValues: this.constValues,
+      typeWidths: TYPE_WIDTH,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+    });
   }
 
   // Issue #63: checkArrayBounds moved to TypeValidator
@@ -3286,26 +3318,16 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Evaluate array dimensions from ArrayDimensionContext[] to number[].
    * Used for bitmap array registration.
+   * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
   private _evaluateArrayDimensions(
     arrayDim: Parser.ArrayDimensionContext[] | null,
   ): number[] | undefined {
-    if (!arrayDim || arrayDim.length === 0) {
-      return undefined;
-    }
-
-    const dimensions: number[] = [];
-    for (const dim of arrayDim) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = this._tryEvaluateConstant(sizeExpr);
-        if (size !== undefined && size > 0) {
-          dimensions.push(size);
-        }
-      }
-    }
-
-    return dimensions.length > 0 ? dimensions : undefined;
+    return ArrayDimensionParser.parseAllDimensions(arrayDim, {
+      constValues: this.constValues,
+      typeWidths: TYPE_WIDTH,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+    });
   }
 
   /**
@@ -3570,25 +3592,12 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Extract array dimensions from ArrayDimensionContext array (simple parseInt version)
    * Used for string array dimensions where const evaluation is not needed.
+   * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
   private extractArrayDimensionsSimple(
     arrayDim: Parser.ArrayDimensionContext[] | null,
   ): number[] {
-    const dimensions: number[] = [];
-    if (!arrayDim || arrayDim.length === 0) {
-      return dimensions;
-    }
-
-    for (const dim of arrayDim) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size) && size > 0) {
-          dimensions.push(size);
-        }
-      }
-    }
-    return dimensions;
+    return ArrayDimensionParser.parseSimpleDimensions(arrayDim);
   }
 
   /**
@@ -3869,26 +3878,10 @@ export default class CodeGenerator implements IOrchestrator {
 
       // Extract array dimensions if this is an array parameter
       // Issue #547: Always count each dimension, even if unsized (use 0 for unsized)
-      const arrayDimensions: number[] = [];
-      if (isArray) {
-        const arrayDims = param.arrayDimension();
-        for (const dim of arrayDims) {
-          const sizeExpr = dim.expression();
-          if (sizeExpr) {
-            const sizeText = sizeExpr.getText();
-            const size = Number.parseInt(sizeText, 10);
-            if (Number.isNaN(size)) {
-              // Non-numeric size (e.g., constant identifier) - still count the dimension
-              arrayDimensions.push(0);
-            } else {
-              arrayDimensions.push(size);
-            }
-          } else {
-            // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
-            arrayDimensions.push(0);
-          }
-        }
-      }
+      // Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
+      const arrayDimensions = isArray
+        ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
+        : [];
 
       // ADR-045: Get string capacity if this is a string parameter
       let stringCapacity: number | undefined;
@@ -6083,266 +6076,22 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-045: Handle bounded string type specially
-    if (typeCtx.stringType()) {
-      const stringCtx = typeCtx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-
-      if (intLiteral) {
-        const capacity = Number.parseInt(intLiteral.getText(), 10);
-        const arrayDims = ctx.arrayDimension();
-
-        // Check for string arrays: string<64> arr[4] -> char arr[4][65] = {0};
-        if (arrayDims.length > 0) {
-          let decl = `${externMod}${constMod}${atomicMod}${volatileMod}char ${name}`;
-
-          // Issue #380: Handle array initializers for string arrays
-          if (ctx.expression()) {
-            // Reset array init tracking
-            this.context.lastArrayInitCount = 0;
-            this.context.lastArrayFillValue = undefined;
-
-            // Generate the initializer expression
-            const initValue = this._generateExpression(ctx.expression()!);
-
-            // Check if it was an array initializer
-            if (
-              this.context.lastArrayInitCount > 0 ||
-              this.context.lastArrayFillValue !== undefined
-            ) {
-              const hasEmptyArrayDim = arrayDims.some(
-                (dim) => !dim.expression(),
-              );
-
-              // Track as local array
-              this.context.localArrays.add(name);
-
-              let arraySize: number;
-              if (hasEmptyArrayDim) {
-                // Size inference: string<10> labels[] <- ["One", "Two"]
-                if (this.context.lastArrayFillValue !== undefined) {
-                  throw new Error(
-                    `Error: Fill-all syntax [${this.context.lastArrayFillValue}*] requires explicit array size`,
-                  );
-                }
-                arraySize = this.context.lastArrayInitCount;
-                decl += `[${arraySize}]`;
-
-                // Update type registry with inferred size for .length support
-                this.context.typeRegistry.set(name, {
-                  baseType: "char",
-                  bitWidth: 8,
-                  isArray: true,
-                  arrayDimensions: [arraySize, capacity + 1],
-                  isConst: ctx.constModifier() !== null,
-                  isString: true,
-                  stringCapacity: capacity,
-                });
-              } else {
-                // Explicit size: string<10> labels[3] <- ["One", "Two", "Three"]
-                decl += this._generateArrayDimensions(arrayDims);
-
-                // Validate element count matches declared size
-                const firstDimExpr = arrayDims[0].expression();
-                if (firstDimExpr) {
-                  const sizeText = firstDimExpr.getText();
-                  if (/^\d+$/.exec(sizeText)) {
-                    const declaredSize = Number.parseInt(sizeText, 10);
-                    if (
-                      this.context.lastArrayFillValue === undefined &&
-                      this.context.lastArrayInitCount !== declaredSize
-                    ) {
-                      throw new Error(
-                        `Error: Array size mismatch - declared [${declaredSize}] but got ${this.context.lastArrayInitCount} elements`,
-                      );
-                    }
-                  }
-                }
-              }
-
-              decl += `[${capacity + 1}]`; // String capacity + null terminator
-
-              // Handle fill-all syntax: ["Hello"*] -> {"Hello", "Hello", "Hello"}
-              let finalInitValue = initValue;
-              if (this.context.lastArrayFillValue !== undefined) {
-                const firstDimExpr = arrayDims[0].expression();
-                if (firstDimExpr) {
-                  const sizeText = firstDimExpr.getText();
-                  if (/^\d+$/.exec(sizeText)) {
-                    const declaredSize = Number.parseInt(sizeText, 10);
-                    const fillVal = this.context.lastArrayFillValue;
-                    // Only expand if not empty string (C handles {""} correctly for zeroing)
-                    if (fillVal !== '""') {
-                      const elements = Array(declaredSize).fill(fillVal);
-                      finalInitValue = `{${elements.join(", ")}}`;
-                    }
-                  }
-                }
-              }
-
-              return `${decl} = ${finalInitValue};`;
-            }
-
-            // Non-array-initializer expression (e.g., variable assignment) not supported
-            throw new Error(
-              `Error: String array initialization from variables not supported`,
-            );
-          }
-
-          // No initializer - zero-initialize
-          decl += this._generateArrayDimensions(arrayDims);
-          decl += `[${capacity + 1}]`;
-          return `${decl} = {0};`;
-        }
-
-        if (ctx.expression()) {
-          const exprText = ctx.expression()!.getText();
-
-          // ADR-045: Check for string concatenation
-          const concatOps = this._getStringConcatOperands(ctx.expression()!);
-          if (concatOps) {
-            // String concatenation requires runtime function calls (strncpy, strncat)
-            // which cannot exist at global scope in C
-            if (!this.context.inFunctionBody) {
-              throw new Error(
-                `Error: String concatenation cannot be used at global scope. ` +
-                  `Move the declaration inside a function.`,
-              );
-            }
-
-            // Validate capacity: dest >= left + right
-            const requiredCapacity =
-              concatOps.leftCapacity + concatOps.rightCapacity;
-            if (requiredCapacity > capacity) {
-              throw new Error(
-                `Error: String concatenation requires capacity ${requiredCapacity}, but string<${capacity}> only has ${capacity}`,
-              );
-            }
-
-            // Generate safe concatenation code
-            const indent = this.context.inFunctionBody
-              ? FormatUtils.indent(this.context.indentLevel)
-              : "";
-            const lines: string[] = [];
-            lines.push(
-              `${constMod}char ${name}[${capacity + 1}] = "";`,
-              `${indent}strncpy(${name}, ${concatOps.left}, ${capacity});`,
-              `${indent}strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
-              `${indent}${name}[${capacity}] = ${C_NULL_CHAR};`,
-            );
-            return lines.join("\n");
-          }
-
-          // ADR-045: Check for substring extraction
-          const substringOps = this._getSubstringOperands(ctx.expression()!);
-          if (substringOps) {
-            // Substring extraction requires runtime function calls (strncpy)
-            // which cannot exist at global scope in C
-            if (!this.context.inFunctionBody) {
-              throw new Error(
-                `Error: Substring extraction cannot be used at global scope. ` +
-                  `Move the declaration inside a function.`,
-              );
-            }
-
-            // For compile-time validation, we need numeric literals
-            const startNum = Number.parseInt(substringOps.start, 10);
-            const lengthNum = Number.parseInt(substringOps.length, 10);
-
-            // Only validate bounds if both start and length are compile-time constants
-            if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
-              // Bounds check: start + length <= sourceCapacity
-              if (startNum + lengthNum > substringOps.sourceCapacity) {
-                throw new Error(
-                  `Error: Substring bounds [${startNum}, ${lengthNum}] exceed source string<${substringOps.sourceCapacity}> capacity`,
-                );
-              }
-            }
-
-            // Validate destination capacity can hold the substring
-            if (!Number.isNaN(lengthNum) && lengthNum > capacity) {
-              throw new Error(
-                `Error: Substring length ${lengthNum} exceeds destination string<${capacity}> capacity`,
-              );
-            }
-
-            // Generate safe substring extraction code
-            const indent = this.context.inFunctionBody
-              ? FormatUtils.indent(this.context.indentLevel)
-              : "";
-            const lines: string[] = [];
-            lines.push(
-              `${constMod}char ${name}[${capacity + 1}] = "";`,
-              `${indent}strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
-              `${indent}${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
-            );
-            return lines.join("\n");
-          }
-
-          // Validate string literal fits capacity
-          if (exprText.startsWith('"') && exprText.endsWith('"')) {
-            // Extract content without quotes, accounting for escape sequences
-            const content = this._getStringLiteralLength(exprText);
-            if (content > capacity) {
-              throw new Error(
-                `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
-              );
-            }
-          }
-
-          // Check for string variable assignment
-          const srcCapacity = this._getStringExprCapacity(exprText);
-          if (srcCapacity !== null && srcCapacity > capacity) {
-            throw new Error(
-              `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
-            );
-          }
-
-          return `${externMod}${constMod}char ${name}[${capacity + 1}] = ${this._generateExpression(ctx.expression()!)};`;
-        } else {
-          // Empty string initialization
-          return `${externMod}${constMod}char ${name}[${capacity + 1}] = "";`;
-        }
-      } else {
-        // ADR-045: Unsized string - requires const and string literal for inference
-        const isConst = ctx.constModifier() !== null;
-
-        if (!isConst) {
-          throw new Error(
-            "Error: Non-const string requires explicit capacity, e.g., string<64>",
-          );
-        }
-
-        if (!ctx.expression()) {
-          throw new Error(
-            "Error: const string requires initializer for capacity inference",
-          );
-        }
-
-        const exprText = ctx.expression()!.getText();
-        if (!exprText.startsWith('"') || !exprText.endsWith('"')) {
-          throw new Error(
-            "Error: const string requires string literal for capacity inference",
-          );
-        }
-
-        // Infer capacity from literal length
-        const inferredCapacity = this._getStringLiteralLength(exprText);
-        this.requireInclude("string");
-
-        // Register in type registry with inferred capacity
-        this.context.typeRegistry.set(name, {
-          baseType: "char",
-          bitWidth: 8,
-          isArray: true,
-          arrayDimensions: [inferredCapacity + 1],
-          isConst: true,
-          isString: true,
-          stringCapacity: inferredCapacity,
-        });
-
-        return `${externMod}const char ${name}[${inferredCapacity + 1}] = ${exprText};`;
-      }
+    // ADR-045: Handle bounded string type specially (Issue #644: delegated to helper)
+    const stringResult = this.stringDeclHelper!.generateStringDecl(
+      typeCtx,
+      name,
+      ctx.expression() ?? null,
+      ctx.arrayDimension(),
+      {
+        extern: externMod,
+        const: constMod,
+        atomic: atomicMod,
+        volatile: volatileMod,
+      },
+      ctx.constModifier() !== null,
+    );
+    if (stringResult.handled) {
+      return stringResult.code;
     }
 
     let decl = `${externMod}${constMod}${atomicMod}${volatileMod}${type} ${name}`;
@@ -6361,76 +6110,18 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-035: Handle array initializers with size inference
+    // ADR-035: Handle array initializers with size inference (Issue #644: delegated to helper)
     if (isArray && ctx.expression()) {
-      // Reset array init tracking
-      this.context.lastArrayInitCount = 0;
-      this.context.lastArrayFillValue = undefined;
-
-      // Generate the initializer expression (may be array initializer)
-      const typeName = this._getTypeName(typeCtx);
-      const savedExpectedType = this.context.expectedType;
-      this.context.expectedType = typeName;
-
-      const initValue = this._generateExpression(ctx.expression()!);
-
-      this.context.expectedType = savedExpectedType;
-
-      // Check if it was an array initializer
-      if (
-        this.context.lastArrayInitCount > 0 ||
-        this.context.lastArrayFillValue !== undefined
-      ) {
-        // ADR-006: Track local arrays
-        this.context.localArrays.add(name);
-
-        if (hasEmptyArrayDim) {
-          // Size inference: u8 data[] <- [1, 2, 3]
-          if (this.context.lastArrayFillValue !== undefined) {
-            throw new Error(
-              `Error: Fill-all syntax [${this.context.lastArrayFillValue}*] requires explicit array size`,
-            );
-          }
-          decl += `[${this.context.lastArrayInitCount}]`;
-
-          // Update type registry with inferred size for .length support
-          const existingType = this.context.typeRegistry.get(name);
-          if (existingType) {
-            existingType.arrayDimensions = [this.context.lastArrayInitCount];
-          }
-        } else {
-          // ADR-036: Generate all explicit dimensions
-          decl += this._generateArrayDimensions(arrayDims);
-
-          if (
-            declaredSize !== null &&
-            this.context.lastArrayFillValue === undefined
-          ) {
-            if (this.context.lastArrayInitCount !== declaredSize) {
-              throw new Error(
-                `Error: Array size mismatch - declared [${declaredSize}] but got ${this.context.lastArrayInitCount} elements`,
-              );
-            }
-          }
-        }
-
-        // ADR-035: For fill-all syntax with non-zero values, generate full initializer
-        // [0*] -> {0} is fine (C zero-initializes remaining elements)
-        // [1*] -> {1, 1, 1, ...} (must repeat value for all elements)
-        let finalInitValue = initValue;
-        if (
-          this.context.lastArrayFillValue !== undefined &&
-          declaredSize !== null
-        ) {
-          const fillVal = this.context.lastArrayFillValue;
-          // Only expand if the fill value is not "0" (C handles {0} correctly)
-          if (fillVal !== "0") {
-            const elements = Array(declaredSize).fill(fillVal);
-            finalInitValue = `{${elements.join(", ")}}`;
-          }
-        }
-
-        return `${decl} = ${finalInitValue};`;
+      const arrayInitResult = this.arrayInitHelper!.processArrayInit(
+        name,
+        typeCtx,
+        ctx.expression()!,
+        arrayDims,
+        hasEmptyArrayDim,
+        declaredSize,
+      );
+      if (arrayInitResult) {
+        return `${decl}${arrayInitResult.dimensionSuffix} = ${arrayInitResult.initValue};`;
       }
     }
 
@@ -6448,72 +6139,8 @@ export default class CodeGenerator implements IOrchestrator {
       const savedExpectedType = this.context.expectedType;
       this.context.expectedType = typeName;
 
-      // ADR-017: Validate enum type for initialization
-      if (this.symbols!.knownEnums.has(typeName)) {
-        const valueEnumType = this.getExpressionEnumType(ctx.expression()!);
-
-        // Check if assigning from a different enum type
-        if (valueEnumType && valueEnumType !== typeName) {
-          throw new Error(
-            `Error: Cannot assign ${valueEnumType} enum to ${typeName} enum`,
-          );
-        }
-
-        // Check if assigning integer to enum
-        if (this._isIntegerExpression(ctx.expression()!)) {
-          throw new Error(`Error: Cannot assign integer to ${typeName} enum`);
-        }
-
-        // Check if assigning a non-enum, non-integer expression
-        if (!valueEnumType) {
-          const exprText = ctx.expression()!.getText();
-          const parts = exprText.split(".");
-
-          // ADR-016: Handle this.State.MEMBER pattern
-          if (
-            parts[0] === "this" &&
-            this.context.currentScope &&
-            parts.length >= 3
-          ) {
-            const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
-            if (scopedEnumName === typeName) {
-              // Valid this.Enum.Member access
-            } else {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${typeName} enum`,
-              );
-            }
-          }
-          // Issue #478: Handle global.Enum.MEMBER pattern
-          else if (parts[0] === "global" && parts.length >= 3) {
-            // global.ECategory.CAT_A -> ECategory
-            const globalEnumName = parts[1];
-            if (globalEnumName === typeName) {
-              // Valid global.Enum.Member access
-            } else {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${typeName} enum`,
-              );
-            }
-          }
-          // Allow if it's an enum member access of the correct type
-          else if (!exprText.startsWith(typeName + ".")) {
-            // Check for scoped enum
-            if (parts.length >= 3) {
-              const scopedEnumName = `${parts[0]}_${parts[1]}`;
-              if (scopedEnumName !== typeName) {
-                throw new Error(
-                  `Error: Cannot assign non-enum value to ${typeName} enum`,
-                );
-              }
-            } else if (parts.length === 2 && parts[0] !== typeName) {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${typeName} enum`,
-              );
-            }
-          }
-        }
-      }
+      // ADR-017: Validate enum type for initialization (Issue #644: delegated to helper)
+      this.enumValidator!.validateEnumAssignment(typeName, ctx.expression()!);
 
       // ADR-024: Validate literal values fit in target type
       // Only validate for integer types and literal expressions
@@ -6833,7 +6460,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   private _generateBlock(ctx: Parser.BlockContext): string {
     const lines: string[] = ["{"];
-    const innerIndent = "    "; // One level of relative indentation
+    const innerIndent = FormatUtils.indent(1); // One level of relative indentation
 
     for (const stmt of ctx.statement()) {
       // Temporarily increment for any nested context that needs absolute level
@@ -6956,10 +6583,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Analyze a member chain target to detect bit access at the end.
-   * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
-   *
-   * Uses the same tree-walking approach as generateMemberAccess to correctly
-   * track which expressions belong to which identifiers in the chain.
+   * Issue #644: Delegates to MemberChainAnalyzer.
    */
   private analyzeMemberChainForBitAccess(
     targetCtx: Parser.AssignmentTargetContext,
@@ -6969,114 +6593,12 @@ export default class CodeGenerator implements IOrchestrator {
     bitIndex?: string;
     baseType?: string;
   } {
-    const memberAccessCtx = targetCtx.memberAccess();
-    if (!memberAccessCtx) {
-      return { isBitAccess: false };
-    }
-
-    const parts = memberAccessCtx.IDENTIFIER().map((id) => id.getText());
-    const expressions = memberAccessCtx.expression();
-    const children = memberAccessCtx.children;
-
-    if (!children || parts.length < 1 || expressions.length === 0) {
-      return { isBitAccess: false };
-    }
-
-    // Walk the parse tree to determine if the LAST expression is bit access
-    // This mirrors the logic in generateMemberAccess
-    const firstPart = parts[0];
-    const firstTypeInfo = this.context.typeRegistry.get(firstPart);
-
-    let currentStructType: string | undefined;
-    if (firstTypeInfo) {
-      currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
-        ? firstTypeInfo.baseType
-        : undefined;
-    }
-
-    let result = firstPart;
-    let idIndex = 1;
-    let exprIndex = 0;
-    let lastMemberType: string | undefined;
-    let lastMemberIsArray = false;
-
-    let i = 1;
-    while (i < children.length) {
-      const childText = children[i].getText();
-
-      if (childText === ".") {
-        // Dot - next child is identifier
-        i++;
-        if (i < children.length && idIndex < parts.length) {
-          const memberName = parts[idIndex];
-          result += `.${memberName}`;
-          idIndex++;
-
-          // Update type tracking
-          if (currentStructType) {
-            const fields = this.symbols!.structFields.get(currentStructType);
-            lastMemberType = fields?.get(memberName);
-            const arrayFields =
-              this.symbols!.structFieldArrays.get(currentStructType);
-            lastMemberIsArray = arrayFields?.has(memberName) ?? false;
-
-            if (lastMemberType && this.isKnownStruct(lastMemberType)) {
-              currentStructType = lastMemberType;
-            } else {
-              currentStructType = undefined;
-            }
-          }
-        }
-      } else if (childText === "[") {
-        // Opening bracket - check if this is bit access
-        const isPrimitiveInt =
-          lastMemberType &&
-          !lastMemberIsArray &&
-          TypeCheckUtils.isInteger(lastMemberType);
-        const isLastExpr = exprIndex === expressions.length - 1;
-
-        if (isPrimitiveInt && isLastExpr && exprIndex < expressions.length) {
-          // This is bit access on a struct member
-          const bitIndex = this._generateExpression(expressions[exprIndex]);
-          return {
-            isBitAccess: true,
-            baseTarget: result,
-            bitIndex,
-            baseType: lastMemberType,
-          };
-        }
-
-        // Normal array subscript
-        if (exprIndex < expressions.length) {
-          const expr = this._generateExpression(expressions[exprIndex]);
-          result += `[${expr}]`;
-          exprIndex++;
-
-          // After subscripting an array, update type tracking
-          if (firstTypeInfo?.isArray && exprIndex === 1) {
-            const elementType = firstTypeInfo.baseType;
-            if (this.isKnownStruct(elementType)) {
-              currentStructType = elementType;
-            }
-          }
-        }
-        // Skip to closing bracket
-        while (i < children.length && children[i].getText() !== "]") {
-          i++;
-        }
-      }
-      i++;
-    }
-
-    return { isBitAccess: false };
+    return this.memberChainAnalyzer!.analyze(targetCtx);
   }
 
   /**
    * Generate float bit write using shadow variable + memcpy.
-   * Returns null if typeInfo is not a float type.
-   *
-   * For single bit: width is null, uses bitIndex only
-   * For bit range: width is provided, uses bitIndex as start position
+   * Issue #644: Delegates to FloatBitHelper.
    */
   private generateFloatBitWrite(
     name: string,
@@ -7085,53 +6607,13 @@ export default class CodeGenerator implements IOrchestrator {
     width: string | null,
     value: string,
   ): string | null {
-    const isFloatType =
-      typeInfo.baseType === "f32" || typeInfo.baseType === "f64";
-    if (!isFloatType) {
-      return null;
-    }
-
-    this.requireInclude("string"); // For memcpy
-    this.requireInclude("float_static_assert"); // For size verification
-
-    const isF64 = typeInfo.baseType === "f64";
-    const shadowType = isF64 ? "uint64_t" : "uint32_t";
-    const shadowName = `__bits_${name}`;
-    const maskSuffix = isF64 ? "ULL" : "U";
-
-    // Check if shadow variable needs declaration
-    const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
-    if (needsDeclaration) {
-      this.context.floatBitShadows.add(shadowName);
-    }
-
-    // Check if shadow already has current value (skip redundant memcpy read)
-    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-
-    const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
-    const readMemcpy = shadowIsCurrent
-      ? ""
-      : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
-
-    // Mark shadow as current after this write
-    this.context.floatShadowCurrent.add(shadowName);
-
-    if (width === null) {
-      // Single bit assignment: floatVar[3] <- true
-      return (
-        `${decl}${readMemcpy}` +
-        `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
-        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
-      );
-    } else {
-      // Bit range assignment: floatVar[0, 8] <- b0
-      const mask = this.generateBitMask(width, isF64);
-      return (
-        `${decl}${readMemcpy}` +
-        `${shadowName} = (${shadowName} & ~(${mask} << ${bitIndex})) | (((${shadowType})${value} & ${mask}) << ${bitIndex}); ` +
-        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
-      );
-    }
+    return this.floatBitHelper!.generateFloatBitWrite(
+      name,
+      typeInfo,
+      bitIndex,
+      width,
+      value,
+    );
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators
