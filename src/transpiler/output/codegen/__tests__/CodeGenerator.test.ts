@@ -7589,5 +7589,89 @@ describe("CodeGenerator", () => {
         expect(code).toContain("cfg.retries = 3");
       });
     });
+
+    describe("register member access", () => {
+      it("should use underscore for register field access", () => {
+        const source = `
+          register GPIO @ 0x40000000 {
+            DR: u32 rw @ 0x00,
+            DIR: u32 rw @ 0x04,
+          }
+          void setOutput() {
+            GPIO.DR <- 0xFF;
+            GPIO.DIR <- 0xAA;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("GPIO_DR = 0xFF");
+        expect(code).toContain("GPIO_DIR = 0xAA");
+      });
+
+      it("should handle scoped register field access", () => {
+        const source = `
+          scope Motor {
+            register CTRL @ 0x50000000 {
+              SPEED: u32 rw @ 0x00,
+            }
+            public void setSpeed() {
+              CTRL.SPEED <- 100;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Inside a scope function, register field access uses dot notation
+        // (the scope prefix is applied during function/variable naming)
+        expect(code).toContain("CTRL.SPEED = 100");
+      });
+    });
+
+    describe("scope variable access patterns", () => {
+      it("should handle global scope variable access", () => {
+        const source = `
+          scope LED {
+            public u32 brightness;
+            public void setBright() {
+              brightness <- 100;
+            }
+          }
+          void external() {
+            global.LED.brightness <- 50;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("LED_brightness = 100");
+        expect(code).toContain("LED_brightness = 50");
+      });
+    });
   });
 });
