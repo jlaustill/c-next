@@ -80,6 +80,8 @@ import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 // Issue #644: Float bit write helper for shadow variable pattern
 import FloatBitHelper from "./helpers/FloatBitHelper";
+// Issue #644: String declaration helper for bounded/array/concat strings
+import StringDeclHelper from "./helpers/StringDeclHelper";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -97,9 +99,6 @@ const {
   formatLeadingComments: commentFormatLeadingComments,
   formatTrailingComment: commentFormatTrailingComment,
 } = commentUtils;
-
-/** C null terminator character literal for generated code */
-const C_NULL_CHAR = String.raw`'\0'`;
 
 /**
  * Maps C-Next assignment operators to C assignment operators
@@ -329,6 +328,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Float bit write helper for shadow variable pattern */
   private floatBitHelper: FloatBitHelper | null = null;
+
+  /** Issue #644: String declaration helper for bounded/array/concat strings */
+  private stringDeclHelper: StringDeclHelper | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2085,6 +2087,40 @@ export default class CodeGenerator implements IOrchestrator {
       generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
       foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
       requireInclude: (header) => this.requireInclude(header),
+    });
+
+    // Issue #644: Initialize string declaration helper
+    // Create arrayInitState proxy that references context values
+    const context = this.context;
+    const arrayInitState = {
+      get lastArrayInitCount() {
+        return context.lastArrayInitCount;
+      },
+      set lastArrayInitCount(val: number) {
+        context.lastArrayInitCount = val;
+      },
+      get lastArrayFillValue() {
+        return context.lastArrayFillValue;
+      },
+      set lastArrayFillValue(val: string | undefined) {
+        context.lastArrayFillValue = val;
+      },
+    };
+    this.stringDeclHelper = new StringDeclHelper({
+      typeRegistry: this.context.typeRegistry,
+      getInFunctionBody: () => this.context.inFunctionBody,
+      getIndentLevel: () => this.context.indentLevel,
+      arrayInitState,
+      localArrays: this.context.localArrays,
+      generateExpression: (ctx) => this._generateExpression(ctx),
+      generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
+      getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
+      getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
+      getStringLiteralLength: (literal) =>
+        this._getStringLiteralLength(literal),
+      getStringExprCapacity: (exprCode) =>
+        this._getStringExprCapacity(exprCode),
+      requireStringInclude: () => this.requireInclude("string"),
     });
 
     // Second pass: register all variable types in the type registry
@@ -6008,266 +6044,22 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-045: Handle bounded string type specially
-    if (typeCtx.stringType()) {
-      const stringCtx = typeCtx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-
-      if (intLiteral) {
-        const capacity = Number.parseInt(intLiteral.getText(), 10);
-        const arrayDims = ctx.arrayDimension();
-
-        // Check for string arrays: string<64> arr[4] -> char arr[4][65] = {0};
-        if (arrayDims.length > 0) {
-          let decl = `${externMod}${constMod}${atomicMod}${volatileMod}char ${name}`;
-
-          // Issue #380: Handle array initializers for string arrays
-          if (ctx.expression()) {
-            // Reset array init tracking
-            this.context.lastArrayInitCount = 0;
-            this.context.lastArrayFillValue = undefined;
-
-            // Generate the initializer expression
-            const initValue = this._generateExpression(ctx.expression()!);
-
-            // Check if it was an array initializer
-            if (
-              this.context.lastArrayInitCount > 0 ||
-              this.context.lastArrayFillValue !== undefined
-            ) {
-              const hasEmptyArrayDim = arrayDims.some(
-                (dim) => !dim.expression(),
-              );
-
-              // Track as local array
-              this.context.localArrays.add(name);
-
-              let arraySize: number;
-              if (hasEmptyArrayDim) {
-                // Size inference: string<10> labels[] <- ["One", "Two"]
-                if (this.context.lastArrayFillValue !== undefined) {
-                  throw new Error(
-                    `Error: Fill-all syntax [${this.context.lastArrayFillValue}*] requires explicit array size`,
-                  );
-                }
-                arraySize = this.context.lastArrayInitCount;
-                decl += `[${arraySize}]`;
-
-                // Update type registry with inferred size for .length support
-                this.context.typeRegistry.set(name, {
-                  baseType: "char",
-                  bitWidth: 8,
-                  isArray: true,
-                  arrayDimensions: [arraySize, capacity + 1],
-                  isConst: ctx.constModifier() !== null,
-                  isString: true,
-                  stringCapacity: capacity,
-                });
-              } else {
-                // Explicit size: string<10> labels[3] <- ["One", "Two", "Three"]
-                decl += this._generateArrayDimensions(arrayDims);
-
-                // Validate element count matches declared size
-                const firstDimExpr = arrayDims[0].expression();
-                if (firstDimExpr) {
-                  const sizeText = firstDimExpr.getText();
-                  if (/^\d+$/.exec(sizeText)) {
-                    const declaredSize = Number.parseInt(sizeText, 10);
-                    if (
-                      this.context.lastArrayFillValue === undefined &&
-                      this.context.lastArrayInitCount !== declaredSize
-                    ) {
-                      throw new Error(
-                        `Error: Array size mismatch - declared [${declaredSize}] but got ${this.context.lastArrayInitCount} elements`,
-                      );
-                    }
-                  }
-                }
-              }
-
-              decl += `[${capacity + 1}]`; // String capacity + null terminator
-
-              // Handle fill-all syntax: ["Hello"*] -> {"Hello", "Hello", "Hello"}
-              let finalInitValue = initValue;
-              if (this.context.lastArrayFillValue !== undefined) {
-                const firstDimExpr = arrayDims[0].expression();
-                if (firstDimExpr) {
-                  const sizeText = firstDimExpr.getText();
-                  if (/^\d+$/.exec(sizeText)) {
-                    const declaredSize = Number.parseInt(sizeText, 10);
-                    const fillVal = this.context.lastArrayFillValue;
-                    // Only expand if not empty string (C handles {""} correctly for zeroing)
-                    if (fillVal !== '""') {
-                      const elements = Array(declaredSize).fill(fillVal);
-                      finalInitValue = `{${elements.join(", ")}}`;
-                    }
-                  }
-                }
-              }
-
-              return `${decl} = ${finalInitValue};`;
-            }
-
-            // Non-array-initializer expression (e.g., variable assignment) not supported
-            throw new Error(
-              `Error: String array initialization from variables not supported`,
-            );
-          }
-
-          // No initializer - zero-initialize
-          decl += this._generateArrayDimensions(arrayDims);
-          decl += `[${capacity + 1}]`;
-          return `${decl} = {0};`;
-        }
-
-        if (ctx.expression()) {
-          const exprText = ctx.expression()!.getText();
-
-          // ADR-045: Check for string concatenation
-          const concatOps = this._getStringConcatOperands(ctx.expression()!);
-          if (concatOps) {
-            // String concatenation requires runtime function calls (strncpy, strncat)
-            // which cannot exist at global scope in C
-            if (!this.context.inFunctionBody) {
-              throw new Error(
-                `Error: String concatenation cannot be used at global scope. ` +
-                  `Move the declaration inside a function.`,
-              );
-            }
-
-            // Validate capacity: dest >= left + right
-            const requiredCapacity =
-              concatOps.leftCapacity + concatOps.rightCapacity;
-            if (requiredCapacity > capacity) {
-              throw new Error(
-                `Error: String concatenation requires capacity ${requiredCapacity}, but string<${capacity}> only has ${capacity}`,
-              );
-            }
-
-            // Generate safe concatenation code
-            const indent = this.context.inFunctionBody
-              ? FormatUtils.indent(this.context.indentLevel)
-              : "";
-            const lines: string[] = [];
-            lines.push(
-              `${constMod}char ${name}[${capacity + 1}] = "";`,
-              `${indent}strncpy(${name}, ${concatOps.left}, ${capacity});`,
-              `${indent}strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
-              `${indent}${name}[${capacity}] = ${C_NULL_CHAR};`,
-            );
-            return lines.join("\n");
-          }
-
-          // ADR-045: Check for substring extraction
-          const substringOps = this._getSubstringOperands(ctx.expression()!);
-          if (substringOps) {
-            // Substring extraction requires runtime function calls (strncpy)
-            // which cannot exist at global scope in C
-            if (!this.context.inFunctionBody) {
-              throw new Error(
-                `Error: Substring extraction cannot be used at global scope. ` +
-                  `Move the declaration inside a function.`,
-              );
-            }
-
-            // For compile-time validation, we need numeric literals
-            const startNum = Number.parseInt(substringOps.start, 10);
-            const lengthNum = Number.parseInt(substringOps.length, 10);
-
-            // Only validate bounds if both start and length are compile-time constants
-            if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
-              // Bounds check: start + length <= sourceCapacity
-              if (startNum + lengthNum > substringOps.sourceCapacity) {
-                throw new Error(
-                  `Error: Substring bounds [${startNum}, ${lengthNum}] exceed source string<${substringOps.sourceCapacity}> capacity`,
-                );
-              }
-            }
-
-            // Validate destination capacity can hold the substring
-            if (!Number.isNaN(lengthNum) && lengthNum > capacity) {
-              throw new Error(
-                `Error: Substring length ${lengthNum} exceeds destination string<${capacity}> capacity`,
-              );
-            }
-
-            // Generate safe substring extraction code
-            const indent = this.context.inFunctionBody
-              ? FormatUtils.indent(this.context.indentLevel)
-              : "";
-            const lines: string[] = [];
-            lines.push(
-              `${constMod}char ${name}[${capacity + 1}] = "";`,
-              `${indent}strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
-              `${indent}${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
-            );
-            return lines.join("\n");
-          }
-
-          // Validate string literal fits capacity
-          if (exprText.startsWith('"') && exprText.endsWith('"')) {
-            // Extract content without quotes, accounting for escape sequences
-            const content = this._getStringLiteralLength(exprText);
-            if (content > capacity) {
-              throw new Error(
-                `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
-              );
-            }
-          }
-
-          // Check for string variable assignment
-          const srcCapacity = this._getStringExprCapacity(exprText);
-          if (srcCapacity !== null && srcCapacity > capacity) {
-            throw new Error(
-              `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
-            );
-          }
-
-          return `${externMod}${constMod}char ${name}[${capacity + 1}] = ${this._generateExpression(ctx.expression()!)};`;
-        } else {
-          // Empty string initialization
-          return `${externMod}${constMod}char ${name}[${capacity + 1}] = "";`;
-        }
-      } else {
-        // ADR-045: Unsized string - requires const and string literal for inference
-        const isConst = ctx.constModifier() !== null;
-
-        if (!isConst) {
-          throw new Error(
-            "Error: Non-const string requires explicit capacity, e.g., string<64>",
-          );
-        }
-
-        if (!ctx.expression()) {
-          throw new Error(
-            "Error: const string requires initializer for capacity inference",
-          );
-        }
-
-        const exprText = ctx.expression()!.getText();
-        if (!exprText.startsWith('"') || !exprText.endsWith('"')) {
-          throw new Error(
-            "Error: const string requires string literal for capacity inference",
-          );
-        }
-
-        // Infer capacity from literal length
-        const inferredCapacity = this._getStringLiteralLength(exprText);
-        this.requireInclude("string");
-
-        // Register in type registry with inferred capacity
-        this.context.typeRegistry.set(name, {
-          baseType: "char",
-          bitWidth: 8,
-          isArray: true,
-          arrayDimensions: [inferredCapacity + 1],
-          isConst: true,
-          isString: true,
-          stringCapacity: inferredCapacity,
-        });
-
-        return `${externMod}const char ${name}[${inferredCapacity + 1}] = ${exprText};`;
-      }
+    // ADR-045: Handle bounded string type specially (Issue #644: delegated to helper)
+    const stringResult = this.stringDeclHelper!.generateStringDecl(
+      typeCtx,
+      name,
+      ctx.expression() ?? null,
+      ctx.arrayDimension(),
+      {
+        extern: externMod,
+        const: constMod,
+        atomic: atomicMod,
+        volatile: volatileMod,
+      },
+      ctx.constModifier() !== null,
+    );
+    if (stringResult.handled) {
+      return stringResult.code;
     }
 
     let decl = `${externMod}${constMod}${atomicMod}${volatileMod}${type} ${name}`;
