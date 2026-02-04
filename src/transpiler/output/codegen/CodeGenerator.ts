@@ -82,6 +82,8 @@ import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: String declaration helper for bounded/array/concat strings
 import StringDeclHelper from "./helpers/StringDeclHelper";
+// Issue #644: Enum assignment validator for type-safe enum assignments
+import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -331,6 +333,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: String declaration helper for bounded/array/concat strings */
   private stringDeclHelper: StringDeclHelper | null = null;
+
+  /** Issue #644: Enum assignment validator for type-safe enum assignments */
+  private enumValidator: EnumAssignmentValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2121,6 +2126,14 @@ export default class CodeGenerator implements IOrchestrator {
       getStringExprCapacity: (exprCode) =>
         this._getStringExprCapacity(exprCode),
       requireStringInclude: () => this.requireInclude("string"),
+    });
+
+    // Issue #644: Initialize enum assignment validator
+    this.enumValidator = new EnumAssignmentValidator({
+      knownEnums: this.symbols!.knownEnums,
+      getCurrentScope: () => this.context.currentScope,
+      getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
+      isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
     });
 
     // Second pass: register all variable types in the type registry
@@ -6165,72 +6178,8 @@ export default class CodeGenerator implements IOrchestrator {
       const savedExpectedType = this.context.expectedType;
       this.context.expectedType = typeName;
 
-      // ADR-017: Validate enum type for initialization
-      if (this.symbols!.knownEnums.has(typeName)) {
-        const valueEnumType = this.getExpressionEnumType(ctx.expression()!);
-
-        // Check if assigning from a different enum type
-        if (valueEnumType && valueEnumType !== typeName) {
-          throw new Error(
-            `Error: Cannot assign ${valueEnumType} enum to ${typeName} enum`,
-          );
-        }
-
-        // Check if assigning integer to enum
-        if (this._isIntegerExpression(ctx.expression()!)) {
-          throw new Error(`Error: Cannot assign integer to ${typeName} enum`);
-        }
-
-        // Check if assigning a non-enum, non-integer expression
-        if (!valueEnumType) {
-          const exprText = ctx.expression()!.getText();
-          const parts = exprText.split(".");
-
-          // ADR-016: Handle this.State.MEMBER pattern
-          if (
-            parts[0] === "this" &&
-            this.context.currentScope &&
-            parts.length >= 3
-          ) {
-            const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
-            if (scopedEnumName === typeName) {
-              // Valid this.Enum.Member access
-            } else {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${typeName} enum`,
-              );
-            }
-          }
-          // Issue #478: Handle global.Enum.MEMBER pattern
-          else if (parts[0] === "global" && parts.length >= 3) {
-            // global.ECategory.CAT_A -> ECategory
-            const globalEnumName = parts[1];
-            if (globalEnumName === typeName) {
-              // Valid global.Enum.Member access
-            } else {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${typeName} enum`,
-              );
-            }
-          }
-          // Allow if it's an enum member access of the correct type
-          else if (!exprText.startsWith(typeName + ".")) {
-            // Check for scoped enum
-            if (parts.length >= 3) {
-              const scopedEnumName = `${parts[0]}_${parts[1]}`;
-              if (scopedEnumName !== typeName) {
-                throw new Error(
-                  `Error: Cannot assign non-enum value to ${typeName} enum`,
-                );
-              }
-            } else if (parts.length === 2 && parts[0] !== typeName) {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${typeName} enum`,
-              );
-            }
-          }
-        }
-      }
+      // ADR-017: Validate enum type for initialization (Issue #644: delegated to helper)
+      this.enumValidator!.validateEnumAssignment(typeName, ctx.expression()!);
 
       // ADR-024: Validate literal values fit in target type
       // Only validate for integer types and literal expressions
