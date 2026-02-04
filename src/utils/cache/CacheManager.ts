@@ -23,6 +23,7 @@ import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
 import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
 import IFileSystem from "../../transpiler/types/IFileSystem";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import packageJson from "../../../package.json" with { type: "json" };
 
 /** Default file system instance (singleton for performance) */
 const defaultFs = NodeFileSystem.instance;
@@ -30,10 +31,7 @@ const defaultFs = NodeFileSystem.instance;
 /** Current cache format version - increment when serialization format changes */
 const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime
 
-// Read version from package.json
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJson = require("../../../package.json");
-const TRANSPILER_VERSION = packageJson.version as string;
+const TRANSPILER_VERSION = packageJson.version;
 
 /**
  * Manages symbol cache for faster incremental builds
