@@ -1551,6 +1551,89 @@ describe("PostfixExpressionGenerator", () => {
     });
   });
 
+  describe("global access edge cases", () => {
+    it("sets isCppAccessChain when global member is C++ scope symbol", () => {
+      const ctx = createMockPostfixExpressionContext("global", [
+        createMockPostfixOp({ identifier: "std" }),
+        createMockPostfixOp({ identifier: "cout" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
+        isCppScopeSymbol: (name) => name === "std",
+        getScopeSeparator: (isCpp) => (isCpp ? "::" : "_"),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("std::cout");
+    });
+
+    it("sets isRegisterChain when global member is a register", () => {
+      const symbols = createMockSymbols({
+        knownRegisters: new Set(["GPIO"]),
+      });
+      const ctx = createMockPostfixExpressionContext("global", [
+        createMockPostfixOp({ identifier: "GPIO" }),
+        createMockPostfixOp({ identifier: "PIN0" }),
+      ]);
+      const input = createMockInput({ symbols });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("GPIO_PIN0");
+    });
+  });
+
+  describe("this.length as scope member", () => {
+    it("throws when this.length used outside scope without length member", () => {
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState({ currentScope: null });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("'this' can only be used inside a scope");
+    });
+
+    it("resolves this.length to scope member when length is a struct type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "Motor_length",
+          {
+            baseType: "LengthConfig",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const scopeMembers = new Map([["Motor", new Set(["length", "speed"])]]);
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "length" }),
+        createMockPostfixOp({ identifier: "value" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+        isKnownStruct: (name) => name === "LengthConfig",
+        getMemberTypeInfo: () => ({ baseType: "u32", isArray: false }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("Motor_length.value");
+    });
+  });
+
   describe("register member with bitmap type", () => {
     it("generates bitmap field access on register member", () => {
       const symbols = createMockSymbols({
