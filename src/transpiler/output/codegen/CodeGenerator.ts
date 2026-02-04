@@ -243,32 +243,41 @@ export default class CodeGenerator implements IOrchestrator {
   /** ADR-044: Debug mode generates panic-on-overflow helpers */
   private debugMode: boolean = false;
 
-  private context: GeneratorContext = {
-    currentScope: null, // ADR-016: renamed from currentNamespace
-    currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
-    currentFunctionReturnType: null, // Issue #477: track return type for enum inference
-    indentLevel: 0,
-    scopeMembers: new Map(), // ADR-016: renamed from namespaceMembers
-    currentParameters: new Map(),
-    // Issue #558: modifiedParameters removed - now uses analysis-phase results
-    localArrays: new Set(),
-    localVariables: new Set(), // ADR-016: track local variables
-    floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
-    floatShadowCurrent: new Set(), // Track which shadows have current value
-    inFunctionBody: false, // ADR-016: track if inside function body
-    typeRegistry: new Map(),
-    expectedType: null,
-    mainArgsName: null, // Track the args parameter name for main() translation
-    assignmentContext: {
-      targetName: null,
-      targetType: null,
-      overflowBehavior: "clamp",
-    }, // ADR-044
-    lastArrayInitCount: 0, // ADR-035: Track element count for size inference
-    lastArrayFillValue: undefined, // ADR-035: Track fill-all value
-    lengthCache: null, // strlen optimization: variable -> temp var name
-    targetCapabilities: DEFAULT_TARGET, // ADR-049: Target platform capabilities
-  };
+  private context: GeneratorContext =
+    CodeGenerator.createDefaultContext(DEFAULT_TARGET);
+
+  /**
+   * Create a fresh GeneratorContext with default values.
+   */
+  private static createDefaultContext(
+    targetCapabilities: TargetCapabilities,
+  ): GeneratorContext {
+    return {
+      currentScope: null,
+      currentFunctionName: null,
+      currentFunctionReturnType: null,
+      indentLevel: 0,
+      scopeMembers: new Map(),
+      currentParameters: new Map(),
+      localArrays: new Set(),
+      localVariables: new Set(),
+      floatBitShadows: new Set(),
+      floatShadowCurrent: new Set(),
+      inFunctionBody: false,
+      typeRegistry: new Map(),
+      expectedType: null,
+      mainArgsName: null,
+      assignmentContext: {
+        targetName: null,
+        targetType: null,
+        overflowBehavior: "clamp",
+      },
+      lastArrayInitCount: 0,
+      lastArrayFillValue: undefined,
+      lengthCache: null,
+      targetCapabilities,
+    };
+  }
 
   // Issue #60: Symbol fields moved to SymbolCollector
   // Remaining fields not yet extracted:
@@ -2013,33 +2022,8 @@ export default class CodeGenerator implements IOrchestrator {
     // Store symbol table for function lookup
     this.symbolTable = symbolTable ?? null;
 
-    // ADR-044: Store debug mode for panic helper generation
-    this.debugMode = options?.debugMode ?? false;
-
-    // ADR-010: Store source path for include validation
-    this.sourcePath = options?.sourcePath ?? null;
-
-    // Issue #349: Store include directories and inputs for angle-bracket include resolution
-    this.includeDirs = options?.includeDirs ?? [];
-    this.inputs = options?.inputs ?? [];
-
-    // Issue #250: Store C++ mode for temp variable generation
-    this.cppMode = options?.cppMode ?? false;
-    // Issue #644: Initialize C/C++ mode helper
-    this.cppHelper = new CppModeHelper({ cppMode: this.cppMode });
-    // Reset temp var state for each generation
-    this.pendingTempDeclarations = [];
-    this.tempVarCounter = 0;
-    // Issue #517: Reset C++ class assignments
-    this.pendingCppClassAssignments = [];
-
-    // Initialize comment extraction (ADR-043)
-    this.tokenStream = tokenStream ?? null;
-    if (this.tokenStream) {
-      this.commentExtractor = new CommentExtractor(this.tokenStream);
-    } else {
-      this.commentExtractor = null;
-    }
+    // Initialize options and configuration
+    this.initializeGenerateOptions(options, tokenStream);
 
     // ADR-049: Determine target capabilities with priority: CLI > pragma > default
     const targetCapabilities = this.resolveTargetCapabilities(
@@ -2053,49 +2037,8 @@ export default class CodeGenerator implements IOrchestrator {
       this.generatorsInitialized = true;
     }
 
-    // Reset state
-    this.context = {
-      currentScope: null, // ADR-016
-      currentFunctionName: null, // Issue #269: track current function for pass-by-value lookup
-      currentFunctionReturnType: null, // Issue #477: track return type for enum inference
-      indentLevel: 0,
-      scopeMembers: new Map(), // ADR-016
-      currentParameters: new Map(),
-      // Issue #558: modifiedParameters removed - uses analysis-phase results
-      localArrays: new Set(),
-      localVariables: new Set(), // ADR-016
-      floatBitShadows: new Set(), // Track declared shadow variables for float bit indexing
-      floatShadowCurrent: new Set(), // Track which shadows have current value
-      inFunctionBody: false, // ADR-016
-      typeRegistry: new Map(),
-      expectedType: null,
-      mainArgsName: null, // Track the args parameter name for main() translation
-      assignmentContext: {
-        targetName: null,
-        targetType: null,
-        overflowBehavior: "clamp",
-      }, // ADR-044
-      lastArrayInitCount: 0, // ADR-035: Track element count for size inference
-      lastArrayFillValue: undefined, // ADR-035: Track fill-all value
-      lengthCache: null, // strlen optimization: variable -> temp var name
-      targetCapabilities, // ADR-049: Target platform capabilities
-    };
-    // Issue #60: Symbol field resets removed - now handled by SymbolCollector
-    this.knownFunctions = new Set();
-    this.functionSignatures = new Map();
-    this.callbackTypes = new Map(); // ADR-029: Reset callback types
-    this.callbackFieldTypes = new Map(); // ADR-029: Reset callback field tracking
-    this.usedClampOps = new Set(); // ADR-044: Reset overflow helpers
-    this.usedSafeDivOps = new Set(); // ADR-051: Reset safe division helpers
-    this.needsStdint = false;
-    this.needsStdbool = false;
-    this.needsString = false; // ADR-045: Reset string header tracking
-    this.needsFloatStaticAssert = false; // Reset float bit indexing assertion
-    this.needsISR = false; // ADR-040: Reset ISR typedef tracking
-    this.needsCMSIS = false; // ADR-049/050: Reset CMSIS include tracking
-    this.needsLimits = false; // Issue #632: Reset float-to-int clamp tracking
-    this.needsIrqWrappers = false; // Issue #473: Reset IRQ wrappers tracking
-    this.selfIncludeAdded = false; // Issue #369: Reset self-include tracking
+    // Reset state for fresh generation
+    this.resetGeneratorState(targetCapabilities);
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
     if (!options?.symbolInfo) {
@@ -2104,16 +2047,78 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
     this.symbols = options.symbolInfo;
-    const symbols = this.symbols; // Local var for narrowed type
 
-    // Copy symbol data to context.scopeMembers (used by code generation)
+    // Initialize symbol data and const values
+    this.initializeSymbolData();
+
+    // Initialize all helper objects
+    this.initializeHelperObjects(tree);
+
+    // Second pass: register all variable types in the type registry
+    this.registerAllVariableTypes(tree);
+
+    // Assemble and return the output
+    return this.assembleGeneratedOutput(tree, options);
+  }
+
+  /**
+   * Initialize options and configuration for generate().
+   */
+  private initializeGenerateOptions(
+    options: ICodeGeneratorOptions | undefined,
+    tokenStream: CommonTokenStream | undefined,
+  ): void {
+    this.debugMode = options?.debugMode ?? false;
+    this.sourcePath = options?.sourcePath ?? null;
+    this.includeDirs = options?.includeDirs ?? [];
+    this.inputs = options?.inputs ?? [];
+    this.cppMode = options?.cppMode ?? false;
+    this.cppHelper = new CppModeHelper({ cppMode: this.cppMode });
+    this.pendingTempDeclarations = [];
+    this.tempVarCounter = 0;
+    this.pendingCppClassAssignments = [];
+
+    this.tokenStream = tokenStream ?? null;
+    this.commentExtractor = this.tokenStream
+      ? new CommentExtractor(this.tokenStream)
+      : null;
+  }
+
+  /**
+   * Reset all generator state for a fresh generation pass.
+   */
+  private resetGeneratorState(targetCapabilities: TargetCapabilities): void {
+    this.context = CodeGenerator.createDefaultContext(targetCapabilities);
+
+    this.knownFunctions = new Set();
+    this.functionSignatures = new Map();
+    this.callbackTypes = new Map();
+    this.callbackFieldTypes = new Map();
+    this.usedClampOps = new Set();
+    this.usedSafeDivOps = new Set();
+    this.needsStdint = false;
+    this.needsStdbool = false;
+    this.needsString = false;
+    this.needsFloatStaticAssert = false;
+    this.needsISR = false;
+    this.needsCMSIS = false;
+    this.needsLimits = false;
+    this.needsIrqWrappers = false;
+    this.selfIncludeAdded = false;
+  }
+
+  /**
+   * Initialize symbol data and const values from symbol table.
+   */
+  private initializeSymbolData(): void {
+    const symbols = this.symbols!;
+
+    // Copy symbol data to context.scopeMembers
     for (const [scopeName, members] of symbols.scopeMembers) {
-      // Convert ReadonlySet to mutable Set for context
       this.context.scopeMembers.set(scopeName, new Set(members));
     }
 
-    // Issue #461: Initialize constValues from symbol table for external const resolution
-    // This allows array dimensions to reference constants from included .cnx files
+    // Issue #461: Initialize constValues from symbol table
     this.constValues = new Map();
     if (this.symbolTable) {
       for (const symbol of this.symbolTable.getAllSymbols()) {
@@ -2129,22 +2134,27 @@ export default class CodeGenerator implements IOrchestrator {
         }
       }
     }
+  }
 
-    // Issue #61: Initialize type resolver with clean dependencies
+  /**
+   * Initialize all helper objects needed for code generation.
+   */
+  private initializeHelperObjects(tree: Parser.ProgramContext): void {
+    const symbols = this.symbols!;
+
+    // Initialize type resolver
     this.typeResolver = new TypeResolver({
-      symbols: this.symbols,
+      symbols: symbols,
       symbolTable: this.symbolTable,
       typeRegistry: this.context.typeRegistry,
       resolveIdentifier: (name: string) => this.resolveIdentifier(name),
     });
 
-    // Collect function/callback information (not yet extracted to SymbolCollector)
+    // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
-
-    // Issue #269: Analyze which parameters can be passed by value
     this.analyzePassByValue(tree);
 
-    // Issue #63: Initialize type validator with clean dependencies
+    // Initialize type validator
     this.typeValidator = new TypeValidator({
       symbols: symbols,
       symbolTable: this.symbolTable,
@@ -2152,7 +2162,7 @@ export default class CodeGenerator implements IOrchestrator {
       typeResolver: this.typeResolver,
       callbackTypes: this.callbackTypes,
       knownFunctions: this.knownFunctions,
-      knownGlobals: new Set(), // Note: Extract known globals if needed in future
+      knownGlobals: new Set(),
       getCurrentScope: () => this.context.currentScope,
       getScopeMembers: () => this.context.scopeMembers,
       getCurrentParameters: () => this.context.currentParameters,
@@ -2161,14 +2171,19 @@ export default class CodeGenerator implements IOrchestrator {
       getExpressionType: (ctx: unknown) =>
         this.getExpressionType(ctx as Parser.ExpressionContext),
     });
-    const typeValidator = this.typeValidator; // Local var for narrowed type
 
-    // Issue #644: Initialize string length counter for strlen caching
+    // Initialize remaining helpers
+    this.initializeAnalysisHelpers(symbols);
+  }
+
+  /**
+   * Initialize analysis and generation helpers.
+   */
+  private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
     this.stringLengthCounter = new StringLengthCounter((name: string) =>
       this.context.typeRegistry.get(name),
     );
 
-    // Issue #644: Initialize member chain analyzer for bit access detection
     this.memberChainAnalyzer = new MemberChainAnalyzer({
       typeRegistry: this.context.typeRegistry,
       structFields: symbols.structFields,
@@ -2177,7 +2192,6 @@ export default class CodeGenerator implements IOrchestrator {
       generateExpression: (ctx) => this._generateExpression(ctx),
     });
 
-    // Issue #644: Initialize float bit helper for shadow variable pattern
     this.floatBitHelper = new FloatBitHelper({
       cppMode: this.cppMode,
       state: {
@@ -2189,8 +2203,7 @@ export default class CodeGenerator implements IOrchestrator {
       requireInclude: (header) => this.requireInclude(header),
     });
 
-    // Issue #644: Initialize string declaration helper
-    // Create arrayInitState proxy that references context values
+    // Create arrayInitState proxy
     const context = this.context;
     const arrayInitState = {
       get lastArrayInitCount() {
@@ -2206,6 +2219,7 @@ export default class CodeGenerator implements IOrchestrator {
         context.lastArrayFillValue = val;
       },
     };
+
     this.stringDeclHelper = new StringDeclHelper({
       typeRegistry: this.context.typeRegistry,
       getInFunctionBody: () => this.context.inFunctionBody,
@@ -2223,20 +2237,17 @@ export default class CodeGenerator implements IOrchestrator {
       requireStringInclude: () => this.requireInclude("string"),
     });
 
-    // Issue #644: Initialize enum assignment validator
     this.enumValidator = new EnumAssignmentValidator({
       knownEnums: symbols.knownEnums,
       getCurrentScope: () => this.context.currentScope,
       getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
       isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
     });
-    const enumValidator = this.enumValidator; // Local var for narrowed type
 
-    // Issue #644: Initialize array initialization helper
     this.arrayInitHelper = new ArrayInitHelper({
       typeRegistry: this.context.typeRegistry,
       localArrays: this.context.localArrays,
-      arrayInitState: arrayInitState, // Reuse the proxy from stringDeclHelper
+      arrayInitState: arrayInitState,
       getExpectedType: () => this.context.expectedType,
       setExpectedType: (type) => {
         this.context.expectedType = type;
@@ -2246,17 +2257,15 @@ export default class CodeGenerator implements IOrchestrator {
       generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
     });
 
-    // Issue #644: Initialize assignment expected type resolver
     this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
       typeRegistry: this.context.typeRegistry,
       structFields: symbols.structFields,
       isKnownStruct: (name) => this.isKnownStruct(name),
     });
 
-    // Issue #644: Initialize assignment validation coordinator
     this.assignmentValidator = new AssignmentValidator({
-      typeValidator: typeValidator,
-      enumValidator: enumValidator,
+      typeValidator: this.typeValidator!,
+      enumValidator: this.enumValidator,
       typeRegistry: this.context.typeRegistry,
       floatShadowCurrent: this.context.floatShadowCurrent,
       registerMemberAccess: symbols.registerMemberAccess,
@@ -2268,13 +2277,18 @@ export default class CodeGenerator implements IOrchestrator {
       isCallbackTypeUsedAsFieldType: (name) =>
         this._isCallbackTypeUsedAsFieldType(name),
     });
+  }
 
-    // Second pass: register all variable types in the type registry
-    // This ensures .length and other type-dependent operations can resolve
-    // variables regardless of declaration order
-    this.registerAllVariableTypes(tree);
-
+  /**
+   * Assemble the final generated output.
+   */
+  private assembleGeneratedOutput(
+    tree: Parser.ProgramContext,
+    options: ICodeGeneratorOptions | undefined,
+  ): string {
     const output: string[] = [];
+    const symbols = this.symbols!;
+    const typeValidator = this.typeValidator!;
 
     // Add header comment
     output.push(
@@ -2285,43 +2299,55 @@ export default class CodeGenerator implements IOrchestrator {
       "",
     );
 
-    // Issue #230: Self-include for extern "C" linkage
-    // When file has public symbols and headers are being generated,
-    // include own header to ensure proper C linkage
-    // Issue #339: Use relative path from source root when available
-    // Issue #369: Track self-include to skip type definitions in .c file
-    // Issue #461: Always generate self-include when there are public symbols
+    // Self-include for extern "C" linkage
     if (symbols.hasPublicSymbols() && this.sourcePath) {
-      // Issue #339: Prefer sourceRelativePath for correct directory structure
-      // Otherwise fall back to basename for backward compatibility
       const pathToUse =
-        options.sourceRelativePath || this.sourcePath.replace(/^.*[\\/]/, "");
+        options?.sourceRelativePath || this.sourcePath.replace(/^.*[\\/]/, "");
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ".h");
       output.push(`#include "${headerName}"`, "");
-      // Issue #369: Mark that self-include was added - types will be in header
       this.selfIncludeAdded = true;
     }
 
-    // Pass through #include directives from source
-    // C-Next does NOT hardcode any libraries - all includes must be explicit
-    // ADR-043: Comments before first include become file-level comments
-    // ADR-010: Transform .cnx includes to .h, reject implementation files
-    // E0504: Cache include paths for performance (computed once, used for all includes)
+    // Process include directives
+    this.processIncludeDirectives(tree, output, typeValidator);
+
+    // Process preprocessor directives
+    this.processPreprocessorDirectives(tree, output);
+
+    // Generate declarations
+    const declarations = this.generateAllDeclarations(tree);
+
+    // Add auto-includes and helpers
+    this.addAutoIncludes(output);
+    this.addGeneratedHelpers(output);
+
+    // Add the declarations
+    output.push(...declarations);
+
+    return output.join("\n");
+  }
+
+  /**
+   * Process all include directives and add to output.
+   */
+  private processIncludeDirectives(
+    tree: Parser.ProgramContext,
+    output: string[],
+    typeValidator: TypeValidator,
+  ): void {
     const includePaths = this.sourcePath
       ? IncludeDiscovery.discoverIncludePaths(this.sourcePath)
       : [];
+
     for (const includeDir of tree.includeDirective()) {
       const leadingComments = this.getLeadingComments(includeDir);
       output.push(...this.formatLeadingComments(leadingComments));
 
-      // ADR-010: Validate no implementation files are included
       const lineNumber = includeDir.start?.line ?? 0;
       typeValidator.validateIncludeNotImplementationFile(
         includeDir.getText(),
         lineNumber,
       );
-
-      // E0504: Check if a .cnx alternative exists for .h/.hpp includes
       typeValidator.validateIncludeNoCnxAlternative(
         includeDir.getText(),
         lineNumber,
@@ -2329,18 +2355,21 @@ export default class CodeGenerator implements IOrchestrator {
         includePaths,
       );
 
-      const transformedInclude = this.transformIncludeDirective(
-        includeDir.getText(),
-      );
-      output.push(transformedInclude);
+      output.push(this.transformIncludeDirective(includeDir.getText()));
     }
 
-    // Add blank line after includes if there were any
     if (tree.includeDirective().length > 0) {
       output.push("");
     }
+  }
 
-    // ADR-037: Process preprocessor directives (defines and conditionals)
+  /**
+   * Process all preprocessor directives and add to output.
+   */
+  private processPreprocessorDirectives(
+    tree: Parser.ProgramContext,
+    output: string[],
+  ): void {
     for (const ppDir of tree.preprocessorDirective()) {
       const leadingComments = this.getLeadingComments(ppDir);
       output.push(...this.formatLeadingComments(leadingComments));
@@ -2350,15 +2379,18 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // Add blank line after preprocessor directives if there were any
     if (tree.preprocessorDirective().length > 0) {
       output.push("");
     }
+  }
 
-    // Visit all declarations (first generate to collect helper usage)
+  /**
+   * Generate all declarations from the tree.
+   */
+  private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
     const declarations: string[] = [];
+
     for (const decl of tree.declaration()) {
-      // ADR-043: Get comments before this declaration
       const leadingComments = this.getLeadingComments(decl);
       declarations.push(...this.formatLeadingComments(leadingComments));
 
@@ -2368,32 +2400,30 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // Add required standard library includes (after user includes, before helpers)
+    return declarations;
+  }
+
+  /**
+   * Add auto-generated includes based on usage.
+   */
+  private addAutoIncludes(output: string[]): void {
     const autoIncludes: string[] = [];
-    if (this.needsStdint) {
-      autoIncludes.push("#include <stdint.h>");
-    }
-    if (this.needsStdbool) {
-      autoIncludes.push("#include <stdbool.h>");
-    }
-    if (this.needsString) {
-      autoIncludes.push("#include <string.h>"); // ADR-045: For strlen, strncpy, etc.
-    }
-    if (this.needsCMSIS) {
-      // ADR-049/050: CMSIS intrinsics for atomic operations and critical sections
-      // Note: For Arduino/Teensy, these are typically included via Arduino.h
-      // For standalone ARM targets, cmsis_gcc.h provides __LDREX/__STREX/__get_PRIMASK etc.
-      autoIncludes.push("#include <cmsis_gcc.h>");
-    }
-    if (this.needsLimits) {
-      // Issue #632: For float-to-int clamp casts (UINT8_MAX, INT8_MIN, etc.)
-      autoIncludes.push("#include <limits.h>");
-    }
+
+    if (this.needsStdint) autoIncludes.push("#include <stdint.h>");
+    if (this.needsStdbool) autoIncludes.push("#include <stdbool.h>");
+    if (this.needsString) autoIncludes.push("#include <string.h>");
+    if (this.needsCMSIS) autoIncludes.push("#include <cmsis_gcc.h>");
+    if (this.needsLimits) autoIncludes.push("#include <limits.h>");
+
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes, "");
     }
+  }
 
-    // Float bit indexing requires size verification at compile time
+  /**
+   * Add generated helpers (static asserts, IRQ wrappers, typedefs, etc.).
+   */
+  private addGeneratedHelpers(output: string[]): void {
     if (this.needsFloatStaticAssert) {
       output.push(
         '_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");',
@@ -2402,8 +2432,6 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    // Issue #473: IRQ wrapper functions to avoid macro collisions with platform headers
-    // (e.g., Teensy's imxrt.h defines __disable_irq/__enable_irq as macros)
     if (this.needsIrqWrappers) {
       output.push(
         "// ADR-050: IRQ wrappers to avoid macro collisions with platform headers",
@@ -2414,7 +2442,6 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    // ADR-040: Add ISR typedef if needed
     if (this.needsISR) {
       output.push(
         "/* ADR-040: ISR function pointer type */",
@@ -2423,22 +2450,15 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    // ADR-044: Insert overflow helpers before declarations (if any are needed)
     const helpers = this.generateOverflowHelpers();
     if (helpers.length > 0) {
       output.push(...helpers);
     }
 
-    // ADR-051: Insert safe division helpers
     const safeDivHelpers = this.generateSafeDivHelpers();
     if (safeDivHelpers.length > 0) {
       output.push(...safeDivHelpers);
     }
-
-    // Add the declarations
-    output.push(...declarations);
-
-    return output.join("\n");
   }
 
   /**
