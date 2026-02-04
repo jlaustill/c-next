@@ -7968,13 +7968,6 @@ export default class CodeGenerator implements IOrchestrator {
         // Not: cfg.items.value[i] (which the old heuristic generated)
 
         if (ctx.children) {
-          // Walk parse tree children in order, building result incrementally
-          // Bug #8 fix: Use while loop with proper child type detection
-          // instead of fragile index arithmetic (i += 2)
-          let result = firstPart;
-          let idIndex = 1; // Start at 1 since we already used firstPart
-          let exprIndex = 0;
-
           // Check if first identifier is a scope for special handling
           const isCrossScope = this.isKnownScope(firstPart);
 
@@ -7996,101 +7989,38 @@ export default class CodeGenerator implements IOrchestrator {
 
           // Bug #8: Track struct types to detect bit access through chains
           // e.g., items[0].byte[7] where byte is u8 - final [7] is bit read
-          let currentStructType: string | undefined;
-          let lastMemberType: string | undefined;
-          let lastMemberIsArray = false; // Track if last accessed member is an array
           const firstTypeInfo = this.context.typeRegistry.get(firstPart);
-          if (firstTypeInfo) {
-            currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
-              ? firstTypeInfo.baseType
-              : undefined;
-          }
 
-          let i = 1;
-          while (i < ctx.children.length) {
-            const child = ctx.children[i];
-            const childText = child.getText();
-
-            if (childText === ".") {
-              // Dot found - consume it, then get the next identifier
-              i++;
-              if (i < ctx.children.length && idIndex < parts.length) {
-                const memberName = parts[idIndex];
-                // ADR-006: Use determineSeparator helper for -> (struct param) / _ (scope) / .
-                const separator = memberAccessChain.determineSeparator(
-                  { isStructParam, isCrossScope, cppMode: this.cppMode },
-                  idIndex,
-                );
-                result += `${separator}${memberName}`;
-                idIndex++;
-
-                // Update type tracking for the member we just accessed
-                if (currentStructType) {
-                  const fields =
-                    this.symbols!.structFields.get(currentStructType);
-                  lastMemberType = fields?.get(memberName);
-                  // Check if this member is an array field
-                  const arrayFields =
-                    this.symbols!.structFieldArrays.get(currentStructType);
-                  lastMemberIsArray = arrayFields?.has(memberName) ?? false;
-                  // Check if this member is itself a struct
-                  if (lastMemberType && this.isKnownStruct(lastMemberType)) {
-                    currentStructType = lastMemberType;
-                  } else {
-                    currentStructType = undefined;
-                  }
+          // Issue #644: Use buildMemberAccessChain for child-walking logic
+          const chainResult = memberAccessChain.buildMemberAccessChain({
+            firstId: firstPart,
+            identifiers: parts,
+            expressions,
+            children: ctx.children,
+            separatorOptions: {
+              isStructParam,
+              isCrossScope,
+              cppMode: this.cppMode,
+            },
+            generateExpression: (expr) => this._generateExpression(expr),
+            initialTypeInfo: firstTypeInfo
+              ? {
+                  isArray: firstTypeInfo.isArray,
+                  baseType: firstTypeInfo.baseType,
                 }
-              }
-            } else if (childText === "[") {
-              // Opening bracket - check if this is bit access on primitive integer
-              // Must NOT be an array field (e.g., indices[12] is array, not bit access)
-              const isPrimitiveInt =
-                lastMemberType &&
-                !lastMemberIsArray &&
-                TypeCheckUtils.isInteger(lastMemberType);
-              const isLastExpr = exprIndex === expressions.length - 1;
+              : undefined,
+            typeTracking: {
+              getStructFields: (structType) =>
+                this.symbols!.structFields.get(structType),
+              getStructArrayFields: (structType) =>
+                this.symbols!.structFieldArrays.get(structType),
+              isKnownStruct: (name) => this.isKnownStruct(name),
+            },
+            onBitAccess: (result, bitIndex) =>
+              `((${result} >> ${bitIndex}) & 1)`,
+          });
 
-              if (
-                isPrimitiveInt &&
-                isLastExpr &&
-                exprIndex < expressions.length
-              ) {
-                // Bug #8: This is bit read on a struct member!
-                // e.g., items[0].byte[7] -> ((items[0].byte >> 7) & 1)
-                const bitIndex = this._generateExpression(
-                  expressions[exprIndex],
-                );
-                return `((${result} >> ${bitIndex}) & 1)`;
-              }
-
-              // Normal array subscript
-              if (exprIndex < expressions.length) {
-                const expr = this._generateExpression(expressions[exprIndex]);
-                result += `[${expr}]`;
-                exprIndex++;
-
-                // After subscripting an array, update type tracking
-                if (firstTypeInfo?.isArray && exprIndex === 1) {
-                  // First subscript on array - element type might be a struct
-                  const elementType = firstTypeInfo.baseType;
-                  if (this.isKnownStruct(elementType)) {
-                    currentStructType = elementType;
-                  }
-                }
-              }
-              // Skip forward to find and pass the closing bracket
-              while (
-                i < ctx.children.length &&
-                ctx.children[i].getText() !== "]"
-              ) {
-                i++;
-              }
-              // Reset lastMemberType after subscript (no longer on a member)
-              lastMemberType = undefined;
-            }
-            i++;
-          }
-          return result;
+          return chainResult.code;
         }
 
         // Fallback for simple cases without children
