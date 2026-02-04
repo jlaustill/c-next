@@ -1403,9 +1403,11 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Generate a bit mask for bit range access.
    * Part of IOrchestrator interface.
+   * Issue #644: Delegate to BitUtils for code reuse.
    */
   generateBitMask(width: string, is64Bit: boolean = false): string {
-    return this._generateBitMask(width, is64Bit);
+    // BitUtils.generateMask expects a type string, not a boolean
+    return BitUtils.generateMask(width, is64Bit ? "u64" : undefined);
   }
 
   /**
@@ -6707,32 +6709,9 @@ export default class CodeGenerator implements IOrchestrator {
    * @param width The width expression (may be a literal or expression)
    * @param isF64 If true, generate 64-bit masks with ULL suffix (for f64 bit indexing)
    */
-  private _generateBitMask(width: string, isF64: boolean = false): string {
-    const suffix = isF64 ? "ULL" : "U";
-    // Check if width is a compile-time constant
-    const widthNum = Number.parseInt(width, 10);
-    if (!Number.isNaN(widthNum)) {
-      // Use explicit hex masks for common widths to avoid UB
-      if (widthNum === 32) {
-        return isF64 ? "0xFFFFFFFFULL" : "0xFFFFFFFFU";
-      }
-      if (widthNum === 64) {
-        return "0xFFFFFFFFFFFFFFFFULL";
-      }
-      if (widthNum === 16) {
-        return isF64 ? "0xFFFFULL" : "0xFFFFU";
-      }
-      if (widthNum === 8) {
-        return isF64 ? "0xFFULL" : "0xFFU";
-      }
-    }
-    // For non-constant or other widths, use the shift expression
-    // (safe as long as width < 32 for 32-bit operations)
-    return `((1${suffix} << ${width}) - 1)`;
-  }
-
   // ========================================================================
   // Statements
+  // Issue #644: _generateBitMask removed, now delegating to BitUtils.generateMask
   // ========================================================================
 
   private _generateBlock(ctx: Parser.BlockContext): string {
