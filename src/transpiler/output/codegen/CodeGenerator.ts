@@ -1425,7 +1425,39 @@ export default class CodeGenerator implements IOrchestrator {
     this.functionCallGraph.clear();
 
     // Issue #565: Inject cross-file data BEFORE collecting this file's info
-    // This allows transitive propagation to work across file boundaries
+    this.injectCrossFileData(crossFileModifications, crossFileParamLists);
+
+    // Track which functions were injected (not from this file)
+    const injectedFuncs = new Set(crossFileModifications?.keys() ?? []);
+
+    // Run modification analysis on the tree (adds to what was injected)
+    this.collectFunctionParametersAndModifications(tree);
+
+    // Issue #565: Run transitive propagation with full context
+    this.propagateTransitiveModifications();
+
+    // Capture results - only include functions NOT from cross-file injection
+    const modifications = this.extractThisFileModifications(
+      crossFileModifications,
+      injectedFuncs,
+    );
+    const paramLists = this.extractThisFileParamLists(crossFileParamLists);
+
+    // Restore previous state
+    this.restoreMapState(this.modifiedParameters, savedModifications);
+    this.restoreMapState(this.functionParamLists, savedParamLists);
+    this.restoreMapState(this.functionCallGraph, savedCallGraph);
+
+    return { modifications, paramLists };
+  }
+
+  /**
+   * Inject cross-file modification data for transitive propagation.
+   */
+  private injectCrossFileData(
+    crossFileModifications?: ReadonlyMap<string, ReadonlySet<string>>,
+    crossFileParamLists?: ReadonlyMap<string, readonly string[]>,
+  ): void {
     if (crossFileModifications) {
       for (const [funcName, params] of crossFileModifications) {
         this.modifiedParameters.set(funcName, new Set(params));
@@ -1436,61 +1468,78 @@ export default class CodeGenerator implements IOrchestrator {
         this.functionParamLists.set(funcName, [...params]);
       }
     }
+  }
 
-    // Track which functions were injected (not from this file)
-    const injectedFuncs = new Set(crossFileModifications?.keys() ?? []);
-
-    // Run modification analysis on the tree (adds to what was injected)
-    this.collectFunctionParametersAndModifications(tree);
-
-    // Issue #565: Run transitive propagation with full context
-    // This propagates modifications from included files' functions to this file's functions
-    this.propagateTransitiveModifications();
-
-    // Capture results - only include functions NOT from cross-file injection
-    // (return only what this file contributes, including transitively discovered mods)
+  /**
+   * Extract modifications discovered in this file (excluding injected cross-file data).
+   */
+  private extractThisFileModifications(
+    crossFileModifications:
+      | ReadonlyMap<string, ReadonlySet<string>>
+      | undefined,
+    injectedFuncs: Set<string>,
+  ): Map<string, Set<string>> {
     const modifications = new Map<string, Set<string>>();
+
     for (const [funcName, params] of this.modifiedParameters) {
-      // Include if: not injected, OR has new params beyond what was injected
-      const injectedParams = crossFileModifications?.get(funcName);
       if (!injectedFuncs.has(funcName)) {
         // Function defined in this file - include all its modifications
         modifications.set(funcName, new Set(params));
-      } else if (injectedParams) {
-        // Check if we discovered new modifications for an injected function
-        const newParams = new Set<string>();
-        for (const p of params) {
-          if (!injectedParams.has(p)) {
-            newParams.add(p);
-          }
-        }
-        if (newParams.size > 0) {
-          modifications.set(funcName, newParams);
-        }
+        continue;
+      }
+
+      // Check if we discovered new modifications for an injected function
+      const injectedParams = crossFileModifications?.get(funcName);
+      if (!injectedParams) continue;
+
+      const newParams = this.findNewParams(params, injectedParams);
+      if (newParams.size > 0) {
+        modifications.set(funcName, newParams);
       }
     }
+
+    return modifications;
+  }
+
+  /**
+   * Find params that are in current set but not in injected set.
+   */
+  private findNewParams(
+    params: Set<string>,
+    injectedParams: ReadonlySet<string>,
+  ): Set<string> {
+    const newParams = new Set<string>();
+    for (const p of params) {
+      if (!injectedParams.has(p)) {
+        newParams.add(p);
+      }
+    }
+    return newParams;
+  }
+
+  /**
+   * Extract param lists discovered in this file (excluding injected cross-file data).
+   */
+  private extractThisFileParamLists(
+    crossFileParamLists?: ReadonlyMap<string, readonly string[]>,
+  ): Map<string, string[]> {
     const paramLists = new Map<string, string[]>();
     for (const [funcName, params] of this.functionParamLists) {
       if (!crossFileParamLists?.has(funcName)) {
         paramLists.set(funcName, [...params]);
       }
     }
+    return paramLists;
+  }
 
-    // Restore previous state by clearing and repopulating (readonly maps)
-    this.modifiedParameters.clear();
-    for (const [k, v] of savedModifications) {
-      this.modifiedParameters.set(k, v);
+  /**
+   * Restore a map's state by clearing and repopulating from saved data.
+   */
+  private restoreMapState<K, V>(target: Map<K, V>, saved: Map<K, V>): void {
+    target.clear();
+    for (const [k, v] of saved) {
+      target.set(k, v);
     }
-    this.functionParamLists.clear();
-    for (const [k, v] of savedParamLists) {
-      this.functionParamLists.set(k, v);
-    }
-    this.functionCallGraph.clear();
-    for (const [k, v] of savedCallGraph) {
-      this.functionCallGraph.set(k, v);
-    }
-
-    return { modifications, paramLists };
   }
 
   /**
