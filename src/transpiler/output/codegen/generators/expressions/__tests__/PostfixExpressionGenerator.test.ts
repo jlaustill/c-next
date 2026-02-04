@@ -485,6 +485,79 @@ describe("PostfixExpressionGenerator", () => {
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("100");
     });
+
+    it("resolves this.member to struct type when member is a struct", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "Motor_config",
+          {
+            baseType: "MotorConfig",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols();
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "config" }),
+        createMockPostfixOp({ identifier: "speed" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState({ currentScope: "Motor" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+        isKnownStruct: (name) => name === "MotorConfig",
+        getMemberTypeInfo: () => ({ baseType: "u32", isArray: false }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("Motor_config.speed");
+    });
+
+    it("resolves this.member without struct type when not a known struct", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "Motor_value",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols();
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "value" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState({ currentScope: "Motor" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+        isKnownStruct: () => false,
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("Motor_value");
+    });
+
+    it("resolves this.member when member is a known enum", () => {
+      const symbols = createMockSymbols({
+        knownEnums: new Set(["Motor_State"]),
+      });
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "State" }),
+      ]);
+      const input = createMockInput({ symbols });
+      const state = createMockState({ currentScope: "Motor" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("Motor_State");
+    });
   });
 
   describe(".length property", () => {
@@ -646,6 +719,299 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("32");
+    });
+
+    it("returns dimension for 2D array type at depth 0", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "matrix",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [3, 4],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("matrix", [
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "matrix",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("3");
+    });
+
+    it("returns dimension for 2D array type at depth 1", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "matrix",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [3, 4],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("matrix", [
+        createMockPostfixOp({ expressions: [createMockExpression("0")] }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "matrix",
+        generateExpression: () => "0",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("4");
+    });
+
+    it("returns bit width when subscriptDepth exceeds dimensions", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [10],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ expressions: [createMockExpression("0")] }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+        generateExpression: () => "0",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("32");
+    });
+
+    it("returns strlen for string array element", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "names",
+          {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: [5, 32],
+            isConst: false,
+            isString: true,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("names", [
+        createMockPostfixOp({ expressions: [createMockExpression("0")] }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "names",
+        generateExpression: () => "0",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("strlen(names[0])");
+    });
+
+    it("returns dimension for string array at depth 0", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "names",
+          {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: true,
+            arrayDimensions: [5, 32],
+            isConst: false,
+            isString: true,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("names", [
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "names",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("5");
+    });
+
+    it("returns struct field array dimension for struct member access", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "config",
+          {
+            baseType: "Config",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Config"]),
+      });
+      const ctx = createMockPostfixExpressionContext("config", [
+        createMockPostfixOp({ identifier: "values" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "config",
+        isKnownStruct: (name) => name === "Config",
+        getMemberTypeInfo: () => ({
+          baseType: "u32",
+          isArray: true,
+        }),
+        getStructFieldInfo: () => ({
+          type: "u32",
+          dimensions: [10],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("10");
+    });
+
+    it("returns bit width for scalar struct field", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "point",
+          {
+            baseType: "Point",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Point"]),
+      });
+      const ctx = createMockPostfixExpressionContext("point", [
+        createMockPostfixOp({ identifier: "x" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "point",
+        isKnownStruct: (name) => name === "Point",
+        getMemberTypeInfo: () => ({
+          baseType: "i32",
+          isArray: false,
+        }),
+        getStructFieldInfo: () => ({
+          type: "i32",
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("32");
+    });
+
+    it("returns strlen for string struct field", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "person",
+          {
+            baseType: "Person",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Person"]),
+      });
+      const ctx = createMockPostfixExpressionContext("person", [
+        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "person",
+        isKnownStruct: (name) => name === "Person",
+        getMemberTypeInfo: () => ({
+          baseType: "string<32>",
+          isArray: false,
+        }),
+        getStructFieldInfo: () => ({
+          type: "string<32>",
+          dimensions: [32],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("strlen(person.name)");
+      expect(result.effects).toContainEqual({
+        type: "include",
+        header: "string",
+      });
+    });
+
+    it("returns first dimension for multi-dimensional string struct field at depth 0", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "data",
+          {
+            baseType: "Data",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Data"]),
+      });
+      const ctx = createMockPostfixExpressionContext("data", [
+        createMockPostfixOp({ identifier: "names" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "data",
+        isKnownStruct: (name) => name === "Data",
+        getMemberTypeInfo: () => ({
+          baseType: "string<32>",
+          isArray: true,
+        }),
+        getStructFieldInfo: () => ({
+          type: "string<32>",
+          dimensions: [5, 32],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("5");
     });
   });
 
@@ -1337,6 +1703,89 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("std::cout");
+    });
+  });
+
+  describe("global access edge cases", () => {
+    it("sets isCppAccessChain when global member is C++ scope symbol", () => {
+      const ctx = createMockPostfixExpressionContext("global", [
+        createMockPostfixOp({ identifier: "std" }),
+        createMockPostfixOp({ identifier: "cout" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
+        isCppScopeSymbol: (name) => name === "std",
+        getScopeSeparator: (isCpp) => (isCpp ? "::" : "_"),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("std::cout");
+    });
+
+    it("sets isRegisterChain when global member is a register", () => {
+      const symbols = createMockSymbols({
+        knownRegisters: new Set(["GPIO"]),
+      });
+      const ctx = createMockPostfixExpressionContext("global", [
+        createMockPostfixOp({ identifier: "GPIO" }),
+        createMockPostfixOp({ identifier: "PIN0" }),
+      ]);
+      const input = createMockInput({ symbols });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("GPIO_PIN0");
+    });
+  });
+
+  describe("this.length as scope member", () => {
+    it("throws when this.length used outside scope without length member", () => {
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState({ currentScope: null });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("'this' can only be used inside a scope");
+    });
+
+    it("resolves this.length to scope member when length is a struct type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "Motor_length",
+          {
+            baseType: "LengthConfig",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const scopeMembers = new Map([["Motor", new Set(["length", "speed"])]]);
+      const ctx = createMockPostfixExpressionContext("this", [
+        createMockPostfixOp({ identifier: "length" }),
+        createMockPostfixOp({ identifier: "value" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "__THIS_SCOPE__",
+        isKnownStruct: (name) => name === "LengthConfig",
+        getMemberTypeInfo: () => ({ baseType: "u32", isArray: false }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("Motor_length.value");
     });
   });
 

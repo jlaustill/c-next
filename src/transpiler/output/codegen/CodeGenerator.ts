@@ -2036,9 +2036,10 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
     this.symbols = options.symbolInfo;
+    const symbols = this.symbols; // Local var for narrowed type
 
     // Copy symbol data to context.scopeMembers (used by code generation)
-    for (const [scopeName, members] of this.symbols.scopeMembers) {
+    for (const [scopeName, members] of symbols.scopeMembers) {
       // Convert ReadonlySet to mutable Set for context
       this.context.scopeMembers.set(scopeName, new Set(members));
     }
@@ -2077,7 +2078,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #63: Initialize type validator with clean dependencies
     this.typeValidator = new TypeValidator({
-      symbols: this.symbols,
+      symbols: symbols,
       symbolTable: this.symbolTable,
       typeRegistry: this.context.typeRegistry,
       typeResolver: this.typeResolver,
@@ -2092,6 +2093,7 @@ export default class CodeGenerator implements IOrchestrator {
       getExpressionType: (ctx: unknown) =>
         this.getExpressionType(ctx as Parser.ExpressionContext),
     });
+    const typeValidator = this.typeValidator; // Local var for narrowed type
 
     // Issue #644: Initialize string length counter for strlen caching
     this.stringLengthCounter = new StringLengthCounter((name: string) =>
@@ -2101,8 +2103,8 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #644: Initialize member chain analyzer for bit access detection
     this.memberChainAnalyzer = new MemberChainAnalyzer({
       typeRegistry: this.context.typeRegistry,
-      structFields: this.symbols!.structFields,
-      structFieldArrays: this.symbols!.structFieldArrays,
+      structFields: symbols.structFields,
+      structFieldArrays: symbols.structFieldArrays,
       isKnownStruct: (name) => this.isKnownStruct(name),
       generateExpression: (ctx) => this._generateExpression(ctx),
     });
@@ -2155,7 +2157,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #644: Initialize enum assignment validator
     this.enumValidator = new EnumAssignmentValidator({
-      knownEnums: this.symbols!.knownEnums,
+      knownEnums: symbols.knownEnums,
       getCurrentScope: () => this.context.currentScope,
       getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
       isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
@@ -2197,7 +2199,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #339: Use relative path from source root when available
     // Issue #369: Track self-include to skip type definitions in .c file
     // Issue #461: Always generate self-include when there are public symbols
-    if (this.symbols!.hasPublicSymbols() && this.sourcePath) {
+    if (symbols.hasPublicSymbols() && this.sourcePath) {
       // Issue #339: Prefer sourceRelativePath for correct directory structure
       // Otherwise fall back to basename for backward compatibility
       const pathToUse =
@@ -2222,13 +2224,13 @@ export default class CodeGenerator implements IOrchestrator {
 
       // ADR-010: Validate no implementation files are included
       const lineNumber = includeDir.start?.line ?? 0;
-      this.typeValidator!.validateIncludeNotImplementationFile(
+      typeValidator.validateIncludeNotImplementationFile(
         includeDir.getText(),
         lineNumber,
       );
 
       // E0504: Check if a .cnx alternative exists for .h/.hpp includes
-      this.typeValidator!.validateIncludeNoCnxAlternative(
+      typeValidator.validateIncludeNoCnxAlternative(
         includeDir.getText(),
         lineNumber,
         this.sourcePath,
@@ -8099,7 +8101,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-006: Check if the first part is a struct parameter
     const paramInfo = this.context.currentParameters.get(firstPart);
-    if (paramInfo && paramInfo.isStruct) {
+    if (paramInfo?.isStruct) {
       // Use centralized helper for C/C++ struct param member access
       return memberAccessChain.buildStructParamMemberAccess(
         firstPart,

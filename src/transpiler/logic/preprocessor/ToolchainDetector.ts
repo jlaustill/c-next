@@ -202,11 +202,13 @@ class ToolchainDetector {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
-      const config = JSON.parse(result);
+      const config = JSON.parse(result) as Record<
+        string,
+        { build_flags?: string[] }
+      >;
 
       // Extract include directories from build flags
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const env of Object.values(config) as any[]) {
+      for (const env of Object.values(config)) {
         const buildFlags = env.build_flags ?? [];
         for (const flag of buildFlags) {
           if (flag.startsWith("-I")) {

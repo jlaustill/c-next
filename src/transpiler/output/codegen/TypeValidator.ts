@@ -16,7 +16,13 @@ import TypeResolver from "./TypeResolver";
 /**
  * ADR-010: Implementation file extensions that should NOT be #included
  */
-const IMPLEMENTATION_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx", ".c++"];
+const IMPLEMENTATION_EXTENSIONS = new Set([
+  ".c",
+  ".cpp",
+  ".cc",
+  ".cxx",
+  ".c++",
+]);
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time
@@ -78,7 +84,7 @@ class TypeValidator {
       .substring(includePath.lastIndexOf("."))
       .toLowerCase();
 
-    if (IMPLEMENTATION_EXTENSIONS.includes(ext)) {
+    if (IMPLEMENTATION_EXTENSIONS.has(ext)) {
       throw new Error(
         `E0503: Cannot #include implementation file '${includePath}'. ` +
           `Only header files (.h, .hpp) are allowed. Line ${lineNumber}`,
