@@ -2172,6 +2172,7 @@ export default class CodeGenerator implements IOrchestrator {
       getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
       isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
     });
+    const enumValidator = this.enumValidator; // Local var for narrowed type
 
     // Issue #644: Initialize array initialization helper
     this.arrayInitHelper = new ArrayInitHelper({
@@ -2190,17 +2191,17 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #644: Initialize assignment expected type resolver
     this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
       typeRegistry: this.context.typeRegistry,
-      structFields: this.symbols!.structFields,
+      structFields: symbols.structFields,
       isKnownStruct: (name) => this.isKnownStruct(name),
     });
 
     // Issue #644: Initialize assignment validation coordinator
     this.assignmentValidator = new AssignmentValidator({
-      typeValidator: this.typeValidator!,
-      enumValidator: this.enumValidator!,
+      typeValidator: typeValidator,
+      enumValidator: enumValidator,
       typeRegistry: this.context.typeRegistry,
       floatShadowCurrent: this.context.floatShadowCurrent,
-      registerMemberAccess: this.symbols!.registerMemberAccess,
+      registerMemberAccess: symbols.registerMemberAccess,
       callbackFieldTypes: this.callbackFieldTypes,
       isKnownStruct: (name) => this.isKnownStruct(name),
       isIntegerType: (name) => this._isIntegerType(name),
