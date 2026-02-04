@@ -5017,7 +5017,7 @@ export default class CodeGenerator implements IOrchestrator {
       ) {
         const cType = TYPE_MAP[targetParamBaseType];
         if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-          return this.cppHelper.reinterpretCast(`${cType}*`, expr);
+          return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
         }
       }
 
@@ -8243,7 +8243,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Generate clamping expression:
     // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
     // Note: For unsigned targets, MIN is 0 so we check < 0.0
-    const finalCast = this.cppHelper.cast(targetType, `(${expr})`);
+    const finalCast = this.cppHelper!.cast(targetType, `(${expr})`);
     return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : ${finalCast})`;
   }
 
