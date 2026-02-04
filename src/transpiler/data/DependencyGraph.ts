@@ -8,7 +8,28 @@
  * Uses @n1ru4l/toposort for cycle-aware topological sorting.
  */
 
-import { toposortReverse } from "@n1ru4l/toposort";
+// Handle tsx vs vitest ESM/CJS interop differences:
+// - tsx wraps named exports inside `default`
+// - vitest exposes named exports at namespace level
+import * as toposortNS from "@n1ru4l/toposort";
+
+type ToposortFn = (deps: Map<string, string[]>) => Set<string>[];
+type ToposortModule = {
+  toposortReverse?: ToposortFn;
+  default?: ToposortModule;
+};
+
+/**
+ * Resolves toposortReverse from module with tsx/vitest interop support.
+ */
+function resolveToposortReverse(mod: ToposortModule): ToposortFn {
+  if (mod.toposortReverse) {
+    return mod.toposortReverse;
+  }
+  return mod.default!.toposortReverse!;
+}
+
+const toposortReverse = resolveToposortReverse(toposortNS as ToposortModule);
 
 /**
  * Manages file dependencies for topological sorting
@@ -17,6 +38,12 @@ class DependencyGraph {
   /** Maps each file to its dependencies (files it includes) */
   private readonly dependencies: Map<string, string[]> = new Map();
   private readonly warnings: string[] = [];
+
+  /**
+   * Resolves toposortReverse with tsx/vitest interop support.
+   * Exposed as static for testing both code paths.
+   */
+  static resolveToposortReverse = resolveToposortReverse;
 
   /**
    * Add a file to the graph without dependencies

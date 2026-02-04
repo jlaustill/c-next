@@ -5,6 +5,20 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import DependencyGraph from "../DependencyGraph";
 
+describe("resolveToposortReverse", () => {
+  const mockFn = () => [new Set(["a"])];
+
+  it("should use direct export when available (vitest case)", () => {
+    const mod = { toposortReverse: mockFn };
+    expect(DependencyGraph.resolveToposortReverse(mod)).toBe(mockFn);
+  });
+
+  it("should fall back to default export (tsx case)", () => {
+    const mod = { default: { toposortReverse: mockFn } };
+    expect(DependencyGraph.resolveToposortReverse(mod)).toBe(mockFn);
+  });
+});
+
 describe("DependencyGraph", () => {
   let graph: DependencyGraph;
 
