@@ -28,6 +28,7 @@ import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
+import TIncludeHeader from "./generators/TIncludeHeader";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
 // ADR-053: Expression generators (A2)
 import generateLiteral from "./generators/expressions/LiteralGenerator";
