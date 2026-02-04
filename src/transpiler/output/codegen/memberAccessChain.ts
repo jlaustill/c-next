@@ -10,6 +10,7 @@
  */
 
 import { ParseTree } from "antlr4ng";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils.js";
 
 /**
  * Options for struct parameter access helpers.
@@ -147,9 +148,11 @@ interface TypeTrackingState {
  */
 interface TypeTrackingCallbacks {
   /** Get the fields map for a struct type */
-  getStructFields: (structType: string) => Map<string, string> | undefined;
+  getStructFields: (
+    structType: string,
+  ) => ReadonlyMap<string, string> | undefined;
   /** Get the array fields set for a struct type */
-  getStructArrayFields: (structType: string) => Set<string> | undefined;
+  getStructArrayFields: (structType: string) => ReadonlySet<string> | undefined;
   /** Check if a type name is a known struct */
   isKnownStruct: StructChecker;
 }
@@ -273,9 +276,7 @@ function buildMemberAccessChain<TExpr>(
         const isPrimitiveInt =
           typeState.lastMemberType &&
           !typeState.lastMemberIsArray &&
-          ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"].includes(
-            typeState.lastMemberType,
-          );
+          TypeCheckUtils.isInteger(typeState.lastMemberType);
         const isLastExpr = exprIndex === expressions.length - 1;
 
         if (isPrimitiveInt && isLastExpr && exprIndex < expressions.length) {
