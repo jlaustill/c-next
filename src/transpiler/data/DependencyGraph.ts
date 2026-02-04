@@ -18,6 +18,7 @@ type ToposortFn = (deps: Map<string, string[]>) => Set<string>[];
 
 // tsx: named exports in .default, vitest: named exports at top level
 const mod = toposortNS as ToposortModule & { default?: ToposortModule };
+// c8 ignore next -- both paths tested (vitest + tsx) but coverage only from vitest
 const toposortReverse: ToposortFn = (mod.toposortReverse ??
   mod.default?.toposortReverse)!;
 
