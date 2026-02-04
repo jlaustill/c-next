@@ -55,6 +55,7 @@ import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
+import ExpressionUtils from "../../../utils/ExpressionUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
@@ -7631,46 +7632,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-023: Check if expression contains a function call (postfix with argumentList)
    */
   private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
-    // Navigate through expression tree to find function calls
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return false;
-
-    // Check all branches for function calls
-    for (const or of ternary.orExpression()) {
-      for (const and of or.andExpression()) {
-        for (const eq of and.equalityExpression()) {
-          for (const rel of eq.relationalExpression()) {
-            for (const bor of rel.bitwiseOrExpression()) {
-              for (const bxor of bor.bitwiseXorExpression()) {
-                for (const band of bxor.bitwiseAndExpression()) {
-                  for (const shift of band.shiftExpression()) {
-                    for (const add of shift.additiveExpression()) {
-                      for (const mult of add.multiplicativeExpression()) {
-                        for (const unary of mult.unaryExpression()) {
-                          const postfix = unary.postfixExpression();
-                          if (postfix) {
-                            for (const op of postfix.postfixOp()) {
-                              // Check if this is a function call
-                              if (
-                                op.argumentList() ||
-                                op.getText().startsWith("(")
-                              ) {
-                                return true;
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return false;
+    return ExpressionUtils.hasFunctionCall(expr);
   }
 
   private generateMemberAccess(ctx: Parser.MemberAccessContext): string {
