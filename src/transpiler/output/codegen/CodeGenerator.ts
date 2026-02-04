@@ -74,6 +74,12 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
+// Issue #644: Array dimension parsing helper for consolidation
+import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
+// Issue #644: Member chain analyzer for bit access pattern detection
+import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
+// Issue #644: Float bit write helper for shadow variable pattern
+import FloatBitHelper from "./helpers/FloatBitHelper";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -317,6 +323,12 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: String length counter for strlen caching optimization */
   private stringLengthCounter: StringLengthCounter | null = null;
+
+  /** Issue #644: Member chain analyzer for bit access pattern detection */
+  private memberChainAnalyzer: MemberChainAnalyzer | null = null;
+
+  /** Issue #644: Float bit write helper for shadow variable pattern */
+  private floatBitHelper: FloatBitHelper | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2054,6 +2066,27 @@ export default class CodeGenerator implements IOrchestrator {
       this.context.typeRegistry.get(name),
     );
 
+    // Issue #644: Initialize member chain analyzer for bit access detection
+    this.memberChainAnalyzer = new MemberChainAnalyzer({
+      typeRegistry: this.context.typeRegistry,
+      structFields: this.symbols!.structFields,
+      structFieldArrays: this.symbols!.structFieldArrays,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+      generateExpression: (ctx) => this._generateExpression(ctx),
+    });
+
+    // Issue #644: Initialize float bit helper for shadow variable pattern
+    this.floatBitHelper = new FloatBitHelper({
+      cppMode: this.cppMode,
+      state: {
+        floatBitShadows: this.context.floatBitShadows,
+        floatShadowCurrent: this.context.floatShadowCurrent,
+      },
+      generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
+      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
+      requireInclude: (header) => this.requireInclude(header),
+    });
+
     // Second pass: register all variable types in the type registry
     // This ensures .length and other type-dependent operations can resolve
     // variables regardless of declaration order
@@ -3200,85 +3233,16 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-036: Try to evaluate an expression as a compile-time constant.
    * Returns the numeric value if constant, undefined if not evaluable.
    * Bug #8: Extended to resolve const variable references for file-scope array sizes.
+   * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
   private _tryEvaluateConstant(
     ctx: Parser.ExpressionContext,
   ): number | undefined {
-    // Get the expression text and try to parse it as a simple integer literal
-    const text = ctx.getText().trim();
-
-    // Check if it's a simple integer literal
-    if (/^-?\d+$/.exec(text)) {
-      return Number.parseInt(text, 10);
-    }
-    // Check if it's a hex literal
-    if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
-      return Number.parseInt(text, 16);
-    }
-    // Check if it's a binary literal
-    if (/^0[bB][01]+$/.exec(text)) {
-      return Number.parseInt(text.substring(2), 2);
-    }
-
-    // Bug #8: Check if it's a known const value (identifier)
-    if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const constValue = this.constValues.get(text);
-      if (constValue !== undefined) {
-        return constValue;
-      }
-    }
-
-    // Bug #8: Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
-    const addMatch = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/.exec(text);
-    if (addMatch) {
-      const left = this.constValues.get(addMatch[1]);
-      const right = this.constValues.get(addMatch[2]);
-      if (left !== undefined && right !== undefined) {
-        return left + right;
-      }
-    }
-
-    // Handle sizeof(type) expressions for primitive types
-    const sizeofMatch = /^sizeof\(([a-zA-Z_]\w*)\)$/.exec(text);
-    if (sizeofMatch) {
-      const typeName = sizeofMatch[1];
-      const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth) {
-        return bitWidth / 8; // Convert bits to bytes
-      }
-      // Check if it's a known struct
-      if (this.isKnownStruct(typeName)) {
-        // For structs, we can't easily compute size at this point
-        // Just return undefined and let the array work without dimension tracking
-        // The generated C will still work because sizeof() is evaluated at C compile time
-        return undefined;
-      }
-    }
-
-    // Handle sizeof(type) * N expressions
-    const sizeofMulMatch = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/.exec(text);
-    if (sizeofMulMatch) {
-      const typeName = sizeofMulMatch[1];
-      const multiplier = Number.parseInt(sizeofMulMatch[2], 10);
-      const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth && !Number.isNaN(multiplier)) {
-        return (bitWidth / 8) * multiplier;
-      }
-    }
-
-    // Handle sizeof(type) + N expressions
-    const sizeofAddMatch = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/.exec(text);
-    if (sizeofAddMatch) {
-      const typeName = sizeofAddMatch[1];
-      const addend = Number.parseInt(sizeofAddMatch[2], 10);
-      const bitWidth = TYPE_WIDTH[typeName];
-      if (bitWidth && !Number.isNaN(addend)) {
-        return bitWidth / 8 + addend;
-      }
-    }
-
-    // For more complex expressions, we can't evaluate at compile time
-    return undefined;
+    return ArrayDimensionParser.parseSingleDimension(ctx, {
+      constValues: this.constValues,
+      typeWidths: TYPE_WIDTH,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+    });
   }
 
   // Issue #63: checkArrayBounds moved to TypeValidator
@@ -3286,26 +3250,16 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Evaluate array dimensions from ArrayDimensionContext[] to number[].
    * Used for bitmap array registration.
+   * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
   private _evaluateArrayDimensions(
     arrayDim: Parser.ArrayDimensionContext[] | null,
   ): number[] | undefined {
-    if (!arrayDim || arrayDim.length === 0) {
-      return undefined;
-    }
-
-    const dimensions: number[] = [];
-    for (const dim of arrayDim) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = this._tryEvaluateConstant(sizeExpr);
-        if (size !== undefined && size > 0) {
-          dimensions.push(size);
-        }
-      }
-    }
-
-    return dimensions.length > 0 ? dimensions : undefined;
+    return ArrayDimensionParser.parseAllDimensions(arrayDim, {
+      constValues: this.constValues,
+      typeWidths: TYPE_WIDTH,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+    });
   }
 
   /**
@@ -3570,25 +3524,12 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Extract array dimensions from ArrayDimensionContext array (simple parseInt version)
    * Used for string array dimensions where const evaluation is not needed.
+   * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
   private extractArrayDimensionsSimple(
     arrayDim: Parser.ArrayDimensionContext[] | null,
   ): number[] {
-    const dimensions: number[] = [];
-    if (!arrayDim || arrayDim.length === 0) {
-      return dimensions;
-    }
-
-    for (const dim of arrayDim) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size) && size > 0) {
-          dimensions.push(size);
-        }
-      }
-    }
-    return dimensions;
+    return ArrayDimensionParser.parseSimpleDimensions(arrayDim);
   }
 
   /**
@@ -3869,26 +3810,10 @@ export default class CodeGenerator implements IOrchestrator {
 
       // Extract array dimensions if this is an array parameter
       // Issue #547: Always count each dimension, even if unsized (use 0 for unsized)
-      const arrayDimensions: number[] = [];
-      if (isArray) {
-        const arrayDims = param.arrayDimension();
-        for (const dim of arrayDims) {
-          const sizeExpr = dim.expression();
-          if (sizeExpr) {
-            const sizeText = sizeExpr.getText();
-            const size = Number.parseInt(sizeText, 10);
-            if (Number.isNaN(size)) {
-              // Non-numeric size (e.g., constant identifier) - still count the dimension
-              arrayDimensions.push(0);
-            } else {
-              arrayDimensions.push(size);
-            }
-          } else {
-            // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
-            arrayDimensions.push(0);
-          }
-        }
-      }
+      // Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
+      const arrayDimensions = isArray
+        ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
+        : [];
 
       // ADR-045: Get string capacity if this is a string parameter
       let stringCapacity: number | undefined;
@@ -6833,7 +6758,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   private _generateBlock(ctx: Parser.BlockContext): string {
     const lines: string[] = ["{"];
-    const innerIndent = "    "; // One level of relative indentation
+    const innerIndent = FormatUtils.indent(1); // One level of relative indentation
 
     for (const stmt of ctx.statement()) {
       // Temporarily increment for any nested context that needs absolute level
@@ -6956,10 +6881,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Analyze a member chain target to detect bit access at the end.
-   * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
-   *
-   * Uses the same tree-walking approach as generateMemberAccess to correctly
-   * track which expressions belong to which identifiers in the chain.
+   * Issue #644: Delegates to MemberChainAnalyzer.
    */
   private analyzeMemberChainForBitAccess(
     targetCtx: Parser.AssignmentTargetContext,
@@ -6969,114 +6891,12 @@ export default class CodeGenerator implements IOrchestrator {
     bitIndex?: string;
     baseType?: string;
   } {
-    const memberAccessCtx = targetCtx.memberAccess();
-    if (!memberAccessCtx) {
-      return { isBitAccess: false };
-    }
-
-    const parts = memberAccessCtx.IDENTIFIER().map((id) => id.getText());
-    const expressions = memberAccessCtx.expression();
-    const children = memberAccessCtx.children;
-
-    if (!children || parts.length < 1 || expressions.length === 0) {
-      return { isBitAccess: false };
-    }
-
-    // Walk the parse tree to determine if the LAST expression is bit access
-    // This mirrors the logic in generateMemberAccess
-    const firstPart = parts[0];
-    const firstTypeInfo = this.context.typeRegistry.get(firstPart);
-
-    let currentStructType: string | undefined;
-    if (firstTypeInfo) {
-      currentStructType = this.isKnownStruct(firstTypeInfo.baseType)
-        ? firstTypeInfo.baseType
-        : undefined;
-    }
-
-    let result = firstPart;
-    let idIndex = 1;
-    let exprIndex = 0;
-    let lastMemberType: string | undefined;
-    let lastMemberIsArray = false;
-
-    let i = 1;
-    while (i < children.length) {
-      const childText = children[i].getText();
-
-      if (childText === ".") {
-        // Dot - next child is identifier
-        i++;
-        if (i < children.length && idIndex < parts.length) {
-          const memberName = parts[idIndex];
-          result += `.${memberName}`;
-          idIndex++;
-
-          // Update type tracking
-          if (currentStructType) {
-            const fields = this.symbols!.structFields.get(currentStructType);
-            lastMemberType = fields?.get(memberName);
-            const arrayFields =
-              this.symbols!.structFieldArrays.get(currentStructType);
-            lastMemberIsArray = arrayFields?.has(memberName) ?? false;
-
-            if (lastMemberType && this.isKnownStruct(lastMemberType)) {
-              currentStructType = lastMemberType;
-            } else {
-              currentStructType = undefined;
-            }
-          }
-        }
-      } else if (childText === "[") {
-        // Opening bracket - check if this is bit access
-        const isPrimitiveInt =
-          lastMemberType &&
-          !lastMemberIsArray &&
-          TypeCheckUtils.isInteger(lastMemberType);
-        const isLastExpr = exprIndex === expressions.length - 1;
-
-        if (isPrimitiveInt && isLastExpr && exprIndex < expressions.length) {
-          // This is bit access on a struct member
-          const bitIndex = this._generateExpression(expressions[exprIndex]);
-          return {
-            isBitAccess: true,
-            baseTarget: result,
-            bitIndex,
-            baseType: lastMemberType,
-          };
-        }
-
-        // Normal array subscript
-        if (exprIndex < expressions.length) {
-          const expr = this._generateExpression(expressions[exprIndex]);
-          result += `[${expr}]`;
-          exprIndex++;
-
-          // After subscripting an array, update type tracking
-          if (firstTypeInfo?.isArray && exprIndex === 1) {
-            const elementType = firstTypeInfo.baseType;
-            if (this.isKnownStruct(elementType)) {
-              currentStructType = elementType;
-            }
-          }
-        }
-        // Skip to closing bracket
-        while (i < children.length && children[i].getText() !== "]") {
-          i++;
-        }
-      }
-      i++;
-    }
-
-    return { isBitAccess: false };
+    return this.memberChainAnalyzer!.analyze(targetCtx);
   }
 
   /**
    * Generate float bit write using shadow variable + memcpy.
-   * Returns null if typeInfo is not a float type.
-   *
-   * For single bit: width is null, uses bitIndex only
-   * For bit range: width is provided, uses bitIndex as start position
+   * Issue #644: Delegates to FloatBitHelper.
    */
   private generateFloatBitWrite(
     name: string,
@@ -7085,53 +6905,13 @@ export default class CodeGenerator implements IOrchestrator {
     width: string | null,
     value: string,
   ): string | null {
-    const isFloatType =
-      typeInfo.baseType === "f32" || typeInfo.baseType === "f64";
-    if (!isFloatType) {
-      return null;
-    }
-
-    this.requireInclude("string"); // For memcpy
-    this.requireInclude("float_static_assert"); // For size verification
-
-    const isF64 = typeInfo.baseType === "f64";
-    const shadowType = isF64 ? "uint64_t" : "uint32_t";
-    const shadowName = `__bits_${name}`;
-    const maskSuffix = isF64 ? "ULL" : "U";
-
-    // Check if shadow variable needs declaration
-    const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
-    if (needsDeclaration) {
-      this.context.floatBitShadows.add(shadowName);
-    }
-
-    // Check if shadow already has current value (skip redundant memcpy read)
-    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-
-    const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
-    const readMemcpy = shadowIsCurrent
-      ? ""
-      : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
-
-    // Mark shadow as current after this write
-    this.context.floatShadowCurrent.add(shadowName);
-
-    if (width === null) {
-      // Single bit assignment: floatVar[3] <- true
-      return (
-        `${decl}${readMemcpy}` +
-        `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${this.foldBooleanToInt(value)} << ${bitIndex}); ` +
-        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
-      );
-    } else {
-      // Bit range assignment: floatVar[0, 8] <- b0
-      const mask = this.generateBitMask(width, isF64);
-      return (
-        `${decl}${readMemcpy}` +
-        `${shadowName} = (${shadowName} & ~(${mask} << ${bitIndex})) | (((${shadowType})${value} & ${mask}) << ${bitIndex}); ` +
-        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
-      );
-    }
+    return this.floatBitHelper!.generateFloatBitWrite(
+      name,
+      typeInfo,
+      bitIndex,
+      width,
+      value,
+    );
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators
