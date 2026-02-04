@@ -669,51 +669,6 @@ class Transpiler {
   }
 
   /**
-   * Issue #465: Collect ICodeGenSymbols from all transitively included .cnx files.
-   *
-   * Recursively resolves includes to gather enum info from the entire include tree.
-   * This ensures that deeply nested enums (A includes B, B includes C with enum)
-   * are available for prefixing in the top-level file.
-   *
-   * @param filePath The file to collect transitive includes for
-   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
-   */
-  private collectTransitiveEnumInfo(filePath: string): ICodeGenSymbols[] {
-    const result: ICodeGenSymbols[] = [];
-    const visited = new Set<string>();
-
-    const collectRecursively = (currentPath: string): void => {
-      if (visited.has(currentPath)) return;
-      visited.add(currentPath);
-
-      // Read and parse includes from current file
-      const content = this.fs.readFile(currentPath);
-      const searchPaths = IncludeResolver.buildSearchPaths(
-        dirname(currentPath),
-        this.config.includeDirs,
-        [],
-        undefined,
-        this.fs,
-      );
-      const resolver = new IncludeResolver(searchPaths, this.fs);
-      const resolved = resolver.resolve(content, currentPath);
-
-      // Process each included .cnx file
-      for (const cnxInclude of resolved.cnextIncludes) {
-        const externalInfo = this.state.getFileSymbolInfo(cnxInclude.path);
-        if (externalInfo) {
-          result.push(externalInfo);
-        }
-        // Recursively collect from this include's includes
-        collectRecursively(cnxInclude.path);
-      }
-    };
-
-    collectRecursively(filePath);
-    return result;
-  }
-
-  /**
    * Stage 6: Generate header file for a C-Next file
    */
   private generateHeader(file: IDiscoveredFile): string | null {
