@@ -409,6 +409,76 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Phase 4: Composite generators
     this.registry.registerDeclaration("scope", scopeGenerator);
+
+    // Statement generators (ADR-053 A3)
+    // Note: generateSwitchCase, generateCaseLabel, generateDefaultCase have extra
+    // switchEnumType param and are called directly rather than through the registry.
+    // Same for generateForVarDecl, generateForAssignment - internal helpers.
+    this.registry.registerStatement(
+      "return",
+      controlFlowGenerators.generateReturn,
+    );
+    this.registry.registerStatement("if", controlFlowGenerators.generateIf);
+    this.registry.registerStatement(
+      "while",
+      controlFlowGenerators.generateWhile,
+    );
+    this.registry.registerStatement(
+      "do-while",
+      controlFlowGenerators.generateDoWhile,
+    );
+    this.registry.registerStatement("for", controlFlowGenerators.generateFor);
+    this.registry.registerStatement("switch", switchGenerators.generateSwitch);
+    this.registry.registerStatement("critical", generateCriticalStatement);
+
+    // Expression generators (ADR-053 A2)
+    this.registry.registerExpression(
+      "expression",
+      expressionGenerators.generateExpression,
+    );
+    this.registry.registerExpression(
+      "ternary",
+      expressionGenerators.generateTernaryExpr,
+    );
+    this.registry.registerExpression("or", binaryExprGenerators.generateOrExpr);
+    this.registry.registerExpression(
+      "and",
+      binaryExprGenerators.generateAndExpr,
+    );
+    this.registry.registerExpression(
+      "equality",
+      binaryExprGenerators.generateEqualityExpr,
+    );
+    this.registry.registerExpression(
+      "relational",
+      binaryExprGenerators.generateRelationalExpr,
+    );
+    this.registry.registerExpression(
+      "bitwise-or",
+      binaryExprGenerators.generateBitwiseOrExpr,
+    );
+    this.registry.registerExpression(
+      "bitwise-xor",
+      binaryExprGenerators.generateBitwiseXorExpr,
+    );
+    this.registry.registerExpression(
+      "bitwise-and",
+      binaryExprGenerators.generateBitwiseAndExpr,
+    );
+    this.registry.registerExpression(
+      "shift",
+      binaryExprGenerators.generateShiftExpr,
+    );
+    this.registry.registerExpression(
+      "additive",
+      binaryExprGenerators.generateAdditiveExpr,
+    );
+    this.registry.registerExpression(
+      "multiplicative",
+      binaryExprGenerators.generateMultiplicativeExpr,
+    );
+    this.registry.registerExpression("unary", generateUnaryExpr);
+    this.registry.registerExpression("literal", generateLiteral);
   }
 
   private generatorsInitialized = false;
@@ -7453,58 +7523,58 @@ export default class CodeGenerator implements IOrchestrator {
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
 
   private generateIf(ctx: Parser.IfStatementContext): string {
-    const result = controlFlowGenerators.generateIf(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("if");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("If statement generator not registered");
   }
 
   private generateWhile(ctx: Parser.WhileStatementContext): string {
-    const result = controlFlowGenerators.generateWhile(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("while");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("While statement generator not registered");
   }
 
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    const result = controlFlowGenerators.generateDoWhile(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("do-while");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Do-while statement generator not registered");
   }
 
   private generateFor(ctx: Parser.ForStatementContext): string {
-    const result = controlFlowGenerators.generateFor(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("for");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("For statement generator not registered");
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    const result = controlFlowGenerators.generateReturn(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("return");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Return statement generator not registered");
   }
 
   // ========================================================================
@@ -7518,14 +7588,14 @@ export default class CodeGenerator implements IOrchestrator {
   private generateCriticalStatement(
     ctx: Parser.CriticalStatementContext,
   ): string {
-    const result = generateCriticalStatement(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("critical");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Critical statement generator not registered");
   }
 
   // Issue #63: validateNoEarlyExits moved to TypeValidator
@@ -7535,14 +7605,14 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    const result = switchGenerators.generateSwitch(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getStatement("switch");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Switch statement generator not registered");
   }
 
   private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
@@ -7582,184 +7652,127 @@ export default class CodeGenerator implements IOrchestrator {
   // Expressions
   // ========================================================================
 
-  // ADR-053 A2 Phase 7: Use extracted expression generator
+  // ADR-053 A2 Phase 7: Use registry for expression generator
   private _generateExpression(ctx: Parser.ExpressionContext): string {
-    const result = expressionGenerators.generateExpression(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getExpression("expression");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Expression generator not registered");
   }
 
   // ADR-022: Ternary operator with safety constraints
-  // ADR-053 A2 Phase 7: Use extracted ternary generator
+  // ADR-053 A2 Phase 7: Use registry for ternary generator
   private generateTernaryExpr(ctx: Parser.TernaryExpressionContext): string {
-    const result = expressionGenerators.generateTernaryExpr(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getExpression("ternary");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Ternary expression generator not registered");
   }
 
   private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    // ADR-053 A2: Use extracted binary expression generator
-    const result = binaryExprGenerators.generateOrExpr(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getExpression("or");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Or expression generator not registered");
   }
 
   private generateAndExpr(ctx: Parser.AndExpressionContext): string {
-    const parts = ctx
-      .equalityExpression()
-      .map((e) => this.generateEqualityExpr(e));
-    return parts.join(" && ");
+    const generator = this.registry.getExpression("and");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("And expression generator not registered");
   }
 
   // ADR-001: = becomes == in C
   // ADR-017: Enum type safety validation
   private generateEqualityExpr(ctx: Parser.EqualityExpressionContext): string {
-    const exprs = ctx.relationalExpression();
-    if (exprs.length === 1) {
-      return this.generateRelationalExpr(exprs[0]);
+    const generator = this.registry.getExpression("equality");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
     }
-
-    // ADR-017: Validate enum type safety for comparisons
-    if (exprs.length >= 2) {
-      const leftEnumType = this.getExpressionEnumType(exprs[0]);
-      const rightEnumType = this.getExpressionEnumType(exprs[1]);
-
-      // Check if comparing different enum types
-      if (leftEnumType && rightEnumType && leftEnumType !== rightEnumType) {
-        throw new Error(
-          `Error: Cannot compare ${leftEnumType} enum to ${rightEnumType} enum`,
-        );
-      }
-
-      // Check if comparing enum to integer
-      if (leftEnumType && this._isIntegerExpression(exprs[1])) {
-        throw new Error(
-          `Error: Cannot compare ${leftEnumType} enum to integer`,
-        );
-      }
-      if (rightEnumType && this._isIntegerExpression(exprs[0])) {
-        throw new Error(
-          `Error: Cannot compare integer to ${rightEnumType} enum`,
-        );
-      }
-
-      // ADR-045: Check for string comparison
-      const leftIsString = this.isStringExpression(exprs[0]);
-      const rightIsString = this.isStringExpression(exprs[1]);
-
-      if (leftIsString || rightIsString) {
-        // Generate strcmp for string comparison
-        const leftCode = this.generateRelationalExpr(exprs[0]);
-        const rightCode = this.generateRelationalExpr(exprs[1]);
-        const fullText = ctx.getText();
-        const isNotEqual = fullText.includes("!=");
-        const cmpOp = isNotEqual ? "!= 0" : "== 0";
-        return `strcmp(${leftCode}, ${rightCode}) ${cmpOp}`;
-      }
-    }
-
-    // Build the expression, transforming = to ==
-    // Issue #152: Extract operators in order from parse tree children
-    const operators = this.getOperatorsFromChildren(ctx);
-    let result = this.generateRelationalExpr(exprs[0]);
-
-    for (let i = 1; i < exprs.length; i++) {
-      // ADR-001: C-Next uses = for equality, transpile to ==
-      // C-Next uses != for inequality, keep as !=
-      const rawOp = operators[i - 1] || "=";
-      const op = rawOp === "=" ? "==" : rawOp;
-      result += ` ${op} ${this.generateRelationalExpr(exprs[i])}`;
-    }
-
-    return result;
+    // Fallback (registry should always have this registered)
+    throw new Error("Equality expression generator not registered");
   }
 
   private generateRelationalExpr(
     ctx: Parser.RelationalExpressionContext,
   ): string {
-    const exprs = ctx.bitwiseOrExpression();
-    if (exprs.length === 1) {
-      return this.generateBitwiseOrExpr(exprs[0]);
+    const generator = this.registry.getExpression("relational");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
     }
-
-    // Issue #152: Extract operators in order from parse tree children
-    const operators = this.getOperatorsFromChildren(ctx);
-    let result = this.generateBitwiseOrExpr(exprs[0]);
-
-    for (let i = 1; i < exprs.length; i++) {
-      const op = operators[i - 1] || "<";
-      result += ` ${op} ${this.generateBitwiseOrExpr(exprs[i])}`;
-    }
-
-    return result;
+    // Fallback (registry should always have this registered)
+    throw new Error("Relational expression generator not registered");
   }
 
   private generateBitwiseOrExpr(
     ctx: Parser.BitwiseOrExpressionContext,
   ): string {
-    const parts = ctx
-      .bitwiseXorExpression()
-      .map((e) => this.generateBitwiseXorExpr(e));
-    return parts.join(" | ");
+    const generator = this.registry.getExpression("bitwise-or");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Bitwise-or expression generator not registered");
   }
 
   private generateBitwiseXorExpr(
     ctx: Parser.BitwiseXorExpressionContext,
   ): string {
-    const parts = ctx
-      .bitwiseAndExpression()
-      .map((e) => this.generateBitwiseAndExpr(e));
-    return parts.join(" ^ ");
+    const generator = this.registry.getExpression("bitwise-xor");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Bitwise-xor expression generator not registered");
   }
 
   private generateBitwiseAndExpr(
     ctx: Parser.BitwiseAndExpressionContext,
   ): string {
-    const parts = ctx.shiftExpression().map((e) => this.generateShiftExpr(e));
-    return parts.join(" & ");
+    const generator = this.registry.getExpression("bitwise-and");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Bitwise-and expression generator not registered");
   }
 
   private generateShiftExpr(ctx: Parser.ShiftExpressionContext): string {
-    const exprs = ctx.additiveExpression();
-    if (exprs.length === 1) {
-      return this.generateAdditiveExpr(exprs[0]);
+    const generator = this.registry.getExpression("shift");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
     }
-
-    // Issue #152: Extract operators in order from parse tree children
-    const operators = this.getOperatorsFromChildren(ctx);
-    let result = this.generateAdditiveExpr(exprs[0]);
-
-    // Get type of left operand for shift validation
-    const leftType = this.getAdditiveExpressionType(exprs[0]);
-
-    for (let i = 1; i < exprs.length; i++) {
-      const op = operators[i - 1] || "<<";
-      const rightExpr = exprs[i];
-
-      // Validate shift amount if we can determine the left operand type
-      if (leftType) {
-        this.typeValidator!.validateShiftAmount(leftType, rightExpr, op, ctx);
-      }
-
-      result += ` ${op} ${this.generateAdditiveExpr(exprs[i])}`;
-    }
-
-    return result;
+    // Fallback (registry should always have this registered)
+    throw new Error("Shift expression generator not registered");
   }
 
   // Issue #63: validateShiftAmount, getTypeWidth, evaluateShiftAmount,
@@ -7809,53 +7822,38 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateAdditiveExpr(ctx: Parser.AdditiveExpressionContext): string {
-    const exprs = ctx.multiplicativeExpression();
-    if (exprs.length === 1) {
-      return this.generateMultiplicativeExpr(exprs[0]);
+    const generator = this.registry.getExpression("additive");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
     }
-
-    // Issue #152: Extract operators in order from parse tree children
-    const operators = this.getOperatorsFromChildren(ctx);
-    let result = this.generateMultiplicativeExpr(exprs[0]);
-
-    for (let i = 1; i < exprs.length; i++) {
-      const op = operators[i - 1] || "+";
-      result += ` ${op} ${this.generateMultiplicativeExpr(exprs[i])}`;
-    }
-
-    return result;
+    // Fallback (registry should always have this registered)
+    throw new Error("Additive expression generator not registered");
   }
 
   private generateMultiplicativeExpr(
     ctx: Parser.MultiplicativeExpressionContext,
   ): string {
-    const exprs = ctx.unaryExpression();
-    if (exprs.length === 1) {
-      return this.generateUnaryExpr(exprs[0]);
+    const generator = this.registry.getExpression("multiplicative");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
     }
-
-    // Issue #152: Extract operators in order from parse tree children
-    const operators = this.getOperatorsFromChildren(ctx);
-    let result = this.generateUnaryExpr(exprs[0]);
-
-    for (let i = 1; i < exprs.length; i++) {
-      const op = operators[i - 1] || "*";
-      result += ` ${op} ${this.generateUnaryExpr(exprs[i])}`;
-    }
-
-    return result;
+    // Fallback (registry should always have this registered)
+    throw new Error("Multiplicative expression generator not registered");
   }
 
   private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
-    // ADR-053 A2: Use extracted unary expression generator
-    const result = generateUnaryExpr(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
+    const generator = this.registry.getExpression("unary");
+    if (generator) {
+      const result = generator(ctx, this.getInput(), this.getState(), this);
+      this.applyEffects(result.effects);
+      return result.code;
+    }
+    // Fallback (registry should always have this registered)
+    throw new Error("Unary expression generator not registered");
   }
 
   private _generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
