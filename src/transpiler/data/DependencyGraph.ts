@@ -8,7 +8,22 @@
  * Uses @n1ru4l/toposort for cycle-aware topological sorting.
  */
 
-import { toposortReverse } from "@n1ru4l/toposort";
+// Handle tsx vs vitest ESM/CJS interop differences:
+// - tsx wraps named exports inside `default`
+// - vitest exposes named exports at namespace level
+import * as toposortNS from "@n1ru4l/toposort";
+
+type ToposortModule = { toposortReverse?: ToposortFn };
+type ToposortFn = (deps: Map<string, string[]>) => Set<string>[];
+
+// tsx: named exports in .default, vitest: named exports at top level
+const mod = toposortNS as ToposortModule & { default?: ToposortModule };
+const toposortReverse: ToposortFn =
+  mod.toposortReverse ??
+  mod.default?.toposortReverse ??
+  (() => {
+    throw new Error("toposortReverse not found");
+  });
 
 /**
  * Manages file dependencies for topological sorting
