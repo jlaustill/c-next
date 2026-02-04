@@ -321,7 +321,10 @@
     "unqual",
     "Mtimes",
     "mtimes",
-    "scandir"
+    "scandir",
+    "DDEBUG",
+    "DVERSION",
+    "DDISABLED"
   ],
   "ignorePaths": [
     "node_modules/**",
