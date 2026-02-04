@@ -479,7 +479,8 @@ describe("CSymbolCollector - Complex Declarators", () => {
     expect(symbols[0].kind).toBe(ESymbolKind.Variable);
   });
 
-  it("handles multi-dimensional array declarator (Issue #355)", () => {
+  it("handles array field declarator (Issue #355)", () => {
+    // Issue #355: extractDirectDeclaratorName must handle recursive directDeclarator for arrays
     const code = `struct Test { char buf[8]; };`;
     const tree = parseC(code);
     const symbolTable = new SymbolTable();
@@ -489,6 +490,18 @@ describe("CSymbolCollector - Complex Declarators", () => {
     const fieldsMap = symbolTable.getStructFields("Test");
     expect(fieldsMap?.get("buf")).toBeDefined();
     expect(fieldsMap?.get("buf")?.arrayDimensions).toEqual([8]);
+  });
+
+  it("handles multi-dimensional array field declarator", () => {
+    const code = `struct Matrix { int data[4][4]; };`;
+    const tree = parseC(code);
+    const symbolTable = new SymbolTable();
+    const collector = new CSymbolCollector("test.h", symbolTable);
+    collector.collect(tree);
+
+    const fieldsMap = symbolTable.getStructFields("Matrix");
+    expect(fieldsMap?.get("data")).toBeDefined();
+    expect(fieldsMap?.get("data")?.arrayDimensions).toEqual([4, 4]);
   });
 });
 
@@ -601,6 +614,34 @@ describe("CSymbolCollector - Additional Edge Cases", () => {
     const enumSymbols = symbols.filter((s) => s.name === "Status");
     expect(enumSymbols).toHaveLength(1);
     expect(enumSymbols[0].kind).toBe(ESymbolKind.Enum);
+  });
+
+  it("handles typedef struct forward declaration pattern", () => {
+    // Common C pattern: typedef struct Point Point; followed by struct Point { ... };
+    const code = `
+      struct Point;
+      typedef struct Point Point;
+      struct Point { int x; int y; };
+    `;
+    const tree = parseC(code);
+    const collector = new CSymbolCollector("test.h");
+    const symbols = collector.collect(tree);
+
+    // Should have struct Point symbols and typedef Point
+    const pointSymbols = symbols.filter((s) => s.name === "Point");
+    // 4 symbols total:
+    // - Struct from forward declaration (struct Point;)
+    // - Struct from typedef's struct specifier (typedef struct Point ...)
+    // - Type from typedef (... Point;)
+    // - Struct from definition (struct Point { ... })
+    expect(pointSymbols.length).toBe(4);
+
+    const structSymbol = pointSymbols.find(
+      (s) => s.kind === ESymbolKind.Struct,
+    );
+    const typeSymbol = pointSymbols.find((s) => s.kind === ESymbolKind.Type);
+    expect(structSymbol).toBeDefined();
+    expect(typeSymbol).toBeDefined();
   });
 
   it("handles struct field with anonymous struct type", () => {
