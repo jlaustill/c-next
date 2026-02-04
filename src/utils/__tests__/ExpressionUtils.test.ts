@@ -313,4 +313,170 @@ describe("ExpressionUtils", () => {
       expect(identifier).toBeNull();
     });
   });
+
+  // ========================================================================
+  // hasFunctionCall (ADR-023: MISRA 13.5 function call detection)
+  // ========================================================================
+
+  describe("hasFunctionCall", () => {
+    it("should detect simple function call", () => {
+      const expr = extractExpression("getValue()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call with arguments", () => {
+      const expr = extractExpression("foo(1, 2, 3)");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in addition", () => {
+      const expr = extractExpression("a + getValue()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in subtraction", () => {
+      const expr = extractExpression("getValue() - b");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in multiplication", () => {
+      const expr = extractExpression("a * compute()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in logical AND", () => {
+      const expr = extractExpression("flag && isReady()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in logical OR", () => {
+      const expr = extractExpression("check() || backup");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in comparison", () => {
+      const expr = extractExpression("getCount() < 10");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in equality check", () => {
+      const expr = extractExpression("status = getStatus()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in bitwise OR", () => {
+      const expr = extractExpression("flags | getFlags()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in bitwise XOR", () => {
+      const expr = extractExpression("mask ^ getMask()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in bitwise AND", () => {
+      const expr = extractExpression("value & getMask()");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should detect function call in shift expression", () => {
+      const expr = extractExpression("getBase() << 4");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(true);
+    });
+
+    it("should return false for simple literal", () => {
+      const expr = extractExpression("42");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+
+    it("should return false for simple identifier", () => {
+      const expr = extractExpression("myVar");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+
+    it("should return false for arithmetic without function calls", () => {
+      const expr = extractExpression("a + b * c");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+
+    it("should return false for comparison without function calls", () => {
+      const expr = extractExpression("a < b");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+
+    it("should return false for logical expression without function calls", () => {
+      const expr = extractExpression("flag && ready");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+
+    it("should return false for array access", () => {
+      const expr = extractExpression("arr[0]");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+
+    it("should return false for member access", () => {
+      const expr = extractExpression("obj.field");
+      expect(expr).not.toBeNull();
+
+      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
+      expect(hasFn).toBe(false);
+    });
+  });
 });

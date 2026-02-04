@@ -139,6 +139,129 @@ class ExpressionUtils {
     const identifier = primary.IDENTIFIER();
     return identifier?.getText() ?? null;
   }
+
+  /**
+   * ADR-023: Check if an expression contains a function call anywhere in its tree.
+   *
+   * This traverses the full expression hierarchy to find any postfix expression
+   * with an argument list (function call syntax).
+   *
+   * @param ctx - The expression context to check
+   * @returns true if a function call is found anywhere in the expression
+   */
+  static hasFunctionCall(ctx: Parser.ExpressionContext): boolean {
+    const ternary = ctx.ternaryExpression();
+    if (!ternary) return false;
+
+    for (const or of ternary.orExpression()) {
+      if (ExpressionUtils.hasFunctionCallInOr(or)) return true;
+    }
+    return false;
+  }
+
+  // Private helper methods for tree traversal - each has low cognitive complexity
+
+  private static hasFunctionCallInOr(ctx: Parser.OrExpressionContext): boolean {
+    for (const and of ctx.andExpression()) {
+      if (ExpressionUtils.hasFunctionCallInAnd(and)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInAnd(
+    ctx: Parser.AndExpressionContext,
+  ): boolean {
+    for (const eq of ctx.equalityExpression()) {
+      if (ExpressionUtils.hasFunctionCallInEquality(eq)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInEquality(
+    ctx: Parser.EqualityExpressionContext,
+  ): boolean {
+    for (const rel of ctx.relationalExpression()) {
+      if (ExpressionUtils.hasFunctionCallInRelational(rel)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInRelational(
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
+    for (const bor of ctx.bitwiseOrExpression()) {
+      if (ExpressionUtils.hasFunctionCallInBitwiseOr(bor)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInBitwiseOr(
+    ctx: Parser.BitwiseOrExpressionContext,
+  ): boolean {
+    for (const bxor of ctx.bitwiseXorExpression()) {
+      if (ExpressionUtils.hasFunctionCallInBitwiseXor(bxor)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInBitwiseXor(
+    ctx: Parser.BitwiseXorExpressionContext,
+  ): boolean {
+    for (const band of ctx.bitwiseAndExpression()) {
+      if (ExpressionUtils.hasFunctionCallInBitwiseAnd(band)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInBitwiseAnd(
+    ctx: Parser.BitwiseAndExpressionContext,
+  ): boolean {
+    for (const shift of ctx.shiftExpression()) {
+      if (ExpressionUtils.hasFunctionCallInShift(shift)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInShift(
+    ctx: Parser.ShiftExpressionContext,
+  ): boolean {
+    for (const add of ctx.additiveExpression()) {
+      if (ExpressionUtils.hasFunctionCallInAdditive(add)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInAdditive(
+    ctx: Parser.AdditiveExpressionContext,
+  ): boolean {
+    for (const mult of ctx.multiplicativeExpression()) {
+      if (ExpressionUtils.hasFunctionCallInMultiplicative(mult)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInMultiplicative(
+    ctx: Parser.MultiplicativeExpressionContext,
+  ): boolean {
+    for (const unary of ctx.unaryExpression()) {
+      if (ExpressionUtils.hasFunctionCallInUnary(unary)) return true;
+    }
+    return false;
+  }
+
+  private static hasFunctionCallInUnary(
+    ctx: Parser.UnaryExpressionContext,
+  ): boolean {
+    const postfix = ctx.postfixExpression();
+    if (!postfix) return false;
+
+    for (const op of postfix.postfixOp()) {
+      if (op.argumentList() || op.getText().startsWith("(")) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 export default ExpressionUtils;
