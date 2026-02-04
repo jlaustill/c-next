@@ -12,8 +12,8 @@ import type * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
 /** Test-local copy of IMemberChainAnalyzerDeps interface */
 interface IMemberChainAnalyzerDeps {
   typeRegistry: ReadonlyMap<string, TTypeInfo>;
-  structFields: ReadonlyMap<string, Map<string, string>>;
-  structFieldArrays: ReadonlyMap<string, Set<string>>;
+  structFields: ReadonlyMap<string, ReadonlyMap<string, string>>;
+  structFieldArrays: ReadonlyMap<string, ReadonlySet<string>>;
   isKnownStruct: (name: string) => boolean;
   generateExpression: (ctx: Parser.ExpressionContext) => string;
 }
@@ -81,6 +81,7 @@ describe("MemberChainAnalyzer", () => {
         baseType: "Point",
         bitWidth: 0,
         isConst: false,
+        isArray: false,
       });
 
       // Mock: point.flags[3]
@@ -125,6 +126,7 @@ describe("MemberChainAnalyzer", () => {
         baseType: "Data",
         bitWidth: 0,
         isConst: false,
+        isArray: false,
       });
 
       // Mock: data.values[3]
@@ -166,6 +168,7 @@ describe("MemberChainAnalyzer", () => {
         baseType: "Config",
         bitWidth: 0,
         isConst: false,
+        isArray: false,
       });
 
       // Mock: config.value[3]

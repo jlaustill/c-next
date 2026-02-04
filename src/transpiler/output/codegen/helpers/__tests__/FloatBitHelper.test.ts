@@ -54,6 +54,7 @@ describe("FloatBitHelper", () => {
         baseType: "u32",
         bitWidth: 32,
         isConst: false,
+        isArray: false,
       };
 
       const result = helper.generateFloatBitWrite(
@@ -73,6 +74,7 @@ describe("FloatBitHelper", () => {
         baseType: "f32",
         bitWidth: 32,
         isConst: false,
+        isArray: false,
       };
 
       const result = helper.generateFloatBitWrite(
@@ -96,6 +98,7 @@ describe("FloatBitHelper", () => {
         baseType: "f64",
         bitWidth: 64,
         isConst: false,
+        isArray: false,
       };
 
       const result = helper.generateFloatBitWrite(
@@ -115,6 +118,7 @@ describe("FloatBitHelper", () => {
         baseType: "f32",
         bitWidth: 32,
         isConst: false,
+        isArray: false,
       };
 
       const result = helper.generateFloatBitWrite(
@@ -134,6 +138,7 @@ describe("FloatBitHelper", () => {
         baseType: "f32",
         bitWidth: 32,
         isConst: false,
+        isArray: false,
       };
 
       // Pre-declare the shadow
@@ -156,6 +161,7 @@ describe("FloatBitHelper", () => {
         baseType: "f32",
         bitWidth: 32,
         isConst: false,
+        isArray: false,
       };
 
       // Pre-declare and mark as current
@@ -181,6 +187,7 @@ describe("FloatBitHelper", () => {
         baseType: "f32",
         bitWidth: 32,
         isConst: false,
+        isArray: false,
       };
 
       helper.generateFloatBitWrite("myFloat", typeInfo, "3", null, "true");

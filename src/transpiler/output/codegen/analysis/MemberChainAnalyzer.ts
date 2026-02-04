@@ -33,9 +33,9 @@ interface IMemberChainAnalyzerDeps {
   /** Type registry for looking up variable types */
   typeRegistry: ReadonlyMap<string, TTypeInfo>;
   /** Struct field types by struct name */
-  structFields: ReadonlyMap<string, Map<string, string>>;
+  structFields: ReadonlyMap<string, ReadonlyMap<string, string>>;
   /** Struct field array flags by struct name */
-  structFieldArrays: ReadonlyMap<string, Set<string>>;
+  structFieldArrays: ReadonlyMap<string, ReadonlySet<string>>;
   /** Function to check if a type name is a known struct */
   isKnownStruct: (name: string) => boolean;
   /** Function to generate expression code */
