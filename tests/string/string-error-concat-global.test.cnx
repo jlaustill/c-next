@@ -1,0 +1,6 @@
+// test-error
+// ADR-045: Test string concatenation at global scope
+// Concatenation requires runtime code (strncpy/strncat) which can't run at global scope
+string<32> first <- "Hello";
+string<32> second <- " World";
+string<64> result <- first + second;

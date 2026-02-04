@@ -349,4 +349,150 @@ describe("HeaderGenerator", () => {
       });
     });
   });
+
+  // ============================================================================
+  // Coverage tests for generateFromSymbolTable and generateCNextHeader
+  // ============================================================================
+
+  describe("generateFromSymbolTable", () => {
+    it("should generate header from symbols filtered by source file", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "myFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "module.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "otherFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "other.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      const header = generator.generateFromSymbolTable(
+        symbolTable,
+        "module.cnx",
+      );
+
+      expect(header).toContain("myFunc");
+      expect(header).not.toContain("otherFunc");
+      expect(header).toContain("#ifndef MODULE_H");
+      expect(header).toContain("#define MODULE_H");
+    });
+
+    it("should use correct header name from source file", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "testFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "src/utils/helper.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      const header = generator.generateFromSymbolTable(
+        symbolTable,
+        "src/utils/helper.cnx",
+      );
+
+      // Should generate guard based on filename
+      expect(header).toContain("#ifndef");
+      expect(header).toContain("HELPER_H");
+    });
+  });
+
+  describe("generateCNextHeader", () => {
+    it("should generate header only for C-Next language symbols", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "cnextFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "module.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "cppFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "module.hpp",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.Cpp,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "cFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "module.h",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      });
+
+      const header = generator.generateCNextHeader(symbolTable, "output.h");
+
+      expect(header).toContain("cnextFunc");
+      expect(header).not.toContain("cppFunc");
+      expect(header).not.toContain("cFunc");
+    });
+
+    it("should use the provided filename for include guard", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "testFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+
+      const header = generator.generateCNextHeader(symbolTable, "custom_api.h");
+
+      expect(header).toContain("#ifndef CUSTOM_API_H");
+      expect(header).toContain("#define CUSTOM_API_H");
+    });
+
+    it("should pass options through to underlying generate method", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "exportedFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      });
+      symbolTable.addSymbol({
+        name: "internalFunc",
+        kind: ESymbolKind.Function,
+        type: "void",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+      });
+
+      const header = generator.generateCNextHeader(symbolTable, "api.h", {
+        exportedOnly: true,
+      });
+
+      expect(header).toContain("exportedFunc");
+      expect(header).not.toContain("internalFunc");
+    });
+  });
 });

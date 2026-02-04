@@ -1,5 +1,7 @@
+// test-error
 // ADR-045: Test substring destination too small
-// ERROR: Substring length 10 exceeds destination string<5> capacity
-string<64> source <- "Hello, World!";
-
-string<5> tooSmall <- source[0, 10];
+// Extracting 10 characters but destination can only hold 5
+void test() {
+    string<64> source <- "Hello, World!";
+    string<5> tooSmall <- source[0, 10];
+}
