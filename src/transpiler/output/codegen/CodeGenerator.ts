@@ -3801,8 +3801,13 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Standard type registration
     const bitWidth = TYPE_WIDTH[baseType] || 0;
-    const arrayDimensions = this._evaluateArrayDimensions(arrayDim);
-    const isArray = arrayDimensions !== undefined && arrayDimensions.length > 0;
+    // Issue #665: Check array syntax presence first, then try to resolve dimensions
+    // This matches the pattern in trackVariableType() - unresolved dimensions (e.g., enum
+    // members like EIndex.COUNT) should still mark the variable as an array
+    const isArray = arrayDim !== null && arrayDim.length > 0;
+    const arrayDimensions = isArray
+      ? this._evaluateArrayDimensions(arrayDim)
+      : undefined;
 
     this.context.typeRegistry.set(registryName, {
       baseType,
