@@ -341,6 +341,50 @@ interface IOrchestrator {
    * Issue #268: Check if a name is a parameter of the current function.
    */
   isCurrentParameter(name: string): boolean;
+
+  // === Postfix Expression Helpers (Issue #644) ===
+
+  /** Generate a primary expression */
+  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string;
+
+  /** Check if a name is a known scope */
+  isKnownScope(name: string): boolean;
+
+  /** Check if a symbol is a C++ scope symbol (namespace, class, enum) */
+  isCppScopeSymbol(name: string): boolean;
+
+  /** Get the separator for scope access (:: for C++, _ for C-Next) */
+  getScopeSeparator(isCppAccess: boolean): string;
+
+  /** Get struct field info for .length calculations */
+  getStructFieldInfo(
+    structType: string,
+    fieldName: string,
+  ): { type: string; dimensions?: (number | string)[] } | null;
+
+  /** Get member type info for struct access chains */
+  getMemberTypeInfo(
+    structType: string,
+    memberName: string,
+  ): { baseType: string; isArray: boolean } | null;
+
+  /** Generate a bit mask for bit range access */
+  generateBitMask(width: string, is64Bit?: boolean): string;
+
+  /** Add a pending temp variable declaration (for float bit indexing) */
+  addPendingTempDeclaration(declaration: string): void;
+
+  /** Register a float bit shadow variable */
+  registerFloatBitShadow(shadowName: string): void;
+
+  /** Mark a float shadow as having current value (skip redundant memcpy) */
+  markFloatShadowCurrent(shadowName: string): void;
+
+  /** Check if a float shadow has been declared */
+  hasFloatBitShadow(shadowName: string): boolean;
+
+  /** Check if a float shadow has current value */
+  isFloatShadowCurrent(shadowName: string): boolean;
 }
 
 export default IOrchestrator;

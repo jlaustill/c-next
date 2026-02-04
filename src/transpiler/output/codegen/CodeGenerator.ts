@@ -451,6 +451,12 @@ export default class CodeGenerator implements IOrchestrator {
       localArrays: this.context.localArrays,
       expectedType: this.context.expectedType,
       selfIncludeAdded: this.selfIncludeAdded, // Issue #369
+      // Issue #644: Postfix expression state
+      scopeMembers: this.context.scopeMembers,
+      mainArgsName: this.context.mainArgsName,
+      floatBitShadows: this.context.floatBitShadows,
+      floatShadowCurrent: this.context.floatShadowCurrent,
+      lengthCache: this.context.lengthCache,
     };
   }
 
@@ -478,6 +484,12 @@ export default class CodeGenerator implements IOrchestrator {
               break;
             case "irq_wrappers":
               this.needsIrqWrappers = true;
+              break;
+            case "float_static_assert":
+              this.needsFloatStaticAssert = true;
+              break;
+            case "limits":
+              this.needsLimits = true;
               break;
           }
           break;
@@ -1329,6 +1341,110 @@ export default class CodeGenerator implements IOrchestrator {
     return this.context.currentParameters.has(name);
   }
 
+  // === Postfix Expression Helpers (Issue #644) ===
+
+  /**
+   * Generate a primary expression.
+   * Part of IOrchestrator interface for PostfixExpressionGenerator.
+   */
+  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+    return this._generatePrimaryExpr(ctx);
+  }
+
+  /**
+   * Check if a name is a known scope.
+   * Part of IOrchestrator interface.
+   */
+  isKnownScope(name: string): boolean {
+    return this._isKnownScope(name);
+  }
+
+  /**
+   * Check if a symbol is a C++ scope symbol (namespace, class, enum).
+   * Part of IOrchestrator interface.
+   */
+  isCppScopeSymbol(name: string): boolean {
+    return this._isCppScopeSymbol(name);
+  }
+
+  /**
+   * Get the separator for scope access (:: for C++, _ for C-Next).
+   * Part of IOrchestrator interface.
+   */
+  getScopeSeparator(isCppAccess: boolean): string {
+    return this._getScopeSeparator(isCppAccess);
+  }
+
+  /**
+   * Get struct field info for .length calculations.
+   * Part of IOrchestrator interface.
+   */
+  getStructFieldInfo(
+    structType: string,
+    fieldName: string,
+  ): { type: string; dimensions?: (number | string)[] } | null {
+    return this._getStructFieldInfo(structType, fieldName) ?? null;
+  }
+
+  /**
+   * Get member type info for struct access chains.
+   * Part of IOrchestrator interface.
+   */
+  getMemberTypeInfo(
+    structType: string,
+    memberName: string,
+  ): { baseType: string; isArray: boolean } | null {
+    return this._getMemberTypeInfo(structType, memberName) ?? null;
+  }
+
+  /**
+   * Generate a bit mask for bit range access.
+   * Part of IOrchestrator interface.
+   */
+  generateBitMask(width: string, is64Bit: boolean = false): string {
+    return this._generateBitMask(width, is64Bit);
+  }
+
+  /**
+   * Add a pending temp variable declaration (for float bit indexing).
+   * Part of IOrchestrator interface.
+   */
+  addPendingTempDeclaration(declaration: string): void {
+    this.pendingTempDeclarations.push(declaration);
+  }
+
+  /**
+   * Register a float bit shadow variable.
+   * Part of IOrchestrator interface.
+   */
+  registerFloatBitShadow(shadowName: string): void {
+    this.context.floatBitShadows.add(shadowName);
+  }
+
+  /**
+   * Mark a float shadow as having current value (skip redundant memcpy).
+   * Part of IOrchestrator interface.
+   */
+  markFloatShadowCurrent(shadowName: string): void {
+    this.context.floatShadowCurrent.add(shadowName);
+  }
+
+  /**
+   * Check if a float shadow has been declared.
+   * Part of IOrchestrator interface.
+   */
+  hasFloatBitShadow(shadowName: string): boolean {
+    return this.context.floatBitShadows.has(shadowName);
+  }
+
+  /**
+   * Check if a float shadow has current value.
+   * Part of IOrchestrator interface.
+   */
+  isFloatShadowCurrent(shadowName: string): boolean {
+    return this.context.floatShadowCurrent.has(shadowName);
+  }
+
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================
@@ -1341,7 +1457,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @param fieldName Name of the field
    * @returns Object with type and optional dimensions, or undefined if not found
    */
-  private getStructFieldInfo(
+  private _getStructFieldInfo(
     structName: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | undefined {
@@ -1496,7 +1612,7 @@ export default class CodeGenerator implements IOrchestrator {
    * (all files including includes). This ensures cross-file scope references are
    * properly validated.
    */
-  private isKnownScope(name: string): boolean {
+  private _isKnownScope(name: string): boolean {
     // Check local file's symbol collector first
     if (this.symbols?.knownScopes.has(name)) {
       return true;
@@ -1520,7 +1636,7 @@ export default class CodeGenerator implements IOrchestrator {
    *
    * Issue #522: Delegates to shared CppNamespaceUtils for consistency.
    */
-  private isCppScopeSymbol(name: string): boolean {
+  private _isCppScopeSymbol(name: string): boolean {
     return CppNamespaceUtils.isCppNamespace(
       name,
       this.symbolTable ?? undefined,
@@ -1531,7 +1647,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #304: Get the appropriate scope separator for C++ vs C/C-Next.
    * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
    */
-  private getScopeSeparator(isCppContext: boolean): string {
+  private _getScopeSeparator(isCppContext: boolean): string {
     return isCppContext ? "::" : "_";
   }
 
@@ -4257,7 +4373,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Get type info for a struct member field
    * Used to track types through member access chains like buf.data[0]
    */
-  private getMemberTypeInfo(
+  private _getMemberTypeInfo(
     structType: string,
     memberName: string,
   ): { isArray: boolean; baseType: string } | undefined {
@@ -6583,7 +6699,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @param width The width expression (may be a literal or expression)
    * @param isF64 If true, generate 64-bit masks with ULL suffix (for f64 bit indexing)
    */
-  private generateBitMask(width: string, isF64: boolean = false): string {
+  private _generateBitMask(width: string, isF64: boolean = false): string {
     const suffix = isF64 ? "ULL" : "U";
     // Check if width is a compile-time constant
     const widthNum = Number.parseInt(width, 10);
@@ -8774,7 +8890,7 @@ export default class CodeGenerator implements IOrchestrator {
     return result;
   }
 
-  private generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+  private _generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
     // ADR-023: sizeof expression - sizeof(u32) or sizeof(variable)
     if (ctx.sizeofExpression()) {
       return this.generateSizeofExpr(ctx.sizeofExpression()!);

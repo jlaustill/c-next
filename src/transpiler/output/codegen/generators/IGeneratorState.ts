@@ -33,6 +33,23 @@ interface IGeneratorState {
    * in the .c file as they'll come from the included header.
    */
   readonly selfIncludeAdded: boolean;
+
+  // === Postfix Expression State (Issue #644) ===
+
+  /** Scope members by scope name (for this.member lookups) */
+  readonly scopeMembers: ReadonlyMap<string, ReadonlySet<string>>;
+
+  /** Main function args parameter name (for args -> argv translation) */
+  readonly mainArgsName: string | null;
+
+  /** Float bit shadow variable declarations (tracks which shadows exist) */
+  readonly floatBitShadows: ReadonlySet<string>;
+
+  /** Float shadows that have current values (skip redundant memcpy) */
+  readonly floatShadowCurrent: ReadonlySet<string>;
+
+  /** Cached strlen values for optimization */
+  readonly lengthCache: ReadonlyMap<string, string> | null;
 }
 
 export default IGeneratorState;

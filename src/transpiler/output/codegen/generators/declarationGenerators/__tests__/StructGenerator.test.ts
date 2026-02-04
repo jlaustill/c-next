@@ -96,6 +96,12 @@ function createMockState(): IGeneratorState {
     localArrays: new Set(),
     expectedType: null,
     selfIncludeAdded: false,
+    // Issue #644: Postfix expression state
+    scopeMembers: new Map(),
+    mainArgsName: null,
+    floatBitShadows: new Set(),
+    floatShadowCurrent: new Set(),
+    lengthCache: null,
   };
 }
 
