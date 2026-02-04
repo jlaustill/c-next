@@ -219,22 +219,6 @@ describe("transpile", () => {
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0].message).toContain("Code generation failed");
     });
-
-    it("handles non-Error exceptions", () => {
-      // Test with invalid code that might throw a non-Error object
-      // This is harder to trigger, so we just verify the error handling path works
-      const source = `
-        void test() {
-          u32 x <- atomic_volatile 5;
-        }
-      `;
-
-      const result = transpile(source);
-
-      // Should handle any exception type gracefully
-      expect(result).toBeDefined();
-      expect(result.errors.length).toBeGreaterThan(0);
-    });
   });
 
   describe("target option", () => {

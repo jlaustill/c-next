@@ -479,13 +479,11 @@ describe("Transpiler coverage tests", () => {
 
       const result = await transpiler.run();
 
-      // Should detect the conflict
-      // Note: conflict detection depends on SymbolTable implementation
+      // This test exercises the symbol conflict detection path (lines 240-256)
+      // Duplicate function definitions across included files trigger conflicts
       expect(result).toBeDefined();
-      // If conflicts are detected, they should be in result.conflicts
-      if (result.conflicts && result.conflicts.length > 0) {
-        expect(result.conflicts.length).toBeGreaterThan(0);
-      }
+      expect(result.conflicts).toBeDefined();
+      expect(result.conflicts.length).toBeGreaterThan(0);
     });
   });
 

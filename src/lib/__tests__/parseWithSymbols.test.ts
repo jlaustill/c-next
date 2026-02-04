@@ -197,7 +197,7 @@ describe("parseWithSymbols", () => {
       expect(arr?.kind).toBe("variable");
     });
 
-    it("maps enum symbols", () => {
+    it("parses enum declarations successfully", () => {
       const source = `
         enum Color {
           RED,
@@ -208,10 +208,9 @@ describe("parseWithSymbols", () => {
 
       const result = parseWithSymbols(source);
 
+      // Verifies enum syntax parses without errors
       expect(result.success).toBe(true);
-      // Note: The enum itself may not be in symbols (depends on collector)
-      // We're testing that parsing works
-      expect(result.symbols.length).toBeGreaterThanOrEqual(0);
+      expect(result.errors).toHaveLength(0);
     });
 
     it("maps bitmap symbols", () => {
