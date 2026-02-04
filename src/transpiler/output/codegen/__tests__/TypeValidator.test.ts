@@ -2784,4 +2784,120 @@ describe("TypeValidator", () => {
       expect(result).toBeNull();
     });
   });
+
+  // ========================================================================
+  // Integer Assignment Validation (ADR-024)
+  // ========================================================================
+
+  describe("validateIntegerAssignment", () => {
+    function createValidatorWithMockResolver(mockResolver: {
+      isIntegerType?: (type: string) => boolean;
+      validateLiteralFitsType?: (literal: string, type: string) => void;
+      validateTypeConversion?: (target: string, source: string | null) => void;
+    }) {
+      const deps = createMockDeps();
+      const fullMockResolver = {
+        isIntegerType: mockResolver.isIntegerType ?? (() => true),
+        validateLiteralFitsType:
+          mockResolver.validateLiteralFitsType ?? vi.fn(),
+        validateTypeConversion: mockResolver.validateTypeConversion ?? vi.fn(),
+      };
+      return new TypeValidator({
+        ...deps,
+        typeResolver: fullMockResolver as never,
+      });
+    }
+
+    it("skips validation for compound assignments", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validateTypeConversion = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateLiteralFitsType,
+        validateTypeConversion,
+      });
+
+      validator.validateIntegerAssignment("u8", "10", null, true);
+
+      expect(validateLiteralFitsType).not.toHaveBeenCalled();
+      expect(validateTypeConversion).not.toHaveBeenCalled();
+    });
+
+    it("skips validation for non-integer types", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        isIntegerType: () => false,
+        validateLiteralFitsType,
+      });
+
+      validator.validateIntegerAssignment("f32", "10", null, false);
+
+      expect(validateLiteralFitsType).not.toHaveBeenCalled();
+    });
+
+    it("validates decimal literal fits in target type", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateLiteralFitsType,
+      });
+
+      validator.validateIntegerAssignment("u8", "100", null, false);
+
+      expect(validateLiteralFitsType).toHaveBeenCalledWith("100", "u8");
+    });
+
+    it("validates negative decimal literal fits in target type", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateLiteralFitsType,
+      });
+
+      validator.validateIntegerAssignment("i8", "-50", null, false);
+
+      expect(validateLiteralFitsType).toHaveBeenCalledWith("-50", "i8");
+    });
+
+    it("validates hex literal fits in target type", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateLiteralFitsType,
+      });
+
+      validator.validateIntegerAssignment("u8", "0xFF", null, false);
+
+      expect(validateLiteralFitsType).toHaveBeenCalledWith("0xFF", "u8");
+    });
+
+    it("validates binary literal fits in target type", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateLiteralFitsType,
+      });
+
+      validator.validateIntegerAssignment("u8", "0b11111111", null, false);
+
+      expect(validateLiteralFitsType).toHaveBeenCalledWith("0b11111111", "u8");
+    });
+
+    it("validates type conversion for non-literal expressions", () => {
+      const validateTypeConversion = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateTypeConversion,
+      });
+
+      validator.validateIntegerAssignment("u8", "myVariable", "u16", false);
+
+      expect(validateTypeConversion).toHaveBeenCalledWith("u8", "u16");
+    });
+
+    it("trims whitespace from expression text", () => {
+      const validateLiteralFitsType = vi.fn();
+      const validator = createValidatorWithMockResolver({
+        validateLiteralFitsType,
+      });
+
+      validator.validateIntegerAssignment("u8", "  100  ", null, false);
+
+      expect(validateLiteralFitsType).toHaveBeenCalledWith("100", "u8");
+    });
+  });
 });

@@ -1174,6 +1174,53 @@ class TypeValidator {
 
     return null;
   }
+
+  // ========================================================================
+  // Integer Assignment Validation (ADR-024)
+  // ========================================================================
+
+  /**
+   * ADR-024: Validate integer type conversions for assignments.
+   * - For literals: validates the value fits in the target type
+   * - For expressions: validates no narrowing or sign-changing conversions
+   *
+   * @param targetType - The target type (e.g., "u8", "i32")
+   * @param expressionText - The expression text (for literal detection)
+   * @param sourceType - The source type (for non-literal expressions), or null
+   * @param isCompound - Whether this is a compound assignment (skip validation)
+   */
+  validateIntegerAssignment(
+    targetType: string,
+    expressionText: string,
+    sourceType: string | null,
+    isCompound: boolean,
+  ): void {
+    // Skip validation for compound assignments (+<-, -<-, etc.)
+    // since the operand doesn't need to fit directly in the target type
+    if (isCompound) {
+      return;
+    }
+
+    // Only validate integer types
+    if (!this.typeResolver.isIntegerType(targetType)) {
+      return;
+    }
+
+    const trimmed = expressionText.trim();
+
+    // Check if it's a direct literal (decimal, hex, or binary)
+    const isDecimalLiteral = /^-?\d+$/.exec(trimmed);
+    const isHexLiteral = /^0[xX][0-9a-fA-F]+$/.exec(trimmed);
+    const isBinaryLiteral = /^0[bB][01]+$/.exec(trimmed);
+
+    if (isDecimalLiteral || isHexLiteral || isBinaryLiteral) {
+      // Validate literal fits in target type
+      this.typeResolver.validateLiteralFitsType(trimmed, targetType);
+    } else {
+      // Not a literal - check for narrowing/sign conversions
+      this.typeResolver.validateTypeConversion(targetType, sourceType);
+    }
+  }
 }
 
 export default TypeValidator;
