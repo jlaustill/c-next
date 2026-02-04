@@ -204,11 +204,13 @@ describe("CodeGenerator", () => {
       it("should process include effects", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        // Apply stdint include effect
-        generator.applyEffects([{ type: "include", header: "stdint" }]);
+        // Apply stdint include effect - verify it doesn't throw
+        expect(() =>
+          generator.applyEffects([{ type: "include", header: "stdint" }]),
+        ).not.toThrow();
 
-        // The effect is applied internally - we can verify indirectly through generation
-        // Note: Effects are typically tested through integration tests
+        // Verify generator is still functional after applying effects
+        expect(generator.getState()).toBeDefined();
       });
 
       it("should process register-local effects", () => {
@@ -273,19 +275,27 @@ describe("CodeGenerator", () => {
       it("should process set-array-init-count effects", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        generator.applyEffects([{ type: "set-array-init-count", count: 5 }]);
+        // Verify effect is applied without throwing
+        expect(() =>
+          generator.applyEffects([{ type: "set-array-init-count", count: 5 }]),
+        ).not.toThrow();
 
-        // This is used internally for array size inference
+        // Verify generator state is still valid
+        expect(generator.getState()).toBeDefined();
       });
 
       it("should process set-array-fill-value effects", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        generator.applyEffects([
-          { type: "set-array-fill-value", value: "0xFF" },
-        ]);
+        // Verify effect is applied without throwing
+        expect(() =>
+          generator.applyEffects([
+            { type: "set-array-fill-value", value: "0xFF" },
+          ]),
+        ).not.toThrow();
 
-        // This is used internally for fill-all array initialization
+        // Verify generator state is still valid
+        expect(generator.getState()).toBeDefined();
       });
     });
 
@@ -319,7 +329,9 @@ describe("CodeGenerator", () => {
 
         // When inside a scope, identifiers should be resolved with prefix
         generator.setCurrentScope("Motor");
-        // Scope member resolution depends on context
+
+        // Verify scope was set correctly
+        expect(generator.getState().currentScope).toBe("Motor");
       });
     });
 
@@ -494,8 +506,13 @@ describe("CodeGenerator", () => {
       it("should set current function name", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        generator.setCurrentFunctionName("myFunction");
-        // Function name is tracked internally
+        // Verify function name can be set without throwing
+        expect(() =>
+          generator.setCurrentFunctionName("myFunction"),
+        ).not.toThrow();
+
+        // Verify generator state is still valid
+        expect(generator.getState()).toBeDefined();
       });
     });
 
@@ -1052,9 +1069,13 @@ describe("CodeGenerator", () => {
         ["externalFunc", ["param"]],
       ]);
 
-      generator.setCrossFileModifications(modifications, paramLists);
+      // Verify modifications can be set without throwing
+      expect(() =>
+        generator.setCrossFileModifications(modifications, paramLists),
+      ).not.toThrow();
 
-      // This is used internally during generation
+      // Verify generator state is still valid
+      expect(generator.getState()).toBeDefined();
     });
   });
 

@@ -168,12 +168,14 @@ const generatePostfixExpression = (
       // Handle .length property
       if (memberName === "length") {
         const lengthResult = generateLengthProperty(
-          result,
-          primaryId,
-          currentIdentifier,
-          previousStructType,
-          previousMemberName,
-          subscriptDepth,
+          {
+            result,
+            primaryId,
+            currentIdentifier,
+            previousStructType,
+            previousMemberName,
+            subscriptDepth,
+          },
           input,
           state,
           orchestrator,
@@ -211,17 +213,19 @@ const generatePostfixExpression = (
 
       // Handle bitmap field access, scope member access, enum member access, etc.
       const memberResult = generateMemberAccess(
-        result,
-        memberName,
-        primaryId,
-        isStructParam,
-        isGlobalAccess,
-        isCppAccessChain,
-        currentStructType,
-        currentIdentifier,
-        previousStructType,
-        previousMemberName,
-        isRegisterChain,
+        {
+          result,
+          memberName,
+          primaryId,
+          isStructParam,
+          isGlobalAccess,
+          isCppAccessChain,
+          currentStructType,
+          currentIdentifier,
+          previousStructType,
+          previousMemberName,
+          isRegisterChain,
+        },
         input,
         state,
         orchestrator,
@@ -241,16 +245,18 @@ const generatePostfixExpression = (
     // Array subscript / bit access
     else if (op.expression().length > 0) {
       const subscriptResult = generateSubscriptAccess(
-        result,
-        op,
-        primaryId,
-        primaryTypeInfo,
-        currentIdentifier,
-        currentStructType,
-        currentMemberIsArray,
-        remainingArrayDims,
-        subscriptDepth,
-        isRegisterChain,
+        {
+          result,
+          op,
+          primaryId,
+          primaryTypeInfo,
+          currentIdentifier,
+          currentStructType,
+          currentMemberIsArray,
+          remainingArrayDims,
+          subscriptDepth,
+          isRegisterChain,
+        },
         input,
         state,
         orchestrator,
@@ -292,21 +298,36 @@ const generatePostfixExpression = (
 };
 
 /**
+ * Context for .length property generation.
+ */
+interface ILengthContext {
+  result: string;
+  primaryId: string | undefined;
+  currentIdentifier: string | undefined;
+  previousStructType: string | undefined;
+  previousMemberName: string | undefined;
+  subscriptDepth: number;
+}
+
+/**
  * Generate .length property access.
  * Returns null if not applicable (falls through to member access).
  */
 const generateLengthProperty = (
-  result: string,
-  primaryId: string | undefined,
-  currentIdentifier: string | undefined,
-  previousStructType: string | undefined,
-  previousMemberName: string | undefined,
-  subscriptDepth: number,
+  ctx: ILengthContext,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): string | null => {
+  const {
+    result,
+    primaryId,
+    currentIdentifier,
+    previousStructType,
+    previousMemberName,
+    subscriptDepth,
+  } = ctx;
   // Special case: main function's args.length -> argc
   if (state.mainArgsName && primaryId === state.mainArgsName) {
     return "argc";
@@ -365,24 +386,24 @@ const generateStructFieldLength = (
   const dimensions = fieldInfo.dimensions;
   const isStringField = TypeCheckUtils.isString(memberType);
 
-  if (dimensions && dimensions.length > 1 && isStringField) {
+  if (dimensions?.length && dimensions.length > 1 && isStringField) {
     if (subscriptDepth === 0) {
       return String(dimensions[0]);
     } else {
       effects.push({ type: "include", header: "string" });
       return `strlen(${result})`;
     }
-  } else if (dimensions && dimensions.length === 1 && isStringField) {
+  } else if (dimensions?.length === 1 && isStringField) {
     effects.push({ type: "include", header: "string" });
     return `strlen(${result})`;
   } else if (
-    dimensions &&
+    dimensions?.length &&
     dimensions.length > 0 &&
     subscriptDepth < dimensions.length
   ) {
     return String(dimensions[subscriptDepth]);
   } else if (
-    dimensions &&
+    dimensions?.length &&
     dimensions.length > 0 &&
     subscriptDepth >= dimensions.length
   ) {
@@ -507,26 +528,47 @@ interface MemberAccessResult {
 }
 
 /**
+ * Context for member access generation.
+ */
+interface IMemberAccessContext {
+  result: string;
+  memberName: string;
+  primaryId: string | undefined;
+  isStructParam: boolean;
+  isGlobalAccess: boolean;
+  isCppAccessChain: boolean;
+  currentStructType: string | undefined;
+  currentIdentifier: string | undefined;
+  previousStructType: string | undefined;
+  previousMemberName: string | undefined;
+  isRegisterChain: boolean;
+}
+
+/**
  * Generate member access (obj.field).
  * This is a simplified version - full implementation delegates to CodeGenerator.
  */
 const generateMemberAccess = (
-  result: string,
-  memberName: string,
-  primaryId: string | undefined,
-  isStructParam: boolean,
-  isGlobalAccess: boolean,
-  isCppAccessChain: boolean,
-  currentStructType: string | undefined,
-  currentIdentifier: string | undefined,
-  previousStructType: string | undefined,
-  previousMemberName: string | undefined,
-  isRegisterChain: boolean,
+  ctx: IMemberAccessContext,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): MemberAccessResult => {
+  const {
+    result,
+    memberName,
+    primaryId,
+    isStructParam,
+    isGlobalAccess,
+    isCppAccessChain,
+    currentStructType,
+    currentIdentifier,
+    // previousStructType and previousMemberName are passed through to output
+    // but not used in this function's logic
+    isRegisterChain,
+  } = ctx;
+
   // This is a placeholder - the full implementation is complex and will be
   // migrated incrementally. For now, delegate back to CodeGenerator via
   // orchestrator methods where needed.
@@ -572,10 +614,7 @@ const generateMemberAccess = (
     }
     const fullName = `${state.currentScope}_${memberName}`;
     const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
-    if (constValue !== undefined) {
-      output.result = constValue;
-      output.currentIdentifier = fullName;
-    } else {
+    if (constValue === undefined) {
       output.result = fullName;
       output.currentIdentifier = fullName;
       if (!input.symbols!.knownEnums.has(fullName)) {
@@ -587,6 +626,9 @@ const generateMemberAccess = (
           output.currentStructType = resolvedTypeInfo.baseType;
         }
       }
+    } else {
+      output.result = constValue;
+      output.currentIdentifier = fullName;
     }
     return output;
   }
@@ -742,26 +784,45 @@ interface SubscriptAccessResult {
 }
 
 /**
+ * Context for subscript access generation.
+ */
+interface ISubscriptAccessContext {
+  result: string;
+  op: Parser.PostfixOpContext;
+  primaryId: string | undefined;
+  primaryTypeInfo:
+    | { baseType: string; arrayDimensions?: (number | string)[] }
+    | undefined;
+  currentIdentifier: string | undefined;
+  currentStructType: string | undefined;
+  currentMemberIsArray: boolean;
+  remainingArrayDims: number;
+  subscriptDepth: number;
+  isRegisterChain: boolean;
+}
+
+/**
  * Generate subscript access (arr[i] or value[bit]).
  */
 const generateSubscriptAccess = (
-  result: string,
-  op: Parser.PostfixOpContext,
-  primaryId: string | undefined,
-  primaryTypeInfo:
-    | { baseType: string; arrayDimensions?: (number | string)[] }
-    | undefined,
-  currentIdentifier: string | undefined,
-  currentStructType: string | undefined,
-  currentMemberIsArray: boolean,
-  remainingArrayDims: number,
-  subscriptDepth: number,
-  isRegisterChain: boolean,
+  ctx: ISubscriptAccessContext,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): SubscriptAccessResult => {
+  const {
+    result,
+    op,
+    primaryId,
+    primaryTypeInfo,
+    currentIdentifier,
+    currentStructType,
+    currentMemberIsArray,
+    remainingArrayDims,
+    subscriptDepth,
+    isRegisterChain,
+  } = ctx;
   const exprs = op.expression();
   const output: SubscriptAccessResult = {
     result,

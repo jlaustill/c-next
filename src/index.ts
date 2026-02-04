@@ -24,7 +24,7 @@ async function main(): Promise<void> {
 // Only auto-execute when run directly (not when imported for testing)
 // Check for vitest environment variable set by the test runner
 if (!process.env.VITEST) {
-  main().catch((err) => {
+  void main().catch((err: unknown) => {
     console.error("Unexpected error:", err);
     process.exit(1);
   });
