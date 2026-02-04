@@ -71,6 +71,8 @@ import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
 import LiteralUtils from "../../../utils/LiteralUtils";
 // Issue #644: Extracted string length counter for strlen caching optimization
 import StringLengthCounter from "./analysis/StringLengthCounter";
+// Issue #644: C/C++ mode helper for consolidated mode-specific patterns
+import CppModeHelper from "./helpers/CppModeHelper";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -320,6 +322,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #250: C++ mode - use temp vars instead of compound literals */
   private cppMode: boolean = false;
+
+  /** Issue #644: C/C++ mode helper for consolidated mode-specific patterns */
+  private cppHelper: CppModeHelper | null = null;
 
   /** Issue #250: Pending temp variable declarations for C++ mode */
   private pendingTempDeclarations: string[] = [];
@@ -1796,6 +1801,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #250: Store C++ mode for temp variable generation
     this.cppMode = options?.cppMode ?? false;
+    // Issue #644: Initialize C/C++ mode helper
+    this.cppHelper = new CppModeHelper({ cppMode: this.cppMode });
     // Reset temp var state for each generation
     this.pendingTempDeclarations = [];
     this.tempVarCounter = 0;
@@ -4949,15 +4956,15 @@ export default class CodeGenerator implements IOrchestrator {
           this.context.currentScope,
         );
         if (members?.has(id)) {
-          // Issue #409: In C++ mode, references don't need &
+          // Issue #409/#644: In C++ mode, references don't need &
           const scopedName = `${this.context.currentScope}_${id}`;
-          return this.cppMode ? scopedName : `&${scopedName}`;
+          return this.cppHelper!.maybeAddressOf(scopedName);
         }
       }
 
       // Local variable - add & (except in C++ mode where references are used)
-      // Issue #409: In C++ mode, parameters are references, so no & needed
-      return this.cppMode ? id : `&${id}`;
+      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
+      return this.cppHelper!.maybeAddressOf(id);
     }
 
     // Check if it's a member access or array access (lvalue) - needs &
@@ -4984,19 +4991,20 @@ export default class CodeGenerator implements IOrchestrator {
           const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
           const value = this._generateExpression(ctx);
           const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
-          // Use static_cast for C++ type safety
+          // Use static_cast for C++ type safety (needsCppMemberConversion implies cppMode)
+          const castExpr = this.cppHelper!.cast(cType, value);
           this.pendingTempDeclarations.push(
-            `${cType} ${tempName} = static_cast<${cType}>(${value});`,
+            `${cType} ${tempName} = ${castExpr};`,
           );
-          // Issue #409: In C++ mode, references don't need &
-          return this.cppMode ? tempName : `&${tempName}`;
+          // Issue #409/#644: In C++ mode, references don't need &
+          return this.cppHelper!.maybeAddressOf(tempName);
         }
       }
 
       // Generate the expression and wrap with & (except in C++ mode)
-      // Issue #409: In C++ mode, parameters are references, so no & needed
+      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
       const generatedExpr = this._generateExpression(ctx);
-      const expr = this.cppMode ? generatedExpr : `&${generatedExpr}`;
+      const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
 
       // Issue #246: When passing string bytes to integer pointer parameters
       // (C-Next's by-reference semantics), cast from char* to the appropriate
@@ -5009,10 +5017,7 @@ export default class CodeGenerator implements IOrchestrator {
       ) {
         const cType = TYPE_MAP[targetParamBaseType];
         if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-          if (this.cppMode) {
-            return `reinterpret_cast<${cType}*>(${expr})`;
-          }
-          return `(${cType}*)${expr}`;
+          return this.cppHelper.reinterpretCast(`${cType}*`, expr);
         }
       }
 
@@ -5864,9 +5869,9 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #268/#558: Add const for unmodified pointer parameters (uses analysis results)
       const wasModified = this._isCurrentParameterModified(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
-      // Issue #409: In C++ mode, use references (&) instead of pointers (*)
+      // Issue #409/#644: In C++ mode, use references (&) instead of pointers (*)
       // This allows C-Next callbacks to match C++ function pointer signatures
-      const refOrPtr = this.cppMode ? "&" : "*";
+      const refOrPtr = this.cppHelper!.refOrPtr();
       return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
     }
 
@@ -7387,8 +7392,8 @@ export default class CodeGenerator implements IOrchestrator {
           !paramInfo.isStruct &&
           this._isKnownPrimitive(paramInfo.baseType)
         ) {
-          // Issue #558: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppMode ? id : `(*${id})`;
+          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
+          return this.cppHelper!.maybeDereference(id);
         }
         return id;
       }
@@ -8054,8 +8059,8 @@ export default class CodeGenerator implements IOrchestrator {
           !paramInfo.isStruct &&
           this._isKnownPrimitive(paramInfo.baseType)
         ) {
-          // Issue #558: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppMode ? id : `(*${id})`;
+          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
+          return this.cppHelper!.maybeDereference(id);
         }
         return id;
       }
@@ -8118,9 +8123,9 @@ export default class CodeGenerator implements IOrchestrator {
       );
       this.applyEffects(result.effects);
 
-      // Issue #304: Transform NULL → nullptr in C++ mode
-      if (result.code === "NULL" && this.cppMode) {
-        return "nullptr";
+      // Issue #304/#644: Transform NULL → nullptr in C++ mode
+      if (result.code === "NULL") {
+        return this.cppHelper!.nullLiteral();
       }
 
       return result.code;
@@ -8192,11 +8197,8 @@ export default class CodeGenerator implements IOrchestrator {
       // It's a user type cast - allow for now (could be struct pointer, etc.)
     }
 
-    // Issue #267: Use C++ casts when cppMode is enabled for MISRA compliance
-    if (this.cppMode) {
-      return `static_cast<${targetType}>(${expr})`;
-    }
-    return `(${targetType})${expr}`;
+    // Issue #267/#644: Use C++ casts when cppMode is enabled for MISRA compliance
+    return this.cppHelper!.cast(targetType, expr);
   }
 
   /**
@@ -8221,10 +8223,8 @@ export default class CodeGenerator implements IOrchestrator {
     const minValue = TYPE_LIMITS.TYPE_MIN[targetTypeName];
 
     if (!maxValue) {
-      // Unknown type, fall back to raw cast
-      return this.cppMode
-        ? `static_cast<${targetType}>(${expr})`
-        : `(${targetType})${expr}`;
+      // Unknown type, fall back to raw cast - Issue #644
+      return this.cppHelper!.cast(targetType, expr);
     }
 
     // Mark that we need limits.h for the type limit macros
@@ -8241,12 +8241,10 @@ export default class CodeGenerator implements IOrchestrator {
     const maxComparison = `((${sourceType === "f32" ? "float" : "double"})${maxValue})`;
 
     // Generate clamping expression:
-    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)expr
+    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
     // Note: For unsigned targets, MIN is 0 so we check < 0.0
-    if (this.cppMode) {
-      return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : static_cast<${targetType}>(${expr}))`;
-    }
-    return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : (${targetType})(${expr}))`;
+    const finalCast = this.cppHelper.cast(targetType, `(${expr})`);
+    return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : ${finalCast})`;
   }
 
   /**
