@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.57] - 2026-02-04
+
+### Fixed
+
+- Scope array return with enum index generates array access instead of bit extraction (Issue #665, PR #666)
+  - When returning `this.values[idx]` from a scope with enum-sized array, now correctly generates `Test_values[idx]`
+  - Previously generated incorrect bit extraction code `((Test_values >> idx) & 1)`
+
+### Changed
+
+- Fix SonarCloud cognitive complexity issues (PR #663)
+- Improve unit test coverage for SonarCloud (PR #664)
+
+## [0.1.56] - 2026-02-04
+
+### Changed
+
+- Update dependencies
+
 ## [0.1.55] - 2026-02-03
 
 ### Fixed
@@ -689,7 +708,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.53...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.57...HEAD
+[0.1.57]: https://github.com/jlaustill/c-next/compare/v0.1.56...v0.1.57
+[0.1.56]: https://github.com/jlaustill/c-next/compare/v0.1.55...v0.1.56
+[0.1.55]: https://github.com/jlaustill/c-next/compare/v0.1.54...v0.1.55
+[0.1.54]: https://github.com/jlaustill/c-next/compare/v0.1.53...v0.1.54
 [0.1.53]: https://github.com/jlaustill/c-next/compare/v0.1.52...v0.1.53
 [0.1.52]: https://github.com/jlaustill/c-next/compare/v0.1.51...v0.1.52
 [0.1.51]: https://github.com/jlaustill/c-next/compare/v0.1.50...v0.1.51
