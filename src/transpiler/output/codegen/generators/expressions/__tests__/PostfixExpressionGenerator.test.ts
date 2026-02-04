@@ -858,6 +858,161 @@ describe("PostfixExpressionGenerator", () => {
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("5");
     });
+
+    it("returns struct field array dimension for struct member access", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "config",
+          {
+            baseType: "Config",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Config"]),
+      });
+      const ctx = createMockPostfixExpressionContext("config", [
+        createMockPostfixOp({ identifier: "values" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "config",
+        isKnownStruct: (name) => name === "Config",
+        getMemberTypeInfo: () => ({
+          baseType: "u32",
+          isArray: true,
+        }),
+        getStructFieldInfo: () => ({
+          type: "u32",
+          dimensions: [10],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("10");
+    });
+
+    it("returns bit width for scalar struct field", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "point",
+          {
+            baseType: "Point",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Point"]),
+      });
+      const ctx = createMockPostfixExpressionContext("point", [
+        createMockPostfixOp({ identifier: "x" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "point",
+        isKnownStruct: (name) => name === "Point",
+        getMemberTypeInfo: () => ({
+          baseType: "i32",
+          isArray: false,
+        }),
+        getStructFieldInfo: () => ({
+          type: "i32",
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("32");
+    });
+
+    it("returns strlen for string struct field", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "person",
+          {
+            baseType: "Person",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Person"]),
+      });
+      const ctx = createMockPostfixExpressionContext("person", [
+        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "person",
+        isKnownStruct: (name) => name === "Person",
+        getMemberTypeInfo: () => ({
+          baseType: "string<32>",
+          isArray: false,
+        }),
+        getStructFieldInfo: () => ({
+          type: "string<32>",
+          dimensions: [32],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("strlen(person.name)");
+      expect(result.effects).toContainEqual({
+        type: "include",
+        header: "string",
+      });
+    });
+
+    it("returns first dimension for multi-dimensional string struct field at depth 0", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "data",
+          {
+            baseType: "Data",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["Data"]),
+      });
+      const ctx = createMockPostfixExpressionContext("data", [
+        createMockPostfixOp({ identifier: "names" }),
+        createMockPostfixOp({ identifier: "length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "data",
+        isKnownStruct: (name) => name === "Data",
+        getMemberTypeInfo: () => ({
+          baseType: "string<32>",
+          isArray: true,
+        }),
+        getStructFieldInfo: () => ({
+          type: "string<32>",
+          dimensions: [5, 32],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("5");
+    });
   });
 
   describe(".capacity property", () => {
