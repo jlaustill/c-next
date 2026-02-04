@@ -4,12 +4,12 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../transpiler/logic/parser/grammar/CNextLexer";
+import { CNextLexer } from "../../transpiler/logic/parser/grammar/CNextLexer";
 import {
   CNextParser,
   ExpressionContext,
-} from "../transpiler/logic/parser/grammar/CNextParser";
-import ExpressionUtils from "./ExpressionUtils";
+} from "../../transpiler/logic/parser/grammar/CNextParser";
+import ExpressionUtils from "../ExpressionUtils";
 
 /**
  * Helper to parse C-Next code and extract the expression from a variable declaration.

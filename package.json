@@ -27,6 +27,7 @@
     "cspell:check": "cspell .",
     "oxlint:check": "oxlint src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**'",
     "oxlint:fix": "oxlint src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**' --fix",
+    "lint:test-location": "! find src -name '*.test.ts' | grep -qv '__tests__' || (echo 'Error: .test.ts files must be in __tests__ directories' && exit 1)",
     "depcruise": "depcruise src/transpiler --config .dependency-cruiser.cjs",
     "depcruise:graph": "depcruise src/transpiler --config .dependency-cruiser.cjs --output-type dot | dot -T svg > dependency-graph.svg",
     "prepare": "husky",

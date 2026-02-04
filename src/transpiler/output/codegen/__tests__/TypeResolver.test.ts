@@ -3,10 +3,10 @@
  * Tests type classification, conversion validation, and literal validation
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import TypeResolver from "./TypeResolver";
-import SymbolTable from "../../logic/symbols/SymbolTable";
-import ITypeResolverDeps from "./types/ITypeResolverDeps";
-import TTypeInfo from "./types/TTypeInfo";
+import TypeResolver from "../TypeResolver";
+import SymbolTable from "../../../logic/symbols/SymbolTable";
+import ITypeResolverDeps from "../types/ITypeResolverDeps";
+import TTypeInfo from "../types/TTypeInfo";
 
 describe("TypeResolver", () => {
   let resolver: TypeResolver;

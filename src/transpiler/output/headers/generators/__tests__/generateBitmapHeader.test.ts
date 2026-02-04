@@ -2,8 +2,8 @@
  * Tests for generateBitmapHeader
  */
 
-import generateBitmapHeader from "./generateBitmapHeader";
-import IHeaderTypeInput from "./IHeaderTypeInput";
+import generateBitmapHeader from "../generateBitmapHeader";
+import IHeaderTypeInput from "../IHeaderTypeInput";
 
 /**
  * Creates a minimal IHeaderTypeInput with bitmap data populated

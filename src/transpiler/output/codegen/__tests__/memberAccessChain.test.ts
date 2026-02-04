@@ -7,7 +7,7 @@
 
 import { vi } from "vitest";
 import { ParseTree } from "antlr4ng";
-import memberAccessChain from "./memberAccessChain";
+import memberAccessChain from "../memberAccessChain";
 
 const {
   determineSeparator,

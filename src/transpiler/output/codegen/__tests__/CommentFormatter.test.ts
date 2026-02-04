@@ -3,9 +3,9 @@
  * ADR-043: Comment formatting for C output
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import CommentFormatter from "./CommentFormatter";
-import ECommentType from "../../types/ECommentType";
-import IComment from "../../types/IComment";
+import CommentFormatter from "../CommentFormatter";
+import ECommentType from "../../../types/ECommentType";
+import IComment from "../../../types/IComment";
 
 describe("CommentFormatter", () => {
   let formatter: CommentFormatter;

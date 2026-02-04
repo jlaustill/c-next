@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import FormatUtils from "./FormatUtils";
+import FormatUtils from "../FormatUtils";
 
 // ========================================================================
 // indent

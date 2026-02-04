@@ -12,7 +12,8 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.ts"],
       exclude: [
-        "**/*.test.ts",
+        "**/__tests__/**", // Test directories (tests + helpers)
+        "src/index.ts", // CLI entry point with module-level bootstrap code
         "src/antlr_parser/**", // Generated ANTLR code (legacy path)
         "src/transpiler/logic/parser/grammar/**", // Generated CNext parser
         "src/transpiler/logic/parser/c/grammar/**", // Generated C parser

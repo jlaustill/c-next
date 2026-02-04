@@ -4,12 +4,12 @@
  * Issue #522: Tests for C++ namespace type filtering
  */
 
-import HeaderGenerator from "./HeaderGenerator";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import ISymbol from "../../../utils/types/ISymbol";
-import SymbolTable from "../../logic/symbols/SymbolTable";
-import IHeaderTypeInput from "./generators/IHeaderTypeInput";
+import HeaderGenerator from "../HeaderGenerator";
+import ESymbolKind from "../../../../utils/types/ESymbolKind";
+import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import ISymbol from "../../../../utils/types/ISymbol";
+import SymbolTable from "../../../logic/symbols/SymbolTable";
+import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 
 describe("HeaderGenerator", () => {
   const generator = new HeaderGenerator();

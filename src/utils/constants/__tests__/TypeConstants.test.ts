@@ -3,7 +3,7 @@
  * Verifies shared type constant definitions.
  */
 import { describe, it, expect } from "vitest";
-import TypeConstants from "./TypeConstants";
+import TypeConstants from "../TypeConstants";
 
 describe("TypeConstants", () => {
   describe("FLOAT_TYPES", () => {

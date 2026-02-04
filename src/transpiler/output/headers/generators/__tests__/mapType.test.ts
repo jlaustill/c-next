@@ -2,7 +2,7 @@
  * Tests for mapType utility
  */
 
-import typeUtils from "./mapType";
+import typeUtils from "../mapType";
 
 const { TYPE_MAP, mapType, isBuiltInType } = typeUtils;
 

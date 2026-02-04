@@ -3,7 +3,7 @@
  * Tests utility functions for C/C++ symbol collection
  */
 import { describe, it, expect } from "vitest";
-import SymbolUtils from "./SymbolUtils";
+import SymbolUtils from "../SymbolUtils";
 
 describe("SymbolUtils", () => {
   // ========================================================================
