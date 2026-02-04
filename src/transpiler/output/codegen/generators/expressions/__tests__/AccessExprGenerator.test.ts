@@ -101,6 +101,7 @@ describe("AccessExprGenerator", () => {
           type: "include",
           header: "string",
         });
+        expect(result.skipContinue).toBe(true);
       });
 
       it("returns dimension for multi-dim array with partial subscript", () => {
@@ -112,6 +113,7 @@ describe("AccessExprGenerator", () => {
         });
         const result = accessGenerators.generateLengthProperty(ctx);
         expect(result.code).toBe("4");
+        expect(result.skipContinue).toBe(true);
       });
 
       it("returns bit width for fully subscripted array member", () => {
@@ -123,6 +125,7 @@ describe("AccessExprGenerator", () => {
         });
         const result = accessGenerators.generateLengthProperty(ctx);
         expect(result.code).toBe("16");
+        expect(result.skipContinue).toBe(true);
       });
 
       it("returns bit width for non-array member", () => {
@@ -133,6 +136,7 @@ describe("AccessExprGenerator", () => {
         });
         const result = accessGenerators.generateLengthProperty(ctx);
         expect(result.code).toBe("32");
+        expect(result.skipContinue).toBe(true);
       });
 
       it("returns comment for unsupported element type", () => {
@@ -145,6 +149,7 @@ describe("AccessExprGenerator", () => {
         const result = accessGenerators.generateLengthProperty(ctx);
         expect(result.code).toContain("unsupported element type CustomType");
         expect(result.code).toContain("0");
+        expect(result.skipContinue).toBe(true);
       });
 
       it("returns comment for unsupported non-array type", () => {
@@ -156,6 +161,7 @@ describe("AccessExprGenerator", () => {
         const result = accessGenerators.generateLengthProperty(ctx);
         expect(result.code).toContain("unsupported type UnknownType");
         expect(result.code).toContain("0");
+        expect(result.skipContinue).toBe(true);
       });
     });
 
@@ -377,6 +383,7 @@ describe("AccessExprGenerator", () => {
 
     describe("integer type handling", () => {
       it("returns bit width for integer types", () => {
+        // Test all C-Next integer types (u8-u64, i8-i64) return their bit width
         const testCases: [string, number][] = [
           ["u8", 8],
           ["u16", 16],
@@ -402,6 +409,7 @@ describe("AccessExprGenerator", () => {
       });
 
       it("returns bit width for float types", () => {
+        // Test C-Next float types (f32, f64) return their bit width
         const testCases: [string, number][] = [
           ["f32", 32],
           ["f64", 64],
@@ -435,6 +443,8 @@ describe("AccessExprGenerator", () => {
 
     describe("C type width handling for struct members", () => {
       it("returns bit width for C integer types in struct members", () => {
+        // Test C standard integer types from headers (uint8_t, int32_t, etc.)
+        // These are used when struct fields come from C header definitions
         const testCases: [string, number][] = [
           ["uint8_t", 8],
           ["uint16_t", 16],
@@ -458,6 +468,7 @@ describe("AccessExprGenerator", () => {
       });
 
       it("returns bit width for C float types in struct members", () => {
+        // Test C standard float types (float, double) from header definitions
         const testCases: [string, number][] = [
           ["float", 32],
           ["double", 64],
