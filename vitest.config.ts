@@ -10,15 +10,13 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: "v8",
-      include: ["src/**/*.ts", "scripts/**/*.ts"],
+      include: ["src/**/*.ts"],
       exclude: [
         "**/*.test.ts",
         "src/antlr_parser/**", // Generated ANTLR code (legacy path)
         "src/transpiler/logic/parser/grammar/**", // Generated CNext parser
         "src/transpiler/logic/parser/c/grammar/**", // Generated C parser
         "src/transpiler/logic/parser/cpp/grammar/**", // Generated C++ parser
-        "scripts/test.ts", // Integration test runner
-        "scripts/test-worker.ts", // Test worker
       ],
       reporter: ["text", "html", "lcov"],
       reportsDirectory: "./coverage",
