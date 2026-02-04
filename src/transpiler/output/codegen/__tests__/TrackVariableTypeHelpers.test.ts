@@ -262,5 +262,33 @@ describe("trackVariableTypeWithName helpers", () => {
       // Wrap behavior means no overflow check
       expect(code).toContain("uint8_t counter");
     });
+
+    it("issue #665: scope array with enum size recognized for return", () => {
+      // When array size is an unresolvable enum member (e.g., global.EIndex.COUNT),
+      // the array should still be recognized as an array type for return statements.
+      // Previously, the isArray flag depended on successfully resolving dimensions,
+      // which failed for enum members, causing bit extraction instead of array access.
+      const source = `
+        enum EIndex { FIRST, SECOND, COUNT }
+
+        scope Test {
+          i32 values[global.EIndex.COUNT];
+
+          public i32 get(u8 idx) {
+            return this.values[idx];
+          }
+        }
+
+        void main() {
+          i32 val <- Test.get(0);
+        }
+      `;
+      const code = transpileSource(source);
+      // Should generate array access, NOT bit extraction
+      expect(code).toContain("return Test_values[idx]");
+      // Should NOT contain bit extraction pattern
+      expect(code).not.toContain(">> idx");
+      expect(code).not.toContain("& 1");
+    });
   });
 });

@@ -1,0 +1,156 @@
+// test-execution
+// Tests: Scope array return with enum index
+// Issue #665: Returning this.values[idx] from scope generates bit extraction
+// instead of array access when array is sized by enum
+
+enum EIndex {
+    FIRST,
+    SECOND,
+    THIRD,
+    COUNT
+}
+
+// Test 1: Basic enum-sized array with enum index (original bug)
+scope Test {
+    f32 values[global.EIndex.COUNT];
+
+    public void set(EIndex idx, f32 value) {
+        this.values[idx] <- value;
+    }
+
+    public f32 get(EIndex idx) {
+        return this.values[idx];
+    }
+}
+
+// Test 2: Enum-sized array with integer index
+scope TestIntIndex {
+    i32 data[global.EIndex.COUNT];
+
+    public void set(u8 idx, i32 value) {
+        this.data[idx] <- value;
+    }
+
+    public i32 get(u8 idx) {
+        return this.data[idx];
+    }
+}
+
+// Test 3: Literal-sized array (regression check - should still work)
+scope TestLiteral {
+    u16 items[4];
+
+    public void set(u8 idx, u16 value) {
+        this.items[idx] <- value;
+    }
+
+    public u16 get(u8 idx) {
+        return this.items[idx];
+    }
+}
+
+// Test 4: Multiple arrays in same scope
+scope TestMultiple {
+    u8 first[global.EIndex.COUNT];
+    u8 second[global.EIndex.COUNT];
+
+    public void setFirst(EIndex idx, u8 value) {
+        this.first[idx] <- value;
+    }
+
+    public u8 getFirst(EIndex idx) {
+        return this.first[idx];
+    }
+
+    public void setSecond(EIndex idx, u8 value) {
+        this.second[idx] <- value;
+    }
+
+    public u8 getSecond(EIndex idx) {
+        return this.second[idx];
+    }
+}
+
+// Test 5: Return with index arithmetic
+scope TestArithmetic {
+    i32 arr[global.EIndex.COUNT];
+
+    public void set(u8 idx, i32 value) {
+        this.arr[idx] <- value;
+    }
+
+    public i32 getNext(u8 idx) {
+        return this.arr[idx + 1];
+    }
+
+    public i32 getPrev(u8 idx) {
+        return this.arr[idx - 1];
+    }
+}
+
+i32 main() {
+    // Test 1: Basic enum-sized array with enum index
+    Test.set(EIndex.FIRST, 1.0);
+    Test.set(EIndex.SECOND, 2.0);
+    Test.set(EIndex.THIRD, 3.0);
+    f32 v1 <- Test.get(EIndex.FIRST);
+    f32 v2 <- Test.get(EIndex.SECOND);
+    f32 v3 <- Test.get(EIndex.THIRD);
+    if (v1 != 1.0) return 1;
+    if (v2 != 2.0) return 2;
+    if (v3 != 3.0) return 3;
+
+    // Test 2: Enum-sized array with integer index
+    TestIntIndex.set(0, 100);
+    TestIntIndex.set(1, 200);
+    TestIntIndex.set(2, 300);
+    i32 d1 <- TestIntIndex.get(0);
+    i32 d2 <- TestIntIndex.get(1);
+    i32 d3 <- TestIntIndex.get(2);
+    if (d1 != 100) return 4;
+    if (d2 != 200) return 5;
+    if (d3 != 300) return 6;
+
+    // Test 3: Literal-sized array (regression check)
+    TestLiteral.set(0, 1000);
+    TestLiteral.set(1, 2000);
+    TestLiteral.set(2, 3000);
+    TestLiteral.set(3, 4000);
+    u16 l1 <- TestLiteral.get(0);
+    u16 l2 <- TestLiteral.get(1);
+    u16 l3 <- TestLiteral.get(2);
+    u16 l4 <- TestLiteral.get(3);
+    if (l1 != 1000) return 7;
+    if (l2 != 2000) return 8;
+    if (l3 != 3000) return 9;
+    if (l4 != 4000) return 10;
+
+    // Test 4: Multiple arrays in same scope
+    TestMultiple.setFirst(EIndex.FIRST, 10);
+    TestMultiple.setFirst(EIndex.SECOND, 20);
+    TestMultiple.setSecond(EIndex.FIRST, 30);
+    TestMultiple.setSecond(EIndex.SECOND, 40);
+    u8 m1 <- TestMultiple.getFirst(EIndex.FIRST);
+    u8 m2 <- TestMultiple.getFirst(EIndex.SECOND);
+    u8 m3 <- TestMultiple.getSecond(EIndex.FIRST);
+    u8 m4 <- TestMultiple.getSecond(EIndex.SECOND);
+    if (m1 != 10) return 11;
+    if (m2 != 20) return 12;
+    if (m3 != 30) return 13;
+    if (m4 != 40) return 14;
+
+    // Test 5: Return with index arithmetic
+    TestArithmetic.set(0, 111);
+    TestArithmetic.set(1, 222);
+    TestArithmetic.set(2, 333);
+    i32 a1 <- TestArithmetic.getNext(0);
+    i32 a2 <- TestArithmetic.getNext(1);
+    i32 a3 <- TestArithmetic.getPrev(1);
+    i32 a4 <- TestArithmetic.getPrev(2);
+    if (a1 != 222) return 15;
+    if (a2 != 333) return 16;
+    if (a3 != 111) return 17;
+    if (a4 != 222) return 18;
+
+    return 0;
+}
