@@ -172,30 +172,47 @@ register GPIO @ 0x40000000 {
 GPIO.DR <- 0xFF;  // Safe, typed register access
 ```
 
-### No Reinterpret Casts
+### Float to Integer Casts (Truncation)
 
-CNX does not support reinterpreting memory as a different type:
+Casting a float to an integer **truncates** the value (discards the fractional part):
 
 ```cnx
 f32 floatVal <- 3.14;
-u32 bits <- (u32)floatVal;  // NOT SUPPORTED as bit reinterpret
+u32 truncated <- (u32)floatVal;  // OK: truncated = 3 (fractional part discarded)
+
+// Combine with bit indexing to extract bits from the integer value:
+f32 temp <- 25.7;
+u8 lowByte <- ((u32)temp)[0, 8];  // Truncates to 25, extracts low 8 bits → 25
 ```
 
-If this is needed in the future, it would require a separate, explicit mechanism.
+**Note:** This is truncation, NOT bit reinterpretation. For raw IEEE-754 byte access, use float bit indexing (ADR-007):
+
+```cnx
+f32 floatVal <- 3.14;
+u8 rawByte <- floatVal[0, 8];  // Raw IEEE-754 byte (NOT truncation)
+```
+
+### No Pointer/Reinterpret Casts
+
+CNX does not support:
+
+- Casting integers to pointers (use `register` keyword instead - ADR-004)
+- Reinterpreting memory as a different type (for raw float bytes, use float bit indexing - ADR-007)
 
 ---
 
 ## Summary of Cast Rules
 
-| Conversion              | CNX Behavior                 | Rationale                |
-| ----------------------- | ---------------------------- | ------------------------ |
-| u8 → u32 (widen)        | Implicit                     | No data loss possible    |
-| i8 → i32 (widen)        | Implicit                     | No data loss possible    |
-| u32 → u8 (narrow)       | **Error** - use `val[0, 8]`  | Potential data loss      |
-| i32 → u32 (sign change) | **Error** - use `val[0, 32]` | Sign semantics change    |
-| u32 → i32 (sign change) | **Error** - use `val[0, 32]` | Sign semantics change    |
-| int → pointer           | **Not supported**            | Use `register` (ADR-004) |
-| f32 → u32 (reinterpret) | **Not supported**            | Future consideration     |
+| Conversion              | CNX Behavior                             | Rationale                     |
+| ----------------------- | ---------------------------------------- | ----------------------------- |
+| u8 → u32 (widen)        | Implicit                                 | No data loss possible         |
+| i8 → i32 (widen)        | Implicit                                 | No data loss possible         |
+| u32 → u8 (narrow)       | **Error** - use `val[0, 8]`              | Potential data loss           |
+| i32 → u32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
+| u32 → i32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
+| f32 → u32 (truncate)    | Supported - `(u32)floatVal`              | Truncates fractional part     |
+| f32 → u32 (reinterpret) | Use float bit indexing `floatVal[0, 32]` | Raw IEEE-754 access (ADR-007) |
+| int → pointer           | **Not supported**                        | Use `register` (ADR-004)      |
 
 ---
 

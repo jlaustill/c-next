@@ -281,6 +281,32 @@ uint8_t highByte = (memcpy(&__bits_value, &value, sizeof(value)), ((__bits_value
 - Network byte order conversion
 - Low-level IEEE-754 manipulation
 
+### Float Bit Access vs. Integer Truncation
+
+There are **two distinct ways** to extract bits from a float value:
+
+| Syntax           | Behavior                               | Result for `f32 a <- 1.5`       |
+| ---------------- | -------------------------------------- | ------------------------------- |
+| `a[0, 8]`        | Raw IEEE-754 bytes                     | `0x00` (low byte of 0x3FC00000) |
+| `((u32)a)[0, 8]` | Truncate to integer, then extract bits | `1` (integer part)              |
+
+**Example:**
+
+```cnx
+f32 temperature <- 25.7;
+
+// Raw IEEE-754 byte access (for binary protocols)
+u8 rawByte <- temperature[0, 8];  // Some byte from IEEE-754 representation
+
+// Integer truncation then bit extract (for numeric processing)
+u8 intValue <- ((u32)temperature)[0, 8];  // 25 (truncated integer value)
+```
+
+Choose the appropriate method based on your use case:
+
+- **Binary protocols/serialization**: Use `floatVar[offset, width]` for raw bytes
+- **Numeric value extraction**: Use `((u32)floatVar)[offset, width]` for truncated integer
+
 ---
 
 ## Compile-Time Validation (Future Work)
