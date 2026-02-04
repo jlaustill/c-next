@@ -86,6 +86,10 @@ import StringDeclHelper from "./helpers/StringDeclHelper";
 import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 // Issue #644: Array initialization helper for size inference and fill-all
 import ArrayInitHelper from "./helpers/ArrayInitHelper";
+// Issue #644: Assignment expected type resolution helper
+import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
+// Issue #644: Assignment validation coordinator helper
+import AssignmentValidator from "./helpers/AssignmentValidator";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -341,6 +345,12 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
   private arrayInitHelper: ArrayInitHelper | null = null;
+
+  /** Issue #644: Assignment expected type resolution helper */
+  private expectedTypeResolver: AssignmentExpectedTypeResolver | null = null;
+
+  /** Issue #644: Assignment validation coordinator helper */
+  private assignmentValidator: AssignmentValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2162,6 +2172,7 @@ export default class CodeGenerator implements IOrchestrator {
       getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
       isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
     });
+    const enumValidator = this.enumValidator; // Local var for narrowed type
 
     // Issue #644: Initialize array initialization helper
     this.arrayInitHelper = new ArrayInitHelper({
@@ -2175,6 +2186,29 @@ export default class CodeGenerator implements IOrchestrator {
       generateExpression: (ctx) => this._generateExpression(ctx),
       getTypeName: (ctx) => this._getTypeName(ctx),
       generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
+    });
+
+    // Issue #644: Initialize assignment expected type resolver
+    this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
+      typeRegistry: this.context.typeRegistry,
+      structFields: symbols.structFields,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+    });
+
+    // Issue #644: Initialize assignment validation coordinator
+    this.assignmentValidator = new AssignmentValidator({
+      typeValidator: typeValidator,
+      enumValidator: enumValidator,
+      typeRegistry: this.context.typeRegistry,
+      floatShadowCurrent: this.context.floatShadowCurrent,
+      registerMemberAccess: symbols.registerMemberAccess,
+      callbackFieldTypes: this.callbackFieldTypes,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+      isIntegerType: (name) => this._isIntegerType(name),
+      getExpressionType: (ctx) => this.getExpressionType(ctx),
+      tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
+      isCallbackTypeUsedAsFieldType: (name) =>
+        this._isCallbackTypeUsedAsFieldType(name),
     });
 
     // Second pass: register all variable types in the type registry
@@ -6623,63 +6657,17 @@ export default class CodeGenerator implements IOrchestrator {
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
 
-    // Set expected type for inferred struct initializers
+    // Issue #644: Set expected type for inferred struct initializers and overflow behavior
+    // Delegated to AssignmentExpectedTypeResolver helper
     const savedExpectedType = this.context.expectedType;
-    // ADR-044: Save and set assignment context for overflow behavior
     const savedAssignmentContext = { ...this.context.assignmentContext };
 
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      const id = targetCtx.IDENTIFIER()!.getText();
-      const typeInfo = this.context.typeRegistry.get(id);
-      if (typeInfo) {
-        this.context.expectedType = typeInfo.baseType;
-        // ADR-044: Set overflow context for expression generation
-        this.context.assignmentContext = {
-          targetName: id,
-          targetType: typeInfo.baseType,
-          overflowBehavior: typeInfo.overflowBehavior || "clamp",
-        };
-      }
+    const resolved = this.expectedTypeResolver!.resolve(targetCtx);
+    if (resolved.expectedType) {
+      this.context.expectedType = resolved.expectedType;
     }
-
-    // Issue #452: Set expected type for member access targets (e.g., config.status <- value)
-    // This enables type-aware resolution of unqualified enum members
-    // Walk the chain of struct types for nested access (e.g., config.nested.field)
-    if (targetCtx.memberAccess()) {
-      const memberAccessCtx = targetCtx.memberAccess()!;
-      const identifiers = memberAccessCtx.IDENTIFIER();
-      if (identifiers.length >= 2) {
-        const rootName = identifiers[0].getText();
-        const rootTypeInfo = this.context.typeRegistry.get(rootName);
-        if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
-          let currentStructType: string | undefined = rootTypeInfo.baseType;
-          // Walk through each member in the chain to find the final field's type
-          for (let i = 1; i < identifiers.length && currentStructType; i++) {
-            const memberName = identifiers[i].getText();
-            const structFieldTypes =
-              this.symbols!.structFields.get(currentStructType);
-            if (structFieldTypes?.has(memberName)) {
-              const memberType = structFieldTypes.get(memberName)!;
-              if (i === identifiers.length - 1) {
-                // Last field in chain - this is the assignment target's type
-                this.context.expectedType = memberType;
-              } else if (this.isKnownStruct(memberType)) {
-                // Intermediate field - continue walking if it's a struct
-                currentStructType = memberType;
-              } else {
-                // Intermediate field is not a struct - can't walk further
-                break;
-              }
-            } else {
-              break;
-            }
-          }
-        }
-      }
+    if (resolved.assignmentContext) {
+      this.context.assignmentContext = resolved.assignmentContext;
     }
 
     const value = this._generateExpression(ctx.expression());
@@ -6694,193 +6682,14 @@ export default class CodeGenerator implements IOrchestrator {
     const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
     const isCompound = cOp !== "=";
 
-    // ADR-013: Validate const before generating assignment
-    // Check simple identifier assignment
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      const id = targetCtx.IDENTIFIER()!.getText();
-      const constError = this.typeValidator!.checkConstAssignment(id);
-      if (constError) {
-        throw new Error(constError);
-      }
-
-      // Issue #558: Parameter modification tracking removed - uses analysis-phase results
-
-      // Invalidate float shadow when variable is assigned directly
-      const shadowName = `__bits_${id}`;
-      this.context.floatShadowCurrent.delete(shadowName);
-
-      // ADR-017: Validate enum type assignment
-      const targetTypeInfo = this.context.typeRegistry.get(id);
-      if (targetTypeInfo?.isEnum && targetTypeInfo.enumTypeName) {
-        const targetEnumType = targetTypeInfo.enumTypeName;
-        const valueEnumType = this.getExpressionEnumType(ctx.expression());
-
-        // Check if assigning from a different enum type
-        if (valueEnumType && valueEnumType !== targetEnumType) {
-          throw new Error(
-            `Error: Cannot assign ${valueEnumType} enum to ${targetEnumType} enum`,
-          );
-        }
-
-        // Check if assigning integer to enum
-        if (this._isIntegerExpression(ctx.expression())) {
-          throw new Error(
-            `Error: Cannot assign integer to ${targetEnumType} enum`,
-          );
-        }
-
-        // Check if assigning a non-enum, non-integer expression to enum
-        // (must be same enum type or a valid enum member access)
-        if (!valueEnumType) {
-          const exprText = ctx.expression().getText();
-          const parts = exprText.split(".");
-
-          // ADR-016: Handle this.State.MEMBER pattern
-          if (
-            parts[0] === "this" &&
-            this.context.currentScope &&
-            parts.length >= 3
-          ) {
-            const scopedEnumName = `${this.context.currentScope}_${parts[1]}`;
-            if (scopedEnumName !== targetEnumType) {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
-              );
-            }
-          }
-          // Issue #478: Handle global.Enum.MEMBER pattern
-          else if (parts[0] === "global" && parts.length >= 3) {
-            // global.ECategory.CAT_A -> ECategory
-            const globalEnumName = parts[1];
-            if (globalEnumName !== targetEnumType) {
-              throw new Error(
-                `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
-              );
-            }
-          }
-          // Allow if it's an enum member access of the correct type
-          else if (!exprText.startsWith(targetEnumType + ".")) {
-            // Not a direct enum member access - check if it's scoped enum
-            if (parts.length >= 3) {
-              // Could be Scope.Enum.Member
-              const scopedEnumName = `${parts[0]}_${parts[1]}`;
-              if (scopedEnumName !== targetEnumType) {
-                throw new Error(
-                  `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
-                );
-              }
-            } else if (parts.length === 2) {
-              // Could be Enum.Member or variable.field
-              if (
-                parts[0] !== targetEnumType &&
-                !this.symbols!.knownEnums.has(parts[0])
-              ) {
-                throw new Error(
-                  `Error: Cannot assign non-enum value to ${targetEnumType} enum`,
-                );
-              }
-            }
-          }
-        }
-      }
-
-      // ADR-024: Validate integer type conversions for simple assignments only
-      // Skip validation for compound assignments (+<-, -<-, etc.) since the
-      // operand doesn't need to fit directly in the target type
-      if (
-        !isCompound &&
-        targetTypeInfo &&
-        this._isIntegerType(targetTypeInfo.baseType)
-      ) {
-        const exprText = ctx.expression().getText().trim();
-        // Check if it's a direct literal
-        if (
-          /^-?\d+$/.exec(exprText) ||
-          /^0[xX][0-9a-fA-F]+$/.exec(exprText) ||
-          /^0[bB][01]+$/.exec(exprText)
-        ) {
-          this._validateLiteralFitsType(exprText, targetTypeInfo.baseType);
-        } else {
-          // Not a literal - check for narrowing/sign conversions
-          const sourceType = this.getExpressionType(ctx.expression());
-          this._validateTypeConversion(targetTypeInfo.baseType, sourceType);
-        }
-      }
-    }
-
-    // Check array element assignment - validate the array is not const
-    if (targetCtx.arrayAccess()) {
-      const arrayAccessCtx = targetCtx.arrayAccess()!;
-      const arrayName = arrayAccessCtx.IDENTIFIER().getText();
-      const constError = this.typeValidator!.checkConstAssignment(arrayName);
-      if (constError) {
-        throw new Error(`${constError} (array element)`);
-      }
-
-      // ADR-036: Compile-time bounds checking for single-dimensional arrays
-      const typeInfo = this.context.typeRegistry.get(arrayName);
-      if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-        this.typeValidator!.checkArrayBounds(
-          arrayName,
-          typeInfo.arrayDimensions,
-          arrayAccessCtx.expression(),
-          ctx.start?.line ?? 0,
-          (expr) => this._tryEvaluateConstant(expr),
-        );
-      }
-
-      // Issue #558: Parameter modification tracking removed - uses analysis-phase results
-    }
-
-    // Check member access on const struct - validate the root is not const
-    if (targetCtx.memberAccess()) {
-      const identifiers = targetCtx.memberAccess()!.IDENTIFIER();
-      if (identifiers.length > 0) {
-        const rootName = identifiers[0].getText();
-        const constError = this.typeValidator!.checkConstAssignment(rootName);
-        if (constError) {
-          throw new Error(`${constError} (member access)`);
-        }
-
-        // Issue #558: Parameter modification tracking removed - uses analysis-phase results
-
-        // ADR-013: Check for read-only register members (ro = implicitly const)
-        if (identifiers.length >= 2) {
-          const memberName = identifiers[1].getText();
-          const fullName = `${rootName}_${memberName}`;
-          const accessMod = this.symbols!.registerMemberAccess.get(fullName);
-          if (accessMod === "ro") {
-            throw new Error(
-              `cannot assign to read-only register member '${memberName}' ` +
-                `(${rootName}.${memberName} has 'ro' access modifier)`,
-            );
-          }
-
-          // ADR-029: Validate callback field assignments with nominal typing
-          const rootTypeInfo = this.context.typeRegistry.get(rootName);
-          if (rootTypeInfo && this.isKnownStruct(rootTypeInfo.baseType)) {
-            const structType = rootTypeInfo.baseType;
-            const callbackFieldKey = `${structType}.${memberName}`;
-            const expectedCallbackType =
-              this.callbackFieldTypes.get(callbackFieldKey);
-
-            if (expectedCallbackType) {
-              this.typeValidator!.validateCallbackAssignment(
-                expectedCallbackType,
-                ctx.expression(),
-                memberName,
-                (funcName: string) =>
-                  this._isCallbackTypeUsedAsFieldType(funcName),
-              );
-            }
-          }
-        }
-      }
-    }
+    // Issue #644: Validate assignment (const, enum, integer, array bounds, callbacks)
+    // Delegated to AssignmentValidator helper to reduce cognitive complexity
+    this.assignmentValidator!.validate(
+      targetCtx,
+      ctx.expression(),
+      isCompound,
+      ctx.start?.line ?? 0,
+    );
 
     // ADR-109: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers

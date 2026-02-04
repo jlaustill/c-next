@@ -123,7 +123,13 @@ class EnumAssignmentValidator {
       return;
     }
 
-    if (parts.length === 2 && parts[0] !== typeName) {
+    // parts.length === 2: Could be Enum.Member or variable.field
+    // Allow if it's a known enum type (even if different - getExpressionEnumType would catch mismatches)
+    if (
+      parts.length === 2 &&
+      parts[0] !== typeName &&
+      !this.deps.knownEnums.has(parts[0])
+    ) {
       throw new Error(
         `Error: Cannot assign non-enum value to ${typeName} enum`,
       );
