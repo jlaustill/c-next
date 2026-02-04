@@ -84,6 +84,8 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 import StringDeclHelper from "./helpers/StringDeclHelper";
 // Issue #644: Enum assignment validator for type-safe enum assignments
 import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
+// Issue #644: Array initialization helper for size inference and fill-all
+import ArrayInitHelper from "./helpers/ArrayInitHelper";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -336,6 +338,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Enum assignment validator for type-safe enum assignments */
   private enumValidator: EnumAssignmentValidator | null = null;
+
+  /** Issue #644: Array initialization helper for size inference and fill-all */
+  private arrayInitHelper: ArrayInitHelper | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2134,6 +2139,20 @@ export default class CodeGenerator implements IOrchestrator {
       getCurrentScope: () => this.context.currentScope,
       getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
       isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
+    });
+
+    // Issue #644: Initialize array initialization helper
+    this.arrayInitHelper = new ArrayInitHelper({
+      typeRegistry: this.context.typeRegistry,
+      localArrays: this.context.localArrays,
+      arrayInitState: arrayInitState, // Reuse the proxy from stringDeclHelper
+      getExpectedType: () => this.context.expectedType,
+      setExpectedType: (type) => {
+        this.context.expectedType = type;
+      },
+      generateExpression: (ctx) => this._generateExpression(ctx),
+      getTypeName: (ctx) => this._getTypeName(ctx),
+      generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
     });
 
     // Second pass: register all variable types in the type registry
@@ -6091,76 +6110,18 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // ADR-035: Handle array initializers with size inference
+    // ADR-035: Handle array initializers with size inference (Issue #644: delegated to helper)
     if (isArray && ctx.expression()) {
-      // Reset array init tracking
-      this.context.lastArrayInitCount = 0;
-      this.context.lastArrayFillValue = undefined;
-
-      // Generate the initializer expression (may be array initializer)
-      const typeName = this._getTypeName(typeCtx);
-      const savedExpectedType = this.context.expectedType;
-      this.context.expectedType = typeName;
-
-      const initValue = this._generateExpression(ctx.expression()!);
-
-      this.context.expectedType = savedExpectedType;
-
-      // Check if it was an array initializer
-      if (
-        this.context.lastArrayInitCount > 0 ||
-        this.context.lastArrayFillValue !== undefined
-      ) {
-        // ADR-006: Track local arrays
-        this.context.localArrays.add(name);
-
-        if (hasEmptyArrayDim) {
-          // Size inference: u8 data[] <- [1, 2, 3]
-          if (this.context.lastArrayFillValue !== undefined) {
-            throw new Error(
-              `Error: Fill-all syntax [${this.context.lastArrayFillValue}*] requires explicit array size`,
-            );
-          }
-          decl += `[${this.context.lastArrayInitCount}]`;
-
-          // Update type registry with inferred size for .length support
-          const existingType = this.context.typeRegistry.get(name);
-          if (existingType) {
-            existingType.arrayDimensions = [this.context.lastArrayInitCount];
-          }
-        } else {
-          // ADR-036: Generate all explicit dimensions
-          decl += this._generateArrayDimensions(arrayDims);
-
-          if (
-            declaredSize !== null &&
-            this.context.lastArrayFillValue === undefined
-          ) {
-            if (this.context.lastArrayInitCount !== declaredSize) {
-              throw new Error(
-                `Error: Array size mismatch - declared [${declaredSize}] but got ${this.context.lastArrayInitCount} elements`,
-              );
-            }
-          }
-        }
-
-        // ADR-035: For fill-all syntax with non-zero values, generate full initializer
-        // [0*] -> {0} is fine (C zero-initializes remaining elements)
-        // [1*] -> {1, 1, 1, ...} (must repeat value for all elements)
-        let finalInitValue = initValue;
-        if (
-          this.context.lastArrayFillValue !== undefined &&
-          declaredSize !== null
-        ) {
-          const fillVal = this.context.lastArrayFillValue;
-          // Only expand if the fill value is not "0" (C handles {0} correctly)
-          if (fillVal !== "0") {
-            const elements = Array(declaredSize).fill(fillVal);
-            finalInitValue = `{${elements.join(", ")}}`;
-          }
-        }
-
-        return `${decl} = ${finalInitValue};`;
+      const arrayInitResult = this.arrayInitHelper!.processArrayInit(
+        name,
+        typeCtx,
+        ctx.expression()!,
+        arrayDims,
+        hasEmptyArrayDim,
+        declaredSize,
+      );
+      if (arrayInitResult) {
+        return `${decl}${arrayInitResult.dimensionSuffix} = ${arrayInitResult.initValue};`;
       }
     }
 
