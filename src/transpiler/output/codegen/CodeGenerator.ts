@@ -28,6 +28,7 @@ import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
+import TIncludeHeader from "./generators/TIncludeHeader";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
 // ADR-053: Expression generators (A2)
 import generateLiteral from "./generators/expressions/LiteralGenerator";
@@ -571,34 +572,12 @@ export default class CodeGenerator implements IOrchestrator {
   applyEffects(effects: readonly TGeneratorEffect[]): void {
     for (const effect of effects) {
       switch (effect.type) {
-        // Include effects
+        // Include effects - delegate to requireInclude()
         case "include":
-          switch (effect.header) {
-            case "stdint":
-              this.needsStdint = true;
-              break;
-            case "stdbool":
-              this.needsStdbool = true;
-              break;
-            case "string":
-              this.needsString = true;
-              break;
-            case "cmsis":
-              this.needsCMSIS = true;
-              break;
-            case "irq_wrappers":
-              this.needsIrqWrappers = true;
-              break;
-            case "float_static_assert":
-              this.needsFloatStaticAssert = true;
-              break;
-            case "limits":
-              this.needsLimits = true;
-              break;
-          }
+          this.requireInclude(effect.header);
           break;
         case "isr":
-          this.needsISR = true;
+          this.requireInclude("isr");
           break;
 
         // Helper function effects
@@ -663,6 +642,41 @@ export default class CodeGenerator implements IOrchestrator {
           this.context.lastArrayFillValue = effect.value;
           break;
       }
+    }
+  }
+
+  /**
+   * Register a required include header. Centralizes all include flag management
+   * to reduce scattered assignments throughout the codebase.
+   *
+   * @param header - The header to require (stdint, stdbool, string, etc.)
+   */
+  private requireInclude(header: TIncludeHeader): void {
+    switch (header) {
+      case "stdint":
+        this.needsStdint = true;
+        break;
+      case "stdbool":
+        this.needsStdbool = true;
+        break;
+      case "string":
+        this.needsString = true;
+        break;
+      case "cmsis":
+        this.needsCMSIS = true;
+        break;
+      case "limits":
+        this.needsLimits = true;
+        break;
+      case "isr":
+        this.needsISR = true;
+        break;
+      case "float_static_assert":
+        this.needsFloatStaticAssert = true;
+        break;
+      case "irq_wrappers":
+        this.needsIrqWrappers = true;
+        break;
     }
   }
 
@@ -3374,7 +3388,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       if (intLiteral) {
         const capacity = Number.parseInt(intLiteral.getText(), 10);
-        this.needsString = true;
+        this.requireInclude("string");
         const stringDim = capacity + 1; // String capacity dimension (last)
 
         // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
@@ -3600,7 +3614,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     const capacity = Number.parseInt(intLiteral.getText(), 10);
-    this.needsString = true;
+    this.requireInclude("string");
     const stringDim = capacity + 1;
 
     // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
@@ -5561,7 +5575,7 @@ export default class CodeGenerator implements IOrchestrator {
       throw new Error(`Error: Bitmap ${fullName} not found in registry`);
     }
 
-    this.needsStdint = true;
+    this.requireInclude("stdint");
 
     const lines: string[] = [];
 
@@ -6314,7 +6328,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Infer capacity from literal length
         const inferredCapacity = this._getStringLiteralLength(exprText);
-        this.needsString = true;
+        this.requireInclude("string");
 
         // Register in type registry with inferred capacity
         this.context.typeRegistry.set(name, {
@@ -6932,7 +6946,7 @@ export default class CodeGenerator implements IOrchestrator {
         this.generateFloatBitWrite(name, typeInfo, bitIndex, width, value),
       foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
       markNeedsString: () => {
-        this.needsString = true;
+        this.requireInclude("string");
       },
       markClampOpUsed: (op, typeName) => this.markClampOpUsed(op, typeName),
       generateAtomicRMW: (target, cOp, value, typeInfo) =>
@@ -7077,8 +7091,8 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    this.needsString = true; // For memcpy
-    this.needsFloatStaticAssert = true; // For size verification
+    this.requireInclude("string"); // For memcpy
+    this.requireInclude("float_static_assert"); // For size verification
 
     const isF64 = typeInfo.baseType === "f64";
     const shadowType = isF64 ? "uint64_t" : "uint32_t";
@@ -8113,7 +8127,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Mark that we need limits.h for the type limit macros
-    this.needsLimits = true;
+    this.requireInclude("limits");
 
     // Use appropriate float suffix for comparisons
     const floatSuffix = sourceType === "f32" ? "f" : "";
@@ -8759,8 +8773,8 @@ export default class CodeGenerator implements IOrchestrator {
           );
         }
 
-        this.needsString = true; // For memcpy
-        this.needsFloatStaticAssert = true; // For size verification
+        this.requireInclude("string"); // For memcpy
+        this.requireInclude("float_static_assert"); // For size verification
         const isF64 = typeInfo?.baseType === "f64";
         const shadowType = isF64 ? "uint64_t" : "uint32_t";
         const shadowName = `__bits_${rawName}`;
@@ -8847,17 +8861,17 @@ export default class CodeGenerator implements IOrchestrator {
       const type = ctx.primitiveType()!.getText();
       // Track required includes based on type usage
       if (type === "bool") {
-        this.needsStdbool = true;
+        this.requireInclude("stdbool");
       } else if (type === "ISR") {
-        this.needsISR = true; // ADR-040: ISR function pointer typedef
+        this.requireInclude("isr"); // ADR-040: ISR function pointer typedef
       } else if (type in TYPE_MAP && type !== "void") {
-        this.needsStdint = true;
+        this.requireInclude("stdint");
       }
       return TYPE_MAP[type] || type;
     }
     // ADR-045: Handle bounded string type
     if (ctx.stringType()) {
-      this.needsString = true;
+      this.requireInclude("string");
       return "char"; // String declarations handle the array dimension separately
     }
     // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
