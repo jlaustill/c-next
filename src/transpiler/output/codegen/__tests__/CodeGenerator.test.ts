@@ -7320,5 +7320,168 @@ describe("CodeGenerator", () => {
         expect(code).toContain("points[1].x = 50");
       });
     });
+
+    describe("resolveParameterTarget - primitive dereferencing", () => {
+      it("should dereference primitive parameter when modified", () => {
+        const source = `
+          void modify(u32 val) {
+            val <- 100;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Primitive pass-by-reference parameters need dereferencing
+        expect(code).toContain("(*val) = 100");
+      });
+
+      it("should not dereference primitive parameter in C++ mode", () => {
+        const source = `
+          void modify(u32 val) {
+            val <- 100;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // In C++ mode, references don't need dereferencing
+        expect(code).toContain("val = 100");
+        expect(code).not.toContain("*val");
+      });
+
+      it("should not dereference array parameters", () => {
+        const source = `
+          void process(u32 arr[10]) {
+            arr[0] <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("arr[0] = 42");
+        expect(code).not.toContain("*arr");
+      });
+
+      it("should handle struct parameter returning just id", () => {
+        const source = `
+          struct Config { u32 value; }
+          void process(Config cfg) {
+            Config local <- cfg;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Struct params use pointer access with parentheses
+        expect(code).toContain("local = (*cfg)");
+      });
+    });
+
+    describe("getSubsequentMemberSeparator", () => {
+      it("should use dot for nested struct member access", () => {
+        const source = `
+          struct Inner { u32 val; }
+          struct Outer { Inner inner; }
+          void foo() {
+            Outer o;
+            o.inner.val <- 99;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("o.inner.val = 99");
+      });
+    });
+
+    describe("buildSeparatorContext edge cases", () => {
+      it("should handle bare identifier with postfix ops", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void foo() {
+            Point p;
+            p.x <- 10;
+            p.y <- 20;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("p.x = 10");
+        expect(code).toContain("p.y = 20");
+      });
+    });
+
+    describe("parameter as simple target (no member access)", () => {
+      it("should handle parameter assignment to local", () => {
+        const source = `
+          void copy(u32 src) {
+            u32 dest <- src;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Unmodified small primitive param is pass-by-value
+        expect(code).toContain("dest = src");
+      });
+    });
   });
 });
