@@ -7,7 +7,10 @@
     "vscode-extension/**",
     "tests/**",
     "src/parser/grammar/**",
-    "src/codegen/assignment/AssignmentContextBuilder.ts"
+    "src/codegen/assignment/AssignmentContextBuilder.ts",
+    "src/transpiler/output/codegen/generators/expressions/PostfixExpressionGenerator.ts",
+    "src/transpiler/output/codegen/helpers/CppModeHelper.ts",
+    "src/transpiler/output/codegen/analysis/StringLengthCounter.ts"
   ],
   "ignoreBinaries": ["jscpd", "jq", "dot"]
 }

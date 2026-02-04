@@ -13,7 +13,6 @@ import CommentFormatter from "./CommentFormatter";
 import IncludeDiscovery from "../../data/IncludeDiscovery";
 import IComment from "../../types/IComment";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
-import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
 import TYPE_LIMITS from "./types/TYPE_LIMITS";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
@@ -34,9 +33,8 @@ import GeneratorRegistry from "./generators/GeneratorRegistry";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
 import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
-import generateFunctionCall from "./generators/expressions/CallExprGenerator";
-import accessGenerators from "./generators/expressions/AccessExprGenerator";
 import expressionGenerators from "./generators/expressions/ExpressionGenerator";
+import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
 // ADR-053: Statement generators (A3)
 import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
 import generateCriticalStatement from "./generators/statements/CriticalGenerator";
@@ -71,8 +69,10 @@ import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
 // Issue #461: LiteralUtils for parsing const values from symbol table
 import LiteralUtils from "../../../utils/LiteralUtils";
-// Issue #579: Shared subscript classification for array vs bit access
-import SubscriptClassifier from "./subscript/SubscriptClassifier";
+// Issue #644: Extracted string length counter for strlen caching optimization
+import StringLengthCounter from "./analysis/StringLengthCounter";
+// Issue #644: C/C++ mode helper for consolidated mode-specific patterns
+import CppModeHelper from "./helpers/CppModeHelper";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -314,11 +314,17 @@ export default class CodeGenerator implements IOrchestrator {
   /** Type validation - Issue #63: Extracted from CodeGenerator */
   private typeValidator: TypeValidator | null = null;
 
+  /** Issue #644: String length counter for strlen caching optimization */
+  private stringLengthCounter: StringLengthCounter | null = null;
+
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
   /** Issue #250: C++ mode - use temp vars instead of compound literals */
   private cppMode: boolean = false;
+
+  /** Issue #644: C/C++ mode helper for consolidated mode-specific patterns */
+  private cppHelper: CppModeHelper | null = null;
 
   /** Issue #250: Pending temp variable declarations for C++ mode */
   private pendingTempDeclarations: string[] = [];
@@ -549,6 +555,12 @@ export default class CodeGenerator implements IOrchestrator {
       localArrays: this.context.localArrays,
       expectedType: this.context.expectedType,
       selfIncludeAdded: this.selfIncludeAdded, // Issue #369
+      // Issue #644: Postfix expression state
+      scopeMembers: this.context.scopeMembers,
+      mainArgsName: this.context.mainArgsName,
+      floatBitShadows: this.context.floatBitShadows,
+      floatShadowCurrent: this.context.floatShadowCurrent,
+      lengthCache: this.context.lengthCache,
     };
   }
 
@@ -576,6 +588,12 @@ export default class CodeGenerator implements IOrchestrator {
               break;
             case "irq_wrappers":
               this.needsIrqWrappers = true;
+              break;
+            case "float_static_assert":
+              this.needsFloatStaticAssert = true;
+              break;
+            case "limits":
+              this.needsLimits = true;
               break;
           }
           break;
@@ -1031,7 +1049,8 @@ export default class CodeGenerator implements IOrchestrator {
   countStringLengthAccesses(
     ctx: Parser.ExpressionContext,
   ): Map<string, number> {
-    return this._countStringLengthAccesses(ctx);
+    // Issue #644: Delegate to extracted StringLengthCounter
+    return this.stringLengthCounter!.countExpression(ctx);
   }
 
   /**
@@ -1042,7 +1061,8 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.BlockContext,
     counts: Map<string, number>,
   ): void {
-    this._countBlockLengthAccesses(ctx, counts);
+    // Issue #644: Delegate to extracted StringLengthCounter
+    this.stringLengthCounter!.countBlockInto(ctx, counts);
   }
 
   /**
@@ -1427,6 +1447,112 @@ export default class CodeGenerator implements IOrchestrator {
     return this.context.currentParameters.has(name);
   }
 
+  // === Postfix Expression Helpers (Issue #644) ===
+
+  /**
+   * Generate a primary expression.
+   * Part of IOrchestrator interface for PostfixExpressionGenerator.
+   */
+  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+    return this._generatePrimaryExpr(ctx);
+  }
+
+  /**
+   * Check if a name is a known scope.
+   * Part of IOrchestrator interface.
+   */
+  isKnownScope(name: string): boolean {
+    return this._isKnownScope(name);
+  }
+
+  /**
+   * Check if a symbol is a C++ scope symbol (namespace, class, enum).
+   * Part of IOrchestrator interface.
+   */
+  isCppScopeSymbol(name: string): boolean {
+    return this._isCppScopeSymbol(name);
+  }
+
+  /**
+   * Get the separator for scope access (:: for C++, _ for C-Next).
+   * Part of IOrchestrator interface.
+   */
+  getScopeSeparator(isCppAccess: boolean): string {
+    return this._getScopeSeparator(isCppAccess);
+  }
+
+  /**
+   * Get struct field info for .length calculations.
+   * Part of IOrchestrator interface.
+   */
+  getStructFieldInfo(
+    structType: string,
+    fieldName: string,
+  ): { type: string; dimensions?: (number | string)[] } | null {
+    return this._getStructFieldInfo(structType, fieldName) ?? null;
+  }
+
+  /**
+   * Get member type info for struct access chains.
+   * Part of IOrchestrator interface.
+   */
+  getMemberTypeInfo(
+    structType: string,
+    memberName: string,
+  ): { baseType: string; isArray: boolean } | null {
+    return this._getMemberTypeInfo(structType, memberName) ?? null;
+  }
+
+  /**
+   * Generate a bit mask for bit range access.
+   * Part of IOrchestrator interface.
+   * Issue #644: Delegate to BitUtils for code reuse.
+   */
+  generateBitMask(width: string, is64Bit: boolean = false): string {
+    // BitUtils.generateMask expects a type string, not a boolean
+    return BitUtils.generateMask(width, is64Bit ? "u64" : undefined);
+  }
+
+  /**
+   * Add a pending temp variable declaration (for float bit indexing).
+   * Part of IOrchestrator interface.
+   */
+  addPendingTempDeclaration(declaration: string): void {
+    this.pendingTempDeclarations.push(declaration);
+  }
+
+  /**
+   * Register a float bit shadow variable.
+   * Part of IOrchestrator interface.
+   */
+  registerFloatBitShadow(shadowName: string): void {
+    this.context.floatBitShadows.add(shadowName);
+  }
+
+  /**
+   * Mark a float shadow as having current value (skip redundant memcpy).
+   * Part of IOrchestrator interface.
+   */
+  markFloatShadowCurrent(shadowName: string): void {
+    this.context.floatShadowCurrent.add(shadowName);
+  }
+
+  /**
+   * Check if a float shadow has been declared.
+   * Part of IOrchestrator interface.
+   */
+  hasFloatBitShadow(shadowName: string): boolean {
+    return this.context.floatBitShadows.has(shadowName);
+  }
+
+  /**
+   * Check if a float shadow has current value.
+   * Part of IOrchestrator interface.
+   */
+  isFloatShadowCurrent(shadowName: string): boolean {
+    return this.context.floatShadowCurrent.has(shadowName);
+  }
+
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================
@@ -1439,7 +1565,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @param fieldName Name of the field
    * @returns Object with type and optional dimensions, or undefined if not found
    */
-  private getStructFieldInfo(
+  private _getStructFieldInfo(
     structName: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | undefined {
@@ -1594,7 +1720,7 @@ export default class CodeGenerator implements IOrchestrator {
    * (all files including includes). This ensures cross-file scope references are
    * properly validated.
    */
-  private isKnownScope(name: string): boolean {
+  private _isKnownScope(name: string): boolean {
     // Check local file's symbol collector first
     if (this.symbols?.knownScopes.has(name)) {
       return true;
@@ -1618,7 +1744,7 @@ export default class CodeGenerator implements IOrchestrator {
    *
    * Issue #522: Delegates to shared CppNamespaceUtils for consistency.
    */
-  private isCppScopeSymbol(name: string): boolean {
+  private _isCppScopeSymbol(name: string): boolean {
     return CppNamespaceUtils.isCppNamespace(
       name,
       this.symbolTable ?? undefined,
@@ -1629,7 +1755,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #304: Get the appropriate scope separator for C++ vs C/C-Next.
    * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
    */
-  private getScopeSeparator(isCppContext: boolean): string {
+  private _getScopeSeparator(isCppContext: boolean): string {
     return isCppContext ? "::" : "_";
   }
 
@@ -1773,6 +1899,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #250: Store C++ mode for temp variable generation
     this.cppMode = options?.cppMode ?? false;
+    // Issue #644: Initialize C/C++ mode helper
+    this.cppHelper = new CppModeHelper({ cppMode: this.cppMode });
     // Reset temp var state for each generation
     this.pendingTempDeclarations = [];
     this.tempVarCounter = 0;
@@ -1906,6 +2034,11 @@ export default class CodeGenerator implements IOrchestrator {
       getExpressionType: (ctx: unknown) =>
         this.getExpressionType(ctx as Parser.ExpressionContext),
     });
+
+    // Issue #644: Initialize string length counter for strlen caching
+    this.stringLengthCounter = new StringLengthCounter((name: string) =>
+      this.context.typeRegistry.get(name),
+    );
 
     // Second pass: register all variable types in the type registry
     // This ensures .length and other type-dependent operations can resolve
@@ -4355,7 +4488,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Get type info for a struct member field
    * Used to track types through member access chains like buf.data[0]
    */
-  private getMemberTypeInfo(
+  private _getMemberTypeInfo(
     structType: string,
     memberName: string,
   ): { isArray: boolean; baseType: string } | undefined {
@@ -4921,15 +5054,15 @@ export default class CodeGenerator implements IOrchestrator {
           this.context.currentScope,
         );
         if (members?.has(id)) {
-          // Issue #409: In C++ mode, references don't need &
+          // Issue #409/#644: In C++ mode, references don't need &
           const scopedName = `${this.context.currentScope}_${id}`;
-          return this.cppMode ? scopedName : `&${scopedName}`;
+          return this.cppHelper!.maybeAddressOf(scopedName);
         }
       }
 
       // Local variable - add & (except in C++ mode where references are used)
-      // Issue #409: In C++ mode, parameters are references, so no & needed
-      return this.cppMode ? id : `&${id}`;
+      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
+      return this.cppHelper!.maybeAddressOf(id);
     }
 
     // Check if it's a member access or array access (lvalue) - needs &
@@ -4956,19 +5089,20 @@ export default class CodeGenerator implements IOrchestrator {
           const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
           const value = this._generateExpression(ctx);
           const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
-          // Use static_cast for C++ type safety
+          // Use static_cast for C++ type safety (needsCppMemberConversion implies cppMode)
+          const castExpr = this.cppHelper!.cast(cType, value);
           this.pendingTempDeclarations.push(
-            `${cType} ${tempName} = static_cast<${cType}>(${value});`,
+            `${cType} ${tempName} = ${castExpr};`,
           );
-          // Issue #409: In C++ mode, references don't need &
-          return this.cppMode ? tempName : `&${tempName}`;
+          // Issue #409/#644: In C++ mode, references don't need &
+          return this.cppHelper!.maybeAddressOf(tempName);
         }
       }
 
       // Generate the expression and wrap with & (except in C++ mode)
-      // Issue #409: In C++ mode, parameters are references, so no & needed
+      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
       const generatedExpr = this._generateExpression(ctx);
-      const expr = this.cppMode ? generatedExpr : `&${generatedExpr}`;
+      const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
 
       // Issue #246: When passing string bytes to integer pointer parameters
       // (C-Next's by-reference semantics), cast from char* to the appropriate
@@ -4981,10 +5115,7 @@ export default class CodeGenerator implements IOrchestrator {
       ) {
         const cType = TYPE_MAP[targetParamBaseType];
         if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-          if (this.cppMode) {
-            return `reinterpret_cast<${cType}*>(${expr})`;
-          }
-          return `(${cType}*)${expr}`;
+          return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
         }
       }
 
@@ -5836,9 +5967,9 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #268/#558: Add const for unmodified pointer parameters (uses analysis results)
       const wasModified = this._isCurrentParameterModified(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
-      // Issue #409: In C++ mode, use references (&) instead of pointers (*)
+      // Issue #409/#644: In C++ mode, use references (&) instead of pointers (*)
       // This allows C-Next callbacks to match C++ function pointer signatures
-      const refOrPtr = this.cppMode ? "&" : "*";
+      const refOrPtr = this.cppHelper!.refOrPtr();
       return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
     }
 
@@ -6681,32 +6812,9 @@ export default class CodeGenerator implements IOrchestrator {
    * @param width The width expression (may be a literal or expression)
    * @param isF64 If true, generate 64-bit masks with ULL suffix (for f64 bit indexing)
    */
-  private generateBitMask(width: string, isF64: boolean = false): string {
-    const suffix = isF64 ? "ULL" : "U";
-    // Check if width is a compile-time constant
-    const widthNum = Number.parseInt(width, 10);
-    if (!Number.isNaN(widthNum)) {
-      // Use explicit hex masks for common widths to avoid UB
-      if (widthNum === 32) {
-        return isF64 ? "0xFFFFFFFFULL" : "0xFFFFFFFFU";
-      }
-      if (widthNum === 64) {
-        return "0xFFFFFFFFFFFFFFFFULL";
-      }
-      if (widthNum === 16) {
-        return isF64 ? "0xFFFFULL" : "0xFFFFU";
-      }
-      if (widthNum === 8) {
-        return isF64 ? "0xFFULL" : "0xFFU";
-      }
-    }
-    // For non-constant or other widths, use the shift expression
-    // (safe as long as width < 32 for 32-bit operations)
-    return `((1${suffix} << ${width}) - 1)`;
-  }
-
   // ========================================================================
   // Statements
+  // Issue #644: _generateBitMask removed, now delegating to BitUtils.generateMask
   // ========================================================================
 
   private _generateBlock(ctx: Parser.BlockContext): string {
@@ -7382,8 +7490,8 @@ export default class CodeGenerator implements IOrchestrator {
           !paramInfo.isStruct &&
           this._isKnownPrimitive(paramInfo.baseType)
         ) {
-          // Issue #558: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppMode ? id : `(*${id})`;
+          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
+          return this.cppHelper!.maybeDereference(id);
         }
         return id;
       }
@@ -7744,922 +7852,18 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private _generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
-    const primary = ctx.primaryExpression();
-    const ops = ctx.postfixOp();
-
-    // Check if this is a struct parameter - we may need to handle -> access
-    const primaryId = primary.IDENTIFIER()?.getText();
-    const paramInfo = primaryId
-      ? this.context.currentParameters.get(primaryId)
-      : null;
-    const isStructParam = paramInfo?.isStruct ?? false;
-
-    // Issue #579: Check if we have subscript access on a non-array parameter
-    // In this case, the parameter becomes a pointer in C, and we should NOT dereference it
-    // because subscript access on a pointer is valid (buf[i] = buf + i dereference)
-    const hasSubscriptOps = ops.some((op) => op.expression().length > 0);
-    const isNonArrayParamWithSubscript =
-      paramInfo && !paramInfo.isArray && !paramInfo.isStruct && hasSubscriptOps;
-
-    let result: string;
-    if (isNonArrayParamWithSubscript) {
-      // Don't dereference - use raw identifier for subscript access
-      result = primaryId!;
-    } else {
-      result = this.generatePrimaryExpr(primary);
-    }
-
-    // ADR-016: Track if we've encountered a register in the access chain
-    let isRegisterChain = primaryId
-      ? this.symbols!.knownRegisters.has(primaryId)
-      : false;
-
-    // Track if current member is an array through member access chain
-    // e.g., buf.data[0] - after .data, we know data is an array member
-    // Note: This tracks STRUCT MEMBER arrays only, not the primary identifier being an array
-    // Primary identifier arrays are handled by remainingArrayDims and isPrimaryArray
-    let currentMemberIsArray = false;
-    // Issue #579: Only set currentStructType if the primary identifier is actually a struct
-    // Otherwise, isPrimitiveIntMember incorrectly triggers for primitive parameters like u8
-    const primaryBaseType = primaryId
-      ? this.context.typeRegistry.get(primaryId)?.baseType
-      : undefined;
-    let currentStructType =
-      primaryBaseType && this.isKnownStruct(primaryBaseType)
-        ? primaryBaseType
-        : undefined;
-
-    // Track previous struct type and member name for .length on struct members (cfg.magic.length)
-    let previousStructType: string | undefined = undefined;
-    let previousMemberName: string | undefined = undefined;
-
-    // Track the current resolved identifier for type lookups (fixes scope/parameter .length)
-    let currentIdentifier = primaryId;
-    // Bug #8: Track remaining array dimensions for multi-dimensional arrays
-    // e.g., matrix[4][4] starts with 2 dims; after matrix[0] there's still 1 dim left
-    // Check both typeRegistry (for variables) and currentParameters (for function params)
-    const primaryTypeInfo = primaryId
-      ? this.context.typeRegistry.get(primaryId)
-      : undefined;
-    const primaryParamInfo = primaryId
-      ? this.context.currentParameters.get(primaryId)
-      : undefined;
-    let remainingArrayDims =
-      primaryTypeInfo?.arrayDimensions?.length ??
-      // Fallback: if parameter is marked as array but no dimensions, assume at least 1
-      (primaryParamInfo?.isArray ? 1 : 0);
-    // Track how many dimensions we've subscripted (arr[0] -> depth 1, arr[0][1] -> depth 2)
-    let subscriptDepth = 0;
-    // ADR-016: Track if we're in a global. access chain (skips scope/enum/register validation)
-    let isGlobalAccess = false;
-    // Issue #304: Track if we're accessing C++ symbols that need :: syntax
-    let isCppAccessChain = false;
-
-    // Issue #516: Initialize isCppAccessChain based on primary identifier
-    // This enables C++ namespace function calls to work without requiring global. prefix
-    // e.g., SeaDash.Parse.parse() should generate SeaDash::Parse::parse()
-    if (primaryId && this.isCppScopeSymbol(primaryId)) {
-      isCppAccessChain = true;
-    }
-
-    for (const op of ops) {
-      // Member access
-      if (op.IDENTIFIER()) {
-        const memberName = op.IDENTIFIER()!.getText();
-
-        // ADR-016: Handle global. prefix - first member becomes the identifier
-        if (result === "__GLOBAL_PREFIX__") {
-          result = memberName;
-          currentIdentifier = memberName; // Track for .length lookups
-          isGlobalAccess = true; // Mark that we're in a global access chain
-
-          // ADR-057: Check if global variable would be shadowed by a local
-          // In C, local variables shadow globals and there's no way to access the global
-          if (this.context.localVariables.has(memberName)) {
-            throw new Error(
-              `Error: Cannot use 'global.${memberName}' when local variable '${memberName}' shadows it. ` +
-                `Rename the local variable to avoid shadowing.`,
-            );
-          }
-          // Issue #304: Check if this is a C++ scope symbol (namespace, class, enum)
-          // These require :: syntax for member access. Variable symbols (including
-          // object instances like Arduino's extern HardwareSerial Serial;) should
-          // use . syntax, not :: syntax.
-          // Issue #321: Removed || this.cppMode override - it was causing all symbols
-          // to use :: in C++ mode, even object instances that need . syntax.
-          if (this.isCppScopeSymbol(memberName)) {
-            isCppAccessChain = true;
-          }
-          // Check if this first identifier is a register
-          if (this.symbols!.knownRegisters.has(memberName)) {
-            isRegisterChain = true;
-          }
-          continue; // Skip further processing, this just sets the base identifier
-        }
-
-        // Issue #212: Check if 'length' is a scope variable before treating it as a property accessor
-        // When accessing this.length, we need to check if 'length' is a scope variable name
-        // If so, transform it to the scope variable (e.g., Scope_length) instead of treating
-        // it as the .length property accessor
-        if (result === "__THIS_SCOPE__" && memberName === "length") {
-          if (!this.context.currentScope) {
-            throw new Error("Error: 'this' can only be used inside a scope");
-          }
-          const members = this.context.scopeMembers.get(
-            this.context.currentScope,
-          );
-          if (members?.has("length")) {
-            // This is a scope variable named 'length', not a property accessor
-            result = `${this.context.currentScope}_${memberName}`;
-            currentIdentifier = result;
-            // Set struct type for chained access if applicable
-            const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (
-              resolvedTypeInfo &&
-              this.isKnownStruct(resolvedTypeInfo.baseType)
-            ) {
-              currentStructType = resolvedTypeInfo.baseType;
-            }
-            continue; // Skip the .length property handler
-          }
-        }
-
-        // Handle .length property for arrays, strings, and integers
-        if (memberName === "length") {
-          // Special case: main function's args.length -> argc
-          if (
-            this.context.mainArgsName &&
-            primaryId === this.context.mainArgsName
-          ) {
-            result = "argc";
-          } else {
-            // Check if we're accessing a struct member (cfg.magic.length)
-            if (previousStructType && previousMemberName) {
-              // Look up the member's type in the struct definition
-              // Uses SymbolTable first (for C headers), falls back to local structs
-              const fieldInfo = this.getStructFieldInfo(
-                previousStructType,
-                previousMemberName,
-              );
-              if (fieldInfo) {
-                const memberType = fieldInfo.type;
-                const dimensions = fieldInfo.dimensions;
-                // ADR-045: Check if this is a string field
-                const isStringField = TypeCheckUtils.isString(memberType);
-
-                if (dimensions && dimensions.length > 1 && isStringField) {
-                  // String array field: string<64> arr[4]
-                  if (subscriptDepth === 0) {
-                    // ts.arr.length -> return element count (first dimension)
-                    result = String(dimensions[0]);
-                  } else {
-                    // ts.arr[0].length -> strlen(ts.arr[0])
-                    this.needsString = true;
-                    result = `strlen(${result})`;
-                  }
-                } else if (
-                  dimensions &&
-                  dimensions.length === 1 &&
-                  isStringField
-                ) {
-                  // Single string field: string<64> str
-                  // ts.str.length -> strlen(ts.str)
-                  this.needsString = true;
-                  result = `strlen(${result})`;
-                } else if (
-                  dimensions &&
-                  dimensions.length > 0 &&
-                  subscriptDepth < dimensions.length
-                ) {
-                  // Multi-dim array member with partial subscript
-                  // e.g., ts.arr.length -> dimensions[0], ts.arr[0].length -> dimensions[1]
-                  result = String(dimensions[subscriptDepth]);
-                } else if (
-                  dimensions &&
-                  dimensions.length > 0 &&
-                  subscriptDepth >= dimensions.length
-                ) {
-                  // Array member fully subscripted (e.g., ts.arr[0][1].length) -> return element bit width
-                  // Try C-Next types first, then C types, then enum types
-                  let bitWidth =
-                    TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
-                  // Issue #208: Check if it's a typed enum
-                  if (bitWidth === 0 && this.symbolTable) {
-                    const enumWidth =
-                      this.symbolTable.getEnumBitWidth(memberType);
-                    if (enumWidth) bitWidth = enumWidth;
-                  }
-                  if (bitWidth > 0) {
-                    result = String(bitWidth);
-                  } else {
-                    result = `/* .length: unsupported element type ${memberType} */0`;
-                  }
-                } else {
-                  // Non-array member -> return bit width
-                  // Try C-Next types first, then C types, then enum types
-                  let bitWidth =
-                    TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
-                  // Issue #208: Check if it's a typed enum
-                  if (bitWidth === 0 && this.symbolTable) {
-                    const enumWidth =
-                      this.symbolTable.getEnumBitWidth(memberType);
-                    if (enumWidth) bitWidth = enumWidth;
-                  }
-                  if (bitWidth > 0) {
-                    result = String(bitWidth);
-                  } else {
-                    result = `/* .length: unsupported type ${memberType} */0`;
-                  }
-                }
-                // Skip the rest of the logic since we handled it
-                previousStructType = undefined;
-                previousMemberName = undefined;
-                continue;
-              }
-            }
-
-            // Fall back to checking the current resolved identifier's type
-            // Check type registry (parameters are also registered here with bitWidth)
-            const typeInfo = currentIdentifier
-              ? this.context.typeRegistry.get(currentIdentifier)
-              : undefined;
-
-            if (!typeInfo) {
-              // Type lookup failed - generate error placeholder
-              result = `/* .length: unknown type for ${result} */0`;
-              continue;
-            }
-
-            if (typeInfo) {
-              // ADR-045: String type handling
-              if (typeInfo.isString) {
-                if (
-                  typeInfo.arrayDimensions &&
-                  typeInfo.arrayDimensions.length > 1
-                ) {
-                  // String array: arrayDimensions: [4, 65]
-                  if (subscriptDepth === 0) {
-                    // arr.length -> return element count (first dimension)
-                    result = String(typeInfo.arrayDimensions[0]);
-                  } else {
-                    // arr[0].length -> strlen(arr[0])
-                    // Use 'result' which has the subscript, not 'currentIdentifier'
-                    result = `strlen(${result})`;
-                  }
-                } else {
-                  // Single string: arrayDimensions: [65]
-                  // str.length -> strlen(str)
-                  if (
-                    currentIdentifier &&
-                    this.context.lengthCache?.has(currentIdentifier)
-                  ) {
-                    result = this.context.lengthCache.get(currentIdentifier)!;
-                  } else {
-                    result = currentIdentifier
-                      ? `strlen(${currentIdentifier})`
-                      : `strlen(${result})`;
-                  }
-                }
-              } else if (
-                typeInfo.isArray &&
-                typeInfo.arrayDimensions &&
-                typeInfo.arrayDimensions.length > 0 &&
-                subscriptDepth < typeInfo.arrayDimensions.length
-              ) {
-                // ADR-036: Multi-dimensional array length
-                // matrix.length -> arrayDimensions[0], matrix[0].length -> arrayDimensions[1]
-                result = String(typeInfo.arrayDimensions[subscriptDepth]);
-              } else if (
-                typeInfo.isArray &&
-                typeInfo.arrayDimensions &&
-                typeInfo.arrayDimensions.length > 0 &&
-                subscriptDepth >= typeInfo.arrayDimensions.length
-              ) {
-                // Array fully subscripted (arr[0][1].length) -> return element bit width from TYPE_WIDTH
-                // Issue #121: Check for enum arrays first
-                // Issue #136: Check for string arrays - need strlen() for element length
-                if (typeInfo.isEnum) {
-                  // ADR-017: Enum array element .length returns 32 (default enum size)
-                  result = "32";
-                } else if (
-                  TypeCheckUtils.isString(typeInfo.baseType) ||
-                  typeInfo.isString
-                ) {
-                  // ADR-045/Issue #136: String array element .length -> strlen(arr[index])
-                  this.needsString = true;
-                  result = `strlen(${result})`;
-                } else {
-                  // Try primitive type first
-                  let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
-                  // Issue #201: Also check bitmap types
-                  if (
-                    elementBitWidth === 0 &&
-                    typeInfo.isBitmap &&
-                    typeInfo.bitmapTypeName
-                  ) {
-                    elementBitWidth =
-                      this.symbols!.bitmapBitWidth.get(
-                        typeInfo.bitmapTypeName,
-                      ) || 0;
-                  }
-                  if (elementBitWidth > 0) {
-                    result = String(elementBitWidth);
-                  } else {
-                    result = `/* .length: unsupported element type ${typeInfo.baseType} */0`;
-                  }
-                }
-              } else if (typeInfo.isArray) {
-                // Unknown length, generate error placeholder
-                result = `/* .length unknown for ${currentIdentifier} */0`;
-              } else if (typeInfo.isEnum) {
-                // ADR-017: Enum types default to 32-bit width like C
-                // Issue #121: Enums were previously returning 0 for .length
-                // Only applies to non-array enum variables
-                result = "32";
-              } else {
-                // Integer bit width - return the compile-time constant
-                result = String(typeInfo.bitWidth);
-              }
-            }
-          }
-        }
-        // ADR-045: Handle .capacity property for strings
-        // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-        else if (memberName === "capacity") {
-          const typeInfo = primaryId
-            ? this.context.typeRegistry.get(primaryId)
-            : undefined;
-          const capResult = accessGenerators.generateCapacityProperty(typeInfo);
-          this.applyEffects(capResult.effects);
-          result = capResult.code;
-        }
-        // ADR-045: Handle .size property for strings (buffer size = capacity + 1)
-        // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-        else if (memberName === "size") {
-          const typeInfo = primaryId
-            ? this.context.typeRegistry.get(primaryId)
-            : undefined;
-          const sizeResult = accessGenerators.generateSizeProperty(typeInfo);
-          this.applyEffects(sizeResult.effects);
-          result = sizeResult.code;
-        }
-        // ADR-034: Handle bitmap field read access: flags.Running -> ((flags >> 0) & 1)
-        // Partially extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-        else if (primaryId) {
-          const typeInfo = this.context.typeRegistry.get(primaryId);
-          if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-            const bitmapType = typeInfo.bitmapTypeName;
-            const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields?.has(memberName)) {
-              const fieldInfo = fields.get(memberName)!;
-              // Use extracted generator for bitmap field access
-              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
-                result,
-                fieldInfo,
-              );
-              this.applyEffects(bitmapResult.effects);
-              result = bitmapResult.code;
-            } else {
-              throw new Error(
-                `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
-              );
-            }
-          }
-          // Check if this is a scope member access: Scope.member (ADR-016)
-          else if (this.isKnownScope(result)) {
-            // ADR-016: Skip validation if we're already in a global. access chain
-            if (!isGlobalAccess) {
-              // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
-              if (result === this.context.currentScope) {
-                throw new Error(
-                  `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
-                );
-              }
-              // ADR-057: Cross-scope access allowed without global. prefix
-              // Since result is a known scope name, allow bare Scope.member access
-            }
-            // ADR-016: Validate visibility before allowing cross-scope access
-            this.validateCrossScopeVisibility(result, memberName);
-            // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
-            currentIdentifier = result; // Track for .length lookups
-
-            // Check if this resolved identifier is a struct type for chained access
-            const resolvedTypeInfo = this.context.typeRegistry.get(result);
-            if (
-              resolvedTypeInfo &&
-              this.isKnownStruct(resolvedTypeInfo.baseType)
-            ) {
-              currentStructType = resolvedTypeInfo.baseType;
-            }
-          }
-          // ADR-017: Check if this is an enum member access: State.IDLE -> State_IDLE
-          else if (this.symbols!.knownEnums.has(result)) {
-            // ADR-016: Inside a scope, accessing global enum requires global. prefix
-            // Exception: if the enum belongs to the current scope (e.g., Motor_State in Motor scope),
-            // it's a scoped enum and access is allowed (via this.State transformation)
-            // Also skip if we're already in a global. access chain
-            if (!isGlobalAccess) {
-              const belongsToCurrentScope =
-                this.context.currentScope &&
-                result.startsWith(this.context.currentScope + "_");
-              if (this.context.currentScope && !belongsToCurrentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
-            }
-            // Issue #304: Use :: for C++ enum classes, _ for C-Next enums
-            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
-          }
-          // Check if this is a register member access: GPIO7.DR -> GPIO7_DR
-          else if (this.symbols!.knownRegisters.has(result)) {
-            // ADR-016: Inside a scope, accessing global register requires global. prefix
-            // Exception: if the register belongs to the current scope (e.g., Motor_GPIO in Motor scope),
-            // it's a scoped register and access is allowed (via this. transformation)
-            // Also skip if we're already in a global. access chain
-            if (!isGlobalAccess) {
-              const registerBelongsToCurrentScope =
-                this.context.currentScope &&
-                result.startsWith(this.context.currentScope + "_");
-              if (this.context.currentScope && !registerBelongsToCurrentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
-            }
-            // ADR-013: Check for write-only register members (wo = cannot read)
-            const fullName = `${result}_${memberName}`;
-            const accessMod = this.symbols!.registerMemberAccess.get(fullName);
-            if (accessMod === "wo") {
-              throw new Error(
-                `cannot read from write-only register member '${memberName}' ` +
-                  `(${result}.${memberName} has 'wo' access modifier)`,
-              );
-            }
-            // Transform Register.member to Register_member (matching #define)
-            result = fullName;
-            isRegisterChain = true; // ADR-016: Track register chain for subscript handling
-          }
-          // ADR-034: Check if result is a register member with bitmap type
-          // Handle: MOTOR_CTRL.Running where MOTOR_CTRL has bitmap type MotorControl
-          // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-          else if (this.symbols!.registerMemberTypes.has(result)) {
-            const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
-            const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields?.has(memberName)) {
-              const fieldInfo = fields.get(memberName)!;
-              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
-                result,
-                fieldInfo,
-              );
-              this.applyEffects(bitmapResult.effects);
-              result = bitmapResult.code;
-            } else {
-              throw new Error(
-                `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
-              );
-            }
-          }
-          // ADR-006: Struct parameter uses -> for member access
-          else if (isStructParam && result === primaryId) {
-            // If currentStructType is not set yet, check if current result is a struct
-            if (!currentStructType && currentIdentifier) {
-              const identifierTypeInfo =
-                this.context.typeRegistry.get(currentIdentifier);
-              if (
-                identifierTypeInfo &&
-                this.isKnownStruct(identifierTypeInfo.baseType)
-              ) {
-                currentStructType = identifierTypeInfo.baseType;
-              }
-            }
-
-            // ADR-034: Check if currentStructType is a bitmap - handle field access
-            // This handles structParam->bitmapMember.field -> bitwise access
-            // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-            const bitmapFieldsPtr = this.symbols!.bitmapFields.get(
-              currentStructType || "",
-            );
-            if (bitmapFieldsPtr?.has(memberName)) {
-              const fieldInfo = bitmapFieldsPtr.get(memberName)!;
-              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
-                result,
-                fieldInfo,
-              );
-              this.applyEffects(bitmapResult.effects);
-              result = bitmapResult.code;
-              // Bitmap fields don't have sub-members, clear struct type tracking
-              currentStructType = undefined;
-              continue;
-            }
-
-            // Issue #409: Use centralized helper for C/C++ struct param access
-            const structParamSep = memberAccessChain.getStructParamSeparator({
-              cppMode: this.cppMode,
-            });
-            result = `${result}${structParamSep}${memberName}`;
-            // Track this member for potential .length access (save BEFORE updating)
-            previousStructType = currentStructType;
-            previousMemberName = memberName;
-            // Update type tracking for struct member
-            if (currentStructType) {
-              const memberTypeInfo = this.getMemberTypeInfo(
-                currentStructType,
-                memberName,
-              );
-              if (memberTypeInfo) {
-                currentMemberIsArray = memberTypeInfo.isArray;
-                currentStructType = memberTypeInfo.baseType;
-              }
-            }
-          } else {
-            // If currentStructType is not set yet, check if current result is a struct
-            // This handles cases like global.structVar.field or this.structVar.field
-            if (!currentStructType && currentIdentifier) {
-              const identifierTypeInfo =
-                this.context.typeRegistry.get(currentIdentifier);
-              if (
-                identifierTypeInfo &&
-                this.isKnownStruct(identifierTypeInfo.baseType)
-              ) {
-                currentStructType = identifierTypeInfo.baseType;
-              }
-            }
-
-            // ADR-034: Check if currentStructType is a bitmap - handle field access
-            // This handles struct.bitmapMember.field -> bitwise access
-            // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-            const bitmapFields = this.symbols!.bitmapFields.get(
-              currentStructType || "",
-            );
-            if (bitmapFields?.has(memberName)) {
-              const fieldInfo = bitmapFields.get(memberName)!;
-              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
-                result,
-                fieldInfo,
-              );
-              this.applyEffects(bitmapResult.effects);
-              result = bitmapResult.code;
-              // Bitmap fields don't have sub-members, clear struct type tracking
-              currentStructType = undefined;
-              continue;
-            }
-
-            // Issue #516: Use :: for C++ namespace chains, . for struct member access
-            const separator = isCppAccessChain ? "::" : ".";
-            result = `${result}${separator}${memberName}`;
-            // Track this member for potential .length access (save BEFORE updating)
-            previousStructType = currentStructType;
-            previousMemberName = memberName;
-            // Update type tracking for struct member
-            if (currentStructType) {
-              const memberTypeInfo = this.getMemberTypeInfo(
-                currentStructType,
-                memberName,
-              );
-              if (memberTypeInfo) {
-                currentMemberIsArray = memberTypeInfo.isArray;
-                currentStructType = memberTypeInfo.baseType;
-              }
-            }
-          }
-        }
-        // No primaryId - check type access patterns: Scope.member, Enum.member, Register.member
-        else {
-          // ADR-016: Handle 'this' marker for scope-local access (this.member -> Scope_member)
-          if (result === "__THIS_SCOPE__") {
-            if (!this.context.currentScope) {
-              throw new Error("Error: 'this' can only be used inside a scope");
-            }
-
-            // Issue #282: Check if this is a private const - if so, inline the value
-            const fullName = `${this.context.currentScope}_${memberName}`;
-            const constValue =
-              this.symbols!.scopePrivateConstValues.get(fullName);
-            if (constValue === undefined) {
-              // Transform this.member to Scope_member
-              result = fullName;
-              currentIdentifier = result; // Track for .length lookups
-
-              // Set struct type for chained access, but ONLY if result is not an enum
-              // This prevents treating enum types (like Motor_State) as struct variables
-              if (!this.symbols!.knownEnums.has(result)) {
-                const resolvedTypeInfo = this.context.typeRegistry.get(result);
-                if (
-                  resolvedTypeInfo &&
-                  this.isKnownStruct(resolvedTypeInfo.baseType)
-                ) {
-                  currentStructType = resolvedTypeInfo.baseType;
-                }
-              }
-            } else {
-              // Inline the const value directly
-              result = constValue;
-              currentIdentifier = fullName; // Track for .length lookups
-            }
-          } else if (this.isKnownScope(result)) {
-            // ADR-016: Skip validation if we're already in a global. access chain
-            if (!isGlobalAccess) {
-              // ADR-016: Prevent self-referential scope access - must use 'this.' inside own scope
-              if (result === this.context.currentScope) {
-                throw new Error(
-                  `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
-                );
-              }
-              // ADR-057: Cross-scope access allowed without global. prefix
-              // Since result is a known scope name, allow bare Scope.member access
-            }
-            // ADR-016: Validate visibility before allowing cross-scope access
-            this.validateCrossScopeVisibility(result, memberName);
-            // Issue #304: Use :: for C++ namespaces, _ for C-Next scopes
-            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
-            currentIdentifier = result; // Track for .length lookups
-          } else if (this.symbols!.knownEnums.has(result)) {
-            // ADR-016: Inside a scope, accessing global enum requires global. prefix
-            // Exception: if the enum belongs to the current scope, access is allowed
-            // Also skip if we're already in a global. access chain
-            if (!isGlobalAccess) {
-              const enumBelongsToCurrentScope =
-                this.context.currentScope &&
-                result.startsWith(this.context.currentScope + "_");
-              if (this.context.currentScope && !enumBelongsToCurrentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access enum '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
-            }
-            // Issue #304: Use :: for C++ enum classes, _ for C-Next enums
-            result = `${result}${this.getScopeSeparator(isCppAccessChain)}${memberName}`;
-          } else if (this.symbols!.knownRegisters.has(result)) {
-            // ADR-016: Inside a scope, accessing global register requires global. prefix
-            // Exception: if the register belongs to the current scope, access is allowed
-            // Also skip if we're already in a global. access chain
-            if (!isGlobalAccess) {
-              const registerBelongsToCurrentScope =
-                this.context.currentScope &&
-                result.startsWith(this.context.currentScope + "_");
-              if (this.context.currentScope && !registerBelongsToCurrentScope) {
-                throw new Error(
-                  `Error: Use 'global.${result}.${memberName}' to access register '${result}' from inside scope '${this.context.currentScope}'`,
-                );
-              }
-            }
-            // Transform Register.member to Register_member (matching #define)
-            result = `${result}_${memberName}`;
-            isRegisterChain = true;
-          }
-          // ADR-034: Check if result is a register member with bitmap type (no primaryId case)
-          // Extracted to AccessExprGenerator (ADR-053 A2 Phase 6)
-          else if (this.symbols!.registerMemberTypes.has(result)) {
-            const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
-            const fields = this.symbols!.bitmapFields.get(bitmapType);
-            if (fields?.has(memberName)) {
-              const fieldInfo = fields.get(memberName)!;
-              const bitmapResult = accessGenerators.generateBitmapFieldAccess(
-                result,
-                fieldInfo,
-              );
-              this.applyEffects(bitmapResult.effects);
-              result = bitmapResult.code;
-            } else {
-              throw new Error(
-                `Error: Unknown bitmap field '${memberName}' on type '${bitmapType}'`,
-              );
-            }
-          }
-          // Issue #304: C++ class/namespace static member access uses :: (e.g., CommandHandler::execute)
-          // Also handles nested namespaces (hw::nested::configure) by checking if result already contains ::
-          // Issue #314: Also use :: for global.X.method() in C++ mode with undeclared external classes
-          // (e.g., Arduino's Serial class) - the global. prefix explicitly requests C++ static access
-          else if (
-            isCppAccessChain &&
-            (this.isCppScopeSymbol(result) ||
-              result.includes("::") ||
-              isGlobalAccess)
-          ) {
-            result = `${result}::${memberName}`;
-          } else {
-            // Issue #612: If currentStructType is not set yet, check if current result is a struct
-            // This handles cases like global.structVar.field where primaryId is undefined
-            // (because 'global' is a keyword, not an identifier)
-            if (!currentStructType && currentIdentifier) {
-              const identifierTypeInfo =
-                this.context.typeRegistry.get(currentIdentifier);
-              if (
-                identifierTypeInfo &&
-                this.isKnownStruct(identifierTypeInfo.baseType)
-              ) {
-                currentStructType = identifierTypeInfo.baseType;
-              }
-            }
-
-            result = `${result}.${memberName}`;
-            // Track this member for potential .length access (save BEFORE updating)
-            previousStructType = currentStructType;
-            previousMemberName = memberName;
-            // Update type tracking for struct member
-            if (currentStructType) {
-              const memberTypeInfo = this.getMemberTypeInfo(
-                currentStructType,
-                memberName,
-              );
-              if (memberTypeInfo) {
-                currentMemberIsArray = memberTypeInfo.isArray;
-                currentStructType = memberTypeInfo.baseType;
-                // Clear currentIdentifier so .length uses previousStructType path
-                currentIdentifier = undefined;
-              }
-            }
-          }
-        } // end of else (no primaryId)
-      }
-      // Array subscript / bit access
-      else if (op.expression().length > 0) {
-        const exprs = op.expression();
-        if (exprs.length === 1) {
-          // Single index: could be array[i] or bit access flags[3]
-          const index = this._generateExpression(exprs[0]);
-
-          // Check if result is a register member with bitmap type
-          if (this.symbols!.registerMemberTypes.has(result)) {
-            const bitmapType = this.symbols!.registerMemberTypes.get(result)!;
-            const line = primary.start?.line ?? 0;
-            throw new Error(
-              `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-                `Use named field access instead (e.g., ${result.split("_").at(-1)}.FIELD_NAME).`,
-            );
-          }
-
-          // ADR-016: Use isRegisterChain to detect register access via global. prefix
-          const isRegisterAccess =
-            isRegisterChain ||
-            (primaryId ? this.symbols!.knownRegisters.has(primaryId) : false);
-
-          // Check if current identifier (which may have been updated by global./this./Scope. access) is an array
-          // Use currentIdentifier if available (handles global.arr, this.arr, Scope.arr),
-          // otherwise fall back to primaryId (handles bare arr)
-          const identifierToCheck = currentIdentifier || primaryId;
-          const identifierTypeInfo = identifierToCheck
-            ? this.context.typeRegistry.get(identifierToCheck)
-            : undefined;
-          const isPrimaryArray = identifierTypeInfo?.isArray ?? false;
-
-          // Determine if this subscript is array access or bit access
-          // Priority: register access > tracked member array > struct member primitive int > primary array > default bit access
-          // Bug #8: Check currentStructType BEFORE isPrimaryArray to handle items[0].byte[7] correctly
-          const isPrimitiveIntMember =
-            currentStructType && TypeCheckUtils.isInteger(currentStructType);
-
-          if (isRegisterAccess) {
-            // Register - use bit access: ((value >> index) & 1)
-            result = `((${result} >> ${index}) & 1)`;
-          } else if (currentMemberIsArray) {
-            // Struct member that is an array (e.g., config.tempInputs[0])
-            // This is the most reliable indicator - we tracked it through member access
-            result = `${result}[${index}]`;
-            currentMemberIsArray = false; // After subscript, no longer array
-            subscriptDepth++; // Track dimension depth for .length
-          } else if (remainingArrayDims > 0) {
-            // Bug #8: Multi-dimensional array - still have dimensions to consume
-            // e.g., matrix[0][0] where matrix is u8[4][4]
-            result = `${result}[${index}]`;
-            remainingArrayDims--;
-            subscriptDepth++; // Track dimension depth for .length
-            // After consuming all array dimensions, set currentStructType to element type
-            // This enables isPrimitiveIntMember to detect bit access on array elements
-            // e.g., matrix[0][1][BIT] where matrix is u8[4][4]
-            if (remainingArrayDims === 0 && primaryTypeInfo) {
-              currentStructType = primaryTypeInfo.baseType;
-            }
-          } else if (isPrimitiveIntMember) {
-            // Bug #8: Struct member is primitive integer - use bit access
-            // e.g., items[0].byte[7] where byte is u8
-            result = `((${result} >> ${index}) & 1)`;
-            currentStructType = undefined; // Reset after bit access
-          } else if (isPrimaryArray) {
-            // Primary identifier is an array (e.g., arr[0] or global.arr[0])
-            result = `${result}[${index}]`;
-            subscriptDepth++; // Track dimension depth for .length
-            // After subscripting an array, set currentStructType if the element is a struct
-            if (identifierTypeInfo && !currentStructType) {
-              const elementType = identifierTypeInfo.baseType;
-              if (this.isKnownStruct(elementType)) {
-                currentStructType = elementType;
-              }
-            }
-          } else {
-            // Issue #579: Use shared SubscriptClassifier for consistent array/bit decision
-            // This handles the case where a parameter is declared without [] but used with indexing
-            // In C, non-array parameters become pointers (ADR-006), so buf[i] is array access
-            const subscriptKind = SubscriptClassifier.classify({
-              typeInfo: identifierTypeInfo ?? null,
-              subscriptCount: 1,
-              isRegisterAccess: false,
-            });
-
-            if (subscriptKind === "bit_single") {
-              // Primitive integer - use bit access: ((value >> index) & 1)
-              result = `((${result} >> ${index}) & 1)`;
-            } else {
-              // Array access (including non-array parameters which become pointers)
-              result = `${result}[${index}]`;
-            }
-          }
-        } else if (exprs.length === 2) {
-          // Bit range: flags[start, width]
-          const start = this._generateExpression(exprs[0]);
-          const width = this._generateExpression(exprs[1]);
-
-          // Float bit indexing read: use shadow variable + memcpy
-          const isFloatType =
-            primaryTypeInfo?.baseType === "f32" ||
-            primaryTypeInfo?.baseType === "f64";
-          if (isFloatType && primaryId) {
-            // Global scope float bit reads are not valid C (initializers must be constant)
-            if (!this.context.inFunctionBody) {
-              throw new Error(
-                `Float bit indexing reads (${primaryId}[${start}, ${width}]) cannot be used at global scope. ` +
-                  `Move the initialization inside a function.`,
-              );
-            }
-
-            this.needsString = true; // For memcpy
-            this.needsFloatStaticAssert = true; // For size verification
-            const isF64 = primaryTypeInfo?.baseType === "f64";
-            const shadowType = isF64 ? "uint64_t" : "uint32_t";
-            const shadowName = `__bits_${primaryId}`;
-            const mask = this.generateBitMask(width, isF64);
-
-            // Check if shadow variable needs declaration
-            const needsDeclaration =
-              !this.context.floatBitShadows.has(shadowName);
-            if (needsDeclaration) {
-              this.context.floatBitShadows.add(shadowName);
-              // Push declaration to pending - will be emitted before the statement
-              this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
-            }
-
-            // Check if shadow already has current value (skip redundant memcpy read)
-            const shadowIsCurrent =
-              this.context.floatShadowCurrent.has(shadowName);
-
-            // Use comma operator to combine memcpy with expression (no declaration inline)
-            // Mark shadow as current after this read
-            this.context.floatShadowCurrent.add(shadowName);
-            if (shadowIsCurrent) {
-              // Shadow already has current value - just use it directly
-              if (start === "0") {
-                result = `(${shadowName} & ${mask})`;
-              } else {
-                result = `((${shadowName} >> ${start}) & ${mask})`;
-              }
-            } else if (start === "0") {
-              result = `(memcpy(&${shadowName}, &${result}, sizeof(${result})), (${shadowName} & ${mask}))`;
-            } else {
-              result = `(memcpy(&${shadowName}, &${result}, sizeof(${result})), ((${shadowName} >> ${start}) & ${mask}))`;
-            }
-          } else {
-            const mask = this.generateBitMask(width);
-            // Optimize: skip shift when start is 0
-            if (start === "0") {
-              result = `((${result}) & ${mask})`;
-            } else {
-              // Generate bit range read: ((value >> start) & mask)
-              result = `((${result} >> ${start}) & ${mask})`;
-            }
-          }
-        }
-      }
-      // Function call (extracted to CallExprGenerator - ADR-053 A2 Phase 5)
-      // Handles both argumentList() case and empty function call ()
-      else {
-        // Delegate to extracted function call generator
-        const callResult = generateFunctionCall(
-          result,
-          op.argumentList() || null,
-          this.getInput(),
-          this.getState(),
-          this,
-        );
-        this.applyEffects(callResult.effects);
-        result = callResult.code;
-      }
-    }
-
-    // ADR-006: If a struct parameter is used as a whole value (no postfix ops),
-    // it needs to be dereferenced in C (pointer) but not in C++ (reference).
-    // With postfix ops (member access), separator is already handled above.
-    if (isStructParam && ops.length === 0) {
-      return memberAccessChain.wrapStructParamValue(result, {
-        cppMode: this.cppMode,
-      });
-    }
-
-    return result;
+    // Issue #644: Delegate to extracted PostfixExpressionGenerator
+    const result = generatePostfixExpression(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
-  private generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+  private _generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
     // ADR-023: sizeof expression - sizeof(u32) or sizeof(variable)
     if (ctx.sizeofExpression()) {
       return this.generateSizeofExpr(ctx.sizeofExpression()!);
@@ -8740,8 +7944,8 @@ export default class CodeGenerator implements IOrchestrator {
           !paramInfo.isStruct &&
           this._isKnownPrimitive(paramInfo.baseType)
         ) {
-          // Issue #558: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppMode ? id : `(*${id})`;
+          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
+          return this.cppHelper!.maybeDereference(id);
         }
         return id;
       }
@@ -8804,9 +8008,9 @@ export default class CodeGenerator implements IOrchestrator {
       );
       this.applyEffects(result.effects);
 
-      // Issue #304: Transform NULL → nullptr in C++ mode
-      if (result.code === "NULL" && this.cppMode) {
-        return "nullptr";
+      // Issue #304/#644: Transform NULL → nullptr in C++ mode
+      if (result.code === "NULL") {
+        return this.cppHelper!.nullLiteral();
       }
 
       return result.code;
@@ -8878,11 +8082,8 @@ export default class CodeGenerator implements IOrchestrator {
       // It's a user type cast - allow for now (could be struct pointer, etc.)
     }
 
-    // Issue #267: Use C++ casts when cppMode is enabled for MISRA compliance
-    if (this.cppMode) {
-      return `static_cast<${targetType}>(${expr})`;
-    }
-    return `(${targetType})${expr}`;
+    // Issue #267/#644: Use C++ casts when cppMode is enabled for MISRA compliance
+    return this.cppHelper!.cast(targetType, expr);
   }
 
   /**
@@ -8907,10 +8108,8 @@ export default class CodeGenerator implements IOrchestrator {
     const minValue = TYPE_LIMITS.TYPE_MIN[targetTypeName];
 
     if (!maxValue) {
-      // Unknown type, fall back to raw cast
-      return this.cppMode
-        ? `static_cast<${targetType}>(${expr})`
-        : `(${targetType})${expr}`;
+      // Unknown type, fall back to raw cast - Issue #644
+      return this.cppHelper!.cast(targetType, expr);
     }
 
     // Mark that we need limits.h for the type limit macros
@@ -8927,12 +8126,10 @@ export default class CodeGenerator implements IOrchestrator {
     const maxComparison = `((${sourceType === "f32" ? "float" : "double"})${maxValue})`;
 
     // Generate clamping expression:
-    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)expr
+    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
     // Note: For unsigned targets, MIN is 0 so we check < 0.0
-    if (this.cppMode) {
-      return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : static_cast<${targetType}>(${expr}))`;
-    }
-    return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : (${targetType})(${expr}))`;
+    const finalCast = this.cppHelper!.cast(targetType, `(${expr})`);
+    return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : ${finalCast})`;
   }
 
   /**
@@ -9744,232 +8941,8 @@ export default class CodeGenerator implements IOrchestrator {
 
   // ========================================================================
   // strlen Optimization - Cache repeated .length accesses
+  // Issue #644: Walker methods extracted to StringLengthCounter class
   // ========================================================================
-
-  /**
-   * Analyze an expression tree and count .length accesses per string variable.
-   * Returns a map of variable name -> access count.
-   */
-  private _countStringLengthAccesses(
-    ctx: Parser.ExpressionContext,
-  ): Map<string, number> {
-    const counts = new Map<string, number>();
-    this.walkExpressionForLength(ctx, counts);
-    return counts;
-  }
-
-  /**
-   * Recursively walk an expression tree looking for .length accesses on string variables.
-   */
-  private walkExpressionForLength(
-    ctx: Parser.ExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    // Get the ternary expression (top level of expression)
-    const ternary = ctx.ternaryExpression();
-    if (ternary) {
-      this.walkTernaryForLength(ternary, counts);
-    }
-  }
-
-  private walkTernaryForLength(
-    ctx: Parser.TernaryExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const orExpr of ctx.orExpression()) {
-      this.walkOrExprForLength(orExpr, counts);
-    }
-  }
-
-  private walkOrExprForLength(
-    ctx: Parser.OrExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const andExpr of ctx.andExpression()) {
-      this.walkAndExprForLength(andExpr, counts);
-    }
-  }
-
-  private walkAndExprForLength(
-    ctx: Parser.AndExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const eqExpr of ctx.equalityExpression()) {
-      this.walkEqualityForLength(eqExpr, counts);
-    }
-  }
-
-  private walkEqualityForLength(
-    ctx: Parser.EqualityExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const relExpr of ctx.relationalExpression()) {
-      this.walkRelationalForLength(relExpr, counts);
-    }
-  }
-
-  private walkRelationalForLength(
-    ctx: Parser.RelationalExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const borExpr of ctx.bitwiseOrExpression()) {
-      this.walkBitwiseOrForLength(borExpr, counts);
-    }
-  }
-
-  private walkBitwiseOrForLength(
-    ctx: Parser.BitwiseOrExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const bxorExpr of ctx.bitwiseXorExpression()) {
-      this.walkBitwiseXorForLength(bxorExpr, counts);
-    }
-  }
-
-  private walkBitwiseXorForLength(
-    ctx: Parser.BitwiseXorExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const bandExpr of ctx.bitwiseAndExpression()) {
-      this.walkBitwiseAndForLength(bandExpr, counts);
-    }
-  }
-
-  private walkBitwiseAndForLength(
-    ctx: Parser.BitwiseAndExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const shiftExpr of ctx.shiftExpression()) {
-      this.walkShiftForLength(shiftExpr, counts);
-    }
-  }
-
-  private walkShiftForLength(
-    ctx: Parser.ShiftExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const addExpr of ctx.additiveExpression()) {
-      this.walkAdditiveForLength(addExpr, counts);
-    }
-  }
-
-  private walkAdditiveForLength(
-    ctx: Parser.AdditiveExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const multExpr of ctx.multiplicativeExpression()) {
-      this.walkMultiplicativeForLength(multExpr, counts);
-    }
-  }
-
-  private walkMultiplicativeForLength(
-    ctx: Parser.MultiplicativeExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const unaryExpr of ctx.unaryExpression()) {
-      this.walkUnaryForLength(unaryExpr, counts);
-    }
-  }
-
-  private walkUnaryForLength(
-    ctx: Parser.UnaryExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    const postfix = ctx.postfixExpression();
-    if (postfix) {
-      this.walkPostfixForLength(postfix, counts);
-    }
-    // Also check nested unary expressions
-    const nestedUnary = ctx.unaryExpression();
-    if (nestedUnary) {
-      this.walkUnaryForLength(nestedUnary, counts);
-    }
-  }
-
-  private walkPostfixForLength(
-    ctx: Parser.PostfixExpressionContext,
-    counts: Map<string, number>,
-  ): void {
-    const primary = ctx.primaryExpression();
-    const primaryId = primary.IDENTIFIER()?.getText();
-    const ops = ctx.postfixOp();
-
-    // Check for pattern: identifier.length where identifier is a string
-    if (primaryId && ops.length > 0) {
-      for (const op of ops) {
-        const memberName = op.IDENTIFIER()?.getText();
-        if (memberName === "length") {
-          // Check if this is a string type
-          const typeInfo = this.context.typeRegistry.get(primaryId);
-          if (typeInfo?.isString) {
-            const currentCount = counts.get(primaryId) || 0;
-            counts.set(primaryId, currentCount + 1);
-          }
-        }
-        // Walk any nested expressions in array accesses or function calls
-        for (const expr of op.expression()) {
-          this.walkExpressionForLength(expr, counts);
-        }
-      }
-    }
-
-    // Walk nested expression in primary if present
-    if (primary.expression()) {
-      this.walkExpressionForLength(primary.expression()!, counts);
-    }
-  }
-
-  /**
-   * Count .length accesses in a block's statements.
-   */
-  private _countBlockLengthAccesses(
-    ctx: Parser.BlockContext,
-    counts: Map<string, number>,
-  ): void {
-    for (const stmt of ctx.statement()) {
-      this.countStatementLengthAccesses(stmt, counts);
-    }
-  }
-
-  /**
-   * Count .length accesses in a statement.
-   */
-  private countStatementLengthAccesses(
-    ctx: Parser.StatementContext,
-    counts: Map<string, number>,
-  ): void {
-    // Assignment statement
-    if (ctx.assignmentStatement()) {
-      const assign = ctx.assignmentStatement()!;
-      // Count in target (array index expressions)
-      const target = assign.assignmentTarget();
-      if (target.arrayAccess()) {
-        for (const expr of target.arrayAccess()!.expression()) {
-          this.walkExpressionForLength(expr, counts);
-        }
-      }
-      // Count in value expression
-      this.walkExpressionForLength(assign.expression(), counts);
-    }
-    // Expression statement
-    if (ctx.expressionStatement()) {
-      this.walkExpressionForLength(
-        ctx.expressionStatement()!.expression(),
-        counts,
-      );
-    }
-    // Variable declaration
-    if (ctx.variableDeclaration()) {
-      const varDecl = ctx.variableDeclaration()!;
-      if (varDecl.expression()) {
-        this.walkExpressionForLength(varDecl.expression()!, counts);
-      }
-    }
-    // Nested if/while/for would need recursion, but for now keep it simple
-    if (ctx.block()) {
-      this._countBlockLengthAccesses(ctx.block()!, counts);
-    }
-  }
 
   /**
    * Generate temp variable declarations for string lengths that are accessed 2+ times.
