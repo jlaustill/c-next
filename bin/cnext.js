@@ -14,6 +14,11 @@ const child = spawn(tsxPath, [entryPoint, ...process.argv.slice(2)], {
   cwd: process.cwd(),
 });
 
+child.on("error", (err) => {
+  console.error("Failed to start cnext:", err.message);
+  process.exit(1);
+});
+
 child.on("close", (code) => {
   process.exit(code ?? 0);
 });
