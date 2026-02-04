@@ -428,7 +428,7 @@ describe("Transpiler coverage tests", () => {
   // ==========================================================================
 
   describe("Symbol conflicts", () => {
-    it("detects duplicate function definitions", async () => {
+    it("succeeds with distinct function names", async () => {
       mockFs.addFile(
         "/project/src/main.cnx",
         `
@@ -449,6 +449,77 @@ describe("Transpiler coverage tests", () => {
 
       // Should succeed with distinct function names
       expect(result.success).toBe(true);
+    });
+
+    it("reports symbol conflicts across included files", async () => {
+      // Create two files that define the same symbol
+      mockFs.addFile(
+        "/project/src/file1.cnx",
+        `
+        void duplicateFunc() { }
+      `,
+      );
+      mockFs.addFile(
+        "/project/src/file2.cnx",
+        `
+        #include "file1.cnx"
+        void duplicateFunc() { }
+      `,
+      );
+
+      const transpiler = new Transpiler(
+        {
+          inputs: ["/project/src/file2.cnx"],
+          includeDirs: ["/project/src"],
+          outDir: "/project/build",
+          noCache: true,
+        },
+        mockFs,
+      );
+
+      const result = await transpiler.run();
+
+      // This test exercises the symbol conflict detection path (lines 240-256)
+      // Duplicate function definitions across included files trigger conflicts
+      expect(result).toBeDefined();
+      expect(result.conflicts).toBeDefined();
+      expect(result.conflicts.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ==========================================================================
+  // File result error handling (lines 331-338)
+  // ==========================================================================
+
+  describe("File transpilation errors via run()", () => {
+    it("handles transpileSource errors during run()", async () => {
+      // Create a file that parses but fails during code generation
+      mockFs.addFile(
+        "/project/src/bad.cnx",
+        `
+        void test() {
+          u32 x <- 5;
+          u32 result <- (x) ? 1 : 0;
+        }
+      `,
+      );
+
+      const transpiler = new Transpiler(
+        {
+          inputs: ["/project/src/bad.cnx"],
+          outDir: "/project/build",
+          noCache: true,
+        },
+        mockFs,
+      );
+
+      const result = await transpiler.run();
+
+      // Should fail due to code generation error
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      // Error should include source path
+      expect(result.errors[0].sourcePath).toBeDefined();
     });
   });
 
@@ -754,6 +825,233 @@ describe("Transpiler coverage tests", () => {
       expect(result).toBeDefined();
       expect(result.sourcePath).toBe("<string>");
     });
+
+    it("returns error result for analyzer errors via transpileSource", async () => {
+      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+
+      // Code that triggers initialization analyzer error
+      const result = await transpiler.transpileSource(`
+        void test() {
+          u32 x;
+          u32 y <- x;
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0].message).toContain("E0381");
+    });
+  });
+
+  // ==========================================================================
+  // Cache hit with C++ syntax detection
+  // ==========================================================================
+
+  describe("Cache hit with C++ detection", () => {
+    it("detects C++ syntax from cached CHeader", async () => {
+      // Create a project marker for caching
+      mockFs.addFile("/project/cnext.config.json", "{}");
+      // Create a C header with C++ syntax
+      mockFs.addFile(
+        "/project/include/typed_enum.h",
+        "enum Status : uint8_t { OK, ERROR };",
+      );
+      mockFs.addFile(
+        "/project/src/main.cnx",
+        `
+        #include "typed_enum.h"
+        void main() { }
+      `,
+      );
+
+      // First run populates cache
+      const config = {
+        inputs: ["/project/src/main.cnx"],
+        includeDirs: ["/project/include"],
+        outDir: "/project/build",
+        noCache: false,
+      };
+
+      const transpiler1 = new Transpiler(config, mockFs);
+      const result1 = await transpiler1.run();
+      expect(result1.success).toBe(true);
+
+      // Second run uses cache but still detects C++
+      const transpiler2 = new Transpiler(config, mockFs);
+      const result2 = await transpiler2.run();
+      expect(result2.success).toBe(true);
+      // Should still generate .cpp output
+      const writeCalls = mockFs.getWriteLog();
+      expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+    });
+
+    it("detects C++ from cached hpp header", async () => {
+      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/include/utils.hpp", "void helper();");
+      mockFs.addFile(
+        "/project/src/main.cnx",
+        `
+        #include "utils.hpp"
+        void main() { }
+      `,
+      );
+
+      const config = {
+        inputs: ["/project/src/main.cnx"],
+        includeDirs: ["/project/include"],
+        outDir: "/project/build",
+        noCache: false,
+      };
+
+      // First run
+      const transpiler1 = new Transpiler(config, mockFs);
+      await transpiler1.run();
+
+      // Second run - cache hit path for .hpp
+      const transpiler2 = new Transpiler(config, mockFs);
+      const result2 = await transpiler2.run();
+      expect(result2.success).toBe(true);
+
+      // Should generate .cpp
+      const writeCalls = mockFs.getWriteLog();
+      expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // Debug mode for C++ header parsing
+  // ==========================================================================
+
+  describe("Debug mode with C++ header", () => {
+    it("logs debug message when parsing C++ header", async () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      mockFs.addFile("/project/include/module.hpp", "namespace NS { }");
+      mockFs.addFile(
+        "/project/src/main.cnx",
+        `
+        #include "module.hpp"
+        void main() { }
+      `,
+      );
+
+      const transpiler = new Transpiler(
+        {
+          inputs: ["/project/src/main.cnx"],
+          includeDirs: ["/project/include"],
+          outDir: "/project/build",
+          debugMode: true,
+          noCache: true,
+        },
+        mockFs,
+      );
+
+      await transpiler.run();
+
+      // Should have debug log for C++ header
+      const debugCalls = consoleSpy.mock.calls.filter((call) =>
+        String(call[0]).includes("[DEBUG]"),
+      );
+      const cppHeaderLog = debugCalls.find((call) =>
+        String(call[0]).includes("Parsing C++ header"),
+      );
+      expect(cppHeaderLog).toBeDefined();
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  // ==========================================================================
+  // Cache hit paths for C++ detection
+  // ==========================================================================
+
+  describe("Cache hit C++ detection paths", () => {
+    it("sets cppDetected on cache hit for C header with C++ syntax", async () => {
+      // Create files with C++ syntax in a C header (typed enum C++14)
+      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile(
+        "/project/include/cpp_in_c.h",
+        "enum Status : uint8_t { OK, ERROR }; // C++14 typed enum",
+      );
+      mockFs.addFile(
+        "/project/src/main.cnx",
+        `
+        #include "cpp_in_c.h"
+        void main() { }
+      `,
+      );
+
+      const config = {
+        inputs: ["/project/src/main.cnx"],
+        includeDirs: ["/project/include"],
+        outDir: "/project/build",
+        noCache: false, // Enable cache
+      };
+
+      // First run - populates cache and detects C++
+      const transpiler1 = new Transpiler(config, mockFs);
+      const result1 = await transpiler1.run();
+      expect(result1.success).toBe(true);
+
+      // First run should detect C++ and output .cpp
+      let writeCalls = mockFs.getWriteLog();
+      expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+
+      // Clear write log for second run
+      mockFs.clearWriteLog();
+
+      // Second run - should use cache AND still detect C++
+      // This tests lines 543-547 (CHeader cache hit with C++ detection)
+      const transpiler2 = new Transpiler(config, mockFs);
+      const result2 = await transpiler2.run();
+      expect(result2.success).toBe(true);
+
+      // Should output .cpp file (C++ detected even from cache)
+      writeCalls = mockFs.getWriteLog();
+      expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+    });
+
+    it("sets cppDetected on cache hit for hpp header", async () => {
+      // Create hpp header
+      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/include/utils.hpp", "void helper();");
+      mockFs.addFile(
+        "/project/src/main.cnx",
+        `
+        #include "utils.hpp"
+        void main() { }
+      `,
+      );
+
+      const config = {
+        inputs: ["/project/src/main.cnx"],
+        includeDirs: ["/project/include"],
+        outDir: "/project/build",
+        noCache: false, // Enable cache
+      };
+
+      // First run - populates cache
+      const transpiler1 = new Transpiler(config, mockFs);
+      const result1 = await transpiler1.run();
+      expect(result1.success).toBe(true);
+
+      // First run should detect C++ from .hpp and output .cpp
+      let writeCalls = mockFs.getWriteLog();
+      expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+
+      // Clear write log for second run
+      mockFs.clearWriteLog();
+
+      // Second run - should use cache and still set cppDetected from hpp file
+      // This tests lines 548-550 (CppHeader cache hit)
+      const transpiler2 = new Transpiler(config, mockFs);
+      const result2 = await transpiler2.run();
+      expect(result2.success).toBe(true);
+
+      // Should output .cpp file
+      writeCalls = mockFs.getWriteLog();
+      expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+    });
   });
 });
 
@@ -770,6 +1068,141 @@ describe("Transpiler coverage integration tests", () => {
 
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
+  });
+
+  // ==========================================================================
+  // Directory discovery tests (covers lines 414-415)
+  // ==========================================================================
+
+  it("discovers C-Next files from directory input", async () => {
+    // Create a directory with multiple .cnx files
+    const srcDir = join(testDir, "src");
+    mkdirSync(srcDir, { recursive: true });
+
+    writeFileSync(join(srcDir, "file1.cnx"), "void func1() { }");
+    writeFileSync(join(srcDir, "file2.cnx"), "void func2() { }");
+    writeFileSync(join(srcDir, "file3.cnx"), "void func3() { }");
+
+    // Use directory as input (not individual files)
+    // This exercises the FileDiscovery.discover() path at lines 408-416
+    const transpiler = new Transpiler({
+      inputs: [srcDir], // Directory input triggers discovery loop
+      outDir: testDir,
+      noCache: true,
+    });
+
+    const result = await transpiler.run();
+
+    expect(result.success).toBe(true);
+    // Should have processed all 3 files
+    expect(result.filesProcessed).toBe(3);
+  });
+
+  it("discovers C-Next files recursively from directory", async () => {
+    // Create nested directory structure
+    const srcDir = join(testDir, "src");
+    const subDir = join(srcDir, "submodule");
+    mkdirSync(subDir, { recursive: true });
+
+    writeFileSync(join(srcDir, "main.cnx"), "void main() { }");
+    writeFileSync(join(subDir, "helper.cnx"), "void helper() { }");
+
+    const transpiler = new Transpiler({
+      inputs: [srcDir],
+      outDir: testDir,
+      noCache: true,
+    });
+
+    const result = await transpiler.run();
+
+    expect(result.success).toBe(true);
+    // Should find files in subdirectories too
+    expect(result.filesProcessed).toBe(2);
+  });
+
+  // ==========================================================================
+  // Cache hit C++ detection tests (covers lines 546-550)
+  // ==========================================================================
+
+  it("detects C++ from cached C header on second run", async () => {
+    // Create project structure with C++ syntax in .h file
+    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+
+    const includeDir = join(testDir, "include");
+    mkdirSync(includeDir, { recursive: true });
+
+    // C header with typed enum (C++14 feature)
+    writeFileSync(
+      join(includeDir, "types.h"),
+      "enum Status : uint8_t { OK = 0, ERROR = 1 };",
+    );
+
+    writeFileSync(
+      join(testDir, "main.cnx"),
+      `
+      #include "types.h"
+      void main() { }
+    `,
+    );
+
+    const config = {
+      inputs: [join(testDir, "main.cnx")],
+      includeDirs: [includeDir],
+      outDir: testDir,
+      noCache: false, // Enable caching
+    };
+
+    // First run - populates cache
+    const transpiler1 = new Transpiler(config);
+    const result1 = await transpiler1.run();
+    expect(result1.success).toBe(true);
+    // First run should detect C++ and output .cpp
+    expect(result1.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
+
+    // Second run - should use cache and still detect C++ (lines 543-547)
+    const transpiler2 = new Transpiler(config);
+    const result2 = await transpiler2.run();
+    expect(result2.success).toBe(true);
+    // Should still output .cpp from cache hit path
+    expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
+  });
+
+  it("detects C++ from cached hpp header on second run", async () => {
+    // Create project structure with .hpp file
+    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+
+    const includeDir = join(testDir, "include");
+    mkdirSync(includeDir, { recursive: true });
+
+    // .hpp file (always C++)
+    writeFileSync(join(includeDir, "utils.hpp"), "void cppHelper();");
+
+    writeFileSync(
+      join(testDir, "main.cnx"),
+      `
+      #include "utils.hpp"
+      void main() { }
+    `,
+    );
+
+    const config = {
+      inputs: [join(testDir, "main.cnx")],
+      includeDirs: [includeDir],
+      outDir: testDir,
+      noCache: false, // Enable caching
+    };
+
+    // First run - populates cache
+    const transpiler1 = new Transpiler(config);
+    const result1 = await transpiler1.run();
+    expect(result1.success).toBe(true);
+    expect(result1.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
+
+    // Second run - should use cache and still detect C++ from .hpp (lines 548-550)
+    const transpiler2 = new Transpiler(config);
+    const result2 = await transpiler2.run();
+    expect(result2.success).toBe(true);
+    expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
   });
 
   it("handles multiple C-Next files with dependencies", async () => {

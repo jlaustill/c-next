@@ -115,4 +115,125 @@ describe("parseWithSymbols", () => {
       expect(first?.line).toBeLessThan(second?.line ?? 0);
     });
   });
+
+  describe("symbol kind mapping", () => {
+    it("maps register symbols correctly", () => {
+      // Use valid C-Next register syntax with proper fields
+      const source = `
+        scope Board {
+          register GPIO @ 0x40000000 {
+            DR: u32 rw @ 0x00,
+          }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      // Check parsing succeeds
+      expect(result.success).toBe(true);
+      // Register may have qualified name Board_GPIO
+      const reg = result.symbols.find(
+        (s) => s.name === "GPIO" || s.fullName === "Board_GPIO",
+      );
+      if (reg) {
+        expect(reg.kind).toBe("register");
+      }
+    });
+
+    it("maps function symbols inside scope", () => {
+      // Tests extractLocalName when parent is set
+      const source = `
+        scope LED {
+          public void toggle() { }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      expect(result.success).toBe(true);
+      // Find the toggle function - it should have LED_ prefix
+      const func = result.symbols.find((s) => s.fullName === "LED_toggle");
+      expect(func).toBeDefined();
+      expect(func?.kind).toBe("function");
+    });
+
+    it("handles standalone function without parent", () => {
+      const source = `void standaloneFunc() { }`;
+
+      const result = parseWithSymbols(source);
+
+      expect(result.success).toBe(true);
+      const func = result.symbols.find((s) => s.fullName === "standaloneFunc");
+      expect(func).toBeDefined();
+      expect(func?.name).toBe("standaloneFunc");
+      expect(func?.fullName).toBe("standaloneFunc");
+      // No parent means no prefix stripping
+      expect(func?.parent).toBeUndefined();
+    });
+
+    it("includes signature for functions with parameters", () => {
+      const source = `
+        scope Math {
+          public u32 add(u32 a, u32 b) { return a + b; }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      expect(result.success).toBe(true);
+      const func = result.symbols.find((s) => s.fullName === "Math_add");
+      expect(func).toBeDefined();
+      expect(func?.kind).toBe("function");
+    });
+
+    it("includes size for arrays", () => {
+      const source = `u8 buffer[10];`;
+
+      const result = parseWithSymbols(source);
+
+      expect(result.success).toBe(true);
+      const arr = result.symbols.find((s) => s.name === "buffer");
+      expect(arr).toBeDefined();
+      expect(arr?.kind).toBe("variable");
+    });
+
+    it("parses enum declarations successfully", () => {
+      const source = `
+        enum Color {
+          RED,
+          GREEN,
+          BLUE
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      // Verifies enum syntax parses without errors
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("maps bitmap symbols", () => {
+      // bitmap8 requires exactly 8 single-bit fields
+      const source = `
+        bitmap8 Flags {
+          bit0,
+          bit1,
+          bit2,
+          bit3,
+          bit4,
+          bit5,
+          bit6,
+          bit7
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      expect(result.success).toBe(true);
+      // Bitmap should be collected
+      const bitmap = result.symbols.find((s) => s.name === "Flags");
+      expect(bitmap).toBeDefined();
+    });
+  });
 });

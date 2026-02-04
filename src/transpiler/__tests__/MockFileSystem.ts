@@ -104,6 +104,13 @@ class MockFileSystem implements IFileSystem {
   }
 
   /**
+   * Clear just the write log (for testing multiple runs)
+   */
+  clearWriteLog(): void {
+    this.writeLog = [];
+  }
+
+  /**
    * Set/update the modification time for a file (for cache testing)
    */
   setMtime(path: string, mtime: number): void {
