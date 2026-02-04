@@ -108,12 +108,17 @@ class TestUtils {
     // Pattern: TypeName varName(args); at global scope
     // Matches lines like "Adafruit_MAX31856 thermocouple(pin);"
     // Excludes: return statements, control flow, function calls
-    if (
-      /^\s*(?!return\b|if\b|while\b|for\b|switch\b|case\b|else\b|do\b|break\b|continue\b|goto\b|sizeof\b|typeof\b|alignof\b)\w+\s+\w+\([^)]*\)\s*;/m.test(
-        cCode,
-      )
-    ) {
-      return true;
+    // Split into two patterns to reduce regex complexity (SonarCloud S5843)
+    const constructorMatch = /^\s*(\w+)\s+\w+\([^)]*\)\s*;/m.exec(cCode);
+    if (constructorMatch) {
+      const firstWord = constructorMatch[1];
+      const isKeyword =
+        /^(return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof)$/.test(
+          firstWord,
+        );
+      if (!isKeyword) {
+        return true;
+      }
     }
 
     return false;

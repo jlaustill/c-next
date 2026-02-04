@@ -102,7 +102,8 @@ class TypeValidator {
     lineNumber: number,
     sourcePath: string | null,
     includePaths: string[],
-    fileExists: (path: string) => boolean = (p) => require("fs").existsSync(p),
+    fileExists: (path: string) => boolean = (p) =>
+      require("node:fs").existsSync(p),
   ): void {
     // Extract the file path from #include directive
     const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);

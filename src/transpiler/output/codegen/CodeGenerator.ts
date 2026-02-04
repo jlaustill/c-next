@@ -7607,15 +7607,16 @@ export default class CodeGenerator implements IOrchestrator {
     // Mark that we need limits.h for the type limit macros
     this.requireInclude("limits");
 
-    // Use appropriate float suffix for comparisons
+    // Use appropriate float suffix and type for comparisons
     const floatSuffix = sourceType === "f32" ? "f" : "";
+    const floatCastType = sourceType === "f32" ? "float" : "double";
 
     // For unsigned types, minValue is "0", for signed it's a macro like INT8_MIN
     const minComparison =
       minValue === "0"
         ? `0.0${floatSuffix}`
-        : `((${sourceType === "f32" ? "float" : "double"})${minValue})`;
-    const maxComparison = `((${sourceType === "f32" ? "float" : "double"})${maxValue})`;
+        : `((${floatCastType})${minValue})`;
+    const maxComparison = `((${floatCastType})${maxValue})`;
 
     // Generate clamping expression:
     // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
