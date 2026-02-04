@@ -3,7 +3,7 @@
  * Tests the generic scope management data structure
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import ScopeStack from "./ScopeStack";
+import ScopeStack from "../ScopeStack";
 
 /**
  * Simple test state for variables

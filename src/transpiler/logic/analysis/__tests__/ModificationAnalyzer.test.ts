@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import ModificationAnalyzer from "./ModificationAnalyzer";
+import ModificationAnalyzer from "../ModificationAnalyzer";
 
 describe("ModificationAnalyzer", () => {
   let analyzer: ModificationAnalyzer;

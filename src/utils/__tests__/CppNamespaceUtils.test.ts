@@ -3,11 +3,11 @@
  * Tests C++ namespace detection and conversion utilities.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import CppNamespaceUtils from "./CppNamespaceUtils";
-import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
-import ESourceLanguage from "./types/ESourceLanguage";
-import ESymbolKind from "./types/ESymbolKind";
-import ISymbol from "./types/ISymbol";
+import CppNamespaceUtils from "../CppNamespaceUtils";
+import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import ESourceLanguage from "../types/ESourceLanguage";
+import ESymbolKind from "../types/ESymbolKind";
+import ISymbol from "../types/ISymbol";
 
 describe("CppNamespaceUtils", () => {
   let symbolTable: SymbolTable;

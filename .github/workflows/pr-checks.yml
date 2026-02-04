@@ -57,6 +57,11 @@ jobs:
         run: npm run depcruise
         continue-on-error: true
 
+      - name: Check test file locations
+        id: testlocation
+        run: npm run lint:test-location
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -66,6 +71,7 @@ jobs:
           [ "${{ steps.oxlint.outcome }}" != "success" ] && echo "❌ oxlint" && FAILED=1 || echo "✅ oxlint"
           [ "${{ steps.knip.outcome }}" != "success" ] && echo "❌ Dead code (knip)" && FAILED=1 || echo "✅ Dead code (knip)"
           [ "${{ steps.depcruise.outcome }}" != "success" ] && echo "❌ Architecture (depcruise)" && FAILED=1 || echo "✅ Architecture (depcruise)"
+          [ "${{ steps.testlocation.outcome }}" != "success" ] && echo "❌ Test file locations" && FAILED=1 || echo "✅ Test file locations"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   # ============================================================================

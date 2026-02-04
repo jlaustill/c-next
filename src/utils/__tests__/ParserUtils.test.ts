@@ -3,7 +3,7 @@
  * Tests source position extraction from parser contexts.
  */
 import { describe, it, expect } from "vitest";
-import ParserUtils from "./ParserUtils";
+import ParserUtils from "../ParserUtils";
 
 describe("ParserUtils", () => {
   describe("getPosition", () => {

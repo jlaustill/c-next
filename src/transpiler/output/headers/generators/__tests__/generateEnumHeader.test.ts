@@ -2,8 +2,8 @@
  * Tests for generateEnumHeader
  */
 
-import generateEnumHeader from "./generateEnumHeader";
-import IHeaderTypeInput from "./IHeaderTypeInput";
+import generateEnumHeader from "../generateEnumHeader";
+import IHeaderTypeInput from "../IHeaderTypeInput";
 
 /**
  * Creates a minimal IHeaderTypeInput with only enumMembers populated

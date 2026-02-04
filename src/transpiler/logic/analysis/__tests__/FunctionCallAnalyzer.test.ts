@@ -4,12 +4,12 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
-import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
-import SymbolTable from "../symbols/SymbolTable";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
+import { CNextLexer } from "../../parser/grammar/CNextLexer";
+import { CNextParser } from "../../parser/grammar/CNextParser";
+import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
+import SymbolTable from "../../symbols/SymbolTable";
+import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import ESymbolKind from "../../../../utils/types/ESymbolKind";
 
 /**
  * Helper to parse C-Next code and return the AST

@@ -4,9 +4,9 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import { CNextParser } from "../parser/grammar/CNextParser";
-import NullCheckAnalyzer from "./NullCheckAnalyzer";
+import { CNextLexer } from "../../parser/grammar/CNextLexer";
+import { CNextParser } from "../../parser/grammar/CNextParser";
+import NullCheckAnalyzer from "../NullCheckAnalyzer";
 
 /**
  * Helper to parse C-Next code and return the AST

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import TypeCheckUtils from "./TypeCheckUtils";
+import TypeCheckUtils from "../TypeCheckUtils";
 
 // ========================================================================
 // isInteger

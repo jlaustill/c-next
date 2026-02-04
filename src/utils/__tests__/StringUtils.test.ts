@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import StringUtils from "./StringUtils";
+import StringUtils from "../StringUtils";
 
 // ========================================================================
 // copyWithNull

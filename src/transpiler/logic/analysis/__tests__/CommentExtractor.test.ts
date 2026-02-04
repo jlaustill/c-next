@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { Token } from "antlr4ng";
-import CommentExtractor from "./CommentExtractor";
-import { CNextLexer } from "../parser/grammar/CNextLexer";
-import ECommentType from "../../types/ECommentType";
+import CommentExtractor from "../CommentExtractor";
+import { CNextLexer } from "../../parser/grammar/CNextLexer";
+import ECommentType from "../../../types/ECommentType";
 
 // Mock token factory
 const createToken = (opts: {

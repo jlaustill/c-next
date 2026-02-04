@@ -2,8 +2,8 @@
  * Tests for generateStructHeader
  */
 
-import generateStructHeader from "./generateStructHeader";
-import IHeaderTypeInput from "./IHeaderTypeInput";
+import generateStructHeader from "../generateStructHeader";
+import IHeaderTypeInput from "../IHeaderTypeInput";
 
 /**
  * Creates a minimal IHeaderTypeInput with struct fields populated
