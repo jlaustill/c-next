@@ -131,6 +131,17 @@ const generatePostfixExpression = (
         if (input.symbols!.knownRegisters.has(memberName)) {
           isRegisterChain = true;
         }
+
+        // Issue #612: Set currentStructType for global struct variables
+        // This enables correct array vs bit access classification for struct members
+        const globalTypeInfo = input.typeRegistry.get(memberName);
+        if (
+          globalTypeInfo &&
+          orchestrator.isKnownStruct(globalTypeInfo.baseType)
+        ) {
+          currentStructType = globalTypeInfo.baseType;
+        }
+
         continue;
       }
 
@@ -334,6 +345,7 @@ const generateLengthProperty = (
     subscriptDepth,
     currentIdentifier,
     input,
+    state,
     effects,
   );
 };
@@ -398,6 +410,7 @@ const generateTypeInfoLength = (
   subscriptDepth: number,
   currentIdentifier: string | undefined,
   input: IGeneratorInput,
+  state: IGeneratorState,
   effects: TGeneratorEffect[],
 ): string => {
   // ADR-045: String type handling
@@ -409,7 +422,10 @@ const generateTypeInfoLength = (
         return `strlen(${result})`;
       }
     } else {
-      // TODO: lengthCache optimization would be accessed via state.lengthCache
+      // Use lengthCache if available for this identifier
+      if (currentIdentifier && state.lengthCache?.has(currentIdentifier)) {
+        return state.lengthCache.get(currentIdentifier)!;
+      }
       return currentIdentifier
         ? `strlen(${currentIdentifier})`
         : `strlen(${result})`;
@@ -656,6 +672,45 @@ const generateMemberAccess = (
     return output;
   }
 
+  // Check for register member with bitmap type (e.g., MOTOR_CTRL.Running)
+  if (input.symbols!.registerMemberTypes.has(result)) {
+    const bitmapType = input.symbols!.registerMemberTypes.get(result)!;
+    const fields = input.symbols!.bitmapFields.get(bitmapType);
+    if (fields?.has(memberName)) {
+      const fieldInfo = fields.get(memberName)!;
+      const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+        result,
+        fieldInfo,
+      );
+      applyAccessEffects(bitmapResult.effects, effects);
+      output.result = bitmapResult.code;
+      return output;
+    } else {
+      throw new Error(
+        `Error: Unknown bitmap field '${memberName}' on register member '${result}' (bitmap type '${bitmapType}')`,
+      );
+    }
+  }
+
+  // Check for struct member with bitmap type (e.g., device.flags.Active)
+  if (currentStructType && input.symbols!.bitmapFields.has(currentStructType)) {
+    const fields = input.symbols!.bitmapFields.get(currentStructType)!;
+    if (fields.has(memberName)) {
+      const fieldInfo = fields.get(memberName)!;
+      const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+        result,
+        fieldInfo,
+      );
+      applyAccessEffects(bitmapResult.effects, effects);
+      output.result = bitmapResult.code;
+      return output;
+    } else {
+      throw new Error(
+        `Error: Unknown bitmap field '${memberName}' on struct member '${result}' (bitmap type '${currentStructType}')`,
+      );
+    }
+  }
+
   // Default member access
   const separator = isCppAccessChain ? "::" : ".";
   output.result = `${result}${separator}${memberName}`;
@@ -725,7 +780,7 @@ const generateSubscriptAccess = (
       const line = op.start?.line ?? 0;
       throw new Error(
         `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-          `Use named field access instead.`,
+          `Use named field access instead (e.g., ${result.split("_").at(-1)}.FIELD_NAME).`,
       );
     }
 
