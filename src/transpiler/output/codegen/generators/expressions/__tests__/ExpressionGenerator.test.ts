@@ -20,6 +20,10 @@ function createMockOrExpr(text: string): Parser.OrExpressionContext {
 
 /**
  * Create a mock TernaryExpressionContext with the specified orExpressions.
+ *
+ * Note: The C-Next grammar guarantees orExprs.length is either 1 (non-ternary)
+ * or 3 (ternary: condition, trueExpr, falseExpr). Other lengths are not possible.
+ *
  * For non-ternary: pass 1 orExpression
  * For ternary: pass 3 orExpressions (condition, true, false)
  */
@@ -215,6 +219,8 @@ describe("ExpressionGenerator", () => {
       });
 
       it("calls generateOrExpr for all three branches", () => {
+        // ADR-001: C-Next uses "=" for equality, which maps to C's "=="
+        // The orchestrator's generateOrExpr handles this translation
         const condition = createMockOrExpr("a = b");
         const trueExpr = createMockOrExpr("yes");
         const falseExpr = createMockOrExpr("no");
@@ -222,6 +228,7 @@ describe("ExpressionGenerator", () => {
 
         const input = createMockInput();
         const state = createMockState();
+        // Mock returns "a == b" to simulate the ADR-001 translation
         const orExprResults = new Map([
           [condition, "a == b"],
           [trueExpr, "yes"],
@@ -355,6 +362,91 @@ describe("ExpressionGenerator", () => {
         );
 
         expect(result.code).toBe("(a + b > c * d) ? x + y : z - w");
+      });
+    });
+
+    describe("validation error propagation", () => {
+      it("propagates error when validateTernaryCondition throws", () => {
+        const condition = createMockOrExpr("flag");
+        const trueExpr = createMockOrExpr("a");
+        const falseExpr = createMockOrExpr("b");
+        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
+
+        const input = createMockInput();
+        const state = createMockState();
+        const orchestrator = createMockOrchestrator();
+        (
+          orchestrator.validateTernaryCondition as ReturnType<typeof vi.fn>
+        ).mockImplementation(() => {
+          throw new Error("Error: Ternary condition must be a comparison");
+        });
+
+        expect(() =>
+          expressionGenerators.generateTernaryExpr(
+            ctx,
+            input,
+            state,
+            orchestrator,
+          ),
+        ).toThrow("Error: Ternary condition must be a comparison");
+      });
+
+      it("propagates error when validateNoNestedTernary throws", () => {
+        const condition = createMockOrExpr("x > 0");
+        const trueExpr = createMockOrExpr("nested ? a : b");
+        const falseExpr = createMockOrExpr("c");
+        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
+
+        const input = createMockInput();
+        const state = createMockState();
+        const orchestrator = createMockOrchestrator();
+        (
+          orchestrator.validateNoNestedTernary as ReturnType<typeof vi.fn>
+        ).mockImplementation((_expr, branch) => {
+          if (branch === "true branch") {
+            throw new Error("Error: Nested ternary not allowed in true branch");
+          }
+        });
+
+        expect(() =>
+          expressionGenerators.generateTernaryExpr(
+            ctx,
+            input,
+            state,
+            orchestrator,
+          ),
+        ).toThrow("Error: Nested ternary not allowed in true branch");
+      });
+
+      it("propagates error when validateTernaryConditionNoFunctionCall throws", () => {
+        const condition = createMockOrExpr("isReady()");
+        const trueExpr = createMockOrExpr("a");
+        const falseExpr = createMockOrExpr("b");
+        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
+
+        const input = createMockInput();
+        const state = createMockState();
+        const orchestrator = createMockOrchestrator();
+        (
+          orchestrator.validateTernaryConditionNoFunctionCall as ReturnType<
+            typeof vi.fn
+          >
+        ).mockImplementation(() => {
+          throw new Error(
+            "Error[E0702]: Function calls not allowed in ternary condition",
+          );
+        });
+
+        expect(() =>
+          expressionGenerators.generateTernaryExpr(
+            ctx,
+            input,
+            state,
+            orchestrator,
+          ),
+        ).toThrow(
+          "Error[E0702]: Function calls not allowed in ternary condition",
+        );
       });
     });
 
