@@ -3,6 +3,7 @@
  * Extracted from CodeGenerator for better separation of concerns
  * Issue #63: Validation logic separated for independent testing
  */
+import { existsSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
@@ -108,8 +109,7 @@ class TypeValidator {
     lineNumber: number,
     sourcePath: string | null,
     includePaths: string[],
-    fileExists: (path: string) => boolean = (p) =>
-      require("node:fs").existsSync(p),
+    fileExists: (path: string) => boolean = existsSync,
   ): void {
     // Extract the file path from #include directive
     const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);

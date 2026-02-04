@@ -5,15 +5,12 @@
 
 import ICliConfig from "./types/ICliConfig";
 import IFileConfig from "./types/IFileConfig";
-
-// Read version from package.json to ensure consistency
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJson = require("../../package.json");
+import packageJson from "../../package.json" with { type: "json" };
 
 /**
  * Version string from package.json
  */
-const VERSION = packageJson.version as string;
+const VERSION = packageJson.version;
 
 /**
  * Print effective configuration and version info

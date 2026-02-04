@@ -2,6 +2,7 @@
   "name": "c-next",
   "version": "0.1.57",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
+  "type": "module",
   "main": "src/index.ts",
   "bin": {
     "cnext": "./bin/cnext.js"
@@ -67,7 +68,7 @@
   },
   "homepage": "https://github.com/jlaustill/c-next#readme",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.20.0"
   },
   "files": [
     "bin/",
