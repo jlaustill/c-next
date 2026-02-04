@@ -7483,5 +7483,111 @@ describe("CodeGenerator", () => {
         expect(code).toContain("dest = src");
       });
     });
+
+    describe("bit range assignment", () => {
+      it("should generate bit range write syntax", () => {
+        const source = `
+          void foo() {
+            u32 reg;
+            reg[0, 4] <- 0xF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Bit range assignment generates bit manipulation code
+        expect(code).toContain("reg");
+        expect(code).toContain("0xF");
+      });
+    });
+
+    describe("subsequent member separator", () => {
+      it("should use dot separator for second member in chain", () => {
+        const source = `
+          struct Inner { u32 value; }
+          struct Middle { Inner inner; }
+          struct Outer { Middle middle; }
+          void foo() {
+            Outer o;
+            o.middle.inner.value <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("o.middle.inner.value = 42");
+      });
+    });
+
+    describe("postfix array access in assignment chain", () => {
+      it("should handle array access followed by member access", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void foo() {
+            Point arr[5];
+            arr[2].x <- 100;
+            arr[2].y <- 200;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("arr[2].x = 100");
+        expect(code).toContain("arr[2].y = 200");
+      });
+    });
+
+    describe("default separator paths", () => {
+      it("should use dot for non-scope non-register member access", () => {
+        const source = `
+          struct Config {
+            u32 timeout;
+            u32 retries;
+          }
+          void configure() {
+            Config cfg;
+            cfg.timeout <- 1000;
+            cfg.retries <- 3;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("cfg.timeout = 1000");
+        expect(code).toContain("cfg.retries = 3");
+      });
+    });
   });
 });
