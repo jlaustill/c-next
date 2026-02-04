@@ -18,12 +18,8 @@ type ToposortFn = (deps: Map<string, string[]>) => Set<string>[];
 
 // tsx: named exports in .default, vitest: named exports at top level
 const mod = toposortNS as ToposortModule & { default?: ToposortModule };
-const toposortReverse: ToposortFn =
-  mod.toposortReverse ??
-  mod.default?.toposortReverse ??
-  (() => {
-    throw new Error("toposortReverse not found");
-  });
+const toposortReverse: ToposortFn = (mod.toposortReverse ??
+  mod.default?.toposortReverse)!;
 
 /**
  * Manages file dependencies for topological sorting
