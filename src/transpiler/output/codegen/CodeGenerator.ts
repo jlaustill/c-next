@@ -91,6 +91,12 @@ import ArrayInitHelper from "./helpers/ArrayInitHelper";
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
+// PR #681: Extracted separator and dereference resolution utilities
+import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
+import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
+import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
+import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
+import ISeparatorContext from "./types/ISeparatorContext";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1708,6 +1714,37 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _isKnownPrimitive(typeName: string): boolean {
     return !!TYPE_MAP[typeName];
+  }
+
+  /**
+   * PR #681: Build dependencies for parameter dereference resolution.
+   * Used by ParameterDereferenceResolver to determine if parameters need dereferencing.
+   */
+  private _buildParameterDereferenceDeps(): IParameterDereferenceDeps {
+    return {
+      isFloatType: (typeName: string) => this._isFloatType(typeName),
+      isKnownPrimitive: (typeName: string) => this._isKnownPrimitive(typeName),
+      knownEnums: this.symbols!.knownEnums,
+      isParameterPassByValue: (funcName: string, paramName: string) =>
+        this._isParameterPassByValueByName(funcName, paramName),
+      currentFunctionName: this.context.currentFunctionName,
+      maybeDereference: (id: string) => this.cppHelper!.maybeDereference(id),
+    };
+  }
+
+  /**
+   * PR #681: Build dependencies for member separator resolution.
+   * Used by MemberSeparatorResolver to determine appropriate separators.
+   */
+  private _buildMemberSeparatorDeps(): IMemberSeparatorDeps {
+    return {
+      isKnownScope: (name: string) => this.isKnownScope(name),
+      isKnownRegister: (name: string) => this.symbols!.knownRegisters.has(name),
+      validateCrossScopeVisibility: (scopeName: string, memberName: string) =>
+        this.validateCrossScopeVisibility(scopeName, memberName),
+      getStructParamSeparator: () =>
+        memberAccessChain.getStructParamSeparator({ cppMode: this.cppMode }),
+    };
   }
 
   /**
@@ -6510,42 +6547,14 @@ export default class CodeGenerator implements IOrchestrator {
       const id = identifier!;
 
       // ADR-006: Check if it's a function parameter
+      // PR #681: Use extracted ParameterDereferenceResolver for pass-by-value determination
       const paramInfo = this.context.currentParameters.get(id);
       if (paramInfo) {
-        // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
-        if (paramInfo.isCallback) {
-          return id;
-        }
-        // Float types use pass-by-value, no dereference needed
-        if (this._isFloatType(paramInfo.baseType)) {
-          return id;
-        }
-        // Enum types use pass-by-value, no dereference needed
-        if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
-          return id;
-        }
-        // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
-        if (
-          this.context.currentFunctionName &&
-          this._isParameterPassByValueByName(
-            this.context.currentFunctionName,
-            id,
-          )
-        ) {
-          return id;
-        }
-        // Issue #551: Dereference only known primitives (pass-by-reference)
-        // - Structs use -> notation for member access (no dereference here)
-        // - Unknown types (external enums, typedefs) use pass-by-value
-        if (
-          !paramInfo.isArray &&
-          !paramInfo.isStruct &&
-          this._isKnownPrimitive(paramInfo.baseType)
-        ) {
-          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppHelper!.maybeDereference(id);
-        }
-        return id;
+        return ParameterDereferenceResolver.resolve(
+          id,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        );
       }
 
       // Check if it's a local variable
@@ -6596,21 +6605,22 @@ export default class CodeGenerator implements IOrchestrator {
       return result;
     }
 
-    // Determine separator options for first postfix operation
-    const isCrossScope =
-      hasGlobal &&
-      (this.isKnownScope(firstId) || this.symbols!.knownRegisters.has(firstId));
+    // PR #681: Build separator context and dependencies using extracted utilities
     const paramInfo = this.context.currentParameters.get(firstId);
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
+    const separatorDeps = this._buildMemberSeparatorDeps();
 
-    // Issue #387: Check if this is a scoped register (this.MOTOR_REG -> Scope_MOTOR_REG)
-    const scopedRegName =
-      hasThis && this.context.currentScope
-        ? `${this.context.currentScope}_${firstId}`
-        : null;
-    const isScopedRegister =
-      scopedRegName && this.symbols!.knownRegisters.has(scopedRegName);
+    const separatorCtx: ISeparatorContext =
+      MemberSeparatorResolver.buildContext(
+        firstId,
+        hasGlobal,
+        hasThis,
+        this.context.currentScope,
+        isStructParam,
+        separatorDeps,
+        isCppAccess,
+      );
 
     // Process postfix operations in order
     let identifierChain: string[] = [firstId]; // Track all identifiers for register detection
@@ -6622,48 +6632,15 @@ export default class CodeGenerator implements IOrchestrator {
         const memberName = op.IDENTIFIER()!.getText();
         identifierChain.push(memberName);
 
-        // Determine the appropriate separator
-        let separator: string;
-        if (isFirstOp) {
-          if (isCppAccess) {
-            separator = "::";
-          } else if (isStructParam) {
-            // Issue #409: Use centralized helper for C/C++ struct param access
-            separator = memberAccessChain.getStructParamSeparator({
-              cppMode: this.cppMode,
-            });
-          } else if (isCrossScope) {
-            separator = "_";
-          } else if (
-            hasGlobal &&
-            this.symbols!.knownRegisters.has(identifierChain[0])
-          ) {
-            // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
-            separator = "_";
-          } else if (hasGlobal && this.isKnownScope(identifierChain[0])) {
-            // ADR-016: Validate visibility before allowing cross-scope access
-            this.validateCrossScopeVisibility(identifierChain[0], memberName);
-            separator = "_";
-          } else if (isScopedRegister) {
-            // Issue #387: Scoped register member access: this.MOTOR_REG.SPEED -> Scope_MOTOR_REG_SPEED
-            separator = "_";
-          } else {
-            separator = ".";
-          }
-          isFirstOp = false;
-        } else {
-          // After first separator, check for register chains (GPIO7_DR) or struct fields
-          const chainSoFar = identifierChain.slice(0, -1).join("_");
-          if (
-            this.symbols!.knownRegisters.has(identifierChain[0]) ||
-            this.symbols!.knownRegisters.has(chainSoFar) ||
-            (scopedRegName && this.symbols!.knownRegisters.has(scopedRegName))
-          ) {
-            separator = "_";
-          } else {
-            separator = ".";
-          }
-        }
+        // PR #681: Use extracted MemberSeparatorResolver for separator determination
+        const separator = MemberSeparatorResolver.getSeparator(
+          isFirstOp,
+          identifierChain,
+          memberName,
+          separatorCtx,
+          separatorDeps,
+        );
+        isFirstOp = false;
 
         result += `${separator}${memberName}`;
       } else {
@@ -6960,46 +6937,14 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // ADR-006: Check if it's a function parameter
+      // PR #681: Use extracted ParameterDereferenceResolver for pass-by-value determination
       const paramInfo = this.context.currentParameters.get(id);
       if (paramInfo) {
-        // ADR-029: Callback parameters don't need dereferencing (they're function pointers)
-        if (paramInfo.isCallback) {
-          return id;
-        }
-        // Float types use pass-by-value, no dereference needed
-        if (this._isFloatType(paramInfo.baseType)) {
-          return id;
-        }
-        // ADR-017: Enum types use pass-by-value, no dereference needed
-        if (this.symbols!.knownEnums.has(paramInfo.baseType)) {
-          return id;
-        }
-        // ADR-045: String parameters are passed as char*, no dereference needed
-        if (paramInfo.isString) {
-          return id;
-        }
-        // Issue #269: Small unmodified primitives use pass-by-value, no dereference needed
-        if (
-          this.context.currentFunctionName &&
-          this._isParameterPassByValueByName(
-            this.context.currentFunctionName,
-            id,
-          )
-        ) {
-          return id;
-        }
-        // Issue #551: Dereference only known primitives (pass-by-reference)
-        // - Structs use -> notation for member access (no dereference here)
-        // - Unknown types (external enums, typedefs) use pass-by-value
-        if (
-          !paramInfo.isArray &&
-          !paramInfo.isStruct &&
-          this._isKnownPrimitive(paramInfo.baseType)
-        ) {
-          // Issue #558/#644: In C++ mode, primitives that become references don't need dereferencing
-          return this.cppHelper!.maybeDereference(id);
-        }
-        return id;
+        return ParameterDereferenceResolver.resolve(
+          id,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        );
       }
 
       // Check if it's a local variable (tracked in type registry with no underscore prefix)
