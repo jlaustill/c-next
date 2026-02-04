@@ -3070,91 +3070,11 @@ export default class CodeGenerator implements IOrchestrator {
     const primary = postfix.primaryExpression();
     const postfixOps = postfix.postfixOp();
 
-    // Check if this is a function call: IDENTIFIER followed by '(' ... ')'
-    if (primary.IDENTIFIER() && postfixOps.length > 0) {
-      const firstOp = postfixOps[0];
-      // Check if first postfix op is a function call (has argumentList or RPAREN)
-      if (firstOp.LPAREN()) {
-        const calleeName = primary.IDENTIFIER()!.getText();
-        const argList = firstOp.argumentList();
-
-        if (argList) {
-          const args = argList.expression();
-          for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
-            // Check if argument is a simple identifier that's a parameter
-            const argName = this.getSimpleIdentifierFromExpr(arg);
-            if (argName && paramSet.has(argName)) {
-              this.functionCallGraph.get(funcName)!.push({
-                callee: calleeName,
-                paramIndex: i,
-                argParamName: argName,
-              });
-            }
-            // Recurse into argument
-            this.walkExpressionForCalls(funcName, paramSet, arg);
-          }
-        }
-      }
-    }
+    // Handle simple function calls: IDENTIFIER followed by '(' ... ')'
+    this.handleSimpleFunctionCall(funcName, paramSet, primary, postfixOps);
 
     // Issue #365: Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
-    // Track member accesses to build the mangled callee name (e.g., Storage_load)
-    // Then when we find the function call, record it to the call graph
-    if (postfixOps.length > 0) {
-      const memberNames: string[] = [];
-
-      // Start with primary identifier if it's a scope name (not 'global' or 'this')
-      // Issue #561: When 'this' is used, resolve to the current scope name from funcName
-      const primaryId = primary.IDENTIFIER()?.getText();
-      if (primaryId && primaryId !== "global") {
-        memberNames.push(primaryId);
-      } else if (primary.THIS()) {
-        // Issue #561: 'this' keyword - resolve to current scope name from funcName
-        // funcName format: "ScopeName_methodName" -> extract "ScopeName"
-        const scopeName = funcName.split("_")[0];
-        if (scopeName && scopeName !== funcName) {
-          memberNames.push(scopeName);
-        }
-      }
-
-      // Collect member access names until we hit a function call
-      for (const op of postfixOps) {
-        if (op.IDENTIFIER()) {
-          // Member access: .IDENTIFIER
-          memberNames.push(op.IDENTIFIER()!.getText());
-        } else if (op.LPAREN()) {
-          // Function call found - record to call graph if we have a callee name
-          if (memberNames.length >= 1) {
-            // Build mangled name: e.g., ["Storage", "load"] -> "Storage_load"
-            // For scope methods, the last name is the method, everything before is scope
-            const calleeName = memberNames.join("_");
-            const argList = op.argumentList();
-
-            if (argList) {
-              const args = argList.expression();
-              for (let j = 0; j < args.length; j++) {
-                const arg = args[j];
-                const argName = this.getSimpleIdentifierFromExpr(arg);
-                if (argName && paramSet.has(argName)) {
-                  this.functionCallGraph.get(funcName)!.push({
-                    callee: calleeName,
-                    paramIndex: j,
-                    argParamName: argName,
-                  });
-                }
-              }
-            }
-          }
-          // Reset for potential chained calls like obj.foo().bar()
-          memberNames.length = 0;
-        } else if (op.expression().length > 0) {
-          // Array subscript - doesn't contribute to method name
-          // but reset member chain as array access breaks scope chain
-          memberNames.length = 0;
-        }
-      }
-    }
+    this.handleScopeQualifiedCalls(funcName, paramSet, primary, postfixOps);
 
     // Recurse into primary expression if it's a parenthesized expression
     if (primary.expression()) {
@@ -3162,75 +3082,122 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Walk arguments in any postfix function call ops (for nested calls)
+    this.walkPostfixOpsRecursively(funcName, paramSet, postfixOps);
+  }
+
+  /**
+   * Handle simple function calls: IDENTIFIER followed by '(' ... ')'
+   */
+  private handleSimpleFunctionCall(
+    funcName: string,
+    paramSet: Set<string>,
+    primary: Parser.PrimaryExpressionContext,
+    postfixOps: Parser.PostfixOpContext[],
+  ): void {
+    if (!primary.IDENTIFIER() || postfixOps.length === 0) return;
+
+    const firstOp = postfixOps[0];
+    if (!firstOp.LPAREN()) return;
+
+    const calleeName = primary.IDENTIFIER()!.getText();
+    this.recordCallsFromArgList(funcName, paramSet, calleeName, firstOp);
+  }
+
+  /**
+   * Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
+   * Track member accesses to build the mangled callee name (e.g., Storage_load)
+   */
+  private handleScopeQualifiedCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    primary: Parser.PrimaryExpressionContext,
+    postfixOps: Parser.PostfixOpContext[],
+  ): void {
+    if (postfixOps.length === 0) return;
+
+    const memberNames = this.collectInitialMemberNames(funcName, primary);
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        memberNames.push(op.IDENTIFIER()!.getText());
+      } else if (op.LPAREN() && memberNames.length >= 1) {
+        const calleeName = memberNames.join("_");
+        this.recordCallsFromArgList(funcName, paramSet, calleeName, op);
+        memberNames.length = 0; // Reset for potential chained calls
+      } else if (op.expression().length > 0) {
+        memberNames.length = 0; // Array subscript breaks scope chain
+      }
+    }
+  }
+
+  /**
+   * Collect initial member names from primary expression for scope resolution.
+   * Issue #561: When 'this' is used, resolve to the current scope name from funcName.
+   */
+  private collectInitialMemberNames(
+    funcName: string,
+    primary: Parser.PrimaryExpressionContext,
+  ): string[] {
+    const memberNames: string[] = [];
+    const primaryId = primary.IDENTIFIER()?.getText();
+
+    if (primaryId && primaryId !== "global") {
+      memberNames.push(primaryId);
+    } else if (primary.THIS()) {
+      const scopeName = funcName.split("_")[0];
+      if (scopeName && scopeName !== funcName) {
+        memberNames.push(scopeName);
+      }
+    }
+    return memberNames;
+  }
+
+  /**
+   * Record function calls to the call graph from an argument list.
+   * Also recurses into argument expressions.
+   */
+  private recordCallsFromArgList(
+    funcName: string,
+    paramSet: Set<string>,
+    calleeName: string,
+    op: Parser.PostfixOpContext,
+  ): void {
+    const argList = op.argumentList();
+    if (!argList) return;
+
+    const args = argList.expression();
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      const argName = ExpressionUtils.extractIdentifier(arg);
+      if (argName && paramSet.has(argName)) {
+        this.functionCallGraph.get(funcName)!.push({
+          callee: calleeName,
+          paramIndex: i,
+          argParamName: argName,
+        });
+      }
+      this.walkExpressionForCalls(funcName, paramSet, arg);
+    }
+  }
+
+  /**
+   * Walk postfix ops recursively for nested calls and array subscripts.
+   */
+  private walkPostfixOpsRecursively(
+    funcName: string,
+    paramSet: Set<string>,
+    postfixOps: Parser.PostfixOpContext[],
+  ): void {
     for (const op of postfixOps) {
       if (op.argumentList()) {
         for (const argExpr of op.argumentList()!.expression()) {
           this.walkExpressionForCalls(funcName, paramSet, argExpr);
         }
       }
-      // Walk array subscript expressions
       for (const expr of op.expression()) {
         this.walkExpressionForCalls(funcName, paramSet, expr);
       }
     }
-  }
-
-  /**
-   * Get simple identifier from an expression if it's just a bare identifier.
-   */
-  private getSimpleIdentifierFromExpr(
-    expr: Parser.ExpressionContext,
-  ): string | null {
-    // Expression -> TernaryExpression -> OrExpression -> ... -> PostfixExpression -> PrimaryExpression -> IDENTIFIER
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return null;
-
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
-
-    const andExprs = orExprs[0].andExpression();
-    if (andExprs.length !== 1) return null;
-
-    const eqExprs = andExprs[0].equalityExpression();
-    if (eqExprs.length !== 1) return null;
-
-    const relExprs = eqExprs[0].relationalExpression();
-    if (relExprs.length !== 1) return null;
-
-    const bitOrExprs = relExprs[0].bitwiseOrExpression();
-    if (bitOrExprs.length !== 1) return null;
-
-    const bitXorExprs = bitOrExprs[0].bitwiseXorExpression();
-    if (bitXorExprs.length !== 1) return null;
-
-    const bitAndExprs = bitXorExprs[0].bitwiseAndExpression();
-    if (bitAndExprs.length !== 1) return null;
-
-    const shiftExprs = bitAndExprs[0].shiftExpression();
-    if (shiftExprs.length !== 1) return null;
-
-    const addExprs = shiftExprs[0].additiveExpression();
-    if (addExprs.length !== 1) return null;
-
-    const mulExprs = addExprs[0].multiplicativeExpression();
-    if (mulExprs.length !== 1) return null;
-
-    const unaryExprs = mulExprs[0].unaryExpression();
-    if (unaryExprs.length !== 1) return null;
-
-    const unary = unaryExprs[0];
-    if (unary.unaryExpression()) return null; // Has unary operator
-
-    const postfix = unary.postfixExpression();
-    if (!postfix) return null;
-
-    // Must have no postfix operators (just the primary)
-    if (postfix.postfixOp().length > 0) return null;
-
-    const primary = postfix.primaryExpression();
-    if (!primary.IDENTIFIER()) return null;
-
-    return primary.IDENTIFIER()!.getText();
   }
 
   /**
