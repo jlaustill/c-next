@@ -111,7 +111,8 @@ const generateCaseLabel = (
     // Check if minus token exists (first child would be '-')
     const hasNeg = node.children && node.children[0]?.getText() === "-";
     const value = BigInt(binText); // BigInt handles 0b prefix natively
-    const hexStr = (hasNeg ? -value : value).toString(16).toUpperCase();
+    // Use positive value for hex string - hasNeg handles the sign prefix separately
+    const hexStr = value.toString(16).toUpperCase();
     // Add ULL suffix for values that exceed 32-bit range
     const needsULL = value > 0xffffffffn;
     return {
