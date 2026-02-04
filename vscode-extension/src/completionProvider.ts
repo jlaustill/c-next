@@ -202,8 +202,6 @@ function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
   switch (kind) {
     case "namespace":
       return vscode.CompletionItemKind.Module;
-    case "class":
-      return vscode.CompletionItemKind.Class;
     case "struct":
       return vscode.CompletionItemKind.Struct;
     case "register":

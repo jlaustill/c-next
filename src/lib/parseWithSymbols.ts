@@ -18,8 +18,6 @@ function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
   switch (kind) {
     case ESymbolKind.Namespace:
       return "namespace";
-    case ESymbolKind.Class:
-      return "class";
     case ESymbolKind.Struct:
       return "struct";
     case ESymbolKind.Register:
@@ -31,6 +29,7 @@ function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
     case ESymbolKind.RegisterMember:
       return "registerMember";
     default:
+      // C-Next doesn't have classes - fall through to variable
       return "variable";
   }
 }
