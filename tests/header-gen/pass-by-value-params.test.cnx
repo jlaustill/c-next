@@ -1,0 +1,30 @@
+// test-transpile-only
+// Tests: Header generation with pass-by-value parameters
+// Floats, enums, and ISR types should use pass-by-value, not pointers
+
+enum Status {
+    Ok,
+    Error
+}
+
+scope Api {
+    // Float params should be pass-by-value (float value, not float*)
+    public f32 addFloats(f32 a, f32 b) {
+        return a + b;
+    }
+
+    // Enum params should be pass-by-value (Status status, not Status*)
+    public bool isOk(Status status) {
+        return status = global.Status.Ok;
+    }
+
+    // Modified integer params should be pass-by-pointer (uint32_t*)
+    public void updateValue(u32 value) {
+        value +<- 1;
+    }
+
+    // Unmodified integer params can be pass-by-value (uint32_t)
+    public u32 readValue(u32 value) {
+        return value * 2;
+    }
+}
