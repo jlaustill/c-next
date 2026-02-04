@@ -1,0 +1,5 @@
+// test-error
+// ADR-045: Test substring extraction at global scope
+// Substring requires runtime code (strncpy) which can't run at global scope
+string<64> source <- "Hello, World!";
+string<10> sub <- source[0, 5];

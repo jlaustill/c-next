@@ -55,6 +55,7 @@ import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
+import ExpressionUtils from "../../../utils/ExpressionUtils";
 // ADR-053: Support generators (A5)
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
@@ -3069,91 +3070,11 @@ export default class CodeGenerator implements IOrchestrator {
     const primary = postfix.primaryExpression();
     const postfixOps = postfix.postfixOp();
 
-    // Check if this is a function call: IDENTIFIER followed by '(' ... ')'
-    if (primary.IDENTIFIER() && postfixOps.length > 0) {
-      const firstOp = postfixOps[0];
-      // Check if first postfix op is a function call (has argumentList or RPAREN)
-      if (firstOp.LPAREN()) {
-        const calleeName = primary.IDENTIFIER()!.getText();
-        const argList = firstOp.argumentList();
-
-        if (argList) {
-          const args = argList.expression();
-          for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
-            // Check if argument is a simple identifier that's a parameter
-            const argName = this.getSimpleIdentifierFromExpr(arg);
-            if (argName && paramSet.has(argName)) {
-              this.functionCallGraph.get(funcName)!.push({
-                callee: calleeName,
-                paramIndex: i,
-                argParamName: argName,
-              });
-            }
-            // Recurse into argument
-            this.walkExpressionForCalls(funcName, paramSet, arg);
-          }
-        }
-      }
-    }
+    // Handle simple function calls: IDENTIFIER followed by '(' ... ')'
+    this.handleSimpleFunctionCall(funcName, paramSet, primary, postfixOps);
 
     // Issue #365: Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
-    // Track member accesses to build the mangled callee name (e.g., Storage_load)
-    // Then when we find the function call, record it to the call graph
-    if (postfixOps.length > 0) {
-      const memberNames: string[] = [];
-
-      // Start with primary identifier if it's a scope name (not 'global' or 'this')
-      // Issue #561: When 'this' is used, resolve to the current scope name from funcName
-      const primaryId = primary.IDENTIFIER()?.getText();
-      if (primaryId && primaryId !== "global") {
-        memberNames.push(primaryId);
-      } else if (primary.THIS()) {
-        // Issue #561: 'this' keyword - resolve to current scope name from funcName
-        // funcName format: "ScopeName_methodName" -> extract "ScopeName"
-        const scopeName = funcName.split("_")[0];
-        if (scopeName && scopeName !== funcName) {
-          memberNames.push(scopeName);
-        }
-      }
-
-      // Collect member access names until we hit a function call
-      for (const op of postfixOps) {
-        if (op.IDENTIFIER()) {
-          // Member access: .IDENTIFIER
-          memberNames.push(op.IDENTIFIER()!.getText());
-        } else if (op.LPAREN()) {
-          // Function call found - record to call graph if we have a callee name
-          if (memberNames.length >= 1) {
-            // Build mangled name: e.g., ["Storage", "load"] -> "Storage_load"
-            // For scope methods, the last name is the method, everything before is scope
-            const calleeName = memberNames.join("_");
-            const argList = op.argumentList();
-
-            if (argList) {
-              const args = argList.expression();
-              for (let j = 0; j < args.length; j++) {
-                const arg = args[j];
-                const argName = this.getSimpleIdentifierFromExpr(arg);
-                if (argName && paramSet.has(argName)) {
-                  this.functionCallGraph.get(funcName)!.push({
-                    callee: calleeName,
-                    paramIndex: j,
-                    argParamName: argName,
-                  });
-                }
-              }
-            }
-          }
-          // Reset for potential chained calls like obj.foo().bar()
-          memberNames.length = 0;
-        } else if (op.expression().length > 0) {
-          // Array subscript - doesn't contribute to method name
-          // but reset member chain as array access breaks scope chain
-          memberNames.length = 0;
-        }
-      }
-    }
+    this.handleScopeQualifiedCalls(funcName, paramSet, primary, postfixOps);
 
     // Recurse into primary expression if it's a parenthesized expression
     if (primary.expression()) {
@@ -3161,75 +3082,122 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Walk arguments in any postfix function call ops (for nested calls)
+    this.walkPostfixOpsRecursively(funcName, paramSet, postfixOps);
+  }
+
+  /**
+   * Handle simple function calls: IDENTIFIER followed by '(' ... ')'
+   */
+  private handleSimpleFunctionCall(
+    funcName: string,
+    paramSet: Set<string>,
+    primary: Parser.PrimaryExpressionContext,
+    postfixOps: Parser.PostfixOpContext[],
+  ): void {
+    if (!primary.IDENTIFIER() || postfixOps.length === 0) return;
+
+    const firstOp = postfixOps[0];
+    if (!firstOp.LPAREN()) return;
+
+    const calleeName = primary.IDENTIFIER()!.getText();
+    this.recordCallsFromArgList(funcName, paramSet, calleeName, firstOp);
+  }
+
+  /**
+   * Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
+   * Track member accesses to build the mangled callee name (e.g., Storage_load)
+   */
+  private handleScopeQualifiedCalls(
+    funcName: string,
+    paramSet: Set<string>,
+    primary: Parser.PrimaryExpressionContext,
+    postfixOps: Parser.PostfixOpContext[],
+  ): void {
+    if (postfixOps.length === 0) return;
+
+    const memberNames = this.collectInitialMemberNames(funcName, primary);
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        memberNames.push(op.IDENTIFIER()!.getText());
+      } else if (op.LPAREN() && memberNames.length >= 1) {
+        const calleeName = memberNames.join("_");
+        this.recordCallsFromArgList(funcName, paramSet, calleeName, op);
+        memberNames.length = 0; // Reset for potential chained calls
+      } else if (op.expression().length > 0) {
+        memberNames.length = 0; // Array subscript breaks scope chain
+      }
+    }
+  }
+
+  /**
+   * Collect initial member names from primary expression for scope resolution.
+   * Issue #561: When 'this' is used, resolve to the current scope name from funcName.
+   */
+  private collectInitialMemberNames(
+    funcName: string,
+    primary: Parser.PrimaryExpressionContext,
+  ): string[] {
+    const memberNames: string[] = [];
+    const primaryId = primary.IDENTIFIER()?.getText();
+
+    if (primaryId && primaryId !== "global") {
+      memberNames.push(primaryId);
+    } else if (primary.THIS()) {
+      const scopeName = funcName.split("_")[0];
+      if (scopeName && scopeName !== funcName) {
+        memberNames.push(scopeName);
+      }
+    }
+    return memberNames;
+  }
+
+  /**
+   * Record function calls to the call graph from an argument list.
+   * Also recurses into argument expressions.
+   */
+  private recordCallsFromArgList(
+    funcName: string,
+    paramSet: Set<string>,
+    calleeName: string,
+    op: Parser.PostfixOpContext,
+  ): void {
+    const argList = op.argumentList();
+    if (!argList) return;
+
+    const args = argList.expression();
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      const argName = ExpressionUtils.extractIdentifier(arg);
+      if (argName && paramSet.has(argName)) {
+        this.functionCallGraph.get(funcName)!.push({
+          callee: calleeName,
+          paramIndex: i,
+          argParamName: argName,
+        });
+      }
+      this.walkExpressionForCalls(funcName, paramSet, arg);
+    }
+  }
+
+  /**
+   * Walk postfix ops recursively for nested calls and array subscripts.
+   */
+  private walkPostfixOpsRecursively(
+    funcName: string,
+    paramSet: Set<string>,
+    postfixOps: Parser.PostfixOpContext[],
+  ): void {
     for (const op of postfixOps) {
       if (op.argumentList()) {
         for (const argExpr of op.argumentList()!.expression()) {
           this.walkExpressionForCalls(funcName, paramSet, argExpr);
         }
       }
-      // Walk array subscript expressions
       for (const expr of op.expression()) {
         this.walkExpressionForCalls(funcName, paramSet, expr);
       }
     }
-  }
-
-  /**
-   * Get simple identifier from an expression if it's just a bare identifier.
-   */
-  private getSimpleIdentifierFromExpr(
-    expr: Parser.ExpressionContext,
-  ): string | null {
-    // Expression -> TernaryExpression -> OrExpression -> ... -> PostfixExpression -> PrimaryExpression -> IDENTIFIER
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return null;
-
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
-
-    const andExprs = orExprs[0].andExpression();
-    if (andExprs.length !== 1) return null;
-
-    const eqExprs = andExprs[0].equalityExpression();
-    if (eqExprs.length !== 1) return null;
-
-    const relExprs = eqExprs[0].relationalExpression();
-    if (relExprs.length !== 1) return null;
-
-    const bitOrExprs = relExprs[0].bitwiseOrExpression();
-    if (bitOrExprs.length !== 1) return null;
-
-    const bitXorExprs = bitOrExprs[0].bitwiseXorExpression();
-    if (bitXorExprs.length !== 1) return null;
-
-    const bitAndExprs = bitXorExprs[0].bitwiseAndExpression();
-    if (bitAndExprs.length !== 1) return null;
-
-    const shiftExprs = bitAndExprs[0].shiftExpression();
-    if (shiftExprs.length !== 1) return null;
-
-    const addExprs = shiftExprs[0].additiveExpression();
-    if (addExprs.length !== 1) return null;
-
-    const mulExprs = addExprs[0].multiplicativeExpression();
-    if (mulExprs.length !== 1) return null;
-
-    const unaryExprs = mulExprs[0].unaryExpression();
-    if (unaryExprs.length !== 1) return null;
-
-    const unary = unaryExprs[0];
-    if (unary.unaryExpression()) return null; // Has unary operator
-
-    const postfix = unary.postfixExpression();
-    if (!postfix) return null;
-
-    // Must have no postfix operators (just the primary)
-    if (postfix.postfixOp().length > 0) return null;
-
-    const primary = postfix.primaryExpression();
-    if (!primary.IDENTIFIER()) return null;
-
-    return primary.IDENTIFIER()!.getText();
   }
 
   /**
@@ -3443,210 +3411,12 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Extract type info from a variable declaration and register it
+   * Extract type info from a variable declaration and register it.
+   * Delegates to trackVariableTypeWithName using the variable's identifier.
    */
   private trackVariableType(varDecl: Parser.VariableDeclarationContext): void {
     const name = varDecl.IDENTIFIER().getText();
-    const typeCtx = varDecl.type();
-    const arrayDim = varDecl.arrayDimension();
-    const isConst = varDecl.constModifier() !== null; // ADR-013: Track const modifier
-
-    // ADR-044: Extract overflow modifier (clamp is default)
-    const overflowMod = varDecl.overflowModifier();
-    const overflowBehavior: TOverflowBehavior =
-      overflowMod?.getText() === "wrap" ? "wrap" : "clamp";
-
-    // ADR-049: Extract atomic modifier
-    const isAtomic = varDecl.atomicModifier() !== null;
-
-    let baseType = "";
-    let bitWidth = 0;
-    let isArray = false;
-    const arrayDimensions: number[] = []; // ADR-036: Track all dimensions
-
-    if (typeCtx.primitiveType()) {
-      baseType = typeCtx.primitiveType()!.getText();
-      bitWidth = TYPE_WIDTH[baseType] || 0;
-    } else if (typeCtx.stringType()) {
-      // ADR-045: Handle bounded string type
-      const stringCtx = typeCtx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-
-      if (intLiteral) {
-        const capacity = Number.parseInt(intLiteral.getText(), 10);
-        this.requireInclude("string");
-        const stringDim = capacity + 1; // String capacity dimension (last)
-
-        // Check if there are additional array dimensions (e.g., [4] in string<64> arr[4])
-        if (arrayDim && arrayDim.length > 0) {
-          // Process array dimensions (they come BEFORE string capacity)
-          const dims: number[] = [];
-          for (const dim of arrayDim) {
-            const sizeExpr = dim.expression();
-            if (sizeExpr) {
-              const size = Number.parseInt(sizeExpr.getText(), 10);
-              if (!Number.isNaN(size) && size > 0) {
-                dims.push(size);
-              }
-            }
-          }
-          // Append string capacity as final dimension
-          dims.push(stringDim);
-
-          this.context.typeRegistry.set(name, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: dims, // [4, 65] for string<64> arr[4]
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-            overflowBehavior,
-            isAtomic,
-          });
-        } else {
-          // Single string: string<64> s
-          this.context.typeRegistry.set(name, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: [stringDim], // [65]
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-            overflowBehavior,
-            isAtomic,
-          });
-        }
-        return; // Early return, we've handled this case
-      } else {
-        // Unsized string - for const inference (handled in generateVariableDecl)
-        baseType = "string";
-      }
-    } else if (typeCtx.scopedType()) {
-      // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-      const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      if (this.context.currentScope) {
-        baseType = `${this.context.currentScope}_${typeName}`;
-      } else {
-        baseType = typeName;
-      }
-
-      // ADR-017/ADR-034: Check if enum or bitmap type
-      if (
-        this._tryRegisterEnumOrBitmapType(
-          name,
-          baseType,
-          isConst,
-          arrayDim,
-          overflowBehavior,
-          isAtomic,
-        )
-      ) {
-        return;
-      }
-    } else if (typeCtx.globalType()) {
-      // Issue #478: Handle global.Type for global types inside scope
-      // global.ECategory -> ECategory (no scope prefix)
-      baseType = typeCtx.globalType()!.IDENTIFIER().getText();
-
-      // ADR-017/ADR-034: Check if enum or bitmap type
-      if (
-        this._tryRegisterEnumOrBitmapType(
-          name,
-          baseType,
-          isConst,
-          arrayDim,
-          overflowBehavior,
-          isAtomic,
-        )
-      ) {
-        return;
-      }
-    } else if (typeCtx.qualifiedType()) {
-      // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
-      // Issue #388: Also handles C++ namespace types (e.g., MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
-      const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-      const identifierNames = identifiers.map((id) => id.getText());
-      baseType = this.resolveQualifiedType(identifierNames);
-
-      // ADR-017/ADR-034: Check if enum or bitmap type
-      if (
-        this._tryRegisterEnumOrBitmapType(
-          name,
-          baseType,
-          isConst,
-          arrayDim,
-          overflowBehavior,
-          isAtomic,
-        )
-      ) {
-        return;
-      }
-    } else if (typeCtx.userType()) {
-      // Track struct/class/enum/bitmap types for inferred struct initializers and type safety
-      baseType = typeCtx.userType()!.getText();
-      // Note: bitWidth stays 0 for user types (no fixed bit width)
-
-      // ADR-017/ADR-034: Check if enum or bitmap type
-      if (
-        this._tryRegisterEnumOrBitmapType(
-          name,
-          baseType,
-          isConst,
-          arrayDim,
-          overflowBehavior,
-          isAtomic,
-        )
-      ) {
-        return;
-      }
-    } else if (typeCtx.arrayType()) {
-      isArray = true;
-      const arrayTypeCtx = typeCtx.arrayType()!;
-      if (arrayTypeCtx.primitiveType()) {
-        baseType = arrayTypeCtx.primitiveType()!.getText();
-        bitWidth = TYPE_WIDTH[baseType] || 0;
-      }
-      // Try to get array length from type
-      const sizeExpr = arrayTypeCtx.expression();
-      if (sizeExpr) {
-        const sizeText = sizeExpr.getText();
-        const size = Number.parseInt(sizeText, 10);
-        if (!Number.isNaN(size)) {
-          arrayDimensions.push(size);
-        }
-      }
-    }
-
-    // ADR-036: Check for array dimensions like: u8 buffer[16] or u8 matrix[4][8]
-    // arrayDim is now an array of ArrayDimensionContext
-    // Bug #8: Use tryEvaluateConstant to resolve const identifiers in array sizes
-    if (arrayDim && arrayDim.length > 0) {
-      isArray = true;
-      for (const dim of arrayDim) {
-        const sizeExpr = dim.expression();
-        if (sizeExpr) {
-          const size = this._tryEvaluateConstant(sizeExpr);
-          if (size !== undefined && size > 0) {
-            arrayDimensions.push(size);
-          }
-        }
-      }
-    }
-
-    if (baseType) {
-      this.context.typeRegistry.set(name, {
-        baseType,
-        bitWidth,
-        isArray,
-        arrayDimensions:
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
-        isConst, // ADR-013: Store const status
-        overflowBehavior, // ADR-044: Store overflow behavior
-        isAtomic, // ADR-049: Store atomic status
-      });
-    }
+    this.trackVariableTypeWithName(varDecl, name);
   }
 
   // =========================================================================
@@ -7739,46 +7509,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-023: Check if expression contains a function call (postfix with argumentList)
    */
   private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
-    // Navigate through expression tree to find function calls
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return false;
-
-    // Check all branches for function calls
-    for (const or of ternary.orExpression()) {
-      for (const and of or.andExpression()) {
-        for (const eq of and.equalityExpression()) {
-          for (const rel of eq.relationalExpression()) {
-            for (const bor of rel.bitwiseOrExpression()) {
-              for (const bxor of bor.bitwiseXorExpression()) {
-                for (const band of bxor.bitwiseAndExpression()) {
-                  for (const shift of band.shiftExpression()) {
-                    for (const add of shift.additiveExpression()) {
-                      for (const mult of add.multiplicativeExpression()) {
-                        for (const unary of mult.unaryExpression()) {
-                          const postfix = unary.postfixExpression();
-                          if (postfix) {
-                            for (const op of postfix.postfixOp()) {
-                              // Check if this is a function call
-                              if (
-                                op.argumentList() ||
-                                op.getText().startsWith("(")
-                              ) {
-                                return true;
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return false;
+    return ExpressionUtils.hasFunctionCall(expr);
   }
 
   private generateMemberAccess(ctx: Parser.MemberAccessContext): string {

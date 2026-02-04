@@ -1,7 +1,8 @@
+// test-error
 // ADR-045: Test concatenation overflow error
-// ERROR: String concatenation requires capacity 64, but string<50> only has 50
-string<32> first <- "Hello";
-
-string<32> second <- " World";
-
-string<50> result <- first + second;
+// Combined capacity of two string<32> is 64, but destination is only string<50>
+void test() {
+    string<32> first <- "Hello";
+    string<32> second <- " World";
+    string<50> result <- first + second;
+}
