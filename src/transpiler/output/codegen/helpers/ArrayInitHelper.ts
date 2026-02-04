@@ -151,7 +151,7 @@ class ArrayInitHelper {
       const fillVal = this.deps.arrayInitState.lastArrayFillValue;
       // Only expand if the fill value is not "0" (C handles {0} correctly)
       if (fillVal !== "0") {
-        const elements = Array(declaredSize).fill(fillVal);
+        const elements = new Array<string>(declaredSize).fill(fillVal);
         finalInitValue = `{${elements.join(", ")}}`;
       }
     }

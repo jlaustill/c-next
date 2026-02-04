@@ -19,7 +19,7 @@ type TypeRegistryLookup = (name: string) => TTypeInfo | undefined;
  * This enables strlen caching optimization.
  */
 class StringLengthCounter {
-  private typeRegistry: TypeRegistryLookup;
+  private readonly typeRegistry: TypeRegistryLookup;
 
   constructor(typeRegistry: TypeRegistryLookup) {
     this.typeRegistry = typeRegistry;
@@ -253,7 +253,7 @@ class StringLengthCounter {
     if (ctx.block()) {
       this.countBlockInto(ctx.block()!, counts);
     }
-    // TODO: Could add recursion for if/while/for bodies
+    // Note: Could add recursion for if/while/for bodies if deeper analysis needed
   }
 }
 

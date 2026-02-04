@@ -459,7 +459,7 @@ const generateFor = (
 
   // Prepend all temps before the for statement
   const allTemps = [initTemps, conditionTemps, updateTemps]
-    .filter((t) => t)
+    .filter(Boolean)
     .join("\n");
   if (allTemps) {
     result = allTemps + "\n" + result;

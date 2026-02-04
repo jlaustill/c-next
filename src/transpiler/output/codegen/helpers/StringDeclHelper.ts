@@ -321,7 +321,7 @@ class StringDeclHelper {
               const fillVal = this.deps.arrayInitState.lastArrayFillValue;
               // Only expand if not empty string (C handles {""} correctly for zeroing)
               if (fillVal !== '""') {
-                const elements = Array(declaredSize).fill(fillVal);
+                const elements = new Array<string>(declaredSize).fill(fillVal);
                 finalInitValue = `{${elements.join(", ")}}`;
               }
             }

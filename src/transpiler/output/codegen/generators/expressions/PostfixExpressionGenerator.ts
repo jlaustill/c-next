@@ -850,8 +850,10 @@ const generateSubscriptAccess = (
         );
       }
 
-      effects.push({ type: "include", header: "string" });
-      effects.push({ type: "include", header: "float_static_assert" });
+      effects.push(
+        { type: "include", header: "string" },
+        { type: "include", header: "float_static_assert" },
+      );
 
       const isF64 = primaryTypeInfo?.baseType === "f64";
       const shadowType = isF64 ? "uint64_t" : "uint32_t";
