@@ -548,7 +548,7 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree);
 
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
       expect(errors[0].variable).toBe("x");
     });
@@ -573,7 +573,7 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree);
 
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
       expect(errors[0].variable).toBe("sum");
     });
@@ -611,7 +611,27 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree);
 
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("sum");
+    });
+
+    it("should flag non-deterministic for loop with zero bound", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          for (u32 i <- 0; i < 0; i <- i + 1) {
+            sum <- 42;
+          }
+          u32 r <- sum;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // bound is 0, so loop never runs — non-deterministic
+      expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
       expect(errors[0].variable).toBe("sum");
     });
@@ -632,7 +652,7 @@ describe("InitializationAnalyzer", () => {
       const errors = analyzer.analyze(tree);
 
       // forAssignment with non-zero init is non-deterministic, sum may not be set
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
       expect(errors[0].variable).toBe("sum");
     });
@@ -716,8 +736,9 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree);
 
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("s");
     });
 
     it("should not flag .length on initialized string", () => {
@@ -827,8 +848,9 @@ describe("InitializationAnalyzer", () => {
       const errors = analyzer.analyze(tree, symbolTable);
 
       // C++ enums don't have constructors - should flag as uninitialized
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("e");
     });
   });
 });
