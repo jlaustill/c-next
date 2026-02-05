@@ -178,4 +178,45 @@ describe("generateStructHeader", () => {
       expect(result).toContain("uint32_t size;");
     });
   });
+
+  describe("string field dimensions", () => {
+    it("should not double the string capacity dimension for plain string fields", () => {
+      const fields = new Map<string, string>([
+        ["name", "string<64>"],
+        ["age", "u32"],
+      ]);
+      const dimensions = new Map<string, Map<string, readonly number[]>>([
+        ["Person", new Map([["name", [65]]])],
+      ]);
+      const input = createInput(new Map([["Person", fields]]), dimensions);
+
+      const result = generateStructHeader("Person", input);
+
+      expect(result).toContain("char name[65];");
+      expect(result).not.toContain("name[65][65]");
+      expect(result).toContain("uint32_t age;");
+    });
+
+    it("should not double the string capacity for array-of-string fields", () => {
+      const fields = new Map<string, string>([["arr", "string<64>"]]);
+      const dimensions = new Map<string, Map<string, readonly number[]>>([
+        ["Container", new Map([["arr", [4, 65]]])],
+      ]);
+      const input = createInput(new Map([["Container", fields]]), dimensions);
+
+      const result = generateStructHeader("Container", input);
+
+      expect(result).toContain("char arr[4][65];");
+      expect(result).not.toContain("arr[4][65][65]");
+    });
+
+    it("should handle string field with no dimensions in map", () => {
+      const fields = new Map<string, string>([["label", "string<16>"]]);
+      const input = createInput(new Map([["Widget", fields]]));
+
+      const result = generateStructHeader("Widget", input);
+
+      expect(result).toContain("char label[17];");
+    });
+  });
 });

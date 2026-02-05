@@ -52,6 +52,36 @@ class MemberAccessValidator {
       );
     }
   }
+
+  /**
+   * ADR-016/057: Validate that a global entity (enum or register) is accessed
+   * with 'global.' prefix when inside a scope that doesn't own the entity.
+   *
+   * @param entityName - The entity being accessed (e.g., "Color", "GPIO")
+   * @param memberName - The member after the entity (e.g., "Red", "PIN0")
+   * @param entityType - "enum" or "register" (for error message)
+   * @param currentScope - Active scope context (null = not in a scope)
+   * @param isGlobalAccess - Whether the access used 'global.' prefix
+   */
+  static validateGlobalEntityAccess(
+    entityName: string,
+    memberName: string,
+    entityType: string,
+    currentScope: string | null,
+    isGlobalAccess: boolean,
+  ): void {
+    if (isGlobalAccess) {
+      return;
+    }
+    if (currentScope) {
+      const belongsToCurrentScope = entityName.startsWith(currentScope + "_");
+      if (!belongsToCurrentScope) {
+        throw new Error(
+          `Error: Use 'global.${entityName}.${memberName}' to access ${entityType} '${entityName}' from inside scope '${currentScope}'`,
+        );
+      }
+    }
+  }
 }
 
 export default MemberAccessValidator;

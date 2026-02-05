@@ -54,11 +54,19 @@ function generateStructHeader(name: string, input: IHeaderTypeInput): string {
     // Issue #461: Handle string<N> types which map to char[N+1]
     // The embedded dimension must come after array dimensions in C syntax
     // Example: string<64> arr[4] -> char arr[4][65], not char[65] arr[4]
+    //
+    // Fix: When dims already include the string capacity (from StructCollector),
+    // use dimSuffix directly. Only extract embedded dim when no dims provided.
     const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
     if (embeddedMatch) {
       const baseType = embeddedMatch[1];
       const embeddedDim = embeddedMatch[2];
-      lines.push(`    ${baseType} ${fieldName}${dimSuffix}[${embeddedDim}];`);
+      // dims already includes string capacity, so just use dimSuffix
+      if (dims && dims.length > 0) {
+        lines.push(`    ${baseType} ${fieldName}${dimSuffix};`);
+      } else {
+        lines.push(`    ${baseType} ${fieldName}[${embeddedDim}];`);
+      }
     } else {
       lines.push(`    ${cType} ${fieldName}${dimSuffix};`);
     }

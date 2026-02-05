@@ -275,13 +275,13 @@ function createMockExpression(text: string): Parser.ExpressionContext {
 }
 
 function createMockPostfixExpressionContext(
-  primaryId: string | undefined,
+  rootIdentifier: string | undefined,
   ops: Parser.PostfixOpContext[],
 ): Parser.PostfixExpressionContext {
   return {
-    primaryExpression: () => createMockPrimaryExpression(primaryId),
+    primaryExpression: () => createMockPrimaryExpression(rootIdentifier),
     postfixOp: () => ops,
-    getText: () => primaryId ?? "expr",
+    getText: () => rootIdentifier ?? "expr",
   } as unknown as Parser.PostfixExpressionContext;
 }
 
@@ -1066,6 +1066,88 @@ describe("PostfixExpressionGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "str",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("65");
+    });
+  });
+
+  describe("struct member .capacity and .size", () => {
+    it("returns capacity for struct member string via alice.name.capacity", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "alice",
+          {
+            baseType: "Person",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+            isString: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("alice", [
+        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({ identifier: "capacity" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "alice",
+        isKnownStruct: (name) => name === "Person",
+        getMemberTypeInfo: (structType, memberName) => {
+          if (structType === "Person" && memberName === "name") {
+            return { baseType: "char", isArray: false };
+          }
+          return null;
+        },
+        getStructFieldInfo: (structType, fieldName) => {
+          if (structType === "Person" && fieldName === "name") {
+            return { type: "string<64>", dimensions: [65] };
+          }
+          return null;
+        },
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("64");
+    });
+
+    it("returns size for struct member string via alice.name.size", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "alice",
+          {
+            baseType: "Person",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+            isString: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("alice", [
+        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({ identifier: "size" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "alice",
+        isKnownStruct: (name) => name === "Person",
+        getMemberTypeInfo: (structType, memberName) => {
+          if (structType === "Person" && memberName === "name") {
+            return { baseType: "char", isArray: false };
+          }
+          return null;
+        },
+        getStructFieldInfo: (structType, fieldName) => {
+          if (structType === "Person" && fieldName === "name") {
+            return { type: "string<64>", dimensions: [65] };
+          }
+          return null;
+        },
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);

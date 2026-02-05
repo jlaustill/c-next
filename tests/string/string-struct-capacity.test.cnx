@@ -1,0 +1,42 @@
+// test-execution
+// Tests: .capacity and .size on struct member strings
+// Bug: these were resolving against the primary variable's type (struct)
+// instead of the struct field's type (string)
+
+struct Person {
+    string<64> name;
+    string<128> bio;
+    u32 age;
+}
+
+struct Config {
+    string<32> key;
+    string<256> value;
+}
+
+i32 main() {
+// Test 1: .capacity on struct member
+    Person alice;
+    alice.name <- "Alice";
+    alice.bio <- "Software engineer";
+    alice.age <- 30;
+
+    if (alice.name.capacity != 64) return 1;
+    if (alice.bio.capacity != 128) return 2;
+
+// Test 2: .size on struct member
+    if (alice.name.size != 65) return 3;
+    if (alice.bio.size != 129) return 4;
+
+// Test 3: Different struct, different capacities
+    Config cfg;
+    cfg.key <- "api_url";
+    cfg.value <- "https://example.com";
+
+    if (cfg.key.capacity != 32) return 5;
+    if (cfg.value.capacity != 256) return 6;
+    if (cfg.key.size != 33) return 7;
+    if (cfg.value.size != 257) return 8;
+
+    return 0;
+}
