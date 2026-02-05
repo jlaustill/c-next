@@ -621,6 +621,277 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 });
 
 // ========================================================================
+// Scoped Register Bitmap Field (4-id pattern)
+// ========================================================================
+describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
+  it("classifies Scope.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
+    const bitmapFields = new Map([
+      ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
+    ]);
+    const knownScopes = new Set(["Teensy4"]);
+    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const registerMemberTypes = new Map([
+      ["Teensy4_GPIO7_ICR1", "ControlBits"],
+    ]);
+
+    const deps = createMockDeps({
+      bitmapFields,
+      knownScopes,
+      knownRegisters,
+      registerMemberTypes,
+    });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["Teensy4", "GPIO7", "ICR1", "Enable"],
+      hasMemberAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(
+      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
+    );
+  });
+
+  it("returns null for unknown scope in 4-id pattern", () => {
+    const deps = createMockDeps();
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["UnknownScope", "REG", "MEMBER", "field"],
+      hasMemberAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
+  });
+});
+
+// ========================================================================
+// Bitmap Array Element Field
+// ========================================================================
+describe("AssignmentClassifier - Bitmap Array Element Field", () => {
+  it("classifies bitmapArr[i].field as BITMAP_ARRAY_ELEMENT_FIELD", () => {
+    const bitmapFields = new Map([
+      ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
+    ]);
+    const typeRegistry = new Map([
+      [
+        "flagsArr",
+        createTypeInfo({
+          isBitmap: true,
+          isArray: true,
+          bitmapTypeName: "StatusFlags",
+          arrayDimensions: [10],
+        }),
+      ],
+    ]);
+
+    const deps = createMockDeps({ bitmapFields, typeRegistry });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["flagsArr", "Active"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(
+      AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
+    );
+  });
+});
+
+// ========================================================================
+// Multi-dim Array with Bit Indexing
+// ========================================================================
+describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
+  it("classifies matrix[i][j][bit] as ARRAY_ELEMENT_BIT", () => {
+    const typeRegistry = new Map([
+      [
+        "matrix",
+        createTypeInfo({
+          baseType: "u32",
+          isArray: true,
+          arrayDimensions: [4, 4],
+        }),
+      ],
+    ]);
+
+    const deps = createMockDeps({ typeRegistry });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["matrix"],
+      subscripts: [
+        {} as IAssignmentContext["subscripts"][0],
+        {} as IAssignmentContext["subscripts"][0],
+        {} as IAssignmentContext["subscripts"][0],
+      ],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(AssignmentKind.ARRAY_ELEMENT_BIT);
+  });
+
+  it("classifies matrix[i][j] as MULTI_DIM_ARRAY_ELEMENT", () => {
+    const typeRegistry = new Map([
+      [
+        "matrix",
+        createTypeInfo({
+          baseType: "u32",
+          isArray: true,
+          arrayDimensions: [4, 4],
+        }),
+      ],
+    ]);
+
+    const deps = createMockDeps({ typeRegistry });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["matrix"],
+      subscripts: [
+        {} as IAssignmentContext["subscripts"][0],
+        {} as IAssignmentContext["subscripts"][0],
+      ],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(
+      AssignmentKind.MULTI_DIM_ARRAY_ELEMENT,
+    );
+  });
+});
+
+// ========================================================================
+// Scoped Register Bit Range via This Prefix
+// ========================================================================
+describe("AssignmentClassifier - Scoped Register Bit Range", () => {
+  it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
+    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const deps = createMockDeps({
+      knownRegisters,
+      currentScope: "Teensy4",
+    });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["GPIO7", "ICR1"],
+      subscripts: [
+        {} as IAssignmentContext["subscripts"][0],
+        {} as IAssignmentContext["subscripts"][0],
+      ],
+      hasThis: true,
+      hasArrayAccess: true,
+      postfixOpsCount: 3,
+      postfixOps: [
+        { COMMA: () => ({}) } as unknown as IAssignmentContext["postfixOps"][0],
+      ],
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(
+      AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
+    );
+  });
+});
+
+// ========================================================================
+// Register Bit Access via classifyMemberWithSubscript (non-scoped, 2+ ids)
+// ========================================================================
+describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
+  it("classifies REG.MEMBER[bit] as REGISTER_BIT (non-this, non-global)", () => {
+    const knownRegisters = new Set(["TIMER"]);
+    const deps = createMockDeps({ knownRegisters });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["TIMER", "CTRL"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT);
+  });
+
+  it("classifies REG.MEMBER[start, width] as REGISTER_BIT_RANGE (non-this)", () => {
+    const knownRegisters = new Set(["TIMER"]);
+    const deps = createMockDeps({ knownRegisters });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["TIMER", "CTRL"],
+      subscripts: [
+        {} as IAssignmentContext["subscripts"][0],
+        {} as IAssignmentContext["subscripts"][0],
+      ],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT_RANGE);
+  });
+
+  it("classifies Scope.REG.MEMBER[bit] as REGISTER_BIT via memberWithSubscript", () => {
+    const knownScopes = new Set(["Teensy4"]);
+    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const deps = createMockDeps({ knownScopes, knownRegisters });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["Teensy4", "GPIO7", "DR_SET"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT);
+  });
+});
+
+// ========================================================================
+// This Prefix - Scoped Register Bitmap Field
+// ========================================================================
+describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
+  it("classifies this.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
+    const knownRegisters = new Set(["Motor_GPIO7"]);
+    const registerMemberTypes = new Map([["Motor_GPIO7_ICR1", "CtrlBits"]]);
+    const bitmapFields = new Map([
+      ["CtrlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
+    ]);
+    const deps = createMockDeps({
+      knownRegisters,
+      registerMemberTypes,
+      bitmapFields,
+      currentScope: "Motor",
+    });
+    const classifier = new AssignmentClassifier(deps);
+
+    const ctx = createMockContext({
+      identifiers: ["GPIO7", "ICR1", "Enable"],
+      hasThis: true,
+      postfixOpsCount: 3,
+      isSimpleIdentifier: false,
+    });
+
+    expect(classifier.classify(ctx)).toBe(
+      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
+    );
+  });
+});
+
+// ========================================================================
 // Member Chain
 // ========================================================================
 describe("AssignmentClassifier - Member Chain", () => {

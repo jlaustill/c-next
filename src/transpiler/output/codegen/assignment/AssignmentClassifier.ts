@@ -111,84 +111,119 @@ class AssignmentClassifier {
     }
 
     const ids = ctx.identifiers;
-
-    // Pattern: var.field (2 identifiers) - simple bitmap field
-    if (ids.length === 2 && ctx.subscripts.length === 0) {
-      const varName = ids[0];
-      const fieldName = ids[1];
-      const typeInfo = this.deps.typeRegistry.get(varName);
-
-      if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-        const fields = this.deps.symbols.bitmapFields.get(
-          typeInfo.bitmapTypeName,
-        );
-        if (fields?.has(fieldName)) {
-          const fieldInfo = fields.get(fieldName)!;
-          return fieldInfo.width === 1
-            ? AssignmentKind.BITMAP_FIELD_SINGLE_BIT
-            : AssignmentKind.BITMAP_FIELD_MULTI_BIT;
-        }
-      }
+    if (ctx.subscripts.length !== 0) {
+      return null;
     }
 
-    // Pattern: REG.MEMBER.field or struct.bitmapMember.field (3 identifiers)
-    if (ids.length === 3 && ctx.subscripts.length === 0) {
-      const firstName = ids[0];
-      const secondName = ids[1];
-      const fieldName = ids[2];
-
-      // Check if register member bitmap field: REG.MEMBER.field
-      if (this.deps.symbols.knownRegisters.has(firstName)) {
-        const fullRegMember = `${firstName}_${secondName}`;
-        const bitmapType =
-          this.deps.symbols.registerMemberTypes.get(fullRegMember);
-        if (bitmapType) {
-          const fields = this.deps.symbols.bitmapFields.get(bitmapType);
-          if (fields?.has(fieldName)) {
-            return AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
-          }
-        }
-      }
-
-      // Check if struct member bitmap field: struct.bitmapMember.field
-      if (!this.deps.symbols.knownRegisters.has(firstName)) {
-        const structTypeInfo = this.deps.typeRegistry.get(firstName);
-        if (
-          structTypeInfo &&
-          this.deps.isKnownStruct(structTypeInfo.baseType)
-        ) {
-          const memberInfo = this.deps.getMemberTypeInfo(
-            structTypeInfo.baseType,
-            secondName,
-          );
-          if (memberInfo) {
-            const memberBitmapType = memberInfo.baseType;
-            const fields = this.deps.symbols.bitmapFields.get(memberBitmapType);
-            if (fields?.has(fieldName)) {
-              return AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD;
-            }
-          }
-        }
-      }
+    if (ids.length === 2) {
+      return this.classifySimpleBitmapField(ids[0], ids[1]);
     }
 
-    // Pattern: Scope.REG.MEMBER.field (4 identifiers)
-    if (ids.length === 4 && ctx.subscripts.length === 0) {
-      const scopeName = ids[0];
-      if (this.deps.isKnownScope(scopeName)) {
-        const fullRegName = `${scopeName}_${ids[1]}`;
-        if (this.deps.symbols.knownRegisters.has(fullRegName)) {
-          const fullRegMember = `${fullRegName}_${ids[2]}`;
-          const bitmapType =
-            this.deps.symbols.registerMemberTypes.get(fullRegMember);
-          if (bitmapType) {
-            const fields = this.deps.symbols.bitmapFields.get(bitmapType);
-            if (fields?.has(ids[3])) {
-              return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
-            }
-          }
+    if (ids.length === 3) {
+      return this.classifyThreeIdBitmapField(ids[0], ids[1], ids[2]);
+    }
+
+    if (ids.length === 4) {
+      return this.classifyScopedRegisterBitmapField(ids);
+    }
+
+    return null;
+  }
+
+  /**
+   * Classify 2-id bitmap field: var.field
+   */
+  private classifySimpleBitmapField(
+    varName: string,
+    fieldName: string,
+  ): AssignmentKind | null {
+    const typeInfo = this.deps.typeRegistry.get(varName);
+    if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
+      return null;
+    }
+
+    const width = this.lookupBitmapFieldWidth(
+      typeInfo.bitmapTypeName,
+      fieldName,
+    );
+    if (width === null) {
+      return null;
+    }
+
+    return width === 1
+      ? AssignmentKind.BITMAP_FIELD_SINGLE_BIT
+      : AssignmentKind.BITMAP_FIELD_MULTI_BIT;
+  }
+
+  /**
+   * Classify 3-id bitmap field: REG.MEMBER.field or struct.bitmapMember.field
+   */
+  private classifyThreeIdBitmapField(
+    firstName: string,
+    secondName: string,
+    fieldName: string,
+  ): AssignmentKind | null {
+    // Check if register member bitmap field: REG.MEMBER.field
+    if (this.deps.symbols.knownRegisters.has(firstName)) {
+      const bitmapType = this.lookupRegisterMemberBitmapType(
+        firstName,
+        secondName,
+      );
+      if (bitmapType) {
+        const width = this.lookupBitmapFieldWidth(bitmapType, fieldName);
+        if (width !== null) {
+          return AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
         }
       }
+      return null;
+    }
+
+    // Check if struct member bitmap field: struct.bitmapMember.field
+    const structTypeInfo = this.deps.typeRegistry.get(firstName);
+    if (!structTypeInfo || !this.deps.isKnownStruct(structTypeInfo.baseType)) {
+      return null;
+    }
+
+    const memberInfo = this.deps.getMemberTypeInfo(
+      structTypeInfo.baseType,
+      secondName,
+    );
+    if (!memberInfo) {
+      return null;
+    }
+
+    const width = this.lookupBitmapFieldWidth(memberInfo.baseType, fieldName);
+    if (width !== null) {
+      return AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD;
+    }
+
+    return null;
+  }
+
+  /**
+   * Classify 4-id scoped register bitmap field: Scope.REG.MEMBER.field
+   */
+  private classifyScopedRegisterBitmapField(
+    ids: readonly string[],
+  ): AssignmentKind | null {
+    const scopeName = ids[0];
+    if (!this.deps.isKnownScope(scopeName)) {
+      return null;
+    }
+
+    const fullRegName = `${scopeName}_${ids[1]}`;
+    if (!this.deps.symbols.knownRegisters.has(fullRegName)) {
+      return null;
+    }
+
+    const bitmapType = this.lookupRegisterMemberBitmapType(fullRegName, ids[2]);
+    if (!bitmapType) {
+      return null;
+    }
+
+    const width = this.lookupBitmapFieldWidth(bitmapType, ids[3]);
+    if (width !== null) {
+      return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
     }
 
     return null;
@@ -202,7 +237,6 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
     // Need subscripts through memberAccess pattern
-    // (This covers the memberAccessCtx path in original code)
     if (!ctx.hasMemberAccess || ctx.subscripts.length === 0) {
       return null;
     }
@@ -217,57 +251,107 @@ class AssignmentClassifier {
     const typeInfo = this.deps.typeRegistry.get(firstId);
 
     // Multi-dimensional array element: arr[i][j] (1 identifier, multiple subscripts)
-    if (ids.length === 1 && ctx.subscripts.length > 0) {
-      if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-        const numDims = typeInfo.arrayDimensions.length;
-
-        // Check for bit indexing on array element
-        if (ctx.subscripts.length === numDims + 1) {
-          if (TypeCheckUtils.isInteger(typeInfo.baseType)) {
-            return AssignmentKind.ARRAY_ELEMENT_BIT;
-          }
-        }
-
-        // Normal multi-dimensional array access
-        return AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
-      }
+    if (ids.length === 1) {
+      return this.classifyMultiDimArrayAccess(typeInfo, ctx.subscripts.length);
     }
 
-    // Register bit access: REG.MEMBER[bit] or Scope.REG.MEMBER[bit]
-    if (ids.length >= 2 && ctx.subscripts.length > 0) {
-      // Check for scoped register
-      if (this.deps.isKnownScope(firstId) && ids.length >= 3) {
-        const scopedRegName = `${firstId}_${ids[1]}`;
-        if (this.deps.symbols.knownRegisters.has(scopedRegName)) {
-          return ctx.subscripts.length === 2
-            ? AssignmentKind.REGISTER_BIT_RANGE
-            : AssignmentKind.REGISTER_BIT;
-        }
+    // 2+ identifiers with subscripts: register bit or bitmap array
+    if (ids.length >= 2) {
+      const registerKind = this.classifyRegisterBitAccess(
+        ids,
+        ctx.subscripts.length,
+      );
+      if (registerKind !== null) {
+        return registerKind;
       }
 
-      // Check for non-scoped register
-      if (this.deps.symbols.knownRegisters.has(firstId)) {
-        return ctx.subscripts.length === 2
+      return this.classifyBitmapArrayField(
+        ids[1],
+        typeInfo,
+        ctx.subscripts.length,
+      );
+    }
+
+    return null;
+  }
+
+  /**
+   * Classify multi-dimensional array access: arr[i][j] or arr[i][j][bit]
+   */
+  private classifyMultiDimArrayAccess(
+    typeInfo: TTypeInfo | undefined,
+    subscriptCount: number,
+  ): AssignmentKind | null {
+    if (!typeInfo?.isArray || !typeInfo.arrayDimensions) {
+      return null;
+    }
+
+    const numDims = typeInfo.arrayDimensions.length;
+
+    // Check for bit indexing on array element
+    if (
+      subscriptCount === numDims + 1 &&
+      TypeCheckUtils.isInteger(typeInfo.baseType)
+    ) {
+      return AssignmentKind.ARRAY_ELEMENT_BIT;
+    }
+
+    return AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
+  }
+
+  /**
+   * Classify register bit access: REG.MEMBER[bit] or Scope.REG.MEMBER[bit]
+   */
+  private classifyRegisterBitAccess(
+    ids: readonly string[],
+    subscriptCount: number,
+  ): AssignmentKind | null {
+    const firstId = ids[0];
+
+    // Check for scoped register: Scope.REG.MEMBER[bit]
+    if (this.deps.isKnownScope(firstId) && ids.length >= 3) {
+      const scopedRegName = `${firstId}_${ids[1]}`;
+      if (this.deps.symbols.knownRegisters.has(scopedRegName)) {
+        return subscriptCount === 2
           ? AssignmentKind.REGISTER_BIT_RANGE
           : AssignmentKind.REGISTER_BIT;
       }
-
-      // Bitmap array element field: bitmapArr[i].field
-      if (ids.length === 2 && ctx.subscripts.length === 1) {
-        if (typeInfo?.isBitmap && typeInfo?.isArray) {
-          const bitmapType = typeInfo.bitmapTypeName;
-          if (bitmapType) {
-            const fields = this.deps.symbols.bitmapFields.get(bitmapType);
-            if (fields?.has(ids[1])) {
-              return AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD;
-            }
-          }
-        }
-      }
     }
 
-    // Let other classifiers (e.g., classifyString) try to handle this pattern
-    // MEMBER_CHAIN will be the fallback in classify() method
+    // Check for non-scoped register: REG.MEMBER[bit]
+    if (this.deps.symbols.knownRegisters.has(firstId)) {
+      return subscriptCount === 2
+        ? AssignmentKind.REGISTER_BIT_RANGE
+        : AssignmentKind.REGISTER_BIT;
+    }
+
+    return null;
+  }
+
+  /**
+   * Classify bitmap array element field: bitmapArr[i].field
+   */
+  private classifyBitmapArrayField(
+    secondId: string,
+    typeInfo: TTypeInfo | undefined,
+    subscriptCount: number,
+  ): AssignmentKind | null {
+    if (subscriptCount !== 1) {
+      return null;
+    }
+
+    if (!typeInfo?.isBitmap || !typeInfo.isArray || !typeInfo.bitmapTypeName) {
+      return null;
+    }
+
+    const width = this.lookupBitmapFieldWidth(
+      typeInfo.bitmapTypeName,
+      secondId,
+    );
+    if (width !== null) {
+      return AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD;
+    }
+
     return null;
   }
 
@@ -281,64 +365,79 @@ class AssignmentClassifier {
       return null;
     }
 
-    // === Global prefix ===
     if (ctx.hasGlobal && ctx.postfixOpsCount > 0) {
-      const firstId = ctx.identifiers[0];
-
-      if (ctx.hasArrayAccess) {
-        // global.reg[bit] or global.arr[i]
-        if (this.deps.symbols.knownRegisters.has(firstId)) {
-          return AssignmentKind.GLOBAL_REGISTER_BIT;
-        }
-        return AssignmentKind.GLOBAL_ARRAY;
-      }
-
-      // global.member (no subscripts)
-      return AssignmentKind.GLOBAL_MEMBER;
+      return this.classifyGlobalPrefix(ctx);
     }
 
-    // === This prefix ===
     if (ctx.hasThis && ctx.postfixOpsCount > 0) {
-      if (!this.deps.currentScope) {
-        // Will throw in handler, but classify for dispatch
-        return AssignmentKind.THIS_MEMBER;
-      }
-
-      const firstId = ctx.identifiers[0];
-      const scopedRegName = `${this.deps.currentScope}_${firstId}`;
-
-      if (ctx.hasArrayAccess) {
-        // this.reg[bit] or this.REG.MEMBER[bit] (scoped register bit access)
-        if (this.deps.symbols.knownRegisters.has(scopedRegName)) {
-          // Check for bit range vs single bit
-          const hasBitRange = ctx.postfixOps.some((op) => op.COMMA() !== null);
-          if (hasBitRange) {
-            return AssignmentKind.SCOPED_REGISTER_BIT_RANGE;
-          }
-          return AssignmentKind.SCOPED_REGISTER_BIT;
-        }
-        return AssignmentKind.THIS_ARRAY;
-      }
-
-      // this.REG.MEMBER.field (scoped register bitmap field)
-      if (
-        ctx.identifiers.length === 3 &&
-        this.deps.symbols.knownRegisters.has(scopedRegName)
-      ) {
-        const fullRegMember = `${scopedRegName}_${ctx.identifiers[1]}`;
-        const bitmapType =
-          this.deps.symbols.registerMemberTypes.get(fullRegMember);
-        if (bitmapType) {
-          // Handled as scoped register bitmap field
-          return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
-        }
-      }
-
-      // this.member
-      return AssignmentKind.THIS_MEMBER;
+      return this.classifyThisPrefix(ctx);
     }
 
     return null;
+  }
+
+  /**
+   * Classify global.* patterns: global.reg[bit], global.arr[i], global.member
+   */
+  private classifyGlobalPrefix(ctx: IAssignmentContext): AssignmentKind {
+    const firstId = ctx.identifiers[0];
+
+    if (ctx.hasArrayAccess) {
+      if (this.deps.symbols.knownRegisters.has(firstId)) {
+        return AssignmentKind.GLOBAL_REGISTER_BIT;
+      }
+      return AssignmentKind.GLOBAL_ARRAY;
+    }
+
+    return AssignmentKind.GLOBAL_MEMBER;
+  }
+
+  /**
+   * Classify this.* patterns: this.reg[bit], this.member, this.REG.MEMBER.field
+   */
+  private classifyThisPrefix(ctx: IAssignmentContext): AssignmentKind {
+    if (!this.deps.currentScope) {
+      return AssignmentKind.THIS_MEMBER;
+    }
+
+    const firstId = ctx.identifiers[0];
+    const scopedRegName = `${this.deps.currentScope}_${firstId}`;
+
+    if (ctx.hasArrayAccess) {
+      return this.classifyThisWithArrayAccess(ctx, scopedRegName);
+    }
+
+    // this.REG.MEMBER.field (scoped register bitmap field)
+    if (
+      ctx.identifiers.length === 3 &&
+      this.deps.symbols.knownRegisters.has(scopedRegName)
+    ) {
+      const bitmapType = this.lookupRegisterMemberBitmapType(
+        scopedRegName,
+        ctx.identifiers[1],
+      );
+      if (bitmapType) {
+        return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
+      }
+    }
+
+    return AssignmentKind.THIS_MEMBER;
+  }
+
+  /**
+   * Classify this.reg[bit] / this.arr[i] patterns with array access.
+   */
+  private classifyThisWithArrayAccess(
+    ctx: IAssignmentContext,
+    scopedRegName: string,
+  ): AssignmentKind {
+    if (this.deps.symbols.knownRegisters.has(scopedRegName)) {
+      const hasBitRange = ctx.postfixOps.some((op) => op.COMMA() !== null);
+      return hasBitRange
+        ? AssignmentKind.SCOPED_REGISTER_BIT_RANGE
+        : AssignmentKind.SCOPED_REGISTER_BIT;
+    }
+    return AssignmentKind.THIS_ARRAY;
   }
 
   /**
@@ -546,6 +645,33 @@ class AssignmentClassifier {
     }
 
     return null;
+  }
+
+  /**
+   * Look up a bitmap field's width by bitmap type name and field name.
+   * Returns the field width if found, or null if the bitmap/field doesn't exist.
+   */
+  private lookupBitmapFieldWidth(
+    bitmapTypeName: string,
+    fieldName: string,
+  ): number | null {
+    const fields = this.deps.symbols.bitmapFields.get(bitmapTypeName);
+    if (fields?.has(fieldName)) {
+      return fields.get(fieldName)!.width;
+    }
+    return null;
+  }
+
+  /**
+   * Look up the bitmap type for a register member (e.g., "REG_MEMBER" -> "BitmapType").
+   * Returns the bitmap type name if found, or null.
+   */
+  private lookupRegisterMemberBitmapType(
+    registerName: string,
+    memberName: string,
+  ): string | null {
+    const key = `${registerName}_${memberName}`;
+    return this.deps.symbols.registerMemberTypes.get(key) ?? null;
   }
 }
 
