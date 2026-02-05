@@ -5,7 +5,7 @@ import parseWithSymbols from "../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import TLanguage from "../../src/lib/types/TLanguage";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
-import { lastGoodOutputPath } from "./extension";
+import CNextExtensionContext from "./ExtensionContext";
 
 /**
  * Extended symbol info that includes source file path
@@ -418,7 +418,10 @@ function buildSymbolHover(
  * Falls back to C/C++ extension for stdlib functions via generated .c files
  */
 export default class CNextHoverProvider implements vscode.HoverProvider {
-  constructor(private workspaceIndex?: WorkspaceIndex) {}
+  constructor(
+    private workspaceIndex?: WorkspaceIndex,
+    private extensionContext?: CNextExtensionContext,
+  ) {}
 
   /**
    * Provide hover information for the given position
@@ -558,7 +561,9 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     }
 
     // Neither exists - check the cache for last-known-good path
-    const cachedPath = lastGoodOutputPath.get(document.uri.toString());
+    const outputPathCache =
+      this.extensionContext?.lastGoodOutputPath ?? new Map<string, string>();
+    const cachedPath = outputPathCache.get(document.uri.toString());
     if (cachedPath && fs.existsSync(cachedPath)) {
       return cachedPath;
     }

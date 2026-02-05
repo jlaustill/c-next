@@ -5,17 +5,7 @@ import parseWithSymbols from "../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import TSymbolKind from "../../src/lib/types/TSymbolKind";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
-import { lastGoodOutputPath, outputChannel } from "./extension";
-
-/**
- * Helper to log debug messages to the output channel
- */
-function debug(message: string): void {
-  if (outputChannel) {
-    outputChannel.appendLine(message);
-  }
-  console.log(message);
-}
+import CNextExtensionContext from "./ExtensionContext";
 
 /**
  * C-Next keywords for autocomplete
@@ -277,7 +267,20 @@ function createSymbolCompletion(symbol: ISymbolInfo): vscode.CompletionItem {
 export default class CNextCompletionProvider
   implements vscode.CompletionItemProvider
 {
-  constructor(private workspaceIndex?: WorkspaceIndex) {}
+  constructor(
+    private workspaceIndex?: WorkspaceIndex,
+    private extensionContext?: CNextExtensionContext,
+  ) {}
+
+  /**
+   * Log debug messages to the output channel and console
+   */
+  private debug(message: string): void {
+    if (this.extensionContext) {
+      this.extensionContext.debug(message);
+    }
+    console.log(message);
+  }
 
   /**
    * Find the output file path (.c or .cpp) for a .cnx document
@@ -299,7 +302,9 @@ export default class CNextCompletionProvider
     }
 
     // Neither exists - check the cache for last-known-good path
-    const cachedPath = lastGoodOutputPath.get(document.uri.toString());
+    const outputPathCache =
+      this.extensionContext?.lastGoodOutputPath ?? new Map<string, string>();
+    const cachedPath = outputPathCache.get(document.uri.toString());
     if (cachedPath && fs.existsSync(cachedPath)) {
       return cachedPath;
     }
@@ -319,7 +324,7 @@ export default class CNextCompletionProvider
     const lineText = document.lineAt(position).text;
     const linePrefix = lineText.substring(0, position.character);
 
-    debug(`C-Next: provideCompletionItems called, linePrefix="${linePrefix}"`);
+    this.debug(`C-Next: provideCompletionItems called, linePrefix="${linePrefix}"`);
 
     // Parse document to get symbols
     const source = document.getText();
@@ -328,11 +333,11 @@ export default class CNextCompletionProvider
 
     // Determine current scope context for this/global resolution
     const currentScope = this.getCurrentScope(source, position);
-    debug(`C-Next DEBUG: Current scope at cursor: ${currentScope ?? "global"}`);
+    this.debug(`C-Next DEBUG: Current scope at cursor: ${currentScope ?? "global"}`);
 
     // Determine current function (to filter from completions - no recursion allowed)
     const currentFunction = this.getCurrentFunction(source, position);
-    debug(
+    this.debug(
       `C-Next DEBUG: Current function at cursor: ${currentFunction ?? "none"}`,
     );
 
@@ -340,7 +345,7 @@ export default class CNextCompletionProvider
     // Captures chained access like "this.GPIO7." as well as simple "this."
     // Pattern: capture everything before the final dot, then the partial after
     const memberMatch = linePrefix.match(/((?:\w+\.)+)\s*(\w*)$/);
-    debug(
+    this.debug(
       `C-Next DEBUG: memberMatch result: ${memberMatch ? JSON.stringify(memberMatch) : "null"}`,
     );
 
@@ -349,7 +354,7 @@ export default class CNextCompletionProvider
       const chainStr = memberMatch[1]; // e.g., "this.GPIO7."
       const chain = chainStr.split(".").filter((s) => s.length > 0);
       const partialMember = memberMatch[2];
-      debug(
+      this.debug(
         `C-Next DEBUG: Detected member access - chain=[${chain.join(", ")}], partial="${partialMember}"`,
       );
 
@@ -360,7 +365,7 @@ export default class CNextCompletionProvider
         currentScope,
         currentFunction,
       );
-      debug(
+      this.debug(
         `C-Next DEBUG: getMemberCompletions returned ${cnextMembers.length} items`,
       );
 
@@ -398,27 +403,27 @@ export default class CNextCompletionProvider
 
     // Default: return all top-level symbols + keywords + types + header symbols
     const cnextCompletions = this.getGlobalCompletions(symbols, document.uri);
-    debug(`C-Next: Got ${cnextCompletions.length} C-Next completions`);
+    this.debug(`C-Next: Got ${cnextCompletions.length} C-Next completions`);
 
     // Get the current word prefix for filtering C/C++ completions
     const wordMatch = linePrefix.match(/(\w+)$/);
     const prefix = wordMatch ? wordMatch[1].toLowerCase() : "";
-    debug(`C-Next: Word prefix="${prefix}", length=${prefix.length}`);
+    this.debug(`C-Next: Word prefix="${prefix}", length=${prefix.length}`);
 
     // Only query C/C++ if user has typed at least 2 characters (reduces noise)
     if (prefix.length >= 2) {
-      debug(`C-Next: Querying C/C++ extension for prefix "${prefix}"`);
+      this.debug(`C-Next: Querying C/C++ extension for prefix "${prefix}"`);
       const cppCompletions = await this.queryCExtensionGlobalCompletions(
         document,
         prefix,
       );
-      debug(`C-Next: Got ${cppCompletions.length} C/C++ completions`);
+      this.debug(`C-Next: Got ${cppCompletions.length} C/C++ completions`);
       const merged = this.mergeCompletions(cnextCompletions, cppCompletions);
-      debug(`C-Next: Returning ${merged.length} total completions`);
+      this.debug(`C-Next: Returning ${merged.length} total completions`);
       return merged;
     }
 
-    debug(`C-Next: Prefix too short, returning only C-Next completions`);
+    this.debug(`C-Next: Prefix too short, returning only C-Next completions`);
     return cnextCompletions;
   }
 
@@ -437,7 +442,7 @@ export default class CNextCompletionProvider
     let braceDepth = 0;
     let scopeStartDepth = 0;
 
-    debug(`C-Next DEBUG: getCurrentScope called for line ${position.line}`);
+    this.debug(`C-Next DEBUG: getCurrentScope called for line ${position.line}`);
 
     // Only scan up to the cursor line
     for (
@@ -468,7 +473,7 @@ export default class CNextCompletionProvider
         currentScope = scopeMatch[1];
         scopeStartDepth = braceDepth;
         braceDepth++; // Count the opening brace
-        debug(
+        this.debug(
           `C-Next DEBUG: Found scope "${currentScope}" at line ${lineNum}, braceDepth now ${braceDepth}`,
         );
         continue;
@@ -481,7 +486,7 @@ export default class CNextCompletionProvider
           braceDepth--;
           // If we've exited the scope's braces, clear current scope
           if (currentScope && braceDepth <= scopeStartDepth) {
-            debug(
+            this.debug(
               `C-Next DEBUG: Exited scope "${currentScope}" at line ${lineNum}, braceDepth now ${braceDepth}`,
             );
             currentScope = null;
@@ -491,7 +496,7 @@ export default class CNextCompletionProvider
       }
     }
 
-    debug(
+    this.debug(
       `C-Next DEBUG: getCurrentScope returning: ${currentScope ?? "null (global)"}`,
     );
     return currentScope;
@@ -591,7 +596,7 @@ export default class CNextCompletionProvider
       currentParent = chain[0];
     }
 
-    debug(
+    this.debug(
       `C-Next DEBUG: Resolving chain [${chain.join(", ")}], starting parent="${currentParent}"`,
     );
 
@@ -615,7 +620,7 @@ export default class CNextCompletionProvider
         );
       }
 
-      debug(
+      this.debug(
         `C-Next DEBUG:   Step ${i}: Looking for "${memberName}" with parent="${currentParent}" -> ${symbol ? `found (kind=${symbol.kind}, type=${symbol.type})` : "not found"}`,
       );
 
@@ -624,7 +629,7 @@ export default class CNextCompletionProvider
         currentParent = currentParent
           ? `${currentParent}_${memberName}`
           : memberName;
-        debug(`C-Next DEBUG:   Fallback: concatenated to "${currentParent}"`);
+        this.debug(`C-Next DEBUG:   Fallback: concatenated to "${currentParent}"`);
         continue;
       }
 
@@ -641,7 +646,7 @@ export default class CNextCompletionProvider
         // Symbol has a fullName and there are children using it as parent
         // This handles bitmap/struct TYPE definitions whose fields use fullName as parent
         currentParent = symbol.fullName;
-        debug(
+        this.debug(
           `C-Next DEBUG:   Using fullName: "${memberName}" -> parent="${currentParent}"`,
         );
       } else if (symbol.type) {
@@ -667,13 +672,13 @@ export default class CNextCompletionProvider
           } else {
             currentParent = typeSymbol.name;
           }
-          debug(
+          this.debug(
             `C-Next DEBUG:   Type-aware: "${memberName}" has type "${typeName}" -> parent="${currentParent}"`,
           );
         } else {
           // Type not found as symbol, just use the type name with scope prefix
           currentParent = scopedTypeName;
-          debug(
+          this.debug(
             `C-Next DEBUG:   Type "${typeName}" not found as symbol, using "${currentParent}"`,
           );
         }
@@ -685,7 +690,7 @@ export default class CNextCompletionProvider
       }
     }
 
-    debug(
+    this.debug(
       `C-Next DEBUG: Resolved chain [${chain.join(", ")}] to "${currentParent}"`,
     );
     return currentParent;
@@ -707,16 +712,16 @@ export default class CNextCompletionProvider
     currentScope: string | null,
     currentFunction: string | null,
   ): vscode.CompletionItem[] {
-    debug(
+    this.debug(
       `C-Next DEBUG: getMemberCompletions called with chain=[${chain.join(", ")}], currentScope="${currentScope}", currentFunction="${currentFunction}"`,
     );
-    debug(`C-Next DEBUG: Total symbols available: ${symbols.length}`);
+    this.debug(`C-Next DEBUG: Total symbols available: ${symbols.length}`);
 
     // Debug: log all unique parent values
     const uniqueParents = [
       ...new Set(symbols.map((s) => s.parent ?? "<no-parent>")),
     ];
-    debug(`C-Next DEBUG: Unique parent values: ${uniqueParents.join(", ")}`);
+    this.debug(`C-Next DEBUG: Unique parent values: ${uniqueParents.join(", ")}`);
 
     if (chain.length === 0) {
       return [];
@@ -729,10 +734,10 @@ export default class CNextCompletionProvider
       // Handle special keyword: this
       if (parentName === "this") {
         if (!currentScope) {
-          debug('C-Next DEBUG: "this." used outside of scope - no completions');
+          this.debug('C-Next DEBUG: "this." used outside of scope - no completions');
           return [];
         }
-        debug(`C-Next DEBUG: "this." resolving to scope "${currentScope}"`);
+        this.debug(`C-Next DEBUG: "this." resolving to scope "${currentScope}"`);
 
         // Find all symbols that belong to the current scope
         // Filter out the current function (no recursion allowed)
@@ -741,18 +746,18 @@ export default class CNextCompletionProvider
             s.parent === currentScope &&
             !(s.kind === "function" && s.name === currentFunction),
         );
-        debug(
+        this.debug(
           `C-Next DEBUG: Found ${scopeMembers.length} members for scope "${currentScope}"`,
         );
         scopeMembers.forEach((s) =>
-          debug(`C-Next DEBUG:   - ${s.name} (${s.kind}, parent=${s.parent})`),
+          this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind}, parent=${s.parent})`),
         );
         return scopeMembers.map(createSymbolCompletion);
       }
 
       // Handle special keyword: global
       if (parentName === "global") {
-        debug('C-Next DEBUG: "global." showing top-level symbols');
+        this.debug('C-Next DEBUG: "global." showing top-level symbols');
 
         // Find all top-level symbols (no parent, excluding scope definitions themselves)
         // Also filter out current function if at global level
@@ -762,16 +767,16 @@ export default class CNextCompletionProvider
             s.kind !== "namespace" &&
             !(s.kind === "function" && s.name === currentFunction),
         );
-        debug(`C-Next DEBUG: Found ${globalSymbols.length} global symbols`);
+        this.debug(`C-Next DEBUG: Found ${globalSymbols.length} global symbols`);
         globalSymbols.forEach((s) =>
-          debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`),
+          this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`),
         );
         return globalSymbols.map(createSymbolCompletion);
       }
 
       // Regular member access: find all symbols with this parent
       const members = symbols.filter((s) => s.parent === parentName);
-      debug(
+      this.debug(
         `C-Next DEBUG: Found ${members.length} members with parent="${parentName}"`,
       );
 
@@ -785,13 +790,13 @@ export default class CNextCompletionProvider
       );
       if (parentSymbol) {
         const memberSymbols = symbols.filter((s) => s.parent === parentName);
-        debug(
+        this.debug(
           `C-Next DEBUG: Found parent symbol "${parentName}", ${memberSymbols.length} members`,
         );
         return memberSymbols.map(createSymbolCompletion);
       }
 
-      debug(`C-Next DEBUG: No members found for parent="${parentName}"`);
+      this.debug(`C-Next DEBUG: No members found for parent="${parentName}"`);
       return [];
     }
 
@@ -803,18 +808,18 @@ export default class CNextCompletionProvider
       symbols,
     );
     if (!resolvedParent) {
-      debug(`C-Next DEBUG: Could not resolve chain [${chain.join(", ")}]`);
+      this.debug(`C-Next DEBUG: Could not resolve chain [${chain.join(", ")}]`);
       return [];
     }
 
-    debug(`C-Next DEBUG: Looking for members with parent="${resolvedParent}"`);
+    this.debug(`C-Next DEBUG: Looking for members with parent="${resolvedParent}"`);
 
     // Find all symbols with the resolved parent
     const members = symbols.filter((s) => s.parent === resolvedParent);
-    debug(
+    this.debug(
       `C-Next DEBUG: Found ${members.length} members for resolved parent "${resolvedParent}"`,
     );
-    members.forEach((s) => debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`));
+    members.forEach((s) => this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`));
 
     return members.map(createSymbolCompletion);
   }
@@ -972,14 +977,14 @@ export default class CNextCompletionProvider
           outputSource,
           parentName,
         );
-        debug(`C-Next: Looking for "${parentName}." in output file`);
+        this.debug(`C-Next: Looking for "${parentName}." in output file`);
         if (memberPosition) {
           queryPosition = memberPosition;
-          debug(
+          this.debug(
             `C-Next: Found "${parentName}." at ${memberPosition.line}:${memberPosition.character}`,
           );
         } else {
-          debug(`C-Next: "${parentName}." not found in output file`);
+          this.debug(`C-Next: "${parentName}." not found in output file`);
           // Parent not found in output - can't provide completions
           return [];
         }
@@ -994,7 +999,7 @@ export default class CNextCompletionProvider
           context.triggerCharacter || ".",
         );
 
-      debug(
+      this.debug(
         `C-Next: Member completion query returned ${completionList?.items?.length || 0} items`,
       );
 
@@ -1003,7 +1008,7 @@ export default class CNextCompletionProvider
         const firstFew = completionList.items
           .slice(0, 5)
           .map((i) => (typeof i.label === "string" ? i.label : i.label.label));
-        debug(`C-Next: First 5 member completions: ${firstFew.join(", ")}`);
+        this.debug(`C-Next: First 5 member completions: ${firstFew.join(", ")}`);
 
         // Mark items as coming from C/C++ extension
         return completionList.items.map((item) => {
@@ -1041,13 +1046,13 @@ export default class CNextCompletionProvider
     document: vscode.TextDocument,
     prefix: string,
   ): Promise<vscode.CompletionItem[]> {
-    debug(
+    this.debug(
       `C-Next: queryCExtensionGlobalCompletions called with prefix="${prefix}"`,
     );
 
     // Find the output file (uses cache if current file has parse errors)
     const outputPath = this.findOutputPath(document);
-    debug(`C-Next: findOutputPath returned: ${outputPath}`);
+    this.debug(`C-Next: findOutputPath returned: ${outputPath}`);
     if (!outputPath) {
       console.log("C-Next: No output path found, returning empty");
       return [];
@@ -1062,7 +1067,7 @@ export default class CNextCompletionProvider
 
       // Find a position inside a function body where global objects are valid
       const queryPosition = this.findPositionInsideFunction(outputSource);
-      debug(
+      this.debug(
         `C-Next: Querying C/C++ at position ${queryPosition.line}:${queryPosition.character}`,
       );
 
@@ -1075,7 +1080,7 @@ export default class CNextCompletionProvider
           prefix.charAt(0), // Pass first char as trigger
         );
 
-      debug(
+      this.debug(
         `C-Next: C/C++ returned ${completionList?.items?.length || 0} items`,
       );
 
@@ -1089,13 +1094,13 @@ export default class CNextCompletionProvider
         // Write to temp file for inspection
         const debugPath = "/tmp/cnext-completions.txt";
         fs.writeFileSync(debugPath, allLabels.join("\n"), "utf-8");
-        debug(`C-Next: Wrote ${allLabels.length} items to ${debugPath}`);
+        this.debug(`C-Next: Wrote ${allLabels.length} items to ${debugPath}`);
 
         // Check if Serial is in the list
         const hasSerial = allLabels.some((l) =>
           l.toLowerCase().includes("serial"),
         );
-        debug(`C-Next: Contains 'serial': ${hasSerial}`);
+        this.debug(`C-Next: Contains 'serial': ${hasSerial}`);
 
         // Add filtered completion items
         for (const item of completionList.items) {
@@ -1112,7 +1117,7 @@ export default class CNextCompletionProvider
       }
 
       // Also query workspace symbols to find globals like Serial
-      debug(`C-Next: Querying workspace symbols for "${prefix}"`);
+      this.debug(`C-Next: Querying workspace symbols for "${prefix}"`);
       const symbols = await vscode.commands.executeCommand<
         vscode.SymbolInformation[]
       >("vscode.executeWorkspaceSymbolProvider", prefix);
@@ -1120,15 +1125,15 @@ export default class CNextCompletionProvider
       // Write workspace symbols to separate debug file
       const wsDebugPath = "/tmp/cnext-workspace-symbols.txt";
       if (symbols?.length) {
-        debug(`C-Next: Found ${symbols.length} workspace symbols`);
+        this.debug(`C-Next: Found ${symbols.length} workspace symbols`);
         const symbolDetails = symbols.map(
           (s) =>
             `${s.name} (${vscode.SymbolKind[s.kind]}) - ${s.location.uri.fsPath}`,
         );
         fs.writeFileSync(wsDebugPath, symbolDetails.join("\n"), "utf-8");
-        debug(`C-Next: Wrote workspace symbols to ${wsDebugPath}`);
+        this.debug(`C-Next: Wrote workspace symbols to ${wsDebugPath}`);
         const symbolLabels = symbols.slice(0, 10).map((s) => s.name);
-        debug(`C-Next: First 10 workspace symbols: ${symbolLabels.join(", ")}`);
+        this.debug(`C-Next: First 10 workspace symbols: ${symbolLabels.join(", ")}`);
 
         // Add symbols that aren't already in completions
         const existingLabels = new Set(
@@ -1166,13 +1171,13 @@ export default class CNextCompletionProvider
           const item = new vscode.CompletionItem(arduino.name, arduino.kind);
           item.detail = arduino.detail;
           allItems.push(item);
-          debug(`C-Next: Added Arduino fallback: ${arduino.name}`);
+          this.debug(`C-Next: Added Arduino fallback: ${arduino.name}`);
         }
       }
 
       // Limit results
       const limited = allItems.slice(0, 30);
-      debug(`C-Next: Returning ${limited.length} total items`);
+      this.debug(`C-Next: Returning ${limited.length} total items`);
       return limited;
     } catch (err) {
       console.error("C-Next: Failed to query C/C++ global completions:", err);
@@ -1252,7 +1257,7 @@ export default class CNextCompletionProvider
       ) {
         // Find the indentation level
         const indent = line.match(/^(\s+)/)?.[1].length || 4;
-        debug(
+        this.debug(
           `C-Next: Querying inside function at line ${i}, indent ${indent}: "${trimmed.substring(0, 20)}..."`,
         );
         return new vscode.Position(i, indent);
@@ -1269,12 +1274,12 @@ export default class CNextCompletionProvider
           line.includes("setup") ||
           line.includes("loop"))
       ) {
-        debug(`C-Next: Found function opening at line ${i}`);
+        this.debug(`C-Next: Found function opening at line ${i}`);
         return new vscode.Position(i + 1, 4); // Position inside function with indent
       }
     }
 
-    debug(`C-Next: Fallback to line 0`);
+    this.debug(`C-Next: Fallback to line 0`);
     return new vscode.Position(0, 0);
   }
 

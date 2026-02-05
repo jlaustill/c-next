@@ -11,6 +11,7 @@ import CNextCompletionProvider from "./completionProvider";
 import CNextHoverProvider from "./hoverProvider";
 import CNextDefinitionProvider from "./definitionProvider";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import CNextExtensionContext from "./ExtensionContext";
 
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
@@ -57,16 +58,10 @@ function loadConfig(startDir: string): ICNextConfig {
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
 let workspaceIndex: WorkspaceIndex;
-
-// Debug output channel - exported for use by other modules
-export let outputChannel: vscode.OutputChannel;
+let extensionContext: CNextExtensionContext;
 
 // Track last successful transpilation per file (to avoid writing bad code)
 const lastGoodTranspile: Map<string, string> = new Map();
-
-// Track last-good output file paths for completion/hover queries
-// This allows completions to work even when current code has parse errors
-export const lastGoodOutputPath: Map<string, string> = new Map();
 
 // Debounce timers for .c file generation
 const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
@@ -167,7 +162,7 @@ function transpileToFile(document: vscode.TextDocument): void {
       fs.writeFileSync(outputPath, result.code, "utf-8");
       // Cache the output path for completion/hover queries
       // This allows completions to work even when current code has parse errors
-      lastGoodOutputPath.set(document.uri.toString(), outputPath);
+      extensionContext.lastGoodOutputPath.set(document.uri.toString(), outputPath);
     } catch (err) {
       // Silently fail - don't interrupt the user's workflow
       console.error("C-Next: Failed to write output file:", err);
@@ -206,8 +201,9 @@ export function activate(context: vscode.ExtensionContext): void {
   console.log("C-Next extension activated");
 
   // Create output channel for debug logging
-  outputChannel = vscode.window.createOutputChannel("C-Next");
+  const outputChannel = vscode.window.createOutputChannel("C-Next");
   context.subscriptions.push(outputChannel);
+  extensionContext = new CNextExtensionContext(outputChannel);
   outputChannel.appendLine("C-Next extension activated");
 
   // Create diagnostic collection for errors
@@ -278,7 +274,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register completion provider
   const completionProvider = vscode.languages.registerCompletionItemProvider(
     "cnext",
-    new CNextCompletionProvider(workspaceIndex),
+    new CNextCompletionProvider(workspaceIndex, extensionContext),
     ".", // Trigger on dot for member access
   );
   context.subscriptions.push(completionProvider);
@@ -286,7 +282,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register hover provider
   const hoverProvider = vscode.languages.registerHoverProvider(
     "cnext",
-    new CNextHoverProvider(workspaceIndex),
+    new CNextHoverProvider(workspaceIndex, extensionContext),
   );
   context.subscriptions.push(hoverProvider);
 
