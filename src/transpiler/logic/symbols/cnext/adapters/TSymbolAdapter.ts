@@ -132,6 +132,8 @@ class TSymbolAdapter {
     });
 
     // Create EnumMember symbols for hover/autocomplete
+    // Note: sourceLine points to the enum declaration — IEnumSymbol.members
+    // is Map<string, number> (name → value) with no per-member line info.
     for (const [memberName, memberValue] of enumSym.members) {
       result.push({
         name: memberName,

@@ -305,11 +305,19 @@ function formatSourceFooter(
  * e.g., "Scope_method" → "Scope.method"
  * Checks local symbols first, then workspace index for cross-file resolution.
  */
+/** Max recursion depth for parent chain resolution (guard against cycles) */
+const MAX_PARENT_DEPTH = 10;
+
 function resolveDisplayParent(
   parent: string,
   symbols: ISymbolInfo[],
   workspaceIndex?: WorkspaceIndex,
+  depth: number = 0,
 ): string {
+  if (depth >= MAX_PARENT_DEPTH) {
+    return parent;
+  }
+
   // Search local symbols first, then workspace-wide
   let parentSymbol = symbols.find((s) => s.fullName === parent);
   if (!parentSymbol && workspaceIndex) {
@@ -323,6 +331,7 @@ function resolveDisplayParent(
       parentSymbol.parent,
       symbols,
       workspaceIndex,
+      depth + 1,
     );
     return `${resolvedGrandparent}.${parentSymbol.name}`;
   }
@@ -564,6 +573,9 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     // Resolve C-Next qualifiers: "this" → current scope, "global" → scope lookup
     if (parentName === "this") {
       // "this.X" means X is a member of the enclosing scope
+      // TODO: This picks the first scope in the file, not the one enclosing
+      // the cursor. Fine for single-scope files; needs position-aware lookup
+      // for multi-scope files.
       const enclosingScope = symbols.find(
         (s) => s.kind === "namespace" || s.kind === "scope",
       );
@@ -714,16 +726,18 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
         }
 
         // Post-process hover contents: replace C++ :: with C-Next dot notation
+        // Only replace :: between word characters (avoids https://, etc.)
+        const scopeOpRegex = /(\w)::(\w)/g;
         const contents = hover.contents.map((content) => {
           if (content instanceof vscode.MarkdownString) {
             const fixed = new vscode.MarkdownString(
-              content.value.replace(/::/g, "."),
+              content.value.replace(scopeOpRegex, "$1.$2"),
             );
             fixed.isTrusted = true;
             return fixed;
           }
           if (typeof content === "string") {
-            return content.replace(/::/g, ".");
+            return content.replace(scopeOpRegex, "$1.$2");
           }
           return content;
         });
