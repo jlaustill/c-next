@@ -7481,6 +7481,8 @@ export default class CodeGenerator implements IOrchestrator {
       }
       return `((${registerName} >> ${start}) & ${mask})`;
     }
+    // >2 expressions: validated read access above, but fall through to
+    // generic array handling (register pattern only handles 1-2 subscripts)
     return null;
   }
 
