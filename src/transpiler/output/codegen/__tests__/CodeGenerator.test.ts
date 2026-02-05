@@ -4387,6 +4387,42 @@ describe("CodeGenerator", () => {
       expect(code).toContain("small");
     });
 
+    it("should throw with line:column prefix for narrowing declaration", () => {
+      const source = `void test() {
+  u32 large <- 1000;
+  u8 small <- large;
+}`;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      expect(() =>
+        generator.generate(tree, undefined, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        }),
+      ).toThrow(/^3:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/);
+    });
+
+    it("should throw with line:column prefix for literal overflow", () => {
+      const source = `void test() {
+  u8 ok <- 200;
+  u8 overflow <- 300;
+}`;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      expect(() =>
+        generator.generate(tree, undefined, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        }),
+      ).toThrow(/^3:\d+ Error: Value 300 exceeds u8 range/);
+    });
+
     it("should generate bit extraction for narrowing", () => {
       const source = `
         u32 big <- 1000;

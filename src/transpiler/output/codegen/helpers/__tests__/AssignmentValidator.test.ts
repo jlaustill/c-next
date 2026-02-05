@@ -163,6 +163,40 @@ describe("AssignmentValidator", () => {
         true,
       );
     });
+
+    it("should rethrow validation error with line:column prefix", () => {
+      typeRegistry.set("counter", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+      });
+      mockTypeValidator.validateIntegerAssignment.mockImplementation(() => {
+        throw new Error("Error: Cannot assign u32 to u8 (narrowing)");
+      });
+      const { target, expression } = parseAssignment("counter");
+
+      expect(() => validator.validate(target, expression, false, 1)).toThrow(
+        /^\d+:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/,
+      );
+    });
+
+    it("should handle non-Error validation exceptions", () => {
+      typeRegistry.set("counter", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+      });
+      mockTypeValidator.validateIntegerAssignment.mockImplementation(() => {
+        throw "string error";
+      });
+      const { target, expression } = parseAssignment("counter");
+
+      expect(() => validator.validate(target, expression, false, 1)).toThrow(
+        /^\d+:\d+ string error/,
+      );
+    });
   });
 
   describe("validate() - array element", () => {

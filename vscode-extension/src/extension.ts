@@ -1,19 +1,14 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  transpile,
-  ITranspileResult,
-  ITranspileError,
-} from "../../src/lib/transpiler";
+import transpile from "../../src/lib/transpiler";
 import PreviewProvider from "./previewProvider";
 import CNextCompletionProvider from "./completionProvider";
 import CNextHoverProvider from "./hoverProvider";
 import CNextDefinitionProvider from "./definitionProvider";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
-
-// Re-export for use by other modules
-export { transpile, ITranspileResult, ITranspileError };
+import CNextExtensionContext from "./ExtensionContext";
+import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
 
 /**
  * C-Next configuration file options
@@ -57,19 +52,19 @@ function loadConfig(startDir: string): ICNextConfig {
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
 let workspaceIndex: WorkspaceIndex;
-
-// Debug output channel - exported for use by other modules
-export let outputChannel: vscode.OutputChannel;
+let extensionContext: CNextExtensionContext;
 
 // Track last successful transpilation per file (to avoid writing bad code)
 const lastGoodTranspile: Map<string, string> = new Map();
 
-// Track last-good output file paths for completion/hover queries
-// This allows completions to work even when current code has parse errors
-export const lastGoodOutputPath: Map<string, string> = new Map();
-
 // Debounce timers for .c file generation
 const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
+
+// Debounce timer for diagnostics validation
+let validateTimeout: NodeJS.Timeout | null = null;
+
+// Debounce timer for active editor switches
+let editorSwitchTimeout: NodeJS.Timeout | null = null;
 
 /**
  * Validate a C-Next document and update diagnostics
@@ -167,7 +162,10 @@ function transpileToFile(document: vscode.TextDocument): void {
       fs.writeFileSync(outputPath, result.code, "utf-8");
       // Cache the output path for completion/hover queries
       // This allows completions to work even when current code has parse errors
-      lastGoodOutputPath.set(document.uri.toString(), outputPath);
+      extensionContext.lastGoodOutputPath.set(
+        document.uri.toString(),
+        outputPath,
+      );
     } catch (err) {
       // Silently fail - don't interrupt the user's workflow
       console.error("C-Next: Failed to write output file:", err);
@@ -206,8 +204,9 @@ export function activate(context: vscode.ExtensionContext): void {
   console.log("C-Next extension activated");
 
   // Create output channel for debug logging
-  outputChannel = vscode.window.createOutputChannel("C-Next");
+  const outputChannel = vscode.window.createOutputChannel("C-Next");
   context.subscriptions.push(outputChannel);
+  extensionContext = new CNextExtensionContext(outputChannel);
   outputChannel.appendLine("C-Next extension activated");
 
   // Create diagnostic collection for errors
@@ -278,7 +277,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register completion provider
   const completionProvider = vscode.languages.registerCompletionItemProvider(
     "cnext",
-    new CNextCompletionProvider(workspaceIndex),
+    new CNextCompletionProvider(workspaceIndex, extensionContext),
     ".", // Trigger on dot for member access
   );
   context.subscriptions.push(completionProvider);
@@ -286,7 +285,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register hover provider
   const hoverProvider = vscode.languages.registerHoverProvider(
     "cnext",
-    new CNextHoverProvider(workspaceIndex),
+    new CNextHoverProvider(workspaceIndex, extensionContext),
   );
   context.subscriptions.push(hoverProvider);
 
@@ -304,15 +303,18 @@ export function activate(context: vscode.ExtensionContext): void {
     transpileToFile(doc); // Immediate transpile on open
   }
 
-  // Document change handler with debouncing for diagnostics
-  let validateTimeout: NodeJS.Timeout | null = null;
-
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor?.document.languageId === "cnext") {
-        validateDocument(editor.document);
-        previewProvider.onActiveEditorChange(editor);
-        transpileToFile(editor.document); // Ensure .c file exists
+        if (editorSwitchTimeout) {
+          clearTimeout(editorSwitchTimeout);
+        }
+        editorSwitchTimeout = setTimeout(() => {
+          validateDocument(editor.document);
+          previewProvider.onActiveEditorChange(editor);
+          transpileToFile(editor.document);
+          editorSwitchTimeout = null;
+        }, EDITOR_SWITCH_DEBOUNCE_MS);
       }
     }),
 
@@ -324,7 +326,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         validateTimeout = setTimeout(() => {
           validateDocument(event.document);
-        }, 300);
+        }, DIAGNOSTIC_DEBOUNCE_MS);
 
         // Update preview (has its own debouncing)
         previewProvider.onDocumentChange(event.document);
@@ -350,6 +352,25 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   console.log("C-Next extension deactivated");
+
+  // Clear any pending validation timeout
+  if (validateTimeout) {
+    clearTimeout(validateTimeout);
+    validateTimeout = null;
+  }
+
+  // Clear any pending editor switch timeout
+  if (editorSwitchTimeout) {
+    clearTimeout(editorSwitchTimeout);
+    editorSwitchTimeout = null;
+  }
+
+  // Clear all pending transpile timers
+  for (const timer of transpileTimers.values()) {
+    clearTimeout(timer);
+  }
+  transpileTimers.clear();
+
   if (diagnosticCollection) {
     diagnosticCollection.dispose();
   }

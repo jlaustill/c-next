@@ -107,6 +107,40 @@ describe("Transpiler", () => {
         expect(result.success).toBe(true);
       });
 
+      it("reports narrowing error at the correct line", async () => {
+        const transpiler = new Transpiler(
+          { inputs: [], noCache: true },
+          mockFs,
+        );
+
+        const result = await transpiler.transpileSource(
+          `void test() {\n  u32 large <- 1000;\n  u8 small <- large;\n}`,
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].line).toBe(3);
+        expect(result.errors[0].column).toBe(2);
+        expect(result.errors[0].message).toContain("narrowing");
+      });
+
+      it("defaults to line 1 for errors without location info", async () => {
+        const transpiler = new Transpiler(
+          { inputs: [], noCache: true },
+          mockFs,
+        );
+
+        // Ternary with bare variable produces error without line prefix
+        const result = await transpiler.transpileSource(
+          `void test() { u32 x <- 5; u32 r <- (x) ? 1 : 0; }`,
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.errors[0].line).toBe(1);
+        expect(result.errors[0].column).toBe(0);
+        expect(result.errors[0].message).toContain("Code generation failed");
+      });
+
       it("transpiles various C-Next types correctly", async () => {
         const transpiler = new Transpiler(
           { inputs: [], noCache: true },

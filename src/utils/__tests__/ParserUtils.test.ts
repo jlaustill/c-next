@@ -101,4 +101,84 @@ describe("ParserUtils", () => {
       expect(pos.column).toBe(0);
     });
   });
+
+  describe("parseErrorLocation", () => {
+    it("should extract line:column prefix from error message", () => {
+      const result = ParserUtils.parseErrorLocation(
+        "8:4 Error: Cannot assign u32 to u8 (narrowing)",
+      );
+      expect(result.line).toBe(8);
+      expect(result.column).toBe(4);
+      expect(result.message).toBe("Error: Cannot assign u32 to u8 (narrowing)");
+    });
+
+    it("should handle line 1 column 0", () => {
+      const result = ParserUtils.parseErrorLocation("1:0 Some error");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("Some error");
+    });
+
+    it("should handle large line numbers", () => {
+      const result = ParserUtils.parseErrorLocation(
+        "999:42 Overflow at boundary",
+      );
+      expect(result.line).toBe(999);
+      expect(result.column).toBe(42);
+      expect(result.message).toBe("Overflow at boundary");
+    });
+
+    it("should default to line 1 column 0 when no prefix found", () => {
+      const result = ParserUtils.parseErrorLocation(
+        "Error: something went wrong",
+      );
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("Error: something went wrong");
+    });
+
+    it("should default for empty string", () => {
+      const result = ParserUtils.parseErrorLocation("");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("");
+    });
+
+    it("should not match non-numeric prefix", () => {
+      const result = ParserUtils.parseErrorLocation("abc:def some error");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("abc:def some error");
+    });
+
+    it("should not match if no space after column", () => {
+      const result = ParserUtils.parseErrorLocation("8:4");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("8:4");
+    });
+
+    it("should preserve full message content after prefix", () => {
+      const result = ParserUtils.parseErrorLocation(
+        "5:10 Error: Use bit indexing: value[0, 8]",
+      );
+      expect(result.line).toBe(5);
+      expect(result.column).toBe(10);
+      expect(result.message).toBe("Error: Use bit indexing: value[0, 8]");
+    });
+
+    it("should not match numeric line with non-numeric column", () => {
+      const result = ParserUtils.parseErrorLocation("8:abc some error");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("8:abc some error");
+    });
+
+    it("should not match when colon is at position 0", () => {
+      const result = ParserUtils.parseErrorLocation(":4 some error");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe(":4 some error");
+    });
+  });
 });

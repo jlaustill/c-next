@@ -25,6 +25,7 @@ import FloatModuloAnalyzer from "../transpiler/logic/analysis/FloatModuloAnalyze
 import GrammarCoverageListener from "../transpiler/logic/analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileOptions from "./types/ITranspileOptions";
+import ParserUtils from "../utils/ParserUtils";
 import IGrammarCoverageReport from "../transpiler/logic/analysis/types/IGrammarCoverageReport";
 
 /**
@@ -264,11 +265,13 @@ function transpile(
     };
   } catch (e) {
     // Handle code generation errors
-    const errorMessage = e instanceof Error ? e.message : String(e);
+    const rawMessage = e instanceof Error ? e.message : String(e);
+    const parsed = ParserUtils.parseErrorLocation(rawMessage);
+
     errors.push({
-      line: 1,
-      column: 0,
-      message: `Code generation failed: ${errorMessage}`,
+      line: parsed.line,
+      column: parsed.column,
+      message: `Code generation failed: ${parsed.message}`,
       severity: "error",
     });
     return {

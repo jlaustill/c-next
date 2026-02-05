@@ -13,9 +13,10 @@ import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types";
 import parseWithSymbols from "../../../src/lib/parseWithSymbols";
 import ISymbolInfo from "../../../src/lib/types/ISymbolInfo";
 import IncludeResolver from "./IncludeResolver";
-import { CLexer } from "../../../src/antlr_parser/c/grammar/CLexer";
-import { CParser } from "../../../src/antlr_parser/c/grammar/CParser";
-import CSymbolCollector from "../../../src/symbol_resolution/CSymbolCollector";
+import { CLexer } from "../../../src/transpiler/logic/parser/c/grammar/CLexer";
+import { CParser } from "../../../src/transpiler/logic/parser/c/grammar/CParser";
+import CSymbolCollector from "../../../src/transpiler/logic/symbols/CSymbolCollector";
+import { CACHE_CLEANUP_INTERVAL_MS } from "../utils";
 
 /**
  * Workspace-wide symbol index
@@ -41,6 +42,9 @@ export default class WorkspaceIndex {
 
   /** Map of file -> included headers (dependency graph) */
   private includeDependencies: Map<string, string[]> = new Map();
+
+  /** Periodic cache cleanup interval */
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   /** Debounce timer for file changes */
   private fileChangeTimer: NodeJS.Timeout | null = null;
@@ -91,13 +95,10 @@ export default class WorkspaceIndex {
     }
 
     // Set up periodic cache cleanup
-    setInterval(
-      () => {
-        this.cache.clearUnused();
-        this.headerCache.clearUnused();
-      },
-      5 * 60 * 1000,
-    ); // Every 5 minutes
+    this.cleanupInterval = setInterval(() => {
+      this.cache.clearUnused();
+      this.headerCache.clearUnused();
+    }, CACHE_CLEANUP_INTERVAL_MS);
   }
 
   /**
@@ -547,12 +548,17 @@ export default class WorkspaceIndex {
    * Dispose resources
    */
   dispose(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
     if (this.fileChangeTimer) {
       clearTimeout(this.fileChangeTimer);
     }
     this.cache.clear();
     this.headerCache.clear();
     this.includeDependencies.clear();
+    this.initialized = false;
     WorkspaceIndex.instance = null;
   }
 }

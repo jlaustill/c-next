@@ -130,8 +130,9 @@ export default class IncludeResolver {
     // For local includes ("header.h"), try relative to the current file first
     if (!isSystem) {
       const relativePath = path.join(fromDir, includePath);
-      if (fs.existsSync(relativePath)) {
-        return path.resolve(relativePath);
+      const resolved = path.resolve(relativePath);
+      if (this.isWithinBoundary(resolved) && fs.existsSync(resolved)) {
+        return resolved;
       }
     }
 
@@ -142,8 +143,9 @@ export default class IncludeResolver {
         : path.join(this.config.workspaceRoot, searchPath);
 
       const candidatePath = path.join(fullSearchPath, includePath);
-      if (fs.existsSync(candidatePath)) {
-        return path.resolve(candidatePath);
+      const resolved = path.resolve(candidatePath);
+      if (this.isWithinBoundary(resolved) && fs.existsSync(resolved)) {
+        return resolved;
       }
     }
 
@@ -176,6 +178,41 @@ export default class IncludeResolver {
     }
 
     return resolved;
+  }
+
+  /**
+   * Check if a resolved path stays within the workspace root or configured local include paths.
+   * Prevents path traversal attacks (e.g., #include "../../../../etc/passwd").
+   */
+  private isWithinBoundary(resolvedPath: string): boolean {
+    // Must be within workspace root (append path.sep to prevent prefix collisions)
+    if (this.config.workspaceRoot) {
+      const rootWithSep = this.config.workspaceRoot.endsWith(path.sep)
+        ? this.config.workspaceRoot
+        : this.config.workspaceRoot + path.sep;
+      if (
+        resolvedPath.startsWith(rootWithSep) ||
+        resolvedPath === this.config.workspaceRoot
+      ) {
+        return true;
+      }
+    }
+
+    // Or within a configured local include path
+    for (const searchPath of this.config.localIncludePaths) {
+      const absSearchPath = path.isAbsolute(searchPath)
+        ? searchPath
+        : path.join(this.config.workspaceRoot, searchPath);
+      const resolved = path.resolve(absSearchPath);
+      const withSep = resolved.endsWith(path.sep)
+        ? resolved
+        : resolved + path.sep;
+      if (resolvedPath.startsWith(withSep) || resolvedPath === resolved) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**

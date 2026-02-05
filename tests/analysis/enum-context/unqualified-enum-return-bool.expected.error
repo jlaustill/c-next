@@ -1,1 +1,1 @@
-1:0 Code generation failed: 11:11 error[E0424]: 'ACTIVE' is not defined; did you mean 'State.ACTIVE'?
+11:11 Code generation failed: error[E0424]: 'ACTIVE' is not defined; did you mean 'State.ACTIVE'?

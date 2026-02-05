@@ -1,1 +1,1 @@
-1:0 Code generation failed: 12:0 Error: Slice assignment out of bounds: offset(28) + length(8) = 36 exceeds buffer capacity(32) for 'buffer'.
+12:0 Code generation failed: Error: Slice assignment out of bounds: offset(28) + length(8) = 36 exceeds buffer capacity(32) for 'buffer'.

@@ -128,12 +128,22 @@ class AssignmentValidator {
 
     // ADR-024: Validate integer type conversions
     if (this.deps.isIntegerType(targetTypeInfo.baseType)) {
-      this.deps.typeValidator.validateIntegerAssignment(
-        targetTypeInfo.baseType,
-        expression.getText(),
-        this.deps.getExpressionType(expression),
-        isCompound,
-      );
+      try {
+        this.deps.typeValidator.validateIntegerAssignment(
+          targetTypeInfo.baseType,
+          expression.getText(),
+          this.deps.getExpressionType(expression),
+          isCompound,
+        );
+      } catch (validationError) {
+        const line = expression.start?.line ?? 0;
+        const col = expression.start?.column ?? 0;
+        const msg =
+          validationError instanceof Error
+            ? validationError.message
+            : String(validationError);
+        throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
+      }
     }
   }
 

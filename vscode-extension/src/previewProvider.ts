@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as crypto from "node:crypto";
 import transpile from "../../src/lib/transpiler";
 
 /**
@@ -161,22 +162,34 @@ export default class PreviewProvider implements vscode.Disposable {
       return;
     }
 
-    const source = this.currentDocument.getText();
-    const result = transpile(source);
+    try {
+      const source = this.currentDocument.getText();
+      const result = transpile(source);
 
-    if (result.success) {
-      this.lastGoodCode = result.code;
-      this.lastError = null;
-      this.updateStatusBar(true, 0);
-    } else {
-      this.lastError = result.errors
-        .map((e) => `Line ${e.line}:${e.column} - ${e.message}`)
-        .join("\n");
-      this.updateStatusBar(false, result.errors.length);
+      if (result.success) {
+        this.lastGoodCode = result.code;
+        this.lastError = null;
+        this.updateStatusBar(true, 0);
+      } else {
+        this.lastError = result.errors
+          .map((e) => `Line ${e.line}:${e.column} - ${e.message}`)
+          .join("\n");
+        this.updateStatusBar(false, result.errors.length);
+      }
+
+      this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.lastError = `Internal error: ${message}`;
+      this.updateStatusBar(false, 1);
+      if (this.panel) {
+        this.panel.webview.html = this.getHtml(
+          this.lastGoodCode,
+          this.lastError,
+        );
+      }
+      console.error("C-Next preview update failed:", error);
     }
-
-    // Always show content (last good or current)
-    this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
   }
 
   /**
@@ -273,9 +286,17 @@ export default class PreviewProvider implements vscode.Disposable {
   }
 
   /**
+   * Generate a cryptographic nonce for CSP
+   */
+  private getNonce(): string {
+    return crypto.randomBytes(16).toString("hex");
+  }
+
+  /**
    * Generate HTML for the webview
    */
   private getHtml(code: string, error: string | null): string {
+    const nonce = this.getNonce();
     const config = vscode.workspace.getConfiguration("cnext");
     const showLineNumbers = config.get<boolean>(
       "preview.showLineNumbers",
@@ -315,9 +336,9 @@ export default class PreviewProvider implements vscode.Disposable {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
     <title>C-Next Preview</title>
-    <style>
+    <style nonce="${nonce}">
         * {
             box-sizing: border-box;
             background: none;
@@ -441,7 +462,7 @@ export default class PreviewProvider implements vscode.Disposable {
     <div class="code-container">
         <pre><code>${codeHtml}</code></pre>
     </div>
-    <script>
+    <script nonce="${nonce}">
         // Handle scroll sync messages from extension
         window.addEventListener('message', event => {
             const message = event.data;
