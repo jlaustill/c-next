@@ -513,5 +513,54 @@ describe("FunctionCallAnalyzer", () => {
 
       expect(errors).toHaveLength(0);
     });
+
+    it("should ignore non-scope member access calls", () => {
+      const code = `
+        struct Obj {
+          u32 value;
+        }
+        void main() {
+          Obj myObj;
+          myObj.doSomething();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // myObj is not a scope, so myObj.doSomething() is treated as
+      // object method access and skipped - no E0422 for doSomething
+      const doSomethingErrors = errors.filter(
+        (e) => e.functionName === "doSomething",
+      );
+      expect(doSomethingErrors).toHaveLength(0);
+    });
+
+    it("should still flag E0422 for C-Next functions in symbol table", () => {
+      const code = `
+        void main() {
+          cnextFunc();
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "cnextFunc",
+        kind: ESymbolKind.Function,
+        sourceLanguage: ESourceLanguage.CNext,
+        sourceFile: "module.cnx",
+        sourceLine: 1,
+        isExported: true,
+        type: "void",
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      // C-Next function in symbol table is not treated as external C/C++
+      // so it still gets E0422
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+    });
   });
 });

@@ -1315,6 +1315,32 @@ describe("NullCheckAnalyzer", () => {
   // Variable Declaration Without Initializer
   // ========================================================================
 
+  describe("scope traversal for state updates", () => {
+    it("should update c_ variable state from nested scope via parent traversal", () => {
+      const code = `
+        void process(cstring s) { }
+        u32 main() {
+          cstring c_ptr <- strchr("test", 't');
+          u32 flag <- 1;
+          if (flag > 0) {
+            if (c_ptr != NULL) {
+              process(c_ptr);
+            }
+          }
+          return 0;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new NullCheckAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // c_ptr declared in outer scope, null-checked in deeply nested if
+      // updateVariableState traverses scope.parent to find c_ptr
+      const e0908Errors = errors.filter((e) => e.code === "E0908");
+      expect(e0908Errors).toHaveLength(0);
+    });
+  });
+
   describe("variable declaration edge cases", () => {
     it("should handle variable without nullable function initializer", () => {
       const code = `

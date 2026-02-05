@@ -245,6 +245,33 @@ describe("CommentExtractor", () => {
 
       expect(comments).toHaveLength(0);
     });
+
+    it("should filter out non-comment hidden tokens (whitespace)", () => {
+      const tokens = [
+        createToken({
+          type: CNextLexer.WS,
+          text: "   ",
+          line: 1,
+          column: 0,
+          tokenIndex: 0,
+        }),
+        createToken({
+          type: CNextLexer.IDENTIFIER,
+          text: "x",
+          line: 1,
+          column: 3,
+          tokenIndex: 1,
+          channel: Token.DEFAULT_CHANNEL,
+        }),
+      ];
+      const stream = createMockStream(tokens);
+      const extractor = new CommentExtractor(stream);
+
+      const comments = extractor.getCommentsBefore(1);
+
+      // Whitespace token on hidden channel should be filtered out
+      expect(comments).toHaveLength(0);
+    });
   });
 
   // ========================================================================
@@ -323,6 +350,33 @@ describe("CommentExtractor", () => {
 
       const comments = extractor.getCommentsAfter(0);
 
+      expect(comments).toHaveLength(0);
+    });
+
+    it("should filter out non-comment hidden tokens after (whitespace)", () => {
+      const tokens = [
+        createToken({
+          type: CNextLexer.IDENTIFIER,
+          text: "x",
+          line: 1,
+          column: 0,
+          tokenIndex: 0,
+          channel: Token.DEFAULT_CHANNEL,
+        }),
+        createToken({
+          type: CNextLexer.WS,
+          text: "   ",
+          line: 1,
+          column: 1,
+          tokenIndex: 1,
+        }),
+      ];
+      const stream = createMockStream(tokens);
+      const extractor = new CommentExtractor(stream);
+
+      const comments = extractor.getCommentsAfter(0);
+
+      // Whitespace token on hidden channel, same line, should be filtered out
       expect(comments).toHaveLength(0);
     });
   });

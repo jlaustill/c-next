@@ -235,4 +235,165 @@ describe("InitializationAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // Control Flow: if/else Branch Analysis
+  // ========================================================================
+
+  describe("control flow - if/else branches", () => {
+    it("should keep initialization when both if and else branches initialize", () => {
+      const code = `
+        void main() {
+          u32 x;
+          bool cond <- true;
+          if (cond) {
+            x <- 5;
+          } else {
+            x <- 10;
+          }
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Both branches initialize x, so using x after if-else is safe
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag possibly uninitialized after if-without-else", () => {
+      const code = `
+        void main() {
+          u32 x;
+          bool cond <- true;
+          if (cond) {
+            x <- 5;
+          }
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Without else, x might not be initialized
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("x");
+    });
+  });
+
+  // ========================================================================
+  // Control Flow: Deterministic For Loops
+  // ========================================================================
+
+  describe("control flow - deterministic for loops", () => {
+    it("should preserve initialization in deterministic for loop", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          for (u32 i <- 0; i < 4; i <- i + 1) {
+            sum <- 42;
+          }
+          u32 result <- sum;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Deterministic for-loop (0 to 4) will definitely run
+      // so sum is guaranteed initialized
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should merge struct field state through deterministic for loop", () => {
+      const code = `
+        struct Point {
+          u32 x;
+          u32 y;
+        }
+        void main() {
+          Point p;
+          p.x <- 1;
+          for (u32 i <- 0; i < 3; i <- i + 1) {
+            p.y <- i;
+          }
+          u32 a <- p.x;
+          u32 b <- p.y;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // p.x initialized before loop, p.y initialized in deterministic loop
+      // mergeInitializationState merges p.x from beforeState
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Write Context Tracking
+  // ========================================================================
+
+  describe("write context tracking", () => {
+    it("should track write context state correctly", () => {
+      const analyzer = new InitializationAnalyzer();
+
+      expect(analyzer.isInWriteContext()).toBe(false);
+
+      analyzer.setWriteContext(true);
+      expect(analyzer.isInWriteContext()).toBe(true);
+
+      analyzer.setWriteContext(false);
+      expect(analyzer.isInWriteContext()).toBe(false);
+    });
+
+    it("should not flag assignment target as uninitialized use", () => {
+      const code = `
+        void main() {
+          u32 x;
+          x <- 5;
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // x is assigned (write context) then read - no error
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // declareParameter Without Active Scope
+  // ========================================================================
+
+  describe("declareParameter edge cases", () => {
+    it("should create implicit scope when declaring parameter without active scope", () => {
+      const analyzer = new InitializationAnalyzer();
+
+      // Call declareParameter without entering a scope first
+      // This should trigger the implicit scope creation guard
+      expect(() => {
+        analyzer.declareParameter("param1", 1, 0, "u32");
+      }).not.toThrow();
+
+      // Verify the parameter is usable - reading it should not trigger E0381
+      // since parameters are always considered initialized
+      analyzer.checkRead("param1", 2, 0);
+      const code = `
+        void process(u32 param1) {
+          u32 x <- param1;
+        }
+      `;
+      const tree = parse(code);
+      const freshAnalyzer = new InitializationAnalyzer();
+      const errors = freshAnalyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+  });
 });
