@@ -1,10 +1,9 @@
 # C-Next
 
-[![CI](https://github.com/jlaustill/c-next/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/jlaustill/c-next/actions/workflows/pr-checks.yml)
 [![npm version](https://img.shields.io/npm/v/c-next)](https://www.npmjs.com/package/c-next)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=jlaustill_c-next)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=coverage)](https://sonarcloud.io/summary/new_code?id=jlaustill_c-next)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=coverage)](https://sonarcloud.io/summary/overall?id=jlaustill_c-next)
 [![Coverage Report](https://img.shields.io/badge/Coverage-Report-blue)](https://jlaustill.github.io/c-next/coverage/)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=jlaustill_c-next&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=jlaustill_c-next)
 
