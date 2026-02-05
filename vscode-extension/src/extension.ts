@@ -69,6 +69,9 @@ const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
 // Debounce timer for diagnostics validation
 let validateTimeout: NodeJS.Timeout | null = null;
 
+// Debounce timer for active editor switches
+let editorSwitchTimeout: NodeJS.Timeout | null = null;
+
 /**
  * Validate a C-Next document and update diagnostics
  */
@@ -306,9 +309,15 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor?.document.languageId === "cnext") {
-        validateDocument(editor.document);
-        previewProvider.onActiveEditorChange(editor);
-        transpileToFile(editor.document); // Ensure .c file exists
+        if (editorSwitchTimeout) {
+          clearTimeout(editorSwitchTimeout);
+        }
+        editorSwitchTimeout = setTimeout(() => {
+          validateDocument(editor.document);
+          previewProvider.onActiveEditorChange(editor);
+          transpileToFile(editor.document);
+          editorSwitchTimeout = null;
+        }, 150);
       }
     }),
 
@@ -351,6 +360,12 @@ export function deactivate(): void {
   if (validateTimeout) {
     clearTimeout(validateTimeout);
     validateTimeout = null;
+  }
+
+  // Clear any pending editor switch timeout
+  if (editorSwitchTimeout) {
+    clearTimeout(editorSwitchTimeout);
+    editorSwitchTimeout = null;
   }
 
   // Clear all pending transpile timers
