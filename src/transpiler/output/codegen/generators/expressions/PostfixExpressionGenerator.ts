@@ -26,6 +26,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import TTypeInfo from "../../types/TTypeInfo";
 
 // ========================================================================
 // Tracking State
@@ -389,6 +390,50 @@ const handleThisScopeLength = (
 };
 
 /**
+ * Resolve the TTypeInfo for .capacity/.size on the current expression.
+ *
+ * Tries in order:
+ * 1. currentIdentifier (tracks the resolved identifier through member chains)
+ * 2. primaryId (the leftmost identifier)
+ * 3. Struct field lookup via previousStructType/previousMemberName
+ *    (handles alice.name.capacity where currentIdentifier is undefined)
+ */
+const resolveStringTypeInfo = (
+  tracking: ITrackingState,
+  primaryId: string | undefined,
+  input: IGeneratorInput,
+  orchestrator: IOrchestrator,
+): TTypeInfo | undefined => {
+  const identifier = tracking.currentIdentifier ?? primaryId;
+  const typeInfo = identifier ? input.typeRegistry.get(identifier) : undefined;
+  if (typeInfo?.isString) {
+    return typeInfo;
+  }
+
+  // Struct member path: look up the field type to build a synthetic TTypeInfo
+  if (tracking.previousStructType && tracking.previousMemberName) {
+    const fieldInfo = orchestrator.getStructFieldInfo(
+      tracking.previousStructType,
+      tracking.previousMemberName,
+    );
+    if (fieldInfo && TypeCheckUtils.isString(fieldInfo.type)) {
+      const capacityMatch = /^string<(\d+)>$/.exec(fieldInfo.type);
+      const capacity = capacityMatch ? Number(capacityMatch[1]) : undefined;
+      return {
+        baseType: "char",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+        isString: true,
+        stringCapacity: capacity,
+      } as TTypeInfo;
+    }
+  }
+
+  return typeInfo;
+};
+
+/**
  * Try handling property access (.length, .capacity, .size).
  * Returns true if handled.
  */
@@ -426,7 +471,12 @@ const tryPropertyAccess = (
   }
 
   if (memberName === "capacity") {
-    const typeInfo = primaryId ? input.typeRegistry.get(primaryId) : undefined;
+    const typeInfo = resolveStringTypeInfo(
+      tracking,
+      primaryId,
+      input,
+      orchestrator,
+    );
     const capResult = accessGenerators.generateCapacityProperty(typeInfo);
     applyAccessEffects(capResult.effects, effects);
     tracking.result = capResult.code;
@@ -434,7 +484,12 @@ const tryPropertyAccess = (
   }
 
   if (memberName === "size") {
-    const typeInfo = primaryId ? input.typeRegistry.get(primaryId) : undefined;
+    const typeInfo = resolveStringTypeInfo(
+      tracking,
+      primaryId,
+      input,
+      orchestrator,
+    );
     const sizeResult = accessGenerators.generateSizeProperty(typeInfo);
     applyAccessEffects(sizeResult.effects, effects);
     tracking.result = sizeResult.code;
