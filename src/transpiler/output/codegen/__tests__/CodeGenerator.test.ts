@@ -7259,14 +7259,14 @@ describe("CodeGenerator", () => {
         expect(code).toContain("cfg.enabled = true");
       });
 
-      it("should throw when accessing register from inside scope", () => {
+      it("should throw when writing register from inside scope without global prefix", () => {
         const source = `
-          register ADC @ 0x40020000 {
-              DATA: u32 ro @ 0x00,
+          register GPIO @ 0x40000000 {
+              DR: u32 rw @ 0x00,
           }
-          scope Sensor {
-              public void read() {
-                  global.ADC.DATA;
+          scope Motor {
+              public void init() {
+                  GPIO.DR <- 0xFF;
               }
           }
         `;
@@ -7276,14 +7276,12 @@ describe("CodeGenerator", () => {
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        // global. prefix on a read (expression) goes through PostfixExpressionGenerator
-        // Just verify it compiles (exercises scope-aware register paths)
-        const code = generator.generate(tree, symbolTable, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("ADC_DATA");
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("Use 'global.GPIO.DR' to access register");
       });
 
       it("should generate scope member write from outside any scope", () => {
