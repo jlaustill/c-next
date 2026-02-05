@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.58] - 2026-02-04
+
+### Changed
+
+- Switch to ES modules for top-level await support (PR #669)
+- Move all test files to `__tests__` directories (PR #668)
+- Upgrade GitHub Actions and publish workflow to Node.js 24 (PR #672)
+- Extract separator and dereference resolution utilities for improved testability (PR #681)
+- Reduce cognitive complexity across multiple functions to meet SonarCloud thresholds:
+  - `generate()`, `analyzeModificationsOnly`, `walkPostfixExpressionForCalls`
+  - `trackVariableType`, `hasPostfixFunctionCall`, `_getZeroInitializer`
+  - `generateAssignment()` (PRs #670, #671, #673, #675, #676, #678, #680, #682)
+
+### Fixed
+
+- Exclude test files from SonarCloud coverage requirements (PR #674)
+- Resolve tsx/vitest ESM interop issue with @n1ru4l/toposort (PR #672)
+- Remove unnecessary non-null assertions (PR #671)
+- Use direct tsx path instead of npx for faster CLI startup (PR #670)
+- Update bin script and CLI tests for ESM compatibility (PR #669)
+
+### Added
+
+- Improve unit test coverage for CHeaderGenerator and StringDeclHelper (PR #679)
+- Bring lib and Transpiler to near-100% unit test coverage (PR #674)
+- Add comprehensive unit tests for transpiler components (PR #668)
+- 42 new unit tests for MemberSeparatorResolver and ParameterDereferenceResolver (PR #681)
+
 ## [0.1.57] - 2026-02-04
 
 ### Fixed
@@ -709,6 +737,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.57...HEAD
+[0.1.58]: https://github.com/jlaustill/c-next/compare/v0.1.57...v0.1.58
 [0.1.57]: https://github.com/jlaustill/c-next/compare/v0.1.56...v0.1.57
 [0.1.56]: https://github.com/jlaustill/c-next/compare/v0.1.55...v0.1.56
 [0.1.55]: https://github.com/jlaustill/c-next/compare/v0.1.54...v0.1.55
