@@ -1094,16 +1094,27 @@ class Transpiler {
    * Build a catch/exception result.
    */
   private buildCatchResult(sourcePath: string, err: unknown): IFileResult {
-    const errorMessage = err instanceof Error ? err.message : String(err);
+    const rawMessage = err instanceof Error ? err.message : String(err);
+
+    let errorLine = 1;
+    let errorColumn = 0;
+    let cleanMessage = rawMessage;
+    const lineColMatch = /^(\d+):(\d+)\s+(.*)$/s.exec(rawMessage);
+    if (lineColMatch) {
+      errorLine = parseInt(lineColMatch[1], 10);
+      errorColumn = parseInt(lineColMatch[2], 10);
+      cleanMessage = lineColMatch[3];
+    }
+
     return {
       sourcePath,
       code: "",
       success: false,
       errors: [
         {
-          line: 1,
-          column: 0,
-          message: `Code generation failed: ${errorMessage}`,
+          line: errorLine,
+          column: errorColumn,
+          message: `Code generation failed: ${cleanMessage}`,
           severity: "error",
         },
       ],

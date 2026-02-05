@@ -1,1 +1,1 @@
-1:0 Code generation failed: 10:0 Error: Slice assignment length must be positive: 0
+10:0 Code generation failed: Error: Slice assignment length must be positive: 0

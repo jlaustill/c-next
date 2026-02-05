@@ -1,1 +1,1 @@
-1:0 Code generation failed: 13:0 Error: Slice assignment is only valid on one-dimensional arrays. 'board' has 2 dimensions. Access the innermost dimension first (e.g., board[index][offset, length]).
+13:0 Code generation failed: Error: Slice assignment is only valid on one-dimensional arrays. 'board' has 2 dimensions. Access the innermost dimension first (e.g., board[index][offset, length]).

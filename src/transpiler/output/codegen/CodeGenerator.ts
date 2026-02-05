@@ -6092,16 +6092,26 @@ export default class CodeGenerator implements IOrchestrator {
       if (this._isIntegerType(typeName)) {
         const exprText = ctx.expression()!.getText().trim();
         // Check if it's a direct literal (not a variable or expression)
-        if (
-          /^-?\d+$/.exec(exprText) ||
-          /^0[xX][0-9a-fA-F]+$/.exec(exprText) ||
-          /^0[bB][01]+$/.exec(exprText)
-        ) {
-          this._validateLiteralFitsType(exprText, typeName);
-        } else {
-          // Not a literal - check for narrowing/sign conversions
-          const sourceType = this.getExpressionType(ctx.expression()!);
-          this._validateTypeConversion(typeName, sourceType);
+        try {
+          if (
+            /^-?\d+$/.exec(exprText) ||
+            /^0[xX][0-9a-fA-F]+$/.exec(exprText) ||
+            /^0[bB][01]+$/.exec(exprText)
+          ) {
+            this._validateLiteralFitsType(exprText, typeName);
+          } else {
+            // Not a literal - check for narrowing/sign conversions
+            const sourceType = this.getExpressionType(ctx.expression()!);
+            this._validateTypeConversion(typeName, sourceType);
+          }
+        } catch (validationError) {
+          const line = ctx.start?.line ?? 0;
+          const col = ctx.start?.column ?? 0;
+          const msg =
+            validationError instanceof Error
+              ? validationError.message
+              : String(validationError);
+          throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
         }
       }
 

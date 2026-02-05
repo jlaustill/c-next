@@ -1,1 +1,1 @@
-1:0 Code generation failed: 13:15 error[E0424]: 'HIGH' is not defined; did you mean 'Level.HIGH'?
+13:15 Code generation failed: error[E0424]: 'HIGH' is not defined; did you mean 'Level.HIGH'?

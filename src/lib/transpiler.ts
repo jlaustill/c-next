@@ -265,10 +265,22 @@ function transpile(
   } catch (e) {
     // Handle code generation errors
     const errorMessage = e instanceof Error ? e.message : String(e);
+
+    // Try to extract line:column from error message (e.g., "8:4 Error: ...")
+    let errorLine = 1;
+    let errorColumn = 0;
+    let cleanMessage = errorMessage;
+    const lineColMatch = /^(\d+):(\d+)\s+(.*)$/s.exec(errorMessage);
+    if (lineColMatch) {
+      errorLine = parseInt(lineColMatch[1], 10);
+      errorColumn = parseInt(lineColMatch[2], 10);
+      cleanMessage = lineColMatch[3];
+    }
+
     errors.push({
-      line: 1,
-      column: 0,
-      message: `Code generation failed: ${errorMessage}`,
+      line: errorLine,
+      column: errorColumn,
+      message: `Code generation failed: ${cleanMessage}`,
       severity: "error",
     });
     return {
