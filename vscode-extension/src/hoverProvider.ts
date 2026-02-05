@@ -302,7 +302,7 @@ function formatSourceFooter(
 
 /**
  * Resolve a parent reference to dot notation by walking the symbol chain.
- * e.g., "SensorProcessor_getAtmosphericPressurekPa" → "SensorProcessor.getAtmosphericPressurekPa"
+ * e.g., "Scope_method" → "Scope.method"
  * Checks local symbols first, then workspace index for cross-file resolution.
  */
 function resolveDisplayParent(
@@ -356,7 +356,7 @@ function buildSymbolHover(
     ? `${displayParent}.${symbol.name}`
     : symbol.name;
 
-  // Top-level scope name for "Defined in" (e.g., "SensorProcessor" from "SensorProcessor.getAtmosphericPressurekPa")
+  // Top-level scope name for "Defined in" (e.g., "LED" from "LED.toggle")
   const scopeName = displayParent?.split(".")[0];
 
   switch (symbol.kind) {
