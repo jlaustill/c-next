@@ -44,7 +44,29 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### SonarCloud
 
+SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud quality gate passes.**
+
+**Quality gate requirements for new code:**
+
+- **Code coverage >= 80%** on new code (unit tests via vitest)
+- **No new bugs** (reliability)
+- **No new vulnerabilities** (security)
+- **No new security issues** reviewed as unsafe
+- **Duplicated lines <= 3%** on new code
+- **Cognitive complexity per method <= 15** — extract sub-methods with early returns to reduce nesting
+
+**Before opening a PR**, verify coverage on new/modified files:
+
+```bash
+npm run unit:coverage
+```
+
+Check the terminal report for files you changed — any new code below 80% coverage will fail the quality gate.
+
+**Useful API queries:**
+
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
+- **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
 
 ### TypeScript Coding Standards
 
