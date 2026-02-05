@@ -7000,4 +7000,394 @@ describe("CodeGenerator", () => {
       // (i32 -> int32_t) is a separate issue to be addressed in another PR
     });
   });
+
+  describe("Member access decomposition", () => {
+    describe("Register bit access (assignment targets)", () => {
+      it("should generate single bit write to register", () => {
+        const source = `
+          register GPIO @ 0x40000000 {
+              DR: u32 rw @ 0x00,
+          }
+          void main() {
+              GPIO.DR[3] <- true;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Register bit write generates bit-manipulation code
+        expect(code).toContain("GPIO_DR");
+      });
+
+      it("should generate bit range write to register", () => {
+        const source = `
+          register TIMER @ 0x40010000 {
+              CTRL: u32 rw @ 0x00,
+          }
+          void main() {
+              TIMER.CTRL[4] <- 0x0F;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("TIMER_CTRL");
+      });
+    });
+
+    describe("Plain register access (assignment targets)", () => {
+      it("should generate register member write as underscore-joined", () => {
+        const source = `
+          register GPIO @ 0x40000000 {
+              DR: u32 rw @ 0x00,
+          }
+          void main() {
+              GPIO.DR <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("GPIO_DR = 0xFF");
+      });
+
+      it("should allow write to write-only register member", () => {
+        const source = `
+          register CONTROL @ 0x40000000 {
+              COMMAND: u32 wo @ 0x00,
+          }
+          void main() {
+              CONTROL.COMMAND <- 0x42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("CONTROL_COMMAND = 0x42");
+      });
+    });
+
+    describe("Scope member access (assignment targets)", () => {
+      it("should generate cross-scope variable write", () => {
+        const source = `
+          scope Sensor {
+              public u32 value;
+          }
+          scope Motor {
+              public void update() {
+                  Sensor.value <- 100;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Sensor_value = 100");
+      });
+
+      it("should throw on self-scope reference in assignment target", () => {
+        const source = `
+          scope Motor {
+              public u32 speed;
+              public void test() {
+                  Motor.speed <- 100;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("Cannot reference own scope 'Motor' by name");
+      });
+
+      it("should generate struct-through-scope access", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          scope Motor {
+              public Point position;
+          }
+          void main() {
+              Motor.position.x <- 10;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Motor_position.x = 10");
+      });
+    });
+
+    describe("Array subscript access (assignment targets)", () => {
+      it("should generate struct array member write", () => {
+        const source = `
+          struct Item { u32 value; }
+          Item items[3];
+          void main() {
+              items[0].value <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("items[0].value = 42");
+      });
+    });
+
+    describe("Scope member access with subscripts (assignment targets)", () => {
+      it("should throw on self-scope reference with subscript in assignment", () => {
+        const source = `
+          scope Motor {
+              public u32 speeds[4] <- [0, 0, 0, 0];
+              public void test() {
+                  Motor.speeds[0] <- 100;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("Cannot reference own scope 'Motor' by name");
+      });
+
+      it("should generate cross-scope array member write", () => {
+        const source = `
+          scope Sensor {
+              public u32 readings[4] <- [0, 0, 0, 0];
+          }
+          scope Motor {
+              public void update() {
+                  Sensor.readings[0] <- 42;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Sensor_readings[0] = 42");
+      });
+    });
+
+    describe("Plain member access branch coverage", () => {
+      it("should generate simple scope member write (2 parts, no struct)", () => {
+        const source = `
+          scope Counter {
+              public u32 value;
+          }
+          void main() {
+              Counter.value <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Counter_value = 42");
+      });
+
+      it("should generate simple struct member write (no register, no scope)", () => {
+        const source = `
+          struct Config { u32 timeout; bool enabled; }
+          Config cfg;
+          void main() {
+              cfg.timeout <- 1000;
+              cfg.enabled <- true;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("cfg.timeout = 1000");
+        expect(code).toContain("cfg.enabled = true");
+      });
+
+      it("should throw when writing register from inside scope without global prefix", () => {
+        const source = `
+          register GPIO @ 0x40000000 {
+              DR: u32 rw @ 0x00,
+          }
+          scope Motor {
+              public void init() {
+                  GPIO.DR <- 0xFF;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("Use 'global.GPIO.DR' to access register");
+      });
+
+      it("should generate scope member write from outside any scope", () => {
+        const source = `
+          scope Timer {
+              public u32 count;
+          }
+          void main() {
+              Timer.count <- 0;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Timer_count = 0");
+      });
+
+      it("should generate scope variable write with non-struct type (3+ parts)", () => {
+        const source = `
+          scope Motor {
+              public u32 nested_value;
+          }
+          scope Controller {
+              public void init() {
+                  Motor.nested_value <- 0;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Motor_nested_value = 0");
+      });
+
+      it("should generate struct param member access in function", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void setX(Point p) {
+              p.x <- 10;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("p->x = 10");
+      });
+    });
+  });
 });

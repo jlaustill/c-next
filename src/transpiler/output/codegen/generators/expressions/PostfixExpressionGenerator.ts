@@ -20,6 +20,7 @@ import IOrchestrator from "../IOrchestrator";
 import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
+import MemberAccessValidator from "../../helpers/MemberAccessValidator";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
@@ -635,9 +636,11 @@ const generateMemberAccess = (
 
   // Check for known scope access
   if (orchestrator.isKnownScope(result)) {
-    if (!isGlobalAccess && result === state.currentScope) {
-      throw new Error(
-        `Error: Cannot reference own scope '${result}' by name. Use 'this.${memberName}' instead of '${result}.${memberName}'`,
+    if (!isGlobalAccess) {
+      MemberAccessValidator.validateNotSelfScopeReference(
+        result,
+        memberName,
+        state.currentScope,
       );
     }
     orchestrator.validateCrossScopeVisibility(result, memberName);
@@ -679,15 +682,13 @@ const generateMemberAccess = (
         );
       }
     }
-    const accessMod = input.symbols!.registerMemberAccess.get(
+    MemberAccessValidator.validateRegisterReadAccess(
       `${result}_${memberName}`,
+      memberName,
+      `${result}.${memberName}`,
+      input.symbols!.registerMemberAccess,
+      false,
     );
-    if (accessMod === "wo") {
-      throw new Error(
-        `cannot read from write-only register member '${memberName}' ` +
-          `(${result}.${memberName} has 'wo' access modifier)`,
-      );
-    }
     output.result = `${result}_${memberName}`;
     output.isRegisterChain = true;
     return output;
