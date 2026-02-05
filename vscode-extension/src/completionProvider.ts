@@ -299,7 +299,9 @@ export default class CNextCompletionProvider
     const lineText = document.lineAt(position).text;
     const linePrefix = lineText.substring(0, position.character);
 
-    this.debug(`C-Next: provideCompletionItems called, linePrefix="${linePrefix}"`);
+    this.debug(
+      `C-Next: provideCompletionItems called, linePrefix="${linePrefix}"`,
+    );
 
     // Parse document to get symbols
     const source = document.getText();
@@ -308,10 +310,15 @@ export default class CNextCompletionProvider
 
     // Determine current scope context for this/global resolution
     const currentScope = ScopeTracker.getCurrentScope(source, position.line);
-    this.debug(`C-Next DEBUG: Current scope at cursor: ${currentScope ?? "global"}`);
+    this.debug(
+      `C-Next DEBUG: Current scope at cursor: ${currentScope ?? "global"}`,
+    );
 
     // Determine current function (to filter from completions - no recursion allowed)
-    const currentFunction = ScopeTracker.getCurrentFunction(source, position.line);
+    const currentFunction = ScopeTracker.getCurrentFunction(
+      source,
+      position.line,
+    );
     this.debug(
       `C-Next DEBUG: Current function at cursor: ${currentFunction ?? "none"}`,
     );
@@ -467,7 +474,9 @@ export default class CNextCompletionProvider
         currentParent = currentParent
           ? `${currentParent}_${memberName}`
           : memberName;
-        this.debug(`C-Next DEBUG:   Fallback: concatenated to "${currentParent}"`);
+        this.debug(
+          `C-Next DEBUG:   Fallback: concatenated to "${currentParent}"`,
+        );
         continue;
       }
 
@@ -559,7 +568,9 @@ export default class CNextCompletionProvider
     const uniqueParents = [
       ...new Set(symbols.map((s) => s.parent ?? "<no-parent>")),
     ];
-    this.debug(`C-Next DEBUG: Unique parent values: ${uniqueParents.join(", ")}`);
+    this.debug(
+      `C-Next DEBUG: Unique parent values: ${uniqueParents.join(", ")}`,
+    );
 
     if (chain.length === 0) {
       return [];
@@ -572,10 +583,14 @@ export default class CNextCompletionProvider
       // Handle special keyword: this
       if (parentName === "this") {
         if (!currentScope) {
-          this.debug('C-Next DEBUG: "this." used outside of scope - no completions');
+          this.debug(
+            'C-Next DEBUG: "this." used outside of scope - no completions',
+          );
           return [];
         }
-        this.debug(`C-Next DEBUG: "this." resolving to scope "${currentScope}"`);
+        this.debug(
+          `C-Next DEBUG: "this." resolving to scope "${currentScope}"`,
+        );
 
         // Find all symbols that belong to the current scope
         // Filter out the current function (no recursion allowed)
@@ -588,7 +603,9 @@ export default class CNextCompletionProvider
           `C-Next DEBUG: Found ${scopeMembers.length} members for scope "${currentScope}"`,
         );
         scopeMembers.forEach((s) =>
-          this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind}, parent=${s.parent})`),
+          this.debug(
+            `C-Next DEBUG:   - ${s.name} (${s.kind}, parent=${s.parent})`,
+          ),
         );
         return scopeMembers.map(createSymbolCompletion);
       }
@@ -605,7 +622,9 @@ export default class CNextCompletionProvider
             s.kind !== "namespace" &&
             !(s.kind === "function" && s.name === currentFunction),
         );
-        this.debug(`C-Next DEBUG: Found ${globalSymbols.length} global symbols`);
+        this.debug(
+          `C-Next DEBUG: Found ${globalSymbols.length} global symbols`,
+        );
         globalSymbols.forEach((s) =>
           this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`),
         );
@@ -650,14 +669,18 @@ export default class CNextCompletionProvider
       return [];
     }
 
-    this.debug(`C-Next DEBUG: Looking for members with parent="${resolvedParent}"`);
+    this.debug(
+      `C-Next DEBUG: Looking for members with parent="${resolvedParent}"`,
+    );
 
     // Find all symbols with the resolved parent
     const members = symbols.filter((s) => s.parent === resolvedParent);
     this.debug(
       `C-Next DEBUG: Found ${members.length} members for resolved parent "${resolvedParent}"`,
     );
-    members.forEach((s) => this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`));
+    members.forEach((s) =>
+      this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`),
+    );
 
     return members.map(createSymbolCompletion);
   }
@@ -845,8 +868,10 @@ export default class CNextCompletionProvider
         // Log first few items for debugging
         const firstFew = completionList.items
           .slice(0, 5)
-          .map((i) => (getCompletionLabel(i.label)));
-        this.debug(`C-Next: First 5 member completions: ${firstFew.join(", ")}`);
+          .map((i) => getCompletionLabel(i.label));
+        this.debug(
+          `C-Next: First 5 member completions: ${firstFew.join(", ")}`,
+        );
 
         // Mark items as coming from C/C++ extension
         return completionList.items.map((item) => {
@@ -927,8 +952,7 @@ export default class CNextCompletionProvider
       if (completionList?.items) {
         // Add filtered completion items
         for (const item of completionList.items) {
-          const label =
-            getCompletionLabel(item.label);
+          const label = getCompletionLabel(item.label);
           if (label.toLowerCase().startsWith(prefix)) {
             const newItem = new vscode.CompletionItem(label, item.kind);
             newItem.detail = item.detail || "(C/C++)";
@@ -950,9 +974,7 @@ export default class CNextCompletionProvider
 
         // Add symbols that aren't already in completions
         const existingLabels = new Set(
-          allItems.map((i) =>
-            getCompletionLabel(i.label),
-          ),
+          allItems.map((i) => getCompletionLabel(i.label)),
         );
 
         for (const sym of symbols) {
@@ -971,9 +993,7 @@ export default class CNextCompletionProvider
       // Add Arduino globals as fallback if they match prefix
       // These ensure essential Arduino symbols appear even if C/C++ extension doesn't return them
       const existingLabels = new Set(
-        allItems.map((i) =>
-          getCompletionLabel(i.label),
-        ),
+        allItems.map((i) => getCompletionLabel(i.label)),
       );
 
       for (const arduino of ARDUINO_GLOBALS) {
@@ -1130,15 +1150,12 @@ export default class CNextCompletionProvider
   ): vscode.CompletionItem[] {
     // Build a set of C-Next item names for deduplication
     const cnextNames = new Set(
-      cnextItems.map((item) =>
-        getCompletionLabel(item.label),
-      ),
+      cnextItems.map((item) => getCompletionLabel(item.label)),
     );
 
     // Filter out C++ items that duplicate C-Next items
     const uniqueCppItems = cppItems.filter((item) => {
-      const name =
-        getCompletionLabel(item.label);
+      const name = getCompletionLabel(item.label);
       return !cnextNames.has(name);
     });
 

@@ -95,13 +95,10 @@ export default class WorkspaceIndex {
     }
 
     // Set up periodic cache cleanup
-    this.cleanupInterval = setInterval(
-      () => {
-        this.cache.clearUnused();
-        this.headerCache.clearUnused();
-      },
-      CACHE_CLEANUP_INTERVAL_MS,
-    );
+    this.cleanupInterval = setInterval(() => {
+      this.cache.clearUnused();
+      this.headerCache.clearUnused();
+    }, CACHE_CLEANUP_INTERVAL_MS);
   }
 
   /**

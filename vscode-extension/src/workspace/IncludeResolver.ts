@@ -204,7 +204,9 @@ export default class IncludeResolver {
         ? searchPath
         : path.join(this.config.workspaceRoot, searchPath);
       const resolved = path.resolve(absSearchPath);
-      const withSep = resolved.endsWith(path.sep) ? resolved : resolved + path.sep;
+      const withSep = resolved.endsWith(path.sep)
+        ? resolved
+        : resolved + path.sep;
       if (resolvedPath.startsWith(withSep) || resolvedPath === resolved) {
         return true;
       }

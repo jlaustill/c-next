@@ -44,21 +44,11 @@ export default class ScopeTracker {
     return currentName;
   }
 
-  static getCurrentScope(
-    source: string,
-    cursorLine: number,
-  ): string | null {
-    return ScopeTracker.getContext(
-      source,
-      cursorLine,
-      /\bscope\s+(\w+)\s*\{/,
-    );
+  static getCurrentScope(source: string, cursorLine: number): string | null {
+    return ScopeTracker.getContext(source, cursorLine, /\bscope\s+(\w+)\s*\{/);
   }
 
-  static getCurrentFunction(
-    source: string,
-    cursorLine: number,
-  ): string | null {
+  static getCurrentFunction(source: string, cursorLine: number): string | null {
     return ScopeTracker.getContext(
       source,
       cursorLine,

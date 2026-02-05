@@ -169,7 +169,10 @@ function transpileToFile(document: vscode.TextDocument): void {
       fs.writeFileSync(outputPath, result.code, "utf-8");
       // Cache the output path for completion/hover queries
       // This allows completions to work even when current code has parse errors
-      extensionContext.lastGoodOutputPath.set(document.uri.toString(), outputPath);
+      extensionContext.lastGoodOutputPath.set(
+        document.uri.toString(),
+        outputPath,
+      );
     } catch (err) {
       // Silently fail - don't interrupt the user's workflow
       console.error("C-Next: Failed to write output file:", err);

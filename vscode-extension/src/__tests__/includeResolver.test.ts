@@ -117,11 +117,7 @@ describe("IncludeResolver path boundary validation", () => {
 
     // Try traversal from include path
     const traversal = path.relative(includeDir, outsideFile);
-    const result = resolver.resolve(
-      `../include/${traversal}`,
-      fromFile,
-      false,
-    );
+    const result = resolver.resolve(`../include/${traversal}`, fromFile, false);
     expect(result).toBeUndefined();
 
     fs.rmSync(outsideDir, { recursive: true });
@@ -162,11 +158,7 @@ describe("IncludeResolver path boundary validation", () => {
     });
 
     // Classic path traversal attack
-    const result = resolver.resolve(
-      "../../../../etc/passwd",
-      fromFile,
-      false,
-    );
+    const result = resolver.resolve("../../../../etc/passwd", fromFile, false);
     expect(result).toBeUndefined();
   });
 

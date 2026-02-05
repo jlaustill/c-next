@@ -183,7 +183,10 @@ export default class PreviewProvider implements vscode.Disposable {
       this.lastError = `Internal error: ${message}`;
       this.updateStatusBar(false, 1);
       if (this.panel) {
-        this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
+        this.panel.webview.html = this.getHtml(
+          this.lastGoodCode,
+          this.lastError,
+        );
       }
       console.error("C-Next preview update failed:", error);
     }
