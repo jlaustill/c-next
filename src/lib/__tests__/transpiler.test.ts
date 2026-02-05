@@ -219,6 +219,49 @@ describe("transpile", () => {
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0].message).toContain("Code generation failed");
     });
+
+    it("reports narrowing error at the correct line", () => {
+      const source = `void test() {
+  u32 large <- 1000;
+  u8 small <- large;
+}`;
+
+      const result = transpile(source);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].line).toBe(3);
+      expect(result.errors[0].column).toBe(2);
+      expect(result.errors[0].message).toContain("narrowing");
+    });
+
+    it("reports sign change error at the correct line", () => {
+      const source = `void test() {
+  i32 signed <- -5;
+  u32 unsigned <- signed;
+}`;
+
+      const result = transpile(source);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].line).toBe(3);
+      expect(result.errors[0].message).toContain("sign change");
+    });
+
+    it("reports literal overflow error at the correct line", () => {
+      const source = `void test() {
+  u8 ok <- 200;
+  u8 overflow <- 300;
+}`;
+
+      const result = transpile(source);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].line).toBe(3);
+      expect(result.errors[0].message).toContain("Code generation failed");
+    });
   });
 
   describe("target option", () => {

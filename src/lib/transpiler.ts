@@ -25,6 +25,7 @@ import FloatModuloAnalyzer from "../transpiler/logic/analysis/FloatModuloAnalyze
 import GrammarCoverageListener from "../transpiler/logic/analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileOptions from "./types/ITranspileOptions";
+import ParserUtils from "../utils/ParserUtils";
 import IGrammarCoverageReport from "../transpiler/logic/analysis/types/IGrammarCoverageReport";
 
 /**
@@ -264,23 +265,13 @@ function transpile(
     };
   } catch (e) {
     // Handle code generation errors
-    const errorMessage = e instanceof Error ? e.message : String(e);
-
-    // Try to extract line:column from error message (e.g., "8:4 Error: ...")
-    let errorLine = 1;
-    let errorColumn = 0;
-    let cleanMessage = errorMessage;
-    const lineColMatch = /^(\d+):(\d+)\s+(.*)$/s.exec(errorMessage);
-    if (lineColMatch) {
-      errorLine = parseInt(lineColMatch[1], 10);
-      errorColumn = parseInt(lineColMatch[2], 10);
-      cleanMessage = lineColMatch[3];
-    }
+    const rawMessage = e instanceof Error ? e.message : String(e);
+    const parsed = ParserUtils.parseErrorLocation(rawMessage);
 
     errors.push({
-      line: errorLine,
-      column: errorColumn,
-      message: `Code generation failed: ${cleanMessage}`,
+      line: parsed.line,
+      column: parsed.column,
+      message: `Code generation failed: ${parsed.message}`,
       severity: "error",
     });
     return {

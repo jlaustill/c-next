@@ -107,6 +107,23 @@ describe("Transpiler", () => {
         expect(result.success).toBe(true);
       });
 
+      it("reports narrowing error at the correct line", async () => {
+        const transpiler = new Transpiler(
+          { inputs: [], noCache: true },
+          mockFs,
+        );
+
+        const result = await transpiler.transpileSource(
+          `void test() {\n  u32 large <- 1000;\n  u8 small <- large;\n}`,
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].line).toBe(3);
+        expect(result.errors[0].column).toBe(2);
+        expect(result.errors[0].message).toContain("narrowing");
+      });
+
       it("transpiles various C-Next types correctly", async () => {
         const transpiler = new Transpiler(
           { inputs: [], noCache: true },

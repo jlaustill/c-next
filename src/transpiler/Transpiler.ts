@@ -37,6 +37,7 @@ import IncludeResolver from "./data/IncludeResolver";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
 
+import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
@@ -1095,16 +1096,7 @@ class Transpiler {
    */
   private buildCatchResult(sourcePath: string, err: unknown): IFileResult {
     const rawMessage = err instanceof Error ? err.message : String(err);
-
-    let errorLine = 1;
-    let errorColumn = 0;
-    let cleanMessage = rawMessage;
-    const lineColMatch = /^(\d+):(\d+)\s+(.*)$/s.exec(rawMessage);
-    if (lineColMatch) {
-      errorLine = parseInt(lineColMatch[1], 10);
-      errorColumn = parseInt(lineColMatch[2], 10);
-      cleanMessage = lineColMatch[3];
-    }
+    const parsed = ParserUtils.parseErrorLocation(rawMessage);
 
     return {
       sourcePath,
@@ -1112,9 +1104,9 @@ class Transpiler {
       success: false,
       errors: [
         {
-          line: errorLine,
-          column: errorColumn,
-          message: `Code generation failed: ${cleanMessage}`,
+          line: parsed.line,
+          column: parsed.column,
+          message: `Code generation failed: ${parsed.message}`,
           severity: "error",
         },
       ],
