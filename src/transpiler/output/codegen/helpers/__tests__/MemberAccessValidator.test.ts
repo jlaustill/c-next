@@ -116,4 +116,70 @@ describe("MemberAccessValidator", () => {
       ).not.toThrow();
     });
   });
+
+  describe("validateGlobalEntityAccess", () => {
+    it("throws when in scope and entity does not belong to current scope", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+        ),
+      ).toThrow(
+        "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor'",
+      );
+    });
+
+    it("does NOT throw when isGlobalAccess is true", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          "Motor",
+          true,
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when entity belongs to current scope", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Motor_State",
+          "Running",
+          "enum",
+          "Motor",
+          false,
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when currentScope is null", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          null,
+          false,
+        ),
+      ).not.toThrow();
+    });
+
+    it("works with register entity type", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "GPIO",
+          "PIN0",
+          "register",
+          "Motor",
+          false,
+        ),
+      ).toThrow(
+        "Use 'global.GPIO.PIN0' to access register 'GPIO' from inside scope 'Motor'",
+      );
+    });
+  });
 });
