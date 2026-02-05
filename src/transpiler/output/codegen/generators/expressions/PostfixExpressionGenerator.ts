@@ -102,8 +102,9 @@ const initializeTrackingState = (
 };
 
 /**
- * Immutable context for the postfix expression being processed.
- * Bundles values that don't change during the postfix op loop.
+ * Context for the postfix expression being processed.
+ * Bundles values that don't change during the postfix op loop,
+ * except for `effects` which accumulates side effects via push().
  */
 interface IPostfixContext {
   rootIdentifier: string | undefined;
@@ -253,16 +254,29 @@ const handleMemberOp = (
   tracking: ITrackingState,
   ctx: IPostfixContext,
 ): void => {
-  const { rootIdentifier, isStructParam, input, state, orchestrator, effects } =
-    ctx;
-
   // ADR-016: Handle global. prefix
-  if (handleGlobalPrefix(memberName, tracking, input, state, orchestrator)) {
+  if (
+    handleGlobalPrefix(
+      memberName,
+      tracking,
+      ctx.input,
+      ctx.state,
+      ctx.orchestrator,
+    )
+  ) {
     return;
   }
 
   // Issue #212: Check if 'length' is a scope variable before treating as property
-  if (handleThisScopeLength(memberName, tracking, input, state, orchestrator)) {
+  if (
+    handleThisScopeLength(
+      memberName,
+      tracking,
+      ctx.input,
+      ctx.state,
+      ctx.orchestrator,
+    )
+  ) {
     return;
   }
 
@@ -271,11 +285,11 @@ const handleMemberOp = (
     tryPropertyAccess(
       memberName,
       tracking,
-      rootIdentifier,
-      input,
-      state,
-      orchestrator,
-      effects,
+      ctx.rootIdentifier,
+      ctx.input,
+      ctx.state,
+      ctx.orchestrator,
+      ctx.effects,
     )
   ) {
     return;
@@ -286,8 +300,8 @@ const handleMemberOp = (
     {
       result: tracking.result,
       memberName,
-      rootIdentifier,
-      isStructParam,
+      rootIdentifier: ctx.rootIdentifier,
+      isStructParam: ctx.isStructParam,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
       currentStructType: tracking.currentStructType,
@@ -296,10 +310,10 @@ const handleMemberOp = (
       previousMemberName: tracking.previousMemberName,
       isRegisterChain: tracking.isRegisterChain,
     },
-    input,
-    state,
-    orchestrator,
-    effects,
+    ctx.input,
+    ctx.state,
+    ctx.orchestrator,
+    ctx.effects,
   );
 
   tracking.result = memberResult.result;
@@ -529,30 +543,22 @@ const generateLengthProperty = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): string | null => {
-  const {
-    result,
-    rootIdentifier,
-    resolvedIdentifier,
-    previousStructType,
-    previousMemberName,
-    subscriptDepth,
-  } = ctx;
   // Special case: main function's args.length -> argc
-  if (state.mainArgsName && rootIdentifier === state.mainArgsName) {
+  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
     return "argc";
   }
 
   // Check if we're accessing a struct member (cfg.magic.length)
-  if (previousStructType && previousMemberName) {
+  if (ctx.previousStructType && ctx.previousMemberName) {
     const fieldInfo = orchestrator.getStructFieldInfo(
-      previousStructType,
-      previousMemberName,
+      ctx.previousStructType,
+      ctx.previousMemberName,
     );
     if (fieldInfo) {
       return generateStructFieldLength(
-        result,
+        ctx.result,
         fieldInfo,
-        subscriptDepth,
+        ctx.subscriptDepth,
         input,
         orchestrator,
         effects,
@@ -561,19 +567,19 @@ const generateLengthProperty = (
   }
 
   // Fall back to checking the current resolved identifier's type
-  const typeInfo = resolvedIdentifier
-    ? input.typeRegistry.get(resolvedIdentifier)
+  const typeInfo = ctx.resolvedIdentifier
+    ? input.typeRegistry.get(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
-    return `/* .length: unknown type for ${result} */0`;
+    return `/* .length: unknown type for ${ctx.result} */0`;
   }
 
   return generateTypeInfoLength(
-    result,
+    ctx.result,
     typeInfo,
-    subscriptDepth,
-    resolvedIdentifier,
+    ctx.subscriptDepth,
+    ctx.resolvedIdentifier,
     input,
     state,
     effects,
