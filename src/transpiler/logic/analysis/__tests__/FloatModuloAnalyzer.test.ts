@@ -366,4 +366,51 @@ describe("FloatModuloAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // Non-Float Parameter and Unary Prefix Operands
+  // ========================================================================
+
+  describe("non-float parameter and unary operands", () => {
+    it("should not flag modulo with non-float parameter type", () => {
+      const code = `
+        void compute(u32 value) {
+          u32 r <- value % 3;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FloatModuloAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should not detect float in negated modulo operand", () => {
+      const code = `
+        void main() {
+          i32 x <- 5;
+          i32 result <- -x % 3;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FloatModuloAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should not detect float in bitwise-not modulo operand", () => {
+      const code = `
+        void main() {
+          u32 x <- 5;
+          u32 result <- ~x % 3;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FloatModuloAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

@@ -1370,4 +1370,109 @@ describe("NullCheckAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // Reassignment Resetting State in Nested Scope
+  // ========================================================================
+
+  describe("reassignment state reset in nested scope", () => {
+    it("should handle c_ variable reassignment resetting state in nested scope", () => {
+      const code = `
+        void process(cstring s) { }
+        u32 main() {
+          cstring c_ptr <- strchr("test", 't');
+          if (c_ptr != NULL) {
+            c_ptr <- strchr("test", 'x');
+            process(c_ptr);
+          }
+          return 0;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new NullCheckAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // c_ptr is reassigned to unchecked, then used without new check
+      const e0908Errors = errors.filter((e) => e.code === "E0908");
+      expect(e0908Errors).toHaveLength(1);
+    });
+  });
+
+  // ========================================================================
+  // Nested If Where Inner Has No c_ Variable
+  // ========================================================================
+
+  describe("nested if without c_ variable", () => {
+    it("should handle nested if where inner has no c_ variable", () => {
+      const code = `
+        void process(cstring s) { }
+        void main() {
+          cstring c_result <- strchr("test", 't');
+          if (c_result != NULL) {
+            u32 x <- 5;
+            if (x > 3) {
+              process(c_result);
+            }
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new NullCheckAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // c_result is checked in outer if, inner if is not a null check
+      const e0908Errors = errors.filter((e) => e.code === "E0908");
+      expect(e0908Errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Non-Null-Check While Inside Null-Checked While
+  // ========================================================================
+
+  describe("nested while without null check", () => {
+    it("should handle non-null-check while inside null-checked while", () => {
+      const code = `
+        void process(cstring s) { }
+        void main() {
+          cstring c_ptr <- strchr("test", 't');
+          while (c_ptr != NULL) {
+            u32 count <- 0;
+            while (count < 5) {
+              count <- count + 1;
+            }
+            process(c_ptr);
+            c_ptr <- strchr("test", 'x');
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new NullCheckAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // process(c_ptr) inside outer null-checked while should not flag
+      const e0908Errors = errors.filter((e) => e.code === "E0908");
+      expect(e0908Errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // c_ Prefix on Nullable Type Without Nullable Function
+  // ========================================================================
+
+  describe("c_ prefix on nullable type", () => {
+    it("should not flag c_ prefix on nullable type without nullable function", () => {
+      const code = `
+        void main() {
+          cstring c_str <- "hello";
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new NullCheckAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // cstring is a nullable C type, so c_ prefix is valid even without nullable function
+      expect(errors).toHaveLength(0);
+    });
+  });
 });
