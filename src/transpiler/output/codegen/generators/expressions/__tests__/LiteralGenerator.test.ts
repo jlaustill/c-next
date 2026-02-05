@@ -123,5 +123,46 @@ describe("LiteralGenerator", () => {
       expect(result.code).toBe("42");
       expect(result.effects).toEqual([]);
     });
+
+    it("should transform uppercase U64 suffix to ULL", () => {
+      const node = createMockLiteral("0xFFU64");
+      const result = generateLiteral(
+        node,
+        mockInput,
+        mockState,
+        mockOrchestrator,
+      );
+
+      expect(result.code).toBe("0xFFULL");
+      expect(result.effects).toEqual([]);
+    });
+  });
+
+  describe("passthrough literals", () => {
+    it("should pass through plain integer without effects", () => {
+      const node = createMockLiteral("42");
+      const result = generateLiteral(
+        node,
+        mockInput,
+        mockState,
+        mockOrchestrator,
+      );
+
+      expect(result.code).toBe("42");
+      expect(result.effects).toEqual([]);
+    });
+
+    it("should pass through string literal without effects", () => {
+      const node = createMockLiteral('"hello"');
+      const result = generateLiteral(
+        node,
+        mockInput,
+        mockState,
+        mockOrchestrator,
+      );
+
+      expect(result.code).toBe('"hello"');
+      expect(result.effects).toEqual([]);
+    });
   });
 });

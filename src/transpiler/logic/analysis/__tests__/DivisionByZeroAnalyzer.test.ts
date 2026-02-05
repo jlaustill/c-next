@@ -372,8 +372,9 @@ describe("DivisionByZeroAnalyzer", () => {
       const analyzer = new DivisionByZeroAnalyzer();
       analyzer.analyze(tree);
 
-      expect(analyzer.getErrors()).toHaveLength(1);
-      expect(analyzer.getErrors()[0].code).toBe("E0800");
+      const errors = analyzer.getErrors();
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0800");
     });
   });
 });
