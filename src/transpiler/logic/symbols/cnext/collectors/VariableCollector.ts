@@ -87,6 +87,7 @@ class VariableCollector {
 
     const symbol: IVariableSymbol = {
       name: fullName,
+      parent: scopeName,
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

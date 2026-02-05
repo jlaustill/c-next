@@ -116,12 +116,27 @@ describe("TSymbolAdapter", () => {
 
       const result = TSymbolAdapter.toISymbols([enumSym], symbolTable);
 
-      expect(result).toHaveLength(1);
+      // 1 enum + 3 members
+      expect(result).toHaveLength(4);
       expect(result[0].name).toBe("Color");
       expect(result[0].kind).toBe(ESymbolKind.Enum);
       expect(result[0].sourceFile).toBe("test.cnx");
       expect(result[0].sourceLine).toBe(5);
       expect(result[0].isExported).toBe(true);
+
+      // Enum members
+      expect(result[1].name).toBe("Red");
+      expect(result[1].kind).toBe(ESymbolKind.EnumMember);
+      expect(result[1].type).toBe("0");
+      expect(result[1].parent).toBe("Color");
+
+      expect(result[2].name).toBe("Green");
+      expect(result[2].kind).toBe(ESymbolKind.EnumMember);
+      expect(result[2].type).toBe("1");
+
+      expect(result[3].name).toBe("Blue");
+      expect(result[3].kind).toBe(ESymbolKind.EnumMember);
+      expect(result[3].type).toBe("2");
     });
   });
 

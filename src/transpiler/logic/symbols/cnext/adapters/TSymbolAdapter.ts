@@ -48,7 +48,7 @@ class TSymbolAdapter {
           result.push(...TSymbolAdapter.convertBitmap(symbol));
           break;
         case ESymbolKind.Enum:
-          result.push(TSymbolAdapter.convertEnum(symbol));
+          result.push(...TSymbolAdapter.convertEnum(symbol));
           break;
         case ESymbolKind.Struct:
           result.push(TSymbolAdapter.convertStruct(symbol, symbolTable));
@@ -86,6 +86,7 @@ class TSymbolAdapter {
       sourceLine: bitmap.sourceLine,
       sourceLanguage: bitmap.sourceLanguage,
       isExported: bitmap.isExported,
+      parent: bitmap.parent,
     });
 
     // Expand fields to BitmapField symbols
@@ -114,19 +115,37 @@ class TSymbolAdapter {
   }
 
   /**
-   * Convert IEnumSymbol to ISymbol.
-   * Note: Enum members are accessed via Enum.Member syntax, so we don't create
-   * separate symbols for members (they're stored in IEnumSymbol.members for access).
+   * Convert IEnumSymbol to ISymbol + EnumMember symbols for hover support.
    */
-  private static convertEnum(enumSym: IEnumSymbol): ISymbol {
-    return {
+  private static convertEnum(enumSym: IEnumSymbol): ISymbol[] {
+    const result: ISymbol[] = [];
+
+    // Main enum symbol
+    result.push({
       name: enumSym.name,
       kind: ESymbolKind.Enum,
       sourceFile: enumSym.sourceFile,
       sourceLine: enumSym.sourceLine,
       sourceLanguage: enumSym.sourceLanguage,
       isExported: enumSym.isExported,
-    };
+      parent: enumSym.parent,
+    });
+
+    // Create EnumMember symbols for hover/autocomplete
+    for (const [memberName, memberValue] of enumSym.members) {
+      result.push({
+        name: memberName,
+        kind: ESymbolKind.EnumMember,
+        type: String(memberValue),
+        sourceFile: enumSym.sourceFile,
+        sourceLine: enumSym.sourceLine,
+        sourceLanguage: enumSym.sourceLanguage,
+        isExported: enumSym.isExported,
+        parent: enumSym.name,
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -153,6 +172,7 @@ class TSymbolAdapter {
       sourceLine: struct.sourceLine,
       sourceLanguage: struct.sourceLanguage,
       isExported: struct.isExported,
+      parent: struct.parent,
     };
   }
 
@@ -185,6 +205,7 @@ class TSymbolAdapter {
       sourceLine: func.sourceLine,
       sourceLanguage: func.sourceLanguage,
       isExported: func.isExported,
+      parent: func.parent,
       signature,
       parameters,
     });
@@ -227,6 +248,7 @@ class TSymbolAdapter {
       sourceLine: variable.sourceLine,
       sourceLanguage: variable.sourceLanguage,
       isExported: variable.isExported,
+      parent: variable.parent,
       isConst: variable.isConst,
       isAtomic: variable.isAtomic,
       isArray: variable.isArray,
@@ -256,6 +278,7 @@ class TSymbolAdapter {
       sourceLine: register.sourceLine,
       sourceLanguage: register.sourceLanguage,
       isExported: register.isExported,
+      parent: register.parent,
     });
 
     // Expand members to RegisterMember symbols

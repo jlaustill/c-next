@@ -301,18 +301,63 @@ function formatSourceFooter(
 }
 
 /**
+ * Resolve a parent reference to dot notation by walking the symbol chain.
+ * e.g., "SensorProcessor_getAtmosphericPressurekPa" → "SensorProcessor.getAtmosphericPressurekPa"
+ * Checks local symbols first, then workspace index for cross-file resolution.
+ */
+function resolveDisplayParent(
+  parent: string,
+  symbols: ISymbolInfo[],
+  workspaceIndex?: WorkspaceIndex,
+): string {
+  // Search local symbols first, then workspace-wide
+  let parentSymbol = symbols.find((s) => s.fullName === parent);
+  if (!parentSymbol && workspaceIndex) {
+    parentSymbol = workspaceIndex
+      .getAllSymbols()
+      .find((s) => s.fullName === parent);
+  }
+
+  if (parentSymbol?.parent) {
+    const resolvedGrandparent = resolveDisplayParent(
+      parentSymbol.parent,
+      symbols,
+      workspaceIndex,
+    );
+    return `${resolvedGrandparent}.${parentSymbol.name}`;
+  }
+  if (parentSymbol) {
+    return parentSymbol.name;
+  }
+  return parent;
+}
+
+/**
  * Build hover content for a symbol
  * @param symbol The symbol to build hover for
+ * @param symbols All symbols in scope (for parent chain resolution)
  * @param sourceFile Optional source file path (for cross-file symbols)
  * @param workspaceIndex Optional workspace index for smart path display
  */
 function buildSymbolHover(
   symbol: ISymbolWithFile,
+  symbols: ISymbolInfo[],
   sourceFile?: string,
   workspaceIndex?: WorkspaceIndex,
 ): vscode.MarkdownString {
   const md = new vscode.MarkdownString();
   md.isTrusted = true;
+
+  // Use C-Next dot notation, resolving parent chain through symbol list
+  const displayParent = symbol.parent
+    ? resolveDisplayParent(symbol.parent, symbols, workspaceIndex)
+    : undefined;
+  const displayName = displayParent
+    ? `${displayParent}.${symbol.name}`
+    : symbol.name;
+
+  // Top-level scope name for "Defined in" (e.g., "SensorProcessor" from "SensorProcessor.getAtmosphericPressurekPa")
+  const scopeName = displayParent?.split(".")[0];
 
   switch (symbol.kind) {
     case "scope":
@@ -327,50 +372,87 @@ function buildSymbolHover(
       break;
 
     case "struct":
-      md.appendMarkdown(`**struct** \`${symbol.name}\`\n\n`);
+      md.appendMarkdown(`**struct** \`${displayName}\`\n\n`);
       md.appendMarkdown(`Data structure.`);
       break;
 
     case "register":
-      md.appendMarkdown(`**register** \`${symbol.name}\`\n\n`);
+      md.appendMarkdown(`**register** \`${displayName}\`\n\n`);
       md.appendMarkdown(`Hardware register binding for memory-mapped I/O.`);
       break;
 
     case "function":
     case "method":
-      md.appendMarkdown(`**function** \`${symbol.fullName}\`\n\n`);
+      md.appendMarkdown(`**function** \`${displayName}\`\n\n`);
       md.appendCodeblock(
         symbol.signature || `${symbol.type || "void"} ${symbol.name}()`,
         "cnext",
       );
-      if (symbol.parent) {
-        md.appendMarkdown(
-          `\n*Defined in: ${symbol.parent} ${symbol.kind === "method" ? "class" : "namespace"}*`,
-        );
+      if (scopeName) {
+        md.appendMarkdown(`\n*Defined in: ${scopeName} scope*`);
       }
       break;
 
     case "variable":
     case "field":
       md.appendMarkdown(
-        `**${symbol.parent ? "field" : "variable"}** \`${symbol.fullName}\`\n\n`,
+        `**${symbol.parent ? "field" : "variable"}** \`${displayName}\`\n\n`,
       );
       md.appendMarkdown(`*Type:* \`${symbol.type || "unknown"}\``);
       if (symbol.size !== undefined) {
         md.appendMarkdown(`\n\n*Size:* ${symbol.size}`);
       }
-      if (symbol.parent) {
-        md.appendMarkdown(`\n\n*Defined in:* ${symbol.parent}`);
+      if (scopeName) {
+        md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
+      }
+      break;
+
+    case "enum":
+      md.appendMarkdown(`**enum** \`${displayName}\`\n\n`);
+      md.appendMarkdown(`Type-safe enumeration.`);
+      if (scopeName) {
+        md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
+      }
+      break;
+
+    case "enumMember":
+      md.appendMarkdown(`**enum member** \`${displayName}\`\n\n`);
+      if (symbol.type) {
+        md.appendMarkdown(`*Value:* ${symbol.type}`);
+      }
+      if (displayParent) {
+        md.appendMarkdown(`\n\n*Enum:* ${displayParent}`);
+      }
+      break;
+
+    case "bitmap":
+      md.appendMarkdown(`**bitmap** \`${displayName}\`\n\n`);
+      md.appendMarkdown(`Bit-field type for hardware registers.`);
+      if (scopeName) {
+        md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
+      }
+      break;
+
+    case "bitmapField":
+      md.appendMarkdown(`**bitmap field** \`${displayName}\`\n\n`);
+      if (symbol.type) {
+        md.appendMarkdown(`*Type:* \`${symbol.type}\``);
+      }
+      if (symbol.signature) {
+        md.appendMarkdown(`\n\n*Range:* ${symbol.signature}`);
+      }
+      if (displayParent) {
+        md.appendMarkdown(`\n\n*Bitmap:* ${displayParent}`);
       }
       break;
 
     case "registerMember":
       const access = symbol.accessModifier || "rw";
-      md.appendMarkdown(`**register member** \`${symbol.fullName}\`\n\n`);
+      md.appendMarkdown(`**register member** \`${displayName}\`\n\n`);
       md.appendCodeblock(`${symbol.type || "u32"} ${access}`, "cnext");
       md.appendMarkdown(`\n*Access:* ${getAccessDescription(access)}`);
-      if (symbol.parent) {
-        md.appendMarkdown(`\n\n*Register:* ${symbol.parent}`);
+      if (displayParent) {
+        md.appendMarkdown(`\n\n*Register:* ${displayParent}`);
       }
       break;
 
@@ -479,11 +561,32 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     const parseResult = parseWithSymbols(source);
     const symbols = parseResult.symbols;
 
+    // Resolve C-Next qualifiers: "this" → current scope, "global" → scope lookup
+    if (parentName === "this") {
+      // "this.X" means X is a member of the enclosing scope
+      const enclosingScope = symbols.find(
+        (s) => s.kind === "namespace" || s.kind === "scope",
+      );
+      if (enclosingScope) {
+        parentName = enclosingScope.name;
+      }
+    } else if (parentName === "global") {
+      // "global.X" means X is a top-level scope name — hover the scope itself
+      // "global.X.Y" is handled by the dot-chain logic (parentName would be X)
+      parentName = undefined;
+    }
+
     // Look for symbol in current document
     let symbol: ISymbolInfo | undefined;
 
     if (parentName) {
       symbol = symbols.find((s) => s.name === word && s.parent === parentName);
+      // Also check workspace for cross-file scope members
+      if (!symbol && this.workspaceIndex) {
+        symbol = this.workspaceIndex
+          .getAllSymbols()
+          .find((s) => s.name === word && s.parent === parentName);
+      }
     } else {
       symbol = symbols.find((s) => s.name === word && !s.parent);
       if (!symbol) {
@@ -497,7 +600,12 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     if (symbol) {
       // For local symbols, use the current document as the source file
       return new vscode.Hover(
-        buildSymbolHover(symbol, document.uri.fsPath, this.workspaceIndex),
+        buildSymbolHover(
+          symbol,
+          symbols,
+          document.uri.fsPath,
+          this.workspaceIndex,
+        ),
         wordRange,
       );
     }
@@ -510,7 +618,12 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       ) as ISymbolWithFile;
       if (workspaceSymbol) {
         return new vscode.Hover(
-          buildSymbolHover(workspaceSymbol, undefined, this.workspaceIndex),
+          buildSymbolHover(
+            workspaceSymbol,
+            symbols,
+            undefined,
+            this.workspaceIndex,
+          ),
           wordRange,
         );
       }
@@ -600,8 +713,22 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
           );
         }
 
-        // Append the source footer to the hover contents
-        const contents = [...hover.contents];
+        // Post-process hover contents: replace C++ :: with C-Next dot notation
+        const contents = hover.contents.map((content) => {
+          if (content instanceof vscode.MarkdownString) {
+            const fixed = new vscode.MarkdownString(
+              content.value.replace(/::/g, "."),
+            );
+            fixed.isTrusted = true;
+            return fixed;
+          }
+          if (typeof content === "string") {
+            return content.replace(/::/g, ".");
+          }
+          return content;
+        });
+
+        // Append the source footer
         const footerMd = new vscode.MarkdownString(sourceFooter);
         footerMd.isTrusted = true;
         contents.push(footerMd);

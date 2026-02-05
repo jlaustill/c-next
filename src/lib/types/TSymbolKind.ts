@@ -9,6 +9,10 @@ type TSymbolKind =
   | "function"
   | "variable"
   | "registerMember"
+  | "enum"
+  | "enumMember"
+  | "bitmap"
+  | "bitmapField"
   | "field"
   | "method";
 
