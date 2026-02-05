@@ -396,4 +396,439 @@ describe("InitializationAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // Group A: Struct Field Tracking
+  // ========================================================================
+
+  describe("struct field tracking", () => {
+    it("should track struct field-by-field initialization", () => {
+      const code = `
+        struct Point {
+          u32 x;
+          u32 y;
+        }
+        void main() {
+          Point p;
+          p.x <- 10;
+          p.y <- 20;
+          u32 a <- p.x;
+          u32 b <- p.y;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag uninitialized struct field read", () => {
+      const code = `
+        struct Point {
+          u32 x;
+          u32 y;
+        }
+        void main() {
+          Point p;
+          p.x <- 10;
+          u32 a <- p.y;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toContain("p.y");
+    });
+
+    it("should recognize struct parameter fields as initialized", () => {
+      const code = `
+        struct Config {
+          u32 timeout;
+          u32 retries;
+        }
+        void process(Config cfg) {
+          u32 t <- cfg.timeout;
+          u32 r <- cfg.retries;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should mark all fields initialized on whole struct assignment", () => {
+      const code = `
+        struct Point {
+          u32 x;
+          u32 y;
+        }
+        void main() {
+          Point a <- {x: 1, y: 2};
+          Point b;
+          b <- a;
+          u32 v <- b.x;
+          u32 w <- b.y;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect partially initialized struct (not all fields assigned)", () => {
+      const code = `
+        struct Vec3 {
+          u32 x;
+          u32 y;
+          u32 z;
+        }
+        void main() {
+          Vec3 v;
+          v.x <- 1;
+          v.y <- 2;
+          u32 val <- v.z;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toContain("v.z");
+    });
+  });
+
+  // ========================================================================
+  // Group B: Array Element Assignment
+  // ========================================================================
+
+  describe("array element assignment", () => {
+    it("should track initialization through array element assignment", () => {
+      const code = `
+        void main() {
+          u32 arr[3] <- [0, 0, 0];
+          arr[0] <- 10;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Group C: While Loop
+  // ========================================================================
+
+  describe("control flow - while loop", () => {
+    it("should conservatively treat while loop as possibly not executing", () => {
+      const code = `
+        void main() {
+          u32 x;
+          u32 count <- 0;
+          while (count < 5) {
+            x <- 5;
+            count <- count + 1;
+          }
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("x");
+    });
+  });
+
+  // ========================================================================
+  // Group D: For Loop Variants (isDeterministicForLoop)
+  // ========================================================================
+
+  describe("control flow - non-deterministic for loops", () => {
+    it("should flag non-deterministic for loop with non-zero init", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          for (u32 i <- 1; i < 4; i <- i + 1) {
+            sum <- 42;
+          }
+          u32 r <- sum;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("sum");
+    });
+
+    it("should handle deterministic for loop with pre-declared variable (forAssignment)", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          u32 i <- 0;
+          for (i <- 0; i < 4; i <- i + 1) {
+            sum <- 42;
+          }
+          u32 r <- sum;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // forAssignment path: i already initialized, loop is deterministic (0 < 4)
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag non-deterministic for loop with non-< condition", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          for (u32 i <- 0; i != 4; i <- i + 1) {
+            sum <- 42;
+          }
+          u32 r <- sum;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("sum");
+    });
+
+    it("should flag non-deterministic forAssignment with non-zero init", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          u32 i <- 0;
+          for (i <- 1; i < 4; i <- i + 1) {
+            sum <- 42;
+          }
+          u32 r <- sum;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // forAssignment with non-zero init is non-deterministic, sum may not be set
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("sum");
+    });
+  });
+
+  // ========================================================================
+  // Group E: Function Call Arguments
+  // ========================================================================
+
+  describe("function call arguments", () => {
+    it("should mark variables passed as function arguments as initialized", () => {
+      const code = `
+        void fill(u32 result) {
+          result <- 42;
+        }
+        void main() {
+          u32 x;
+          fill(x);
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should skip struct member init check inside function call arguments", () => {
+      const code = `
+        struct Point {
+          u32 x;
+        }
+        void consume(u32 val) { }
+        void main() {
+          Point p;
+          consume(p.x);
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Group F: .length on Non-String Type
+  // ========================================================================
+
+  describe(".length on non-string type", () => {
+    it("should not flag .length access on array type", () => {
+      const code = `
+        void main() {
+          u32 arr[5] <- [1, 2, 3, 4, 5];
+          u32 len <- arr.length;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Group G: String Type Properties
+  // ========================================================================
+
+  describe("string type properties", () => {
+    it("should flag .length on uninitialized string", () => {
+      const code = `
+        void main() {
+          string<32> s;
+          u32 len <- s.length;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+    });
+
+    it("should not flag .length on initialized string", () => {
+      const code = `
+        void main() {
+          string<32> s <- "hello";
+          u32 len <- s.length;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Group H: Global Scope with Scopes
+  // ========================================================================
+
+  describe("global scope with scopes", () => {
+    it("should handle scope member variables as globally initialized", () => {
+      const code = `
+        scope LED {
+          u32 brightness;
+          public void on() {
+            brightness <- 100;
+          }
+        }
+        void main() {
+          LED.on();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should handle scope member variable with user type", () => {
+      const code = `
+        struct Config {
+          u32 timeout;
+        }
+        scope System {
+          Config settings;
+          public void init() {
+            settings.timeout <- 100;
+          }
+        }
+        void main() {
+          System.init();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should handle global struct-typed variable", () => {
+      const code = `
+        struct Config {
+          u32 timeout;
+        }
+        Config globalConfig;
+        void main() {
+          u32 t <- globalConfig.timeout;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Group I: C++ Non-Struct Symbol
+  // ========================================================================
+
+  describe("C++ non-struct symbol", () => {
+    it("should not treat C++ enum as auto-initialized", () => {
+      const code = `
+        void main() {
+          CppEnum e;
+          u32 val <- e;
+        }
+      `;
+      const tree = parse(code);
+
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "CppEnum",
+        kind: ESymbolKind.Enum,
+        sourceLanguage: ESourceLanguage.Cpp,
+        sourceFile: "types.hpp",
+        sourceLine: 1,
+        isExported: true,
+      });
+
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      // C++ enums don't have constructors - should flag as uninitialized
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+    });
+  });
 });
