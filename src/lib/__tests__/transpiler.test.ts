@@ -220,6 +220,23 @@ describe("transpile", () => {
       expect(result.errors[0].message).toContain("Code generation failed");
     });
 
+    it("defaults to line 1 for errors without location info", () => {
+      // Ternary errors don't include line:column prefix
+      const source = `
+        void test() {
+          u32 x <- 5;
+          u32 result <- (x) ? 1 : 0;
+        }
+      `;
+
+      const result = transpile(source);
+
+      expect(result.success).toBe(false);
+      // Errors without line:column prefix default to line 1, column 0
+      expect(result.errors[0].line).toBe(1);
+      expect(result.errors[0].column).toBe(0);
+    });
+
     it("reports narrowing error at the correct line", () => {
       const source = `void test() {
   u32 large <- 1000;

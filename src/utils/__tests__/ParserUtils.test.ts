@@ -166,5 +166,19 @@ describe("ParserUtils", () => {
       expect(result.column).toBe(10);
       expect(result.message).toBe("Error: Use bit indexing: value[0, 8]");
     });
+
+    it("should not match numeric line with non-numeric column", () => {
+      const result = ParserUtils.parseErrorLocation("8:abc some error");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe("8:abc some error");
+    });
+
+    it("should not match when colon is at position 0", () => {
+      const result = ParserUtils.parseErrorLocation(":4 some error");
+      expect(result.line).toBe(1);
+      expect(result.column).toBe(0);
+      expect(result.message).toBe(":4 some error");
+    });
   });
 });
