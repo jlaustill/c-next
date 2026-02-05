@@ -7424,216 +7424,67 @@ export default class CodeGenerator implements IOrchestrator {
     const parts = ctx.IDENTIFIER().map((id) => id.getText());
     const expressions = ctx.expression();
     if (expressions.length > 0) {
-      return this.generateMemberAccessWithSubscripts(ctx, parts, expressions);
+      // Note: Register bit access in assignment targets (GPIO.DR[3] <- true) is handled
+      // by AssignmentClassifier dispatch, not here. The memberAccess grammar rule only
+      // appears in assignmentTarget, and register bit patterns are classified as
+      // REGISTER_BIT/REGISTER_BIT_RANGE before reaching this code.
+      return this.generateSubscriptMemberAccess(ctx, parts, expressions);
     }
     return this.generatePlainMemberAccess(parts);
   }
 
-  // --- Subscript branch helpers ---
-
   /**
-   * ADR-036: Try to generate register bit access (single bit or bit range).
-   * Returns the generated code, or null if not a register pattern.
+   * Generate member access with subscript expressions using child-walking
+   * via buildMemberAccessChain (Bug #8, Issue #644).
    */
-  private tryGenerateRegisterBitAccess(
+  private generateSubscriptMemberAccess(
+    ctx: Parser.MemberAccessContext,
     parts: string[],
     expressions: Parser.ExpressionContext[],
-  ): string | null {
+  ): string {
     const firstPart = parts[0];
-    const isDirectRegister =
-      parts.length > 1 && this.symbols!.knownRegisters.has(firstPart);
-    const scopedRegisterName =
-      parts.length > 2 && this.isKnownScope(firstPart)
-        ? `${parts[0]}_${parts[1]}`
-        : null;
-    const isScopedRegister =
-      scopedRegisterName &&
-      this.symbols!.knownRegisters.has(scopedRegisterName);
+    const isCrossScope = this.isKnownScope(firstPart);
+    const paramInfo = this.context.currentParameters.get(firstPart);
+    const isStructParam = paramInfo?.isStruct ?? false;
 
-    if (!isDirectRegister && !isScopedRegister) {
-      return null;
-    }
-
-    const registerName = parts.join("_");
-    const memberIndex = isDirectRegister ? 1 : 2;
-    const displayName = isDirectRegister
-      ? `${parts[0]}.${parts[1]}`
-      : `${parts[0]}.${parts[1]}.${parts[2]}`;
-
-    MemberAccessValidator.validateRegisterReadAccess(
-      registerName,
-      parts[memberIndex],
-      displayName,
-      this.symbols!.registerMemberAccess,
-      this.inAssignmentTarget,
-    );
-
-    if (expressions.length === 1) {
-      const bitIndex = this._generateExpression(expressions[0]);
-      return `((${registerName} >> ${bitIndex}) & 1)`;
-    }
-    if (expressions.length === 2) {
-      const start = this._generateExpression(expressions[0]);
-      const width = this._generateExpression(expressions[1]);
-      const mask = BitUtils.generateMask(width);
-      if (start === "0") {
-        return `((${registerName}) & ${mask})`;
-      }
-      return `((${registerName} >> ${start}) & ${mask})`;
-    }
-    // >2 expressions: validated read access above, but fall through to
-    // generic array handling (register pattern only handles 1-2 subscripts)
-    return null;
-  }
-
-  /**
-   * ADR-036: Compile-time bounds checking for simple single-identifier arrays.
-   */
-  private checkSimpleArrayBounds(
-    arrayName: string,
-    expressions: Parser.ExpressionContext[],
-    line: number,
-  ): void {
-    const typeInfo = this.context.typeRegistry.get(arrayName);
-    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-      this.typeValidator!.checkArrayBounds(
-        arrayName,
-        typeInfo.arrayDimensions,
-        expressions,
-        line,
-        (expr) => this._tryEvaluateConstant(expr),
+    if (isCrossScope) {
+      MemberAccessValidator.validateNotSelfScopeReference(
+        firstPart,
+        parts[1],
+        this.context.currentScope,
       );
     }
-  }
 
-  /**
-   * Generate multi-part subscript access using child-walking via buildMemberAccessChain.
-   */
-  private generateMultiPartSubscriptAccess(
-    ctx: Parser.MemberAccessContext,
-    parts: string[],
-    expressions: Parser.ExpressionContext[],
-    indices: string,
-  ): string {
-    const firstPart = parts[0];
+    const firstTypeInfo = this.context.typeRegistry.get(firstPart);
 
-    if (ctx.children) {
-      const isCrossScope = this.isKnownScope(firstPart);
-      const paramInfo = this.context.currentParameters.get(firstPart);
-      const isStructParam = paramInfo?.isStruct ?? false;
-
-      if (isCrossScope) {
-        MemberAccessValidator.validateNotSelfScopeReference(
-          firstPart,
-          parts[1],
-          this.context.currentScope,
-        );
-      }
-
-      // Bug #8: Track struct types to detect bit access through chains
-      const firstTypeInfo = this.context.typeRegistry.get(firstPart);
-
-      // Issue #644: Use buildMemberAccessChain for child-walking logic
-      const chainResult = memberAccessChain.buildMemberAccessChain({
-        firstId: firstPart,
-        identifiers: parts,
-        expressions,
-        children: ctx.children,
-        separatorOptions: {
-          isStructParam,
-          isCrossScope,
-          cppMode: this.cppMode,
-        },
-        generateExpression: (expr) => this._generateExpression(expr),
-        initialTypeInfo: firstTypeInfo
-          ? {
-              isArray: firstTypeInfo.isArray,
-              baseType: firstTypeInfo.baseType,
-            }
-          : undefined,
-        typeTracking: {
-          getStructFields: (structType) =>
-            this.symbols!.structFields.get(structType),
-          getStructArrayFields: (structType) =>
-            this.symbols!.structFieldArrays.get(structType),
-          isKnownStruct: (name) => this.isKnownStruct(name),
-        },
-        onBitAccess: (result, bitIndex) => `((${result} >> ${bitIndex}) & 1)`,
-      });
-
-      return chainResult.code;
-    }
-
-    return this.generateFallbackSubscriptAccess(
-      firstPart,
-      parts,
-      indices,
-      ctx.getText(),
-    );
-  }
-
-  /**
-   * Fallback heuristic for multi-part subscript access without children.
-   */
-  private generateFallbackSubscriptAccess(
-    firstPart: string,
-    parts: string[],
-    indices: string,
-    text: string,
-  ): string {
-    const firstBracket = text.indexOf("[");
-    const firstDot = text.indexOf(".");
-
-    if (firstBracket !== -1 && firstBracket < firstDot) {
-      // Pattern: arr[i].field -> indices come after first identifier
-      const trailingMembers = parts.slice(1);
-      if (trailingMembers.length > 0) {
-        return `${firstPart}[${indices}].${trailingMembers.join(".")}`;
-      }
-      return `${firstPart}[${indices}]`;
-    }
-
-    // Pattern: struct.field[i][j] -> indices come at the end
-    return `${parts.join(".")}[${indices}]`;
-  }
-
-  /**
-   * Coordinator for member access with subscript expressions (brackets).
-   */
-  private generateMemberAccessWithSubscripts(
-    ctx: Parser.MemberAccessContext,
-    parts: string[],
-    expressions: Parser.ExpressionContext[],
-  ): string {
-    const firstPart = parts[0];
-
-    // ADR-036: Register bit access
-    const registerResult = this.tryGenerateRegisterBitAccess(
-      parts,
+    const chainResult = memberAccessChain.buildMemberAccessChain({
+      firstId: firstPart,
+      identifiers: parts,
       expressions,
-    );
-    if (registerResult !== null) {
-      return registerResult;
-    }
+      children: ctx.children!,
+      separatorOptions: {
+        isStructParam,
+        isCrossScope,
+        cppMode: this.cppMode,
+      },
+      generateExpression: (expr) => this._generateExpression(expr),
+      initialTypeInfo: firstTypeInfo
+        ? {
+            isArray: firstTypeInfo.isArray,
+            baseType: firstTypeInfo.baseType,
+          }
+        : undefined,
+      typeTracking: {
+        getStructFields: (structType) =>
+          this.symbols!.structFields.get(structType),
+        getStructArrayFields: (structType) =>
+          this.symbols!.structFieldArrays.get(structType),
+        isKnownStruct: (name) => this.isKnownStruct(name),
+      },
+      onBitAccess: (result, bitIndex) => `((${result} >> ${bitIndex}) & 1)`,
+    });
 
-    // ADR-036: Compile-time bounds checking for simple arrays
-    if (parts.length === 1) {
-      this.checkSimpleArrayBounds(firstPart, expressions, ctx.start?.line ?? 0);
-    }
-
-    const indices = expressions
-      .map((e) => this._generateExpression(e))
-      .join("][");
-
-    if (parts.length > 1) {
-      return this.generateMultiPartSubscriptAccess(
-        ctx,
-        parts,
-        expressions,
-        indices,
-      );
-    }
-    return `${firstPart}[${indices}]`;
+    return chainResult.code;
   }
 
   // --- Plain member access helpers ---
@@ -7651,16 +7502,15 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    if (parts.length >= 2) {
-      const memberName = parts[1];
-      MemberAccessValidator.validateRegisterReadAccess(
-        `${firstPart}_${memberName}`,
-        memberName,
-        `${firstPart}.${memberName}`,
-        this.symbols!.registerMemberAccess,
-        this.inAssignmentTarget,
-      );
-    }
+    // memberAccess grammar guarantees parts.length >= 2: IDENTIFIER ('.' IDENTIFIER)+
+    const memberName = parts[1];
+    MemberAccessValidator.validateRegisterReadAccess(
+      `${firstPart}_${memberName}`,
+      memberName,
+      `${firstPart}.${memberName}`,
+      this.symbols!.registerMemberAccess,
+      this.inAssignmentTarget,
+    );
     return parts.join("_");
   }
 
