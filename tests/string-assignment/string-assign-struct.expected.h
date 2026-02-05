@@ -15,7 +15,7 @@ extern "C" {
 
 /* Struct definitions */
 typedef struct Config {
-    char name[33][33];
+    char name[33];
     uint32_t value;
 } Config;
 

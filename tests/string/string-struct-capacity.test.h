@@ -15,13 +15,13 @@ extern "C" {
 
 /* Struct definitions */
 typedef struct Person {
-    char name[65][65];
-    char bio[129][129];
+    char name[65];
+    char bio[129];
     uint32_t age;
 } Person;
 typedef struct Config {
-    char key[33][33];
-    char value[257][257];
+    char key[33];
+    char value[257];
 } Config;
 
 #ifdef __cplusplus

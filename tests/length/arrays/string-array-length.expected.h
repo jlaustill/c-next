@@ -15,7 +15,7 @@ extern "C" {
 
 /* Struct definitions */
 typedef struct TestStruct {
-    char arr[4][65][65];
+    char arr[4][65];
 } TestStruct;
 
 /* External variables */
