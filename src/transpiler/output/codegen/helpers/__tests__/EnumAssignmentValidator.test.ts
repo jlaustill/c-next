@@ -131,5 +131,36 @@ describe("EnumAssignmentValidator", () => {
         validator.validateEnumAssignment("Scope_State", expression),
       ).toThrow("Cannot assign non-enum value to Scope_State enum");
     });
+
+    it("throws for this.WrongEnum.MEMBER with wrong scoped name", () => {
+      const validator = new EnumAssignmentValidator({
+        knownEnums: new Set(["MyScope_State"]),
+        getCurrentScope: () => "MyScope",
+        getExpressionEnumType: () => null,
+        isIntegerExpression: () => false,
+      });
+
+      const expression = { getText: () => "this.Wrong.ACTIVE" } as never;
+
+      expect(() =>
+        validator.validateEnumAssignment("MyScope_State", expression),
+      ).toThrow("Cannot assign non-enum value to MyScope_State enum");
+    });
+
+    it("throws for variable.field access on non-enum type", () => {
+      const expression = { getText: () => "someVar.field" } as never;
+
+      expect(() =>
+        validator.validateEnumAssignment("Color", expression),
+      ).toThrow("Cannot assign non-enum value to Color enum");
+    });
+
+    it("allows variable.field when variable is a known enum", () => {
+      const expression = { getText: () => "Status.OK" } as never;
+
+      expect(() =>
+        validator.validateEnumAssignment("Color", expression),
+      ).not.toThrow();
+    });
   });
 });

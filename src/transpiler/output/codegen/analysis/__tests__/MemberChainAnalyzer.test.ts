@@ -199,5 +199,169 @@ describe("MemberChainAnalyzer", () => {
       // The analyzer only detects bit access on integer types
       expect(result.isBitAccess).toBe(false);
     });
+
+    it("returns isBitAccess false when children is null", () => {
+      const memberAccessCtx = {
+        IDENTIFIER: () => [{ getText: () => "point" }],
+        expression: () => [{ getText: () => "0" }],
+        children: null,
+      };
+
+      const targetCtx = {
+        memberAccess: () => memberAccessCtx,
+      } as never;
+
+      const result = analyzer.analyze(targetCtx);
+
+      expect(result.isBitAccess).toBe(false);
+    });
+
+    it("should track type through nested struct member chain", () => {
+      // Setup: struct Inner { u8 flags; }, struct Outer { Inner child; }
+      const innerFields = new Map<string, string>();
+      innerFields.set("flags", "u8");
+      structFields.set("Inner", innerFields);
+      structFieldArrays.set("Inner", new Set());
+
+      const outerFields = new Map<string, string>();
+      outerFields.set("child", "Inner");
+      structFields.set("Outer", outerFields);
+      structFieldArrays.set("Outer", new Set());
+
+      // Variable 'obj' is of type Outer
+      typeRegistry.set("obj", {
+        baseType: "Outer",
+        bitWidth: 0,
+        isConst: false,
+        isArray: false,
+      });
+
+      // Mock: obj.child.flags[0]
+      const mockExpr = { getText: () => "0" };
+      const memberAccessCtx = {
+        IDENTIFIER: () => [
+          { getText: () => "obj" },
+          { getText: () => "child" },
+          { getText: () => "flags" },
+        ],
+        expression: () => [mockExpr],
+        children: [
+          { getText: () => "obj" },
+          { getText: () => "." },
+          { getText: () => "child" },
+          { getText: () => "." },
+          { getText: () => "flags" },
+          { getText: () => "[" },
+          mockExpr,
+          { getText: () => "]" },
+        ],
+      };
+
+      const targetCtx = {
+        memberAccess: () => memberAccessCtx,
+      } as never;
+
+      const result = analyzer.analyze(targetCtx);
+
+      expect(result.isBitAccess).toBe(true);
+      expect(result.baseTarget).toBe("obj.child.flags");
+      expect(result.bitIndex).toBe("0");
+    });
+
+    it("should return false for nested struct non-integer field subscript", () => {
+      // Setup: struct Inner { f32 value; }, struct Outer { Inner child; }
+      const innerFields = new Map<string, string>();
+      innerFields.set("value", "f32");
+      structFields.set("Inner", innerFields);
+      structFieldArrays.set("Inner", new Set());
+
+      const outerFields = new Map<string, string>();
+      outerFields.set("child", "Inner");
+      structFields.set("Outer", outerFields);
+      structFieldArrays.set("Outer", new Set());
+
+      typeRegistry.set("obj", {
+        baseType: "Outer",
+        bitWidth: 0,
+        isConst: false,
+        isArray: false,
+      });
+
+      // Mock: obj.child.value[0]
+      const mockExpr = { getText: () => "0" };
+      const memberAccessCtx = {
+        IDENTIFIER: () => [
+          { getText: () => "obj" },
+          { getText: () => "child" },
+          { getText: () => "value" },
+        ],
+        expression: () => [mockExpr],
+        children: [
+          { getText: () => "obj" },
+          { getText: () => "." },
+          { getText: () => "child" },
+          { getText: () => "." },
+          { getText: () => "value" },
+          { getText: () => "[" },
+          mockExpr,
+          { getText: () => "]" },
+        ],
+      };
+
+      const targetCtx = {
+        memberAccess: () => memberAccessCtx,
+      } as never;
+
+      const result = analyzer.analyze(targetCtx);
+
+      expect(result.isBitAccess).toBe(false);
+    });
+
+    it("should detect bit access through array-of-structs subscript", () => {
+      // Setup: struct Pixel { u8 flags; }, variable grid:Pixel isArray=true
+      const pixelFields = new Map<string, string>();
+      pixelFields.set("flags", "u8");
+      structFields.set("Pixel", pixelFields);
+      structFieldArrays.set("Pixel", new Set());
+
+      typeRegistry.set("grid", {
+        baseType: "Pixel",
+        bitWidth: 0,
+        isConst: false,
+        isArray: true,
+      });
+
+      // Mock: grid[0].flags[1]
+      const mockExpr0 = { getText: () => "0" };
+      const mockExpr1 = { getText: () => "1" };
+      const memberAccessCtx = {
+        IDENTIFIER: () => [
+          { getText: () => "grid" },
+          { getText: () => "flags" },
+        ],
+        expression: () => [mockExpr0, mockExpr1],
+        children: [
+          { getText: () => "grid" },
+          { getText: () => "[" },
+          mockExpr0,
+          { getText: () => "]" },
+          { getText: () => "." },
+          { getText: () => "flags" },
+          { getText: () => "[" },
+          mockExpr1,
+          { getText: () => "]" },
+        ],
+      };
+
+      const targetCtx = {
+        memberAccess: () => memberAccessCtx,
+      } as never;
+
+      const result = analyzer.analyze(targetCtx);
+
+      expect(result.isBitAccess).toBe(true);
+      expect(result.baseTarget).toBe("grid[0].flags");
+      expect(result.bitIndex).toBe("1");
+    });
   });
 });

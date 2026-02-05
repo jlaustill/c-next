@@ -356,4 +356,24 @@ describe("DivisionByZeroAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // getErrors() accessor
+  // ========================================================================
+
+  describe("getErrors accessor", () => {
+    it("should access errors via getErrors method", () => {
+      const code = `
+        void main() {
+          u32 x <- 10 / 0;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new DivisionByZeroAnalyzer();
+      analyzer.analyze(tree);
+
+      expect(analyzer.getErrors()).toHaveLength(1);
+      expect(analyzer.getErrors()[0].code).toBe("E0800");
+    });
+  });
 });

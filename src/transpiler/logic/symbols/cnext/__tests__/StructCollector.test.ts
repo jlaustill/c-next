@@ -194,6 +194,28 @@ describe("StructCollector", () => {
       expect(field?.isArray).toBe(true);
       expect(field?.dimensions).toEqual([5, 17]); // [5] array, then 16+1 for string
     });
+
+    it("resolves constant dimensions in string array fields", () => {
+      const code = `
+        struct Names {
+          string<16> items[MAX_NAMES];
+        }
+      `;
+      const tree = parse(code);
+      const structCtx = tree.declaration(0)!.structDeclaration()!;
+      const constValues = new Map<string, number>([["MAX_NAMES", 3]]);
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        undefined,
+        constValues,
+      );
+
+      const field = symbol.fields.get("items");
+      expect(field?.type).toBe("string<16>");
+      expect(field?.isArray).toBe(true);
+      expect(field?.dimensions).toEqual([3, 17]); // [3] from const, then 16+1 for string
+    });
   });
 
   describe("const fields", () => {
