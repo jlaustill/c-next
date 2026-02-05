@@ -23,6 +23,275 @@ import TGeneratorFn from "../TGeneratorFn";
 import generateScopedRegister from "./ScopedRegisterGenerator";
 
 /**
+ * Validate and resolve constructor arguments, ensuring each is const.
+ * Returns array of scope-prefixed argument names.
+ */
+function resolveConstructorArgs(
+  argIdentifiers: { getText(): string }[],
+  scopeName: string,
+  line: number,
+  orchestrator: IOrchestrator,
+): string[] {
+  const resolvedArgs: string[] = [];
+
+  for (const argNode of argIdentifiers) {
+    const argName = argNode.getText();
+    // Arguments must be resolved with scope prefix
+    const scopedArgName = `${scopeName}_${argName}`;
+
+    // Check if it's const using orchestrator
+    if (!orchestrator.isConstValue(scopedArgName)) {
+      throw new Error(
+        `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
+          `C++ constructors in C-Next only accept const variables.`,
+      );
+    }
+
+    resolvedArgs.push(scopedArgName);
+  }
+
+  return resolvedArgs;
+}
+
+/**
+ * Generate a scope variable declaration.
+ * Returns the declaration string, or null if the variable should be skipped.
+ */
+function generateScopeVariable(
+  varDecl: Parser.VariableDeclarationContext,
+  scopeName: string,
+  isPrivate: boolean,
+  orchestrator: IOrchestrator,
+): string | null {
+  const varName = varDecl.IDENTIFIER().getText();
+
+  // Issue #375: Check for constructor syntax
+  const constructorArgList = varDecl.constructorArgumentList();
+  if (constructorArgList) {
+    // ADR-016: All scope variables are emitted at file scope
+    const type = orchestrator.generateType(varDecl.type());
+    const fullName = `${scopeName}_${varName}`;
+    const prefix = isPrivate ? "static " : "";
+
+    // Validate and resolve constructor arguments
+    const argIdentifiers = constructorArgList.IDENTIFIER();
+    const line = varDecl.start?.line ?? 0;
+    const resolvedArgs = resolveConstructorArgs(
+      argIdentifiers,
+      scopeName,
+      line,
+      orchestrator,
+    );
+
+    return `${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`;
+  }
+
+  // Issue #282: Check if this is a const variable - const values should be inlined
+  const isConst = varDecl.constModifier() !== null;
+
+  // Issue #500: Check if array before skipping - arrays must be emitted
+  const arrayDims = varDecl.arrayDimension();
+  const isArray = arrayDims.length > 0;
+
+  // Issue #282: Private const variables should be inlined, not emitted at file scope
+  // Issue #500: EXCEPT arrays - arrays must be emitted as static const
+  // The inlining happens in CodeGenerator when resolving this.CONST_NAME
+  if (isPrivate && isConst && !isArray) {
+    return null;
+  }
+
+  // ADR-016: All scope variables are emitted at file scope (static-like persistence)
+  const type = orchestrator.generateType(varDecl.type());
+  const fullName = `${scopeName}_${varName}`;
+  // Issue #282: Add 'const' modifier for const variables
+  const constPrefix = isConst ? "const " : "";
+  const prefix = isPrivate ? "static " : "";
+
+  // ADR-036: arrayDimension() now returns an array (arrayDims defined above)
+  let decl = `${prefix}${constPrefix}${type} ${fullName}`;
+  if (isArray) {
+    decl += orchestrator.generateArrayDimensions(arrayDims);
+  }
+  // ADR-045: Add string capacity dimension for string arrays
+  if (varDecl.type().stringType()) {
+    const stringCtx = varDecl.type().stringType()!;
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (intLiteral) {
+      const capacity = Number.parseInt(intLiteral.getText(), 10);
+      decl += `[${capacity + 1}]`;
+    }
+  }
+  if (varDecl.expression()) {
+    decl += ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
+  } else {
+    // ADR-015: Zero initialization for uninitialized scope variables
+    decl += ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;
+  }
+  return decl + ";";
+}
+
+/**
+ * Generate a scope function declaration.
+ * Returns array of output lines (function definition + optional callback typedef).
+ */
+function generateScopeFunction(
+  funcDecl: Parser.FunctionDeclarationContext,
+  scopeName: string,
+  isPrivate: boolean,
+  orchestrator: IOrchestrator,
+): string[] {
+  const returnType = orchestrator.generateType(funcDecl.type());
+  const funcName = funcDecl.IDENTIFIER().getText();
+  const fullName = `${scopeName}_${funcName}`;
+  const prefix = isPrivate ? "static " : "";
+
+  // Issue #269: Set current function name for pass-by-value lookup
+  orchestrator.setCurrentFunctionName(fullName);
+
+  // Track parameters for ADR-006 pointer semantics
+  orchestrator.setParameters(funcDecl.parameterList() ?? null);
+
+  // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
+  orchestrator.enterFunctionBody();
+
+  // Issue #281: Generate body FIRST to track parameter modifications,
+  // then generate parameter list using that tracking info
+  const body = orchestrator.generateBlock(funcDecl.block());
+
+  // Issue #281: Update symbol's parameter info with auto-const before generating params
+  orchestrator.updateFunctionParamsAutoConst(fullName);
+
+  // Now generate parameter list (can use modifiedParameters for auto-const)
+  const params = funcDecl.parameterList()
+    ? orchestrator.generateParameterList(funcDecl.parameterList()!)
+    : "void";
+
+  // ADR-016: Exit function body context
+  orchestrator.exitFunctionBody();
+  orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
+  orchestrator.clearParameters();
+
+  const lines: string[] = [];
+  lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
+
+  // ADR-029: Generate callback typedef only if used as a type
+  if (orchestrator.isCallbackTypeUsedAsFieldType(fullName)) {
+    const typedef = orchestrator.generateCallbackTypedef(fullName);
+    if (typedef) {
+      lines.push(typedef);
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Generate enum members from AST when symbol info is not available.
+ * Returns array of formatted enum member lines.
+ */
+function generateEnumMembersFromAST(
+  members: Parser.EnumMemberContext[],
+  fullName: string,
+  orchestrator: IOrchestrator,
+): string[] {
+  const lines: string[] = [];
+  let currentValue = 0;
+
+  for (let i = 0; i < members.length; i++) {
+    const member = members[i];
+    const memberName = member.IDENTIFIER().getText();
+    const fullMemberName = `${fullName}_${memberName}`;
+
+    if (member.expression()) {
+      const constValue = orchestrator.tryEvaluateConstant(member.expression()!);
+      if (constValue !== undefined) {
+        currentValue = constValue;
+      }
+    }
+
+    const comma = i < members.length - 1 ? "," : "";
+    lines.push(`    ${fullMemberName} = ${currentValue}${comma}`);
+    currentValue++;
+  }
+
+  return lines;
+}
+
+/**
+ * Process a single scope member and return lines to add.
+ */
+function processScopeMember(
+  member: Parser.ScopeMemberContext,
+  scopeName: string,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+): string[] {
+  const visibility = member.visibilityModifier()?.getText() || "private";
+  const isPrivate = visibility === "private";
+
+  // Handle variable declarations
+  if (member.variableDeclaration()) {
+    const varDecl = member.variableDeclaration()!;
+    const result = generateScopeVariable(
+      varDecl,
+      scopeName,
+      isPrivate,
+      orchestrator,
+    );
+    return result !== null ? [result] : [];
+  }
+
+  // Handle function declarations
+  if (member.functionDeclaration()) {
+    const funcDecl = member.functionDeclaration()!;
+    return generateScopeFunction(funcDecl, scopeName, isPrivate, orchestrator);
+  }
+
+  // ADR-017: Handle enum declarations inside scopes
+  // Issue #369: Skip enum definition if self-include was added (it will be in the header)
+  if (member.enumDeclaration() && !state.selfIncludeAdded) {
+    const enumDecl = member.enumDeclaration()!;
+    return [
+      "",
+      generateScopedEnumInline(enumDecl, scopeName, input, orchestrator),
+    ];
+  }
+
+  // ADR-034: Handle bitmap declarations inside scopes
+  // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
+  if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
+    const bitmapDecl = member.bitmapDeclaration()!;
+    return ["", generateScopedBitmapInline(bitmapDecl, scopeName, input)];
+  }
+
+  // Handle register declarations inside scopes
+  if (member.registerDeclaration()) {
+    const regDecl = member.registerDeclaration()!;
+    const result = generateScopedRegister(
+      regDecl,
+      scopeName,
+      input,
+      state,
+      orchestrator,
+    );
+    return ["", result.code];
+  }
+
+  // Handle struct declarations inside scopes
+  // Issue #369: Skip struct definition if self-include was added (it will be in the header)
+  if (member.structDeclaration() && !state.selfIncludeAdded) {
+    const structDecl = member.structDeclaration()!;
+    return [
+      "",
+      generateScopedStructInline(structDecl, scopeName, input, orchestrator),
+    ];
+  }
+
+  return [];
+}
+
+/**
  * Generate C code from a C-Next scope declaration.
  *
  * ADR-016: Scopes provide:
@@ -45,177 +314,7 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   lines.push(`/* Scope: ${name} */`);
 
   for (const member of node.scopeMember()) {
-    const visibility = member.visibilityModifier()?.getText() || "private";
-    const isPrivate = visibility === "private";
-
-    // Handle variable declarations
-    if (member.variableDeclaration()) {
-      const varDecl = member.variableDeclaration()!;
-      const varName = varDecl.IDENTIFIER().getText();
-
-      // Issue #375: Check for constructor syntax
-      const constructorArgList = varDecl.constructorArgumentList();
-      if (constructorArgList) {
-        // ADR-016: All scope variables are emitted at file scope
-        const type = orchestrator.generateType(varDecl.type());
-        const fullName = `${name}_${varName}`;
-        const prefix = isPrivate ? "static " : "";
-
-        // Validate and resolve constructor arguments
-        const argIdentifiers = constructorArgList.IDENTIFIER();
-        const resolvedArgs: string[] = [];
-        const line = varDecl.start?.line ?? 0;
-
-        for (const argNode of argIdentifiers) {
-          const argName = argNode.getText();
-          // Arguments must be resolved with scope prefix
-          const scopedArgName = `${name}_${argName}`;
-
-          // Check if it's const using orchestrator
-          if (!orchestrator.isConstValue(scopedArgName)) {
-            throw new Error(
-              `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
-                `C++ constructors in C-Next only accept const variables.`,
-            );
-          }
-
-          resolvedArgs.push(scopedArgName);
-        }
-
-        lines.push(`${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`);
-        continue;
-      }
-
-      // Issue #282: Check if this is a const variable - const values should be inlined
-      const isConst = varDecl.constModifier() !== null;
-
-      // Issue #500: Check if array before skipping - arrays must be emitted
-      const arrayDims = varDecl.arrayDimension();
-      const isArray = arrayDims.length > 0;
-
-      // Issue #282: Private const variables should be inlined, not emitted at file scope
-      // Issue #500: EXCEPT arrays - arrays must be emitted as static const
-      // The inlining happens in CodeGenerator when resolving this.CONST_NAME
-      if (isPrivate && isConst && !isArray) {
-        continue;
-      }
-
-      // ADR-016: All scope variables are emitted at file scope (static-like persistence)
-      const type = orchestrator.generateType(varDecl.type());
-      const fullName = `${name}_${varName}`;
-      // Issue #282: Add 'const' modifier for const variables
-      const constPrefix = isConst ? "const " : "";
-      const prefix = isPrivate ? "static " : "";
-
-      // ADR-036: arrayDimension() now returns an array (arrayDims defined above)
-      let decl = `${prefix}${constPrefix}${type} ${fullName}`;
-      if (isArray) {
-        decl += orchestrator.generateArrayDimensions(arrayDims);
-      }
-      // ADR-045: Add string capacity dimension for string arrays
-      if (varDecl.type().stringType()) {
-        const stringCtx = varDecl.type().stringType()!;
-        const intLiteral = stringCtx.INTEGER_LITERAL();
-        if (intLiteral) {
-          const capacity = Number.parseInt(intLiteral.getText(), 10);
-          decl += `[${capacity + 1}]`;
-        }
-      }
-      if (varDecl.expression()) {
-        decl += ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
-      } else {
-        // ADR-015: Zero initialization for uninitialized scope variables
-        decl += ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;
-      }
-      lines.push(decl + ";");
-    }
-
-    // Handle function declarations
-    if (member.functionDeclaration()) {
-      const funcDecl = member.functionDeclaration()!;
-      const returnType = orchestrator.generateType(funcDecl.type());
-      const funcName = funcDecl.IDENTIFIER().getText();
-      const fullName = `${name}_${funcName}`;
-      const prefix = isPrivate ? "static " : "";
-
-      // Issue #269: Set current function name for pass-by-value lookup
-      orchestrator.setCurrentFunctionName(fullName);
-
-      // Track parameters for ADR-006 pointer semantics
-      orchestrator.setParameters(funcDecl.parameterList() ?? null);
-
-      // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
-      orchestrator.enterFunctionBody();
-
-      // Issue #281: Generate body FIRST to track parameter modifications,
-      // then generate parameter list using that tracking info
-      const body = orchestrator.generateBlock(funcDecl.block());
-
-      // Issue #281: Update symbol's parameter info with auto-const before generating params
-      orchestrator.updateFunctionParamsAutoConst(fullName);
-
-      // Now generate parameter list (can use modifiedParameters for auto-const)
-      const params = funcDecl.parameterList()
-        ? orchestrator.generateParameterList(funcDecl.parameterList()!)
-        : "void";
-
-      // ADR-016: Exit function body context
-      orchestrator.exitFunctionBody();
-      orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
-      orchestrator.clearParameters();
-
-      lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
-
-      // ADR-029: Generate callback typedef only if used as a type
-      if (orchestrator.isCallbackTypeUsedAsFieldType(fullName)) {
-        const typedef = orchestrator.generateCallbackTypedef(fullName);
-        if (typedef) {
-          lines.push(typedef);
-        }
-      }
-    }
-
-    // ADR-017: Handle enum declarations inside scopes
-    // The enum generator will use state.currentScope which we've set via orchestrator
-    // Issue #369: Skip enum definition if self-include was added (it will be in the header)
-    if (member.enumDeclaration() && !state.selfIncludeAdded) {
-      const enumDecl = member.enumDeclaration()!;
-      lines.push(
-        "",
-        generateScopedEnumInline(enumDecl, name, input, orchestrator),
-      );
-    }
-
-    // ADR-034: Handle bitmap declarations inside scopes
-    // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
-    if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
-      const bitmapDecl = member.bitmapDeclaration()!;
-      lines.push("", generateScopedBitmapInline(bitmapDecl, name, input));
-    }
-
-    // Handle register declarations inside scopes
-    if (member.registerDeclaration()) {
-      const regDecl = member.registerDeclaration()!;
-      lines.push("");
-      const result = generateScopedRegister(
-        regDecl,
-        name,
-        input,
-        state,
-        orchestrator,
-      );
-      lines.push(result.code);
-    }
-
-    // Handle struct declarations inside scopes
-    // Issue #369: Skip struct definition if self-include was added (it will be in the header)
-    if (member.structDeclaration() && !state.selfIncludeAdded) {
-      const structDecl = member.structDeclaration()!;
-      lines.push(
-        "",
-        generateScopedStructInline(structDecl, name, input, orchestrator),
-      );
-    }
+    lines.push(...processScopeMember(member, name, input, state, orchestrator));
   }
 
   lines.push("");
@@ -257,27 +356,9 @@ function generateScopedEnumInline(
     }
   } else {
     // Fall back to AST parsing
-    const members = node.enumMember();
-    let currentValue = 0;
-
-    for (let i = 0; i < members.length; i++) {
-      const member = members[i];
-      const memberName = member.IDENTIFIER().getText();
-      const fullMemberName = `${fullName}_${memberName}`;
-
-      if (member.expression()) {
-        const constValue = orchestrator.tryEvaluateConstant(
-          member.expression()!,
-        );
-        if (constValue !== undefined) {
-          currentValue = constValue;
-        }
-      }
-
-      const comma = i < members.length - 1 ? "," : "";
-      lines.push(`    ${fullMemberName} = ${currentValue}${comma}`);
-      currentValue++;
-    }
+    lines.push(
+      ...generateEnumMembersFromAST(node.enumMember(), fullName, orchestrator),
+    );
   }
 
   lines.push(`} ${fullName};`, "");
