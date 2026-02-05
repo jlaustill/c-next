@@ -66,6 +66,9 @@ const lastGoodTranspile: Map<string, string> = new Map();
 // Debounce timers for .c file generation
 const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
 
+// Debounce timer for diagnostics validation
+let validateTimeout: NodeJS.Timeout | null = null;
+
 /**
  * Validate a C-Next document and update diagnostics
  */
@@ -300,9 +303,6 @@ export function activate(context: vscode.ExtensionContext): void {
     transpileToFile(doc); // Immediate transpile on open
   }
 
-  // Document change handler with debouncing for diagnostics
-  let validateTimeout: NodeJS.Timeout | null = null;
-
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor?.document.languageId === "cnext") {
@@ -346,6 +346,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   console.log("C-Next extension deactivated");
+
+  // Clear any pending validation timeout
+  if (validateTimeout) {
+    clearTimeout(validateTimeout);
+    validateTimeout = null;
+  }
+
+  // Clear all pending transpile timers
+  for (const timer of transpileTimers.values()) {
+    clearTimeout(timer);
+  }
+  transpileTimers.clear();
+
   if (diagnosticCollection) {
     diagnosticCollection.dispose();
   }

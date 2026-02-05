@@ -42,6 +42,9 @@ export default class WorkspaceIndex {
   /** Map of file -> included headers (dependency graph) */
   private includeDependencies: Map<string, string[]> = new Map();
 
+  /** Periodic cache cleanup interval */
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
   /** Debounce timer for file changes */
   private fileChangeTimer: NodeJS.Timeout | null = null;
 
@@ -91,7 +94,7 @@ export default class WorkspaceIndex {
     }
 
     // Set up periodic cache cleanup
-    setInterval(
+    this.cleanupInterval = setInterval(
       () => {
         this.cache.clearUnused();
         this.headerCache.clearUnused();
@@ -547,12 +550,17 @@ export default class WorkspaceIndex {
    * Dispose resources
    */
   dispose(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
     if (this.fileChangeTimer) {
       clearTimeout(this.fileChangeTimer);
     }
     this.cache.clear();
     this.headerCache.clear();
     this.includeDependencies.clear();
+    this.initialized = false;
     WorkspaceIndex.instance = null;
   }
 }
