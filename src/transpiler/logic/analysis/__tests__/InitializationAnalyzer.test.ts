@@ -350,6 +350,22 @@ describe("InitializationAnalyzer", () => {
       analyzer.setWriteContext(false);
       expect(analyzer.isInWriteContext()).toBe(false);
     });
+
+    it("should not flag assignment target as uninitialized use", () => {
+      const code = `
+        void main() {
+          u32 x;
+          x <- 5;
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // x is assigned (write context) then read - no error
+      expect(errors).toHaveLength(0);
+    });
   });
 
   // ========================================================================
@@ -361,11 +377,23 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer();
 
       // Call declareParameter without entering a scope first
-      // This should trigger the implicit scope creation guard at line 836
-      // It should not throw - the analyzer creates an implicit scope
+      // This should trigger the implicit scope creation guard
       expect(() => {
         analyzer.declareParameter("param1", 1, 0, "u32");
       }).not.toThrow();
+
+      // Verify the parameter is usable - reading it should not trigger E0381
+      // since parameters are always considered initialized
+      analyzer.checkRead("param1", 2, 0);
+      const code = `
+        void process(u32 param1) {
+          u32 x <- param1;
+        }
+      `;
+      const tree = parse(code);
+      const freshAnalyzer = new InitializationAnalyzer();
+      const errors = freshAnalyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
     });
   });
 });

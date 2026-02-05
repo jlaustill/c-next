@@ -361,7 +361,8 @@ describe("FloatModuloAnalyzer", () => {
       const analyzer = new FloatModuloAnalyzer();
       const errors = analyzer.analyze(tree);
 
-      // Parenthesized expression hits isFloatOperand fall-through
+      // Integer operands with parenthesized expression: isFloatOperand
+      // falls through to return false (neither float literal nor float identifier)
       expect(errors).toHaveLength(0);
     });
   });

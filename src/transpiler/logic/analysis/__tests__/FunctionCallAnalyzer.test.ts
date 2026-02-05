@@ -536,7 +536,7 @@ describe("FunctionCallAnalyzer", () => {
       expect(doSomethingErrors).toHaveLength(0);
     });
 
-    it("should return false from isExternalFunction when symbol has non-C/C++ language", () => {
+    it("should still flag E0422 for C-Next functions in symbol table", () => {
       const code = `
         void main() {
           cnextFunc();
