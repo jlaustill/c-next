@@ -64,6 +64,8 @@ import commentUtils from "./generators/support/CommentUtils";
 import NullCheckAnalyzer from "../../logic/analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
+// Shared member access validation (ADR-013/016/057)
+import MemberAccessValidator from "./helpers/MemberAccessValidator";
 // ADR-109: Assignment decomposition (Phase 2)
 import assignmentHandlers from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
@@ -7421,221 +7423,293 @@ export default class CodeGenerator implements IOrchestrator {
   private generateMemberAccess(ctx: Parser.MemberAccessContext): string {
     const parts = ctx.IDENTIFIER().map((id) => id.getText());
     const expressions = ctx.expression();
-
     if (expressions.length > 0) {
-      const firstPart = parts[0];
+      return this.generateMemberAccessWithSubscripts(ctx, parts, expressions);
+    }
+    return this.generatePlainMemberAccess(parts);
+  }
 
-      // ADR-036: Check if first identifier is a register for bit access
-      // Register bit access: GPIO7.DR[bit] or GPIO7.DR[start, width]
-      // Also handle scoped registers: Board.GPIO.DR[bit]
-      const isDirectRegister =
-        parts.length > 1 && this.symbols!.knownRegisters.has(firstPart);
-      const scopedRegisterName =
-        parts.length > 2 && this.isKnownScope(firstPart)
-          ? `${parts[0]}_${parts[1]}`
-          : null;
-      const isScopedRegister =
-        scopedRegisterName &&
-        this.symbols!.knownRegisters.has(scopedRegisterName);
+  // --- Subscript branch helpers ---
 
-      if (isDirectRegister || isScopedRegister) {
-        // This is register member bit access (handled elsewhere for assignment)
-        // For read: generate bit extraction
-        const registerName = parts.join("_");
+  /**
+   * ADR-036: Try to generate register bit access (single bit or bit range).
+   * Returns the generated code, or null if not a register pattern.
+   */
+  private tryGenerateRegisterBitAccess(
+    parts: string[],
+    expressions: Parser.ExpressionContext[],
+  ): string | null {
+    const firstPart = parts[0];
+    const isDirectRegister =
+      parts.length > 1 && this.symbols!.knownRegisters.has(firstPart);
+    const scopedRegisterName =
+      parts.length > 2 && this.isKnownScope(firstPart)
+        ? `${parts[0]}_${parts[1]}`
+        : null;
+    const isScopedRegister =
+      scopedRegisterName &&
+      this.symbols!.knownRegisters.has(scopedRegisterName);
 
-        // ADR-013: Check for write-only register members (wo = cannot read)
-        // Skip check if we're in assignment target context (write operation)
-        if (!this.inAssignmentTarget) {
-          const accessMod =
-            this.symbols!.registerMemberAccess.get(registerName);
-          if (accessMod === "wo") {
-            const displayName = isDirectRegister
-              ? `${parts[0]}.${parts[1]}`
-              : `${parts[0]}.${parts[1]}.${parts[2]}`;
-            throw new Error(
-              `cannot read from write-only register member '${parts[isDirectRegister ? 1 : 2]}' ` +
-                `(${displayName} has 'wo' access modifier)`,
-            );
-          }
-        }
+    if (!isDirectRegister && !isScopedRegister) {
+      return null;
+    }
 
-        if (expressions.length === 1) {
-          const bitIndex = this._generateExpression(expressions[0]);
-          return `((${registerName} >> ${bitIndex}) & 1)`;
-        } else if (expressions.length === 2) {
-          const start = this._generateExpression(expressions[0]);
-          const width = this._generateExpression(expressions[1]);
-          const mask = BitUtils.generateMask(width);
-          if (start === "0") {
-            return `((${registerName}) & ${mask})`;
-          }
-          return `((${registerName} >> ${start}) & ${mask})`;
-        }
+    const registerName = parts.join("_");
+    const memberIndex = isDirectRegister ? 1 : 2;
+    const displayName = isDirectRegister
+      ? `${parts[0]}.${parts[1]}`
+      : `${parts[0]}.${parts[1]}.${parts[2]}`;
+
+    MemberAccessValidator.validateRegisterReadAccess(
+      registerName,
+      parts[memberIndex],
+      displayName,
+      this.symbols!.registerMemberAccess,
+      this.inAssignmentTarget,
+    );
+
+    if (expressions.length === 1) {
+      const bitIndex = this._generateExpression(expressions[0]);
+      return `((${registerName} >> ${bitIndex}) & 1)`;
+    }
+    if (expressions.length === 2) {
+      const start = this._generateExpression(expressions[0]);
+      const width = this._generateExpression(expressions[1]);
+      const mask = BitUtils.generateMask(width);
+      if (start === "0") {
+        return `((${registerName}) & ${mask})`;
+      }
+      return `((${registerName} >> ${start}) & ${mask})`;
+    }
+    return null;
+  }
+
+  /**
+   * ADR-036: Compile-time bounds checking for simple single-identifier arrays.
+   */
+  private checkSimpleArrayBounds(
+    arrayName: string,
+    expressions: Parser.ExpressionContext[],
+    line: number,
+  ): void {
+    const typeInfo = this.context.typeRegistry.get(arrayName);
+    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+      this.typeValidator!.checkArrayBounds(
+        arrayName,
+        typeInfo.arrayDimensions,
+        expressions,
+        line,
+        (expr) => this._tryEvaluateConstant(expr),
+      );
+    }
+  }
+
+  /**
+   * Generate multi-part subscript access using child-walking via buildMemberAccessChain.
+   */
+  private generateMultiPartSubscriptAccess(
+    ctx: Parser.MemberAccessContext,
+    parts: string[],
+    expressions: Parser.ExpressionContext[],
+    indices: string,
+  ): string {
+    const firstPart = parts[0];
+
+    if (ctx.children) {
+      const isCrossScope = this.isKnownScope(firstPart);
+      const paramInfo = this.context.currentParameters.get(firstPart);
+      const isStructParam = paramInfo?.isStruct ?? false;
+
+      if (isCrossScope) {
+        MemberAccessValidator.validateNotSelfScopeReference(
+          firstPart,
+          parts[1],
+          this.context.currentScope,
+        );
       }
 
-      // ADR-036: Multi-dimensional array access (e.g., matrix[0][1] or screen.pixels[0][0])
-      // Compile-time bounds checking for constant indices
-      if (parts.length === 1) {
-        // Simple array access: matrix[i][j]
-        const typeInfo = this.context.typeRegistry.get(firstPart);
-        if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-          this.typeValidator!.checkArrayBounds(
-            firstPart,
-            typeInfo.arrayDimensions,
-            expressions,
-            ctx.start?.line ?? 0,
-            (expr) => this._tryEvaluateConstant(expr),
-          );
-        }
-      }
-      // Future: Add bounds checking for struct.field[i][j] patterns
+      // Bug #8: Track struct types to detect bit access through chains
+      const firstTypeInfo = this.context.typeRegistry.get(firstPart);
 
-      const indices = expressions
-        .map((e) => this._generateExpression(e))
-        .join("][");
-
-      if (parts.length > 1) {
-        // Fix for Bug #2: Walk children in order to preserve operation sequence
-        // For cfg.items[i].value, we need to emit: cfg.items[i].value
-        // Not: cfg.items.value[i] (which the old heuristic generated)
-
-        if (ctx.children) {
-          // Check if first identifier is a scope for special handling
-          const isCrossScope = this.isKnownScope(firstPart);
-
-          // ADR-006: Check if first identifier is a struct parameter (needs -> access)
-          const paramInfo = this.context.currentParameters.get(firstPart);
-          const isStructParam = paramInfo?.isStruct ?? false;
-
-          // ADR-016: Inside a scope, accessing another scope requires global. prefix
-          // ADR-057: Cross-scope access allowed without global. prefix (just check self-reference)
-          if (isCrossScope && this.context.currentScope) {
-            // Self-referential access should use 'this.'
-            if (firstPart === this.context.currentScope) {
-              throw new Error(
-                `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
-              );
+      // Issue #644: Use buildMemberAccessChain for child-walking logic
+      const chainResult = memberAccessChain.buildMemberAccessChain({
+        firstId: firstPart,
+        identifiers: parts,
+        expressions,
+        children: ctx.children,
+        separatorOptions: {
+          isStructParam,
+          isCrossScope,
+          cppMode: this.cppMode,
+        },
+        generateExpression: (expr) => this._generateExpression(expr),
+        initialTypeInfo: firstTypeInfo
+          ? {
+              isArray: firstTypeInfo.isArray,
+              baseType: firstTypeInfo.baseType,
             }
-            // ADR-057: Allow cross-scope access without global. prefix
-          }
+          : undefined,
+        typeTracking: {
+          getStructFields: (structType) =>
+            this.symbols!.structFields.get(structType),
+          getStructArrayFields: (structType) =>
+            this.symbols!.structFieldArrays.get(structType),
+          isKnownStruct: (name) => this.isKnownStruct(name),
+        },
+        onBitAccess: (result, bitIndex) => `((${result} >> ${bitIndex}) & 1)`,
+      });
 
-          // Bug #8: Track struct types to detect bit access through chains
-          // e.g., items[0].byte[7] where byte is u8 - final [7] is bit read
-          const firstTypeInfo = this.context.typeRegistry.get(firstPart);
+      return chainResult.code;
+    }
 
-          // Issue #644: Use buildMemberAccessChain for child-walking logic
-          const chainResult = memberAccessChain.buildMemberAccessChain({
-            firstId: firstPart,
-            identifiers: parts,
-            expressions,
-            children: ctx.children,
-            separatorOptions: {
-              isStructParam,
-              isCrossScope,
-              cppMode: this.cppMode,
-            },
-            generateExpression: (expr) => this._generateExpression(expr),
-            initialTypeInfo: firstTypeInfo
-              ? {
-                  isArray: firstTypeInfo.isArray,
-                  baseType: firstTypeInfo.baseType,
-                }
-              : undefined,
-            typeTracking: {
-              getStructFields: (structType) =>
-                this.symbols!.structFields.get(structType),
-              getStructArrayFields: (structType) =>
-                this.symbols!.structFieldArrays.get(structType),
-              isKnownStruct: (name) => this.isKnownStruct(name),
-            },
-            onBitAccess: (result, bitIndex) =>
-              `((${result} >> ${bitIndex}) & 1)`,
-          });
+    return this.generateFallbackSubscriptAccess(
+      firstPart,
+      parts,
+      indices,
+      ctx.getText(),
+    );
+  }
 
-          return chainResult.code;
-        }
+  /**
+   * Fallback heuristic for multi-part subscript access without children.
+   */
+  private generateFallbackSubscriptAccess(
+    firstPart: string,
+    parts: string[],
+    indices: string,
+    text: string,
+  ): string {
+    const firstBracket = text.indexOf("[");
+    const firstDot = text.indexOf(".");
 
-        // Fallback for simple cases without children
-        const text = ctx.getText();
-        const firstBracket = text.indexOf("[");
-        const firstDot = text.indexOf(".");
-
-        if (firstBracket !== -1 && firstBracket < firstDot) {
-          // Pattern: arr[i].field -> indices come after first identifier
-          const trailingMembers = parts.slice(1);
-          if (trailingMembers.length > 0) {
-            return `${firstPart}[${indices}].${trailingMembers.join(".")}`;
-          }
-          return `${firstPart}[${indices}]`;
-        }
-
-        // Pattern: struct.field[i][j] -> indices come at the end
-        return `${parts.join(".")}[${indices}]`;
+    if (firstBracket !== -1 && firstBracket < firstDot) {
+      // Pattern: arr[i].field -> indices come after first identifier
+      const trailingMembers = parts.slice(1);
+      if (trailingMembers.length > 0) {
+        return `${firstPart}[${indices}].${trailingMembers.join(".")}`;
       }
       return `${firstPart}[${indices}]`;
     }
 
+    // Pattern: struct.field[i][j] -> indices come at the end
+    return `${parts.join(".")}[${indices}]`;
+  }
+
+  /**
+   * Coordinator for member access with subscript expressions (brackets).
+   */
+  private generateMemberAccessWithSubscripts(
+    ctx: Parser.MemberAccessContext,
+    parts: string[],
+    expressions: Parser.ExpressionContext[],
+  ): string {
     const firstPart = parts[0];
 
-    // Check if it's a register member access: GPIO7.DR -> GPIO7_DR
-    if (this.symbols!.knownRegisters.has(firstPart)) {
-      // ADR-016: Inside a scope, accessing a global register requires global. prefix
-      if (this.context.currentScope) {
-        throw new Error(
-          `Error: Use 'global.${parts.join(".")}' to access register '${firstPart}' from inside scope '${this.context.currentScope}'`,
-        );
-      }
-      // ADR-013: Check for write-only register members (wo = cannot read)
-      // Skip check if we're in assignment target context (write operation)
-      if (!this.inAssignmentTarget && parts.length >= 2) {
-        const memberName = parts[1];
-        const fullName = `${firstPart}_${memberName}`;
-        const accessMod = this.symbols!.registerMemberAccess.get(fullName);
-        if (accessMod === "wo") {
-          throw new Error(
-            `cannot read from write-only register member '${memberName}' ` +
-              `(${firstPart}.${memberName} has 'wo' access modifier)`,
-          );
-        }
-      }
-      return parts.join("_");
+    // ADR-036: Register bit access
+    const registerResult = this.tryGenerateRegisterBitAccess(
+      parts,
+      expressions,
+    );
+    if (registerResult !== null) {
+      return registerResult;
     }
 
-    // Check if it's a scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
-    if (this.isKnownScope(firstPart)) {
-      // ADR-016: Inside a scope, accessing another scope requires global. prefix
-      // ADR-057: Cross-scope access allowed without global. prefix (just check self-reference)
-      if (this.context.currentScope) {
-        // Self-referential access should use 'this.'
-        if (firstPart === this.context.currentScope) {
-          throw new Error(
-            `Error: Cannot reference own scope '${firstPart}' by name. Use 'this.${parts[1]}' instead of '${firstPart}.${parts[1]}'`,
-          );
-        }
-        // ADR-057: Allow cross-scope access without global. prefix
-      }
-      // ADR-016: Validate visibility before allowing cross-scope access
+    // ADR-036: Compile-time bounds checking for simple arrays
+    if (parts.length === 1) {
+      this.checkSimpleArrayBounds(firstPart, expressions, ctx.start?.line ?? 0);
+    }
+
+    const indices = expressions
+      .map((e) => this._generateExpression(e))
+      .join("][");
+
+    if (parts.length > 1) {
+      return this.generateMultiPartSubscriptAccess(
+        ctx,
+        parts,
+        expressions,
+        indices,
+      );
+    }
+    return `${firstPart}[${indices}]`;
+  }
+
+  // --- Plain member access helpers ---
+
+  /**
+   * Generate plain register member access: GPIO7.DR -> GPIO7_DR
+   */
+  private generatePlainRegisterAccess(parts: string[]): string {
+    const firstPart = parts[0];
+
+    // ADR-016: Inside a scope, accessing a global register requires global. prefix
+    if (this.context.currentScope) {
+      throw new Error(
+        `Error: Use 'global.${parts.join(".")}' to access register '${firstPart}' from inside scope '${this.context.currentScope}'`,
+      );
+    }
+
+    if (parts.length >= 2) {
       const memberName = parts[1];
-      this.validateCrossScopeVisibility(firstPart, memberName);
+      MemberAccessValidator.validateRegisterReadAccess(
+        `${firstPart}_${memberName}`,
+        memberName,
+        `${firstPart}.${memberName}`,
+        this.symbols!.registerMemberAccess,
+        this.inAssignmentTarget,
+      );
+    }
+    return parts.join("_");
+  }
 
-      // Check if the scope variable is a struct type - if so, remaining parts
-      // are struct field access and should use '.' not '_'
-      // e.g., Motor.current.speed -> Motor_current.speed (not Motor_current_speed)
-      if (parts.length > 2) {
-        const scopeVarName = `${firstPart}_${memberName}`;
-        const scopeVarType = this.context.typeRegistry.get(scopeVarName);
-        if (scopeVarType && this._isKnownStruct(scopeVarType.baseType)) {
-          // Scope variable is a struct - use '.' for field access
-          return `${scopeVarName}.${parts.slice(2).join(".")}`;
-        }
+  /**
+   * Generate plain scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
+   */
+  private generatePlainScopeAccess(parts: string[]): string {
+    const firstPart = parts[0];
+
+    MemberAccessValidator.validateNotSelfScopeReference(
+      firstPart,
+      parts[1],
+      this.context.currentScope,
+    );
+
+    // ADR-016: Validate visibility before allowing cross-scope access
+    const memberName = parts[1];
+    this.validateCrossScopeVisibility(firstPart, memberName);
+
+    // Check if the scope variable is a struct type - if so, remaining parts
+    // are struct field access and should use '.' not '_'
+    // e.g., Motor.current.speed -> Motor_current.speed (not Motor_current_speed)
+    if (parts.length > 2) {
+      const scopeVarName = `${firstPart}_${memberName}`;
+      const scopeVarType = this.context.typeRegistry.get(scopeVarName);
+      if (scopeVarType && this._isKnownStruct(scopeVarType.baseType)) {
+        return `${scopeVarName}.${parts.slice(2).join(".")}`;
       }
-      return parts.join("_");
+    }
+    return parts.join("_");
+  }
+
+  /**
+   * Coordinator for plain member access (no subscripts).
+   */
+  private generatePlainMemberAccess(parts: string[]): string {
+    const firstPart = parts[0];
+
+    // Register member access: GPIO7.DR -> GPIO7_DR
+    if (this.symbols!.knownRegisters.has(firstPart)) {
+      return this.generatePlainRegisterAccess(parts);
     }
 
-    // ADR-006: Check if the first part is a struct parameter
+    // Scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
+    if (this.isKnownScope(firstPart)) {
+      return this.generatePlainScopeAccess(parts);
+    }
+
+    // ADR-006: Struct parameter member access
     const paramInfo = this.context.currentParameters.get(firstPart);
     if (paramInfo?.isStruct) {
-      // Use centralized helper for C/C++ struct param member access
       return memberAccessChain.buildStructParamMemberAccess(
         firstPart,
         parts.slice(1),
