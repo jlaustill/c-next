@@ -325,6 +325,21 @@ describe("ScopeStack", () => {
       expect(cloned.get("a")?.value).toBe(1);
       expect(cloned.get("b")?.value).toBe(2);
     });
+
+    it("should skip shadowed variables from parent scope", () => {
+      stack.enterScope();
+      stack.declare("x", { initialized: true, value: 1 });
+
+      stack.enterScope();
+      stack.declare("x", { initialized: false, value: 2 });
+
+      const cloned = stack.cloneState((s) => ({ ...s }));
+
+      // Inner scope's 'x' should win; only 1 entry for 'x'
+      expect(cloned.size).toBe(1);
+      expect(cloned.get("x")?.value).toBe(2);
+      expect(cloned.get("x")?.initialized).toBe(false);
+    });
   });
 
   describe("restoreState", () => {

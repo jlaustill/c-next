@@ -348,5 +348,21 @@ describe("FloatModuloAnalyzer", () => {
 
       expect(errors).toHaveLength(0);
     });
+
+    it("should not flag modulo with complex parenthesized expression", () => {
+      const code = `
+        void main() {
+          u32 a <- 10;
+          u32 b <- 3;
+          u32 result <- a % (b + 1);
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FloatModuloAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Parenthesized expression hits isFloatOperand fall-through
+      expect(errors).toHaveLength(0);
+    });
   });
 });

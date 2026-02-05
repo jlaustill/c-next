@@ -327,5 +327,33 @@ describe("DivisionByZeroAnalyzer", () => {
 
       expect(errors).toHaveLength(0);
     });
+
+    it("should not detect zero with unary prefix on divisor", () => {
+      const code = `
+        void main() {
+          i32 x <- 10 / -1;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new DivisionByZeroAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Unary prefix causes postfixExpression() to be null in isZero
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should not detect zero in parenthesized expression divisor", () => {
+      const code = `
+        void main() {
+          u32 x <- 10 / (0);
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new DivisionByZeroAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Parenthesized expression hits isZero fall-through (neither literal nor identifier)
+      expect(errors).toHaveLength(0);
+    });
   });
 });
