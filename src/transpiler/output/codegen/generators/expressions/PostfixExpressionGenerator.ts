@@ -42,7 +42,7 @@ interface ITrackingState {
   currentStructType: string | undefined;
   previousStructType: string | undefined;
   previousMemberName: string | undefined;
-  currentIdentifier: string | undefined;
+  resolvedIdentifier: string | undefined;
   remainingArrayDims: number;
   subscriptDepth: number;
   isGlobalAccess: boolean;
@@ -53,7 +53,7 @@ interface ITrackingState {
  * Initialize tracking state from the primary expression.
  */
 const initializeTrackingState = (
-  primaryId: string | undefined,
+  rootIdentifier: string | undefined,
   result: string,
   primaryTypeInfo:
     | { baseType: string; arrayDimensions?: (number | string)[] }
@@ -62,27 +62,27 @@ const initializeTrackingState = (
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): ITrackingState => {
-  const isRegisterChain = primaryId
-    ? input.symbols!.knownRegisters.has(primaryId)
+  const isRegisterChain = rootIdentifier
+    ? input.symbols!.knownRegisters.has(rootIdentifier)
     : false;
 
-  const primaryBaseType = primaryId
-    ? input.typeRegistry.get(primaryId)?.baseType
+  const primaryBaseType = rootIdentifier
+    ? input.typeRegistry.get(rootIdentifier)?.baseType
     : undefined;
   const currentStructType =
     primaryBaseType && orchestrator.isKnownStruct(primaryBaseType)
       ? primaryBaseType
       : undefined;
 
-  const primaryParamInfo = primaryId
-    ? state.currentParameters.get(primaryId)
+  const primaryParamInfo = rootIdentifier
+    ? state.currentParameters.get(rootIdentifier)
     : undefined;
   const remainingArrayDims =
     primaryTypeInfo?.arrayDimensions?.length ??
     (primaryParamInfo?.isArray ? 1 : 0);
 
   let isCppAccessChain = false;
-  if (primaryId && orchestrator.isCppScopeSymbol(primaryId)) {
+  if (rootIdentifier && orchestrator.isCppScopeSymbol(rootIdentifier)) {
     isCppAccessChain = true;
   }
 
@@ -93,7 +93,7 @@ const initializeTrackingState = (
     currentStructType,
     previousStructType: undefined,
     previousMemberName: undefined,
-    currentIdentifier: primaryId,
+    resolvedIdentifier: rootIdentifier,
     remainingArrayDims,
     subscriptDepth: 0,
     isGlobalAccess: false,
@@ -106,7 +106,7 @@ const initializeTrackingState = (
  * Bundles values that don't change during the postfix op loop.
  */
 interface IPostfixContext {
-  primaryId: string | undefined;
+  rootIdentifier: string | undefined;
   isStructParam: boolean;
   input: IGeneratorInput;
   state: IGeneratorState;
@@ -142,8 +142,10 @@ const generatePostfixExpression = (
   const ops = ctx.postfixOp();
 
   // Check if this is a struct parameter - we may need to handle -> access
-  const primaryId = primary.IDENTIFIER()?.getText();
-  const paramInfo = primaryId ? state.currentParameters.get(primaryId) : null;
+  const rootIdentifier = primary.IDENTIFIER()?.getText();
+  const paramInfo = rootIdentifier
+    ? state.currentParameters.get(rootIdentifier)
+    : null;
   const isStructParam = paramInfo?.isStruct ?? false;
 
   // Issue #579: Check if we have subscript access on a non-array parameter
@@ -153,17 +155,17 @@ const generatePostfixExpression = (
 
   let result: string;
   if (isNonArrayParamWithSubscript) {
-    result = primaryId!;
+    result = rootIdentifier!;
   } else {
     result = orchestrator.generatePrimaryExpr(primary);
   }
 
-  const primaryTypeInfo = primaryId
-    ? input.typeRegistry.get(primaryId)
+  const primaryTypeInfo = rootIdentifier
+    ? input.typeRegistry.get(rootIdentifier)
     : undefined;
 
   const tracking = initializeTrackingState(
-    primaryId,
+    rootIdentifier,
     result,
     primaryTypeInfo,
     input,
@@ -172,7 +174,7 @@ const generatePostfixExpression = (
   );
 
   const postfixCtx: IPostfixContext = {
-    primaryId,
+    rootIdentifier,
     isStructParam,
     input,
     state,
@@ -189,9 +191,9 @@ const generatePostfixExpression = (
         {
           result: tracking.result,
           op,
-          primaryId,
+          rootIdentifier,
           primaryTypeInfo,
-          currentIdentifier: tracking.currentIdentifier,
+          resolvedIdentifier: tracking.resolvedIdentifier,
           currentStructType: tracking.currentStructType,
           currentMemberIsArray: tracking.currentMemberIsArray,
           remainingArrayDims: tracking.remainingArrayDims,
@@ -251,7 +253,8 @@ const handleMemberOp = (
   tracking: ITrackingState,
   ctx: IPostfixContext,
 ): void => {
-  const { primaryId, isStructParam, input, state, orchestrator, effects } = ctx;
+  const { rootIdentifier, isStructParam, input, state, orchestrator, effects } =
+    ctx;
 
   // ADR-016: Handle global. prefix
   if (handleGlobalPrefix(memberName, tracking, input, state, orchestrator)) {
@@ -268,7 +271,7 @@ const handleMemberOp = (
     tryPropertyAccess(
       memberName,
       tracking,
-      primaryId,
+      rootIdentifier,
       input,
       state,
       orchestrator,
@@ -283,12 +286,12 @@ const handleMemberOp = (
     {
       result: tracking.result,
       memberName,
-      primaryId,
+      rootIdentifier,
       isStructParam,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
       currentStructType: tracking.currentStructType,
-      currentIdentifier: tracking.currentIdentifier,
+      resolvedIdentifier: tracking.resolvedIdentifier,
       previousStructType: tracking.previousStructType,
       previousMemberName: tracking.previousMemberName,
       isRegisterChain: tracking.isRegisterChain,
@@ -300,8 +303,8 @@ const handleMemberOp = (
   );
 
   tracking.result = memberResult.result;
-  tracking.currentIdentifier =
-    memberResult.currentIdentifier ?? tracking.currentIdentifier;
+  tracking.resolvedIdentifier =
+    memberResult.resolvedIdentifier ?? tracking.resolvedIdentifier;
   tracking.currentStructType = memberResult.currentStructType;
   tracking.currentMemberIsArray =
     memberResult.currentMemberIsArray ?? tracking.currentMemberIsArray;
@@ -328,7 +331,7 @@ const handleGlobalPrefix = (
   }
 
   tracking.result = memberName;
-  tracking.currentIdentifier = memberName;
+  tracking.resolvedIdentifier = memberName;
   tracking.isGlobalAccess = true;
 
   // ADR-057: Check if global variable would be shadowed by a local
@@ -378,7 +381,7 @@ const handleThisScopeLength = (
   }
 
   tracking.result = `${state.currentScope}_${memberName}`;
-  tracking.currentIdentifier = tracking.result;
+  tracking.resolvedIdentifier = tracking.result;
   const resolvedTypeInfo = input.typeRegistry.get(tracking.result);
   if (
     resolvedTypeInfo &&
@@ -393,18 +396,18 @@ const handleThisScopeLength = (
  * Resolve the TTypeInfo for .capacity/.size on the current expression.
  *
  * Tries in order:
- * 1. currentIdentifier (tracks the resolved identifier through member chains)
- * 2. primaryId (the leftmost identifier)
+ * 1. resolvedIdentifier (tracks the resolved identifier through member chains)
+ * 2. rootIdentifier (the leftmost identifier)
  * 3. Struct field lookup via previousStructType/previousMemberName
- *    (handles alice.name.capacity where currentIdentifier is undefined)
+ *    (handles alice.name.capacity where resolvedIdentifier is undefined)
  */
 const resolveStringTypeInfo = (
   tracking: ITrackingState,
-  primaryId: string | undefined,
+  rootIdentifier: string | undefined,
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): TTypeInfo | undefined => {
-  const identifier = tracking.currentIdentifier ?? primaryId;
+  const identifier = tracking.resolvedIdentifier ?? rootIdentifier;
   const typeInfo = identifier ? input.typeRegistry.get(identifier) : undefined;
   if (typeInfo?.isString) {
     return typeInfo;
@@ -440,7 +443,7 @@ const resolveStringTypeInfo = (
 const tryPropertyAccess = (
   memberName: string,
   tracking: ITrackingState,
-  primaryId: string | undefined,
+  rootIdentifier: string | undefined,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
@@ -450,8 +453,8 @@ const tryPropertyAccess = (
     const lengthResult = generateLengthProperty(
       {
         result: tracking.result,
-        primaryId,
-        currentIdentifier: tracking.currentIdentifier,
+        rootIdentifier,
+        resolvedIdentifier: tracking.resolvedIdentifier,
         previousStructType: tracking.previousStructType,
         previousMemberName: tracking.previousMemberName,
         subscriptDepth: tracking.subscriptDepth,
@@ -473,7 +476,7 @@ const tryPropertyAccess = (
   if (memberName === "capacity") {
     const typeInfo = resolveStringTypeInfo(
       tracking,
-      primaryId,
+      rootIdentifier,
       input,
       orchestrator,
     );
@@ -486,7 +489,7 @@ const tryPropertyAccess = (
   if (memberName === "size") {
     const typeInfo = resolveStringTypeInfo(
       tracking,
-      primaryId,
+      rootIdentifier,
       input,
       orchestrator,
     );
@@ -508,8 +511,8 @@ const tryPropertyAccess = (
  */
 interface ILengthContext {
   result: string;
-  primaryId: string | undefined;
-  currentIdentifier: string | undefined;
+  rootIdentifier: string | undefined;
+  resolvedIdentifier: string | undefined;
   previousStructType: string | undefined;
   previousMemberName: string | undefined;
   subscriptDepth: number;
@@ -528,14 +531,14 @@ const generateLengthProperty = (
 ): string | null => {
   const {
     result,
-    primaryId,
-    currentIdentifier,
+    rootIdentifier,
+    resolvedIdentifier,
     previousStructType,
     previousMemberName,
     subscriptDepth,
   } = ctx;
   // Special case: main function's args.length -> argc
-  if (state.mainArgsName && primaryId === state.mainArgsName) {
+  if (state.mainArgsName && rootIdentifier === state.mainArgsName) {
     return "argc";
   }
 
@@ -558,8 +561,8 @@ const generateLengthProperty = (
   }
 
   // Fall back to checking the current resolved identifier's type
-  const typeInfo = currentIdentifier
-    ? input.typeRegistry.get(currentIdentifier)
+  const typeInfo = resolvedIdentifier
+    ? input.typeRegistry.get(resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -570,7 +573,7 @@ const generateLengthProperty = (
     result,
     typeInfo,
     subscriptDepth,
-    currentIdentifier,
+    resolvedIdentifier,
     input,
     state,
     effects,
@@ -635,7 +638,7 @@ const generateTypeInfoLength = (
     bitmapTypeName?: string;
   },
   subscriptDepth: number,
-  currentIdentifier: string | undefined,
+  resolvedIdentifier: string | undefined,
   input: IGeneratorInput,
   state: IGeneratorState,
   effects: TGeneratorEffect[],
@@ -650,11 +653,11 @@ const generateTypeInfoLength = (
       }
     } else {
       // Use lengthCache if available for this identifier
-      if (currentIdentifier && state.lengthCache?.has(currentIdentifier)) {
-        return state.lengthCache.get(currentIdentifier)!;
+      if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
+        return state.lengthCache.get(resolvedIdentifier)!;
       }
-      return currentIdentifier
-        ? `strlen(${currentIdentifier})`
+      return resolvedIdentifier
+        ? `strlen(${resolvedIdentifier})`
         : `strlen(${result})`;
     }
   } else if (
@@ -695,7 +698,7 @@ const generateTypeInfoLength = (
       }
     }
   } else if (typeInfo.isArray) {
-    return `/* .length unknown for ${currentIdentifier} */0`;
+    return `/* .length unknown for ${resolvedIdentifier} */0`;
   } else if (typeInfo.isEnum) {
     return "32";
   } else {
@@ -728,7 +731,7 @@ const getTypeBitWidth = (typeName: string, input: IGeneratorInput): string => {
  */
 interface MemberAccessResult {
   result: string;
-  currentIdentifier?: string;
+  resolvedIdentifier?: string;
   currentStructType?: string;
   currentMemberIsArray?: boolean;
   isRegisterChain?: boolean;
@@ -743,12 +746,12 @@ interface MemberAccessResult {
 interface IMemberAccessContext {
   result: string;
   memberName: string;
-  primaryId: string | undefined;
+  rootIdentifier: string | undefined;
   isStructParam: boolean;
   isGlobalAccess: boolean;
   isCppAccessChain: boolean;
   currentStructType: string | undefined;
-  currentIdentifier: string | undefined;
+  resolvedIdentifier: string | undefined;
   previousStructType: string | undefined;
   previousMemberName: string | undefined;
   isRegisterChain: boolean;
@@ -761,7 +764,7 @@ const initializeMemberOutput = (
   ctx: IMemberAccessContext,
 ): MemberAccessResult => ({
   result: ctx.result,
-  currentIdentifier: ctx.currentIdentifier,
+  resolvedIdentifier: ctx.resolvedIdentifier,
   currentStructType: ctx.currentStructType,
   currentMemberIsArray: false,
   isRegisterChain: ctx.isRegisterChain,
@@ -803,10 +806,10 @@ const tryBitmapFieldAccess = (
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
 ): MemberAccessResult | null => {
-  if (!ctx.primaryId) {
+  if (!ctx.rootIdentifier) {
     return null;
   }
-  const typeInfo = input.typeRegistry.get(ctx.primaryId);
+  const typeInfo = input.typeRegistry.get(ctx.rootIdentifier);
   if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
     return null;
   }
@@ -845,7 +848,7 @@ const tryScopeMemberAccess = (
   const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
   if (constValue === undefined) {
     output.result = fullName;
-    output.currentIdentifier = fullName;
+    output.resolvedIdentifier = fullName;
     if (!input.symbols!.knownEnums.has(fullName)) {
       const resolvedTypeInfo = input.typeRegistry.get(fullName);
       if (
@@ -857,7 +860,7 @@ const tryScopeMemberAccess = (
     }
   } else {
     output.result = constValue;
-    output.currentIdentifier = fullName;
+    output.resolvedIdentifier = fullName;
   }
   return output;
 };
@@ -886,7 +889,7 @@ const tryKnownScopeAccess = (
 
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
-  output.currentIdentifier = output.result;
+  output.resolvedIdentifier = output.result;
   const resolvedTypeInfo = input.typeRegistry.get(output.result);
   if (
     resolvedTypeInfo &&
@@ -964,7 +967,7 @@ const tryStructParamAccess = (
   ctx: IMemberAccessContext,
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  if (!ctx.isStructParam || ctx.result !== ctx.primaryId) {
+  if (!ctx.isStructParam || ctx.result !== ctx.rootIdentifier) {
     return null;
   }
 
@@ -1063,7 +1066,7 @@ const generateDefaultAccess = (
     if (memberTypeInfo) {
       output.currentMemberIsArray = memberTypeInfo.isArray;
       output.currentStructType = memberTypeInfo.baseType;
-      output.currentIdentifier = undefined;
+      output.resolvedIdentifier = undefined;
     }
   }
   return output;
@@ -1090,11 +1093,11 @@ interface SubscriptAccessResult {
 interface ISubscriptAccessContext {
   result: string;
   op: Parser.PostfixOpContext;
-  primaryId: string | undefined;
+  rootIdentifier: string | undefined;
   primaryTypeInfo:
     | { baseType: string; arrayDimensions?: (number | string)[] }
     | undefined;
-  currentIdentifier: string | undefined;
+  resolvedIdentifier: string | undefined;
   currentStructType: string | undefined;
   currentMemberIsArray: boolean;
   remainingArrayDims: number;
@@ -1163,9 +1166,11 @@ const handleSingleSubscript = (
 
   const isRegisterAccess =
     ctx.isRegisterChain ||
-    (ctx.primaryId ? input.symbols!.knownRegisters.has(ctx.primaryId) : false);
+    (ctx.rootIdentifier
+      ? input.symbols!.knownRegisters.has(ctx.rootIdentifier)
+      : false);
 
-  const identifierToCheck = ctx.currentIdentifier || ctx.primaryId;
+  const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
   const identifierTypeInfo = identifierToCheck
     ? input.typeRegistry.get(identifierToCheck)
     : undefined;
@@ -1234,11 +1239,11 @@ const handleBitRangeSubscript = (
     ctx.primaryTypeInfo?.baseType === "f32" ||
     ctx.primaryTypeInfo?.baseType === "f64";
 
-  if (isFloatType && ctx.primaryId) {
+  if (isFloatType && ctx.rootIdentifier) {
     output.result = handleFloatBitRange(
       {
         result: ctx.result,
-        primaryId: ctx.primaryId,
+        rootIdentifier: ctx.rootIdentifier,
         baseType: ctx.primaryTypeInfo!.baseType,
         start,
         width,
@@ -1264,7 +1269,7 @@ const handleBitRangeSubscript = (
  */
 interface IFloatBitRangeContext {
   result: string;
-  primaryId: string;
+  rootIdentifier: string;
   baseType: string;
   start: string;
   width: string;
@@ -1281,7 +1286,7 @@ const handleFloatBitRange = (
 ): string => {
   if (!state.inFunctionBody) {
     throw new Error(
-      `Float bit indexing reads (${ctx.primaryId}[${ctx.start}, ${ctx.width}]) cannot be used at global scope.`,
+      `Float bit indexing reads (${ctx.rootIdentifier}[${ctx.start}, ${ctx.width}]) cannot be used at global scope.`,
     );
   }
 
@@ -1292,7 +1297,7 @@ const handleFloatBitRange = (
 
   const isF64 = ctx.baseType === "f64";
   const shadowType = isF64 ? "uint64_t" : "uint32_t";
-  const shadowName = `__bits_${ctx.primaryId}`;
+  const shadowName = `__bits_${ctx.rootIdentifier}`;
   const mask = orchestrator.generateBitMask(ctx.width, isF64);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);

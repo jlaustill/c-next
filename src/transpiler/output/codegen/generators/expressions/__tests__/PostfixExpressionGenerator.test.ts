@@ -275,13 +275,13 @@ function createMockExpression(text: string): Parser.ExpressionContext {
 }
 
 function createMockPostfixExpressionContext(
-  primaryId: string | undefined,
+  rootIdentifier: string | undefined,
   ops: Parser.PostfixOpContext[],
 ): Parser.PostfixExpressionContext {
   return {
-    primaryExpression: () => createMockPrimaryExpression(primaryId),
+    primaryExpression: () => createMockPrimaryExpression(rootIdentifier),
     postfixOp: () => ops,
-    getText: () => primaryId ?? "expr",
+    getText: () => rootIdentifier ?? "expr",
   } as unknown as Parser.PostfixExpressionContext;
 }
 
