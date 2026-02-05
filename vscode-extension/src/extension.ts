@@ -1,11 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  transpile,
-  ITranspileResult,
-  ITranspileError,
-} from "../../src/lib/transpiler";
+import transpile from "../../src/lib/transpiler";
 import PreviewProvider from "./previewProvider";
 import CNextCompletionProvider from "./completionProvider";
 import CNextHoverProvider from "./hoverProvider";
@@ -13,9 +9,6 @@ import CNextDefinitionProvider from "./definitionProvider";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
-
-// Re-export for use by other modules
-export { transpile, ITranspileResult, ITranspileError };
 
 /**
  * C-Next configuration file options
