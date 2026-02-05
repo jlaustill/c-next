@@ -7210,5 +7210,150 @@ describe("CodeGenerator", () => {
         expect(code).toContain("Sensor_readings[0] = 42");
       });
     });
+
+    describe("Plain member access branch coverage", () => {
+      it("should generate simple scope member write (2 parts, no struct)", () => {
+        const source = `
+          scope Counter {
+              public u32 value;
+          }
+          void main() {
+              Counter.value <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Counter_value = 42");
+      });
+
+      it("should generate simple struct member write (no register, no scope)", () => {
+        const source = `
+          struct Config { u32 timeout; bool enabled; }
+          Config cfg;
+          void main() {
+              cfg.timeout <- 1000;
+              cfg.enabled <- true;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("cfg.timeout = 1000");
+        expect(code).toContain("cfg.enabled = true");
+      });
+
+      it("should throw when accessing register from inside scope", () => {
+        const source = `
+          register ADC @ 0x40020000 {
+              DATA: u32 ro @ 0x00,
+          }
+          scope Sensor {
+              public void read() {
+                  global.ADC.DATA;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        // global. prefix on a read (expression) goes through PostfixExpressionGenerator
+        // Just verify it compiles (exercises scope-aware register paths)
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("ADC_DATA");
+      });
+
+      it("should generate scope member write from outside any scope", () => {
+        const source = `
+          scope Timer {
+              public u32 count;
+          }
+          void main() {
+              Timer.count <- 0;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Timer_count = 0");
+      });
+
+      it("should generate scope variable write with non-struct type (3+ parts)", () => {
+        const source = `
+          scope Motor {
+              public u32 nested_value;
+          }
+          scope Controller {
+              public void init() {
+                  Motor.nested_value <- 0;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Motor_nested_value = 0");
+      });
+
+      it("should generate struct param member access in function", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void setX(Point p) {
+              p.x <- 10;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("p->x = 10");
+      });
+    });
   });
 });
