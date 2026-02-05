@@ -28,8 +28,15 @@ function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
       return "variable";
     case ESymbolKind.RegisterMember:
       return "registerMember";
+    case ESymbolKind.Enum:
+      return "enum";
+    case ESymbolKind.EnumMember:
+      return "enumMember";
+    case ESymbolKind.Bitmap:
+      return "bitmap";
+    case ESymbolKind.BitmapField:
+      return "bitmapField";
     default:
-      // C-Next doesn't have classes - fall through to variable
       return "variable";
   }
 }

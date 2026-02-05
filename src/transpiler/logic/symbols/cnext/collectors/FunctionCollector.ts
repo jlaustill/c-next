@@ -44,6 +44,7 @@ class FunctionCollector {
 
     return {
       name: fullName,
+      parent: scopeName,
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

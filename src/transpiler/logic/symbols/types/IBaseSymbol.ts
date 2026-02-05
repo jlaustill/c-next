@@ -8,6 +8,9 @@ interface IBaseSymbol {
   /** Symbol name (e.g., "LED_toggle", "GPIO7", "Point") */
   name: string;
 
+  /** Parent scope/namespace name (e.g., "LED" for a member of scope LED) */
+  parent?: string;
+
   /** Source file where the symbol is defined */
   sourceFile: string;
 

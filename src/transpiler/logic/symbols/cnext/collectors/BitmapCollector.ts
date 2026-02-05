@@ -57,6 +57,7 @@ class BitmapCollector {
 
     return {
       name: fullName,
+      parent: scopeName,
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
