@@ -42,8 +42,7 @@ export function findOutputPath(
 }
 
 export const DIAGNOSTIC_DEBOUNCE_MS = 300;
-export const TRANSPILE_TO_FILE_DEBOUNCE_MS = 500;
-export const PREVIEW_UPDATE_DEBOUNCE_MS = 300;
+export const EDITOR_SWITCH_DEBOUNCE_MS = 150;
 export const CACHE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 export const MAX_GLOBAL_COMPLETION_ITEMS = 30;
 export const MIN_PREFIX_LENGTH_FOR_CPP_QUERY = 2;

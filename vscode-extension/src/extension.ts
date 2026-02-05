@@ -12,7 +12,7 @@ import CNextHoverProvider from "./hoverProvider";
 import CNextDefinitionProvider from "./definitionProvider";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
-import { DIAGNOSTIC_DEBOUNCE_MS } from "./utils";
+import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
 
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
@@ -318,7 +318,7 @@ export function activate(context: vscode.ExtensionContext): void {
           previewProvider.onActiveEditorChange(editor);
           transpileToFile(editor.document);
           editorSwitchTimeout = null;
-        }, 150);
+        }, EDITOR_SWITCH_DEBOUNCE_MS);
       }
     }),
 

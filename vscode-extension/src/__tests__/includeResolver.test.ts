@@ -170,6 +170,33 @@ describe("IncludeResolver path boundary validation", () => {
     expect(result).toBeUndefined();
   });
 
+  it("blocks paths with workspace root as prefix but different directory", () => {
+    // e.g., workspace is /tmp/cnext-test-XXX, attacker creates /tmp/cnext-test-XXX-evil/
+    const evilDir = tmpDir + "-evil";
+    fs.mkdirSync(evilDir, { recursive: true });
+    const evilFile = path.join(evilDir, "evil.h");
+    fs.writeFileSync(evilFile, "// evil");
+
+    const fromFile = path.join(srcDir, "main.cnx");
+    fs.writeFileSync(fromFile, "");
+
+    const resolver = new IncludeResolver({
+      workspaceRoot: tmpDir,
+      localIncludePaths: [],
+      sdkIncludePaths: [],
+      excludePatterns: [],
+    });
+
+    // Calculate relative traversal path from srcDir to evilFile
+    const relativePath = path.relative(srcDir, evilFile);
+
+    // This should be blocked — the evil dir shares the workspace root prefix
+    const result = resolver.resolve(relativePath, fromFile, false);
+    expect(result).toBeUndefined();
+
+    fs.rmSync(evilDir, { recursive: true });
+  });
+
   it("handles empty workspace root gracefully", () => {
     const headerFile = path.join(srcDir, "local.h");
     fs.writeFileSync(headerFile, "// local");

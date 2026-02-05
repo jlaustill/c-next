@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as crypto from "node:crypto";
 import transpile from "../../src/lib/transpiler";
 
 /**
@@ -285,7 +286,6 @@ export default class PreviewProvider implements vscode.Disposable {
    * Generate a cryptographic nonce for CSP
    */
   private getNonce(): string {
-    const crypto = require("node:crypto");
     return crypto.randomBytes(16).toString("hex");
   }
 

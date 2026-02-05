@@ -185,9 +185,15 @@ export default class IncludeResolver {
    * Prevents path traversal attacks (e.g., #include "../../../../etc/passwd").
    */
   private isWithinBoundary(resolvedPath: string): boolean {
-    // Must be within workspace root
+    // Must be within workspace root (append path.sep to prevent prefix collisions)
     if (this.config.workspaceRoot) {
-      if (resolvedPath.startsWith(this.config.workspaceRoot)) {
+      const rootWithSep = this.config.workspaceRoot.endsWith(path.sep)
+        ? this.config.workspaceRoot
+        : this.config.workspaceRoot + path.sep;
+      if (
+        resolvedPath.startsWith(rootWithSep) ||
+        resolvedPath === this.config.workspaceRoot
+      ) {
         return true;
       }
     }
@@ -197,7 +203,9 @@ export default class IncludeResolver {
       const absSearchPath = path.isAbsolute(searchPath)
         ? searchPath
         : path.join(this.config.workspaceRoot, searchPath);
-      if (resolvedPath.startsWith(path.resolve(absSearchPath))) {
+      const resolved = path.resolve(absSearchPath);
+      const withSep = resolved.endsWith(path.sep) ? resolved : resolved + path.sep;
+      if (resolvedPath.startsWith(withSep) || resolvedPath === resolved) {
         return true;
       }
     }
