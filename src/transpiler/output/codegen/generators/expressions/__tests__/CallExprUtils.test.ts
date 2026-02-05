@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import CallExprUtils from "../CallExprUtils";
+import ESymbolKind from "../../../../../../utils/types/ESymbolKind";
 
 describe("CallExprUtils", () => {
   describe("mapTypeToCType", () => {
@@ -117,6 +118,149 @@ describe("CallExprUtils", () => {
       expect(CallExprUtils.generateStaticCast("x", "CustomType")).toBe(
         "static_cast<CustomType>(x)",
       );
+    });
+  });
+
+  describe("resolveTargetParam", () => {
+    it("returns local param when signature has the parameter", () => {
+      const sig = {
+        name: "myFunc",
+        parameters: [
+          { name: "a", baseType: "u32", isConst: false, isArray: false },
+        ],
+      };
+
+      const result = CallExprUtils.resolveTargetParam(sig, 0, "myFunc", null);
+
+      expect(result.param).toEqual(sig.parameters[0]);
+      expect(result.isCrossFile).toBe(false);
+    });
+
+    it("returns undefined when signature has no parameter at index", () => {
+      const sig = {
+        name: "myFunc",
+        parameters: [
+          { name: "a", baseType: "u32", isConst: false, isArray: false },
+        ],
+      };
+
+      const result = CallExprUtils.resolveTargetParam(sig, 1, "myFunc", null);
+
+      expect(result.param).toBeUndefined();
+      expect(result.isCrossFile).toBe(false);
+    });
+
+    it("returns undefined when no signature and no symbol table", () => {
+      const result = CallExprUtils.resolveTargetParam(
+        undefined,
+        0,
+        "myFunc",
+        null,
+      );
+
+      expect(result.param).toBeUndefined();
+      expect(result.isCrossFile).toBe(false);
+    });
+
+    it("falls back to SymbolTable when no local signature", () => {
+      const symbolTable = {
+        getOverloads: vi.fn(() => [
+          {
+            kind: ESymbolKind.Function,
+            parameters: [
+              { name: "val", type: "i32", isConst: true, isArray: false },
+            ],
+          },
+        ]),
+      };
+
+      const result = CallExprUtils.resolveTargetParam(
+        undefined,
+        0,
+        "crossFunc",
+        symbolTable as any,
+      );
+
+      expect(result.param).toEqual({
+        name: "val",
+        baseType: "i32",
+        isConst: true,
+        isArray: false,
+      });
+      expect(result.isCrossFile).toBe(true);
+      expect(symbolTable.getOverloads).toHaveBeenCalledWith("crossFunc");
+    });
+
+    it("skips non-function symbols in SymbolTable", () => {
+      const symbolTable = {
+        getOverloads: vi.fn(() => [
+          { kind: ESymbolKind.Variable },
+          { kind: ESymbolKind.Struct },
+        ]),
+      };
+
+      const result = CallExprUtils.resolveTargetParam(
+        undefined,
+        0,
+        "crossFunc",
+        symbolTable as any,
+      );
+
+      expect(result.param).toBeUndefined();
+      expect(result.isCrossFile).toBe(false);
+    });
+
+    it("skips function symbols without parameter at index", () => {
+      const symbolTable = {
+        getOverloads: vi.fn(() => [
+          {
+            kind: ESymbolKind.Function,
+            parameters: [
+              { name: "a", type: "u8", isConst: false, isArray: false },
+            ],
+          },
+        ]),
+      };
+
+      const result = CallExprUtils.resolveTargetParam(
+        undefined,
+        1,
+        "crossFunc",
+        symbolTable as any,
+      );
+
+      expect(result.param).toBeUndefined();
+      expect(result.isCrossFile).toBe(false);
+    });
+
+    it("prefers local signature over SymbolTable", () => {
+      const sig = {
+        name: "myFunc",
+        parameters: [
+          { name: "local", baseType: "u32", isConst: false, isArray: false },
+        ],
+      };
+      const symbolTable = {
+        getOverloads: vi.fn(() => [
+          {
+            kind: ESymbolKind.Function,
+            parameters: [
+              { name: "remote", type: "i64", isConst: true, isArray: false },
+            ],
+          },
+        ]),
+      };
+
+      const result = CallExprUtils.resolveTargetParam(
+        sig,
+        0,
+        "myFunc",
+        symbolTable as any,
+      );
+
+      expect(result.param).toEqual(sig.parameters[0]);
+      expect(result.isCrossFile).toBe(false);
+      expect(symbolTable.getOverloads).not.toHaveBeenCalled();
     });
   });
 });

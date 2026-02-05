@@ -16,7 +16,6 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import CallExprUtils from "./CallExprUtils";
 
 /**
@@ -92,31 +91,20 @@ const generateFunctionCall = (
     trackPassThroughModifications(funcExpr, argExprs, orchestrator);
   }
 
+  // Get function signature once for all arguments
+  const sig = input.functionSignatures.get(funcExpr);
+
   const args = argExprs
     .map((e, idx) => {
-      // Get function signature for parameter type info
-      const sig = input.functionSignatures.get(funcExpr);
-      let targetParam = sig?.parameters[idx];
-      // Issue #315: Track if we got param info from SymbolTable (cross-file function)
-      let isCrossFileFunction = false;
-
-      // Issue #315: If no local signature, try SymbolTable for cross-file functions
-      if (!targetParam && input.symbolTable) {
-        const symbols = input.symbolTable.getOverloads(funcExpr);
-        for (const sym of symbols) {
-          if (sym.kind === ESymbolKind.Function && sym.parameters?.[idx]) {
-            // Map symbol parameter to targetParam format (IFunctionSignature.parameters)
-            targetParam = {
-              name: sym.parameters[idx].name,
-              baseType: sym.parameters[idx].type,
-              isConst: sym.parameters[idx].isConst,
-              isArray: sym.parameters[idx].isArray,
-            };
-            isCrossFileFunction = true;
-            break;
-          }
-        }
-      }
+      // Get parameter type info from local signature or cross-file SymbolTable
+      const resolved = CallExprUtils.resolveTargetParam(
+        sig,
+        idx,
+        funcExpr,
+        input.symbolTable,
+      );
+      const targetParam = resolved.param;
+      const isCrossFileFunction = resolved.isCrossFile;
 
       if (!isCNextFunc) {
         // C/C++ function: pass-by-value, just generate the expression
