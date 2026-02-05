@@ -3,6 +3,9 @@
  * Extracted from CallExprGenerator for testability (Issue #420).
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
+import IFunctionSignature from "../../types/IFunctionSignature";
+import SymbolTable from "../../../../logic/symbols/SymbolTable";
+import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 
 /**
  * Issue #315: Small primitive types that are always passed by value.
@@ -62,6 +65,44 @@ class CallExprUtils {
   static generateStaticCast(code: string, targetType: string): string {
     const cType = CallExprUtils.mapTypeToCType(targetType);
     return `static_cast<${cType}>(${code})`;
+  }
+
+  /**
+   * Issue #315: Resolve target parameter info from local signature or cross-file SymbolTable.
+   * Returns the parameter info and whether it came from a cross-file lookup.
+   */
+  static resolveTargetParam(
+    sig: IFunctionSignature | undefined,
+    paramIndex: number,
+    funcName: string,
+    symbolTable: SymbolTable | null,
+  ): {
+    param: IFunctionSignature["parameters"][0] | undefined;
+    isCrossFile: boolean;
+  } {
+    const localParam = sig?.parameters[paramIndex];
+    if (localParam) {
+      return { param: localParam, isCrossFile: false };
+    }
+
+    if (symbolTable) {
+      const symbols = symbolTable.getOverloads(funcName);
+      for (const sym of symbols) {
+        if (sym.kind === ESymbolKind.Function && sym.parameters?.[paramIndex]) {
+          return {
+            param: {
+              name: sym.parameters[paramIndex].name,
+              baseType: sym.parameters[paramIndex].type,
+              isConst: sym.parameters[paramIndex].isConst,
+              isArray: sym.parameters[paramIndex].isArray,
+            },
+            isCrossFile: true,
+          };
+        }
+      }
+    }
+
+    return { param: undefined, isCrossFile: false };
   }
 }
 
