@@ -266,7 +266,6 @@ class AssignmentClassifier {
       }
 
       return this.classifyBitmapArrayField(
-        firstId,
         ids[1],
         typeInfo,
         ctx.subscripts.length,
@@ -333,7 +332,6 @@ class AssignmentClassifier {
    * Classify bitmap array element field: bitmapArr[i].field
    */
   private classifyBitmapArrayField(
-    firstId: string,
     secondId: string,
     typeInfo: TTypeInfo | undefined,
     subscriptCount: number,
