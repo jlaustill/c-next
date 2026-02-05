@@ -16,6 +16,7 @@ import IncludeResolver from "./IncludeResolver";
 import { CLexer } from "../../../src/antlr_parser/c/grammar/CLexer";
 import { CParser } from "../../../src/antlr_parser/c/grammar/CParser";
 import CSymbolCollector from "../../../src/symbol_resolution/CSymbolCollector";
+import { CACHE_CLEANUP_INTERVAL_MS } from "../utils";
 
 /**
  * Workspace-wide symbol index
@@ -99,8 +100,8 @@ export default class WorkspaceIndex {
         this.cache.clearUnused();
         this.headerCache.clearUnused();
       },
-      5 * 60 * 1000,
-    ); // Every 5 minutes
+      CACHE_CLEANUP_INTERVAL_MS,
+    );
   }
 
   /**

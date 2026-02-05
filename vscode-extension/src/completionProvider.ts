@@ -6,6 +6,15 @@ import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import TSymbolKind from "../../src/lib/types/TSymbolKind";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
+import {
+  getAccessDescription,
+  getCompletionLabel,
+  escapeRegex,
+  findOutputPath,
+  MAX_GLOBAL_COMPLETION_ITEMS,
+  MIN_PREFIX_LENGTH_FOR_CPP_QUERY,
+} from "./utils";
+import ScopeTracker from "./scopeTracker";
 
 /**
  * C-Next keywords for autocomplete
@@ -210,26 +219,6 @@ function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
 }
 
 /**
- * Get human-readable access modifier description
- */
-function getAccessDescription(access: string): string {
-  switch (access) {
-    case "rw":
-      return "read-write";
-    case "ro":
-      return "read-only";
-    case "wo":
-      return "write-only";
-    case "w1c":
-      return "write-1-to-clear";
-    case "w1s":
-      return "write-1-to-set";
-    default:
-      return access;
-  }
-}
-
-/**
  * Create a completion item from a symbol
  */
 function createSymbolCompletion(symbol: ISymbolInfo): vscode.CompletionItem {
@@ -286,30 +275,14 @@ export default class CNextCompletionProvider
    * Find the output file path (.c or .cpp) for a .cnx document
    * Uses cache if current files don't exist (allows completions during parse errors)
    */
-  private findOutputPath(document: vscode.TextDocument): string | null {
-    const cnxPath = document.uri.fsPath;
-
-    // Check for .cpp first (PlatformIO/Arduino projects often use .cpp)
-    const cppPath = cnxPath.replace(/\.cnx$/, ".cpp");
-    if (fs.existsSync(cppPath)) {
-      return cppPath;
-    }
-
-    // Check for .c
-    const cPath = cnxPath.replace(/\.cnx$/, ".c");
-    if (fs.existsSync(cPath)) {
-      return cPath;
-    }
-
-    // Neither exists - check the cache for last-known-good path
+  private findOutputFilePath(document: vscode.TextDocument): string | null {
     const outputPathCache =
       this.extensionContext?.lastGoodOutputPath ?? new Map<string, string>();
-    const cachedPath = outputPathCache.get(document.uri.toString());
-    if (cachedPath && fs.existsSync(cachedPath)) {
-      return cachedPath;
-    }
-
-    return null;
+    return findOutputPath(
+      document.uri.fsPath,
+      document.uri.toString(),
+      outputPathCache,
+    );
   }
 
   /**
@@ -318,9 +291,11 @@ export default class CNextCompletionProvider
   async provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
-    _token: vscode.CancellationToken,
+    token: vscode.CancellationToken,
     context: vscode.CompletionContext,
   ): Promise<vscode.CompletionItem[]> {
+    if (token.isCancellationRequested) return [];
+
     const lineText = document.lineAt(position).text;
     const linePrefix = lineText.substring(0, position.character);
 
@@ -332,11 +307,11 @@ export default class CNextCompletionProvider
     const symbols = parseResult.symbols;
 
     // Determine current scope context for this/global resolution
-    const currentScope = this.getCurrentScope(source, position);
+    const currentScope = ScopeTracker.getCurrentScope(source, position.line);
     this.debug(`C-Next DEBUG: Current scope at cursor: ${currentScope ?? "global"}`);
 
     // Determine current function (to filter from completions - no recursion allowed)
-    const currentFunction = this.getCurrentFunction(source, position);
+    const currentFunction = ScopeTracker.getCurrentFunction(source, position.line);
     this.debug(
       `C-Next DEBUG: Current function at cursor: ${currentFunction ?? "none"}`,
     );
@@ -411,7 +386,7 @@ export default class CNextCompletionProvider
     this.debug(`C-Next: Word prefix="${prefix}", length=${prefix.length}`);
 
     // Only query C/C++ if user has typed at least 2 characters (reduces noise)
-    if (prefix.length >= 2) {
+    if (prefix.length >= MIN_PREFIX_LENGTH_FOR_CPP_QUERY) {
       this.debug(`C-Next: Querying C/C++ extension for prefix "${prefix}"`);
       const cppCompletions = await this.queryCExtensionGlobalCompletions(
         document,
@@ -425,143 +400,6 @@ export default class CNextCompletionProvider
 
     this.debug(`C-Next: Prefix too short, returning only C-Next completions`);
     return cnextCompletions;
-  }
-
-  /**
-   * Determine the current scope at a given position in the source
-   * Returns the scope name (e.g., "Teensy4") or null if at global level
-   */
-  private getCurrentScope(
-    source: string,
-    position: vscode.Position,
-  ): string | null {
-    const lines = source.split("\n");
-
-    // Track scope context using brace counting
-    let currentScope: string | null = null;
-    let braceDepth = 0;
-    let scopeStartDepth = 0;
-
-    this.debug(`C-Next DEBUG: getCurrentScope called for line ${position.line}`);
-
-    // Only scan up to the cursor line
-    for (
-      let lineNum = 0;
-      lineNum <= position.line && lineNum < lines.length;
-      lineNum++
-    ) {
-      const line = lines[lineNum];
-      const trimmed = line.trim();
-
-      // Skip comment lines entirely (they can contain example code with braces)
-      if (
-        trimmed.startsWith("//") ||
-        trimmed.startsWith("/*") ||
-        trimmed.startsWith("*")
-      ) {
-        continue;
-      }
-
-      // Remove inline comments before processing
-      const lineWithoutComments = line
-        .replace(/\/\/.*$/, "")
-        .replace(/\/\*.*?\*\//g, "");
-
-      // Check for scope declaration: "scope ScopeName {"
-      const scopeMatch = lineWithoutComments.match(/\bscope\s+(\w+)\s*\{/);
-      if (scopeMatch) {
-        currentScope = scopeMatch[1];
-        scopeStartDepth = braceDepth;
-        braceDepth++; // Count the opening brace
-        this.debug(
-          `C-Next DEBUG: Found scope "${currentScope}" at line ${lineNum}, braceDepth now ${braceDepth}`,
-        );
-        continue;
-      }
-
-      // Count braces (only in non-comment code)
-      for (const ch of lineWithoutComments) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") {
-          braceDepth--;
-          // If we've exited the scope's braces, clear current scope
-          if (currentScope && braceDepth <= scopeStartDepth) {
-            this.debug(
-              `C-Next DEBUG: Exited scope "${currentScope}" at line ${lineNum}, braceDepth now ${braceDepth}`,
-            );
-            currentScope = null;
-            scopeStartDepth = 0;
-          }
-        }
-      }
-    }
-
-    this.debug(
-      `C-Next DEBUG: getCurrentScope returning: ${currentScope ?? "null (global)"}`,
-    );
-    return currentScope;
-  }
-
-  /**
-   * Determine the current function name at a given position
-   * Used to filter out the current function from completions (no recursion allowed)
-   */
-  private getCurrentFunction(
-    source: string,
-    position: vscode.Position,
-  ): string | null {
-    const lines = source.split("\n");
-    let currentFunction: string | null = null;
-    let braceDepth = 0;
-    let functionStartDepth = 0;
-
-    for (
-      let lineNum = 0;
-      lineNum <= position.line && lineNum < lines.length;
-      lineNum++
-    ) {
-      const line = lines[lineNum];
-      const trimmed = line.trim();
-
-      // Skip comment lines
-      if (
-        trimmed.startsWith("//") ||
-        trimmed.startsWith("/*") ||
-        trimmed.startsWith("*")
-      ) {
-        continue;
-      }
-
-      const lineWithoutComments = line
-        .replace(/\/\/.*$/, "")
-        .replace(/\/\*.*?\*\//g, "");
-
-      // Check for function declaration: "type functionName(...) {"
-      // Matches: "void foo() {", "u8 doSomething() {", "public void bar() {"
-      const funcMatch = lineWithoutComments.match(
-        /(?:public\s+)?(?:\w+)\s+(\w+)\s*\([^)]*\)\s*\{/,
-      );
-      if (funcMatch) {
-        currentFunction = funcMatch[1];
-        functionStartDepth = braceDepth;
-        braceDepth++;
-        continue;
-      }
-
-      // Count braces
-      for (const ch of lineWithoutComments) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") {
-          braceDepth--;
-          if (currentFunction && braceDepth <= functionStartDepth) {
-            currentFunction = null;
-            functionStartDepth = 0;
-          }
-        }
-      }
-    }
-
-    return currentFunction;
   }
 
   /**
@@ -960,7 +798,7 @@ export default class CNextCompletionProvider
     parentName?: string,
   ): Promise<vscode.CompletionItem[]> {
     // Find the output file (uses cache if current file has parse errors)
-    const outputPath = this.findOutputPath(document);
+    const outputPath = this.findOutputFilePath(document);
     if (!outputPath) {
       return [];
     }
@@ -1007,14 +845,14 @@ export default class CNextCompletionProvider
         // Log first few items for debugging
         const firstFew = completionList.items
           .slice(0, 5)
-          .map((i) => (typeof i.label === "string" ? i.label : i.label.label));
+          .map((i) => (getCompletionLabel(i.label)));
         this.debug(`C-Next: First 5 member completions: ${firstFew.join(", ")}`);
 
         // Mark items as coming from C/C++ extension
         return completionList.items.map((item) => {
           // Clone the item to avoid modifying the original
           const newItem = new vscode.CompletionItem(
-            typeof item.label === "string" ? item.label : item.label.label,
+            getCompletionLabel(item.label),
             item.kind,
           );
           newItem.detail = item.detail;
@@ -1051,7 +889,7 @@ export default class CNextCompletionProvider
     );
 
     // Find the output file (uses cache if current file has parse errors)
-    const outputPath = this.findOutputPath(document);
+    const outputPath = this.findOutputFilePath(document);
     this.debug(`C-Next: findOutputPath returned: ${outputPath}`);
     if (!outputPath) {
       console.log("C-Next: No output path found, returning empty");
@@ -1087,25 +925,10 @@ export default class CNextCompletionProvider
       const allItems: vscode.CompletionItem[] = [];
 
       if (completionList?.items) {
-        // Log ALL items to a file for debugging
-        const allLabels = completionList.items.map((item) =>
-          typeof item.label === "string" ? item.label : item.label.label,
-        );
-        // Write to temp file for inspection
-        const debugPath = "/tmp/cnext-completions.txt";
-        fs.writeFileSync(debugPath, allLabels.join("\n"), "utf-8");
-        this.debug(`C-Next: Wrote ${allLabels.length} items to ${debugPath}`);
-
-        // Check if Serial is in the list
-        const hasSerial = allLabels.some((l) =>
-          l.toLowerCase().includes("serial"),
-        );
-        this.debug(`C-Next: Contains 'serial': ${hasSerial}`);
-
         // Add filtered completion items
         for (const item of completionList.items) {
           const label =
-            typeof item.label === "string" ? item.label : item.label.label;
+            getCompletionLabel(item.label);
           if (label.toLowerCase().startsWith(prefix)) {
             const newItem = new vscode.CompletionItem(label, item.kind);
             newItem.detail = item.detail || "(C/C++)";
@@ -1122,23 +945,13 @@ export default class CNextCompletionProvider
         vscode.SymbolInformation[]
       >("vscode.executeWorkspaceSymbolProvider", prefix);
 
-      // Write workspace symbols to separate debug file
-      const wsDebugPath = "/tmp/cnext-workspace-symbols.txt";
       if (symbols?.length) {
         this.debug(`C-Next: Found ${symbols.length} workspace symbols`);
-        const symbolDetails = symbols.map(
-          (s) =>
-            `${s.name} (${vscode.SymbolKind[s.kind]}) - ${s.location.uri.fsPath}`,
-        );
-        fs.writeFileSync(wsDebugPath, symbolDetails.join("\n"), "utf-8");
-        this.debug(`C-Next: Wrote workspace symbols to ${wsDebugPath}`);
-        const symbolLabels = symbols.slice(0, 10).map((s) => s.name);
-        this.debug(`C-Next: First 10 workspace symbols: ${symbolLabels.join(", ")}`);
 
         // Add symbols that aren't already in completions
         const existingLabels = new Set(
           allItems.map((i) =>
-            typeof i.label === "string" ? i.label : i.label.label,
+            getCompletionLabel(i.label),
           ),
         );
 
@@ -1159,7 +972,7 @@ export default class CNextCompletionProvider
       // These ensure essential Arduino symbols appear even if C/C++ extension doesn't return them
       const existingLabels = new Set(
         allItems.map((i) =>
-          typeof i.label === "string" ? i.label : i.label.label,
+          getCompletionLabel(i.label),
         ),
       );
 
@@ -1176,7 +989,7 @@ export default class CNextCompletionProvider
       }
 
       // Limit results
-      const limited = allItems.slice(0, 30);
+      const limited = allItems.slice(0, MAX_GLOBAL_COMPLETION_ITEMS);
       this.debug(`C-Next: Returning ${limited.length} total items`);
       return limited;
     } catch (err) {
@@ -1292,7 +1105,7 @@ export default class CNextCompletionProvider
     parentName: string,
   ): vscode.Position | null {
     const lines = source.split("\n");
-    const pattern = new RegExp("\\b" + parentName + "\\.");
+    const pattern = new RegExp("\\b" + escapeRegex(parentName) + "\\.");
 
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];
@@ -1318,14 +1131,14 @@ export default class CNextCompletionProvider
     // Build a set of C-Next item names for deduplication
     const cnextNames = new Set(
       cnextItems.map((item) =>
-        typeof item.label === "string" ? item.label : item.label.label,
+        getCompletionLabel(item.label),
       ),
     );
 
     // Filter out C++ items that duplicate C-Next items
     const uniqueCppItems = cppItems.filter((item) => {
       const name =
-        typeof item.label === "string" ? item.label : item.label.label;
+        getCompletionLabel(item.label);
       return !cnextNames.has(name);
     });
 

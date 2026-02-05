@@ -27,7 +27,10 @@ export default class CNextDefinitionProvider
   provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
+    token: vscode.CancellationToken,
   ): vscode.Definition | null {
+    if (token.isCancellationRequested) return null;
+
     // Get the word at the cursor position
     const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
     if (!wordRange) {

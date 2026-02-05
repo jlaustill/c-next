@@ -6,6 +6,7 @@ import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
 import TLanguage from "../../src/lib/types/TLanguage";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
+import { getAccessDescription, escapeRegex, findOutputPath } from "./utils";
 
 /**
  * Extended symbol info that includes source file path
@@ -197,26 +198,6 @@ function buildForbiddenFunctionHover(
   md.appendMarkdown(`*This function is not available in C-Next v1.*`);
 
   return md;
-}
-
-/**
- * Get human-readable access modifier description
- */
-function getAccessDescription(access: string): string {
-  switch (access) {
-    case "rw":
-      return "read-write";
-    case "ro":
-      return "read-only";
-    case "wo":
-      return "write-only";
-    case "w1c":
-      return "write-1-to-clear";
-    case "w1s":
-      return "write-1-to-set";
-    default:
-      return access;
-  }
 }
 
 /**
@@ -429,7 +410,10 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
   async provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
+    token: vscode.CancellationToken,
   ): Promise<vscode.Hover | null> {
+    if (token.isCancellationRequested) return null;
+
     // Get the word at the cursor position
     const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
     if (!wordRange) {
@@ -545,30 +529,14 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
    * Find the output file path (.c or .cpp) for a .cnx document
    * Uses cache if current files don't exist (allows hover during parse errors)
    */
-  private findOutputPath(document: vscode.TextDocument): string | null {
-    const cnxPath = document.uri.fsPath;
-
-    // Check for .cpp first (PlatformIO/Arduino projects often use .cpp)
-    const cppPath = cnxPath.replace(/\.cnx$/, ".cpp");
-    if (fs.existsSync(cppPath)) {
-      return cppPath;
-    }
-
-    // Check for .c
-    const cPath = cnxPath.replace(/\.cnx$/, ".c");
-    if (fs.existsSync(cPath)) {
-      return cPath;
-    }
-
-    // Neither exists - check the cache for last-known-good path
+  private findOutputFilePath(document: vscode.TextDocument): string | null {
     const outputPathCache =
       this.extensionContext?.lastGoodOutputPath ?? new Map<string, string>();
-    const cachedPath = outputPathCache.get(document.uri.toString());
-    if (cachedPath && fs.existsSync(cachedPath)) {
-      return cachedPath;
-    }
-
-    return null;
+    return findOutputPath(
+      document.uri.fsPath,
+      document.uri.toString(),
+      outputPathCache,
+    );
   }
 
   /**
@@ -581,7 +549,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     wordRange: vscode.Range,
   ): Promise<vscode.Hover | null> {
     // Find the output file (uses cache if current file has parse errors)
-    const outputPath = this.findOutputPath(document);
+    const outputPath = this.findOutputFilePath(document);
     if (!outputPath) {
       return null;
     }
@@ -660,7 +628,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];
       // Use word boundary regex to find exact word matches
-      const regex = new RegExp(`\\b${word}\\b`);
+      const regex = new RegExp(`\\b${escapeRegex(word)}\\b`);
       const match = regex.exec(line);
 
       if (match) {

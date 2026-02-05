@@ -12,6 +12,7 @@ import CNextHoverProvider from "./hoverProvider";
 import CNextDefinitionProvider from "./definitionProvider";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
+import { DIAGNOSTIC_DEBOUNCE_MS } from "./utils";
 
 // Re-export for use by other modules
 export { transpile, ITranspileResult, ITranspileError };
@@ -329,7 +330,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         validateTimeout = setTimeout(() => {
           validateDocument(event.document);
-        }, 300);
+        }, DIAGNOSTIC_DEBOUNCE_MS);
 
         // Update preview (has its own debouncing)
         previewProvider.onDocumentChange(event.document);
