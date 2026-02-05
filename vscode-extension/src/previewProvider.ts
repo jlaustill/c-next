@@ -161,22 +161,31 @@ export default class PreviewProvider implements vscode.Disposable {
       return;
     }
 
-    const source = this.currentDocument.getText();
-    const result = transpile(source);
+    try {
+      const source = this.currentDocument.getText();
+      const result = transpile(source);
 
-    if (result.success) {
-      this.lastGoodCode = result.code;
-      this.lastError = null;
-      this.updateStatusBar(true, 0);
-    } else {
-      this.lastError = result.errors
-        .map((e) => `Line ${e.line}:${e.column} - ${e.message}`)
-        .join("\n");
-      this.updateStatusBar(false, result.errors.length);
+      if (result.success) {
+        this.lastGoodCode = result.code;
+        this.lastError = null;
+        this.updateStatusBar(true, 0);
+      } else {
+        this.lastError = result.errors
+          .map((e) => `Line ${e.line}:${e.column} - ${e.message}`)
+          .join("\n");
+        this.updateStatusBar(false, result.errors.length);
+      }
+
+      this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.lastError = `Internal error: ${message}`;
+      this.updateStatusBar(false, 1);
+      if (this.panel) {
+        this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
+      }
+      console.error("C-Next preview update failed:", error);
     }
-
-    // Always show content (last good or current)
-    this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
   }
 
   /**
