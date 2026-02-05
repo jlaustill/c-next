@@ -273,9 +273,18 @@ export default class PreviewProvider implements vscode.Disposable {
   }
 
   /**
+   * Generate a cryptographic nonce for CSP
+   */
+  private getNonce(): string {
+    const crypto = require("node:crypto");
+    return crypto.randomBytes(16).toString("hex");
+  }
+
+  /**
    * Generate HTML for the webview
    */
   private getHtml(code: string, error: string | null): string {
+    const nonce = this.getNonce();
     const config = vscode.workspace.getConfiguration("cnext");
     const showLineNumbers = config.get<boolean>(
       "preview.showLineNumbers",
@@ -315,9 +324,9 @@ export default class PreviewProvider implements vscode.Disposable {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
     <title>C-Next Preview</title>
-    <style>
+    <style nonce="${nonce}">
         * {
             box-sizing: border-box;
             background: none;
@@ -441,7 +450,7 @@ export default class PreviewProvider implements vscode.Disposable {
     <div class="code-container">
         <pre><code>${codeHtml}</code></pre>
     </div>
-    <script>
+    <script nonce="${nonce}">
         // Handle scroll sync messages from extension
         window.addEventListener('message', event => {
             const message = event.data;
