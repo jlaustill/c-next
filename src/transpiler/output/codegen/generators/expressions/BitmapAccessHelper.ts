@@ -40,9 +40,8 @@ class BitmapAccessHelper {
     >,
     errorDescriptor: string,
   ): BitmapAccessResult {
-    const fields = bitmapFields.get(bitmapType);
-    if (fields?.has(memberName)) {
-      const fieldInfo = fields.get(memberName)!;
+    const fieldInfo = bitmapFields.get(bitmapType)?.get(memberName);
+    if (fieldInfo) {
       const bitmapResult = accessGenerators.generateBitmapFieldAccess(
         result,
         fieldInfo,

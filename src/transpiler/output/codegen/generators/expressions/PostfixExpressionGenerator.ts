@@ -100,6 +100,19 @@ const initializeTrackingState = (
   };
 };
 
+/**
+ * Immutable context for the postfix expression being processed.
+ * Bundles values that don't change during the postfix op loop.
+ */
+interface IPostfixContext {
+  primaryId: string | undefined;
+  isStructParam: boolean;
+  input: IGeneratorInput;
+  state: IGeneratorState;
+  orchestrator: IOrchestrator;
+  effects: TGeneratorEffect[];
+}
+
 // ========================================================================
 // Main Entry Point
 // ========================================================================
@@ -157,19 +170,19 @@ const generatePostfixExpression = (
     orchestrator,
   );
 
+  const postfixCtx: IPostfixContext = {
+    primaryId,
+    isStructParam,
+    input,
+    state,
+    orchestrator,
+    effects,
+  };
+
   for (const op of ops) {
     if (op.IDENTIFIER()) {
       const memberName = op.IDENTIFIER()!.getText();
-      handleMemberOp(
-        memberName,
-        tracking,
-        primaryId,
-        isStructParam,
-        input,
-        state,
-        orchestrator,
-        effects,
-      );
+      handleMemberOp(memberName, tracking, postfixCtx);
     } else if (op.expression().length > 0) {
       const subscriptResult = generateSubscriptAccess(
         {
@@ -235,13 +248,10 @@ const generatePostfixExpression = (
 const handleMemberOp = (
   memberName: string,
   tracking: ITrackingState,
-  primaryId: string | undefined,
-  isStructParam: boolean,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
+  ctx: IPostfixContext,
 ): void => {
+  const { primaryId, isStructParam, input, state, orchestrator, effects } = ctx;
+
   // ADR-016: Handle global. prefix
   if (handleGlobalPrefix(memberName, tracking, input, state, orchestrator)) {
     return;
@@ -1171,11 +1181,13 @@ const handleBitRangeSubscript = (
 
   if (isFloatType && ctx.primaryId) {
     output.result = handleFloatBitRange(
-      ctx.result,
-      ctx.primaryId,
-      ctx.primaryTypeInfo!,
-      start,
-      width,
+      {
+        result: ctx.result,
+        primaryId: ctx.primaryId,
+        baseType: ctx.primaryTypeInfo!.baseType,
+        start,
+        width,
+      },
       state,
       orchestrator,
       effects,
@@ -1193,21 +1205,28 @@ const handleBitRangeSubscript = (
 };
 
 /**
+ * Context for float bit range access.
+ */
+interface IFloatBitRangeContext {
+  result: string;
+  primaryId: string;
+  baseType: string;
+  start: string;
+  width: string;
+}
+
+/**
  * Handle float bit range access with memcpy shadow variable.
  */
 const handleFloatBitRange = (
-  result: string,
-  primaryId: string,
-  primaryTypeInfo: { baseType: string },
-  start: string,
-  width: string,
+  ctx: IFloatBitRangeContext,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): string => {
   if (!state.inFunctionBody) {
     throw new Error(
-      `Float bit indexing reads (${primaryId}[${start}, ${width}]) cannot be used at global scope.`,
+      `Float bit indexing reads (${ctx.primaryId}[${ctx.start}, ${ctx.width}]) cannot be used at global scope.`,
     );
   }
 
@@ -1216,10 +1235,10 @@ const handleFloatBitRange = (
     { type: "include", header: "float_static_assert" },
   );
 
-  const isF64 = primaryTypeInfo.baseType === "f64";
+  const isF64 = ctx.baseType === "f64";
   const shadowType = isF64 ? "uint64_t" : "uint32_t";
-  const shadowName = `__bits_${primaryId}`;
-  const mask = orchestrator.generateBitMask(width, isF64);
+  const shadowName = `__bits_${ctx.primaryId}`;
+  const mask = orchestrator.generateBitMask(ctx.width, isF64);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
   if (needsDeclaration) {
@@ -1231,15 +1250,15 @@ const handleFloatBitRange = (
   orchestrator.markFloatShadowCurrent(shadowName);
 
   if (shadowIsCurrent) {
-    if (start === "0") {
+    if (ctx.start === "0") {
       return `(${shadowName} & ${mask})`;
     }
-    return `((${shadowName} >> ${start}) & ${mask})`;
+    return `((${shadowName} >> ${ctx.start}) & ${mask})`;
   }
-  if (start === "0") {
-    return `(memcpy(&${shadowName}, &${result}, sizeof(${result})), (${shadowName} & ${mask}))`;
+  if (ctx.start === "0") {
+    return `(memcpy(&${shadowName}, &${ctx.result}, sizeof(${ctx.result})), (${shadowName} & ${mask}))`;
   }
-  return `(memcpy(&${shadowName}, &${result}, sizeof(${result})), ((${shadowName} >> ${start}) & ${mask}))`;
+  return `(memcpy(&${shadowName}, &${ctx.result}, sizeof(${ctx.result})), ((${shadowName} >> ${ctx.start}) & ${mask}))`;
 };
 
 // ========================================================================
