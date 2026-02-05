@@ -89,12 +89,13 @@ class CallExprUtils {
       const symbols = symbolTable.getOverloads(funcName);
       for (const sym of symbols) {
         if (sym.kind === ESymbolKind.Function && sym.parameters?.[paramIndex]) {
+          const p = sym.parameters[paramIndex];
           return {
             param: {
-              name: sym.parameters[paramIndex].name,
-              baseType: sym.parameters[paramIndex].type,
-              isConst: sym.parameters[paramIndex].isConst,
-              isArray: sym.parameters[paramIndex].isArray,
+              name: p.name,
+              baseType: p.type,
+              isConst: p.isConst,
+              isArray: p.isArray,
             },
             isCrossFile: true,
           };
