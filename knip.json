@@ -12,5 +12,6 @@
     "src/transpiler/output/codegen/helpers/CppModeHelper.ts",
     "src/transpiler/output/codegen/analysis/StringLengthCounter.ts"
   ],
-  "ignoreBinaries": ["jscpd", "jq", "dot"]
+  "ignoreBinaries": ["jscpd", "jq", "dot", "madge", "ts-prune"],
+  "ignoreDependencies": ["madge", "ts-prune"]
 }
