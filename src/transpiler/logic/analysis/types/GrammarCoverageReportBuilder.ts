@@ -55,7 +55,7 @@ function buildGrammarCoverageReport(
 }
 
 class GrammarCoverageReportBuilder {
-  static build = buildGrammarCoverageReport;
+  static readonly build = buildGrammarCoverageReport;
 }
 
 export default GrammarCoverageReportBuilder;

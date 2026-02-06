@@ -11,13 +11,13 @@ import {
   SwitchCaseContext,
   CaseLabelContext,
   DefaultCaseContext,
+  BlockContext,
 } from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-import { BlockContext } from "../../../../logic/parser/grammar/CNextParser";
 
 /**
  * Generate case/default block body: statements + break + closing brace.

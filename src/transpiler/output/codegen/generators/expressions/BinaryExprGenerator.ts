@@ -20,6 +20,15 @@ import IOrchestrator from "../IOrchestrator";
 import BinaryExprUtils from "./BinaryExprUtils";
 
 /**
+ * Generator context passed to child generators.
+ */
+interface IGeneratorContext {
+  input: IGeneratorInput;
+  state: IGeneratorState;
+  orchestrator: IOrchestrator;
+}
+
+/**
  * Generic child expression generator function type
  */
 type TChildGenerator<T> = (
@@ -38,12 +47,11 @@ function accumulateBinaryExprs<T>(
   operators: string[],
   defaultOp: string,
   generateChild: TChildGenerator<T>,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  ctx: IGeneratorContext,
   mapOperator?: (op: string) => string,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
+  const { input, state, orchestrator } = ctx;
 
   const firstResult = generateChild(exprs[0], input, state, orchestrator);
   effects.push(...firstResult.effects);
@@ -180,9 +188,7 @@ const generateEqualityExpr = (
     operators,
     "=",
     generateRelationalExpr,
-    input,
-    state,
-    orchestrator,
+    { input, state, orchestrator },
     BinaryExprUtils.mapEqualityOperator,
   );
 };
@@ -204,15 +210,11 @@ const generateRelationalExpr = (
 
   // Issue #152: Extract operators in order from parse tree children
   const operators = orchestrator.getOperatorsFromChildren(node);
-  return accumulateBinaryExprs(
-    exprs,
-    operators,
-    "<",
-    generateBitwiseOrExpr,
+  return accumulateBinaryExprs(exprs, operators, "<", generateBitwiseOrExpr, {
     input,
     state,
     orchestrator,
-  );
+  });
 };
 
 /**
