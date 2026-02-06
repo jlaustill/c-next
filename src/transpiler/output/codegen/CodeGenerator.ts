@@ -3105,27 +3105,18 @@ export default class CodeGenerator implements IOrchestrator {
     orExpr: Parser.OrExpressionContext,
     handler: (unaryExpr: Parser.UnaryExpressionContext) => void,
   ): void {
-    for (const andExpr of orExpr.andExpression()) {
-      for (const eqExpr of andExpr.equalityExpression()) {
-        for (const relExpr of eqExpr.relationalExpression()) {
-          for (const bitOrExpr of relExpr.bitwiseOrExpression()) {
-            for (const bitXorExpr of bitOrExpr.bitwiseXorExpression()) {
-              for (const bitAndExpr of bitXorExpr.bitwiseAndExpression()) {
-                for (const shiftExpr of bitAndExpr.shiftExpression()) {
-                  for (const addExpr of shiftExpr.additiveExpression()) {
-                    for (const mulExpr of addExpr.multiplicativeExpression()) {
-                      for (const unaryExpr of mulExpr.unaryExpression()) {
-                        handler(unaryExpr);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    orExpr
+      .andExpression()
+      .flatMap((and) => and.equalityExpression())
+      .flatMap((eq) => eq.relationalExpression())
+      .flatMap((rel) => rel.bitwiseOrExpression())
+      .flatMap((bor) => bor.bitwiseXorExpression())
+      .flatMap((bxor) => bxor.bitwiseAndExpression())
+      .flatMap((band) => band.shiftExpression())
+      .flatMap((shift) => shift.additiveExpression())
+      .flatMap((add) => add.multiplicativeExpression())
+      .flatMap((mul) => mul.unaryExpression())
+      .forEach(handler);
   }
 
   /**
