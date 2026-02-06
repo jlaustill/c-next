@@ -651,65 +651,105 @@ const generateTypeInfoLength = (
 ): string => {
   // ADR-045: String type handling
   if (typeInfo.isString) {
-    if (typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
-      if (subscriptDepth === 0) {
-        return String(typeInfo.arrayDimensions[0]);
-      } else {
-        return `strlen(${result})`;
-      }
-    } else {
-      // Use lengthCache if available for this identifier
-      if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
-        return state.lengthCache.get(resolvedIdentifier)!;
-      }
-      return resolvedIdentifier
-        ? `strlen(${resolvedIdentifier})`
-        : `strlen(${result})`;
-    }
-  } else if (
-    typeInfo.isArray &&
-    typeInfo.arrayDimensions &&
-    typeInfo.arrayDimensions.length > 0 &&
-    subscriptDepth < typeInfo.arrayDimensions.length
-  ) {
-    return String(typeInfo.arrayDimensions[subscriptDepth]);
-  } else if (
-    typeInfo.isArray &&
-    typeInfo.arrayDimensions &&
-    typeInfo.arrayDimensions.length > 0 &&
-    subscriptDepth >= typeInfo.arrayDimensions.length
-  ) {
-    if (typeInfo.isEnum) {
-      return "32";
-    } else if (
-      TypeCheckUtils.isString(typeInfo.baseType) ||
-      typeInfo.isString
-    ) {
-      effects.push({ type: "include", header: "string" });
-      return `strlen(${result})`;
-    } else {
-      let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
-      if (
-        elementBitWidth === 0 &&
-        typeInfo.isBitmap &&
-        typeInfo.bitmapTypeName
-      ) {
-        elementBitWidth =
-          input.symbols!.bitmapBitWidth.get(typeInfo.bitmapTypeName) || 0;
-      }
-      if (elementBitWidth > 0) {
-        return String(elementBitWidth);
-      } else {
-        return `/* .length: unsupported element type ${typeInfo.baseType} */0`;
-      }
-    }
-  } else if (typeInfo.isArray) {
-    return `/* .length unknown for ${resolvedIdentifier} */0`;
-  } else if (typeInfo.isEnum) {
+    return generateStringLength(
+      result,
+      typeInfo,
+      subscriptDepth,
+      resolvedIdentifier,
+      state,
+    );
+  }
+
+  // Non-string enum - always 32 bits
+  if (typeInfo.isEnum && !typeInfo.isArray) {
     return "32";
-  } else {
+  }
+
+  // Non-string, non-enum, non-array - use bitWidth
+  if (!typeInfo.isArray) {
     return String(typeInfo.bitWidth || 0);
   }
+
+  // Array without dimensions - unknown length
+  const dims = typeInfo.arrayDimensions;
+  if (!dims || dims.length === 0) {
+    return `/* .length unknown for ${resolvedIdentifier} */0`;
+  }
+
+  // Array with subscript within bounds - return that dimension
+  if (subscriptDepth < dims.length) {
+    return String(dims[subscriptDepth]);
+  }
+
+  // Subscript past array bounds - return element type's length
+  return generateElementTypeLength(result, typeInfo, input, effects);
+};
+
+/**
+ * Generate .length for string types.
+ */
+const generateStringLength = (
+  result: string,
+  typeInfo: {
+    arrayDimensions?: (number | string)[];
+  },
+  subscriptDepth: number,
+  resolvedIdentifier: string | undefined,
+  state: IGeneratorState,
+): string => {
+  const dims = typeInfo.arrayDimensions;
+
+  // String array (2D): first dimension is array size, second is string capacity
+  if (dims && dims.length > 1) {
+    return subscriptDepth === 0 ? String(dims[0]) : `strlen(${result})`;
+  }
+
+  // Simple string: check length cache first, then use strlen
+  if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
+    return state.lengthCache.get(resolvedIdentifier)!;
+  }
+  return resolvedIdentifier
+    ? `strlen(${resolvedIdentifier})`
+    : `strlen(${result})`;
+};
+
+/**
+ * Generate .length for array element types (subscript past bounds).
+ */
+const generateElementTypeLength = (
+  result: string,
+  typeInfo: {
+    isEnum?: boolean;
+    isString?: boolean;
+    baseType: string;
+    isBitmap?: boolean;
+    bitmapTypeName?: string;
+  },
+  input: IGeneratorInput,
+  effects: TGeneratorEffect[],
+): string => {
+  // Enum element
+  if (typeInfo.isEnum) {
+    return "32";
+  }
+
+  // String element
+  if (TypeCheckUtils.isString(typeInfo.baseType) || typeInfo.isString) {
+    effects.push({ type: "include", header: "string" });
+    return `strlen(${result})`;
+  }
+
+  // Numeric/bitmap element - get bit width
+  let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+  if (elementBitWidth === 0 && typeInfo.isBitmap && typeInfo.bitmapTypeName) {
+    elementBitWidth =
+      input.symbols!.bitmapBitWidth.get(typeInfo.bitmapTypeName) || 0;
+  }
+
+  if (elementBitWidth > 0) {
+    return String(elementBitWidth);
+  }
+  return `/* .length: unsupported element type ${typeInfo.baseType} */0`;
 };
 
 /**
