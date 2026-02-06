@@ -7071,111 +7071,131 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // ADR-016: Handle 'this' keyword for scope-local reference
-    // 'this' returns a marker that postfixOps will transform to Scope_member
     const text = ctx.getText();
     if (text === "this") {
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
-      // Return marker - postfixOps will detect and transform to scope-prefixed access
-      return "__THIS_SCOPE__";
+      return this._resolveThisKeyword();
     }
 
     // ADR-016: Handle 'global' keyword for global reference
-    // 'global' strips the prefix so global.X becomes just X
     if (text === "global") {
-      // Return special marker - first postfixOp will become the identifier
       return "__GLOBAL_PREFIX__";
     }
 
     if (ctx.IDENTIFIER()) {
-      const id = ctx.IDENTIFIER()!.getText();
-
-      // Special case: main function's args parameter -> argv
-      if (this.context.mainArgsName && id === this.context.mainArgsName) {
-        return "argv";
-      }
-
-      // ADR-006: Check if it's a function parameter
-      // PR #681: Use extracted ParameterDereferenceResolver for pass-by-value determination
-      const paramInfo = this.context.currentParameters.get(id);
-      if (paramInfo) {
-        return ParameterDereferenceResolver.resolve(
-          id,
-          paramInfo,
-          this._buildParameterDereferenceDeps(),
-        );
-      }
-
-      // Check if it's a local variable (tracked in type registry with no underscore prefix)
-      // Local variables are those that were declared inside the current function
-      const isLocalVariable = this.context.localVariables.has(id);
-
-      // ADR-016: Resolve bare identifier using local -> scope -> global priority
-      const resolved = this.typeValidator!.resolveBareIdentifier(
-        id,
-        isLocalVariable,
-        (name: string) => this.isKnownStruct(name),
-      );
-
-      // If resolved to a different name, use it
-      if (resolved !== null) {
-        return resolved;
-      }
-
-      // Issue #452: Check if identifier is an unqualified enum member reference
-      // Use expectedType for type-aware resolution when assigning to enum fields
-      if (
-        this.context.expectedType &&
-        this.symbols!.knownEnums.has(this.context.expectedType)
-      ) {
-        // Type-aware resolution: check only the expected enum type
-        const expectedEnum = this.context.expectedType;
-        const members = this.symbols!.enumMembers.get(expectedEnum);
-        if (members?.has(id)) {
-          return `${expectedEnum}${this.getScopeSeparator(false)}${id}`;
-        }
-      } else {
-        // No expected enum type - search all enums but error on ambiguity
-        // Note: This path is used for backward compatibility when expectedType is not set
-        const matchingEnums: string[] = [];
-        for (const [enumName, members] of this.symbols!.enumMembers) {
-          if (members.has(id)) {
-            matchingEnums.push(enumName);
-          }
-        }
-        if (matchingEnums.length === 1) {
-          return `${matchingEnums[0]}${this.getScopeSeparator(false)}${id}`;
-        } else if (matchingEnums.length > 1) {
-          throw new Error(
-            `Error: Ambiguous enum member '${id}' exists in multiple enums: ${matchingEnums.join(", ")}. Use qualified access (e.g., ${matchingEnums[0]}.${id})`,
-          );
-        }
-      }
-
-      return id;
+      return this._resolveIdentifierExpression(ctx.IDENTIFIER()!.getText());
     }
     if (ctx.literal()) {
-      // ADR-053 A2: Use extracted literal generator
-      const result = generateLiteral(
-        ctx.literal()!,
-        this.getInput(),
-        this.getState(),
-        this,
-      );
-      this.applyEffects(result.effects);
-
-      // Issue #304/#644: Transform NULL → nullptr in C++ mode
-      if (result.code === "NULL") {
-        return this.cppHelper!.nullLiteral();
-      }
-
-      return result.code;
+      return this._generateLiteralExpression(ctx.literal()!);
     }
     if (ctx.expression()) {
       return `(${this._generateExpression(ctx.expression()!)})`;
     }
     return "";
+  }
+
+  /**
+   * Resolve 'this' keyword to scope marker
+   * ADR-016: 'this' returns a marker that postfixOps will transform to Scope_member
+   */
+  private _resolveThisKeyword(): string {
+    if (!this.context.currentScope) {
+      throw new Error("Error: 'this' can only be used inside a scope");
+    }
+    return "__THIS_SCOPE__";
+  }
+
+  /**
+   * Resolve an identifier in a primary expression context
+   * Handles: main args, parameters, local variables, scope resolution, enum members
+   */
+  private _resolveIdentifierExpression(id: string): string {
+    // Special case: main function's args parameter -> argv
+    if (this.context.mainArgsName && id === this.context.mainArgsName) {
+      return "argv";
+    }
+
+    // ADR-006: Check if it's a function parameter
+    const paramInfo = this.context.currentParameters.get(id);
+    if (paramInfo) {
+      return ParameterDereferenceResolver.resolve(
+        id,
+        paramInfo,
+        this._buildParameterDereferenceDeps(),
+      );
+    }
+
+    // ADR-016: Resolve bare identifier using local -> scope -> global priority
+    const isLocalVariable = this.context.localVariables.has(id);
+    const resolved = this.typeValidator!.resolveBareIdentifier(
+      id,
+      isLocalVariable,
+      (name: string) => this.isKnownStruct(name),
+    );
+    if (resolved !== null) {
+      return resolved;
+    }
+
+    // Issue #452: Check if identifier is an unqualified enum member reference
+    const enumResolved = this._resolveUnqualifiedEnumMember(id);
+    if (enumResolved !== null) {
+      return enumResolved;
+    }
+
+    return id;
+  }
+
+  /**
+   * Resolve an unqualified identifier as an enum member
+   * Issue #452: Uses expectedType for type-aware resolution, falls back to searching all enums
+   * @returns The qualified enum member access, or null if not an enum member
+   */
+  private _resolveUnqualifiedEnumMember(id: string): string | null {
+    // Type-aware resolution: check only the expected enum type
+    if (
+      this.context.expectedType &&
+      this.symbols!.knownEnums.has(this.context.expectedType)
+    ) {
+      const members = this.symbols!.enumMembers.get(this.context.expectedType);
+      if (members?.has(id)) {
+        return `${this.context.expectedType}${this.getScopeSeparator(false)}${id}`;
+      }
+      return null;
+    }
+
+    // No expected enum type - search all enums but error on ambiguity
+    const matchingEnums: string[] = [];
+    for (const [enumName, members] of this.symbols!.enumMembers) {
+      if (members.has(id)) {
+        matchingEnums.push(enumName);
+      }
+    }
+
+    if (matchingEnums.length === 1) {
+      return `${matchingEnums[0]}${this.getScopeSeparator(false)}${id}`;
+    }
+    if (matchingEnums.length > 1) {
+      throw new Error(
+        `Error: Ambiguous enum member '${id}' exists in multiple enums: ${matchingEnums.join(", ")}. Use qualified access (e.g., ${matchingEnums[0]}.${id})`,
+      );
+    }
+
+    return null;
+  }
+
+  /**
+   * Generate a literal expression with C++ mode handling
+   * ADR-053 A2: Uses extracted literal generator
+   */
+  private _generateLiteralExpression(ctx: Parser.LiteralContext): string {
+    const result = generateLiteral(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+
+    // Issue #304/#644: Transform NULL → nullptr in C++ mode
+    if (result.code === "NULL") {
+      return this.cppHelper!.nullLiteral();
+    }
+
+    return result.code;
   }
 
   /**
