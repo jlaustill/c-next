@@ -23,6 +23,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 
 /**
  * Maps C-Next assignment operators to C assignment operators
@@ -341,15 +342,15 @@ const generateForVarDecl = (
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  const atomicMod = node.atomicModifier() ? "volatile " : "";
-  const volatileMod = node.volatileModifier() ? "volatile " : "";
+  // Issue #696: Use shared modifier builder
+  const modifiers = VariableModifierBuilder.buildSimple(node);
   const typeName = orchestrator.generateType(node.type());
   const name = node.IDENTIFIER().getText();
 
   // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
   orchestrator.registerLocalVariable(name);
 
-  let result = `${atomicMod}${volatileMod}${typeName} ${name}`;
+  let result = `${modifiers.atomic}${modifiers.volatile}${typeName} ${name}`;
 
   // ADR-036: Handle array dimensions (now returns array for multi-dim support)
   const arrayDims = node.arrayDimension();

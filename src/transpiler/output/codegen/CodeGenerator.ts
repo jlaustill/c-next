@@ -93,6 +93,10 @@ import ArrayInitHelper from "./helpers/ArrayInitHelper";
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
+// Issue #696: Variable modifier extraction helper
+import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
+// Issue #696: Integer literal validation helper
+import IntegerLiteralValidator from "./helpers/IntegerLiteralValidator";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
@@ -377,6 +381,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Assignment validation coordinator helper */
   private assignmentValidator: AssignmentValidator | null = null;
+
+  /** Issue #696: Integer literal validation helper */
+  private integerLiteralValidator: IntegerLiteralValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2315,6 +2322,19 @@ export default class CodeGenerator implements IOrchestrator {
       tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
       isCallbackTypeUsedAsFieldType: (name) =>
         this._isCallbackTypeUsedAsFieldType(name),
+    });
+
+    this.integerLiteralValidator = new IntegerLiteralValidator({
+      isIntegerType: (name) => this._isIntegerType(name),
+      validateLiteralFitsType: (literal, typeName) =>
+        this._validateLiteralFitsType(literal, typeName),
+      getExpressionType: (exprText) => {
+        // For simple expressions, try to infer the type
+        // This is a simplified version - full expression parsing would be more complex
+        return this.context.typeRegistry.get(exprText)?.baseType ?? null;
+      },
+      validateTypeConversion: (targetType, sourceType) =>
+        this._validateTypeConversion(targetType, sourceType),
     });
   }
 
@@ -5952,104 +5972,128 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
-    // Issue #375: Check for C++ constructor syntax
+    // Issue #375: Check for C++ constructor syntax - early return
     const constructorArgList = ctx.constructorArgumentList();
     if (constructorArgList) {
       return this._generateConstructorDecl(ctx, constructorArgList);
     }
 
-    const constMod = ctx.constModifier() ? "const " : "";
-    // ADR-049: Add volatile for atomic variables
-    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
-    // Explicit volatile modifier
-    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
-    // Issue #525: Add extern for top-level const in C++ for external linkage
-    // In C++, const at file scope has internal linkage by default (like static).
-    // To match the extern declaration in the header, we need extern on the definition too.
-    const externMod =
-      ctx.constModifier() && !this.context.inFunctionBody ? "extern " : "";
+    // Issue #696: Use helper for modifier extraction and validation
+    const modifiers = VariableModifierBuilder.build(
+      ctx,
+      this.context.inFunctionBody,
+    );
 
-    // Error if both atomic and volatile are specified
-    if (ctx.atomicModifier() && ctx.volatileModifier()) {
-      const line = ctx.start?.line ?? 0;
-      throw new Error(
-        `Error at line ${line}: Cannot use both 'atomic' and 'volatile' modifiers. ` +
-          `Use 'atomic' for ISR-shared variables (includes volatile + atomicity), ` +
-          `or 'volatile' for hardware registers and delay loops.`,
-      );
-    }
-
-    let type = this._generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
+    const type = this._inferVariableType(ctx, name);
 
-    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
-    // When variable has c_ prefix and is assigned from a struct-pointer-returning
-    // function (fopen, freopen, tmpfile), the type needs asterisk (e.g., FILE -> FILE*)
-    // Note: char*-returning functions (fgets, strstr) use cstring type instead
-    if (name.startsWith("c_") && ctx.expression()) {
-      const exprText = ctx.expression()!.getText();
-      for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
-        if (exprText.includes(`${funcName}(`)) {
-          type = `${type}*`;
-          break;
-        }
-      }
-    }
+    // Track local variable metadata
+    this._trackLocalVariable(ctx, name);
 
-    // Track type for bit access and .length support
-    // Note: Global variables already registered in registerAllVariableTypes() pass
-    // Only track local variables here (declared inside function bodies)
-    if (this.context.inFunctionBody) {
-      this.trackVariableType(ctx);
-      // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
-      this.context.localVariables.add(name);
-
-      // Bug #8: Track local const values for array size and bit index resolution
-      if (ctx.constModifier() && ctx.expression()) {
-        const constValue = this._tryEvaluateConstant(ctx.expression()!);
-        if (constValue !== undefined) {
-          this.constValues.set(name, constValue);
-        }
-      }
-    }
-
-    // ADR-045: Handle bounded string type specially (Issue #644: delegated to helper)
+    // ADR-045: Handle bounded string type specially - early return
     const stringResult = this.stringDeclHelper!.generateStringDecl(
       typeCtx,
       name,
       ctx.expression() ?? null,
       ctx.arrayDimension(),
-      {
-        extern: externMod,
-        const: constMod,
-        atomic: atomicMod,
-        volatile: volatileMod,
-      },
+      modifiers,
       ctx.constModifier() !== null,
     );
     if (stringResult.handled) {
       return stringResult.code;
     }
 
-    let decl = `${externMod}${constMod}${atomicMod}${volatileMod}${type} ${name}`;
-    // ADR-036: arrayDimension() now returns an array for multi-dimensional support
-    const arrayDims = ctx.arrayDimension();
-    const isArray = arrayDims.length > 0;
-    const hasEmptyArrayDim =
-      isArray && arrayDims.some((dim) => !dim.expression());
-    let declaredSize: number | null = null;
+    // Build base declaration
+    const modifierPrefix = VariableModifierBuilder.toPrefix(modifiers);
+    let decl = `${modifierPrefix}${type} ${name}`;
 
-    // Get first dimension size for simple validation (multi-dim validation is more complex)
-    if (isArray && arrayDims[0].expression()) {
-      const sizeText = arrayDims[0].expression()!.getText();
-      if (/^\d+$/.exec(sizeText)) {
-        declaredSize = Number.parseInt(sizeText, 10);
-      }
+    // Handle array declarations - early return if array init handled
+    const arrayResult = this._handleArrayDeclaration(ctx, typeCtx, name, decl);
+    if (arrayResult.handled) {
+      return arrayResult.code;
+    }
+    decl = arrayResult.decl;
+
+    // Handle initialization
+    decl = this._generateVariableInitializer(
+      ctx,
+      typeCtx,
+      decl,
+      arrayResult.isArray,
+    );
+
+    // Handle pending C++ class field assignments
+    return this._finalizeCppClassAssignments(ctx, typeCtx, name, decl);
+  }
+
+  /**
+   * Issue #696: Infer variable type, handling nullable C pointer types.
+   */
+  private _inferVariableType(
+    ctx: Parser.VariableDeclarationContext,
+    name: string,
+  ): string {
+    let type = this._generateType(ctx.type());
+
+    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
+    if (!name.startsWith("c_") || !ctx.expression()) {
+      return type;
     }
 
-    // ADR-035: Handle array initializers with size inference (Issue #644: delegated to helper)
-    if (isArray && ctx.expression()) {
+    const exprText = ctx.expression()!.getText();
+    for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
+      if (exprText.includes(`${funcName}(`)) {
+        return `${type}*`;
+      }
+    }
+    return type;
+  }
+
+  /**
+   * Issue #696: Track local variable for type registry and const values.
+   */
+  private _trackLocalVariable(
+    ctx: Parser.VariableDeclarationContext,
+    name: string,
+  ): void {
+    if (!this.context.inFunctionBody) {
+      return;
+    }
+
+    this.trackVariableType(ctx);
+    this.context.localVariables.add(name);
+
+    // Bug #8: Track local const values for array size and bit index resolution
+    if (ctx.constModifier() && ctx.expression()) {
+      const constValue = this._tryEvaluateConstant(ctx.expression()!);
+      if (constValue !== undefined) {
+        this.constValues.set(name, constValue);
+      }
+    }
+  }
+
+  /**
+   * Issue #696: Handle array declaration with dimension parsing and init.
+   */
+  private _handleArrayDeclaration(
+    ctx: Parser.VariableDeclarationContext,
+    typeCtx: Parser.TypeContext,
+    name: string,
+    decl: string,
+  ): { handled: boolean; code: string; decl: string; isArray: boolean } {
+    const arrayDims = ctx.arrayDimension();
+    const isArray = arrayDims.length > 0;
+
+    if (!isArray) {
+      return { handled: false, code: "", decl, isArray: false };
+    }
+
+    const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
+    const declaredSize = this._parseFirstArrayDimension(arrayDims);
+
+    // ADR-035: Handle array initializers with size inference
+    if (ctx.expression()) {
       const arrayInitResult = this.arrayInitHelper!.processArrayInit(
         name,
         typeCtx,
@@ -6059,85 +6103,137 @@ export default class CodeGenerator implements IOrchestrator {
         declaredSize,
       );
       if (arrayInitResult) {
-        return `${decl}${arrayInitResult.dimensionSuffix} = ${arrayInitResult.initValue};`;
+        return {
+          handled: true,
+          code: `${decl}${arrayInitResult.dimensionSuffix} = ${arrayInitResult.initValue};`,
+          decl,
+          isArray: true,
+        };
       }
     }
 
-    if (isArray) {
-      // ADR-036: Generate all dimensions
-      decl += this._generateArrayDimensions(arrayDims);
-      // ADR-006: Track local arrays (they don't need & when passed to functions)
-      this.context.localArrays.add(name);
+    // Generate dimensions and track as local array
+    const newDecl = decl + this._generateArrayDimensions(arrayDims);
+    this.context.localArrays.add(name);
+
+    return { handled: false, code: "", decl: newDecl, isArray: true };
+  }
+
+  /**
+   * Issue #696: Parse first array dimension for validation.
+   */
+  private _parseFirstArrayDimension(
+    arrayDims: Parser.ArrayDimensionContext[],
+  ): number | null {
+    if (arrayDims.length === 0 || !arrayDims[0].expression()) {
+      return null;
     }
+    const sizeText = arrayDims[0].expression()!.getText();
+    if (/^\d+$/.exec(sizeText)) {
+      return Number.parseInt(sizeText, 10);
+    }
+    return null;
+  }
 
-    if (ctx.expression()) {
-      // Explicit initializer provided
-      // Set expected type for inferred struct initializers
-      const typeName = this._getTypeName(typeCtx);
-      const savedExpectedType = this.context.expectedType;
-      this.context.expectedType = typeName;
-
-      // ADR-017: Validate enum type for initialization (Issue #644: delegated to helper)
-      this.enumValidator!.validateEnumAssignment(typeName, ctx.expression()!);
-
-      // ADR-024: Validate literal values fit in target type
-      // Only validate for integer types and literal expressions
-      if (this._isIntegerType(typeName)) {
-        const exprText = ctx.expression()!.getText().trim();
-        // Check if it's a direct literal (not a variable or expression)
-        try {
-          if (
-            /^-?\d+$/.exec(exprText) ||
-            /^0[xX][0-9a-fA-F]+$/.exec(exprText) ||
-            /^0[bB][01]+$/.exec(exprText)
-          ) {
-            this._validateLiteralFitsType(exprText, typeName);
-          } else {
-            // Not a literal - check for narrowing/sign conversions
-            const sourceType = this.getExpressionType(ctx.expression()!);
-            this._validateTypeConversion(typeName, sourceType);
-          }
-        } catch (validationError) {
-          const line = ctx.start?.line ?? 0;
-          const col = ctx.start?.column ?? 0;
-          const msg =
-            validationError instanceof Error
-              ? validationError.message
-              : String(validationError);
-          throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
-        }
-      }
-
-      decl += ` = ${this._generateExpression(ctx.expression()!)}`;
-
-      // Restore expected type
-      this.context.expectedType = savedExpectedType;
-    } else {
+  /**
+   * Issue #696: Generate variable initializer with validation.
+   */
+  private _generateVariableInitializer(
+    ctx: Parser.VariableDeclarationContext,
+    typeCtx: Parser.TypeContext,
+    decl: string,
+    isArray: boolean,
+  ): string {
+    if (!ctx.expression()) {
       // ADR-015: Zero initialization for uninitialized variables
-      decl += ` = ${this._getZeroInitializer(typeCtx, isArray)}`;
+      return `${decl} = ${this._getZeroInitializer(typeCtx, isArray)}`;
     }
 
-    // Issue #517: Emit pending C++ class field assignments
-    // Only emit as separate statements inside function bodies - global scope can't have statements
-    if (this.pendingCppClassAssignments.length > 0) {
-      if (this.context.inFunctionBody) {
-        const assignments = this.pendingCppClassAssignments
-          .map((a) => `${name}.${a}`)
-          .join("\n");
-        this.pendingCppClassAssignments = [];
-        return `${decl};\n${assignments}`;
-      } else {
-        // At global scope, we can't emit assignment statements.
-        // Clear pending assignments and throw an error for unsupported pattern.
-        this.pendingCppClassAssignments = [];
-        throw new Error(
-          `Error: C++ class '${this._getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
-            `syntax at global scope. Use constructor syntax or initialize fields separately.`,
-        );
+    const typeName = this._getTypeName(typeCtx);
+    const savedExpectedType = this.context.expectedType;
+    this.context.expectedType = typeName;
+
+    // ADR-017: Validate enum type for initialization
+    this.enumValidator!.validateEnumAssignment(typeName, ctx.expression()!);
+
+    // ADR-024: Validate integer literals and type conversions
+    this._validateIntegerInitializer(ctx, typeName);
+
+    const result = `${decl} = ${this._generateExpression(ctx.expression()!)}`;
+    this.context.expectedType = savedExpectedType;
+
+    return result;
+  }
+
+  /**
+   * Issue #696: Validate integer initializer using helper.
+   */
+  private _validateIntegerInitializer(
+    ctx: Parser.VariableDeclarationContext,
+    typeName: string,
+  ): void {
+    if (!this._isIntegerType(typeName)) {
+      return;
+    }
+
+    const exprText = ctx.expression()!.getText().trim();
+    const line = ctx.start?.line ?? 0;
+    const col = ctx.start?.column ?? 0;
+
+    // Use LiteralUtils to check if it's a literal
+    if (LiteralUtils.parseIntegerLiteral(exprText) !== undefined) {
+      // Direct literal - validate it fits in the target type
+      try {
+        this._validateLiteralFitsType(exprText, typeName);
+      } catch (validationError) {
+        const msg =
+          validationError instanceof Error
+            ? validationError.message
+            : String(validationError);
+        throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
+      }
+    } else {
+      // Not a literal - check for narrowing/sign conversions
+      try {
+        const sourceType = this.getExpressionType(ctx.expression()!);
+        this._validateTypeConversion(typeName, sourceType);
+      } catch (validationError) {
+        const msg =
+          validationError instanceof Error
+            ? validationError.message
+            : String(validationError);
+        throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
       }
     }
+  }
 
-    return decl + ";";
+  /**
+   * Issue #696: Handle pending C++ class field assignments.
+   */
+  private _finalizeCppClassAssignments(
+    ctx: Parser.VariableDeclarationContext,
+    typeCtx: Parser.TypeContext,
+    name: string,
+    decl: string,
+  ): string {
+    if (this.pendingCppClassAssignments.length === 0) {
+      return `${decl};`;
+    }
+
+    if (this.context.inFunctionBody) {
+      const assignments = this.pendingCppClassAssignments
+        .map((a) => `${name}.${a}`)
+        .join("\n");
+      this.pendingCppClassAssignments = [];
+      return `${decl};\n${assignments}`;
+    }
+
+    // At global scope, we can't emit assignment statements.
+    this.pendingCppClassAssignments = [];
+    throw new Error(
+      `Error: C++ class '${this._getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
+        `syntax at global scope. Use constructor syntax or initialize fields separately.`,
+    );
   }
 
   /**
