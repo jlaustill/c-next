@@ -327,7 +327,8 @@
     "DDISABLED",
     "Graphviz",
     "SDKMAN",
-    "madge"
+    "madge",
+    "sfdp"
   ],
   "ignorePaths": [
     "node_modules/**",
