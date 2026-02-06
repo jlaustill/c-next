@@ -439,11 +439,31 @@ If implementing a feature, all documents must be current and memory must be upda
 
 **Testing C++ mode**: Use `npx tsx src/index.ts <file.cnx> --cpp` to test C++ output mode (generates `.cpp` files with reference semantics for struct params).
 
-## Dead Code Detection
+## Code Analysis Tools
 
-- `npx knip` — Find unused files, exports, and dependencies
-- Config in `knip.json` — ignores vscode-extension, prettier-plugin, tests
+**Dead code and unused exports:**
+
+- `npx knip` — Find unused files, exports, and dependencies (config: `knip.json`)
+- `npm run analyze:prune` — Find exported functions/classes not imported anywhere (ts-prune)
 - `parseWithSymbols.ts` is a public API entry point (used by vscode-extension)
+
+**Code duplication:**
+
+- `npm run analyze:duplication` — Find copy-paste code with jscpd (config: `.jscpd.json`)
+- `npm run duplication:sonar` — Query SonarCloud for duplication metrics
+- `npm run analyze:cpd` — PMD Copy-Paste Detector (requires Java 11+)
+
+**Dependency analysis:**
+
+- `npm run analyze:madge` — Check for circular dependencies
+- `npm run analyze:madge:graph` — Generate dependency visualization (requires Graphviz)
+- `npm run depcruise` — Validate architecture rules with dependency-cruiser
+
+**Run all analysis:**
+
+- `npm run analyze:all` — Run duplication, prune, and madge checks together
+
+**Note:** Circular dependencies in `parser/grammar/` are expected (ANTLR-generated code)
 
 ## Release Checklist
 

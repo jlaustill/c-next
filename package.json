@@ -48,7 +48,13 @@
     "duplication": "npx jscpd src/ scripts/ --reporters console",
     "duplication:json": "npx jscpd src/ scripts/ --reporters json --output .jscpd",
     "duplication:sonar": "curl -s 'https://sonarcloud.io/api/measures/component_tree?component=jlaustill_c-next&metricKeys=duplicated_blocks,duplicated_lines&s=metric&metricSort=duplicated_blocks&metricSortFilter=withMeasuresOnly&asc=false&ps=20' | jq -r '.components[] | \"\\(.path)\\t\\(.measures[0].value) blocks\\t\\(.measures[1].value) lines\"'",
-    "duplication:all": "echo '=== Local (jscpd) ===' && npm run duplication && echo '\n=== SonarCloud ===' && npm run duplication:sonar"
+    "duplication:all": "echo '=== Local (jscpd) ===' && npm run duplication && echo '\n=== SonarCloud ===' && npm run duplication:sonar",
+    "analyze:prune": "ts-prune",
+    "analyze:madge": "madge src/ --circular --extensions ts",
+    "analyze:madge:graph": "madge src/transpiler --image docs/architecture/dependency-graph.svg --extensions ts",
+    "analyze:cpd": "./scripts/cpd.sh",
+    "analyze:duplication": "npx jscpd src/ scripts/",
+    "analyze:all": "npm run analyze:duplication && npm run analyze:prune && npm run analyze:madge"
   },
   "keywords": [
     "c",
@@ -88,8 +94,10 @@
     "husky": "^9.1.7",
     "knip": "^5.83.0",
     "lint-staged": "^16.2.7",
+    "madge": "^8.0.0",
     "oxlint": "^1.43.0",
     "prettier": "^3.8.1",
+    "ts-prune": "^0.10.3",
     "vitest": "^4.0.18"
   },
   "dependencies": {

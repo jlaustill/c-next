@@ -1,0 +1,17 @@
+{
+  "threshold": 0,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/parser/grammar/**",
+    "**/parser/c/grammar/**",
+    "**/parser/cpp/grammar/**",
+    "**/*.test.ts",
+    "**/__tests__/**",
+    "**/coverage/**",
+    "**/docs/**"
+  ],
+  "minLines": 5,
+  "minTokens": 50,
+  "format": ["typescript", "javascript"]
+}
