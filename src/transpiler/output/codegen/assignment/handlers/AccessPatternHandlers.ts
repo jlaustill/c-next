@@ -84,9 +84,19 @@ function handleGlobalRegisterBit(
             `Use the corresponding CLEAR register to clear bits.`,
         );
       }
-      return `${regName} = ((${ctx.generatedValue} & ${mask}) << ${start});`;
+      return RegisterUtils.generateWriteOnlyBitRange(
+        regName,
+        ctx.generatedValue,
+        mask,
+        start,
+      );
     }
-    return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${ctx.generatedValue} & ${mask}) << ${start});`;
+    return RegisterUtils.generateRmwBitRange(
+      regName,
+      ctx.generatedValue,
+      mask,
+      start,
+    );
   }
 
   // Single bit

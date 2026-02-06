@@ -228,6 +228,28 @@ class ArrayDimensionParser {
   }
 
   /**
+   * Iterate array dimensions with a callback for processing each.
+   * Handles null/empty array check centrally.
+   */
+  private static forEachDimension(
+    arrayDims: Parser.ArrayDimensionContext[] | null,
+    processDim: (
+      sizeExpr: Parser.ExpressionContext | null,
+      dimensions: number[],
+    ) => void,
+  ): number[] {
+    const dimensions: number[] = [];
+    if (!arrayDims || arrayDims.length === 0) {
+      return dimensions;
+    }
+
+    for (const dim of arrayDims) {
+      processDim(dim.expression(), dimensions);
+    }
+    return dimensions;
+  }
+
+  /**
    * Parse array dimensions using simple parseInt only.
    *
    * Used for contexts where only literal integers are expected
@@ -239,21 +261,17 @@ class ArrayDimensionParser {
   static parseSimpleDimensions(
     arrayDims: Parser.ArrayDimensionContext[] | null,
   ): number[] {
-    const dimensions: number[] = [];
-    if (!arrayDims || arrayDims.length === 0) {
-      return dimensions;
-    }
-
-    for (const dim of arrayDims) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size) && size > 0) {
-          dimensions.push(size);
+    return ArrayDimensionParser.forEachDimension(
+      arrayDims,
+      (sizeExpr, dimensions) => {
+        if (sizeExpr) {
+          const size = Number.parseInt(sizeExpr.getText(), 10);
+          if (!Number.isNaN(size) && size > 0) {
+            dimensions.push(size);
+          }
         }
-      }
-    }
-    return dimensions;
+      },
+    );
   }
 
   /**
@@ -268,28 +286,24 @@ class ArrayDimensionParser {
   static parseForParameters(
     arrayDims: Parser.ArrayDimensionContext[] | null,
   ): number[] {
-    const dimensions: number[] = [];
-    if (!arrayDims || arrayDims.length === 0) {
-      return dimensions;
-    }
-
-    for (const dim of arrayDims) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const sizeText = sizeExpr.getText();
-        const size = Number.parseInt(sizeText, 10);
-        if (Number.isNaN(size)) {
-          // Non-numeric size (e.g., constant identifier) - still count the dimension
-          dimensions.push(0);
+    return ArrayDimensionParser.forEachDimension(
+      arrayDims,
+      (sizeExpr, dimensions) => {
+        if (sizeExpr) {
+          const sizeText = sizeExpr.getText();
+          const size = Number.parseInt(sizeText, 10);
+          if (Number.isNaN(size)) {
+            // Non-numeric size (e.g., constant identifier) - still count the dimension
+            dimensions.push(0);
+          } else {
+            dimensions.push(size);
+          }
         } else {
-          dimensions.push(size);
+          // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
+          dimensions.push(0);
         }
-      } else {
-        // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
-        dimensions.push(0);
-      }
-    }
-    return dimensions;
+      },
+    );
   }
 }
 

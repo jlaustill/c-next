@@ -51,6 +51,29 @@ class AssignmentClassifier {
   constructor(private readonly deps: IClassifierDeps) {}
 
   /**
+   * Check if typeInfo represents a simple string type (not a 2D+ string array).
+   */
+  private isSimpleStringType(typeInfo: TTypeInfo | undefined): boolean {
+    return (
+      typeInfo?.isString === true &&
+      typeInfo.stringCapacity !== undefined &&
+      (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
+    );
+  }
+
+  /**
+   * Extract struct name and field name from a 2-identifier context.
+   */
+  private getStructFieldNames(
+    ctx: IAssignmentContext,
+  ): { structName: string; fieldName: string } | null {
+    if (ctx.identifiers.length !== 2) {
+      return null;
+    }
+    return { structName: ctx.identifiers[0], fieldName: ctx.identifiers[1] };
+  }
+
+  /**
    * Classify an assignment context into an AssignmentKind.
    */
   classify(ctx: IAssignmentContext): AssignmentKind {
@@ -555,11 +578,7 @@ class AssignmentClassifier {
     if (ctx.isSimpleIdentifier) {
       const id = ctx.identifiers[0];
       const typeInfo = this.deps.typeRegistry.get(id);
-      if (
-        typeInfo?.isString &&
-        typeInfo.stringCapacity !== undefined &&
-        (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
-      ) {
+      if (this.isSimpleStringType(typeInfo)) {
         return AssignmentKind.STRING_SIMPLE;
       }
     }
@@ -569,11 +588,7 @@ class AssignmentClassifier {
       const memberName = ctx.identifiers[0];
       const scopedName = `${this.deps.currentScope}_${memberName}`;
       const typeInfo = this.deps.typeRegistry.get(scopedName);
-      if (
-        typeInfo?.isString &&
-        typeInfo.stringCapacity !== undefined &&
-        (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
-      ) {
+      if (this.isSimpleStringType(typeInfo)) {
         return AssignmentKind.STRING_THIS_MEMBER;
       }
     }
@@ -582,23 +597,15 @@ class AssignmentClassifier {
     if (ctx.isSimpleGlobalAccess) {
       const id = ctx.identifiers[0];
       const typeInfo = this.deps.typeRegistry.get(id);
-      if (
-        typeInfo?.isString &&
-        typeInfo.stringCapacity !== undefined &&
-        (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
-      ) {
+      if (this.isSimpleStringType(typeInfo)) {
         return AssignmentKind.STRING_GLOBAL;
       }
     }
 
     // struct.field string (2 identifiers, no subscripts)
-    if (
-      ctx.hasMemberAccess &&
-      !ctx.hasArrayAccess &&
-      ctx.identifiers.length === 2
-    ) {
-      const structName = ctx.identifiers[0];
-      const fieldName = ctx.identifiers[1];
+    const structFieldNames = this.getStructFieldNames(ctx);
+    if (ctx.hasMemberAccess && !ctx.hasArrayAccess && structFieldNames) {
+      const { structName, fieldName } = structFieldNames;
       const structTypeInfo = this.deps.typeRegistry.get(structName);
 
       if (structTypeInfo && this.deps.isKnownStruct(structTypeInfo.baseType)) {
@@ -616,11 +623,10 @@ class AssignmentClassifier {
     if (
       ctx.hasMemberAccess &&
       ctx.hasArrayAccess &&
-      ctx.identifiers.length === 2 &&
+      structFieldNames &&
       ctx.subscripts.length === 1
     ) {
-      const structName = ctx.identifiers[0];
-      const fieldName = ctx.identifiers[1];
+      const { structName, fieldName } = structFieldNames;
       const structTypeInfo = this.deps.typeRegistry.get(structName);
 
       if (structTypeInfo && this.deps.isKnownStruct(structTypeInfo.baseType)) {

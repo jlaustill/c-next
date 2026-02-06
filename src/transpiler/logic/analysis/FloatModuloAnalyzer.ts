@@ -29,37 +29,36 @@ class FloatVariableCollector extends CNextListener {
   }
 
   /**
-   * Track variable declarations with f32/f64 types
+   * Track a typed identifier if it has a float type
    */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const typeCtx = ctx.type();
+  private trackIfFloat(
+    typeCtx: Parser.TypeContext | null,
+    identifier: { getText(): string } | null,
+  ): void {
     if (!typeCtx) return;
 
     const typeName = typeCtx.getText();
     if (!TypeConstants.FLOAT_TYPES.includes(typeName)) return;
 
-    const identifier = ctx.IDENTIFIER();
     if (!identifier) return;
 
     this.floatVars.add(identifier.getText());
+  }
+
+  /**
+   * Track variable declarations with f32/f64 types
+   */
+  override enterVariableDeclaration = (
+    ctx: Parser.VariableDeclarationContext,
+  ): void => {
+    this.trackIfFloat(ctx.type(), ctx.IDENTIFIER());
   };
 
   /**
    * Track function parameters with f32/f64 types
    */
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    const typeCtx = ctx.type();
-    if (!typeCtx) return;
-
-    const typeName = typeCtx.getText();
-    if (!TypeConstants.FLOAT_TYPES.includes(typeName)) return;
-
-    const identifier = ctx.IDENTIFIER();
-    if (!identifier) return;
-
-    this.floatVars.add(identifier.getText());
+    this.trackIfFloat(ctx.type(), ctx.IDENTIFIER());
   };
 }
 

@@ -3,34 +3,10 @@
  * Extracts coverage annotations from .test.cnx files
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative } from "node:path";
 import ITestAnnotation from "./types/ITestAnnotation";
-
-/**
- * Recursively find all .test.cnx files in a directory
- */
-function findTestFiles(dir: string): string[] {
-  const files: string[] = [];
-
-  function walk(currentDir: string): void {
-    const entries = readdirSync(currentDir);
-
-    for (const entry of entries) {
-      const fullPath = join(currentDir, entry);
-      const stat = statSync(fullPath);
-
-      if (stat.isDirectory()) {
-        walk(fullPath);
-      } else if (entry.endsWith(".test.cnx")) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  walk(dir);
-  return files;
-}
+import FileScanner from "./utils/FileScanner";
 
 /**
  * Extract coverage annotations from a single test file
@@ -79,7 +55,7 @@ function extractAnnotations(
  */
 function scanTestFiles(testsDir: string): ITestAnnotation[] {
   const annotations: ITestAnnotation[] = [];
-  const testFiles = findTestFiles(testsDir);
+  const testFiles = FileScanner.findTestFiles(testsDir);
 
   for (const file of testFiles) {
     try {
@@ -96,8 +72,8 @@ function scanTestFiles(testsDir: string): ITestAnnotation[] {
 
 const testScanner = {
   scanTestFiles,
-  // Exported for testing
-  findTestFiles,
+  // Re-export from FileScanner for backwards compatibility
+  findTestFiles: FileScanner.findTestFiles,
   extractAnnotations,
 };
 

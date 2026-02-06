@@ -341,16 +341,7 @@ class CSymbolCollector {
           isDeclaration: true,
         });
       } else {
-        SymbolCollectorContext.addSymbol(this.ctx, {
-          name,
-          kind: ESymbolKind.Variable,
-          type: baseType,
-          sourceFile: this.ctx.sourceFile,
-          sourceLine: line,
-          sourceLanguage: ESourceLanguage.C,
-          isExported: !isExtern,
-          isDeclaration: isExtern,
-        });
+        this._addVariableSymbol(name, baseType, isExtern, line);
       }
     }
   }

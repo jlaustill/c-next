@@ -21,6 +21,30 @@ function getPercentageColor(pct: number): (text: string) => string {
 }
 
 /**
+ * Group items by section and return sections sorted by leading number
+ */
+function groupBySection(items: ICoverageItem[]): Map<string, ICoverageItem[]> {
+  const bySection = new Map<string, ICoverageItem[]>();
+  for (const item of items) {
+    const existing = bySection.get(item.section) || [];
+    existing.push(item);
+    bySection.set(item.section, existing);
+  }
+  return bySection;
+}
+
+/**
+ * Sort section names by leading number (e.g., "1.2 Types" < "10.1 Loops")
+ */
+function sortSectionNames(sections: string[]): string[] {
+  return sections.sort((a, b) => {
+    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
+    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
+    return numA - numB;
+  });
+}
+
+/**
  * Build a complete coverage report
  */
 function buildReport(
@@ -211,20 +235,8 @@ function generateGapsReport(report: ICoverageReport): void {
   console.log(chalk.bold(`Coverage Gaps (${gaps.length} untested items)`));
   console.log("");
 
-  // Group by section
-  const bySection = new Map<string, ICoverageItem[]>();
-  for (const gap of gaps) {
-    const existing = bySection.get(gap.section) || [];
-    existing.push(gap);
-    bySection.set(gap.section, existing);
-  }
-
-  // Sort sections
-  const sortedSections = Array.from(bySection.keys()).sort((a, b) => {
-    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
-    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
-    return numA - numB;
-  });
+  const bySection = groupBySection(gaps);
+  const sortedSections = sortSectionNames(Array.from(bySection.keys()));
 
   for (const section of sortedSections) {
     const sectionGaps = bySection.get(section)!;
@@ -286,18 +298,8 @@ function generateMarkdownReport(
   // Gaps by section
   lines.push("## Gaps by Section", "");
 
-  const bySection = new Map<string, ICoverageItem[]>();
-  for (const gap of gaps) {
-    const existing = bySection.get(gap.section) || [];
-    existing.push(gap);
-    bySection.set(gap.section, existing);
-  }
-
-  const sortedSections = Array.from(bySection.keys()).sort((a, b) => {
-    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
-    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
-    return numA - numB;
-  });
+  const bySection = groupBySection(gaps);
+  const sortedSections = sortSectionNames(Array.from(bySection.keys()));
 
   for (const section of sortedSections) {
     const sectionGaps = bySection.get(section)!;
@@ -319,19 +321,8 @@ function listAllIds(items: ICoverageItem[]): void {
   console.log(chalk.bold(`All Coverage IDs (${items.length} total)`));
   console.log("");
 
-  // Group by section
-  const bySection = new Map<string, ICoverageItem[]>();
-  for (const item of items) {
-    const existing = bySection.get(item.section) || [];
-    existing.push(item);
-    bySection.set(item.section, existing);
-  }
-
-  const sortedSections = Array.from(bySection.keys()).sort((a, b) => {
-    const numA = Number.parseInt(a.match(/^(\d+)/)?.[1] || "0");
-    const numB = Number.parseInt(b.match(/^(\d+)/)?.[1] || "0");
-    return numA - numB;
-  });
+  const bySection = groupBySection(items);
+  const sortedSections = sortSectionNames(Array.from(bySection.keys()));
 
   for (const section of sortedSections) {
     const sectionItems = bySection.get(section)!;
