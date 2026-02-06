@@ -55,6 +55,10 @@ SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud 
 - **Duplicated lines <= 3%** on new code
 - **Cognitive complexity per method <= 15** — extract sub-methods with early returns to reduce nesting
 
+**Reducing cognitive complexity:** Extract nested logic into private helper methods with early returns. Keep helpers in the same class when they need many instance dependencies. Name helpers descriptively (e.g., `_resolveIdentifierExpression`, `_resolveUnqualifiedEnumMember`).
+
+**After extracting helpers:** Error throw paths in extracted methods often need unit tests - integration tests may not cover them. Check `npm run unit:coverage` for uncovered lines.
+
 **Before opening a PR**, verify coverage on new/modified files:
 
 ```bash
@@ -67,6 +71,7 @@ Check the terminal report for files you changed — any new code below 80% cover
 
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
 - **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
+- **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
 
 ### TypeScript Coding Standards
 

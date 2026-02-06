@@ -7389,5 +7389,51 @@ describe("CodeGenerator", () => {
         expect(code).toContain("p->x = 10");
       });
     });
+
+    describe("'this' keyword error handling", () => {
+      it("should throw error when 'this' is used outside a scope", () => {
+        const source = `
+          void foo() {
+            u32 x <- this.value;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("'this' can only be used inside a scope");
+      });
+    });
+
+    describe("ambiguous enum member error handling", () => {
+      it("should throw error for ambiguous unqualified enum member", () => {
+        const source = `
+          enum Color { RED, GREEN }
+          enum Status { RED, BLUE }
+          void foo() {
+            u32 x <- RED;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("Ambiguous enum member 'RED' exists in multiple enums");
+      });
+    });
   });
 });
