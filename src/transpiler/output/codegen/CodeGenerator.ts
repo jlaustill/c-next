@@ -4854,113 +4854,63 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Check if an expression is a simple literal (number, bool, etc.)
-   * Navigates: expression -> ternaryExpression -> orExpression -> ... -> primaryExpression -> literal
+   * Uses ExpressionUnwrapper to navigate the expression tree.
    */
   private isLiteralExpression(ctx: Parser.ExpressionContext): boolean {
     try {
-      // expression -> ternaryExpression
-      const ternaryExpr = ctx.ternaryExpression();
-      if (!ternaryExpr) return false;
+      const unaryExpr = ExpressionUnwrapper.getUnaryExpression(ctx);
+      if (!unaryExpr) return false;
 
-      // Check it's not a ternary (no COLON token)
-      if (ternaryExpr.COLON()) return false;
-
-      // ternaryExpression -> orExpression (single)
-      const orExprs = ternaryExpr.orExpression();
-      if (orExprs.length !== 1) return false;
-      const orExpr = orExprs[0];
-
-      // orExpression -> andExpression (single, no || operators)
-      const andExprs = orExpr.andExpression();
-      if (andExprs.length !== 1) return false;
-      const andExpr = andExprs[0];
-
-      // andExpression -> equalityExpression (single, no && operators)
-      const eqExprs = andExpr.equalityExpression();
-      if (eqExprs.length !== 1) return false;
-      const eqExpr = eqExprs[0];
-
-      // equalityExpression -> relationalExpression (single, no = or != operators)
-      const relExprs = eqExpr.relationalExpression();
-      if (relExprs.length !== 1) return false;
-      const relExpr = relExprs[0];
-
-      // relationalExpression -> bitwiseOrExpression (single, no comparison operators)
-      const bitOrExprs = relExpr.bitwiseOrExpression();
-      if (bitOrExprs.length !== 1) return false;
-      const bitOrExpr = bitOrExprs[0];
-
-      // bitwiseOrExpression -> bitwiseXorExpression (single)
-      const xorExprs = bitOrExpr.bitwiseXorExpression();
-      if (xorExprs.length !== 1) return false;
-      const xorExpr = xorExprs[0];
-
-      // bitwiseXorExpression -> bitwiseAndExpression (single)
-      const bitAndExprs = xorExpr.bitwiseAndExpression();
-      if (bitAndExprs.length !== 1) return false;
-      const bitAndExpr = bitAndExprs[0];
-
-      // bitwiseAndExpression -> shiftExpression (single)
-      const shiftExprs = bitAndExpr.shiftExpression();
-      if (shiftExprs.length !== 1) return false;
-      const shiftExpr = shiftExprs[0];
-
-      // shiftExpression -> additiveExpression (single)
-      const addExprs = shiftExpr.additiveExpression();
-      if (addExprs.length !== 1) return false;
-      const addExpr = addExprs[0];
-
-      // additiveExpression -> multiplicativeExpression (single)
-      const mulExprs = addExpr.multiplicativeExpression();
-      if (mulExprs.length !== 1) return false;
-      const mulExpr = mulExprs[0];
-
-      // multiplicativeExpression -> unaryExpression (single)
-      const unaryExprs = mulExpr.unaryExpression();
-      if (unaryExprs.length !== 1) return false;
-      const unaryExpr = unaryExprs[0];
-
-      // unaryExpression -> postfixExpression (no unary operators)
-      // OR unaryExpression -> '-' unaryExpression (negated literal)
-      const postfixExpr = unaryExpr.postfixExpression();
-
-      // Handle negated literals: -50, -3.14, etc.
-      if (!postfixExpr) {
-        // Check if it's a unary minus with a nested literal
-        const nestedUnary = unaryExpr.unaryExpression();
-        if (nestedUnary && unaryExpr.getText().startsWith("-")) {
-          // Recursively check if the nested expression is a literal
-          const nestedPostfix = nestedUnary.postfixExpression();
-          if (nestedPostfix) {
-            const nestedPrimary = nestedPostfix.primaryExpression();
-            if (nestedPrimary) {
-              const nestedLiteral = nestedPrimary.literal();
-              if (nestedLiteral && !nestedLiteral.STRING_LITERAL()) {
-                return true; // Negated numeric literal
-              }
-            }
-          }
-        }
-        return false;
-      }
-
-      // postfixExpression -> primaryExpression (no postfix ops)
-      const postfixOps = postfixExpr.postfixOp();
-      if (postfixOps.length > 0) return false;
-
-      const primaryExpr = postfixExpr.primaryExpression();
-      if (!primaryExpr) return false;
-
-      // Check if it's a literal (but not a string literal)
-      const literal = primaryExpr.literal();
-      if (literal && !literal.STRING_LITERAL()) {
-        return true;
-      }
-
-      return false;
+      return this._isUnaryExpressionLiteral(unaryExpr);
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Check if a unary expression is a literal (including negated literals)
+   */
+  private _isUnaryExpressionLiteral(
+    unaryExpr: Parser.UnaryExpressionContext,
+  ): boolean {
+    const postfixExpr = unaryExpr.postfixExpression();
+
+    // Handle negated literals: -50, -3.14, etc.
+    if (!postfixExpr) {
+      return this._isNegatedLiteral(unaryExpr);
+    }
+
+    return this._isPostfixLiteral(postfixExpr);
+  }
+
+  /**
+   * Check if unary expression is a negated literal (-50, -3.14)
+   */
+  private _isNegatedLiteral(unaryExpr: Parser.UnaryExpressionContext): boolean {
+    const nestedUnary = unaryExpr.unaryExpression();
+    if (!nestedUnary || !unaryExpr.getText().startsWith("-")) {
+      return false;
+    }
+
+    const nestedPostfix = nestedUnary.postfixExpression();
+    if (!nestedPostfix) return false;
+
+    return this._isPostfixLiteral(nestedPostfix);
+  }
+
+  /**
+   * Check if postfix expression is a simple literal (no postfix ops, non-string)
+   */
+  private _isPostfixLiteral(
+    postfixExpr: Parser.PostfixExpressionContext,
+  ): boolean {
+    if (postfixExpr.postfixOp().length > 0) return false;
+
+    const primaryExpr = postfixExpr.primaryExpression();
+    if (!primaryExpr) return false;
+
+    const literal = primaryExpr.literal();
+    return literal !== null && !literal.STRING_LITERAL();
   }
 
   /**
