@@ -20,72 +20,237 @@ Separate the VS Code extension into its own repository at `github.com/jlaustill/
 - Independent versioning and releases
 - Dedicated CI/CD pipeline with SonarCloud analysis
 - Automated publishing to VS Code Marketplace on version tags
-- Dependency on transpiler via npm package
+- **Language server architecture** - transpiler runs as separate process (like tsserver)
+
+## Architecture: Language Server Pattern
+
+Following the proven architecture of VS Code's TypeScript extension, the C-Next extension will communicate with a **separate transpiler process** rather than importing the transpiler as a library.
+
+```
+┌─────────────────────┐     JSON/stdin/stdout     ┌─────────────────────┐
+│   VS Code Extension │ ◄──────────────────────► │   cnext-server      │
+│   (vscode-c-next)   │                           │   (language server) │
+└─────────────────────┘                           └─────────────────────┘
+         │                                                  │
+         │ VS Code API                                      │ Transpiler API
+         ▼                                                  ▼
+┌─────────────────────┐                           ┌─────────────────────┐
+│   VS Code Editor    │                           │   C-Next Transpiler │
+└─────────────────────┘                           └─────────────────────┘
+```
+
+### Benefits of Separate Process Architecture
+
+| Benefit | Description |
+|---------|-------------|
+| **Crash Isolation** | Transpiler crash doesn't crash VS Code; server auto-restarts |
+| **Memory Isolation** | Transpiler memory usage tracked separately from extension |
+| **Clean API Boundary** | JSON protocol forces well-defined, stable interface |
+| **Testability** | Server can be tested independently of VS Code |
+| **Multi-Editor Support** | Same server could support other editors in future |
+| **Version Independence** | Extension and server can update on different schedules |
 
 ## Implementation Plan
 
-### Phase 1: Publish Transpiler as npm Package
+### Phase 1: Create Language Server in Main Repo
 
-Before the extension can be separated, the transpiler must be published as an npm package that the extension can import.
+Add a language server binary (`cnext-server`) to the main c-next repository that exposes transpiler functionality via JSON protocol.
 
-#### 1.1 Create Public API Surface
+#### 1.1 Server Protocol Definition
 
-Create `src/lib/index.ts` exporting the public API:
+Create `src/server/protocol.ts` defining the JSON-RPC protocol:
 
 ```typescript
-// Public API for external consumers
-export { default as transpiler } from './transpiler';
-export { default as parseWithSymbols } from './parseWithSymbols';
-export type { ISymbolInfo } from './types/ISymbolInfo';
-export type { TSymbolKind } from './types/TSymbolKind';
-export type { TLanguage } from './types/TLanguage';
+// Request/Response types for cnext-server protocol
+export interface IServerRequest {
+  id: number;
+  method: string;
+  params: unknown;
+}
 
-// C parser exports (for header file parsing)
-export { default as CLexer } from '../transpiler/logic/parser/c/grammar/CLexer';
-export { default as CParser } from '../transpiler/logic/parser/c/grammar/CParser';
-export { default as CSymbolCollector } from '../transpiler/logic/symbols/CSymbolCollector';
+export interface IServerResponse {
+  id: number;
+  result?: unknown;
+  error?: { code: number; message: string };
+}
+
+// Supported methods
+export type TServerMethod =
+  | 'transpile'           // Transpile .cnx source to C
+  | 'parseSymbols'        // Extract symbols from .cnx file
+  | 'parseCHeader'        // Parse C header for symbols
+  | 'validateSource'      // Get diagnostics without transpiling
+  | 'getVersion'          // Get server version
+  | 'shutdown';           // Graceful shutdown
+
+// Method-specific params and results
+export interface ITranspileParams {
+  source: string;
+  filePath: string;
+  options?: { cppMode?: boolean };
+}
+
+export interface ITranspileResult {
+  success: boolean;
+  cCode?: string;
+  headerCode?: string;
+  errors?: IDiagnostic[];
+}
+
+export interface IParseSymbolsParams {
+  source: string;
+  filePath: string;
+}
+
+export interface IParseSymbolsResult {
+  symbols: ISymbolInfo[];
+}
+
+export interface IParseCHeaderParams {
+  source: string;
+  filePath: string;
+}
+
+export interface IParseCHeaderResult {
+  symbols: ISymbolInfo[];
+}
+
+export interface IDiagnostic {
+  line: number;
+  column: number;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+}
 ```
 
-#### 1.2 Update package.json Exports
+#### 1.2 Server Implementation
 
-Add exports field to `package.json`:
+Create `src/server/index.ts` as the server entry point:
+
+```typescript
+import * as readline from 'node:readline';
+import transpiler from '../lib/transpiler';
+import parseWithSymbols from '../lib/parseWithSymbols';
+import { CSymbolCollector } from '../transpiler/logic/symbols/CSymbolCollector';
+import type { IServerRequest, IServerResponse } from './protocol';
+
+class CNextServer {
+  private rl: readline.Interface;
+
+  constructor() {
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: false,
+    });
+
+    this.rl.on('line', (line) => this.handleRequest(line));
+    this.rl.on('close', () => process.exit(0));
+  }
+
+  private async handleRequest(line: string): Promise<void> {
+    let request: IServerRequest;
+    try {
+      request = JSON.parse(line);
+    } catch {
+      this.sendError(-1, -32700, 'Parse error');
+      return;
+    }
+
+    try {
+      const result = await this.dispatch(request);
+      this.sendResponse(request.id, result);
+    } catch (err) {
+      this.sendError(request.id, -32603, String(err));
+    }
+  }
+
+  private async dispatch(request: IServerRequest): Promise<unknown> {
+    switch (request.method) {
+      case 'transpile':
+        return this.transpile(request.params as ITranspileParams);
+      case 'parseSymbols':
+        return this.parseSymbols(request.params as IParseSymbolsParams);
+      case 'parseCHeader':
+        return this.parseCHeader(request.params as IParseCHeaderParams);
+      case 'getVersion':
+        return { version: process.env.npm_package_version ?? '0.0.0' };
+      case 'shutdown':
+        process.exit(0);
+      default:
+        throw new Error(`Unknown method: ${request.method}`);
+    }
+  }
+
+  private async transpile(params: ITranspileParams): Promise<ITranspileResult> {
+    const result = transpiler.transpileSource(params.source, params.filePath);
+    return {
+      success: result.success,
+      cCode: result.cCode,
+      headerCode: result.headerCode,
+      errors: result.errors,
+    };
+  }
+
+  private async parseSymbols(params: IParseSymbolsParams): Promise<IParseSymbolsResult> {
+    const symbols = parseWithSymbols(params.source, params.filePath);
+    return { symbols };
+  }
+
+  private async parseCHeader(params: IParseCHeaderParams): Promise<IParseCHeaderResult> {
+    const collector = new CSymbolCollector();
+    const symbols = collector.collect(params.source, params.filePath);
+    return { symbols };
+  }
+
+  private sendResponse(id: number, result: unknown): void {
+    const response: IServerResponse = { id, result };
+    console.log(JSON.stringify(response));
+  }
+
+  private sendError(id: number, code: number, message: string): void {
+    const response: IServerResponse = { id, error: { code, message } };
+    console.log(JSON.stringify(response));
+  }
+}
+
+new CNextServer();
+```
+
+#### 1.3 Add Server Binary to package.json
+
+Update main repo's `package.json`:
 
 ```json
 {
   "name": "@jlaustill/cnext",
-  "exports": {
-    ".": "./dist/lib/index.js",
-    "./parser/c": "./dist/transpiler/logic/parser/c/grammar/index.js"
+  "bin": {
+    "cnext": "./dist/index.js",
+    "cnext-server": "./dist/server/index.js"
   },
-  "types": "./dist/lib/index.d.ts",
   "files": ["dist/"]
 }
 ```
 
-#### 1.3 Build Configuration
+#### 1.4 Build Configuration
 
-Update build to emit declaration files:
+Add server build script:
 
 ```json
-// tsconfig.build.json
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "declaration": true,
-    "declarationDir": "./dist",
-    "outDir": "./dist"
-  },
-  "include": ["src/lib/**/*", "src/transpiler/**/*"],
-  "exclude": ["**/*.test.ts", "**/__tests__/**"]
+  "scripts": {
+    "build:server": "esbuild src/server/index.ts --bundle --platform=node --outfile=dist/server/index.js",
+    "build:lib": "npm run build && npm run build:server"
+  }
 }
 ```
 
-#### 1.4 Publish Workflow Update
+#### 1.5 Publish Workflow Update
 
-Modify `.github/workflows/publish.yml` to build the library before publishing:
+Modify `.github/workflows/publish.yml` to include server:
 
 ```yaml
-- name: Build library
+- name: Build library and server
   run: npm run build:lib
 
 - name: Publish to npm
@@ -107,20 +272,25 @@ vscode-c-next/
 │       ├── ci.yml           # PR checks
 │       └── publish.yml      # Marketplace publishing
 ├── src/
-│   ├── extension.ts
-│   ├── completionProvider.ts
-│   ├── hoverProvider.ts
-│   ├── definitionProvider.ts
-│   ├── previewProvider.ts
+│   ├── extension.ts         # Extension entry point
+│   ├── server/
+│   │   ├── CNextServerClient.ts    # Server process manager
+│   │   ├── protocol.ts             # Shared protocol types
+│   │   └── ServerSpawner.ts        # Process lifecycle
+│   ├── providers/
+│   │   ├── completionProvider.ts
+│   │   ├── hoverProvider.ts
+│   │   ├── definitionProvider.ts
+│   │   └── previewProvider.ts
+│   ├── workspace/
+│   │   ├── WorkspaceIndex.ts
+│   │   ├── SymbolCache.ts
+│   │   ├── IncludeResolver.ts
+│   │   └── types.ts
 │   ├── scopeTracker.ts
 │   ├── utils.ts
 │   ├── ExtensionContext.ts
-│   ├── __tests__/
-│   └── workspace/
-│       ├── WorkspaceIndex.ts
-│       ├── SymbolCache.ts
-│       ├── IncludeResolver.ts
-│       └── types.ts
+│   └── __tests__/
 ├── syntaxes/
 │   └── cnext.tmLanguage.json
 ├── snippets/
@@ -138,23 +308,273 @@ vscode-c-next/
 └── CHANGELOG.md
 ```
 
-#### 2.2 Update Imports
+#### 2.2 Server Client Implementation
 
-Replace relative parent imports with npm package imports:
+Create `src/server/CNextServerClient.ts` to manage the server process:
 
 ```typescript
-// Before (relative paths)
-import transpiler from '../../src/lib/transpiler';
-import parseWithSymbols from '../../src/lib/parseWithSymbols';
-import { ISymbolInfo } from '../../src/lib/types/ISymbolInfo';
-import CLexer from '../../../src/transpiler/logic/parser/c/grammar/CLexer';
+import * as cp from 'node:child_process';
+import * as readline from 'node:readline';
+import * as vscode from 'vscode';
+import type {
+  IServerRequest,
+  IServerResponse,
+  ITranspileParams,
+  ITranspileResult,
+  IParseSymbolsParams,
+  IParseSymbolsResult,
+  IParseCHeaderParams,
+  IParseCHeaderResult,
+} from './protocol';
 
-// After (npm package)
-import { transpiler, parseWithSymbols, ISymbolInfo } from '@jlaustill/cnext';
-import { CLexer, CParser, CSymbolCollector } from '@jlaustill/cnext/parser/c';
+export class CNextServerClient implements vscode.Disposable {
+  private process: cp.ChildProcess | null = null;
+  private rl: readline.Interface | null = null;
+  private requestId = 0;
+  private pendingRequests = new Map<number, {
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+  }>();
+  private outputChannel: vscode.OutputChannel;
+  private restartCount = 0;
+  private readonly maxRestarts = 5;
+
+  constructor() {
+    this.outputChannel = vscode.window.createOutputChannel('C-Next Server');
+  }
+
+  async start(): Promise<void> {
+    if (this.process) return;
+
+    const serverPath = this.findServerPath();
+    this.outputChannel.appendLine(`Starting cnext-server: ${serverPath}`);
+
+    this.process = cp.spawn('node', [serverPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    this.process.on('exit', (code) => {
+      this.outputChannel.appendLine(`Server exited with code ${code}`);
+      this.handleServerExit();
+    });
+
+    this.process.on('error', (err) => {
+      this.outputChannel.appendLine(`Server error: ${err.message}`);
+      vscode.window.showErrorMessage(`C-Next server error: ${err.message}`);
+    });
+
+    this.process.stderr?.on('data', (data) => {
+      this.outputChannel.appendLine(`[stderr] ${data}`);
+    });
+
+    this.rl = readline.createInterface({
+      input: this.process.stdout!,
+      terminal: false,
+    });
+
+    this.rl.on('line', (line) => this.handleResponse(line));
+
+    // Verify server is running
+    const version = await this.getVersion();
+    this.outputChannel.appendLine(`Server started, version: ${version}`);
+    this.restartCount = 0;
+  }
+
+  private findServerPath(): string {
+    // In development, use local node_modules
+    // In production, cnext-server is installed globally or in extension
+    try {
+      return require.resolve('@jlaustill/cnext/dist/server/index.js');
+    } catch {
+      // Fallback to global installation
+      return 'cnext-server';
+    }
+  }
+
+  private handleServerExit(): void {
+    this.process = null;
+    this.rl = null;
+
+    // Reject all pending requests
+    for (const { reject } of this.pendingRequests.values()) {
+      reject(new Error('Server exited'));
+    }
+    this.pendingRequests.clear();
+
+    // Auto-restart if under limit
+    if (this.restartCount < this.maxRestarts) {
+      this.restartCount++;
+      this.outputChannel.appendLine(`Restarting server (attempt ${this.restartCount})`);
+      setTimeout(() => this.start(), 1000);
+    } else {
+      vscode.window.showErrorMessage(
+        'C-Next server crashed repeatedly. Please reload the window.'
+      );
+    }
+  }
+
+  private handleResponse(line: string): void {
+    try {
+      const response: IServerResponse = JSON.parse(line);
+      const pending = this.pendingRequests.get(response.id);
+      if (pending) {
+        this.pendingRequests.delete(response.id);
+        if (response.error) {
+          pending.reject(new Error(response.error.message));
+        } else {
+          pending.resolve(response.result);
+        }
+      }
+    } catch (err) {
+      this.outputChannel.appendLine(`Failed to parse response: ${line}`);
+    }
+  }
+
+  private async request<T>(method: string, params: unknown): Promise<T> {
+    if (!this.process) {
+      await this.start();
+    }
+
+    const id = ++this.requestId;
+    const request: IServerRequest = { id, method, params };
+
+    return new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: resolve as (value: unknown) => void,
+        reject,
+      });
+
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        reject(new Error(`Request ${method} timed out`));
+      }, 30000);
+
+      this.process!.stdin!.write(JSON.stringify(request) + '\n', (err) => {
+        if (err) {
+          clearTimeout(timeout);
+          this.pendingRequests.delete(id);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  // Public API methods
+  async transpile(params: ITranspileParams): Promise<ITranspileResult> {
+    return this.request('transpile', params);
+  }
+
+  async parseSymbols(params: IParseSymbolsParams): Promise<IParseSymbolsResult> {
+    return this.request('parseSymbols', params);
+  }
+
+  async parseCHeader(params: IParseCHeaderParams): Promise<IParseCHeaderResult> {
+    return this.request('parseCHeader', params);
+  }
+
+  async getVersion(): Promise<string> {
+    const result = await this.request<{ version: string }>('getVersion', {});
+    return result.version;
+  }
+
+  async shutdown(): Promise<void> {
+    if (this.process) {
+      try {
+        await this.request('shutdown', {});
+      } catch {
+        // Server may have already exited
+      }
+      this.process.kill();
+      this.process = null;
+    }
+  }
+
+  dispose(): void {
+    this.shutdown();
+    this.outputChannel.dispose();
+  }
+}
+
+// Singleton instance
+let serverClient: CNextServerClient | null = null;
+
+export function getServerClient(): CNextServerClient {
+  if (!serverClient) {
+    serverClient = new CNextServerClient();
+  }
+  return serverClient;
+}
 ```
 
-#### 2.3 Updated package.json
+#### 2.3 Update Providers to Use Server Client
+
+Replace direct transpiler imports with server client calls:
+
+```typescript
+// Before (direct import)
+import transpiler from '../../src/lib/transpiler';
+const result = transpiler.transpileSource(source, filePath);
+
+// After (server client)
+import { getServerClient } from './server/CNextServerClient';
+const client = getServerClient();
+const result = await client.transpile({ source, filePath });
+```
+
+Example provider update (`previewProvider.ts`):
+
+```typescript
+import * as vscode from 'vscode';
+import { getServerClient } from './server/CNextServerClient';
+
+export class PreviewProvider implements vscode.TextDocumentContentProvider {
+  async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    const document = await vscode.workspace.openTextDocument(uri.with({ scheme: 'file' }));
+    const source = document.getText();
+    const filePath = document.uri.fsPath;
+
+    const client = getServerClient();
+    const result = await client.transpile({ source, filePath });
+
+    if (!result.success) {
+      return `// Transpilation errors:\n${result.errors?.map(e => `// ${e.message}`).join('\n')}`;
+    }
+
+    return result.cCode ?? '';
+  }
+}
+```
+
+#### 2.4 Extension Activation
+
+Update `extension.ts` to manage server lifecycle:
+
+```typescript
+import * as vscode from 'vscode';
+import { getServerClient, CNextServerClient } from './server/CNextServerClient';
+
+let serverClient: CNextServerClient;
+
+export async function activate(context: vscode.ExtensionContext) {
+  // Start the language server
+  serverClient = getServerClient();
+  await serverClient.start();
+  context.subscriptions.push(serverClient);
+
+  // Register providers (they use getServerClient() internally)
+  // ... existing provider registrations ...
+
+  // Show server version in status bar
+  const version = await serverClient.getVersion();
+  vscode.window.setStatusBarMessage(`C-Next Server v${version}`, 5000);
+}
+
+export function deactivate() {
+  serverClient?.shutdown();
+}
+```
+
+#### 2.5 Updated package.json
 
 ```json
 {
@@ -180,8 +600,7 @@ import { CLexer, CParser, CSymbolCollector } from '@jlaustill/cnext/parser/c';
   },
   "main": "./dist/extension.js",
   "dependencies": {
-    "@jlaustill/cnext": "^0.2.0",
-    "antlr4ng": "^3.0.0"
+    "@jlaustill/cnext": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
@@ -197,7 +616,7 @@ import { CLexer, CParser, CSymbolCollector } from '@jlaustill/cnext/parser/c';
     "@vitest/coverage-v8": "^2.0.0"
   },
   "scripts": {
-    "compile": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "compile": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@jlaustill/cnext --format=cjs --platform=node",
     "watch": "npm run compile -- --watch",
     "package": "vsce package --allow-missing-repository",
     "vscode:prepublish": "npm run compile -- --minify",
@@ -208,6 +627,8 @@ import { CLexer, CParser, CSymbolCollector } from '@jlaustill/cnext/parser/c';
   }
 }
 ```
+
+**Note:** The `@jlaustill/cnext` package is a runtime dependency because it includes `cnext-server`. The extension doesn't bundle it - it spawns the server binary at runtime.
 
 ---
 
@@ -419,20 +840,30 @@ CHANGELOG.md          # Shown in marketplace changelog tab
 
 ### Phase 6: Migration Checklist
 
-#### 6.1 Pre-Migration
+#### 6.1 Pre-Migration (Main Repo)
 
-- [ ] Create and verify npm package `@jlaustill/cnext` exports work
+- [ ] Implement `src/server/protocol.ts` with JSON-RPC types
+- [ ] Implement `src/server/index.ts` language server
+- [ ] Add unit tests for server protocol handling
+- [ ] Update package.json with `cnext-server` binary
+- [ ] Verify `cnext-server` works standalone: `echo '{"id":1,"method":"getVersion","params":{}}' | node dist/server/index.js`
 - [ ] Tag and publish transpiler npm package (v0.2.0 or appropriate version)
+
+#### 6.2 Pre-Migration (New Repo Setup)
+
 - [ ] Create `github.com/jlaustill/vscode-c-next` repository
 - [ ] Set up SonarCloud project
 - [ ] Create VS Code Marketplace publisher (if needed)
 - [ ] Create Azure DevOps PAT for `VSCE_PAT`
 - [ ] Add all secrets to new repository
 
-#### 6.2 Migration
+#### 6.3 Migration
 
 - [ ] Copy extension files to new repository
-- [ ] Update all imports to use `@jlaustill/cnext` package
+- [ ] Implement `CNextServerClient.ts` server process manager
+- [ ] Copy `protocol.ts` types (shared between server and client)
+- [ ] Update all providers to use async server client instead of direct imports
+- [ ] Remove `antlr4ng` dependency (no longer needed - server handles parsing)
 - [ ] Remove `prebuild` script (no longer needed)
 - [ ] Update `repository.url` in package.json
 - [ ] Reset version to 1.0.0 for fresh start
@@ -442,10 +873,12 @@ CHANGELOG.md          # Shown in marketplace changelog tab
 - [ ] Set up GitHub branch protection rules
 - [ ] Configure SonarCloud quality gate
 
-#### 6.3 Post-Migration
+#### 6.4 Post-Migration
 
 - [ ] Verify CI pipeline passes on first PR
-- [ ] Test extension locally from npm dependency
+- [ ] Test extension locally with server process
+- [ ] Verify server auto-restart on crash
+- [ ] Test server output channel logging
 - [ ] Create v1.0.0 tag to trigger first marketplace publish
 - [ ] Verify extension appears in VS Code Marketplace
 - [ ] Update main c-next README to link to marketplace
@@ -497,6 +930,27 @@ The extension will follow semantic versioning independently:
 - **Minor**: New features (new commands, providers, settings)
 - **Patch**: Bug fixes, dependency updates
 
+### Server Protocol Versioning
+
+The JSON protocol should be versioned for compatibility:
+
+```typescript
+// protocol.ts
+export const PROTOCOL_VERSION = '1.0';
+
+// Server includes version in handshake
+interface IServerInfo {
+  version: string;         // Server version (e.g., "0.2.0")
+  protocolVersion: string; // Protocol version (e.g., "1.0")
+}
+```
+
+**Compatibility rules:**
+- Same major protocol version = compatible
+- Extension checks protocol version on startup, warns if mismatch
+- New methods can be added without bumping protocol version (minor change)
+- Changing existing method signatures requires protocol major bump
+
 ### Transpiler Compatibility
 
 The extension's `package.json` will specify a version range:
@@ -509,7 +963,7 @@ The extension's `package.json` will specify a version range:
 }
 ```
 
-When the transpiler makes breaking API changes, the extension will need a corresponding update.
+When the transpiler makes breaking protocol changes, the extension will need a corresponding update. Non-breaking server improvements (bug fixes, performance) work automatically.
 
 ---
 
@@ -546,6 +1000,11 @@ If issues arise with the npm package approach:
 - Dedicated code quality tracking and coverage
 - Simpler CI/CD with faster feedback loops
 - Clear separation of concerns
+- **Crash isolation** - server crash doesn't crash VS Code
+- **Memory isolation** - transpiler memory tracked separately
+- **Auto-recovery** - server automatically restarts on failure
+- **Debuggable** - server output channel shows all communication
+- **Future-proof** - same server protocol could support other editors
 
 ### Negative
 
@@ -553,8 +1012,26 @@ If issues arise with the npm package approach:
 - Version coordination between extension and transpiler
 - Initial setup overhead for new repo, CI, and secrets
 - Potential for version mismatch bugs
+- **IPC overhead** - JSON serialization adds latency (typically <5ms)
+- **Process management** - more complex than direct imports
+- **Startup time** - server spawn adds ~100-200ms to activation
 
 ### Neutral
 
 - Extension becomes a consumer of the transpiler API (forces good API design)
-- Need to define and maintain stable public API surface
+- Need to define and maintain stable JSON protocol
+- All transpiler calls become async (already natural for VS Code providers)
+- Server can be tested independently with simple stdin/stdout tests
+
+---
+
+## Alternative Considered: Direct Library Import
+
+The simpler approach of importing `@jlaustill/cnext` directly was considered but rejected because:
+
+1. **No crash isolation** - parser bugs crash the entire VS Code extension host
+2. **Shared memory** - large ASTs share memory with VS Code, harder to debug
+3. **Bundling complexity** - ANTLR runtime + parsers significantly increase bundle size
+4. **Synchronous API** - transpiler is sync, but VS Code providers are async
+
+The separate process approach adds ~200 lines of client code but provides production-grade reliability matching how VS Code's own TypeScript extension works.
