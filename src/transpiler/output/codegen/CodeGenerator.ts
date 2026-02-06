@@ -6179,31 +6179,23 @@ export default class CodeGenerator implements IOrchestrator {
     const exprText = ctx.expression()!.getText().trim();
     const line = ctx.start?.line ?? 0;
     const col = ctx.start?.column ?? 0;
+    const isLiteral = LiteralUtils.parseIntegerLiteral(exprText) !== undefined;
 
-    // Use LiteralUtils to check if it's a literal
-    if (LiteralUtils.parseIntegerLiteral(exprText) !== undefined) {
-      // Direct literal - validate it fits in the target type
-      try {
+    try {
+      if (isLiteral) {
+        // Direct literal - validate it fits in the target type
         this._validateLiteralFitsType(exprText, typeName);
-      } catch (validationError) {
-        const msg =
-          validationError instanceof Error
-            ? validationError.message
-            : String(validationError);
-        throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
-      }
-    } else {
-      // Not a literal - check for narrowing/sign conversions
-      try {
+      } else {
+        // Not a literal - check for narrowing/sign conversions
         const sourceType = this.getExpressionType(ctx.expression()!);
         this._validateTypeConversion(typeName, sourceType);
-      } catch (validationError) {
-        const msg =
-          validationError instanceof Error
-            ? validationError.message
-            : String(validationError);
-        throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
       }
+    } catch (validationError) {
+      const msg =
+        validationError instanceof Error
+          ? validationError.message
+          : String(validationError);
+      throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
     }
   }
 
