@@ -7251,102 +7251,122 @@ export default class CodeGenerator implements IOrchestrator {
     // Note: Due to grammar ambiguity, sizeof(variable) may parse as sizeof(type)
     // when the variable name matches userType (just an identifier)
     if (ctx.type()) {
-      const typeCtx = ctx.type()!;
-      const typeText = typeCtx.getText();
+      return this._sizeofType(ctx.type()!);
+    }
+    return this._sizeofExpression(ctx.expression()!);
+  }
 
-      // Check if this "type" is actually a variable.member expression
-      // qualifiedType matches IDENTIFIER.IDENTIFIER, which could be struct.member
-      if (typeCtx.qualifiedType()) {
-        const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-        const firstName = identifiers[0].getText();
-        const memberName = identifiers[1].getText();
-
-        // Check if first identifier is a local variable (struct instance)
-        if (this.context.localVariables.has(firstName)) {
-          return `sizeof(${firstName}.${memberName})`;
-        }
-
-        // Check if first identifier is a parameter (struct parameter)
-        const paramInfo = this.context.currentParameters.get(firstName);
-        if (paramInfo) {
-          // Struct parameters use -> in C
-          if (paramInfo.isStruct) {
-            return `sizeof(${firstName}->${memberName})`;
-          }
-          return `sizeof(${firstName}.${memberName})`;
-        }
-
-        // Check if first identifier is a global variable
-        // If not a scope or enum, it's likely a global struct variable
-        if (
-          !this.isKnownScope(firstName) &&
-          !this.symbols!.knownEnums.has(firstName)
-        ) {
-          return `sizeof(${firstName}.${memberName})`;
-        }
-
-        // Fall through to generateType for actual type references (Scope.Type)
-      }
-
-      // Check if this "type" is actually a variable or parameter
-      // userType is just IDENTIFIER, which could be a variable reference
-      if (typeCtx.userType()) {
-        const varName = typeText;
-
-        // Check if it's a known parameter
-        const paramInfo = this.context.currentParameters.get(varName);
-        if (paramInfo) {
-          // E0601: Check if it's an array parameter
-          if (paramInfo.isArray) {
-            throw new Error(
-              `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
-                `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
-            );
-          }
-          // It's a non-array parameter - generate sizeof for it
-          // For pass-by-reference parameters (non-array, non-callback), use pointer dereference
-          if (!paramInfo.isCallback && !paramInfo.isStruct) {
-            return `sizeof(*${varName})`;
-          }
-          return `sizeof(${varName})`;
-        }
-
-        // Check if it's a known local variable
-        if (this.context.localVariables.has(varName)) {
-          return `sizeof(${varName})`;
-        }
-
-        // Check if it's a known struct (actual type)
-        if (this.isKnownStruct(varName)) {
-          return `sizeof(${varName})`;
-        }
-
-        // Check if it's a known enum (actual type)
-        if (this.symbols!.knownEnums.has(varName)) {
-          return `sizeof(${varName})`;
-        }
-
-        // Unknown identifier - treat as variable for safety
-        return `sizeof(${varName})`;
-      }
-
-      // It's a primitive or other type - generate normally
-      const cType = this._generateType(typeCtx);
-      return `sizeof(${cType})`;
+  /**
+   * Handle sizeof(type) - may actually be sizeof(variable) due to grammar ambiguity
+   */
+  private _sizeofType(typeCtx: Parser.TypeContext): string {
+    // qualifiedType matches IDENTIFIER.IDENTIFIER, could be struct.member
+    if (typeCtx.qualifiedType()) {
+      const result = this._sizeofQualifiedType(typeCtx.qualifiedType()!);
+      if (result) return result;
+      // Fall through to generateType for actual type references (Scope.Type)
     }
 
-    // It's sizeof(expression)
-    const expr = ctx.expression()!;
+    // userType is just IDENTIFIER, could be a variable reference
+    if (typeCtx.userType()) {
+      return this._sizeofUserType(typeCtx.getText());
+    }
 
+    // It's a primitive or other type - generate normally
+    return `sizeof(${this._generateType(typeCtx)})`;
+  }
+
+  /**
+   * Handle sizeof(qualified.type) - may be struct.member access
+   * Returns null if this is actually a type reference (Scope.Type)
+   */
+  private _sizeofQualifiedType(
+    qualifiedCtx: Parser.QualifiedTypeContext,
+  ): string | null {
+    const identifiers = qualifiedCtx.IDENTIFIER();
+    const firstName = identifiers[0].getText();
+    const memberName = identifiers[1].getText();
+
+    // Check if first identifier is a local variable (struct instance)
+    if (this.context.localVariables.has(firstName)) {
+      return `sizeof(${firstName}.${memberName})`;
+    }
+
+    // Check if first identifier is a parameter (struct parameter)
+    const paramInfo = this.context.currentParameters.get(firstName);
+    if (paramInfo) {
+      const sep = paramInfo.isStruct ? "->" : ".";
+      return `sizeof(${firstName}${sep}${memberName})`;
+    }
+
+    // Check if first identifier is a global variable
+    // If not a scope or enum, it's likely a global struct variable
+    if (
+      !this.isKnownScope(firstName) &&
+      !this.symbols!.knownEnums.has(firstName)
+    ) {
+      return `sizeof(${firstName}.${memberName})`;
+    }
+
+    // It's an actual type reference (Scope.Type), return null to fall through
+    return null;
+  }
+
+  /**
+   * Handle sizeof(identifier) - could be variable or type name
+   */
+  private _sizeofUserType(varName: string): string {
+    // Check if it's a known parameter
+    const paramInfo = this.context.currentParameters.get(varName);
+    if (paramInfo) {
+      return this._sizeofParameter(varName, paramInfo);
+    }
+
+    // Check if it's a known local variable, struct type, or enum type
+    // For all these cases, generate sizeof(name) directly
+    // Unknown identifiers are also treated as variables for safety
+    return `sizeof(${varName})`;
+  }
+
+  /**
+   * Handle sizeof on a parameter - validates and generates appropriate code
+   */
+  private _sizeofParameter(
+    varName: string,
+    paramInfo: { isArray?: boolean; isCallback?: boolean; isStruct?: boolean },
+  ): string {
+    // E0601: Array parameters decay to pointers
+    if (paramInfo.isArray) {
+      this._throwArrayParamSizeofError(varName);
+    }
+    // For pass-by-reference parameters (non-array, non-callback, non-struct),
+    // use pointer dereference
+    if (!paramInfo.isCallback && !paramInfo.isStruct) {
+      return `sizeof(*${varName})`;
+    }
+    return `sizeof(${varName})`;
+  }
+
+  /**
+   * Throw E0601 error for sizeof on array parameter
+   */
+  private _throwArrayParamSizeofError(varName: string): never {
+    throw new Error(
+      `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
+        `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
+    );
+  }
+
+  /**
+   * Handle sizeof(expression) with validation
+   */
+  private _sizeofExpression(expr: Parser.ExpressionContext): string {
     // E0601: Check if expression is an array parameter
     const varName = this.getSingleIdentifierFromExpr(expr);
     if (varName) {
       const paramInfo = this.context.currentParameters.get(varName);
       if (paramInfo?.isArray) {
-        throw new Error(
-          `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
-            `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
-        );
+        this._throwArrayParamSizeofError(varName);
       }
     }
 
@@ -7357,8 +7377,7 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    const exprCode = this._generateExpression(expr);
-    return `sizeof(${exprCode})`;
+    return `sizeof(${this._generateExpression(expr)})`;
   }
 
   /**
