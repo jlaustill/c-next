@@ -459,6 +459,173 @@ class Transpiler {
   }
 
   /**
+   * Discover C-Next files from a single input (file or directory).
+   */
+  private _discoverCNextFromInput(
+    input: string,
+    cnextFiles: IDiscoveredFile[],
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): void {
+    const resolvedInput = resolve(input);
+
+    if (!this.fs.exists(resolvedInput)) {
+      throw new Error(`Input not found: ${input}`);
+    }
+
+    const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
+    if (file?.type === EFileType.CNext) {
+      cnextFiles.push(file);
+      fileByPath.set(resolve(file.path), file);
+      return;
+    }
+
+    if (file?.type !== EFileType.Unknown && file !== null) {
+      // Other supported file type (direct header input) - skip for now
+      return;
+    }
+
+    // It's a directory - scan for C-Next files
+    const discovered = FileDiscovery.discover(
+      [resolvedInput],
+      { recursive: true },
+      this.fs,
+    );
+    for (const f of FileDiscovery.getCNextFiles(discovered)) {
+      cnextFiles.push(f);
+      fileByPath.set(resolve(f.path), f);
+    }
+  }
+
+  /**
+   * Collect headers from resolved includes, filtering out generated ones.
+   */
+  private _collectHeaders(
+    resolved: {
+      headers: IDiscoveredFile[];
+      headerIncludeDirectives: Map<string, string>;
+    },
+    cnextBaseNames: Set<string>,
+    headerSet: Map<string, IDiscoveredFile>,
+  ): void {
+    for (const header of resolved.headers) {
+      const headerBaseName = basename(header.path).replace(
+        /\.h$|\.hpp$|\.hxx$|\.hh$/,
+        "",
+      );
+      if (cnextBaseNames.has(headerBaseName)) {
+        continue;
+      }
+      headerSet.set(header.path, header);
+      // Issue #497: Store the include directive for this header
+      const directive = resolved.headerIncludeDirectives.get(header.path);
+      if (directive) {
+        this.state.setHeaderDirective(header.path, directive);
+      }
+    }
+  }
+
+  /**
+   * Process C-Next includes from resolved includes.
+   * Issue #461: Collect included .cnx files for symbol resolution
+   * Issue #580: Track dependencies for topological sorting
+   */
+  private _processCnextIncludes(
+    resolved: { cnextIncludes: IDiscoveredFile[] },
+    cnxPath: string,
+    depGraph: DependencyGraph,
+    cnextFiles: IDiscoveredFile[],
+    cnextBaseNames: Set<string>,
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): void {
+    for (const cnxInclude of resolved.cnextIncludes) {
+      const includePath = resolve(cnxInclude.path);
+      const includeBaseName = basename(includePath).replace(
+        /\.cnx$|\.cnext$/,
+        "",
+      );
+
+      depGraph.addDependency(cnxPath, includePath);
+
+      // Don't add if already in the list
+      const alreadyExists =
+        cnextBaseNames.has(includeBaseName) ||
+        cnextFiles.some((f) => resolve(f.path) === includePath);
+      if (!alreadyExists) {
+        cnextFiles.push(cnxInclude);
+        cnextBaseNames.add(includeBaseName);
+        fileByPath.set(includePath, cnxInclude);
+      }
+    }
+  }
+
+  /**
+   * Process a single C-Next file's includes.
+   */
+  private _processFileIncludes(
+    cnxFile: IDiscoveredFile,
+    depGraph: DependencyGraph,
+    cnextFiles: IDiscoveredFile[],
+    cnextBaseNames: Set<string>,
+    headerSet: Map<string, IDiscoveredFile>,
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): void {
+    const cnxPath = resolve(cnxFile.path);
+    depGraph.addFile(cnxPath);
+
+    const content = this.fs.readFile(cnxFile.path);
+
+    // Build search paths for this file
+    const sourceDir = dirname(cnxFile.path);
+    const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
+      cnxFile.path,
+      this.fs,
+    );
+    const searchPaths = IncludeResolver.buildSearchPaths(
+      sourceDir,
+      this.config.includeDirs,
+      additionalIncludeDirs,
+      undefined,
+      this.fs,
+    );
+
+    // Resolve includes
+    const resolver = new IncludeResolver(searchPaths, this.fs);
+    const resolved = resolver.resolve(content, cnxFile.path);
+
+    this._collectHeaders(resolved, cnextBaseNames, headerSet);
+    this._processCnextIncludes(
+      resolved,
+      cnxPath,
+      depGraph,
+      cnextFiles,
+      cnextBaseNames,
+      fileByPath,
+    );
+
+    this.warnings.push(...resolved.warnings);
+  }
+
+  /**
+   * Sort files topologically and convert paths to IDiscoveredFile array.
+   */
+  private _sortFilesByDependency(
+    depGraph: DependencyGraph,
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): IDiscoveredFile[] {
+    const sortedPaths = depGraph.getSortedFiles();
+    this.warnings.push(...depGraph.getWarnings());
+
+    const sortedFiles: IDiscoveredFile[] = [];
+    for (const path of sortedPaths) {
+      const file = fileByPath.get(path);
+      if (file) {
+        sortedFiles.push(file);
+      }
+    }
+    return sortedFiles;
+  }
+
+  /**
    * Stage 1: Discover source files
    *
    * Unified include resolution: Discovers .cnx files from inputs, then
@@ -475,32 +642,7 @@ class Transpiler {
     const fileByPath = new Map<string, IDiscoveredFile>();
 
     for (const input of this.config.inputs) {
-      const resolvedInput = resolve(input);
-
-      if (!this.fs.exists(resolvedInput)) {
-        throw new Error(`Input not found: ${input}`);
-      }
-
-      const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
-      if (file?.type === EFileType.CNext) {
-        // It's a C-Next file
-        cnextFiles.push(file);
-        fileByPath.set(resolve(file.path), file);
-      } else if (file?.type !== EFileType.Unknown && file !== null) {
-        // It's another supported file type (direct header input)
-        // Skip for now - we only want C-Next sources here
-      } else {
-        // It's a directory - scan for C-Next files
-        const discovered = FileDiscovery.discover(
-          [resolvedInput],
-          { recursive: true },
-          this.fs,
-        );
-        for (const f of FileDiscovery.getCNextFiles(discovered)) {
-          cnextFiles.push(f);
-          fileByPath.set(resolve(f.path), f);
-        }
-      }
+      this._discoverCNextFromInput(input, cnextFiles, fileByPath);
     }
 
     if (cnextFiles.length === 0) {
@@ -508,96 +650,25 @@ class Transpiler {
     }
 
     // Step 2: For each C-Next file, resolve its #include directives
-    // Issue #580: Use DependencyGraph for proper topological sorting
     const headerSet = new Map<string, IDiscoveredFile>();
     const depGraph = new DependencyGraph();
-
-    // Build set of base names from C-Next files to exclude generated headers
     const cnextBaseNames = new Set(
       cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
     );
 
     for (const cnxFile of cnextFiles) {
-      const cnxPath = resolve(cnxFile.path);
-      depGraph.addFile(cnxPath);
-
-      const content = this.fs.readFile(cnxFile.path);
-
-      // Build search paths for this file
-      const sourceDir = dirname(cnxFile.path);
-      const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
-        cnxFile.path,
-        this.fs,
+      this._processFileIncludes(
+        cnxFile,
+        depGraph,
+        cnextFiles,
+        cnextBaseNames,
+        headerSet,
+        fileByPath,
       );
-      const searchPaths = IncludeResolver.buildSearchPaths(
-        sourceDir,
-        this.config.includeDirs,
-        additionalIncludeDirs,
-        undefined,
-        this.fs,
-      );
-
-      // Resolve includes
-      const resolver = new IncludeResolver(searchPaths, this.fs);
-      const resolved = resolver.resolve(content, cnxFile.path);
-
-      // Collect headers, filtering out generated ones
-      for (const header of resolved.headers) {
-        const headerBaseName = basename(header.path).replace(
-          /\.h$|\.hpp$|\.hxx$|\.hh$/,
-          "",
-        );
-        if (!cnextBaseNames.has(headerBaseName)) {
-          headerSet.set(header.path, header);
-          // Issue #497: Store the include directive for this header
-          const directive = resolved.headerIncludeDirectives.get(header.path);
-          if (directive) {
-            this.state.setHeaderDirective(header.path, directive);
-          }
-        }
-      }
-
-      // Issue #461: Collect included .cnx files for symbol resolution
-      // This ensures constants from included .cnx files are available for array dimension resolution
-      // Issue #580: Track dependencies for topological sorting
-      for (const cnxInclude of resolved.cnextIncludes) {
-        const includePath = resolve(cnxInclude.path);
-        const includeBaseName = basename(includePath).replace(
-          /\.cnx$|\.cnext$/,
-          "",
-        );
-
-        // Track dependency: cnxFile depends on cnxInclude
-        depGraph.addDependency(cnxPath, includePath);
-
-        // Don't add if already in the list (by base name comparison)
-        if (
-          !cnextBaseNames.has(includeBaseName) &&
-          !cnextFiles.some((f) => resolve(f.path) === includePath)
-        ) {
-          cnextFiles.push(cnxInclude);
-          cnextBaseNames.add(includeBaseName);
-          fileByPath.set(includePath, cnxInclude);
-        }
-      }
-
-      // Collect warnings
-      this.warnings.push(...resolved.warnings);
     }
 
-    // Issue #580: Sort files topologically (dependencies first) for correct
-    // cross-file const inference. This replaces the simple reversal heuristic.
-    const sortedPaths = depGraph.getSortedFiles();
-    this.warnings.push(...depGraph.getWarnings());
-
-    // Convert sorted paths back to IDiscoveredFile array
-    const sortedCnextFiles: IDiscoveredFile[] = [];
-    for (const path of sortedPaths) {
-      const file = fileByPath.get(path);
-      if (file) {
-        sortedCnextFiles.push(file);
-      }
-    }
+    // Issue #580: Sort files topologically for correct cross-file const inference
+    const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
     return {
       cnextFiles: sortedCnextFiles,
