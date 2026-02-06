@@ -189,96 +189,143 @@ class CppSymbolCollector {
     }
   }
 
+  /**
+   * Process type specifiers in a declaration, collecting classes and enums.
+   * Returns anonymous class specifier if found (for typedef handling).
+   */
+  private processTypeSpecifiers(
+    declSpecSeq: any,
+    line: number,
+  ): ClassSpecifierContext | null {
+    let anonymousClassSpec: ClassSpecifierContext | null = null;
+
+    for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
+      const typeSpec = spec.typeSpecifier?.();
+      if (!typeSpec) continue;
+
+      const classSpec = typeSpec.classSpecifier?.();
+      if (classSpec) {
+        const result = this.handleClassSpecInDecl(classSpec, line);
+        if (result) {
+          anonymousClassSpec = result;
+        }
+      }
+
+      const enumSpec = typeSpec.enumSpecifier?.();
+      if (enumSpec) {
+        this.collectEnumSpecifier(enumSpec, line);
+      }
+    }
+
+    return anonymousClassSpec;
+  }
+
+  /**
+   * Handle a class specifier in a declaration.
+   * Returns the class spec if it's anonymous (for typedef handling).
+   */
+  private handleClassSpecInDecl(
+    classSpec: any,
+    line: number,
+  ): ClassSpecifierContext | null {
+    const classHead = classSpec.classHead?.();
+    const classHeadName = classHead?.classHeadName?.();
+    const className = classHeadName?.className?.();
+    const identifier = className?.Identifier?.();
+
+    if (identifier?.getText()) {
+      // Named struct - collect normally
+      this.collectClassSpecifier(classSpec, line);
+      return null;
+    }
+
+    // Issue #342: Anonymous struct - return for typedef handling
+    return classSpec;
+  }
+
+  /**
+   * Issue #342: Handle typedef of anonymous struct.
+   * Returns true if handled (caller should skip normal processing).
+   */
+  private tryCollectAnonymousTypedef(
+    anonymousClassSpec: ClassSpecifierContext,
+    fullName: string,
+    line: number,
+  ): boolean {
+    if (!this.ctx.symbolTable) return false;
+
+    const memberSpec = anonymousClassSpec.memberSpecification?.();
+    if (!memberSpec) return false;
+
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name: fullName,
+      kind: ESymbolKind.Class,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: true,
+      parent: this.currentNamespace,
+    });
+    this.collectClassMembers(fullName, memberSpec);
+    return true;
+  }
+
+  /**
+   * Process a single declarator (variable or function).
+   */
+  private collectDeclarator(
+    declarator: any,
+    baseType: string,
+    line: number,
+    anonymousClassSpec: ClassSpecifierContext | null,
+  ): void {
+    const name = this.extractDeclaratorName(declarator);
+    if (!name) return;
+
+    const isFunction = this.declaratorIsFunction(declarator);
+    const fullName = this.currentNamespace
+      ? `${this.currentNamespace}::${name}`
+      : name;
+
+    // Issue #342: Handle anonymous struct typedef
+    if (anonymousClassSpec) {
+      if (this.tryCollectAnonymousTypedef(anonymousClassSpec, fullName, line)) {
+        return;
+      }
+    }
+
+    // Issue #322: Extract parameters for function declarations
+    const params = isFunction ? this.extractFunctionParameters(declarator) : [];
+
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name: fullName,
+      kind: isFunction ? ESymbolKind.Function : ESymbolKind.Variable,
+      type: baseType,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: true,
+      isDeclaration: isFunction,
+      parent: this.currentNamespace,
+      parameters: params.length > 0 ? params : undefined,
+    });
+  }
+
   private collectSimpleDeclaration(simpleDecl: any, line: number): void {
     const declSpecSeq = simpleDecl.declSpecifierSeq?.();
     if (!declSpecSeq) return;
 
     const baseType = this.extractTypeFromDeclSpecSeq(declSpecSeq);
-
-    // Issue #342: Track anonymous class specifiers for typedef handling
-    let anonymousClassSpec: ClassSpecifierContext | null = null;
-
-    // Check for class specifier
-    for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
-      const typeSpec = spec.typeSpecifier?.();
-      if (typeSpec) {
-        const classSpec = typeSpec.classSpecifier?.();
-        if (classSpec) {
-          // Check if this is a named struct/class
-          const classHead = classSpec.classHead?.();
-          const classHeadName = classHead?.classHeadName?.();
-          const className = classHeadName?.className?.();
-          const identifier = className?.Identifier?.();
-
-          if (identifier?.getText()) {
-            // Named struct - collect normally
-            this.collectClassSpecifier(classSpec, line);
-          } else {
-            // Issue #342: Anonymous struct - save for typedef handling below
-            anonymousClassSpec = classSpec;
-          }
-        }
-
-        const enumSpec = typeSpec.enumSpecifier?.();
-        if (enumSpec) {
-          this.collectEnumSpecifier(enumSpec, line);
-        }
-      }
-    }
+    const anonymousClassSpec = this.processTypeSpecifiers(declSpecSeq, line);
 
     // Collect declarators (variables, function prototypes)
     const initDeclList = simpleDecl.initDeclaratorList?.();
-    if (initDeclList) {
-      for (const initDecl of initDeclList.initDeclarator()) {
-        const declarator = initDecl.declarator?.();
-        if (!declarator) continue;
+    if (!initDeclList) return;
 
-        const name = this.extractDeclaratorName(declarator);
-        if (!name) continue;
-
-        const isFunction = this.declaratorIsFunction(declarator);
-        const fullName = this.currentNamespace
-          ? `${this.currentNamespace}::${name}`
-          : name;
-
-        // Issue #342: If we have an anonymous struct and this is a typedef,
-        // collect struct fields using the typedef name
-        if (anonymousClassSpec && this.ctx.symbolTable) {
-          const memberSpec = anonymousClassSpec.memberSpecification?.();
-          if (memberSpec) {
-            // Add the type symbol
-            SymbolCollectorContext.addSymbol(this.ctx, {
-              name: fullName,
-              kind: ESymbolKind.Class, // Treat typedef'd structs as classes
-              sourceFile: this.ctx.sourceFile,
-              sourceLine: line,
-              sourceLanguage: ESourceLanguage.Cpp,
-              isExported: true,
-              parent: this.currentNamespace,
-            });
-            // Collect members using the typedef name
-            this.collectClassMembers(fullName, memberSpec);
-            continue;
-          }
-        }
-
-        // Issue #322: Extract parameters for function declarations
-        const params = isFunction
-          ? this.extractFunctionParameters(declarator)
-          : [];
-
-        SymbolCollectorContext.addSymbol(this.ctx, {
-          name: fullName,
-          kind: isFunction ? ESymbolKind.Function : ESymbolKind.Variable,
-          type: baseType,
-          sourceFile: this.ctx.sourceFile,
-          sourceLine: line,
-          sourceLanguage: ESourceLanguage.Cpp,
-          isExported: true,
-          isDeclaration: isFunction,
-          parent: this.currentNamespace,
-          parameters: params.length > 0 ? params : undefined,
-        });
+    for (const initDecl of initDeclList.initDeclarator()) {
+      const declarator = initDecl.declarator?.();
+      if (declarator) {
+        this.collectDeclarator(declarator, baseType, line, anonymousClassSpec);
       }
     }
   }
