@@ -2908,6 +2908,47 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Helper: Classify a child statement as block or statement.
+   */
+  private _classifyChildStatement(
+    childStmt: Parser.StatementContext,
+    statements: Parser.StatementContext[],
+    blocks: Parser.BlockContext[],
+  ): void {
+    if (childStmt.block()) {
+      blocks.push(childStmt.block()!);
+    } else {
+      statements.push(childStmt);
+    }
+  }
+
+  /**
+   * Helper: Collect children from loop body (while/for).
+   */
+  private _collectLoopBody(
+    bodyStmt: Parser.StatementContext,
+    statements: Parser.StatementContext[],
+    blocks: Parser.BlockContext[],
+  ): void {
+    this._classifyChildStatement(bodyStmt, statements, blocks);
+  }
+
+  /**
+   * Helper: Collect children from switch statement.
+   */
+  private _collectSwitchChildren(
+    switchStmt: Parser.SwitchStatementContext,
+    blocks: Parser.BlockContext[],
+  ): void {
+    for (const caseCtx of switchStmt.switchCase()) {
+      blocks.push(caseCtx.block());
+    }
+    if (switchStmt.defaultCase()) {
+      blocks.push(switchStmt.defaultCase()!.block());
+    }
+  }
+
+  /**
    * Issue #566: Collect child statements and blocks from control flow statements.
    * This centralizes recursion patterns to prevent missing nested statements.
    */
@@ -2921,32 +2962,26 @@ export default class CodeGenerator implements IOrchestrator {
     // if statement: has statement() children (can be blocks or single statements)
     if (stmt.ifStatement()) {
       for (const childStmt of stmt.ifStatement()!.statement()) {
-        if (childStmt.block()) {
-          blocks.push(childStmt.block()!);
-        } else {
-          statements.push(childStmt);
-        }
+        this._classifyChildStatement(childStmt, statements, blocks);
       }
     }
 
     // while statement: single statement() child
     if (stmt.whileStatement()) {
-      const bodyStmt = stmt.whileStatement()!.statement();
-      if (bodyStmt.block()) {
-        blocks.push(bodyStmt.block()!);
-      } else {
-        statements.push(bodyStmt);
-      }
+      this._collectLoopBody(
+        stmt.whileStatement()!.statement(),
+        statements,
+        blocks,
+      );
     }
 
     // for statement: single statement() child
     if (stmt.forStatement()) {
-      const bodyStmt = stmt.forStatement()!.statement();
-      if (bodyStmt.block()) {
-        blocks.push(bodyStmt.block()!);
-      } else {
-        statements.push(bodyStmt);
-      }
+      this._collectLoopBody(
+        stmt.forStatement()!.statement(),
+        statements,
+        blocks,
+      );
     }
 
     // do-while statement: has block() directly
@@ -2956,13 +2991,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // switch statement: case blocks and optional default block
     if (stmt.switchStatement()) {
-      const switchStmt = stmt.switchStatement()!;
-      for (const caseCtx of switchStmt.switchCase()) {
-        blocks.push(caseCtx.block());
-      }
-      if (switchStmt.defaultCase()) {
-        blocks.push(switchStmt.defaultCase()!.block());
-      }
+      this._collectSwitchChildren(stmt.switchStatement()!, blocks);
     }
 
     // critical statement: has block() directly (ADR-050)
