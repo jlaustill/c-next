@@ -43,7 +43,7 @@ class DependencyGraph {
    * Resolves toposortReverse with tsx/vitest interop support.
    * Exposed as static for testing both code paths.
    */
-  static resolveToposortReverse = resolveToposortReverse;
+  static readonly resolveToposortReverse = resolveToposortReverse;
 
   /**
    * Add a file to the graph without dependencies
