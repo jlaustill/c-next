@@ -131,7 +131,7 @@ ${generatePanicBlock(info.cnxType, opName)}
     }
     ${info.cType} result;
     if (__builtin_sub_overflow(a, (${info.cType})b, &result)) {
-        fprintf(stderr, "PANIC: ${panicMsg}\\n");
+        fprintf(stderr, "PANIC: ${panicMsg}${C_NEWLINE}");
         abort();
     }
     return result;
