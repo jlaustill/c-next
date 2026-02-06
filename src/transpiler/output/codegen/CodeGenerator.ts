@@ -5120,117 +5120,147 @@ export default class CodeGenerator implements IOrchestrator {
     lines.push(`/* Scope: ${name} */`);
 
     for (const member of ctx.scopeMember()) {
-      const visibility = member.visibilityModifier()?.getText() || "private";
-      const isPrivate = visibility === "private";
-
-      if (member.variableDeclaration()) {
-        const varDecl = member.variableDeclaration()!;
-        const type = this._generateType(varDecl.type());
-        const varName = varDecl.IDENTIFIER().getText();
-        const fullName = `${name}_${varName}`;
-        const prefix = isPrivate ? "static " : "";
-
-        // Note: Type already registered in registerAllVariableTypes() pass
-
-        // ADR-036: arrayDimension() now returns an array
-        const arrayDims = varDecl.arrayDimension();
-        const isArray = arrayDims.length > 0;
-        let decl = `${prefix}${type} ${fullName}`;
-        if (isArray) {
-          decl += this._generateArrayDimensions(arrayDims);
-        }
-        // ADR-045: Add string capacity dimension for string arrays
-        if (varDecl.type().stringType()) {
-          const stringCtx = varDecl.type().stringType()!;
-          const intLiteral = stringCtx.INTEGER_LITERAL();
-          if (intLiteral) {
-            const capacity = Number.parseInt(intLiteral.getText(), 10);
-            decl += `[${capacity + 1}]`;
-          }
-        }
-        if (varDecl.expression()) {
-          decl += ` = ${this._generateExpression(varDecl.expression()!)}`;
-        } else {
-          // ADR-015: Zero initialization for uninitialized scope variables
-          decl += ` = ${this._getZeroInitializer(varDecl.type(), isArray)}`;
-        }
-        lines.push(decl + ";");
-      }
-
-      if (member.functionDeclaration()) {
-        const funcDecl = member.functionDeclaration()!;
-        const returnType = this._generateType(funcDecl.type());
-        const funcName = funcDecl.IDENTIFIER().getText();
-        const fullName = `${name}_${funcName}`;
-        const prefix = isPrivate ? "static " : "";
-
-        // Issue #269: Set current function name for pass-by-value lookup
-        this.context.currentFunctionName = fullName;
-        // Issue #477: Set return type for enum inference in return statements
-        this.context.currentFunctionReturnType = funcDecl.type().getText();
-
-        // Track parameters for ADR-006 pointer semantics
-        this._setParameters(funcDecl.parameterList() ?? null);
-
-        // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
-        this.enterFunctionBody();
-
-        // Issue #281: Generate body FIRST to track parameter modifications,
-        // then generate parameter list using that tracking info
-        const body = this.generateBlock(funcDecl.block());
-
-        // Issue #281: Update symbol's parameter info with auto-const before generating params
-        this.updateFunctionParamsAutoConst(fullName);
-
-        // Now generate parameter list (can use modifiedParameters for auto-const)
-        const params = funcDecl.parameterList()
-          ? this._generateParameterList(funcDecl.parameterList()!)
-          : "void";
-
-        // ADR-016: Exit function body context
-        this.exitFunctionBody();
-        this.context.currentFunctionName = null; // Issue #269: Clear function name
-        this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
-        this._clearParameters();
-
-        lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
-
-        // ADR-029: Generate callback typedef only if used as a type
-        if (this._isCallbackTypeUsedAsFieldType(fullName)) {
-          const typedef = this._generateCallbackTypedef(fullName);
-          if (typedef) {
-            lines.push(typedef);
-          }
-        }
-      }
-
-      // ADR-017: Handle enum declarations inside scopes
-      // Issue #60: Symbol collection done by SymbolCollector
-      if (member.enumDeclaration()) {
-        const enumDecl = member.enumDeclaration()!;
-        const enumCode = this.generateEnum(enumDecl);
-        lines.push("", enumCode);
-      }
-
-      // ADR-034: Handle bitmap declarations inside scopes
-      // Issue #60: Symbol collection done by SymbolCollector
-      if (member.bitmapDeclaration()) {
-        const bitmapDecl = member.bitmapDeclaration()!;
-        const bitmapCode = this.generateBitmap(bitmapDecl);
-        lines.push("", bitmapCode);
-      }
-
-      // Handle register declarations inside scopes
-      if (member.registerDeclaration()) {
-        const regDecl = member.registerDeclaration()!;
-        const regCode = this.generateScopedRegister(regDecl, name);
-        lines.push("", regCode);
-      }
+      this._generateScopeMember(member, name, lines);
     }
 
     lines.push("");
     this.context.currentScope = null;
     return lines.join("\n");
+  }
+
+  /**
+   * Generate code for a single scope member
+   */
+  private _generateScopeMember(
+    member: Parser.ScopeMemberContext,
+    scopeName: string,
+    lines: string[],
+  ): void {
+    const visibility = member.visibilityModifier()?.getText() || "private";
+    const isPrivate = visibility === "private";
+
+    if (member.variableDeclaration()) {
+      this._generateScopeVariable(
+        member.variableDeclaration()!,
+        scopeName,
+        isPrivate,
+        lines,
+      );
+    } else if (member.functionDeclaration()) {
+      this._generateScopeFunction(
+        member.functionDeclaration()!,
+        scopeName,
+        isPrivate,
+        lines,
+      );
+    } else if (member.enumDeclaration()) {
+      lines.push("", this.generateEnum(member.enumDeclaration()!));
+    } else if (member.bitmapDeclaration()) {
+      lines.push("", this.generateBitmap(member.bitmapDeclaration()!));
+    } else if (member.registerDeclaration()) {
+      lines.push(
+        "",
+        this.generateScopedRegister(member.registerDeclaration()!, scopeName),
+      );
+    }
+  }
+
+  /**
+   * Generate code for a scope variable declaration
+   */
+  private _generateScopeVariable(
+    varDecl: Parser.VariableDeclarationContext,
+    scopeName: string,
+    isPrivate: boolean,
+    lines: string[],
+  ): void {
+    const type = this._generateType(varDecl.type());
+    const varName = varDecl.IDENTIFIER().getText();
+    const fullName = `${scopeName}_${varName}`;
+    const prefix = isPrivate ? "static " : "";
+
+    const arrayDims = varDecl.arrayDimension();
+    const isArray = arrayDims.length > 0;
+
+    let decl = `${prefix}${type} ${fullName}`;
+    if (isArray) {
+      decl += this._generateArrayDimensions(arrayDims);
+    }
+
+    // ADR-045: Add string capacity dimension for string arrays
+    decl += this._getStringCapacityDimension(varDecl.type());
+
+    if (varDecl.expression()) {
+      decl += ` = ${this._generateExpression(varDecl.expression()!)}`;
+    } else {
+      // ADR-015: Zero initialization for uninitialized scope variables
+      decl += ` = ${this._getZeroInitializer(varDecl.type(), isArray)}`;
+    }
+    lines.push(decl + ";");
+  }
+
+  /**
+   * Get string capacity dimension if type is string<N>
+   */
+  private _getStringCapacityDimension(typeCtx: Parser.TypeContext): string {
+    if (!typeCtx.stringType()) return "";
+    const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
+    if (!intLiteral) return "";
+    const capacity = Number.parseInt(intLiteral.getText(), 10);
+    return `[${capacity + 1}]`;
+  }
+
+  /**
+   * Generate code for a scope function declaration
+   */
+  private _generateScopeFunction(
+    funcDecl: Parser.FunctionDeclarationContext,
+    scopeName: string,
+    isPrivate: boolean,
+    lines: string[],
+  ): void {
+    const returnType = this._generateType(funcDecl.type());
+    const funcName = funcDecl.IDENTIFIER().getText();
+    const fullName = `${scopeName}_${funcName}`;
+    const prefix = isPrivate ? "static " : "";
+
+    // Issue #269: Set current function name for pass-by-value lookup
+    this.context.currentFunctionName = fullName;
+    // Issue #477: Set return type for enum inference in return statements
+    this.context.currentFunctionReturnType = funcDecl.type().getText();
+
+    // Track parameters for ADR-006 pointer semantics
+    this._setParameters(funcDecl.parameterList() ?? null);
+
+    // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
+    this.enterFunctionBody();
+
+    // Issue #281: Generate body FIRST to track parameter modifications
+    const body = this.generateBlock(funcDecl.block());
+
+    // Issue #281: Update symbol's parameter info with auto-const before generating params
+    this.updateFunctionParamsAutoConst(fullName);
+
+    // Now generate parameter list (can use modifiedParameters for auto-const)
+    const params = funcDecl.parameterList()
+      ? this._generateParameterList(funcDecl.parameterList()!)
+      : "void";
+
+    // ADR-016: Exit function body context
+    this.exitFunctionBody();
+    this.context.currentFunctionName = null;
+    this.context.currentFunctionReturnType = null;
+    this._clearParameters();
+
+    lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
+
+    // ADR-029: Generate callback typedef only if used as a type
+    if (this._isCallbackTypeUsedAsFieldType(fullName)) {
+      const typedef = this._generateCallbackTypedef(fullName);
+      if (typedef) {
+        lines.push(typedef);
+      }
+    }
   }
 
   // ========================================================================
