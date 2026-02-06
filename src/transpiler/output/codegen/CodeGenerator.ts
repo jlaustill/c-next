@@ -67,7 +67,7 @@ import memberAccessChain from "./memberAccessChain";
 // Shared member access validation (ADR-013/016/057)
 import MemberAccessValidator from "./helpers/MemberAccessValidator";
 // ADR-109: Assignment decomposition (Phase 2)
-import assignmentHandlers from "./assignment/index";
+import AssignmentHandlerRegistry from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
@@ -6647,7 +6647,7 @@ export default class CodeGenerator implements IOrchestrator {
       getMemberTypeInfo: handlerDeps.getMemberTypeInfo,
     });
     const assignmentKind = classifier.classify(assignCtx);
-    const handler = assignmentHandlers.getHandler(assignmentKind);
+    const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
     return handler(assignCtx, handlerDeps);
   }
 

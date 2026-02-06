@@ -98,6 +98,18 @@ class TestUtils {
 export default TestUtils;
 ```
 
+**No singleton instance exports** - Don't instantiate and export class instances:
+
+```typescript
+// ❌ Wrong - singleton (knip can't detect unused methods)
+class Registry { private map = new Map(); register() { ... } }
+export default new Registry();
+
+// ✅ Correct - static class
+class Registry { private static map = new Map(); static register() { ... } }
+export default Registry;
+```
+
 **Readonly Map restoration** - Can't reassign `readonly` Map properties. Use `map.clear()` then `for (const [k, v] of saved) map.set(k, v)` to restore state.
 
 **No destructuring** - Always use the class name prefix for self-documenting code:
@@ -347,6 +359,8 @@ u32 main() {
 - **Prevent helper cleanup**: Create `.expected.h` for helper `.cnx` files to prevent test framework from deleting generated `.h` files needed by other tests
 - **Auto-generating helper snapshots**: `npm test -- <path> --update` creates `.expected.h` for helper `.cnx` files; helper `.h` files must also be committed for CI
 - **Worker debug output**: `console.log` in `test-worker.ts` doesn't appear (forked process). Use `--jobs 1` for sequential mode, but note `test.ts` has duplicated logic
+- **Assignment handler imports**: Import `AssignmentHandlerRegistry` from `assignment/index` (not `handlers/index`) to ensure handlers are registered
+- **Testing error paths with enums**: Use fake values (e.g., `9999 as AssignmentKind`) to test unregistered handler errors
 
 ### Error Validation Tests (test-error pattern)
 
@@ -445,8 +459,10 @@ If implementing a feature, all documents must be current and memory must be upda
 **Dead code and unused exports:**
 
 - `npx knip` — Find unused files, exports, and dependencies (config: `knip.json`)
+- `npx knip --include classMembers` — Find unused class methods (many false positives from generated parser files)
 - `npm run analyze:prune` — Find exported functions/classes not imported anywhere (ts-prune)
 - `parseWithSymbols.ts` is a public API entry point (used by vscode-extension)
+- **Singleton limitation**: knip can't detect unused methods on exported class instances — use static classes instead
 
 **Code duplication:**
 

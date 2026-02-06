@@ -9,7 +9,7 @@
  * - handlers/index (registry)
  */
 import AssignmentKind from "./AssignmentKind";
-import assignmentHandlers from "./handlers/index";
+import AssignmentHandlerRegistry from "./handlers/index";
 
 // Import all handler modules
 import handleSimple from "./handlers/SimpleHandler";
@@ -26,17 +26,17 @@ import accessPatternHandlers from "./handlers/AccessPatternHandlers";
  * Called once during module load.
  */
 function initializeHandlers(): void {
-  assignmentHandlers.register(AssignmentKind.SIMPLE, handleSimple);
-  assignmentHandlers.registerAll(bitmapHandlers);
-  assignmentHandlers.registerAll(registerHandlers);
-  assignmentHandlers.registerAll(stringHandlers);
-  assignmentHandlers.registerAll(bitAccessHandlers);
-  assignmentHandlers.registerAll(arrayHandlers);
-  assignmentHandlers.registerAll(specialHandlers);
-  assignmentHandlers.registerAll(accessPatternHandlers);
+  AssignmentHandlerRegistry.register(AssignmentKind.SIMPLE, handleSimple);
+  AssignmentHandlerRegistry.registerAll(bitmapHandlers);
+  AssignmentHandlerRegistry.registerAll(registerHandlers);
+  AssignmentHandlerRegistry.registerAll(stringHandlers);
+  AssignmentHandlerRegistry.registerAll(bitAccessHandlers);
+  AssignmentHandlerRegistry.registerAll(arrayHandlers);
+  AssignmentHandlerRegistry.registerAll(specialHandlers);
+  AssignmentHandlerRegistry.registerAll(accessPatternHandlers);
 }
 
 // Initialize handlers on module load
 initializeHandlers();
 
-export default assignmentHandlers;
+export default AssignmentHandlerRegistry;
