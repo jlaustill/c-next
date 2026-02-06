@@ -8,6 +8,7 @@ import {
   ExternalDeclarationContext,
   FunctionDefinitionContext,
   DeclarationContext,
+  DeclarationSpecifierContext,
   DeclarationSpecifiersContext,
   InitDeclaratorListContext,
   StructOrUnionSpecifierContext,
@@ -182,53 +183,104 @@ class CSymbolCollector {
     structSpec?: StructOrUnionSpecifierContext | null,
     enumSpec?: EnumSpecifierContext | null,
   ): void {
-    // Find the last typedefName - that's the identifier being declared
-    // Everything before it is the type
     const specs = declSpecs.declarationSpecifier();
-    let lastTypedefName: string | undefined;
-    let lastTypedefIndex = -1;
-
-    for (let i = 0; i < specs.length; i++) {
-      const typeSpec = specs[i].typeSpecifier();
-      if (typeSpec) {
-        const typedefName = typeSpec.typedefName?.();
-        if (typedefName) {
-          lastTypedefName = typedefName.getText();
-          lastTypedefIndex = i;
-        }
-      }
-    }
+    const { name: lastTypedefName, index: lastTypedefIndex } =
+      this._findLastTypedefName(specs);
 
     if (!lastTypedefName || lastTypedefIndex < 0) return;
 
-    // Skip if the typedefName is the same as a named struct/enum to avoid duplicates
-    // e.g., for "struct Point { ... };" - "Point" is both the struct name and typedefName
-    // But for "typedef struct Point Point;" we DO want to create the Type symbol
-    if (!isTypedef) {
-      if (structSpec) {
-        const structName = structSpec.Identifier()?.getText();
-        if (structName === lastTypedefName) return;
-      }
-      if (enumSpec) {
-        const enumName = enumSpec.Identifier()?.getText();
-        if (enumName === lastTypedefName) return;
+    // Skip duplicates for non-typedef declarations
+    if (
+      !isTypedef &&
+      this._shouldSkipDuplicateTypedefName(
+        lastTypedefName,
+        structSpec,
+        enumSpec,
+      )
+    ) {
+      return;
+    }
+
+    const baseType = this._buildBaseTypeFromSpecs(specs, lastTypedefIndex);
+    this._addTypedefSymbol(
+      lastTypedefName,
+      baseType,
+      isTypedef,
+      isExtern,
+      line,
+    );
+  }
+
+  /**
+   * Find the last typedefName in declaration specifiers.
+   */
+  private _findLastTypedefName(specs: DeclarationSpecifierContext[]): {
+    name: string | undefined;
+    index: number;
+  } {
+    let name: string | undefined;
+    let index = -1;
+
+    for (let i = 0; i < specs.length; i++) {
+      const typeSpec = specs[i].typeSpecifier();
+      const typedefName = typeSpec?.typedefName?.();
+      if (typedefName) {
+        name = typedefName.getText();
+        index = i;
       }
     }
 
-    // Build the base type from all specifiers before the last typedefName
+    return { name, index };
+  }
+
+  /**
+   * Check if typedef name should be skipped to avoid duplicates.
+   * For "struct Point { ... };" - "Point" is both struct name and typedefName.
+   */
+  private _shouldSkipDuplicateTypedefName(
+    typedefName: string,
+    structSpec?: StructOrUnionSpecifierContext | null,
+    enumSpec?: EnumSpecifierContext | null,
+  ): boolean {
+    const structName = structSpec?.Identifier()?.getText();
+    if (structName === typedefName) return true;
+
+    const enumName = enumSpec?.Identifier()?.getText();
+    if (enumName === typedefName) return true;
+
+    return false;
+  }
+
+  /**
+   * Build base type string from specifiers before the typedef name.
+   */
+  private _buildBaseTypeFromSpecs(
+    specs: DeclarationSpecifierContext[],
+    endIndex: number,
+  ): string {
     const typeParts: string[] = [];
-    for (let i = 0; i < lastTypedefIndex; i++) {
-      const spec = specs[i];
-      const typeSpec = spec.typeSpecifier();
+    for (let i = 0; i < endIndex; i++) {
+      const typeSpec = specs[i].typeSpecifier();
       if (typeSpec) {
         typeParts.push(typeSpec.getText());
       }
     }
-    const baseType = typeParts.join(" ") || "int";
+    return typeParts.join(" ") || "int";
+  }
 
+  /**
+   * Add a typedef or variable symbol.
+   */
+  private _addTypedefSymbol(
+    name: string,
+    baseType: string,
+    isTypedef: boolean,
+    isExtern: boolean,
+    line: number,
+  ): void {
     if (isTypedef) {
       SymbolCollectorContext.addSymbol(this.ctx, {
-        name: lastTypedefName,
+        name,
         kind: ESymbolKind.Type,
         type: baseType,
         sourceFile: this.ctx.sourceFile,
@@ -238,7 +290,7 @@ class CSymbolCollector {
       });
     } else {
       SymbolCollectorContext.addSymbol(this.ctx, {
-        name: lastTypedefName,
+        name,
         kind: ESymbolKind.Variable,
         type: baseType,
         sourceFile: this.ctx.sourceFile,
