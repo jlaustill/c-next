@@ -189,6 +189,127 @@ interface BuildChainOptions<TExpr> {
 }
 
 /**
+ * Initialize type tracking state from initial type info.
+ */
+function initializeTypeState(
+  typeTracking: TypeTrackingCallbacks,
+  initialTypeInfo: { isArray: boolean; baseType: string },
+): TypeTrackingState {
+  return {
+    currentStructType: typeTracking.isKnownStruct(initialTypeInfo.baseType)
+      ? initialTypeInfo.baseType
+      : undefined,
+    lastMemberType: undefined,
+    lastMemberIsArray: false,
+  };
+}
+
+/**
+ * Update type tracking state after accessing a struct member.
+ */
+function updateTypeStateForMember(
+  typeState: TypeTrackingState,
+  typeTracking: TypeTrackingCallbacks,
+  memberName: string,
+): void {
+  if (!typeState.currentStructType) {
+    return;
+  }
+
+  const fields = typeTracking.getStructFields(typeState.currentStructType);
+  typeState.lastMemberType = fields?.get(memberName);
+
+  const arrayFields = typeTracking.getStructArrayFields(
+    typeState.currentStructType,
+  );
+  typeState.lastMemberIsArray = arrayFields?.has(memberName) ?? false;
+
+  // Check if this member is itself a struct
+  if (
+    typeState.lastMemberType &&
+    typeTracking.isKnownStruct(typeState.lastMemberType)
+  ) {
+    typeState.currentStructType = typeState.lastMemberType;
+  } else {
+    typeState.currentStructType = undefined;
+  }
+}
+
+/**
+ * Check if bit access applies and return the result if so.
+ * Returns null if this is not a bit access scenario.
+ */
+function tryBitAccess<TExpr>(
+  typeState: TypeTrackingState,
+  exprIndex: number,
+  expressions: TExpr[],
+  generateExpression: ExpressionGenerator<TExpr>,
+  result: string,
+  idIndex: number,
+  onBitAccess: (
+    result: string,
+    bitIndex: string,
+    memberType: string,
+  ) => string | null,
+): MemberAccessChainResult | null {
+  const isPrimitiveInt =
+    typeState.lastMemberType &&
+    !typeState.lastMemberIsArray &&
+    TypeCheckUtils.isInteger(typeState.lastMemberType);
+  const isLastExpr = exprIndex === expressions.length - 1;
+
+  if (!isPrimitiveInt || !isLastExpr || exprIndex >= expressions.length) {
+    return null;
+  }
+
+  const bitIndex = generateExpression(expressions[exprIndex]);
+  const bitResult = onBitAccess(result, bitIndex, typeState.lastMemberType!);
+
+  if (bitResult === null) {
+    return null;
+  }
+
+  return {
+    code: bitResult,
+    identifiersConsumed: idIndex,
+    expressionsConsumed: exprIndex + 1,
+  };
+}
+
+/**
+ * Update type tracking after first array subscript.
+ */
+function updateTypeStateForArraySubscript(
+  typeState: TypeTrackingState,
+  typeTracking: TypeTrackingCallbacks,
+  initialTypeInfo: { isArray: boolean; baseType: string },
+  exprIndex: number,
+): void {
+  if (!initialTypeInfo.isArray || exprIndex !== 1) {
+    return;
+  }
+  // First subscript on array - element type might be a struct
+  if (typeTracking.isKnownStruct(initialTypeInfo.baseType)) {
+    typeState.currentStructType = initialTypeInfo.baseType;
+  }
+}
+
+/**
+ * Skip to the closing bracket in children array.
+ * Returns the new index position.
+ */
+function skipToClosingBracket(
+  children: ParseTree[],
+  startIndex: number,
+): number {
+  let i = startIndex;
+  while (i < children.length && children[i].getText() !== "]") {
+    i++;
+  }
+  return i;
+}
+
+/**
  * Builds a member access chain with proper separators and subscripts.
  *
  * This function walks through the parse tree children in order, building
@@ -221,16 +342,10 @@ function buildMemberAccessChain<TExpr>(
   let exprIndex = 0;
 
   // Initialize type tracking state
-  let typeState: TypeTrackingState | undefined;
-  if (typeTracking && initialTypeInfo) {
-    typeState = {
-      currentStructType: typeTracking.isKnownStruct(initialTypeInfo.baseType)
-        ? initialTypeInfo.baseType
-        : undefined,
-      lastMemberType: undefined,
-      lastMemberIsArray: false,
-    };
-  }
+  const typeState =
+    typeTracking && initialTypeInfo
+      ? initializeTypeState(typeTracking, initialTypeInfo)
+      : undefined;
 
   let i = 1;
   while (i < children.length) {
@@ -245,27 +360,8 @@ function buildMemberAccessChain<TExpr>(
         result += `${separator}${memberName}`;
         idIndex++;
 
-        // Update type tracking for the member we just accessed
-        if (typeState && typeTracking && typeState.currentStructType) {
-          const fields = typeTracking.getStructFields(
-            typeState.currentStructType,
-          );
-          typeState.lastMemberType = fields?.get(memberName);
-
-          const arrayFields = typeTracking.getStructArrayFields(
-            typeState.currentStructType,
-          );
-          typeState.lastMemberIsArray = arrayFields?.has(memberName) ?? false;
-
-          // Check if this member is itself a struct
-          if (
-            typeState.lastMemberType &&
-            typeTracking.isKnownStruct(typeState.lastMemberType)
-          ) {
-            typeState.currentStructType = typeState.lastMemberType;
-          } else {
-            typeState.currentStructType = undefined;
-          }
+        if (typeState && typeTracking) {
+          updateTypeStateForMember(typeState, typeTracking, memberName);
         }
       }
     } else if (childText === "[") {
@@ -273,26 +369,17 @@ function buildMemberAccessChain<TExpr>(
 
       // Check for bit access on primitive integer (if type tracking enabled)
       if (typeState && onBitAccess) {
-        const isPrimitiveInt =
-          typeState.lastMemberType &&
-          !typeState.lastMemberIsArray &&
-          TypeCheckUtils.isInteger(typeState.lastMemberType);
-        const isLastExpr = exprIndex === expressions.length - 1;
-
-        if (isPrimitiveInt && isLastExpr && exprIndex < expressions.length) {
-          const bitIndex = generateExpression(expressions[exprIndex]);
-          const bitResult = onBitAccess(
-            result,
-            bitIndex,
-            typeState.lastMemberType!,
-          );
-          if (bitResult !== null) {
-            return {
-              code: bitResult,
-              identifiersConsumed: idIndex,
-              expressionsConsumed: exprIndex + 1,
-            };
-          }
+        const bitAccessResult = tryBitAccess(
+          typeState,
+          exprIndex,
+          expressions,
+          generateExpression,
+          result,
+          idIndex,
+          onBitAccess,
+        );
+        if (bitAccessResult) {
+          return bitAccessResult;
         }
       }
 
@@ -303,23 +390,18 @@ function buildMemberAccessChain<TExpr>(
         exprIndex++;
 
         // After subscripting an array, update type tracking
-        if (
-          typeState &&
-          typeTracking &&
-          initialTypeInfo?.isArray &&
-          exprIndex === 1
-        ) {
-          // First subscript on array - element type might be a struct
-          if (typeTracking.isKnownStruct(initialTypeInfo.baseType)) {
-            typeState.currentStructType = initialTypeInfo.baseType;
-          }
+        if (typeState && typeTracking && initialTypeInfo) {
+          updateTypeStateForArraySubscript(
+            typeState,
+            typeTracking,
+            initialTypeInfo,
+            exprIndex,
+          );
         }
       }
 
       // Skip forward to find and pass the closing bracket
-      while (i < children.length && children[i].getText() !== "]") {
-        i++;
-      }
+      i = skipToClosingBracket(children, i);
 
       // Reset lastMemberType after subscript (no longer on a member)
       if (typeState) {
