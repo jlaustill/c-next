@@ -18,7 +18,7 @@ interface IBitmapFieldInfo {
  * Generate comment lines describing bitmap field layout.
  *
  * @param fields - Map of field names to their offset/width info
- * @returns Array of comment lines (without leading spaces)
+ * @returns Array of comment lines (without leading spaces), or empty array if no fields
  *
  * @example
  * // Output format:
@@ -30,6 +30,11 @@ interface IBitmapFieldInfo {
 function generateBitmapFieldComments(
   fields: ReadonlyMap<string, IBitmapFieldInfo>,
 ): string[] {
+  // Return empty array for empty field maps
+  if (fields.size === 0) {
+    return [];
+  }
+
   const lines: string[] = [];
   lines.push("/* Fields:");
 

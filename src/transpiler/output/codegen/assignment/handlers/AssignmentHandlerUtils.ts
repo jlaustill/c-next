@@ -5,6 +5,8 @@
  * Issue #707: Extracted from RegisterHandlers.ts and AccessPatternHandlers.ts.
  */
 
+import IRegisterNameResult from "./IRegisterNameResult";
+
 /**
  * Validate that 'this' is being used within a scope context.
  * Throws if currentScope is not set.
@@ -78,18 +80,6 @@ function buildScopedRegisterName(
   parts: readonly string[],
 ): string {
   return `${scopeName}_${parts.join("_")}`;
-}
-
-/**
- * Result of building a register name with scope detection.
- */
-interface IRegisterNameResult {
-  /** The full register member name (e.g., "Scope_Register_Member" or "Register_Member") */
-  fullName: string;
-  /** The register base name (e.g., "Scope_Register" or "Register") */
-  regName: string;
-  /** True if the register is scoped */
-  isScoped: boolean;
 }
 
 /**

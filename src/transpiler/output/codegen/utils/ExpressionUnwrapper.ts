@@ -23,20 +23,18 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
  */
 class ExpressionUnwrapper {
   /**
-   * Navigate from ExpressionContext to PostfixExpressionContext.
-   * Returns null if the expression has multiple terms at any level
-   * (indicating binary operations).
+   * Navigate from ExpressionContext to ShiftExpressionContext.
+   * This is the common navigation path shared by getPostfixExpression,
+   * getUnaryExpression, and getAdditiveExpression.
    *
-   * Use this when you need to access the postfix expression for:
-   * - Getting the primary expression (identifier, literal)
-   * - Checking postfix operators (member access, array indexing)
+   * Returns null if expression has multiple terms at any level above shift.
    */
-  static getPostfixExpression(
+  private static navigateToShift(
     ctx: Parser.ExpressionContext,
-  ): Parser.PostfixExpressionContext | null {
+  ): Parser.ShiftExpressionContext | null {
     const ternary = ctx.ternaryExpression();
     const orExprs = ternary.orExpression();
-    // If it's a ternary (3 orExpressions), we can't get a single postfix
+    // If it's a ternary (3 orExpressions), we can't get a single expression
     if (orExprs.length !== 1) return null;
 
     const or = orExprs[0];
@@ -60,7 +58,24 @@ class ExpressionUnwrapper {
     const band = bxor.bitwiseAndExpression()[0];
     if (band.shiftExpression().length !== 1) return null;
 
-    const shift = band.shiftExpression()[0];
+    return band.shiftExpression()[0];
+  }
+
+  /**
+   * Navigate from ExpressionContext to PostfixExpressionContext.
+   * Returns null if the expression has multiple terms at any level
+   * (indicating binary operations).
+   *
+   * Use this when you need to access the postfix expression for:
+   * - Getting the primary expression (identifier, literal)
+   * - Checking postfix operators (member access, array indexing)
+   */
+  static getPostfixExpression(
+    ctx: Parser.ExpressionContext,
+  ): Parser.PostfixExpressionContext | null {
+    const shift = this.navigateToShift(ctx);
+    if (!shift) return null;
+
     if (shift.additiveExpression().length !== 1) return null;
 
     const add = shift.additiveExpression()[0];
@@ -84,32 +99,9 @@ class ExpressionUnwrapper {
   static getUnaryExpression(
     ctx: Parser.ExpressionContext,
   ): Parser.UnaryExpressionContext | null {
-    const ternary = ctx.ternaryExpression();
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
+    const shift = this.navigateToShift(ctx);
+    if (!shift) return null;
 
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
     if (shift.additiveExpression().length !== 1) return null;
 
     const add = shift.additiveExpression()[0];
@@ -130,32 +122,9 @@ class ExpressionUnwrapper {
   static getAdditiveExpression(
     ctx: Parser.ExpressionContext,
   ): Parser.AdditiveExpressionContext | null {
-    const ternary = ctx.ternaryExpression();
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
+    const shift = this.navigateToShift(ctx);
+    if (!shift) return null;
 
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
     if (shift.additiveExpression().length !== 1) return null;
 
     return shift.additiveExpression()[0];
