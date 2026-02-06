@@ -3765,112 +3765,179 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _setParameters(params: Parser.ParameterListContext | null): void {
     this.context.currentParameters.clear();
-
     if (!params) return;
 
     for (const param of params.parameter()) {
-      const name = param.IDENTIFIER().getText();
-      // arrayDimension() returns an array (due to grammar's *), so check length
-      const isArray = param.arrayDimension().length > 0;
-      const isConst = param.constModifier() !== null; // ADR-013: Track const modifier
-      const typeCtx = param.type();
-
-      // Determine if it's a struct type, callback type, or string type
-      let isStruct = false;
-      let isCallback = false;
-      let isString = false;
-      let typeName = typeCtx.getText();
-      if (typeCtx.primitiveType()) {
-        // Primitive type (u8, i32, etc.)
-        typeName = typeCtx.primitiveType()!.getText();
-      } else if (typeCtx.userType()) {
-        typeName = typeCtx.userType()!.getText();
-        isStruct = this.isStructType(typeName);
-        // ADR-029: Check if this is a callback type
-        isCallback = this.callbackTypes.has(typeName);
-      } else if (typeCtx.qualifiedType()) {
-        // ADR-016: Handle qualified types like Scope.Type
-        // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
-        const identifierNames = typeCtx
-          .qualifiedType()!
-          .IDENTIFIER()
-          .map((id) => id.getText());
-        typeName = this.resolveQualifiedType(identifierNames);
-        // Check if this is a struct type
-        isStruct = this.isStructType(typeName);
-      } else if (typeCtx.scopedType()) {
-        // ADR-016: Handle scoped types like this.Type (inside a scope)
-        const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-        if (this.context.currentScope) {
-          typeName = `${this.context.currentScope}_${localTypeName}`;
-        } else {
-          typeName = localTypeName;
-        }
-        // Check if this is a struct type
-        isStruct = this.isStructType(typeName);
-      } else if (typeCtx.globalType()) {
-        // Issue #478: Handle global.Type for global types inside scope
-        typeName = typeCtx.globalType()!.IDENTIFIER().getText();
-        // Check if this is a struct type
-        isStruct = this.isStructType(typeName);
-      } else if (typeCtx.stringType()) {
-        // ADR-045: String parameter
-        isString = true;
-        typeName = "string";
-      }
-
-      this.context.currentParameters.set(name, {
-        name,
-        baseType: typeName,
-        isArray,
-        isStruct,
-        isConst,
-        isCallback,
-        isString,
-      });
-
-      // ADR-025: Register parameter type for switch exhaustiveness checking
-      const isEnum = this.symbols!.knownEnums.has(typeName);
-      const isBitmap = this.symbols!.knownBitmaps.has(typeName);
-
-      // Extract array dimensions if this is an array parameter
-      // Issue #547: Always count each dimension, even if unsized (use 0 for unsized)
-      // Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
-      const arrayDimensions = isArray
-        ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
-        : [];
-
-      // ADR-045: Get string capacity if this is a string parameter
-      let stringCapacity: number | undefined;
-      if (isString && typeCtx.stringType()) {
-        const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
-        if (intLiteral) {
-          stringCapacity = Number.parseInt(intLiteral.getText(), 10);
-          // For string arrays, add capacity+1 as second dimension for proper .length handling
-          if (isArray && stringCapacity !== undefined) {
-            arrayDimensions.push(stringCapacity + 1);
-          }
-        }
-      }
-
-      this.context.typeRegistry.set(name, {
-        baseType: typeName,
-        bitWidth: isBitmap
-          ? this.symbols!.bitmapBitWidth.get(typeName) || 0
-          : TYPE_WIDTH[typeName] || 0,
-        isArray: isArray,
-        arrayDimensions:
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
-        isConst: isConst,
-        isEnum: isEnum,
-        enumTypeName: isEnum ? typeName : undefined,
-        isBitmap: isBitmap,
-        bitmapTypeName: isBitmap ? typeName : undefined,
-        isString: isString,
-        stringCapacity: stringCapacity,
-        isParameter: true, // Issue #579: Mark as parameter for subscript classification
-      });
+      this._processParameter(param);
     }
+  }
+
+  /**
+   * Process a single parameter declaration
+   */
+  private _processParameter(param: Parser.ParameterContext): void {
+    const name = param.IDENTIFIER().getText();
+    const isArray = param.arrayDimension().length > 0;
+    const isConst = param.constModifier() !== null;
+    const typeCtx = param.type();
+
+    // Resolve type information
+    const typeInfo = this._resolveParameterTypeInfo(typeCtx);
+
+    // Register in currentParameters
+    this.context.currentParameters.set(name, {
+      name,
+      baseType: typeInfo.typeName,
+      isArray,
+      isStruct: typeInfo.isStruct,
+      isConst,
+      isCallback: typeInfo.isCallback,
+      isString: typeInfo.isString,
+    });
+
+    // Register in typeRegistry
+    this._registerParameterType(name, typeInfo, param, isArray, isConst);
+  }
+
+  /**
+   * Resolve type name and flags from a type context
+   */
+  private _resolveParameterTypeInfo(typeCtx: Parser.TypeContext): {
+    typeName: string;
+    isStruct: boolean;
+    isCallback: boolean;
+    isString: boolean;
+  } {
+    if (typeCtx.primitiveType()) {
+      return {
+        typeName: typeCtx.primitiveType()!.getText(),
+        isStruct: false,
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.userType()) {
+      const typeName = typeCtx.userType()!.getText();
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: this.callbackTypes.has(typeName),
+        isString: false,
+      };
+    }
+
+    if (typeCtx.qualifiedType()) {
+      const identifierNames = typeCtx
+        .qualifiedType()!
+        .IDENTIFIER()
+        .map((id) => id.getText());
+      const typeName = this.resolveQualifiedType(identifierNames);
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.scopedType()) {
+      const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+      const typeName = this.context.currentScope
+        ? `${this.context.currentScope}_${localTypeName}`
+        : localTypeName;
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.globalType()) {
+      const typeName = typeCtx.globalType()!.IDENTIFIER().getText();
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.stringType()) {
+      return {
+        typeName: "string",
+        isStruct: false,
+        isCallback: false,
+        isString: true,
+      };
+    }
+
+    // Fallback
+    return {
+      typeName: typeCtx.getText(),
+      isStruct: false,
+      isCallback: false,
+      isString: false,
+    };
+  }
+
+  /**
+   * Register a parameter in the type registry
+   */
+  private _registerParameterType(
+    name: string,
+    typeInfo: { typeName: string; isString: boolean },
+    param: Parser.ParameterContext,
+    isArray: boolean,
+    isConst: boolean,
+  ): void {
+    const { typeName, isString } = typeInfo;
+    const typeCtx = param.type();
+
+    const isEnum = this.symbols!.knownEnums.has(typeName);
+    const isBitmap = this.symbols!.knownBitmaps.has(typeName);
+
+    // Extract array dimensions
+    const arrayDimensions = isArray
+      ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
+      : [];
+
+    // Get string capacity if applicable
+    const stringCapacity = this._getStringCapacity(typeCtx, isString);
+    if (isArray && stringCapacity !== undefined) {
+      arrayDimensions.push(stringCapacity + 1);
+    }
+
+    this.context.typeRegistry.set(name, {
+      baseType: typeName,
+      bitWidth: isBitmap
+        ? this.symbols!.bitmapBitWidth.get(typeName) || 0
+        : TYPE_WIDTH[typeName] || 0,
+      isArray,
+      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      isConst,
+      isEnum,
+      enumTypeName: isEnum ? typeName : undefined,
+      isBitmap,
+      bitmapTypeName: isBitmap ? typeName : undefined,
+      isString,
+      stringCapacity,
+      isParameter: true,
+    });
+  }
+
+  /**
+   * Extract string capacity from a string type context
+   */
+  private _getStringCapacity(
+    typeCtx: Parser.TypeContext,
+    isString: boolean,
+  ): number | undefined {
+    if (!isString || !typeCtx.stringType()) return undefined;
+    const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
+    if (!intLiteral) return undefined;
+    return Number.parseInt(intLiteral.getText(), 10);
   }
 
   /**
