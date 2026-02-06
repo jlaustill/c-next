@@ -19,6 +19,71 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 
 /**
+ * Check if minus token is the first child (for negative literals).
+ */
+function hasNegativePrefix(node: CaseLabelContext): boolean {
+  return node.children !== null && node.children[0]?.getText() === "-";
+}
+
+/**
+ * Issue #471: Try to resolve an unqualified identifier as an enum member.
+ * Returns the prefixed enum member if found, null otherwise.
+ */
+function tryResolveEnumMember(
+  id: string,
+  switchEnumType: string,
+  symbols: IGeneratorInput["symbols"],
+): string | null {
+  if (!symbols) return null;
+  const members = symbols.enumMembers.get(switchEnumType);
+  return members?.has(id) ? `${switchEnumType}_${id}` : null;
+}
+
+/**
+ * Issue #477: Check if identifier matches any enum member when switch is not on enum.
+ * Throws error with helpful suggestion if found.
+ */
+function rejectUnqualifiedEnumMember(
+  id: string,
+  symbols: IGeneratorInput["symbols"],
+  node: CaseLabelContext,
+): void {
+  if (!symbols) return;
+
+  const matchingEnums: string[] = [];
+  for (const [enumName, members] of symbols.enumMembers) {
+    if (members.has(id)) {
+      matchingEnums.push(enumName);
+    }
+  }
+
+  if (matchingEnums.length === 0) return;
+
+  const suggestion =
+    matchingEnums.length === 1
+      ? `did you mean '${matchingEnums[0]}.${id}'?`
+      : `exists in: ${matchingEnums.join(", ")}. Use qualified access.`;
+  const line = node.start?.line ?? 0;
+  const col = node.start?.column ?? 0;
+  throw new Error(
+    `${line}:${col} error[E0424]: '${id}' is not defined; ${suggestion}`,
+  );
+}
+
+/**
+ * Generate code for a binary literal case label.
+ * Converts binary to hex for cleaner C output.
+ */
+function generateBinaryLiteralCode(binText: string, hasNeg: boolean): string {
+  // Issue #114: Use BigInt to preserve precision for values > 2^53
+  const value = BigInt(binText); // BigInt handles 0b prefix natively
+  const hexStr = value.toString(16).toUpperCase();
+  // Add ULL suffix for values that exceed 32-bit range
+  const suffix = value > 0xffffffffn ? "ULL" : "";
+  return `${hasNeg ? "-" : ""}0x${hexStr}${suffix}`;
+}
+
+/**
  * Generate C code for a case label.
  *
  * Handles:
@@ -54,71 +119,35 @@ const generateCaseLabel = (
     const id = node.IDENTIFIER()!.getText();
 
     // Issue #471: Resolve unqualified enum member with type prefix
-    // If the switch expression is an enum type, check if this identifier
-    // is a member of that enum and prefix it accordingly
-    if (switchEnumType && input.symbols) {
-      const members = input.symbols.enumMembers.get(switchEnumType);
-      if (members?.has(id)) {
-        return { code: `${switchEnumType}_${id}`, effects };
+    if (switchEnumType) {
+      const resolved = tryResolveEnumMember(id, switchEnumType, input.symbols);
+      if (resolved) {
+        return { code: resolved, effects };
       }
-    }
-
-    // Issue #477: Reject unqualified enum members in non-enum switch context
-    // If switchEnumType is null (switching on non-enum like u8), but the
-    // identifier is an enum member, this is an error.
-    if (!switchEnumType && input.symbols) {
-      const matchingEnums: string[] = [];
-      for (const [enumName, members] of input.symbols.enumMembers) {
-        if (members.has(id)) {
-          matchingEnums.push(enumName);
-        }
-      }
-      if (matchingEnums.length > 0) {
-        const suggestion =
-          matchingEnums.length === 1
-            ? `did you mean '${matchingEnums[0]}.${id}'?`
-            : `exists in: ${matchingEnums.join(", ")}. Use qualified access.`;
-        const line = node.start?.line ?? 0;
-        const col = node.start?.column ?? 0;
-        throw new Error(
-          `${line}:${col} error[E0424]: '${id}' is not defined; ${suggestion}`,
-        );
-      }
+    } else {
+      // Issue #477: Reject unqualified enum members in non-enum switch context
+      rejectUnqualifiedEnumMember(id, input.symbols, node);
     }
 
     return { code: id, effects };
   }
 
   // Numeric literals (may have optional minus prefix)
+  const hasNeg = hasNegativePrefix(node);
+
   if (node.INTEGER_LITERAL()) {
     const num = node.INTEGER_LITERAL()!.getText();
-    // Check if minus token exists (first child would be '-')
-    const hasNeg = node.children && node.children[0]?.getText() === "-";
     return { code: hasNeg ? `-${num}` : num, effects };
   }
 
   if (node.HEX_LITERAL()) {
     const hex = node.HEX_LITERAL()!.getText();
-    // Check if minus token exists (first child would be '-')
-    const hasNeg = node.children && node.children[0]?.getText() === "-";
     return { code: hasNeg ? `-${hex}` : hex, effects };
   }
 
   if (node.BINARY_LITERAL()) {
-    // Convert binary to hex for cleaner C output
-    // Issue #114: Use BigInt to preserve precision for values > 2^53
     const binText = node.BINARY_LITERAL()!.getText();
-    // Check if minus token exists (first child would be '-')
-    const hasNeg = node.children && node.children[0]?.getText() === "-";
-    const value = BigInt(binText); // BigInt handles 0b prefix natively
-    // Use positive value for hex string - hasNeg handles the sign prefix separately
-    const hexStr = value.toString(16).toUpperCase();
-    // Add ULL suffix for values that exceed 32-bit range
-    const needsULL = value > 0xffffffffn;
-    return {
-      code: `${hasNeg ? "-" : ""}0x${hexStr}${needsULL ? "ULL" : ""}`,
-      effects,
-    };
+    return { code: generateBinaryLiteralCode(binText, hasNeg), effects };
   }
 
   if (node.CHAR_LITERAL()) {
