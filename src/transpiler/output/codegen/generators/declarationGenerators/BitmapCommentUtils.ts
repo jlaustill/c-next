@@ -55,7 +55,7 @@ function generateBitmapFieldComments(
  * Bitmap Comment Utilities
  */
 class BitmapCommentUtils {
-  static generateBitmapFieldComments = generateBitmapFieldComments;
+  static readonly generateBitmapFieldComments = generateBitmapFieldComments;
 }
 
 export default BitmapCommentUtils;

@@ -112,11 +112,12 @@ function buildRegisterNameWithScopeDetection(
  * Assignment Handler Utilities
  */
 class AssignmentHandlerUtils {
-  static validateScopeContext = validateScopeContext;
-  static validateNoCompoundForBitAccess = validateNoCompoundForBitAccess;
-  static validateWriteOnlyValue = validateWriteOnlyValue;
-  static buildScopedRegisterName = buildScopedRegisterName;
-  static buildRegisterNameWithScopeDetection =
+  static readonly validateScopeContext = validateScopeContext;
+  static readonly validateNoCompoundForBitAccess =
+    validateNoCompoundForBitAccess;
+  static readonly validateWriteOnlyValue = validateWriteOnlyValue;
+  static readonly buildScopedRegisterName = buildScopedRegisterName;
+  static readonly buildRegisterNameWithScopeDetection =
     buildRegisterNameWithScopeDetection;
 }
 

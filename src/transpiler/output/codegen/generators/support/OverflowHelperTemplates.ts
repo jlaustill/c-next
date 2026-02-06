@@ -14,6 +14,9 @@ import TYPE_LIMITS from "../../types/TYPE_LIMITS";
 
 const { TYPE_MAX, TYPE_MIN } = TYPE_LIMITS;
 
+// C newline escape for generated fprintf statements (S7780: use raw string)
+const C_NEWLINE = String.raw`\n`;
+
 /**
  * Type information needed for helper generation
  */
@@ -72,7 +75,7 @@ function generateSignature(
  * Generate panic block for debug mode
  */
 function generatePanicBlock(cnxType: string, opName: string): string {
-  return `        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}\\n");
+  return `        fprintf(stderr, "PANIC: Integer overflow in ${cnxType} ${opName}${C_NEWLINE}");
         abort();`;
 }
 
@@ -123,7 +126,7 @@ ${generatePanicBlock(info.cnxType, opName)}
     if (debugMode) {
       return `${sig} {
     if (b > (${info.widerType})a) {
-        fprintf(stderr, "PANIC: ${panicMsg}\\n");
+        fprintf(stderr, "PANIC: ${panicMsg}${C_NEWLINE}");
         abort();
     }
     ${info.cType} result;
