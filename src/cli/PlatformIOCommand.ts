@@ -7,6 +7,24 @@ import { resolve } from "node:path";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 
 /**
+ * Get the standard PlatformIO paths and verify platformio.ini exists.
+ *
+ * @returns Object with pioIniPath and scriptPath, or exits if not in PlatformIO project
+ */
+function getPlatformIOPaths(): { pioIniPath: string; scriptPath: string } {
+  const pioIniPath = resolve(process.cwd(), "platformio.ini");
+  const scriptPath = resolve(process.cwd(), "cnext_build.py");
+
+  if (!existsSync(pioIniPath)) {
+    console.error("Error: platformio.ini not found in current directory");
+    console.error("Run this command from your PlatformIO project root");
+    process.exit(1);
+  }
+
+  return { pioIniPath, scriptPath };
+}
+
+/**
  * PlatformIO integration commands
  */
 class PlatformIOCommand {
@@ -15,15 +33,7 @@ class PlatformIOCommand {
    * Creates cnext_build.py and modifies platformio.ini
    */
   static install(): void {
-    const pioIniPath = resolve(process.cwd(), "platformio.ini");
-    const scriptPath = resolve(process.cwd(), "cnext_build.py");
-
-    // Check if platformio.ini exists
-    if (!existsSync(pioIniPath)) {
-      console.error("Error: platformio.ini not found in current directory");
-      console.error("Run this command from your PlatformIO project root");
-      process.exit(1);
-    }
+    const { pioIniPath, scriptPath } = getPlatformIOPaths();
 
     // Create cnext_build.py script
     const buildScript = `Import("env")
@@ -110,16 +120,7 @@ env.AddPreAction("buildprog", transpile_cnext)
    * Deletes cnext_build.py and removes extra_scripts from platformio.ini
    */
   static uninstall(): void {
-    const pioIniPath = resolve(process.cwd(), "platformio.ini");
-    const scriptPath = resolve(process.cwd(), "cnext_build.py");
-
-    // Check if platformio.ini exists
-    if (!existsSync(pioIniPath)) {
-      console.error("Error: platformio.ini not found in current directory");
-      console.error("Run this command from your PlatformIO project root");
-      process.exit(1);
-    }
-
+    const { pioIniPath, scriptPath } = getPlatformIOPaths();
     let hasChanges = false;
 
     // Remove cnext_build.py if it exists

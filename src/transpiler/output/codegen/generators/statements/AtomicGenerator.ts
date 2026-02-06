@@ -80,6 +80,26 @@ const CLAMP_OP_MAP: Record<string, string> = {
 };
 
 /**
+ * Check if clamp behavior applies and return the helper operation name.
+ *
+ * @param typeInfo - Type information for the target
+ * @param cOp - The C compound assignment operator
+ * @returns The helper operation name if clamp applies, null otherwise
+ */
+function getClampHelperOp(typeInfo: TTypeInfo, cOp: string): string | null {
+  // Clamp behavior only applies to integers with clamp overflow behavior
+  if (
+    typeInfo.overflowBehavior === "clamp" &&
+    TYPE_WIDTH[typeInfo.baseType] &&
+    !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
+  ) {
+    const helperOp = CLAMP_OP_MAP[cOp];
+    return helperOp || null;
+  }
+  return null;
+}
+
+/**
  * Generate the inner operation for atomic RMW.
  * Handles clamp/wrap behavior for arithmetic operations.
  *
@@ -94,24 +114,17 @@ function generateInnerAtomicOp(
   const simpleOp = SIMPLE_OP_MAP[cOp] || "+";
 
   // Handle clamp behavior for arithmetic operations (integers only)
-  if (
-    typeInfo.overflowBehavior === "clamp" &&
-    TYPE_WIDTH[typeInfo.baseType] &&
-    !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-  ) {
-    const helperOp = CLAMP_OP_MAP[cOp];
-
-    if (helperOp) {
-      effects.push({
-        type: "helper",
-        operation: helperOp,
-        cnxType: typeInfo.baseType,
-      });
-      return {
-        code: `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`,
-        effects,
-      };
-    }
+  const helperOp = getClampHelperOp(typeInfo, cOp);
+  if (helperOp) {
+    effects.push({
+      type: "helper",
+      operation: helperOp,
+      cnxType: typeInfo.baseType,
+    });
+    return {
+      code: `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`,
+      effects,
+    };
   }
 
   // For wrap behavior, floats, or non-clamp ops, use natural arithmetic
@@ -170,23 +183,14 @@ function generatePrimaskWrapper(
   let assignment: string;
 
   // Handle clamp behavior (integers only)
-  if (
-    typeInfo.overflowBehavior === "clamp" &&
-    TYPE_WIDTH[typeInfo.baseType] &&
-    !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-  ) {
-    const helperOp = CLAMP_OP_MAP[cOp];
-
-    if (helperOp) {
-      effects.push({
-        type: "helper",
-        operation: helperOp,
-        cnxType: typeInfo.baseType,
-      });
-      assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
-    } else {
-      assignment = `${target} ${cOp} ${value};`;
-    }
+  const helperOp = getClampHelperOp(typeInfo, cOp);
+  if (helperOp) {
+    effects.push({
+      type: "helper",
+      operation: helperOp,
+      cnxType: typeInfo.baseType,
+    });
+    assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
   } else {
     assignment = `${target} ${cOp} ${value};`;
   }

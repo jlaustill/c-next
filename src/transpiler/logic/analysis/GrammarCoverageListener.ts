@@ -16,6 +16,7 @@ import {
   TerminalNode,
 } from "antlr4ng";
 import IGrammarCoverageReport from "./types/IGrammarCoverageReport";
+import GrammarCoverageReportBuilder from "./GrammarCoverageReportBuilder";
 
 class GrammarCoverageListener implements ParseTreeListener {
   private readonly parserRuleVisits: Map<string, number> = new Map();
@@ -110,40 +111,12 @@ class GrammarCoverageListener implements ParseTreeListener {
    * Generate a coverage report
    */
   getReport(): IGrammarCoverageReport {
-    const totalParserRules = this.parserRuleNames.length;
-    const totalLexerRules = this.lexerRuleNames.length;
-    const visitedParserRules = this.parserRuleVisits.size;
-    const visitedLexerRules = this.lexerRuleVisits.size;
-
-    const neverVisitedParserRules = this.parserRuleNames.filter(
-      (name) => !this.parserRuleVisits.has(name),
+    return GrammarCoverageReportBuilder.build(
+      this.parserRuleNames,
+      this.lexerRuleNames,
+      this.parserRuleVisits,
+      this.lexerRuleVisits,
     );
-    const neverVisitedLexerRules = this.lexerRuleNames.filter(
-      (name) => !this.lexerRuleVisits.has(name),
-    );
-
-    const parserCoveragePercentage =
-      totalParserRules > 0 ? (visitedParserRules / totalParserRules) * 100 : 0;
-    const lexerCoveragePercentage =
-      totalLexerRules > 0 ? (visitedLexerRules / totalLexerRules) * 100 : 0;
-    const combinedTotal = totalParserRules + totalLexerRules;
-    const combinedVisited = visitedParserRules + visitedLexerRules;
-    const combinedCoveragePercentage =
-      combinedTotal > 0 ? (combinedVisited / combinedTotal) * 100 : 0;
-
-    return {
-      totalParserRules,
-      totalLexerRules,
-      visitedParserRules,
-      visitedLexerRules,
-      neverVisitedParserRules,
-      neverVisitedLexerRules,
-      parserRuleVisits: new Map(this.parserRuleVisits),
-      lexerRuleVisits: new Map(this.lexerRuleVisits),
-      parserCoveragePercentage,
-      lexerCoveragePercentage,
-      combinedCoveragePercentage,
-    };
   }
 }
 

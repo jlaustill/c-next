@@ -13,12 +13,22 @@ import TYPE_LIMITS from "../../types/TYPE_LIMITS";
 const { TYPE_MAX, TYPE_MIN } = TYPE_LIMITS;
 
 /**
- * Generate a single overflow helper function (clamps on overflow)
+ * Type info for helper generation.
  */
-function generateSingleHelper(
-  operation: string,
-  cnxType: string,
-): string | null {
+interface IHelperTypeInfo {
+  cType: string;
+  widerType: string;
+  maxValue: string;
+  minValue: string;
+  isUnsigned: boolean;
+  useWiderArithmetic: boolean;
+}
+
+/**
+ * Get type info for helper generation.
+ * Returns null if the type is invalid or missing limits.
+ */
+function getHelperTypeInfo(cnxType: string): IHelperTypeInfo | null {
   const cType = TYPE_MAP[cnxType];
   const widerType = WIDER_TYPE_MAP[cnxType] || cType;
   const maxValue = TYPE_MAX[cnxType];
@@ -33,6 +43,37 @@ function generateSingleHelper(
   // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
   const useWiderArithmetic =
     !isUnsigned && widerType !== cType && cnxType !== "i64";
+
+  return {
+    cType,
+    widerType,
+    maxValue,
+    minValue,
+    isUnsigned,
+    useWiderArithmetic,
+  };
+}
+
+/**
+ * Generate a single overflow helper function (clamps on overflow)
+ */
+function generateSingleHelper(
+  operation: string,
+  cnxType: string,
+): string | null {
+  const typeInfo = getHelperTypeInfo(cnxType);
+  if (!typeInfo) {
+    return null;
+  }
+
+  const {
+    cType,
+    widerType,
+    maxValue,
+    minValue,
+    isUnsigned,
+    useWiderArithmetic,
+  } = typeInfo;
 
   switch (operation) {
     case "add":
@@ -133,26 +174,26 @@ function generateDebugHelper(
   operation: string,
   cnxType: string,
 ): string | null {
-  const cType = TYPE_MAP[cnxType];
-  const widerType = WIDER_TYPE_MAP[cnxType] || cType;
-  const maxValue = TYPE_MAX[cnxType];
-  const minValue = TYPE_MIN[cnxType];
-
-  if (!cType || !maxValue) {
+  const typeInfo = getHelperTypeInfo(cnxType);
+  if (!typeInfo) {
     return null;
   }
 
-  const isUnsigned = cnxType.startsWith("u");
+  const {
+    cType,
+    widerType,
+    maxValue,
+    minValue,
+    isUnsigned,
+    useWiderArithmetic,
+  } = typeInfo;
+
   const opNames: Record<string, string> = {
     add: "addition",
     sub: "subtraction",
     mul: "multiplication",
   };
   const opName = opNames[operation] ?? "operation";
-
-  // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
-  const useWiderArithmetic =
-    !isUnsigned && widerType !== cType && cnxType !== "i64";
 
   switch (operation) {
     case "add":

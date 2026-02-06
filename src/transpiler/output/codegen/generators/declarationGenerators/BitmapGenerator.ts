@@ -22,6 +22,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
+import BitmapFieldCommentHelper from "../../helpers/BitmapFieldCommentHelper";
 
 /**
  * Generate a C typedef from a C-Next bitmap declaration.
@@ -59,18 +60,7 @@ const generateBitmap: TGeneratorFn<Parser.BitmapDeclarationContext> = (
 
   const fields = input.symbols?.bitmapFields.get(fullName);
   if (fields) {
-    lines.push("/* Fields:");
-    for (const [fieldName, info] of fields.entries()) {
-      const endBit = info.offset + info.width - 1;
-      const bitRange =
-        info.width === 1
-          ? `bit ${info.offset}`
-          : `bits ${info.offset}-${endBit}`;
-      lines.push(
-        ` *   ${fieldName}: ${bitRange} (${info.width} bit${info.width > 1 ? "s" : ""})`,
-      );
-    }
-    lines.push(" */");
+    BitmapFieldCommentHelper.generateFieldComments(fields, lines);
   }
 
   lines.push(`typedef ${backingType} ${fullName};`, "");

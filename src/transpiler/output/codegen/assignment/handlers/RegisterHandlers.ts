@@ -178,12 +178,13 @@ function handleRegisterBitRange(
 }
 
 /**
- * Handle scoped register single bit: this.GPIO7.DR_SET[bit] <- true
+ * Common setup for scoped register bit handlers.
+ * Validates scope and compound operators, returns register name and access info.
  */
-function handleScopedRegisterBit(
+function getScopedRegisterInfo(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
-): string {
+): { regName: string; scopedRegName: string; isWriteOnly: boolean } {
   if (!deps.currentScope) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
@@ -194,13 +195,25 @@ function handleScopedRegisterBit(
     );
   }
 
-  // Build scoped name: Scope_Register_Member
   const scopeName = deps.currentScope;
   const parts = ctx.identifiers;
   const regName = `${scopeName}_${parts.join("_")}`;
+  const scopedRegName = `${scopeName}_${parts[0]}`;
 
   const accessMod = deps.symbols.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
+
+  return { regName, scopedRegName, isWriteOnly };
+}
+
+/**
+ * Handle scoped register single bit: this.GPIO7.DR_SET[bit] <- true
+ */
+function handleScopedRegisterBit(
+  ctx: IAssignmentContext,
+  deps: IHandlerDeps,
+): string {
+  const { regName, isWriteOnly } = getScopedRegisterInfo(ctx, deps);
 
   const bitIndex = deps.generateExpression(ctx.subscripts[0]);
 
@@ -219,23 +232,10 @@ function handleScopedRegisterBitRange(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  if (!deps.currentScope) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
-
-  const scopeName = deps.currentScope;
-  const parts = ctx.identifiers;
-  const regName = `${scopeName}_${parts.join("_")}`;
-  const scopedRegName = `${scopeName}_${parts[0]}`;
-
-  const accessMod = deps.symbols.registerMemberAccess.get(regName);
-  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
+  const { regName, scopedRegName, isWriteOnly } = getScopedRegisterInfo(
+    ctx,
+    deps,
+  );
 
   const start = deps.generateExpression(ctx.subscripts[0]);
   const width = deps.generateExpression(ctx.subscripts[1]);

@@ -7,21 +7,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import IAssignmentContext from "./IAssignmentContext";
 import TTypeInfo from "../types/TTypeInfo";
-
-/** Operator mapping from C-Next to C */
-const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
-  "<-": "=",
-  "+<-": "+=",
-  "-<-": "-=",
-  "*<-": "*=",
-  "/<-": "/=",
-  "%<-": "%=",
-  "&<-": "&=",
-  "|<-": "|=",
-  "^<-": "^=",
-  "<<<-": "<<=",
-  ">><-": ">>=",
-};
+import ASSIGNMENT_OPERATOR_MAP from "../helpers/AssignmentOperatorMap";
 
 /**
  * Dependencies for building context.

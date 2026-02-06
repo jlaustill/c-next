@@ -222,7 +222,6 @@ function transpile(
   // Validate comments (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   const commentErrors = commentExtractor.validate();
-
   for (const commentError of commentErrors) {
     errors.push({
       line: commentError.line,

@@ -17,6 +17,24 @@ import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
+import ICommentError from "../../types/ICommentError";
+
+/**
+ * Convert comment validation errors to transpile errors.
+ */
+function convertCommentErrors(
+  commentErrors: ICommentError[],
+  errors: ITranspileError[],
+): void {
+  for (const commentError of commentErrors) {
+    errors.push({
+      line: commentError.line,
+      column: commentError.column,
+      message: `error[MISRA-${commentError.rule}]: ${commentError.message}`,
+      severity: "error",
+    });
+  }
+}
 
 /**
  * Options for running analyzers
@@ -181,15 +199,7 @@ function runAnalyzers(
   // 7. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   const commentErrors = commentExtractor.validate();
-
-  for (const commentError of commentErrors) {
-    errors.push({
-      line: commentError.line,
-      column: commentError.column,
-      message: `error[MISRA-${commentError.rule}]: ${commentError.message}`,
-      severity: "error",
-    });
-  }
+  convertCommentErrors(commentErrors, errors);
 
   return errors;
 }

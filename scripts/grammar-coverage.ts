@@ -10,15 +10,17 @@
  *   npm run coverage:grammar:check   - Check coverage (fail if below threshold)
  */
 
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import transpile from "../src/lib/transpiler";
 import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGrammarCoverageReport";
+import GrammarCoverageReportBuilder from "../src/transpiler/logic/analysis/GrammarCoverageReportBuilder";
 import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
 import chalk from "chalk";
+import fileUtils from "./file-utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,35 +37,10 @@ function getPercentageColor(pct: number): (text: string) => string {
 }
 
 /**
- * Recursively find all .test.cnx files
- */
-function findTestFiles(dir: string): string[] {
-  const files: string[] = [];
-
-  function walk(currentDir: string): void {
-    const entries = readdirSync(currentDir);
-
-    for (const entry of entries) {
-      const fullPath = join(currentDir, entry);
-      const stat = statSync(fullPath);
-
-      if (stat.isDirectory()) {
-        walk(fullPath);
-      } else if (entry.endsWith(".test.cnx")) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  walk(dir);
-  return files;
-}
-
-/**
  * Aggregate coverage from all test files
  */
 function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
-  const testFiles = findTestFiles(testsDir);
+  const testFiles = fileUtils.findTestFiles(testsDir);
   const parserVisits = new Map<string, number>();
   const lexerVisits = new Map<string, number>();
 
@@ -87,40 +64,12 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
     }
   }
 
-  const totalParserRules = CNextParser.ruleNames.length;
-  const totalLexerRules = CNextLexer.ruleNames.length;
-  const visitedParserRules = parserVisits.size;
-  const visitedLexerRules = lexerVisits.size;
-
-  const neverVisitedParserRules = CNextParser.ruleNames.filter(
-    (name) => !parserVisits.has(name),
+  return GrammarCoverageReportBuilder.build(
+    CNextParser.ruleNames,
+    CNextLexer.ruleNames,
+    parserVisits,
+    lexerVisits,
   );
-  const neverVisitedLexerRules = CNextLexer.ruleNames.filter(
-    (name) => !lexerVisits.has(name),
-  );
-
-  const parserCoveragePercentage =
-    totalParserRules > 0 ? (visitedParserRules / totalParserRules) * 100 : 0;
-  const lexerCoveragePercentage =
-    totalLexerRules > 0 ? (visitedLexerRules / totalLexerRules) * 100 : 0;
-  const combinedTotal = totalParserRules + totalLexerRules;
-  const combinedVisited = visitedParserRules + visitedLexerRules;
-  const combinedCoveragePercentage =
-    combinedTotal > 0 ? (combinedVisited / combinedTotal) * 100 : 0;
-
-  return {
-    totalParserRules,
-    totalLexerRules,
-    visitedParserRules,
-    visitedLexerRules,
-    neverVisitedParserRules,
-    neverVisitedLexerRules,
-    parserRuleVisits: parserVisits,
-    lexerRuleVisits: lexerVisits,
-    parserCoveragePercentage,
-    lexerCoveragePercentage,
-    combinedCoveragePercentage,
-  };
 }
 
 /**
@@ -332,7 +281,7 @@ async function main(): Promise<void> {
 
   console.log(chalk.yellow("Scanning test files for grammar coverage..."));
 
-  const testFiles = findTestFiles(testsDir);
+  const testFiles = fileUtils.findTestFiles(testsDir);
   console.log(`  Found ${testFiles.length} test files`);
 
   console.log(chalk.yellow("Aggregating grammar coverage..."));

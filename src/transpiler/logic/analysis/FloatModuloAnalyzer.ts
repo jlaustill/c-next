@@ -19,6 +19,14 @@ import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
 
 /**
+ * Context interface for declarations/parameters that have type and identifier
+ */
+interface ITypedDeclaration {
+  type(): Parser.TypeContext | null;
+  IDENTIFIER(): { getText(): string } | null;
+}
+
+/**
  * First pass: Collect variable declarations with float types
  */
 class FloatVariableCollector extends CNextListener {
@@ -29,11 +37,9 @@ class FloatVariableCollector extends CNextListener {
   }
 
   /**
-   * Track variable declarations with f32/f64 types
+   * Check if a typed declaration is a float type and add to floatVars if so.
    */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
+  private collectIfFloatType(ctx: ITypedDeclaration): void {
     const typeCtx = ctx.type();
     if (!typeCtx) return;
 
@@ -44,22 +50,22 @@ class FloatVariableCollector extends CNextListener {
     if (!identifier) return;
 
     this.floatVars.add(identifier.getText());
+  }
+
+  /**
+   * Track variable declarations with f32/f64 types
+   */
+  override enterVariableDeclaration = (
+    ctx: Parser.VariableDeclarationContext,
+  ): void => {
+    this.collectIfFloatType(ctx);
   };
 
   /**
    * Track function parameters with f32/f64 types
    */
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    const typeCtx = ctx.type();
-    if (!typeCtx) return;
-
-    const typeName = typeCtx.getText();
-    if (!TypeConstants.FLOAT_TYPES.includes(typeName)) return;
-
-    const identifier = ctx.IDENTIFIER();
-    if (!identifier) return;
-
-    this.floatVars.add(identifier.getText());
+    this.collectIfFloatType(ctx);
   };
 }
 

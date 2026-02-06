@@ -192,6 +192,33 @@ function printResult(
 }
 
 /**
+ * Test result counters for tracking pass/fail/update/skip counts.
+ */
+interface ITestCounters {
+  passed: number;
+  failed: number;
+  updated: number;
+  noSnapshot: number;
+}
+
+/**
+ * Update counters based on a test result.
+ */
+function updateCounters(counters: ITestCounters, result: ITestResult): void {
+  if (result.passed) {
+    if (result.updated) {
+      counters.updated++;
+    }
+    counters.passed++;
+  } else {
+    if (result.noSnapshot) {
+      counters.noSnapshot++;
+    }
+    counters.failed++;
+  }
+}
+
+/**
  * Run tests in parallel using child process fork
  */
 async function runTestsParallel(
@@ -200,17 +227,14 @@ async function runTestsParallel(
   quietMode: boolean,
   tools: ITools,
   numWorkers: number,
-): Promise<{
-  passed: number;
-  failed: number;
-  updated: number;
-  noSnapshot: number;
-}> {
+): Promise<ITestCounters> {
   return new Promise((resolve) => {
-    let passed = 0;
-    let failed = 0;
-    let updated = 0;
-    let noSnapshot = 0;
+    const counters: ITestCounters = {
+      passed: 0,
+      failed: 0,
+      updated: 0,
+      noSnapshot: 0,
+    };
 
     const pendingTests = [...cnxFiles];
     const activeWorkers = new Map<ChildProcess, string>();
@@ -233,18 +257,7 @@ async function runTestsParallel(
         const relativePath = cnxFile.replace(rootDir + "/", "");
 
         printResult(relativePath, result, quietMode);
-
-        if (result.passed) {
-          if (result.updated) {
-            updated++;
-          }
-          passed++;
-        } else {
-          if (result.noSnapshot) {
-            noSnapshot++;
-          }
-          failed++;
-        }
+        updateCounters(counters, result);
 
         nextToPrint++;
       }
@@ -281,7 +294,7 @@ async function runTestsParallel(
           if (completedCount === cnxFiles.length) {
             // Terminate all workers
             workers.forEach((w) => w.send({ type: "exit" }));
-            resolve({ passed, failed, updated, noSnapshot });
+            resolve(counters);
           } else {
             // Assign more work
             assignWork(worker);
@@ -315,7 +328,7 @@ async function runTestsParallel(
               // Worker may already be terminated
             }
           });
-          resolve({ passed, failed, updated, noSnapshot });
+          resolve(counters);
         }
       });
 
@@ -333,7 +346,7 @@ async function runTestsParallel(
         activeWorkers.delete(worker);
 
         if (completedCount === cnxFiles.length) {
-          resolve({ passed, failed, updated, noSnapshot });
+          resolve(counters);
         }
       });
 
@@ -365,37 +378,23 @@ async function runTestsSequential(
   updateMode: boolean,
   quietMode: boolean,
   tools: ITools,
-): Promise<{
-  passed: number;
-  failed: number;
-  updated: number;
-  noSnapshot: number;
-}> {
-  let passed = 0;
-  let failed = 0;
-  let updated = 0;
-  let noSnapshot = 0;
+): Promise<ITestCounters> {
+  const counters: ITestCounters = {
+    passed: 0,
+    failed: 0,
+    updated: 0,
+    noSnapshot: 0,
+  };
 
   for (const cnxFile of cnxFiles) {
     const relativePath = cnxFile.replace(rootDir + "/", "");
     const result = await runTest(cnxFile, updateMode, tools);
 
     printResult(relativePath, result, quietMode);
-
-    if (result.passed) {
-      if (result.updated) {
-        updated++;
-      }
-      passed++;
-    } else {
-      if (result.noSnapshot) {
-        noSnapshot++;
-      }
-      failed++;
-    }
+    updateCounters(counters, result);
   }
 
-  return { passed, failed, updated, noSnapshot };
+  return counters;
 }
 
 /**

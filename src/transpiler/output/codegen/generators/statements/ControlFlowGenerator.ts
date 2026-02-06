@@ -24,23 +24,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
-
-/**
- * Maps C-Next assignment operators to C assignment operators
- */
-const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
-  "<-": "=",
-  "+<-": "+=",
-  "-<-": "-=",
-  "*<-": "*=",
-  "/<-": "/=",
-  "%<-": "%=",
-  "&<-": "&=",
-  "|<-": "|=",
-  "^<-": "^=",
-  "<<<-": "<<=",
-  ">><-": ">>=",
-};
+import ASSIGNMENT_OPERATOR_MAP from "../../helpers/AssignmentOperatorMap";
 
 /**
  * Generate C code for a return statement.

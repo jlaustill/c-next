@@ -21,6 +21,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import generateScopedRegister from "./ScopedRegisterGenerator";
+import BitmapFieldCommentHelper from "../../helpers/BitmapFieldCommentHelper";
 
 /**
  * Validate and resolve constructor arguments, ensuring each is const.
@@ -405,18 +406,7 @@ function generateScopedBitmapInline(
   // Try to get field info from symbols
   const symbolFields = input.symbols?.bitmapFields.get(fullName);
   if (symbolFields) {
-    lines.push("/* Fields:");
-    for (const [fieldName, info] of symbolFields.entries()) {
-      const endBit = info.offset + info.width - 1;
-      const bitRange =
-        info.width === 1
-          ? `bit ${info.offset}`
-          : `bits ${info.offset}-${endBit}`;
-      lines.push(
-        ` *   ${fieldName}: ${bitRange} (${info.width} bit${info.width > 1 ? "s" : ""})`,
-      );
-    }
-    lines.push(" */");
+    BitmapFieldCommentHelper.generateFieldComments(symbolFields, lines);
   } else {
     // Fall back to AST parsing
     const fields = node.bitmapMember();

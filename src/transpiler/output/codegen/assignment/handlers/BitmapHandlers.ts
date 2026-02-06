@@ -49,6 +49,14 @@ function getBitmapFieldInfo(
 }
 
 /**
+ * Get the mask hex string for a given bit width.
+ */
+function getMaskHex(width: number): string {
+  const mask = (1 << width) - 1;
+  return BitUtils.formatHex(mask);
+}
+
+/**
  * Generate bitmap field write using read-modify-write pattern.
  */
 function generateBitmapWrite(
@@ -56,16 +64,14 @@ function generateBitmapWrite(
   fieldInfo: { offset: number; width: number },
   value: string,
 ): string {
-  const mask = (1 << fieldInfo.width) - 1;
-  const maskHex = BitUtils.formatHex(mask);
-
   if (fieldInfo.width === 1) {
     // Single bit write: target = (target & ~(1 << offset)) | ((value ? 1 : 0) << offset)
     return `${target} = (${target} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
-  } else {
-    // Multi-bit write: target = (target & ~(mask << offset)) | ((value & mask) << offset)
-    return `${target} = (${target} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
   }
+
+  // Multi-bit write: target = (target & ~(mask << offset)) | ((value & mask) << offset)
+  const maskHex = getMaskHex(fieldInfo.width);
+  return `${target} = (${target} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
 }
 
 /**
@@ -76,14 +82,12 @@ function generateWriteOnlyBitmapWrite(
   fieldInfo: { offset: number; width: number },
   value: string,
 ): string {
-  const mask = (1 << fieldInfo.width) - 1;
-  const maskHex = BitUtils.formatHex(mask);
-
   if (fieldInfo.width === 1) {
     return `${target} = (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
-  } else {
-    return `${target} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
   }
+
+  const maskHex = getMaskHex(fieldInfo.width);
+  return `${target} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
 }
 
 /**

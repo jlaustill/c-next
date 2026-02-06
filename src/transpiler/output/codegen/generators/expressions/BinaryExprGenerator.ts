@@ -20,6 +20,38 @@ import IOrchestrator from "../IOrchestrator";
 import BinaryExprUtils from "./BinaryExprUtils";
 
 /**
+ * Chain expressions with operators, collecting effects.
+ * Used by relational, shift expressions that follow the same pattern.
+ *
+ * @param exprs - Array of expressions to chain
+ * @param operators - Operators between expressions
+ * @param defaultOp - Default operator if none found
+ * @param generateChild - Generator function for child expressions
+ * @param effects - Effects array to accumulate into
+ * @returns The chained code string
+ */
+function chainWithOperators<T>(
+  exprs: T[],
+  operators: string[],
+  defaultOp: string,
+  generateChild: (expr: T) => IGeneratorOutput,
+  effects: TGeneratorEffect[],
+): string {
+  const firstResult = generateChild(exprs[0]);
+  effects.push(...firstResult.effects);
+  let result = firstResult.code;
+
+  for (let i = 1; i < exprs.length; i++) {
+    const op = operators[i - 1] || defaultOp;
+    const exprResult = generateChild(exprs[i]);
+    effects.push(...exprResult.effects);
+    result += ` ${op} ${exprResult.code}`;
+  }
+
+  return result;
+}
+
+/**
  * Generate C code for an OR expression (lowest precedence binary op).
  */
 const generateOrExpr = (
@@ -169,7 +201,6 @@ const generateRelationalExpr = (
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  const effects: TGeneratorEffect[] = [];
   const exprs = node.bitwiseOrExpression();
 
   if (exprs.length === 1) {
@@ -177,29 +208,17 @@ const generateRelationalExpr = (
   }
 
   // Issue #152: Extract operators in order from parse tree children
+  const effects: TGeneratorEffect[] = [];
   const operators = orchestrator.getOperatorsFromChildren(node);
-  const firstResult = generateBitwiseOrExpr(
-    exprs[0],
-    input,
-    state,
-    orchestrator,
+  const code = chainWithOperators(
+    exprs,
+    operators,
+    "<",
+    (expr) => generateBitwiseOrExpr(expr, input, state, orchestrator),
+    effects,
   );
-  effects.push(...firstResult.effects);
-  let result = firstResult.code;
 
-  for (let i = 1; i < exprs.length; i++) {
-    const op = operators[i - 1] || "<";
-    const exprResult = generateBitwiseOrExpr(
-      exprs[i],
-      input,
-      state,
-      orchestrator,
-    );
-    effects.push(...exprResult.effects);
-    result += ` ${op} ${exprResult.code}`;
-  }
-
-  return { code: result, effects };
+  return { code, effects };
 };
 
 /**

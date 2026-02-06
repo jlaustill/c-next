@@ -11,12 +11,41 @@ import {
   SwitchCaseContext,
   CaseLabelContext,
   DefaultCaseContext,
+  BlockContext,
 } from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+
+/**
+ * Generate block contents with break statement for switch cases.
+ * Used by both case and default blocks.
+ *
+ * @param block - The block context containing statements
+ * @param orchestrator - The orchestrator for statement generation
+ * @param lines - Array to push generated lines to
+ */
+function generateCaseBlockContents(
+  block: BlockContext,
+  orchestrator: IOrchestrator,
+  lines: string[],
+): void {
+  const statements = block.statement();
+  for (const stmt of statements) {
+    const stmtCode = orchestrator.generateStatement(stmt);
+    if (stmtCode) {
+      lines.push(orchestrator.indent(orchestrator.indent(stmtCode)));
+    }
+  }
+
+  // Add break and close block
+  lines.push(
+    orchestrator.indent(orchestrator.indent("break;")),
+    orchestrator.indent("}"),
+  );
+}
 
 /**
  * Generate C code for a case label.
@@ -168,20 +197,8 @@ const generateSwitchCase = (
     }
   }
 
-  // Generate block contents (without the outer braces - we added them above)
-  const statements = block.statement();
-  for (const stmt of statements) {
-    const stmtCode = orchestrator.generateStatement(stmt);
-    if (stmtCode) {
-      lines.push(orchestrator.indent(orchestrator.indent(stmtCode)));
-    }
-  }
-
-  // Add break and close block
-  lines.push(
-    orchestrator.indent(orchestrator.indent("break;")),
-    orchestrator.indent("}"),
-  );
+  // Generate block contents with break
+  generateCaseBlockContents(block, orchestrator, lines);
 
   return { code: lines.join("\n"), effects };
 };
@@ -195,7 +212,6 @@ const generateDefaultCase = (
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  const effects: TGeneratorEffect[] = [];
   const block = node.block();
   const lines: string[] = [];
 
@@ -203,22 +219,10 @@ const generateDefaultCase = (
   // not included in generated C
   lines.push(orchestrator.indent("default: {"));
 
-  // Generate block contents
-  const statements = block.statement();
-  for (const stmt of statements) {
-    const stmtCode = orchestrator.generateStatement(stmt);
-    if (stmtCode) {
-      lines.push(orchestrator.indent(orchestrator.indent(stmtCode)));
-    }
-  }
+  // Generate block contents with break
+  generateCaseBlockContents(block, orchestrator, lines);
 
-  // Add break and close block
-  lines.push(
-    orchestrator.indent(orchestrator.indent("break;")),
-    orchestrator.indent("}"),
-  );
-
-  return { code: lines.join("\n"), effects };
+  return { code: lines.join("\n"), effects: [] };
 };
 
 /**
