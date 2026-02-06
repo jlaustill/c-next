@@ -1639,11 +1639,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Get member type info for struct access chains.
    * Part of IOrchestrator interface.
    */
-  getMemberTypeInfo(
-    structType: string,
-    memberName: string,
-  ): { baseType: string; isArray: boolean } | null {
-    return this._getMemberTypeInfo(structType, memberName) ?? null;
+  getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
+    return this._getFullMemberTypeInfo(structType, memberName);
   }
 
   /**
@@ -4439,14 +4436,35 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get type info for a struct member field
-   * Used to track types through member access chains like buf.data[0]
+   * Get full type info for a struct member field.
+   * Single source of truth for both expression path (IOrchestrator) and
+   * assignment path (IHandlerDeps). Checks SymbolTable first for C header
+   * structs, then falls back to C-Next struct fields.
    */
-  private _getMemberTypeInfo(
+  private _getFullMemberTypeInfo(
     structType: string,
     memberName: string,
-  ): { isArray: boolean; baseType: string } | undefined {
-    return this.typeResolver!.getMemberTypeInfo(structType, memberName);
+  ): TTypeInfo | null {
+    const fieldInfo = this._getStructFieldInfo(structType, memberName);
+    if (!fieldInfo) return null;
+
+    // Check dimensions first, then fall back to structFieldArrays for fields
+    // with unresolved dimension expressions (e.g., u8 data[SOME_CONSTANT])
+    const isArray =
+      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
+      (this.symbols!.structFieldArrays.get(structType)?.has(memberName) ??
+        false);
+    const dims = fieldInfo.dimensions?.filter(
+      (d): d is number => typeof d === "number",
+    );
+
+    return {
+      baseType: fieldInfo.type,
+      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
+      isConst: false,
+      isArray,
+      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
+    };
   }
 
   /**
@@ -6432,28 +6450,9 @@ export default class CodeGenerator implements IOrchestrator {
       tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
       generateAssignmentTarget: (ctx) => this._generateAssignmentTarget(ctx),
       isKnownStruct: (name) => this.isKnownStruct(name),
-      isKnownScope: (name) => this.symbols!.knownScopes.has(name),
-      getMemberTypeInfo: (structType, memberName) => {
-        const fields = this.symbols!.structFields.get(structType);
-        const fieldType = fields?.get(memberName);
-        if (fieldType) {
-          const dims =
-            this.symbols!.structFieldDimensions.get(structType)?.get(
-              memberName,
-            );
-          return {
-            baseType: fieldType,
-            bitWidth: TYPE_WIDTH[fieldType] ?? 32,
-            isConst: false,
-            isArray:
-              this.symbols!.structFieldArrays.get(structType)?.has(
-                memberName,
-              ) ?? false,
-            arrayDimensions: dims ? [...dims] : undefined,
-          };
-        }
-        return null;
-      },
+      isKnownScope: (name) => this.isKnownScope(name),
+      getMemberTypeInfo: (structType, memberName) =>
+        this._getFullMemberTypeInfo(structType, memberName),
       validateBitmapFieldLiteral: (expr, width, fieldName) =>
         this.typeValidator!.validateBitmapFieldLiteral(expr, width, fieldName),
       validateCrossScopeVisibility: (scopeName, memberName) =>

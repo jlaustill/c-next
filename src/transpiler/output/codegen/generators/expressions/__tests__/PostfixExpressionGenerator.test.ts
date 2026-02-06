@@ -136,7 +136,7 @@ function createMockOrchestrator(overrides?: {
   getMemberTypeInfo?: (
     structType: string,
     memberName: string,
-  ) => { baseType: string; isArray: boolean } | null;
+  ) => TTypeInfo | null;
   validateCrossScopeVisibility?: (scope: string, member: string) => void;
   generateBitMask?: (width: string, is64?: boolean) => string;
   hasFloatBitShadow?: (name: string) => boolean;
@@ -412,7 +412,12 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
         isKnownStruct: (name) => name === "Config",
-        getMemberTypeInfo: () => ({ baseType: "u32", isArray: false }),
+        getMemberTypeInfo: () => ({
+          baseType: "u32",
+          isArray: false,
+          bitWidth: 32,
+          isConst: false,
+        }),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -508,7 +513,12 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
         isKnownStruct: (name) => name === "MotorConfig",
-        getMemberTypeInfo: () => ({ baseType: "u32", isArray: false }),
+        getMemberTypeInfo: () => ({
+          baseType: "u32",
+          isArray: false,
+          bitWidth: 32,
+          isConst: false,
+        }),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -886,6 +896,8 @@ describe("PostfixExpressionGenerator", () => {
         getMemberTypeInfo: () => ({
           baseType: "u32",
           isArray: true,
+          bitWidth: 32,
+          isConst: false,
         }),
         getStructFieldInfo: () => ({
           type: "u32",
@@ -924,6 +936,8 @@ describe("PostfixExpressionGenerator", () => {
         getMemberTypeInfo: () => ({
           baseType: "i32",
           isArray: false,
+          bitWidth: 32,
+          isConst: false,
         }),
         getStructFieldInfo: () => ({
           type: "i32",
@@ -961,6 +975,8 @@ describe("PostfixExpressionGenerator", () => {
         getMemberTypeInfo: () => ({
           baseType: "string<32>",
           isArray: false,
+          bitWidth: 32,
+          isConst: false,
         }),
         getStructFieldInfo: () => ({
           type: "string<32>",
@@ -1003,6 +1019,8 @@ describe("PostfixExpressionGenerator", () => {
         getMemberTypeInfo: () => ({
           baseType: "string<32>",
           isArray: true,
+          bitWidth: 32,
+          isConst: false,
         }),
         getStructFieldInfo: () => ({
           type: "string<32>",
@@ -1098,7 +1116,12 @@ describe("PostfixExpressionGenerator", () => {
         isKnownStruct: (name) => name === "Person",
         getMemberTypeInfo: (structType, memberName) => {
           if (structType === "Person" && memberName === "name") {
-            return { baseType: "char", isArray: false };
+            return {
+              baseType: "char",
+              isArray: false,
+              bitWidth: 8,
+              isConst: false,
+            };
           }
           return null;
         },
@@ -1138,7 +1161,12 @@ describe("PostfixExpressionGenerator", () => {
         isKnownStruct: (name) => name === "Person",
         getMemberTypeInfo: (structType, memberName) => {
           if (structType === "Person" && memberName === "name") {
-            return { baseType: "char", isArray: false };
+            return {
+              baseType: "char",
+              isArray: false,
+              bitWidth: 8,
+              isConst: false,
+            };
           }
           return null;
         },
@@ -1390,7 +1418,12 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "point",
         isCppMode: () => false,
-        getMemberTypeInfo: () => ({ baseType: "i32", isArray: false }),
+        getMemberTypeInfo: () => ({
+          baseType: "i32",
+          isArray: false,
+          bitWidth: 32,
+          isConst: false,
+        }),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -1420,7 +1453,12 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "point",
         isCppMode: () => true,
-        getMemberTypeInfo: () => ({ baseType: "i32", isArray: false }),
+        getMemberTypeInfo: () => ({
+          baseType: "i32",
+          isArray: false,
+          bitWidth: 32,
+          isConst: false,
+        }),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -1863,7 +1901,12 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
         isKnownStruct: (name) => name === "LengthConfig",
-        getMemberTypeInfo: () => ({ baseType: "u32", isArray: false }),
+        getMemberTypeInfo: () => ({
+          baseType: "u32",
+          isArray: false,
+          bitWidth: 32,
+          isConst: false,
+        }),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -1941,7 +1984,12 @@ describe("PostfixExpressionGenerator", () => {
         isKnownStruct: (name) => name === "Device",
         getMemberTypeInfo: (struct, member) => {
           if (struct === "Device" && member === "flags") {
-            return { baseType: "StatusBits", isArray: false };
+            return {
+              baseType: "StatusBits",
+              isArray: false,
+              bitWidth: 32,
+              isConst: false,
+            };
           }
           return null;
         },
@@ -1977,7 +2025,12 @@ describe("PostfixExpressionGenerator", () => {
         isKnownStruct: (name) => name === "Device",
         getMemberTypeInfo: (struct, member) => {
           if (struct === "Device" && member === "flags") {
-            return { baseType: "StatusBits", isArray: false };
+            return {
+              baseType: "StatusBits",
+              isArray: false,
+              bitWidth: 32,
+              isConst: false,
+            };
           }
           return null;
         },

@@ -292,6 +292,116 @@ void main() {
 
       expect(result.success).toBe(true);
     });
+
+    it("run() handles cross-file scope function calls", async () => {
+      // File 1: Define scope with public method
+      const providerSource = `
+scope Provider {
+    public u8 getValue() {
+        return 42;
+    }
+}
+`;
+      const providerPath = join(tempDir, "provider.cnx");
+      writeFileSync(providerPath, providerSource);
+
+      // File 2: Include provider and call its method
+      const consumerSource = `
+#include "provider.cnx"
+
+scope Consumer {
+    public u8 fetch() {
+        return global.Provider.getValue();
+    }
+}
+
+void main() {
+    u8 val <- Provider.getValue();
+    u8 val2 <- Consumer.fetch();
+}
+`;
+      const consumerPath = join(tempDir, "consumer.cnx");
+      writeFileSync(consumerPath, consumerSource);
+
+      // Via run()
+      const transpiler1 = createTranspiler([consumerPath]);
+      const result1 = await transpiler1.run();
+
+      expect(result1.success).toBe(true);
+
+      const consumerFile = result1.files.find(
+        (f) => f.sourcePath === consumerPath,
+      );
+      expect(consumerFile).toBeDefined();
+      // Verify underscore notation (not dot notation)
+      expect(consumerFile!.code).toContain("Provider_getValue()");
+      expect(consumerFile!.code).not.toContain("Provider.getValue()");
+      expect(consumerFile!.code).toContain("Consumer_fetch()");
+
+      // Via transpileSource() with context from run()
+      const transpiler2 = createTranspiler([]);
+      const result2 = await transpiler2.transpileSource(consumerSource, {
+        workingDir: tempDir,
+        sourcePath: consumerPath,
+      });
+
+      expect(result2.success).toBe(true);
+      expect(result2.code).toContain("Provider_getValue()");
+      expect(result2.code).not.toContain("Provider.getValue()");
+    });
+
+    it("run() handles cross-file scope variable assignment", async () => {
+      // File 1: Define scope with public variable
+      const storageSource = `
+scope Storage {
+    public u8 value <- 0;
+}
+`;
+      const storagePath = join(tempDir, "storage.cnx");
+      writeFileSync(storagePath, storageSource);
+
+      // File 2: Include storage and assign to its variable
+      const writerSource = `
+#include "storage.cnx"
+
+scope Writer {
+    public void save(u8 data) {
+        global.Storage.value <- data;
+    }
+}
+
+void main() {
+    Storage.value <- 42;
+    Writer.save(99);
+}
+`;
+      const writerPath = join(tempDir, "writer.cnx");
+      writeFileSync(writerPath, writerSource);
+
+      // Via run()
+      const transpiler1 = createTranspiler([writerPath]);
+      const result1 = await transpiler1.run();
+
+      expect(result1.success).toBe(true);
+
+      const writerFile = result1.files.find((f) => f.sourcePath === writerPath);
+      expect(writerFile).toBeDefined();
+      // Verify underscore notation for scope variable assignment
+      expect(writerFile!.code).toContain("Storage_value = 42");
+      expect(writerFile!.code).not.toContain("Storage.value = 42");
+      expect(writerFile!.code).toContain("Storage_value = data");
+
+      // Via transpileSource()
+      const transpiler2 = createTranspiler([]);
+      const result2 = await transpiler2.transpileSource(writerSource, {
+        workingDir: tempDir,
+        sourcePath: writerPath,
+      });
+
+      expect(result2.success).toBe(true);
+      expect(result2.code).toContain("Storage_value = 42");
+      expect(result2.code).not.toContain("Storage.value = 42");
+    });
   });
 
   describe("State isolation", () => {

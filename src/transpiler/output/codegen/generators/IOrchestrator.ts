@@ -14,6 +14,7 @@
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
+import TTypeInfo from "../types/TTypeInfo";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import { ParserRuleContext } from "antlr4ng";
 
@@ -363,10 +364,7 @@ interface IOrchestrator {
   ): { type: string; dimensions?: (number | string)[] } | null;
 
   /** Get member type info for struct access chains */
-  getMemberTypeInfo(
-    structType: string,
-    memberName: string,
-  ): { baseType: string; isArray: boolean } | null;
+  getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null;
 
   /** Generate a bit mask for bit range access */
   generateBitMask(width: string, is64Bit?: boolean): string;
