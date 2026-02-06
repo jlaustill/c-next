@@ -4626,7 +4626,6 @@ export default class CodeGenerator implements IOrchestrator {
     const postfix = this.getPostfixExpression(ctx);
     if (!postfix) return false;
 
-    // Get the base identifier (e.g., "cfg" in "cfg.value" or "sensors" in "sensors[0].value")
     const primary = postfix.primaryExpression();
     if (!primary) return false;
     const baseId = primary.IDENTIFIER()?.getText();
@@ -4637,75 +4636,111 @@ export default class CodeGenerator implements IOrchestrator {
     // Case 1: Direct parameter member access (cfg.value)
     const paramInfo = this.context.currentParameters.get(baseId);
     if (paramInfo) {
-      // Check if the parameter type is a primitive type
-      const isPrimitiveParam = !!TYPE_MAP[paramInfo.baseType];
-
-      // If not a primitive type, it's either a known struct or an external C struct
-      // (typedef structs from C headers may not be recognized as structs)
-      const couldBeStruct = paramInfo.isStruct || !isPrimitiveParam;
-      if (couldBeStruct) {
-        // Issue #251: Const struct parameter needs temp to break const chain
-        if (paramInfo.isConst) {
-          return true;
-        }
-
-        // Issue #252: External C structs may have bool/enum members that need casting
-        // In C++ mode, we conservatively create temps for all external struct member accesses
-        // to u8 parameters, since we don't have full member type info for C headers
-        const targetCType = TYPE_MAP[targetParamBaseType];
-        if (targetCType === "uint8_t") {
-          return true; // Could be bool or typed enum
-        }
-      }
-      return false;
+      return this._needsParamMemberConversion(paramInfo, targetParamBaseType);
     }
 
-    // Issue #256: Array element member access (arr[i].member) or
-    // function return member access (getConfig().member)
-    // Check if the expression ends with member access preceded by array/function
-    if (ops.length >= 2) {
-      const lastOp = ops.at(-1)!;
-      // Last op must be member access (.identifier)
-      if (lastOp.IDENTIFIER()) {
-        const precedingOps = ops.slice(0, -1);
+    // Case 2: Array element or function return member access
+    return this._needsComplexMemberConversion(ops, baseId, targetParamBaseType);
+  }
 
-        // Case 2a: Array element member access (arr[i].member)
-        const hasArraySubscript = precedingOps.some(
-          (op) => op.expression() !== null,
-        );
-        if (hasArraySubscript) {
-          // Check if base is an array with non-primitive element type
-          const typeInfo = this.context.typeRegistry.get(baseId);
-          if (typeInfo?.isArray) {
-            const isPrimitiveElement = !!TYPE_MAP[typeInfo.baseType];
-            if (!isPrimitiveElement) {
-              // Only for u8 target parameters (could be bool or typed enum)
-              const targetCType = TYPE_MAP[targetParamBaseType];
-              if (targetCType === "uint8_t") {
-                return true;
-              }
-            }
-          }
-        }
+  /**
+   * Check if target type is u8 (could be bool or typed enum from C header)
+   */
+  private _isU8TargetType(targetParamBaseType: string): boolean {
+    return TYPE_MAP[targetParamBaseType] === "uint8_t";
+  }
 
-        // Case 2b: Function return member access (getConfig().member)
-        // Function call is detected by checking if preceding op has argumentList
-        // (even empty function calls have argumentList node, just empty)
-        const hasFunctionCall = precedingOps.some(
-          (op) => op.argumentList() !== null || op.getText().endsWith(")"),
-        );
-        if (hasFunctionCall) {
-          // Conservatively generate temp for any function().member -> u8 in C++ mode
-          // The function could return a struct from C header with bool/enum members
-          const targetCType = TYPE_MAP[targetParamBaseType];
-          if (targetCType === "uint8_t") {
-            return true;
-          }
-        }
-      }
+  /**
+   * Case 1: Direct parameter member access needs conversion?
+   * Issue #251: Const struct parameter needs temp to break const chain
+   * Issue #252: External C structs may have bool/enum members
+   */
+  private _needsParamMemberConversion(
+    paramInfo: { baseType: string; isStruct?: boolean; isConst?: boolean },
+    targetParamBaseType: string,
+  ): boolean {
+    const isPrimitiveParam = !!TYPE_MAP[paramInfo.baseType];
+    const couldBeStruct = paramInfo.isStruct || !isPrimitiveParam;
+
+    if (!couldBeStruct) return false;
+
+    // Const struct parameter needs temp to break const chain
+    if (paramInfo.isConst) return true;
+
+    // External C structs may have bool/enum members that need casting
+    return this._isU8TargetType(targetParamBaseType);
+  }
+
+  /**
+   * Case 2: Array element or function return member access needs conversion?
+   * Issue #256: arr[i].member or getConfig().member patterns
+   */
+  private _needsComplexMemberConversion(
+    ops: Parser.PostfixOpContext[],
+    baseId: string,
+    targetParamBaseType: string,
+  ): boolean {
+    if (ops.length < 2) return false;
+
+    const lastOp = ops.at(-1)!;
+    // Last op must be member access (.identifier)
+    if (!lastOp.IDENTIFIER()) return false;
+
+    const precedingOps = ops.slice(0, -1);
+
+    // Case 2a: Array element member access (arr[i].member)
+    if (
+      this._needsArrayElementMemberConversion(
+        precedingOps,
+        baseId,
+        targetParamBaseType,
+      )
+    ) {
+      return true;
     }
 
-    return false;
+    // Case 2b: Function return member access (getConfig().member)
+    return this._needsFunctionReturnMemberConversion(
+      precedingOps,
+      targetParamBaseType,
+    );
+  }
+
+  /**
+   * Case 2a: Array element member access needs conversion?
+   */
+  private _needsArrayElementMemberConversion(
+    precedingOps: Parser.PostfixOpContext[],
+    baseId: string,
+    targetParamBaseType: string,
+  ): boolean {
+    const hasArraySubscript = precedingOps.some(
+      (op) => op.expression() !== null,
+    );
+    if (!hasArraySubscript) return false;
+
+    const typeInfo = this.context.typeRegistry.get(baseId);
+    if (!typeInfo?.isArray) return false;
+
+    const isPrimitiveElement = !!TYPE_MAP[typeInfo.baseType];
+    if (isPrimitiveElement) return false;
+
+    return this._isU8TargetType(targetParamBaseType);
+  }
+
+  /**
+   * Case 2b: Function return member access needs conversion?
+   */
+  private _needsFunctionReturnMemberConversion(
+    precedingOps: Parser.PostfixOpContext[],
+    targetParamBaseType: string,
+  ): boolean {
+    const hasFunctionCall = precedingOps.some(
+      (op) => op.argumentList() !== null || op.getText().endsWith(")"),
+    );
+    if (!hasFunctionCall) return false;
+
+    return this._isU8TargetType(targetParamBaseType);
   }
 
   /**
