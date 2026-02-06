@@ -86,6 +86,13 @@ Check the terminal report for files you changed — any new code below 80% cover
 - **Run manually**: `npm run cspell:check` (runs automatically on push)
 - **Naming convention**: Use camelCase for compound words (e.g., `SubDirs` instead of lowercase) - cspell may flag all-lowercase compounds
 
+### jscpd (Copy-Paste Detection)
+
+- `npm run analyze:duplication` — Find code clones with token counts and file locations
+- Common extraction patterns: type resolution helpers, validation helpers, code generation utilities
+- Focus on clones >100 tokens for meaningful reduction
+- **Inline interface duplication**: When the same inline interface appears in multiple method signatures, extract to a named interface type
+
 ### TypeScript Coding Standards
 
 **Default exports only** - The project uses oxlint's `no-named-export` rule.
