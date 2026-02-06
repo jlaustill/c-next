@@ -52,9 +52,18 @@ Following the proven architecture of VS Code's TypeScript extension, the C-Next 
 
 ## Implementation Plan
 
-### Phase 1: Create Language Server in Main Repo
+### Phase 1: Add Server Mode to cnext CLI
 
-Add a language server binary (`cnext-server`) to the main c-next repository that exposes transpiler functionality via JSON protocol.
+Add a `--serve` flag to the existing `cnext` binary that runs in language server mode, exposing transpiler functionality via JSON protocol over stdin/stdout.
+
+```bash
+# Normal CLI usage
+cnext file.cnx                    # Transpile file
+cnext file.cnx --cpp              # Transpile to C++
+
+# Server mode for editors
+cnext --serve                     # Start JSON-RPC server on stdin/stdout
+```
 
 #### 1.1 Server Protocol Definition
 
@@ -125,7 +134,7 @@ export interface IDiagnostic {
 
 #### 1.2 Server Implementation
 
-Create `src/server/index.ts` as the server entry point:
+Create `src/server/CNextServer.ts`:
 
 ```typescript
 import * as readline from 'node:readline';
@@ -134,7 +143,7 @@ import parseWithSymbols from '../lib/parseWithSymbols';
 import { CSymbolCollector } from '../transpiler/logic/symbols/CSymbolCollector';
 import type { IServerRequest, IServerResponse } from './protocol';
 
-class CNextServer {
+export class CNextServer {
   private rl: readline.Interface;
 
   constructor() {
@@ -213,49 +222,57 @@ class CNextServer {
     console.log(JSON.stringify(response));
   }
 }
-
-new CNextServer();
 ```
 
-#### 1.3 Add Server Binary to package.json
+#### 1.3 Integrate Server into CLI
 
-Update main repo's `package.json`:
+Update `src/index.ts` to handle `--serve` flag:
+
+```typescript
+// src/index.ts
+import { CNextServer } from './server/CNextServer';
+
+// Parse args
+const args = process.argv.slice(2);
+
+if (args.includes('--serve')) {
+  // Server mode - start JSON-RPC server on stdin/stdout
+  const server = new CNextServer();
+  server.start();
+} else {
+  // Normal CLI mode - transpile files
+  // ... existing CLI logic ...
+}
+```
+
+#### 1.4 No Changes to package.json bin
+
+The existing binary already works - just add the flag handling:
 
 ```json
 {
   "name": "@jlaustill/cnext",
   "bin": {
-    "cnext": "./dist/index.js",
-    "cnext-server": "./dist/server/index.js"
-  },
-  "files": ["dist/"]
-}
-```
-
-#### 1.4 Build Configuration
-
-Add server build script:
-
-```json
-{
-  "scripts": {
-    "build:server": "esbuild src/server/index.ts --bundle --platform=node --outfile=dist/server/index.js",
-    "build:lib": "npm run build && npm run build:server"
+    "cnext": "./dist/index.js"
   }
 }
 ```
 
-#### 1.5 Publish Workflow Update
+#### 1.5 Server Module Structure
 
-Modify `.github/workflows/publish.yml` to include server:
-
-```yaml
-- name: Build library and server
-  run: npm run build:lib
-
-- name: Publish to npm
-  run: npm publish --provenance --access public
 ```
+src/
+├── index.ts              # CLI entry - routes to server or transpile mode
+├── server/
+│   ├── CNextServer.ts    # Server implementation (readline + dispatch)
+│   └── protocol.ts       # Request/response types
+├── lib/
+│   └── ...               # Existing transpiler code
+└── transpiler/
+    └── ...
+```
+
+The server code is bundled into the same binary - no separate build step needed.
 
 ---
 
@@ -346,10 +363,10 @@ export class CNextServerClient implements vscode.Disposable {
   async start(): Promise<void> {
     if (this.process) return;
 
-    const serverPath = this.findServerPath();
-    this.outputChannel.appendLine(`Starting cnext-server: ${serverPath}`);
+    const { command, args } = this.findServerCommand();
+    this.outputChannel.appendLine(`Starting cnext server: ${command} ${args.join(' ')}`);
 
-    this.process = cp.spawn('node', [serverPath], {
+    this.process = cp.spawn(command, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -380,14 +397,14 @@ export class CNextServerClient implements vscode.Disposable {
     this.restartCount = 0;
   }
 
-  private findServerPath(): string {
-    // In development, use local node_modules
-    // In production, cnext-server is installed globally or in extension
+  private findServerCommand(): { command: string; args: string[] } {
+    // Try to find cnext binary
     try {
-      return require.resolve('@jlaustill/cnext/dist/server/index.js');
+      const cnextPath = require.resolve('@jlaustill/cnext/dist/index.js');
+      return { command: 'node', args: [cnextPath, '--serve'] };
     } catch {
       // Fallback to global installation
-      return 'cnext-server';
+      return { command: 'cnext', args: ['--serve'] };
     }
   }
 
@@ -843,10 +860,10 @@ CHANGELOG.md          # Shown in marketplace changelog tab
 #### 6.1 Pre-Migration (Main Repo)
 
 - [ ] Implement `src/server/protocol.ts` with JSON-RPC types
-- [ ] Implement `src/server/index.ts` language server
+- [ ] Implement `src/server/CNextServer.ts` language server class
+- [ ] Add `--serve` flag handling to `src/index.ts`
 - [ ] Add unit tests for server protocol handling
-- [ ] Update package.json with `cnext-server` binary
-- [ ] Verify `cnext-server` works standalone: `echo '{"id":1,"method":"getVersion","params":{}}' | node dist/server/index.js`
+- [ ] Verify server mode works: `echo '{"id":1,"method":"getVersion","params":{}}' | cnext --serve`
 - [ ] Tag and publish transpiler npm package (v0.2.0 or appropriate version)
 
 #### 6.2 Pre-Migration (New Repo Setup)
