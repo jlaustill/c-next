@@ -12,6 +12,65 @@ import TypeUtils from "../utils/TypeUtils";
 
 class VariableCollector {
   /**
+   * Resolve a single array dimension to a number or string.
+   * Returns undefined if the dimension cannot be resolved.
+   */
+  private static resolveDimension(
+    dim: Parser.ArrayDimensionContext,
+    constValues: Map<string, number> | undefined,
+    initExpr: Parser.ExpressionContext | null,
+  ): number | string | undefined {
+    const sizeExpr = dim.expression();
+
+    if (sizeExpr) {
+      const dimText = sizeExpr.getText();
+      // Try parsing as literal number first
+      const literalSize = Number.parseInt(dimText, 10);
+      if (!Number.isNaN(literalSize)) {
+        return literalSize;
+      }
+      // Issue #455: Resolve constant reference to its value
+      if (constValues?.has(dimText)) {
+        return constValues.get(dimText)!;
+      }
+      // Issue #455: Store original text for unresolved dimensions
+      // This handles C macros from included headers (e.g., DEVICE_COUNT)
+      return dimText;
+    }
+
+    // Issue #636: Empty dimension [] - infer size from array initializer
+    if (initExpr) {
+      return ArrayInitializerUtils.getInferredSize(initExpr);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Collect array dimensions from a variable declaration.
+   */
+  private static collectArrayDimensions(
+    arrayDims: Parser.ArrayDimensionContext[],
+    constValues: Map<string, number> | undefined,
+    initExpr: Parser.ExpressionContext | null,
+  ): (number | string)[] {
+    const dimensions: (number | string)[] = [];
+
+    for (const dim of arrayDims) {
+      const resolved = VariableCollector.resolveDimension(
+        dim,
+        constValues,
+        initExpr,
+      );
+      if (resolved !== undefined) {
+        dimensions.push(resolved);
+      }
+    }
+
+    return dimensions;
+  }
+
+  /**
    * Collect a variable declaration and return an IVariableSymbol.
    *
    * @param ctx The variable declaration context
@@ -45,45 +104,17 @@ class VariableCollector {
     // Check for array dimensions
     const arrayDims = ctx.arrayDimension();
     const isArray = arrayDims.length > 0;
-    const arrayDimensions: (number | string)[] = [];
-
-    if (isArray) {
-      for (const dim of arrayDims) {
-        const sizeExpr = dim.expression();
-        if (sizeExpr) {
-          const dimText = sizeExpr.getText();
-          // Try parsing as literal number first
-          const literalSize = Number.parseInt(dimText, 10);
-          if (!Number.isNaN(literalSize)) {
-            arrayDimensions.push(literalSize);
-          } else if (constValues?.has(dimText)) {
-            // Issue #455: Resolve constant reference to its value
-            arrayDimensions.push(constValues.get(dimText)!);
-          } else {
-            // Issue #455: Store original text for unresolved dimensions
-            // This handles C macros from included headers (e.g., DEVICE_COUNT)
-            // which should pass through to the generated header unchanged
-            arrayDimensions.push(dimText);
-          }
-        } else {
-          // Issue #636: Empty dimension [] - infer size from array initializer
-          const exprCtx = ctx.expression();
-          if (exprCtx) {
-            const inferredSize = ArrayInitializerUtils.getInferredSize(exprCtx);
-            if (inferredSize !== undefined) {
-              arrayDimensions.push(inferredSize);
-            }
-          }
-        }
-      }
-    }
+    const initExpr = ctx.expression();
+    const arrayDimensions = isArray
+      ? VariableCollector.collectArrayDimensions(
+          arrayDims,
+          constValues,
+          initExpr,
+        )
+      : [];
 
     // Issue #282: Capture initial value for const inlining
-    let initialValue: string | undefined;
-    const exprCtx = ctx.expression();
-    if (exprCtx) {
-      initialValue = exprCtx.getText();
-    }
+    const initialValue = initExpr?.getText();
 
     const symbol: IVariableSymbol = {
       name: fullName,
