@@ -100,6 +100,8 @@ import IntegerLiteralValidator from "./helpers/IntegerLiteralValidator";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
+// Issue #707: Expression unwrapping utility for reducing duplication
+import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
@@ -4327,6 +4329,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-045: Check if an expression is a substring extraction (string[start, length]).
    * Returns the source string, start, length, and source capacity if it is.
+   * Issue #707: Uses ExpressionUnwrapper for tree navigation.
    */
   private _getSubstringOperands(ctx: Parser.ExpressionContext): {
     source: string;
@@ -4334,45 +4337,8 @@ export default class CodeGenerator implements IOrchestrator {
     length: string;
     sourceCapacity: number;
   } | null {
-    // Navigate to the postfix expression level
-    const ternary = ctx.ternaryExpression();
-    if (!ternary) return null;
-
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
-
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    const unary = mult.unaryExpression()[0];
-    const postfix = unary.postfixExpression();
+    // Navigate to the postfix expression level using shared utility
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (!postfix) return null;
 
     const primary = postfix.primaryExpression();
@@ -4580,49 +4546,12 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Navigate through expression layers to get to the postfix expression.
    * Returns null if the expression has multiple terms at any level.
+   * Issue #707: Delegates to ExpressionUnwrapper utility.
    */
   private getPostfixExpression(
     ctx: Parser.ExpressionContext,
   ): Parser.PostfixExpressionContext | null {
-    const ternary = ctx.ternaryExpression();
-    const orExprs = ternary.orExpression();
-    // If it's a ternary (3 orExpressions), we can't get a single postfix
-    if (orExprs.length !== 1) return null;
-
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    const unary = mult.unaryExpression()[0];
-    if (!unary.postfixExpression()) return null;
-
-    return unary.postfixExpression()!;
+    return ExpressionUnwrapper.getPostfixExpression(ctx);
   }
 
   /**
@@ -7435,60 +7364,12 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-023: Extract simple identifier from expression for parameter checking
    * Returns the identifier name if expression is a simple variable reference, null otherwise
+   * Issue #707: Delegates to ExpressionUnwrapper utility.
    */
   private getSingleIdentifierFromExpr(
     expr: Parser.ExpressionContext,
   ): string | null {
-    // Navigate through expression tree to find simple identifier
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return null;
-
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
-
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    const unary = mult.unaryExpression()[0];
-    const postfix = unary.postfixExpression();
-    if (!postfix) return null;
-
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Must have no postfix operations (no member access, no indexing)
-    if (ops.length !== 0) return null;
-
-    // Must be a simple identifier
-    const id = primary.IDENTIFIER();
-    return id ? id.getText() : null;
+    return ExpressionUnwrapper.getSimpleIdentifier(expr);
   }
 
   /**

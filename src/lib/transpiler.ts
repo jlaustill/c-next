@@ -14,14 +14,9 @@ import { CNextLexer } from "../transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../transpiler/logic/parser/grammar/CNextParser";
 import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
 import CodeGenerator from "../transpiler/output/codegen/CodeGenerator";
-import CommentExtractor from "../transpiler/logic/analysis/CommentExtractor";
-import InitializationAnalyzer from "../transpiler/logic/analysis/InitializationAnalyzer";
+import runAnalyzers from "../transpiler/logic/analysis/runAnalyzers";
 import CNextResolver from "../transpiler/logic/symbols/cnext";
 import TSymbolInfoAdapter from "../transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter";
-import FunctionCallAnalyzer from "../transpiler/logic/analysis/FunctionCallAnalyzer";
-import NullCheckAnalyzer from "../transpiler/logic/analysis/NullCheckAnalyzer";
-import DivisionByZeroAnalyzer from "../transpiler/logic/analysis/DivisionByZeroAnalyzer";
-import FloatModuloAnalyzer from "../transpiler/logic/analysis/FloatModuloAnalyzer";
 import GrammarCoverageListener from "../transpiler/logic/analysis/GrammarCoverageListener";
 import ITranspileResult from "./types/ITranspileResult";
 import ITranspileOptions from "./types/ITranspileOptions";
@@ -94,150 +89,16 @@ function transpile(
     };
   }
 
-  // Run initialization analysis (Rust-style use-before-init detection)
-  const initAnalyzer = new InitializationAnalyzer();
-  const initErrors = initAnalyzer.analyze(tree);
+  // Run all semantic analyzers (Issue #707: consolidated analyzer invocation)
+  // Note: lib/transpiler is a simple in-memory API without access to external
+  // struct fields or symbol table, so options are omitted
+  const analyzerErrors = runAnalyzers(tree, tokenStream);
 
-  // Convert initialization errors to transpile errors
-  for (const initError of initErrors) {
-    errors.push({
-      line: initError.line,
-      column: initError.column,
-      message: `error[${initError.code}]: ${initError.message}`,
-      severity: "error",
-    });
-  }
-
-  // If there are initialization errors, fail compilation
-  if (errors.length > 0) {
+  if (analyzerErrors.length > 0) {
     return {
       success: false,
       code: "",
-      errors,
-      declarationCount,
-      grammarCoverage,
-    };
-  }
-
-  // Run call analysis (ADR-030: define-before-use)
-  const funcAnalyzer = new FunctionCallAnalyzer();
-  const funcErrors = funcAnalyzer.analyze(tree);
-
-  // Convert call errors to transpile errors
-  for (const funcError of funcErrors) {
-    errors.push({
-      line: funcError.line,
-      column: funcError.column,
-      message: `error[${funcError.code}]: ${funcError.message}`,
-      severity: "error",
-    });
-  }
-
-  // If there are call errors, fail compilation
-  if (errors.length > 0) {
-    return {
-      success: false,
-      code: "",
-      errors,
-      declarationCount,
-      grammarCoverage,
-    };
-  }
-
-  // Run NULL check analysis (ADR-047: C library interop)
-  const nullAnalyzer = new NullCheckAnalyzer();
-  const nullErrors = nullAnalyzer.analyze(tree);
-
-  // Convert NULL check errors to transpile errors
-  for (const nullError of nullErrors) {
-    errors.push({
-      line: nullError.line,
-      column: nullError.column,
-      message: `error[${nullError.code}]: ${nullError.message}`,
-      severity: "error",
-    });
-  }
-
-  // If there are NULL check errors, fail compilation
-  if (errors.length > 0) {
-    return {
-      success: false,
-      code: "",
-      errors,
-      declarationCount,
-      grammarCoverage,
-    };
-  }
-
-  // Run division by zero analysis (ADR-051: compile-time detection)
-  const divZeroAnalyzer = new DivisionByZeroAnalyzer();
-  const divZeroErrors = divZeroAnalyzer.analyze(tree);
-
-  // Convert division by zero errors to transpile errors
-  for (const divZeroError of divZeroErrors) {
-    errors.push({
-      line: divZeroError.line,
-      column: divZeroError.column,
-      message: `error[${divZeroError.code}]: ${divZeroError.message}`,
-      severity: "error",
-    });
-  }
-
-  // If there are division by zero errors, fail compilation
-  if (errors.length > 0) {
-    return {
-      success: false,
-      code: "",
-      errors,
-      declarationCount,
-      grammarCoverage,
-    };
-  }
-
-  // Run float modulo analysis (catch % with f32/f64 early)
-  const floatModAnalyzer = new FloatModuloAnalyzer();
-  const floatModErrors = floatModAnalyzer.analyze(tree);
-
-  // Convert float modulo errors to transpile errors
-  for (const floatModError of floatModErrors) {
-    errors.push({
-      line: floatModError.line,
-      column: floatModError.column,
-      message: `error[${floatModError.code}]: ${floatModError.message}`,
-      severity: "error",
-    });
-  }
-
-  // If there are float modulo errors, fail compilation
-  if (errors.length > 0) {
-    return {
-      success: false,
-      code: "",
-      errors,
-      declarationCount,
-      grammarCoverage,
-    };
-  }
-
-  // Validate comments (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
-  const commentExtractor = new CommentExtractor(tokenStream);
-  const commentErrors = commentExtractor.validate();
-
-  for (const commentError of commentErrors) {
-    errors.push({
-      line: commentError.line,
-      column: commentError.column,
-      message: `error[MISRA-${commentError.rule}]: ${commentError.message}`,
-      severity: "error",
-    });
-  }
-
-  // If there are comment validation errors, fail compilation
-  if (errors.length > 0) {
-    return {
-      success: false,
-      code: "",
-      errors,
+      errors: analyzerErrors,
       declarationCount,
       grammarCoverage,
     };
@@ -268,16 +129,17 @@ function transpile(
     const rawMessage = e instanceof Error ? e.message : String(e);
     const parsed = ParserUtils.parseErrorLocation(rawMessage);
 
-    errors.push({
-      line: parsed.line,
-      column: parsed.column,
-      message: `Code generation failed: ${parsed.message}`,
-      severity: "error",
-    });
     return {
       success: false,
       code: "",
-      errors,
+      errors: [
+        {
+          line: parsed.line,
+          column: parsed.column,
+          message: `Code generation failed: ${parsed.message}`,
+          severity: "error",
+        },
+      ],
       declarationCount,
       grammarCoverage,
     };

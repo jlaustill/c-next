@@ -13,6 +13,28 @@ import LiteralUtils from "../../../../../utils/LiteralUtils";
 
 class StructCollector {
   /**
+   * Parse array dimension expressions and append resolved sizes to dimensions array.
+   */
+  private static parseArrayDimensions(
+    arrayDims: Parser.ArrayDimensionContext[],
+    dimensions: number[],
+    constValues?: Map<string, number>,
+  ): void {
+    for (const dim of arrayDims) {
+      const sizeExpr = dim.expression();
+      if (sizeExpr) {
+        const dimText = sizeExpr.getText();
+        const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+        if (literalSize !== undefined) {
+          dimensions.push(literalSize);
+        } else if (constValues?.has(dimText)) {
+          dimensions.push(constValues.get(dimText)!);
+        }
+      }
+    }
+  }
+
+  /**
    * Collect a struct declaration and return an IStructSymbol.
    *
    * @param ctx The struct declaration context
@@ -54,18 +76,11 @@ class StructCollector {
 
           // If there are array dimensions, they come BEFORE string capacity
           if (arrayDims.length > 0) {
-            for (const dim of arrayDims) {
-              const sizeExpr = dim.expression();
-              if (sizeExpr) {
-                const dimText = sizeExpr.getText();
-                const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-                if (literalSize !== undefined) {
-                  dimensions.push(literalSize);
-                } else if (constValues?.has(dimText)) {
-                  dimensions.push(constValues.get(dimText)!);
-                }
-              }
-            }
+            StructCollector.parseArrayDimensions(
+              arrayDims,
+              dimensions,
+              constValues,
+            );
           }
           // String capacity becomes final dimension (+1 for null terminator)
           dimensions.push(capacity + 1);
@@ -74,18 +89,11 @@ class StructCollector {
       } else if (arrayDims.length > 0) {
         // Non-string array
         isArray = true;
-        for (const dim of arrayDims) {
-          const sizeExpr = dim.expression();
-          if (sizeExpr) {
-            const dimText = sizeExpr.getText();
-            const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-            if (literalSize !== undefined) {
-              dimensions.push(literalSize);
-            } else if (constValues?.has(dimText)) {
-              dimensions.push(constValues.get(dimText)!);
-            }
-          }
-        }
+        StructCollector.parseArrayDimensions(
+          arrayDims,
+          dimensions,
+          constValues,
+        );
       }
 
       const fieldInfo: IFieldInfo = {

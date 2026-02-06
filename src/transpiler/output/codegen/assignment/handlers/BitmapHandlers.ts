@@ -16,6 +16,15 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
+ * Calculate mask value and hex string for bitmap field.
+ */
+function calculateMask(width: number): { mask: number; maskHex: string } {
+  const mask = (1 << width) - 1;
+  const maskHex = BitUtils.formatHex(mask);
+  return { mask, maskHex };
+}
+
+/**
  * Validate and get bitmap field info, throwing appropriate errors.
  */
 function getBitmapFieldInfo(
@@ -56,8 +65,7 @@ function generateBitmapWrite(
   fieldInfo: { offset: number; width: number },
   value: string,
 ): string {
-  const mask = (1 << fieldInfo.width) - 1;
-  const maskHex = BitUtils.formatHex(mask);
+  const { maskHex } = calculateMask(fieldInfo.width);
 
   if (fieldInfo.width === 1) {
     // Single bit write: target = (target & ~(1 << offset)) | ((value ? 1 : 0) << offset)
@@ -76,8 +84,7 @@ function generateWriteOnlyBitmapWrite(
   fieldInfo: { offset: number; width: number },
   value: string,
 ): string {
-  const mask = (1 << fieldInfo.width) - 1;
-  const maskHex = BitUtils.formatHex(mask);
+  const { maskHex } = calculateMask(fieldInfo.width);
 
   if (fieldInfo.width === 1) {
     return `${target} = (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;

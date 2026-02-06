@@ -191,6 +191,39 @@ function printResult(
   }
 }
 
+interface ICounterUpdates {
+  passed: number;
+  failed: number;
+  updated: number;
+  noSnapshot: number;
+}
+
+/**
+ * Get counter updates based on test result
+ */
+function getCounterUpdates(result: ITestResult): ICounterUpdates {
+  const updates: ICounterUpdates = {
+    passed: 0,
+    failed: 0,
+    updated: 0,
+    noSnapshot: 0,
+  };
+
+  if (result.passed) {
+    if (result.updated) {
+      updates.updated++;
+    }
+    updates.passed++;
+  } else {
+    if (result.noSnapshot) {
+      updates.noSnapshot++;
+    }
+    updates.failed++;
+  }
+
+  return updates;
+}
+
 /**
  * Run tests in parallel using child process fork
  */
@@ -234,17 +267,11 @@ async function runTestsParallel(
 
         printResult(relativePath, result, quietMode);
 
-        if (result.passed) {
-          if (result.updated) {
-            updated++;
-          }
-          passed++;
-        } else {
-          if (result.noSnapshot) {
-            noSnapshot++;
-          }
-          failed++;
-        }
+        const updates = getCounterUpdates(result);
+        passed += updates.passed;
+        failed += updates.failed;
+        updated += updates.updated;
+        noSnapshot += updates.noSnapshot;
 
         nextToPrint++;
       }
@@ -382,17 +409,11 @@ async function runTestsSequential(
 
     printResult(relativePath, result, quietMode);
 
-    if (result.passed) {
-      if (result.updated) {
-        updated++;
-      }
-      passed++;
-    } else {
-      if (result.noSnapshot) {
-        noSnapshot++;
-      }
-      failed++;
-    }
+    const updates = getCounterUpdates(result);
+    passed += updates.passed;
+    failed += updates.failed;
+    updated += updates.updated;
+    noSnapshot += updates.noSnapshot;
   }
 
   return { passed, failed, updated, noSnapshot };

@@ -15,52 +15,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
-
-/**
- * Validate write-only register assignment value.
- * Throws if trying to clear bits on write-only register.
- */
-function validateWriteOnlyValue(
-  value: string,
-  fullName: string,
-  bitIndex: string,
-  isSingleBit: boolean,
-): void {
-  if (isSingleBit && (value === "false" || value === "0")) {
-    throw new Error(
-      `Cannot assign false to write-only register bit ${fullName}[${bitIndex}]. ` +
-        `Use the corresponding CLEAR register to clear bits.`,
-    );
-  }
-  if (!isSingleBit && value === "0") {
-    throw new Error(
-      `Cannot assign 0 to write-only register bits ${fullName}[${bitIndex}]. ` +
-        `Use the corresponding CLEAR register to clear bits.`,
-    );
-  }
-}
-
-/**
- * Build the full register member name from identifiers.
- */
-function buildRegisterFullName(
-  identifiers: readonly string[],
-  deps: IHandlerDeps,
-): { fullName: string; regName: string; isScoped: boolean } {
-  const leadingId = identifiers[0];
-
-  if (deps.isKnownScope(leadingId) && identifiers.length >= 3) {
-    // Scoped: Scope.Register.Member
-    const regName = `${leadingId}_${identifiers[1]}`;
-    const fullName = `${regName}_${identifiers[2]}`;
-    return { fullName, regName, isScoped: true };
-  } else {
-    // Non-scoped: Register.Member
-    const regName = leadingId;
-    const fullName = `${leadingId}_${identifiers[1]}`;
-    return { fullName, regName, isScoped: false };
-  }
-}
+import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 
 /**
  * Try to generate MMIO-optimized memory access for byte-aligned writes.
@@ -105,20 +60,29 @@ function handleRegisterBit(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
+  // Issue #707: Use shared validation utility
+  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
+    ctx.isCompound,
+    ctx.cnextOp,
+  );
 
-  const { fullName } = buildRegisterFullName(ctx.identifiers, deps);
+  const { fullName } =
+    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
+      ctx.identifiers,
+      deps.isKnownScope,
+    );
   const accessMod = deps.symbols.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const bitIndex = deps.generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
-    validateWriteOnlyValue(ctx.generatedValue, fullName, bitIndex, true);
+    AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.generatedValue,
+      fullName,
+      bitIndex,
+      true,
+    );
     return `${fullName} = (1 << ${bitIndex});`;
   }
 
@@ -132,13 +96,17 @@ function handleRegisterBitRange(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
+  // Issue #707: Use shared validation utility
+  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
+    ctx.isCompound,
+    ctx.cnextOp,
+  );
 
-  const { fullName, regName } = buildRegisterFullName(ctx.identifiers, deps);
+  const { fullName, regName } =
+    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
+      ctx.identifiers,
+      deps.isKnownScope,
+    );
   const accessMod = deps.symbols.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
@@ -147,7 +115,7 @@ function handleRegisterBitRange(
   const mask = BitUtils.generateMask(width);
 
   if (isWriteOnly) {
-    validateWriteOnlyValue(
+    AssignmentHandlerUtils.validateWriteOnlyValue(
       ctx.generatedValue,
       fullName,
       `${start}, ${width}`,
@@ -170,11 +138,21 @@ function handleRegisterBitRange(
     }
 
     // Fallback: write shifted value
-    return `${fullName} = ((${ctx.generatedValue} & ${mask}) << ${start});`;
+    return RegisterUtils.generateWriteOnlyBitRange(
+      fullName,
+      ctx.generatedValue,
+      mask,
+      start,
+    );
   }
 
   // Read-write: read-modify-write
-  return `${fullName} = (${fullName} & ~(${mask} << ${start})) | ((${ctx.generatedValue} & ${mask}) << ${start});`;
+  return RegisterUtils.generateRmwBitRange(
+    fullName,
+    ctx.generatedValue,
+    mask,
+    start,
+  );
 }
 
 /**
@@ -184,20 +162,18 @@ function handleScopedRegisterBit(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  if (!deps.currentScope) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
+  // Issue #707: Use shared validation utilities
+  AssignmentHandlerUtils.validateScopeContext(deps.currentScope);
+  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
+    ctx.isCompound,
+    ctx.cnextOp,
+  );
 
   // Build scoped name: Scope_Register_Member
-  const scopeName = deps.currentScope;
-  const parts = ctx.identifiers;
-  const regName = `${scopeName}_${parts.join("_")}`;
+  const regName = AssignmentHandlerUtils.buildScopedRegisterName(
+    deps.currentScope!,
+    ctx.identifiers,
+  );
 
   const accessMod = deps.symbols.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
@@ -205,7 +181,12 @@ function handleScopedRegisterBit(
   const bitIndex = deps.generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
-    validateWriteOnlyValue(ctx.generatedValue, regName, bitIndex, true);
+    AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.generatedValue,
+      regName,
+      bitIndex,
+      true,
+    );
     return `${regName} = (1 << ${bitIndex});`;
   }
 
@@ -219,19 +200,19 @@ function handleScopedRegisterBitRange(
   ctx: IAssignmentContext,
   deps: IHandlerDeps,
 ): string {
-  if (!deps.currentScope) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
+  // Issue #707: Use shared validation utilities
+  AssignmentHandlerUtils.validateScopeContext(deps.currentScope);
+  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
+    ctx.isCompound,
+    ctx.cnextOp,
+  );
 
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
-
-  const scopeName = deps.currentScope;
+  const scopeName = deps.currentScope!;
   const parts = ctx.identifiers;
-  const regName = `${scopeName}_${parts.join("_")}`;
+  const regName = AssignmentHandlerUtils.buildScopedRegisterName(
+    scopeName,
+    parts,
+  );
   const scopedRegName = `${scopeName}_${parts[0]}`;
 
   const accessMod = deps.symbols.registerMemberAccess.get(regName);
@@ -242,7 +223,7 @@ function handleScopedRegisterBitRange(
   const mask = `((1U << ${width}) - 1)`;
 
   if (isWriteOnly) {
-    validateWriteOnlyValue(
+    AssignmentHandlerUtils.validateWriteOnlyValue(
       ctx.generatedValue,
       regName,
       `${start}, ${width}`,
@@ -271,10 +252,20 @@ function handleScopedRegisterBitRange(
       }
     }
 
-    return `${regName} = ((${ctx.generatedValue} & ${mask}) << ${start});`;
+    return RegisterUtils.generateWriteOnlyBitRange(
+      regName,
+      ctx.generatedValue,
+      mask,
+      start,
+    );
   }
 
-  return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${ctx.generatedValue} & ${mask}) << ${start});`;
+  return RegisterUtils.generateRmwBitRange(
+    regName,
+    ctx.generatedValue,
+    mask,
+    start,
+  );
 }
 
 /**

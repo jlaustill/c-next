@@ -328,7 +328,8 @@
     "Graphviz",
     "SDKMAN",
     "madge",
-    "sfdp"
+    "sfdp",
+    "Unwrapper"
   ],
   "ignorePaths": [
     "node_modules/**",
