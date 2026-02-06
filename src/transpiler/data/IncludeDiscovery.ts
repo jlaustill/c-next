@@ -77,6 +77,46 @@ class IncludeDiscovery {
     return Array.from(new Set(paths));
   }
 
+  /** Common subdirectories where library headers might live */
+  private static readonly LIB_SUBDIRS = ["src", "include", "src/include"];
+
+  /**
+   * Add a library path and its common subdirectories to the paths array.
+   * Checks src/, include/, and src/include/ subdirectories.
+   */
+  private static _addLibraryWithSubdirs(
+    libPath: string,
+    paths: string[],
+    fs: IFileSystem,
+  ): void {
+    paths.push(libPath);
+
+    for (const subDir of this.LIB_SUBDIRS) {
+      const subPath = join(libPath, subDir);
+      if (fs.exists(subPath) && fs.isDirectory(subPath)) {
+        paths.push(subPath);
+      }
+    }
+  }
+
+  /**
+   * Collect all library directories from a parent directory.
+   * Each subdirectory is treated as a library root.
+   */
+  private static _collectLibrariesFromDir(
+    parentDir: string,
+    paths: string[],
+    fs: IFileSystem,
+  ): void {
+    const entries = fs.readdir(parentDir);
+    for (const entry of entries) {
+      const entryPath = join(parentDir, entry);
+      if (fs.isDirectory(entryPath)) {
+        this._addLibraryWithSubdirs(entryPath, paths, fs);
+      }
+    }
+  }
+
   /**
    * Discover Arduino library paths
    *
@@ -103,23 +143,7 @@ class IncludeDiscovery {
     for (const libDir of arduinoLibDirs) {
       if (fs.exists(libDir) && fs.isDirectory(libDir)) {
         try {
-          // Add each library directory
-          const libs = fs.readdir(libDir);
-          for (const lib of libs) {
-            const libPath = join(libDir, lib);
-            if (fs.isDirectory(libPath)) {
-              paths.push(libPath);
-
-              // Also check for common subdirectories where headers might live
-              const subDirs = ["src", "include", "src/include"];
-              for (const subDir of subDirs) {
-                const subPath = join(libPath, subDir);
-                if (fs.exists(subPath) && fs.isDirectory(subPath)) {
-                  paths.push(subPath);
-                }
-              }
-            }
-          }
+          this._collectLibrariesFromDir(libDir, paths, fs);
         } catch {
           // Expected: directory may not exist or be readable
         }
@@ -151,24 +175,7 @@ class IncludeDiscovery {
       for (const envDir of envDirs) {
         const envPath = join(libDepsPath, envDir);
         if (fs.isDirectory(envPath)) {
-          // Iterate through library directories within each environment
-          const libDirs = fs.readdir(envPath);
-          for (const libDir of libDirs) {
-            const libPath = join(envPath, libDir);
-            if (fs.isDirectory(libPath)) {
-              // Add the library root (most headers are here)
-              paths.push(libPath);
-
-              // Also check for common subdirectories where headers might live
-              const subDirs = ["src", "include", "src/include"];
-              for (const subDir of subDirs) {
-                const subPath = join(libPath, subDir);
-                if (fs.exists(subPath) && fs.isDirectory(subPath)) {
-                  paths.push(subPath);
-                }
-              }
-            }
-          }
+          this._collectLibrariesFromDir(envPath, paths, fs);
         }
       }
     } catch {
