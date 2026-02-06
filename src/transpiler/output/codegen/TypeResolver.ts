@@ -14,6 +14,7 @@ import SIGNED_TYPES from "./types/SIGNED_TYPES";
 import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
+import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
 
 class TypeResolver {
   private readonly symbols: ICodeGenSymbols | null;
@@ -191,11 +192,11 @@ class TypeResolver {
   /**
    * ADR-024: Get the type of an expression for type checking.
    * Returns the inferred type or null if type cannot be determined.
-   * Issue #61: Uses local getPostfixExpression instead of CodeGenerator.
+   * Issue #61: Uses ExpressionUnwrapper utility for tree navigation.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
     // Navigate through expression tree to get the actual value
-    const postfix = this.getPostfixExpression(ctx);
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix) {
       return this.getPostfixExpressionType(postfix);
     }
@@ -418,55 +419,6 @@ class TypeResolver {
     const isArray = arrayFields?.has(memberName) ?? false;
 
     return { isArray, baseType: fieldType };
-  }
-
-  /**
-   * Navigate through expression layers to get to the postfix expression.
-   * Returns null if the expression has multiple terms at any level.
-   * Issue #61: Moved from CodeGenerator for TypeResolver independence.
-   */
-  private getPostfixExpression(
-    ctx: Parser.ExpressionContext,
-  ): Parser.PostfixExpressionContext | null {
-    const ternary = ctx.ternaryExpression();
-    const orExprs = ternary.orExpression();
-    // If it's a ternary (3 orExpressions), we can't get a single postfix
-    if (orExprs.length !== 1) return null;
-
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    const unary = mult.unaryExpression()[0];
-    if (!unary.postfixExpression()) return null;
-
-    return unary.postfixExpression()!;
   }
 }
 
