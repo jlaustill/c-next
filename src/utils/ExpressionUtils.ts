@@ -159,9 +159,15 @@ class ExpressionUtils {
     return false;
   }
 
-  // Private helper methods for tree traversal - each has low cognitive complexity
-
-  private static hasFunctionCallInOr(ctx: Parser.OrExpressionContext): boolean {
+  /**
+   * Issue #254: Check if an orExpression contains a function call.
+   *
+   * Used for ternary conditions where the condition is an OrExpressionContext.
+   *
+   * @param ctx - The orExpression context to check
+   * @returns true if a function call is found anywhere in the expression
+   */
+  static hasFunctionCallInOr(ctx: Parser.OrExpressionContext): boolean {
     for (const and of ctx.andExpression()) {
       if (ExpressionUtils.hasFunctionCallInAnd(and)) return true;
     }
@@ -252,6 +258,14 @@ class ExpressionUtils {
   private static hasFunctionCallInUnary(
     ctx: Parser.UnaryExpressionContext,
   ): boolean {
+    // Issue #366: Handle nested unary operators (!, -, ~, &) that wrap function calls
+    // e.g., !!isReady() or -getValue()
+    const nestedUnary = ctx.unaryExpression();
+    if (nestedUnary) {
+      return ExpressionUtils.hasFunctionCallInUnary(nestedUnary);
+    }
+
+    // Base case: check postfixExpression
     const postfix = ctx.postfixExpression();
     if (!postfix) return false;
 
