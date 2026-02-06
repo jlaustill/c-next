@@ -4062,6 +4062,92 @@ export default class CodeGenerator implements IOrchestrator {
   //            and validateBareIdentifierInScope moved to TypeValidator
 
   /**
+   * ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
+   */
+  private _getEnumTypeFromThisEnum(parts: string[]): string | null {
+    if (parts[0] !== "this" || !this.context.currentScope || parts.length < 3) {
+      return null;
+    }
+    const enumName = parts[1];
+    const scopedEnumName = `${this.context.currentScope}_${enumName}`;
+    return this.symbols!.knownEnums.has(scopedEnumName) ? scopedEnumName : null;
+  }
+
+  /**
+   * Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
+   */
+  private _getEnumTypeFromGlobalEnum(parts: string[]): string | null {
+    if (parts[0] !== "global" || parts.length < 3) {
+      return null;
+    }
+    const enumName = parts[1];
+    return this.symbols!.knownEnums.has(enumName) ? enumName : null;
+  }
+
+  /**
+   * ADR-016: Check this.variable pattern (this.varName where varName is enum type)
+   */
+  private _getEnumTypeFromThisVariable(parts: string[]): string | null {
+    if (
+      parts[0] !== "this" ||
+      !this.context.currentScope ||
+      parts.length !== 2
+    ) {
+      return null;
+    }
+    const varName = parts[1];
+    const scopedVarName = `${this.context.currentScope}_${varName}`;
+    const typeInfo = this.context.typeRegistry.get(scopedVarName);
+    if (typeInfo?.isEnum && typeInfo.enumTypeName) {
+      return typeInfo.enumTypeName;
+    }
+    return null;
+  }
+
+  /**
+   * Check scoped enum: Motor.State.IDLE -> Motor_State
+   */
+  private _getEnumTypeFromScopedEnum(parts: string[]): string | null {
+    if (parts.length < 3) {
+      return null;
+    }
+    const scopeName = parts[0];
+    const enumName = parts[1];
+    const scopedEnumName = `${scopeName}_${enumName}`;
+    return this.symbols!.knownEnums.has(scopedEnumName) ? scopedEnumName : null;
+  }
+
+  /**
+   * Check if parts represent an enum member access and return the enum type.
+   */
+  private _getEnumTypeFromMemberAccess(parts: string[]): string | null {
+    if (parts.length < 2) {
+      return null;
+    }
+
+    // ADR-016: Check this.State.IDLE pattern
+    const thisEnumType = this._getEnumTypeFromThisEnum(parts);
+    if (thisEnumType) return thisEnumType;
+
+    // Issue #478: Check global.Enum.Member pattern
+    const globalEnumType = this._getEnumTypeFromGlobalEnum(parts);
+    if (globalEnumType) return globalEnumType;
+
+    // ADR-016: Check this.variable pattern
+    const thisVarType = this._getEnumTypeFromThisVariable(parts);
+    if (thisVarType) return thisVarType;
+
+    // Check simple enum: State.IDLE
+    const possibleEnum = parts[0];
+    if (this.symbols!.knownEnums.has(possibleEnum)) {
+      return possibleEnum;
+    }
+
+    // Check scoped enum: Motor.State.IDLE -> Motor_State
+    return this._getEnumTypeFromScopedEnum(parts);
+  }
+
+  /**
    * ADR-017: Extract enum type from an expression.
    * Returns the enum type name if the expression is an enum value, null otherwise.
    *
@@ -4075,7 +4161,6 @@ export default class CodeGenerator implements IOrchestrator {
   private _getExpressionEnumType(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
-    // Get the text representation to analyze
     const text = ctx.getText();
 
     // Check if it's a function call returning an enum
@@ -4092,63 +4177,8 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // Check if it's an enum member access: EnumType.MEMBER or Scope.EnumType.MEMBER
-    const parts = text.split(".");
-
-    if (parts.length >= 2) {
-      // ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
-      if (
-        parts[0] === "this" &&
-        this.context.currentScope &&
-        parts.length >= 3
-      ) {
-        const enumName = parts[1];
-        const scopedEnumName = `${this.context.currentScope}_${enumName}`;
-        if (this.symbols!.knownEnums.has(scopedEnumName)) {
-          return scopedEnumName;
-        }
-      }
-
-      // Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
-      if (parts[0] === "global" && parts.length >= 3) {
-        const enumName = parts[1];
-        if (this.symbols!.knownEnums.has(enumName)) {
-          return enumName;
-        }
-      }
-
-      // ADR-016: Check this.variable pattern (this.varName where varName is enum type)
-      if (
-        parts[0] === "this" &&
-        this.context.currentScope &&
-        parts.length === 2
-      ) {
-        const varName = parts[1];
-        const scopedVarName = `${this.context.currentScope}_${varName}`;
-        const typeInfo = this.context.typeRegistry.get(scopedVarName);
-        if (typeInfo?.isEnum && typeInfo.enumTypeName) {
-          return typeInfo.enumTypeName;
-        }
-      }
-
-      // Check simple enum: State.IDLE
-      const possibleEnum = parts[0];
-      if (this.symbols!.knownEnums.has(possibleEnum)) {
-        return possibleEnum;
-      }
-
-      // Check scoped enum: Motor.State.IDLE -> Motor_State
-      if (parts.length >= 3) {
-        const scopeName = parts[0];
-        const enumName = parts[1];
-        const scopedEnumName = `${scopeName}_${enumName}`;
-        if (this.symbols!.knownEnums.has(scopedEnumName)) {
-          return scopedEnumName;
-        }
-      }
-    }
-
-    return null;
+    // Check member access patterns: EnumType.MEMBER, Scope.EnumType.MEMBER, etc.
+    return this._getEnumTypeFromMemberAccess(text.split("."));
   }
 
   /**
