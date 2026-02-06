@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import transpile from "../src/lib/transpiler";
 import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGrammarCoverageReport";
+import GrammarCoverageReportBuilder from "../src/transpiler/logic/analysis/types/GrammarCoverageReportBuilder";
 import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
 import chalk from "chalk";
@@ -63,40 +64,12 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
     }
   }
 
-  const totalParserRules = CNextParser.ruleNames.length;
-  const totalLexerRules = CNextLexer.ruleNames.length;
-  const visitedParserRules = parserVisits.size;
-  const visitedLexerRules = lexerVisits.size;
-
-  const neverVisitedParserRules = CNextParser.ruleNames.filter(
-    (name) => !parserVisits.has(name),
-  );
-  const neverVisitedLexerRules = CNextLexer.ruleNames.filter(
-    (name) => !lexerVisits.has(name),
-  );
-
-  const parserCoveragePercentage =
-    totalParserRules > 0 ? (visitedParserRules / totalParserRules) * 100 : 0;
-  const lexerCoveragePercentage =
-    totalLexerRules > 0 ? (visitedLexerRules / totalLexerRules) * 100 : 0;
-  const combinedTotal = totalParserRules + totalLexerRules;
-  const combinedVisited = visitedParserRules + visitedLexerRules;
-  const combinedCoveragePercentage =
-    combinedTotal > 0 ? (combinedVisited / combinedTotal) * 100 : 0;
-
-  return {
-    totalParserRules,
-    totalLexerRules,
-    visitedParserRules,
-    visitedLexerRules,
-    neverVisitedParserRules,
-    neverVisitedLexerRules,
+  return GrammarCoverageReportBuilder.build({
+    parserRuleNames: CNextParser.ruleNames as string[],
+    lexerRuleNames: CNextLexer.ruleNames as string[],
     parserRuleVisits: parserVisits,
     lexerRuleVisits: lexerVisits,
-    parserCoveragePercentage,
-    lexerCoveragePercentage,
-    combinedCoveragePercentage,
-  };
+  });
 }
 
 /**
