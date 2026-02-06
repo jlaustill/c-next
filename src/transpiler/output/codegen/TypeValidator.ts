@@ -529,33 +529,33 @@ class TypeValidator {
         }
       }
       // Check inside while/for/do-while loops for return
+      // Issue #707: Consolidated loop body validation
       if (stmt.whileStatement()) {
-        const loopStmt = stmt.whileStatement()!.statement();
-        if (loopStmt.returnStatement()) {
-          throw new Error(
-            `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-          );
-        }
-        if (loopStmt.block()) {
-          this.validateNoEarlyExits(loopStmt.block()!);
-        }
+        this._checkLoopBodyForReturn(stmt.whileStatement()!.statement());
       }
       if (stmt.forStatement()) {
-        const loopStmt = stmt.forStatement()!.statement();
-        if (loopStmt.returnStatement()) {
-          throw new Error(
-            `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-          );
-        }
-        if (loopStmt.block()) {
-          this.validateNoEarlyExits(loopStmt.block()!);
-        }
+        this._checkLoopBodyForReturn(stmt.forStatement()!.statement());
       }
       if (stmt.doWhileStatement()) {
         // do-while uses block directly, not statement
         const loopBlock = stmt.doWhileStatement()!.block();
         this.validateNoEarlyExits(loopBlock);
       }
+    }
+  }
+
+  /**
+   * Issue #707: Check a loop body statement for early return.
+   * Shared between while and for loop validation in critical sections.
+   */
+  private _checkLoopBodyForReturn(loopStmt: Parser.StatementContext): void {
+    if (loopStmt.returnStatement()) {
+      throw new Error(
+        `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
+      );
+    }
+    if (loopStmt.block()) {
+      this.validateNoEarlyExits(loopStmt.block()!);
     }
   }
 

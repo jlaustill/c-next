@@ -117,6 +117,8 @@ export default Registry;
 
 **Readonly Map restoration** - Can't reassign `readonly` Map properties. Use `map.clear()` then `for (const [k, v] of saved) map.set(k, v)` to restore state.
 
+**Edit tool `replace_all` gotcha** - When using `replace_all: true`, the replacement happens iteratively. If your `new_string` contains text that matches `old_string`, you'll get double-replacement (e.g., replacing `Foo` with `Bar.Foo` using `replace_all` results in `Bar.Bar.Foo`). Use targeted single replacements instead.
+
 **No destructuring** - Always use the class name prefix for self-documenting code:
 
 ```typescript
@@ -183,6 +185,11 @@ The codebase is organized into three layers under `src/transpiler/`:
 ### Parser Keyword Tokens
 
 - **Keyword tokens vs IDENTIFIER**: Keywords like `this`, `global` are separate tokens, not IDENTIFIERs. Use `ctx.THIS()` not `ctx.IDENTIFIER()?.getText() === "this"` - the latter returns undefined.
+
+### AST Navigation Patterns
+
+- **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the C-Next grammar uses "declaration" terminology
+- **Expression unwrapping**: Use `ExpressionUnwrapper` utility in `src/transpiler/output/codegen/utils/` for drilling through expression hierarchy (ternary → or → and → ... → postfix)
 
 ### Code Generation Patterns
 
@@ -471,7 +478,7 @@ If implementing a feature, all documents must be current and memory must be upda
 
 **Code duplication:**
 
-- `npm run analyze:duplication` — Find copy-paste code with jscpd (config: `.jscpd.json`)
+- `npm run analyze:duplication` — Find copy-paste code with jscpd (config: `.jscpd.json`). Output shows "duplicated lines" (percentage) and "duplicated tokens" (percentage) — both metrics matter for SonarCloud
 - `npm run duplication:sonar` — Query SonarCloud for duplication metrics
 - `npm run analyze:cpd` — PMD Copy-Paste Detector (requires Java 11+)
 
