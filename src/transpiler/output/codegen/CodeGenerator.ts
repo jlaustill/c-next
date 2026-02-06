@@ -4989,123 +4989,165 @@ export default class CodeGenerator implements IOrchestrator {
    * - Arrays are passed as-is (naturally decay to pointers)
    * - Literals use compound literals for pointer params: &(type){value}
    * - Complex expressions are passed as-is
-   *
-   * @param ctx The expression context
-   * @param targetParamBaseType Optional: the C-Next type of the target parameter (e.g., 'u32')
    */
   private _generateFunctionArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
     const id = this._getSimpleIdentifier(ctx);
-
     if (id) {
-      // Check if it's a parameter (already a pointer for non-floats)
-      const paramInfo = this.context.currentParameters.get(id);
-      if (paramInfo) {
-        // Arrays are passed as-is, non-arrays are already pointers
-        return id;
-      }
-
-      // Check if it's a local array (passed as-is, naturally decays to pointer)
-      if (this.context.localArrays.has(id)) {
-        return id;
-      }
-
-      // Check if it's a scope member (ADR-016)
-      if (this.context.currentScope) {
-        const members = this.context.scopeMembers.get(
-          this.context.currentScope,
-        );
-        if (members?.has(id)) {
-          // Issue #409/#644: In C++ mode, references don't need &
-          const scopedName = `${this.context.currentScope}_${id}`;
-          return this.cppHelper!.maybeAddressOf(scopedName);
-        }
-      }
-
-      // Local variable - add & (except in C++ mode where references are used)
-      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
-      return this.cppHelper!.maybeAddressOf(id);
+      return this._handleIdentifierArg(id);
     }
 
-    // Check if it's a member access or array access (lvalue) - needs &
     const lvalueType = this.getLvalueType(ctx);
     if (lvalueType) {
-      // Issue #308: If member access to an array, don't add & - arrays decay to pointers
-      // For example: result.data where data is u8[6] should pass as result.data (decays to uint8_t*)
-      // NOT &result.data (which gives uint8_t (*)[6] - wrong type)
-      if (lvalueType === "member") {
-        const arrayStatus = this.getMemberAccessArrayStatus(ctx);
+      return this._handleLvalueArg(ctx, lvalueType, targetParamBaseType);
+    }
 
-        if (arrayStatus === "array") {
-          return this._generateExpression(ctx);
-        }
+    return this._handleRvalueArg(ctx, targetParamBaseType);
+  }
 
-        // Issue #355: Only apply static_cast when we KNOW the field is not an array.
-        // When "unknown" (header not parsed), skip this path - safer than potentially
-        // casting an array to a scalar.
-        // Issue #251/#252: In C++ mode, struct member access may need temp variable.
-        if (
-          arrayStatus === "not-array" &&
-          this.needsCppMemberConversion(ctx, targetParamBaseType)
-        ) {
-          const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
-          const value = this._generateExpression(ctx);
-          const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
-          // Use static_cast for C++ type safety (needsCppMemberConversion implies cppMode)
-          const castExpr = this.cppHelper!.cast(cType, value);
-          this.pendingTempDeclarations.push(
-            `${cType} ${tempName} = ${castExpr};`,
-          );
-          // Issue #409/#644: In C++ mode, references don't need &
-          return this.cppHelper!.maybeAddressOf(tempName);
-        }
+  /**
+   * Handle simple identifier argument (parameter, local array, scope member, or variable)
+   */
+  private _handleIdentifierArg(id: string): string {
+    // Parameters are already pointers
+    if (this.context.currentParameters.get(id)) {
+      return id;
+    }
+
+    // Local arrays decay to pointers
+    if (this.context.localArrays.has(id)) {
+      return id;
+    }
+
+    // Scope member - may need prefixing
+    if (this.context.currentScope) {
+      const members = this.context.scopeMembers.get(this.context.currentScope);
+      if (members?.has(id)) {
+        const scopedName = `${this.context.currentScope}_${id}`;
+        return this.cppHelper!.maybeAddressOf(scopedName);
       }
+    }
 
-      // Generate the expression and wrap with & (except in C++ mode)
-      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
-      const generatedExpr = this._generateExpression(ctx);
-      const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
+    // Local variable - add & (except in C++ mode)
+    return this.cppHelper!.maybeAddressOf(id);
+  }
 
-      // Issue #246: When passing string bytes to integer pointer parameters
-      // (C-Next's by-reference semantics), cast from char* to the appropriate
-      // integer pointer type to avoid signedness warnings
-      // Issue #267: Use reinterpret_cast for pointer type conversions in C++ mode
-      if (
-        lvalueType === "array" &&
-        targetParamBaseType &&
-        this.isStringSubscriptAccess(ctx)
-      ) {
-        const cType = TYPE_MAP[targetParamBaseType];
-        if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-          return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
-        }
-      }
+  /**
+   * Handle lvalue argument (member access or array access)
+   */
+  private _handleLvalueArg(
+    ctx: Parser.ExpressionContext,
+    lvalueType: string,
+    targetParamBaseType?: string,
+  ): string {
+    // Member access to array field - arrays decay to pointers
+    if (lvalueType === "member") {
+      const memberResult = this._handleMemberAccessArg(
+        ctx,
+        targetParamBaseType,
+      );
+      if (memberResult) return memberResult;
+    }
 
+    // Generate expression with address-of
+    const generatedExpr = this._generateExpression(ctx);
+    const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
+
+    // String subscript access may need cast
+    if (lvalueType === "array") {
+      return this._maybeCastStringSubscript(ctx, expr, targetParamBaseType);
+    }
+
+    return expr;
+  }
+
+  /**
+   * Handle member access argument - may need special handling for arrays or C++ conversions
+   */
+  private _handleMemberAccessArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string | null {
+    const arrayStatus = this.getMemberAccessArrayStatus(ctx);
+
+    // Array member - no address-of needed
+    if (arrayStatus === "array") {
+      return this._generateExpression(ctx);
+    }
+
+    // C++ mode may need temp variable for type conversion
+    if (
+      arrayStatus === "not-array" &&
+      this.needsCppMemberConversion(ctx, targetParamBaseType)
+    ) {
+      return this._createCppMemberConversionTemp(ctx, targetParamBaseType!);
+    }
+
+    return null; // Fall through to default lvalue handling
+  }
+
+  /**
+   * Create temp variable for C++ member conversion
+   */
+  private _createCppMemberConversionTemp(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType: string,
+  ): string {
+    const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
+    const value = this._generateExpression(ctx);
+    const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
+    const castExpr = this.cppHelper!.cast(cType, value);
+    this.pendingTempDeclarations.push(`${cType} ${tempName} = ${castExpr};`);
+    return this.cppHelper!.maybeAddressOf(tempName);
+  }
+
+  /**
+   * Maybe cast string subscript access for integer pointer parameters
+   */
+  private _maybeCastStringSubscript(
+    ctx: Parser.ExpressionContext,
+    expr: string,
+    targetParamBaseType?: string,
+  ): string {
+    if (!targetParamBaseType || !this.isStringSubscriptAccess(ctx)) {
       return expr;
     }
 
-    // Check if it's a literal OR complex expression being passed to a pointer parameter
-    // Any expression reaching this point is an rvalue (identifiers/lvalues handled above)
-    if (targetParamBaseType) {
-      const cType = TYPE_MAP[targetParamBaseType];
-      if (cType && cType !== "void") {
-        const value = this._generateExpression(ctx);
-
-        // Issue #409: In C++ mode with references, rvalues can bind to const T&
-        // No need for temp variables or address-of
-        if (this.cppMode) {
-          return value;
-        }
-
-        // C mode: Use C99 compound literal syntax: &(type){value}
-        return `&(${cType}){${value}}`;
-      }
+    const cType = TYPE_MAP[targetParamBaseType];
+    if (cType && !["float", "double", "bool", "void"].includes(cType)) {
+      return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
     }
 
-    // No target type info - generate expression as-is
-    return this._generateExpression(ctx);
+    return expr;
+  }
+
+  /**
+   * Handle rvalue argument (literals or complex expressions)
+   */
+  private _handleRvalueArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string {
+    if (!targetParamBaseType) {
+      return this._generateExpression(ctx);
+    }
+
+    const cType = TYPE_MAP[targetParamBaseType];
+    if (!cType || cType === "void") {
+      return this._generateExpression(ctx);
+    }
+
+    const value = this._generateExpression(ctx);
+
+    // C++ mode: rvalues can bind to const T&
+    if (this.cppMode) {
+      return value;
+    }
+
+    // C mode: Use compound literal syntax
+    return `&(${cType}){${value}}`;
   }
 
   // ========================================================================
