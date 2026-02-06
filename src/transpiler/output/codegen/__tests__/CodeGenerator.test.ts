@@ -7451,5 +7451,158 @@ describe("CodeGenerator", () => {
         ).toThrow("Ambiguous enum member 'RED' exists in multiple enums");
       });
     });
+
+    describe("enum type resolution helpers", () => {
+      it("should resolve this.EnumType.MEMBER pattern inside scope", () => {
+        const source = `
+          scope Motor {
+            enum State { IDLE, RUNNING }
+            State current;
+            void update() {
+              current <- this.State.IDLE;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Motor_current = Motor_State_IDLE");
+      });
+
+      it("should resolve global.EnumType.MEMBER pattern", () => {
+        const source = `
+          enum Priority { LOW, HIGH }
+          scope Task {
+            Priority level;
+            void init() {
+              level <- global.Priority.HIGH;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Task_level = Priority_HIGH");
+      });
+
+      it("should resolve this.variable pattern for enum type variable", () => {
+        const source = `
+          enum Mode { AUTO, MANUAL }
+          scope Controller {
+            public Mode mode;
+            public void setAuto() {
+              this.mode <- global.Mode.AUTO;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Controller_mode = Mode_AUTO");
+      });
+
+      it("should resolve Scope.EnumType.MEMBER pattern", () => {
+        const source = `
+          scope LED {
+            public enum Color { RED, GREEN, BLUE }
+          }
+          void setColor() {
+            LED.Color c <- LED.Color.RED;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("LED_Color_RED");
+      });
+    });
+
+    describe("child statement classification", () => {
+      it("should handle if statement with blocks", () => {
+        const source = `
+          void test() {
+            bool cond <- true;
+            if (cond = true) {
+              u32 x <- 1;
+            } else {
+              u32 y <- 2;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("if (cond == true)");
+        expect(code).toContain("uint32_t x = 1");
+        expect(code).toContain("uint32_t y = 2");
+      });
+
+      it("should handle switch with multiple cases", () => {
+        const source = `
+          void test(u8 val) {
+            switch (val) {
+              case 1 { }
+              case 2 { }
+              default { }
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("switch (val)");
+        expect(code).toContain("case 1:");
+        expect(code).toContain("case 2:");
+        expect(code).toContain("default:");
+      });
+    });
   });
 });
