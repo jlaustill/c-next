@@ -61,6 +61,9 @@ SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud 
 npm run unit:coverage
 ```
 
+- **SonarCloud coverage on new code**: The quality gate requires >= 80% on new lines. Even 1 uncovered line in a small PR can fail the gate. Run `npm run unit:coverage` and check new/modified methods before pushing.
+- **Widening interface return types**: When changing a return type (e.g., `{ baseType, isArray }` → `TTypeInfo`), search for ALL test mocks of that method and update them to include newly required fields. Use `Grep` for the method name across `__tests__/` directories.
+
 Check the terminal report for files you changed — any new code below 80% coverage will fail the quality gate.
 
 **Useful API queries:**
@@ -160,6 +163,7 @@ The codebase is organized into three layers under `src/transpiler/`:
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
 - **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access at ~7207 and ~8190 for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
+- **buildHandlerDeps() delegation**: Methods in `buildHandlerDeps()` should delegate to canonical CodeGenerator methods (e.g., `this.isKnownScope(name)` not `this.symbols!.knownScopes.has(name)`) to get full SymbolTable + C-Next symbol lookup. Hand-rolling lookups bypasses C header struct/scope support.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
   1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
