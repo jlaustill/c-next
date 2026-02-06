@@ -310,6 +310,108 @@ function skipToClosingBracket(
 }
 
 /**
+ * State passed between chain building iterations.
+ */
+interface ChainBuildState<TExpr> {
+  result: string;
+  idIndex: number;
+  exprIndex: number;
+  typeState: TypeTrackingState | undefined;
+  options: BuildChainOptions<TExpr>;
+}
+
+/**
+ * Handle dot (.) member access in the chain.
+ * Returns the new child index.
+ */
+function handleDotAccess<TExpr>(
+  state: ChainBuildState<TExpr>,
+  childIndex: number,
+): number {
+  const { identifiers, separatorOptions, typeTracking } = state.options;
+  const children = state.options.children;
+
+  // Consume the dot
+  let i = childIndex + 1;
+
+  if (i < children.length && state.idIndex < identifiers.length) {
+    const memberName = identifiers[state.idIndex];
+    const separator = determineSeparator(separatorOptions, state.idIndex);
+    state.result += `${separator}${memberName}`;
+    state.idIndex++;
+
+    if (state.typeState && typeTracking) {
+      updateTypeStateForMember(state.typeState, typeTracking, memberName);
+    }
+  }
+
+  return i;
+}
+
+/**
+ * Handle bracket ([) subscript access in the chain.
+ * Returns either a bit access result (early exit) or null to continue.
+ */
+function handleBracketAccess<TExpr>(
+  state: ChainBuildState<TExpr>,
+  childIndex: number,
+):
+  | { result: MemberAccessChainResult; newIndex: number }
+  | { newIndex: number } {
+  const {
+    expressions,
+    generateExpression,
+    initialTypeInfo,
+    typeTracking,
+    onBitAccess,
+    children,
+  } = state.options;
+
+  // Check for bit access on primitive integer (if type tracking enabled)
+  if (state.typeState && onBitAccess) {
+    const bitAccessResult = tryBitAccess(
+      state.typeState,
+      state.exprIndex,
+      expressions,
+      generateExpression,
+      state.result,
+      state.idIndex,
+      onBitAccess,
+    );
+    if (bitAccessResult) {
+      return { result: bitAccessResult, newIndex: childIndex };
+    }
+  }
+
+  // Normal array subscript
+  if (state.exprIndex < expressions.length) {
+    const expr = generateExpression(expressions[state.exprIndex]);
+    state.result += `[${expr}]`;
+    state.exprIndex++;
+
+    // After subscripting an array, update type tracking
+    if (state.typeState && typeTracking && initialTypeInfo) {
+      updateTypeStateForArraySubscript(
+        state.typeState,
+        typeTracking,
+        initialTypeInfo,
+        state.exprIndex,
+      );
+    }
+  }
+
+  // Skip forward to find and pass the closing bracket
+  const newIndex = skipToClosingBracket(children, childIndex);
+
+  // Reset lastMemberType after subscript (no longer on a member)
+  if (state.typeState) {
+    state.typeState.lastMemberType = undefined;
+  }
+
+  return { newIndex };
+}
+
+/**
  * Builds a member access chain with proper separators and subscripts.
  *
  * This function walks through the parse tree children in order, building
@@ -325,96 +427,39 @@ function skipToClosingBracket(
 function buildMemberAccessChain<TExpr>(
   options: BuildChainOptions<TExpr>,
 ): MemberAccessChainResult {
-  const {
-    firstId,
-    identifiers,
-    expressions,
-    children,
-    separatorOptions,
-    generateExpression,
-    initialTypeInfo,
-    typeTracking,
-    onBitAccess,
-  } = options;
+  const { firstId, children, initialTypeInfo, typeTracking } = options;
 
-  let result = firstId;
-  let idIndex = 1; // Start at 1 since we already have firstId
-  let exprIndex = 0;
-
-  // Initialize type tracking state
-  const typeState =
-    typeTracking && initialTypeInfo
-      ? initializeTypeState(typeTracking, initialTypeInfo)
-      : undefined;
+  const state: ChainBuildState<TExpr> = {
+    result: firstId,
+    idIndex: 1, // Start at 1 since we already have firstId
+    exprIndex: 0,
+    typeState:
+      typeTracking && initialTypeInfo
+        ? initializeTypeState(typeTracking, initialTypeInfo)
+        : undefined,
+    options,
+  };
 
   let i = 1;
   while (i < children.length) {
     const childText = children[i].getText();
 
     if (childText === ".") {
-      // Dot found - consume it, then get the next identifier
-      i++;
-      if (i < children.length && idIndex < identifiers.length) {
-        const memberName = identifiers[idIndex];
-        const separator = determineSeparator(separatorOptions, idIndex);
-        result += `${separator}${memberName}`;
-        idIndex++;
-
-        if (typeState && typeTracking) {
-          updateTypeStateForMember(typeState, typeTracking, memberName);
-        }
-      }
+      i = handleDotAccess(state, i);
     } else if (childText === "[") {
-      // Opening bracket - handle subscript
-
-      // Check for bit access on primitive integer (if type tracking enabled)
-      if (typeState && onBitAccess) {
-        const bitAccessResult = tryBitAccess(
-          typeState,
-          exprIndex,
-          expressions,
-          generateExpression,
-          result,
-          idIndex,
-          onBitAccess,
-        );
-        if (bitAccessResult) {
-          return bitAccessResult;
-        }
+      const bracketResult = handleBracketAccess(state, i);
+      if ("result" in bracketResult) {
+        return bracketResult.result;
       }
-
-      // Normal array subscript
-      if (exprIndex < expressions.length) {
-        const expr = generateExpression(expressions[exprIndex]);
-        result += `[${expr}]`;
-        exprIndex++;
-
-        // After subscripting an array, update type tracking
-        if (typeState && typeTracking && initialTypeInfo) {
-          updateTypeStateForArraySubscript(
-            typeState,
-            typeTracking,
-            initialTypeInfo,
-            exprIndex,
-          );
-        }
-      }
-
-      // Skip forward to find and pass the closing bracket
-      i = skipToClosingBracket(children, i);
-
-      // Reset lastMemberType after subscript (no longer on a member)
-      if (typeState) {
-        typeState.lastMemberType = undefined;
-      }
+      i = bracketResult.newIndex;
     }
     i++;
   }
 
   return {
-    code: result,
-    identifiersConsumed: idIndex,
-    expressionsConsumed: exprIndex,
+    code: state.result,
+    identifiersConsumed: state.idIndex,
+    expressionsConsumed: state.exprIndex,
   };
 }
 
