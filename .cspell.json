@@ -324,7 +324,10 @@
     "scandir",
     "DDEBUG",
     "DVERSION",
-    "DDISABLED"
+    "DDISABLED",
+    "Graphviz",
+    "SDKMAN",
+    "madge"
   ],
   "ignorePaths": [
     "node_modules/**",
@@ -354,6 +357,7 @@
     "docs/decisions/**",
     "docs/implementation/**",
     "docs/plans/**",
+    "docs/architecture/**",
     "docs/LANGUAGE-FEATURE-TESTING-RESEARCH.md",
     "docs/misra-compliance.md",
     "docs/learn-cnext-in-y-minutes.md",
