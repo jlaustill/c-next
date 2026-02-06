@@ -247,100 +247,146 @@ class StringDeclHelper {
     } = modifiers;
     let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}`;
 
-    if (expression) {
-      // Reset array init tracking
-      this.deps.arrayInitState.lastArrayInitCount = 0;
-      this.deps.arrayInitState.lastArrayFillValue = undefined;
+    // No initializer - zero-initialize
+    if (!expression) {
+      decl += this.deps.generateArrayDimensions(arrayDims);
+      decl += `[${capacity + 1}]`;
+      return { code: `${decl} = {0};`, handled: true };
+    }
 
-      // Generate the initializer expression
-      const initValue = this.deps.generateExpression(expression);
+    // Reset array init tracking and generate initializer
+    this.deps.arrayInitState.lastArrayInitCount = 0;
+    this.deps.arrayInitState.lastArrayFillValue = undefined;
+    const initValue = this.deps.generateExpression(expression);
 
-      // Check if it was an array initializer
-      if (
-        this.deps.arrayInitState.lastArrayInitCount > 0 ||
-        this.deps.arrayInitState.lastArrayFillValue !== undefined
-      ) {
-        const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
+    // Check if it was an array initializer
+    const isArrayInit =
+      this.deps.arrayInitState.lastArrayInitCount > 0 ||
+      this.deps.arrayInitState.lastArrayFillValue !== undefined;
 
-        // Track as local array
-        this.deps.localArrays.add(name);
-
-        let arraySize: number;
-        if (hasEmptyArrayDim) {
-          // Size inference: string<10> labels[] <- ["One", "Two"]
-          if (this.deps.arrayInitState.lastArrayFillValue !== undefined) {
-            throw new Error(
-              `Error: Fill-all syntax [${this.deps.arrayInitState.lastArrayFillValue}*] requires explicit array size`,
-            );
-          }
-          arraySize = this.deps.arrayInitState.lastArrayInitCount;
-          decl += `[${arraySize}]`;
-
-          // Update type registry with inferred size
-          this.deps.typeRegistry.set(name, {
-            baseType: "char",
-            bitWidth: 8,
-            isArray: true,
-            arrayDimensions: [arraySize, capacity + 1],
-            isConst,
-            isString: true,
-            stringCapacity: capacity,
-          });
-        } else {
-          // Explicit size: string<10> labels[3] <- ["One", "Two", "Three"]
-          decl += this.deps.generateArrayDimensions(arrayDims);
-
-          // Validate element count matches declared size
-          const firstDimExpr = arrayDims[0].expression();
-          if (firstDimExpr) {
-            const sizeText = firstDimExpr.getText();
-            if (/^\d+$/.exec(sizeText)) {
-              const declaredSize = Number.parseInt(sizeText, 10);
-              if (
-                this.deps.arrayInitState.lastArrayFillValue === undefined &&
-                this.deps.arrayInitState.lastArrayInitCount !== declaredSize
-              ) {
-                throw new Error(
-                  `Error: Array size mismatch - declared [${declaredSize}] but got ${this.deps.arrayInitState.lastArrayInitCount} elements`,
-                );
-              }
-            }
-          }
-        }
-
-        decl += `[${capacity + 1}]`; // String capacity + null terminator
-
-        // Handle fill-all syntax: ["Hello"*] -> {"Hello", "Hello", "Hello"}
-        let finalInitValue = initValue;
-        if (this.deps.arrayInitState.lastArrayFillValue !== undefined) {
-          const firstDimExpr = arrayDims[0].expression();
-          if (firstDimExpr) {
-            const sizeText = firstDimExpr.getText();
-            if (/^\d+$/.exec(sizeText)) {
-              const declaredSize = Number.parseInt(sizeText, 10);
-              const fillVal = this.deps.arrayInitState.lastArrayFillValue;
-              // Only expand if not empty string (C handles {""} correctly for zeroing)
-              if (fillVal !== '""') {
-                const elements = new Array<string>(declaredSize).fill(fillVal);
-                finalInitValue = `{${elements.join(", ")}}`;
-              }
-            }
-          }
-        }
-
-        return { code: `${decl} = ${finalInitValue};`, handled: true };
-      }
-
-      // Non-array-initializer expression (e.g., variable assignment) not supported
+    if (!isArrayInit) {
       throw new Error(
         `Error: String array initialization from variables not supported`,
       );
     }
 
-    // No initializer - zero-initialize
-    decl += this.deps.generateArrayDimensions(arrayDims);
-    decl += `[${capacity + 1}]`;
-    return { code: `${decl} = {0};`, handled: true };
+    // Track as local array
+    this.deps.localArrays.add(name);
+
+    const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
+    if (hasEmptyArrayDim) {
+      decl += this._handleSizeInference(name, capacity, isConst);
+    } else {
+      decl += this._handleExplicitSize(arrayDims);
+    }
+
+    decl += `[${capacity + 1}]`; // String capacity + null terminator
+
+    const finalInitValue = this._expandFillAllIfNeeded(initValue, arrayDims);
+    return { code: `${decl} = ${finalInitValue};`, handled: true };
+  }
+
+  /**
+   * Handle size inference for empty array dimension.
+   * Returns the dimension string to append to declaration.
+   */
+  private _handleSizeInference(
+    name: string,
+    capacity: number,
+    isConst: boolean,
+  ): string {
+    const fillValue = this.deps.arrayInitState.lastArrayFillValue;
+    if (fillValue !== undefined) {
+      throw new Error(
+        `Error: Fill-all syntax [${fillValue}*] requires explicit array size`,
+      );
+    }
+
+    const arraySize = this.deps.arrayInitState.lastArrayInitCount;
+
+    // Update type registry with inferred size
+    this.deps.typeRegistry.set(name, {
+      baseType: "char",
+      bitWidth: 8,
+      isArray: true,
+      arrayDimensions: [arraySize, capacity + 1],
+      isConst,
+      isString: true,
+      stringCapacity: capacity,
+    });
+
+    return `[${arraySize}]`;
+  }
+
+  /**
+   * Handle explicit array size with validation.
+   * Returns the dimension string to append to declaration.
+   */
+  private _handleExplicitSize(
+    arrayDims: Parser.ArrayDimensionContext[],
+  ): string {
+    const declaredSize = this._getFirstDimNumericSize(arrayDims);
+
+    // Validate element count matches declared size (only for non-fill-all)
+    if (declaredSize !== null) {
+      const isFillAll =
+        this.deps.arrayInitState.lastArrayFillValue !== undefined;
+      const elementCount = this.deps.arrayInitState.lastArrayInitCount;
+
+      if (!isFillAll && elementCount !== declaredSize) {
+        throw new Error(
+          `Error: Array size mismatch - declared [${declaredSize}] but got ${elementCount} elements`,
+        );
+      }
+    }
+
+    return this.deps.generateArrayDimensions(arrayDims);
+  }
+
+  /**
+   * Expand fill-all syntax if needed.
+   * ["Hello"*] with size 3 -> {"Hello", "Hello", "Hello"}
+   */
+  private _expandFillAllIfNeeded(
+    initValue: string,
+    arrayDims: Parser.ArrayDimensionContext[],
+  ): string {
+    const fillVal = this.deps.arrayInitState.lastArrayFillValue;
+    if (fillVal === undefined) {
+      return initValue;
+    }
+
+    // Empty string fill doesn't need expansion (C handles {""} correctly)
+    if (fillVal === '""') {
+      return initValue;
+    }
+
+    const declaredSize = this._getFirstDimNumericSize(arrayDims);
+    if (declaredSize === null) {
+      return initValue;
+    }
+
+    const elements = new Array<string>(declaredSize).fill(fillVal);
+    return `{${elements.join(", ")}}`;
+  }
+
+  /**
+   * Get the numeric size from the first array dimension, or null if not numeric.
+   */
+  private _getFirstDimNumericSize(
+    arrayDims: Parser.ArrayDimensionContext[],
+  ): number | null {
+    const firstDimExpr = arrayDims[0]?.expression();
+    if (!firstDimExpr) {
+      return null;
+    }
+
+    const sizeText = firstDimExpr.getText();
+    if (!/^\d+$/.exec(sizeText)) {
+      return null;
+    }
+
+    return Number.parseInt(sizeText, 10);
   }
 
   /**
