@@ -35,13 +35,13 @@ let passed = 0;
 let failed = 0;
 
 /**
- * Run a CLI command and return result
+ * Run a CLI command in a specific directory and return result
  */
-function runCli(args = [], expectError = false) {
+function runCliInDir(cwd, args = [], expectError = false) {
   try {
     const output = execFileSync("node", [cliPath, ...args], {
       encoding: "utf-8",
-      cwd: rootDir,
+      cwd,
       timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -57,6 +57,13 @@ function runCli(args = [], expectError = false) {
     }
     throw error;
   }
+}
+
+/**
+ * Run a CLI command in the root directory
+ */
+function runCli(args = [], expectError = false) {
+  return runCliInDir(rootDir, args, expectError);
 }
 
 /**
@@ -257,34 +264,6 @@ function createTempPioProject(pioIniContent) {
 }
 
 /**
- * Run CLI command in a specific directory
- * @param {string} cwd - Working directory
- * @param {string[]} args - CLI arguments
- * @param {boolean} expectError - Whether to expect an error
- */
-function runCliInDir(cwd, args = [], expectError = false) {
-  try {
-    const output = execFileSync("node", [cliPath, ...args], {
-      encoding: "utf-8",
-      cwd,
-      timeout: 10000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return { success: true, output, exitCode: 0 };
-  } catch (error) {
-    if (expectError) {
-      return {
-        success: false,
-        output: error.stdout || "",
-        stderr: error.stderr || "",
-        exitCode: error.status || 1,
-      };
-    }
-    throw error;
-  }
-}
-
-/**
  * Assert file contains substring
  */
 function assertFileContains(filePath, substring, message) {
@@ -314,6 +293,32 @@ function cleanupTempDir(dir) {
     rmSync(dir, { recursive: true, force: true });
   } catch {
     // Ignore cleanup errors
+  }
+}
+
+/**
+ * Create temp test environment with .cnx and .c file paths
+ * Returns object with tempDir, cnxFile, cFile, and optional configFile
+ */
+function createTempTestEnv(prefix = "cnext-test-") {
+  const tempDir = mkdtempSync(join(tmpdir(), prefix));
+  return {
+    tempDir,
+    cnxFile: join(tempDir, "test.cnx"),
+    cFile: join(tempDir, "test.c"),
+    configFile: join(tempDir, "cnext.config.json"),
+  };
+}
+
+/**
+ * Run a test with temp directory setup and automatic cleanup
+ */
+function withTempTest(prefix, testFn) {
+  const env = createTempTestEnv(prefix);
+  try {
+    testFn(env);
+  } finally {
+    cleanupTempDir(env.tempDir);
   }
 }
 
@@ -528,27 +533,17 @@ test("--pio-uninstall preserves other extra_scripts", () => {
 // ----------------------------------------------------------------------------
 
 test("--target teensy41 generates LDREX/STREX code", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
-  const cnxFile = join(tempDir, "test.cnx");
-  const cFile = join(tempDir, "test.c");
-
-  try {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "teensy41", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
     assertFileContains(cFile, "__LDREXW", "Should use LDREX for teensy41");
-  } finally {
-    cleanupTempDir(tempDir);
-  }
+  });
 });
 
 test("--target cortex-m0 generates PRIMASK fallback code", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
-  const cnxFile = join(tempDir, "test.cnx");
-  const cFile = join(tempDir, "test.c");
-
-  try {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "cortex-m0", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
@@ -561,33 +556,22 @@ test("--target cortex-m0 generates PRIMASK fallback code", () => {
     // Should NOT contain LDREX
     const content = readFileSync(cFile, "utf-8");
     assert(!content.includes("__LDREX"), "Should NOT use LDREX for cortex-m0");
-  } finally {
-    cleanupTempDir(tempDir);
-  }
+  });
 });
 
 test("--target avr generates PRIMASK fallback code", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
-  const cnxFile = join(tempDir, "test.cnx");
-  const cFile = join(tempDir, "test.c");
-
-  try {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "avr", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
     // AVR should use PRIMASK fallback (no LDREX support)
     assertFileContains(cFile, "__get_PRIMASK", "Should use PRIMASK for avr");
-  } finally {
-    cleanupTempDir(tempDir);
-  }
+  });
 });
 
 test("--target with unknown target still compiles (uses default)", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-target-test-"));
-  const cnxFile = join(tempDir, "test.cnx");
-
-  try {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     // Unknown target should fall back to default (PRIMASK)
     const result = runCliInDir(tempDir, ["--target", "unknown-board", cnxFile]);
@@ -595,9 +579,7 @@ test("--target with unknown target still compiles (uses default)", () => {
       result.success,
       "Should compile with unknown target (using default)",
     );
-  } finally {
-    cleanupTempDir(tempDir);
-  }
+  });
 });
 
 // ----------------------------------------------------------------------------
@@ -605,55 +587,51 @@ test("--target with unknown target still compiles (uses default)", () => {
 // ----------------------------------------------------------------------------
 
 test("cnext.config.json target is respected", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-config-test-"));
-  const cnxFile = join(tempDir, "test.cnx");
-  const cFile = join(tempDir, "test.c");
-  const configFile = join(tempDir, "cnext.config.json");
+  withTempTest(
+    "cnext-config-test-",
+    ({ tempDir, cnxFile, cFile, configFile }) => {
+      writeFileSync(cnxFile, atomicCnx, "utf-8");
+      writeFileSync(
+        configFile,
+        JSON.stringify({ target: "cortex-m0" }, null, 2),
+        "utf-8",
+      );
 
-  try {
-    writeFileSync(cnxFile, atomicCnx, "utf-8");
-    writeFileSync(
-      configFile,
-      JSON.stringify({ target: "cortex-m0" }, null, 2),
-      "utf-8",
-    );
+      const result = runCliInDir(tempDir, [cnxFile]);
+      assert(result.success, `Compile should succeed: ${result.output}`);
 
-    const result = runCliInDir(tempDir, [cnxFile]);
-    assert(result.success, `Compile should succeed: ${result.output}`);
-
-    assertFileContains(cFile, "__get_PRIMASK", "Config target should be used");
-  } finally {
-    cleanupTempDir(tempDir);
-  }
+      assertFileContains(
+        cFile,
+        "__get_PRIMASK",
+        "Config target should be used",
+      );
+    },
+  );
 });
 
 test("CLI --target overrides config file target", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-config-test-"));
-  const cnxFile = join(tempDir, "test.cnx");
-  const cFile = join(tempDir, "test.c");
-  const configFile = join(tempDir, "cnext.config.json");
+  withTempTest(
+    "cnext-config-test-",
+    ({ tempDir, cnxFile, cFile, configFile }) => {
+      writeFileSync(cnxFile, atomicCnx, "utf-8");
+      // Config says cortex-m0 (PRIMASK)
+      writeFileSync(
+        configFile,
+        JSON.stringify({ target: "cortex-m0" }, null, 2),
+        "utf-8",
+      );
 
-  try {
-    writeFileSync(cnxFile, atomicCnx, "utf-8");
-    // Config says cortex-m0 (PRIMASK)
-    writeFileSync(
-      configFile,
-      JSON.stringify({ target: "cortex-m0" }, null, 2),
-      "utf-8",
-    );
+      // CLI says teensy41 (LDREX) - should override
+      const result = runCliInDir(tempDir, ["--target", "teensy41", cnxFile]);
+      assert(result.success, `Compile should succeed: ${result.output}`);
 
-    // CLI says teensy41 (LDREX) - should override
-    const result = runCliInDir(tempDir, ["--target", "teensy41", cnxFile]);
-    assert(result.success, `Compile should succeed: ${result.output}`);
-
-    assertFileContains(
-      cFile,
-      "__LDREXW",
-      "CLI --target should override config",
-    );
-  } finally {
-    cleanupTempDir(tempDir);
-  }
+      assertFileContains(
+        cFile,
+        "__LDREXW",
+        "CLI --target should override config",
+      );
+    },
+  );
 });
 
 // ============================================================================

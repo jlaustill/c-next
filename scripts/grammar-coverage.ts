@@ -10,7 +10,7 @@
  *   npm run coverage:grammar:check   - Check coverage (fail if below threshold)
  */
 
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +19,7 @@ import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGram
 import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
 import chalk from "chalk";
+import FileScanner from "./utils/FileScanner";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,35 +36,10 @@ function getPercentageColor(pct: number): (text: string) => string {
 }
 
 /**
- * Recursively find all .test.cnx files
- */
-function findTestFiles(dir: string): string[] {
-  const files: string[] = [];
-
-  function walk(currentDir: string): void {
-    const entries = readdirSync(currentDir);
-
-    for (const entry of entries) {
-      const fullPath = join(currentDir, entry);
-      const stat = statSync(fullPath);
-
-      if (stat.isDirectory()) {
-        walk(fullPath);
-      } else if (entry.endsWith(".test.cnx")) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  walk(dir);
-  return files;
-}
-
-/**
  * Aggregate coverage from all test files
  */
 function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
-  const testFiles = findTestFiles(testsDir);
+  const testFiles = FileScanner.findTestFiles(testsDir);
   const parserVisits = new Map<string, number>();
   const lexerVisits = new Map<string, number>();
 
@@ -332,7 +308,7 @@ async function main(): Promise<void> {
 
   console.log(chalk.yellow("Scanning test files for grammar coverage..."));
 
-  const testFiles = findTestFiles(testsDir);
+  const testFiles = FileScanner.findTestFiles(testsDir);
   console.log(`  Found ${testFiles.length} test files`);
 
   console.log(chalk.yellow("Aggregating grammar coverage..."));
