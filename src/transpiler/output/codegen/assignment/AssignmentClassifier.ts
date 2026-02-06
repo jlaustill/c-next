@@ -569,86 +569,141 @@ class AssignmentClassifier {
   }
 
   /**
+   * Check if a simple identifier is a string variable.
+   */
+  private _classifySimpleStringVar(
+    ctx: IAssignmentContext,
+  ): AssignmentKind | null {
+    if (!ctx.isSimpleIdentifier) return null;
+    const id = ctx.identifiers[0];
+    const typeInfo = this.deps.typeRegistry.get(id);
+    return this.isSimpleStringType(typeInfo)
+      ? AssignmentKind.STRING_SIMPLE
+      : null;
+  }
+
+  /**
+   * Check if this.member is a string.
+   */
+  private _classifyThisMemberString(
+    ctx: IAssignmentContext,
+  ): AssignmentKind | null {
+    if (!ctx.isSimpleThisAccess || !this.deps.currentScope) return null;
+    const memberName = ctx.identifiers[0];
+    const scopedName = `${this.deps.currentScope}_${memberName}`;
+    const typeInfo = this.deps.typeRegistry.get(scopedName);
+    return this.isSimpleStringType(typeInfo)
+      ? AssignmentKind.STRING_THIS_MEMBER
+      : null;
+  }
+
+  /**
+   * Check if global.member is a string.
+   */
+  private _classifyGlobalString(
+    ctx: IAssignmentContext,
+  ): AssignmentKind | null {
+    if (!ctx.isSimpleGlobalAccess) return null;
+    const id = ctx.identifiers[0];
+    const typeInfo = this.deps.typeRegistry.get(id);
+    return this.isSimpleStringType(typeInfo)
+      ? AssignmentKind.STRING_GLOBAL
+      : null;
+  }
+
+  /**
+   * Check if struct.field is a string field.
+   */
+  private _classifyStructFieldString(
+    ctx: IAssignmentContext,
+    structFieldNames: { structName: string; fieldName: string } | null,
+  ): AssignmentKind | null {
+    if (!ctx.hasMemberAccess || ctx.hasArrayAccess || !structFieldNames) {
+      return null;
+    }
+    const { structName, fieldName } = structFieldNames;
+    const structTypeInfo = this.deps.typeRegistry.get(structName);
+    if (!structTypeInfo || !this.deps.isKnownStruct(structTypeInfo.baseType)) {
+      return null;
+    }
+    const structFields = this.deps.symbols.structFields.get(
+      structTypeInfo.baseType,
+    );
+    const fieldType = structFields?.get(fieldName);
+    return fieldType && TypeCheckUtils.isString(fieldType)
+      ? AssignmentKind.STRING_STRUCT_FIELD
+      : null;
+  }
+
+  /**
+   * Check if struct.arr[i] is a string array element.
+   */
+  private _classifyStructArrayElementString(
+    ctx: IAssignmentContext,
+    structFieldNames: { structName: string; fieldName: string } | null,
+  ): AssignmentKind | null {
+    if (
+      !ctx.hasMemberAccess ||
+      !ctx.hasArrayAccess ||
+      !structFieldNames ||
+      ctx.subscripts.length !== 1
+    ) {
+      return null;
+    }
+    const { structName, fieldName } = structFieldNames;
+    const structTypeInfo = this.deps.typeRegistry.get(structName);
+    if (!structTypeInfo || !this.deps.isKnownStruct(structTypeInfo.baseType)) {
+      return null;
+    }
+
+    const structType = structTypeInfo.baseType;
+    const structFields = this.deps.symbols.structFields.get(structType);
+    const fieldType = structFields?.get(fieldName);
+    const fieldArrays = this.deps.symbols.structFieldArrays.get(structType);
+    const dimensions = this.deps.symbols.structFieldDimensions
+      .get(structType)
+      ?.get(fieldName);
+
+    const isStringArrayField =
+      fieldType &&
+      TypeCheckUtils.isString(fieldType) &&
+      fieldArrays?.has(fieldName) &&
+      dimensions &&
+      dimensions.length >= 1;
+
+    return isStringArrayField
+      ? AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT
+      : null;
+  }
+
+  /**
    * Classify string assignments.
    */
   private classifyStringAssignment(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
     // Simple string variable
-    if (ctx.isSimpleIdentifier) {
-      const id = ctx.identifiers[0];
-      const typeInfo = this.deps.typeRegistry.get(id);
-      if (this.isSimpleStringType(typeInfo)) {
-        return AssignmentKind.STRING_SIMPLE;
-      }
-    }
+    const simpleVar = this._classifySimpleStringVar(ctx);
+    if (simpleVar) return simpleVar;
 
     // this.member string
-    if (ctx.isSimpleThisAccess && this.deps.currentScope) {
-      const memberName = ctx.identifiers[0];
-      const scopedName = `${this.deps.currentScope}_${memberName}`;
-      const typeInfo = this.deps.typeRegistry.get(scopedName);
-      if (this.isSimpleStringType(typeInfo)) {
-        return AssignmentKind.STRING_THIS_MEMBER;
-      }
-    }
+    const thisMember = this._classifyThisMemberString(ctx);
+    if (thisMember) return thisMember;
 
     // global.member string
-    if (ctx.isSimpleGlobalAccess) {
-      const id = ctx.identifiers[0];
-      const typeInfo = this.deps.typeRegistry.get(id);
-      if (this.isSimpleStringType(typeInfo)) {
-        return AssignmentKind.STRING_GLOBAL;
-      }
-    }
+    const globalMember = this._classifyGlobalString(ctx);
+    if (globalMember) return globalMember;
 
-    // struct.field string (2 identifiers, no subscripts)
+    // struct.field or struct.arr[i] string
     const structFieldNames = this.getStructFieldNames(ctx);
-    if (ctx.hasMemberAccess && !ctx.hasArrayAccess && structFieldNames) {
-      const { structName, fieldName } = structFieldNames;
-      const structTypeInfo = this.deps.typeRegistry.get(structName);
+    const structField = this._classifyStructFieldString(ctx, structFieldNames);
+    if (structField) return structField;
 
-      if (structTypeInfo && this.deps.isKnownStruct(structTypeInfo.baseType)) {
-        const structFields = this.deps.symbols.structFields.get(
-          structTypeInfo.baseType,
-        );
-        const fieldType = structFields?.get(fieldName);
-        if (fieldType && TypeCheckUtils.isString(fieldType)) {
-          return AssignmentKind.STRING_STRUCT_FIELD;
-        }
-      }
-    }
-
-    // struct.arr[i] string array element (2 identifiers, 1 subscript)
-    if (
-      ctx.hasMemberAccess &&
-      ctx.hasArrayAccess &&
-      structFieldNames &&
-      ctx.subscripts.length === 1
-    ) {
-      const { structName, fieldName } = structFieldNames;
-      const structTypeInfo = this.deps.typeRegistry.get(structName);
-
-      if (structTypeInfo && this.deps.isKnownStruct(structTypeInfo.baseType)) {
-        const structType = structTypeInfo.baseType;
-        const structFields = this.deps.symbols.structFields.get(structType);
-        const fieldType = structFields?.get(fieldName);
-        const fieldArrays = this.deps.symbols.structFieldArrays.get(structType);
-        const dimensions = this.deps.symbols.structFieldDimensions
-          .get(structType)
-          ?.get(fieldName);
-
-        if (
-          fieldType &&
-          TypeCheckUtils.isString(fieldType) &&
-          fieldArrays?.has(fieldName) &&
-          dimensions &&
-          dimensions.length >= 1
-        ) {
-          return AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT;
-        }
-      }
-    }
+    const structArrayElement = this._classifyStructArrayElementString(
+      ctx,
+      structFieldNames,
+    );
+    if (structArrayElement) return structArrayElement;
 
     return null;
   }
