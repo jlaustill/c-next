@@ -86,6 +86,177 @@ interface PropertyResult {
 }
 
 /**
+ * Get bit width for a type, checking both C-Next and C types.
+ */
+function getTypeBitWidth(typeName: string): number {
+  return TYPE_WIDTH[typeName] || C_TYPE_WIDTH[typeName] || 0;
+}
+
+/**
+ * Create a PropertyResult with strlen effect.
+ */
+function makeStrlenResult(expr: string, skipContinue: boolean): PropertyResult {
+  return {
+    code: `strlen(${expr})`,
+    effects: [{ type: "include", header: "string" }],
+    skipContinue,
+  };
+}
+
+/**
+ * Create a PropertyResult for bit width (or unsupported type comment).
+ * @param isElement - true for array element types (uses "element type" in error)
+ */
+function makeBitWidthResult(
+  typeName: string,
+  skipContinue: boolean,
+  isElement: boolean = false,
+): PropertyResult {
+  const bitWidth = getTypeBitWidth(typeName);
+  if (bitWidth > 0) {
+    return { code: String(bitWidth), effects: [], skipContinue };
+  }
+  const typeLabel = isElement ? "element type" : "type";
+  return {
+    code: `/* .length: unsupported ${typeLabel} ${typeName} */0`,
+    effects: [],
+    skipContinue,
+  };
+}
+
+/**
+ * Handle .length for struct member access (cfg.field.length).
+ */
+function handleStructMemberLength(ctx: PropertyContext): PropertyResult | null {
+  if (!ctx.previousStructType || !ctx.previousMemberName) {
+    return null;
+  }
+
+  const fieldInfo = ctx.getStructFieldInfo(
+    ctx.previousStructType,
+    ctx.previousMemberName,
+  );
+  if (!fieldInfo) {
+    return null;
+  }
+
+  const { type: memberType, dimensions } = fieldInfo;
+  const isStringField = memberType.startsWith("string<");
+
+  // String array field: string<64> arr[4]
+  if (dimensions && dimensions.length > 1 && isStringField) {
+    if (ctx.subscriptDepth === 0) {
+      return { code: String(dimensions[0]), effects: [], skipContinue: true };
+    }
+    return makeStrlenResult(ctx.result, true);
+  }
+
+  // Single string field: string<64> str
+  if (dimensions?.length === 1 && isStringField) {
+    return makeStrlenResult(ctx.result, true);
+  }
+
+  // Multi-dim array member with partial subscript
+  if (
+    dimensions &&
+    dimensions.length > 0 &&
+    ctx.subscriptDepth < dimensions.length
+  ) {
+    return {
+      code: String(dimensions[ctx.subscriptDepth]),
+      effects: [],
+      skipContinue: true,
+    };
+  }
+
+  // Array member fully subscripted -> return element bit width
+  if (
+    dimensions &&
+    dimensions.length > 0 &&
+    ctx.subscriptDepth >= dimensions.length
+  ) {
+    return makeBitWidthResult(memberType, true, true); // isElement=true
+  }
+
+  // Non-array member -> return bit width
+  return makeBitWidthResult(memberType, true, false); // isElement=false
+}
+
+/**
+ * Handle .length for string types.
+ */
+function handleStringLength(
+  ctx: PropertyContext,
+  typeInfo: TTypeInfo,
+): PropertyResult {
+  // String array: arrayDimensions: [4, 65]
+  if (typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
+    if (ctx.subscriptDepth === 0) {
+      return {
+        code: String(typeInfo.arrayDimensions[0]),
+        effects: [],
+        skipContinue: false,
+      };
+    }
+    return makeStrlenResult(ctx.result, false);
+  }
+
+  // Single string with cached length
+  if (ctx.currentIdentifier && ctx.lengthCache?.has(ctx.currentIdentifier)) {
+    return {
+      code: ctx.lengthCache.get(ctx.currentIdentifier)!,
+      effects: [],
+      skipContinue: false,
+    };
+  }
+
+  // Single string: strlen(str)
+  const target = ctx.currentIdentifier ?? ctx.result;
+  return makeStrlenResult(target, false);
+}
+
+/**
+ * Handle .length for fully subscripted array (getting element bit width).
+ */
+function handleFullySubscriptedArrayLength(
+  ctx: PropertyContext,
+  typeInfo: TTypeInfo,
+): PropertyResult {
+  // ADR-017: Enum array element .length returns 32
+  if (typeInfo.isEnum) {
+    return { code: "32", effects: [], skipContinue: false };
+  }
+
+  // ADR-045/Issue #136: String array element .length -> strlen
+  if (typeInfo.baseType.startsWith("string<") || typeInfo.isString) {
+    return makeStrlenResult(ctx.result, false);
+  }
+
+  // Try primitive type first
+  let elementBitWidth = getTypeBitWidth(typeInfo.baseType);
+
+  // Issue #201: Also check bitmap types
+  if (
+    elementBitWidth === 0 &&
+    typeInfo.isBitmap &&
+    typeInfo.bitmapTypeName &&
+    ctx.getBitmapBitWidth
+  ) {
+    elementBitWidth = ctx.getBitmapBitWidth(typeInfo.bitmapTypeName) || 0;
+  }
+
+  if (elementBitWidth > 0) {
+    return { code: String(elementBitWidth), effects: [], skipContinue: false };
+  }
+
+  return {
+    code: `/* .length: unsupported element type ${typeInfo.baseType} */0`,
+    effects: [],
+    skipContinue: false,
+  };
+}
+
+/**
  * Generate code for .length property access.
  *
  * Handles:
@@ -96,86 +267,15 @@ interface PropertyResult {
  * - main args.length: returns argc
  */
 const generateLengthProperty = (ctx: PropertyContext): PropertyResult => {
-  const effects: TGeneratorEffect[] = [];
-
   // Special case: main function's args.length -> argc
   if (ctx.mainArgsName && ctx.primaryId === ctx.mainArgsName) {
-    return { code: "argc", effects, skipContinue: false };
+    return { code: "argc", effects: [], skipContinue: false };
   }
 
   // Check if we're accessing a struct member (cfg.magic.length)
-  if (ctx.previousStructType && ctx.previousMemberName) {
-    const fieldInfo = ctx.getStructFieldInfo(
-      ctx.previousStructType,
-      ctx.previousMemberName,
-    );
-    if (fieldInfo) {
-      const memberType = fieldInfo.type;
-      const dimensions = fieldInfo.dimensions;
-      const isStringField = memberType.startsWith("string<");
-
-      if (dimensions && dimensions.length > 1 && isStringField) {
-        // String array field: string<64> arr[4]
-        if (ctx.subscriptDepth === 0) {
-          // ts.arr.length -> return element count (first dimension)
-          return { code: String(dimensions[0]), effects, skipContinue: true };
-        } else {
-          // ts.arr[0].length -> strlen(ts.arr[0])
-          effects.push({ type: "include", header: "string" });
-          return {
-            code: `strlen(${ctx.result})`,
-            effects,
-            skipContinue: true,
-          };
-        }
-      } else if (dimensions?.length === 1 && isStringField) {
-        // Single string field: string<64> str
-        // ts.str.length -> strlen(ts.str)
-        effects.push({ type: "include", header: "string" });
-        return { code: `strlen(${ctx.result})`, effects, skipContinue: true };
-      } else if (
-        dimensions &&
-        dimensions.length > 0 &&
-        ctx.subscriptDepth < dimensions.length
-      ) {
-        // Multi-dim array member with partial subscript
-        return {
-          code: String(dimensions[ctx.subscriptDepth]),
-          effects,
-          skipContinue: true,
-        };
-      } else if (
-        dimensions &&
-        dimensions.length > 0 &&
-        ctx.subscriptDepth >= dimensions.length
-      ) {
-        // Array member fully subscripted -> return element bit width
-        const bitWidth =
-          TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
-        if (bitWidth > 0) {
-          return { code: String(bitWidth), effects, skipContinue: true };
-        } else {
-          return {
-            code: `/* .length: unsupported element type ${memberType} */0`,
-            effects,
-            skipContinue: true,
-          };
-        }
-      } else {
-        // Non-array member -> return bit width
-        const bitWidth =
-          TYPE_WIDTH[memberType] || C_TYPE_WIDTH[memberType] || 0;
-        if (bitWidth > 0) {
-          return { code: String(bitWidth), effects, skipContinue: true };
-        } else {
-          return {
-            code: `/* .length: unsupported type ${memberType} */0`,
-            effects,
-            skipContinue: true,
-          };
-        }
-      }
-    }
+  const structResult = handleStructMemberLength(ctx);
+  if (structResult) {
+    return structResult;
   }
 
   // Fall back to checking the current resolved identifier's type
@@ -184,106 +284,52 @@ const generateLengthProperty = (ctx: PropertyContext): PropertyResult => {
   if (!typeInfo) {
     return {
       code: `/* .length: unknown type for ${ctx.result} */0`,
-      effects,
+      effects: [],
       skipContinue: false,
     };
   }
 
   // ADR-045: String type handling
   if (typeInfo.isString) {
-    if (typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
-      // String array: arrayDimensions: [4, 65]
-      if (ctx.subscriptDepth === 0) {
-        // arr.length -> return element count (first dimension)
-        return {
-          code: String(typeInfo.arrayDimensions[0]),
-          effects,
-          skipContinue: false,
-        };
-      } else {
-        // arr[0].length -> strlen(arr[0])
-        effects.push({ type: "include", header: "string" });
-        return { code: `strlen(${ctx.result})`, effects, skipContinue: false };
-      }
-    } else if (
-      ctx.currentIdentifier &&
-      ctx.lengthCache?.has(ctx.currentIdentifier)
-    ) {
-      // Single string with cached length
-      return {
-        code: ctx.lengthCache.get(ctx.currentIdentifier)!,
-        effects,
-        skipContinue: false,
-      };
-    } else {
-      // Single string: arrayDimensions: [65]
-      // str.length -> strlen(str)
-      effects.push({ type: "include", header: "string" });
-      const target = ctx.currentIdentifier ?? ctx.result;
-      return { code: `strlen(${target})`, effects, skipContinue: false };
-    }
-  } else if (
+    return handleStringLength(ctx, typeInfo);
+  }
+
+  // Check for array with dimensions
+  const hasDimensions =
     typeInfo.isArray &&
     typeInfo.arrayDimensions &&
-    typeInfo.arrayDimensions.length > 0 &&
-    ctx.subscriptDepth < typeInfo.arrayDimensions.length
-  ) {
-    // ADR-036: Multi-dimensional array length
+    typeInfo.arrayDimensions.length > 0;
+
+  if (hasDimensions && ctx.subscriptDepth < typeInfo.arrayDimensions!.length) {
+    // ADR-036: Multi-dimensional array length (partial subscript)
     return {
-      code: String(typeInfo.arrayDimensions[ctx.subscriptDepth]),
-      effects,
+      code: String(typeInfo.arrayDimensions![ctx.subscriptDepth]),
+      effects: [],
       skipContinue: false,
     };
-  } else if (
-    typeInfo.isArray &&
-    typeInfo.arrayDimensions &&
-    typeInfo.arrayDimensions.length > 0 &&
-    ctx.subscriptDepth >= typeInfo.arrayDimensions.length
-  ) {
+  }
+
+  if (hasDimensions && ctx.subscriptDepth >= typeInfo.arrayDimensions!.length) {
     // Array fully subscripted -> return element bit width
-    if (typeInfo.isEnum) {
-      // ADR-017: Enum array element .length returns 32
-      return { code: "32", effects, skipContinue: false };
-    } else if (typeInfo.baseType.startsWith("string<") || typeInfo.isString) {
-      // ADR-045/Issue #136: String array element .length -> strlen
-      effects.push({ type: "include", header: "string" });
-      return { code: `strlen(${ctx.result})`, effects, skipContinue: false };
-    } else {
-      // Try primitive type first
-      let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
-      // Issue #201: Also check bitmap types
-      if (
-        elementBitWidth === 0 &&
-        typeInfo.isBitmap &&
-        typeInfo.bitmapTypeName &&
-        ctx.getBitmapBitWidth
-      ) {
-        elementBitWidth = ctx.getBitmapBitWidth(typeInfo.bitmapTypeName) || 0;
-      }
-      if (elementBitWidth > 0) {
-        return { code: String(elementBitWidth), effects, skipContinue: false };
-      } else {
-        return {
-          code: `/* .length: unsupported element type ${typeInfo.baseType} */0`,
-          effects,
-          skipContinue: false,
-        };
-      }
-    }
-  } else if (typeInfo.isArray) {
+    return handleFullySubscriptedArrayLength(ctx, typeInfo);
+  }
+
+  if (typeInfo.isArray) {
     // Unknown length for array type
     return {
       code: `/* .length unknown for ${ctx.currentIdentifier} */0`,
-      effects,
+      effects: [],
       skipContinue: false,
     };
-  } else if (typeInfo.isEnum) {
-    // ADR-017: Enum types default to 32-bit width
-    return { code: "32", effects, skipContinue: false };
-  } else {
-    // Integer bit width - return the compile-time constant
-    return { code: String(typeInfo.bitWidth), effects, skipContinue: false };
   }
+
+  if (typeInfo.isEnum) {
+    // ADR-017: Enum types default to 32-bit width
+    return { code: "32", effects: [], skipContinue: false };
+  }
+
+  // Integer bit width - return the compile-time constant
+  return { code: String(typeInfo.bitWidth), effects: [], skipContinue: false };
 };
 
 /**
