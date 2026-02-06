@@ -17,6 +17,29 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import { BlockContext } from "../../../../logic/parser/grammar/CNextParser";
+
+/**
+ * Generate case/default block body: statements + break + closing brace.
+ */
+function generateCaseBlockBody(
+  block: BlockContext,
+  lines: string[],
+  orchestrator: IOrchestrator,
+): void {
+  const statements = block.statement();
+  for (const stmt of statements) {
+    const stmtCode = orchestrator.generateStatement(stmt);
+    if (stmtCode) {
+      lines.push(orchestrator.indent(orchestrator.indent(stmtCode)));
+    }
+  }
+
+  lines.push(
+    orchestrator.indent(orchestrator.indent("break;")),
+    orchestrator.indent("}"),
+  );
+}
 
 /**
  * Generate C code for a case label.
@@ -169,19 +192,7 @@ const generateSwitchCase = (
   }
 
   // Generate block contents (without the outer braces - we added them above)
-  const statements = block.statement();
-  for (const stmt of statements) {
-    const stmtCode = orchestrator.generateStatement(stmt);
-    if (stmtCode) {
-      lines.push(orchestrator.indent(orchestrator.indent(stmtCode)));
-    }
-  }
-
-  // Add break and close block
-  lines.push(
-    orchestrator.indent(orchestrator.indent("break;")),
-    orchestrator.indent("}"),
-  );
+  generateCaseBlockBody(block, lines, orchestrator);
 
   return { code: lines.join("\n"), effects };
 };
@@ -204,19 +215,7 @@ const generateDefaultCase = (
   lines.push(orchestrator.indent("default: {"));
 
   // Generate block contents
-  const statements = block.statement();
-  for (const stmt of statements) {
-    const stmtCode = orchestrator.generateStatement(stmt);
-    if (stmtCode) {
-      lines.push(orchestrator.indent(orchestrator.indent(stmtCode)));
-    }
-  }
-
-  // Add break and close block
-  lines.push(
-    orchestrator.indent(orchestrator.indent("break;")),
-    orchestrator.indent("}"),
-  );
+  generateCaseBlockBody(block, lines, orchestrator);
 
   return { code: lines.join("\n"), effects };
 };

@@ -20,6 +20,48 @@ import IOrchestrator from "../IOrchestrator";
 import BinaryExprUtils from "./BinaryExprUtils";
 
 /**
+ * Generic child expression generator function type
+ */
+type TChildGenerator<T> = (
+  child: T,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+) => IGeneratorOutput;
+
+/**
+ * Accumulate binary expressions with operators into a single result.
+ * Handles the common pattern of: first + (op + rest)*
+ */
+function accumulateBinaryExprs<T>(
+  exprs: T[],
+  operators: string[],
+  defaultOp: string,
+  generateChild: TChildGenerator<T>,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+  mapOperator?: (op: string) => string,
+): IGeneratorOutput {
+  const effects: TGeneratorEffect[] = [];
+
+  const firstResult = generateChild(exprs[0], input, state, orchestrator);
+  effects.push(...firstResult.effects);
+  let result = firstResult.code;
+
+  for (let i = 1; i < exprs.length; i++) {
+    const rawOp = operators[i - 1] || defaultOp;
+    const op = mapOperator ? mapOperator(rawOp) : rawOp;
+
+    const exprResult = generateChild(exprs[i], input, state, orchestrator);
+    effects.push(...exprResult.effects);
+    result += ` ${op} ${exprResult.code}`;
+  }
+
+  return { code: result, effects };
+}
+
+/**
  * Generate C code for an OR expression (lowest precedence binary op).
  */
 const generateOrExpr = (
@@ -131,33 +173,18 @@ const generateEqualityExpr = (
 
   // Build the expression, transforming = to ==
   // Issue #152: Extract operators in order from parse tree children
+  // ADR-001: C-Next uses = for equality, transpile to ==
   const operators = orchestrator.getOperatorsFromChildren(node);
-  const firstResult = generateRelationalExpr(
-    exprs[0],
+  return accumulateBinaryExprs(
+    exprs,
+    operators,
+    "=",
+    generateRelationalExpr,
     input,
     state,
     orchestrator,
+    BinaryExprUtils.mapEqualityOperator,
   );
-  effects.push(...firstResult.effects);
-  let result = firstResult.code;
-
-  for (let i = 1; i < exprs.length; i++) {
-    // ADR-001: C-Next uses = for equality, transpile to ==
-    // C-Next uses != for inequality, keep as !=
-    const rawOp = operators[i - 1] || "=";
-    const op = BinaryExprUtils.mapEqualityOperator(rawOp);
-
-    const exprResult = generateRelationalExpr(
-      exprs[i],
-      input,
-      state,
-      orchestrator,
-    );
-    effects.push(...exprResult.effects);
-    result += ` ${op} ${exprResult.code}`;
-  }
-
-  return { code: result, effects };
 };
 
 /**
@@ -169,7 +196,6 @@ const generateRelationalExpr = (
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  const effects: TGeneratorEffect[] = [];
   const exprs = node.bitwiseOrExpression();
 
   if (exprs.length === 1) {
@@ -178,28 +204,15 @@ const generateRelationalExpr = (
 
   // Issue #152: Extract operators in order from parse tree children
   const operators = orchestrator.getOperatorsFromChildren(node);
-  const firstResult = generateBitwiseOrExpr(
-    exprs[0],
+  return accumulateBinaryExprs(
+    exprs,
+    operators,
+    "<",
+    generateBitwiseOrExpr,
     input,
     state,
     orchestrator,
   );
-  effects.push(...firstResult.effects);
-  let result = firstResult.code;
-
-  for (let i = 1; i < exprs.length; i++) {
-    const op = operators[i - 1] || "<";
-    const exprResult = generateBitwiseOrExpr(
-      exprs[i],
-      input,
-      state,
-      orchestrator,
-    );
-    effects.push(...exprResult.effects);
-    result += ` ${op} ${exprResult.code}`;
-  }
-
-  return { code: result, effects };
 };
 
 /**
