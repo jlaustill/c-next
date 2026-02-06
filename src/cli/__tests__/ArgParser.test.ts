@@ -281,20 +281,24 @@ describe("ArgParser", () => {
         expect(consoleLogSpy).toHaveBeenCalled();
       });
 
-      it("ignores -I flag (yargs without strict mode)", () => {
-        // yargs without strict mode accepts unknown options
-        // The fail handler only triggers on actual parse errors (e.g., missing requiresArg values)
-        // In practice, users will see -I being ignored and the help text shows --include
-        const result = ArgParser.parse(argv("input.cnx", "-I", "path"));
-        expect(result.inputFiles).toEqual(["input.cnx"]);
-        // -I doesn't populate includeDirs - shows users to use --include
-        expect(result.includeDirs).toEqual([]);
+      it("shows helpful message for -I flag (GCC-style)", () => {
+        // Use "-I path" with a space (yargs parses "-I<dir>" as multiple short flags)
+        expect(() => ArgParser.parse(argv("input.cnx", "-I", "path"))).toThrow(
+          "process.exit(1)",
+        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "Error: Unknown flag '-I...'",
+        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "  Did you mean: --include <dir>",
+        );
       });
 
-      it("ignores unknown flags (yargs without strict mode)", () => {
-        // yargs without strict mode accepts unknown options
-        const result = ArgParser.parse(argv("input.cnx", "--unknown-flag"));
-        expect(result.inputFiles).toEqual(["input.cnx"]);
+      it("rejects unknown flags with error", () => {
+        expect(() =>
+          ArgParser.parse(argv("input.cnx", "--unknown-flag")),
+        ).toThrow("process.exit(1)");
+        expect(exitSpy).toHaveBeenCalledWith(1);
       });
     });
   });
