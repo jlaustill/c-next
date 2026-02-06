@@ -79,6 +79,16 @@ interface IStringDeclHelperDeps {
 }
 
 /**
+ * Declaration modifiers for string variable declarations.
+ */
+interface IStringDeclModifiers {
+  extern: string;
+  const: string;
+  atomic: string;
+  volatile: string;
+}
+
+/**
  * Result from generating a string declaration.
  */
 interface IStringDeclResult {
@@ -107,12 +117,7 @@ class StringDeclHelper {
     name: string,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
-    modifiers: {
-      extern: string;
-      const: string;
-      atomic: string;
-      volatile: string;
-    },
+    modifiers: IStringDeclModifiers,
     isConst: boolean,
   ): IStringDeclResult {
     const stringCtx = typeCtx.stringType();
@@ -152,12 +157,7 @@ class StringDeclHelper {
     capacity: number,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
-    modifiers: {
-      extern: string;
-      const: string;
-      atomic: string;
-      volatile: string;
-    },
+    modifiers: IStringDeclModifiers,
     isConst: boolean,
   ): IStringDeclResult {
     // Note: atomic and volatile only used for string arrays, not simple strings
@@ -231,12 +231,7 @@ class StringDeclHelper {
     capacity: number,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
-    modifiers: {
-      extern: string;
-      const: string;
-      atomic: string;
-      volatile: string;
-    },
+    modifiers: IStringDeclModifiers,
     isConst: boolean,
   ): IStringDeclResult {
     const {
@@ -483,12 +478,7 @@ class StringDeclHelper {
   private generateUnsizedStringDecl(
     name: string,
     expression: Parser.ExpressionContext | null,
-    modifiers: {
-      extern: string;
-      const: string;
-      atomic: string;
-      volatile: string;
-    },
+    modifiers: IStringDeclModifiers,
     isConst: boolean,
   ): IStringDeclResult {
     if (!isConst) {

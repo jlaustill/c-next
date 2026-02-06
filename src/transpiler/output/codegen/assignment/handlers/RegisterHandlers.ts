@@ -138,11 +138,21 @@ function handleRegisterBitRange(
     }
 
     // Fallback: write shifted value
-    return `${fullName} = ((${ctx.generatedValue} & ${mask}) << ${start});`;
+    return RegisterUtils.generateWriteOnlyBitRange(
+      fullName,
+      ctx.generatedValue,
+      mask,
+      start,
+    );
   }
 
   // Read-write: read-modify-write
-  return `${fullName} = (${fullName} & ~(${mask} << ${start})) | ((${ctx.generatedValue} & ${mask}) << ${start});`;
+  return RegisterUtils.generateRmwBitRange(
+    fullName,
+    ctx.generatedValue,
+    mask,
+    start,
+  );
 }
 
 /**
@@ -242,10 +252,20 @@ function handleScopedRegisterBitRange(
       }
     }
 
-    return `${regName} = ((${ctx.generatedValue} & ${mask}) << ${start});`;
+    return RegisterUtils.generateWriteOnlyBitRange(
+      regName,
+      ctx.generatedValue,
+      mask,
+      start,
+    );
   }
 
-  return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${ctx.generatedValue} & ${mask}) << ${start});`;
+  return RegisterUtils.generateRmwBitRange(
+    regName,
+    ctx.generatedValue,
+    mask,
+    start,
+  );
 }
 
 /**
