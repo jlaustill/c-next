@@ -58,6 +58,12 @@ SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud 
 
 **Reducing cognitive complexity:** Extract nested logic into private helper methods with early returns. Keep helpers in the same class when they need many instance dependencies. Name helpers descriptively (e.g., `_resolveIdentifierExpression`, `_resolveUnqualifiedEnumMember`).
 
+**Before refactoring complexity issues:**
+
+1. **Check ExpressionUtils first** - `src/utils/ExpressionUtils.ts` has expression tree traversal helpers (`extractIdentifier`, `hasFunctionCall`, `extractUnaryExpression`) - don't duplicate this logic
+2. **Search for existing patterns** - grep for similar helper methods before writing new code
+3. **Verify file exists** - SonarCloud issues can be stale (file renamed/deleted). Use `find` to confirm before refactoring
+
 **After extracting helpers:** Error throw paths in extracted methods often need unit tests - integration tests may not cover them. Check `npm run unit:coverage` for uncovered lines.
 
 **Before opening a PR**, verify coverage on new/modified files:
@@ -76,6 +82,7 @@ Check the terminal report for files you changed — any new code below 80% cover
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
 - **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
 - **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
+- **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
 
 ### Flaky CI Tests
 
