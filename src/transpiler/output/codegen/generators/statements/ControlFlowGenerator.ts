@@ -24,6 +24,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
+import ExpressionUtils from "../../../../../utils/ExpressionUtils";
 
 /**
  * Maps C-Next assignment operators to C assignment operators
@@ -43,6 +44,28 @@ const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
 };
 
 /**
+ * Issue #477: Check if a simple identifier is an unqualified enum member.
+ * Throws an error with helpful suggestion if found.
+ */
+function rejectUnqualifiedEnumInReturn(
+  simpleId: string,
+  symbols: IGeneratorInput["symbols"],
+  exprCtx: ExpressionContext,
+): void {
+  if (!symbols) return;
+
+  for (const [enumName, members] of symbols.enumMembers) {
+    if (members.has(simpleId)) {
+      const line = exprCtx.start?.line ?? 0;
+      const col = exprCtx.start?.column ?? 0;
+      throw new Error(
+        `${line}:${col} error[E0424]: '${simpleId}' is not defined; did you mean '${enumName}.${simpleId}'?`,
+      );
+    }
+  }
+}
+
+/**
  * Generate C code for a return statement.
  * Issue #477: Uses function return type as expected type for enum inference.
  */
@@ -54,159 +77,31 @@ const generateReturn = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  if (node.expression()) {
-    // Issue #477: Get function return type for enum inference
-    const returnType = orchestrator.getCurrentFunctionReturnType();
-    const exprCtx = node.expression()!;
-    const isSimpleExpr = isSimpleExpression(exprCtx);
-    const returnTypeIsEnum =
-      returnType && input.symbols?.knownEnums.has(returnType);
+  if (!node.expression()) {
+    return { code: "return;", effects };
+  }
 
-    // Issue #477: Validate unqualified enum in non-enum return context
-    // If return type is NOT an enum AND expression is a simple identifier
-    // AND that identifier is an unqualified enum member → reject
-    if (isSimpleExpr && !returnTypeIsEnum && input.symbols) {
-      const simpleId = getSimpleIdentifier(exprCtx);
-      if (simpleId) {
-        // Check if this identifier is an enum member
-        for (const [enumName, members] of input.symbols.enumMembers) {
-          if (members.has(simpleId)) {
-            const line = exprCtx.start?.line ?? 0;
-            const col = exprCtx.start?.column ?? 0;
-            throw new Error(
-              `${line}:${col} error[E0424]: '${simpleId}' is not defined; did you mean '${enumName}.${simpleId}'?`,
-            );
-          }
-        }
-      }
+  // Issue #477: Get function return type for enum inference
+  const returnType = orchestrator.getCurrentFunctionReturnType();
+  const exprCtx = node.expression()!;
+  const returnTypeIsEnum =
+    returnType && input.symbols?.knownEnums.has(returnType);
+
+  // Issue #477: Validate unqualified enum in non-enum return context
+  // Use ExpressionUtils to check for simple identifier (no binary ops, no postfix)
+  if (!returnTypeIsEnum) {
+    const simpleId = ExpressionUtils.extractIdentifier(exprCtx);
+    if (simpleId) {
+      rejectUnqualifiedEnumInReturn(simpleId, input.symbols, exprCtx);
     }
-
-    // Set expectedType if return type is enum (enables unqualified enum returns)
-    const expr = returnTypeIsEnum
-      ? orchestrator.generateExpressionWithExpectedType(exprCtx, returnType)
-      : orchestrator.generateExpression(exprCtx);
-
-    return { code: `return ${expr};`, effects };
   }
 
-  return { code: "return;", effects };
-};
+  // Set expectedType if return type is enum (enables unqualified enum returns)
+  const expr = returnTypeIsEnum
+    ? orchestrator.generateExpressionWithExpectedType(exprCtx, returnType)
+    : orchestrator.generateExpression(exprCtx);
 
-/**
- * Issue #477: Get the simple identifier from an expression if it's just an identifier.
- * Returns null for complex expressions, qualified types (Enum.VALUE), or expressions with postfix ops.
- */
-const getSimpleIdentifier = (expr: ExpressionContext): string | null => {
-  if (!isSimpleExpression(expr)) return null;
-
-  // Navigate down the chain to get the primary expression
-  const ternary = expr.ternaryExpression();
-  if (!ternary) return null;
-
-  const orExprs = ternary.orExpression();
-  if (orExprs.length !== 1) return null;
-
-  const andExprs = orExprs[0].andExpression();
-  if (andExprs.length !== 1) return null;
-
-  const eqExprs = andExprs[0].equalityExpression();
-  if (eqExprs.length !== 1) return null;
-
-  const relExprs = eqExprs[0].relationalExpression();
-  if (relExprs.length !== 1) return null;
-
-  const borExprs = relExprs[0].bitwiseOrExpression();
-  if (borExprs.length !== 1) return null;
-
-  const bxorExprs = borExprs[0].bitwiseXorExpression();
-  if (bxorExprs.length !== 1) return null;
-
-  const bandExprs = bxorExprs[0].bitwiseAndExpression();
-  if (bandExprs.length !== 1) return null;
-
-  const shiftExprs = bandExprs[0].shiftExpression();
-  if (shiftExprs.length !== 1) return null;
-
-  const addExprs = shiftExprs[0].additiveExpression();
-  if (addExprs.length !== 1) return null;
-
-  const mulExprs = addExprs[0].multiplicativeExpression();
-  if (mulExprs.length !== 1) return null;
-
-  const unaryExprs = mulExprs[0].unaryExpression();
-  if (unaryExprs.length !== 1) return null;
-
-  const postfix = unaryExprs[0].postfixExpression();
-  if (!postfix) return null;
-
-  // If there are postfix operations (like .member or [index]), not a simple identifier
-  if (postfix.postfixOp().length > 0) return null;
-
-  const primary = postfix.primaryExpression();
-  if (!primary) return null;
-
-  // Check if it's just an identifier (not a qualified type like Enum.VALUE)
-  // A qualified type has the form: IDENTIFIER.IDENTIFIER (e.g., Color.RED)
-  // For simple identifier, we check there's an IDENTIFIER and the text doesn't contain '.'
-  const id = primary.IDENTIFIER();
-  if (id && !primary.getText().includes(".")) {
-    return id.getText();
-  }
-
-  return null;
-};
-
-/**
- * Issue #477: Check if an expression is "simple" (no binary operators).
- * Simple expressions: identifiers, literals, qualified types, parenthesized simple exprs
- * Complex expressions: comparisons (a = b), arithmetic (a + b), etc.
- */
-const isSimpleExpression = (expr: ExpressionContext): boolean => {
-  // Get the chain down to the primary expression
-  // expression → ternaryExpression → orExpression → andExpression → ...
-
-  // Check for ternary operator
-  const ternaryExpr = expr.ternaryExpression();
-  if (!ternaryExpr) return false;
-
-  // If there's a ternary operator (has multiple orExpression children), not simple
-  const orExprs = ternaryExpr.orExpression();
-  if (orExprs.length > 1) return false;
-
-  const orExpr = orExprs[0];
-  if (!orExpr || orExpr.andExpression().length > 1) return false;
-
-  const andExpr = orExpr.andExpression()[0];
-  if (!andExpr || andExpr.equalityExpression().length > 1) return false;
-
-  const eqExpr = andExpr.equalityExpression()[0];
-  // If there's an equality operator (=, !=), it's a comparison
-  if (!eqExpr || eqExpr.relationalExpression().length > 1) return false;
-
-  // Continue down the chain - any binary operators make it non-simple
-  const relExpr = eqExpr.relationalExpression()[0];
-  if (!relExpr || relExpr.bitwiseOrExpression().length > 1) return false;
-
-  const borExpr = relExpr.bitwiseOrExpression()[0];
-  if (!borExpr || borExpr.bitwiseXorExpression().length > 1) return false;
-
-  const bxorExpr = borExpr.bitwiseXorExpression()[0];
-  if (!bxorExpr || bxorExpr.bitwiseAndExpression().length > 1) return false;
-
-  const bandExpr = bxorExpr.bitwiseAndExpression()[0];
-  if (!bandExpr || bandExpr.shiftExpression().length > 1) return false;
-
-  const shiftExpr = bandExpr.shiftExpression()[0];
-  if (!shiftExpr || shiftExpr.additiveExpression().length > 1) return false;
-
-  const addExpr = shiftExpr.additiveExpression()[0];
-  if (!addExpr || addExpr.multiplicativeExpression().length > 1) return false;
-
-  const mulExpr = addExpr.multiplicativeExpression()[0];
-  if (!mulExpr || mulExpr.unaryExpression().length > 1) return false;
-
-  // If we get here, it's a simple unary/primary expression
-  return true;
+  return { code: `return ${expr};`, effects };
 };
 
 /**
