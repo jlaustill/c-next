@@ -202,13 +202,11 @@ class CSymbolCollector {
     }
 
     const baseType = this._buildBaseTypeFromSpecs(specs, lastTypedefIndex);
-    this._addTypedefSymbol(
-      lastTypedefName,
-      baseType,
-      isTypedef,
-      isExtern,
-      line,
-    );
+    if (isTypedef) {
+      this._addTypeSymbol(lastTypedefName, baseType, line);
+    } else {
+      this._addVariableSymbol(lastTypedefName, baseType, isExtern, line);
+    }
   }
 
   /**
@@ -269,37 +267,39 @@ class CSymbolCollector {
   }
 
   /**
-   * Add a typedef or variable symbol.
+   * Add a type symbol (from typedef).
    */
-  private _addTypedefSymbol(
+  private _addTypeSymbol(name: string, baseType: string, line: number): void {
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name,
+      kind: ESymbolKind.Type,
+      type: baseType,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.C,
+      isExported: true,
+    });
+  }
+
+  /**
+   * Add a variable symbol.
+   */
+  private _addVariableSymbol(
     name: string,
     baseType: string,
-    isTypedef: boolean,
     isExtern: boolean,
     line: number,
   ): void {
-    if (isTypedef) {
-      SymbolCollectorContext.addSymbol(this.ctx, {
-        name,
-        kind: ESymbolKind.Type,
-        type: baseType,
-        sourceFile: this.ctx.sourceFile,
-        sourceLine: line,
-        sourceLanguage: ESourceLanguage.C,
-        isExported: true,
-      });
-    } else {
-      SymbolCollectorContext.addSymbol(this.ctx, {
-        name,
-        kind: ESymbolKind.Variable,
-        type: baseType,
-        sourceFile: this.ctx.sourceFile,
-        sourceLine: line,
-        sourceLanguage: ESourceLanguage.C,
-        isExported: !isExtern,
-        isDeclaration: isExtern,
-      });
-    }
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name,
+      kind: ESymbolKind.Variable,
+      type: baseType,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.C,
+      isExported: !isExtern,
+      isDeclaration: isExtern,
+    });
   }
 
   private collectInitDeclaratorList(
