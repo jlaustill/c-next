@@ -182,8 +182,13 @@ export class CNextServer {
         return this.parseSymbols(request.params as IParseSymbolsParams);
       case 'parseCHeader':
         return this.parseCHeader(request.params as IParseCHeaderParams);
+      case 'validateSource':
+        return this.validateSource(request.params as ITranspileParams);
       case 'getVersion':
-        return { version: process.env.npm_package_version ?? '0.0.0' };
+        return {
+          version: process.env.npm_package_version ?? '0.0.0',
+          protocolVersion: '1.0',
+        };
       case 'shutdown':
         process.exit(0);
       default:
@@ -212,14 +217,20 @@ export class CNextServer {
     return { symbols };
   }
 
+  private async validateSource(params: ITranspileParams): Promise<{ errors: IDiagnostic[] }> {
+    // Parse and validate without generating code
+    const result = transpiler.transpileSource(params.source, params.filePath);
+    return { errors: result.errors ?? [] };
+  }
+
   private sendResponse(id: number, result: unknown): void {
     const response: IServerResponse = { id, result };
-    console.log(JSON.stringify(response));
+    process.stdout.write(JSON.stringify(response) + '\n');
   }
 
   private sendError(id: number, code: number, message: string): void {
     const response: IServerResponse = { id, error: { code, message } };
-    console.log(JSON.stringify(response));
+    process.stdout.write(JSON.stringify(response) + '\n');
   }
 }
 ```
@@ -344,6 +355,12 @@ import type {
   IParseCHeaderResult,
 } from './protocol';
 
+// Configuration constants
+const SERVER_REQUEST_TIMEOUT_MS = 30000;
+const SERVER_RESTART_DELAY_MS = 1000;
+const SERVER_MAX_RESTARTS = 5;
+const PROTOCOL_VERSION = '1.0';
+
 export class CNextServerClient implements vscode.Disposable {
   private process: cp.ChildProcess | null = null;
   private rl: readline.Interface | null = null;
@@ -351,13 +368,14 @@ export class CNextServerClient implements vscode.Disposable {
   private pendingRequests = new Map<number, {
     resolve: (value: unknown) => void;
     reject: (error: Error) => void;
+    timeoutId: NodeJS.Timeout;
   }>();
   private outputChannel: vscode.OutputChannel;
   private restartCount = 0;
-  private readonly maxRestarts = 5;
+  private isRestarting = false;
 
-  constructor() {
-    this.outputChannel = vscode.window.createOutputChannel('C-Next Server');
+  constructor(outputChannel?: vscode.OutputChannel) {
+    this.outputChannel = outputChannel ?? vscode.window.createOutputChannel('C-Next Server');
   }
 
   async start(): Promise<void> {
@@ -409,20 +427,27 @@ export class CNextServerClient implements vscode.Disposable {
   }
 
   private handleServerExit(): void {
+    if (this.isRestarting) return; // Prevent overlapping restarts
+
     this.process = null;
     this.rl = null;
 
-    // Reject all pending requests
-    for (const { reject } of this.pendingRequests.values()) {
+    // Reject all pending requests and clear their timeouts
+    for (const { reject, timeoutId } of this.pendingRequests.values()) {
+      clearTimeout(timeoutId);
       reject(new Error('Server exited'));
     }
     this.pendingRequests.clear();
 
     // Auto-restart if under limit
-    if (this.restartCount < this.maxRestarts) {
+    if (this.restartCount < SERVER_MAX_RESTARTS) {
+      this.isRestarting = true;
       this.restartCount++;
       this.outputChannel.appendLine(`Restarting server (attempt ${this.restartCount})`);
-      setTimeout(() => this.start(), 1000);
+      setTimeout(() => {
+        this.isRestarting = false;
+        this.start();
+      }, SERVER_RESTART_DELAY_MS);
     } else {
       vscode.window.showErrorMessage(
         'C-Next server crashed repeatedly. Please reload the window.'
@@ -435,6 +460,7 @@ export class CNextServerClient implements vscode.Disposable {
       const response: IServerResponse = JSON.parse(line);
       const pending = this.pendingRequests.get(response.id);
       if (pending) {
+        clearTimeout(pending.timeoutId); // Clear timeout on response
         this.pendingRequests.delete(response.id);
         if (response.error) {
           pending.reject(new Error(response.error.message));
@@ -456,19 +482,20 @@ export class CNextServerClient implements vscode.Disposable {
     const request: IServerRequest = { id, method, params };
 
     return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        reject(new Error(`Request ${method} timed out`));
+      }, SERVER_REQUEST_TIMEOUT_MS);
+
       this.pendingRequests.set(id, {
         resolve: resolve as (value: unknown) => void,
         reject,
+        timeoutId,
       });
-
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(id);
-        reject(new Error(`Request ${method} timed out`));
-      }, 30000);
 
       this.process!.stdin!.write(JSON.stringify(request) + '\n', (err) => {
         if (err) {
-          clearTimeout(timeout);
+          clearTimeout(timeoutId);
           this.pendingRequests.delete(id);
           reject(err);
         }
@@ -489,9 +516,22 @@ export class CNextServerClient implements vscode.Disposable {
     return this.request('parseCHeader', params);
   }
 
-  async getVersion(): Promise<string> {
-    const result = await this.request<{ version: string }>('getVersion', {});
-    return result.version;
+  async getVersion(): Promise<{ version: string; protocolVersion: string }> {
+    return this.request('getVersion', {});
+  }
+
+  async checkCompatibility(): Promise<void> {
+    const { version, protocolVersion } = await this.getVersion();
+    this.outputChannel.appendLine(`Server v${version}, protocol v${protocolVersion}`);
+
+    const [serverMajor] = protocolVersion.split('.').map(Number);
+    const [clientMajor] = PROTOCOL_VERSION.split('.').map(Number);
+
+    if (serverMajor !== clientMajor) {
+      vscode.window.showWarningMessage(
+        `C-Next server protocol v${protocolVersion} may be incompatible with extension (expects v${PROTOCOL_VERSION}). Consider updating.`
+      );
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -512,46 +552,30 @@ export class CNextServerClient implements vscode.Disposable {
   }
 }
 
-// Singleton instance
-let serverClient: CNextServerClient | null = null;
-
-export function getServerClient(): CNextServerClient {
-  if (!serverClient) {
-    serverClient = new CNextServerClient();
-  }
-  return serverClient;
-}
+// Note: No singleton - use dependency injection via extension context
 ```
 
-#### 2.3 Update Providers to Use Server Client
+#### 2.3 Update Providers to Use Dependency Injection
 
-Replace direct transpiler imports with server client calls:
+Providers receive the server client via constructor (no singletons):
 
 ```typescript
 // Before (direct import)
 import transpiler from '../../src/lib/transpiler';
 const result = transpiler.transpileSource(source, filePath);
 
-// After (server client)
-import { getServerClient } from './server/CNextServerClient';
-const client = getServerClient();
-const result = await client.transpile({ source, filePath });
-```
-
-Example provider update (`previewProvider.ts`):
-
-```typescript
-import * as vscode from 'vscode';
-import { getServerClient } from './server/CNextServerClient';
+// After (dependency injection)
+import { CNextServerClient } from './server/CNextServerClient';
 
 export class PreviewProvider implements vscode.TextDocumentContentProvider {
+  constructor(private readonly client: CNextServerClient) {}
+
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
     const document = await vscode.workspace.openTextDocument(uri.with({ scheme: 'file' }));
     const source = document.getText();
     const filePath = document.uri.fsPath;
 
-    const client = getServerClient();
-    const result = await client.transpile({ source, filePath });
+    const result = await this.client.transpile({ source, filePath });
 
     if (!result.success) {
       return `// Transpilation errors:\n${result.errors?.map(e => `// ${e.message}`).join('\n')}`;
@@ -564,30 +588,46 @@ export class PreviewProvider implements vscode.TextDocumentContentProvider {
 
 #### 2.4 Extension Activation
 
-Update `extension.ts` to manage server lifecycle:
+Use dependency injection - create client once, pass to all providers:
 
 ```typescript
 import * as vscode from 'vscode';
-import { getServerClient, CNextServerClient } from './server/CNextServerClient';
-
-let serverClient: CNextServerClient;
+import { CNextServerClient } from './server/CNextServerClient';
+import { PreviewProvider } from './providers/previewProvider';
+import { CompletionProvider } from './providers/completionProvider';
+import { HoverProvider } from './providers/hoverProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
-  // Start the language server
-  serverClient = getServerClient();
-  await serverClient.start();
-  context.subscriptions.push(serverClient);
+  // Create and start the language server client
+  const client = new CNextServerClient();
+  await client.start();
+  await client.checkCompatibility(); // Verify protocol version
+  context.subscriptions.push(client);
 
-  // Register providers (they use getServerClient() internally)
-  // ... existing provider registrations ...
+  // Register providers with injected client
+  context.subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      { language: 'cnext' },
+      new CompletionProvider(client),
+      '.'
+    ),
+    vscode.languages.registerHoverProvider(
+      { language: 'cnext' },
+      new HoverProvider(client)
+    ),
+    vscode.workspace.registerTextDocumentContentProvider(
+      'cnext-preview',
+      new PreviewProvider(client)
+    )
+  );
 
   // Show server version in status bar
-  const version = await serverClient.getVersion();
+  const { version } = await client.getVersion();
   vscode.window.setStatusBarMessage(`C-Next Server v${version}`, 5000);
 }
 
 export function deactivate() {
-  serverClient?.shutdown();
+  // Cleanup handled by context.subscriptions via dispose()
 }
 ```
 
@@ -994,9 +1034,9 @@ If issues arise with the npm package approach:
 
 ---
 
-## Timeline Estimate
+## Phase Dependencies
 
-| Phase | Dependencies | Notes |
+| Phase | Depends On | Notes |
 |-------|--------------|-------|
 | Phase 1 | None | Prerequisite for all other phases |
 | Phase 2 | Phase 1 complete | Can start once npm package is published |
