@@ -80,6 +80,11 @@ Check the terminal report for files you changed — any new code below 80% cover
 
 - **Transpiler.coverage.test.ts** can timeout in CI (5s limit). Re-run with `gh run rerun <run-id> --failed`
 
+### CSpell (Spelling Check)
+
+- **Run manually**: `npm run cspell:check` (runs automatically on push)
+- **Naming convention**: Use camelCase for compound words (e.g., `SubDirs` instead of lowercase) - cspell may flag all-lowercase compounds
+
 ### TypeScript Coding Standards
 
 **Default exports only** - The project uses oxlint's `no-named-export` rule.
