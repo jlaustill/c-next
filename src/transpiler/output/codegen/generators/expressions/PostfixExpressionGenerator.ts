@@ -1200,68 +1200,157 @@ const handleSingleSubscript = (
 ): SubscriptAccessResult => {
   const index = orchestrator.generateExpression(expr);
 
-  // Check if result is a register member with bitmap type
-  if (input.symbols!.registerMemberTypes.has(ctx.result)) {
-    const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
-    const line = ctx.op.start?.line ?? 0;
-    throw new Error(
-      `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-        `Use named field access instead (e.g., ${ctx.result.split("_").at(-1)}.FIELD_NAME).`,
-    );
-  }
+  // Check if result is a register member with bitmap type (throws)
+  validateNotBitmapMember(ctx, input);
 
-  const isRegisterAccess =
-    ctx.isRegisterChain ||
-    (ctx.rootIdentifier
-      ? input.symbols!.knownRegisters.has(ctx.rootIdentifier)
-      : false);
+  const isRegisterAccess = checkRegisterAccess(ctx, input);
+  const identifierTypeInfo = getIdentifierTypeInfo(ctx, input);
 
-  const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
-  const identifierTypeInfo = identifierToCheck
-    ? input.typeRegistry.get(identifierToCheck)
-    : undefined;
-  const isPrimaryArray = identifierTypeInfo?.isArray ?? false;
-  const isPrimitiveIntMember =
-    ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
-
+  // Register access: bit extraction
   if (isRegisterAccess) {
     output.result = `((${ctx.result} >> ${index}) & 1)`;
-  } else if (ctx.currentMemberIsArray) {
+    return output;
+  }
+
+  // Member array access
+  if (ctx.currentMemberIsArray) {
     output.result = `${ctx.result}[${index}]`;
     output.currentMemberIsArray = false;
     output.subscriptDepth = ctx.subscriptDepth + 1;
-  } else if (ctx.remainingArrayDims > 0) {
-    output.result = `${ctx.result}[${index}]`;
-    output.remainingArrayDims = ctx.remainingArrayDims - 1;
-    output.subscriptDepth = ctx.subscriptDepth + 1;
-    if (output.remainingArrayDims === 0 && ctx.primaryTypeInfo) {
-      output.currentStructType = ctx.primaryTypeInfo.baseType;
-    }
-  } else if (isPrimitiveIntMember) {
+    return output;
+  }
+
+  // Multi-dimensional array access
+  if (ctx.remainingArrayDims > 0) {
+    return handleRemainingArrayDims(ctx, index, output);
+  }
+
+  // Primitive int member: bit access
+  const isPrimitiveIntMember =
+    ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
+  if (isPrimitiveIntMember) {
     output.result = `((${ctx.result} >> ${index}) & 1)`;
     output.currentStructType = undefined;
-  } else if (isPrimaryArray) {
-    output.result = `${ctx.result}[${index}]`;
-    output.subscriptDepth = ctx.subscriptDepth + 1;
-    if (identifierTypeInfo && !ctx.currentStructType) {
-      const elementType = identifierTypeInfo.baseType;
-      if (orchestrator.isKnownStruct(elementType)) {
-        output.currentStructType = elementType;
-      }
-    }
-  } else {
-    const subscriptKind = SubscriptClassifier.classify({
-      typeInfo: identifierTypeInfo ?? null,
-      subscriptCount: 1,
-      isRegisterAccess: false,
-    });
+    return output;
+  }
 
-    if (subscriptKind === "bit_single") {
-      output.result = `((${ctx.result} >> ${index}) & 1)`;
-    } else {
-      output.result = `${ctx.result}[${index}]`;
+  // Primary array access
+  if (identifierTypeInfo?.isArray) {
+    return handlePrimaryArraySubscript(
+      ctx,
+      index,
+      identifierTypeInfo,
+      orchestrator,
+      output,
+    );
+  }
+
+  // Default: classify subscript type
+  return handleDefaultSubscript(ctx, index, identifierTypeInfo, output);
+};
+
+/**
+ * Validate that result is not a bitmap member (which requires named access).
+ */
+const validateNotBitmapMember = (
+  ctx: ISubscriptAccessContext,
+  input: IGeneratorInput,
+): void => {
+  if (!input.symbols!.registerMemberTypes.has(ctx.result)) return;
+
+  const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
+  const line = ctx.op.start?.line ?? 0;
+  throw new Error(
+    `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
+      `Use named field access instead (e.g., ${ctx.result.split("_").at(-1)}.FIELD_NAME).`,
+  );
+};
+
+/**
+ * Check if this is a register access (bit extraction).
+ */
+const checkRegisterAccess = (
+  ctx: ISubscriptAccessContext,
+  input: IGeneratorInput,
+): boolean => {
+  if (ctx.isRegisterChain) return true;
+  if (!ctx.rootIdentifier) return false;
+  return input.symbols!.knownRegisters.has(ctx.rootIdentifier);
+};
+
+/**
+ * Get type info for the identifier being subscripted.
+ */
+const getIdentifierTypeInfo = (
+  ctx: ISubscriptAccessContext,
+  input: IGeneratorInput,
+): TTypeInfo | undefined => {
+  const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
+  return identifierToCheck
+    ? input.typeRegistry.get(identifierToCheck)
+    : undefined;
+};
+
+/**
+ * Handle subscript on array with remaining dimensions.
+ */
+const handleRemainingArrayDims = (
+  ctx: ISubscriptAccessContext,
+  index: string,
+  output: SubscriptAccessResult,
+): SubscriptAccessResult => {
+  output.result = `${ctx.result}[${index}]`;
+  output.remainingArrayDims = ctx.remainingArrayDims - 1;
+  output.subscriptDepth = ctx.subscriptDepth + 1;
+
+  if (output.remainingArrayDims === 0 && ctx.primaryTypeInfo) {
+    output.currentStructType = ctx.primaryTypeInfo.baseType;
+  }
+  return output;
+};
+
+/**
+ * Handle subscript on a primary array.
+ */
+const handlePrimaryArraySubscript = (
+  ctx: ISubscriptAccessContext,
+  index: string,
+  typeInfo: TTypeInfo,
+  orchestrator: IOrchestrator,
+  output: SubscriptAccessResult,
+): SubscriptAccessResult => {
+  output.result = `${ctx.result}[${index}]`;
+  output.subscriptDepth = ctx.subscriptDepth + 1;
+
+  // Update struct type if element is a known struct
+  if (!ctx.currentStructType) {
+    const elementType = typeInfo.baseType;
+    if (orchestrator.isKnownStruct(elementType)) {
+      output.currentStructType = elementType;
     }
   }
+  return output;
+};
+
+/**
+ * Handle default subscript (classify and apply).
+ */
+const handleDefaultSubscript = (
+  ctx: ISubscriptAccessContext,
+  index: string,
+  typeInfo: TTypeInfo | undefined,
+  output: SubscriptAccessResult,
+): SubscriptAccessResult => {
+  const subscriptKind = SubscriptClassifier.classify({
+    typeInfo: typeInfo ?? null,
+    subscriptCount: 1,
+    isRegisterAccess: false,
+  });
+
+  output.result =
+    subscriptKind === "bit_single"
+      ? `((${ctx.result} >> ${index}) & 1)`
+      : `${ctx.result}[${index}]`;
 
   return output;
 };
