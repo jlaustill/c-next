@@ -78,20 +78,20 @@ class IncludeDiscovery {
   }
 
   /** Common subdirectories where library headers might live */
-  private static readonly LIB_SUBDIRS = ["src", "include", "src/include"];
+  private static readonly LIBRARY_SUB_DIRS = ["src", "include", "src/include"];
 
   /**
    * Add a library path and its common subdirectories to the paths array.
    * Checks src/, include/, and src/include/ subdirectories.
    */
-  private static _addLibraryWithSubdirs(
+  private static _addLibraryWithSubDirs(
     libPath: string,
     paths: string[],
     fs: IFileSystem,
   ): void {
     paths.push(libPath);
 
-    for (const subDir of this.LIB_SUBDIRS) {
+    for (const subDir of this.LIBRARY_SUB_DIRS) {
       const subPath = join(libPath, subDir);
       if (fs.exists(subPath) && fs.isDirectory(subPath)) {
         paths.push(subPath);
@@ -112,7 +112,7 @@ class IncludeDiscovery {
     for (const entry of entries) {
       const entryPath = join(parentDir, entry);
       if (fs.isDirectory(entryPath)) {
-        this._addLibraryWithSubdirs(entryPath, paths, fs);
+        this._addLibraryWithSubDirs(entryPath, paths, fs);
       }
     }
   }
