@@ -7648,119 +7648,179 @@ export default class CodeGenerator implements IOrchestrator {
   private generateArrayAccess(ctx: Parser.ArrayAccessContext): string {
     const rawName = ctx.IDENTIFIER().getText();
     const exprs = ctx.expression();
-
-    // ADR-006: Check if the identifier is a parameter
-    // For pass-by-pointer parameters, we need to dereference when accessing bits
-    // For pass-by-value parameters (Issue #269), use the name directly
-    const paramInfo = this.context.currentParameters.get(rawName);
-    let name = rawName;
-    if (paramInfo && !paramInfo.isArray) {
-      // Check if this parameter is pass-by-value
-      const isPassByValue =
-        this._isFloatType(paramInfo.baseType) ||
-        this.symbols!.knownEnums.has(paramInfo.baseType) ||
-        (this.context.currentFunctionName &&
-          this._isParameterPassByValueByName(
-            this.context.currentFunctionName,
-            rawName,
-          ));
-
-      if (!isPassByValue) {
-        // Pass-by-pointer: need to dereference
-        name = `(*${rawName})`;
-      }
-    }
+    const name = this._resolveArrayAccessName(rawName);
 
     if (exprs.length === 1) {
-      // Single index: array[i] or bit access flags[3]
-      // ADR-036: Compile-time bounds checking for constant indices
-      // Note: Use rawName for type lookup since typeRegistry uses original names
-      const typeInfo = this.context.typeRegistry.get(rawName);
+      return this._generateSingleIndexAccess(rawName, name, exprs[0], ctx);
+    }
+    if (exprs.length === 2) {
+      return this._generateBitRangeAccess(rawName, name, exprs);
+    }
+    return `${name}[/* error */]`;
+  }
 
-      // Check if this is a bitmap type
-      if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-        const line = ctx.start?.line ?? 0;
-        throw new Error(
-          `Error at line ${line}: Cannot use bracket indexing on bitmap type '${typeInfo.bitmapTypeName}'. ` +
-            `Use named field access instead (e.g., ${rawName}.FIELD_NAME).`,
-        );
-      }
+  /**
+   * Resolve the access name for array/bit access, handling parameter dereferencing
+   */
+  private _resolveArrayAccessName(rawName: string): string {
+    const paramInfo = this.context.currentParameters.get(rawName);
+    if (!paramInfo || paramInfo.isArray) return rawName;
 
-      if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-        this.typeValidator!.checkArrayBounds(
+    const isPassByValue =
+      this._isFloatType(paramInfo.baseType) ||
+      this.symbols!.knownEnums.has(paramInfo.baseType) ||
+      (this.context.currentFunctionName &&
+        this._isParameterPassByValueByName(
+          this.context.currentFunctionName,
           rawName,
-          typeInfo.arrayDimensions,
-          exprs,
-          ctx.start?.line ?? 0,
-          (expr) => this._tryEvaluateConstant(expr),
-        );
-      }
+        ));
 
-      const index = this._generateExpression(exprs[0]);
-      return `${name}[${index}]`;
-    } else if (exprs.length === 2) {
-      // Bit range: flags[start, width]
-      const start = this._generateExpression(exprs[0]);
-      const width = this._generateExpression(exprs[1]);
-      const typeInfo = this.context.typeRegistry.get(rawName);
+    return isPassByValue ? rawName : `(*${rawName})`;
+  }
 
-      // Float bit indexing read: use shadow variable + memcpy
-      const isFloatType =
-        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
-      if (isFloatType) {
-        // Global scope float bit reads are not valid C (initializers must be constant)
-        if (!this.context.inFunctionBody) {
-          throw new Error(
-            `Float bit indexing reads (${rawName}[${start}, ${width}]) cannot be used at global scope. ` +
-              `Move the initialization inside a function.`,
-          );
-        }
+  /**
+   * Generate single index access: array[i] or bit access flags[3]
+   */
+  private _generateSingleIndexAccess(
+    rawName: string,
+    name: string,
+    indexExpr: Parser.ExpressionContext,
+    ctx: Parser.ArrayAccessContext,
+  ): string {
+    const typeInfo = this.context.typeRegistry.get(rawName);
 
-        this.requireInclude("string"); // For memcpy
-        this.requireInclude("float_static_assert"); // For size verification
-        const isF64 = typeInfo?.baseType === "f64";
-        const shadowType = isF64 ? "uint64_t" : "uint32_t";
-        const shadowName = `__bits_${rawName}`;
-        const mask = this.generateBitMask(width, isF64);
-
-        // Check if shadow variable needs declaration
-        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
-        if (needsDeclaration) {
-          this.context.floatBitShadows.add(shadowName);
-          // Push declaration to pending - will be emitted before the statement
-          this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
-        }
-
-        // Check if shadow already has current value (skip redundant memcpy read)
-        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-
-        // Mark shadow as current after this read
-        this.context.floatShadowCurrent.add(shadowName);
-
-        // Use comma operator to combine memcpy with expression (no declaration inline)
-        if (shadowIsCurrent) {
-          // Shadow already has current value - just use it directly
-          if (start === "0") {
-            return `(${shadowName} & ${mask})`;
-          }
-          return `((${shadowName} >> ${start}) & ${mask})`;
-        }
-        if (start === "0") {
-          return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), (${shadowName} & ${mask}))`;
-        }
-        return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), ((${shadowName} >> ${start}) & ${mask}))`;
-      }
-
-      const mask = this.generateBitMask(width);
-      // Optimize: skip shift when start is 0
-      if (start === "0") {
-        return `((${name}) & ${mask})`;
-      }
-      // Generate bit range read: ((value >> start) & mask)
-      return `((${name} >> ${start}) & ${mask})`;
+    // Check if this is a bitmap type
+    if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
+      const line = ctx.start?.line ?? 0;
+      throw new Error(
+        `Error at line ${line}: Cannot use bracket indexing on bitmap type '${typeInfo.bitmapTypeName}'. ` +
+          `Use named field access instead (e.g., ${rawName}.FIELD_NAME).`,
+      );
     }
 
-    return `${name}[/* error */]`;
+    // ADR-036: Compile-time bounds checking
+    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+      this.typeValidator!.checkArrayBounds(
+        rawName,
+        typeInfo.arrayDimensions,
+        [indexExpr],
+        ctx.start?.line ?? 0,
+        (expr) => this._tryEvaluateConstant(expr),
+      );
+    }
+
+    const index = this._generateExpression(indexExpr);
+    return `${name}[${index}]`;
+  }
+
+  /**
+   * Generate bit range access: flags[start, width]
+   */
+  private _generateBitRangeAccess(
+    rawName: string,
+    name: string,
+    exprs: Parser.ExpressionContext[],
+  ): string {
+    const start = this._generateExpression(exprs[0]);
+    const width = this._generateExpression(exprs[1]);
+    const typeInfo = this.context.typeRegistry.get(rawName);
+
+    // Float bit indexing read: use shadow variable + memcpy
+    const isFloatType =
+      typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
+    if (isFloatType) {
+      return this._generateFloatBitRangeRead(
+        rawName,
+        name,
+        start,
+        width,
+        typeInfo!,
+      );
+    }
+
+    return this._generateIntegerBitRangeRead(name, start, width);
+  }
+
+  /**
+   * Generate float bit range read with shadow variable
+   */
+  private _generateFloatBitRangeRead(
+    rawName: string,
+    name: string,
+    start: string,
+    width: string,
+    typeInfo: { baseType: string },
+  ): string {
+    if (!this.context.inFunctionBody) {
+      throw new Error(
+        `Float bit indexing reads (${rawName}[${start}, ${width}]) cannot be used at global scope. ` +
+          `Move the initialization inside a function.`,
+      );
+    }
+
+    this.requireInclude("string");
+    this.requireInclude("float_static_assert");
+
+    const isF64 = typeInfo.baseType === "f64";
+    const shadowType = isF64 ? "uint64_t" : "uint32_t";
+    const shadowName = `__bits_${rawName}`;
+    const mask = this.generateBitMask(width, isF64);
+
+    // Ensure shadow variable is declared
+    if (!this.context.floatBitShadows.has(shadowName)) {
+      this.context.floatBitShadows.add(shadowName);
+      this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+    }
+
+    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+    this.context.floatShadowCurrent.add(shadowName);
+
+    return this._buildFloatBitReadExpr(
+      shadowName,
+      name,
+      start,
+      mask,
+      shadowIsCurrent,
+    );
+  }
+
+  /**
+   * Build the bit read expression for floats
+   */
+  private _buildFloatBitReadExpr(
+    shadowName: string,
+    name: string,
+    start: string,
+    mask: string,
+    shadowIsCurrent: boolean,
+  ): string {
+    const shiftedRead =
+      start === "0"
+        ? `(${shadowName} & ${mask})`
+        : `((${shadowName} >> ${start}) & ${mask})`;
+
+    if (shadowIsCurrent) {
+      return shiftedRead;
+    }
+
+    // Need memcpy to update shadow
+    const memcpyPrefix = `memcpy(&${shadowName}, &${name}, sizeof(${name}))`;
+    return `(${memcpyPrefix}, ${shiftedRead})`;
+  }
+
+  /**
+   * Generate integer bit range read: ((value >> start) & mask)
+   */
+  private _generateIntegerBitRangeRead(
+    name: string,
+    start: string,
+    width: string,
+  ): string {
+    const mask = this.generateBitMask(width);
+    if (start === "0") {
+      return `((${name}) & ${mask})`;
+    }
+    return `((${name} >> ${start}) & ${mask})`;
   }
 
   // ========================================================================
