@@ -57,6 +57,8 @@ SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud 
 
 **Reducing cognitive complexity:** Extract nested logic into private helper methods with early returns. Keep helpers in the same class when they need many instance dependencies. Name helpers descriptively (e.g., `_resolveIdentifierExpression`, `_resolveUnqualifiedEnumMember`).
 
+**After extracting helpers:** Error throw paths in extracted methods often need unit tests - integration tests may not cover them. Check `npm run unit:coverage` for uncovered lines.
+
 **Before opening a PR**, verify coverage on new/modified files:
 
 ```bash
