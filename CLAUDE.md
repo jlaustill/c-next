@@ -68,6 +68,10 @@ Check the terminal report for files you changed — any new code below 80% cover
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
 - **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
 
+### Flaky CI Tests
+
+- **Transpiler.coverage.test.ts** can timeout in CI (5s limit). Re-run with `gh run rerun <run-id> --failed`
+
 ### TypeScript Coding Standards
 
 **Default exports only** - The project uses oxlint's `no-named-export` rule.

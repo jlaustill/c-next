@@ -358,4 +358,133 @@ describe("TransitiveEnumCollector", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("collectForStandalone", () => {
+    it("should return empty array for empty includes", () => {
+      const symbolInfoByFile = new Map<string, ICodeGenSymbols>();
+
+      const result = TransitiveEnumCollector.collectForStandalone(
+        [],
+        symbolInfoByFile,
+        [],
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it("should collect symbol info from direct includes", () => {
+      const includedFile = join(testDir, "types.cnx");
+      writeFileSync(includedFile, "enum Status { OK, ERROR }");
+
+      const includedInfo = createSymbolInfo(["Status"]);
+      const symbolInfoByFile = new Map<string, ICodeGenSymbols>([
+        [includedFile, includedInfo],
+      ]);
+
+      const result = TransitiveEnumCollector.collectForStandalone(
+        [{ path: includedFile }],
+        symbolInfoByFile,
+        [],
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].knownEnums.has("Status")).toBe(true);
+    });
+
+    it("should collect symbol info from multiple includes", () => {
+      const file1 = join(testDir, "types1.cnx");
+      const file2 = join(testDir, "types2.cnx");
+
+      writeFileSync(file1, "enum Enum1 { A }");
+      writeFileSync(file2, "enum Enum2 { B }");
+
+      const info1 = createSymbolInfo(["Enum1"]);
+      const info2 = createSymbolInfo(["Enum2"]);
+      const symbolInfoByFile = new Map<string, ICodeGenSymbols>([
+        [file1, info1],
+        [file2, info2],
+      ]);
+
+      const result = TransitiveEnumCollector.collectForStandalone(
+        [{ path: file1 }, { path: file2 }],
+        symbolInfoByFile,
+        [],
+      );
+
+      expect(result).toHaveLength(2);
+      const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
+      expect(allEnums).toContain("Enum1");
+      expect(allEnums).toContain("Enum2");
+    });
+
+    it("should return empty when include has no symbol info in map", () => {
+      const includedFile = join(testDir, "types.cnx");
+      writeFileSync(includedFile, "enum Status { OK }");
+
+      // Empty map - no symbol info registered
+      const symbolInfoByFile = new Map<string, ICodeGenSymbols>();
+
+      const result = TransitiveEnumCollector.collectForStandalone(
+        [{ path: includedFile }],
+        symbolInfoByFile,
+        [],
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it("should collect from transitive includes", () => {
+      // Create files: include -> nested
+      const includeFile = join(testDir, "include.cnx");
+      const nestedFile = join(testDir, "nested.cnx");
+
+      writeFileSync(nestedFile, "enum NestedEnum { A, B }");
+      writeFileSync(
+        includeFile,
+        `#include "nested.cnx"\nenum IncludeEnum { C }`,
+      );
+
+      const nestedInfo = createSymbolInfo(["NestedEnum"]);
+      const includeInfo = createSymbolInfo(["IncludeEnum"]);
+      const symbolInfoByFile = new Map<string, ICodeGenSymbols>([
+        [nestedFile, nestedInfo],
+        [includeFile, includeInfo],
+      ]);
+
+      const result = TransitiveEnumCollector.collectForStandalone(
+        [{ path: includeFile }],
+        symbolInfoByFile,
+        [],
+      );
+
+      expect(result).toHaveLength(2);
+      const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
+      expect(allEnums).toContain("IncludeEnum");
+      expect(allEnums).toContain("NestedEnum");
+    });
+
+    it("should handle mix of found and missing symbol info", () => {
+      const file1 = join(testDir, "found.cnx");
+      const file2 = join(testDir, "missing.cnx");
+
+      writeFileSync(file1, "enum Found { A }");
+      writeFileSync(file2, "enum Missing { B }");
+
+      // Only register info for file1
+      const info1 = createSymbolInfo(["Found"]);
+      const symbolInfoByFile = new Map<string, ICodeGenSymbols>([
+        [file1, info1],
+      ]);
+
+      const result = TransitiveEnumCollector.collectForStandalone(
+        [{ path: file1 }, { path: file2 }],
+        symbolInfoByFile,
+        [],
+      );
+
+      // Should only include the file with symbol info
+      expect(result).toHaveLength(1);
+      expect(result[0].knownEnums.has("Found")).toBe(true);
+    });
+  });
 });
