@@ -29,6 +29,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 - **Automated**: Pre-commit hooks automatically run prettier and eslint on staged files
 - **Manual** (if needed): `npm run prettier:fix` and `npm run oxlint:check`
+- **Spell check**: When adding new packages or tools, add their names to `.cspell.json` words list
 - Fix any oxlint errors in code you write or modify
 - Legacy errors in untouched files can be ignored (fix as you go)
 - Pre-commit hooks use `lint-staged` to only check files you're committing
