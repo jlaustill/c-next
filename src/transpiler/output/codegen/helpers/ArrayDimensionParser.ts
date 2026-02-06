@@ -35,6 +35,17 @@ interface IConstantEvalOptions {
  * - Binary expressions with const values (CONST + CONST)
  */
 class ArrayDimensionParser {
+  /** Regex for identifier pattern */
+  private static readonly IDENTIFIER_RE = /^[a-zA-Z_]\w*$/;
+  /** Regex for const addition: CONST + CONST */
+  private static readonly CONST_ADD_RE = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/;
+  /** Regex for sizeof(type) */
+  private static readonly SIZEOF_RE = /^sizeof\(([a-zA-Z_]\w*)\)$/;
+  /** Regex for sizeof(type) * N */
+  private static readonly SIZEOF_MUL_RE = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/;
+  /** Regex for sizeof(type) + N */
+  private static readonly SIZEOF_ADD_RE = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/;
+
   /**
    * Parse a single expression as a compile-time constant.
    *
@@ -54,75 +65,130 @@ class ArrayDimensionParser {
     options?: IConstantEvalOptions,
   ): number | undefined {
     const text = expr.getText().trim();
-    const constValues = options?.constValues;
-    const typeWidths = options?.typeWidths;
-    const isKnownStruct = options?.isKnownStruct;
 
-    // First, try parsing as a simple integer literal using LiteralUtils
+    // Try integer literal first (most common case)
     const literalValue = LiteralUtils.parseIntegerLiteral(text);
     if (literalValue !== undefined) {
       return literalValue;
     }
 
-    // Check if it's a known const value (identifier)
-    if (constValues && /^[a-zA-Z_]\w*$/.test(text)) {
-      const constValue = constValues.get(text);
-      if (constValue !== undefined) {
-        return constValue;
+    // Try const identifier lookup
+    const constResult = this._tryResolveConstIdentifier(text, options);
+    if (constResult !== undefined) {
+      return constResult;
+    }
+
+    // Try const binary expression (CONST + CONST)
+    const binaryResult = this._tryEvaluateConstBinaryExpr(text, options);
+    if (binaryResult !== undefined) {
+      return binaryResult;
+    }
+
+    // Try sizeof expressions
+    return this._tryEvaluateSizeofExpr(text, options);
+  }
+
+  /**
+   * Try to resolve text as a const identifier.
+   */
+  private static _tryResolveConstIdentifier(
+    text: string,
+    options?: IConstantEvalOptions,
+  ): number | undefined {
+    const constValues = options?.constValues;
+    if (!constValues || !this.IDENTIFIER_RE.test(text)) {
+      return undefined;
+    }
+    return constValues.get(text);
+  }
+
+  /**
+   * Try to evaluate text as a const binary expression (CONST + CONST).
+   */
+  private static _tryEvaluateConstBinaryExpr(
+    text: string,
+    options?: IConstantEvalOptions,
+  ): number | undefined {
+    const constValues = options?.constValues;
+    if (!constValues) {
+      return undefined;
+    }
+
+    const match = this.CONST_ADD_RE.exec(text);
+    if (!match) {
+      return undefined;
+    }
+
+    const left = constValues.get(match[1]);
+    const right = constValues.get(match[2]);
+    if (left !== undefined && right !== undefined) {
+      return left + right;
+    }
+    return undefined;
+  }
+
+  /**
+   * Try to evaluate text as a sizeof expression.
+   * Handles: sizeof(type), sizeof(type) * N, sizeof(type) + N
+   */
+  private static _tryEvaluateSizeofExpr(
+    text: string,
+    options?: IConstantEvalOptions,
+  ): number | undefined {
+    const typeWidths = options?.typeWidths;
+    if (!typeWidths) {
+      return undefined;
+    }
+
+    // Try sizeof(type)
+    const sizeofMatch = this.SIZEOF_RE.exec(text);
+    if (sizeofMatch) {
+      return this._evaluateSimpleSizeof(
+        sizeofMatch[1],
+        typeWidths,
+        options?.isKnownStruct,
+      );
+    }
+
+    // Try sizeof(type) * N
+    const mulMatch = this.SIZEOF_MUL_RE.exec(text);
+    if (mulMatch) {
+      const bitWidth = typeWidths[mulMatch[1]];
+      const multiplier = Number.parseInt(mulMatch[2], 10);
+      if (bitWidth && !Number.isNaN(multiplier)) {
+        return (bitWidth / 8) * multiplier;
       }
     }
 
-    // Handle simple binary expressions with const values (e.g., INDEX_1 + INDEX_1)
-    if (constValues) {
-      const addMatch = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/.exec(text);
-      if (addMatch) {
-        const left = constValues.get(addMatch[1]);
-        const right = constValues.get(addMatch[2]);
-        if (left !== undefined && right !== undefined) {
-          return left + right;
-        }
+    // Try sizeof(type) + N
+    const addMatch = this.SIZEOF_ADD_RE.exec(text);
+    if (addMatch) {
+      const bitWidth = typeWidths[addMatch[1]];
+      const addend = Number.parseInt(addMatch[2], 10);
+      if (bitWidth && !Number.isNaN(addend)) {
+        return bitWidth / 8 + addend;
       }
     }
 
-    // Handle sizeof(type) expressions for primitive types
-    if (typeWidths) {
-      const sizeofMatch = /^sizeof\(([a-zA-Z_]\w*)\)$/.exec(text);
-      if (sizeofMatch) {
-        const typeName = sizeofMatch[1];
-        const bitWidth = typeWidths[typeName];
-        if (bitWidth) {
-          return bitWidth / 8; // Convert bits to bytes
-        }
-        // Check if it's a known struct - can't compute size at this point
-        if (isKnownStruct?.(typeName)) {
-          return undefined;
-        }
-      }
+    return undefined;
+  }
 
-      // Handle sizeof(type) * N expressions
-      const sizeofMulMatch = /^sizeof\(([a-zA-Z_]\w*)\)\*(\d+)$/.exec(text);
-      if (sizeofMulMatch) {
-        const typeName = sizeofMulMatch[1];
-        const multiplier = Number.parseInt(sizeofMulMatch[2], 10);
-        const bitWidth = typeWidths[typeName];
-        if (bitWidth && !Number.isNaN(multiplier)) {
-          return (bitWidth / 8) * multiplier;
-        }
-      }
-
-      // Handle sizeof(type) + N expressions
-      const sizeofAddMatch = /^sizeof\(([a-zA-Z_]\w*)\)\+(\d+)$/.exec(text);
-      if (sizeofAddMatch) {
-        const typeName = sizeofAddMatch[1];
-        const addend = Number.parseInt(sizeofAddMatch[2], 10);
-        const bitWidth = typeWidths[typeName];
-        if (bitWidth && !Number.isNaN(addend)) {
-          return bitWidth / 8 + addend;
-        }
-      }
+  /**
+   * Evaluate simple sizeof(type) expression.
+   */
+  private static _evaluateSimpleSizeof(
+    typeName: string,
+    typeWidths: Record<string, number>,
+    isKnownStruct?: (name: string) => boolean,
+  ): number | undefined {
+    const bitWidth = typeWidths[typeName];
+    if (bitWidth) {
+      return bitWidth / 8; // Convert bits to bytes
     }
-
-    // For more complex expressions, we can't evaluate at compile time
+    // Check if it's a known struct - can't compute size at this point
+    if (isKnownStruct?.(typeName)) {
+      return undefined;
+    }
     return undefined;
   }
 

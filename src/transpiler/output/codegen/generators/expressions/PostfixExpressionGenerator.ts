@@ -651,65 +651,105 @@ const generateTypeInfoLength = (
 ): string => {
   // ADR-045: String type handling
   if (typeInfo.isString) {
-    if (typeInfo.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
-      if (subscriptDepth === 0) {
-        return String(typeInfo.arrayDimensions[0]);
-      } else {
-        return `strlen(${result})`;
-      }
-    } else {
-      // Use lengthCache if available for this identifier
-      if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
-        return state.lengthCache.get(resolvedIdentifier)!;
-      }
-      return resolvedIdentifier
-        ? `strlen(${resolvedIdentifier})`
-        : `strlen(${result})`;
-    }
-  } else if (
-    typeInfo.isArray &&
-    typeInfo.arrayDimensions &&
-    typeInfo.arrayDimensions.length > 0 &&
-    subscriptDepth < typeInfo.arrayDimensions.length
-  ) {
-    return String(typeInfo.arrayDimensions[subscriptDepth]);
-  } else if (
-    typeInfo.isArray &&
-    typeInfo.arrayDimensions &&
-    typeInfo.arrayDimensions.length > 0 &&
-    subscriptDepth >= typeInfo.arrayDimensions.length
-  ) {
-    if (typeInfo.isEnum) {
-      return "32";
-    } else if (
-      TypeCheckUtils.isString(typeInfo.baseType) ||
-      typeInfo.isString
-    ) {
-      effects.push({ type: "include", header: "string" });
-      return `strlen(${result})`;
-    } else {
-      let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
-      if (
-        elementBitWidth === 0 &&
-        typeInfo.isBitmap &&
-        typeInfo.bitmapTypeName
-      ) {
-        elementBitWidth =
-          input.symbols!.bitmapBitWidth.get(typeInfo.bitmapTypeName) || 0;
-      }
-      if (elementBitWidth > 0) {
-        return String(elementBitWidth);
-      } else {
-        return `/* .length: unsupported element type ${typeInfo.baseType} */0`;
-      }
-    }
-  } else if (typeInfo.isArray) {
-    return `/* .length unknown for ${resolvedIdentifier} */0`;
-  } else if (typeInfo.isEnum) {
+    return generateStringLength(
+      result,
+      typeInfo,
+      subscriptDepth,
+      resolvedIdentifier,
+      state,
+    );
+  }
+
+  // Non-string enum - always 32 bits
+  if (typeInfo.isEnum && !typeInfo.isArray) {
     return "32";
-  } else {
+  }
+
+  // Non-string, non-enum, non-array - use bitWidth
+  if (!typeInfo.isArray) {
     return String(typeInfo.bitWidth || 0);
   }
+
+  // Array without dimensions - unknown length
+  const dims = typeInfo.arrayDimensions;
+  if (!dims || dims.length === 0) {
+    return `/* .length unknown for ${resolvedIdentifier} */0`;
+  }
+
+  // Array with subscript within bounds - return that dimension
+  if (subscriptDepth < dims.length) {
+    return String(dims[subscriptDepth]);
+  }
+
+  // Subscript past array bounds - return element type's length
+  return generateElementTypeLength(result, typeInfo, input, effects);
+};
+
+/**
+ * Generate .length for string types.
+ */
+const generateStringLength = (
+  result: string,
+  typeInfo: {
+    arrayDimensions?: (number | string)[];
+  },
+  subscriptDepth: number,
+  resolvedIdentifier: string | undefined,
+  state: IGeneratorState,
+): string => {
+  const dims = typeInfo.arrayDimensions;
+
+  // String array (2D): first dimension is array size, second is string capacity
+  if (dims && dims.length > 1) {
+    return subscriptDepth === 0 ? String(dims[0]) : `strlen(${result})`;
+  }
+
+  // Simple string: check length cache first, then use strlen
+  if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
+    return state.lengthCache.get(resolvedIdentifier)!;
+  }
+  return resolvedIdentifier
+    ? `strlen(${resolvedIdentifier})`
+    : `strlen(${result})`;
+};
+
+/**
+ * Generate .length for array element types (subscript past bounds).
+ */
+const generateElementTypeLength = (
+  result: string,
+  typeInfo: {
+    isEnum?: boolean;
+    isString?: boolean;
+    baseType: string;
+    isBitmap?: boolean;
+    bitmapTypeName?: string;
+  },
+  input: IGeneratorInput,
+  effects: TGeneratorEffect[],
+): string => {
+  // Enum element
+  if (typeInfo.isEnum) {
+    return "32";
+  }
+
+  // String element
+  if (TypeCheckUtils.isString(typeInfo.baseType) || typeInfo.isString) {
+    effects.push({ type: "include", header: "string" });
+    return `strlen(${result})`;
+  }
+
+  // Numeric/bitmap element - get bit width
+  let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
+  if (elementBitWidth === 0 && typeInfo.isBitmap && typeInfo.bitmapTypeName) {
+    elementBitWidth =
+      input.symbols!.bitmapBitWidth.get(typeInfo.bitmapTypeName) || 0;
+  }
+
+  if (elementBitWidth > 0) {
+    return String(elementBitWidth);
+  }
+  return `/* .length: unsupported element type ${typeInfo.baseType} */0`;
 };
 
 /**
@@ -1160,68 +1200,157 @@ const handleSingleSubscript = (
 ): SubscriptAccessResult => {
   const index = orchestrator.generateExpression(expr);
 
-  // Check if result is a register member with bitmap type
-  if (input.symbols!.registerMemberTypes.has(ctx.result)) {
-    const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
-    const line = ctx.op.start?.line ?? 0;
-    throw new Error(
-      `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-        `Use named field access instead (e.g., ${ctx.result.split("_").at(-1)}.FIELD_NAME).`,
-    );
-  }
+  // Check if result is a register member with bitmap type (throws)
+  validateNotBitmapMember(ctx, input);
 
-  const isRegisterAccess =
-    ctx.isRegisterChain ||
-    (ctx.rootIdentifier
-      ? input.symbols!.knownRegisters.has(ctx.rootIdentifier)
-      : false);
+  const isRegisterAccess = checkRegisterAccess(ctx, input);
+  const identifierTypeInfo = getIdentifierTypeInfo(ctx, input);
 
-  const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
-  const identifierTypeInfo = identifierToCheck
-    ? input.typeRegistry.get(identifierToCheck)
-    : undefined;
-  const isPrimaryArray = identifierTypeInfo?.isArray ?? false;
-  const isPrimitiveIntMember =
-    ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
-
+  // Register access: bit extraction
   if (isRegisterAccess) {
     output.result = `((${ctx.result} >> ${index}) & 1)`;
-  } else if (ctx.currentMemberIsArray) {
+    return output;
+  }
+
+  // Member array access
+  if (ctx.currentMemberIsArray) {
     output.result = `${ctx.result}[${index}]`;
     output.currentMemberIsArray = false;
     output.subscriptDepth = ctx.subscriptDepth + 1;
-  } else if (ctx.remainingArrayDims > 0) {
-    output.result = `${ctx.result}[${index}]`;
-    output.remainingArrayDims = ctx.remainingArrayDims - 1;
-    output.subscriptDepth = ctx.subscriptDepth + 1;
-    if (output.remainingArrayDims === 0 && ctx.primaryTypeInfo) {
-      output.currentStructType = ctx.primaryTypeInfo.baseType;
-    }
-  } else if (isPrimitiveIntMember) {
+    return output;
+  }
+
+  // Multi-dimensional array access
+  if (ctx.remainingArrayDims > 0) {
+    return handleRemainingArrayDims(ctx, index, output);
+  }
+
+  // Primitive int member: bit access
+  const isPrimitiveIntMember =
+    ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
+  if (isPrimitiveIntMember) {
     output.result = `((${ctx.result} >> ${index}) & 1)`;
     output.currentStructType = undefined;
-  } else if (isPrimaryArray) {
-    output.result = `${ctx.result}[${index}]`;
-    output.subscriptDepth = ctx.subscriptDepth + 1;
-    if (identifierTypeInfo && !ctx.currentStructType) {
-      const elementType = identifierTypeInfo.baseType;
-      if (orchestrator.isKnownStruct(elementType)) {
-        output.currentStructType = elementType;
-      }
-    }
-  } else {
-    const subscriptKind = SubscriptClassifier.classify({
-      typeInfo: identifierTypeInfo ?? null,
-      subscriptCount: 1,
-      isRegisterAccess: false,
-    });
+    return output;
+  }
 
-    if (subscriptKind === "bit_single") {
-      output.result = `((${ctx.result} >> ${index}) & 1)`;
-    } else {
-      output.result = `${ctx.result}[${index}]`;
+  // Primary array access
+  if (identifierTypeInfo?.isArray) {
+    return handlePrimaryArraySubscript(
+      ctx,
+      index,
+      identifierTypeInfo,
+      orchestrator,
+      output,
+    );
+  }
+
+  // Default: classify subscript type
+  return handleDefaultSubscript(ctx, index, identifierTypeInfo, output);
+};
+
+/**
+ * Validate that result is not a bitmap member (which requires named access).
+ */
+const validateNotBitmapMember = (
+  ctx: ISubscriptAccessContext,
+  input: IGeneratorInput,
+): void => {
+  if (!input.symbols!.registerMemberTypes.has(ctx.result)) return;
+
+  const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
+  const line = ctx.op.start?.line ?? 0;
+  throw new Error(
+    `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
+      `Use named field access instead (e.g., ${ctx.result.split("_").at(-1)}.FIELD_NAME).`,
+  );
+};
+
+/**
+ * Check if this is a register access (bit extraction).
+ */
+const checkRegisterAccess = (
+  ctx: ISubscriptAccessContext,
+  input: IGeneratorInput,
+): boolean => {
+  if (ctx.isRegisterChain) return true;
+  if (!ctx.rootIdentifier) return false;
+  return input.symbols!.knownRegisters.has(ctx.rootIdentifier);
+};
+
+/**
+ * Get type info for the identifier being subscripted.
+ */
+const getIdentifierTypeInfo = (
+  ctx: ISubscriptAccessContext,
+  input: IGeneratorInput,
+): TTypeInfo | undefined => {
+  const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
+  return identifierToCheck
+    ? input.typeRegistry.get(identifierToCheck)
+    : undefined;
+};
+
+/**
+ * Handle subscript on array with remaining dimensions.
+ */
+const handleRemainingArrayDims = (
+  ctx: ISubscriptAccessContext,
+  index: string,
+  output: SubscriptAccessResult,
+): SubscriptAccessResult => {
+  output.result = `${ctx.result}[${index}]`;
+  output.remainingArrayDims = ctx.remainingArrayDims - 1;
+  output.subscriptDepth = ctx.subscriptDepth + 1;
+
+  if (output.remainingArrayDims === 0 && ctx.primaryTypeInfo) {
+    output.currentStructType = ctx.primaryTypeInfo.baseType;
+  }
+  return output;
+};
+
+/**
+ * Handle subscript on a primary array.
+ */
+const handlePrimaryArraySubscript = (
+  ctx: ISubscriptAccessContext,
+  index: string,
+  typeInfo: TTypeInfo,
+  orchestrator: IOrchestrator,
+  output: SubscriptAccessResult,
+): SubscriptAccessResult => {
+  output.result = `${ctx.result}[${index}]`;
+  output.subscriptDepth = ctx.subscriptDepth + 1;
+
+  // Update struct type if element is a known struct
+  if (!ctx.currentStructType) {
+    const elementType = typeInfo.baseType;
+    if (orchestrator.isKnownStruct(elementType)) {
+      output.currentStructType = elementType;
     }
   }
+  return output;
+};
+
+/**
+ * Handle default subscript (classify and apply).
+ */
+const handleDefaultSubscript = (
+  ctx: ISubscriptAccessContext,
+  index: string,
+  typeInfo: TTypeInfo | undefined,
+  output: SubscriptAccessResult,
+): SubscriptAccessResult => {
+  const subscriptKind = SubscriptClassifier.classify({
+    typeInfo: typeInfo ?? null,
+    subscriptCount: 1,
+    isRegisterAccess: false,
+  });
+
+  output.result =
+    subscriptKind === "bit_single"
+      ? `((${ctx.result} >> ${index}) & 1)`
+      : `${ctx.result}[${index}]`;
 
   return output;
 };
