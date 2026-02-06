@@ -1978,6 +1978,22 @@ describe("CodeGenerator", () => {
       expect(memberInfo).not.toBeNull();
       expect(memberInfo?.baseType).toBe("i32");
       expect(memberInfo?.isArray).toBe(false);
+      expect(memberInfo?.bitWidth).toBe(32);
+      expect(memberInfo?.isConst).toBe(false);
+    });
+
+    it("should return full TTypeInfo for array struct field", () => {
+      const generator = createMinimalGenerator(`
+        struct Buffer { u8 data[256]; u16 len; }
+      `);
+
+      const memberInfo = generator.getMemberTypeInfo("Buffer", "data");
+      expect(memberInfo).not.toBeNull();
+      expect(memberInfo?.baseType).toBe("u8");
+      expect(memberInfo?.isArray).toBe(true);
+      expect(memberInfo?.bitWidth).toBe(8);
+      expect(memberInfo?.isConst).toBe(false);
+      expect(memberInfo?.arrayDimensions).toEqual([256]);
     });
 
     it("should return null for unknown struct", () => {
