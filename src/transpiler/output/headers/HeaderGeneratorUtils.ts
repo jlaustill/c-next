@@ -120,75 +120,46 @@ class HeaderGeneratorUtils {
   ): Set<string> {
     const externalTypes = new Set<string>();
 
+    // Combine all local types for efficient lookup
+    const localTypeSets = [localStructs, localEnums, localTypes, localBitmaps];
+
+    const isLocalType = (name: string): boolean =>
+      localTypeSets.some((set) => set.has(name));
+
     const isExternalType = (typeName: string): boolean => {
-      // Skip if it's a built-in type (primitives and string<N>)
-      if (isBuiltInType(typeName)) {
+      // Skip empty, pointer markers, built-ins, and namespaced types
+      if (!typeName || typeName === "*" || isBuiltInType(typeName)) {
         return false;
       }
-
-      // Skip C++ namespace types (e.g., MockLib::Parse::ParseResult)
       if (typeName.includes("::")) {
         return false;
       }
-
-      // Skip if locally defined
-      if (localStructs.has(typeName)) {
+      // Skip locally defined types and cross-file enums
+      if (isLocalType(typeName) || allKnownEnums?.has(typeName)) {
         return false;
       }
-      if (localEnums.has(typeName)) {
-        return false;
-      }
-      if (localTypes.has(typeName)) {
-        return false;
-      }
-      if (localBitmaps.has(typeName)) {
-        return false;
-      }
-
-      // Skip cross-file enums (can't be forward-declared as structs in C)
-      if (allKnownEnums?.has(typeName)) {
-        return false;
-      }
-
-      // Skip pointer markers and array brackets
-      if (typeName === "" || typeName === "*") {
-        return false;
-      }
-
       return true;
+    };
+
+    const addIfExternal = (type: string | undefined): void => {
+      if (!type) return;
+      const baseType = HeaderGeneratorUtils.extractBaseType(type);
+      if (isExternalType(baseType)) {
+        externalTypes.add(baseType);
+      }
     };
 
     // Check function return types and parameters
     for (const fn of functions) {
-      // Check return type
-      if (fn.type) {
-        const baseType = HeaderGeneratorUtils.extractBaseType(fn.type);
-        if (isExternalType(baseType)) {
-          externalTypes.add(baseType);
-        }
-      }
-
-      // Check parameter types
-      if (fn.parameters) {
-        for (const param of fn.parameters) {
-          if (param.type) {
-            const baseType = HeaderGeneratorUtils.extractBaseType(param.type);
-            if (isExternalType(baseType)) {
-              externalTypes.add(baseType);
-            }
-          }
-        }
+      addIfExternal(fn.type);
+      for (const param of fn.parameters ?? []) {
+        addIfExternal(param.type);
       }
     }
 
     // Check variable types
     for (const v of variables) {
-      if (v.type) {
-        const baseType = HeaderGeneratorUtils.extractBaseType(v.type);
-        if (isExternalType(baseType)) {
-          externalTypes.add(baseType);
-        }
-      }
+      addIfExternal(v.type);
     }
 
     return externalTypes;
