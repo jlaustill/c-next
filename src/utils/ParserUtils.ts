@@ -64,8 +64,8 @@ class ParserUtils {
     }
 
     return {
-      line: parseInt(lineStr, 10),
-      column: parseInt(colStr, 10),
+      line: Number.parseInt(lineStr, 10),
+      column: Number.parseInt(colStr, 10),
       message: afterColon.substring(spaceIdx + 1),
     };
   }

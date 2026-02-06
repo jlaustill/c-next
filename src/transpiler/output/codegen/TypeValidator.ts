@@ -13,6 +13,7 @@ import TParameterInfo from "./types/TParameterInfo";
 import ICallbackTypeInfo from "./types/ICallbackTypeInfo";
 import ITypeValidatorDeps from "./types/ITypeValidatorDeps";
 import TypeResolver from "./TypeResolver";
+import ExpressionUtils from "../../../utils/ExpressionUtils";
 
 /**
  * ADR-010: Implementation file extensions that should NOT be #included
@@ -894,7 +895,7 @@ class TypeValidator {
     ctx: Parser.ExpressionContext,
     conditionType: string,
   ): void {
-    if (this.hasPostfixFunctionCall(ctx)) {
+    if (ExpressionUtils.hasFunctionCall(ctx)) {
       const text = ctx.getText();
       throw new Error(
         `Error E0702: Function call in '${conditionType}' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
@@ -911,7 +912,7 @@ class TypeValidator {
   validateTernaryConditionNoFunctionCall(
     ctx: Parser.OrExpressionContext,
   ): void {
-    if (this.hasPostfixFunctionCallInOrExpr(ctx)) {
+    if (ExpressionUtils.hasFunctionCallInOr(ctx)) {
       const text = ctx.getText();
       throw new Error(
         `Error E0702: Function call in 'ternary' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
@@ -921,79 +922,7 @@ class TypeValidator {
     }
   }
 
-  /**
-   * Issue #254: Check if expression contains a function call (postfix with argumentList)
-   * Adapted from CodeGenerator.hasPostfixFunctionCall
-   */
-  private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return false;
-
-    for (const or of ternary.orExpression()) {
-      if (this.hasPostfixFunctionCallInOrExpr(or)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Issue #254: Check if orExpression contains a function call
-   */
-  private hasPostfixFunctionCallInOrExpr(
-    or: Parser.OrExpressionContext,
-  ): boolean {
-    for (const and of or.andExpression()) {
-      for (const eq of and.equalityExpression()) {
-        for (const rel of eq.relationalExpression()) {
-          for (const bor of rel.bitwiseOrExpression()) {
-            for (const bxor of bor.bitwiseXorExpression()) {
-              for (const band of bxor.bitwiseAndExpression()) {
-                for (const shift of band.shiftExpression()) {
-                  for (const add of shift.additiveExpression()) {
-                    for (const mult of add.multiplicativeExpression()) {
-                      for (const unary of mult.unaryExpression()) {
-                        if (this.hasPostfixFunctionCallInUnary(unary)) {
-                          return true;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Issue #366: Recursively check unaryExpression for function calls.
-   * Handles unary operators (!, -, ~, &) that wrap function calls,
-   * including arbitrary nesting like !!isReady() or -~getValue().
-   */
-  private hasPostfixFunctionCallInUnary(
-    unary: Parser.UnaryExpressionContext,
-  ): boolean {
-    // Recurse through nested unary operators (!, -, ~, &) until we reach postfixExpression
-    const nestedUnary = unary.unaryExpression();
-    if (nestedUnary) {
-      return this.hasPostfixFunctionCallInUnary(nestedUnary);
-    }
-
-    // Base case: check postfixExpression
-    const postfix = unary.postfixExpression();
-    if (postfix) {
-      for (const op of postfix.postfixOp()) {
-        if (op.argumentList() || op.getText().startsWith("(")) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
+  // Function call detection delegated to ExpressionUtils (Issue #254, #366)
 
   // ========================================================================
   // Shift Amount Validation (MISRA C:2012 Rule 12.2)

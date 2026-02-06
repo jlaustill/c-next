@@ -240,7 +240,7 @@ function processScopeMember(
       isPrivate,
       orchestrator,
     );
-    return result !== null ? [result] : [];
+    return result === null ? [] : [result];
   }
 
   // Handle function declarations
