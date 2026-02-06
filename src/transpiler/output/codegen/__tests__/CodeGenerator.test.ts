@@ -7603,6 +7603,152 @@ describe("CodeGenerator", () => {
         expect(code).toContain("case 2:");
         expect(code).toContain("default:");
       });
+
+      it("should handle while loop with block", () => {
+        const source = `
+          void test() {
+            u32 i <- 0;
+            while (i < 10) {
+              i +<- 1;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("while (i < 10)");
+        expect(code).toContain("cnx_clamp_add_u32(i, 1)");
+      });
+
+      it("should handle for loop with block", () => {
+        const source = `
+          void test() {
+            for (u32 i <- 0; i < 10; i +<- 1) {
+              u32 x <- i;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("for (");
+        expect(code).toContain("uint32_t x = i");
+      });
+
+      it("should handle do-while loop with block", () => {
+        const source = `
+          void test() {
+            u32 i <- 0;
+            do {
+              i +<- 1;
+            } while (i < 10);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("do {");
+        expect(code).toContain("} while (i < 10)");
+      });
+
+      it("should handle critical block", () => {
+        const source = `
+          u32 counter;
+          void test() {
+            critical {
+              counter +<- 1;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("__cnx_disable_irq()");
+        expect(code).toContain("cnx_clamp_add_u32(counter, 1)");
+        expect(code).toContain("__cnx_set_PRIMASK");
+      });
+
+      it("should handle simple enum member access", () => {
+        const source = `
+          enum State { IDLE, RUNNING }
+          void test() {
+            State s <- State.IDLE;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("State_IDLE");
+      });
+
+      it("should handle nested if-else with blocks", () => {
+        const source = `
+          void test(u8 x, u8 y) {
+            if (x > 0) {
+              if (y > 0) {
+                u32 z <- 1;
+              } else {
+                u32 z <- 2;
+              }
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("if (x > 0)");
+        expect(code).toContain("if (y > 0)");
+        expect(code).toContain("uint32_t z = 1");
+        expect(code).toContain("uint32_t z = 2");
+      });
     });
   });
 });
