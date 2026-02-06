@@ -180,6 +180,9 @@ Config options:
       .help("help")
       .alias("help", "h")
 
+      // Strict mode - reject unknown options (but allow positional args)
+      .strictOptions()
+
       // Fail handler for unknown options
       .fail((msg, err, yargsInstance) => {
         if (err) throw err;
