@@ -41,14 +41,14 @@ Following the proven architecture of VS Code's TypeScript extension, the C-Next 
 
 ### Benefits of Separate Process Architecture
 
-| Benefit | Description |
-|---------|-------------|
-| **Crash Isolation** | Transpiler crash doesn't crash VS Code; server auto-restarts |
-| **Memory Isolation** | Transpiler memory usage tracked separately from extension |
-| **Clean API Boundary** | JSON protocol forces well-defined, stable interface |
-| **Testability** | Server can be tested independently of VS Code |
-| **Multi-Editor Support** | Same server could support other editors in future |
-| **Version Independence** | Extension and server can update on different schedules |
+| Benefit                  | Description                                                  |
+| ------------------------ | ------------------------------------------------------------ |
+| **Crash Isolation**      | Transpiler crash doesn't crash VS Code; server auto-restarts |
+| **Memory Isolation**     | Transpiler memory usage tracked separately from extension    |
+| **Clean API Boundary**   | JSON protocol forces well-defined, stable interface          |
+| **Testability**          | Server can be tested independently of VS Code                |
+| **Multi-Editor Support** | Same server could support other editors in future            |
+| **Version Independence** | Extension and server can update on different schedules       |
 
 ## Implementation Plan
 
@@ -85,12 +85,12 @@ export interface IServerResponse {
 
 // Supported methods
 export type TServerMethod =
-  | 'transpile'           // Transpile .cnx source to C
-  | 'parseSymbols'        // Extract symbols from .cnx file
-  | 'parseCHeader'        // Parse C header for symbols
-  | 'validateSource'      // Get diagnostics without transpiling
-  | 'getVersion'          // Get server version
-  | 'shutdown';           // Graceful shutdown
+  | "transpile" // Transpile .cnx source to C
+  | "parseSymbols" // Extract symbols from .cnx file
+  | "parseCHeader" // Parse C header for symbols
+  | "validateSource" // Get diagnostics without transpiling
+  | "getVersion" // Get server version
+  | "shutdown"; // Graceful shutdown
 
 // Method-specific params and results
 export interface ITranspileParams {
@@ -128,7 +128,7 @@ export interface IDiagnostic {
   line: number;
   column: number;
   message: string;
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
 }
 ```
 
@@ -137,11 +137,11 @@ export interface IDiagnostic {
 Create `src/server/CNextServer.ts`:
 
 ```typescript
-import * as readline from 'node:readline';
-import transpiler from '../lib/transpiler';
-import parseWithSymbols from '../lib/parseWithSymbols';
-import { CSymbolCollector } from '../transpiler/logic/symbols/CSymbolCollector';
-import type { IServerRequest, IServerResponse } from './protocol';
+import * as readline from "node:readline";
+import transpiler from "../lib/transpiler";
+import parseWithSymbols from "../lib/parseWithSymbols";
+import { CSymbolCollector } from "../transpiler/logic/symbols/CSymbolCollector";
+import type { IServerRequest, IServerResponse } from "./protocol";
 
 export class CNextServer {
   private rl: readline.Interface;
@@ -153,8 +153,8 @@ export class CNextServer {
       terminal: false,
     });
 
-    this.rl.on('line', (line) => this.handleRequest(line));
-    this.rl.on('close', () => process.exit(0));
+    this.rl.on("line", (line) => this.handleRequest(line));
+    this.rl.on("close", () => process.exit(0));
   }
 
   private async handleRequest(line: string): Promise<void> {
@@ -162,7 +162,7 @@ export class CNextServer {
     try {
       request = JSON.parse(line);
     } catch {
-      this.sendError(-1, -32700, 'Parse error');
+      this.sendError(-1, -32700, "Parse error");
       return;
     }
 
@@ -176,20 +176,20 @@ export class CNextServer {
 
   private async dispatch(request: IServerRequest): Promise<unknown> {
     switch (request.method) {
-      case 'transpile':
+      case "transpile":
         return this.transpile(request.params as ITranspileParams);
-      case 'parseSymbols':
+      case "parseSymbols":
         return this.parseSymbols(request.params as IParseSymbolsParams);
-      case 'parseCHeader':
+      case "parseCHeader":
         return this.parseCHeader(request.params as IParseCHeaderParams);
-      case 'validateSource':
+      case "validateSource":
         return this.validateSource(request.params as ITranspileParams);
-      case 'getVersion':
+      case "getVersion":
         return {
-          version: process.env.npm_package_version ?? '0.0.0',
-          protocolVersion: '1.0',
+          version: process.env.npm_package_version ?? "0.0.0",
+          protocolVersion: "1.0",
         };
-      case 'shutdown':
+      case "shutdown":
         process.exit(0);
       default:
         throw new Error(`Unknown method: ${request.method}`);
@@ -206,18 +206,24 @@ export class CNextServer {
     };
   }
 
-  private async parseSymbols(params: IParseSymbolsParams): Promise<IParseSymbolsResult> {
+  private async parseSymbols(
+    params: IParseSymbolsParams,
+  ): Promise<IParseSymbolsResult> {
     const symbols = parseWithSymbols(params.source, params.filePath);
     return { symbols };
   }
 
-  private async parseCHeader(params: IParseCHeaderParams): Promise<IParseCHeaderResult> {
+  private async parseCHeader(
+    params: IParseCHeaderParams,
+  ): Promise<IParseCHeaderResult> {
     const collector = new CSymbolCollector();
     const symbols = collector.collect(params.source, params.filePath);
     return { symbols };
   }
 
-  private async validateSource(params: ITranspileParams): Promise<{ errors: IDiagnostic[] }> {
+  private async validateSource(
+    params: ITranspileParams,
+  ): Promise<{ errors: IDiagnostic[] }> {
     // Parse and validate without generating code
     const result = transpiler.transpileSource(params.source, params.filePath);
     return { errors: result.errors ?? [] };
@@ -225,12 +231,12 @@ export class CNextServer {
 
   private sendResponse(id: number, result: unknown): void {
     const response: IServerResponse = { id, result };
-    process.stdout.write(JSON.stringify(response) + '\n');
+    process.stdout.write(JSON.stringify(response) + "\n");
   }
 
   private sendError(id: number, code: number, message: string): void {
     const response: IServerResponse = { id, error: { code, message } };
-    process.stdout.write(JSON.stringify(response) + '\n');
+    process.stdout.write(JSON.stringify(response) + "\n");
   }
 }
 ```
@@ -241,12 +247,12 @@ Update `src/index.ts` to handle `--serve` flag:
 
 ```typescript
 // src/index.ts
-import { CNextServer } from './server/CNextServer';
+import { CNextServer } from "./server/CNextServer";
 
 // Parse args
 const args = process.argv.slice(2);
 
-if (args.includes('--serve')) {
+if (args.includes("--serve")) {
   // Server mode - start JSON-RPC server on stdin/stdout
   const server = new CNextServer();
   server.start();
@@ -341,9 +347,9 @@ vscode-c-next/
 Create `src/server/CNextServerClient.ts` to manage the server process:
 
 ```typescript
-import * as cp from 'node:child_process';
-import * as readline from 'node:readline';
-import * as vscode from 'vscode';
+import * as cp from "node:child_process";
+import * as readline from "node:readline";
+import * as vscode from "vscode";
 import type {
   IServerRequest,
   IServerResponse,
@@ -353,52 +359,58 @@ import type {
   IParseSymbolsResult,
   IParseCHeaderParams,
   IParseCHeaderResult,
-} from './protocol';
+} from "./protocol";
 
 // Configuration constants
 const SERVER_REQUEST_TIMEOUT_MS = 30000;
 const SERVER_RESTART_DELAY_MS = 1000;
 const SERVER_MAX_RESTARTS = 5;
-const PROTOCOL_VERSION = '1.0';
+const PROTOCOL_VERSION = "1.0";
 
 export class CNextServerClient implements vscode.Disposable {
   private process: cp.ChildProcess | null = null;
   private rl: readline.Interface | null = null;
   private requestId = 0;
-  private pendingRequests = new Map<number, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-    timeoutId: NodeJS.Timeout;
-  }>();
+  private pendingRequests = new Map<
+    number,
+    {
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+      timeoutId: NodeJS.Timeout;
+    }
+  >();
   private outputChannel: vscode.OutputChannel;
   private restartCount = 0;
   private isRestarting = false;
 
   constructor(outputChannel?: vscode.OutputChannel) {
-    this.outputChannel = outputChannel ?? vscode.window.createOutputChannel('C-Next Server');
+    this.outputChannel =
+      outputChannel ?? vscode.window.createOutputChannel("C-Next Server");
   }
 
   async start(): Promise<void> {
     if (this.process) return;
 
     const { command, args } = this.findServerCommand();
-    this.outputChannel.appendLine(`Starting cnext server: ${command} ${args.join(' ')}`);
+    this.outputChannel.appendLine(
+      `Starting cnext server: ${command} ${args.join(" ")}`,
+    );
 
     this.process = cp.spawn(command, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
     });
 
-    this.process.on('exit', (code) => {
+    this.process.on("exit", (code) => {
       this.outputChannel.appendLine(`Server exited with code ${code}`);
       this.handleServerExit();
     });
 
-    this.process.on('error', (err) => {
+    this.process.on("error", (err) => {
       this.outputChannel.appendLine(`Server error: ${err.message}`);
       vscode.window.showErrorMessage(`C-Next server error: ${err.message}`);
     });
 
-    this.process.stderr?.on('data', (data) => {
+    this.process.stderr?.on("data", (data) => {
       this.outputChannel.appendLine(`[stderr] ${data}`);
     });
 
@@ -407,7 +419,7 @@ export class CNextServerClient implements vscode.Disposable {
       terminal: false,
     });
 
-    this.rl.on('line', (line) => this.handleResponse(line));
+    this.rl.on("line", (line) => this.handleResponse(line));
 
     // Verify server is running
     const version = await this.getVersion();
@@ -418,11 +430,11 @@ export class CNextServerClient implements vscode.Disposable {
   private findServerCommand(): { command: string; args: string[] } {
     // Try to find cnext binary
     try {
-      const cnextPath = require.resolve('@jlaustill/cnext/dist/index.js');
-      return { command: 'node', args: [cnextPath, '--serve'] };
+      const cnextPath = require.resolve("@jlaustill/cnext/dist/index.js");
+      return { command: "node", args: [cnextPath, "--serve"] };
     } catch {
       // Fallback to global installation
-      return { command: 'cnext', args: ['--serve'] };
+      return { command: "cnext", args: ["--serve"] };
     }
   }
 
@@ -435,7 +447,7 @@ export class CNextServerClient implements vscode.Disposable {
     // Reject all pending requests and clear their timeouts
     for (const { reject, timeoutId } of this.pendingRequests.values()) {
       clearTimeout(timeoutId);
-      reject(new Error('Server exited'));
+      reject(new Error("Server exited"));
     }
     this.pendingRequests.clear();
 
@@ -443,14 +455,16 @@ export class CNextServerClient implements vscode.Disposable {
     if (this.restartCount < SERVER_MAX_RESTARTS) {
       this.isRestarting = true;
       this.restartCount++;
-      this.outputChannel.appendLine(`Restarting server (attempt ${this.restartCount})`);
+      this.outputChannel.appendLine(
+        `Restarting server (attempt ${this.restartCount})`,
+      );
       setTimeout(() => {
         this.isRestarting = false;
         this.start();
       }, SERVER_RESTART_DELAY_MS);
     } else {
       vscode.window.showErrorMessage(
-        'C-Next server crashed repeatedly. Please reload the window.'
+        "C-Next server crashed repeatedly. Please reload the window.",
       );
     }
   }
@@ -493,7 +507,7 @@ export class CNextServerClient implements vscode.Disposable {
         timeoutId,
       });
 
-      this.process!.stdin!.write(JSON.stringify(request) + '\n', (err) => {
+      this.process!.stdin!.write(JSON.stringify(request) + "\n", (err) => {
         if (err) {
           clearTimeout(timeoutId);
           this.pendingRequests.delete(id);
@@ -505,31 +519,37 @@ export class CNextServerClient implements vscode.Disposable {
 
   // Public API methods
   async transpile(params: ITranspileParams): Promise<ITranspileResult> {
-    return this.request('transpile', params);
+    return this.request("transpile", params);
   }
 
-  async parseSymbols(params: IParseSymbolsParams): Promise<IParseSymbolsResult> {
-    return this.request('parseSymbols', params);
+  async parseSymbols(
+    params: IParseSymbolsParams,
+  ): Promise<IParseSymbolsResult> {
+    return this.request("parseSymbols", params);
   }
 
-  async parseCHeader(params: IParseCHeaderParams): Promise<IParseCHeaderResult> {
-    return this.request('parseCHeader', params);
+  async parseCHeader(
+    params: IParseCHeaderParams,
+  ): Promise<IParseCHeaderResult> {
+    return this.request("parseCHeader", params);
   }
 
   async getVersion(): Promise<{ version: string; protocolVersion: string }> {
-    return this.request('getVersion', {});
+    return this.request("getVersion", {});
   }
 
   async checkCompatibility(): Promise<void> {
     const { version, protocolVersion } = await this.getVersion();
-    this.outputChannel.appendLine(`Server v${version}, protocol v${protocolVersion}`);
+    this.outputChannel.appendLine(
+      `Server v${version}, protocol v${protocolVersion}`,
+    );
 
-    const [serverMajor] = protocolVersion.split('.').map(Number);
-    const [clientMajor] = PROTOCOL_VERSION.split('.').map(Number);
+    const [serverMajor] = protocolVersion.split(".").map(Number);
+    const [clientMajor] = PROTOCOL_VERSION.split(".").map(Number);
 
     if (serverMajor !== clientMajor) {
       vscode.window.showWarningMessage(
-        `C-Next server protocol v${protocolVersion} may be incompatible with extension (expects v${PROTOCOL_VERSION}). Consider updating.`
+        `C-Next server protocol v${protocolVersion} may be incompatible with extension (expects v${PROTOCOL_VERSION}). Consider updating.`,
       );
     }
   }
@@ -537,7 +557,7 @@ export class CNextServerClient implements vscode.Disposable {
   async shutdown(): Promise<void> {
     if (this.process) {
       try {
-        await this.request('shutdown', {});
+        await this.request("shutdown", {});
       } catch {
         // Server may have already exited
       }
@@ -561,27 +581,29 @@ Providers receive the server client via constructor (no singletons):
 
 ```typescript
 // Before (direct import)
-import transpiler from '../../src/lib/transpiler';
+import transpiler from "../../src/lib/transpiler";
 const result = transpiler.transpileSource(source, filePath);
 
 // After (dependency injection)
-import { CNextServerClient } from './server/CNextServerClient';
+import { CNextServerClient } from "./server/CNextServerClient";
 
 export class PreviewProvider implements vscode.TextDocumentContentProvider {
   constructor(private readonly client: CNextServerClient) {}
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
-    const document = await vscode.workspace.openTextDocument(uri.with({ scheme: 'file' }));
+    const document = await vscode.workspace.openTextDocument(
+      uri.with({ scheme: "file" }),
+    );
     const source = document.getText();
     const filePath = document.uri.fsPath;
 
     const result = await this.client.transpile({ source, filePath });
 
     if (!result.success) {
-      return `// Transpilation errors:\n${result.errors?.map(e => `// ${e.message}`).join('\n')}`;
+      return `// Transpilation errors:\n${result.errors?.map((e) => `// ${e.message}`).join("\n")}`;
     }
 
-    return result.cCode ?? '';
+    return result.cCode ?? "";
   }
 }
 ```
@@ -591,11 +613,11 @@ export class PreviewProvider implements vscode.TextDocumentContentProvider {
 Use dependency injection - create client once, pass to all providers:
 
 ```typescript
-import * as vscode from 'vscode';
-import { CNextServerClient } from './server/CNextServerClient';
-import { PreviewProvider } from './providers/previewProvider';
-import { CompletionProvider } from './providers/completionProvider';
-import { HoverProvider } from './providers/hoverProvider';
+import * as vscode from "vscode";
+import { CNextServerClient } from "./server/CNextServerClient";
+import { PreviewProvider } from "./providers/previewProvider";
+import { CompletionProvider } from "./providers/completionProvider";
+import { HoverProvider } from "./providers/hoverProvider";
 
 export async function activate(context: vscode.ExtensionContext) {
   // Create and start the language server client
@@ -607,18 +629,18 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register providers with injected client
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
-      { language: 'cnext' },
+      { language: "cnext" },
       new CompletionProvider(client),
-      '.'
+      ".",
     ),
     vscode.languages.registerHoverProvider(
-      { language: 'cnext' },
-      new HoverProvider(client)
+      { language: "cnext" },
+      new HoverProvider(client),
     ),
     vscode.workspace.registerTextDocumentContentProvider(
-      'cnext-preview',
-      new PreviewProvider(client)
-    )
+      "cnext-preview",
+      new PreviewProvider(client),
+    ),
   );
 
   // Show server version in status bar
@@ -709,8 +731,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
       - run: npm ci
       - run: npm run prettier:check
       - run: npm run lint
@@ -721,8 +743,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
       - run: npm ci
       - run: npm run test:coverage
 
@@ -732,8 +754,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
       - run: npm ci
       - run: npm run compile
       - run: npm run package
@@ -747,8 +769,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
       - run: npm ci
       - run: npm run test:coverage
       - uses: SonarSource/sonarcloud-github-action@master
@@ -765,7 +787,7 @@ name: Publish to VS Code Marketplace
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   publish:
@@ -777,8 +799,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -805,17 +827,17 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.vsix'
+          files: "*.vsix"
           generate_release_notes: true
 ```
 
 #### 3.3 Required Secrets
 
-| Secret | Purpose | How to Obtain |
-|--------|---------|---------------|
-| `SONAR_TOKEN` | SonarCloud analysis | SonarCloud project settings → Security |
-| `VSCE_PAT` | VS Code Marketplace publishing | Azure DevOps → Personal Access Tokens |
-| `OVSX_PAT` | Open VSX publishing (optional) | open-vsx.org → Settings → Access Tokens |
+| Secret        | Purpose                        | How to Obtain                           |
+| ------------- | ------------------------------ | --------------------------------------- |
+| `SONAR_TOKEN` | SonarCloud analysis            | SonarCloud project settings → Security  |
+| `VSCE_PAT`    | VS Code Marketplace publishing | Azure DevOps → Personal Access Tokens   |
+| `OVSX_PAT`    | Open VSX publishing (optional) | open-vsx.org → Settings → Access Tokens |
 
 ---
 
@@ -962,6 +984,7 @@ Update `README.md` to point to marketplace:
 ## VS Code Extension
 
 Install the C-Next extension from the VS Code Marketplace:
+
 - [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jlaustill.vscode-c-next)
 - Or search "C-Next" in VS Code Extensions
 
@@ -971,6 +994,7 @@ Source: [github.com/jlaustill/vscode-c-next](https://github.com/jlaustill/vscode
 #### 7.3 Update CLAUDE.md
 
 Remove:
+
 - VS Code extension caveats section
 - Pre-commit hook workaround notes
 - References to `vscode-extension/` directory
@@ -993,16 +1017,17 @@ The JSON protocol should be versioned for compatibility:
 
 ```typescript
 // protocol.ts
-export const PROTOCOL_VERSION = '1.0';
+export const PROTOCOL_VERSION = "1.0";
 
 // Server includes version in handshake
 interface IServerInfo {
-  version: string;         // Server version (e.g., "0.2.0")
+  version: string; // Server version (e.g., "0.2.0")
   protocolVersion: string; // Protocol version (e.g., "1.0")
 }
 ```
 
 **Compatibility rules:**
+
 - Same major protocol version = compatible
 - Extension checks protocol version on startup, warns if mismatch
 - New methods can be added without bumping protocol version (minor change)
@@ -1036,15 +1061,15 @@ If issues arise with the npm package approach:
 
 ## Phase Dependencies
 
-| Phase | Depends On | Notes |
-|-------|--------------|-------|
-| Phase 1 | None | Prerequisite for all other phases |
+| Phase   | Depends On       | Notes                                   |
+| ------- | ---------------- | --------------------------------------- |
+| Phase 1 | None             | Prerequisite for all other phases       |
 | Phase 2 | Phase 1 complete | Can start once npm package is published |
-| Phase 3 | Phase 2 started | Configure alongside repo setup |
-| Phase 4 | Phase 2 complete | After first push to new repo |
-| Phase 5 | None | Can be done in parallel |
-| Phase 6 | All above | Final integration |
-| Phase 7 | Phase 6 verified | Only after successful publish |
+| Phase 3 | Phase 2 started  | Configure alongside repo setup          |
+| Phase 4 | Phase 2 complete | After first push to new repo            |
+| Phase 5 | None             | Can be done in parallel                 |
+| Phase 6 | All above        | Final integration                       |
+| Phase 7 | Phase 6 verified | Only after successful publish           |
 
 ---
 
