@@ -391,16 +391,22 @@ function buildSymbolHover(
       break;
 
     case "function":
-    case "method":
+    case "method": {
       md.appendMarkdown(`**function** \`${displayName}\`\n\n`);
-      md.appendCodeblock(
-        symbol.signature || `${symbol.type || "void"} ${symbol.name}()`,
-        "cnext",
-      );
+      // Replace C-style underscore name with C-Next dot notation in signature
+      let displaySignature =
+        symbol.signature || `${symbol.type || "void"} ${symbol.name}()`;
+      if (symbol.parent) {
+        const underscoreName = `${symbol.parent}_${symbol.name}`;
+        const dotName = `${symbol.parent}.${symbol.name}`;
+        displaySignature = displaySignature.replace(underscoreName, dotName);
+      }
+      md.appendCodeblock(displaySignature, "cnext");
       if (scopeName) {
         md.appendMarkdown(`\n*Defined in: ${scopeName} scope*`);
       }
       break;
+    }
 
     case "variable":
     case "field":
