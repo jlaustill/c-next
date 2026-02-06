@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.59] - 2026-02-05
+
+### Fixed
+
+- Unify getMemberTypeInfo across expression and assignment paths, fixing assignment path's inability to resolve C header struct fields (PR #701)
+- Show dot notation in hover signature for scope functions (PR #695)
+- Prevent doubled string capacity dimension in struct header fields (PR #695)
+- Resolve .capacity/.size against struct field type, not primary variable (PR #695)
+
+### Added
+
+- Enable strict CLI options mode for better error messages on unknown flags (PR #697)
+- Improve hover provider symbol resolution with proper scope hierarchy (PR #695)
+- Cross-file scope tests in DualCodePaths.test.ts for both function calls and variable assignments (PR #701)
+- Comprehensive unit tests for TransitiveEnumCollector, CallExprGenerator, analysis module branch coverage (PRs #685, #687, #688, #691, #693, #699)
+
+### Changed
+
+- Reduce cognitive complexity across multiple functions to meet SonarCloud thresholds:
+  - `AssignmentClassifier`, `ScopeGenerator`, `generateMemberAccess`, `PostfixExpressionGenerator`
+  - `walkOrExpression` (55→1), `generateVariableDecl` (52→~10), `_generatePrimaryExpr` (38→~8)
+  - (PRs #684, #686, #690, #694, #696, #698, #700)
+- VS Code extension architecture cleanup: injectable context, CSP nonce policy, debounced handlers, workspace boundary validation (PR #689)
+- Clean up README badges (PR #692)
+
 ## [0.1.58] - 2026-02-04
 
 ### Changed
@@ -737,6 +762,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.57...HEAD
+[0.1.59]: https://github.com/jlaustill/c-next/compare/v0.1.58...v0.1.59
 [0.1.58]: https://github.com/jlaustill/c-next/compare/v0.1.57...v0.1.58
 [0.1.57]: https://github.com/jlaustill/c-next/compare/v0.1.56...v0.1.57
 [0.1.56]: https://github.com/jlaustill/c-next/compare/v0.1.55...v0.1.56
