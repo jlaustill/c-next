@@ -2549,50 +2549,69 @@ export default class CodeGenerator implements IOrchestrator {
    * This ensures type information is available before generating any code,
    * allowing .length and other type-dependent operations to work regardless
    * of declaration order (e.g., scope functions can reference globals declared later)
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
     for (const decl of tree.declaration()) {
       // Register global variable types
       if (decl.variableDeclaration()) {
-        const varDecl = decl.variableDeclaration()!;
-        this.trackVariableType(varDecl);
-
-        // Bug #8: Track const values for array size resolution at file scope
-        if (varDecl.constModifier() && varDecl.expression()) {
-          const constName = varDecl.IDENTIFIER().getText();
-          const constValue = this._tryEvaluateConstant(varDecl.expression()!);
-          if (constValue !== undefined) {
-            this.constValues.set(constName, constValue);
-          }
-        }
+        this.registerGlobalVariableType(decl.variableDeclaration()!);
       }
 
       // Register scope member variable types
       if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-
-        // Set currentScope so that this.Type references resolve correctly
-        const savedScope = this.context.currentScope;
-        this.context.currentScope = scopeName;
-
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.variableDeclaration()) {
-            const varDecl = member.variableDeclaration()!;
-            const varName = varDecl.IDENTIFIER().getText();
-            const fullName = `${scopeName}_${varName}`;
-            // Register with mangled name (Scope_variable)
-            this.trackVariableTypeWithName(varDecl, fullName);
-          }
-        }
-
-        // Restore previous scope
-        this.context.currentScope = savedScope;
+        this.registerScopeMemberTypes(decl.scopeDeclaration()!);
       }
 
       // Note: Function parameters are registered per-function during generation
       // since they're scoped to the function body
     }
+  }
+
+  /**
+   * Register a global variable type and track const values.
+   * SonarCloud S3776: Extracted from registerAllVariableTypes().
+   */
+  private registerGlobalVariableType(
+    varDecl: Parser.VariableDeclarationContext,
+  ): void {
+    this.trackVariableType(varDecl);
+
+    // Bug #8: Track const values for array size resolution at file scope
+    if (varDecl.constModifier() && varDecl.expression()) {
+      const constName = varDecl.IDENTIFIER().getText();
+      const constValue = this._tryEvaluateConstant(varDecl.expression()!);
+      if (constValue !== undefined) {
+        this.constValues.set(constName, constValue);
+      }
+    }
+  }
+
+  /**
+   * Register scope member variable types.
+   * SonarCloud S3776: Extracted from registerAllVariableTypes().
+   */
+  private registerScopeMemberTypes(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    // Set currentScope so that this.Type references resolve correctly
+    const savedScope = this.context.currentScope;
+    this.context.currentScope = scopeName;
+
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.variableDeclaration()) {
+        const varDecl = member.variableDeclaration()!;
+        const varName = varDecl.IDENTIFIER().getText();
+        const fullName = `${scopeName}_${varName}`;
+        // Register with mangled name (Scope_variable)
+        this.trackVariableTypeWithName(varDecl, fullName);
+      }
+    }
+
+    // Restore previous scope
+    this.context.currentScope = savedScope;
   }
 
   // Issue #60: collectEnum and collectBitmap methods removed - now in SymbolCollector
