@@ -7839,6 +7839,118 @@ describe("CodeGenerator", () => {
 
         expect(code).toContain("callee(arr[0])");
       });
+
+      it("should handle scope member as argument", () => {
+        const source = `
+          void callee(u32 val) { }
+          scope Motor {
+            public u32 speed;
+            public void sendSpeed() {
+              callee(speed);
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("callee(Motor_speed)");
+      });
+
+      it("should handle expression argument", () => {
+        const source = `
+          void callee(u32 val) { }
+          void test() {
+            u32 a <- 5;
+            u32 b <- 10;
+            callee(a + b);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("callee(a + b)");
+      });
+
+      it("should handle struct field array argument", () => {
+        const source = `
+          struct Data { u32 values[10]; }
+          void callee(u32 arr[10]) { }
+          void test(Data d) {
+            callee(d.values);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("d->values");
+      });
+
+      it("should handle parameter passed to callee", () => {
+        const source = `
+          void callee(u32 val) { }
+          void test(u32 param) {
+            callee(param);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("callee(param)");
+      });
+
+      it("should handle struct parameter passed to callee", () => {
+        const source = `
+          struct Point { u32 x; u32 y; }
+          void callee(Point p) { }
+          void test(Point src) {
+            callee(src);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("callee(src)");
+      });
     });
 
     describe("parameter processing helpers", () => {
@@ -7985,6 +8097,48 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("sizeof(arr)");
+      });
+
+      it("should error on sizeof of array parameter", () => {
+        const source = `
+          void test(u32 arr[10]) {
+            u32 size <- sizeof(arr);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("sizeof() on array parameter");
+      });
+
+      it("should handle sizeof on struct member", () => {
+        const source = `
+          struct Data { u32 values[10]; }
+          void test() {
+            Data d;
+            u32 size <- sizeof(d.values);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("sizeof(d.values)");
       });
     });
 
