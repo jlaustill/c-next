@@ -203,4 +203,68 @@ describe("SymbolLookupHelper", () => {
       expect(SymbolLookupHelper.isNamespace(mockTable, "MyNS")).toBe(false);
     });
   });
+
+  describe("isCppType", () => {
+    it("returns false when symbolTable is null", () => {
+      expect(SymbolLookupHelper.isCppType(null, "MyType")).toBe(false);
+    });
+
+    it("returns false when symbolTable is undefined", () => {
+      expect(SymbolLookupHelper.isCppType(undefined, "MyType")).toBe(false);
+    });
+
+    it("returns true for C++ struct", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Struct, sourceLanguage: ESourceLanguage.Cpp },
+        ],
+      };
+      expect(SymbolLookupHelper.isCppType(mockTable, "MyStruct")).toBe(true);
+    });
+
+    it("returns true for C++ class", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Class, sourceLanguage: ESourceLanguage.Cpp },
+        ],
+      };
+      expect(SymbolLookupHelper.isCppType(mockTable, "MyClass")).toBe(true);
+    });
+
+    it("returns true for C++ type alias", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Type, sourceLanguage: ESourceLanguage.Cpp },
+        ],
+      };
+      expect(SymbolLookupHelper.isCppType(mockTable, "MyType")).toBe(true);
+    });
+
+    it("returns false for C struct", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Struct, sourceLanguage: ESourceLanguage.C },
+        ],
+      };
+      expect(SymbolLookupHelper.isCppType(mockTable, "MyStruct")).toBe(false);
+    });
+
+    it("returns false for C++ function", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.Cpp },
+        ],
+      };
+      expect(SymbolLookupHelper.isCppType(mockTable, "myFunc")).toBe(false);
+    });
+
+    it("returns false for C++ enum", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Enum, sourceLanguage: ESourceLanguage.Cpp },
+        ],
+      };
+      expect(SymbolLookupHelper.isCppType(mockTable, "MyEnum")).toBe(false);
+    });
+  });
 });

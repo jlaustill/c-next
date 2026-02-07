@@ -1985,25 +1985,7 @@ export default class CodeGenerator implements IOrchestrator {
    * C++ types with constructors may fail with {0} but work with {}.
    */
   private isCppType(typeName: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(typeName);
-    for (const sym of symbols) {
-      if (sym.sourceLanguage === ESourceLanguage.Cpp) {
-        // Any C++ struct, class, or user-defined type
-        if (
-          sym.kind === ESymbolKind.Struct ||
-          sym.kind === ESymbolKind.Class ||
-          sym.kind === ESymbolKind.Type
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return SymbolLookupHelper.isCppType(this.symbolTable, typeName);
   }
 
   /**

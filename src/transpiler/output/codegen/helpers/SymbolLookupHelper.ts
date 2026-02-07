@@ -85,6 +85,31 @@ class SymbolLookupHelper {
     const symbols = symbolTable.getOverloads(name);
     return symbols.some((sym) => sym.kind === ESymbolKind.Namespace);
   }
+
+  /**
+   * Check if a type name is from a C++ header.
+   * Issue #304: Used to determine whether to use {} or {0} for initialization.
+   * C++ types with constructors may fail with {0} but work with {}.
+   */
+  static isCppType(
+    symbolTable: ISymbolTable | null | undefined,
+    typeName: string,
+  ): boolean {
+    if (!symbolTable) return false;
+
+    const symbols = symbolTable.getOverloads(typeName);
+    const cppTypeKinds = [
+      ESymbolKind.Struct,
+      ESymbolKind.Class,
+      ESymbolKind.Type,
+    ];
+
+    return symbols.some(
+      (sym) =>
+        sym.sourceLanguage === ESourceLanguage.Cpp &&
+        cppTypeKinds.includes(sym.kind),
+    );
+  }
 }
 
 export default SymbolLookupHelper;
