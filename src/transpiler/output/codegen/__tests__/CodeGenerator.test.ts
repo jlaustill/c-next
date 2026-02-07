@@ -10810,5 +10810,523 @@ describe("CodeGenerator", () => {
         expect(code).toContain('"test"');
       });
     });
+
+    describe("sizeof helpers", () => {
+      it("should handle sizeof on local variable", () => {
+        const source = `
+          void test() {
+            u32 value <- 42;
+            u32 size <- sizeof(value);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("sizeof(value)");
+      });
+
+      it("should handle sizeof on struct type parameter", () => {
+        const source = `
+          struct Data { u32 x; u32 y; }
+          u32 getSize(Data d) {
+            return sizeof(d);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("sizeof(d)");
+      });
+
+      it("should handle sizeof on primitive parameter with dereference", () => {
+        const source = `
+          u32 getSize(u32 val) {
+            return sizeof(val);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Primitive params are pointers, need dereference for sizeof
+        expect(code).toContain("sizeof(*val)");
+      });
+
+      it("should throw error for sizeof on array parameter", () => {
+        const source = `
+          u32 getSize(u32 arr[10]) {
+            return sizeof(arr);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow(/E0601.*sizeof.*array parameter/);
+      });
+
+      it("should handle sizeof on callback parameter", () => {
+        const source = `
+          void handler() { }
+          u32 getSize(handler cb) {
+            return sizeof(cb);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("sizeof(cb)");
+      });
+    });
+
+    describe("array access with parameter dereferencing", () => {
+      it("should generate bit access on scalar parameter", () => {
+        const source = `
+          u8 getBit(u32 flags) {
+            return flags[0, 1];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Bit access extracts bit 0 with width 1
+        expect(code).toContain("((flags) & ((1U << 1) - 1))");
+      });
+
+      it("should not dereference array parameter for index access", () => {
+        const source = `
+          u32 getElement(u32 arr[10]) {
+            return arr[5];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Array params don't need dereference
+        expect(code).toContain("arr[5]");
+        expect(code).not.toContain("(*arr)");
+      });
+
+      it("should not dereference float parameter (pass by value)", () => {
+        const source = `
+          u8 getFloatBit(f32 val) {
+            return val[0, 8];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Float params are pass-by-value, no dereference needed
+        expect(code).not.toContain("(*val)");
+      });
+
+      it("should not dereference enum parameter (pass by value)", () => {
+        const source = `
+          enum State { OFF, ON }
+          u8 getEnumBit(State s) {
+            return s[0, 1];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Enum params are pass-by-value, no dereference
+        expect(code).not.toContain("(*s)");
+      });
+    });
+
+    describe("float bit range access helpers", () => {
+      it("should generate float bit range read with memcpy", () => {
+        const source = `
+          void test() {
+            f32 value <- 3.14f;
+            u32 bits <- value[0, 32];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Float bit access uses memcpy for type punning
+        expect(code).toContain("memcpy");
+      });
+
+      it("should generate f64 bit range read", () => {
+        const source = `
+          void test() {
+            f64 value <- 3.14159;
+            u64 bits <- value[0, 64];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("memcpy");
+      });
+    });
+
+    describe("collect child statements helpers", () => {
+      it("should collect do-while loop body", () => {
+        const source = `
+          void test() {
+            u32 i <- 0;
+            do {
+              i +<- 1;
+            } while (i < 5);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("do {");
+        expect(code).toContain("} while");
+      });
+
+      it("should classify statement without block", () => {
+        const source = `
+          void test(u32 x) {
+            if (x > 0)
+              x +<- 1;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Parameters are passed by pointer, so they get dereferenced
+        expect(code).toContain("if ((*x) > 0)");
+      });
+    });
+
+    describe("scoped enum member access patterns", () => {
+      it("should resolve Scope.Enum.MEMBER from outside scope", () => {
+        const source = `
+          scope Device {
+            public enum Mode { IDLE, ACTIVE, SLEEP }
+          }
+          void test() {
+            Device.Mode m <- Device.Mode.ACTIVE;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Device_Mode_ACTIVE");
+      });
+    });
+
+    describe("function call argument generation", () => {
+      it("should handle array argument passed to function", () => {
+        const source = `
+          void process(u32 data[10]) {
+            data[0] <- 1;
+          }
+          void test() {
+            u32 arr[10];
+            process(arr);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("process(arr)");
+      });
+
+      it("should handle struct return from function call", () => {
+        const source = `
+          struct Vec2 { f32 x; f32 y; }
+          Vec2 createZeroVec() {
+            Vec2 v;
+            v.x <- 0.0f;
+            v.y <- 0.0f;
+            return v;
+          }
+          void test() {
+            Vec2 vec <- createZeroVec();
+            f32 xCoord <- vec.x;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("createZeroVec()");
+        expect(code).toContain("vec.x");
+      });
+    });
+
+    describe("scope function generation helpers", () => {
+      it("should generate scope function with multiple parameters", () => {
+        const source = `
+          scope Math {
+            public u32 add(u32 a, u32 b) {
+              return a + b;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Math_add");
+      });
+
+      it("should generate scope function with struct return", () => {
+        const source = `
+          scope Factory {
+            struct Product { u32 id; }
+            public Product create(u32 id) {
+              Product p;
+              p.id <- id;
+              return p;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Scope function name is prefixed, struct return type uses its own name
+        expect(code).toContain("Product Factory_create");
+        expect(code).toContain("Factory_create(uint32_t id)");
+      });
+    });
+
+    describe("this.variable enum member access", () => {
+      it("should resolve enum type from this.variable member access", () => {
+        const source = `
+          scope Controller {
+            enum State { INIT, READY, ERROR }
+            State currentState <- State.INIT;
+            public void checkState() {
+              if (this.currentState = this.State.ERROR) {
+                this.currentState <- this.State.INIT;
+              }
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Controller_State_ERROR");
+        expect(code).toContain("Controller_State_INIT");
+      });
+    });
+
+    describe("member access chain with arrays", () => {
+      it("should handle struct.array[index] pattern", () => {
+        const source = `
+          struct Buffer { u8 data[64]; u32 len; }
+          void test() {
+            Buffer b;
+            b.len <- 0;
+            b.data[0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("b.data[0]");
+      });
+
+      it("should handle param.array[index] in C mode", () => {
+        const source = `
+          struct Container { u32 values[10]; }
+          void modify(Container c) {
+            c.values[0] <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // In C mode, struct param uses ->
+        expect(code).toContain("c->values[0]");
+      });
+    });
+
+    describe("wrap overflow operations", () => {
+      it("should generate wrap add for wrap u8", () => {
+        const source = `
+          wrap u8 counter <- 250;
+          void test() {
+            counter +<- 10;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Wrap behavior allows overflow
+        expect(code).toContain("counter");
+      });
+    });
   });
 });
