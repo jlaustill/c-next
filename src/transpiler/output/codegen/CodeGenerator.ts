@@ -79,6 +79,8 @@ import StringLengthCounter from "./analysis/StringLengthCounter";
 import CppModeHelper from "./helpers/CppModeHelper";
 // PR #715: Bit range access helper for improved testability
 import BitRangeHelper from "./helpers/BitRangeHelper";
+// PR #715: Centralized error messages for improved testability
+import CodeGenErrors from "./helpers/CodeGenErrors";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
 // Issue #644: Member chain analyzer for bit access pattern detection
@@ -7812,9 +7814,10 @@ export default class CodeGenerator implements IOrchestrator {
     // Check if this is a bitmap type
     if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
       const line = ctx.start?.line ?? 0;
-      throw new Error(
-        `Error at line ${line}: Cannot use bracket indexing on bitmap type '${typeInfo.bitmapTypeName}'. ` +
-          `Use named field access instead (e.g., ${rawName}.FIELD_NAME).`,
+      throw CodeGenErrors.bitmapBracketIndexing(
+        line,
+        typeInfo.bitmapTypeName,
+        rawName,
       );
     }
 
@@ -7872,10 +7875,7 @@ export default class CodeGenerator implements IOrchestrator {
     typeInfo: { baseType: string },
   ): string {
     if (!this.context.inFunctionBody) {
-      throw new Error(
-        `Float bit indexing reads (${rawName}[${start}, ${width}]) cannot be used at global scope. ` +
-          `Move the initialization inside a function.`,
-      );
+      throw CodeGenErrors.floatBitIndexingAtGlobalScope(rawName, start, width);
     }
 
     this.requireInclude("string");
@@ -7999,7 +7999,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ctx.scopedType()) {
       const typeName = ctx.scopedType()!.IDENTIFIER().getText();
       if (!this.context.currentScope) {
-        throw new Error("Error: 'this.Type' can only be used inside a scope");
+        throw CodeGenErrors.scopedTypeOutsideScope();
       }
       return `${this.context.currentScope}_${typeName}`;
     }
