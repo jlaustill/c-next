@@ -15,13 +15,7 @@ import IJsonRpcResponse from "./types/IJsonRpcResponse";
 import ConfigPrinter from "../ConfigPrinter";
 import ConfigLoader from "../ConfigLoader";
 import Transpiler from "../../transpiler/Transpiler";
-import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
-import CNextResolver from "../../transpiler/logic/symbols/cnext";
-import TSymbolAdapter from "../../transpiler/logic/symbols/cnext/adapters/TSymbolAdapter";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
-import ESymbolKind from "../../utils/types/ESymbolKind";
-import ISymbolInfo from "../../lib/types/ISymbolInfo";
-import TSymbolKind from "../../lib/types/TSymbolKind";
+import parseWithSymbols from "../../lib/parseWithSymbols";
 
 /**
  * Method handler type (async to support Transpiler.transpileSource)
@@ -46,47 +40,6 @@ interface IMethodResult {
 interface IServeOptions {
   /** Enable debug logging to stderr */
   debug?: boolean;
-}
-
-/**
- * Map ESymbolKind to TSymbolKind for extension use
- */
-function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
-  switch (kind) {
-    case ESymbolKind.Namespace:
-      return "namespace";
-    case ESymbolKind.Struct:
-      return "struct";
-    case ESymbolKind.Register:
-      return "register";
-    case ESymbolKind.Function:
-      return "function";
-    case ESymbolKind.Variable:
-      return "variable";
-    case ESymbolKind.RegisterMember:
-      return "registerMember";
-    case ESymbolKind.Enum:
-      return "enum";
-    case ESymbolKind.EnumMember:
-      return "enumMember";
-    case ESymbolKind.Bitmap:
-      return "bitmap";
-    case ESymbolKind.BitmapField:
-      return "bitmapField";
-    default:
-      return "variable";
-  }
-}
-
-/**
- * Extract local name from full qualified name
- * e.g., "LED_toggle" with parent "LED" -> "toggle"
- */
-function extractLocalName(fullName: string, parent?: string): string {
-  if (parent && fullName.startsWith(parent + "_")) {
-    return fullName.substring(parent.length + 1);
-  }
-  return fullName;
 }
 
 /**
@@ -244,7 +197,7 @@ class ServeCommand {
       };
     }
 
-    const workspacePath = params.workspacePath as string;
+    const workspacePath = params.workspacePath;
     ServeCommand.log(`initializing with workspace: ${workspacePath}`);
 
     const config = ConfigLoader.load(workspacePath);
@@ -291,7 +244,7 @@ class ServeCommand {
       };
     }
 
-    const source = params.source as string;
+    const source = String(params.source);
     const filePath =
       typeof params.filePath === "string" ? params.filePath : undefined;
 
@@ -331,7 +284,7 @@ class ServeCommand {
       };
     }
 
-    const source = params.source as string;
+    const source = String(params.source);
     const filePath =
       typeof params.filePath === "string" ? params.filePath : undefined;
 
@@ -349,31 +302,12 @@ class ServeCommand {
       }
     }
 
-    // Extract symbols from the parse tree (works even with parse errors)
-    const { tree, errors } = CNextSourceParser.parse(source);
-    const tSymbols = CNextResolver.resolve(tree, "<source>");
-    const symbolTable = new SymbolTable();
-    const rawSymbols = TSymbolAdapter.toISymbols(tSymbols, symbolTable);
-
-    const symbols: ISymbolInfo[] = rawSymbols.map((sym) => ({
-      name: extractLocalName(sym.name, sym.parent),
-      fullName: sym.name,
-      kind: mapSymbolKind(sym.kind),
-      type: sym.type,
-      parent: sym.parent,
-      signature: sym.signature,
-      accessModifier: sym.accessModifier,
-      line: sym.sourceLine,
-      size: sym.size,
-    }));
+    // Delegate symbol extraction to parseWithSymbols (shared with WorkspaceIndex)
+    const result = parseWithSymbols(source);
 
     return {
       success: true,
-      result: {
-        success: errors.length === 0,
-        errors,
-        symbols,
-      },
+      result,
     };
   }
 

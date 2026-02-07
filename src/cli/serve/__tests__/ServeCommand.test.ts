@@ -92,6 +92,26 @@ describe("ServeCommand", () => {
   });
 
   describe("transpile", () => {
+    it("returns error when server not initialized", async () => {
+      // Reset transpiler to null by accessing private field
+      (ServeCommand as unknown as { transpiler: null }).transpiler = null;
+      stdoutWriteSpy.mockClear();
+
+      const response = await sendRequest({
+        id: 50,
+        method: "transpile",
+        params: { source: "u8 x <- 5;" },
+      });
+
+      expect(response).toMatchObject({
+        id: 50,
+        error: {
+          code: JsonRpcHandler.ERROR_INVALID_PARAMS,
+          message: "Server not initialized. Call initialize first.",
+        },
+      });
+    });
+
     it("transpiles valid C-Next source", async () => {
       // Initialize first (required for transpile)
       await sendRequest({
@@ -192,6 +212,35 @@ describe("ServeCommand", () => {
       );
     });
 
+    it("parses symbols with filePath after initialization", async () => {
+      // Initialize first
+      await sendRequest({
+        id: 60,
+        method: "initialize",
+        params: { workspacePath: "/tmp" },
+      });
+      stdoutWriteSpy.mockClear();
+
+      const response = await sendRequest({
+        id: 61,
+        method: "parseSymbols",
+        params: {
+          source: "void myFunc() { }",
+          filePath: "/tmp/test.cnx",
+        },
+      });
+
+      const result = response as {
+        id: number;
+        result: { success: boolean; symbols: Array<{ name: string }> };
+      };
+      expect(result.id).toBe(61);
+      expect(result.result.success).toBe(true);
+      expect(result.result.symbols).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: "myFunc" })]),
+      );
+    });
+
     it("returns error for missing source param", async () => {
       const response = await sendRequest({
         id: 7,
@@ -201,6 +250,21 @@ describe("ServeCommand", () => {
 
       expect(response).toMatchObject({
         id: 7,
+        error: {
+          code: JsonRpcHandler.ERROR_INVALID_PARAMS,
+          message: "Missing required param: source",
+        },
+      });
+    });
+
+    it("returns error for missing params", async () => {
+      const response = await sendRequest({
+        id: 70,
+        method: "parseSymbols",
+      });
+
+      expect(response).toMatchObject({
+        id: 70,
         error: {
           code: JsonRpcHandler.ERROR_INVALID_PARAMS,
           message: "Missing required param: source",
@@ -255,6 +319,36 @@ describe("ServeCommand", () => {
 
       // No response should be written for empty lines
       expect(stdoutWriteSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("debug logging", () => {
+    it("writes debug messages to stderr when debug mode is enabled", async () => {
+      const stderrWriteSpy = vi
+        .spyOn(process.stderr, "write")
+        .mockImplementation(() => true);
+
+      // Enable debug mode via private field
+      (ServeCommand as unknown as { debugMode: boolean }).debugMode = true;
+
+      const response = await sendRequest({
+        id: 80,
+        method: "getVersion",
+      });
+
+      expect(response).toMatchObject({
+        id: 80,
+        result: { version: expect.any(String) },
+      });
+
+      // Debug logs should have been written to stderr
+      expect(stderrWriteSpy).toHaveBeenCalled();
+      const debugOutput = stderrWriteSpy.mock.calls.map((c) => c[0]).join("");
+      expect(debugOutput).toContain("[serve]");
+
+      // Clean up
+      (ServeCommand as unknown as { debugMode: boolean }).debugMode = false;
+      stderrWriteSpy.mockRestore();
     });
   });
 
