@@ -3,7 +3,34 @@
  * Shared types for workspace-wide symbol indexing
  */
 
-import { ISymbolInfo } from "../../../src/lib/transpiler";
+/**
+ * Symbol information for IDE features
+ * Local definition to avoid importing from main transpiler source
+ */
+export interface ISymbolInfo {
+  /** Symbol name (e.g., "toggle", "DR_SET") */
+  name: string;
+  /** Full qualified name (e.g., "LED_toggle", "GPIO7_DR_SET") */
+  fullName: string;
+  /** Kind of symbol */
+  kind: string;
+  /** Type of the symbol (e.g., "void", "u32") */
+  type?: string;
+  /** Parent namespace/class/register name */
+  parent?: string;
+  /** Function signature (e.g., "void toggle()") */
+  signature?: string;
+  /** Access modifier for register members */
+  accessModifier?: string;
+  /** Line number in source (1-based) */
+  line: number;
+  /** Array size or bit width */
+  size?: number;
+  /** Source file path */
+  sourceFile?: string;
+  /** Source language */
+  language?: string;
+}
 
 /**
  * Cache entry for a parsed file

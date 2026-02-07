@@ -17,9 +17,7 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
-  "dependencies": {
-    "antlr4ng": "^3.0.0"
-  },
+  "dependencies": {},
   "contributes": {
     "languages": [
       {

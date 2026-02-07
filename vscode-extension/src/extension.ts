@@ -245,6 +245,9 @@ export async function activate(
 
   // Initialize workspace-wide symbol index
   workspaceIndex = WorkspaceIndex.getInstance();
+  if (serverStarted) {
+    workspaceIndex.setServerClient(serverClient);
+  }
 
   // Create status bar item for index status
   const statusBarItem = vscode.window.createStatusBarItem(

@@ -1,22 +1,24 @@
 /**
  * Workspace Symbol Index
  * Singleton that manages workspace-wide symbol indexing for the VS Code extension
- * Supports both .cnx files and C/C++ headers via IncludeResolver
+ * Supports both .cnx files and C/C++ headers via server client
+ *
+ * Phase 3 (ADR-060): Uses server client for all parsing instead of direct
+ * transpiler imports, enabling true extension/transpiler separation.
  */
 
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { CharStream, CommonTokenStream } from "antlr4ng";
 import SymbolCache from "./SymbolCache";
-import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG } from "./types";
-import parseWithSymbols from "../../../src/lib/parseWithSymbols";
-import ISymbolInfo from "../../../src/lib/types/ISymbolInfo";
+import {
+  IWorkspaceConfig,
+  DEFAULT_WORKSPACE_CONFIG,
+  ISymbolInfo,
+} from "./types";
 import IncludeResolver from "./IncludeResolver";
-import { CLexer } from "../../../src/transpiler/logic/parser/c/grammar/CLexer";
-import { CParser } from "../../../src/transpiler/logic/parser/c/grammar/CParser";
-import CSymbolCollector from "../../../src/transpiler/logic/symbols/CSymbolCollector";
 import { CACHE_CLEANUP_INTERVAL_MS } from "../utils";
+import CNextServerClient from "../server/CNextServerClient";
 
 /**
  * Workspace-wide symbol index
@@ -54,6 +56,9 @@ export default class WorkspaceIndex {
   /** Status bar item for showing index status */
   private statusBarItem: vscode.StatusBarItem | null = null;
 
+  /** Server client for parsing (set via setServerClient) */
+  private serverClient: CNextServerClient | null = null;
+
   private constructor() {
     this.cache = new SymbolCache();
     this.headerCache = new SymbolCache();
@@ -69,6 +74,14 @@ export default class WorkspaceIndex {
       WorkspaceIndex.instance = new WorkspaceIndex();
     }
     return WorkspaceIndex.instance;
+  }
+
+  /**
+   * Set the server client for parsing
+   * Must be called before initialize() for full functionality
+   */
+  setServerClient(client: CNextServerClient): void {
+    this.serverClient = client;
   }
 
   /**
@@ -165,6 +178,11 @@ export default class WorkspaceIndex {
       return;
     }
 
+    // Server client required for parsing
+    if (!this.serverClient || !this.serverClient.isRunning()) {
+      return;
+    }
+
     try {
       const stat = fs.statSync(uri.fsPath);
 
@@ -174,11 +192,19 @@ export default class WorkspaceIndex {
       }
 
       const source = fs.readFileSync(uri.fsPath, "utf-8");
-      const result = parseWithSymbols(source);
+      const result = await this.serverClient.parseSymbols(source, uri.fsPath);
 
       // Add source file path to each symbol
-      const symbolsWithFile = result.symbols.map((s) => ({
-        ...s,
+      const symbolsWithFile: ISymbolInfo[] = result.symbols.map((s) => ({
+        name: s.name,
+        fullName: s.fullName,
+        kind: s.kind,
+        type: s.type,
+        parent: s.parent,
+        signature: s.signature,
+        accessModifier: s.accessModifier,
+        line: s.line ?? 0,
+        size: s.size,
         sourceFile: uri.fsPath,
       }));
 
@@ -204,16 +230,21 @@ export default class WorkspaceIndex {
       // Store dependency graph
       this.includeDependencies.set(uri.fsPath, resolvedHeaders);
     } catch (_error) {
-      // File read error - skip
+      // File read error or server error - skip
     }
   }
 
   /**
-   * Index a header file (.h or .c) using the C parser
+   * Index a header file (.h or .c) using the server's C parser
    */
   private async indexHeaderFile(uri: vscode.Uri): Promise<void> {
     // Check if already cached and not stale
     if (this.headerCache.has(uri) && !this.headerCache.isStale(uri)) {
+      return;
+    }
+
+    // Server client required for parsing
+    if (!this.serverClient || !this.serverClient.isRunning()) {
       return;
     }
 
@@ -226,58 +257,23 @@ export default class WorkspaceIndex {
       }
 
       const source = fs.readFileSync(uri.fsPath, "utf-8");
+      const result = await this.serverClient.parseCHeader(source, uri.fsPath);
 
-      // Parse with C parser
-      const charStream = CharStream.fromString(source);
-      const lexer = new CLexer(charStream);
-      const tokenStream = new CommonTokenStream(lexer);
-      const parser = new CParser(tokenStream);
-
-      // Suppress error output for headers (they often have incomplete code)
-      lexer.removeErrorListeners();
-      parser.removeErrorListeners();
-
-      const tree = parser.compilationUnit();
-      const collector = new CSymbolCollector(uri.fsPath);
-      const symbols = collector.collect(tree);
-
-      // Convert to ISymbolInfo format
-      const symbolsWithFile: ISymbolInfo[] = symbols.map((s) => ({
+      // Convert to ISymbolInfo format with source file
+      const symbolsWithFile: ISymbolInfo[] = result.symbols.map((s) => ({
         name: s.name,
-        fullName: s.parent ? `${s.parent}.${s.name}` : s.name,
-        kind: this.mapSymbolKind(s.kind),
+        fullName: s.fullName,
+        kind: s.kind,
         type: s.type,
-        line: s.sourceLine,
+        parent: s.parent,
+        line: s.line ?? 0,
         sourceFile: uri.fsPath,
       }));
 
       this.headerCache.set(uri, symbolsWithFile, stat.mtimeMs, false);
     } catch (_error) {
-      // Parse error - skip silently (headers can be complex)
+      // Parse error or server error - skip silently
     }
-  }
-
-  /**
-   * Map internal symbol kind to ISymbolInfo kind string
-   */
-  private mapSymbolKind(kind: string | number): string {
-    // Handle both string and enum values
-    const kindMap: Record<string | number, string> = {
-      function: "function",
-      variable: "variable",
-      struct: "struct",
-      enum: "enum",
-      type: "type",
-      enumMember: "field",
-      // Enum values (from ESymbolKind)
-      0: "variable", // Variable
-      1: "function", // Function
-      2: "struct", // Struct
-      3: "enum", // Enum
-      4: "type", // Type
-      5: "field", // EnumMember
-    };
-    return kindMap[kind] || "variable";
   }
 
   /**
@@ -352,27 +348,23 @@ export default class WorkspaceIndex {
 
   /**
    * Get all symbols from a specific file
+   * Note: This is now async due to server-based parsing
    */
-  getSymbolsForFile(uri: vscode.Uri): ISymbolInfo[] {
+  async getSymbolsForFileAsync(uri: vscode.Uri): Promise<ISymbolInfo[]> {
     // Ensure file is indexed
     if (!this.cache.has(uri) || this.cache.isStale(uri)) {
-      // Synchronous index for immediate use
-      try {
-        const stat = fs.statSync(uri.fsPath);
-        const source = fs.readFileSync(uri.fsPath, "utf-8");
-        const result = parseWithSymbols(source);
-
-        const symbolsWithFile = result.symbols.map((s) => ({
-          ...s,
-          sourceFile: uri.fsPath,
-        }));
-
-        this.cache.set(uri, symbolsWithFile, stat.mtimeMs, !result.success);
-      } catch {
-        return [];
-      }
+      await this.indexFile(uri);
     }
 
+    const entry = this.cache.get(uri);
+    return entry?.symbols || [];
+  }
+
+  /**
+   * Get all symbols from a specific file (sync version using cache only)
+   * Returns cached symbols or empty array if not indexed
+   */
+  getSymbolsForFile(uri: vscode.Uri): ISymbolInfo[] {
     const entry = this.cache.get(uri);
     return entry?.symbols || [];
   }

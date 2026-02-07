@@ -71,23 +71,28 @@ Simple JSON-RPC over stdin/stdout. One JSON object per line.
 
 **Methods (v1.0):**
 
-| Method         | Purpose                            |
-| -------------- | ---------------------------------- |
-| `transpile`    | Transpile source, return C code    |
-| `parseSymbols` | Extract symbols from .cnx file     |
-| `getVersion`   | Return server and protocol version |
-| `shutdown`     | Graceful exit                      |
+| Method         | Purpose                                |
+| -------------- | -------------------------------------- |
+| `getVersion`   | Return server and protocol version     |
+| `initialize`   | Initialize server with workspace path  |
+| `transpile`    | Transpile source, return C code        |
+| `parseSymbols` | Extract symbols from .cnx file         |
+| `parseCHeader` | Extract symbols from C/C++ header file |
+| `shutdown`     | Graceful exit                          |
 
-**Deferred to v2:** `parseCHeader` (extension keeps JS implementation for now)
+**Note:** `parseCHeader` was originally planned for v2 but was added in Phase 3 prep to enable complete separation (no antlr4ng in extension).
 
 #### Server Implementation
 
-Create `src/server/`:
+Created in `src/cli/serve/`:
 
 ```
-src/server/
-├── CNextServer.ts    # Readline-based request handler
-└── protocol.ts       # Type definitions (emerge during implementation)
+src/cli/serve/
+├── ServeCommand.ts       # Method handlers and server lifecycle
+├── JsonRpcHandler.ts     # Request parsing and response formatting
+└── types/
+    ├── IJsonRpcRequest.ts
+    └── IJsonRpcResponse.ts
 ```
 
 Key implementation notes:
@@ -119,11 +124,11 @@ npm run unit -- src/server/__tests__/
 
 #### Phase 1 Deliverables
 
-- [ ] `src/server/CNextServer.ts` - server implementation
-- [ ] `src/server/protocol.ts` - type definitions
-- [ ] `--serve` flag in CLI
-- [ ] Unit tests for server
-- [ ] **STOP AND VALIDATE** - use locally for a week before Phase 2
+- [x] `src/cli/serve/ServeCommand.ts` - server implementation
+- [x] `src/cli/serve/JsonRpcHandler.ts` - JSON-RPC handling
+- [x] `--serve` flag in CLI
+- [x] Unit tests for server (39 tests)
+- [x] **VALIDATED** - Merged in PR #721
 
 ---
 
@@ -195,18 +200,25 @@ vscode.workspace.onDidChangeTextDocument((e) => {
 
 #### Phase 2 Deliverables
 
-- [ ] `CNextServerClient.ts` in vscode-extension
-- [ ] Update all providers to use client
-- [ ] Add extension settings
-- [ ] Add graceful degradation
-- [ ] File watching for cache invalidation
-- [ ] Test locally for stability
+- [x] `CNextServerClient.ts` in vscode-extension
+- [x] Update all providers to use client
+- [x] Add extension settings (`serverPath`, `serverTimeout`)
+- [x] Add graceful degradation ("syntax highlighting only mode")
+- [x] File watching for cache invalidation
+- [x] **VALIDATED** - Merged in PRs #722, #726, #727
 
 ---
 
 ### Phase 3: Repository Separation
 
 Only proceed after Phase 2 is stable.
+
+**Phase 3 Prep (completed):**
+
+- [x] Added `parseCHeader` server method for C header symbol extraction
+- [x] Migrated `WorkspaceIndex` to use server client for all parsing
+- [x] Removed direct imports from `../../../src/` in extension
+- [x] Removed `antlr4ng` dependency from extension (bundle: 106KB)
 
 #### New Repository Structure
 
@@ -257,9 +269,9 @@ vscode-c-next/
 **Migration:**
 
 - [ ] Copy extension files
-- [ ] Remove `antlr4ng` dependency
+- [x] Remove `antlr4ng` dependency (done in prep)
 - [ ] Update package.json (reset to v1.0.0, update repo URL)
-- [ ] Add extension icon (128x128 PNG)
+- [ ] Add extension icon (128x128 PNG) - convert `images/icon.svg` using Inkscape or online tool
 - [ ] Set up branch protection
 
 **Post-migration:**

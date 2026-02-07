@@ -54,6 +54,20 @@ export interface IParseSymbolsResult {
 }
 
 /**
+ * Parse C header result from server
+ */
+export interface IParseCHeaderResult {
+  success: boolean;
+  errors: Array<{
+    line: number;
+    column: number;
+    message: string;
+    severity: "error" | "warning";
+  }>;
+  symbols: ISymbolInfo[];
+}
+
+/**
  * Pending request tracker
  */
 interface IPendingRequest {
@@ -272,6 +286,24 @@ class CNextServerClient {
       "parseSymbols",
       params,
     )) as IParseSymbolsResult;
+    return result;
+  }
+
+  /**
+   * Parse symbols from C/C++ header source
+   */
+  async parseCHeader(
+    source: string,
+    filePath?: string,
+  ): Promise<IParseCHeaderResult> {
+    const params: Record<string, unknown> = { source };
+    if (filePath) {
+      params.filePath = filePath;
+    }
+    const result = (await this.sendRequest(
+      "parseCHeader",
+      params,
+    )) as IParseCHeaderResult;
     return result;
   }
 

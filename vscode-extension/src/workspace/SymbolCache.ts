@@ -5,8 +5,7 @@
 
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import { ICacheEntry } from "./types";
-import { ISymbolInfo } from "../../../src/lib/transpiler";
+import { ICacheEntry, ISymbolInfo } from "./types";
 
 /**
  * Cache for parsed file symbols
