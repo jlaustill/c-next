@@ -2626,6 +2626,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Analyze all functions to determine which parameters should pass by value.
    * This runs before code generation and populates passByValueParams.
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   private analyzePassByValue(tree: Parser.ProgramContext): void {
     // Reset analysis state
@@ -2638,27 +2639,8 @@ export default class CodeGenerator implements IOrchestrator {
     this.collectFunctionParametersAndModifications(tree);
 
     // Issue #558: Inject cross-file data before transitive propagation
-    if (this.pendingCrossFileModifications) {
-      for (const [funcName, params] of this.pendingCrossFileModifications) {
-        const existing = this.modifiedParameters.get(funcName);
-        if (existing) {
-          for (const param of params) {
-            existing.add(param);
-          }
-        } else {
-          this.modifiedParameters.set(funcName, new Set(params));
-        }
-      }
-      this.pendingCrossFileModifications = null; // Clear after use
-    }
-    if (this.pendingCrossFileParamLists) {
-      for (const [funcName, params] of this.pendingCrossFileParamLists) {
-        if (!this.functionParamLists.has(funcName)) {
-          this.functionParamLists.set(funcName, [...params]);
-        }
-      }
-      this.pendingCrossFileParamLists = null; // Clear after use
-    }
+    this.injectCrossFileModifications();
+    this.injectCrossFileParamLists();
 
     // Phase 2: Fixed-point iteration for transitive modifications
     TransitiveModificationPropagator.propagate(
@@ -2669,6 +2651,41 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Phase 3: Determine which parameters can pass by value
     this.computePassByValueParams();
+  }
+
+  /**
+   * Inject cross-file modification data into modifiedParameters.
+   * SonarCloud S3776: Extracted from analyzePassByValue().
+   */
+  private injectCrossFileModifications(): void {
+    if (!this.pendingCrossFileModifications) return;
+
+    for (const [funcName, params] of this.pendingCrossFileModifications) {
+      const existing = this.modifiedParameters.get(funcName);
+      if (existing) {
+        for (const param of params) {
+          existing.add(param);
+        }
+      } else {
+        this.modifiedParameters.set(funcName, new Set(params));
+      }
+    }
+    this.pendingCrossFileModifications = null; // Clear after use
+  }
+
+  /**
+   * Inject cross-file parameter lists into functionParamLists.
+   * SonarCloud S3776: Extracted from analyzePassByValue().
+   */
+  private injectCrossFileParamLists(): void {
+    if (!this.pendingCrossFileParamLists) return;
+
+    for (const [funcName, params] of this.pendingCrossFileParamLists) {
+      if (!this.functionParamLists.has(funcName)) {
+        this.functionParamLists.set(funcName, [...params]);
+      }
+    }
+    this.pendingCrossFileParamLists = null; // Clear after use
   }
 
   /**
