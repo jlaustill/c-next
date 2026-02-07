@@ -98,6 +98,8 @@ import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeReso
 // PR #715: C++ member conversion helper for improved testability
 import CppMemberHelper from "./helpers/CppMemberHelper";
 import IPostfixOp from "./helpers/types/IPostfixOp";
+// PR #715: Boolean conversion helper for improved testability
+import BooleanHelper from "./helpers/BooleanHelper";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
@@ -1847,9 +1849,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private foldBooleanToInt(expr: string): string {
-    if (expr === "true") return "1";
-    if (expr === "false") return "0";
-    return `(${expr} ? 1 : 0)`;
+    return BooleanHelper.foldBooleanToInt(expr);
   }
 
   /**
