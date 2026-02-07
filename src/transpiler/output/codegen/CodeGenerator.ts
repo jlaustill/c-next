@@ -95,6 +95,9 @@ import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 import ArrayInitHelper from "./helpers/ArrayInitHelper";
 // Issue #644: Assignment expected type resolution helper
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
+// PR #715: C++ member conversion helper for improved testability
+import CppMemberHelper from "./helpers/CppMemberHelper";
+import IPostfixOp from "./helpers/types/IPostfixOp";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
@@ -4720,22 +4723,13 @@ export default class CodeGenerator implements IOrchestrator {
     if (!postfix) return null;
 
     const ops = postfix.postfixOp();
-    if (ops.length === 0) return null;
+    const result = CppMemberHelper.getLastPostfixOpType(
+      this._toPostfixOps(ops),
+    );
 
-    // Check the last operator to determine lvalue type
-    const lastOp = ops.at(-1)!;
-
-    // Member access: .identifier
-    if (lastOp.IDENTIFIER()) {
-      return "member";
-    }
-
-    // Array access: [expression]
-    if (lastOp.expression()) {
-      return "array";
-    }
-
-    return null;
+    // Function calls are not lvalues
+    if (result === "function") return null;
+    return result;
   }
 
   /**
@@ -4777,7 +4771,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Check if target type is u8 (could be bool or typed enum from C header)
    */
   private _isU8TargetType(targetParamBaseType: string): boolean {
-    return TYPE_MAP[targetParamBaseType] === "uint8_t";
+    return CppMemberHelper.isU8TargetType(targetParamBaseType);
   }
 
   /**
@@ -4789,16 +4783,22 @@ export default class CodeGenerator implements IOrchestrator {
     paramInfo: { baseType: string; isStruct?: boolean; isConst?: boolean },
     targetParamBaseType: string,
   ): boolean {
-    const isPrimitiveParam = !!TYPE_MAP[paramInfo.baseType];
-    const couldBeStruct = paramInfo.isStruct || !isPrimitiveParam;
+    return CppMemberHelper.needsParamMemberConversion(
+      paramInfo,
+      targetParamBaseType,
+    );
+  }
 
-    if (!couldBeStruct) return false;
-
-    // Const struct parameter needs temp to break const chain
-    if (paramInfo.isConst) return true;
-
-    // External C structs may have bool/enum members that need casting
-    return this._isU8TargetType(targetParamBaseType);
+  /**
+   * Convert parser PostfixOpContext to IPostfixOp interface for CppMemberHelper.
+   */
+  private _toPostfixOps(ops: Parser.PostfixOpContext[]): IPostfixOp[] {
+    return ops.map((op) => ({
+      hasExpression: op.expression() !== null,
+      hasIdentifier: op.IDENTIFIER() !== null,
+      hasArgumentList: op.argumentList() !== null,
+      textEndsWithParen: op.getText().endsWith(")"),
+    }));
   }
 
   /**
@@ -4810,67 +4810,12 @@ export default class CodeGenerator implements IOrchestrator {
     baseId: string,
     targetParamBaseType: string,
   ): boolean {
-    if (ops.length < 2) return false;
-
-    const lastOp = ops.at(-1)!;
-    // Last op must be member access (.identifier)
-    if (!lastOp.IDENTIFIER()) return false;
-
-    const precedingOps = ops.slice(0, -1);
-
-    // Case 2a: Array element member access (arr[i].member)
-    if (
-      this._needsArrayElementMemberConversion(
-        precedingOps,
-        baseId,
-        targetParamBaseType,
-      )
-    ) {
-      return true;
-    }
-
-    // Case 2b: Function return member access (getConfig().member)
-    return this._needsFunctionReturnMemberConversion(
-      precedingOps,
+    const typeInfo = this.context.typeRegistry.get(baseId);
+    return CppMemberHelper.needsComplexMemberConversion(
+      this._toPostfixOps(ops),
+      typeInfo,
       targetParamBaseType,
     );
-  }
-
-  /**
-   * Case 2a: Array element member access needs conversion?
-   */
-  private _needsArrayElementMemberConversion(
-    precedingOps: Parser.PostfixOpContext[],
-    baseId: string,
-    targetParamBaseType: string,
-  ): boolean {
-    const hasArraySubscript = precedingOps.some(
-      (op) => op.expression() !== null,
-    );
-    if (!hasArraySubscript) return false;
-
-    const typeInfo = this.context.typeRegistry.get(baseId);
-    if (!typeInfo?.isArray) return false;
-
-    const isPrimitiveElement = !!TYPE_MAP[typeInfo.baseType];
-    if (isPrimitiveElement) return false;
-
-    return this._isU8TargetType(targetParamBaseType);
-  }
-
-  /**
-   * Case 2b: Function return member access needs conversion?
-   */
-  private _needsFunctionReturnMemberConversion(
-    precedingOps: Parser.PostfixOpContext[],
-    targetParamBaseType: string,
-  ): boolean {
-    const hasFunctionCall = precedingOps.some(
-      (op) => op.argumentList() !== null || op.getText().endsWith(")"),
-    );
-    if (!hasFunctionCall) return false;
-
-    return this._isU8TargetType(targetParamBaseType);
   }
 
   /**
@@ -4882,28 +4827,25 @@ export default class CodeGenerator implements IOrchestrator {
     const postfix = this.getPostfixExpression(ctx);
     if (!postfix) return false;
 
-    // Must have at least one postfix operator
     const ops = postfix.postfixOp();
-    if (ops.length === 0) return false;
-
-    // Last operator must be array access [expression]
-    const lastOp = ops.at(-1)!;
-    if (!lastOp.expression()) return false;
+    const hasPostfixOps = ops.length > 0;
+    const lastOpHasExpression =
+      hasPostfixOps && ops.at(-1)!.expression() !== null;
 
     // Get the base identifier
     const primary = postfix.primaryExpression();
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    // Check if the base is a string type in the type registry
     const typeInfo = this.context.typeRegistry.get(baseId);
-    if (typeInfo?.isString) return true;
-
-    // Also check if it's a string parameter
     const paramInfo = this.context.currentParameters.get(baseId);
-    if (paramInfo?.isString) return true;
 
-    return false;
+    return CppMemberHelper.isStringSubscriptPattern(
+      hasPostfixOps,
+      lastOpHasExpression,
+      typeInfo,
+      paramInfo?.isString ?? false,
+    );
   }
 
   /**
@@ -7139,16 +7081,6 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
     return operators;
-  }
-
-  private generateAdditiveExpr(ctx: Parser.AdditiveExpressionContext): string {
-    return this.invokeExpression("additive", ctx);
-  }
-
-  private generateMultiplicativeExpr(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): string {
-    return this.invokeExpression("multiplicative", ctx);
   }
 
   private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
