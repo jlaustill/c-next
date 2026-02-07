@@ -12408,5 +12408,181 @@ describe("CodeGenerator", () => {
         expect(code).toContain("arr[i]");
       });
     });
+
+    describe("string array parameters", () => {
+      it("should handle string array parameter with capacity", () => {
+        const source = `
+          void processNames(string<32> names[10]) {
+            string<32> first <- names[0];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // String array parameters have capacity+1 for null terminator
+        expect(code).toContain("char names[10][33]");
+      });
+    });
+
+    describe("enum type from global pattern", () => {
+      it("should resolve global.Enum.Member inside scope function", () => {
+        const source = `
+          enum Mode { AUTO, MANUAL }
+          scope Driver {
+            Mode currentMode <- global.Mode.AUTO;
+            public Mode getMode() {
+              return currentMode;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Mode_AUTO");
+      });
+    });
+
+    describe("enum type from this.variable pattern", () => {
+      it("should resolve type from this.enumVar comparison", () => {
+        const source = `
+          scope Controller {
+            enum Phase { INIT, RUN, STOP }
+            Phase phase <- Phase.INIT;
+            public void check() {
+              if (this.phase = this.Phase.RUN) {
+                this.phase <- this.Phase.STOP;
+              }
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Controller_Phase_RUN");
+        expect(code).toContain("Controller_Phase_STOP");
+      });
+    });
+
+    describe("bitmap parameter handling", () => {
+      it("should handle bitmap type parameter", () => {
+        const source = `
+          bitmap8 Flags { ready, active, error, done, reserved1, reserved2, reserved3, reserved4 }
+          void checkFlags(Flags f) {
+            u8 ready <- f[0];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Bitmap params passed as const pointer
+        expect(code).toContain("const Flags* f");
+      });
+    });
+
+    describe("fallback type resolution", () => {
+      it("should handle custom type parameter", () => {
+        const source = `
+          struct Widget { u32 id; }
+          void process(Widget w) {
+            u32 wid <- w.id;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Widget* w");
+        expect(code).toContain("w->id");
+      });
+    });
+
+    describe("critical block handling", () => {
+      it("should generate critical section code", () => {
+        const source = `
+          u32 counter <- 0;
+          void incrementSafe() {
+            critical {
+              counter +<- 1;
+            }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Critical sections use PRIMASK for interrupt disabling
+        expect(code).toContain("__cnx_disable_irq");
+        expect(code).toContain("__cnx_set_PRIMASK");
+      });
+    });
+
+    describe("const folding in expressions", () => {
+      it("should fold constant expressions", () => {
+        const source = `
+          void test() {
+            u32 result <- 10 + 5;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Constant expressions get folded
+        expect(code).toContain("15");
+      });
+    });
   });
 });
