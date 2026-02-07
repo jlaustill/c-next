@@ -112,53 +112,93 @@ class TypeValidator {
     includePaths: string[],
     fileExists: (path: string) => boolean = existsSync,
   ): void {
-    // Extract the file path from #include directive
+    const parsed = this._parseIncludeDirective(includeText);
+    if (!parsed) return;
+    if (parsed.path.endsWith(".cnx")) return;
+    if (!this._isHeaderFile(parsed.path)) return;
+
+    const cnxPath = parsed.path.replace(/\.(h|hpp)$/i, ".cnx");
+
+    if (parsed.isQuoted) {
+      this._checkQuotedIncludeForCnx(
+        parsed.path,
+        cnxPath,
+        sourcePath,
+        lineNumber,
+        fileExists,
+      );
+    } else {
+      this._checkAngleIncludeForCnx(
+        parsed.path,
+        cnxPath,
+        includePaths,
+        lineNumber,
+        fileExists,
+      );
+    }
+  }
+
+  /**
+   * Parse an include directive to extract path and type
+   */
+  private _parseIncludeDirective(
+    includeText: string,
+  ): { path: string; isQuoted: boolean } | null {
     const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
     const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
 
-    const includePath = angleMatch?.[1] || quoteMatch?.[1];
-    if (!includePath) {
-      return; // Malformed include, let other validation handle it
+    if (quoteMatch) return { path: quoteMatch[1], isQuoted: true };
+    if (angleMatch) return { path: angleMatch[1], isQuoted: false };
+    return null;
+  }
+
+  /**
+   * Check if a path is a header file (.h or .hpp)
+   */
+  private _isHeaderFile(path: string): boolean {
+    const ext = path.substring(path.lastIndexOf(".")).toLowerCase();
+    return ext === ".h" || ext === ".hpp";
+  }
+
+  /**
+   * Check quoted include for .cnx alternative
+   */
+  private _checkQuotedIncludeForCnx(
+    includePath: string,
+    cnxPath: string,
+    sourcePath: string | null,
+    lineNumber: number,
+    fileExists: (path: string) => boolean,
+  ): void {
+    if (!sourcePath) return;
+
+    const sourceDir = dirname(sourcePath);
+    const fullCnxPath = resolve(sourceDir, cnxPath);
+    if (fileExists(fullCnxPath)) {
+      throw new Error(
+        `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
+          `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
+      );
     }
+  }
 
-    // Skip if already a .cnx include
-    if (includePath.endsWith(".cnx")) {
-      return;
-    }
-
-    // Only check .h and .hpp files
-    const ext = includePath
-      .substring(includePath.lastIndexOf("."))
-      .toLowerCase();
-    if (ext !== ".h" && ext !== ".hpp") {
-      return;
-    }
-
-    // Build the .cnx alternative path
-    const cnxPath = includePath.replace(/\.(h|hpp)$/i, ".cnx");
-
-    if (quoteMatch) {
-      // Quoted include: resolve relative to source file's directory
-      if (sourcePath) {
-        const sourceDir = dirname(sourcePath);
-        const fullCnxPath = resolve(sourceDir, cnxPath);
-        if (fileExists(fullCnxPath)) {
-          throw new Error(
-            `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
-              `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
-          );
-        }
-      }
-    } else if (angleMatch) {
-      // Angle bracket include: search through include paths
-      for (const searchDir of includePaths) {
-        const fullCnxPath = join(searchDir, cnxPath);
-        if (fileExists(fullCnxPath)) {
-          throw new Error(
-            `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
-              `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
-          );
-        }
+  /**
+   * Check angle bracket include for .cnx alternative in search paths
+   */
+  private _checkAngleIncludeForCnx(
+    includePath: string,
+    cnxPath: string,
+    includePaths: string[],
+    lineNumber: number,
+    fileExists: (path: string) => boolean,
+  ): void {
+    for (const searchDir of includePaths) {
+      const fullCnxPath = join(searchDir, cnxPath);
+      if (fileExists(fullCnxPath)) {
+        throw new Error(
+          `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
+            `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
+        );
       }
     }
   }
@@ -439,48 +479,69 @@ class TypeValidator {
 
     // Priority 2: If inside a scope, check scope members
     if (currentScope) {
-      const scopeMembers = this.getScopeMembersFn().get(currentScope);
-      if (scopeMembers?.has(identifier)) {
-        return `${currentScope}_${identifier}`;
-      }
-
-      // Check if it's a scope function (exists as Scope_identifier in knownFunctions)
-      const scopedFuncName = `${currentScope}_${identifier}`;
-      if (this.knownFunctions.has(scopedFuncName)) {
-        return scopedFuncName;
-      }
+      const scopeResolved = this._resolveScopeMember(identifier, currentScope);
+      if (scopeResolved) return scopeResolved;
     }
 
     // Priority 3: Global resolution
-    // Check global variables in type registry (no underscore = global)
-    const typeInfo = this.typeRegistry.get(identifier);
-    if (typeInfo && !identifier.includes("_")) {
-      return currentScope ? identifier : null; // Only transform if inside scope
-    }
-
-    // Check global functions (but not ones already prefixed with current scope)
     if (
-      this.knownFunctions.has(identifier) &&
-      !identifier.startsWith(currentScope + "_")
+      this._isKnownGlobalIdentifier(identifier, currentScope, isKnownStruct)
     ) {
-      return currentScope ? identifier : null;
-    }
-
-    // Check known types (enums, structs, registers) - these are valid as identifiers
-    if (this.symbols!.knownEnums.has(identifier)) {
-      return currentScope ? identifier : null;
-    }
-
-    if (isKnownStruct(identifier)) {
-      return currentScope ? identifier : null;
-    }
-
-    if (this.symbols!.knownRegisters.has(identifier)) {
       return currentScope ? identifier : null;
     }
 
     // Not found anywhere - let it pass through (may be enum member or error later)
     return null;
+  }
+
+  /**
+   * Try to resolve identifier as a scope member or scope function
+   */
+  private _resolveScopeMember(
+    identifier: string,
+    currentScope: string,
+  ): string | null {
+    const scopeMembers = this.getScopeMembersFn().get(currentScope);
+    if (scopeMembers?.has(identifier)) {
+      return `${currentScope}_${identifier}`;
+    }
+
+    const scopedFuncName = `${currentScope}_${identifier}`;
+    if (this.knownFunctions.has(scopedFuncName)) {
+      return scopedFuncName;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if identifier is a known global (variable, function, enum, struct, register)
+   */
+  private _isKnownGlobalIdentifier(
+    identifier: string,
+    currentScope: string | null,
+    isKnownStruct: (name: string) => boolean,
+  ): boolean {
+    // Global variable in type registry
+    const typeInfo = this.typeRegistry.get(identifier);
+    if (typeInfo && !identifier.includes("_")) {
+      return true;
+    }
+
+    // Global function (not prefixed with current scope)
+    if (
+      this.knownFunctions.has(identifier) &&
+      !identifier.startsWith(currentScope + "_")
+    ) {
+      return true;
+    }
+
+    // Known types: enums, structs, registers
+    return (
+      this.symbols!.knownEnums.has(identifier) ||
+      isKnownStruct(identifier) ||
+      this.symbols!.knownRegisters.has(identifier)
+    );
   }
 
   /**
@@ -507,41 +568,64 @@ class TypeValidator {
    */
   validateNoEarlyExits(ctx: Parser.BlockContext): void {
     for (const stmt of ctx.statement()) {
-      if (stmt.returnStatement()) {
+      this._validateStatementForEarlyExit(stmt);
+    }
+  }
+
+  /**
+   * Validate a single statement for early exits in critical sections
+   */
+  private _validateStatementForEarlyExit(stmt: Parser.StatementContext): void {
+    if (stmt.returnStatement()) {
+      throw new Error(
+        `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
+      );
+    }
+
+    // Recursively check nested blocks
+    if (stmt.block()) {
+      this.validateNoEarlyExits(stmt.block()!);
+    }
+
+    // Check inside if statements
+    if (stmt.ifStatement()) {
+      this._validateIfStatementForEarlyExit(stmt.ifStatement()!);
+    }
+
+    // Check inside loops
+    this._validateLoopForEarlyExit(stmt);
+  }
+
+  /**
+   * Validate if statement branches for early exits
+   */
+  private _validateIfStatementForEarlyExit(
+    ifStmt: Parser.IfStatementContext,
+  ): void {
+    for (const innerStmt of ifStmt.statement()) {
+      if (innerStmt.returnStatement()) {
         throw new Error(
           `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
         );
       }
-      // Recursively check nested blocks
-      if (stmt.block()) {
-        this.validateNoEarlyExits(stmt.block()!);
+      if (innerStmt.block()) {
+        this.validateNoEarlyExits(innerStmt.block()!);
       }
-      // Check inside if statements
-      if (stmt.ifStatement()) {
-        for (const innerStmt of stmt.ifStatement()!.statement()) {
-          if (innerStmt.returnStatement()) {
-            throw new Error(
-              `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-            );
-          }
-          if (innerStmt.block()) {
-            this.validateNoEarlyExits(innerStmt.block()!);
-          }
-        }
-      }
-      // Check inside while/for/do-while loops for return
-      // Issue #707: Consolidated loop body validation
-      if (stmt.whileStatement()) {
-        this._checkLoopBodyForReturn(stmt.whileStatement()!.statement());
-      }
-      if (stmt.forStatement()) {
-        this._checkLoopBodyForReturn(stmt.forStatement()!.statement());
-      }
-      if (stmt.doWhileStatement()) {
-        // do-while uses block directly, not statement
-        const loopBlock = stmt.doWhileStatement()!.block();
-        this.validateNoEarlyExits(loopBlock);
-      }
+    }
+  }
+
+  /**
+   * Validate loop statements for early exits
+   */
+  private _validateLoopForEarlyExit(stmt: Parser.StatementContext): void {
+    if (stmt.whileStatement()) {
+      this._checkLoopBodyForReturn(stmt.whileStatement()!.statement());
+    }
+    if (stmt.forStatement()) {
+      this._checkLoopBodyForReturn(stmt.forStatement()!.statement());
+    }
+    if (stmt.doWhileStatement()) {
+      this.validateNoEarlyExits(stmt.doWhileStatement()!.block());
     }
   }
 

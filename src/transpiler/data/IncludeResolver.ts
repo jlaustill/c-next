@@ -76,56 +76,110 @@ class IncludeResolver {
    * @returns Resolved includes categorized by type, plus warnings
    */
   resolve(content: string, sourceFilePath?: string): IResolvedIncludes {
-    const headers: IDiscoveredFile[] = [];
-    const cnextIncludes: IDiscoveredFile[] = [];
-    const warnings: string[] = [];
-    const headerIncludeDirectives = new Map<string, string>();
+    const result: IResolvedIncludes = {
+      headers: [],
+      cnextIncludes: [],
+      warnings: [],
+      headerIncludeDirectives: new Map<string, string>(),
+    };
 
     const includes = IncludeDiscovery.extractIncludesWithInfo(content);
 
     for (const includeInfo of includes) {
-      const resolved = IncludeDiscovery.resolveInclude(
-        includeInfo.path,
-        this.searchPaths,
-        this.fs,
-      );
-
-      if (resolved) {
-        // Deduplicate by absolute path
-        const absolutePath = resolve(resolved);
-        if (this.resolvedPaths.has(absolutePath)) {
-          continue;
-        }
-        this.resolvedPaths.add(absolutePath);
-
-        const file = FileDiscovery.discoverFile(resolved, this.fs);
-        if (file) {
-          if (
-            file.type === EFileType.CHeader ||
-            file.type === EFileType.CppHeader
-          ) {
-            headers.push(file);
-            // Issue #497: Track the original include directive for this header
-            const directive = includeInfo.isLocal
-              ? `#include "${includeInfo.path}"`
-              : `#include <${includeInfo.path}>`;
-            headerIncludeDirectives.set(absolutePath, directive);
-          } else if (file.type === EFileType.CNext) {
-            cnextIncludes.push(file);
-          }
-        }
-      } else if (includeInfo.isLocal) {
-        // Warn about unresolved local includes (not system includes)
-        const fromFile = sourceFilePath ? ` (from ${sourceFilePath})` : "";
-        warnings.push(
-          `Warning: #include "${includeInfo.path}" not found${fromFile}. ` +
-            `Struct field types from this header will not be detected.`,
-        );
-      }
-      // System includes (<...>) that aren't found are silently ignored
+      this._processInclude(includeInfo, sourceFilePath, result);
     }
 
-    return { headers, cnextIncludes, warnings, headerIncludeDirectives };
+    return result;
+  }
+
+  /**
+   * Process a single include directive
+   */
+  private _processInclude(
+    includeInfo: { path: string; isLocal: boolean },
+    sourceFilePath: string | undefined,
+    result: IResolvedIncludes,
+  ): void {
+    const resolved = IncludeDiscovery.resolveInclude(
+      includeInfo.path,
+      this.searchPaths,
+      this.fs,
+    );
+
+    if (!resolved) {
+      this._handleUnresolvedInclude(
+        includeInfo,
+        sourceFilePath,
+        result.warnings,
+      );
+      return;
+    }
+
+    this._handleResolvedInclude(resolved, includeInfo, result);
+  }
+
+  /**
+   * Handle a resolved include path
+   */
+  private _handleResolvedInclude(
+    resolved: string,
+    includeInfo: { path: string; isLocal: boolean },
+    result: IResolvedIncludes,
+  ): void {
+    const absolutePath = resolve(resolved);
+
+    // Deduplicate by absolute path
+    if (this.resolvedPaths.has(absolutePath)) {
+      return;
+    }
+    this.resolvedPaths.add(absolutePath);
+
+    const file = FileDiscovery.discoverFile(resolved, this.fs);
+    if (!file) return;
+
+    this._categorizeFile(file, absolutePath, includeInfo, result);
+  }
+
+  /**
+   * Categorize a discovered file into headers or cnext includes
+   */
+  private _categorizeFile(
+    file: IDiscoveredFile,
+    absolutePath: string,
+    includeInfo: { path: string; isLocal: boolean },
+    result: IResolvedIncludes,
+  ): void {
+    if (file.type === EFileType.CHeader || file.type === EFileType.CppHeader) {
+      result.headers.push(file);
+      // Issue #497: Track the original include directive for this header
+      const directive = includeInfo.isLocal
+        ? `#include "${includeInfo.path}"`
+        : `#include <${includeInfo.path}>`;
+      result.headerIncludeDirectives.set(absolutePath, directive);
+      return;
+    }
+
+    if (file.type === EFileType.CNext) {
+      result.cnextIncludes.push(file);
+    }
+  }
+
+  /**
+   * Handle an unresolved include (warn for local includes only)
+   */
+  private _handleUnresolvedInclude(
+    includeInfo: { path: string; isLocal: boolean },
+    sourceFilePath: string | undefined,
+    warnings: string[],
+  ): void {
+    // System includes (<...>) that aren't found are silently ignored
+    if (!includeInfo.isLocal) return;
+
+    const fromFile = sourceFilePath ? ` (from ${sourceFilePath})` : "";
+    warnings.push(
+      `Warning: #include "${includeInfo.path}" not found${fromFile}. ` +
+        `Struct field types from this header will not be detected.`,
+    );
   }
 
   /**

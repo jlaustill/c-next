@@ -82,85 +82,119 @@ class ArrayInitHelper {
     hasEmptyArrayDim: boolean,
     declaredSize: number | null,
   ): IArrayInitResult | null {
-    // Reset array init tracking
+    // Reset and generate initializer
     this.deps.arrayInitState.lastArrayInitCount = 0;
     this.deps.arrayInitState.lastArrayFillValue = undefined;
 
-    // Generate the initializer expression (may be array initializer)
-    const typeName = this.deps.getTypeName(typeCtx);
-    const savedExpectedType = this.deps.getExpectedType();
-    this.deps.setExpectedType(typeName);
-
-    const initValue = this.deps.generateExpression(expression);
-
-    this.deps.setExpectedType(savedExpectedType);
+    const initValue = this._generateArrayInitValue(typeCtx, expression);
 
     // Check if it was an array initializer
-    if (
-      this.deps.arrayInitState.lastArrayInitCount === 0 &&
-      this.deps.arrayInitState.lastArrayFillValue === undefined
-    ) {
-      // Not an array initializer
+    if (!this._isArrayInitializer()) {
       return null;
     }
 
-    // Track as local array
     this.deps.localArrays.add(name);
 
-    let dimensionSuffix = "";
+    const dimensionSuffix = hasEmptyArrayDim
+      ? this._processSizeInference(name)
+      : this._processExplicitSize(arrayDims, declaredSize);
 
-    if (hasEmptyArrayDim) {
-      // Size inference: u8 data[] <- [1, 2, 3]
-      if (this.deps.arrayInitState.lastArrayFillValue !== undefined) {
-        throw new Error(
-          `Error: Fill-all syntax [${this.deps.arrayInitState.lastArrayFillValue}*] requires explicit array size`,
-        );
-      }
-      dimensionSuffix = `[${this.deps.arrayInitState.lastArrayInitCount}]`;
+    const finalInitValue = this._expandFillAllSyntax(initValue, declaredSize);
 
-      // Update type registry with inferred size for .length support
-      const existingType = this.deps.typeRegistry.get(name);
-      if (existingType) {
-        existingType.arrayDimensions = [
-          this.deps.arrayInitState.lastArrayInitCount,
-        ];
-      }
-    } else {
-      // Explicit size - generate all dimensions
-      dimensionSuffix = this.deps.generateArrayDimensions(arrayDims);
+    return { isArrayInit: true, dimensionSuffix, initValue: finalInitValue };
+  }
 
-      // Validate size matches if not using fill-all
-      if (
-        declaredSize !== null &&
-        this.deps.arrayInitState.lastArrayFillValue === undefined
-      ) {
-        if (this.deps.arrayInitState.lastArrayInitCount !== declaredSize) {
-          throw new Error(
-            `Error: Array size mismatch - declared [${declaredSize}] but got ${this.deps.arrayInitState.lastArrayInitCount} elements`,
-          );
-        }
-      }
+  /**
+   * Generate the array initializer value with proper expected type
+   */
+  private _generateArrayInitValue(
+    typeCtx: Parser.TypeContext,
+    expression: Parser.ExpressionContext,
+  ): string {
+    const typeName = this.deps.getTypeName(typeCtx);
+    const savedExpectedType = this.deps.getExpectedType();
+    this.deps.setExpectedType(typeName);
+    const initValue = this.deps.generateExpression(expression);
+    this.deps.setExpectedType(savedExpectedType);
+    return initValue;
+  }
+
+  /**
+   * Check if the last expression was an array initializer
+   */
+  private _isArrayInitializer(): boolean {
+    return (
+      this.deps.arrayInitState.lastArrayInitCount > 0 ||
+      this.deps.arrayInitState.lastArrayFillValue !== undefined
+    );
+  }
+
+  /**
+   * Process size inference for empty array dimension (u8 data[] <- [1, 2, 3])
+   */
+  private _processSizeInference(name: string): string {
+    if (this.deps.arrayInitState.lastArrayFillValue !== undefined) {
+      throw new Error(
+        `Error: Fill-all syntax [${this.deps.arrayInitState.lastArrayFillValue}*] requires explicit array size`,
+      );
     }
 
-    // Handle fill-all syntax expansion
-    let finalInitValue = initValue;
+    // Update type registry with inferred size for .length support
+    const existingType = this.deps.typeRegistry.get(name);
+    if (existingType) {
+      existingType.arrayDimensions = [
+        this.deps.arrayInitState.lastArrayInitCount,
+      ];
+    }
+
+    return `[${this.deps.arrayInitState.lastArrayInitCount}]`;
+  }
+
+  /**
+   * Process explicit array size with validation
+   */
+  private _processExplicitSize(
+    arrayDims: Parser.ArrayDimensionContext[],
+    declaredSize: number | null,
+  ): string {
+    const dimensionSuffix = this.deps.generateArrayDimensions(arrayDims);
+
+    // Validate size matches if not using fill-all
     if (
-      this.deps.arrayInitState.lastArrayFillValue !== undefined &&
-      declaredSize !== null
+      declaredSize !== null &&
+      this.deps.arrayInitState.lastArrayFillValue === undefined &&
+      this.deps.arrayInitState.lastArrayInitCount !== declaredSize
     ) {
-      const fillVal = this.deps.arrayInitState.lastArrayFillValue;
-      // Only expand if the fill value is not "0" (C handles {0} correctly)
-      if (fillVal !== "0") {
-        const elements = new Array<string>(declaredSize).fill(fillVal);
-        finalInitValue = `{${elements.join(", ")}}`;
-      }
+      throw new Error(
+        `Error: Array size mismatch - declared [${declaredSize}] but got ${this.deps.arrayInitState.lastArrayInitCount} elements`,
+      );
     }
 
-    return {
-      isArrayInit: true,
-      dimensionSuffix,
-      initValue: finalInitValue,
-    };
+    return dimensionSuffix;
+  }
+
+  /**
+   * Expand fill-all syntax (e.g., [0*] with size 5 -> {0, 0, 0, 0, 0})
+   */
+  private _expandFillAllSyntax(
+    initValue: string,
+    declaredSize: number | null,
+  ): string {
+    if (
+      this.deps.arrayInitState.lastArrayFillValue === undefined ||
+      declaredSize === null
+    ) {
+      return initValue;
+    }
+
+    const fillVal = this.deps.arrayInitState.lastArrayFillValue;
+    // C handles {0} correctly, no need to expand
+    if (fillVal === "0") {
+      return initValue;
+    }
+
+    const elements = new Array<string>(declaredSize).fill(fillVal);
+    return `{${elements.join(", ")}}`;
   }
 }
 

@@ -224,65 +224,80 @@ class InitializationListener extends CNextListener {
   override enterPrimaryExpression = (
     ctx: Parser.PrimaryExpressionContext,
   ): void => {
-    // Skip if we're in a write context (left side of assignment)
-    if (this.analyzer.isInWriteContext()) {
+    if (this._shouldSkipReadCheck()) return;
+    if (!ctx.IDENTIFIER()) return;
+
+    const name = ctx.IDENTIFIER()!.getText();
+    const { line, column } = ParserUtils.getPosition(ctx);
+
+    // Check if this is part of a postfixExpression with member access
+    const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
+    if (this._handlePostfixExpression(parent, name, line, column)) {
       return;
     }
 
-    // Skip if we're in function call arguments (might be output param)
-    if (this.inFunctionCallArgs > 0) {
-      return;
-    }
-
-    // Check for simple identifier
-    if (ctx.IDENTIFIER()) {
-      const name = ctx.IDENTIFIER()!.getText();
-      const { line, column } = ParserUtils.getPosition(ctx);
-
-      // Check if this is part of a postfixExpression with member access
-      const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
-      if (parent?.postfixOp && parent.postfixOp().length > 0) {
-        const ops = parent.postfixOp();
-        const firstOp = ops[0];
-        const opText = firstOp.getText();
-
-        // Issue #196 Bug 2: Skip init check for .length on non-string types
-        // .length is a compile-time type property that doesn't read runtime values
-        // BUT: struct.field.length where field is a string DOES need init check
-        const varState = this.analyzer.lookupVariableState(name);
-        const isStringType = varState?.isStringType ?? false;
-
-        // Check if chain ends with .length on non-string type
-        if (!isStringType) {
-          const lastOp = ops.at(-1)!.getText();
-          if (lastOp === ".length") {
-            const firstOpText = ops[0].getText();
-            // Only skip if:
-            // 1. Direct .length access on non-string variable (ops = [".length"])
-            // 2. Array element .length access (ops = ["[...]", ".length"])
-            // Do NOT skip for struct member access (ops = [".field", ".length"])
-            // because the field might be a string type that needs init check
-            if (ops.length === 1 || firstOpText.startsWith("[")) {
-              // .length on non-string base or array element - compile-time, skip
-              return;
-            }
-            // Fall through for struct member access - the member might be a string
-          }
-        }
-
-        // If the first postfixOp is a member access (has '.'), check the field
-        if (opText.startsWith(".")) {
-          // Extract field name (remove the leading '.')
-          const fieldName = opText.slice(1);
-          // Check field-level initialization instead of whole variable
-          this.analyzer.checkRead(name, line, column, fieldName);
-          return;
-        }
-      }
-
-      this.analyzer.checkRead(name, line, column);
-    }
+    this.analyzer.checkRead(name, line, column);
   };
+
+  /**
+   * Check if we should skip read checking in current context
+   */
+  private _shouldSkipReadCheck(): boolean {
+    return this.analyzer.isInWriteContext() || this.inFunctionCallArgs > 0;
+  }
+
+  /**
+   * Handle postfix expression member access. Returns true if handled.
+   */
+  private _handlePostfixExpression(
+    parent: Parser.PostfixExpressionContext | undefined,
+    name: string,
+    line: number,
+    column: number,
+  ): boolean {
+    if (!parent?.postfixOp || parent.postfixOp().length === 0) {
+      return false;
+    }
+
+    const ops = parent.postfixOp();
+
+    // Check if we should skip for .length on non-string types
+    if (this._shouldSkipLengthCheck(name, ops)) {
+      return true;
+    }
+
+    // If the first postfixOp is a member access, check the field
+    const firstOpText = ops[0].getText();
+    if (firstOpText.startsWith(".")) {
+      const fieldName = firstOpText.slice(1);
+      this.analyzer.checkRead(name, line, column, fieldName);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Issue #196 Bug 2: Check if we should skip init check for .length
+   * on non-string types (compile-time property)
+   */
+  private _shouldSkipLengthCheck(
+    name: string,
+    ops: Parser.PostfixOpContext[],
+  ): boolean {
+    const varState = this.analyzer.lookupVariableState(name);
+    const isStringType = varState?.isStringType ?? false;
+
+    if (isStringType) return false;
+
+    const lastOp = ops.at(-1)!.getText();
+    if (lastOp !== ".length") return false;
+
+    const firstOpText = ops[0].getText();
+    // Skip if: direct .length or array element .length
+    // Don't skip for struct member access (.field.length)
+    return ops.length === 1 || firstOpText.startsWith("[");
+  }
 
   override enterMemberAccess = (ctx: Parser.MemberAccessContext): void => {
     // Skip if we're in a write context
@@ -506,47 +521,64 @@ class InitializationAnalyzer {
     this.enterScope(); // Create global scope
 
     for (const decl of tree.declaration()) {
-      // Global variable declarations
-      const varDecl = decl.variableDeclaration();
-      if (varDecl) {
-        const name = varDecl.IDENTIFIER().getText();
-        const { line, column } = ParserUtils.getPosition(varDecl);
-
-        // Get type for struct tracking
-        const typeCtx = varDecl.type();
-        let typeName: string | null = null;
-        if (typeCtx.userType()) {
-          typeName = typeCtx.userType()!.IDENTIFIER().getText();
-        }
-
-        // Globals are always initialized (zero-init or explicit)
-        this.declareVariable(name, line, column, true, typeName);
-      }
-
-      // Scope member variables (ADR-016: renamed from namespace)
-      const scopeDecl = decl.scopeDeclaration();
-      if (scopeDecl) {
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-        for (const member of scopeDecl.scopeMember()) {
-          const memberVar = member.variableDeclaration();
-          if (memberVar) {
-            const varName = memberVar.IDENTIFIER().getText();
-            const fullName = `${scopeName}_${varName}`; // Mangled name
-            const { line, column } = ParserUtils.getPosition(memberVar);
-
-            const typeCtx = memberVar.type();
-            let typeName: string | null = null;
-            if (typeCtx.userType()) {
-              typeName = typeCtx.userType()!.IDENTIFIER().getText();
-            }
-
-            // Also register with raw name for scope resolution
-            this.declareVariable(varName, line, column, true, typeName);
-            this.declareVariable(fullName, line, column, true, typeName);
-          }
-        }
-      }
+      this._processGlobalVariable(decl);
+      this._processScopeMembers(decl);
     }
+  }
+
+  /**
+   * Process a global variable declaration
+   */
+  private _processGlobalVariable(decl: Parser.DeclarationContext): void {
+    const varDecl = decl.variableDeclaration();
+    if (!varDecl) return;
+
+    const name = varDecl.IDENTIFIER().getText();
+    const { line, column } = ParserUtils.getPosition(varDecl);
+    const typeName = this._extractUserTypeName(varDecl.type());
+
+    // Globals are always initialized (zero-init or explicit)
+    this.declareVariable(name, line, column, true, typeName);
+  }
+
+  /**
+   * Process scope member variable declarations (ADR-016)
+   */
+  private _processScopeMembers(decl: Parser.DeclarationContext): void {
+    const scopeDecl = decl.scopeDeclaration();
+    if (!scopeDecl) return;
+
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+    for (const member of scopeDecl.scopeMember()) {
+      this._processScopeMemberVariable(member, scopeName);
+    }
+  }
+
+  /**
+   * Process a single scope member variable
+   */
+  private _processScopeMemberVariable(
+    member: Parser.ScopeMemberContext,
+    scopeName: string,
+  ): void {
+    const memberVar = member.variableDeclaration();
+    if (!memberVar) return;
+
+    const varName = memberVar.IDENTIFIER().getText();
+    const fullName = `${scopeName}_${varName}`; // Mangled name
+    const { line, column } = ParserUtils.getPosition(memberVar);
+    const typeName = this._extractUserTypeName(memberVar.type());
+
+    // Register with both raw name and mangled name for scope resolution
+    this.declareVariable(varName, line, column, true, typeName);
+    this.declareVariable(fullName, line, column, true, typeName);
+  }
+
+  /**
+   * Extract user type name from a type context
+   */
+  private _extractUserTypeName(typeCtx: Parser.TypeContext): string | null {
+    return typeCtx.userType()?.IDENTIFIER().getText() ?? null;
   }
 
   /**

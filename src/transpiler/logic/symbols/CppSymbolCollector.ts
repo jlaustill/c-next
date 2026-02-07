@@ -386,30 +386,7 @@ class CppSymbolCollector {
     // Issue #322: Check for inline function definition within the class
     const funcDef = memberDecl.functionDefinition?.();
     if (funcDef) {
-      const declarator = funcDef.declarator?.();
-      if (declarator) {
-        const funcName = this.extractDeclaratorName(declarator);
-        if (funcName) {
-          const declSpecSeq = funcDef.declSpecifierSeq?.();
-          const returnType = declSpecSeq
-            ? this.extractTypeFromDeclSpecSeq(declSpecSeq)
-            : "void";
-          const params = this.extractFunctionParameters(declarator);
-          const fullName = `${className}::${funcName}`;
-
-          SymbolCollectorContext.addSymbol(this.ctx, {
-            name: fullName,
-            kind: ESymbolKind.Function,
-            type: returnType,
-            sourceFile: this.ctx.sourceFile,
-            sourceLine: line,
-            sourceLanguage: ESourceLanguage.Cpp,
-            isExported: true,
-            parent: className,
-            parameters: params.length > 0 ? params : undefined,
-          });
-        }
-      }
+      this._collectInlineFunctionDef(className, funcDef, line);
       return;
     }
 
@@ -424,51 +401,131 @@ class CppSymbolCollector {
     if (!memberDeclList) return;
 
     for (const memberDeclarator of memberDeclList.memberDeclarator?.() ?? []) {
-      const declarator = memberDeclarator.declarator?.();
-      if (!declarator) continue;
-
-      const fieldName = this.extractDeclaratorName(declarator);
-      if (!fieldName) continue;
-
-      // Issue #322: Collect member functions with their parameters
-      if (this.declaratorIsFunction(declarator)) {
-        const params = this.extractFunctionParameters(declarator);
-        const fullName = `${className}::${fieldName}`;
-
-        SymbolCollectorContext.addSymbol(this.ctx, {
-          name: fullName,
-          kind: ESymbolKind.Function,
-          type: fieldType,
-          sourceFile: this.ctx.sourceFile,
-          sourceLine: line,
-          sourceLanguage: ESourceLanguage.Cpp,
-          isExported: true,
-          isDeclaration: true,
-          parent: className,
-          parameters: params.length > 0 ? params : undefined,
-        });
-        continue;
-      }
-
-      // Warn if field name conflicts with C-Next reserved property names
-      if (SymbolUtils.isReservedFieldName(fieldName)) {
-        SymbolCollectorContext.addWarning(
-          this.ctx,
-          SymbolUtils.getReservedFieldWarning("C++", className, fieldName),
-        );
-      }
-
-      // Extract array dimensions if any
-      const arrayDimensions = this.extractArrayDimensions(declarator);
-
-      // Add to SymbolTable
-      this.ctx.symbolTable!.addStructField(
+      this._collectMemberDeclarator(
         className,
-        fieldName,
+        memberDeclarator,
         fieldType,
-        arrayDimensions.length > 0 ? arrayDimensions : undefined,
+        line,
       );
     }
+  }
+
+  /**
+   * Collect an inline function definition within a class
+   */
+  private _collectInlineFunctionDef(
+    className: string,
+    funcDef: any,
+    line: number,
+  ): void {
+    const declarator = funcDef.declarator?.();
+    if (!declarator) return;
+
+    const funcName = this.extractDeclaratorName(declarator);
+    if (!funcName) return;
+
+    const declSpecSeq = funcDef.declSpecifierSeq?.();
+    const returnType = declSpecSeq
+      ? this.extractTypeFromDeclSpecSeq(declSpecSeq)
+      : "void";
+    const params = this.extractFunctionParameters(declarator);
+
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name: `${className}::${funcName}`,
+      kind: ESymbolKind.Function,
+      type: returnType,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: true,
+      parent: className,
+      parameters: params.length > 0 ? params : undefined,
+    });
+  }
+
+  /**
+   * Collect a single member declarator (function or data field)
+   */
+  private _collectMemberDeclarator(
+    className: string,
+    memberDeclarator: any,
+    fieldType: string,
+    line: number,
+  ): void {
+    const declarator = memberDeclarator.declarator?.();
+    if (!declarator) return;
+
+    const fieldName = this.extractDeclaratorName(declarator);
+    if (!fieldName) return;
+
+    // Issue #322: Collect member functions with their parameters
+    if (this.declaratorIsFunction(declarator)) {
+      this._collectMemberFunction(
+        className,
+        fieldName,
+        declarator,
+        fieldType,
+        line,
+      );
+      return;
+    }
+
+    this._collectDataField(className, fieldName, declarator, fieldType);
+  }
+
+  /**
+   * Collect a member function declaration
+   */
+  private _collectMemberFunction(
+    className: string,
+    funcName: string,
+    declarator: any,
+    returnType: string,
+    line: number,
+  ): void {
+    const params = this.extractFunctionParameters(declarator);
+
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name: `${className}::${funcName}`,
+      kind: ESymbolKind.Function,
+      type: returnType,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: true,
+      isDeclaration: true,
+      parent: className,
+      parameters: params.length > 0 ? params : undefined,
+    });
+  }
+
+  /**
+   * Collect a data field declaration
+   */
+  private _collectDataField(
+    className: string,
+    fieldName: string,
+    declarator: any,
+    fieldType: string,
+  ): void {
+    // Warn if field name conflicts with C-Next reserved property names
+    if (SymbolUtils.isReservedFieldName(fieldName)) {
+      SymbolCollectorContext.addWarning(
+        this.ctx,
+        SymbolUtils.getReservedFieldWarning("C++", className, fieldName),
+      );
+    }
+
+    // Extract array dimensions if any
+    const arrayDimensions = this.extractArrayDimensions(declarator);
+
+    // Add to SymbolTable
+    this.ctx.symbolTable!.addStructField(
+      className,
+      fieldName,
+      fieldType,
+      arrayDimensions.length > 0 ? arrayDimensions : undefined,
+    );
   }
 
   /**

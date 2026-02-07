@@ -2435,69 +2435,92 @@ export default class CodeGenerator implements IOrchestrator {
     for (const decl of tree.declaration()) {
       // ADR-016: Handle scope declarations for function tracking
       if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-
-        // Set scope context for scoped type resolution (this.Type)
-        const savedScope = this.context.currentScope;
-        this.context.currentScope = scopeName;
-
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.functionDeclaration()) {
-            const funcDecl = member.functionDeclaration()!;
-            const funcName = funcDecl.IDENTIFIER().getText();
-            // Track fully qualified function name: Scope_function
-            const fullName = `${scopeName}_${funcName}`;
-            this.knownFunctions.add(fullName);
-            // ADR-013: Track function signature for const checking
-            const sig = this.extractFunctionSignature(
-              fullName,
-              funcDecl.parameterList() ?? null,
-            );
-            this.functionSignatures.set(fullName, sig);
-            // ADR-029: Register scoped function as callback type
-            this.registerCallbackType(fullName, funcDecl);
-          }
-        }
-
-        // Restore previous scope context
-        this.context.currentScope = savedScope;
+        this._collectScopeFunctions(decl.scopeDeclaration()!);
+        continue;
       }
 
       // ADR-029: Track callback field types in structs
       if (decl.structDeclaration()) {
-        const structDecl = decl.structDeclaration()!;
-        const structName = structDecl.IDENTIFIER().getText();
-
-        for (const member of structDecl.structMember()) {
-          const fieldName = member.IDENTIFIER().getText();
-          const fieldType = this._getTypeName(member.type());
-
-          // Track callback field types (needed for typedef generation)
-          if (this.callbackTypes.has(fieldType)) {
-            this.callbackFieldTypes.set(
-              `${structName}.${fieldName}`,
-              fieldType,
-            );
-          }
-        }
+        this._collectStructCallbackFields(decl.structDeclaration()!);
+        continue;
       }
 
       // Track top-level functions
       if (decl.functionDeclaration()) {
-        const funcDecl = decl.functionDeclaration()!;
-        const name = funcDecl.IDENTIFIER().getText();
-        this.knownFunctions.add(name);
-        // ADR-013: Track function signature for const checking
-        const sig = this.extractFunctionSignature(
-          name,
-          funcDecl.parameterList() ?? null,
-        );
-        this.functionSignatures.set(name, sig);
-        // ADR-029: Register function as callback type
-        this.registerCallbackType(name, funcDecl);
+        this._collectTopLevelFunction(decl.functionDeclaration()!);
       }
     }
+  }
+
+  /**
+   * Collect scoped functions and their callback types
+   */
+  private _collectScopeFunctions(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    // Set scope context for scoped type resolution (this.Type)
+    const savedScope = this.context.currentScope;
+    this.context.currentScope = scopeName;
+
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.functionDeclaration()) {
+        const funcDecl = member.functionDeclaration()!;
+        const funcName = funcDecl.IDENTIFIER().getText();
+        // Track fully qualified function name: Scope_function
+        const fullName = `${scopeName}_${funcName}`;
+        this.knownFunctions.add(fullName);
+        // ADR-013: Track function signature for const checking
+        const sig = this.extractFunctionSignature(
+          fullName,
+          funcDecl.parameterList() ?? null,
+        );
+        this.functionSignatures.set(fullName, sig);
+        // ADR-029: Register scoped function as callback type
+        this.registerCallbackType(fullName, funcDecl);
+      }
+    }
+
+    // Restore previous scope context
+    this.context.currentScope = savedScope;
+  }
+
+  /**
+   * Collect callback field types from struct declaration
+   */
+  private _collectStructCallbackFields(
+    structDecl: Parser.StructDeclarationContext,
+  ): void {
+    const structName = structDecl.IDENTIFIER().getText();
+
+    for (const member of structDecl.structMember()) {
+      const fieldName = member.IDENTIFIER().getText();
+      const fieldType = this._getTypeName(member.type());
+
+      // Track callback field types (needed for typedef generation)
+      if (this.callbackTypes.has(fieldType)) {
+        this.callbackFieldTypes.set(`${structName}.${fieldName}`, fieldType);
+      }
+    }
+  }
+
+  /**
+   * Collect top-level function and register as callback type
+   */
+  private _collectTopLevelFunction(
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const name = funcDecl.IDENTIFIER().getText();
+    this.knownFunctions.add(name);
+    // ADR-013: Track function signature for const checking
+    const sig = this.extractFunctionSignature(
+      name,
+      funcDecl.parameterList() ?? null,
+    );
+    this.functionSignatures.set(name, sig);
+    // ADR-029: Register function as callback type
+    this.registerCallbackType(name, funcDecl);
   }
 
   /**
@@ -3537,42 +3560,14 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Handle array type syntax: u8[10]
     if (typeCtx.arrayType()) {
-      const arrayTypeCtx = typeCtx.arrayType()!;
-      let baseType = "";
-      let bitWidth = 0;
-
-      if (arrayTypeCtx.primitiveType()) {
-        baseType = arrayTypeCtx.primitiveType()!.getText();
-        bitWidth = TYPE_WIDTH[baseType] || 0;
-      }
-
-      const arrayDimensions: number[] = [];
-      const sizeExpr = arrayTypeCtx.expression();
-      if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size)) {
-          arrayDimensions.push(size);
-        }
-      }
-
-      // Also check for additional dimensions using const evaluation
-      const additionalDims = this._evaluateArrayDimensions(arrayDim);
-      if (additionalDims) {
-        arrayDimensions.push(...additionalDims);
-      }
-
-      if (baseType) {
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth,
-          isArray: true,
-          arrayDimensions:
-            arrayDimensions.length > 0 ? arrayDimensions : undefined,
-          isConst,
-          overflowBehavior,
-          isAtomic,
-        });
-      }
+      this._registerArrayTypeVariable(
+        registryName,
+        typeCtx.arrayType()!,
+        arrayDim,
+        isConst,
+        overflowBehavior,
+        isAtomic,
+      );
       return;
     }
 
@@ -3597,6 +3592,93 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Standard type registration
+    this._registerStandardType(
+      registryName,
+      baseType,
+      arrayDim,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    );
+  }
+
+  /**
+   * Register an array type variable (u8[10] syntax)
+   */
+  private _registerArrayTypeVariable(
+    registryName: string,
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+  ): void {
+    let baseType = "";
+    let bitWidth = 0;
+
+    if (arrayTypeCtx.primitiveType()) {
+      baseType = arrayTypeCtx.primitiveType()!.getText();
+      bitWidth = TYPE_WIDTH[baseType] || 0;
+    }
+
+    if (!baseType) {
+      return;
+    }
+
+    const arrayDimensions = this._collectArrayDimensions(
+      arrayTypeCtx,
+      arrayDim,
+    );
+
+    this.context.typeRegistry.set(registryName, {
+      baseType,
+      bitWidth,
+      isArray: true,
+      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    });
+  }
+
+  /**
+   * Collect array dimensions from array type and additional dimensions
+   */
+  private _collectArrayDimensions(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+  ): number[] {
+    const arrayDimensions: number[] = [];
+
+    // Get dimension from array type syntax
+    const sizeExpr = arrayTypeCtx.expression();
+    if (sizeExpr) {
+      const size = Number.parseInt(sizeExpr.getText(), 10);
+      if (!Number.isNaN(size)) {
+        arrayDimensions.push(size);
+      }
+    }
+
+    // Add additional dimensions using const evaluation
+    const additionalDims = this._evaluateArrayDimensions(arrayDim);
+    if (additionalDims) {
+      arrayDimensions.push(...additionalDims);
+    }
+
+    return arrayDimensions;
+  }
+
+  /**
+   * Register a standard (non-array-syntax, non-special) type
+   */
+  private _registerStandardType(
+    registryName: string,
+    baseType: string,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+  ): void {
     const bitWidth = TYPE_WIDTH[baseType] || 0;
     // Issue #665: Check array syntax presence first, then try to resolve dimensions
     // This matches the pattern in trackVariableType() - unresolved dimensions (e.g., enum
@@ -5498,8 +5580,52 @@ export default class CodeGenerator implements IOrchestrator {
     const returnType = this._generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
+    // Set up function context
+    this._setupFunctionContext(name, ctx);
+
+    // Check for main function with args parameter (u8 args[][])
+    const isMainWithArgs = this._isMainFunctionWithArgs(
+      name,
+      ctx.parameterList(),
+    );
+
+    // Get return type and params, handling main with args special case
+    const { actualReturnType, initialParams } =
+      this._resolveReturnTypeAndParams(name, returnType, isMainWithArgs, ctx);
+
+    // Generate body first (this populates modifiedParameters)
+    const body = this.generateBlock(ctx.block());
+
+    // Issue #268: Update symbol's parameter info with auto-const before clearing
+    this.updateFunctionParamsAutoConst(name);
+
+    // Now generate parameter list (can use modifiedParameters for auto-const)
+    let params: string;
+    if (isMainWithArgs) {
+      params = initialParams;
+    } else if (ctx.parameterList()) {
+      params = this._generateParameterList(ctx.parameterList()!);
+    } else {
+      params = "void";
+    }
+
+    // Clean up function context
+    this._cleanupFunctionContext();
+
+    const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
+
+    // ADR-029: Generate callback typedef only if this function is used as a type
+    return this._appendCallbackTypedefIfNeeded(name, functionCode);
+  }
+
+  /**
+   * Set up context for function generation
+   */
+  private _setupFunctionContext(
+    name: string,
+    ctx: Parser.FunctionDeclarationContext,
+  ): void {
     // Issue #269: Set current function name for pass-by-value lookup
-    // Include scope prefix for scoped functions
     const fullFuncName = this.context.currentScope
       ? `${this.context.currentScope}_${name}`
       : name;
@@ -5510,72 +5636,68 @@ export default class CodeGenerator implements IOrchestrator {
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
 
-    // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
-
     // ADR-016: Clear local variables and mark that we're in a function body
     this.context.localVariables.clear();
     this.context.floatBitShadows.clear();
     this.context.floatShadowCurrent.clear();
     this.context.inFunctionBody = true;
+  }
 
-    // Check for main function with args parameter (u8 args[][])
-    const isMainWithArgs = this._isMainFunctionWithArgs(
-      name,
-      ctx.parameterList(),
-    );
-
-    let params: string = ""; // Will be set below
-    let actualReturnType: string;
-
-    // Issue #268: Generate body FIRST to track parameter modifications,
-    // then generate parameter list using that tracking info
+  /**
+   * Resolve return type and initial params for function
+   */
+  private _resolveReturnTypeAndParams(
+    name: string,
+    returnType: string,
+    isMainWithArgs: boolean,
+    ctx: Parser.FunctionDeclarationContext,
+  ): { actualReturnType: string; initialParams: string } {
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
-      actualReturnType = "int";
-      params = "int argc, char *argv[]";
-      // Store the args parameter name for translation in the body
-      // We know there's exactly one parameter from isMainFunctionWithArgs check
       const argsParam = ctx.parameterList()!.parameter()[0];
       this.context.mainArgsName = argsParam.IDENTIFIER().getText();
-    } else {
-      // For main() without args, always use int return type for C++ compatibility
-      actualReturnType = name === "main" ? "int" : returnType;
+      return {
+        actualReturnType: "int",
+        initialParams: "int argc, char *argv[]",
+      };
     }
 
-    // Generate body first (this populates modifiedParameters)
-    const body = this.generateBlock(ctx.block());
+    // For main() without args, always use int return type for C++ compatibility
+    const actualReturnType = name === "main" ? "int" : returnType;
+    return { actualReturnType, initialParams: "" };
+  }
 
-    // Issue #268: Update symbol's parameter info with auto-const before clearing
-    this.updateFunctionParamsAutoConst(name);
-
-    // Now generate parameter list (can use modifiedParameters for auto-const)
-    if (!isMainWithArgs) {
-      params = ctx.parameterList()
-        ? this._generateParameterList(ctx.parameterList()!)
-        : "void";
-    }
-
-    // ADR-016: Clear local variables and mark that we're no longer in a function body
+  /**
+   * Clean up context after function generation
+   */
+  private _cleanupFunctionContext(): void {
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
     this.context.floatBitShadows.clear();
     this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
-    this.context.currentFunctionName = null; // Issue #269: Clear function name
-    this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
+    this.context.currentFunctionName = null;
+    this.context.currentFunctionReturnType = null;
     this._clearParameters();
+  }
 
-    const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
-
-    // ADR-029: Generate callback typedef only if this function is used as a type
-    if (name !== "main" && this._isCallbackTypeUsedAsFieldType(name)) {
-      const typedef = this._generateCallbackTypedef(name);
-      if (typedef) {
-        return functionCode + typedef;
-      }
+  /**
+   * Append callback typedef if function is used as a field type
+   */
+  private _appendCallbackTypedefIfNeeded(
+    name: string,
+    functionCode: string,
+  ): string {
+    if (name === "main") {
+      return functionCode;
     }
 
-    return functionCode;
+    if (!this._isCallbackTypeUsedAsFieldType(name)) {
+      return functionCode;
+    }
+
+    const typedef = this._generateCallbackTypedef(name);
+    return typedef ? functionCode + typedef : functionCode;
   }
 
   /**
@@ -5656,78 +5778,140 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-029: Check if this is a callback type parameter
     if (this.callbackTypes.has(typeName)) {
       const callbackInfo = this.callbackTypes.get(typeName)!;
-      // Callback types are already function pointers, no additional pointer needed
       return `${callbackInfo.typedefName} ${name}`;
     }
 
     const type = this._generateType(ctx.type());
 
-    // ADR-045: Handle string<N>[] - array of bounded strings becomes 2D char array
-    // string<32> arr[5] -> char arr[5][33] (5 elements, each is capacity + 1 chars)
-    if (ctx.type().stringType() && dims.length > 0) {
-      const stringType = ctx.type().stringType()!;
-      const capacity = stringType.INTEGER_LITERAL()
-        ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
-        : 256; // Default capacity
-      const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
-      return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
-    }
+    // Try special cases first
+    const stringArrayResult = this._tryGenerateStringArrayParam(
+      ctx,
+      constMod,
+      name,
+      dims,
+    );
+    if (stringArrayResult) return stringArrayResult;
 
-    // Arrays pass naturally as pointers
-    if (dims.length > 0) {
-      const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
-      // Issue #268/#558: Add const for unmodified array parameters (uses analysis results)
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}${type} ${name}${dimStr}`;
-    }
+    const arrayResult = this._tryGenerateArrayParam(constMod, type, name, dims);
+    if (arrayResult) return arrayResult;
 
-    // ADR-040: ISR is already a function pointer typedef, no additional pointer needed
-    if (typeName === "ISR") {
+    // Pass-by-value types
+    if (this._isPassByValueType(typeName, name)) {
       return `${constMod}${type} ${name}`;
     }
 
-    // Float types (f32, f64) use standard C pass-by-value semantics
-    if (this._isFloatType(typeName)) {
-      return `${constMod}${type} ${name}`;
+    // Non-array string parameters
+    const stringResult = this._tryGenerateStringParam(
+      ctx,
+      constMod,
+      name,
+      dims,
+    );
+    if (stringResult) return stringResult;
+
+    // Pass-by-reference types
+    const refResult = this._tryGenerateRefParam(constMod, type, typeName, name);
+    if (refResult) return refResult;
+
+    // Unknown types use pass-by-value (standard C semantics)
+    return `${constMod}${type} ${name}`;
+  }
+
+  /**
+   * Try to generate string array parameter: string<N>[] -> char arr[n][N+1]
+   */
+  private _tryGenerateStringArrayParam(
+    ctx: Parser.ParameterContext,
+    constMod: string,
+    name: string,
+    dims: Parser.ArrayDimensionContext[],
+  ): string | null {
+    if (!ctx.type().stringType() || dims.length === 0) {
+      return null;
     }
 
-    // ADR-017: Enum types use standard C pass-by-value semantics
-    if (this.symbols!.knownEnums.has(typeName)) {
-      return `${constMod}${type} ${name}`;
+    const stringType = ctx.type().stringType()!;
+    const capacity = stringType.INTEGER_LITERAL()
+      ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
+      : 256;
+    const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
+    return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
+  }
+
+  /**
+   * Try to generate array parameter with auto-const
+   */
+  private _tryGenerateArrayParam(
+    constMod: string,
+    type: string,
+    name: string,
+    dims: Parser.ArrayDimensionContext[],
+  ): string | null {
+    if (dims.length === 0) {
+      return null;
     }
 
-    // Issue #269: Small unmodified primitives use pass-by-value semantics
+    const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
+    const wasModified = this._isCurrentParameterModified(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    return `${autoConst}${constMod}${type} ${name}${dimStr}`;
+  }
+
+  /**
+   * Check if type should use pass-by-value semantics
+   */
+  private _isPassByValueType(typeName: string, name: string): boolean {
+    // ISR, float, enum types
+    if (typeName === "ISR") return true;
+    if (this._isFloatType(typeName)) return true;
+    if (this.symbols!.knownEnums.has(typeName)) return true;
+
+    // Small unmodified primitives
     if (
       this.context.currentFunctionName &&
       this._isParameterPassByValueByName(this.context.currentFunctionName, name)
     ) {
-      return `${constMod}${type} ${name}`;
+      return true;
     }
 
-    // ADR-045: String parameters (non-array) are passed as char*
-    // Issue #551: Handle before unknown type check
-    if (ctx.type().stringType() && dims.length === 0) {
-      // Issue #268/#558: Add const for unmodified string parameters (uses analysis results)
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}char* ${name}`;
+    return false;
+  }
+
+  /**
+   * Try to generate non-array string parameter: string<N> -> char*
+   */
+  private _tryGenerateStringParam(
+    ctx: Parser.ParameterContext,
+    constMod: string,
+    name: string,
+    dims: Parser.ArrayDimensionContext[],
+  ): string | null {
+    if (!ctx.type().stringType() || dims.length !== 0) {
+      return null;
     }
 
-    // ADR-006: Pass by reference for known struct types and known primitives
-    // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
-    if (this._isKnownStruct(typeName) || this._isKnownPrimitive(typeName)) {
-      // Issue #268/#558: Add const for unmodified pointer parameters (uses analysis results)
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      // Issue #409/#644: In C++ mode, use references (&) instead of pointers (*)
-      // This allows C-Next callbacks to match C++ function pointer signatures
-      const refOrPtr = this.cppHelper!.refOrPtr();
-      return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
+    const wasModified = this._isCurrentParameterModified(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    return `${autoConst}${constMod}char* ${name}`;
+  }
+
+  /**
+   * Try to generate pass-by-reference parameter for known types
+   */
+  private _tryGenerateRefParam(
+    constMod: string,
+    type: string,
+    typeName: string,
+    name: string,
+  ): string | null {
+    if (!this._isKnownStruct(typeName) && !this._isKnownPrimitive(typeName)) {
+      return null;
     }
 
-    // Unknown types use pass-by-value (standard C semantics)
-    return `${constMod}${type} ${name}`;
+    const wasModified = this._isCurrentParameterModified(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    const refOrPtr = this.cppHelper!.refOrPtr();
+    return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
   }
 
   private _generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
