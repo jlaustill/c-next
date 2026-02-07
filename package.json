@@ -2,6 +2,7 @@
   "name": "c-next",
   "version": "0.1.59",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
+  "packageManager": "npm@11.6.2",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
