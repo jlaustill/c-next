@@ -374,6 +374,71 @@ describe("CppSymbolCollector - Class Member Functions", () => {
     const method = symbols.find((s) => s.name === "Utils::abs");
     expect(method?.kind).toBe(ESymbolKind.Function);
   });
+
+  it("collects inline function with explicit return type", () => {
+    const code = `
+      class Counter {
+      public:
+        int getValue() { return count; }
+      private:
+        int count;
+      };
+    `;
+    const tree = parseCpp(code);
+    const symbolTable = new SymbolTable();
+    const collector = new CppSymbolCollector("test.hpp", symbolTable);
+    const symbols = collector.collect(tree);
+
+    const method = symbols.find((s) => s.name === "Counter::getValue");
+    expect(method?.kind).toBe(ESymbolKind.Function);
+    expect(method?.type).toBe("int");
+    expect(method?.isDeclaration).toBeUndefined(); // inline def, not declaration
+  });
+
+  it("collects inline function with parameters", () => {
+    const code = `
+      class Math {
+      public:
+        int add(int a, int b) { return a + b; }
+      };
+    `;
+    const tree = parseCpp(code);
+    const symbolTable = new SymbolTable();
+    const collector = new CppSymbolCollector("test.hpp", symbolTable);
+    const symbols = collector.collect(tree);
+
+    const method = symbols.find((s) => s.name === "Math::add");
+    expect(method?.parameters).toHaveLength(2);
+    expect(method?.parameters?.[0].name).toBe("a");
+    expect(method?.parameters?.[1].name).toBe("b");
+  });
+
+  it("handles class with mixed inline and declaration methods", () => {
+    const code = `
+      class Mixed {
+      public:
+        void inlineMethod() { }
+        void declaredMethod();
+        int data;
+      };
+    `;
+    const tree = parseCpp(code);
+    const symbolTable = new SymbolTable();
+    const collector = new CppSymbolCollector("test.hpp", symbolTable);
+    const symbols = collector.collect(tree);
+
+    const inline = symbols.find((s) => s.name === "Mixed::inlineMethod");
+    const declared = symbols.find((s) => s.name === "Mixed::declaredMethod");
+
+    expect(inline?.kind).toBe(ESymbolKind.Function);
+    expect(inline?.isDeclaration).toBeUndefined();
+    expect(declared?.kind).toBe(ESymbolKind.Function);
+    expect(declared?.isDeclaration).toBe(true);
+
+    // Data field should be in symbol table
+    const field = symbolTable.getStructFieldInfo("Mixed", "data");
+    expect(field?.type).toBe("int");
+  });
 });
 
 describe("CppSymbolCollector - Struct Field Collection", () => {
