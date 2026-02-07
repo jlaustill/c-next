@@ -71,6 +71,7 @@ function parseCHeader(
     const parser = new CParser(tokenStream);
 
     // Suppress error output for headers (they often have incomplete code)
+    lexer.removeErrorListeners();
     parser.removeErrorListeners();
 
     const tree = parser.compilationUnit();
