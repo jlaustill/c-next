@@ -207,79 +207,116 @@ class CNextResolver {
         continue;
       }
 
-      // Scopes (ScopeCollector handles nested members)
-      if (decl.scopeDeclaration()) {
-        const scopeCtx = decl.scopeDeclaration()!;
-        const result = ScopeCollector.collect(
-          scopeCtx,
-          sourceFile,
-          knownBitmaps,
-          constValues,
-        );
+      CNextResolver._collectDeclaration(
+        decl,
+        sourceFile,
+        symbols,
+        knownBitmaps,
+        constValues,
+      );
+    }
+  }
 
-        symbols.push(result.scopeSymbol);
+  /**
+   * Collect symbols from a single declaration.
+   */
+  private static _collectDeclaration(
+    decl: Parser.DeclarationContext,
+    sourceFile: string,
+    symbols: TSymbol[],
+    knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
+  ): void {
+    // Scopes (ScopeCollector handles nested members)
+    if (decl.scopeDeclaration()) {
+      CNextResolver._collectScopeDeclaration(
+        decl.scopeDeclaration()!,
+        sourceFile,
+        symbols,
+        knownBitmaps,
+        constValues,
+      );
+      return;
+    }
 
-        // Add member symbols, but skip bitmaps and structs (already collected in pass 1)
-        for (const memberSymbol of result.memberSymbols) {
-          if (
-            memberSymbol.kind === "bitmap" ||
-            memberSymbol.kind === "struct"
-          ) {
-            continue;
-          }
-          symbols.push(memberSymbol);
-        }
+    // Top-level structs
+    if (decl.structDeclaration()) {
+      const symbol = StructCollector.collect(
+        decl.structDeclaration()!,
+        sourceFile,
+        undefined,
+        constValues,
+      );
+      symbols.push(symbol);
+      return;
+    }
+
+    // Top-level enums
+    if (decl.enumDeclaration()) {
+      const symbol = EnumCollector.collect(decl.enumDeclaration()!, sourceFile);
+      symbols.push(symbol);
+      return;
+    }
+
+    // Top-level registers
+    if (decl.registerDeclaration()) {
+      const symbol = RegisterCollector.collect(
+        decl.registerDeclaration()!,
+        sourceFile,
+        knownBitmaps,
+      );
+      symbols.push(symbol);
+      return;
+    }
+
+    // Top-level functions
+    if (decl.functionDeclaration()) {
+      const symbol = FunctionCollector.collect(
+        decl.functionDeclaration()!,
+        sourceFile,
+      );
+      symbols.push(symbol);
+      return;
+    }
+
+    // Top-level variables
+    if (decl.variableDeclaration()) {
+      const symbol = VariableCollector.collect(
+        decl.variableDeclaration()!,
+        sourceFile,
+        undefined,
+        true,
+        constValues,
+      );
+      symbols.push(symbol);
+    }
+  }
+
+  /**
+   * Collect scope declaration and its non-bitmap/non-struct members.
+   */
+  private static _collectScopeDeclaration(
+    scopeCtx: Parser.ScopeDeclarationContext,
+    sourceFile: string,
+    symbols: TSymbol[],
+    knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
+  ): void {
+    const result = ScopeCollector.collect(
+      scopeCtx,
+      sourceFile,
+      knownBitmaps,
+      constValues,
+    );
+
+    symbols.push(result.scopeSymbol);
+
+    // Add member symbols, but skip bitmaps and structs (already collected in pass 1)
+    for (const memberSymbol of result.memberSymbols) {
+      if (memberSymbol.kind === "bitmap" || memberSymbol.kind === "struct") {
+        continue;
       }
-
-      // Top-level structs
-      if (decl.structDeclaration()) {
-        const structCtx = decl.structDeclaration()!;
-        const symbol = StructCollector.collect(
-          structCtx,
-          sourceFile,
-          undefined,
-          constValues,
-        );
-        symbols.push(symbol);
-      }
-
-      // Top-level enums
-      if (decl.enumDeclaration()) {
-        const enumCtx = decl.enumDeclaration()!;
-        const symbol = EnumCollector.collect(enumCtx, sourceFile);
-        symbols.push(symbol);
-      }
-
-      // Top-level registers
-      if (decl.registerDeclaration()) {
-        const regCtx = decl.registerDeclaration()!;
-        const symbol = RegisterCollector.collect(
-          regCtx,
-          sourceFile,
-          knownBitmaps,
-        );
-        symbols.push(symbol);
-      }
-
-      // Top-level functions
-      if (decl.functionDeclaration()) {
-        const funcCtx = decl.functionDeclaration()!;
-        const symbol = FunctionCollector.collect(funcCtx, sourceFile);
-        symbols.push(symbol);
-      }
-
-      // Top-level variables
-      if (decl.variableDeclaration()) {
-        const varCtx = decl.variableDeclaration()!;
-        const symbol = VariableCollector.collect(
-          varCtx,
-          sourceFile,
-          undefined,
-          true,
-          constValues,
-        );
-        symbols.push(symbol);
-      }
+      symbols.push(memberSymbol);
     }
   }
 }
