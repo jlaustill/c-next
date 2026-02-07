@@ -182,6 +182,16 @@ describe("TypeGenerationHelper", () => {
       expect(result).toBe("uint32_t");
     });
 
+    it("returns unknown primitive type unchanged", () => {
+      // When primitive type is not in TYPE_MAP, return as-is
+      const result = TypeGenerationHelper.generateArrayBaseType(
+        "unknownType",
+        null,
+        false,
+      );
+      expect(result).toBe("unknownType");
+    });
+
     it("returns user type unchanged", () => {
       const result = TypeGenerationHelper.generateArrayBaseType(
         null,
@@ -321,11 +331,51 @@ describe("TypeGenerationHelper", () => {
       expect(result).toBe("uint8_t");
     });
 
+    it("generates array type with primitive via generate()", () => {
+      // Array type in type position: u8[10] as the type
+      const ctx = getTypeContext("u8[10] arr;");
+      expect(ctx).not.toBeNull();
+      expect(ctx!.arrayType()).not.toBeNull();
+      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
+      expect(result).toBe("uint8_t");
+    });
+
+    it("generates array type with user type via generate()", () => {
+      // Array of user-defined type: MyStruct[5] as the type
+      const ctx = getTypeContext("MyStruct[5] arr;");
+      expect(ctx).not.toBeNull();
+      expect(ctx!.arrayType()).not.toBeNull();
+      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
+      expect(result).toBe("MyStruct");
+    });
+
+    it("generates array type with user type needing struct keyword", () => {
+      // Array of C struct type that needs 'struct' prefix
+      const ctx = getTypeContext("CStruct[3] arr;");
+      expect(ctx).not.toBeNull();
+      expect(ctx!.arrayType()).not.toBeNull();
+      const result = TypeGenerationHelper.generate(ctx!, {
+        ...defaultDeps,
+        checkNeedsStructKeyword: (name) => name === "CStruct",
+      });
+      expect(result).toBe("struct CStruct");
+    });
+
     it("generates void return type", () => {
       const ctx = getFunctionReturnType("void test() { }");
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
       expect(result).toBe("void");
+    });
+
+    it("passes through C++ template types unchanged (fallback)", () => {
+      // C++ template types like FlexCAN_T4<CAN1> hit the fallback path
+      // and are passed through unchanged for C++ output
+      const ctx = getTypeContext("FlexCAN_T4<CAN1> bus;");
+      expect(ctx).not.toBeNull();
+      expect(ctx!.templateType()).not.toBeNull();
+      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
+      expect(result).toBe("FlexCAN_T4<CAN1>");
     });
   });
 
