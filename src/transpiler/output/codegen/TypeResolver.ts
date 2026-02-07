@@ -236,6 +236,7 @@ class TypeResolver {
   /**
    * ADR-024: Get the type of a postfix expression.
    * Issue #304: Enhanced to track type through member access chains (e.g., cfg.mode)
+   * SonarCloud S3776: Refactored to use processSuffix helper.
    */
   getPostfixExpressionType(
     ctx: Parser.PostfixExpressionContext,
@@ -250,43 +251,66 @@ class TypeResolver {
     // Check for postfix operations: member access, array indexing, bit indexing
     const suffixes = ctx.children?.slice(1) || [];
     for (const suffix of suffixes) {
-      const text = suffix.getText();
-
-      // Member access: .fieldName
-      if (text.startsWith(".")) {
-        const memberName = text.slice(1);
-        const memberInfo = this.getMemberTypeInfo(currentType, memberName);
-        if (memberInfo) {
-          currentType = memberInfo.baseType;
-        } else {
-          // Can't determine member type, return null
-          return null;
-        }
-        continue;
+      const result = this.processPostfixSuffix(suffix.getText(), currentType);
+      if (result.stop) {
+        return result.type;
       }
-
-      // Array or bit indexing: [index] or [start, width]
-      if (text.startsWith("[") && text.endsWith("]")) {
-        const inner = text.slice(1, -1);
-        if (inner.includes(",")) {
-          // Range indexing: [start, width]
-          // ADR-024: Return null for bit indexing to skip type conversion validation
-          // Bit indexing is the explicit escape hatch for narrowing/sign conversions
-          return null;
-        } else {
-          // Single index: could be array access or bit indexing
-          // For arrays, the type stays the same (element type)
-          // For single bit on integer, returns bool
-          if (this.isIntegerType(currentType)) {
-            return "bool";
-          }
-          // For arrays, currentType is already the element type (from getMemberTypeInfo)
-          continue;
-        }
-      }
+      currentType = result.type!;
     }
 
     return currentType;
+  }
+
+  /**
+   * Process a single postfix suffix and determine the resulting type.
+   * Returns { type, stop } where stop=true means to return immediately.
+   */
+  private processPostfixSuffix(
+    text: string,
+    currentType: string,
+  ): { type: string | null; stop: boolean } {
+    // Member access: .fieldName
+    if (text.startsWith(".")) {
+      const memberName = text.slice(1);
+      const memberInfo = this.getMemberTypeInfo(currentType, memberName);
+      if (!memberInfo) {
+        return { type: null, stop: true };
+      }
+      return { type: memberInfo.baseType, stop: false };
+    }
+
+    // Array or bit indexing: [index] or [start, width]
+    if (text.startsWith("[") && text.endsWith("]")) {
+      return this.processIndexingSuffix(text, currentType);
+    }
+
+    // Unknown suffix, continue with current type
+    return { type: currentType, stop: false };
+  }
+
+  /**
+   * Process array or bit indexing suffix.
+   */
+  private processIndexingSuffix(
+    text: string,
+    currentType: string,
+  ): { type: string | null; stop: boolean } {
+    const inner = text.slice(1, -1);
+
+    // Range indexing: [start, width]
+    // ADR-024: Return null for bit indexing to skip type conversion validation
+    if (inner.includes(",")) {
+      return { type: null, stop: true };
+    }
+
+    // Single index: array access or bit indexing
+    // For single bit on integer, returns bool
+    if (this.isIntegerType(currentType)) {
+      return { type: "bool", stop: true };
+    }
+
+    // For arrays, currentType is already the element type
+    return { type: currentType, stop: false };
   }
 
   /**
