@@ -77,6 +77,8 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
+// PR #715: Bit range access helper for improved testability
+import BitRangeHelper from "./helpers/BitRangeHelper";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
 // Issue #644: Member chain analyzer for bit access pattern detection
@@ -7903,7 +7905,8 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Build the bit read expression for floats
+   * Build the bit read expression for floats.
+   * Delegates to BitRangeHelper for testability.
    */
   private _buildFloatBitReadExpr(
     shadowName: string,
@@ -7912,22 +7915,18 @@ export default class CodeGenerator implements IOrchestrator {
     mask: string,
     shadowIsCurrent: boolean,
   ): string {
-    const shiftedRead =
-      start === "0"
-        ? `(${shadowName} & ${mask})`
-        : `((${shadowName} >> ${start}) & ${mask})`;
-
-    if (shadowIsCurrent) {
-      return shiftedRead;
-    }
-
-    // Need memcpy to update shadow
-    const memcpyPrefix = `memcpy(&${shadowName}, &${name}, sizeof(${name}))`;
-    return `(${memcpyPrefix}, ${shiftedRead})`;
+    return BitRangeHelper.buildFloatBitReadExpr({
+      shadowName,
+      varName: name,
+      start,
+      mask,
+      shadowIsCurrent,
+    });
   }
 
   /**
    * Generate integer bit range read: ((value >> start) & mask)
+   * Delegates to BitRangeHelper for testability.
    */
   private _generateIntegerBitRangeRead(
     name: string,
@@ -7935,10 +7934,11 @@ export default class CodeGenerator implements IOrchestrator {
     width: string,
   ): string {
     const mask = this.generateBitMask(width);
-    if (start === "0") {
-      return `((${name}) & ${mask})`;
-    }
-    return `((${name} >> ${start}) & ${mask})`;
+    return BitRangeHelper.buildIntegerBitReadExpr({
+      varName: name,
+      start,
+      mask,
+    });
   }
 
   // ========================================================================
