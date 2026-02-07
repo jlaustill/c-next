@@ -78,6 +78,12 @@ npm run unit:coverage
 
 Check the terminal report for files you changed — any new code below 80% coverage will fail the quality gate.
 
+**Improving coverage on new code:**
+
+1. **Extract private methods to testable helper classes** — Move logic to `src/transpiler/output/codegen/helpers/` with static methods and 100% test coverage
+2. **Remove dead code** — TypeScript diagnostics show "declared but never read" warnings; remove unused private methods and imports
+3. **SonarCloud S7776** — Use `Set.has()` instead of `array.includes()` for membership checks
+
 **Useful API queries:**
 
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
@@ -153,6 +159,8 @@ scripts/types/ITools.ts
 ```
 
 See `CONTRIBUTING.md` for complete TypeScript coding standards.
+
+**Dead code detection**: Use TypeScript IDE diagnostics ("declared but never read") to find unused code. The `noUnusedLocals`/`noUnusedParameters` compiler options aren't practical due to ANTLR-generated parser files with unavoidable unused parameters.
 
 ### 3-Layer Architecture (PR #571, #572)
 
