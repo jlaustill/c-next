@@ -90,7 +90,12 @@ async function validateDocument(document: vscode.TextDocument): Promise<void> {
     diagnosticCollection.delete(document.uri);
 
     const diagnostics: vscode.Diagnostic[] = result.errors.map(
-      (error: { line: number; column: number; message: string; severity: string }) => {
+      (error: {
+        line: number;
+        column: number;
+        message: string;
+        severity: string;
+      }) => {
         // Try to find the end of the error token for better highlighting
         const line = document.lineAt(Math.max(0, error.line - 1));
         const lineText = line.text;
