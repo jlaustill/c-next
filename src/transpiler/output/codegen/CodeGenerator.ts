@@ -1899,66 +1899,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #387: Extract pattern information from unified postfix chain.
-   * This helper enables generateAssignment to detect special patterns
-   * (bitmap fields, register bits, strings) for appropriate code generation.
-   */
-  private extractAssignmentTargetInfo(ctx: Parser.AssignmentTargetContext): {
-    hasGlobal: boolean;
-    hasThis: boolean;
-    firstIdentifier: string;
-    /** All identifiers in the chain (firstIdentifier + member accesses) */
-    identifiers: string[];
-    /** All expressions from subscript operations */
-    expressions: Parser.ExpressionContext[];
-    /** Whether this has any postfix operations */
-    hasPostfixOps: boolean;
-    /** Whether this looks like array access (has subscripts) */
-    isArrayAccess: boolean;
-    /** Whether this looks like member access (has .member) */
-    isMemberAccess: boolean;
-    /** The postfix ops for detailed analysis */
-    postfixOps: Parser.PostfixTargetOpContext[];
-  } {
-    const hasGlobal = ctx.GLOBAL() !== null;
-    const hasThis = ctx.THIS() !== null;
-    const firstIdentifier = ctx.IDENTIFIER()?.getText() ?? "";
-    const postfixOps = ctx.postfixTargetOp();
-
-    const identifiers: string[] = [firstIdentifier];
-    const expressions: Parser.ExpressionContext[] = [];
-
-    let hasArrayOp = false;
-    let hasMemberOp = false;
-
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        identifiers.push(op.IDENTIFIER()!.getText());
-        hasMemberOp = true;
-      } else {
-        // Array subscript or bit range
-        const exprs = op.expression();
-        for (const expr of exprs) {
-          expressions.push(expr);
-        }
-        hasArrayOp = true;
-      }
-    }
-
-    return {
-      hasGlobal,
-      hasThis,
-      firstIdentifier,
-      identifiers,
-      expressions,
-      hasPostfixOps: postfixOps.length > 0,
-      isArrayAccess: hasArrayOp,
-      isMemberAccess: hasMemberOp,
-      postfixOps,
-    };
-  }
-
-  /**
    * Issue #304: Check if a type name is from a C++ header
    * Used to determine whether to use {} or {0} for initialization.
    * C++ types with constructors may fail with {0} but work with {}.
@@ -4430,20 +4370,6 @@ export default class CodeGenerator implements IOrchestrator {
   // ADR-024: Type Classification and Validation Helpers
   // ========================================================================
 
-  /**
-   * ADR-024: Check if a type is an unsigned integer
-   */
-  private isUnsignedType(typeName: string): boolean {
-    return this.typeResolver!.isUnsignedType(typeName);
-  }
-
-  /**
-   * ADR-024: Check if a type is a signed integer
-   */
-  private isSignedType(typeName: string): boolean {
-    return this.typeResolver!.isSignedType(typeName);
-  }
-
   // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface (ADR-053 A2)
   // Private versions kept for internal use
   private _isIntegerType(typeName: string): boolean {
@@ -4519,38 +4445,12 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-024: Get the type of a postfix expression.
-   */
-  private getPostfixExpressionType(
-    ctx: Parser.PostfixExpressionContext,
-  ): string | null {
-    return this.typeResolver!.getPostfixExpressionType(ctx);
-  }
-
-  /**
-   * ADR-024: Get the type of a primary expression.
-   */
-  private getPrimaryExpressionType(
-    ctx: Parser.PrimaryExpressionContext,
-  ): string | null {
-    return this.typeResolver!.getPrimaryExpressionType(ctx);
-  }
-
-  /**
    * ADR-024: Get the type of a unary expression (for cast validation).
    */
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
     return this.typeResolver!.getUnaryExpressionType(ctx);
-  }
-
-  /**
-   * ADR-024: Get the type from a literal (suffixed or unsuffixed).
-   * Returns the explicit suffix type, or null for unsuffixed literals.
-   */
-  private getLiteralType(ctx: Parser.LiteralContext): string | null {
-    return this.typeResolver!.getLiteralType(ctx);
   }
 
   /**
@@ -4677,13 +4577,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Check if target type is u8 (could be bool or typed enum from C header)
-   */
-  private _isU8TargetType(targetParamBaseType: string): boolean {
-    return CppMemberHelper.isU8TargetType(targetParamBaseType);
-  }
-
-  /**
    * Case 1: Direct parameter member access needs conversion?
    * Issue #251: Const struct parameter needs temp to break const chain
    * Issue #252: External C structs may have bool/enum members
@@ -4768,15 +4661,6 @@ export default class CodeGenerator implements IOrchestrator {
    * to resolve intermediate struct types. This is acceptable since issue #308
    * involves single-level access patterns.
    *
-   * @param ctx - The expression context
-   * @returns true if the expression is a member access to an array field
-   */
-  private isMemberAccessToArray(ctx: Parser.ExpressionContext): boolean {
-    const result = this.getMemberAccessArrayStatus(ctx);
-    return result === "array";
-  }
-
-  /**
    * Issue #355: Check if struct field info is available for a member access.
    * Used for defensive code generation - when we don't have field info,
    * we skip potentially dangerous conversions.
@@ -4831,21 +4715,6 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return memberInfo.isArray ? "array" : "not-array";
-  }
-
-  /**
-   * Check if an expression is a simple literal (number, bool, etc.)
-   * Uses ExpressionUnwrapper to navigate the expression tree.
-   */
-  private isLiteralExpression(ctx: Parser.ExpressionContext): boolean {
-    try {
-      const unaryExpr = ExpressionUnwrapper.getUnaryExpression(ctx);
-      if (!unaryExpr) return false;
-
-      return this._isUnaryExpressionLiteral(unaryExpr);
-    } catch {
-      return false;
-    }
   }
 
   /**
