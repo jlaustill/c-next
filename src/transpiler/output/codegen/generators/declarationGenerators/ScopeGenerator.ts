@@ -368,6 +368,59 @@ function generateScopedEnumInline(
 }
 
 /**
+ * Resolve bitmap backing type from symbols or keyword
+ */
+function _getBitmapBackingType(
+  fullName: string,
+  node: Parser.BitmapDeclarationContext,
+  input: IGeneratorInput,
+): string {
+  const symbolType = input.symbols?.bitmapBackingType.get(fullName);
+  if (symbolType) return symbolType;
+
+  const bitmapKeyword = node.getChild(0)?.getText() || "bitmap32";
+  switch (bitmapKeyword) {
+    case "bitmap8":
+      return "uint8_t";
+    case "bitmap16":
+      return "uint16_t";
+    case "bitmap64":
+      return "uint64_t";
+    default:
+      return "uint32_t";
+  }
+}
+
+/**
+ * Generate bitmap field comments from AST (fallback when symbols unavailable)
+ */
+function _generateBitmapFieldCommentsFromAST(
+  fields: Parser.BitmapMemberContext[],
+): string[] {
+  if (fields.length === 0) return [];
+
+  const lines: string[] = ["/* Fields:"];
+  let bitOffset = 0;
+
+  for (const field of fields) {
+    const fieldName = field.IDENTIFIER().getText();
+    const width = field.INTEGER_LITERAL()
+      ? Number.parseInt(field.INTEGER_LITERAL()!.getText(), 10)
+      : 1;
+    const endBit = bitOffset + width - 1;
+    const bitRange =
+      width === 1 ? `bit ${bitOffset}` : `bits ${bitOffset}-${endBit}`;
+    lines.push(
+      ` *   ${fieldName}: ${bitRange} (${width} bit${width > 1 ? "s" : ""})`,
+    );
+    bitOffset += width;
+  }
+
+  lines.push(" */");
+  return lines;
+}
+
+/**
  * Generate bitmap inside a scope with proper prefixing.
  * Uses symbol info for backing type if available.
  */
@@ -378,27 +431,7 @@ function generateScopedBitmapInline(
 ): string {
   const name = node.IDENTIFIER().getText();
   const fullName = `${scopeName}_${name}`;
-
-  // Try to get backing type from symbols first
-  let backingType = input.symbols?.bitmapBackingType.get(fullName);
-
-  if (!backingType) {
-    // Fall back to determining from keyword
-    const bitmapKeyword = node.getChild(0)?.getText() || "bitmap32";
-    switch (bitmapKeyword) {
-      case "bitmap8":
-        backingType = "uint8_t";
-        break;
-      case "bitmap16":
-        backingType = "uint16_t";
-        break;
-      case "bitmap64":
-        backingType = "uint64_t";
-        break;
-      default:
-        backingType = "uint32_t";
-    }
-  }
+  const backingType = _getBitmapBackingType(fullName, node, input);
 
   const lines: string[] = [];
   lines.push(`/* Bitmap: ${fullName} */`);
@@ -408,26 +441,7 @@ function generateScopedBitmapInline(
   if (symbolFields) {
     lines.push(...BitmapCommentUtils.generateBitmapFieldComments(symbolFields));
   } else {
-    // Fall back to AST parsing
-    const fields = node.bitmapMember();
-    if (fields.length > 0) {
-      lines.push("/* Fields:");
-      let bitOffset = 0;
-      for (const field of fields) {
-        const fieldName = field.IDENTIFIER().getText();
-        const width = field.INTEGER_LITERAL()
-          ? Number.parseInt(field.INTEGER_LITERAL()!.getText(), 10)
-          : 1;
-        const endBit = bitOffset + width - 1;
-        const bitRange =
-          width === 1 ? `bit ${bitOffset}` : `bits ${bitOffset}-${endBit}`;
-        lines.push(
-          ` *   ${fieldName}: ${bitRange} (${width} bit${width > 1 ? "s" : ""})`,
-        );
-        bitOffset += width;
-      }
-      lines.push(" */");
-    }
+    lines.push(..._generateBitmapFieldCommentsFromAST(node.bitmapMember()));
   }
 
   lines.push(`typedef ${backingType} ${fullName};`, "");
@@ -442,7 +456,7 @@ function generateScopedBitmapInline(
 function generateScopedStructInline(
   node: Parser.StructDeclarationContext,
   scopeName: string,
-  input: IGeneratorInput,
+  _input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
   const name = node.IDENTIFIER().getText();
