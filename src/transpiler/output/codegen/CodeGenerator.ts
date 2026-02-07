@@ -5991,7 +5991,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #696: Handle pending C++ class field assignments.
    */
   private _finalizeCppClassAssignments(
-    ctx: Parser.VariableDeclarationContext,
+    _ctx: Parser.VariableDeclarationContext,
     typeCtx: Parser.TypeContext,
     name: string,
     decl: string,
