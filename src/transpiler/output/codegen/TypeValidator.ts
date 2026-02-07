@@ -112,53 +112,93 @@ class TypeValidator {
     includePaths: string[],
     fileExists: (path: string) => boolean = existsSync,
   ): void {
-    // Extract the file path from #include directive
+    const parsed = this._parseIncludeDirective(includeText);
+    if (!parsed) return;
+    if (parsed.path.endsWith(".cnx")) return;
+    if (!this._isHeaderFile(parsed.path)) return;
+
+    const cnxPath = parsed.path.replace(/\.(h|hpp)$/i, ".cnx");
+
+    if (parsed.isQuoted) {
+      this._checkQuotedIncludeForCnx(
+        parsed.path,
+        cnxPath,
+        sourcePath,
+        lineNumber,
+        fileExists,
+      );
+    } else {
+      this._checkAngleIncludeForCnx(
+        parsed.path,
+        cnxPath,
+        includePaths,
+        lineNumber,
+        fileExists,
+      );
+    }
+  }
+
+  /**
+   * Parse an include directive to extract path and type
+   */
+  private _parseIncludeDirective(
+    includeText: string,
+  ): { path: string; isQuoted: boolean } | null {
     const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
     const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
 
-    const includePath = angleMatch?.[1] || quoteMatch?.[1];
-    if (!includePath) {
-      return; // Malformed include, let other validation handle it
+    if (quoteMatch) return { path: quoteMatch[1], isQuoted: true };
+    if (angleMatch) return { path: angleMatch[1], isQuoted: false };
+    return null;
+  }
+
+  /**
+   * Check if a path is a header file (.h or .hpp)
+   */
+  private _isHeaderFile(path: string): boolean {
+    const ext = path.substring(path.lastIndexOf(".")).toLowerCase();
+    return ext === ".h" || ext === ".hpp";
+  }
+
+  /**
+   * Check quoted include for .cnx alternative
+   */
+  private _checkQuotedIncludeForCnx(
+    includePath: string,
+    cnxPath: string,
+    sourcePath: string | null,
+    lineNumber: number,
+    fileExists: (path: string) => boolean,
+  ): void {
+    if (!sourcePath) return;
+
+    const sourceDir = dirname(sourcePath);
+    const fullCnxPath = resolve(sourceDir, cnxPath);
+    if (fileExists(fullCnxPath)) {
+      throw new Error(
+        `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
+          `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
+      );
     }
+  }
 
-    // Skip if already a .cnx include
-    if (includePath.endsWith(".cnx")) {
-      return;
-    }
-
-    // Only check .h and .hpp files
-    const ext = includePath
-      .substring(includePath.lastIndexOf("."))
-      .toLowerCase();
-    if (ext !== ".h" && ext !== ".hpp") {
-      return;
-    }
-
-    // Build the .cnx alternative path
-    const cnxPath = includePath.replace(/\.(h|hpp)$/i, ".cnx");
-
-    if (quoteMatch) {
-      // Quoted include: resolve relative to source file's directory
-      if (sourcePath) {
-        const sourceDir = dirname(sourcePath);
-        const fullCnxPath = resolve(sourceDir, cnxPath);
-        if (fileExists(fullCnxPath)) {
-          throw new Error(
-            `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
-              `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
-          );
-        }
-      }
-    } else if (angleMatch) {
-      // Angle bracket include: search through include paths
-      for (const searchDir of includePaths) {
-        const fullCnxPath = join(searchDir, cnxPath);
-        if (fileExists(fullCnxPath)) {
-          throw new Error(
-            `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
-              `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
-          );
-        }
+  /**
+   * Check angle bracket include for .cnx alternative in search paths
+   */
+  private _checkAngleIncludeForCnx(
+    includePath: string,
+    cnxPath: string,
+    includePaths: string[],
+    lineNumber: number,
+    fileExists: (path: string) => boolean,
+  ): void {
+    for (const searchDir of includePaths) {
+      const fullCnxPath = join(searchDir, cnxPath);
+      if (fileExists(fullCnxPath)) {
+        throw new Error(
+          `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
+            `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
+        );
       }
     }
   }
