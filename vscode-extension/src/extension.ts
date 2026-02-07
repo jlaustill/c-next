@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import transpile from "../../src/lib/transpiler";
 import PreviewProvider from "./previewProvider";
 import CNextCompletionProvider from "./completionProvider";
 import CNextHoverProvider from "./hoverProvider";
 import CNextDefinitionProvider from "./definitionProvider";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
+import CNextServerClient from "./server/CNextServerClient";
 import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
 
 /**
@@ -53,6 +53,7 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
 let workspaceIndex: WorkspaceIndex;
 let extensionContext: CNextExtensionContext;
+let serverClient: CNextServerClient;
 
 // Track last successful transpilation per file (to avoid writing bad code)
 const lastGoodTranspile: Map<string, string> = new Map();
@@ -69,67 +70,89 @@ let editorSwitchTimeout: NodeJS.Timeout | null = null;
 /**
  * Validate a C-Next document and update diagnostics
  */
-function validateDocument(document: vscode.TextDocument): void {
+async function validateDocument(document: vscode.TextDocument): Promise<void> {
   if (document.languageId !== "cnext") {
     return;
   }
 
+  // Check if server is available
+  // Note: When server is unavailable, we keep existing diagnostics to show
+  // the last known state rather than clearing them (intentional behavior)
+  if (!serverClient || !serverClient.isRunning()) {
+    return;
+  }
+
   const source = document.getText();
-  // Full transpile to catch code generation errors (not just parse errors)
-  const result = transpile(source);
 
-  // Clear diagnostics for this specific document
-  diagnosticCollection.delete(document.uri);
+  try {
+    // Full transpile to catch code generation errors (not just parse errors)
+    const result = await serverClient.transpile(source);
 
-  const diagnostics: vscode.Diagnostic[] = result.errors.map((error) => {
-    // Try to find the end of the error token for better highlighting
-    const line = document.lineAt(Math.max(0, error.line - 1));
-    const lineText = line.text;
+    // Clear diagnostics for this specific document
+    diagnosticCollection.delete(document.uri);
 
-    // Find word boundary after error position
-    let endColumn = error.column;
-    while (endColumn < lineText.length && /\w/.test(lineText[endColumn])) {
-      endColumn++;
-    }
-    // If no word found, highlight a few characters
-    if (endColumn === error.column) {
-      endColumn = Math.min(error.column + 5, lineText.length);
-    }
+    const diagnostics: vscode.Diagnostic[] = result.errors.map(
+      (error: {
+        line: number;
+        column: number;
+        message: string;
+        severity: string;
+      }) => {
+        // Try to find the end of the error token for better highlighting
+        const line = document.lineAt(Math.max(0, error.line - 1));
+        const lineText = line.text;
 
-    const range = new vscode.Range(
-      error.line - 1,
-      error.column,
-      error.line - 1,
-      endColumn,
+        // Find word boundary after error position
+        let endColumn = error.column;
+        while (endColumn < lineText.length && /\w/.test(lineText[endColumn])) {
+          endColumn++;
+        }
+        // If no word found, highlight a few characters
+        if (endColumn === error.column) {
+          endColumn = Math.min(error.column + 5, lineText.length);
+        }
+
+        const range = new vscode.Range(
+          error.line - 1,
+          error.column,
+          error.line - 1,
+          endColumn,
+        );
+
+        const diagnostic = new vscode.Diagnostic(
+          range,
+          error.message,
+          error.severity === "error"
+            ? vscode.DiagnosticSeverity.Error
+            : vscode.DiagnosticSeverity.Warning,
+        );
+        diagnostic.source = "C-Next";
+        // Categorize error type based on message content
+        if (error.message.includes("Code generation failed")) {
+          diagnostic.code = "codegen-error";
+        } else if (error.message.includes("error[")) {
+          diagnostic.code = "analysis-error";
+        } else {
+          diagnostic.code = "parse-error";
+        }
+        return diagnostic;
+      },
     );
 
-    const diagnostic = new vscode.Diagnostic(
-      range,
-      error.message,
-      error.severity === "error"
-        ? vscode.DiagnosticSeverity.Error
-        : vscode.DiagnosticSeverity.Warning,
+    diagnosticCollection.set(document.uri, diagnostics);
+  } catch (err) {
+    // Server communication error - don't update diagnostics
+    extensionContext?.outputChannel.appendLine(
+      `Validation error: ${err instanceof Error ? err.message : String(err)}`,
     );
-    diagnostic.source = "C-Next";
-    // Categorize error type based on message content
-    if (error.message.includes("Code generation failed")) {
-      diagnostic.code = "codegen-error";
-    } else if (error.message.includes("error[")) {
-      diagnostic.code = "analysis-error";
-    } else {
-      diagnostic.code = "parse-error";
-    }
-    return diagnostic;
-  });
-
-  diagnosticCollection.set(document.uri, diagnostics);
+  }
 }
 
 /**
  * Transpile a C-Next document and write the .c file alongside it
  * Only writes if transpilation succeeds (preserves last good .c file)
  */
-function transpileToFile(document: vscode.TextDocument): void {
+async function transpileToFile(document: vscode.TextDocument): Promise<void> {
   if (document.languageId !== "cnext") {
     return;
   }
@@ -145,34 +168,47 @@ function transpileToFile(document: vscode.TextDocument): void {
     return;
   }
 
-  const source = document.getText();
-  const result = transpile(source);
-
-  if (result.success) {
-    // Store as last good transpilation
-    lastGoodTranspile.set(document.uri.toString(), result.code);
-
-    // Load config to determine output extension
-    const cnxPath = document.uri.fsPath;
-    const projectConfig = loadConfig(path.dirname(cnxPath));
-    const outputExt = projectConfig.outputExtension || ".c";
-    const outputPath = cnxPath.replace(/\.cnx$/, outputExt);
-
-    try {
-      fs.writeFileSync(outputPath, result.code, "utf-8");
-      // Cache the output path for completion/hover queries
-      // This allows completions to work even when current code has parse errors
-      extensionContext.lastGoodOutputPath.set(
-        document.uri.toString(),
-        outputPath,
-      );
-    } catch (err) {
-      // Silently fail - don't interrupt the user's workflow
-      console.error("C-Next: Failed to write output file:", err);
-    }
+  // Check if server is available
+  if (!serverClient || !serverClient.isRunning()) {
+    return;
   }
-  // If transpilation fails, we keep the last good .c/.cpp file
-  // and the lastGoodOutputPath cache remains valid for completions
+
+  const source = document.getText();
+
+  try {
+    const result = await serverClient.transpile(source);
+
+    if (result.success) {
+      // Store as last good transpilation
+      lastGoodTranspile.set(document.uri.toString(), result.code);
+
+      // Load config to determine output extension
+      const cnxPath = document.uri.fsPath;
+      const projectConfig = loadConfig(path.dirname(cnxPath));
+      const outputExt = projectConfig.outputExtension || ".c";
+      const outputPath = cnxPath.replace(/\.cnx$/, outputExt);
+
+      try {
+        fs.writeFileSync(outputPath, result.code, "utf-8");
+        // Cache the output path for completion/hover queries
+        // This allows completions to work even when current code has parse errors
+        extensionContext.lastGoodOutputPath.set(
+          document.uri.toString(),
+          outputPath,
+        );
+      } catch (err) {
+        // Silently fail - don't interrupt the user's workflow
+        console.error("C-Next: Failed to write output file:", err);
+      }
+    }
+    // If transpilation fails, we keep the last good .c/.cpp file
+    // and the lastGoodOutputPath cache remains valid for completions
+  } catch (err) {
+    // Server communication error
+    extensionContext?.outputChannel.appendLine(
+      `Transpile error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 /**
@@ -200,7 +236,9 @@ function scheduleTranspileToFile(document: vscode.TextDocument): void {
   transpileTimers.set(uri, timer);
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(
+  context: vscode.ExtensionContext,
+): Promise<void> {
   console.log("C-Next extension activated");
 
   // Create output channel for debug logging
@@ -209,12 +247,24 @@ export function activate(context: vscode.ExtensionContext): void {
   extensionContext = new CNextExtensionContext(outputChannel);
   outputChannel.appendLine("C-Next extension activated");
 
+  // Start the server client
+  serverClient = new CNextServerClient(outputChannel);
+  const serverStarted = await serverClient.start();
+  if (serverStarted) {
+    extensionContext.setServerClient(serverClient);
+  } else {
+    outputChannel.appendLine(
+      "Server not available - syntax highlighting only mode",
+    );
+  }
+
   // Create diagnostic collection for errors
   diagnosticCollection = vscode.languages.createDiagnosticCollection("cnext");
   context.subscriptions.push(diagnosticCollection);
 
   // Create preview provider
   previewProvider = PreviewProvider.getInstance();
+  previewProvider.setExtensionContext(extensionContext);
   context.subscriptions.push(previewProvider);
 
   // Initialize workspace-wide symbol index
@@ -350,8 +400,13 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
   console.log("C-Next extension deactivated");
+
+  // Stop the server client
+  if (serverClient) {
+    await serverClient.stop();
+  }
 
   // Clear any pending validation timeout
   if (validateTimeout) {

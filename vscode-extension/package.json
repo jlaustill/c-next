@@ -142,6 +142,16 @@
           "type": "number",
           "default": 500,
           "description": "Delay in milliseconds before updating the .c file after typing"
+        },
+        "cnext.serverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to cnext binary (leave empty for auto-detection)"
+        },
+        "cnext.serverTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in milliseconds for server communication"
         }
       }
     },
