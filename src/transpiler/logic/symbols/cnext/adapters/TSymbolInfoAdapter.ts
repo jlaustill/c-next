@@ -384,6 +384,51 @@ class TSymbolInfoAdapter {
   }
 
   /**
+   * Create a deep copy of enum members map
+   */
+  private static _copyEnumMembers(
+    enumMembers: ReadonlyMap<string, ReadonlyMap<string, number>>,
+  ): Map<string, Map<string, number>> {
+    const copy = new Map<string, Map<string, number>>();
+    for (const [enumName, members] of enumMembers) {
+      copy.set(enumName, new Map(members));
+    }
+    return copy;
+  }
+
+  /**
+   * Merge a single external source into the merged data structures
+   */
+  private static _mergeExternalSource(
+    external: ICodeGenSymbols,
+    mergedKnownEnums: Set<string>,
+    mergedKnownScopes: Set<string>,
+    mergedEnumMembers: Map<string, Map<string, number>>,
+    mergedFunctionReturnTypes: Map<string, string>,
+  ): void {
+    // Merge known enums
+    for (const enumName of external.knownEnums) {
+      mergedKnownEnums.add(enumName);
+    }
+    // Merge scopes from external sources for cross-scope method calls
+    for (const scopeName of external.knownScopes) {
+      mergedKnownScopes.add(scopeName);
+    }
+    // Merge enum members (local takes precedence)
+    for (const [enumName, members] of external.enumMembers) {
+      if (!mergedEnumMembers.has(enumName)) {
+        mergedEnumMembers.set(enumName, new Map(members));
+      }
+    }
+    // Merge function return types (local takes precedence)
+    for (const [funcName, returnType] of external.functionReturnTypes) {
+      if (!mergedFunctionReturnTypes.has(funcName)) {
+        mergedFunctionReturnTypes.set(funcName, returnType);
+      }
+    }
+  }
+
+  /**
    * Issue #465: Merge external symbol info into an existing ISymbolInfo.
    *
    * When a file includes other .cnx files, the enum types and scopes from those
@@ -410,40 +455,18 @@ class TSymbolInfoAdapter {
     // Create mutable copies of enum-related data and scope info
     const mergedKnownEnums = new Set(base.knownEnums);
     const mergedKnownScopes = new Set(base.knownScopes);
-    const mergedEnumMembers = new Map<string, Map<string, number>>();
-    const mergedFunctionReturnTypes = new Map<string, string>();
-
-    // Copy base enum members
-    for (const [enumName, members] of base.enumMembers) {
-      mergedEnumMembers.set(enumName, new Map(members));
-    }
-
-    // Copy base function return types
-    for (const [funcName, returnType] of base.functionReturnTypes) {
-      mergedFunctionReturnTypes.set(funcName, returnType);
-    }
+    const mergedEnumMembers = this._copyEnumMembers(base.enumMembers);
+    const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
 
     // Merge in external enum info, function return types, and scopes
     for (const external of externalEnumSources) {
-      for (const enumName of external.knownEnums) {
-        mergedKnownEnums.add(enumName);
-      }
-      // Merge scopes from external sources for cross-scope method calls
-      for (const scopeName of external.knownScopes) {
-        mergedKnownScopes.add(scopeName);
-      }
-      for (const [enumName, members] of external.enumMembers) {
-        // Don't overwrite if already exists (local takes precedence)
-        if (!mergedEnumMembers.has(enumName)) {
-          mergedEnumMembers.set(enumName, new Map(members));
-        }
-      }
-      // Merge function return types from external sources
-      for (const [funcName, returnType] of external.functionReturnTypes) {
-        if (!mergedFunctionReturnTypes.has(funcName)) {
-          mergedFunctionReturnTypes.set(funcName, returnType);
-        }
-      }
+      this._mergeExternalSource(
+        external,
+        mergedKnownEnums,
+        mergedKnownScopes,
+        mergedEnumMembers,
+        mergedFunctionReturnTypes,
+      );
     }
 
     // Return new ISymbolInfo with merged enum data and scope info
