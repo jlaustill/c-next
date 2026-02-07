@@ -27,11 +27,20 @@ interface IMethodResult {
 }
 
 /**
+ * Options for the serve command
+ */
+interface IServeOptions {
+  /** Enable debug logging to stderr */
+  debug?: boolean;
+}
+
+/**
  * JSON-RPC server command
  */
 class ServeCommand {
   private static shouldShutdown = false;
   private static readline: Interface | null = null;
+  private static debugMode = false;
 
   /**
    * Method handlers registry
@@ -46,8 +55,14 @@ class ServeCommand {
   /**
    * Run the JSON-RPC server
    * Reads requests from stdin, writes responses to stdout
+   * @param options - Server options
    */
-  static async run(): Promise<void> {
+  static async run(options: IServeOptions = {}): Promise<void> {
+    this.debugMode = options.debug ?? false;
+    this.shouldShutdown = false;
+
+    this.log("server starting");
+
     this.readline = createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -62,9 +77,19 @@ class ServeCommand {
     // Wait for close or shutdown
     await new Promise<void>((resolve) => {
       this.readline!.on("close", () => {
+        this.log("server stopped");
         resolve();
       });
     });
+  }
+
+  /**
+   * Log a debug message to stderr
+   */
+  private static log(message: string): void {
+    if (this.debugMode) {
+      process.stderr.write(`[serve] ${message}\n`);
+    }
   }
 
   /**
@@ -76,15 +101,19 @@ class ServeCommand {
       return;
     }
 
+    this.log(`received: ${line}`);
+
     // Parse the request
     const parseResult = JsonRpcHandler.parseRequest(line);
 
     if (!parseResult.success) {
+      this.log(`parse error`);
       this.writeResponse(parseResult.error!);
       return;
     }
 
     const request = parseResult.request!;
+    this.log(`method: ${request.method}`);
 
     // Dispatch to method handler
     const response = this.dispatch(request);

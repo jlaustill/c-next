@@ -129,16 +129,25 @@ class JsonRpcHandler {
    * @param id - Request identifier (null if unknown)
    * @param code - Error code
    * @param message - Error message
+   * @param data - Optional additional error context
    * @returns JSON-RPC response object
    */
   static formatError(
     id: number | string | null,
     code: number,
     message: string,
+    data?: unknown,
   ): IJsonRpcResponse {
+    const error: { code: number; message: string; data?: unknown } = {
+      code,
+      message,
+    };
+    if (data !== undefined) {
+      error.data = data;
+    }
     return {
       id: id ?? 0,
-      error: { code, message },
+      error,
     };
   }
 }

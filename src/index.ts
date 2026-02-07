@@ -17,7 +17,7 @@ async function main(): Promise<void> {
 
   // Handle serve mode (JSON-RPC server)
   if (result.serveMode) {
-    await ServeCommand.run();
+    await ServeCommand.run({ debug: result.serveDebug });
     process.exit(0);
   }
 

@@ -161,6 +161,31 @@ describe("JsonRpcHandler", () => {
 
       expect(response.id).toBe(0);
     });
+
+    it("includes optional data field when provided", () => {
+      const response = JsonRpcHandler.formatError(1, -32602, "Invalid params", {
+        details: "source must be a string",
+      });
+
+      expect(response).toEqual({
+        id: 1,
+        error: {
+          code: -32602,
+          message: "Invalid params",
+          data: { details: "source must be a string" },
+        },
+      });
+    });
+
+    it("omits data field when not provided", () => {
+      const response = JsonRpcHandler.formatError(
+        1,
+        -32601,
+        "Method not found",
+      );
+
+      expect(response.error).not.toHaveProperty("data");
+    });
   });
 
   describe("error code constants", () => {

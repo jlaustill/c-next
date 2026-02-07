@@ -10,6 +10,8 @@ interface IJsonRpcResponse {
   error?: {
     code: number;
     message: string;
+    /** Optional additional error context */
+    data?: unknown;
   };
 }
 
