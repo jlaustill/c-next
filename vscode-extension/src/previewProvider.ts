@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "node:crypto";
-import transpile from "../../src/lib/transpiler";
+import CNextExtensionContext from "./ExtensionContext";
 
 /**
  * Manages C-Next preview panels with live updates
@@ -22,6 +22,8 @@ export default class PreviewProvider implements vscode.Disposable {
 
   private statusBarItem: vscode.StatusBarItem;
 
+  private extensionContext: CNextExtensionContext | null = null;
+
   private constructor() {
     // Create status bar item
     this.statusBarItem = vscode.window.createStatusBarItem(
@@ -40,6 +42,13 @@ export default class PreviewProvider implements vscode.Disposable {
       PreviewProvider.instance = new PreviewProvider();
     }
     return PreviewProvider.instance;
+  }
+
+  /**
+   * Set the extension context for server communication
+   */
+  public setExtensionContext(context: CNextExtensionContext): void {
+    this.extensionContext = context;
   }
 
   /**
@@ -157,14 +166,23 @@ export default class PreviewProvider implements vscode.Disposable {
   /**
    * Update the preview panel content
    */
-  private updatePreview(): void {
+  private async updatePreview(): Promise<void> {
     if (!this.panel || !this.currentDocument) {
+      return;
+    }
+
+    // Check if server is available
+    const serverClient = this.extensionContext?.serverClient;
+    if (!serverClient || !serverClient.isRunning()) {
+      this.lastError = "Server not available";
+      this.updateStatusBar(false, 1);
+      this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
       return;
     }
 
     try {
       const source = this.currentDocument.getText();
-      const result = transpile(source);
+      const result = await serverClient.transpile(source);
 
       if (result.success) {
         this.lastGoodCode = result.code;
@@ -172,7 +190,10 @@ export default class PreviewProvider implements vscode.Disposable {
         this.updateStatusBar(true, 0);
       } else {
         this.lastError = result.errors
-          .map((e) => `Line ${e.line}:${e.column} - ${e.message}`)
+          .map(
+            (e: { line: number; column: number; message: string }) =>
+              `Line ${e.line}:${e.column} - ${e.message}`,
+          )
           .join("\n");
         this.updateStatusBar(false, result.errors.length);
       }
