@@ -5775,78 +5775,140 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-029: Check if this is a callback type parameter
     if (this.callbackTypes.has(typeName)) {
       const callbackInfo = this.callbackTypes.get(typeName)!;
-      // Callback types are already function pointers, no additional pointer needed
       return `${callbackInfo.typedefName} ${name}`;
     }
 
     const type = this._generateType(ctx.type());
 
-    // ADR-045: Handle string<N>[] - array of bounded strings becomes 2D char array
-    // string<32> arr[5] -> char arr[5][33] (5 elements, each is capacity + 1 chars)
-    if (ctx.type().stringType() && dims.length > 0) {
-      const stringType = ctx.type().stringType()!;
-      const capacity = stringType.INTEGER_LITERAL()
-        ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
-        : 256; // Default capacity
-      const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
-      return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
-    }
+    // Try special cases first
+    const stringArrayResult = this._tryGenerateStringArrayParam(
+      ctx,
+      constMod,
+      name,
+      dims,
+    );
+    if (stringArrayResult) return stringArrayResult;
 
-    // Arrays pass naturally as pointers
-    if (dims.length > 0) {
-      const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
-      // Issue #268/#558: Add const for unmodified array parameters (uses analysis results)
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}${type} ${name}${dimStr}`;
-    }
+    const arrayResult = this._tryGenerateArrayParam(constMod, type, name, dims);
+    if (arrayResult) return arrayResult;
 
-    // ADR-040: ISR is already a function pointer typedef, no additional pointer needed
-    if (typeName === "ISR") {
+    // Pass-by-value types
+    if (this._isPassByValueType(typeName, name)) {
       return `${constMod}${type} ${name}`;
     }
 
-    // Float types (f32, f64) use standard C pass-by-value semantics
-    if (this._isFloatType(typeName)) {
-      return `${constMod}${type} ${name}`;
+    // Non-array string parameters
+    const stringResult = this._tryGenerateStringParam(
+      ctx,
+      constMod,
+      name,
+      dims,
+    );
+    if (stringResult) return stringResult;
+
+    // Pass-by-reference types
+    const refResult = this._tryGenerateRefParam(constMod, type, typeName, name);
+    if (refResult) return refResult;
+
+    // Unknown types use pass-by-value (standard C semantics)
+    return `${constMod}${type} ${name}`;
+  }
+
+  /**
+   * Try to generate string array parameter: string<N>[] -> char arr[n][N+1]
+   */
+  private _tryGenerateStringArrayParam(
+    ctx: Parser.ParameterContext,
+    constMod: string,
+    name: string,
+    dims: Parser.ArrayDimensionContext[],
+  ): string | null {
+    if (!ctx.type().stringType() || dims.length === 0) {
+      return null;
     }
 
-    // ADR-017: Enum types use standard C pass-by-value semantics
-    if (this.symbols!.knownEnums.has(typeName)) {
-      return `${constMod}${type} ${name}`;
+    const stringType = ctx.type().stringType()!;
+    const capacity = stringType.INTEGER_LITERAL()
+      ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
+      : 256;
+    const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
+    return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
+  }
+
+  /**
+   * Try to generate array parameter with auto-const
+   */
+  private _tryGenerateArrayParam(
+    constMod: string,
+    type: string,
+    name: string,
+    dims: Parser.ArrayDimensionContext[],
+  ): string | null {
+    if (dims.length === 0) {
+      return null;
     }
 
-    // Issue #269: Small unmodified primitives use pass-by-value semantics
+    const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
+    const wasModified = this._isCurrentParameterModified(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    return `${autoConst}${constMod}${type} ${name}${dimStr}`;
+  }
+
+  /**
+   * Check if type should use pass-by-value semantics
+   */
+  private _isPassByValueType(typeName: string, name: string): boolean {
+    // ISR, float, enum types
+    if (typeName === "ISR") return true;
+    if (this._isFloatType(typeName)) return true;
+    if (this.symbols!.knownEnums.has(typeName)) return true;
+
+    // Small unmodified primitives
     if (
       this.context.currentFunctionName &&
       this._isParameterPassByValueByName(this.context.currentFunctionName, name)
     ) {
-      return `${constMod}${type} ${name}`;
+      return true;
     }
 
-    // ADR-045: String parameters (non-array) are passed as char*
-    // Issue #551: Handle before unknown type check
-    if (ctx.type().stringType() && dims.length === 0) {
-      // Issue #268/#558: Add const for unmodified string parameters (uses analysis results)
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}char* ${name}`;
+    return false;
+  }
+
+  /**
+   * Try to generate non-array string parameter: string<N> -> char*
+   */
+  private _tryGenerateStringParam(
+    ctx: Parser.ParameterContext,
+    constMod: string,
+    name: string,
+    dims: Parser.ArrayDimensionContext[],
+  ): string | null {
+    if (!ctx.type().stringType() || dims.length !== 0) {
+      return null;
     }
 
-    // ADR-006: Pass by reference for known struct types and known primitives
-    // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
-    if (this._isKnownStruct(typeName) || this._isKnownPrimitive(typeName)) {
-      // Issue #268/#558: Add const for unmodified pointer parameters (uses analysis results)
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      // Issue #409/#644: In C++ mode, use references (&) instead of pointers (*)
-      // This allows C-Next callbacks to match C++ function pointer signatures
-      const refOrPtr = this.cppHelper!.refOrPtr();
-      return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
+    const wasModified = this._isCurrentParameterModified(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    return `${autoConst}${constMod}char* ${name}`;
+  }
+
+  /**
+   * Try to generate pass-by-reference parameter for known types
+   */
+  private _tryGenerateRefParam(
+    constMod: string,
+    type: string,
+    typeName: string,
+    name: string,
+  ): string | null {
+    if (!this._isKnownStruct(typeName) && !this._isKnownPrimitive(typeName)) {
+      return null;
     }
 
-    // Unknown types use pass-by-value (standard C semantics)
-    return `${constMod}${type} ${name}`;
+    const wasModified = this._isCurrentParameterModified(name);
+    const autoConst = !wasModified && !constMod ? "const " : "";
+    const refOrPtr = this.cppHelper!.refOrPtr();
+    return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
   }
 
   private _generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
