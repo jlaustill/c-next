@@ -1153,6 +1153,14 @@ class Transpiler {
     return this.symbolTable;
   }
 
+  /**
+   * Check if C++ output was detected during transpilation.
+   * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
+   */
+  isCppDetected(): boolean {
+    return this.cppDetected;
+  }
+
   // === IStandaloneTranspiler implementation (Issue #591) ===
   // These methods implement the interface used by StandaloneContextBuilder
 

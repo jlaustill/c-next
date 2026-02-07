@@ -1,9 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import parseWithSymbols from "../../src/lib/parseWithSymbols";
-import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
-import TSymbolKind from "../../src/lib/types/TSymbolKind";
+import { ISymbolInfo } from "./server/CNextServerClient";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import {
@@ -15,6 +13,27 @@ import {
   MIN_PREFIX_LENGTH_FOR_CPP_QUERY,
 } from "./utils";
 import ScopeTracker from "./scopeTracker";
+
+/**
+ * Symbol kind type for completion mapping
+ * Mirrors TSymbolKind from the transpiler but defined locally to avoid direct import
+ */
+type TSymbolKind =
+  | "namespace"
+  | "scope"
+  | "class"
+  | "struct"
+  | "register"
+  | "function"
+  | "method"
+  | "variable"
+  | "field"
+  | "registerMember"
+  | "enum"
+  | "enumMember"
+  | "bitmap"
+  | "bitmapField"
+  | "callback";
 
 /**
  * C-Next keywords for autocomplete
@@ -303,9 +322,16 @@ export default class CNextCompletionProvider
       `C-Next: provideCompletionItems called, linePrefix="${linePrefix}"`,
     );
 
-    // Parse document to get symbols
+    // Parse document to get symbols via server
     const source = document.getText();
-    const parseResult = parseWithSymbols(source);
+    const parseResult = await this.extensionContext?.serverClient?.parseSymbols(
+      source,
+      document.uri.fsPath,
+    );
+    if (!parseResult) {
+      // Server unavailable - return keyword/type completions only
+      return this.getGlobalCompletions([], document.uri);
+    }
     const symbols = parseResult.symbols;
 
     // Determine current scope context for this/global resolution

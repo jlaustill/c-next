@@ -182,7 +182,10 @@ export default class PreviewProvider implements vscode.Disposable {
 
     try {
       const source = this.currentDocument.getText();
-      const result = await serverClient.transpile(source);
+      const result = await serverClient.transpile(
+        source,
+        this.currentDocument.uri.fsPath,
+      );
 
       if (result.success) {
         this.lastGoodCode = result.code;

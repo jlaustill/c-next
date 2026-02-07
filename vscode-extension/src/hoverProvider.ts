@@ -1,12 +1,16 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import parseWithSymbols from "../../src/lib/parseWithSymbols";
-import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
-import TLanguage from "../../src/lib/types/TLanguage";
+import { ISymbolInfo } from "./server/CNextServerClient";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import { getAccessDescription, escapeRegex, findOutputPath } from "./utils";
+
+/**
+ * Language type for file detection
+ * Mirrors TLanguage from the transpiler but defined locally to avoid direct import
+ */
+type TLanguage = "c" | "cpp" | "cnext";
 
 /**
  * Extended symbol info that includes source file path
@@ -571,9 +575,21 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       );
     }
 
-    // FAST PATH: Parse current document to get local symbols
+    // FAST PATH: Parse current document to get local symbols via server
     const source = document.getText();
-    const parseResult = parseWithSymbols(source);
+    const parseResult = await this.extensionContext?.serverClient?.parseSymbols(
+      source,
+      document.uri.fsPath,
+    );
+    if (!parseResult) {
+      // Server unavailable - keyword/type/C-library hovers handled above,
+      // fall through to C/C++ extension fallback for symbol hover
+      const cHover = await this.queryCExtensionHover(document, word, wordRange);
+      if (cHover) {
+        return cHover;
+      }
+      return null;
+    }
     const symbols = parseResult.symbols;
 
     // Resolve C-Next qualifiers: "this" → current scope, "global" → scope lookup
