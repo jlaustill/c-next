@@ -3560,42 +3560,14 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Handle array type syntax: u8[10]
     if (typeCtx.arrayType()) {
-      const arrayTypeCtx = typeCtx.arrayType()!;
-      let baseType = "";
-      let bitWidth = 0;
-
-      if (arrayTypeCtx.primitiveType()) {
-        baseType = arrayTypeCtx.primitiveType()!.getText();
-        bitWidth = TYPE_WIDTH[baseType] || 0;
-      }
-
-      const arrayDimensions: number[] = [];
-      const sizeExpr = arrayTypeCtx.expression();
-      if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size)) {
-          arrayDimensions.push(size);
-        }
-      }
-
-      // Also check for additional dimensions using const evaluation
-      const additionalDims = this._evaluateArrayDimensions(arrayDim);
-      if (additionalDims) {
-        arrayDimensions.push(...additionalDims);
-      }
-
-      if (baseType) {
-        this.context.typeRegistry.set(registryName, {
-          baseType,
-          bitWidth,
-          isArray: true,
-          arrayDimensions:
-            arrayDimensions.length > 0 ? arrayDimensions : undefined,
-          isConst,
-          overflowBehavior,
-          isAtomic,
-        });
-      }
+      this._registerArrayTypeVariable(
+        registryName,
+        typeCtx.arrayType()!,
+        arrayDim,
+        isConst,
+        overflowBehavior,
+        isAtomic,
+      );
       return;
     }
 
@@ -3620,6 +3592,93 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Standard type registration
+    this._registerStandardType(
+      registryName,
+      baseType,
+      arrayDim,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    );
+  }
+
+  /**
+   * Register an array type variable (u8[10] syntax)
+   */
+  private _registerArrayTypeVariable(
+    registryName: string,
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+  ): void {
+    let baseType = "";
+    let bitWidth = 0;
+
+    if (arrayTypeCtx.primitiveType()) {
+      baseType = arrayTypeCtx.primitiveType()!.getText();
+      bitWidth = TYPE_WIDTH[baseType] || 0;
+    }
+
+    if (!baseType) {
+      return;
+    }
+
+    const arrayDimensions = this._collectArrayDimensions(
+      arrayTypeCtx,
+      arrayDim,
+    );
+
+    this.context.typeRegistry.set(registryName, {
+      baseType,
+      bitWidth,
+      isArray: true,
+      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    });
+  }
+
+  /**
+   * Collect array dimensions from array type and additional dimensions
+   */
+  private _collectArrayDimensions(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+  ): number[] {
+    const arrayDimensions: number[] = [];
+
+    // Get dimension from array type syntax
+    const sizeExpr = arrayTypeCtx.expression();
+    if (sizeExpr) {
+      const size = Number.parseInt(sizeExpr.getText(), 10);
+      if (!Number.isNaN(size)) {
+        arrayDimensions.push(size);
+      }
+    }
+
+    // Add additional dimensions using const evaluation
+    const additionalDims = this._evaluateArrayDimensions(arrayDim);
+    if (additionalDims) {
+      arrayDimensions.push(...additionalDims);
+    }
+
+    return arrayDimensions;
+  }
+
+  /**
+   * Register a standard (non-array-syntax, non-special) type
+   */
+  private _registerStandardType(
+    registryName: string,
+    baseType: string,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+  ): void {
     const bitWidth = TYPE_WIDTH[baseType] || 0;
     // Issue #665: Check array syntax presence first, then try to resolve dimensions
     // This matches the pattern in trackVariableType() - unresolved dimensions (e.g., enum
