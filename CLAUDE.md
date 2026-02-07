@@ -91,10 +91,6 @@ Check the terminal report for files you changed — any new code below 80% cover
 - **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
 - **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
 
-### Flaky CI Tests
-
-- **Transpiler.coverage.test.ts** can timeout in CI (5s limit). Re-run with `gh run rerun <run-id> --failed`
-
 ### CSpell (Spelling Check)
 
 - **Run manually**: `npm run cspell:check` (runs automatically on push)
