@@ -663,43 +663,64 @@ class InitializationAnalyzer {
 
   /**
    * Record that a variable (or field) has been assigned
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   public recordAssignment(name: string, field?: string): void {
     const structFields = this.structFields;
 
     this.scopeStack.update(name, (state) => {
       if (field) {
-        // Field assignment
-        state.initializedFields.add(field);
-        // Check if all fields are now initialized
-        if (state.isStruct && state.typeName) {
-          const allFields = structFields.get(state.typeName);
-          if (allFields) {
-            const allInitialized = [...allFields].every((f) =>
-              state.initializedFields.has(f),
-            );
-            if (allInitialized) {
-              state.initialized = true;
-            }
-          }
-        }
+        this.recordFieldAssignment(state, field, structFields);
       } else {
-        // Whole variable assignment
-        state.initialized = true;
-        // Mark all fields as initialized too
-        if (state.isStruct && state.typeName) {
-          const fields = structFields.get(state.typeName);
-          if (fields) {
-            state.initializedFields = new Set(fields);
-          }
-        }
+        this.recordWholeAssignment(state, structFields);
       }
       return state;
     });
   }
 
   /**
+   * Handle field-level assignment.
+   */
+  private recordFieldAssignment(
+    state: IVariableState,
+    field: string,
+    structFields: Map<string, Set<string>>,
+  ): void {
+    state.initializedFields.add(field);
+    // Check if all fields are now initialized
+    if (!state.isStruct || !state.typeName) return;
+
+    const allFields = structFields.get(state.typeName);
+    if (!allFields) return;
+
+    const allInitialized = [...allFields].every((f) =>
+      state.initializedFields.has(f),
+    );
+    if (allInitialized) {
+      state.initialized = true;
+    }
+  }
+
+  /**
+   * Handle whole-variable assignment.
+   */
+  private recordWholeAssignment(
+    state: IVariableState,
+    structFields: Map<string, Set<string>>,
+  ): void {
+    state.initialized = true;
+    // Mark all fields as initialized too
+    if (!state.isStruct || !state.typeName) return;
+
+    const fields = structFields.get(state.typeName);
+    if (fields) {
+      state.initializedFields = new Set(fields);
+    }
+  }
+
+  /**
    * Check if a variable (or field) is used before initialization
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   public checkRead(
     name: string,
@@ -710,56 +731,70 @@ class InitializationAnalyzer {
     const state = this.scopeStack.lookup(name);
 
     if (!state) {
-      // Variable not found in any scope - this would be a different error
-      // (undefined variable), not an initialization error
+      // Variable not found - let undefined variable handling deal with it
       return;
     }
 
     if (field) {
-      // Reading a specific field/property
-      if (state.isStruct && state.typeName) {
-        // Struct type: check if this is a real field
-        const structFields = this.structFields.get(state.typeName);
-        if (structFields?.has(field)) {
-          // This is a real struct field - check initialization
-          if (!state.initializedFields.has(field)) {
-            this.addError(
-              `${name}.${field}`,
-              line,
-              column,
-              state.declaration,
-              false, // Definitely uninitialized
-            );
-          }
-        }
-        // else: field doesn't exist in struct, could be a type property like .length
-        // Skip check - let code generator handle unknown field errors
-      } else if (state.isStringType) {
-        // String type: .length, .capacity, and .size are runtime properties that require initialization
-        if (
-          (field === "length" || field === "capacity" || field === "size") &&
-          !state.initialized
-        ) {
-          this.addError(
-            name,
-            line,
-            column,
-            state.declaration,
-            false, // Definitely uninitialized
-          );
-        }
-      }
-      // Other types (primitives): .field access is a type property (like .length for bit width)
-      // which is always available at compile time, no init check needed
+      this.checkFieldRead(name, line, column, field, state);
     } else if (!state.initialized) {
-      // Reading the whole variable
-      this.addError(
-        name,
-        line,
-        column,
-        state.declaration,
-        false, // Definitely uninitialized
-      );
+      this.addError(name, line, column, state.declaration, false);
+    }
+  }
+
+  /**
+   * Check field read for uninitialized access.
+   * SonarCloud S3776: Extracted from checkRead().
+   */
+  private checkFieldRead(
+    name: string,
+    line: number,
+    column: number,
+    field: string,
+    state: IVariableState,
+  ): void {
+    if (state.isStruct && state.typeName) {
+      this.checkStructFieldRead(name, line, column, field, state);
+      return;
+    }
+
+    if (state.isStringType) {
+      this.checkStringPropertyRead(name, line, column, field, state);
+    }
+    // Other types: .field is a compile-time property, no check needed
+  }
+
+  /**
+   * Check struct field read for initialization.
+   */
+  private checkStructFieldRead(
+    name: string,
+    line: number,
+    column: number,
+    field: string,
+    state: IVariableState,
+  ): void {
+    const structFields = this.structFields.get(state.typeName!);
+    if (!structFields?.has(field)) return;
+
+    if (!state.initializedFields.has(field)) {
+      this.addError(`${name}.${field}`, line, column, state.declaration, false);
+    }
+  }
+
+  /**
+   * Check string property read for initialization.
+   */
+  private checkStringPropertyRead(
+    name: string,
+    line: number,
+    column: number,
+    field: string,
+    state: IVariableState,
+  ): void {
+    const runtimeProperties = ["length", "capacity", "size"];
+    if (runtimeProperties.includes(field) && !state.initialized) {
+      this.addError(name, line, column, state.declaration, false);
     }
   }
 
