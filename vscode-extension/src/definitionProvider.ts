@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import parseWithSymbols from "../../src/lib/parseWithSymbols";
-import ISymbolInfo from "../../src/lib/types/ISymbolInfo";
+import { ISymbolInfo } from "./server/CNextServerClient";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import CNextExtensionContext from "./ExtensionContext";
 
 /**
  * Extended symbol info that includes source file path
@@ -19,16 +19,19 @@ interface ISymbolWithFile extends ISymbolInfo {
 export default class CNextDefinitionProvider
   implements vscode.DefinitionProvider
 {
-  constructor(private workspaceIndex?: WorkspaceIndex) {}
+  constructor(
+    private workspaceIndex?: WorkspaceIndex,
+    private extensionContext?: CNextExtensionContext,
+  ) {}
 
   /**
    * Provide definition location for the symbol at the given position
    */
-  provideDefinition(
+  async provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken,
-  ): vscode.Definition | null {
+  ): Promise<vscode.Definition | null> {
     if (token.isCancellationRequested) return null;
 
     // Get the word at the cursor position
@@ -55,8 +58,8 @@ export default class CNextDefinitionProvider
       }
     }
 
-    // FAST PATH: Check current document first
-    const localSymbol = this.findLocalSymbol(document, word, parentName);
+    // FAST PATH: Check current document first via server
+    const localSymbol = await this.findLocalSymbol(document, word, parentName);
     if (localSymbol) {
       return this.createLocation(document.uri, localSymbol, document);
     }
@@ -77,15 +80,22 @@ export default class CNextDefinitionProvider
   }
 
   /**
-   * Find a symbol in the current document
+   * Find a symbol in the current document via server
    */
-  private findLocalSymbol(
+  private async findLocalSymbol(
     document: vscode.TextDocument,
     word: string,
     parentName?: string,
-  ): ISymbolInfo | undefined {
+  ): Promise<ISymbolInfo | undefined> {
     const source = document.getText();
-    const parseResult = parseWithSymbols(source);
+    const parseResult = await this.extensionContext?.serverClient?.parseSymbols(
+      source,
+      document.uri.fsPath,
+    );
+    if (!parseResult) {
+      // Server unavailable - no local symbol lookup possible
+      return undefined;
+    }
     const symbols = parseResult.symbols;
 
     if (parentName) {

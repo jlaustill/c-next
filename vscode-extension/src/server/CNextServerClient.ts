@@ -21,6 +21,7 @@ export interface ITranspileResult {
     message: string;
     severity: "error" | "warning";
   }>;
+  cppDetected?: boolean;
 }
 
 /**
@@ -224,22 +225,53 @@ class CNextServerClient {
   }
 
   /**
+   * Initialize the server with workspace configuration
+   * Must be called after start() before transpile/parseSymbols
+   */
+  async initialize(workspacePath: string): Promise<boolean> {
+    try {
+      const result = (await this.sendRequest("initialize", {
+        workspacePath,
+      })) as { success: boolean };
+      return result.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Transpile C-Next source code
    */
-  async transpile(source: string): Promise<ITranspileResult> {
-    const result = (await this.sendRequest("transpile", {
-      source,
-    })) as ITranspileResult;
+  async transpile(
+    source: string,
+    filePath?: string,
+  ): Promise<ITranspileResult> {
+    const params: Record<string, unknown> = { source };
+    if (filePath) {
+      params.filePath = filePath;
+    }
+    const result = (await this.sendRequest(
+      "transpile",
+      params,
+    )) as ITranspileResult;
     return result;
   }
 
   /**
    * Parse symbols from C-Next source
    */
-  async parseSymbols(source: string): Promise<IParseSymbolsResult> {
-    const result = (await this.sendRequest("parseSymbols", {
-      source,
-    })) as IParseSymbolsResult;
+  async parseSymbols(
+    source: string,
+    filePath?: string,
+  ): Promise<IParseSymbolsResult> {
+    const params: Record<string, unknown> = { source };
+    if (filePath) {
+      params.filePath = filePath;
+    }
+    const result = (await this.sendRequest(
+      "parseSymbols",
+      params,
+    )) as IParseSymbolsResult;
     return result;
   }
 

@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import transpile from "../../../../lib/transpiler";
+import Transpiler from "../../../Transpiler";
 
 /**
  * Helper to parse C-Next source and get the first statement from main().
@@ -293,7 +293,7 @@ describe("ExpressionWalker - const inference integration", () => {
    * Issue #565 was caused by missing expression walking in certain contexts.
    */
 
-  it("should detect modification through function call in assignment RHS", () => {
+  it("should detect modification through function call in assignment RHS", async () => {
     // This was the bug in issue #565
     const source = `
       void modifyParam(u32 param) {
@@ -311,14 +311,15 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpileResult = transpile(source);
+    const transpiler = new Transpiler({ inputs: [] });
+    const transpileResult = await transpiler.transpileSource(source);
     expect(transpileResult.success).toBe(true);
     // The caller function should NOT have const param because x is passed to modifyParam
     // which modifies its parameter
     expect(transpileResult.code).not.toContain("void caller(const uint32_t x)");
   });
 
-  it("should detect modification through function call in for-loop init", () => {
+  it("should detect modification through function call in for-loop init", async () => {
     const source = `
       void modifyParam(u32 param) {
         param <- 42;
@@ -338,13 +339,14 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpileResult = transpile(source);
+    const transpiler = new Transpiler({ inputs: [] });
+    const transpileResult = await transpiler.transpileSource(source);
     expect(transpileResult.success).toBe(true);
     // x should not be const because it's passed through a modifying call chain
     expect(transpileResult.code).not.toContain("void caller(const uint32_t x)");
   });
 
-  it("should detect modification through function call in for-loop update", () => {
+  it("should detect modification through function call in for-loop update", async () => {
     const source = `
       void modifyParam(u32 param) {
         param <- 42;
@@ -364,7 +366,8 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpileResult = transpile(source);
+    const transpiler = new Transpiler({ inputs: [] });
+    const transpileResult = await transpiler.transpileSource(source);
     expect(transpileResult.success).toBe(true);
     // x should not be const
     expect(transpileResult.code).not.toContain("void caller(const uint32_t x)");

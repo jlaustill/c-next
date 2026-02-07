@@ -14,9 +14,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import transpile from "../src/lib/transpiler";
+import { ParseTreeWalker } from "antlr4ng";
+import CNextSourceParser from "../src/transpiler/logic/parser/CNextSourceParser";
 import IGrammarCoverageReport from "../src/transpiler/logic/analysis/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "../src/transpiler/logic/analysis/types/GrammarCoverageReportBuilder";
+import GrammarCoverageListener from "../src/transpiler/logic/analysis/GrammarCoverageListener";
 import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
 import chalk from "chalk";
@@ -47,20 +49,25 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
   for (const file of testFiles) {
     try {
       const source = readFileSync(file, "utf-8");
-      const result = transpile(source, { collectGrammarCoverage: true });
+      const { tree } = CNextSourceParser.parse(source);
 
-      if (result.grammarCoverage) {
-        for (const [rule, count] of result.grammarCoverage.parserRuleVisits) {
-          const current = parserVisits.get(rule) || 0;
-          parserVisits.set(rule, current + count);
-        }
-        for (const [rule, count] of result.grammarCoverage.lexerRuleVisits) {
-          const current = lexerVisits.get(rule) || 0;
-          lexerVisits.set(rule, current + count);
-        }
+      const coverageListener = new GrammarCoverageListener(
+        CNextParser.ruleNames,
+        CNextLexer.ruleNames,
+      );
+      ParseTreeWalker.DEFAULT.walk(coverageListener, tree);
+      const report = coverageListener.getReport();
+
+      for (const [rule, count] of report.parserRuleVisits) {
+        const current = parserVisits.get(rule) || 0;
+        parserVisits.set(rule, current + count);
+      }
+      for (const [rule, count] of report.lexerRuleVisits) {
+        const current = lexerVisits.get(rule) || 0;
+        lexerVisits.set(rule, current + count);
       }
     } catch {
-      // Already logged above
+      // Skip files with parse errors
     }
   }
 

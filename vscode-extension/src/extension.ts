@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import PreviewProvider from "./previewProvider";
 import CNextCompletionProvider from "./completionProvider";
 import CNextHoverProvider from "./hoverProvider";
@@ -9,45 +8,6 @@ import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";
 import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
-
-/**
- * C-Next configuration file options
- */
-interface ICNextConfig {
-  outputExtension?: ".c" | ".cpp";
-  debugMode?: boolean;
-}
-
-/**
- * Config file names in priority order (highest first)
- */
-const CONFIG_FILES = ["cnext.config.json", ".cnext.json", ".cnextrc"];
-
-/**
- * Load config from project directory, searching up the directory tree
- */
-function loadConfig(startDir: string): ICNextConfig {
-  let dir = path.resolve(startDir);
-
-  while (dir !== path.dirname(dir)) {
-    // Stop at filesystem root
-    for (const configFile of CONFIG_FILES) {
-      const configPath = path.join(dir, configFile);
-      if (fs.existsSync(configPath)) {
-        try {
-          const content = fs.readFileSync(configPath, "utf-8");
-          return JSON.parse(content) as ICNextConfig;
-        } catch {
-          console.error(`C-Next: Failed to parse ${configPath}`);
-          return {};
-        }
-      }
-    }
-    dir = path.dirname(dir);
-  }
-
-  return {}; // No config found
-}
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
@@ -86,7 +46,7 @@ async function validateDocument(document: vscode.TextDocument): Promise<void> {
 
   try {
     // Full transpile to catch code generation errors (not just parse errors)
-    const result = await serverClient.transpile(source);
+    const result = await serverClient.transpile(source, document.uri.fsPath);
 
     // Clear diagnostics for this specific document
     diagnosticCollection.delete(document.uri);
@@ -176,16 +136,15 @@ async function transpileToFile(document: vscode.TextDocument): Promise<void> {
   const source = document.getText();
 
   try {
-    const result = await serverClient.transpile(source);
+    const cnxPath = document.uri.fsPath;
+    const result = await serverClient.transpile(source, cnxPath);
 
     if (result.success) {
       // Store as last good transpilation
       lastGoodTranspile.set(document.uri.toString(), result.code);
 
-      // Load config to determine output extension
-      const cnxPath = document.uri.fsPath;
-      const projectConfig = loadConfig(path.dirname(cnxPath));
-      const outputExt = projectConfig.outputExtension || ".c";
+      // Use cppDetected from server (auto-detected from headers)
+      const outputExt = result.cppDetected ? ".cpp" : ".c";
       const outputPath = cnxPath.replace(/\.cnx$/, outputExt);
 
       try {
@@ -252,6 +211,23 @@ export async function activate(
   const serverStarted = await serverClient.start();
   if (serverStarted) {
     extensionContext.setServerClient(serverClient);
+
+    // Initialize server with workspace path for config loading and include resolution
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders?.length) {
+      const initialized = await serverClient.initialize(
+        workspaceFolders[0].uri.fsPath,
+      );
+      if (initialized) {
+        outputChannel.appendLine(
+          `Server initialized with workspace: ${workspaceFolders[0].uri.fsPath}`,
+        );
+      } else {
+        outputChannel.appendLine(
+          "Server initialization failed - running without workspace config",
+        );
+      }
+    }
   } else {
     outputChannel.appendLine(
       "Server not available - syntax highlighting only mode",
@@ -342,7 +318,7 @@ export async function activate(
   // Register definition provider (Ctrl+Click / F12)
   const definitionProvider = vscode.languages.registerDefinitionProvider(
     "cnext",
-    new CNextDefinitionProvider(workspaceIndex),
+    new CNextDefinitionProvider(workspaceIndex, extensionContext),
   );
   context.subscriptions.push(definitionProvider);
 
