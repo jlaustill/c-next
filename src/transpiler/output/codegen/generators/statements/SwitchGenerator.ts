@@ -107,6 +107,72 @@ function generateBinaryLiteralCode(binText: string, hasNeg: boolean): string {
 }
 
 /**
+ * Generate code for qualified type case label (e.g., EState.IDLE → EState_IDLE).
+ * SonarCloud S3776: Extracted from generateCaseLabel().
+ */
+function generateQualifiedTypeLabel(node: CaseLabelContext): string | null {
+  const qt = node.qualifiedType();
+  if (!qt) return null;
+  const parts = qt.IDENTIFIER();
+  return parts.map((id) => id.getText()).join("_");
+}
+
+/**
+ * Generate code for identifier case label (const or enum member).
+ * SonarCloud S3776: Extracted from generateCaseLabel().
+ */
+function generateIdentifierLabel(
+  node: CaseLabelContext,
+  input: IGeneratorInput,
+  switchEnumType?: string,
+): string | null {
+  const idNode = node.IDENTIFIER();
+  if (!idNode) return null;
+
+  const id = idNode.getText();
+
+  // Issue #471: Resolve unqualified enum member with type prefix
+  if (switchEnumType) {
+    const resolved = tryResolveEnumMember(id, switchEnumType, input.symbols);
+    if (resolved) return resolved;
+  } else {
+    // Issue #477: Reject unqualified enum members in non-enum switch context
+    rejectUnqualifiedEnumMember(id, input.symbols, node);
+  }
+
+  return id;
+}
+
+/**
+ * Generate code for numeric literal case labels.
+ * SonarCloud S3776: Extracted from generateCaseLabel().
+ */
+function generateNumericLabel(node: CaseLabelContext): string | null {
+  const hasNeg = hasNegativePrefix(node);
+
+  if (node.INTEGER_LITERAL()) {
+    const num = node.INTEGER_LITERAL()!.getText();
+    return hasNeg ? `-${num}` : num;
+  }
+
+  if (node.HEX_LITERAL()) {
+    const hex = node.HEX_LITERAL()!.getText();
+    return hasNeg ? `-${hex}` : hex;
+  }
+
+  if (node.BINARY_LITERAL()) {
+    const binText = node.BINARY_LITERAL()!.getText();
+    return generateBinaryLiteralCode(binText, hasNeg);
+  }
+
+  if (node.CHAR_LITERAL()) {
+    return node.CHAR_LITERAL()!.getText();
+  }
+
+  return null;
+}
+
+/**
  * Generate C code for a case label.
  *
  * Handles:
@@ -119,6 +185,7 @@ function generateBinaryLiteralCode(binText: string, hasNeg: boolean): string {
  *
  * Issue #471: When switchEnumType is provided, unqualified identifiers that are
  * members of that enum are resolved with the enum type prefix.
+ * SonarCloud S3776: Refactored to use helper functions.
  */
 const generateCaseLabel = (
   node: CaseLabelContext,
@@ -130,51 +197,21 @@ const generateCaseLabel = (
   const effects: TGeneratorEffect[] = [];
 
   // qualifiedType - for enum values like EState.IDLE
-  if (node.qualifiedType()) {
-    const qt = node.qualifiedType()!;
-    // Convert EState.IDLE to EState_IDLE for C
-    const parts = qt.IDENTIFIER();
-    return { code: parts.map((id) => id.getText()).join("_"), effects };
+  const qualifiedCode = generateQualifiedTypeLabel(node);
+  if (qualifiedCode !== null) {
+    return { code: qualifiedCode, effects };
   }
 
   // IDENTIFIER - const variable or plain enum member
-  if (node.IDENTIFIER()) {
-    const id = node.IDENTIFIER()!.getText();
-
-    // Issue #471: Resolve unqualified enum member with type prefix
-    if (switchEnumType) {
-      const resolved = tryResolveEnumMember(id, switchEnumType, input.symbols);
-      if (resolved) {
-        return { code: resolved, effects };
-      }
-    } else {
-      // Issue #477: Reject unqualified enum members in non-enum switch context
-      rejectUnqualifiedEnumMember(id, input.symbols, node);
-    }
-
-    return { code: id, effects };
+  const identifierCode = generateIdentifierLabel(node, input, switchEnumType);
+  if (identifierCode !== null) {
+    return { code: identifierCode, effects };
   }
 
-  // Numeric literals (may have optional minus prefix)
-  const hasNeg = hasNegativePrefix(node);
-
-  if (node.INTEGER_LITERAL()) {
-    const num = node.INTEGER_LITERAL()!.getText();
-    return { code: hasNeg ? `-${num}` : num, effects };
-  }
-
-  if (node.HEX_LITERAL()) {
-    const hex = node.HEX_LITERAL()!.getText();
-    return { code: hasNeg ? `-${hex}` : hex, effects };
-  }
-
-  if (node.BINARY_LITERAL()) {
-    const binText = node.BINARY_LITERAL()!.getText();
-    return { code: generateBinaryLiteralCode(binText, hasNeg), effects };
-  }
-
-  if (node.CHAR_LITERAL()) {
-    return { code: node.CHAR_LITERAL()!.getText(), effects };
+  // Numeric literals
+  const numericCode = generateNumericLabel(node);
+  if (numericCode !== null) {
+    return { code: numericCode, effects };
   }
 
   return { code: "", effects };
