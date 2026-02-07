@@ -31,11 +31,11 @@ Separate the VS Code extension into its own repository at `github.com/jlaustill/
 
 **Why separate process?**
 
-| Benefit              | Description                                      |
-| -------------------- | ------------------------------------------------ |
-| **Crash Isolation**  | Transpiler crash doesn't crash VS Code           |
-| **Memory Isolation** | Transpiler memory tracked separately             |
-| **Testability**      | Server tested independently with stdin/stdout    |
+| Benefit              | Description                                   |
+| -------------------- | --------------------------------------------- |
+| **Crash Isolation**  | Transpiler crash doesn't crash VS Code        |
+| **Memory Isolation** | Transpiler memory tracked separately          |
+| **Testability**      | Server tested independently with stdin/stdout |
 
 ---
 
@@ -54,23 +54,29 @@ cnext --serve    # Start server mode
 Simple JSON-RPC over stdin/stdout. One JSON object per line.
 
 **Request format:**
+
 ```json
-{"id": 1, "method": "transpile", "params": {"source": "...", "filePath": "test.cnx"}}
+{
+  "id": 1,
+  "method": "transpile",
+  "params": { "source": "...", "filePath": "test.cnx" }
+}
 ```
 
 **Response format:**
+
 ```json
-{"id": 1, "result": {"success": true, "cCode": "...", "headerCode": "..."}}
+{ "id": 1, "result": { "success": true, "cCode": "...", "headerCode": "..." } }
 ```
 
 **Methods (v1.0):**
 
-| Method         | Purpose                           |
-| -------------- | --------------------------------- |
-| `transpile`    | Transpile source, return C code   |
-| `parseSymbols` | Extract symbols from .cnx file    |
+| Method         | Purpose                            |
+| -------------- | ---------------------------------- |
+| `transpile`    | Transpile source, return C code    |
+| `parseSymbols` | Extract symbols from .cnx file     |
 | `getVersion`   | Return server and protocol version |
-| `shutdown`     | Graceful exit                     |
+| `shutdown`     | Graceful exit                      |
 
 **Deferred to v2:** `parseCHeader` (extension keeps JS implementation for now)
 
@@ -85,6 +91,7 @@ src/server/
 ```
 
 Key implementation notes:
+
 - Read version from `package.json`, not `process.env.npm_package_version`
 - `shutdown` must send response before `process.exit(0)`
 - Use `readline` interface on stdin, write JSON + newline to stdout
@@ -134,11 +141,12 @@ Create `vscode-extension/src/server/CNextServerClient.ts`:
 - Log to output channel for debugging
 
 **Finding the server binary:**
+
 ```typescript
 // Try workspace node_modules first, then global
 const paths = [
-  path.join(workspaceRoot, 'node_modules/.bin/cnext'),
-  'cnext'  // Fall back to PATH
+  path.join(workspaceRoot, "node_modules/.bin/cnext"),
+  "cnext", // Fall back to PATH
 ];
 ```
 
@@ -147,6 +155,7 @@ Note: `require.resolve()` won't work in bundled extension.
 #### Graceful Degradation
 
 If server unavailable, extension still provides:
+
 - Syntax highlighting (static, no server needed)
 - Snippets
 - Language configuration (brackets, comments)
@@ -177,8 +186,8 @@ Add to `package.json` contributes.configuration:
 Invalidate cached symbols when files change:
 
 ```typescript
-vscode.workspace.onDidChangeTextDocument(e => {
-  if (e.document.languageId === 'cnext') {
+vscode.workspace.onDidChangeTextDocument((e) => {
+  if (e.document.languageId === "cnext") {
     symbolCache.invalidate(e.document.uri);
   }
 });
@@ -221,20 +230,24 @@ vscode-c-next/
 #### CI/CD Setup
 
 **ci.yml** - runs on PRs:
+
 - Lint, test, build
 - SonarCloud analysis
 
 **publish.yml** - runs on `v*.*.*` tags:
+
 - Build and package
 - Publish to VS Code Marketplace
 
 **Required secrets:**
+
 - `SONAR_TOKEN` - SonarCloud
 - `VSCE_PAT` - VS Code Marketplace (Azure DevOps PAT with Marketplace scope)
 
 #### Migration Checklist
 
 **Pre-migration:**
+
 - [ ] Phase 1 and 2 complete and stable
 - [ ] Create new GitHub repo
 - [ ] Set up SonarCloud project
@@ -242,6 +255,7 @@ vscode-c-next/
 - [ ] Add secrets to new repo
 
 **Migration:**
+
 - [ ] Copy extension files
 - [ ] Remove `antlr4ng` dependency
 - [ ] Update package.json (reset to v1.0.0, update repo URL)
@@ -249,6 +263,7 @@ vscode-c-next/
 - [ ] Set up branch protection
 
 **Post-migration:**
+
 - [ ] Verify CI passes
 - [ ] Tag v1.0.0 to publish
 - [ ] Update main repo README to link to marketplace
@@ -281,6 +296,7 @@ vscode-c-next/
 ## Alternatives Considered
 
 **Direct library import** - Rejected because:
+
 - Parser bugs crash VS Code extension host
 - ANTLR runtime significantly increases bundle size
 - Sync API doesn't match async VS Code providers
