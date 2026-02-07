@@ -50,6 +50,97 @@ const wrapWithCppEnumCast = (
 };
 
 /**
+ * Resolved parameter info from local signature or cross-file lookup
+ */
+interface IResolvedParam {
+  param: { baseType: string; isArray?: boolean } | undefined;
+  isCrossFile: boolean;
+}
+
+/**
+ * Generate argument code for a C/C++ function call.
+ * Handles automatic address-of (&) for struct arguments passed to pointer params.
+ */
+const _generateCFunctionArg = (
+  e: ExpressionContext,
+  targetParam: IResolvedParam["param"],
+  input: IGeneratorInput,
+  orchestrator: IOrchestrator,
+): string => {
+  let argCode = orchestrator.generateExpression(e);
+
+  // Issue #322: Check if parameter expects a pointer and argument is a struct
+  if (!targetParam?.baseType?.endsWith("*")) {
+    return wrapWithCppEnumCast(argCode, e, targetParam?.baseType, orchestrator);
+  }
+
+  // Try getExpressionType first
+  let argType = orchestrator.getExpressionType(e);
+
+  // Issue #322: If getExpressionType returns null (e.g., for this.member),
+  // fall back to looking up the generated code in the type registry
+  if (!argType && !argCode.startsWith("&")) {
+    const typeInfo = input.typeRegistry.get(argCode);
+    if (typeInfo) {
+      argType = typeInfo.baseType;
+    }
+  }
+
+  // Add & if argument is a struct type (not already a pointer)
+  const needsAddressOf =
+    argType &&
+    !argType.endsWith("*") &&
+    !argCode.startsWith("&") &&
+    !targetParam.isArray &&
+    orchestrator.isStructType(argType);
+
+  if (needsAddressOf) {
+    argCode = `&${argCode}`;
+  }
+
+  return wrapWithCppEnumCast(argCode, e, targetParam?.baseType, orchestrator);
+};
+
+/**
+ * Determine if a C-Next parameter should be passed by value.
+ */
+const _shouldPassByValue = (
+  funcExpr: string,
+  idx: number,
+  targetParam: IResolvedParam["param"],
+  isCrossFile: boolean,
+  orchestrator: IOrchestrator,
+): boolean => {
+  if (!targetParam) return false;
+
+  const isFloatParam = orchestrator.isFloatType(targetParam.baseType);
+  const isEnumParam = orchestrator.getKnownEnums().has(targetParam.baseType);
+  const isPrimitivePassByValue = orchestrator.isParameterPassByValue(
+    funcExpr,
+    idx,
+  );
+  const isSmallPrimitive =
+    isCrossFile && CallExprUtils.isSmallPrimitiveType(targetParam.baseType);
+
+  // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
+  const isUnknownType =
+    !orchestrator.isStructType(targetParam.baseType) &&
+    !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
+    !CallExprUtils.isStringType(targetParam.baseType) &&
+    !isFloatParam &&
+    !isEnumParam &&
+    !isSmallPrimitive;
+
+  return (
+    isFloatParam ||
+    isEnumParam ||
+    isPrimitivePassByValue ||
+    isSmallPrimitive ||
+    isUnknownType
+  );
+};
+
+/**
  * Generate C code for a function call.
  *
  * @param funcExpr - The function name or expression being called
@@ -104,102 +195,33 @@ const generateFunctionCall = (
         input.symbolTable,
       );
       const targetParam = resolved.param;
-      const isCrossFileFunction = resolved.isCrossFile;
 
+      // C/C++ function: use pass-by-value semantics
       if (!isCNextFunc) {
-        // C/C++ function: pass-by-value, just generate the expression
-        let argCode = orchestrator.generateExpression(e);
-
-        // Issue #322: Check if parameter expects a pointer and argument is a struct
-        // If so, automatically add & to pass the address
-        if (targetParam?.baseType?.endsWith("*")) {
-          // Try getExpressionType first
-          let argType = orchestrator.getExpressionType(e);
-
-          // Issue #322: If getExpressionType returns null (e.g., for this.member),
-          // fall back to looking up the generated code in the type registry
-          if (!argType && !argCode.startsWith("&")) {
-            // The argCode is already resolved (e.g., ConfigManager_config)
-            // Look it up directly in the type registry
-            const typeInfo = input.typeRegistry.get(argCode);
-            if (typeInfo) {
-              argType = typeInfo.baseType;
-            }
-          }
-
-          // Add & if argument is a struct type (not already a pointer)
-          // Don't add & if the expression already has & prefix
-          // Don't add & if argument is already a pointer or array
-          if (
-            argType &&
-            !argType.endsWith("*") &&
-            !argCode.startsWith("&") &&
-            !targetParam.isArray &&
-            orchestrator.isStructType(argType)
-          ) {
-            argCode = `&${argCode}`;
-          }
-        }
-
-        // Issue #304: Wrap with static_cast if C++ enum class → integer
-        return wrapWithCppEnumCast(
-          argCode,
-          e,
-          targetParam?.baseType,
-          orchestrator,
-        );
+        return _generateCFunctionArg(e, targetParam, input, orchestrator);
       }
 
-      // C-Next function: check if target parameter is a pass-by-value type
-      const isFloatParam =
-        targetParam && orchestrator.isFloatType(targetParam.baseType);
-      const isEnumParam =
-        targetParam && orchestrator.getKnownEnums().has(targetParam.baseType);
-      // Issue #269: Check if small unmodified primitive (for local functions)
-      const isPrimitivePassByValue = orchestrator.isParameterPassByValue(
-        funcExpr,
-        idx,
-      );
-      // Issue #315: For cross-file functions ONLY, check if it's a small primitive type
-      // that should always be passed by value (u8, u16, i8, i16, bool).
-      // We only do this for cross-file functions because for local functions,
-      // isPrimitivePassByValue correctly considers whether the parameter is modified.
-      const isSmallPrimitive =
-        isCrossFileFunction &&
-        targetParam &&
-        CallExprUtils.isSmallPrimitiveType(targetParam.baseType);
-      // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
-      // Known structs, known primitives, and strings use pass-by-reference
-      const isUnknownType =
-        targetParam &&
-        !orchestrator.isStructType(targetParam.baseType) &&
-        !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-        !CallExprUtils.isStringType(targetParam.baseType) &&
-        !isFloatParam &&
-        !isEnumParam &&
-        !isSmallPrimitive;
-
+      // C-Next function: check if target parameter should be passed by value
       if (
-        isFloatParam ||
-        isEnumParam ||
-        isPrimitivePassByValue ||
-        isSmallPrimitive ||
-        isUnknownType
+        _shouldPassByValue(
+          funcExpr,
+          idx,
+          targetParam,
+          resolved.isCrossFile,
+          orchestrator,
+        )
       ) {
-        // Target parameter is pass-by-value: pass value directly
         const argCode = orchestrator.generateExpression(e);
-        // Issue #304: Wrap with static_cast if C++ enum class → integer
         return wrapWithCppEnumCast(
           argCode,
           e,
           targetParam?.baseType,
           orchestrator,
         );
-      } else {
-        // Target parameter is pass-by-reference: use & logic
-        // Pass the target param type for proper literal handling
-        return orchestrator.generateFunctionArg(e, targetParam?.baseType);
       }
+
+      // Target parameter is pass-by-reference: use & logic
+      return orchestrator.generateFunctionArg(e, targetParam?.baseType);
     })
     .join(", ");
 
