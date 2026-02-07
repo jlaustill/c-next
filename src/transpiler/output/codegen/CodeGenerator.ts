@@ -6578,16 +6578,17 @@ export default class CodeGenerator implements IOrchestrator {
     const postfixOps = ctx.postfixTargetOp();
 
     // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
-    if (!hasGlobal && !hasThis && postfixOps.length === 0) {
+    if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
       return SimpleIdentifierResolver.resolve(
-        identifier!,
+        identifier,
         this._buildSimpleIdentifierDeps(),
       );
     }
 
     // SonarCloud S3776: Use BaseIdentifierBuilder for base identifier
+    const safeIdentifier = identifier ?? "";
     const { result: baseResult, firstId } = BaseIdentifierBuilder.build(
-      identifier!,
+      safeIdentifier,
       hasGlobal,
       hasThis,
       this.context.currentScope,

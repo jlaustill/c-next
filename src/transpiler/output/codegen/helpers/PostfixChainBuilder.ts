@@ -35,7 +35,7 @@ class PostfixChainBuilder {
     let isFirstOp = true;
 
     for (const op of operations) {
-      if (op.memberName !== null) {
+      if (op.memberName) {
         result = PostfixChainBuilder.processMemberAccess(
           result,
           op.memberName,
