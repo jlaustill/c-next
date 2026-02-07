@@ -190,7 +190,8 @@ describe("TransitiveModificationPropagator", () => {
         modifiedParameters,
       );
 
-      // Nothing should be modified for caller since it's not tracked
+      // Caller should not be added to modifiedParameters since it wasn't tracked
+      expect(modifiedParameters.has("caller")).toBe(false);
     });
 
     it("handles circular call dependencies", () => {
