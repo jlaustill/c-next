@@ -160,7 +160,6 @@ class StringDeclHelper {
     modifiers: IStringDeclModifiers,
     isConst: boolean,
   ): IStringDeclResult {
-    // Note: atomic and volatile only used for string arrays, not simple strings
     const { extern, const: constMod } = modifiers;
 
     // String arrays: string<64> arr[4] -> char arr[4][65] = {0};
@@ -175,51 +174,71 @@ class StringDeclHelper {
       );
     }
 
-    // Simple bounded string
-    if (expression) {
-      const exprText = expression.getText();
+    // Simple bounded string without initializer
+    if (!expression) {
+      return {
+        code: `${extern}${constMod}char ${name}[${capacity + 1}] = "";`,
+        handled: true,
+      };
+    }
 
-      // Check for string concatenation
-      const concatOps = this.deps.getStringConcatOperands(expression);
-      if (concatOps) {
-        return this.generateConcatDecl(name, capacity, concatOps, constMod);
-      }
+    return this._generateBoundedStringWithInit(
+      name,
+      capacity,
+      expression,
+      extern,
+      constMod,
+    );
+  }
 
-      // Check for substring extraction
-      const substringOps = this.deps.getSubstringOperands(expression);
-      if (substringOps) {
-        return this.generateSubstringDecl(
-          name,
-          capacity,
-          substringOps,
-          constMod,
-        );
-      }
+  /**
+   * Generate bounded string with initializer expression
+   */
+  private _generateBoundedStringWithInit(
+    name: string,
+    capacity: number,
+    expression: Parser.ExpressionContext,
+    extern: string,
+    constMod: string,
+  ): IStringDeclResult {
+    // Check for string concatenation
+    const concatOps = this.deps.getStringConcatOperands(expression);
+    if (concatOps) {
+      return this.generateConcatDecl(name, capacity, concatOps, constMod);
+    }
 
-      // Validate string literal fits capacity
-      if (exprText.startsWith('"') && exprText.endsWith('"')) {
-        const content = this.deps.getStringLiteralLength(exprText);
-        if (content > capacity) {
-          throw new Error(
-            `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
-          );
-        }
-      }
+    // Check for substring extraction
+    const substringOps = this.deps.getSubstringOperands(expression);
+    if (substringOps) {
+      return this.generateSubstringDecl(name, capacity, substringOps, constMod);
+    }
 
-      // Check for string variable assignment
-      const srcCapacity = this.deps.getStringExprCapacity(exprText);
-      if (srcCapacity !== null && srcCapacity > capacity) {
+    // Validate and generate simple assignment
+    this._validateStringInit(expression.getText(), capacity);
+    const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${this.deps.generateExpression(expression)};`;
+    return { code, handled: true };
+  }
+
+  /**
+   * Validate string initialization (literal length and variable capacity)
+   */
+  private _validateStringInit(exprText: string, capacity: number): void {
+    // Validate string literal fits capacity
+    if (exprText.startsWith('"') && exprText.endsWith('"')) {
+      const content = this.deps.getStringLiteralLength(exprText);
+      if (content > capacity) {
         throw new Error(
-          `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
+          `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
         );
       }
+    }
 
-      const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${this.deps.generateExpression(expression)};`;
-      return { code, handled: true };
-    } else {
-      // Empty string initialization
-      const code = `${extern}${constMod}char ${name}[${capacity + 1}] = "";`;
-      return { code, handled: true };
+    // Check for string variable assignment
+    const srcCapacity = this.deps.getStringExprCapacity(exprText);
+    if (srcCapacity !== null && srcCapacity > capacity) {
+      throw new Error(
+        `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
+      );
     }
   }
 
