@@ -130,6 +130,8 @@ import StatementExpressionCollector from "./helpers/StatementExpressionCollector
 import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
 // Issue #566: Child statement/block collection for const inference
 import ChildStatementCollector from "./helpers/ChildStatementCollector";
+// SonarCloud S3776: Assignment target extraction for walkStatementForModifications
+import AssignmentTargetExtractor from "./helpers/AssignmentTargetExtractor";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
@@ -2778,41 +2780,7 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
-      const assign = stmt.assignmentStatement()!;
-      const target = assign.assignmentTarget();
-
-      // Issue #558: Extract base identifier from assignment target
-      // - Simple identifier: x <- value
-      // - Member access: x.field <- value (first IDENTIFIER is the base)
-      // - Array access: x[i] <- value
-      let baseIdentifier: string | null = null;
-
-      if (target?.IDENTIFIER()) {
-        baseIdentifier = target.IDENTIFIER()!.getText();
-      } else if (target?.memberAccess()) {
-        const identifiers = target.memberAccess()!.IDENTIFIER();
-        if (identifiers.length > 0) {
-          baseIdentifier = identifiers[0].getText();
-        }
-      } else if (target?.arrayAccess()) {
-        const arrayAccessCtx = target.arrayAccess()!;
-        baseIdentifier = arrayAccessCtx.IDENTIFIER()?.getText() ?? null;
-        // Issue #579: Track subscript access on parameters (for write path)
-        // Only track single-index subscript (potential array access)
-        // Two-index subscript like value[0, 8] is bit extraction, not array access
-        const isSingleIndexSubscript = arrayAccessCtx.expression().length === 1;
-        if (
-          isSingleIndexSubscript &&
-          baseIdentifier &&
-          paramSet.has(baseIdentifier)
-        ) {
-          this.subscriptAccessedParameters.get(funcName)!.add(baseIdentifier);
-        }
-      }
-
-      if (baseIdentifier && paramSet.has(baseIdentifier)) {
-        this.modifiedParameters.get(funcName)!.add(baseIdentifier);
-      }
+      this.trackAssignmentModifications(funcName, paramSet, stmt);
     }
 
     // 2. Walk all expressions in this statement for function calls and subscript access
@@ -2829,6 +2797,36 @@ export default class CodeGenerator implements IOrchestrator {
     }
     for (const block of blocks) {
       this.walkBlockForModifications(funcName, [...paramSet], block);
+    }
+  }
+
+  /**
+   * Track assignment modifications for parameter const inference.
+   * SonarCloud S3776: Extracted from walkStatementForModifications().
+   */
+  private trackAssignmentModifications(
+    funcName: string,
+    paramSet: Set<string>,
+    stmt: Parser.StatementContext,
+  ): void {
+    const assign = stmt.assignmentStatement()!;
+    const target = assign.assignmentTarget();
+
+    const { baseIdentifier, hasSingleIndexSubscript } =
+      AssignmentTargetExtractor.extract(target);
+
+    // Issue #579: Track subscript access on parameters (for write path)
+    if (
+      hasSingleIndexSubscript &&
+      baseIdentifier &&
+      paramSet.has(baseIdentifier)
+    ) {
+      this.subscriptAccessedParameters.get(funcName)!.add(baseIdentifier);
+    }
+
+    // Track as modified parameter
+    if (baseIdentifier && paramSet.has(baseIdentifier)) {
+      this.modifiedParameters.get(funcName)!.add(baseIdentifier);
     }
   }
 
