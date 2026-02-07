@@ -112,6 +112,13 @@ import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
+// SonarCloud S3776: Extracted helpers for assignment target generation
+import PostfixChainBuilder from "./helpers/PostfixChainBuilder";
+import SimpleIdentifierResolver from "./helpers/SimpleIdentifierResolver";
+import BaseIdentifierBuilder from "./helpers/BaseIdentifierBuilder";
+import ISimpleIdentifierDeps from "./types/ISimpleIdentifierDeps";
+import IPostfixChainDeps from "./types/IPostfixChainDeps";
+import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
 import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
@@ -6479,70 +6486,84 @@ export default class CodeGenerator implements IOrchestrator {
     const identifier = ctx.IDENTIFIER()?.getText();
     const postfixOps = ctx.postfixTargetOp();
 
-    // Handle simple identifier (no postfix operations, no prefix)
+    // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
     if (!hasGlobal && !hasThis && postfixOps.length === 0) {
-      const id = identifier!;
-
-      // ADR-006: Check if it's a function parameter
-      // PR #681: Use extracted ParameterDereferenceResolver for pass-by-value determination
-      const paramInfo = this.context.currentParameters.get(id);
-      if (paramInfo) {
-        return ParameterDereferenceResolver.resolve(
-          id,
-          paramInfo,
-          this._buildParameterDereferenceDeps(),
-        );
-      }
-
-      // Check if it's a local variable
-      const isLocalVariable = this.context.localVariables.has(id);
-
-      // ADR-016: Resolve bare identifier using local -> scope -> global priority
-      const resolved = this.typeValidator!.resolveBareIdentifier(
-        id,
-        isLocalVariable,
-        (name: string) => this.isKnownStruct(name),
+      return SimpleIdentifierResolver.resolve(
+        identifier!,
+        this._buildSimpleIdentifierDeps(),
       );
-
-      // If resolved to a different name, use it
-      if (resolved !== null) {
-        return resolved;
-      }
-
-      return id;
     }
 
-    // Build base identifier with scope prefix if needed
-    let result: string;
-    let firstId = identifier!;
-
-    if (hasGlobal) {
-      // global.x - firstId is x, no prefix needed for code generation
-      result = firstId;
-    } else if (hasThis) {
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
-      // this.x - prefix with current scope
-      result = `${this.context.currentScope}_${firstId}`;
-    } else {
-      // Bare identifier with postfix ops
-      result = firstId;
-
-      // ADR-006: Check if it's a function parameter (for -> access)
-      const paramInfo = this.context.currentParameters.get(firstId);
-      if (paramInfo && !paramInfo.isArray && paramInfo.isStruct) {
-        // Struct parameter needs (*param) when accessed alone, but -> when accessing members
-        // We'll handle the -> separator in the postfix processing
-      }
-    }
+    // SonarCloud S3776: Use BaseIdentifierBuilder for base identifier
+    const { result: baseResult, firstId } = BaseIdentifierBuilder.build(
+      identifier!,
+      hasGlobal,
+      hasThis,
+      this.context.currentScope,
+    );
 
     // No postfix operations - return base
     if (postfixOps.length === 0) {
-      return result;
+      return baseResult;
     }
 
-    // PR #681: Build separator context and dependencies using extracted utilities
+    // SonarCloud S3776: Use PostfixChainBuilder for postfix operations
+    const operations = this._extractPostfixOperations(postfixOps);
+    const postfixDeps = this._buildPostfixChainDeps(
+      firstId,
+      hasGlobal,
+      hasThis,
+    );
+
+    return PostfixChainBuilder.build(
+      baseResult,
+      firstId,
+      operations,
+      postfixDeps,
+    );
+  }
+
+  /**
+   * Build dependencies for SimpleIdentifierResolver
+   */
+  private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
+    return {
+      getParameterInfo: (name: string) =>
+        this.context.currentParameters.get(name),
+      resolveParameter: (name: string, paramInfo: TParameterInfo) =>
+        ParameterDereferenceResolver.resolve(
+          name,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        ),
+      isLocalVariable: (name: string) => this.context.localVariables.has(name),
+      resolveBareIdentifier: (name: string, isLocal: boolean) =>
+        this.typeValidator!.resolveBareIdentifier(name, isLocal, (n: string) =>
+          this.isKnownStruct(n),
+        ),
+    };
+  }
+
+  /**
+   * Extract postfix operations from parser contexts
+   */
+  private _extractPostfixOperations(
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): IPostfixOperation[] {
+    return postfixOps.map((op) => ({
+      memberName: op.IDENTIFIER()?.getText() ?? null,
+      expressions: op.expression(),
+    }));
+  }
+
+  /**
+   * Build dependencies for PostfixChainBuilder
+   */
+  private _buildPostfixChainDeps(
+    firstId: string,
+    hasGlobal: boolean,
+    hasThis: boolean,
+  ): IPostfixChainDeps {
     const paramInfo = this.context.currentParameters.get(firstId);
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
@@ -6559,45 +6580,22 @@ export default class CodeGenerator implements IOrchestrator {
         isCppAccess,
       );
 
-    // Process postfix operations in order
-    let identifierChain: string[] = [firstId]; // Track all identifiers for register detection
-    let isFirstOp = true;
-
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        // Member access: .identifier
-        const memberName = op.IDENTIFIER()!.getText();
-        identifierChain.push(memberName);
-
-        // PR #681: Use extracted MemberSeparatorResolver for separator determination
-        const separator = MemberSeparatorResolver.getSeparator(
+    return {
+      generateExpression: (expr: unknown) =>
+        this._generateExpression(expr as Parser.ExpressionContext),
+      getSeparator: (
+        isFirstOp: boolean,
+        identifierChain: string[],
+        memberName: string,
+      ) =>
+        MemberSeparatorResolver.getSeparator(
           isFirstOp,
           identifierChain,
           memberName,
           separatorCtx,
           separatorDeps,
-        );
-        isFirstOp = false;
-
-        result += `${separator}${memberName}`;
-      } else {
-        // Array subscript or bit range: [expr] or [expr, expr]
-        const expressions = op.expression();
-        if (expressions.length === 1) {
-          // Single subscript: array access or single bit
-          const indexExpr = this._generateExpression(expressions[0]);
-          result += `[${indexExpr}]`;
-        } else if (expressions.length === 2) {
-          // Bit range: [start, width]
-          const start = this._generateExpression(expressions[0]);
-          const width = this._generateExpression(expressions[1]);
-          result += `[${start}, ${width}]`;
-        }
-        isFirstOp = false;
-      }
-    }
-
-    return result;
+        ),
+    };
   }
 
   // ADR-016: Validate cross-scope visibility (issue #165)
