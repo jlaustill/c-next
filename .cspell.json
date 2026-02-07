@@ -334,6 +334,7 @@
   "ignorePaths": [
     "node_modules/**",
     "dist/**",
+    "src/antlr_parser/**",
     "**/parser/**/grammar/**",
     "package-lock.json",
     "coverage/**",
