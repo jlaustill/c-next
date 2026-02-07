@@ -100,6 +100,8 @@ import CppMemberHelper from "./helpers/CppMemberHelper";
 import IPostfixOp from "./helpers/types/IPostfixOp";
 // PR #715: Boolean conversion helper for improved testability
 import BooleanHelper from "./helpers/BooleanHelper";
+// PR #715: C++ constructor detection helper for improved testability
+import CppConstructorHelper from "./helpers/CppConstructorHelper";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
@@ -1829,23 +1831,7 @@ export default class CodeGenerator implements IOrchestrator {
    * We check for the existence of a constructor symbol (TypeName::ClassName).
    */
   private _isCppClassWithConstructor(typeName: string): boolean {
-    // Convert underscore format to :: for namespaced types
-    // e.g., TestNS_MyClass -> TestNS::MyClass
-    let qualifiedName = typeName;
-    if (typeName.includes("_") && !typeName.includes("::")) {
-      qualifiedName = typeName.replaceAll("_", "::");
-    }
-
-    // Extract just the class name (part after last ::)
-    // e.g., TestNS::MyClass -> MyClass, CppTestClass -> CppTestClass
-    const parts = qualifiedName.split("::");
-    const className = parts.at(-1)!;
-
-    // Constructor name follows the pattern: FullTypeName::ClassName
-    // e.g., TestNS::MyClass::MyClass, CppTestClass::CppTestClass
-    const constructorName = `${qualifiedName}::${className}`;
-    const constructorSymbol = this.symbolTable?.getSymbol(constructorName);
-    return constructorSymbol?.kind === ESymbolKind.Function;
+    return CppConstructorHelper.hasConstructor(typeName, this.symbolTable);
   }
 
   private foldBooleanToInt(expr: string): string {
