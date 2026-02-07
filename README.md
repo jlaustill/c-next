@@ -94,6 +94,14 @@ cnext src/ -o build/src --header-out build/include --clean
 cnext --help
 ```
 
+## VS Code Extension
+
+The C-Next VS Code extension provides syntax highlighting, live C preview, IntelliSense, and error diagnostics.
+
+**Install from:** [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jlaustill.vscode-c-next) (coming soon)
+
+**Source:** [github.com/jlaustill/vscode-c-next](https://github.com/jlaustill/vscode-c-next)
+
 ## Getting Started with PlatformIO
 
 C-Next integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c` before each build.

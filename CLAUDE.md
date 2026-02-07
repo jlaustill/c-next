@@ -33,11 +33,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 - Fix any oxlint errors in code you write or modify
 - Legacy errors in untouched files can be ignored (fix as you go)
 - Pre-commit hooks use `lint-staged` to only check files you're committing
-- **Lint scope**: `npm run oxlint:check` only covers `src/`, not `vscode-extension/` or `scripts/`
-
-### VS Code Extension Caveats
-
-- **Pre-commit hooks**: The vscode-extension requires named exports (`activate`, `deactivate`) per VS Code API. Use `git commit --no-verify` when committing vscode-extension changes, as oxlint's no-named-export rule conflicts with VS Code requirements.
+- **Lint scope**: `npm run oxlint:check` only covers `src/`, not `scripts/`
 
 ### Git Merge Commits
 
@@ -503,7 +499,7 @@ If implementing a feature, all documents must be current and memory must be upda
 - `npx knip` — Find unused files, exports, and dependencies (config: `knip.json`)
 - `npx knip --include classMembers` — Find unused class methods (many false positives from generated parser files)
 - `npm run analyze:prune` — Find exported functions/classes not imported anywhere (ts-prune)
-- `parseWithSymbols.ts` is a public API entry point (used by vscode-extension)
+- `parseWithSymbols.ts` is a public API entry point (used by server mode)
 - **Singleton limitation**: knip can't detect unused methods on exported class instances — use static classes instead
 
 **Code duplication:**
@@ -531,15 +527,7 @@ If implementing a feature, all documents must be current and memory must be upda
 Quick reference for VS Code extension updates (if grammar changed):
 
 1. **Regenerate parser** if grammar changed: `npm run antlr`
-2. **Update VS Code extension** (`vscode-extension/`):
+2. **Update VS Code extension** (separate repo: [vscode-c-next](https://github.com/jlaustill/vscode-c-next)):
    - Sync `tmLanguage.json` with any new keywords, types, or syntax
    - Sync `completionProvider.ts` keywords with actual C-Next keywords
-   - Bump version in `package.json`
-3. **Rebuild and test extension**:
-   ```bash
-   cd vscode-extension
-   npm run compile
-   npx vsce package --allow-missing-repository
-   code --install-extension c-next-*.vsix --force
-   ```
-4. **Verify** syntax highlighting and autocompletion work for new features
+   - Tag a new version to publish to marketplace

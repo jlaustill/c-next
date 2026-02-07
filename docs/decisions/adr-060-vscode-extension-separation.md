@@ -278,8 +278,8 @@ vscode-c-next/
 
 - [ ] Verify CI passes
 - [ ] Tag v1.0.0 to publish
-- [ ] Update main repo README to link to marketplace
-- [ ] Remove `vscode-extension/` from main repo
+- [x] Update main repo README to link to marketplace
+- [x] Remove `vscode-extension/` from main repo
 
 ---
 
