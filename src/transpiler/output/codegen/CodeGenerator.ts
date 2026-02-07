@@ -109,8 +109,6 @@ import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
 import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
-// Issue #696: Integer literal validation helper
-import IntegerLiteralValidator from "./helpers/IntegerLiteralValidator";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
@@ -132,9 +130,7 @@ const {
 
 const {
   getLeadingComments: commentGetLeadingComments,
-  getTrailingComments: commentGetTrailingComments,
   formatLeadingComments: commentFormatLeadingComments,
-  formatTrailingComment: commentFormatTrailingComment,
 } = commentUtils;
 
 /**
@@ -397,9 +393,6 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Assignment validation coordinator helper */
   private assignmentValidator: AssignmentValidator | null = null;
-
-  /** Issue #696: Integer literal validation helper */
-  private integerLiteralValidator: IntegerLiteralValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2177,19 +2170,6 @@ export default class CodeGenerator implements IOrchestrator {
       tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
       isCallbackTypeUsedAsFieldType: (name) =>
         this._isCallbackTypeUsedAsFieldType(name),
-    });
-
-    this.integerLiteralValidator = new IntegerLiteralValidator({
-      isIntegerType: (name) => this._isIntegerType(name),
-      validateLiteralFitsType: (literal, typeName) =>
-        this._validateLiteralFitsType(literal, typeName),
-      getExpressionType: (exprText) => {
-        // For simple expressions, try to infer the type
-        // This is a simplified version - full expression parsing would be more complex
-        return this.context.typeRegistry.get(exprText)?.baseType ?? null;
-      },
-      validateTypeConversion: (targetType, sourceType) =>
-        this._validateTypeConversion(targetType, sourceType),
     });
   }
 
@@ -4718,52 +4698,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Check if a unary expression is a literal (including negated literals)
-   */
-  private _isUnaryExpressionLiteral(
-    unaryExpr: Parser.UnaryExpressionContext,
-  ): boolean {
-    const postfixExpr = unaryExpr.postfixExpression();
-
-    // Handle negated literals: -50, -3.14, etc.
-    if (!postfixExpr) {
-      return this._isNegatedLiteral(unaryExpr);
-    }
-
-    return this._isPostfixLiteral(postfixExpr);
-  }
-
-  /**
-   * Check if unary expression is a negated literal (-50, -3.14)
-   */
-  private _isNegatedLiteral(unaryExpr: Parser.UnaryExpressionContext): boolean {
-    const nestedUnary = unaryExpr.unaryExpression();
-    if (!nestedUnary || !unaryExpr.getText().startsWith("-")) {
-      return false;
-    }
-
-    const nestedPostfix = nestedUnary.postfixExpression();
-    if (!nestedPostfix) return false;
-
-    return this._isPostfixLiteral(nestedPostfix);
-  }
-
-  /**
-   * Check if postfix expression is a simple literal (no postfix ops, non-string)
-   */
-  private _isPostfixLiteral(
-    postfixExpr: Parser.PostfixExpressionContext,
-  ): boolean {
-    if (postfixExpr.postfixOp().length > 0) return false;
-
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return false;
-
-    const literal = primaryExpr.literal();
-    return literal !== null && !literal.STRING_LITERAL();
-  }
-
-  /**
    * Generate a function argument with proper ADR-006 semantics.
    * - Local variables get & (address-of)
    * - Member access (cursor.x) gets & (address-of)
@@ -6726,39 +6660,6 @@ export default class CodeGenerator implements IOrchestrator {
     return this.invokeStatement("switch", ctx);
   }
 
-  private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
-    const result = switchGenerators.generateSwitchCase(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
-  private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
-    const result = switchGenerators.generateCaseLabel(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
-  private generateDefaultCase(ctx: Parser.DefaultCaseContext): string {
-    const result = switchGenerators.generateDefaultCase(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
   // ========================================================================
   // Expressions
   // ========================================================================
@@ -6768,51 +6669,8 @@ export default class CodeGenerator implements IOrchestrator {
     return this.invokeExpression("expression", ctx);
   }
 
-  // ADR-022: Ternary operator with safety constraints
-  private generateTernaryExpr(ctx: Parser.TernaryExpressionContext): string {
-    return this.invokeExpression("ternary", ctx);
-  }
-
   private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
     return this.invokeExpression("or", ctx);
-  }
-
-  private generateAndExpr(ctx: Parser.AndExpressionContext): string {
-    return this.invokeExpression("and", ctx);
-  }
-
-  // ADR-001: = becomes == in C
-  // ADR-017: Enum type safety validation
-  private generateEqualityExpr(ctx: Parser.EqualityExpressionContext): string {
-    return this.invokeExpression("equality", ctx);
-  }
-
-  private generateRelationalExpr(
-    ctx: Parser.RelationalExpressionContext,
-  ): string {
-    return this.invokeExpression("relational", ctx);
-  }
-
-  private generateBitwiseOrExpr(
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): string {
-    return this.invokeExpression("bitwise-or", ctx);
-  }
-
-  private generateBitwiseXorExpr(
-    ctx: Parser.BitwiseXorExpressionContext,
-  ): string {
-    return this.invokeExpression("bitwise-xor", ctx);
-  }
-
-  private generateBitwiseAndExpr(
-    ctx: Parser.BitwiseAndExpressionContext,
-  ): string {
-    return this.invokeExpression("bitwise-and", ctx);
-  }
-
-  private generateShiftExpr(ctx: Parser.ShiftExpressionContext): string {
-    return this.invokeExpression("shift", ctx);
   }
 
   // Issue #63: validateShiftAmount, getTypeWidth, evaluateShiftAmount,
@@ -7871,15 +7729,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get inline comments that appear after a parse tree node (same line)
-   */
-  private getTrailingComments(ctx: {
-    stop?: { tokenIndex: number } | null;
-  }): IComment[] {
-    return commentGetTrailingComments(ctx, this.commentExtractor);
-  }
-
-  /**
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
@@ -7889,13 +7738,6 @@ export default class CodeGenerator implements IOrchestrator {
       this.commentFormatter,
       indent,
     );
-  }
-
-  /**
-   * Format a trailing/inline comment
-   */
-  private formatTrailingComment(comments: IComment[]): string {
-    return commentFormatTrailingComment(comments, this.commentFormatter);
   }
 
   /**
