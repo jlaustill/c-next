@@ -55,7 +55,7 @@ describe("Transpiler coverage tests", () => {
       // Check output file has .cpp extension
       const writeCalls = mockFs.getWriteLog();
       expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
-    });
+    }, 10000); // Extended timeout for ANTLR parser initialization in CI
 
     it("transpileSource respects cppRequired config", async () => {
       const transpiler = new Transpiler(
