@@ -5600,11 +5600,14 @@ export default class CodeGenerator implements IOrchestrator {
     this.updateFunctionParamsAutoConst(name);
 
     // Now generate parameter list (can use modifiedParameters for auto-const)
-    const params = isMainWithArgs
-      ? initialParams
-      : ctx.parameterList()
-        ? this._generateParameterList(ctx.parameterList()!)
-        : "void";
+    let params: string;
+    if (isMainWithArgs) {
+      params = initialParams;
+    } else if (ctx.parameterList()) {
+      params = this._generateParameterList(ctx.parameterList()!);
+    } else {
+      params = "void";
+    }
 
     // Clean up function context
     this._cleanupFunctionContext();
