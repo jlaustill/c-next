@@ -128,7 +128,9 @@ class CNextServerClient {
 
       // Log stderr for debugging
       this.process.stderr?.on("data", (data) => {
-        this.outputChannel.appendLine(`[server stderr] ${data.toString().trim()}`);
+        this.outputChannel.appendLine(
+          `[server stderr] ${data.toString().trim()}`,
+        );
       });
 
       // Handle process exit
@@ -224,7 +226,9 @@ class CNextServerClient {
    * Transpile C-Next source code
    */
   async transpile(source: string): Promise<ITranspileResult> {
-    const result = (await this.sendRequest("transpile", { source })) as ITranspileResult;
+    const result = (await this.sendRequest("transpile", {
+      source,
+    })) as ITranspileResult;
     return result;
   }
 
