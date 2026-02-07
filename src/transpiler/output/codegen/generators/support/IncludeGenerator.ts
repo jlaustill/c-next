@@ -16,68 +16,114 @@ interface IIncludeTransformOptions {
 }
 
 /**
+ * Resolve angle-bracket include path from inputs.
+ * SonarCloud S3776: Extracted from transformIncludeDirective().
+ */
+const resolveAngleIncludePath = (
+  filename: string,
+  sourcePath: string,
+  includeDirs: string[],
+  inputs: string[],
+): string | null => {
+  if (inputs.length === 0) {
+    return null;
+  }
+
+  const sourceDir = path.dirname(sourcePath);
+  const searchPaths = [sourceDir, ...includeDirs];
+  const foundPath = CnxFileResolver.findCnxFile(filename, searchPaths);
+
+  if (!foundPath) {
+    return null;
+  }
+
+  const relativePath = CnxFileResolver.getRelativePathFromInputs(
+    foundPath,
+    inputs,
+  );
+
+  return relativePath ? relativePath.replace(/\.cnx$/, ".h") : null;
+};
+
+/**
+ * Process angle-bracket includes: #include <file.cnx>
+ * SonarCloud S3776: Extracted from transformIncludeDirective().
+ */
+const transformAngleInclude = (
+  includeText: string,
+  filename: string,
+  options: IIncludeTransformOptions,
+): string => {
+  const { sourcePath, includeDirs = [], inputs = [] } = options;
+
+  // Try to resolve the correct output path
+  if (sourcePath) {
+    const resolvedPath = resolveAngleIncludePath(
+      filename,
+      sourcePath,
+      includeDirs,
+      inputs,
+    );
+    if (resolvedPath) {
+      return includeText.replace(`<${filename}.cnx>`, `<${resolvedPath}>`);
+    }
+  }
+
+  // Fallback: simple replacement
+  return includeText.replace(`<${filename}.cnx>`, `<${filename}.h>`);
+};
+
+/**
+ * Process quote includes: #include "file.cnx"
+ * SonarCloud S3776: Extracted from transformIncludeDirective().
+ */
+const transformQuoteInclude = (
+  includeText: string,
+  filepath: string,
+  options: IIncludeTransformOptions,
+): string => {
+  const { sourcePath } = options;
+
+  // Validate .cnx file exists if we have source path
+  if (sourcePath) {
+    const sourceDir = path.dirname(sourcePath);
+    const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
+
+    if (!CnxFileResolver.cnxFileExists(cnxPath)) {
+      throw new Error(
+        `Error: Included C-Next file not found: ${filepath}.cnx\n` +
+          `  Searched at: ${cnxPath}\n` +
+          `  Referenced in: ${sourcePath}`,
+      );
+    }
+  }
+
+  // Transform to .h
+  return includeText.replace(`"${filepath}.cnx"`, `"${filepath}.h"`);
+};
+
+/**
  * ADR-010: Transform #include directives, converting .cnx to .h
  * Validates that .cnx files exist if sourcePath is available
  * Supports both <file.cnx> and "file.cnx" forms
  *
  * Issue #349: For angle-bracket includes, resolves the correct output path
  * by finding the .cnx file and calculating its relative path from inputs.
+ * SonarCloud S3776: Refactored to use helper functions.
  */
 const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const { sourcePath, includeDirs = [], inputs = [] } = options;
-
   // Match: #include <file.cnx> or #include "file.cnx"
   const angleMatch = /#\s*include\s*<([^>]+)\.cnx>/.exec(includeText);
-  const quoteMatch = /#\s*include\s*"([^"]+)\.cnx"/.exec(includeText);
-
   if (angleMatch) {
-    const filename = angleMatch[1];
+    return transformAngleInclude(includeText, angleMatch[1], options);
+  }
 
-    // Issue #349: Try to resolve the .cnx file to get correct output path
-    if (sourcePath) {
-      const sourceDir = path.dirname(sourcePath);
-      // Build search paths: source directory first, then include directories
-      const searchPaths = [sourceDir, ...includeDirs];
-
-      const foundPath = CnxFileResolver.findCnxFile(filename, searchPaths);
-      if (foundPath && inputs.length > 0) {
-        // Calculate relative path from inputs for correct header path
-        const relativePath = CnxFileResolver.getRelativePathFromInputs(
-          foundPath,
-          inputs,
-        );
-        if (relativePath) {
-          // Transform .cnx to .h
-          const headerPath = relativePath.replace(/\.cnx$/, ".h");
-          return includeText.replace(`<${filename}.cnx>`, `<${headerPath}>`);
-        }
-      }
-    }
-
-    // Fallback: simple replacement (for external includes or when resolution fails)
-    return includeText.replace(`<${filename}.cnx>`, `<${filename}.h>`);
-  } else if (quoteMatch) {
-    const filepath = quoteMatch[1];
-
-    // Validate .cnx file exists if we have source path
-    if (sourcePath) {
-      const sourceDir = path.dirname(sourcePath);
-      const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
-
-      if (!CnxFileResolver.cnxFileExists(cnxPath)) {
-        throw new Error(
-          `Error: Included C-Next file not found: ${filepath}.cnx\n` +
-            `  Searched at: ${cnxPath}\n` +
-            `  Referenced in: ${sourcePath}`,
-        );
-      }
-    }
-
-    // Transform to .h
-    return includeText.replace(`"${filepath}.cnx"`, `"${filepath}.h"`);
+  const quoteMatch = /#\s*include\s*"([^"]+)\.cnx"/.exec(includeText);
+  if (quoteMatch) {
+    return transformQuoteInclude(includeText, quoteMatch[1], options);
   }
 
   // Not a .cnx include - pass through unchanged
