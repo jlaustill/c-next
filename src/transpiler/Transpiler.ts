@@ -679,6 +679,7 @@ class Transpiler {
   /**
    * Stage 2: Collect symbols from a single C/C++ header
    * Issue #592: Recursive include processing moved to IncludeResolver.resolveHeadersTransitively()
+   * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
    */
   private doCollectHeaderSymbols(file: IDiscoveredFile): void {
     // Track as processed (for cycle detection in transpileSource path)
@@ -686,48 +687,13 @@ class Transpiler {
     this.state.markHeaderProcessed(absolutePath);
 
     // Check cache first
-    if (this.cacheManager?.isValid(file.path)) {
-      const cached = this.cacheManager.getSymbols(file.path);
-      if (cached) {
-        // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-        this.symbolTable.addSymbols(cached.symbols);
-        this.symbolTable.restoreStructFields(cached.structFields);
-        this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
-        this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
-
-        // Issue #211: Still check for C++ syntax even on cache hit
-        // The detection is cheap (regex only) and ensures cppDetected is set correctly
-        if (file.type === EFileType.CHeader) {
-          const content = this.fs.readFile(file.path);
-          if (detectCppSyntax(content)) {
-            this.cppDetected = true;
-          }
-        } else if (file.type === EFileType.CppHeader) {
-          // .hpp files are always C++
-          this.cppDetected = true;
-        }
-
-        return; // Cache hit - skip full parsing
-      }
+    if (this.tryRestoreFromCache(file)) {
+      return; // Cache hit - skip full parsing
     }
 
-    // Read content for parsing
+    // Read content and parse
     const content = this.fs.readFile(file.path);
-
-    // Parse based on file type
-    if (file.type === EFileType.CHeader) {
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Parsing C header: ${file.path}`);
-      }
-      this.parseCHeader(content, file.path);
-    } else if (file.type === EFileType.CppHeader) {
-      // Issue #211: .hpp files are always C++
-      this.cppDetected = true;
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
-      }
-      this.parseCppHeader(content, file.path);
-    }
+    this.parseHeaderFile(file, content);
 
     // Debug: Show symbols found
     if (this.config.debugMode) {
@@ -738,6 +704,74 @@ class Transpiler {
     // Issue #590: Cache the results using simplified API
     if (this.cacheManager) {
       this.cacheManager.setSymbolsFromTable(file.path, this.symbolTable);
+    }
+  }
+
+  /**
+   * Try to restore symbols from cache. Returns true if cache hit.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   */
+  private tryRestoreFromCache(file: IDiscoveredFile): boolean {
+    if (!this.cacheManager?.isValid(file.path)) {
+      return false;
+    }
+
+    const cached = this.cacheManager.getSymbols(file.path);
+    if (!cached) {
+      return false;
+    }
+
+    // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
+    this.symbolTable.addSymbols(cached.symbols);
+    this.symbolTable.restoreStructFields(cached.structFields);
+    this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
+    this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
+
+    // Issue #211: Still check for C++ syntax even on cache hit
+    this.detectCppFromFileType(file);
+
+    return true;
+  }
+
+  /**
+   * Detect C++ mode based on file type and content.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   */
+  private detectCppFromFileType(file: IDiscoveredFile): void {
+    if (file.type === EFileType.CppHeader) {
+      // .hpp files are always C++
+      this.cppDetected = true;
+      return;
+    }
+
+    if (file.type === EFileType.CHeader) {
+      const content = this.fs.readFile(file.path);
+      if (detectCppSyntax(content)) {
+        this.cppDetected = true;
+      }
+    }
+  }
+
+  /**
+   * Parse a header file based on its type.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   */
+  private parseHeaderFile(file: IDiscoveredFile, content: string): void {
+    if (file.type === EFileType.CHeader) {
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Parsing C header: ${file.path}`);
+      }
+      this.parseCHeader(content, file.path);
+      return;
+    }
+
+    if (file.type === EFileType.CppHeader) {
+      // Issue #211: .hpp files are always C++
+      this.cppDetected = true;
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
+      }
+      this.parseCppHeader(content, file.path);
     }
   }
 
