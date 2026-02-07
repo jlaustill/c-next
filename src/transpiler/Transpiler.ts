@@ -1031,31 +1031,12 @@ class Transpiler {
       }
 
       // Issue #465: Merge enum info from included .cnx files (including transitive)
-      // This enables external enum member references to get the correct type prefix
-      const externalEnumSources: ICodeGenSymbols[] = [];
-
-      // Use context.symbolInfoByFile when provided, otherwise use state's map
-      const symbolInfoByFile =
-        context?.symbolInfoByFile ?? this.state.getSymbolInfoByFileMap();
-
-      if (context) {
-        // Issue #588: When context is provided, use TransitiveEnumCollector
-        // This is more efficient as run() has already populated symbolInfoByFile
-        const transitiveInfo = TransitiveEnumCollector.collect(
-          sourcePath,
-          this.state.getSymbolInfoByFileMap(),
-          this.config.includeDirs,
-        );
-        externalEnumSources.push(...transitiveInfo);
-      } else if (resolved) {
-        // Issue #591: Standalone mode - use unified collectForStandalone method
-        const transitiveInfo = TransitiveEnumCollector.collectForStandalone(
-          resolved.cnextIncludes,
-          symbolInfoByFile,
-          this.config.includeDirs,
-        );
-        externalEnumSources.push(...transitiveInfo);
-      }
+      // SonarCloud S3776: Extracted to collectExternalEnumSources helper
+      const externalEnumSources = this.collectExternalEnumSources(
+        context,
+        sourcePath,
+        resolved,
+      );
 
       // Merge external enum info if any includes were found
       if (externalEnumSources.length > 0) {
@@ -1066,20 +1047,8 @@ class Transpiler {
       }
 
       // Issue #593: Inject cross-file modification data for const inference
-      // When context is provided, use its accumulated data; otherwise use the analyzer
-      const accumulatedModifications =
-        context?.accumulatedModifications ??
-        this.modificationAnalyzer.getModifications();
-      const accumulatedParamLists =
-        context?.accumulatedParamLists ??
-        this.modificationAnalyzer.getParamLists();
-
-      if (cppMode && accumulatedModifications.size > 0) {
-        this.codeGenerator.setCrossFileModifications(
-          accumulatedModifications,
-          accumulatedParamLists,
-        );
-      }
+      // SonarCloud S3776: Extracted to setupCrossFileModifications helper
+      this.setupCrossFileModifications(context, cppMode);
 
       const code = this.codeGenerator.generate(tree, symbolTable, tokenStream, {
         debugMode: context?.debugMode ?? this.config.debugMode,
@@ -1387,6 +1356,64 @@ class Transpiler {
       passByValueParams,
       symbolInfo.knownEnums,
     );
+  }
+
+  /**
+   * Collect external enum sources from included C-Next files.
+   * SonarCloud S3776: Extracted from transpileSource() for reduced complexity.
+   */
+  private collectExternalEnumSources(
+    context: ITranspileContext | undefined,
+    sourcePath: string,
+    resolved: ReturnType<
+      InstanceType<typeof IncludeResolver>["resolve"]
+    > | null,
+  ): ICodeGenSymbols[] {
+    const symbolInfoByFile =
+      context?.symbolInfoByFile ?? this.state.getSymbolInfoByFileMap();
+
+    if (context) {
+      // Context mode: use TransitiveEnumCollector with pre-populated symbolInfoByFile
+      return TransitiveEnumCollector.collect(
+        sourcePath,
+        this.state.getSymbolInfoByFileMap(),
+        this.config.includeDirs,
+      );
+    }
+
+    if (resolved) {
+      // Standalone mode: use unified collectForStandalone method
+      return TransitiveEnumCollector.collectForStandalone(
+        resolved.cnextIncludes,
+        symbolInfoByFile,
+        this.config.includeDirs,
+      );
+    }
+
+    return [];
+  }
+
+  /**
+   * Setup cross-file modification tracking for const inference.
+   * SonarCloud S3776: Extracted from transpileSource() for reduced complexity.
+   */
+  private setupCrossFileModifications(
+    context: ITranspileContext | undefined,
+    cppMode: boolean,
+  ): void {
+    const accumulatedModifications =
+      context?.accumulatedModifications ??
+      this.modificationAnalyzer.getModifications();
+    const accumulatedParamLists =
+      context?.accumulatedParamLists ??
+      this.modificationAnalyzer.getParamLists();
+
+    if (cppMode && accumulatedModifications.size > 0) {
+      this.codeGenerator.setCrossFileModifications(
+        accumulatedModifications,
+        accumulatedParamLists,
+      );
+    }
   }
 
   /**
