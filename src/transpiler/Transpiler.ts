@@ -48,6 +48,7 @@ import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import AnalyzerContextBuilder from "./logic/analysis/AnalyzerContextBuilder";
 import CacheManager from "../utils/cache/CacheManager";
+import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import AutoConstUpdater from "./logic/symbols/AutoConstUpdater";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
@@ -1098,10 +1099,7 @@ class Transpiler {
 
       // Get pass-by-value params (snapshot before next file clears it)
       const passByValue = this.codeGenerator.getPassByValueParams();
-      const passByValueCopy = new Map<string, Set<string>>();
-      for (const [funcName, params] of passByValue) {
-        passByValueCopy.set(funcName, new Set(params));
-      }
+      const passByValueCopy = MapUtils.deepCopyStringSetMap(passByValue);
 
       // Issue #634: Symbol collection moved to before code generation (line ~905)
       // This consolidates the timing with run() path - both now collect symbols before generate()
