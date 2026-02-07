@@ -73,6 +73,7 @@ npm run unit:coverage
 ```
 
 - **SonarCloud coverage on new code**: The quality gate requires >= 80% on new lines. Even 1 uncovered line in a small PR can fail the gate. Run `npm run unit:coverage` and check new/modified methods before pushing.
+- **New code vs file coverage**: SonarCloud measures coverage on _new code_ in the PR, not total file coverage. A file at 70% can pass if the new lines have 80%+ coverage.
 - **Widening interface return types**: When changing a return type (e.g., `{ baseType, isArray }` → `TTypeInfo`), search for ALL test mocks of that method and update them to include newly required fields. Use `Grep` for the method name across `__tests__/` directories.
 
 Check the terminal report for files you changed — any new code below 80% coverage will fail the quality gate.
@@ -269,6 +270,14 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 - **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
 - **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
 
+### Test Type Requirements
+
+When mocking types in CodeGenerator tests:
+
+- **TTypeInfo**: requires `baseType`, `bitWidth`, `isArray`, `isConst` fields
+- **TParameterInfo**: requires `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString` fields
+- Use `new Map<string, TParameterInfo>([...])` for typed parameter maps
+
 ### Cross-File Testing
 
 - **Symbol resolution features** (enums, structs, types): Always test with symbols defined in included files, not just same-file
@@ -377,6 +386,9 @@ u32 main() {
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
 - **C++ mode uses references**: In C++ mode, `const T` struct params become `const T&` (reference) with `.` member access and direct argument passing. In C mode, they become `const T*` (pointer) with `->` and `&` prefix.
 - **Struct tests need expected headers**: Tests using struct types require `.expected.h` files alongside `.expected.c` to prevent header deletion by test framework.
+- **String capacity output**: `string<32>` generates `char name[33]` (capacity + 1 for null terminator)
+- **String concatenation**: Uses `strncpy`/`strncat`, not `snprintf`
+- **Callback struct syntax**: Use function name as type (`handleClick onClick;`), not C-style pointers
 
 ### Test Framework Internals
 

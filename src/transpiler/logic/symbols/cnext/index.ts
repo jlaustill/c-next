@@ -76,44 +76,63 @@ class CNextResolver {
     for (const decl of tree.declaration()) {
       // Top-level const variables
       if (decl.variableDeclaration()) {
-        const varCtx = decl.variableDeclaration()!;
-        if (varCtx.constModifier()) {
-          const name = varCtx.IDENTIFIER().getText();
-          const exprCtx = varCtx.expression();
-          if (exprCtx) {
-            const value = LiteralUtils.parseIntegerLiteral(exprCtx.getText());
-            if (value !== undefined) {
-              constValues.set(name, value);
-            }
-          }
-        }
+        CNextResolver._collectConstFromVar(
+          decl.variableDeclaration()!,
+          undefined,
+          constValues,
+        );
       }
 
       // Const variables inside scopes
       if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
+        CNextResolver._collectConstFromScope(
+          decl.scopeDeclaration()!,
+          constValues,
+        );
+      }
+    }
+  }
 
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.variableDeclaration()) {
-            const varCtx = member.variableDeclaration()!;
-            if (varCtx.constModifier()) {
-              const name = varCtx.IDENTIFIER().getText();
-              const fullName = `${scopeName}_${name}`;
-              const exprCtx = varCtx.expression();
-              if (exprCtx) {
-                const value = LiteralUtils.parseIntegerLiteral(
-                  exprCtx.getText(),
-                );
-                if (value !== undefined) {
-                  // Store both bare name and scoped name for flexibility
-                  constValues.set(name, value);
-                  constValues.set(fullName, value);
-                }
-              }
-            }
-          }
-        }
+  /**
+   * Collect const value from a single variable declaration
+   */
+  private static _collectConstFromVar(
+    varCtx: Parser.VariableDeclarationContext,
+    scopeName: string | undefined,
+    constValues: Map<string, number>,
+  ): void {
+    if (!varCtx.constModifier()) return;
+
+    const exprCtx = varCtx.expression();
+    if (!exprCtx) return;
+
+    const value = LiteralUtils.parseIntegerLiteral(exprCtx.getText());
+    if (value === undefined) return;
+
+    const name = varCtx.IDENTIFIER().getText();
+    constValues.set(name, value);
+
+    // Store scoped name as well for scoped variables
+    if (scopeName) {
+      constValues.set(`${scopeName}_${name}`, value);
+    }
+  }
+
+  /**
+   * Collect const values from all variables in a scope
+   */
+  private static _collectConstFromScope(
+    scopeDecl: Parser.ScopeDeclarationContext,
+    constValues: Map<string, number>,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.variableDeclaration()) {
+        CNextResolver._collectConstFromVar(
+          member.variableDeclaration()!,
+          scopeName,
+          constValues,
+        );
       }
     }
   }

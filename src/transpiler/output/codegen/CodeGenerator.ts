@@ -6,7 +6,6 @@
 import { CommonTokenStream, ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import SymbolTable from "../../logic/symbols/SymbolTable";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
 import CommentExtractor from "../../logic/analysis/CommentExtractor";
 import CommentFormatter from "./CommentFormatter";
@@ -77,6 +76,10 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
+// PR #715: Bit range access helper for improved testability
+import BitRangeHelper from "./helpers/BitRangeHelper";
+// PR #715: Centralized error messages for improved testability
+import CodeGenErrors from "./helpers/CodeGenErrors";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
 // Issue #644: Member chain analyzer for bit access pattern detection
@@ -91,12 +94,21 @@ import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 import ArrayInitHelper from "./helpers/ArrayInitHelper";
 // Issue #644: Assignment expected type resolution helper
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
+// PR #715: C++ member conversion helper for improved testability
+import CppMemberHelper from "./helpers/CppMemberHelper";
+import IPostfixOp from "./helpers/types/IPostfixOp";
+// PR #715: Boolean conversion helper for improved testability
+import BooleanHelper from "./helpers/BooleanHelper";
+// PR #715: C++ constructor detection helper for improved testability
+import CppConstructorHelper from "./helpers/CppConstructorHelper";
+// PR #715: Set/Map utilities for improved testability
+import SetMapHelper from "./helpers/SetMapHelper";
+// PR #715: Symbol lookup utilities for improved testability
+import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
 import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
-// Issue #696: Integer literal validation helper
-import IntegerLiteralValidator from "./helpers/IntegerLiteralValidator";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
@@ -118,9 +130,7 @@ const {
 
 const {
   getLeadingComments: commentGetLeadingComments,
-  getTrailingComments: commentGetTrailingComments,
   formatLeadingComments: commentFormatLeadingComments,
-  formatTrailingComment: commentFormatTrailingComment,
 } = commentUtils;
 
 /**
@@ -383,9 +393,6 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Assignment validation coordinator helper */
   private assignmentValidator: AssignmentValidator | null = null;
-
-  /** Issue #696: Integer literal validation helper */
-  private integerLiteralValidator: IntegerLiteralValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -996,21 +1003,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppEnumClass(typeName: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(typeName);
-    for (const sym of symbols) {
-      if (
-        sym.sourceLanguage === ESourceLanguage.Cpp &&
-        sym.kind === ESymbolKind.Enum
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return SymbolLookupHelper.isCppEnumClass(this.symbolTable, typeName);
   }
 
   /**
@@ -1534,13 +1527,7 @@ export default class CodeGenerator implements IOrchestrator {
     params: Set<string>,
     injectedParams: ReadonlySet<string>,
   ): Set<string> {
-    const newParams = new Set<string>();
-    for (const p of params) {
-      if (!injectedParams.has(p)) {
-        newParams.add(p);
-      }
-    }
-    return newParams;
+    return SetMapHelper.findNewItems(params, injectedParams);
   }
 
   /**
@@ -1549,23 +1536,16 @@ export default class CodeGenerator implements IOrchestrator {
   private extractThisFileParamLists(
     crossFileParamLists?: ReadonlyMap<string, readonly string[]>,
   ): Map<string, string[]> {
-    const paramLists = new Map<string, string[]>();
-    for (const [funcName, params] of this.functionParamLists) {
-      if (!crossFileParamLists?.has(funcName)) {
-        paramLists.set(funcName, [...params]);
-      }
-    }
-    return paramLists;
+    return SetMapHelper.copyArrayValues(
+      SetMapHelper.filterExclude(this.functionParamLists, crossFileParamLists),
+    );
   }
 
   /**
    * Restore a map's state by clearing and repopulating from saved data.
    */
   private restoreMapState<K, V>(target: Map<K, V>, saved: Map<K, V>): void {
-    target.clear();
-    for (const [k, v] of saved) {
-      target.set(k, v);
-    }
+    SetMapHelper.restoreMapState(target, saved);
   }
 
   /**
@@ -1820,29 +1800,11 @@ export default class CodeGenerator implements IOrchestrator {
    * We check for the existence of a constructor symbol (TypeName::ClassName).
    */
   private _isCppClassWithConstructor(typeName: string): boolean {
-    // Convert underscore format to :: for namespaced types
-    // e.g., TestNS_MyClass -> TestNS::MyClass
-    let qualifiedName = typeName;
-    if (typeName.includes("_") && !typeName.includes("::")) {
-      qualifiedName = typeName.replaceAll("_", "::");
-    }
-
-    // Extract just the class name (part after last ::)
-    // e.g., TestNS::MyClass -> MyClass, CppTestClass -> CppTestClass
-    const parts = qualifiedName.split("::");
-    const className = parts.at(-1)!;
-
-    // Constructor name follows the pattern: FullTypeName::ClassName
-    // e.g., TestNS::MyClass::MyClass, CppTestClass::CppTestClass
-    const constructorName = `${qualifiedName}::${className}`;
-    const constructorSymbol = this.symbolTable?.getSymbol(constructorName);
-    return constructorSymbol?.kind === ESymbolKind.Function;
+    return CppConstructorHelper.hasConstructor(typeName, this.symbolTable);
   }
 
   private foldBooleanToInt(expr: string): string {
-    if (expr === "true") return "1";
-    if (expr === "false") return "0";
-    return `(${expr} ? 1 : 0)`;
+    return BooleanHelper.foldBooleanToInt(expr);
   }
 
   /**
@@ -1856,42 +1818,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Then check symbol table for cross-file C-Next functions
-    if (this.symbolTable) {
-      const symbols = this.symbolTable.getOverloads(name);
-      for (const sym of symbols) {
-        if (
-          sym.sourceLanguage === ESourceLanguage.CNext &&
-          sym.kind === ESymbolKind.Function
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if a function is an external C/C++ function (uses pass-by-value semantics).
-   * Returns true if the function is found in symbol table as C or C++.
-   */
-  private isExternalCFunction(name: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(name);
-    for (const sym of symbols) {
-      if (
-        (sym.sourceLanguage === ESourceLanguage.C ||
-          sym.sourceLanguage === ESourceLanguage.Cpp) &&
-        sym.kind === ESymbolKind.Function
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return SymbolLookupHelper.isCNextFunction(this.symbolTable, name);
   }
 
   /**
@@ -1965,90 +1892,12 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #387: Extract pattern information from unified postfix chain.
-   * This helper enables generateAssignment to detect special patterns
-   * (bitmap fields, register bits, strings) for appropriate code generation.
-   */
-  private extractAssignmentTargetInfo(ctx: Parser.AssignmentTargetContext): {
-    hasGlobal: boolean;
-    hasThis: boolean;
-    firstIdentifier: string;
-    /** All identifiers in the chain (firstIdentifier + member accesses) */
-    identifiers: string[];
-    /** All expressions from subscript operations */
-    expressions: Parser.ExpressionContext[];
-    /** Whether this has any postfix operations */
-    hasPostfixOps: boolean;
-    /** Whether this looks like array access (has subscripts) */
-    isArrayAccess: boolean;
-    /** Whether this looks like member access (has .member) */
-    isMemberAccess: boolean;
-    /** The postfix ops for detailed analysis */
-    postfixOps: Parser.PostfixTargetOpContext[];
-  } {
-    const hasGlobal = ctx.GLOBAL() !== null;
-    const hasThis = ctx.THIS() !== null;
-    const firstIdentifier = ctx.IDENTIFIER()?.getText() ?? "";
-    const postfixOps = ctx.postfixTargetOp();
-
-    const identifiers: string[] = [firstIdentifier];
-    const expressions: Parser.ExpressionContext[] = [];
-
-    let hasArrayOp = false;
-    let hasMemberOp = false;
-
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        identifiers.push(op.IDENTIFIER()!.getText());
-        hasMemberOp = true;
-      } else {
-        // Array subscript or bit range
-        const exprs = op.expression();
-        for (const expr of exprs) {
-          expressions.push(expr);
-        }
-        hasArrayOp = true;
-      }
-    }
-
-    return {
-      hasGlobal,
-      hasThis,
-      firstIdentifier,
-      identifiers,
-      expressions,
-      hasPostfixOps: postfixOps.length > 0,
-      isArrayAccess: hasArrayOp,
-      isMemberAccess: hasMemberOp,
-      postfixOps,
-    };
-  }
-
-  /**
    * Issue #304: Check if a type name is from a C++ header
    * Used to determine whether to use {} or {0} for initialization.
    * C++ types with constructors may fail with {0} but work with {}.
    */
   private isCppType(typeName: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(typeName);
-    for (const sym of symbols) {
-      if (sym.sourceLanguage === ESourceLanguage.Cpp) {
-        // Any C++ struct, class, or user-defined type
-        if (
-          sym.kind === ESymbolKind.Struct ||
-          sym.kind === ESymbolKind.Class ||
-          sym.kind === ESymbolKind.Type
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return SymbolLookupHelper.isCppType(this.symbolTable, typeName);
   }
 
   /**
@@ -2321,19 +2170,6 @@ export default class CodeGenerator implements IOrchestrator {
       tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
       isCallbackTypeUsedAsFieldType: (name) =>
         this._isCallbackTypeUsedAsFieldType(name),
-    });
-
-    this.integerLiteralValidator = new IntegerLiteralValidator({
-      isIntegerType: (name) => this._isIntegerType(name),
-      validateLiteralFitsType: (literal, typeName) =>
-        this._validateLiteralFitsType(literal, typeName),
-      getExpressionType: (exprText) => {
-        // For simple expressions, try to infer the type
-        // This is a simplified version - full expression parsing would be more complex
-        return this.context.typeRegistry.get(exprText)?.baseType ?? null;
-      },
-      validateTypeConversion: (targetType, sourceType) =>
-        this._validateTypeConversion(targetType, sourceType),
     });
   }
 
@@ -2908,6 +2744,47 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Helper: Classify a child statement as block or statement.
+   */
+  private _classifyChildStatement(
+    childStmt: Parser.StatementContext,
+    statements: Parser.StatementContext[],
+    blocks: Parser.BlockContext[],
+  ): void {
+    if (childStmt.block()) {
+      blocks.push(childStmt.block()!);
+    } else {
+      statements.push(childStmt);
+    }
+  }
+
+  /**
+   * Helper: Collect children from loop body (while/for).
+   */
+  private _collectLoopBody(
+    bodyStmt: Parser.StatementContext,
+    statements: Parser.StatementContext[],
+    blocks: Parser.BlockContext[],
+  ): void {
+    this._classifyChildStatement(bodyStmt, statements, blocks);
+  }
+
+  /**
+   * Helper: Collect children from switch statement.
+   */
+  private _collectSwitchChildren(
+    switchStmt: Parser.SwitchStatementContext,
+    blocks: Parser.BlockContext[],
+  ): void {
+    for (const caseCtx of switchStmt.switchCase()) {
+      blocks.push(caseCtx.block());
+    }
+    if (switchStmt.defaultCase()) {
+      blocks.push(switchStmt.defaultCase()!.block());
+    }
+  }
+
+  /**
    * Issue #566: Collect child statements and blocks from control flow statements.
    * This centralizes recursion patterns to prevent missing nested statements.
    */
@@ -2921,32 +2798,26 @@ export default class CodeGenerator implements IOrchestrator {
     // if statement: has statement() children (can be blocks or single statements)
     if (stmt.ifStatement()) {
       for (const childStmt of stmt.ifStatement()!.statement()) {
-        if (childStmt.block()) {
-          blocks.push(childStmt.block()!);
-        } else {
-          statements.push(childStmt);
-        }
+        this._classifyChildStatement(childStmt, statements, blocks);
       }
     }
 
     // while statement: single statement() child
     if (stmt.whileStatement()) {
-      const bodyStmt = stmt.whileStatement()!.statement();
-      if (bodyStmt.block()) {
-        blocks.push(bodyStmt.block()!);
-      } else {
-        statements.push(bodyStmt);
-      }
+      this._collectLoopBody(
+        stmt.whileStatement()!.statement(),
+        statements,
+        blocks,
+      );
     }
 
     // for statement: single statement() child
     if (stmt.forStatement()) {
-      const bodyStmt = stmt.forStatement()!.statement();
-      if (bodyStmt.block()) {
-        blocks.push(bodyStmt.block()!);
-      } else {
-        statements.push(bodyStmt);
-      }
+      this._collectLoopBody(
+        stmt.forStatement()!.statement(),
+        statements,
+        blocks,
+      );
     }
 
     // do-while statement: has block() directly
@@ -2956,13 +2827,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // switch statement: case blocks and optional default block
     if (stmt.switchStatement()) {
-      const switchStmt = stmt.switchStatement()!;
-      for (const caseCtx of switchStmt.switchCase()) {
-        blocks.push(caseCtx.block());
-      }
-      if (switchStmt.defaultCase()) {
-        blocks.push(switchStmt.defaultCase()!.block());
-      }
+      this._collectSwitchChildren(stmt.switchStatement()!, blocks);
     }
 
     // critical statement: has block() directly (ADR-050)
@@ -3765,112 +3630,179 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _setParameters(params: Parser.ParameterListContext | null): void {
     this.context.currentParameters.clear();
-
     if (!params) return;
 
     for (const param of params.parameter()) {
-      const name = param.IDENTIFIER().getText();
-      // arrayDimension() returns an array (due to grammar's *), so check length
-      const isArray = param.arrayDimension().length > 0;
-      const isConst = param.constModifier() !== null; // ADR-013: Track const modifier
-      const typeCtx = param.type();
-
-      // Determine if it's a struct type, callback type, or string type
-      let isStruct = false;
-      let isCallback = false;
-      let isString = false;
-      let typeName = typeCtx.getText();
-      if (typeCtx.primitiveType()) {
-        // Primitive type (u8, i32, etc.)
-        typeName = typeCtx.primitiveType()!.getText();
-      } else if (typeCtx.userType()) {
-        typeName = typeCtx.userType()!.getText();
-        isStruct = this.isStructType(typeName);
-        // ADR-029: Check if this is a callback type
-        isCallback = this.callbackTypes.has(typeName);
-      } else if (typeCtx.qualifiedType()) {
-        // ADR-016: Handle qualified types like Scope.Type
-        // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
-        const identifierNames = typeCtx
-          .qualifiedType()!
-          .IDENTIFIER()
-          .map((id) => id.getText());
-        typeName = this.resolveQualifiedType(identifierNames);
-        // Check if this is a struct type
-        isStruct = this.isStructType(typeName);
-      } else if (typeCtx.scopedType()) {
-        // ADR-016: Handle scoped types like this.Type (inside a scope)
-        const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-        if (this.context.currentScope) {
-          typeName = `${this.context.currentScope}_${localTypeName}`;
-        } else {
-          typeName = localTypeName;
-        }
-        // Check if this is a struct type
-        isStruct = this.isStructType(typeName);
-      } else if (typeCtx.globalType()) {
-        // Issue #478: Handle global.Type for global types inside scope
-        typeName = typeCtx.globalType()!.IDENTIFIER().getText();
-        // Check if this is a struct type
-        isStruct = this.isStructType(typeName);
-      } else if (typeCtx.stringType()) {
-        // ADR-045: String parameter
-        isString = true;
-        typeName = "string";
-      }
-
-      this.context.currentParameters.set(name, {
-        name,
-        baseType: typeName,
-        isArray,
-        isStruct,
-        isConst,
-        isCallback,
-        isString,
-      });
-
-      // ADR-025: Register parameter type for switch exhaustiveness checking
-      const isEnum = this.symbols!.knownEnums.has(typeName);
-      const isBitmap = this.symbols!.knownBitmaps.has(typeName);
-
-      // Extract array dimensions if this is an array parameter
-      // Issue #547: Always count each dimension, even if unsized (use 0 for unsized)
-      // Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
-      const arrayDimensions = isArray
-        ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
-        : [];
-
-      // ADR-045: Get string capacity if this is a string parameter
-      let stringCapacity: number | undefined;
-      if (isString && typeCtx.stringType()) {
-        const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
-        if (intLiteral) {
-          stringCapacity = Number.parseInt(intLiteral.getText(), 10);
-          // For string arrays, add capacity+1 as second dimension for proper .length handling
-          if (isArray && stringCapacity !== undefined) {
-            arrayDimensions.push(stringCapacity + 1);
-          }
-        }
-      }
-
-      this.context.typeRegistry.set(name, {
-        baseType: typeName,
-        bitWidth: isBitmap
-          ? this.symbols!.bitmapBitWidth.get(typeName) || 0
-          : TYPE_WIDTH[typeName] || 0,
-        isArray: isArray,
-        arrayDimensions:
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
-        isConst: isConst,
-        isEnum: isEnum,
-        enumTypeName: isEnum ? typeName : undefined,
-        isBitmap: isBitmap,
-        bitmapTypeName: isBitmap ? typeName : undefined,
-        isString: isString,
-        stringCapacity: stringCapacity,
-        isParameter: true, // Issue #579: Mark as parameter for subscript classification
-      });
+      this._processParameter(param);
     }
+  }
+
+  /**
+   * Process a single parameter declaration
+   */
+  private _processParameter(param: Parser.ParameterContext): void {
+    const name = param.IDENTIFIER().getText();
+    const isArray = param.arrayDimension().length > 0;
+    const isConst = param.constModifier() !== null;
+    const typeCtx = param.type();
+
+    // Resolve type information
+    const typeInfo = this._resolveParameterTypeInfo(typeCtx);
+
+    // Register in currentParameters
+    this.context.currentParameters.set(name, {
+      name,
+      baseType: typeInfo.typeName,
+      isArray,
+      isStruct: typeInfo.isStruct,
+      isConst,
+      isCallback: typeInfo.isCallback,
+      isString: typeInfo.isString,
+    });
+
+    // Register in typeRegistry
+    this._registerParameterType(name, typeInfo, param, isArray, isConst);
+  }
+
+  /**
+   * Resolve type name and flags from a type context
+   */
+  private _resolveParameterTypeInfo(typeCtx: Parser.TypeContext): {
+    typeName: string;
+    isStruct: boolean;
+    isCallback: boolean;
+    isString: boolean;
+  } {
+    if (typeCtx.primitiveType()) {
+      return {
+        typeName: typeCtx.primitiveType()!.getText(),
+        isStruct: false,
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.userType()) {
+      const typeName = typeCtx.userType()!.getText();
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: this.callbackTypes.has(typeName),
+        isString: false,
+      };
+    }
+
+    if (typeCtx.qualifiedType()) {
+      const identifierNames = typeCtx
+        .qualifiedType()!
+        .IDENTIFIER()
+        .map((id) => id.getText());
+      const typeName = this.resolveQualifiedType(identifierNames);
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.scopedType()) {
+      const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+      const typeName = this.context.currentScope
+        ? `${this.context.currentScope}_${localTypeName}`
+        : localTypeName;
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.globalType()) {
+      const typeName = typeCtx.globalType()!.IDENTIFIER().getText();
+      return {
+        typeName,
+        isStruct: this.isStructType(typeName),
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    if (typeCtx.stringType()) {
+      return {
+        typeName: "string",
+        isStruct: false,
+        isCallback: false,
+        isString: true,
+      };
+    }
+
+    // Fallback
+    return {
+      typeName: typeCtx.getText(),
+      isStruct: false,
+      isCallback: false,
+      isString: false,
+    };
+  }
+
+  /**
+   * Register a parameter in the type registry
+   */
+  private _registerParameterType(
+    name: string,
+    typeInfo: { typeName: string; isString: boolean },
+    param: Parser.ParameterContext,
+    isArray: boolean,
+    isConst: boolean,
+  ): void {
+    const { typeName, isString } = typeInfo;
+    const typeCtx = param.type();
+
+    const isEnum = this.symbols!.knownEnums.has(typeName);
+    const isBitmap = this.symbols!.knownBitmaps.has(typeName);
+
+    // Extract array dimensions
+    const arrayDimensions = isArray
+      ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
+      : [];
+
+    // Get string capacity if applicable
+    const stringCapacity = this._getStringCapacity(typeCtx, isString);
+    if (isArray && stringCapacity !== undefined) {
+      arrayDimensions.push(stringCapacity + 1);
+    }
+
+    this.context.typeRegistry.set(name, {
+      baseType: typeName,
+      bitWidth: isBitmap
+        ? this.symbols!.bitmapBitWidth.get(typeName) || 0
+        : TYPE_WIDTH[typeName] || 0,
+      isArray,
+      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      isConst,
+      isEnum,
+      enumTypeName: isEnum ? typeName : undefined,
+      isBitmap,
+      bitmapTypeName: isBitmap ? typeName : undefined,
+      isString,
+      stringCapacity,
+      isParameter: true,
+    });
+  }
+
+  /**
+   * Extract string capacity from a string type context
+   */
+  private _getStringCapacity(
+    typeCtx: Parser.TypeContext,
+    isString: boolean,
+  ): number | undefined {
+    if (!isString || !typeCtx.stringType()) return undefined;
+    const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
+    if (!intLiteral) return undefined;
+    return Number.parseInt(intLiteral.getText(), 10);
   }
 
   /**
@@ -3995,6 +3927,92 @@ export default class CodeGenerator implements IOrchestrator {
   //            and validateBareIdentifierInScope moved to TypeValidator
 
   /**
+   * ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
+   */
+  private _getEnumTypeFromThisEnum(parts: string[]): string | null {
+    if (parts[0] !== "this" || !this.context.currentScope || parts.length < 3) {
+      return null;
+    }
+    const enumName = parts[1];
+    const scopedEnumName = `${this.context.currentScope}_${enumName}`;
+    return this.symbols!.knownEnums.has(scopedEnumName) ? scopedEnumName : null;
+  }
+
+  /**
+   * Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
+   */
+  private _getEnumTypeFromGlobalEnum(parts: string[]): string | null {
+    if (parts[0] !== "global" || parts.length < 3) {
+      return null;
+    }
+    const enumName = parts[1];
+    return this.symbols!.knownEnums.has(enumName) ? enumName : null;
+  }
+
+  /**
+   * ADR-016: Check this.variable pattern (this.varName where varName is enum type)
+   */
+  private _getEnumTypeFromThisVariable(parts: string[]): string | null {
+    if (
+      parts[0] !== "this" ||
+      !this.context.currentScope ||
+      parts.length !== 2
+    ) {
+      return null;
+    }
+    const varName = parts[1];
+    const scopedVarName = `${this.context.currentScope}_${varName}`;
+    const typeInfo = this.context.typeRegistry.get(scopedVarName);
+    if (typeInfo?.isEnum && typeInfo.enumTypeName) {
+      return typeInfo.enumTypeName;
+    }
+    return null;
+  }
+
+  /**
+   * Check scoped enum: Motor.State.IDLE -> Motor_State
+   */
+  private _getEnumTypeFromScopedEnum(parts: string[]): string | null {
+    if (parts.length < 3) {
+      return null;
+    }
+    const scopeName = parts[0];
+    const enumName = parts[1];
+    const scopedEnumName = `${scopeName}_${enumName}`;
+    return this.symbols!.knownEnums.has(scopedEnumName) ? scopedEnumName : null;
+  }
+
+  /**
+   * Check if parts represent an enum member access and return the enum type.
+   */
+  private _getEnumTypeFromMemberAccess(parts: string[]): string | null {
+    if (parts.length < 2) {
+      return null;
+    }
+
+    // ADR-016: Check this.State.IDLE pattern
+    const thisEnumType = this._getEnumTypeFromThisEnum(parts);
+    if (thisEnumType) return thisEnumType;
+
+    // Issue #478: Check global.Enum.Member pattern
+    const globalEnumType = this._getEnumTypeFromGlobalEnum(parts);
+    if (globalEnumType) return globalEnumType;
+
+    // ADR-016: Check this.variable pattern
+    const thisVarType = this._getEnumTypeFromThisVariable(parts);
+    if (thisVarType) return thisVarType;
+
+    // Check simple enum: State.IDLE
+    const possibleEnum = parts[0];
+    if (this.symbols!.knownEnums.has(possibleEnum)) {
+      return possibleEnum;
+    }
+
+    // Check scoped enum: Motor.State.IDLE -> Motor_State
+    return this._getEnumTypeFromScopedEnum(parts);
+  }
+
+  /**
    * ADR-017: Extract enum type from an expression.
    * Returns the enum type name if the expression is an enum value, null otherwise.
    *
@@ -4008,7 +4026,6 @@ export default class CodeGenerator implements IOrchestrator {
   private _getExpressionEnumType(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
-    // Get the text representation to analyze
     const text = ctx.getText();
 
     // Check if it's a function call returning an enum
@@ -4025,63 +4042,8 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    // Check if it's an enum member access: EnumType.MEMBER or Scope.EnumType.MEMBER
-    const parts = text.split(".");
-
-    if (parts.length >= 2) {
-      // ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
-      if (
-        parts[0] === "this" &&
-        this.context.currentScope &&
-        parts.length >= 3
-      ) {
-        const enumName = parts[1];
-        const scopedEnumName = `${this.context.currentScope}_${enumName}`;
-        if (this.symbols!.knownEnums.has(scopedEnumName)) {
-          return scopedEnumName;
-        }
-      }
-
-      // Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
-      if (parts[0] === "global" && parts.length >= 3) {
-        const enumName = parts[1];
-        if (this.symbols!.knownEnums.has(enumName)) {
-          return enumName;
-        }
-      }
-
-      // ADR-016: Check this.variable pattern (this.varName where varName is enum type)
-      if (
-        parts[0] === "this" &&
-        this.context.currentScope &&
-        parts.length === 2
-      ) {
-        const varName = parts[1];
-        const scopedVarName = `${this.context.currentScope}_${varName}`;
-        const typeInfo = this.context.typeRegistry.get(scopedVarName);
-        if (typeInfo?.isEnum && typeInfo.enumTypeName) {
-          return typeInfo.enumTypeName;
-        }
-      }
-
-      // Check simple enum: State.IDLE
-      const possibleEnum = parts[0];
-      if (this.symbols!.knownEnums.has(possibleEnum)) {
-        return possibleEnum;
-      }
-
-      // Check scoped enum: Motor.State.IDLE -> Motor_State
-      if (parts.length >= 3) {
-        const scopeName = parts[0];
-        const enumName = parts[1];
-        const scopedEnumName = `${scopeName}_${enumName}`;
-        if (this.symbols!.knownEnums.has(scopedEnumName)) {
-          return scopedEnumName;
-        }
-      }
-    }
-
-    return null;
+    // Check member access patterns: EnumType.MEMBER, Scope.EnumType.MEMBER, etc.
+    return this._getEnumTypeFromMemberAccess(text.split("."));
   }
 
   /**
@@ -4388,20 +4350,6 @@ export default class CodeGenerator implements IOrchestrator {
   // ADR-024: Type Classification and Validation Helpers
   // ========================================================================
 
-  /**
-   * ADR-024: Check if a type is an unsigned integer
-   */
-  private isUnsignedType(typeName: string): boolean {
-    return this.typeResolver!.isUnsignedType(typeName);
-  }
-
-  /**
-   * ADR-024: Check if a type is a signed integer
-   */
-  private isSignedType(typeName: string): boolean {
-    return this.typeResolver!.isSignedType(typeName);
-  }
-
   // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface (ADR-053 A2)
   // Private versions kept for internal use
   private _isIntegerType(typeName: string): boolean {
@@ -4477,38 +4425,12 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-024: Get the type of a postfix expression.
-   */
-  private getPostfixExpressionType(
-    ctx: Parser.PostfixExpressionContext,
-  ): string | null {
-    return this.typeResolver!.getPostfixExpressionType(ctx);
-  }
-
-  /**
-   * ADR-024: Get the type of a primary expression.
-   */
-  private getPrimaryExpressionType(
-    ctx: Parser.PrimaryExpressionContext,
-  ): string | null {
-    return this.typeResolver!.getPrimaryExpressionType(ctx);
-  }
-
-  /**
    * ADR-024: Get the type of a unary expression (for cast validation).
    */
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
     return this.typeResolver!.getUnaryExpressionType(ctx);
-  }
-
-  /**
-   * ADR-024: Get the type from a literal (suffixed or unsuffixed).
-   * Returns the explicit suffix type, or null for unsuffixed literals.
-   */
-  private getLiteralType(ctx: Parser.LiteralContext): string | null {
-    return this.typeResolver!.getLiteralType(ctx);
   }
 
   /**
@@ -4590,22 +4512,13 @@ export default class CodeGenerator implements IOrchestrator {
     if (!postfix) return null;
 
     const ops = postfix.postfixOp();
-    if (ops.length === 0) return null;
+    const result = CppMemberHelper.getLastPostfixOpType(
+      this._toPostfixOps(ops),
+    );
 
-    // Check the last operator to determine lvalue type
-    const lastOp = ops.at(-1)!;
-
-    // Member access: .identifier
-    if (lastOp.IDENTIFIER()) {
-      return "member";
-    }
-
-    // Array access: [expression]
-    if (lastOp.expression()) {
-      return "array";
-    }
-
-    return null;
+    // Function calls are not lvalues
+    if (result === "function") return null;
+    return result;
   }
 
   /**
@@ -4626,7 +4539,6 @@ export default class CodeGenerator implements IOrchestrator {
     const postfix = this.getPostfixExpression(ctx);
     if (!postfix) return false;
 
-    // Get the base identifier (e.g., "cfg" in "cfg.value" or "sensors" in "sensors[0].value")
     const primary = postfix.primaryExpression();
     if (!primary) return false;
     const baseId = primary.IDENTIFIER()?.getText();
@@ -4637,75 +4549,55 @@ export default class CodeGenerator implements IOrchestrator {
     // Case 1: Direct parameter member access (cfg.value)
     const paramInfo = this.context.currentParameters.get(baseId);
     if (paramInfo) {
-      // Check if the parameter type is a primitive type
-      const isPrimitiveParam = !!TYPE_MAP[paramInfo.baseType];
-
-      // If not a primitive type, it's either a known struct or an external C struct
-      // (typedef structs from C headers may not be recognized as structs)
-      const couldBeStruct = paramInfo.isStruct || !isPrimitiveParam;
-      if (couldBeStruct) {
-        // Issue #251: Const struct parameter needs temp to break const chain
-        if (paramInfo.isConst) {
-          return true;
-        }
-
-        // Issue #252: External C structs may have bool/enum members that need casting
-        // In C++ mode, we conservatively create temps for all external struct member accesses
-        // to u8 parameters, since we don't have full member type info for C headers
-        const targetCType = TYPE_MAP[targetParamBaseType];
-        if (targetCType === "uint8_t") {
-          return true; // Could be bool or typed enum
-        }
-      }
-      return false;
+      return this._needsParamMemberConversion(paramInfo, targetParamBaseType);
     }
 
-    // Issue #256: Array element member access (arr[i].member) or
-    // function return member access (getConfig().member)
-    // Check if the expression ends with member access preceded by array/function
-    if (ops.length >= 2) {
-      const lastOp = ops.at(-1)!;
-      // Last op must be member access (.identifier)
-      if (lastOp.IDENTIFIER()) {
-        const precedingOps = ops.slice(0, -1);
+    // Case 2: Array element or function return member access
+    return this._needsComplexMemberConversion(ops, baseId, targetParamBaseType);
+  }
 
-        // Case 2a: Array element member access (arr[i].member)
-        const hasArraySubscript = precedingOps.some(
-          (op) => op.expression() !== null,
-        );
-        if (hasArraySubscript) {
-          // Check if base is an array with non-primitive element type
-          const typeInfo = this.context.typeRegistry.get(baseId);
-          if (typeInfo?.isArray) {
-            const isPrimitiveElement = !!TYPE_MAP[typeInfo.baseType];
-            if (!isPrimitiveElement) {
-              // Only for u8 target parameters (could be bool or typed enum)
-              const targetCType = TYPE_MAP[targetParamBaseType];
-              if (targetCType === "uint8_t") {
-                return true;
-              }
-            }
-          }
-        }
+  /**
+   * Case 1: Direct parameter member access needs conversion?
+   * Issue #251: Const struct parameter needs temp to break const chain
+   * Issue #252: External C structs may have bool/enum members
+   */
+  private _needsParamMemberConversion(
+    paramInfo: { baseType: string; isStruct?: boolean; isConst?: boolean },
+    targetParamBaseType: string,
+  ): boolean {
+    return CppMemberHelper.needsParamMemberConversion(
+      paramInfo,
+      targetParamBaseType,
+    );
+  }
 
-        // Case 2b: Function return member access (getConfig().member)
-        // Function call is detected by checking if preceding op has argumentList
-        // (even empty function calls have argumentList node, just empty)
-        const hasFunctionCall = precedingOps.some(
-          (op) => op.argumentList() !== null || op.getText().endsWith(")"),
-        );
-        if (hasFunctionCall) {
-          // Conservatively generate temp for any function().member -> u8 in C++ mode
-          // The function could return a struct from C header with bool/enum members
-          const targetCType = TYPE_MAP[targetParamBaseType];
-          if (targetCType === "uint8_t") {
-            return true;
-          }
-        }
-      }
-    }
+  /**
+   * Convert parser PostfixOpContext to IPostfixOp interface for CppMemberHelper.
+   */
+  private _toPostfixOps(ops: Parser.PostfixOpContext[]): IPostfixOp[] {
+    return ops.map((op) => ({
+      hasExpression: op.expression() !== null,
+      hasIdentifier: op.IDENTIFIER() !== null,
+      hasArgumentList: op.argumentList() !== null,
+      textEndsWithParen: op.getText().endsWith(")"),
+    }));
+  }
 
-    return false;
+  /**
+   * Case 2: Array element or function return member access needs conversion?
+   * Issue #256: arr[i].member or getConfig().member patterns
+   */
+  private _needsComplexMemberConversion(
+    ops: Parser.PostfixOpContext[],
+    baseId: string,
+    targetParamBaseType: string,
+  ): boolean {
+    const typeInfo = this.context.typeRegistry.get(baseId);
+    return CppMemberHelper.needsComplexMemberConversion(
+      this._toPostfixOps(ops),
+      typeInfo,
+      targetParamBaseType,
+    );
   }
 
   /**
@@ -4717,28 +4609,25 @@ export default class CodeGenerator implements IOrchestrator {
     const postfix = this.getPostfixExpression(ctx);
     if (!postfix) return false;
 
-    // Must have at least one postfix operator
     const ops = postfix.postfixOp();
-    if (ops.length === 0) return false;
-
-    // Last operator must be array access [expression]
-    const lastOp = ops.at(-1)!;
-    if (!lastOp.expression()) return false;
+    const hasPostfixOps = ops.length > 0;
+    const lastOpHasExpression =
+      hasPostfixOps && ops.at(-1)!.expression() !== null;
 
     // Get the base identifier
     const primary = postfix.primaryExpression();
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    // Check if the base is a string type in the type registry
     const typeInfo = this.context.typeRegistry.get(baseId);
-    if (typeInfo?.isString) return true;
-
-    // Also check if it's a string parameter
     const paramInfo = this.context.currentParameters.get(baseId);
-    if (paramInfo?.isString) return true;
 
-    return false;
+    return CppMemberHelper.isStringSubscriptPattern(
+      hasPostfixOps,
+      lastOpHasExpression,
+      typeInfo,
+      paramInfo?.isString ?? false,
+    );
   }
 
   /**
@@ -4752,15 +4641,6 @@ export default class CodeGenerator implements IOrchestrator {
    * to resolve intermediate struct types. This is acceptable since issue #308
    * involves single-level access patterns.
    *
-   * @param ctx - The expression context
-   * @returns true if the expression is a member access to an array field
-   */
-  private isMemberAccessToArray(ctx: Parser.ExpressionContext): boolean {
-    const result = this.getMemberAccessArrayStatus(ctx);
-    return result === "array";
-  }
-
-  /**
    * Issue #355: Check if struct field info is available for a member access.
    * Used for defensive code generation - when we don't have field info,
    * we skip potentially dangerous conversions.
@@ -4818,117 +4698,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Check if an expression is a simple literal (number, bool, etc.)
-   * Navigates: expression -> ternaryExpression -> orExpression -> ... -> primaryExpression -> literal
-   */
-  private isLiteralExpression(ctx: Parser.ExpressionContext): boolean {
-    try {
-      // expression -> ternaryExpression
-      const ternaryExpr = ctx.ternaryExpression();
-      if (!ternaryExpr) return false;
-
-      // Check it's not a ternary (no COLON token)
-      if (ternaryExpr.COLON()) return false;
-
-      // ternaryExpression -> orExpression (single)
-      const orExprs = ternaryExpr.orExpression();
-      if (orExprs.length !== 1) return false;
-      const orExpr = orExprs[0];
-
-      // orExpression -> andExpression (single, no || operators)
-      const andExprs = orExpr.andExpression();
-      if (andExprs.length !== 1) return false;
-      const andExpr = andExprs[0];
-
-      // andExpression -> equalityExpression (single, no && operators)
-      const eqExprs = andExpr.equalityExpression();
-      if (eqExprs.length !== 1) return false;
-      const eqExpr = eqExprs[0];
-
-      // equalityExpression -> relationalExpression (single, no = or != operators)
-      const relExprs = eqExpr.relationalExpression();
-      if (relExprs.length !== 1) return false;
-      const relExpr = relExprs[0];
-
-      // relationalExpression -> bitwiseOrExpression (single, no comparison operators)
-      const bitOrExprs = relExpr.bitwiseOrExpression();
-      if (bitOrExprs.length !== 1) return false;
-      const bitOrExpr = bitOrExprs[0];
-
-      // bitwiseOrExpression -> bitwiseXorExpression (single)
-      const xorExprs = bitOrExpr.bitwiseXorExpression();
-      if (xorExprs.length !== 1) return false;
-      const xorExpr = xorExprs[0];
-
-      // bitwiseXorExpression -> bitwiseAndExpression (single)
-      const bitAndExprs = xorExpr.bitwiseAndExpression();
-      if (bitAndExprs.length !== 1) return false;
-      const bitAndExpr = bitAndExprs[0];
-
-      // bitwiseAndExpression -> shiftExpression (single)
-      const shiftExprs = bitAndExpr.shiftExpression();
-      if (shiftExprs.length !== 1) return false;
-      const shiftExpr = shiftExprs[0];
-
-      // shiftExpression -> additiveExpression (single)
-      const addExprs = shiftExpr.additiveExpression();
-      if (addExprs.length !== 1) return false;
-      const addExpr = addExprs[0];
-
-      // additiveExpression -> multiplicativeExpression (single)
-      const mulExprs = addExpr.multiplicativeExpression();
-      if (mulExprs.length !== 1) return false;
-      const mulExpr = mulExprs[0];
-
-      // multiplicativeExpression -> unaryExpression (single)
-      const unaryExprs = mulExpr.unaryExpression();
-      if (unaryExprs.length !== 1) return false;
-      const unaryExpr = unaryExprs[0];
-
-      // unaryExpression -> postfixExpression (no unary operators)
-      // OR unaryExpression -> '-' unaryExpression (negated literal)
-      const postfixExpr = unaryExpr.postfixExpression();
-
-      // Handle negated literals: -50, -3.14, etc.
-      if (!postfixExpr) {
-        // Check if it's a unary minus with a nested literal
-        const nestedUnary = unaryExpr.unaryExpression();
-        if (nestedUnary && unaryExpr.getText().startsWith("-")) {
-          // Recursively check if the nested expression is a literal
-          const nestedPostfix = nestedUnary.postfixExpression();
-          if (nestedPostfix) {
-            const nestedPrimary = nestedPostfix.primaryExpression();
-            if (nestedPrimary) {
-              const nestedLiteral = nestedPrimary.literal();
-              if (nestedLiteral && !nestedLiteral.STRING_LITERAL()) {
-                return true; // Negated numeric literal
-              }
-            }
-          }
-        }
-        return false;
-      }
-
-      // postfixExpression -> primaryExpression (no postfix ops)
-      const postfixOps = postfixExpr.postfixOp();
-      if (postfixOps.length > 0) return false;
-
-      const primaryExpr = postfixExpr.primaryExpression();
-      if (!primaryExpr) return false;
-
-      // Check if it's a literal (but not a string literal)
-      const literal = primaryExpr.literal();
-      if (literal && !literal.STRING_LITERAL()) {
-        return true;
-      }
-
-      return false;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Generate a function argument with proper ADR-006 semantics.
    * - Local variables get & (address-of)
    * - Member access (cursor.x) gets & (address-of)
@@ -4937,123 +4706,165 @@ export default class CodeGenerator implements IOrchestrator {
    * - Arrays are passed as-is (naturally decay to pointers)
    * - Literals use compound literals for pointer params: &(type){value}
    * - Complex expressions are passed as-is
-   *
-   * @param ctx The expression context
-   * @param targetParamBaseType Optional: the C-Next type of the target parameter (e.g., 'u32')
    */
   private _generateFunctionArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
     const id = this._getSimpleIdentifier(ctx);
-
     if (id) {
-      // Check if it's a parameter (already a pointer for non-floats)
-      const paramInfo = this.context.currentParameters.get(id);
-      if (paramInfo) {
-        // Arrays are passed as-is, non-arrays are already pointers
-        return id;
-      }
-
-      // Check if it's a local array (passed as-is, naturally decays to pointer)
-      if (this.context.localArrays.has(id)) {
-        return id;
-      }
-
-      // Check if it's a scope member (ADR-016)
-      if (this.context.currentScope) {
-        const members = this.context.scopeMembers.get(
-          this.context.currentScope,
-        );
-        if (members?.has(id)) {
-          // Issue #409/#644: In C++ mode, references don't need &
-          const scopedName = `${this.context.currentScope}_${id}`;
-          return this.cppHelper!.maybeAddressOf(scopedName);
-        }
-      }
-
-      // Local variable - add & (except in C++ mode where references are used)
-      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
-      return this.cppHelper!.maybeAddressOf(id);
+      return this._handleIdentifierArg(id);
     }
 
-    // Check if it's a member access or array access (lvalue) - needs &
     const lvalueType = this.getLvalueType(ctx);
     if (lvalueType) {
-      // Issue #308: If member access to an array, don't add & - arrays decay to pointers
-      // For example: result.data where data is u8[6] should pass as result.data (decays to uint8_t*)
-      // NOT &result.data (which gives uint8_t (*)[6] - wrong type)
-      if (lvalueType === "member") {
-        const arrayStatus = this.getMemberAccessArrayStatus(ctx);
+      return this._handleLvalueArg(ctx, lvalueType, targetParamBaseType);
+    }
 
-        if (arrayStatus === "array") {
-          return this._generateExpression(ctx);
-        }
+    return this._handleRvalueArg(ctx, targetParamBaseType);
+  }
 
-        // Issue #355: Only apply static_cast when we KNOW the field is not an array.
-        // When "unknown" (header not parsed), skip this path - safer than potentially
-        // casting an array to a scalar.
-        // Issue #251/#252: In C++ mode, struct member access may need temp variable.
-        if (
-          arrayStatus === "not-array" &&
-          this.needsCppMemberConversion(ctx, targetParamBaseType)
-        ) {
-          const cType = TYPE_MAP[targetParamBaseType!] || "uint8_t";
-          const value = this._generateExpression(ctx);
-          const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
-          // Use static_cast for C++ type safety (needsCppMemberConversion implies cppMode)
-          const castExpr = this.cppHelper!.cast(cType, value);
-          this.pendingTempDeclarations.push(
-            `${cType} ${tempName} = ${castExpr};`,
-          );
-          // Issue #409/#644: In C++ mode, references don't need &
-          return this.cppHelper!.maybeAddressOf(tempName);
-        }
+  /**
+   * Handle simple identifier argument (parameter, local array, scope member, or variable)
+   */
+  private _handleIdentifierArg(id: string): string {
+    // Parameters are already pointers
+    if (this.context.currentParameters.get(id)) {
+      return id;
+    }
+
+    // Local arrays decay to pointers
+    if (this.context.localArrays.has(id)) {
+      return id;
+    }
+
+    // Scope member - may need prefixing
+    if (this.context.currentScope) {
+      const members = this.context.scopeMembers.get(this.context.currentScope);
+      if (members?.has(id)) {
+        const scopedName = `${this.context.currentScope}_${id}`;
+        return this.cppHelper!.maybeAddressOf(scopedName);
       }
+    }
 
-      // Generate the expression and wrap with & (except in C++ mode)
-      // Issue #409/#644: In C++ mode, parameters are references, so no & needed
-      const generatedExpr = this._generateExpression(ctx);
-      const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
+    // Local variable - add & (except in C++ mode)
+    return this.cppHelper!.maybeAddressOf(id);
+  }
 
-      // Issue #246: When passing string bytes to integer pointer parameters
-      // (C-Next's by-reference semantics), cast from char* to the appropriate
-      // integer pointer type to avoid signedness warnings
-      // Issue #267: Use reinterpret_cast for pointer type conversions in C++ mode
-      if (
-        lvalueType === "array" &&
-        targetParamBaseType &&
-        this.isStringSubscriptAccess(ctx)
-      ) {
-        const cType = TYPE_MAP[targetParamBaseType];
-        if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-          return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
-        }
-      }
+  /**
+   * Handle lvalue argument (member access or array access)
+   */
+  private _handleLvalueArg(
+    ctx: Parser.ExpressionContext,
+    lvalueType: string,
+    targetParamBaseType?: string,
+  ): string {
+    // Member access to array field - arrays decay to pointers
+    if (lvalueType === "member") {
+      const memberResult = this._handleMemberAccessArg(
+        ctx,
+        targetParamBaseType,
+      );
+      if (memberResult) return memberResult;
+    }
 
+    // Generate expression with address-of
+    const generatedExpr = this._generateExpression(ctx);
+    const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
+
+    // String subscript access may need cast
+    if (lvalueType === "array") {
+      return this._maybeCastStringSubscript(ctx, expr, targetParamBaseType);
+    }
+
+    return expr;
+  }
+
+  /**
+   * Handle member access argument - may need special handling for arrays or C++ conversions
+   */
+  private _handleMemberAccessArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string | null {
+    const arrayStatus = this.getMemberAccessArrayStatus(ctx);
+
+    // Array member - no address-of needed
+    if (arrayStatus === "array") {
+      return this._generateExpression(ctx);
+    }
+
+    // C++ mode may need temp variable for type conversion
+    if (
+      arrayStatus === "not-array" &&
+      this.needsCppMemberConversion(ctx, targetParamBaseType)
+    ) {
+      return this._createCppMemberConversionTemp(ctx, targetParamBaseType!);
+    }
+
+    return null; // Fall through to default lvalue handling
+  }
+
+  /**
+   * Create temp variable for C++ member conversion
+   */
+  private _createCppMemberConversionTemp(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType: string,
+  ): string {
+    const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
+    const value = this._generateExpression(ctx);
+    const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
+    const castExpr = this.cppHelper!.cast(cType, value);
+    this.pendingTempDeclarations.push(`${cType} ${tempName} = ${castExpr};`);
+    return this.cppHelper!.maybeAddressOf(tempName);
+  }
+
+  /**
+   * Maybe cast string subscript access for integer pointer parameters
+   */
+  private _maybeCastStringSubscript(
+    ctx: Parser.ExpressionContext,
+    expr: string,
+    targetParamBaseType?: string,
+  ): string {
+    if (!targetParamBaseType || !this.isStringSubscriptAccess(ctx)) {
       return expr;
     }
 
-    // Check if it's a literal OR complex expression being passed to a pointer parameter
-    // Any expression reaching this point is an rvalue (identifiers/lvalues handled above)
-    if (targetParamBaseType) {
-      const cType = TYPE_MAP[targetParamBaseType];
-      if (cType && cType !== "void") {
-        const value = this._generateExpression(ctx);
-
-        // Issue #409: In C++ mode with references, rvalues can bind to const T&
-        // No need for temp variables or address-of
-        if (this.cppMode) {
-          return value;
-        }
-
-        // C mode: Use C99 compound literal syntax: &(type){value}
-        return `&(${cType}){${value}}`;
-      }
+    const cType = TYPE_MAP[targetParamBaseType];
+    if (cType && !["float", "double", "bool", "void"].includes(cType)) {
+      return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
     }
 
-    // No target type info - generate expression as-is
-    return this._generateExpression(ctx);
+    return expr;
+  }
+
+  /**
+   * Handle rvalue argument (literals or complex expressions)
+   */
+  private _handleRvalueArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string {
+    if (!targetParamBaseType) {
+      return this._generateExpression(ctx);
+    }
+
+    const cType = TYPE_MAP[targetParamBaseType];
+    if (!cType || cType === "void") {
+      return this._generateExpression(ctx);
+    }
+
+    const value = this._generateExpression(ctx);
+
+    // C++ mode: rvalues can bind to const T&
+    if (this.cppMode) {
+      return value;
+    }
+
+    // C mode: Use compound literal syntax
+    return `&(${cType}){${value}}`;
   }
 
   // ========================================================================
@@ -5120,117 +4931,147 @@ export default class CodeGenerator implements IOrchestrator {
     lines.push(`/* Scope: ${name} */`);
 
     for (const member of ctx.scopeMember()) {
-      const visibility = member.visibilityModifier()?.getText() || "private";
-      const isPrivate = visibility === "private";
-
-      if (member.variableDeclaration()) {
-        const varDecl = member.variableDeclaration()!;
-        const type = this._generateType(varDecl.type());
-        const varName = varDecl.IDENTIFIER().getText();
-        const fullName = `${name}_${varName}`;
-        const prefix = isPrivate ? "static " : "";
-
-        // Note: Type already registered in registerAllVariableTypes() pass
-
-        // ADR-036: arrayDimension() now returns an array
-        const arrayDims = varDecl.arrayDimension();
-        const isArray = arrayDims.length > 0;
-        let decl = `${prefix}${type} ${fullName}`;
-        if (isArray) {
-          decl += this._generateArrayDimensions(arrayDims);
-        }
-        // ADR-045: Add string capacity dimension for string arrays
-        if (varDecl.type().stringType()) {
-          const stringCtx = varDecl.type().stringType()!;
-          const intLiteral = stringCtx.INTEGER_LITERAL();
-          if (intLiteral) {
-            const capacity = Number.parseInt(intLiteral.getText(), 10);
-            decl += `[${capacity + 1}]`;
-          }
-        }
-        if (varDecl.expression()) {
-          decl += ` = ${this._generateExpression(varDecl.expression()!)}`;
-        } else {
-          // ADR-015: Zero initialization for uninitialized scope variables
-          decl += ` = ${this._getZeroInitializer(varDecl.type(), isArray)}`;
-        }
-        lines.push(decl + ";");
-      }
-
-      if (member.functionDeclaration()) {
-        const funcDecl = member.functionDeclaration()!;
-        const returnType = this._generateType(funcDecl.type());
-        const funcName = funcDecl.IDENTIFIER().getText();
-        const fullName = `${name}_${funcName}`;
-        const prefix = isPrivate ? "static " : "";
-
-        // Issue #269: Set current function name for pass-by-value lookup
-        this.context.currentFunctionName = fullName;
-        // Issue #477: Set return type for enum inference in return statements
-        this.context.currentFunctionReturnType = funcDecl.type().getText();
-
-        // Track parameters for ADR-006 pointer semantics
-        this._setParameters(funcDecl.parameterList() ?? null);
-
-        // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
-        this.enterFunctionBody();
-
-        // Issue #281: Generate body FIRST to track parameter modifications,
-        // then generate parameter list using that tracking info
-        const body = this.generateBlock(funcDecl.block());
-
-        // Issue #281: Update symbol's parameter info with auto-const before generating params
-        this.updateFunctionParamsAutoConst(fullName);
-
-        // Now generate parameter list (can use modifiedParameters for auto-const)
-        const params = funcDecl.parameterList()
-          ? this._generateParameterList(funcDecl.parameterList()!)
-          : "void";
-
-        // ADR-016: Exit function body context
-        this.exitFunctionBody();
-        this.context.currentFunctionName = null; // Issue #269: Clear function name
-        this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
-        this._clearParameters();
-
-        lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
-
-        // ADR-029: Generate callback typedef only if used as a type
-        if (this._isCallbackTypeUsedAsFieldType(fullName)) {
-          const typedef = this._generateCallbackTypedef(fullName);
-          if (typedef) {
-            lines.push(typedef);
-          }
-        }
-      }
-
-      // ADR-017: Handle enum declarations inside scopes
-      // Issue #60: Symbol collection done by SymbolCollector
-      if (member.enumDeclaration()) {
-        const enumDecl = member.enumDeclaration()!;
-        const enumCode = this.generateEnum(enumDecl);
-        lines.push("", enumCode);
-      }
-
-      // ADR-034: Handle bitmap declarations inside scopes
-      // Issue #60: Symbol collection done by SymbolCollector
-      if (member.bitmapDeclaration()) {
-        const bitmapDecl = member.bitmapDeclaration()!;
-        const bitmapCode = this.generateBitmap(bitmapDecl);
-        lines.push("", bitmapCode);
-      }
-
-      // Handle register declarations inside scopes
-      if (member.registerDeclaration()) {
-        const regDecl = member.registerDeclaration()!;
-        const regCode = this.generateScopedRegister(regDecl, name);
-        lines.push("", regCode);
-      }
+      this._generateScopeMember(member, name, lines);
     }
 
     lines.push("");
     this.context.currentScope = null;
     return lines.join("\n");
+  }
+
+  /**
+   * Generate code for a single scope member
+   */
+  private _generateScopeMember(
+    member: Parser.ScopeMemberContext,
+    scopeName: string,
+    lines: string[],
+  ): void {
+    const visibility = member.visibilityModifier()?.getText() || "private";
+    const isPrivate = visibility === "private";
+
+    if (member.variableDeclaration()) {
+      this._generateScopeVariable(
+        member.variableDeclaration()!,
+        scopeName,
+        isPrivate,
+        lines,
+      );
+    } else if (member.functionDeclaration()) {
+      this._generateScopeFunction(
+        member.functionDeclaration()!,
+        scopeName,
+        isPrivate,
+        lines,
+      );
+    } else if (member.enumDeclaration()) {
+      lines.push("", this.generateEnum(member.enumDeclaration()!));
+    } else if (member.bitmapDeclaration()) {
+      lines.push("", this.generateBitmap(member.bitmapDeclaration()!));
+    } else if (member.registerDeclaration()) {
+      lines.push(
+        "",
+        this.generateScopedRegister(member.registerDeclaration()!, scopeName),
+      );
+    }
+  }
+
+  /**
+   * Generate code for a scope variable declaration
+   */
+  private _generateScopeVariable(
+    varDecl: Parser.VariableDeclarationContext,
+    scopeName: string,
+    isPrivate: boolean,
+    lines: string[],
+  ): void {
+    const type = this._generateType(varDecl.type());
+    const varName = varDecl.IDENTIFIER().getText();
+    const fullName = `${scopeName}_${varName}`;
+    const prefix = isPrivate ? "static " : "";
+
+    const arrayDims = varDecl.arrayDimension();
+    const isArray = arrayDims.length > 0;
+
+    let decl = `${prefix}${type} ${fullName}`;
+    if (isArray) {
+      decl += this._generateArrayDimensions(arrayDims);
+    }
+
+    // ADR-045: Add string capacity dimension for string arrays
+    decl += this._getStringCapacityDimension(varDecl.type());
+
+    if (varDecl.expression()) {
+      decl += ` = ${this._generateExpression(varDecl.expression()!)}`;
+    } else {
+      // ADR-015: Zero initialization for uninitialized scope variables
+      decl += ` = ${this._getZeroInitializer(varDecl.type(), isArray)}`;
+    }
+    lines.push(decl + ";");
+  }
+
+  /**
+   * Get string capacity dimension if type is string<N>
+   */
+  private _getStringCapacityDimension(typeCtx: Parser.TypeContext): string {
+    if (!typeCtx.stringType()) return "";
+    const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
+    if (!intLiteral) return "";
+    const capacity = Number.parseInt(intLiteral.getText(), 10);
+    return `[${capacity + 1}]`;
+  }
+
+  /**
+   * Generate code for a scope function declaration
+   */
+  private _generateScopeFunction(
+    funcDecl: Parser.FunctionDeclarationContext,
+    scopeName: string,
+    isPrivate: boolean,
+    lines: string[],
+  ): void {
+    const returnType = this._generateType(funcDecl.type());
+    const funcName = funcDecl.IDENTIFIER().getText();
+    const fullName = `${scopeName}_${funcName}`;
+    const prefix = isPrivate ? "static " : "";
+
+    // Issue #269: Set current function name for pass-by-value lookup
+    this.context.currentFunctionName = fullName;
+    // Issue #477: Set return type for enum inference in return statements
+    this.context.currentFunctionReturnType = funcDecl.type().getText();
+
+    // Track parameters for ADR-006 pointer semantics
+    this._setParameters(funcDecl.parameterList() ?? null);
+
+    // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
+    this.enterFunctionBody();
+
+    // Issue #281: Generate body FIRST to track parameter modifications
+    const body = this.generateBlock(funcDecl.block());
+
+    // Issue #281: Update symbol's parameter info with auto-const before generating params
+    this.updateFunctionParamsAutoConst(fullName);
+
+    // Now generate parameter list (can use modifiedParameters for auto-const)
+    const params = funcDecl.parameterList()
+      ? this._generateParameterList(funcDecl.parameterList()!)
+      : "void";
+
+    // ADR-016: Exit function body context
+    this.exitFunctionBody();
+    this.context.currentFunctionName = null;
+    this.context.currentFunctionReturnType = null;
+    this._clearParameters();
+
+    lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
+
+    // ADR-029: Generate callback typedef only if used as a type
+    if (this._isCallbackTypeUsedAsFieldType(fullName)) {
+      const typedef = this._generateCallbackTypedef(fullName);
+      if (typedef) {
+        lines.push(typedef);
+      }
+    }
   }
 
   // ========================================================================
@@ -6150,7 +5991,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #696: Handle pending C++ class field assignments.
    */
   private _finalizeCppClassAssignments(
-    ctx: Parser.VariableDeclarationContext,
+    _ctx: Parser.VariableDeclarationContext,
     typeCtx: Parser.TypeContext,
     name: string,
     decl: string,
@@ -6819,39 +6660,6 @@ export default class CodeGenerator implements IOrchestrator {
     return this.invokeStatement("switch", ctx);
   }
 
-  private generateSwitchCase(ctx: Parser.SwitchCaseContext): string {
-    const result = switchGenerators.generateSwitchCase(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
-  private generateCaseLabel(ctx: Parser.CaseLabelContext): string {
-    const result = switchGenerators.generateCaseLabel(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
-  private generateDefaultCase(ctx: Parser.DefaultCaseContext): string {
-    const result = switchGenerators.generateDefaultCase(
-      ctx,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
   // ========================================================================
   // Expressions
   // ========================================================================
@@ -6861,51 +6669,8 @@ export default class CodeGenerator implements IOrchestrator {
     return this.invokeExpression("expression", ctx);
   }
 
-  // ADR-022: Ternary operator with safety constraints
-  private generateTernaryExpr(ctx: Parser.TernaryExpressionContext): string {
-    return this.invokeExpression("ternary", ctx);
-  }
-
   private _generateOrExpr(ctx: Parser.OrExpressionContext): string {
     return this.invokeExpression("or", ctx);
-  }
-
-  private generateAndExpr(ctx: Parser.AndExpressionContext): string {
-    return this.invokeExpression("and", ctx);
-  }
-
-  // ADR-001: = becomes == in C
-  // ADR-017: Enum type safety validation
-  private generateEqualityExpr(ctx: Parser.EqualityExpressionContext): string {
-    return this.invokeExpression("equality", ctx);
-  }
-
-  private generateRelationalExpr(
-    ctx: Parser.RelationalExpressionContext,
-  ): string {
-    return this.invokeExpression("relational", ctx);
-  }
-
-  private generateBitwiseOrExpr(
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): string {
-    return this.invokeExpression("bitwise-or", ctx);
-  }
-
-  private generateBitwiseXorExpr(
-    ctx: Parser.BitwiseXorExpressionContext,
-  ): string {
-    return this.invokeExpression("bitwise-xor", ctx);
-  }
-
-  private generateBitwiseAndExpr(
-    ctx: Parser.BitwiseAndExpressionContext,
-  ): string {
-    return this.invokeExpression("bitwise-and", ctx);
-  }
-
-  private generateShiftExpr(ctx: Parser.ShiftExpressionContext): string {
-    return this.invokeExpression("shift", ctx);
   }
 
   // Issue #63: validateShiftAmount, getTypeWidth, evaluateShiftAmount,
@@ -6952,16 +6717,6 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
     return operators;
-  }
-
-  private generateAdditiveExpr(ctx: Parser.AdditiveExpressionContext): string {
-    return this.invokeExpression("additive", ctx);
-  }
-
-  private generateMultiplicativeExpr(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): string {
-    return this.invokeExpression("multiplicative", ctx);
   }
 
   private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
@@ -7251,102 +7006,122 @@ export default class CodeGenerator implements IOrchestrator {
     // Note: Due to grammar ambiguity, sizeof(variable) may parse as sizeof(type)
     // when the variable name matches userType (just an identifier)
     if (ctx.type()) {
-      const typeCtx = ctx.type()!;
-      const typeText = typeCtx.getText();
+      return this._sizeofType(ctx.type()!);
+    }
+    return this._sizeofExpression(ctx.expression()!);
+  }
 
-      // Check if this "type" is actually a variable.member expression
-      // qualifiedType matches IDENTIFIER.IDENTIFIER, which could be struct.member
-      if (typeCtx.qualifiedType()) {
-        const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-        const firstName = identifiers[0].getText();
-        const memberName = identifiers[1].getText();
-
-        // Check if first identifier is a local variable (struct instance)
-        if (this.context.localVariables.has(firstName)) {
-          return `sizeof(${firstName}.${memberName})`;
-        }
-
-        // Check if first identifier is a parameter (struct parameter)
-        const paramInfo = this.context.currentParameters.get(firstName);
-        if (paramInfo) {
-          // Struct parameters use -> in C
-          if (paramInfo.isStruct) {
-            return `sizeof(${firstName}->${memberName})`;
-          }
-          return `sizeof(${firstName}.${memberName})`;
-        }
-
-        // Check if first identifier is a global variable
-        // If not a scope or enum, it's likely a global struct variable
-        if (
-          !this.isKnownScope(firstName) &&
-          !this.symbols!.knownEnums.has(firstName)
-        ) {
-          return `sizeof(${firstName}.${memberName})`;
-        }
-
-        // Fall through to generateType for actual type references (Scope.Type)
-      }
-
-      // Check if this "type" is actually a variable or parameter
-      // userType is just IDENTIFIER, which could be a variable reference
-      if (typeCtx.userType()) {
-        const varName = typeText;
-
-        // Check if it's a known parameter
-        const paramInfo = this.context.currentParameters.get(varName);
-        if (paramInfo) {
-          // E0601: Check if it's an array parameter
-          if (paramInfo.isArray) {
-            throw new Error(
-              `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
-                `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
-            );
-          }
-          // It's a non-array parameter - generate sizeof for it
-          // For pass-by-reference parameters (non-array, non-callback), use pointer dereference
-          if (!paramInfo.isCallback && !paramInfo.isStruct) {
-            return `sizeof(*${varName})`;
-          }
-          return `sizeof(${varName})`;
-        }
-
-        // Check if it's a known local variable
-        if (this.context.localVariables.has(varName)) {
-          return `sizeof(${varName})`;
-        }
-
-        // Check if it's a known struct (actual type)
-        if (this.isKnownStruct(varName)) {
-          return `sizeof(${varName})`;
-        }
-
-        // Check if it's a known enum (actual type)
-        if (this.symbols!.knownEnums.has(varName)) {
-          return `sizeof(${varName})`;
-        }
-
-        // Unknown identifier - treat as variable for safety
-        return `sizeof(${varName})`;
-      }
-
-      // It's a primitive or other type - generate normally
-      const cType = this._generateType(typeCtx);
-      return `sizeof(${cType})`;
+  /**
+   * Handle sizeof(type) - may actually be sizeof(variable) due to grammar ambiguity
+   */
+  private _sizeofType(typeCtx: Parser.TypeContext): string {
+    // qualifiedType matches IDENTIFIER.IDENTIFIER, could be struct.member
+    if (typeCtx.qualifiedType()) {
+      const result = this._sizeofQualifiedType(typeCtx.qualifiedType()!);
+      if (result) return result;
+      // Fall through to generateType for actual type references (Scope.Type)
     }
 
-    // It's sizeof(expression)
-    const expr = ctx.expression()!;
+    // userType is just IDENTIFIER, could be a variable reference
+    if (typeCtx.userType()) {
+      return this._sizeofUserType(typeCtx.getText());
+    }
 
+    // It's a primitive or other type - generate normally
+    return `sizeof(${this._generateType(typeCtx)})`;
+  }
+
+  /**
+   * Handle sizeof(qualified.type) - may be struct.member access
+   * Returns null if this is actually a type reference (Scope.Type)
+   */
+  private _sizeofQualifiedType(
+    qualifiedCtx: Parser.QualifiedTypeContext,
+  ): string | null {
+    const identifiers = qualifiedCtx.IDENTIFIER();
+    const firstName = identifiers[0].getText();
+    const memberName = identifiers[1].getText();
+
+    // Check if first identifier is a local variable (struct instance)
+    if (this.context.localVariables.has(firstName)) {
+      return `sizeof(${firstName}.${memberName})`;
+    }
+
+    // Check if first identifier is a parameter (struct parameter)
+    const paramInfo = this.context.currentParameters.get(firstName);
+    if (paramInfo) {
+      const sep = paramInfo.isStruct ? "->" : ".";
+      return `sizeof(${firstName}${sep}${memberName})`;
+    }
+
+    // Check if first identifier is a global variable
+    // If not a scope or enum, it's likely a global struct variable
+    if (
+      !this.isKnownScope(firstName) &&
+      !this.symbols!.knownEnums.has(firstName)
+    ) {
+      return `sizeof(${firstName}.${memberName})`;
+    }
+
+    // It's an actual type reference (Scope.Type), return null to fall through
+    return null;
+  }
+
+  /**
+   * Handle sizeof(identifier) - could be variable or type name
+   */
+  private _sizeofUserType(varName: string): string {
+    // Check if it's a known parameter
+    const paramInfo = this.context.currentParameters.get(varName);
+    if (paramInfo) {
+      return this._sizeofParameter(varName, paramInfo);
+    }
+
+    // Check if it's a known local variable, struct type, or enum type
+    // For all these cases, generate sizeof(name) directly
+    // Unknown identifiers are also treated as variables for safety
+    return `sizeof(${varName})`;
+  }
+
+  /**
+   * Handle sizeof on a parameter - validates and generates appropriate code
+   */
+  private _sizeofParameter(
+    varName: string,
+    paramInfo: { isArray?: boolean; isCallback?: boolean; isStruct?: boolean },
+  ): string {
+    // E0601: Array parameters decay to pointers
+    if (paramInfo.isArray) {
+      this._throwArrayParamSizeofError(varName);
+    }
+    // For pass-by-reference parameters (non-array, non-callback, non-struct),
+    // use pointer dereference
+    if (!paramInfo.isCallback && !paramInfo.isStruct) {
+      return `sizeof(*${varName})`;
+    }
+    return `sizeof(${varName})`;
+  }
+
+  /**
+   * Throw E0601 error for sizeof on array parameter
+   */
+  private _throwArrayParamSizeofError(varName: string): never {
+    throw new Error(
+      `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
+        `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
+    );
+  }
+
+  /**
+   * Handle sizeof(expression) with validation
+   */
+  private _sizeofExpression(expr: Parser.ExpressionContext): string {
     // E0601: Check if expression is an array parameter
     const varName = this.getSingleIdentifierFromExpr(expr);
     if (varName) {
       const paramInfo = this.context.currentParameters.get(varName);
       if (paramInfo?.isArray) {
-        throw new Error(
-          `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
-            `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
-        );
+        this._throwArrayParamSizeofError(varName);
       }
     }
 
@@ -7357,8 +7132,7 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    const exprCode = this._generateExpression(expr);
-    return `sizeof(${exprCode})`;
+    return `sizeof(${this._generateExpression(expr)})`;
   }
 
   /**
@@ -7564,119 +7338,175 @@ export default class CodeGenerator implements IOrchestrator {
   private generateArrayAccess(ctx: Parser.ArrayAccessContext): string {
     const rawName = ctx.IDENTIFIER().getText();
     const exprs = ctx.expression();
-
-    // ADR-006: Check if the identifier is a parameter
-    // For pass-by-pointer parameters, we need to dereference when accessing bits
-    // For pass-by-value parameters (Issue #269), use the name directly
-    const paramInfo = this.context.currentParameters.get(rawName);
-    let name = rawName;
-    if (paramInfo && !paramInfo.isArray) {
-      // Check if this parameter is pass-by-value
-      const isPassByValue =
-        this._isFloatType(paramInfo.baseType) ||
-        this.symbols!.knownEnums.has(paramInfo.baseType) ||
-        (this.context.currentFunctionName &&
-          this._isParameterPassByValueByName(
-            this.context.currentFunctionName,
-            rawName,
-          ));
-
-      if (!isPassByValue) {
-        // Pass-by-pointer: need to dereference
-        name = `(*${rawName})`;
-      }
-    }
+    const name = this._resolveArrayAccessName(rawName);
 
     if (exprs.length === 1) {
-      // Single index: array[i] or bit access flags[3]
-      // ADR-036: Compile-time bounds checking for constant indices
-      // Note: Use rawName for type lookup since typeRegistry uses original names
-      const typeInfo = this.context.typeRegistry.get(rawName);
+      return this._generateSingleIndexAccess(rawName, name, exprs[0], ctx);
+    }
+    if (exprs.length === 2) {
+      return this._generateBitRangeAccess(rawName, name, exprs);
+    }
+    return `${name}[/* error */]`;
+  }
 
-      // Check if this is a bitmap type
-      if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-        const line = ctx.start?.line ?? 0;
-        throw new Error(
-          `Error at line ${line}: Cannot use bracket indexing on bitmap type '${typeInfo.bitmapTypeName}'. ` +
-            `Use named field access instead (e.g., ${rawName}.FIELD_NAME).`,
-        );
-      }
+  /**
+   * Resolve the access name for array/bit access, handling parameter dereferencing
+   */
+  private _resolveArrayAccessName(rawName: string): string {
+    const paramInfo = this.context.currentParameters.get(rawName);
+    if (!paramInfo || paramInfo.isArray) return rawName;
 
-      if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-        this.typeValidator!.checkArrayBounds(
+    const isPassByValue =
+      this._isFloatType(paramInfo.baseType) ||
+      this.symbols!.knownEnums.has(paramInfo.baseType) ||
+      (this.context.currentFunctionName &&
+        this._isParameterPassByValueByName(
+          this.context.currentFunctionName,
           rawName,
-          typeInfo.arrayDimensions,
-          exprs,
-          ctx.start?.line ?? 0,
-          (expr) => this._tryEvaluateConstant(expr),
-        );
-      }
+        ));
 
-      const index = this._generateExpression(exprs[0]);
-      return `${name}[${index}]`;
-    } else if (exprs.length === 2) {
-      // Bit range: flags[start, width]
-      const start = this._generateExpression(exprs[0]);
-      const width = this._generateExpression(exprs[1]);
-      const typeInfo = this.context.typeRegistry.get(rawName);
+    return isPassByValue ? rawName : `(*${rawName})`;
+  }
 
-      // Float bit indexing read: use shadow variable + memcpy
-      const isFloatType =
-        typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
-      if (isFloatType) {
-        // Global scope float bit reads are not valid C (initializers must be constant)
-        if (!this.context.inFunctionBody) {
-          throw new Error(
-            `Float bit indexing reads (${rawName}[${start}, ${width}]) cannot be used at global scope. ` +
-              `Move the initialization inside a function.`,
-          );
-        }
+  /**
+   * Generate single index access: array[i] or bit access flags[3]
+   */
+  private _generateSingleIndexAccess(
+    rawName: string,
+    name: string,
+    indexExpr: Parser.ExpressionContext,
+    ctx: Parser.ArrayAccessContext,
+  ): string {
+    const typeInfo = this.context.typeRegistry.get(rawName);
 
-        this.requireInclude("string"); // For memcpy
-        this.requireInclude("float_static_assert"); // For size verification
-        const isF64 = typeInfo?.baseType === "f64";
-        const shadowType = isF64 ? "uint64_t" : "uint32_t";
-        const shadowName = `__bits_${rawName}`;
-        const mask = this.generateBitMask(width, isF64);
-
-        // Check if shadow variable needs declaration
-        const needsDeclaration = !this.context.floatBitShadows.has(shadowName);
-        if (needsDeclaration) {
-          this.context.floatBitShadows.add(shadowName);
-          // Push declaration to pending - will be emitted before the statement
-          this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
-        }
-
-        // Check if shadow already has current value (skip redundant memcpy read)
-        const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-
-        // Mark shadow as current after this read
-        this.context.floatShadowCurrent.add(shadowName);
-
-        // Use comma operator to combine memcpy with expression (no declaration inline)
-        if (shadowIsCurrent) {
-          // Shadow already has current value - just use it directly
-          if (start === "0") {
-            return `(${shadowName} & ${mask})`;
-          }
-          return `((${shadowName} >> ${start}) & ${mask})`;
-        }
-        if (start === "0") {
-          return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), (${shadowName} & ${mask}))`;
-        }
-        return `(memcpy(&${shadowName}, &${name}, sizeof(${name})), ((${shadowName} >> ${start}) & ${mask}))`;
-      }
-
-      const mask = this.generateBitMask(width);
-      // Optimize: skip shift when start is 0
-      if (start === "0") {
-        return `((${name}) & ${mask})`;
-      }
-      // Generate bit range read: ((value >> start) & mask)
-      return `((${name} >> ${start}) & ${mask})`;
+    // Check if this is a bitmap type
+    if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
+      const line = ctx.start?.line ?? 0;
+      throw CodeGenErrors.bitmapBracketIndexing(
+        line,
+        typeInfo.bitmapTypeName,
+        rawName,
+      );
     }
 
-    return `${name}[/* error */]`;
+    // ADR-036: Compile-time bounds checking
+    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+      this.typeValidator!.checkArrayBounds(
+        rawName,
+        typeInfo.arrayDimensions,
+        [indexExpr],
+        ctx.start?.line ?? 0,
+        (expr) => this._tryEvaluateConstant(expr),
+      );
+    }
+
+    const index = this._generateExpression(indexExpr);
+    return `${name}[${index}]`;
+  }
+
+  /**
+   * Generate bit range access: flags[start, width]
+   */
+  private _generateBitRangeAccess(
+    rawName: string,
+    name: string,
+    exprs: Parser.ExpressionContext[],
+  ): string {
+    const start = this._generateExpression(exprs[0]);
+    const width = this._generateExpression(exprs[1]);
+    const typeInfo = this.context.typeRegistry.get(rawName);
+
+    // Float bit indexing read: use shadow variable + memcpy
+    const isFloatType =
+      typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
+    if (isFloatType && typeInfo) {
+      return this._generateFloatBitRangeRead(
+        rawName,
+        name,
+        start,
+        width,
+        typeInfo,
+      );
+    }
+
+    return this._generateIntegerBitRangeRead(name, start, width);
+  }
+
+  /**
+   * Generate float bit range read with shadow variable
+   */
+  private _generateFloatBitRangeRead(
+    rawName: string,
+    name: string,
+    start: string,
+    width: string,
+    typeInfo: { baseType: string },
+  ): string {
+    if (!this.context.inFunctionBody) {
+      throw CodeGenErrors.floatBitIndexingAtGlobalScope(rawName, start, width);
+    }
+
+    this.requireInclude("string");
+    this.requireInclude("float_static_assert");
+
+    const isF64 = typeInfo.baseType === "f64";
+    const shadowType = isF64 ? "uint64_t" : "uint32_t";
+    const shadowName = `__bits_${rawName}`;
+    const mask = this.generateBitMask(width, isF64);
+
+    // Ensure shadow variable is declared
+    if (!this.context.floatBitShadows.has(shadowName)) {
+      this.context.floatBitShadows.add(shadowName);
+      this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+    }
+
+    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
+    this.context.floatShadowCurrent.add(shadowName);
+
+    return this._buildFloatBitReadExpr(
+      shadowName,
+      name,
+      start,
+      mask,
+      shadowIsCurrent,
+    );
+  }
+
+  /**
+   * Build the bit read expression for floats.
+   * Delegates to BitRangeHelper for testability.
+   */
+  private _buildFloatBitReadExpr(
+    shadowName: string,
+    name: string,
+    start: string,
+    mask: string,
+    shadowIsCurrent: boolean,
+  ): string {
+    return BitRangeHelper.buildFloatBitReadExpr({
+      shadowName,
+      varName: name,
+      start,
+      mask,
+      shadowIsCurrent,
+    });
+  }
+
+  /**
+   * Generate integer bit range read: ((value >> start) & mask)
+   * Delegates to BitRangeHelper for testability.
+   */
+  private _generateIntegerBitRangeRead(
+    name: string,
+    start: string,
+    width: string,
+  ): string {
+    const mask = this.generateBitMask(width);
+    return BitRangeHelper.buildIntegerBitReadExpr({
+      varName: name,
+      start,
+      mask,
+    });
   }
 
   // ========================================================================
@@ -7737,7 +7567,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ctx.scopedType()) {
       const typeName = ctx.scopedType()!.IDENTIFIER().getText();
       if (!this.context.currentScope) {
-        throw new Error("Error: 'this.Type' can only be used inside a scope");
+        throw CodeGenErrors.scopedTypeOutsideScope();
       }
       return `${this.context.currentScope}_${typeName}`;
     }
@@ -7899,15 +7729,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get inline comments that appear after a parse tree node (same line)
-   */
-  private getTrailingComments(ctx: {
-    stop?: { tokenIndex: number } | null;
-  }): IComment[] {
-    return commentGetTrailingComments(ctx, this.commentExtractor);
-  }
-
-  /**
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
@@ -7917,13 +7738,6 @@ export default class CodeGenerator implements IOrchestrator {
       this.commentFormatter,
       indent,
     );
-  }
-
-  /**
-   * Format a trailing/inline comment
-   */
-  private formatTrailingComment(comments: IComment[]): string {
-    return commentFormatTrailingComment(comments, this.commentFormatter);
   }
 
   /**

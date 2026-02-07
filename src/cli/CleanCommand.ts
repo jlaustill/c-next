@@ -13,6 +13,45 @@ import PathResolver from "../transpiler/data/PathResolver";
  */
 class CleanCommand {
   /**
+   * Discover CNX files from inputs.
+   * Returns null if none found or on error.
+   */
+  private static discoverCnxFiles(inputs: string[]): string[] | null {
+    try {
+      const cnxFiles = InputExpansion.expandInputs(inputs);
+      if (cnxFiles.length === 0) {
+        console.log("No .cnx files found. Nothing to clean.");
+        return null;
+      }
+      return cnxFiles;
+    } catch (error) {
+      console.error(`Error: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Delete generated files for a given set of extensions.
+   */
+  private static deleteGeneratedFiles(
+    baseName: string,
+    relativePath: string | null,
+    targetDir: string,
+    extensions: string[],
+  ): number {
+    let count = 0;
+    for (const ext of extensions) {
+      const outputPath = relativePath
+        ? join(targetDir, relativePath.replace(/\.cnx$|\.cnext$/, ext))
+        : join(targetDir, baseName + ext);
+      if (this.deleteIfExists(outputPath)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
    * Execute the clean command
    *
    * @param inputs - Input files or directories (source locations)
@@ -24,32 +63,19 @@ class CleanCommand {
     outDir: string,
     headerOutDir?: string,
   ): void {
-    // If no outDir specified, we can't determine where to clean
     if (!outDir) {
       console.log("No output directory specified. Nothing to clean.");
       return;
     }
 
-    // Discover all .cnx files
-    let cnxFiles: string[];
-    try {
-      cnxFiles = InputExpansion.expandInputs(inputs);
-    } catch (error) {
-      console.error(`Error: ${error}`);
-      return;
-    }
-
-    if (cnxFiles.length === 0) {
-      console.log("No .cnx files found. Nothing to clean.");
-      return;
-    }
+    const cnxFiles = this.discoverCnxFiles(inputs);
+    if (!cnxFiles) return;
 
     const resolvedOutDir = resolve(outDir);
     const resolvedHeaderDir = headerOutDir
       ? resolve(headerOutDir)
       : resolvedOutDir;
 
-    // Issue #586: Use PathResolver for consistent path calculation
     const pathResolver = new PathResolver({
       inputs,
       outDir,
@@ -58,39 +84,25 @@ class CleanCommand {
 
     let deletedCount = 0;
 
-    // For each .cnx file, calculate and delete generated files
     for (const cnxFile of cnxFiles) {
       const baseName = basename(cnxFile).replace(/\.cnx$|\.cnext$/, "");
-
-      // Calculate relative path from input directories
       const relativePath = pathResolver.getRelativePathFromInputs(cnxFile);
 
-      // Code files (.c and .cpp) go to outDir
-      const codeExtensions = [".c", ".cpp"];
-      for (const ext of codeExtensions) {
-        const outputPath = relativePath
-          ? join(resolvedOutDir, relativePath.replace(/\.cnx$|\.cnext$/, ext))
-          : join(resolvedOutDir, baseName + ext);
+      // Delete code files (.c and .cpp)
+      deletedCount += this.deleteGeneratedFiles(
+        baseName,
+        relativePath,
+        resolvedOutDir,
+        [".c", ".cpp"],
+      );
 
-        if (this.deleteIfExists(outputPath)) {
-          deletedCount++;
-        }
-      }
-
-      // Header files (.h and .hpp) go to headerOutDir
-      const headerExtensions = [".h", ".hpp"];
-      for (const ext of headerExtensions) {
-        const headerPath = relativePath
-          ? join(
-              resolvedHeaderDir,
-              relativePath.replace(/\.cnx$|\.cnext$/, ext),
-            )
-          : join(resolvedHeaderDir, baseName + ext);
-
-        if (this.deleteIfExists(headerPath)) {
-          deletedCount++;
-        }
-      }
+      // Delete header files (.h and .hpp)
+      deletedCount += this.deleteGeneratedFiles(
+        baseName,
+        relativePath,
+        resolvedHeaderDir,
+        [".h", ".hpp"],
+      );
     }
 
     if (deletedCount === 0) {

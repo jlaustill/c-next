@@ -131,7 +131,55 @@ class Transpiler {
    * Execute the unified pipeline
    */
   async run(): Promise<ITranspilerResult> {
-    const result: ITranspilerResult = {
+    const result = this._initResult();
+
+    try {
+      await this._initializeRun();
+
+      // Stage 1: Discover source files
+      const { cnextFiles, headerFiles } = await this.discoverSources();
+      if (cnextFiles.length === 0) {
+        return this._finalizeResult(result, "No C-Next source files found");
+      }
+
+      this._ensureOutputDirectories();
+
+      // Stage 2: Collect symbols from C/C++ headers
+      this._collectAllHeaderSymbols(headerFiles, result);
+
+      // Stage 3: Collect symbols from C-Next files
+      if (!this._collectAllCNextSymbols(cnextFiles, result)) {
+        return this._finalizeResult(result);
+      }
+
+      // Stage 3b: Resolve external const array dimensions
+      this.symbolTable.resolveExternalArrayDimensions();
+
+      // Stage 4: Check for symbol conflicts
+      if (!this._checkSymbolConflicts(result)) {
+        return this._finalizeResult(result);
+      }
+
+      // Stage 5: Analyze and transpile each C-Next file
+      const context = this._buildTranspileContext();
+      await this._transpileAllFiles(cnextFiles, context, result);
+
+      // Stage 6: Generate headers
+      if (result.success) {
+        this._generateAllHeaders(cnextFiles, result);
+      }
+
+      return await this._finalizeResult(result);
+    } catch (err) {
+      return this._handleRunError(result, err);
+    }
+  }
+
+  /**
+   * Initialize a fresh result object
+   */
+  private _initResult(): ITranspilerResult {
+    return {
       success: true,
       files: [],
       filesProcessed: 0,
@@ -141,236 +189,440 @@ class Transpiler {
       warnings: [],
       outputFiles: [],
     };
+  }
 
-    try {
-      // Initialize cache if enabled
-      if (this.cacheManager) {
-        await this.cacheManager.initialize();
+  /**
+   * Initialize run state: cache, analyzers, symbol table
+   */
+  private async _initializeRun(): Promise<void> {
+    if (this.cacheManager) {
+      await this.cacheManager.initialize();
+    }
+    // Issue #593: Reset cross-file modification tracking for new run
+    this.modificationAnalyzer.clear();
+    // Issue #587: Reset accumulated state for new run
+    this.state.reset();
+    // Issue #634: Reset symbol table for new run
+    this.symbolTable.clear();
+  }
+
+  /**
+   * Ensure output directories exist
+   */
+  private _ensureOutputDirectories(): void {
+    if (this.config.outDir && !this.fs.exists(this.config.outDir)) {
+      this.fs.mkdir(this.config.outDir, { recursive: true });
+    }
+    if (this.config.headerOutDir && !this.fs.exists(this.config.headerOutDir)) {
+      this.fs.mkdir(this.config.headerOutDir, { recursive: true });
+    }
+  }
+
+  /**
+   * Stage 2: Collect symbols from all C/C++ headers
+   */
+  private _collectAllHeaderSymbols(
+    headerFiles: IDiscoveredFile[],
+    result: ITranspilerResult,
+  ): void {
+    const { headers: allHeaders, warnings: headerWarnings } =
+      IncludeResolver.resolveHeadersTransitively(
+        headerFiles,
+        this.config.includeDirs,
+        {
+          onDebug: this.config.debugMode
+            ? (msg) => console.log(`[DEBUG] ${msg}`)
+            : undefined,
+          processedPaths: this.state.getProcessedHeadersSet(),
+          fs: this.fs,
+        },
+      );
+    this.warnings.push(...headerWarnings);
+
+    for (const file of allHeaders) {
+      try {
+        this.doCollectHeaderSymbols(file);
+        result.filesProcessed++;
+      } catch (err) {
+        this.warnings.push(`Failed to process header ${file.path}: ${err}`);
       }
+    }
+  }
 
-      // Issue #593: Reset cross-file modification tracking for new run
-      this.modificationAnalyzer.clear();
-
-      // Issue #587: Reset accumulated state for new run
-      this.state.reset();
-
-      // Issue #634: Reset symbol table for new run
-      // Without this, calling run() twice on the same Transpiler causes symbol conflicts
-      this.symbolTable.clear();
-
-      // Stage 1: Discover source files
-      const { cnextFiles, headerFiles } = await this.discoverSources();
-
-      if (cnextFiles.length === 0) {
-        result.warnings.push("No C-Next source files found");
-        result.warnings = [...result.warnings, ...this.warnings];
-        return result;
-      }
-
-      // Issue #580: Files are now sorted by DependencyGraph in discoverSources()
-      // using proper topological sorting (dependencies first). This ensures correct
-      // cross-file const inference regardless of when C++ mode is detected.
-
-      // Ensure output directory exists if specified
-      if (this.config.outDir && !this.fs.exists(this.config.outDir)) {
-        this.fs.mkdir(this.config.outDir, { recursive: true });
-      }
-
-      // Ensure header output directory exists if specified separately
-      if (
-        this.config.headerOutDir &&
-        !this.fs.exists(this.config.headerOutDir)
-      ) {
-        this.fs.mkdir(this.config.headerOutDir, { recursive: true });
-      }
-
-      // Stage 2: Collect symbols from C/C++ headers
-      // Issue #592: Use IncludeResolver.resolveHeadersTransitively() to handle
-      // recursive include discovery in the data layer
-      const { headers: allHeaders, warnings: headerWarnings } =
-        IncludeResolver.resolveHeadersTransitively(
-          headerFiles,
-          this.config.includeDirs,
-          {
-            onDebug: this.config.debugMode
-              ? (msg) => console.log(`[DEBUG] ${msg}`)
-              : undefined,
-            processedPaths: this.state.getProcessedHeadersSet(),
-            fs: this.fs,
-          },
-        );
-      this.warnings.push(...headerWarnings);
-
-      // Process all headers (now in dependency order, no recursion needed)
-      for (const file of allHeaders) {
-        try {
-          this.doCollectHeaderSymbols(file);
-          result.filesProcessed++;
-        } catch (err) {
-          this.warnings.push(`Failed to process header ${file.path}: ${err}`);
-        }
-      }
-
-      // Stage 3: Collect symbols from C-Next files
-      for (const file of cnextFiles) {
-        try {
-          this.doCollectCNextSymbols(file);
-        } catch (err) {
-          result.errors.push({
-            line: 1,
-            column: 0,
-            message: `Failed to collect symbols from ${file.path}: ${err}`,
-            severity: "error",
-          });
-          result.success = false;
-        }
-      }
-
-      // If there are parse errors, stop here
-      if (!result.success) {
-        result.warnings = [...result.warnings, ...this.warnings];
-        return result;
-      }
-
-      // Stage 3b: Issue #461 - Resolve external const array dimensions
-      // Now that all symbols are collected, resolve any unresolved array dimensions
-      // that reference external constants from included .cnx files
-      this.symbolTable.resolveExternalArrayDimensions();
-
-      // Stage 4: Check for symbol conflicts
-      const conflicts = this.symbolTable.getConflicts();
-      for (const conflict of conflicts) {
-        result.conflicts.push(conflict.message);
-        if (conflict.severity === "error") {
-          result.success = false;
-        }
-      }
-
-      if (!result.success) {
+  /**
+   * Stage 3: Collect symbols from all C-Next files
+   * @returns true if successful, false if parse errors occurred
+   */
+  private _collectAllCNextSymbols(
+    cnextFiles: IDiscoveredFile[],
+    result: ITranspilerResult,
+  ): boolean {
+    for (const file of cnextFiles) {
+      try {
+        this.doCollectCNextSymbols(file);
+      } catch (err) {
         result.errors.push({
           line: 1,
           column: 0,
-          message: "Symbol conflicts detected - cannot proceed",
+          message: `Failed to collect symbols from ${file.path}: ${err}`,
           severity: "error",
         });
-        result.warnings = [...result.warnings, ...this.warnings];
-        return result;
+        result.success = false;
       }
+    }
+    return result.success;
+  }
 
-      // Build shared context after Stage 4 for transpileSource delegation
-      const transpileContext: ITranspileContext = {
-        symbolTable: this.symbolTable,
-        symbolInfoByFile: this.state.getSymbolInfoByFileMap(),
-        accumulatedModifications: this.modificationAnalyzer.getModifications(),
-        accumulatedParamLists: this.modificationAnalyzer.getParamLists(),
-        headerIncludeDirectives: this.state.getAllHeaderDirectives(),
-        cppMode: this.cppDetected,
-        includeDirs: this.config.includeDirs,
-        target: this.config.target,
-        debugMode: this.config.debugMode,
-      };
-
-      // Stage 5: Analyze and transpile each C-Next file via transpileSource
-      for (const file of cnextFiles) {
-        const source = this.fs.readFile(file.path);
-        const fileResult = await this.transpileSource(source, {
-          workingDir: dirname(file.path),
-          sourcePath: file.path,
-          context: transpileContext,
-        });
-
-        // Accumulate contributions from this file
-        if (fileResult.contribution) {
-          // Store symbol info for header generation
-          this.state.setSymbolInfo(
-            file.path,
-            fileResult.contribution.symbolInfo,
-          );
-          this.state.setPassByValueParams(
-            file.path,
-            fileResult.contribution.passByValueParams,
-          );
-          this.state.setUserIncludes(file.path, [
-            ...fileResult.contribution.userIncludes,
-          ]);
-
-          // Issue #593: Merge C++ mode modifications via centralized analyzer
-          if (fileResult.contribution.modifiedParameters) {
-            this.modificationAnalyzer.accumulateModifications(
-              fileResult.contribution.modifiedParameters,
-            );
-          }
-          if (fileResult.contribution.functionParamLists) {
-            this.modificationAnalyzer.accumulateParamLists(
-              fileResult.contribution.functionParamLists,
-            );
-          }
-
-          // Issue #588: Update symbol parameters with auto-const info for header generation
-          const symbols = this.symbolTable.getSymbolsByFile(file.path);
-          const unmodifiedParams =
-            this.codeGenerator.getFunctionUnmodifiedParams();
-          const knownEnums =
-            this.state.getSymbolInfo(file.path)?.knownEnums ??
-            new Set<string>();
-          AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
-        }
-
-        // Write output file if output directory specified
-        let outputPath: string | undefined;
-        if (this.config.outDir && fileResult.success && fileResult.code) {
-          outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
-          this.fs.writeFile(outputPath, fileResult.code);
-        }
-
-        result.files.push({
-          ...fileResult,
-          outputPath,
-        });
-        result.filesProcessed++;
-
-        if (!fileResult.success) {
-          result.success = false;
-          result.errors.push(
-            ...fileResult.errors.map((e) => ({
-              ...e,
-              sourcePath: fileResult.sourcePath,
-            })),
-          );
-        } else if (outputPath) {
-          result.outputFiles.push(outputPath);
-        }
+  /**
+   * Stage 4: Check for symbol conflicts
+   * @returns true if no blocking conflicts, false otherwise
+   */
+  private _checkSymbolConflicts(result: ITranspilerResult): boolean {
+    const conflicts = this.symbolTable.getConflicts();
+    for (const conflict of conflicts) {
+      result.conflicts.push(conflict.message);
+      if (conflict.severity === "error") {
+        result.success = false;
       }
+    }
 
-      // Stage 6: Generate headers (always - Issue #461)
-      if (result.success) {
-        for (const file of cnextFiles) {
-          const headerPath = this.generateHeader(file);
-          if (headerPath) {
-            result.outputFiles.push(headerPath);
-          }
-        }
-      }
-
-      result.symbolsCollected = this.symbolTable.size;
-      result.warnings = [...result.warnings, ...this.warnings];
-
-      // Flush cache to disk
-      if (this.cacheManager) {
-        await this.cacheManager.flush();
-      }
-    } catch (err) {
+    if (!result.success) {
       result.errors.push({
         line: 1,
         column: 0,
-        message: `Pipeline failed: ${err}`,
+        message: "Symbol conflicts detected - cannot proceed",
         severity: "error",
       });
-      result.success = false;
-      result.warnings = [...result.warnings, ...this.warnings];
+    }
+    return result.success;
+  }
+
+  /**
+   * Build shared context for transpileSource delegation
+   */
+  private _buildTranspileContext(): ITranspileContext {
+    return {
+      symbolTable: this.symbolTable,
+      symbolInfoByFile: this.state.getSymbolInfoByFileMap(),
+      accumulatedModifications: this.modificationAnalyzer.getModifications(),
+      accumulatedParamLists: this.modificationAnalyzer.getParamLists(),
+      headerIncludeDirectives: this.state.getAllHeaderDirectives(),
+      cppMode: this.cppDetected,
+      includeDirs: this.config.includeDirs,
+      target: this.config.target,
+      debugMode: this.config.debugMode,
+    };
+  }
+
+  /**
+   * Stage 5: Transpile all C-Next files
+   */
+  private async _transpileAllFiles(
+    cnextFiles: IDiscoveredFile[],
+    context: ITranspileContext,
+    result: ITranspilerResult,
+  ): Promise<void> {
+    for (const file of cnextFiles) {
+      const source = this.fs.readFile(file.path);
+      const fileResult = await this.transpileSource(source, {
+        workingDir: dirname(file.path),
+        sourcePath: file.path,
+        context,
+      });
+
+      this._processFileContribution(file.path, fileResult);
+      this._recordFileResult(file, fileResult, result);
+    }
+  }
+
+  /**
+   * Process contributions from a transpiled file
+   */
+  private _processFileContribution(
+    filePath: string,
+    fileResult: IFileResult,
+  ): void {
+    if (!fileResult.contribution) {
+      return;
     }
 
+    // Store symbol info for header generation
+    this.state.setSymbolInfo(filePath, fileResult.contribution.symbolInfo);
+    this.state.setPassByValueParams(
+      filePath,
+      fileResult.contribution.passByValueParams,
+    );
+    this.state.setUserIncludes(filePath, [
+      ...fileResult.contribution.userIncludes,
+    ]);
+
+    // Issue #593: Merge C++ mode modifications via centralized analyzer
+    if (fileResult.contribution.modifiedParameters) {
+      this.modificationAnalyzer.accumulateModifications(
+        fileResult.contribution.modifiedParameters,
+      );
+    }
+    if (fileResult.contribution.functionParamLists) {
+      this.modificationAnalyzer.accumulateParamLists(
+        fileResult.contribution.functionParamLists,
+      );
+    }
+
+    // Issue #588: Update symbol parameters with auto-const info
+    const symbols = this.symbolTable.getSymbolsByFile(filePath);
+    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
+    const knownEnums =
+      this.state.getSymbolInfo(filePath)?.knownEnums ?? new Set<string>();
+    AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
+  }
+
+  /**
+   * Record file result and write output
+   */
+  private _recordFileResult(
+    file: IDiscoveredFile,
+    fileResult: IFileResult,
+    result: ITranspilerResult,
+  ): void {
+    let outputPath: string | undefined;
+    if (this.config.outDir && fileResult.success && fileResult.code) {
+      outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
+      this.fs.writeFile(outputPath, fileResult.code);
+    }
+
+    result.files.push({ ...fileResult, outputPath });
+    result.filesProcessed++;
+
+    if (!fileResult.success) {
+      result.success = false;
+      result.errors.push(
+        ...fileResult.errors.map((e) => ({
+          ...e,
+          sourcePath: fileResult.sourcePath,
+        })),
+      );
+    } else if (outputPath) {
+      result.outputFiles.push(outputPath);
+    }
+  }
+
+  /**
+   * Stage 6: Generate headers for all C-Next files
+   */
+  private _generateAllHeaders(
+    cnextFiles: IDiscoveredFile[],
+    result: ITranspilerResult,
+  ): void {
+    for (const file of cnextFiles) {
+      const headerPath = this.generateHeader(file);
+      if (headerPath) {
+        result.outputFiles.push(headerPath);
+      }
+    }
+  }
+
+  /**
+   * Finalize result: merge warnings, flush cache
+   */
+  private async _finalizeResult(
+    result: ITranspilerResult,
+    warning?: string,
+  ): Promise<ITranspilerResult> {
+    if (warning) {
+      result.warnings.push(warning);
+    }
+    result.symbolsCollected = this.symbolTable.size;
+    result.warnings = [...result.warnings, ...this.warnings];
+
+    if (this.cacheManager) {
+      await this.cacheManager.flush();
+    }
     return result;
+  }
+
+  /**
+   * Handle errors during run
+   */
+  private _handleRunError(
+    result: ITranspilerResult,
+    err: unknown,
+  ): ITranspilerResult {
+    result.errors.push({
+      line: 1,
+      column: 0,
+      message: `Pipeline failed: ${err}`,
+      severity: "error",
+    });
+    result.success = false;
+    result.warnings = [...result.warnings, ...this.warnings];
+    return result;
+  }
+
+  /**
+   * Discover C-Next files from a single input (file or directory).
+   */
+  private _discoverCNextFromInput(
+    input: string,
+    cnextFiles: IDiscoveredFile[],
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): void {
+    const resolvedInput = resolve(input);
+
+    if (!this.fs.exists(resolvedInput)) {
+      throw new Error(`Input not found: ${input}`);
+    }
+
+    const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
+    if (file?.type === EFileType.CNext) {
+      cnextFiles.push(file);
+      fileByPath.set(resolve(file.path), file);
+      return;
+    }
+
+    if (file?.type !== EFileType.Unknown && file !== null) {
+      // Other supported file type (direct header input) - skip for now
+      return;
+    }
+
+    // It's a directory - scan for C-Next files
+    const discovered = FileDiscovery.discover(
+      [resolvedInput],
+      { recursive: true },
+      this.fs,
+    );
+    for (const f of FileDiscovery.getCNextFiles(discovered)) {
+      cnextFiles.push(f);
+      fileByPath.set(resolve(f.path), f);
+    }
+  }
+
+  /**
+   * Collect headers from resolved includes, filtering out generated ones.
+   */
+  private _collectHeaders(
+    resolved: {
+      headers: IDiscoveredFile[];
+      headerIncludeDirectives: Map<string, string>;
+    },
+    cnextBaseNames: Set<string>,
+    headerSet: Map<string, IDiscoveredFile>,
+  ): void {
+    for (const header of resolved.headers) {
+      const headerBaseName = basename(header.path).replace(
+        /\.h$|\.hpp$|\.hxx$|\.hh$/,
+        "",
+      );
+      if (cnextBaseNames.has(headerBaseName)) {
+        continue;
+      }
+      headerSet.set(header.path, header);
+      // Issue #497: Store the include directive for this header
+      const directive = resolved.headerIncludeDirectives.get(header.path);
+      if (directive) {
+        this.state.setHeaderDirective(header.path, directive);
+      }
+    }
+  }
+
+  /**
+   * Process C-Next includes from resolved includes.
+   * Issue #461: Collect included .cnx files for symbol resolution
+   * Issue #580: Track dependencies for topological sorting
+   */
+  private _processCnextIncludes(
+    resolved: { cnextIncludes: IDiscoveredFile[] },
+    cnxPath: string,
+    depGraph: DependencyGraph,
+    cnextFiles: IDiscoveredFile[],
+    cnextBaseNames: Set<string>,
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): void {
+    for (const cnxInclude of resolved.cnextIncludes) {
+      const includePath = resolve(cnxInclude.path);
+      const includeBaseName = basename(includePath).replace(
+        /\.cnx$|\.cnext$/,
+        "",
+      );
+
+      depGraph.addDependency(cnxPath, includePath);
+
+      // Don't add if already in the list
+      const alreadyExists =
+        cnextBaseNames.has(includeBaseName) ||
+        cnextFiles.some((f) => resolve(f.path) === includePath);
+      if (!alreadyExists) {
+        cnextFiles.push(cnxInclude);
+        cnextBaseNames.add(includeBaseName);
+        fileByPath.set(includePath, cnxInclude);
+      }
+    }
+  }
+
+  /**
+   * Process a single C-Next file's includes.
+   */
+  private _processFileIncludes(
+    cnxFile: IDiscoveredFile,
+    depGraph: DependencyGraph,
+    cnextFiles: IDiscoveredFile[],
+    cnextBaseNames: Set<string>,
+    headerSet: Map<string, IDiscoveredFile>,
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): void {
+    const cnxPath = resolve(cnxFile.path);
+    depGraph.addFile(cnxPath);
+
+    const content = this.fs.readFile(cnxFile.path);
+
+    // Build search paths for this file
+    const sourceDir = dirname(cnxFile.path);
+    const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
+      cnxFile.path,
+      this.fs,
+    );
+    const searchPaths = IncludeResolver.buildSearchPaths(
+      sourceDir,
+      this.config.includeDirs,
+      additionalIncludeDirs,
+      undefined,
+      this.fs,
+    );
+
+    // Resolve includes
+    const resolver = new IncludeResolver(searchPaths, this.fs);
+    const resolved = resolver.resolve(content, cnxFile.path);
+
+    this._collectHeaders(resolved, cnextBaseNames, headerSet);
+    this._processCnextIncludes(
+      resolved,
+      cnxPath,
+      depGraph,
+      cnextFiles,
+      cnextBaseNames,
+      fileByPath,
+    );
+
+    this.warnings.push(...resolved.warnings);
+  }
+
+  /**
+   * Sort files topologically and convert paths to IDiscoveredFile array.
+   */
+  private _sortFilesByDependency(
+    depGraph: DependencyGraph,
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): IDiscoveredFile[] {
+    const sortedPaths = depGraph.getSortedFiles();
+    this.warnings.push(...depGraph.getWarnings());
+
+    const sortedFiles: IDiscoveredFile[] = [];
+    for (const path of sortedPaths) {
+      const file = fileByPath.get(path);
+      if (file) {
+        sortedFiles.push(file);
+      }
+    }
+    return sortedFiles;
   }
 
   /**
@@ -390,32 +642,7 @@ class Transpiler {
     const fileByPath = new Map<string, IDiscoveredFile>();
 
     for (const input of this.config.inputs) {
-      const resolvedInput = resolve(input);
-
-      if (!this.fs.exists(resolvedInput)) {
-        throw new Error(`Input not found: ${input}`);
-      }
-
-      const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
-      if (file?.type === EFileType.CNext) {
-        // It's a C-Next file
-        cnextFiles.push(file);
-        fileByPath.set(resolve(file.path), file);
-      } else if (file?.type !== EFileType.Unknown && file !== null) {
-        // It's another supported file type (direct header input)
-        // Skip for now - we only want C-Next sources here
-      } else {
-        // It's a directory - scan for C-Next files
-        const discovered = FileDiscovery.discover(
-          [resolvedInput],
-          { recursive: true },
-          this.fs,
-        );
-        for (const f of FileDiscovery.getCNextFiles(discovered)) {
-          cnextFiles.push(f);
-          fileByPath.set(resolve(f.path), f);
-        }
-      }
+      this._discoverCNextFromInput(input, cnextFiles, fileByPath);
     }
 
     if (cnextFiles.length === 0) {
@@ -423,96 +650,25 @@ class Transpiler {
     }
 
     // Step 2: For each C-Next file, resolve its #include directives
-    // Issue #580: Use DependencyGraph for proper topological sorting
     const headerSet = new Map<string, IDiscoveredFile>();
     const depGraph = new DependencyGraph();
-
-    // Build set of base names from C-Next files to exclude generated headers
     const cnextBaseNames = new Set(
       cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
     );
 
     for (const cnxFile of cnextFiles) {
-      const cnxPath = resolve(cnxFile.path);
-      depGraph.addFile(cnxPath);
-
-      const content = this.fs.readFile(cnxFile.path);
-
-      // Build search paths for this file
-      const sourceDir = dirname(cnxFile.path);
-      const additionalIncludeDirs = IncludeDiscovery.discoverIncludePaths(
-        cnxFile.path,
-        this.fs,
+      this._processFileIncludes(
+        cnxFile,
+        depGraph,
+        cnextFiles,
+        cnextBaseNames,
+        headerSet,
+        fileByPath,
       );
-      const searchPaths = IncludeResolver.buildSearchPaths(
-        sourceDir,
-        this.config.includeDirs,
-        additionalIncludeDirs,
-        undefined,
-        this.fs,
-      );
-
-      // Resolve includes
-      const resolver = new IncludeResolver(searchPaths, this.fs);
-      const resolved = resolver.resolve(content, cnxFile.path);
-
-      // Collect headers, filtering out generated ones
-      for (const header of resolved.headers) {
-        const headerBaseName = basename(header.path).replace(
-          /\.h$|\.hpp$|\.hxx$|\.hh$/,
-          "",
-        );
-        if (!cnextBaseNames.has(headerBaseName)) {
-          headerSet.set(header.path, header);
-          // Issue #497: Store the include directive for this header
-          const directive = resolved.headerIncludeDirectives.get(header.path);
-          if (directive) {
-            this.state.setHeaderDirective(header.path, directive);
-          }
-        }
-      }
-
-      // Issue #461: Collect included .cnx files for symbol resolution
-      // This ensures constants from included .cnx files are available for array dimension resolution
-      // Issue #580: Track dependencies for topological sorting
-      for (const cnxInclude of resolved.cnextIncludes) {
-        const includePath = resolve(cnxInclude.path);
-        const includeBaseName = basename(includePath).replace(
-          /\.cnx$|\.cnext$/,
-          "",
-        );
-
-        // Track dependency: cnxFile depends on cnxInclude
-        depGraph.addDependency(cnxPath, includePath);
-
-        // Don't add if already in the list (by base name comparison)
-        if (
-          !cnextBaseNames.has(includeBaseName) &&
-          !cnextFiles.some((f) => resolve(f.path) === includePath)
-        ) {
-          cnextFiles.push(cnxInclude);
-          cnextBaseNames.add(includeBaseName);
-          fileByPath.set(includePath, cnxInclude);
-        }
-      }
-
-      // Collect warnings
-      this.warnings.push(...resolved.warnings);
     }
 
-    // Issue #580: Sort files topologically (dependencies first) for correct
-    // cross-file const inference. This replaces the simple reversal heuristic.
-    const sortedPaths = depGraph.getSortedFiles();
-    this.warnings.push(...depGraph.getWarnings());
-
-    // Convert sorted paths back to IDiscoveredFile array
-    const sortedCnextFiles: IDiscoveredFile[] = [];
-    for (const path of sortedPaths) {
-      const file = fileByPath.get(path);
-      if (file) {
-        sortedCnextFiles.push(file);
-      }
-    }
+    // Issue #580: Sort files topologically for correct cross-file const inference
+    const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
     return {
       cnextFiles: sortedCnextFiles,
