@@ -35,7 +35,98 @@ interface IContextBuilderDeps {
 }
 
 /**
+ * Result from extracting identifiers and subscripts from assignment target.
+ */
+interface ITargetExtraction {
+  identifiers: string[];
+  subscripts: Parser.ExpressionContext[];
+  hasMemberAccess: boolean;
+  hasArrayAccess: boolean;
+}
+
+/**
+ * Extract identifiers from legacy memberAccess or arrayAccess patterns.
+ * SonarCloud S3776: Extracted from buildAssignmentContext().
+ */
+function extractFromLegacyAccess(
+  targetCtx: Parser.AssignmentTargetContext,
+): ITargetExtraction {
+  const identifiers: string[] = [];
+  const subscripts: Parser.ExpressionContext[] = [];
+
+  const legacyMemberAccess = targetCtx.memberAccess();
+  const legacyArrayAccess = targetCtx.arrayAccess();
+
+  if (targetCtx.IDENTIFIER()) {
+    identifiers.push(targetCtx.IDENTIFIER()!.getText());
+    return {
+      identifiers,
+      subscripts,
+      hasMemberAccess: legacyMemberAccess !== null,
+      hasArrayAccess: legacyArrayAccess !== null,
+    };
+  }
+
+  if (legacyMemberAccess) {
+    for (const id of legacyMemberAccess.IDENTIFIER()) {
+      identifiers.push(id.getText());
+    }
+    for (const expr of legacyMemberAccess.expression()) {
+      subscripts.push(expr);
+    }
+    return {
+      identifiers,
+      subscripts,
+      hasMemberAccess: true,
+      hasArrayAccess: subscripts.length > 0,
+    };
+  }
+
+  if (legacyArrayAccess) {
+    identifiers.push(legacyArrayAccess.IDENTIFIER().getText());
+    for (const expr of legacyArrayAccess.expression()) {
+      subscripts.push(expr);
+    }
+    return {
+      identifiers,
+      subscripts,
+      hasMemberAccess: false,
+      hasArrayAccess: true,
+    };
+  }
+
+  return {
+    identifiers,
+    subscripts,
+    hasMemberAccess: false,
+    hasArrayAccess: false,
+  };
+}
+
+/**
+ * Process postfix operations and update extraction result.
+ * SonarCloud S3776: Extracted from buildAssignmentContext().
+ */
+function processPostfixOps(
+  postfixOps: Parser.PostfixTargetOpContext[],
+  extraction: ITargetExtraction,
+): void {
+  for (const op of postfixOps) {
+    if (op.IDENTIFIER()) {
+      extraction.identifiers.push(op.IDENTIFIER()!.getText());
+      extraction.hasMemberAccess = true;
+    } else {
+      for (const expr of op.expression()) {
+        extraction.subscripts.push(expr);
+      }
+      extraction.hasArrayAccess = true;
+    }
+  }
+}
+
+/**
  * Build an IAssignmentContext from a parse tree.
+ * SonarCloud S3776: Refactored to use helper functions.
  */
 function buildAssignmentContext(
   ctx: Parser.AssignmentStatementContext,
@@ -62,53 +153,12 @@ function buildAssignmentContext(
   const legacyMemberAccess = targetCtx.memberAccess();
   const legacyArrayAccess = targetCtx.arrayAccess();
 
-  // Build identifiers list
-  const identifiers: string[] = [];
-  const subscripts: Parser.ExpressionContext[] = [];
+  // Extract identifiers and subscripts using helper functions
+  const extraction = extractFromLegacyAccess(targetCtx);
+  processPostfixOps(postfixOps, extraction);
 
-  // First identifier (may be from IDENTIFIER or memberAccess/arrayAccess)
-  // Track if we found array subscripts in legacyMemberAccess
-  let memberAccessHasSubscripts = false;
-
-  if (targetCtx.IDENTIFIER()) {
-    identifiers.push(targetCtx.IDENTIFIER()!.getText());
-  } else if (legacyMemberAccess) {
-    // Legacy memberAccess: first identifier
-    const memberIds = legacyMemberAccess.IDENTIFIER();
-    for (const id of memberIds) {
-      identifiers.push(id.getText());
-    }
-    // Extract subscripts from memberAccess
-    const memberExprs = legacyMemberAccess.expression();
-    for (const expr of memberExprs) {
-      subscripts.push(expr);
-    }
-    // Mark that we have array access if there were subscripts
-    memberAccessHasSubscripts = memberExprs.length > 0;
-  } else if (legacyArrayAccess) {
-    // Legacy arrayAccess
-    identifiers.push(legacyArrayAccess.IDENTIFIER().getText());
-    for (const expr of legacyArrayAccess.expression()) {
-      subscripts.push(expr);
-    }
-  }
-
-  // Process postfix operations (unified grammar)
-  let hasMemberAccess = legacyMemberAccess !== null;
-  let hasArrayAccess = legacyArrayAccess !== null || memberAccessHasSubscripts;
-
-  for (const op of postfixOps) {
-    if (op.IDENTIFIER()) {
-      identifiers.push(op.IDENTIFIER()!.getText());
-      hasMemberAccess = true;
-    } else {
-      // Array subscript or bit range
-      for (const expr of op.expression()) {
-        subscripts.push(expr);
-      }
-      hasArrayAccess = true;
-    }
-  }
+  const { identifiers, subscripts, hasMemberAccess, hasArrayAccess } =
+    extraction;
 
   // Get first identifier type info
   const firstId = identifiers[0] ?? "";
