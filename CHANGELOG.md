@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.60] - 2026-02-07
+
+### Added
+
+- Add `--serve` flag for JSON-RPC server mode (ADR-060 Phase 1, PR #721)
+- Add VS Code extension server client for transpiler communication (ADR-060 Phase 2, PR #722)
+- Code analysis tools: ts-prune, madge, jscpd for dead code and duplication detection (PR #703)
+
+### Changed
+
+- Reduce cognitive complexity across 30+ functions to meet SonarCloud S3776 thresholds:
+  - `MemberChainAnalyzer` (46→~5), `StringDeclHelper` (45→~12), `generateTypeInfoLength` (35→~10)
+  - `ArrayDimensionParser` (33→~12), `CSymbolCollector` (23→~8), `IncludeDiscovery` (27/23→~8)
+  - `HeaderGeneratorUtils` (26→~10), `Runner.execute` (24→~8), `handleSingleSubscript` (22→~8)
+  - Plus: `Transpiler.run`, `generateScope`, `generateSizeofExpr`, `needsCppMemberConversion`
+  - `VariableCollector.collect`, `collectSimpleDeclaration`, `runAnalyzers`, `generateLengthProperty`
+  - `generateReturn`, `generateCaseLabel`, `buildMemberAccessChain`, and many more (PRs #703-#723)
+- Extract helper classes for improved testability: `BitRangeHelper`, `BooleanHelper`, `CppMemberHelper`, `CppConstructorHelper`, `SetMapHelper`, `SymbolLookupHelper`, `CodeGenErrors` (PR #715)
+- Convert `AssignmentHandlerRegistry` from singleton to static class pattern (PR #703)
+- Reduce production code duplication via helper extraction (PRs #709, #710)
+
+### Fixed
+
+- Address SonarCloud issues: S1444 (public static mutable), S7780, S7773, S7735 (PRs #709, #710, #714)
+- Fix CI flakiness: increase timeout for Transpiler.coverage.test.ts (PR #719)
+- Pin npm version to stabilize package-lock.json peer metadata (PR #717)
+
 ## [0.1.59] - 2026-02-05
 
 ### Fixed
@@ -761,7 +788,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.57...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.60...HEAD
+[0.1.60]: https://github.com/jlaustill/c-next/compare/v0.1.59...v0.1.60
 [0.1.59]: https://github.com/jlaustill/c-next/compare/v0.1.58...v0.1.59
 [0.1.58]: https://github.com/jlaustill/c-next/compare/v0.1.57...v0.1.58
 [0.1.57]: https://github.com/jlaustill/c-next/compare/v0.1.56...v0.1.57
