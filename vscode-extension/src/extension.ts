@@ -76,6 +76,8 @@ async function validateDocument(document: vscode.TextDocument): Promise<void> {
   }
 
   // Check if server is available
+  // Note: When server is unavailable, we keep existing diagnostics to show
+  // the last known state rather than clearing them (intentional behavior)
   if (!serverClient || !serverClient.isRunning()) {
     return;
   }

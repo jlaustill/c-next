@@ -162,6 +162,7 @@ class CNextServerClient {
       if (version) {
         this.outputChannel.appendLine(`C-Next server v${version} started`);
         this.isStarting = false;
+        this.hasRestarted = false; // Reset so future crashes can trigger restart
         return true;
       }
 
@@ -256,13 +257,14 @@ class CNextServerClient {
 
     // 2. Check workspace node_modules
     const workspaceFolders = vscode.workspace.workspaceFolders;
+    const binName = process.platform === "win32" ? "cnext.cmd" : "cnext";
     if (workspaceFolders) {
       for (const folder of workspaceFolders) {
         const localPath = path.join(
           folder.uri.fsPath,
           "node_modules",
           ".bin",
-          "cnext",
+          binName,
         );
         if (fs.existsSync(localPath)) {
           return localPath;
