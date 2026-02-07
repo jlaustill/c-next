@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.61] - 2026-02-07
+
+### Changed
+
+- Remove vscode-extension folder from repo (moved to separate repo)
+- Wire serve command to full Transpiler, delete simplified API (ADR-060 Phase 2b)
+- Extract CodeGenerator helpers for improved testability
+
+### Fixed
+
+- Reduce cognitive complexity across 20+ functions to meet SonarCloud S3776 thresholds:
+  - `doGenerateAssignmentTarget` (26→~10), `getPostfixExpressionType` (20→~8)
+  - `transpileSource` (20→~12), `doCollectHeaderSymbols` (19→~8)
+  - `buildAssignmentContext` (19→~10), `collectDeclaration` (19→~12)
+  - `registerAllVariableTypes` (20→~8), `analyzePassByValue` (17→~8)
+  - `enterPostfixExpression` (17→~10), `InitializationAnalyzer`
+  - `walkStatementForModifications`, `transformIncludeDirective`
+  - `generateCaseLabel`, `generateStruct`, `enterStatement`
+  - `collectBitmapsPass1`, `TypeValidator` shift evaluation
+  - `TransitiveModificationPropagator` (PRs #726-#730)
+- Add lexer error listener removal and unit tests for parseCHeader
+- Address 3 new SonarCloud code issues
+
+### Added
+
+- Add `parseCHeader` server method for extension separation (ADR-060 Phase 3 prep)
+- Unit tests for GeneratorRegistry `has*` methods
+
 ## [0.1.60] - 2026-02-07
 
 ### Added
@@ -788,7 +816,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.60...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.61...HEAD
+[0.1.61]: https://github.com/jlaustill/c-next/compare/v0.1.60...v0.1.61
 [0.1.60]: https://github.com/jlaustill/c-next/compare/v0.1.59...v0.1.60
 [0.1.59]: https://github.com/jlaustill/c-next/compare/v0.1.58...v0.1.59
 [0.1.58]: https://github.com/jlaustill/c-next/compare/v0.1.57...v0.1.58
