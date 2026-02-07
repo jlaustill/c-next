@@ -7846,13 +7846,13 @@ export default class CodeGenerator implements IOrchestrator {
     // Float bit indexing read: use shadow variable + memcpy
     const isFloatType =
       typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
-    if (isFloatType) {
+    if (isFloatType && typeInfo) {
       return this._generateFloatBitRangeRead(
         rawName,
         name,
         start,
         width,
-        typeInfo!,
+        typeInfo,
       );
     }
 
