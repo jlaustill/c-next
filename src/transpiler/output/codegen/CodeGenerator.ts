@@ -117,6 +117,16 @@ import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
+// Issue #566: Statement expression collection for const inference
+import StatementExpressionCollector from "./helpers/StatementExpressionCollector";
+// Issue #269: Transitive modification propagation for const inference
+import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
+// Issue #566: Child statement/block collection for const inference
+import ChildStatementCollector from "./helpers/ChildStatementCollector";
+// Phase 3: Type generation helper for improved testability
+import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
+// Phase 5: Cast validation helper for improved testability
+import CastValidator from "./helpers/CastValidator";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1453,7 +1463,11 @@ export default class CodeGenerator implements IOrchestrator {
     this.collectFunctionParametersAndModifications(tree);
 
     // Issue #565: Run transitive propagation with full context
-    this.propagateTransitiveModifications();
+    TransitiveModificationPropagator.propagate(
+      this.functionCallGraph,
+      this.functionParamLists,
+      this.modifiedParameters,
+    );
 
     // Capture results - only include functions NOT from cross-file injection
     const modifications = this.extractThisFileModifications(
@@ -2621,7 +2635,11 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Phase 2: Fixed-point iteration for transitive modifications
-    this.propagateTransitiveModifications();
+    TransitiveModificationPropagator.propagate(
+      this.functionCallGraph,
+      this.functionParamLists,
+      this.modifiedParameters,
+    );
 
     // Phase 3: Determine which parameters can pass by value
     this.computePassByValueParams();
@@ -2707,166 +2725,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #566: Collect all expressions from a statement that need to be walked for function calls.
-   * This centralizes expression extraction to prevent missing cases (like issue #565).
-   */
-  private collectExpressionsFromStatement(
-    stmt: Parser.StatementContext,
-  ): Parser.ExpressionContext[] {
-    const expressions: Parser.ExpressionContext[] = [];
-
-    // Simple statements with expressions
-    if (stmt.expressionStatement()) {
-      expressions.push(stmt.expressionStatement()!.expression());
-    }
-    if (stmt.assignmentStatement()) {
-      expressions.push(stmt.assignmentStatement()!.expression());
-    }
-    if (stmt.variableDeclaration()?.expression()) {
-      expressions.push(stmt.variableDeclaration()!.expression()!);
-    }
-    if (stmt.returnStatement()?.expression()) {
-      expressions.push(stmt.returnStatement()!.expression()!);
-    }
-
-    // Control flow conditions
-    if (stmt.ifStatement()) {
-      expressions.push(stmt.ifStatement()!.expression());
-    }
-    if (stmt.whileStatement()) {
-      expressions.push(stmt.whileStatement()!.expression());
-    }
-    if (stmt.doWhileStatement()) {
-      expressions.push(stmt.doWhileStatement()!.expression());
-    }
-    if (stmt.switchStatement()) {
-      expressions.push(stmt.switchStatement()!.expression());
-    }
-
-    // For statement has multiple expression contexts
-    if (stmt.forStatement()) {
-      const forStmt = stmt.forStatement()!;
-      // Condition (optional)
-      if (forStmt.expression()) {
-        expressions.push(forStmt.expression()!);
-      }
-      // forInit expressions
-      const forInit = forStmt.forInit();
-      if (forInit?.forAssignment()) {
-        expressions.push(forInit.forAssignment()!.expression());
-      } else if (forInit?.forVarDecl()?.expression()) {
-        expressions.push(forInit.forVarDecl()!.expression()!);
-      }
-      // forUpdate expression
-      if (forStmt.forUpdate()) {
-        expressions.push(forStmt.forUpdate()!.expression());
-      }
-    }
-
-    return expressions;
-  }
-
-  /**
-   * Helper: Classify a child statement as block or statement.
-   */
-  private _classifyChildStatement(
-    childStmt: Parser.StatementContext,
-    statements: Parser.StatementContext[],
-    blocks: Parser.BlockContext[],
-  ): void {
-    if (childStmt.block()) {
-      blocks.push(childStmt.block()!);
-    } else {
-      statements.push(childStmt);
-    }
-  }
-
-  /**
-   * Helper: Collect children from loop body (while/for).
-   */
-  private _collectLoopBody(
-    bodyStmt: Parser.StatementContext,
-    statements: Parser.StatementContext[],
-    blocks: Parser.BlockContext[],
-  ): void {
-    this._classifyChildStatement(bodyStmt, statements, blocks);
-  }
-
-  /**
-   * Helper: Collect children from switch statement.
-   */
-  private _collectSwitchChildren(
-    switchStmt: Parser.SwitchStatementContext,
-    blocks: Parser.BlockContext[],
-  ): void {
-    for (const caseCtx of switchStmt.switchCase()) {
-      blocks.push(caseCtx.block());
-    }
-    if (switchStmt.defaultCase()) {
-      blocks.push(switchStmt.defaultCase()!.block());
-    }
-  }
-
-  /**
-   * Issue #566: Collect child statements and blocks from control flow statements.
-   * This centralizes recursion patterns to prevent missing nested statements.
-   */
-  private getChildStatementsAndBlocks(stmt: Parser.StatementContext): {
-    statements: Parser.StatementContext[];
-    blocks: Parser.BlockContext[];
-  } {
-    const statements: Parser.StatementContext[] = [];
-    const blocks: Parser.BlockContext[] = [];
-
-    // if statement: has statement() children (can be blocks or single statements)
-    if (stmt.ifStatement()) {
-      for (const childStmt of stmt.ifStatement()!.statement()) {
-        this._classifyChildStatement(childStmt, statements, blocks);
-      }
-    }
-
-    // while statement: single statement() child
-    if (stmt.whileStatement()) {
-      this._collectLoopBody(
-        stmt.whileStatement()!.statement(),
-        statements,
-        blocks,
-      );
-    }
-
-    // for statement: single statement() child
-    if (stmt.forStatement()) {
-      this._collectLoopBody(
-        stmt.forStatement()!.statement(),
-        statements,
-        blocks,
-      );
-    }
-
-    // do-while statement: has block() directly
-    if (stmt.doWhileStatement()) {
-      blocks.push(stmt.doWhileStatement()!.block());
-    }
-
-    // switch statement: case blocks and optional default block
-    if (stmt.switchStatement()) {
-      this._collectSwitchChildren(stmt.switchStatement()!, blocks);
-    }
-
-    // critical statement: has block() directly (ADR-050)
-    if (stmt.criticalStatement()) {
-      blocks.push(stmt.criticalStatement()!.block());
-    }
-
-    // Nested block statement
-    if (stmt.block()) {
-      blocks.push(stmt.block()!);
-    }
-
-    return { statements, blocks };
-  }
-
-  /**
    * Walk a statement recursively looking for modifications and calls.
    * Issue #566: Refactored to use helper methods for expression and child collection.
    */
@@ -2915,14 +2773,14 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // 2. Walk all expressions in this statement for function calls and subscript access
-    for (const expr of this.collectExpressionsFromStatement(stmt)) {
+    for (const expr of StatementExpressionCollector.collectAll(stmt)) {
       this.walkExpressionForCalls(funcName, paramSet, expr);
       // Issue #579: Also track subscript read access on parameters
       this.walkExpressionForSubscriptAccess(funcName, paramSet, expr);
     }
 
     // 3. Recurse into child statements and blocks
-    const { statements, blocks } = this.getChildStatementsAndBlocks(stmt);
+    const { statements, blocks } = ChildStatementCollector.collectAll(stmt);
     for (const childStmt of statements) {
       this.walkStatementForModifications(funcName, paramSet, childStmt);
     }
@@ -3202,40 +3060,6 @@ export default class CodeGenerator implements IOrchestrator {
       }
       for (const expr of op.expression()) {
         this.walkExpressionForCalls(funcName, paramSet, expr);
-      }
-    }
-  }
-
-  /**
-   * Phase 2: Fixed-point iteration to propagate transitive modifications.
-   * If a parameter is passed to a function that modifies its corresponding param,
-   * then the caller's parameter is also considered modified.
-   */
-  private propagateTransitiveModifications(): void {
-    let changed = true;
-    while (changed) {
-      changed = false;
-
-      for (const [funcName, calls] of this.functionCallGraph) {
-        for (const { callee, paramIndex, argParamName } of calls) {
-          // Get the callee's parameter list
-          const calleeParams = this.functionParamLists.get(callee);
-          if (!calleeParams || paramIndex >= calleeParams.length) {
-            continue;
-          }
-
-          const calleeParamName = calleeParams[paramIndex];
-          const calleeModified = this.modifiedParameters.get(callee);
-
-          // If callee's parameter is modified, mark caller's parameter as modified
-          if (calleeModified?.has(calleeParamName)) {
-            const callerModified = this.modifiedParameters.get(funcName);
-            if (callerModified && !callerModified.has(argParamName)) {
-              callerModified.add(argParamName);
-              changed = true;
-            }
-          }
-        }
       }
     }
   }
@@ -7100,16 +6924,14 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #632: Float-to-integer casts must clamp to avoid undefined behavior
     // C-Next's default is "clamp" (saturate), so out-of-range values clamp to type limits
-    if (this._isIntegerType(targetTypeName)) {
-      const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
-      if (sourceType && this._isFloatType(sourceType)) {
-        return this.generateFloatToIntClampCast(
-          expr,
-          targetType,
-          targetTypeName,
-          sourceType,
-        );
-      }
+    const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
+    if (CastValidator.requiresClampingCast(sourceType, targetTypeName)) {
+      return this.generateFloatToIntClampCast(
+        expr,
+        targetType,
+        targetTypeName,
+        sourceType!,
+      );
     }
 
     // Validate enum casts are only to unsigned types
@@ -7730,88 +7552,21 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private _generateType(ctx: Parser.TypeContext): string {
-    if (ctx.primitiveType()) {
-      const type = ctx.primitiveType()!.getText();
-      // Track required includes based on type usage
-      if (type === "bool") {
-        this.requireInclude("stdbool");
-      } else if (type === "ISR") {
-        this.requireInclude("isr"); // ADR-040: ISR function pointer typedef
-      } else if (type in TYPE_MAP && type !== "void") {
-        this.requireInclude("stdint");
-      }
-      return TYPE_MAP[type] || type;
+    // Track required includes based on type usage
+    const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
+    if (requiredInclude) {
+      this.requireInclude(requiredInclude);
     }
-    // ADR-045: Handle bounded string type
-    if (ctx.stringType()) {
-      this.requireInclude("string");
-      return "char"; // String declarations handle the array dimension separately
-    }
-    // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-    if (ctx.scopedType()) {
-      const typeName = ctx.scopedType()!.IDENTIFIER().getText();
-      if (!this.context.currentScope) {
-        throw CodeGenErrors.scopedTypeOutsideScope();
-      }
-      return `${this.context.currentScope}_${typeName}`;
-    }
-    // Issue #478: Handle global.Type for global types inside scope
-    if (ctx.globalType()) {
-      return ctx.globalType()!.IDENTIFIER().getText();
-    }
-    // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
-    // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
-    if (ctx.qualifiedType()) {
-      const identifiers = ctx.qualifiedType()!.IDENTIFIER();
-      const identifierNames = identifiers.map((id) => id.getText());
-      const firstName = identifierNames[0];
 
-      // Check if this is a C++ namespace type - no visibility validation needed
-      if (this.isCppScopeSymbol(firstName)) {
-        return identifierNames.join("::");
-      }
-
-      // C-Next scoped type - validate visibility (for 2-part types only)
-      if (identifierNames.length === 2) {
-        this._validateCrossScopeVisibility(firstName, identifierNames[1]);
-      }
-
-      return identifierNames.join("_");
-    }
-    if (ctx.userType()) {
-      const typeName = ctx.userType()!.getText();
-      // ADR-046: cstring maps to char* for C library interop
-      if (typeName === "cstring") {
-        return "char*";
-      }
-      // Issue #196 Bug 3: Check if this C struct needs 'struct' keyword
-      if (this.symbolTable?.checkNeedsStructKeyword(typeName)) {
-        return `struct ${typeName}`;
-      }
-      return typeName;
-    }
-    if (ctx.arrayType()) {
-      const arrCtx = ctx.arrayType()!;
-      let baseType: string;
-      if (arrCtx.primitiveType()) {
-        baseType =
-          TYPE_MAP[arrCtx.primitiveType()!.getText()] ||
-          arrCtx.primitiveType()!.getText();
-      } else {
-        const typeName = arrCtx.userType()!.getText();
-        // Issue #196 Bug 3: Check if this C struct needs 'struct' keyword
-        if (this.symbolTable?.checkNeedsStructKeyword(typeName)) {
-          baseType = `struct ${typeName}`;
-        } else {
-          baseType = typeName;
-        }
-      }
-      return baseType;
-    }
-    if (ctx.getText() === "void") {
-      return "void";
-    }
-    return ctx.getText();
+    // Generate the C type using the helper with dependencies
+    return TypeGenerationHelper.generate(ctx, {
+      currentScope: this.context.currentScope,
+      isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
+      checkNeedsStructKeyword: (name) =>
+        this.symbolTable?.checkNeedsStructKeyword(name) ?? false,
+      validateCrossScopeVisibility: (scope, member) =>
+        this._validateCrossScopeVisibility(scope, member),
+    });
   }
 
   // ========================================================================
