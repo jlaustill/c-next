@@ -5580,8 +5580,49 @@ export default class CodeGenerator implements IOrchestrator {
     const returnType = this._generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
+    // Set up function context
+    this._setupFunctionContext(name, ctx);
+
+    // Check for main function with args parameter (u8 args[][])
+    const isMainWithArgs = this._isMainFunctionWithArgs(
+      name,
+      ctx.parameterList(),
+    );
+
+    // Get return type and params, handling main with args special case
+    const { actualReturnType, initialParams } =
+      this._resolveReturnTypeAndParams(name, returnType, isMainWithArgs, ctx);
+
+    // Generate body first (this populates modifiedParameters)
+    const body = this.generateBlock(ctx.block());
+
+    // Issue #268: Update symbol's parameter info with auto-const before clearing
+    this.updateFunctionParamsAutoConst(name);
+
+    // Now generate parameter list (can use modifiedParameters for auto-const)
+    const params = isMainWithArgs
+      ? initialParams
+      : ctx.parameterList()
+        ? this._generateParameterList(ctx.parameterList()!)
+        : "void";
+
+    // Clean up function context
+    this._cleanupFunctionContext();
+
+    const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
+
+    // ADR-029: Generate callback typedef only if this function is used as a type
+    return this._appendCallbackTypedefIfNeeded(name, functionCode);
+  }
+
+  /**
+   * Set up context for function generation
+   */
+  private _setupFunctionContext(
+    name: string,
+    ctx: Parser.FunctionDeclarationContext,
+  ): void {
     // Issue #269: Set current function name for pass-by-value lookup
-    // Include scope prefix for scoped functions
     const fullFuncName = this.context.currentScope
       ? `${this.context.currentScope}_${name}`
       : name;
@@ -5592,72 +5633,68 @@ export default class CodeGenerator implements IOrchestrator {
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
 
-    // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
-
     // ADR-016: Clear local variables and mark that we're in a function body
     this.context.localVariables.clear();
     this.context.floatBitShadows.clear();
     this.context.floatShadowCurrent.clear();
     this.context.inFunctionBody = true;
+  }
 
-    // Check for main function with args parameter (u8 args[][])
-    const isMainWithArgs = this._isMainFunctionWithArgs(
-      name,
-      ctx.parameterList(),
-    );
-
-    let params: string = ""; // Will be set below
-    let actualReturnType: string;
-
-    // Issue #268: Generate body FIRST to track parameter modifications,
-    // then generate parameter list using that tracking info
+  /**
+   * Resolve return type and initial params for function
+   */
+  private _resolveReturnTypeAndParams(
+    name: string,
+    returnType: string,
+    isMainWithArgs: boolean,
+    ctx: Parser.FunctionDeclarationContext,
+  ): { actualReturnType: string; initialParams: string } {
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
-      actualReturnType = "int";
-      params = "int argc, char *argv[]";
-      // Store the args parameter name for translation in the body
-      // We know there's exactly one parameter from isMainFunctionWithArgs check
       const argsParam = ctx.parameterList()!.parameter()[0];
       this.context.mainArgsName = argsParam.IDENTIFIER().getText();
-    } else {
-      // For main() without args, always use int return type for C++ compatibility
-      actualReturnType = name === "main" ? "int" : returnType;
+      return {
+        actualReturnType: "int",
+        initialParams: "int argc, char *argv[]",
+      };
     }
 
-    // Generate body first (this populates modifiedParameters)
-    const body = this.generateBlock(ctx.block());
+    // For main() without args, always use int return type for C++ compatibility
+    const actualReturnType = name === "main" ? "int" : returnType;
+    return { actualReturnType, initialParams: "" };
+  }
 
-    // Issue #268: Update symbol's parameter info with auto-const before clearing
-    this.updateFunctionParamsAutoConst(name);
-
-    // Now generate parameter list (can use modifiedParameters for auto-const)
-    if (!isMainWithArgs) {
-      params = ctx.parameterList()
-        ? this._generateParameterList(ctx.parameterList()!)
-        : "void";
-    }
-
-    // ADR-016: Clear local variables and mark that we're no longer in a function body
+  /**
+   * Clean up context after function generation
+   */
+  private _cleanupFunctionContext(): void {
     this.context.inFunctionBody = false;
     this.context.localVariables.clear();
     this.context.floatBitShadows.clear();
     this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
-    this.context.currentFunctionName = null; // Issue #269: Clear function name
-    this.context.currentFunctionReturnType = null; // Issue #477: Clear return type
+    this.context.currentFunctionName = null;
+    this.context.currentFunctionReturnType = null;
     this._clearParameters();
+  }
 
-    const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
-
-    // ADR-029: Generate callback typedef only if this function is used as a type
-    if (name !== "main" && this._isCallbackTypeUsedAsFieldType(name)) {
-      const typedef = this._generateCallbackTypedef(name);
-      if (typedef) {
-        return functionCode + typedef;
-      }
+  /**
+   * Append callback typedef if function is used as a field type
+   */
+  private _appendCallbackTypedefIfNeeded(
+    name: string,
+    functionCode: string,
+  ): string {
+    if (name === "main") {
+      return functionCode;
     }
 
-    return functionCode;
+    if (!this._isCallbackTypeUsedAsFieldType(name)) {
+      return functionCode;
+    }
+
+    const typedef = this._generateCallbackTypedef(name);
+    return typedef ? functionCode + typedef : functionCode;
   }
 
   /**
