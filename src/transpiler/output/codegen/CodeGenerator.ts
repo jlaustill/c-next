@@ -5107,46 +5107,12 @@ export default class CodeGenerator implements IOrchestrator {
     lines.push(`typedef struct {`);
 
     for (const member of ctx.structMember()) {
-      const fieldName = member.IDENTIFIER().getText();
-      const typeName = this._getTypeName(member.type());
-      // ADR-036: arrayDimension() now returns an array for multi-dimensional support
-      const arrayDims = member.arrayDimension();
-      const isArray = arrayDims.length > 0;
-
-      // ADR-029: Check if this is a callback type field
-      if (this.callbackTypes.has(typeName)) {
-        const callbackInfo = this.callbackTypes.get(typeName)!;
-        callbackFields.push({ fieldName, callbackType: typeName });
-
-        // Track callback field for assignment validation
-        this.callbackFieldTypes.set(`${name}.${fieldName}`, typeName);
-
-        if (isArray) {
-          const dims = this._generateArrayDimensions(arrayDims);
-          lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dims};`);
-        } else {
-          lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
-        }
-      } else {
-        // Regular field handling
-        const type = this._generateType(member.type());
-
-        // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
-        const trackedDimensions = this.symbols!.structFieldDimensions.get(name);
-        const fieldDims = trackedDimensions?.get(fieldName);
-
-        if (fieldDims && fieldDims.length > 0) {
-          // Use tracked dimensions (includes string capacity for string arrays)
-          const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
-          lines.push(`    ${type} ${fieldName}${dimsStr};`);
-        } else if (isArray) {
-          // Fall back to AST dimensions for non-string arrays
-          const dims = this._generateArrayDimensions(arrayDims);
-          lines.push(`    ${type} ${fieldName}${dims};`);
-        } else {
-          lines.push(`    ${type} ${fieldName};`);
-        }
-      }
+      const fieldLine = this.generateStructFieldLine(
+        name,
+        member,
+        callbackFields,
+      );
+      lines.push(fieldLine);
     }
 
     lines.push(`} ${name};`, "");
@@ -5157,6 +5123,97 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return lines.join("\n");
+  }
+
+  /**
+   * Generate a single struct field line.
+   * SonarCloud S3776: Extracted from generateStruct().
+   */
+  private generateStructFieldLine(
+    structName: string,
+    member: Parser.StructMemberContext,
+    callbackFields: Array<{ fieldName: string; callbackType: string }>,
+  ): string {
+    const fieldName = member.IDENTIFIER().getText();
+    const typeName = this._getTypeName(member.type());
+    const arrayDims = member.arrayDimension();
+    const isArray = arrayDims.length > 0;
+
+    // ADR-029: Check if this is a callback type field
+    if (this.callbackTypes.has(typeName)) {
+      return this.generateCallbackFieldLine(
+        structName,
+        fieldName,
+        typeName,
+        arrayDims,
+        isArray,
+        callbackFields,
+      );
+    }
+
+    return this.generateRegularFieldLine(
+      structName,
+      fieldName,
+      member,
+      arrayDims,
+      isArray,
+    );
+  }
+
+  /**
+   * Generate a callback type field line.
+   * SonarCloud S3776: Extracted from generateStruct().
+   */
+  private generateCallbackFieldLine(
+    structName: string,
+    fieldName: string,
+    typeName: string,
+    arrayDims: Parser.ArrayDimensionContext[],
+    isArray: boolean,
+    callbackFields: Array<{ fieldName: string; callbackType: string }>,
+  ): string {
+    const callbackInfo = this.callbackTypes.get(typeName)!;
+    callbackFields.push({ fieldName, callbackType: typeName });
+
+    // Track callback field for assignment validation
+    this.callbackFieldTypes.set(`${structName}.${fieldName}`, typeName);
+
+    if (isArray) {
+      const dims = this._generateArrayDimensions(arrayDims);
+      return `    ${callbackInfo.typedefName} ${fieldName}${dims};`;
+    }
+    return `    ${callbackInfo.typedefName} ${fieldName};`;
+  }
+
+  /**
+   * Generate a regular (non-callback) field line.
+   * SonarCloud S3776: Extracted from generateStruct().
+   */
+  private generateRegularFieldLine(
+    structName: string,
+    fieldName: string,
+    member: Parser.StructMemberContext,
+    arrayDims: Parser.ArrayDimensionContext[],
+    isArray: boolean,
+  ): string {
+    const type = this._generateType(member.type());
+
+    // Check if we have tracked dimensions for this field
+    const trackedDimensions =
+      this.symbols!.structFieldDimensions.get(structName);
+    const fieldDims = trackedDimensions?.get(fieldName);
+
+    if (fieldDims && fieldDims.length > 0) {
+      const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
+      return `    ${type} ${fieldName}${dimsStr};`;
+    }
+
+    if (isArray) {
+      const dims = this._generateArrayDimensions(arrayDims);
+      return `    ${type} ${fieldName}${dims};`;
+    }
+
+    return `    ${type} ${fieldName};`;
   }
 
   /**
