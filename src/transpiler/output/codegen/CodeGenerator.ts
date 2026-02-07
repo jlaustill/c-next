@@ -102,6 +102,8 @@ import IPostfixOp from "./helpers/types/IPostfixOp";
 import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability
 import CppConstructorHelper from "./helpers/CppConstructorHelper";
+// PR #715: Set/Map utilities for improved testability
+import SetMapHelper from "./helpers/SetMapHelper";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
@@ -1545,13 +1547,7 @@ export default class CodeGenerator implements IOrchestrator {
     params: Set<string>,
     injectedParams: ReadonlySet<string>,
   ): Set<string> {
-    const newParams = new Set<string>();
-    for (const p of params) {
-      if (!injectedParams.has(p)) {
-        newParams.add(p);
-      }
-    }
-    return newParams;
+    return SetMapHelper.findNewItems(params, injectedParams);
   }
 
   /**
@@ -1560,23 +1556,16 @@ export default class CodeGenerator implements IOrchestrator {
   private extractThisFileParamLists(
     crossFileParamLists?: ReadonlyMap<string, readonly string[]>,
   ): Map<string, string[]> {
-    const paramLists = new Map<string, string[]>();
-    for (const [funcName, params] of this.functionParamLists) {
-      if (!crossFileParamLists?.has(funcName)) {
-        paramLists.set(funcName, [...params]);
-      }
-    }
-    return paramLists;
+    return SetMapHelper.copyArrayValues(
+      SetMapHelper.filterExclude(this.functionParamLists, crossFileParamLists),
+    );
   }
 
   /**
    * Restore a map's state by clearing and repopulating from saved data.
    */
   private restoreMapState<K, V>(target: Map<K, V>, saved: Map<K, V>): void {
-    target.clear();
-    for (const [k, v] of saved) {
-      target.set(k, v);
-    }
+    SetMapHelper.restoreMapState(target, saved);
   }
 
   /**
