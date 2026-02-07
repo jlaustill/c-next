@@ -342,9 +342,6 @@
     "*.expected.h",
     "*.expected.error",
     ".jscpd/**",
-    "vscode-extension/node_modules/**",
-    "vscode-extension/dist/**",
-    "vscode-extension/**/*.vsix",
     "dependency-graph.svg",
     "bugs/**",
     "examples/**",
@@ -365,8 +362,6 @@
     "docs/misra-compliance.md",
     "docs/learn-cnext-in-y-minutes.md",
     "grammar/**",
-    "vscode-extension/snippets/**",
-    "vscode-extension/syntaxes/**",
     "prettier-plugin/**",
     "GRAMMAR-COVERAGE.md"
   ],

@@ -13,30 +13,22 @@ This document describes the release process for C-Next.
 
 ### 2. VS Code Extension (if grammar changed)
 
+The VS Code extension is in a separate repo: [vscode-c-next](https://github.com/jlaustill/vscode-c-next)
+
 - [ ] Sync `tmLanguage.json` with new keywords/types/syntax
 - [ ] Sync `completionProvider.ts` keywords with actual C-Next keywords
-- [ ] Bump version in `vscode-extension/package.json`
+- [ ] Tag a new version to publish to marketplace
 
 ### 3. Version Bump
 
 - [ ] Bump version in `package.json`
 - [ ] Run `npm install` to update `package-lock.json`
-- [ ] Bump version in `vscode-extension/package.json` (keep in sync)
 
 ### 4. Testing
 
 - [ ] `npm test` — all tests pass
 - [ ] `npm run analyze` — transpiled output compiles cleanly
 - [ ] `npm run typecheck` — no TypeScript errors
-
-### 5. VS Code Extension Build (if updated)
-
-```bash
-cd vscode-extension
-npm run compile
-npx vsce package --allow-missing-repository
-code --install-extension c-next-*.vsix --force
-```
 
 ## Release Workflow
 

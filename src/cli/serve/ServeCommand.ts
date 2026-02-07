@@ -16,6 +16,7 @@ import ConfigPrinter from "../ConfigPrinter";
 import ConfigLoader from "../ConfigLoader";
 import Transpiler from "../../transpiler/Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
+import parseCHeader from "../../lib/parseCHeader";
 
 /**
  * Method handler type (async to support Transpiler.transpileSource)
@@ -59,6 +60,7 @@ class ServeCommand {
     initialize: ServeCommand.handleInitialize,
     transpile: ServeCommand.handleTranspile,
     parseSymbols: ServeCommand.handleParseSymbols,
+    parseCHeader: ServeCommand.handleParseCHeader,
     shutdown: ServeCommand.handleShutdown,
   };
 
@@ -304,6 +306,33 @@ class ServeCommand {
 
     // Delegate symbol extraction to parseWithSymbols (shared with WorkspaceIndex)
     const result = parseWithSymbols(source);
+
+    return {
+      success: true,
+      result,
+    };
+  }
+
+  /**
+   * Handle parseCHeader method
+   * Parses C/C++ header files and extracts symbols
+   */
+  private static async handleParseCHeader(
+    params?: Record<string, unknown>,
+  ): Promise<IMethodResult> {
+    if (!params || typeof params.source !== "string") {
+      return {
+        success: false,
+        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
+        errorMessage: "Missing required param: source",
+      };
+    }
+
+    const source = String(params.source);
+    const filePath =
+      typeof params.filePath === "string" ? params.filePath : undefined;
+
+    const result = parseCHeader(source, filePath);
 
     return {
       success: true,

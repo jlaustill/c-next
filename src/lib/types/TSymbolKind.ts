@@ -14,6 +14,7 @@ type TSymbolKind =
   | "bitmap"
   | "bitmapField"
   | "field"
-  | "method";
+  | "method"
+  | "type";
 
 export default TSymbolKind;

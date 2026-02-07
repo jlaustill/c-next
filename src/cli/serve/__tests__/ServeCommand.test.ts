@@ -273,6 +273,80 @@ describe("ServeCommand", () => {
     });
   });
 
+  describe("parseCHeader", () => {
+    it("parses symbols from C header source", async () => {
+      const response = await sendRequest({
+        id: 71,
+        method: "parseCHeader",
+        params: { source: "int myFunction(void);" },
+      });
+
+      const result = response as {
+        id: number;
+        result: { success: boolean; symbols: Array<{ name: string }> };
+      };
+      expect(result.id).toBe(71);
+      expect(result.result.success).toBe(true);
+      expect(result.result.symbols).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: "myFunction" }),
+        ]),
+      );
+    });
+
+    it("parses struct definitions", async () => {
+      const response = await sendRequest({
+        id: 72,
+        method: "parseCHeader",
+        params: {
+          source: "typedef struct { int x; int y; } Point;",
+          filePath: "/tmp/types.h",
+        },
+      });
+
+      const result = response as {
+        id: number;
+        result: { success: boolean; symbols: Array<{ name: string }> };
+      };
+      expect(result.id).toBe(72);
+      expect(result.result.success).toBe(true);
+      expect(result.result.symbols).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: "Point" })]),
+      );
+    });
+
+    it("returns error for missing source param", async () => {
+      const response = await sendRequest({
+        id: 73,
+        method: "parseCHeader",
+        params: {},
+      });
+
+      expect(response).toMatchObject({
+        id: 73,
+        error: {
+          code: JsonRpcHandler.ERROR_INVALID_PARAMS,
+          message: "Missing required param: source",
+        },
+      });
+    });
+
+    it("returns error for missing params", async () => {
+      const response = await sendRequest({
+        id: 74,
+        method: "parseCHeader",
+      });
+
+      expect(response).toMatchObject({
+        id: 74,
+        error: {
+          code: JsonRpcHandler.ERROR_INVALID_PARAMS,
+          message: "Missing required param: source",
+        },
+      });
+    });
+  });
+
   describe("shutdown", () => {
     it("returns success", async () => {
       // Note: We can't fully test shutdown behavior because it closes the readline
