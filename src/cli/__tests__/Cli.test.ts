@@ -50,6 +50,7 @@ describe("Cli", () => {
       pioInstall: false,
       pioUninstall: false,
       debugMode: false,
+      serveMode: false,
     };
 
     // Default mocks
@@ -93,6 +94,17 @@ describe("Cli", () => {
       expect(PlatformIOCommand.uninstall).toHaveBeenCalled();
       expect(result.shouldRun).toBe(false);
       expect(result.exitCode).toBe(0);
+    });
+
+    it("handles --serve flag", () => {
+      mockParsedArgs.serveMode = true;
+      vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
+
+      const result = Cli.run();
+
+      expect(result.shouldRun).toBe(false);
+      expect(result.exitCode).toBe(0);
+      expect(result.serveMode).toBe(true);
     });
 
     it("handles --config flag", () => {
@@ -294,6 +306,7 @@ describe("Cli", () => {
         showConfig: false,
         pioInstall: false,
         pioUninstall: false,
+        serveMode: false,
       };
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 

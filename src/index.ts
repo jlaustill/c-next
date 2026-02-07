@@ -6,6 +6,7 @@
 
 import Cli from "./cli/Cli";
 import Runner from "./cli/Runner";
+import ServeCommand from "./cli/serve/ServeCommand";
 
 /**
  * Main entry point for the CLI
@@ -13,6 +14,12 @@ import Runner from "./cli/Runner";
  */
 async function main(): Promise<void> {
   const result = Cli.run();
+
+  // Handle serve mode (JSON-RPC server)
+  if (result.serveMode) {
+    await ServeCommand.run();
+    process.exit(0);
+  }
 
   if (result.shouldRun && result.config) {
     await Runner.execute(result.config);

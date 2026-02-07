@@ -36,6 +36,8 @@ interface IParsedArgs {
   pioUninstall: boolean;
   /** --debug flag */
   debugMode: boolean;
+  /** --serve flag */
+  serveMode: boolean;
 }
 
 export default IParsedArgs;
