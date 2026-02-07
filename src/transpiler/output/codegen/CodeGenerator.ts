@@ -6,7 +6,6 @@
 import { CommonTokenStream, ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import SymbolTable from "../../logic/symbols/SymbolTable";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
 import CommentExtractor from "../../logic/analysis/CommentExtractor";
 import CommentFormatter from "./CommentFormatter";
@@ -1826,27 +1825,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Then check symbol table for cross-file C-Next functions
-    if (this.symbolTable) {
-      const symbols = this.symbolTable.getOverloads(name);
-      for (const sym of symbols) {
-        if (
-          sym.sourceLanguage === ESourceLanguage.CNext &&
-          sym.kind === ESymbolKind.Function
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if a function is an external C/C++ function (uses pass-by-value semantics).
-   * Returns true if the function is found in symbol table as C or C++.
-   */
-  private isExternalCFunction(name: string): boolean {
-    return SymbolLookupHelper.isExternalCFunction(this.symbolTable, name);
+    return SymbolLookupHelper.isCNextFunction(this.symbolTable, name);
   }
 
   /**

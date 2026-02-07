@@ -267,4 +267,60 @@ describe("SymbolLookupHelper", () => {
       expect(SymbolLookupHelper.isCppType(mockTable, "MyEnum")).toBe(false);
     });
   });
+
+  describe("isCNextFunction", () => {
+    it("returns false when symbolTable is null", () => {
+      expect(SymbolLookupHelper.isCNextFunction(null, "myFunc")).toBe(false);
+    });
+
+    it("returns false when symbolTable is undefined", () => {
+      expect(SymbolLookupHelper.isCNextFunction(undefined, "myFunc")).toBe(
+        false,
+      );
+    });
+
+    it("returns true for C-Next function", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+        ],
+      };
+      expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
+        true,
+      );
+    });
+
+    it("returns false for C function", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.C },
+        ],
+      };
+      expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
+        false,
+      );
+    });
+
+    it("returns false for C++ function", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.Cpp },
+        ],
+      };
+      expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
+        false,
+      );
+    });
+
+    it("returns false for C-Next struct", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Struct, sourceLanguage: ESourceLanguage.CNext },
+        ],
+      };
+      expect(SymbolLookupHelper.isCNextFunction(mockTable, "MyStruct")).toBe(
+        false,
+      );
+    });
+  });
 });

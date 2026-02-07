@@ -98,16 +98,32 @@ class SymbolLookupHelper {
     if (!symbolTable) return false;
 
     const symbols = symbolTable.getOverloads(typeName);
-    const cppTypeKinds = [
+    const cppTypeKinds = new Set([
       ESymbolKind.Struct,
       ESymbolKind.Class,
       ESymbolKind.Type,
-    ];
+    ]);
 
     return symbols.some(
       (sym) =>
         sym.sourceLanguage === ESourceLanguage.Cpp &&
-        cppTypeKinds.includes(sym.kind),
+        cppTypeKinds.has(sym.kind),
+    );
+  }
+
+  /**
+   * Check if a function is a C-Next function (uses pass-by-reference semantics).
+   * Returns true if the function is found in symbol table as C-Next.
+   */
+  static isCNextFunction(
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
+      symbolTable,
+      name,
+      ESymbolKind.Function,
+      [ESourceLanguage.CNext],
     );
   }
 }
