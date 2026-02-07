@@ -10,6 +10,10 @@ interface ICliResult {
   exitCode: number;
   /** Transpiler config (only present if shouldRun is true) */
   config?: ICliConfig;
+  /** Whether to start JSON-RPC server mode */
+  serveMode?: boolean;
+  /** Whether to enable debug logging in serve mode */
+  serveDebug?: boolean;
 }
 
 export default ICliResult;

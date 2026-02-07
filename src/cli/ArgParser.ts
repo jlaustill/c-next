@@ -30,6 +30,7 @@ interface IYargsResult {
   cache: boolean;
   "pio-install": boolean;
   "pio-uninstall": boolean;
+  serve: boolean;
 }
 
 /**
@@ -145,6 +146,13 @@ A safer C for embedded systems development.`,
         default: false,
       })
 
+      // Server mode
+      .option("serve", {
+        type: "boolean",
+        describe: "Start JSON-RPC server on stdin/stdout",
+        default: false,
+      })
+
       // Config file documentation (shown in help)
       .epilogue(
         `Examples:
@@ -256,6 +264,7 @@ class ArgParser {
       pioInstall: parsed["pio-install"],
       pioUninstall: parsed["pio-uninstall"],
       debugMode: parsed.debug,
+      serveMode: parsed.serve,
     };
   }
 }

@@ -38,6 +38,16 @@ class Cli {
       return { shouldRun: false, exitCode: 0 };
     }
 
+    // Early exit for serve mode (JSON-RPC server)
+    if (args.serveMode) {
+      return {
+        shouldRun: false,
+        exitCode: 0,
+        serveMode: true,
+        serveDebug: args.verbose,
+      };
+    }
+
     // Load config file (searches up from input file directory)
     const configDir =
       args.inputFiles.length > 0
