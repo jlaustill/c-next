@@ -104,6 +104,8 @@ import BooleanHelper from "./helpers/BooleanHelper";
 import CppConstructorHelper from "./helpers/CppConstructorHelper";
 // PR #715: Set/Map utilities for improved testability
 import SetMapHelper from "./helpers/SetMapHelper";
+// PR #715: Symbol lookup utilities for improved testability
+import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
@@ -1009,21 +1011,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppEnumClass(typeName: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(typeName);
-    for (const sym of symbols) {
-      if (
-        sym.sourceLanguage === ESourceLanguage.Cpp &&
-        sym.kind === ESymbolKind.Enum
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return SymbolLookupHelper.isCppEnumClass(this.symbolTable, typeName);
   }
 
   /**
@@ -1858,22 +1846,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Returns true if the function is found in symbol table as C or C++.
    */
   private isExternalCFunction(name: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(name);
-    for (const sym of symbols) {
-      if (
-        (sym.sourceLanguage === ESourceLanguage.C ||
-          sym.sourceLanguage === ESourceLanguage.Cpp) &&
-        sym.kind === ESymbolKind.Function
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return SymbolLookupHelper.isExternalCFunction(this.symbolTable, name);
   }
 
   /**
