@@ -405,46 +405,55 @@ class NullCheckListener extends CNextListener {
   /**
    * Detect when we enter the body of an if or while statement
    * For "if (c_var != NULL)" or "while (c_var != NULL)" the body has the variable checked
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   override enterStatement = (ctx: Parser.StatementContext): void => {
-    // Check if this is the "then" branch of a null-check if
-    if (
-      this.currentIfCtx &&
-      this.ifStack.length > 0 &&
-      !this.ifStack.at(-1)!.isNullCheck
-    ) {
-      const ifInfo = this.ifStack.at(-1)!;
-      if (ifInfo.varName) {
-        // Get the statements from the if
-        const statements = this.currentIfCtx.statement();
-        // Check if this is the "then" branch (first statement)
-        if (statements.length > 0 && ctx === statements[0]) {
-          // Mark variable as checked within this branch
-          this.updateVariableState(
-            ifInfo.varName,
-            NullCheckState.CheckedNotNull,
-          );
-        }
-      }
+    this.handleIfBranchNullCheck(ctx);
+    this.handleWhileBodyNullCheck(ctx);
+  };
+
+  /**
+   * Handle null-check for if statement "then" branch.
+   * SonarCloud S3776: Extracted from enterStatement().
+   */
+  private handleIfBranchNullCheck(ctx: Parser.StatementContext): void {
+    if (!this.currentIfCtx || this.ifStack.length === 0) {
+      return;
     }
 
-    // Check if this is the body of a null-check while
-    if (this.currentWhileCtx && this.whileStack.length > 0) {
-      const whileInfo = this.whileStack.at(-1)!;
-      if (whileInfo.varName && whileInfo.isNotNullCheck) {
-        // Get the statement from the while (body)
-        const whileBody = this.currentWhileCtx.statement();
-        // Check if this is the while body
-        if (whileBody === ctx) {
-          // Mark variable as checked within this body
-          this.updateVariableState(
-            whileInfo.varName,
-            NullCheckState.CheckedNotNull,
-          );
-        }
-      }
+    const ifInfo = this.ifStack.at(-1)!;
+    if (ifInfo.isNullCheck || !ifInfo.varName) {
+      return;
     }
-  };
+
+    const statements = this.currentIfCtx.statement();
+    if (statements.length > 0 && ctx === statements[0]) {
+      this.updateVariableState(ifInfo.varName, NullCheckState.CheckedNotNull);
+    }
+  }
+
+  /**
+   * Handle null-check for while statement body.
+   * SonarCloud S3776: Extracted from enterStatement().
+   */
+  private handleWhileBodyNullCheck(ctx: Parser.StatementContext): void {
+    if (!this.currentWhileCtx || this.whileStack.length === 0) {
+      return;
+    }
+
+    const whileInfo = this.whileStack.at(-1)!;
+    if (!whileInfo.varName || !whileInfo.isNotNullCheck) {
+      return;
+    }
+
+    const whileBody = this.currentWhileCtx.statement();
+    if (whileBody === ctx) {
+      this.updateVariableState(
+        whileInfo.varName,
+        NullCheckState.CheckedNotNull,
+      );
+    }
+  }
 
   override enterReturnStatement = (
     _ctx: Parser.ReturnStatementContext,

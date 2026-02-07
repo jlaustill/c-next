@@ -116,22 +116,9 @@ class CSymbolCollector {
     const structSpec = this.findStructOrUnionSpecifier(declSpecs);
     if (structSpec) {
       // For typedef struct, extract the typedef name from declarationSpecifiers
-      // Example: typedef struct { ... } AppConfig;
-      // "AppConfig" appears as a typedefName in declarationSpecifiers
-      let typedefName: string | undefined;
-      if (isTypedef) {
-        for (const spec of declSpecs.declarationSpecifier()) {
-          const typeSpec = spec.typeSpecifier();
-          if (typeSpec) {
-            const typeName = typeSpec.typedefName?.();
-            if (typeName) {
-              typedefName = typeName.getText();
-              break;
-            }
-          }
-        }
-      }
-
+      const typedefName = isTypedef
+        ? this.extractTypedefNameFromSpecs(declSpecs)
+        : undefined;
       this.collectStructOrUnion(structSpec, line, typedefName, isTypedef);
     }
 
@@ -207,6 +194,26 @@ class CSymbolCollector {
     } else {
       this._addVariableSymbol(lastTypedefName, baseType, isExtern, line);
     }
+  }
+
+  /**
+   * Extract typedef name from declaration specifiers.
+   * For "typedef struct { ... } AppConfig;", this returns "AppConfig".
+   * SonarCloud S3776: Extracted from collectDeclaration().
+   */
+  private extractTypedefNameFromSpecs(
+    declSpecs: DeclarationSpecifiersContext,
+  ): string | undefined {
+    for (const spec of declSpecs.declarationSpecifier()) {
+      const typeSpec = spec.typeSpecifier();
+      if (typeSpec) {
+        const typeName = typeSpec.typedefName?.();
+        if (typeName) {
+          return typeName.getText();
+        }
+      }
+    }
+    return undefined;
   }
 
   /**

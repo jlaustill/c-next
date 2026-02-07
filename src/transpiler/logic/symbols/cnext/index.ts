@@ -140,6 +140,7 @@ class CNextResolver {
   /**
    * Pass 1: Collect all bitmaps (including those in scopes).
    * Also collects structs in scopes early for type availability.
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   private static collectBitmapsPass1(
     tree: Parser.ProgramContext,
@@ -159,33 +160,52 @@ class CNextResolver {
 
       // Bitmaps and structs inside scopes (collected early)
       if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
+        CNextResolver.collectScopedBitmapsAndStructs(
+          decl.scopeDeclaration()!,
+          sourceFile,
+          symbols,
+          knownBitmaps,
+          constValues,
+        );
+      }
+    }
+  }
 
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.bitmapDeclaration()) {
-            const bitmapCtx = member.bitmapDeclaration()!;
-            const symbol = BitmapCollector.collect(
-              bitmapCtx,
-              sourceFile,
-              scopeName,
-            );
-            symbols.push(symbol);
-            knownBitmaps.add(symbol.name);
-          }
+  /**
+   * Collect bitmaps and structs from within a scope declaration.
+   * SonarCloud S3776: Extracted from collectBitmapsPass1().
+   */
+  private static collectScopedBitmapsAndStructs(
+    scopeDecl: Parser.ScopeDeclarationContext,
+    sourceFile: string,
+    symbols: TSymbol[],
+    knownBitmaps: Set<string>,
+    constValues: Map<string, number>,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
 
-          // Collect structs early so they're available as types
-          if (member.structDeclaration()) {
-            const structCtx = member.structDeclaration()!;
-            const symbol = StructCollector.collect(
-              structCtx,
-              sourceFile,
-              scopeName,
-              constValues,
-            );
-            symbols.push(symbol);
-          }
-        }
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.bitmapDeclaration()) {
+        const bitmapCtx = member.bitmapDeclaration()!;
+        const symbol = BitmapCollector.collect(
+          bitmapCtx,
+          sourceFile,
+          scopeName,
+        );
+        symbols.push(symbol);
+        knownBitmaps.add(symbol.name);
+      }
+
+      // Collect structs early so they're available as types
+      if (member.structDeclaration()) {
+        const structCtx = member.structDeclaration()!;
+        const symbol = StructCollector.collect(
+          structCtx,
+          sourceFile,
+          scopeName,
+          constValues,
+        );
+        symbols.push(symbol);
       }
     }
   }

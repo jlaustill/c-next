@@ -679,6 +679,7 @@ class Transpiler {
   /**
    * Stage 2: Collect symbols from a single C/C++ header
    * Issue #592: Recursive include processing moved to IncludeResolver.resolveHeadersTransitively()
+   * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
    */
   private doCollectHeaderSymbols(file: IDiscoveredFile): void {
     // Track as processed (for cycle detection in transpileSource path)
@@ -686,48 +687,13 @@ class Transpiler {
     this.state.markHeaderProcessed(absolutePath);
 
     // Check cache first
-    if (this.cacheManager?.isValid(file.path)) {
-      const cached = this.cacheManager.getSymbols(file.path);
-      if (cached) {
-        // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-        this.symbolTable.addSymbols(cached.symbols);
-        this.symbolTable.restoreStructFields(cached.structFields);
-        this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
-        this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
-
-        // Issue #211: Still check for C++ syntax even on cache hit
-        // The detection is cheap (regex only) and ensures cppDetected is set correctly
-        if (file.type === EFileType.CHeader) {
-          const content = this.fs.readFile(file.path);
-          if (detectCppSyntax(content)) {
-            this.cppDetected = true;
-          }
-        } else if (file.type === EFileType.CppHeader) {
-          // .hpp files are always C++
-          this.cppDetected = true;
-        }
-
-        return; // Cache hit - skip full parsing
-      }
+    if (this.tryRestoreFromCache(file)) {
+      return; // Cache hit - skip full parsing
     }
 
-    // Read content for parsing
+    // Read content and parse
     const content = this.fs.readFile(file.path);
-
-    // Parse based on file type
-    if (file.type === EFileType.CHeader) {
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Parsing C header: ${file.path}`);
-      }
-      this.parseCHeader(content, file.path);
-    } else if (file.type === EFileType.CppHeader) {
-      // Issue #211: .hpp files are always C++
-      this.cppDetected = true;
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
-      }
-      this.parseCppHeader(content, file.path);
-    }
+    this.parseHeaderFile(file, content);
 
     // Debug: Show symbols found
     if (this.config.debugMode) {
@@ -738,6 +704,74 @@ class Transpiler {
     // Issue #590: Cache the results using simplified API
     if (this.cacheManager) {
       this.cacheManager.setSymbolsFromTable(file.path, this.symbolTable);
+    }
+  }
+
+  /**
+   * Try to restore symbols from cache. Returns true if cache hit.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   */
+  private tryRestoreFromCache(file: IDiscoveredFile): boolean {
+    if (!this.cacheManager?.isValid(file.path)) {
+      return false;
+    }
+
+    const cached = this.cacheManager.getSymbols(file.path);
+    if (!cached) {
+      return false;
+    }
+
+    // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
+    this.symbolTable.addSymbols(cached.symbols);
+    this.symbolTable.restoreStructFields(cached.structFields);
+    this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
+    this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
+
+    // Issue #211: Still check for C++ syntax even on cache hit
+    this.detectCppFromFileType(file);
+
+    return true;
+  }
+
+  /**
+   * Detect C++ mode based on file type and content.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   */
+  private detectCppFromFileType(file: IDiscoveredFile): void {
+    if (file.type === EFileType.CppHeader) {
+      // .hpp files are always C++
+      this.cppDetected = true;
+      return;
+    }
+
+    if (file.type === EFileType.CHeader) {
+      const content = this.fs.readFile(file.path);
+      if (detectCppSyntax(content)) {
+        this.cppDetected = true;
+      }
+    }
+  }
+
+  /**
+   * Parse a header file based on its type.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   */
+  private parseHeaderFile(file: IDiscoveredFile, content: string): void {
+    if (file.type === EFileType.CHeader) {
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Parsing C header: ${file.path}`);
+      }
+      this.parseCHeader(content, file.path);
+      return;
+    }
+
+    if (file.type === EFileType.CppHeader) {
+      // Issue #211: .hpp files are always C++
+      this.cppDetected = true;
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
+      }
+      this.parseCppHeader(content, file.path);
     }
   }
 
@@ -1031,31 +1065,12 @@ class Transpiler {
       }
 
       // Issue #465: Merge enum info from included .cnx files (including transitive)
-      // This enables external enum member references to get the correct type prefix
-      const externalEnumSources: ICodeGenSymbols[] = [];
-
-      // Use context.symbolInfoByFile when provided, otherwise use state's map
-      const symbolInfoByFile =
-        context?.symbolInfoByFile ?? this.state.getSymbolInfoByFileMap();
-
-      if (context) {
-        // Issue #588: When context is provided, use TransitiveEnumCollector
-        // This is more efficient as run() has already populated symbolInfoByFile
-        const transitiveInfo = TransitiveEnumCollector.collect(
-          sourcePath,
-          this.state.getSymbolInfoByFileMap(),
-          this.config.includeDirs,
-        );
-        externalEnumSources.push(...transitiveInfo);
-      } else if (resolved) {
-        // Issue #591: Standalone mode - use unified collectForStandalone method
-        const transitiveInfo = TransitiveEnumCollector.collectForStandalone(
-          resolved.cnextIncludes,
-          symbolInfoByFile,
-          this.config.includeDirs,
-        );
-        externalEnumSources.push(...transitiveInfo);
-      }
+      // SonarCloud S3776: Extracted to collectExternalEnumSources helper
+      const externalEnumSources = this.collectExternalEnumSources(
+        context,
+        sourcePath,
+        resolved,
+      );
 
       // Merge external enum info if any includes were found
       if (externalEnumSources.length > 0) {
@@ -1066,20 +1081,8 @@ class Transpiler {
       }
 
       // Issue #593: Inject cross-file modification data for const inference
-      // When context is provided, use its accumulated data; otherwise use the analyzer
-      const accumulatedModifications =
-        context?.accumulatedModifications ??
-        this.modificationAnalyzer.getModifications();
-      const accumulatedParamLists =
-        context?.accumulatedParamLists ??
-        this.modificationAnalyzer.getParamLists();
-
-      if (cppMode && accumulatedModifications.size > 0) {
-        this.codeGenerator.setCrossFileModifications(
-          accumulatedModifications,
-          accumulatedParamLists,
-        );
-      }
+      // SonarCloud S3776: Extracted to setupCrossFileModifications helper
+      this.setupCrossFileModifications(context, cppMode);
 
       const code = this.codeGenerator.generate(tree, symbolTable, tokenStream, {
         debugMode: context?.debugMode ?? this.config.debugMode,
@@ -1387,6 +1390,64 @@ class Transpiler {
       passByValueParams,
       symbolInfo.knownEnums,
     );
+  }
+
+  /**
+   * Collect external enum sources from included C-Next files.
+   * SonarCloud S3776: Extracted from transpileSource() for reduced complexity.
+   */
+  private collectExternalEnumSources(
+    context: ITranspileContext | undefined,
+    sourcePath: string,
+    resolved: ReturnType<
+      InstanceType<typeof IncludeResolver>["resolve"]
+    > | null,
+  ): ICodeGenSymbols[] {
+    const symbolInfoByFile =
+      context?.symbolInfoByFile ?? this.state.getSymbolInfoByFileMap();
+
+    if (context) {
+      // Context mode: use TransitiveEnumCollector with pre-populated symbolInfoByFile
+      return TransitiveEnumCollector.collect(
+        sourcePath,
+        this.state.getSymbolInfoByFileMap(),
+        this.config.includeDirs,
+      );
+    }
+
+    if (resolved) {
+      // Standalone mode: use unified collectForStandalone method
+      return TransitiveEnumCollector.collectForStandalone(
+        resolved.cnextIncludes,
+        symbolInfoByFile,
+        this.config.includeDirs,
+      );
+    }
+
+    return [];
+  }
+
+  /**
+   * Setup cross-file modification tracking for const inference.
+   * SonarCloud S3776: Extracted from transpileSource() for reduced complexity.
+   */
+  private setupCrossFileModifications(
+    context: ITranspileContext | undefined,
+    cppMode: boolean,
+  ): void {
+    const accumulatedModifications =
+      context?.accumulatedModifications ??
+      this.modificationAnalyzer.getModifications();
+    const accumulatedParamLists =
+      context?.accumulatedParamLists ??
+      this.modificationAnalyzer.getParamLists();
+
+    if (cppMode && accumulatedModifications.size > 0) {
+      this.codeGenerator.setCrossFileModifications(
+        accumulatedModifications,
+        accumulatedParamLists,
+      );
+    }
   }
 
   /**

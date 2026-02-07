@@ -112,6 +112,13 @@ import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
+// SonarCloud S3776: Extracted helpers for assignment target generation
+import PostfixChainBuilder from "./helpers/PostfixChainBuilder";
+import SimpleIdentifierResolver from "./helpers/SimpleIdentifierResolver";
+import BaseIdentifierBuilder from "./helpers/BaseIdentifierBuilder";
+import ISimpleIdentifierDeps from "./types/ISimpleIdentifierDeps";
+import IPostfixChainDeps from "./types/IPostfixChainDeps";
+import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
 import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
@@ -123,6 +130,8 @@ import StatementExpressionCollector from "./helpers/StatementExpressionCollector
 import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
 // Issue #566: Child statement/block collection for const inference
 import ChildStatementCollector from "./helpers/ChildStatementCollector";
+// SonarCloud S3776: Assignment target extraction for walkStatementForModifications
+import AssignmentTargetExtractor from "./helpers/AssignmentTargetExtractor";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
@@ -2542,50 +2551,69 @@ export default class CodeGenerator implements IOrchestrator {
    * This ensures type information is available before generating any code,
    * allowing .length and other type-dependent operations to work regardless
    * of declaration order (e.g., scope functions can reference globals declared later)
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
     for (const decl of tree.declaration()) {
       // Register global variable types
       if (decl.variableDeclaration()) {
-        const varDecl = decl.variableDeclaration()!;
-        this.trackVariableType(varDecl);
-
-        // Bug #8: Track const values for array size resolution at file scope
-        if (varDecl.constModifier() && varDecl.expression()) {
-          const constName = varDecl.IDENTIFIER().getText();
-          const constValue = this._tryEvaluateConstant(varDecl.expression()!);
-          if (constValue !== undefined) {
-            this.constValues.set(constName, constValue);
-          }
-        }
+        this.registerGlobalVariableType(decl.variableDeclaration()!);
       }
 
       // Register scope member variable types
       if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-
-        // Set currentScope so that this.Type references resolve correctly
-        const savedScope = this.context.currentScope;
-        this.context.currentScope = scopeName;
-
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.variableDeclaration()) {
-            const varDecl = member.variableDeclaration()!;
-            const varName = varDecl.IDENTIFIER().getText();
-            const fullName = `${scopeName}_${varName}`;
-            // Register with mangled name (Scope_variable)
-            this.trackVariableTypeWithName(varDecl, fullName);
-          }
-        }
-
-        // Restore previous scope
-        this.context.currentScope = savedScope;
+        this.registerScopeMemberTypes(decl.scopeDeclaration()!);
       }
 
       // Note: Function parameters are registered per-function during generation
       // since they're scoped to the function body
     }
+  }
+
+  /**
+   * Register a global variable type and track const values.
+   * SonarCloud S3776: Extracted from registerAllVariableTypes().
+   */
+  private registerGlobalVariableType(
+    varDecl: Parser.VariableDeclarationContext,
+  ): void {
+    this.trackVariableType(varDecl);
+
+    // Bug #8: Track const values for array size resolution at file scope
+    if (varDecl.constModifier() && varDecl.expression()) {
+      const constName = varDecl.IDENTIFIER().getText();
+      const constValue = this._tryEvaluateConstant(varDecl.expression()!);
+      if (constValue !== undefined) {
+        this.constValues.set(constName, constValue);
+      }
+    }
+  }
+
+  /**
+   * Register scope member variable types.
+   * SonarCloud S3776: Extracted from registerAllVariableTypes().
+   */
+  private registerScopeMemberTypes(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    // Set currentScope so that this.Type references resolve correctly
+    const savedScope = this.context.currentScope;
+    this.context.currentScope = scopeName;
+
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.variableDeclaration()) {
+        const varDecl = member.variableDeclaration()!;
+        const varName = varDecl.IDENTIFIER().getText();
+        const fullName = `${scopeName}_${varName}`;
+        // Register with mangled name (Scope_variable)
+        this.trackVariableTypeWithName(varDecl, fullName);
+      }
+    }
+
+    // Restore previous scope
+    this.context.currentScope = savedScope;
   }
 
   // Issue #60: collectEnum and collectBitmap methods removed - now in SymbolCollector
@@ -2600,6 +2628,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Analyze all functions to determine which parameters should pass by value.
    * This runs before code generation and populates passByValueParams.
+   * SonarCloud S3776: Refactored to use helper methods.
    */
   private analyzePassByValue(tree: Parser.ProgramContext): void {
     // Reset analysis state
@@ -2612,27 +2641,8 @@ export default class CodeGenerator implements IOrchestrator {
     this.collectFunctionParametersAndModifications(tree);
 
     // Issue #558: Inject cross-file data before transitive propagation
-    if (this.pendingCrossFileModifications) {
-      for (const [funcName, params] of this.pendingCrossFileModifications) {
-        const existing = this.modifiedParameters.get(funcName);
-        if (existing) {
-          for (const param of params) {
-            existing.add(param);
-          }
-        } else {
-          this.modifiedParameters.set(funcName, new Set(params));
-        }
-      }
-      this.pendingCrossFileModifications = null; // Clear after use
-    }
-    if (this.pendingCrossFileParamLists) {
-      for (const [funcName, params] of this.pendingCrossFileParamLists) {
-        if (!this.functionParamLists.has(funcName)) {
-          this.functionParamLists.set(funcName, [...params]);
-        }
-      }
-      this.pendingCrossFileParamLists = null; // Clear after use
-    }
+    this.injectCrossFileModifications();
+    this.injectCrossFileParamLists();
 
     // Phase 2: Fixed-point iteration for transitive modifications
     TransitiveModificationPropagator.propagate(
@@ -2643,6 +2653,41 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Phase 3: Determine which parameters can pass by value
     this.computePassByValueParams();
+  }
+
+  /**
+   * Inject cross-file modification data into modifiedParameters.
+   * SonarCloud S3776: Extracted from analyzePassByValue().
+   */
+  private injectCrossFileModifications(): void {
+    if (!this.pendingCrossFileModifications) return;
+
+    for (const [funcName, params] of this.pendingCrossFileModifications) {
+      const existing = this.modifiedParameters.get(funcName);
+      if (existing) {
+        for (const param of params) {
+          existing.add(param);
+        }
+      } else {
+        this.modifiedParameters.set(funcName, new Set(params));
+      }
+    }
+    this.pendingCrossFileModifications = null; // Clear after use
+  }
+
+  /**
+   * Inject cross-file parameter lists into functionParamLists.
+   * SonarCloud S3776: Extracted from analyzePassByValue().
+   */
+  private injectCrossFileParamLists(): void {
+    if (!this.pendingCrossFileParamLists) return;
+
+    for (const [funcName, params] of this.pendingCrossFileParamLists) {
+      if (!this.functionParamLists.has(funcName)) {
+        this.functionParamLists.set(funcName, [...params]);
+      }
+    }
+    this.pendingCrossFileParamLists = null; // Clear after use
   }
 
   /**
@@ -2735,41 +2780,7 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
-      const assign = stmt.assignmentStatement()!;
-      const target = assign.assignmentTarget();
-
-      // Issue #558: Extract base identifier from assignment target
-      // - Simple identifier: x <- value
-      // - Member access: x.field <- value (first IDENTIFIER is the base)
-      // - Array access: x[i] <- value
-      let baseIdentifier: string | null = null;
-
-      if (target?.IDENTIFIER()) {
-        baseIdentifier = target.IDENTIFIER()!.getText();
-      } else if (target?.memberAccess()) {
-        const identifiers = target.memberAccess()!.IDENTIFIER();
-        if (identifiers.length > 0) {
-          baseIdentifier = identifiers[0].getText();
-        }
-      } else if (target?.arrayAccess()) {
-        const arrayAccessCtx = target.arrayAccess()!;
-        baseIdentifier = arrayAccessCtx.IDENTIFIER()?.getText() ?? null;
-        // Issue #579: Track subscript access on parameters (for write path)
-        // Only track single-index subscript (potential array access)
-        // Two-index subscript like value[0, 8] is bit extraction, not array access
-        const isSingleIndexSubscript = arrayAccessCtx.expression().length === 1;
-        if (
-          isSingleIndexSubscript &&
-          baseIdentifier &&
-          paramSet.has(baseIdentifier)
-        ) {
-          this.subscriptAccessedParameters.get(funcName)!.add(baseIdentifier);
-        }
-      }
-
-      if (baseIdentifier && paramSet.has(baseIdentifier)) {
-        this.modifiedParameters.get(funcName)!.add(baseIdentifier);
-      }
+      this.trackAssignmentModifications(funcName, paramSet, stmt);
     }
 
     // 2. Walk all expressions in this statement for function calls and subscript access
@@ -2786,6 +2797,36 @@ export default class CodeGenerator implements IOrchestrator {
     }
     for (const block of blocks) {
       this.walkBlockForModifications(funcName, [...paramSet], block);
+    }
+  }
+
+  /**
+   * Track assignment modifications for parameter const inference.
+   * SonarCloud S3776: Extracted from walkStatementForModifications().
+   */
+  private trackAssignmentModifications(
+    funcName: string,
+    paramSet: Set<string>,
+    stmt: Parser.StatementContext,
+  ): void {
+    const assign = stmt.assignmentStatement()!;
+    const target = assign.assignmentTarget();
+
+    const { baseIdentifier, hasSingleIndexSubscript } =
+      AssignmentTargetExtractor.extract(target);
+
+    // Issue #579: Track subscript access on parameters (for write path)
+    if (
+      hasSingleIndexSubscript &&
+      baseIdentifier &&
+      paramSet.has(baseIdentifier)
+    ) {
+      this.subscriptAccessedParameters.get(funcName)!.add(baseIdentifier);
+    }
+
+    // Track as modified parameter
+    if (baseIdentifier && paramSet.has(baseIdentifier)) {
+      this.modifiedParameters.get(funcName)!.add(baseIdentifier);
     }
   }
 
@@ -5066,46 +5107,12 @@ export default class CodeGenerator implements IOrchestrator {
     lines.push(`typedef struct {`);
 
     for (const member of ctx.structMember()) {
-      const fieldName = member.IDENTIFIER().getText();
-      const typeName = this._getTypeName(member.type());
-      // ADR-036: arrayDimension() now returns an array for multi-dimensional support
-      const arrayDims = member.arrayDimension();
-      const isArray = arrayDims.length > 0;
-
-      // ADR-029: Check if this is a callback type field
-      if (this.callbackTypes.has(typeName)) {
-        const callbackInfo = this.callbackTypes.get(typeName)!;
-        callbackFields.push({ fieldName, callbackType: typeName });
-
-        // Track callback field for assignment validation
-        this.callbackFieldTypes.set(`${name}.${fieldName}`, typeName);
-
-        if (isArray) {
-          const dims = this._generateArrayDimensions(arrayDims);
-          lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dims};`);
-        } else {
-          lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
-        }
-      } else {
-        // Regular field handling
-        const type = this._generateType(member.type());
-
-        // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
-        const trackedDimensions = this.symbols!.structFieldDimensions.get(name);
-        const fieldDims = trackedDimensions?.get(fieldName);
-
-        if (fieldDims && fieldDims.length > 0) {
-          // Use tracked dimensions (includes string capacity for string arrays)
-          const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
-          lines.push(`    ${type} ${fieldName}${dimsStr};`);
-        } else if (isArray) {
-          // Fall back to AST dimensions for non-string arrays
-          const dims = this._generateArrayDimensions(arrayDims);
-          lines.push(`    ${type} ${fieldName}${dims};`);
-        } else {
-          lines.push(`    ${type} ${fieldName};`);
-        }
-      }
+      const fieldLine = this.generateStructFieldLine(
+        name,
+        member,
+        callbackFields,
+      );
+      lines.push(fieldLine);
     }
 
     lines.push(`} ${name};`, "");
@@ -5116,6 +5123,97 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return lines.join("\n");
+  }
+
+  /**
+   * Generate a single struct field line.
+   * SonarCloud S3776: Extracted from generateStruct().
+   */
+  private generateStructFieldLine(
+    structName: string,
+    member: Parser.StructMemberContext,
+    callbackFields: Array<{ fieldName: string; callbackType: string }>,
+  ): string {
+    const fieldName = member.IDENTIFIER().getText();
+    const typeName = this._getTypeName(member.type());
+    const arrayDims = member.arrayDimension();
+    const isArray = arrayDims.length > 0;
+
+    // ADR-029: Check if this is a callback type field
+    if (this.callbackTypes.has(typeName)) {
+      return this.generateCallbackFieldLine(
+        structName,
+        fieldName,
+        typeName,
+        arrayDims,
+        isArray,
+        callbackFields,
+      );
+    }
+
+    return this.generateRegularFieldLine(
+      structName,
+      fieldName,
+      member,
+      arrayDims,
+      isArray,
+    );
+  }
+
+  /**
+   * Generate a callback type field line.
+   * SonarCloud S3776: Extracted from generateStruct().
+   */
+  private generateCallbackFieldLine(
+    structName: string,
+    fieldName: string,
+    typeName: string,
+    arrayDims: Parser.ArrayDimensionContext[],
+    isArray: boolean,
+    callbackFields: Array<{ fieldName: string; callbackType: string }>,
+  ): string {
+    const callbackInfo = this.callbackTypes.get(typeName)!;
+    callbackFields.push({ fieldName, callbackType: typeName });
+
+    // Track callback field for assignment validation
+    this.callbackFieldTypes.set(`${structName}.${fieldName}`, typeName);
+
+    if (isArray) {
+      const dims = this._generateArrayDimensions(arrayDims);
+      return `    ${callbackInfo.typedefName} ${fieldName}${dims};`;
+    }
+    return `    ${callbackInfo.typedefName} ${fieldName};`;
+  }
+
+  /**
+   * Generate a regular (non-callback) field line.
+   * SonarCloud S3776: Extracted from generateStruct().
+   */
+  private generateRegularFieldLine(
+    structName: string,
+    fieldName: string,
+    member: Parser.StructMemberContext,
+    arrayDims: Parser.ArrayDimensionContext[],
+    isArray: boolean,
+  ): string {
+    const type = this._generateType(member.type());
+
+    // Check if we have tracked dimensions for this field
+    const trackedDimensions =
+      this.symbols!.structFieldDimensions.get(structName);
+    const fieldDims = trackedDimensions?.get(fieldName);
+
+    if (fieldDims && fieldDims.length > 0) {
+      const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
+      return `    ${type} ${fieldName}${dimsStr};`;
+    }
+
+    if (isArray) {
+      const dims = this._generateArrayDimensions(arrayDims);
+      return `    ${type} ${fieldName}${dims};`;
+    }
+
+    return `    ${type} ${fieldName};`;
   }
 
   /**
@@ -6479,70 +6577,85 @@ export default class CodeGenerator implements IOrchestrator {
     const identifier = ctx.IDENTIFIER()?.getText();
     const postfixOps = ctx.postfixTargetOp();
 
-    // Handle simple identifier (no postfix operations, no prefix)
-    if (!hasGlobal && !hasThis && postfixOps.length === 0) {
-      const id = identifier!;
-
-      // ADR-006: Check if it's a function parameter
-      // PR #681: Use extracted ParameterDereferenceResolver for pass-by-value determination
-      const paramInfo = this.context.currentParameters.get(id);
-      if (paramInfo) {
-        return ParameterDereferenceResolver.resolve(
-          id,
-          paramInfo,
-          this._buildParameterDereferenceDeps(),
-        );
-      }
-
-      // Check if it's a local variable
-      const isLocalVariable = this.context.localVariables.has(id);
-
-      // ADR-016: Resolve bare identifier using local -> scope -> global priority
-      const resolved = this.typeValidator!.resolveBareIdentifier(
-        id,
-        isLocalVariable,
-        (name: string) => this.isKnownStruct(name),
+    // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
+    if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
+      return SimpleIdentifierResolver.resolve(
+        identifier,
+        this._buildSimpleIdentifierDeps(),
       );
-
-      // If resolved to a different name, use it
-      if (resolved !== null) {
-        return resolved;
-      }
-
-      return id;
     }
 
-    // Build base identifier with scope prefix if needed
-    let result: string;
-    let firstId = identifier!;
-
-    if (hasGlobal) {
-      // global.x - firstId is x, no prefix needed for code generation
-      result = firstId;
-    } else if (hasThis) {
-      if (!this.context.currentScope) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
-      // this.x - prefix with current scope
-      result = `${this.context.currentScope}_${firstId}`;
-    } else {
-      // Bare identifier with postfix ops
-      result = firstId;
-
-      // ADR-006: Check if it's a function parameter (for -> access)
-      const paramInfo = this.context.currentParameters.get(firstId);
-      if (paramInfo && !paramInfo.isArray && paramInfo.isStruct) {
-        // Struct parameter needs (*param) when accessed alone, but -> when accessing members
-        // We'll handle the -> separator in the postfix processing
-      }
-    }
+    // SonarCloud S3776: Use BaseIdentifierBuilder for base identifier
+    const safeIdentifier = identifier ?? "";
+    const { result: baseResult, firstId } = BaseIdentifierBuilder.build(
+      safeIdentifier,
+      hasGlobal,
+      hasThis,
+      this.context.currentScope,
+    );
 
     // No postfix operations - return base
     if (postfixOps.length === 0) {
-      return result;
+      return baseResult;
     }
 
-    // PR #681: Build separator context and dependencies using extracted utilities
+    // SonarCloud S3776: Use PostfixChainBuilder for postfix operations
+    const operations = this._extractPostfixOperations(postfixOps);
+    const postfixDeps = this._buildPostfixChainDeps(
+      firstId,
+      hasGlobal,
+      hasThis,
+    );
+
+    return PostfixChainBuilder.build(
+      baseResult,
+      firstId,
+      operations,
+      postfixDeps,
+    );
+  }
+
+  /**
+   * Build dependencies for SimpleIdentifierResolver
+   */
+  private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
+    return {
+      getParameterInfo: (name: string) =>
+        this.context.currentParameters.get(name),
+      resolveParameter: (name: string, paramInfo: TParameterInfo) =>
+        ParameterDereferenceResolver.resolve(
+          name,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        ),
+      isLocalVariable: (name: string) => this.context.localVariables.has(name),
+      resolveBareIdentifier: (name: string, isLocal: boolean) =>
+        this.typeValidator!.resolveBareIdentifier(name, isLocal, (n: string) =>
+          this.isKnownStruct(n),
+        ),
+    };
+  }
+
+  /**
+   * Extract postfix operations from parser contexts
+   */
+  private _extractPostfixOperations(
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): IPostfixOperation[] {
+    return postfixOps.map((op) => ({
+      memberName: op.IDENTIFIER()?.getText() ?? null,
+      expressions: op.expression(),
+    }));
+  }
+
+  /**
+   * Build dependencies for PostfixChainBuilder
+   */
+  private _buildPostfixChainDeps(
+    firstId: string,
+    hasGlobal: boolean,
+    hasThis: boolean,
+  ): IPostfixChainDeps {
     const paramInfo = this.context.currentParameters.get(firstId);
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
@@ -6559,45 +6672,22 @@ export default class CodeGenerator implements IOrchestrator {
         isCppAccess,
       );
 
-    // Process postfix operations in order
-    let identifierChain: string[] = [firstId]; // Track all identifiers for register detection
-    let isFirstOp = true;
-
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        // Member access: .identifier
-        const memberName = op.IDENTIFIER()!.getText();
-        identifierChain.push(memberName);
-
-        // PR #681: Use extracted MemberSeparatorResolver for separator determination
-        const separator = MemberSeparatorResolver.getSeparator(
+    return {
+      generateExpression: (expr: unknown) =>
+        this._generateExpression(expr as Parser.ExpressionContext),
+      getSeparator: (
+        isFirstOp: boolean,
+        identifierChain: string[],
+        memberName: string,
+      ) =>
+        MemberSeparatorResolver.getSeparator(
           isFirstOp,
           identifierChain,
           memberName,
           separatorCtx,
           separatorDeps,
-        );
-        isFirstOp = false;
-
-        result += `${separator}${memberName}`;
-      } else {
-        // Array subscript or bit range: [expr] or [expr, expr]
-        const expressions = op.expression();
-        if (expressions.length === 1) {
-          // Single subscript: array access or single bit
-          const indexExpr = this._generateExpression(expressions[0]);
-          result += `[${indexExpr}]`;
-        } else if (expressions.length === 2) {
-          // Bit range: [start, width]
-          const start = this._generateExpression(expressions[0]);
-          const width = this._generateExpression(expressions[1]);
-          result += `[${start}, ${width}]`;
-        }
-        isFirstOp = false;
-      }
-    }
-
-    return result;
+        ),
+    };
   }
 
   // ADR-016: Validate cross-scope visibility (issue #165)

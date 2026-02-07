@@ -315,76 +315,104 @@ class FunctionCallListener extends CNextListener {
   // Function Calls
   // ========================================================================
 
+  /**
+   * SonarCloud S3776: Refactored to use helper method.
+   */
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
     const ops = ctx.postfixOp();
-
-    // Find function call pattern: identifier followed by () or (args)
-    // This could be:
-    // 1. Simple call: foo()
-    // 2. Scope member call: Scope.member() -> Scope_member
-    // 3. Method-style call: obj.method() - not a C-Next function
-
     const primary = ctx.primaryExpression();
 
     // Determine the base name: could be an identifier or 'this'
-    let baseName: string;
-    if (primary.IDENTIFIER()) {
-      baseName = primary.IDENTIFIER()!.getText();
-    } else if (primary.THIS()) {
-      baseName = "this";
-    } else {
-      return; // Not a simple identifier-based or this-based call
-    }
-
-    let resolvedName = baseName;
-    let callOpIndex = -1;
+    const baseName = this.extractBaseName(primary);
+    if (!baseName) return;
 
     // Walk through postfix ops to find the call and resolve the name
-    for (let i = 0; i < ops.length; i++) {
-      const op = ops[i];
+    const { resolvedName, foundCall } = this.resolveCallTarget(ops, baseName);
+    if (!foundCall) return;
 
+    // Check if the function is defined
+    const { line, column } = ParserUtils.getPosition(ctx);
+    this.analyzer.checkFunctionCall(
+      resolvedName,
+      line,
+      column,
+      this.currentScope,
+    );
+  };
+
+  /**
+   * Extract base name from primary expression.
+   */
+  private extractBaseName(
+    primary: Parser.PrimaryExpressionContext,
+  ): string | null {
+    if (primary.IDENTIFIER()) {
+      return primary.IDENTIFIER()!.getText();
+    }
+    if (primary.THIS()) {
+      return "this";
+    }
+    return null;
+  }
+
+  /**
+   * Resolve call target by walking postfix operations.
+   * Returns the resolved function name and whether a call was found.
+   * SonarCloud S3776: Extracted from enterPostfixExpression().
+   */
+  private resolveCallTarget(
+    ops: Parser.PostfixOpContext[],
+    baseName: string,
+  ): { resolvedName: string; foundCall: boolean } {
+    let resolvedName = baseName;
+
+    for (const op of ops) {
       // Member access: check if it's Scope.member or this.member pattern
       if (op.IDENTIFIER()) {
-        const memberName = op.IDENTIFIER()!.getText();
-
-        // Handle this.member -> CurrentScope_member (when inside a scope)
-        if (resolvedName === "this" && this.currentScope) {
-          resolvedName = `${this.currentScope}_${memberName}`;
+        const resolved = this.resolveMemberAccess(resolvedName, op);
+        if (resolved === null) {
+          return { resolvedName, foundCall: false };
         }
-        // Check if base is a known scope
-        else if (this.analyzer.isScope(resolvedName)) {
-          // Scope.member -> Scope_member
-          resolvedName = `${resolvedName}_${memberName}`;
-        } else {
-          // Object.method or chained access - not a C-Next function call
-          // The method belongs to the object, not a standalone function
-          return;
-        }
+        resolvedName = resolved;
+        continue;
       }
+
       // Function call: () or (args)
-      else if (op.argumentList() || op.getChildCount() === 2) {
-        // Check if this looks like a function call (has parens)
+      if (op.argumentList() || op.getChildCount() === 2) {
         const text = op.getText();
         if (text.startsWith("(")) {
-          callOpIndex = i;
-          break;
+          return { resolvedName, foundCall: true };
         }
       }
     }
 
-    // If we found a call, check if the function is defined
-    if (callOpIndex >= 0) {
-      const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.checkFunctionCall(
-        resolvedName,
-        line,
-        column,
-        this.currentScope,
-      );
+    return { resolvedName, foundCall: false };
+  }
+
+  /**
+   * Resolve member access pattern. Returns new name or null if not a C-Next function.
+   */
+  private resolveMemberAccess(
+    resolvedName: string,
+    op: Parser.PostfixOpContext,
+  ): string | null {
+    const memberName = op.IDENTIFIER()!.getText();
+
+    // Handle this.member -> CurrentScope_member (when inside a scope)
+    if (resolvedName === "this" && this.currentScope) {
+      return `${this.currentScope}_${memberName}`;
     }
-  };
+
+    // Check if base is a known scope
+    if (this.analyzer.isScope(resolvedName)) {
+      return `${resolvedName}_${memberName}`;
+    }
+
+    // Object.method or chained access - not a C-Next function call
+    return null;
+  }
 }
 
 /**

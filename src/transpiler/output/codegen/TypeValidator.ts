@@ -14,6 +14,8 @@ import ICallbackTypeInfo from "./types/ICallbackTypeInfo";
 import ITypeValidatorDeps from "./types/ITypeValidatorDeps";
 import TypeResolver from "./TypeResolver";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
+// SonarCloud S3776: Extracted literal parsing to reduce complexity
+import LiteralEvaluator from "./helpers/LiteralEvaluator";
 
 /**
  * ADR-010: Implementation file extensions that should NOT be #included
@@ -1089,57 +1091,12 @@ class TypeValidator {
     if (unaryExprs.length !== 1) return null;
 
     const unaryExpr = unaryExprs[0];
-
-    // Check for unary minus (negative literal)
-    const unaryText = unaryExpr.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = unaryExpr.postfixExpression();
-    if (!postfixExpr) {
-      // Might be a nested unary expression like -(-5)
-      const nestedUnary = unaryExpr.unaryExpression();
-      if (nestedUnary) {
-        const nestedValue = this.evaluateUnaryExpression(nestedUnary);
-        if (nestedValue !== null) {
-          return isNegative ? -nestedValue : nestedValue;
-        }
-      }
-      return null;
-    }
-
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return null;
-
-    const literal = primaryExpr.literal();
-    if (!literal) return null;
-
-    const text = literal.getText();
-    let value: number | null = null;
-
-    // Handle different number formats
-    if (text.startsWith("0x") || text.startsWith("0X")) {
-      // Hex literal
-      value = Number.parseInt(text.slice(2), 16);
-    } else if (text.startsWith("0b") || text.startsWith("0B")) {
-      // Binary literal
-      value = Number.parseInt(text.slice(2), 2);
-    } else {
-      // Decimal literal (strip any type suffix)
-      const numMatch = /^\d+/.exec(text);
-      if (numMatch) {
-        value = Number.parseInt(numMatch[0], 10);
-      }
-    }
-
-    if (value !== null && isNegative) {
-      value = -value;
-    }
-
-    return value;
+    return this.evaluateUnaryExpression(unaryExpr);
   }
 
   /**
    * Helper to evaluate a unary expression recursively.
+   * SonarCloud S3776: Uses LiteralEvaluator for literal parsing.
    */
   private evaluateUnaryExpression(
     ctx: Parser.UnaryExpressionContext,
@@ -1149,43 +1106,35 @@ class TypeValidator {
 
     const postfixExpr = ctx.postfixExpression();
     if (postfixExpr) {
-      const primaryExpr = postfixExpr.primaryExpression();
-      if (!primaryExpr) return null;
-
-      const literal = primaryExpr.literal();
-      if (!literal) return null;
-
-      const text = literal.getText();
-      let value: number | null = null;
-
-      if (text.startsWith("0x") || text.startsWith("0X")) {
-        value = Number.parseInt(text.slice(2), 16);
-      } else if (text.startsWith("0b") || text.startsWith("0B")) {
-        value = Number.parseInt(text.slice(2), 2);
-      } else {
-        const numMatch = /^\d+/.exec(text);
-        if (numMatch) {
-          value = Number.parseInt(numMatch[0], 10);
-        }
-      }
-
-      if (value !== null && isNegative) {
-        value = -value;
-      }
-
-      return value;
+      return this.evaluateLiteralFromPostfix(postfixExpr, isNegative);
     }
 
     // Recursive unary
     const nestedUnary = ctx.unaryExpression();
     if (nestedUnary) {
       const nestedValue = this.evaluateUnaryExpression(nestedUnary);
-      if (nestedValue !== null) {
-        return isNegative ? -nestedValue : nestedValue;
-      }
+      return LiteralEvaluator.applySign(nestedValue, isNegative);
     }
 
     return null;
+  }
+
+  /**
+   * Extract and evaluate a literal from a postfix expression.
+   */
+  private evaluateLiteralFromPostfix(
+    postfixExpr: Parser.PostfixExpressionContext,
+    isNegative: boolean,
+  ): number | null {
+    const primaryExpr = postfixExpr.primaryExpression();
+    if (!primaryExpr) return null;
+
+    const literal = primaryExpr.literal();
+    if (!literal) return null;
+
+    const text = literal.getText();
+    const value = LiteralEvaluator.parseLiteral(text);
+    return LiteralEvaluator.applySign(value, isNegative);
   }
 
   // ========================================================================
