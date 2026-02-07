@@ -2435,69 +2435,92 @@ export default class CodeGenerator implements IOrchestrator {
     for (const decl of tree.declaration()) {
       // ADR-016: Handle scope declarations for function tracking
       if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-
-        // Set scope context for scoped type resolution (this.Type)
-        const savedScope = this.context.currentScope;
-        this.context.currentScope = scopeName;
-
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.functionDeclaration()) {
-            const funcDecl = member.functionDeclaration()!;
-            const funcName = funcDecl.IDENTIFIER().getText();
-            // Track fully qualified function name: Scope_function
-            const fullName = `${scopeName}_${funcName}`;
-            this.knownFunctions.add(fullName);
-            // ADR-013: Track function signature for const checking
-            const sig = this.extractFunctionSignature(
-              fullName,
-              funcDecl.parameterList() ?? null,
-            );
-            this.functionSignatures.set(fullName, sig);
-            // ADR-029: Register scoped function as callback type
-            this.registerCallbackType(fullName, funcDecl);
-          }
-        }
-
-        // Restore previous scope context
-        this.context.currentScope = savedScope;
+        this._collectScopeFunctions(decl.scopeDeclaration()!);
+        continue;
       }
 
       // ADR-029: Track callback field types in structs
       if (decl.structDeclaration()) {
-        const structDecl = decl.structDeclaration()!;
-        const structName = structDecl.IDENTIFIER().getText();
-
-        for (const member of structDecl.structMember()) {
-          const fieldName = member.IDENTIFIER().getText();
-          const fieldType = this._getTypeName(member.type());
-
-          // Track callback field types (needed for typedef generation)
-          if (this.callbackTypes.has(fieldType)) {
-            this.callbackFieldTypes.set(
-              `${structName}.${fieldName}`,
-              fieldType,
-            );
-          }
-        }
+        this._collectStructCallbackFields(decl.structDeclaration()!);
+        continue;
       }
 
       // Track top-level functions
       if (decl.functionDeclaration()) {
-        const funcDecl = decl.functionDeclaration()!;
-        const name = funcDecl.IDENTIFIER().getText();
-        this.knownFunctions.add(name);
-        // ADR-013: Track function signature for const checking
-        const sig = this.extractFunctionSignature(
-          name,
-          funcDecl.parameterList() ?? null,
-        );
-        this.functionSignatures.set(name, sig);
-        // ADR-029: Register function as callback type
-        this.registerCallbackType(name, funcDecl);
+        this._collectTopLevelFunction(decl.functionDeclaration()!);
       }
     }
+  }
+
+  /**
+   * Collect scoped functions and their callback types
+   */
+  private _collectScopeFunctions(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    // Set scope context for scoped type resolution (this.Type)
+    const savedScope = this.context.currentScope;
+    this.context.currentScope = scopeName;
+
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.functionDeclaration()) {
+        const funcDecl = member.functionDeclaration()!;
+        const funcName = funcDecl.IDENTIFIER().getText();
+        // Track fully qualified function name: Scope_function
+        const fullName = `${scopeName}_${funcName}`;
+        this.knownFunctions.add(fullName);
+        // ADR-013: Track function signature for const checking
+        const sig = this.extractFunctionSignature(
+          fullName,
+          funcDecl.parameterList() ?? null,
+        );
+        this.functionSignatures.set(fullName, sig);
+        // ADR-029: Register scoped function as callback type
+        this.registerCallbackType(fullName, funcDecl);
+      }
+    }
+
+    // Restore previous scope context
+    this.context.currentScope = savedScope;
+  }
+
+  /**
+   * Collect callback field types from struct declaration
+   */
+  private _collectStructCallbackFields(
+    structDecl: Parser.StructDeclarationContext,
+  ): void {
+    const structName = structDecl.IDENTIFIER().getText();
+
+    for (const member of structDecl.structMember()) {
+      const fieldName = member.IDENTIFIER().getText();
+      const fieldType = this._getTypeName(member.type());
+
+      // Track callback field types (needed for typedef generation)
+      if (this.callbackTypes.has(fieldType)) {
+        this.callbackFieldTypes.set(`${structName}.${fieldName}`, fieldType);
+      }
+    }
+  }
+
+  /**
+   * Collect top-level function and register as callback type
+   */
+  private _collectTopLevelFunction(
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const name = funcDecl.IDENTIFIER().getText();
+    this.knownFunctions.add(name);
+    // ADR-013: Track function signature for const checking
+    const sig = this.extractFunctionSignature(
+      name,
+      funcDecl.parameterList() ?? null,
+    );
+    this.functionSignatures.set(name, sig);
+    // ADR-029: Register function as callback type
+    this.registerCallbackType(name, funcDecl);
   }
 
   /**
