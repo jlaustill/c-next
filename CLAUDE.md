@@ -54,6 +54,8 @@ SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud 
 
 **Reducing cognitive complexity:** Extract nested logic into private helper methods with early returns. Keep helpers in the same class when they need many instance dependencies. Name helpers descriptively (e.g., `_resolveIdentifierExpression`, `_resolveUnqualifiedEnumMember`).
 
+**Loops add +1 complexity:** Extract `for`/`while` loops to static utility methods in `src/utils/` when the loop is self-contained (e.g., `MapUtils.deepCopyStringSetMap()`). Use `ReadonlyMap`/`ReadonlySet` in utility signatures for flexibility with immutable sources.
+
 **Before refactoring complexity issues:**
 
 1. **Check ExpressionUtils first** - `src/utils/ExpressionUtils.ts` has expression tree traversal helpers (`extractIdentifier`, `hasFunctionCall`, `extractUnaryExpression`) - don't duplicate this logic
