@@ -1747,7 +1747,36 @@ export default class CodeGenerator implements IOrchestrator {
     structType: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {
-    return this._getStructFieldInfo(structType, fieldName) ?? null;
+    // First check SymbolTable (C header structs)
+    if (this.symbolTable) {
+      const fieldInfo = this.symbolTable.getStructFieldInfo(
+        structType,
+        fieldName,
+      );
+      if (fieldInfo) {
+        return {
+          type: fieldInfo.type,
+          dimensions: fieldInfo.arrayDimensions,
+        };
+      }
+    }
+
+    // Fall back to local C-Next struct fields
+    const localFields = this.symbols!.structFields.get(structType);
+    if (localFields) {
+      const fieldType = localFields.get(fieldName);
+      if (fieldType) {
+        const fieldDimensions =
+          this.symbols!.structFieldDimensions.get(structType);
+        const dimensions = fieldDimensions?.get(fieldName);
+        return {
+          type: fieldType,
+          dimensions: dimensions ? [...dimensions] : undefined,
+        };
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -1755,7 +1784,24 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
-    return this._getFullMemberTypeInfo(structType, memberName);
+    const fieldInfo = this.getStructFieldInfo(structType, memberName);
+    if (!fieldInfo) return null;
+
+    const isArray =
+      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
+      (this.symbols!.structFieldArrays.get(structType)?.has(memberName) ??
+        false);
+    const dims = fieldInfo.dimensions?.filter(
+      (d): d is number => typeof d === "number",
+    );
+
+    return {
+      baseType: fieldInfo.type,
+      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
+      isConst: false,
+      isArray,
+      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
+    };
   }
 
   /**
@@ -1820,44 +1866,6 @@ export default class CodeGenerator implements IOrchestrator {
    * @param fieldName Name of the field
    * @returns Object with type and optional dimensions, or undefined if not found
    */
-  private _getStructFieldInfo(
-    structName: string,
-    fieldName: string,
-  ): { type: string; dimensions?: (number | string)[] } | undefined {
-    // First check SymbolTable (C header structs)
-    if (this.symbolTable) {
-      const fieldInfo = this.symbolTable.getStructFieldInfo(
-        structName,
-        fieldName,
-      );
-      if (fieldInfo) {
-        return {
-          type: fieldInfo.type,
-          dimensions: fieldInfo.arrayDimensions,
-        };
-      }
-    }
-
-    // Fall back to local C-Next struct fields
-    const localFields = this.symbols!.structFields.get(structName);
-    if (localFields) {
-      const fieldType = localFields.get(fieldName);
-      if (fieldType) {
-        // Get dimensions from structFieldDimensions
-        const fieldDimensions =
-          this.symbols!.structFieldDimensions.get(structName);
-        const dimensions = fieldDimensions?.get(fieldName);
-        return {
-          type: fieldType,
-          // Copy readonly array to mutable for return type compatibility
-          dimensions: dimensions ? [...dimensions] : undefined,
-        };
-      }
-    }
-
-    return undefined;
-  }
-
   /**
    * Issue #551: Check if a type is a known primitive type.
    * Known primitives use pass-by-reference with dereference.
@@ -4314,38 +4322,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get full type info for a struct member field.
-   * Single source of truth for both expression path (IOrchestrator) and
-   * assignment path (IHandlerDeps). Checks SymbolTable first for C header
-   * structs, then falls back to C-Next struct fields.
-   */
-  private _getFullMemberTypeInfo(
-    structType: string,
-    memberName: string,
-  ): TTypeInfo | null {
-    const fieldInfo = this._getStructFieldInfo(structType, memberName);
-    if (!fieldInfo) return null;
-
-    // Check dimensions first, then fall back to structFieldArrays for fields
-    // with unresolved dimension expressions (e.g., u8 data[SOME_CONSTANT])
-    const isArray =
-      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
-      (this.symbols!.structFieldArrays.get(structType)?.has(memberName) ??
-        false);
-    const dims = fieldInfo.dimensions?.filter(
-      (d): d is number => typeof d === "number",
-    );
-
-    return {
-      baseType: fieldInfo.type,
-      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
-      isConst: false,
-      isArray,
-      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
-    };
-  }
-
-  /**
    * ADR-024: Check if conversion from sourceType to targetType is narrowing
    * Narrowing occurs when target type has fewer bits than source type
    */
@@ -6322,7 +6298,7 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownStruct: (name) => this.isKnownStruct(name),
       isKnownScope: (name) => this.isKnownScope(name),
       getMemberTypeInfo: (structType, memberName) =>
-        this._getFullMemberTypeInfo(structType, memberName),
+        this.getMemberTypeInfo(structType, memberName),
       validateBitmapFieldLiteral: (expr, width, fieldName) =>
         this.typeValidator!.validateBitmapFieldLiteral(expr, width, fieldName),
       validateCrossScopeVisibility: (scopeName, memberName) =>
