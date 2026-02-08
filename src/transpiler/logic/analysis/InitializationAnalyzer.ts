@@ -163,16 +163,8 @@ class InitializationListener extends CNextListener {
     }
 
     // Analyze postfix operations
-    const identifiers: string[] = [baseId];
-    let hasSubscript = false;
-
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        identifiers.push(op.IDENTIFIER()!.getText());
-      } else {
-        hasSubscript = true;
-      }
-    }
+    const { identifiers, hasSubscript } =
+      ExpressionUtils.extractPostfixTargetInfo(baseId, postfixOps);
 
     // Member access: p.x <- value (struct field)
     if (identifiers.length >= 2 && !hasSubscript) {

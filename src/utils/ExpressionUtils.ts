@@ -276,6 +276,34 @@ class ExpressionUtils {
     }
     return false;
   }
+
+  /**
+   * Extract identifiers and subscript presence from postfix target operations.
+   *
+   * Used by InitializationAnalyzer and AssignmentExpectedTypeResolver to
+   * analyze assignment target structure (member access vs array access).
+   *
+   * @param baseId - The base identifier from the assignment target
+   * @param postfixOps - The postfix target operations
+   * @returns Object with identifiers array and hasSubscript flag
+   */
+  static extractPostfixTargetInfo(
+    baseId: string,
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): { identifiers: string[]; hasSubscript: boolean } {
+    const identifiers: string[] = [baseId];
+    let hasSubscript = false;
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        identifiers.push(op.IDENTIFIER()!.getText());
+      } else {
+        hasSubscript = true;
+      }
+    }
+
+    return { identifiers, hasSubscript };
+  }
 }
 
 export default ExpressionUtils;

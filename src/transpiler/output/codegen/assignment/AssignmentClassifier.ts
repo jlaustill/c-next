@@ -74,6 +74,26 @@ class AssignmentClassifier {
   }
 
   /**
+   * Resolve struct field type from struct/field names.
+   * Returns { structType, fieldType } if valid, null otherwise.
+   */
+  private resolveStructFieldType(
+    structFieldNames: { structName: string; fieldName: string } | null,
+  ): { structType: string; fieldType: string } | null {
+    if (!structFieldNames) return null;
+    const { structName, fieldName } = structFieldNames;
+    const structTypeInfo = this.deps.typeRegistry.get(structName);
+    if (!structTypeInfo || !this.deps.isKnownStruct(structTypeInfo.baseType)) {
+      return null;
+    }
+    const structType = structTypeInfo.baseType;
+    const structFields = this.deps.symbols.structFields.get(structType);
+    const fieldType = structFields?.get(fieldName);
+    if (!fieldType) return null;
+    return { structType, fieldType };
+  }
+
+  /**
    * Classify an assignment context into an AssignmentKind.
    */
   classify(ctx: IAssignmentContext): AssignmentKind {
@@ -641,19 +661,13 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
     structFieldNames: { structName: string; fieldName: string } | null,
   ): AssignmentKind | null {
-    if (!ctx.hasMemberAccess || ctx.hasArrayAccess || !structFieldNames) {
+    if (!ctx.hasMemberAccess || ctx.hasArrayAccess) {
       return null;
     }
-    const { structName, fieldName } = structFieldNames;
-    const structTypeInfo = this.deps.typeRegistry.get(structName);
-    if (!structTypeInfo || !this.deps.isKnownStruct(structTypeInfo.baseType)) {
-      return null;
-    }
-    const structFields = this.deps.symbols.structFields.get(
-      structTypeInfo.baseType,
-    );
-    const fieldType = structFields?.get(fieldName);
-    return fieldType && TypeCheckUtils.isString(fieldType)
+    const resolved = this.resolveStructFieldType(structFieldNames);
+    if (!resolved) return null;
+
+    return TypeCheckUtils.isString(resolved.fieldType)
       ? AssignmentKind.STRING_STRUCT_FIELD
       : null;
   }
@@ -668,27 +682,21 @@ class AssignmentClassifier {
     if (
       !ctx.hasMemberAccess ||
       !ctx.hasArrayAccess ||
-      !structFieldNames ||
       ctx.subscripts.length !== 1
     ) {
       return null;
     }
-    const { structName, fieldName } = structFieldNames;
-    const structTypeInfo = this.deps.typeRegistry.get(structName);
-    if (!structTypeInfo || !this.deps.isKnownStruct(structTypeInfo.baseType)) {
-      return null;
-    }
+    const resolved = this.resolveStructFieldType(structFieldNames);
+    if (!resolved) return null;
 
-    const structType = structTypeInfo.baseType;
-    const structFields = this.deps.symbols.structFields.get(structType);
-    const fieldType = structFields?.get(fieldName);
+    const { structType, fieldType } = resolved;
+    const fieldName = structFieldNames!.fieldName;
     const fieldArrays = this.deps.symbols.structFieldArrays.get(structType);
     const dimensions = this.deps.symbols.structFieldDimensions
       .get(structType)
       ?.get(fieldName);
 
     const isStringArrayField =
-      fieldType &&
       TypeCheckUtils.isString(fieldType) &&
       fieldArrays?.has(fieldName) &&
       dimensions &&
