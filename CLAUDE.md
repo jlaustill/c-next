@@ -283,6 +283,12 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 - **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
 - **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
 
+### Vitest Mocking for ESM Modules
+
+- **Module-level mocks**: Use `vi.mock()` at top of file with class pattern, not `vi.doMock()` with dynamic imports
+- **Separate mock test files**: Create `*.mocked.test.ts` files to avoid mock pollution with main test file
+- **Mock class pattern**: `vi.mock("path", () => ({ default: class Mock { method() { return mockFn(); } } }))`
+
 ### Test Type Requirements
 
 When mocking types in CodeGenerator tests:
