@@ -186,25 +186,6 @@ interface FunctionSignature {
 }
 
 /**
- * ADR-029: Callback type info for Function-as-Type pattern
- * Each function definition creates both a callable function AND a type
- */
-interface CallbackTypeInfo {
-  functionName: string; // The original function name (also the type name)
-  returnType: string; // Return type for typedef (C type)
-  parameters: Array<{
-    // Parameter info for typedef
-    name: string;
-    type: string; // C type
-    isConst: boolean;
-    isPointer: boolean; // ADR-006: Non-array params become pointers
-    isArray: boolean; // Array parameters pass naturally as pointers
-    arrayDims: string; // Array dimensions if applicable
-  }>;
-  typedefName: string; // e.g., "onReceive_fp"
-}
-
-/**
  * ADR-049: Target platform capabilities for code generation
  */
 interface TargetCapabilities {
@@ -285,9 +266,6 @@ export default class CodeGenerator implements IOrchestrator {
       ["f64", "0.0"],
     ]);
 
-  /** ADR-044: Debug mode generates panic-on-overflow helpers */
-  private debugMode: boolean = false;
-
   private context: GeneratorContext =
     CodeGenerator.createDefaultContext(DEFAULT_TARGET);
 
@@ -323,55 +301,6 @@ export default class CodeGenerator implements IOrchestrator {
       targetCapabilities,
     };
   }
-
-  // Issue #60: Symbol fields moved to SymbolCollector
-  // Remaining fields not yet extracted:
-
-  private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
-
-  private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
-
-  // Bug #8: Track compile-time const values for array size resolution at file scope
-  private constValues: Map<string, number> = new Map(); // constName -> numeric value
-
-  // ADR-029: Callback types registry
-  private callbackTypes: Map<string, CallbackTypeInfo> = new Map(); // funcName -> CallbackTypeInfo
-
-  private callbackFieldTypes: Map<string, string> = new Map(); // "Struct.field" -> callbackTypeName
-
-  // ADR-044: Track which overflow helper types and operations are needed
-  private usedClampOps: Set<string> = new Set(); // Format: "add_u8", "sub_u16", "mul_u32"
-
-  private usedSafeDivOps: Set<string> = new Set(); // ADR-051: Format: "div_u32", "mod_i16"
-
-  // Track required standard library includes
-  private needsStdint: boolean = false; // For u8, u16, u32, u64, i8, i16, i32, i64
-
-  private needsStdbool: boolean = false; // For bool type
-
-  private needsString: boolean = false; // ADR-045: For strlen, strncpy, etc.
-
-  private needsFloatStaticAssert: boolean = false; // For float bit indexing size verification
-
-  private needsISR: boolean = false; // ADR-040: For ISR function pointer type
-
-  private needsCMSIS: boolean = false; // ADR-049/050: For atomic intrinsics and critical sections
-
-  private needsLimits: boolean = false; // Issue #632: For float-to-int clamp casts
-
-  private needsIrqWrappers: boolean = false; // Issue #473: IRQ wrappers for critical sections
-
-  /** External symbol table for cross-language interop */
-  private symbolTable: SymbolTable | null = null;
-
-  /** ADR-010: Source file path for validating includes */
-  private sourcePath: string | null = null;
-
-  /** Issue #349: Include directories for resolving angle-bracket .cnx includes */
-  private includeDirs: string[] = [];
-
-  /** Issue #349: Input directories for calculating relative paths */
-  private inputs: string[] = [];
 
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
@@ -416,80 +345,8 @@ export default class CodeGenerator implements IOrchestrator {
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
-  /** Issue #250: C++ mode - use temp vars instead of compound literals */
-  private cppMode: boolean = false;
-
   /** Issue #644: C/C++ mode helper for consolidated mode-specific patterns */
   private cppHelper: CppModeHelper | null = null;
-
-  /** Issue #250: Pending temp variable declarations for C++ mode */
-  private pendingTempDeclarations: string[] = [];
-
-  /** Issue #250: Counter for unique temp variable names */
-  private tempVarCounter: number = 0;
-
-  /** Issue #517: Pending field assignments for C++ class struct init */
-  private pendingCppClassAssignments: string[] = [];
-
-  /**
-   * Issue #269: Tracks which parameters are modified (directly or transitively)
-   * Map of functionName -> Set of modified parameter names
-   */
-  private readonly modifiedParameters: Map<string, Set<string>> = new Map();
-
-  /**
-   * Issue #579: Tracks which parameters have subscript access (read or write)
-   * These parameters must become pointers to support array access semantics
-   * Map of functionName -> Set of parameter names with subscript access
-   */
-  private readonly subscriptAccessedParameters: Map<string, Set<string>> =
-    new Map();
-
-  /**
-   * Issue #558: Pending cross-file modifications to inject after analyzePassByValue clears.
-   * Set by Pipeline before generate() to share modifications from previously processed files.
-   */
-  private pendingCrossFileModifications: ReadonlyMap<
-    string,
-    ReadonlySet<string>
-  > | null = null;
-
-  /**
-   * Issue #558: Pending cross-file parameter lists to inject for transitive propagation.
-   */
-  private pendingCrossFileParamLists: ReadonlyMap<
-    string,
-    readonly string[]
-  > | null = null;
-
-  /**
-   * Issue #269: Tracks which parameters should pass by value
-   * Map of functionName -> Set of passByValue parameter names
-   */
-  private readonly passByValueParams: Map<string, Set<string>> = new Map();
-
-  /**
-   * Issue #269: Tracks function call relationships for transitive modification analysis
-   * Map of functionName -> Array of {callee, paramIndex, argParamName}
-   * where argParamName is the caller's parameter passed as argument
-   */
-  private readonly functionCallGraph: Map<
-    string,
-    Array<{ callee: string; paramIndex: number; argParamName: string }>
-  > = new Map();
-
-  /**
-   * Issue #269: Tracks function parameter lists for call graph analysis
-   * Map of functionName -> Array of parameter names in order
-   */
-  private readonly functionParamLists: Map<string, string[]> = new Map();
-
-  /**
-   * Issue #369: Tracks whether self-include was added.
-   * When true, skip struct/enum/bitmap definitions in .c file because
-   * they'll be defined in the included header.
-   */
-  private selfIncludeAdded: boolean = false;
 
   /**
    * Initialize generator registry with extracted generators.
@@ -1391,7 +1248,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   registerLocalVariable(name: string): void {
-    CodeGenState.localVariables.add(name);
     CodeGenState.localVariables.add(name);
   }
 
@@ -2357,10 +2213,8 @@ export default class CodeGenerator implements IOrchestrator {
   private initializeSymbolData(): void {
     const symbols = CodeGenState.symbols!;
 
-    // Copy symbol data to context.scopeMembers
+    // Copy symbol data to CodeGenState.scopeMembers
     for (const [scopeName, members] of symbols.scopeMembers) {
-      CodeGenState.scopeMembers.set(scopeName, new Set(members));
-      // Also populate CodeGenState
       CodeGenState.scopeMembers.set(scopeName, new Set(members));
     }
 
@@ -3937,7 +3791,6 @@ export default class CodeGenerator implements IOrchestrator {
       isString: typeInfo.isString,
     };
     CodeGenState.currentParameters.set(name, paramInfo);
-    CodeGenState.currentParameters.set(name, paramInfo);
 
     // Register in typeRegistry
     this._registerParameterType(name, typeInfo, param, isArray, isConst);
@@ -4069,7 +3922,6 @@ export default class CodeGenerator implements IOrchestrator {
       stringCapacity,
       isParameter: true,
     };
-    CodeGenState.typeRegistry.set(name, registeredType);
     CodeGenState.typeRegistry.set(name, registeredType);
   }
 
