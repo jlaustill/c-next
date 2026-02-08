@@ -137,6 +137,7 @@ import CodeGenState from "./CodeGenState";
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
+import ScopeResolver from "./resolution/ScopeResolver";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -843,7 +844,7 @@ export default class CodeGenerator implements IOrchestrator {
       checkNeedsStructKeyword: (name) =>
         this.symbolTable?.checkNeedsStructKeyword(name) ?? false,
       validateCrossScopeVisibility: (scope, member) =>
-        this._validateCrossScopeVisibility(scope, member),
+        ScopeResolver.validateCrossScopeVisibility(scope, member),
     });
   }
 
@@ -1022,7 +1023,11 @@ export default class CodeGenerator implements IOrchestrator {
     memberName: string,
     isGlobalAccess: boolean = false,
   ): void {
-    this._validateCrossScopeVisibility(scopeName, memberName, isGlobalAccess);
+    ScopeResolver.validateCrossScopeVisibility(
+      scopeName,
+      memberName,
+      isGlobalAccess,
+    );
   }
 
   /**
@@ -6226,37 +6231,7 @@ export default class CodeGenerator implements IOrchestrator {
     };
   }
 
-  // ADR-016: Validate cross-scope visibility (issue #165)
-  private _validateCrossScopeVisibility(
-    scopeName: string,
-    memberName: string,
-    isGlobalAccess: boolean = false,
-  ): void {
-    // Error if referencing own scope by name (must use this. prefix)
-    // Exception: global.Scope.member is allowed for explicit qualification
-    if (!isGlobalAccess && this.context.currentScope === scopeName) {
-      throw new Error(
-        `Error: Cannot reference own scope '${scopeName}' by name. ` +
-          `Use 'this.${memberName}' instead of '${scopeName}.${memberName}'`,
-      );
-    }
-
-    // Check private member access (skip for own scope - we can access our own privates)
-    const isOwnScope = this.context.currentScope === scopeName;
-    if (!isOwnScope) {
-      const visibility =
-        this.symbols!.scopeMemberVisibility.get(scopeName)?.get(memberName);
-      if (visibility === "private") {
-        const context = this.context.currentScope
-          ? `from scope '${this.context.currentScope}'`
-          : "from outside the scope";
-        throw new Error(
-          `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +
-            `Only public members are accessible outside their scope.`,
-        );
-      }
-    }
-  }
+  // ADR-016: _validateCrossScopeVisibility moved to ScopeResolver
 
   // Issue #387: Dead methods removed (generateGlobalMemberAccess, generateGlobalArrayAccess,
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
