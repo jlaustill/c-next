@@ -15491,4 +15491,59 @@ describe("CodeGenerator", () => {
       });
     });
   });
+
+  describe("Issue #741: const scope members bare reference inlining", () => {
+    it("should inline private const when referenced without this. prefix", () => {
+      const source = `
+        scope Foo {
+          const u32 MY_CONSTANT <- 42;
+
+          public u32 getConstant() {
+            return MY_CONSTANT;
+          }
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const symbolTable = new SymbolTable();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, symbolTable, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      // Should inline the value, not generate a reference to Foo_MY_CONSTANT
+      expect(code).toContain("return 42;");
+      expect(code).not.toContain("Foo_MY_CONSTANT");
+    });
+
+    it("should inline private const in expressions without this. prefix", () => {
+      const source = `
+        scope Bar {
+          const u8 OFFSET <- 10;
+
+          public u8 compute() {
+            u8 result <- OFFSET + 5;
+            return result;
+          }
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const symbolTable = new SymbolTable();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, symbolTable, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      // Expression should be constant-folded: 10 + 5 = 15
+      expect(code).toContain("uint8_t result = 15;");
+      expect(code).not.toContain("Bar_OFFSET");
+    });
+  });
 });

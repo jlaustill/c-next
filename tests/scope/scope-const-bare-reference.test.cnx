@@ -1,0 +1,31 @@
+// test-execution
+// Tests: const scope members referenced without this. prefix should work
+// Issue #741: const variables inside scopes are referenced but never declared
+
+scope Foo {
+    const u32 MY_CONSTANT <- 42;
+    const u8 SMALL_VALUE <- 10;
+
+    public u32 getConstant() {
+        // Bare reference without this. prefix (bug #741)
+        return MY_CONSTANT;
+    }
+
+    public u8 useInExpression() {
+        // Use const in expression
+        u8 result <- SMALL_VALUE + 5;
+        return result;
+    }
+}
+
+u32 main() {
+    // Test bare reference works
+    u32 val <- Foo.getConstant();
+    if (val != 42) return 1;
+
+    // Test const used in expression
+    u8 expr <- Foo.useInExpression();
+    if (expr != 15) return 2;
+
+    return 0;
+}
