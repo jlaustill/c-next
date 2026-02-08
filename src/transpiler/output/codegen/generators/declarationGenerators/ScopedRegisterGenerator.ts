@@ -37,9 +37,8 @@ const generateScopedRegister = (
       : undefined;
   };
 
-  const lines: string[] = [];
-  lines.push(`/* Register: ${fullName} @ ${baseAddress} */`);
-  lines.push(
+  const lines: string[] = [
+    `/* Register: ${fullName} @ ${baseAddress} */`,
     ...generateRegisterMacros(
       node.registerMember(),
       fullName,
@@ -47,8 +46,8 @@ const generateScopedRegister = (
       orchestrator,
       resolveType,
     ),
-  );
-  lines.push("");
+    "",
+  ];
 
   return {
     code: lines.join("\n"),

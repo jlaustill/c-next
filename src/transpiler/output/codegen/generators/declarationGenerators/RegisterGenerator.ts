@@ -37,17 +37,16 @@ const generateRegister: TGeneratorFn<Parser.RegisterDeclarationContext> = (
   const name = node.IDENTIFIER().getText();
   const baseAddress = orchestrator.generateExpression(node.expression());
 
-  const lines: string[] = [];
-  lines.push(`/* Register: ${name} @ ${baseAddress} */`);
-  lines.push(
+  const lines: string[] = [
+    `/* Register: ${name} @ ${baseAddress} */`,
     ...generateRegisterMacros(
       node.registerMember(),
       name,
       baseAddress,
       orchestrator,
     ),
-  );
-  lines.push("");
+    "",
+  ];
 
   return {
     code: lines.join("\n"),
