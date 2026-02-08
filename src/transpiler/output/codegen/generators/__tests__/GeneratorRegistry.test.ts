@@ -48,4 +48,31 @@ export default describe("GeneratorRegistry", () => {
       expect(registry.hasExpression("ternary")).toBe(true);
     });
   });
+
+  describe("unregisterDeclaration", () => {
+    it("removes a registered declaration", () => {
+      registry.registerDeclaration("struct", mockGenerator);
+      expect(registry.hasDeclaration("struct")).toBe(true);
+
+      registry.unregisterDeclaration("struct");
+      expect(registry.hasDeclaration("struct")).toBe(false);
+    });
+
+    it("is a no-op for non-existent kind", () => {
+      expect(registry.hasDeclaration("unknown")).toBe(false);
+      registry.unregisterDeclaration("unknown");
+      expect(registry.hasDeclaration("unknown")).toBe(false);
+    });
+  });
+
+  describe("getDeclaration", () => {
+    it("returns undefined for unregistered kind", () => {
+      expect(registry.getDeclaration("struct")).toBeUndefined();
+    });
+
+    it("returns generator for registered kind", () => {
+      registry.registerDeclaration("struct", mockGenerator);
+      expect(registry.getDeclaration("struct")).toBe(mockGenerator);
+    });
+  });
 });

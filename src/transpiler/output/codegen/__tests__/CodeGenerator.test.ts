@@ -15491,4 +15491,80 @@ describe("CodeGenerator", () => {
       });
     });
   });
+
+  describe("Generator registration error paths", () => {
+    it("throws error when struct generator is not registered", () => {
+      // First call initializes the registry
+      const initSource = `u8 x;`;
+      const { tree: initTree, tokenStream: initTokenStream } =
+        CNextSourceParser.parse(initSource);
+      const generator = new CodeGenerator();
+      const initSymbolTable = new SymbolTable();
+      const initTSymbols = CNextResolver.resolve(initTree, "init.cnx");
+      const initSymbols = TSymbolInfoAdapter.convert(initTSymbols);
+      generator.generate(initTree, initSymbolTable, initTokenStream, {
+        symbolInfo: initSymbols,
+        sourcePath: "init.cnx",
+      });
+
+      // Unregister the struct generator to test error path
+      const registry = (
+        generator as unknown as {
+          registry: { unregisterDeclaration: (kind: string) => void };
+        }
+      ).registry;
+      registry.unregisterDeclaration("struct");
+
+      // Second call should throw because struct generator is now missing
+      const source = `struct Point { i32 x; i32 y; }`;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const symbolTable = new SymbolTable();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      expect(() => {
+        generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+      }).toThrow("Error: struct generator not registered");
+    });
+
+    it("throws error when enum generator is not registered", () => {
+      // First call initializes the registry
+      const initSource = `u8 x;`;
+      const { tree: initTree, tokenStream: initTokenStream } =
+        CNextSourceParser.parse(initSource);
+      const generator = new CodeGenerator();
+      const initSymbolTable = new SymbolTable();
+      const initTSymbols = CNextResolver.resolve(initTree, "init.cnx");
+      const initSymbols = TSymbolInfoAdapter.convert(initTSymbols);
+      generator.generate(initTree, initSymbolTable, initTokenStream, {
+        symbolInfo: initSymbols,
+        sourcePath: "init.cnx",
+      });
+
+      // Unregister the enum generator to test error path
+      const registry = (
+        generator as unknown as {
+          registry: { unregisterDeclaration: (kind: string) => void };
+        }
+      ).registry;
+      registry.unregisterDeclaration("enum");
+
+      // Second call should throw because enum generator is now missing
+      const source = `enum State { IDLE, RUNNING }`;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const symbolTable = new SymbolTable();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      expect(() => {
+        generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+      }).toThrow("Error: enum generator not registered");
+    });
+  });
 });
