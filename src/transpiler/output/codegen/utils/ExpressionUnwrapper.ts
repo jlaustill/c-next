@@ -62,41 +62,12 @@ class ExpressionUnwrapper {
   }
 
   /**
-   * Navigate from ExpressionContext to PostfixExpressionContext.
-   * Returns null if the expression has multiple terms at any level
-   * (indicating binary operations).
-   *
-   * Use this when you need to access the postfix expression for:
-   * - Getting the primary expression (identifier, literal)
-   * - Checking postfix operators (member access, array indexing)
-   */
-  static getPostfixExpression(
-    ctx: Parser.ExpressionContext,
-  ): Parser.PostfixExpressionContext | null {
-    const shift = this.navigateToShift(ctx);
-    if (!shift) return null;
-
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    const unary = mult.unaryExpression()[0];
-    if (!unary.postfixExpression()) return null;
-
-    return unary.postfixExpression()!;
-  }
-
-  /**
    * Navigate from ExpressionContext to UnaryExpressionContext.
-   * Returns null if the expression has multiple terms at any level.
+   * Common helper for getPostfixExpression and getUnaryExpression.
    *
-   * Use this when you need access to unary operators (!, -, ~, etc.)
+   * Returns null if expression has multiple terms at any level.
    */
-  static getUnaryExpression(
+  private static navigateToUnary(
     ctx: Parser.ExpressionContext,
   ): Parser.UnaryExpressionContext | null {
     const shift = this.navigateToShift(ctx);
@@ -111,6 +82,35 @@ class ExpressionUnwrapper {
     if (mult.unaryExpression().length !== 1) return null;
 
     return mult.unaryExpression()[0];
+  }
+
+  /**
+   * Navigate from ExpressionContext to PostfixExpressionContext.
+   * Returns null if the expression has multiple terms at any level
+   * (indicating binary operations).
+   *
+   * Use this when you need to access the postfix expression for:
+   * - Getting the primary expression (identifier, literal)
+   * - Checking postfix operators (member access, array indexing)
+   */
+  static getPostfixExpression(
+    ctx: Parser.ExpressionContext,
+  ): Parser.PostfixExpressionContext | null {
+    const unary = this.navigateToUnary(ctx);
+    if (!unary?.postfixExpression()) return null;
+    return unary.postfixExpression()!;
+  }
+
+  /**
+   * Navigate from ExpressionContext to UnaryExpressionContext.
+   * Returns null if the expression has multiple terms at any level.
+   *
+   * Use this when you need access to unary operators (!, -, ~, etc.)
+   */
+  static getUnaryExpression(
+    ctx: Parser.ExpressionContext,
+  ): Parser.UnaryExpressionContext | null {
+    return this.navigateToUnary(ctx);
   }
 
   /**

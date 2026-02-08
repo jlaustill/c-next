@@ -36,6 +36,14 @@ interface IMethodResult {
 }
 
 /**
+ * Result of validating and extracting source parameters.
+ */
+interface ISourceParams {
+  source: string;
+  filePath: string | undefined;
+}
+
+/**
  * Options for the serve command
  */
 interface IServeOptions {
@@ -58,9 +66,15 @@ class ServeCommand {
   private static readonly methods: Record<string, MethodHandler> = {
     getVersion: ServeCommand.handleGetVersion,
     initialize: ServeCommand.handleInitialize,
-    transpile: ServeCommand.handleTranspile,
-    parseSymbols: ServeCommand.handleParseSymbols,
-    parseCHeader: ServeCommand.handleParseCHeader,
+    transpile: ServeCommand._withSourceValidation(
+      ServeCommand._handleTranspile,
+    ),
+    parseSymbols: ServeCommand._withSourceValidation(
+      ServeCommand._handleParseSymbols,
+    ),
+    parseCHeader: ServeCommand._withSourceValidation(
+      ServeCommand._handleParseCHeader,
+    ),
     shutdown: ServeCommand.handleShutdown,
   };
 
@@ -102,6 +116,34 @@ class ServeCommand {
     if (this.debugMode) {
       process.stderr.write(`[serve] ${message}\n`);
     }
+  }
+
+  // ========================================================================
+  // Parameter Validation Helpers (Issue #707: Reduce code duplication)
+  // ========================================================================
+
+  /**
+   * Wrapper that validates source params before calling handler.
+   * Eliminates duplicate validation code across handlers.
+   */
+  private static _withSourceValidation(
+    handler: (params: ISourceParams) => Promise<IMethodResult>,
+  ): MethodHandler {
+    return async (params?: Record<string, unknown>): Promise<IMethodResult> => {
+      if (!params || typeof params.source !== "string") {
+        return {
+          success: false,
+          errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
+          errorMessage: "Missing required param: source",
+        };
+      }
+      const validated: ISourceParams = {
+        source: String(params.source),
+        filePath:
+          typeof params.filePath === "string" ? params.filePath : undefined,
+      };
+      return handler(validated);
+    };
   }
 
   /**
@@ -224,20 +266,12 @@ class ServeCommand {
   }
 
   /**
-   * Handle transpile method
+   * Handle transpile method (called via _withSourceValidation wrapper)
    * Uses full Transpiler for include resolution and C++ auto-detection
    */
-  private static async handleTranspile(
-    params?: Record<string, unknown>,
+  private static async _handleTranspile(
+    params: ISourceParams,
   ): Promise<IMethodResult> {
-    if (!params || typeof params.source !== "string") {
-      return {
-        success: false,
-        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
-        errorMessage: "Missing required param: source",
-      };
-    }
-
     if (!ServeCommand.transpiler) {
       return {
         success: false,
@@ -246,9 +280,7 @@ class ServeCommand {
       };
     }
 
-    const source = String(params.source);
-    const filePath =
-      typeof params.filePath === "string" ? params.filePath : undefined;
+    const { source, filePath } = params;
 
     const options = filePath
       ? { workingDir: dirname(filePath), sourcePath: filePath }
@@ -271,24 +303,14 @@ class ServeCommand {
   }
 
   /**
-   * Handle parseSymbols method
+   * Handle parseSymbols method (called via _withSourceValidation wrapper)
    * Runs full transpilation for include/C++ detection, then extracts symbols
    * from the parse tree (preserving "extract symbols even with parse errors" behavior)
    */
-  private static async handleParseSymbols(
-    params?: Record<string, unknown>,
+  private static async _handleParseSymbols(
+    params: ISourceParams,
   ): Promise<IMethodResult> {
-    if (!params || typeof params.source !== "string") {
-      return {
-        success: false,
-        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
-        errorMessage: "Missing required param: source",
-      };
-    }
-
-    const source = String(params.source);
-    const filePath =
-      typeof params.filePath === "string" ? params.filePath : undefined;
+    const { source, filePath } = params;
 
     // If transpiler is initialized, run transpileSource to trigger header
     // resolution and C++ detection (results are discarded, we just want
@@ -314,23 +336,13 @@ class ServeCommand {
   }
 
   /**
-   * Handle parseCHeader method
+   * Handle parseCHeader method (called via _withSourceValidation wrapper)
    * Parses C/C++ header files and extracts symbols
    */
-  private static async handleParseCHeader(
-    params?: Record<string, unknown>,
+  private static async _handleParseCHeader(
+    params: ISourceParams,
   ): Promise<IMethodResult> {
-    if (!params || typeof params.source !== "string") {
-      return {
-        success: false,
-        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
-        errorMessage: "Missing required param: source",
-      };
-    }
-
-    const source = String(params.source);
-    const filePath =
-      typeof params.filePath === "string" ? params.filePath : undefined;
+    const { source, filePath } = params;
 
     const result = parseCHeader(source, filePath);
 

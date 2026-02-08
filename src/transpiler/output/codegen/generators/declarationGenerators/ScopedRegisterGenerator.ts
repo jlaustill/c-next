@@ -13,6 +13,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
+import generateRegisterMacros from "./RegisterMacroGenerator";
 
 /**
  * Generate register macros with scope prefix.
@@ -28,34 +29,25 @@ const generateScopedRegister = (
   const fullName = `${scopeName}_${name}`; // Teensy4_GPIO7
   const baseAddress = orchestrator.generateExpression(node.expression());
 
+  // Type resolver for scoped bitmaps (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
+  const resolveType = (regType: string): string | undefined => {
+    const scopedTypeName = `${scopeName}_${regType}`;
+    return input.symbols?.knownBitmaps.has(scopedTypeName)
+      ? scopedTypeName
+      : undefined;
+  };
+
   const lines: string[] = [];
   lines.push(`/* Register: ${fullName} @ ${baseAddress} */`);
-
-  // Generate individual #define for each register member with its offset
-  for (const member of node.registerMember()) {
-    const regName = member.IDENTIFIER().getText();
-    let regType = orchestrator.generateType(member.type());
-    const access = member.accessModifier().getText();
-    const offset = orchestrator.generateExpression(member.expression());
-
-    // Check if the type is a scoped bitmap (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
-    const scopedTypeName = `${scopeName}_${regType}`;
-    if (input.symbols?.knownBitmaps.has(scopedTypeName)) {
-      regType = scopedTypeName;
-    }
-
-    // Determine qualifiers based on access mode
-    let cast = `volatile ${regType}*`;
-    if (access === "ro") {
-      cast = `volatile ${regType} const *`;
-    }
-
-    // Generate: #define Teensy4_GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-    lines.push(
-      `#define ${fullName}_${regName} (*(${cast})(${baseAddress} + ${offset}))`,
-    );
-  }
-
+  lines.push(
+    ...generateRegisterMacros(
+      node.registerMember(),
+      fullName,
+      baseAddress,
+      orchestrator,
+      resolveType,
+    ),
+  );
   lines.push("");
 
   return {

@@ -28,6 +28,7 @@
     "bitfield",
     "bitfields",
     "bitwidth",
+    "REGNAME",
     "struct",
     "structs",
     "enum",

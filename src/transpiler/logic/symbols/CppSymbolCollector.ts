@@ -39,6 +39,55 @@ class CppSymbolCollector {
     return SymbolCollectorContext.getWarnings(this.ctx);
   }
 
+  // ========================================================================
+  // Symbol Creation Helpers (Issue #707: Reduce code duplication)
+  // ========================================================================
+
+  /**
+   * Add a class/struct symbol to the symbol table.
+   */
+  private _addClassSymbol(fullName: string, line: number): void {
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name: fullName,
+      kind: ESymbolKind.Class,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: true,
+      parent: this.currentNamespace,
+    });
+  }
+
+  /**
+   * Add a member function symbol to the symbol table.
+   */
+  private _addMemberFunctionSymbol(
+    className: string,
+    funcName: string,
+    returnType: string,
+    params: Array<{
+      name: string;
+      type: string;
+      isConst: boolean;
+      isArray: boolean;
+    }>,
+    line: number,
+    isDeclaration: boolean,
+  ): void {
+    SymbolCollectorContext.addSymbol(this.ctx, {
+      name: `${className}::${funcName}`,
+      kind: ESymbolKind.Function,
+      type: returnType,
+      sourceFile: this.ctx.sourceFile,
+      sourceLine: line,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: true,
+      isDeclaration: isDeclaration || undefined,
+      parent: className,
+      parameters: params.length > 0 ? params : undefined,
+    });
+  }
+
   /**
    * Collect all symbols from a C++ translation unit
    */
@@ -257,15 +306,7 @@ class CppSymbolCollector {
     const memberSpec = anonymousClassSpec.memberSpecification?.();
     if (!memberSpec) return false;
 
-    SymbolCollectorContext.addSymbol(this.ctx, {
-      name: fullName,
-      kind: ESymbolKind.Class,
-      sourceFile: this.ctx.sourceFile,
-      sourceLine: line,
-      sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
-      parent: this.currentNamespace,
-    });
+    this._addClassSymbol(fullName, line);
     this.collectClassMembers(fullName, memberSpec);
     return true;
   }
@@ -348,15 +389,7 @@ class CppSymbolCollector {
       ? `${this.currentNamespace}::${name}`
       : name;
 
-    SymbolCollectorContext.addSymbol(this.ctx, {
-      name: fullName,
-      kind: ESymbolKind.Class,
-      sourceFile: this.ctx.sourceFile,
-      sourceLine: line,
-      sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
-      parent: this.currentNamespace,
-    });
+    this._addClassSymbol(fullName, line);
 
     // Extract struct/class field information if SymbolTable is available
     if (this.ctx.symbolTable) {
@@ -429,18 +462,14 @@ class CppSymbolCollector {
       ? this.extractTypeFromDeclSpecSeq(declSpecSeq)
       : "void";
     const params = this.extractFunctionParameters(declarator);
-
-    SymbolCollectorContext.addSymbol(this.ctx, {
-      name: `${className}::${funcName}`,
-      kind: ESymbolKind.Function,
-      type: returnType,
-      sourceFile: this.ctx.sourceFile,
-      sourceLine: line,
-      sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
-      parent: className,
-      parameters: params.length > 0 ? params : undefined,
-    });
+    this._addMemberFunctionSymbol(
+      className,
+      funcName,
+      returnType,
+      params,
+      line,
+      false,
+    );
   }
 
   /**
@@ -484,19 +513,14 @@ class CppSymbolCollector {
     line: number,
   ): void {
     const params = this.extractFunctionParameters(declarator);
-
-    SymbolCollectorContext.addSymbol(this.ctx, {
-      name: `${className}::${funcName}`,
-      kind: ESymbolKind.Function,
-      type: returnType,
-      sourceFile: this.ctx.sourceFile,
-      sourceLine: line,
-      sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
-      isDeclaration: true,
-      parent: className,
-      parameters: params.length > 0 ? params : undefined,
-    });
+    this._addMemberFunctionSymbol(
+      className,
+      funcName,
+      returnType,
+      params,
+      line,
+      true,
+    );
   }
 
   /**

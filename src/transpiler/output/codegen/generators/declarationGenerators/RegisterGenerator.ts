@@ -20,6 +20,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
+import generateRegisterMacros from "./RegisterMacroGenerator";
 
 /**
  * Generate C #define macros from a C-Next register declaration.
@@ -38,27 +39,14 @@ const generateRegister: TGeneratorFn<Parser.RegisterDeclarationContext> = (
 
   const lines: string[] = [];
   lines.push(`/* Register: ${name} @ ${baseAddress} */`);
-
-  // Generate individual #define for each register member with its offset
-  // This handles non-contiguous register layouts correctly (like i.MX RT1062)
-  for (const member of node.registerMember()) {
-    const regName = member.IDENTIFIER().getText();
-    const regType = orchestrator.generateType(member.type());
-    const access = member.accessModifier().getText();
-    const offset = orchestrator.generateExpression(member.expression());
-
-    // Determine qualifiers based on access mode
-    let cast = `volatile ${regType}*`;
-    if (access === "ro") {
-      cast = `volatile ${regType} const *`;
-    }
-
-    // Generate: #define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-    lines.push(
-      `#define ${name}_${regName} (*(${cast})(${baseAddress} + ${offset}))`,
-    );
-  }
-
+  lines.push(
+    ...generateRegisterMacros(
+      node.registerMember(),
+      name,
+      baseAddress,
+      orchestrator,
+    ),
+  );
   lines.push("");
 
   return {

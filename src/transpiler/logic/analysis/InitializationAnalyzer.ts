@@ -19,6 +19,7 @@ import IDeclarationInfo from "./types/IDeclarationInfo";
 import ScopeStack from "./ScopeStack";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 import ParserUtils from "../../../utils/ParserUtils";
+import analyzePostfixOps from "../../../utils/PostfixAnalysisUtils";
 import SymbolTable from "../symbols/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
@@ -163,16 +164,7 @@ class InitializationListener extends CNextListener {
     }
 
     // Analyze postfix operations
-    const identifiers: string[] = [baseId];
-    let hasSubscript = false;
-
-    for (const op of postfixOps) {
-      if (op.IDENTIFIER()) {
-        identifiers.push(op.IDENTIFIER()!.getText());
-      } else {
-        hasSubscript = true;
-      }
-    }
+    const { identifiers, hasSubscript } = analyzePostfixOps(baseId, postfixOps);
 
     // Member access: p.x <- value (struct field)
     if (identifiers.length >= 2 && !hasSubscript) {
