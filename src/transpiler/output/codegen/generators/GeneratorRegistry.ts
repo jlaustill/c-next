@@ -103,6 +103,18 @@ export default class GeneratorRegistry {
   }
 
   // =========================================================================
+  // Deregistration Methods (for testing error paths)
+  // =========================================================================
+
+  /**
+   * Unregister a declaration generator.
+   * Primarily used for testing error paths when generators are missing.
+   */
+  unregisterDeclaration(kind: string): void {
+    this.declarations.delete(kind);
+  }
+
+  // =========================================================================
   // Query Methods
   // =========================================================================
 

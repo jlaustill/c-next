@@ -12,6 +12,27 @@ import TYPE_MAP from "../../types/TYPE_MAP";
 import OverflowHelperTemplates from "./OverflowHelperTemplates";
 
 /**
+ * Generate a safe arithmetic helper function (div or mod).
+ * Extracted to eliminate duplication between safe_div and safe_mod generation.
+ */
+const generateSafeArithmeticHelper = (
+  opName: string,
+  opSymbol: string,
+  cnxType: string,
+  cType: string,
+): string[] => [
+  `static inline bool cnx_safe_${opName}_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
+  `    if (divisor == 0) {`,
+  `        *output = defaultValue;`,
+  `        return true;  // Error occurred`,
+  `    }`,
+  `    *output = numerator ${opSymbol} divisor;`,
+  `    return false;  // Success`,
+  `}`,
+  "",
+];
+
+/**
  * Generate all needed overflow helper functions
  * ADR-044: Overflow helper functions with clamping or panic behavior
  */
@@ -90,32 +111,12 @@ const generateSafeDivHelpers = (
 
     // Generate safe_div helper if needed
     if (needsDiv) {
-      lines.push(
-        `static inline bool cnx_safe_div_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
-        `    if (divisor == 0) {`,
-        `        *output = defaultValue;`,
-        `        return true;  // Error occurred`,
-        `    }`,
-        `    *output = numerator / divisor;`,
-        `    return false;  // Success`,
-        `}`,
-        "",
-      );
+      lines.push(...generateSafeArithmeticHelper("div", "/", cnxType, cType));
     }
 
     // Generate safe_mod helper if needed
     if (needsMod) {
-      lines.push(
-        `static inline bool cnx_safe_mod_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
-        `    if (divisor == 0) {`,
-        `        *output = defaultValue;`,
-        `        return true;  // Error occurred`,
-        `    }`,
-        `    *output = numerator % divisor;`,
-        `    return false;  // Success`,
-        `}`,
-        "",
-      );
+      lines.push(...generateSafeArithmeticHelper("mod", "%", cnxType, cType));
     }
   }
 
