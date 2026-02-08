@@ -4358,38 +4358,10 @@ export default class CodeGenerator implements IOrchestrator {
     leftCapacity: number;
     rightCapacity: number;
   } | null {
-    // Navigate to the additive expression level
-    const ternary = ctx.ternaryExpression();
-    if (!ternary) return null;
-
-    const orExprs = ternary.orExpression();
-    if (orExprs.length !== 1) return null;
-
-    const or = orExprs[0];
-    if (or.andExpression().length !== 1) return null;
-
-    const and = or.andExpression()[0];
-    if (and.equalityExpression().length !== 1) return null;
-
-    const eq = and.equalityExpression()[0];
-    if (eq.relationalExpression().length !== 1) return null;
-
-    const rel = eq.relationalExpression()[0];
-    if (rel.bitwiseOrExpression().length !== 1) return null;
-
-    const bor = rel.bitwiseOrExpression()[0];
-    if (bor.bitwiseXorExpression().length !== 1) return null;
-
-    const bxor = bor.bitwiseXorExpression()[0];
-    if (bxor.bitwiseAndExpression().length !== 1) return null;
-
-    const band = bxor.bitwiseAndExpression()[0];
-    if (band.shiftExpression().length !== 1) return null;
-
-    const shift = band.shiftExpression()[0];
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
+    // Navigate to the additive expression level using ExpressionUnwrapper
+    // Issue #707: Deduplicated expression tree navigation
+    const add = ExpressionUnwrapper.getAdditiveExpression(ctx);
+    if (!add) return null;
     const multExprs = add.multiplicativeExpression();
 
     // Need exactly 2 operands for simple concatenation
@@ -5198,155 +5170,14 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    // ADR-053: Check registry for extracted generator
+    // ADR-053: Delegates to extracted StructGenerator
     const generator = this.registry.getDeclaration("struct");
-    if (generator) {
-      const result = generator(ctx, this.getInput(), this.getState(), this);
-      this.applyEffects(result.effects);
-      return result.code;
+    if (!generator) {
+      throw new Error("Error: struct generator not registered");
     }
-
-    // Fallback to inline implementation (will be removed after migration)
-    const name = ctx.IDENTIFIER().getText();
-    const callbackFields: Array<{ fieldName: string; callbackType: string }> =
-      [];
-
-    const lines: string[] = [];
-    lines.push(`typedef struct {`);
-
-    for (const member of ctx.structMember()) {
-      const fieldLine = this.generateStructFieldLine(
-        name,
-        member,
-        callbackFields,
-      );
-      lines.push(fieldLine);
-    }
-
-    lines.push(`} ${name};`, "");
-
-    // ADR-029: Generate init function if struct has callback fields
-    if (callbackFields.length > 0) {
-      lines.push(this.generateStructInitFunction(name, callbackFields));
-    }
-
-    return lines.join("\n");
-  }
-
-  /**
-   * Generate a single struct field line.
-   * SonarCloud S3776: Extracted from generateStruct().
-   */
-  private generateStructFieldLine(
-    structName: string,
-    member: Parser.StructMemberContext,
-    callbackFields: Array<{ fieldName: string; callbackType: string }>,
-  ): string {
-    const fieldName = member.IDENTIFIER().getText();
-    const typeName = this.getTypeName(member.type());
-    const arrayDims = member.arrayDimension();
-    const isArray = arrayDims.length > 0;
-
-    // ADR-029: Check if this is a callback type field
-    if (this.callbackTypes.has(typeName)) {
-      return this.generateCallbackFieldLine(
-        structName,
-        fieldName,
-        typeName,
-        arrayDims,
-        isArray,
-        callbackFields,
-      );
-    }
-
-    return this.generateRegularFieldLine(
-      structName,
-      fieldName,
-      member,
-      arrayDims,
-      isArray,
-    );
-  }
-
-  /**
-   * Generate a callback type field line.
-   * SonarCloud S3776: Extracted from generateStruct().
-   */
-  private generateCallbackFieldLine(
-    structName: string,
-    fieldName: string,
-    typeName: string,
-    arrayDims: Parser.ArrayDimensionContext[],
-    isArray: boolean,
-    callbackFields: Array<{ fieldName: string; callbackType: string }>,
-  ): string {
-    const callbackInfo = this.callbackTypes.get(typeName)!;
-    callbackFields.push({ fieldName, callbackType: typeName });
-
-    // Track callback field for assignment validation
-    this.callbackFieldTypes.set(`${structName}.${fieldName}`, typeName);
-
-    if (isArray) {
-      const dims = this.generateArrayDimensions(arrayDims);
-      return `    ${callbackInfo.typedefName} ${fieldName}${dims};`;
-    }
-    return `    ${callbackInfo.typedefName} ${fieldName};`;
-  }
-
-  /**
-   * Generate a regular (non-callback) field line.
-   * SonarCloud S3776: Extracted from generateStruct().
-   */
-  private generateRegularFieldLine(
-    structName: string,
-    fieldName: string,
-    member: Parser.StructMemberContext,
-    arrayDims: Parser.ArrayDimensionContext[],
-    isArray: boolean,
-  ): string {
-    const type = this.generateType(member.type());
-
-    // Check if we have tracked dimensions for this field
-    const trackedDimensions =
-      this.symbols!.structFieldDimensions.get(structName);
-    const fieldDims = trackedDimensions?.get(fieldName);
-
-    if (fieldDims && fieldDims.length > 0) {
-      const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
-      return `    ${type} ${fieldName}${dimsStr};`;
-    }
-
-    if (isArray) {
-      const dims = this.generateArrayDimensions(arrayDims);
-      return `    ${type} ${fieldName}${dims};`;
-    }
-
-    return `    ${type} ${fieldName};`;
-  }
-
-  /**
-   * ADR-029: Generate init function for structs with callback fields
-   * Sets all callback fields to their default functions
-   */
-  private generateStructInitFunction(
-    structName: string,
-    callbackFields: Array<{ fieldName: string; callbackType: string }>,
-  ): string {
-    const lines: string[] = [];
-    lines.push(
-      `${structName} ${structName}_init(void) {`,
-      `    return (${structName}){`,
-    );
-
-    for (let i = 0; i < callbackFields.length; i++) {
-      const field = callbackFields[i];
-      const comma = i < callbackFields.length - 1 ? "," : "";
-      lines.push(`        .${field.fieldName} = ${field.callbackType}${comma}`);
-    }
-
-    lines.push(`    };`, `}`, "");
-
-    return lines.join("\n");
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   // ========================================================================
@@ -5358,44 +5189,16 @@ export default class CodeGenerator implements IOrchestrator {
    * enum State { IDLE, RUNNING, ERROR <- 255 }
    * -> typedef enum { State_IDLE = 0, State_RUNNING = 1, State_ERROR = 255 } State;
    *
-   * ADR-053: Delegates to extracted generator if registered.
+   * ADR-053: Delegates to extracted EnumGenerator.
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
-    // ADR-053: Check registry for extracted generator
     const generator = this.registry.getDeclaration("enum");
-    if (generator) {
-      const result = generator(ctx, this.getInput(), this.getState(), this);
-      this.applyEffects(result.effects);
-      return result.code;
+    if (!generator) {
+      throw new Error("Error: enum generator not registered");
     }
-
-    // Fallback to inline implementation (will be removed after migration)
-    const name = ctx.IDENTIFIER().getText();
-    const prefix = this.context.currentScope
-      ? `${this.context.currentScope}_`
-      : "";
-    const fullName = `${prefix}${name}`;
-
-    const lines: string[] = [];
-    lines.push(`typedef enum {`);
-
-    const members = this.symbols!.enumMembers.get(fullName);
-    if (!members) {
-      throw new Error(`Error: Enum ${fullName} not found in registry`);
-    }
-
-    const memberEntries = Array.from(members.entries());
-
-    for (let i = 0; i < memberEntries.length; i++) {
-      const [memberName, value] = memberEntries[i];
-      const fullMemberName = `${fullName}_${memberName}`;
-      const comma = i < memberEntries.length - 1 ? "," : "";
-      lines.push(`    ${fullMemberName} = ${value}${comma}`);
-    }
-
-    lines.push(`} ${fullName};`, "");
-
-    return lines.join("\n");
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   /**
