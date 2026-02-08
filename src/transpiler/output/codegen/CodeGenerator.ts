@@ -4653,6 +4653,13 @@ export default class CodeGenerator implements IOrchestrator {
       return id;
     }
 
+    // Global arrays also decay to pointers (check typeRegistry)
+    // But NOT strings - strings need & (they're char arrays but passed by reference)
+    const typeInfo = CodeGenState.typeRegistry.get(id);
+    if (typeInfo?.isArray && !typeInfo.isString) {
+      return id;
+    }
+
     // Scope member - may need prefixing
     if (CodeGenState.currentScope) {
       const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
