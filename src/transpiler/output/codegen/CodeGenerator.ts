@@ -2097,14 +2097,6 @@ export default class CodeGenerator implements IOrchestrator {
   // ===========================================================================
 
   /**
-   * Get struct field type and dimensions, checking SymbolTable first (for C headers),
-   * then falling back to local structFields (for C-Next structs).
-   *
-   * @param structName Name of the struct
-   * @param fieldName Name of the field
-   * @returns Object with type and optional dimensions, or undefined if not found
-   */
-  /**
    * Issue #551: Check if a type is a known primitive type.
    * Known primitives use pass-by-reference with dereference.
    * Unknown types (external enums, typedefs) use pass-by-value.
