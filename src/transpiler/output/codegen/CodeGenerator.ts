@@ -134,6 +134,8 @@ import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 import CastValidator from "./helpers/CastValidator";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "./CodeGenState";
+// Extracted resolvers that use CodeGenState
+import SizeofResolver from "./resolution/SizeofResolver";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -3879,6 +3881,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _setParameters(params: Parser.ParameterListContext | null): void {
     this.context.currentParameters.clear();
+    CodeGenState.currentParameters.clear();
     if (!params) return;
 
     for (const param of params.parameter()) {
@@ -3899,7 +3902,7 @@ export default class CodeGenerator implements IOrchestrator {
     const typeInfo = this._resolveParameterTypeInfo(typeCtx);
 
     // Register in currentParameters
-    this.context.currentParameters.set(name, {
+    const paramInfo = {
       name,
       baseType: typeInfo.typeName,
       isArray,
@@ -3907,7 +3910,9 @@ export default class CodeGenerator implements IOrchestrator {
       isConst,
       isCallback: typeInfo.isCallback,
       isString: typeInfo.isString,
-    });
+    };
+    this.context.currentParameters.set(name, paramInfo);
+    CodeGenState.currentParameters.set(name, paramInfo);
 
     // Register in typeRegistry
     this._registerParameterType(name, typeInfo, param, isArray, isConst);
@@ -4061,9 +4066,12 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-025: Remove parameter types from typeRegistry
     for (const name of this.context.currentParameters.keys()) {
       this.context.typeRegistry.delete(name);
+      CodeGenState.typeRegistry.delete(name);
     }
     this.context.currentParameters.clear();
     this.context.localArrays.clear();
+    CodeGenState.currentParameters.clear();
+    CodeGenState.localArrays.clear();
   }
 
   /**
@@ -6723,144 +6731,14 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * ADR-023: Generate sizeof expression
-   * sizeof(type) -> sizeof(c_type)
-   * sizeof(variable) -> sizeof(variable)
-   * With safety checks:
-   * - E0601: sizeof on array parameter is error
-   * - E0602: Side effects in sizeof are error
+   * Delegates to SizeofResolver which uses CodeGenState.
    */
   private generateSizeofExpr(ctx: Parser.SizeofExpressionContext): string {
-    // Check if it's sizeof(type) or sizeof(expression)
-    // Note: Due to grammar ambiguity, sizeof(variable) may parse as sizeof(type)
-    // when the variable name matches userType (just an identifier)
-    if (ctx.type()) {
-      return this._sizeofType(ctx.type()!);
-    }
-    return this._sizeofExpression(ctx.expression()!);
-  }
-
-  /**
-   * Handle sizeof(type) - may actually be sizeof(variable) due to grammar ambiguity
-   */
-  private _sizeofType(typeCtx: Parser.TypeContext): string {
-    // qualifiedType matches IDENTIFIER.IDENTIFIER, could be struct.member
-    if (typeCtx.qualifiedType()) {
-      const result = this._sizeofQualifiedType(typeCtx.qualifiedType()!);
-      if (result) return result;
-      // Fall through to generateType for actual type references (Scope.Type)
-    }
-
-    // userType is just IDENTIFIER, could be a variable reference
-    if (typeCtx.userType()) {
-      return this._sizeofUserType(typeCtx.getText());
-    }
-
-    // It's a primitive or other type - generate normally
-    return `sizeof(${this.generateType(typeCtx)})`;
-  }
-
-  /**
-   * Handle sizeof(qualified.type) - may be struct.member access
-   * Returns null if this is actually a type reference (Scope.Type)
-   */
-  private _sizeofQualifiedType(
-    qualifiedCtx: Parser.QualifiedTypeContext,
-  ): string | null {
-    const identifiers = qualifiedCtx.IDENTIFIER();
-    const firstName = identifiers[0].getText();
-    const memberName = identifiers[1].getText();
-
-    // Check if first identifier is a local variable (struct instance)
-    if (this.context.localVariables.has(firstName)) {
-      return `sizeof(${firstName}.${memberName})`;
-    }
-
-    // Check if first identifier is a parameter (struct parameter)
-    const paramInfo = this.context.currentParameters.get(firstName);
-    if (paramInfo) {
-      const sep = paramInfo.isStruct ? "->" : ".";
-      return `sizeof(${firstName}${sep}${memberName})`;
-    }
-
-    // Check if first identifier is a global variable
-    // If not a scope or enum, it's likely a global struct variable
-    if (
-      !this.isKnownScope(firstName) &&
-      !this.symbols!.knownEnums.has(firstName)
-    ) {
-      return `sizeof(${firstName}.${memberName})`;
-    }
-
-    // It's an actual type reference (Scope.Type), return null to fall through
-    return null;
-  }
-
-  /**
-   * Handle sizeof(identifier) - could be variable or type name
-   */
-  private _sizeofUserType(varName: string): string {
-    // Check if it's a known parameter
-    const paramInfo = this.context.currentParameters.get(varName);
-    if (paramInfo) {
-      return this._sizeofParameter(varName, paramInfo);
-    }
-
-    // Check if it's a known local variable, struct type, or enum type
-    // For all these cases, generate sizeof(name) directly
-    // Unknown identifiers are also treated as variables for safety
-    return `sizeof(${varName})`;
-  }
-
-  /**
-   * Handle sizeof on a parameter - validates and generates appropriate code
-   */
-  private _sizeofParameter(
-    varName: string,
-    paramInfo: { isArray?: boolean; isCallback?: boolean; isStruct?: boolean },
-  ): string {
-    // E0601: Array parameters decay to pointers
-    if (paramInfo.isArray) {
-      this._throwArrayParamSizeofError(varName);
-    }
-    // For pass-by-reference parameters (non-array, non-callback, non-struct),
-    // use pointer dereference
-    if (!paramInfo.isCallback && !paramInfo.isStruct) {
-      return `sizeof(*${varName})`;
-    }
-    return `sizeof(${varName})`;
-  }
-
-  /**
-   * Throw E0601 error for sizeof on array parameter
-   */
-  private _throwArrayParamSizeofError(varName: string): never {
-    throw new Error(
-      `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
-        `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
-    );
-  }
-
-  /**
-   * Handle sizeof(expression) with validation
-   */
-  private _sizeofExpression(expr: Parser.ExpressionContext): string {
-    // E0601: Check if expression is an array parameter
-    const varName = this.getSingleIdentifierFromExpr(expr);
-    if (varName) {
-      const paramInfo = this.context.currentParameters.get(varName);
-      if (paramInfo?.isArray) {
-        this._throwArrayParamSizeofError(varName);
-      }
-    }
-
-    // E0602: Check for side effects
-    if (this.hasSideEffects(expr)) {
-      throw new Error(
-        `Error[E0602]: sizeof() operand must not have side effects (MISRA C:2012 Rule 13.6)`,
-      );
-    }
-
-    return `sizeof(${this.generateExpression(expr)})`;
+    return SizeofResolver.generate(ctx, {
+      generateType: (typeCtx) => this.generateType(typeCtx),
+      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+      hasSideEffects: (exprCtx) => this.hasSideEffects(exprCtx),
+    });
   }
 
   /**
