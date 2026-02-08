@@ -1192,7 +1192,23 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   setupLengthCache(counts: Map<string, number>): string {
-    return this._setupLengthCache(counts);
+    const declarations: string[] = [];
+    const cache = new Map<string, string>();
+
+    for (const [varName, count] of counts) {
+      if (count >= 2) {
+        const tempVar = `_${varName}_len`;
+        cache.set(varName, tempVar);
+        declarations.push(`size_t ${tempVar} = strlen(${varName});`);
+      }
+    }
+
+    if (declarations.length > 0) {
+      this.context.lengthCache = cache;
+      return declarations.join("\n") + "\n";
+    }
+
+    return "";
   }
 
   /**
@@ -1200,7 +1216,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   clearLengthCache(): void {
-    this._clearLengthCache();
+    this.context.lengthCache = null;
   }
 
   /**
@@ -1230,7 +1246,11 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Try to evaluate a constant expression at compile time */
   tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
-    return this._tryEvaluateConstant(ctx);
+    return ArrayDimensionParser.parseSingleDimension(ctx, {
+      constValues: this.constValues,
+      typeWidths: TYPE_WIDTH,
+      isKnownStruct: (name) => this.isKnownStruct(name),
+    });
   }
 
   /** Get zero initializer for a type */
@@ -1279,7 +1299,21 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Get the capacity of a string expression */
   getStringExprCapacity(exprCode: string): number | null {
-    return this._getStringExprCapacity(exprCode);
+    // String literal - capacity equals content length
+    if (exprCode.startsWith('"') && exprCode.endsWith('"')) {
+      return StringUtils.literalLength(exprCode);
+    }
+
+    // Variable - check type registry
+    const identifierRegex = /^[a-zA-Z_]\w*$/;
+    if (identifierRegex.test(exprCode)) {
+      const typeInfo = this.context.typeRegistry.get(exprCode);
+      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
+        return typeInfo.stringCapacity;
+      }
+    }
+
+    return null;
   }
 
   // === Parameter Management (IOrchestrator A4) ===
@@ -1296,7 +1330,12 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Check if a callback type is used as a struct field type */
   isCallbackTypeUsedAsFieldType(funcName: string): boolean {
-    return this._isCallbackTypeUsedAsFieldType(funcName);
+    for (const callbackType of this.callbackFieldTypes.values()) {
+      if (callbackType === funcName) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // === Scope Management (A4) ===
@@ -2104,8 +2143,7 @@ export default class CodeGenerator implements IOrchestrator {
       getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
       getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
       getStringLiteralLength: (literal) => StringUtils.literalLength(literal),
-      getStringExprCapacity: (exprCode) =>
-        this._getStringExprCapacity(exprCode),
+      getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
       requireStringInclude: () => this.requireInclude("string"),
     });
 
@@ -2145,9 +2183,9 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownStruct: (name) => this.isKnownStruct(name),
       isIntegerType: (name) => this._isIntegerType(name),
       getExpressionType: (ctx) => this.getExpressionType(ctx),
-      tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
+      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
       isCallbackTypeUsedAsFieldType: (name) =>
-        this._isCallbackTypeUsedAsFieldType(name),
+        this.isCallbackTypeUsedAsFieldType(name),
     });
   }
 
@@ -2537,7 +2575,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Bug #8: Track const values for array size resolution at file scope
     if (varDecl.constModifier() && varDecl.expression()) {
       const constName = varDecl.IDENTIFIER().getText();
-      const constValue = this._tryEvaluateConstant(varDecl.expression()!);
+      const constValue = this.tryEvaluateConstant(varDecl.expression()!);
       if (constValue !== undefined) {
         this.constValues.set(constName, constValue);
       }
@@ -3161,16 +3199,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Bug #8: Extended to resolve const variable references for file-scope array sizes.
    * Issue #644: Delegates to ArrayDimensionParser for consolidated implementation.
    */
-  private _tryEvaluateConstant(
-    ctx: Parser.ExpressionContext,
-  ): number | undefined {
-    return ArrayDimensionParser.parseSingleDimension(ctx, {
-      constValues: this.constValues,
-      typeWidths: TYPE_WIDTH,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-    });
-  }
-
   // Issue #63: checkArrayBounds moved to TypeValidator
 
   /**
@@ -3815,16 +3843,6 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
-  private _isCallbackTypeUsedAsFieldType(funcName: string): boolean {
-    // A function is a "callback type definer" if it's used as a field type somewhere
-    for (const callbackType of this.callbackFieldTypes.values()) {
-      if (callbackType === funcName) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   // Issue #63: validateCallbackAssignment, callbackSignaturesMatch, isConstValue,
   //            and validateBareIdentifierInScope moved to TypeValidator
 
@@ -4148,8 +4166,8 @@ export default class CodeGenerator implements IOrchestrator {
     const rightText = multExprs[1].getText();
 
     // Check if at least one operand is a string
-    const leftCapacity = this._getStringExprCapacity(leftText);
-    const rightCapacity = this._getStringExprCapacity(rightText);
+    const leftCapacity = this.getStringExprCapacity(leftText);
+    const rightCapacity = this.getStringExprCapacity(rightText);
 
     if (leftCapacity === null && rightCapacity === null) {
       return null; // Neither is a string
@@ -4173,23 +4191,6 @@ export default class CodeGenerator implements IOrchestrator {
    * For string literals, capacity is the literal length.
    * For string variables, capacity is from the type registry.
    */
-  private _getStringExprCapacity(expr: string): number | null {
-    // String literal - capacity equals content length
-    if (expr.startsWith('"') && expr.endsWith('"')) {
-      return StringUtils.literalLength(expr);
-    }
-
-    // Variable - check type registry
-    if (/^[a-zA-Z_]\w*$/.exec(expr)) {
-      const typeInfo = this.context.typeRegistry.get(expr);
-      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-        return typeInfo.stringCapacity;
-      }
-    }
-
-    return null;
-  }
-
   /**
    * ADR-045: Check if an expression is a substring extraction (string[start, length]).
    * Returns the source string, start, length, and source capacity if it is.
@@ -4933,7 +4934,7 @@ export default class CodeGenerator implements IOrchestrator {
     lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
 
     // ADR-029: Generate callback typedef only if used as a type
-    if (this._isCallbackTypeUsedAsFieldType(fullName)) {
+    if (this.isCallbackTypeUsedAsFieldType(fullName)) {
       const typedef = this._generateCallbackTypedef(fullName);
       if (typedef) {
         lines.push(typedef);
@@ -5534,7 +5535,7 @@ export default class CodeGenerator implements IOrchestrator {
       return functionCode;
     }
 
-    if (!this._isCallbackTypeUsedAsFieldType(name)) {
+    if (!this.isCallbackTypeUsedAsFieldType(name)) {
       return functionCode;
     }
 
@@ -5730,7 +5731,7 @@ export default class CodeGenerator implements IOrchestrator {
       // Bug #8: At file scope, resolve const values to numeric literals
       // because C doesn't allow const variables as array sizes at file scope
       if (!this.context.inFunctionBody) {
-        const constValue = this._tryEvaluateConstant(ctx.expression()!);
+        const constValue = this.tryEvaluateConstant(ctx.expression()!);
         if (constValue !== undefined) {
           return `[${constValue}]`;
         }
@@ -5849,7 +5850,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Bug #8: Track local const values for array size and bit index resolution
     if (ctx.constModifier() && ctx.expression()) {
-      const constValue = this._tryEvaluateConstant(ctx.expression()!);
+      const constValue = this.tryEvaluateConstant(ctx.expression()!);
       if (constValue !== undefined) {
         this.constValues.set(name, constValue);
       }
@@ -6291,7 +6292,7 @@ export default class CodeGenerator implements IOrchestrator {
       currentParameters: this.context.currentParameters,
       targetCapabilities: this.context.targetCapabilities,
       generateExpression: (ctx) => this._generateExpression(ctx),
-      tryEvaluateConstant: (ctx) => this._tryEvaluateConstant(ctx),
+      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
       generateAssignmentTarget: (ctx) => this._generateAssignmentTarget(ctx),
       isKnownStruct: (name) => this.isKnownStruct(name),
       isKnownScope: (name) => this.isKnownScope(name),
@@ -6307,7 +6308,7 @@ export default class CodeGenerator implements IOrchestrator {
           [...dimensions],
           [...indexExprs],
           line,
-          (expr) => this._tryEvaluateConstant(expr),
+          (expr) => this.tryEvaluateConstant(expr),
         ),
       analyzeMemberChainForBitAccess: (targetCtx) =>
         this.analyzeMemberChainForBitAccess(targetCtx),
@@ -7214,33 +7215,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Generate temp variable declarations for string lengths that are accessed 2+ times.
    * Returns the declarations as a string and populates the lengthCache.
    */
-  private _setupLengthCache(counts: Map<string, number>): string {
-    const declarations: string[] = [];
-    const cache = new Map<string, string>();
-
-    for (const [varName, count] of counts) {
-      if (count >= 2) {
-        const tempVar = `_${varName}_len`;
-        cache.set(varName, tempVar);
-        declarations.push(`size_t ${tempVar} = strlen(${varName});`);
-      }
-    }
-
-    if (declarations.length > 0) {
-      this.context.lengthCache = cache;
-      return declarations.join("\n") + "\n";
-    }
-
-    return "";
-  }
-
-  /**
-   * Clear the length cache after generating a statement.
-   */
-  private _clearLengthCache(): void {
-    this.context.lengthCache = null;
-  }
-
   // ========================================================================
   // ADR-044: Overflow Helper Functions
   // ========================================================================
