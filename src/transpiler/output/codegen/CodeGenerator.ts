@@ -6575,17 +6575,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-023: Extract simple identifier from expression for parameter checking
-   * Returns the identifier name if expression is a simple variable reference, null otherwise
-   * Issue #707: Delegates to ExpressionUnwrapper utility.
-   */
-  private getSingleIdentifierFromExpr(
-    expr: Parser.ExpressionContext,
-  ): string | null {
-    return ExpressionUnwrapper.getSimpleIdentifier(expr);
-  }
-
-  /**
    * ADR-023: Check if expression has side effects (E0602)
    * Side effects include: assignments, function calls
    */
