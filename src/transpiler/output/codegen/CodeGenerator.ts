@@ -186,25 +186,6 @@ interface FunctionSignature {
 }
 
 /**
- * ADR-029: Callback type info for Function-as-Type pattern
- * Each function definition creates both a callable function AND a type
- */
-interface CallbackTypeInfo {
-  functionName: string; // The original function name (also the type name)
-  returnType: string; // Return type for typedef (C type)
-  parameters: Array<{
-    // Parameter info for typedef
-    name: string;
-    type: string; // C type
-    isConst: boolean;
-    isPointer: boolean; // ADR-006: Non-array params become pointers
-    isArray: boolean; // Array parameters pass naturally as pointers
-    arrayDims: string; // Array dimensions if applicable
-  }>;
-  typedefName: string; // e.g., "onReceive_fp"
-}
-
-/**
  * ADR-049: Target platform capabilities for code generation
  */
 interface TargetCapabilities {
@@ -255,7 +236,7 @@ interface GeneratorContext {
   indentLevel: number;
   scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
   currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
-  // Issue #558: modifiedParameters removed - now uses analysis-phase results from this.modifiedParameters
+  // Issue #558: modifiedParameters removed - now uses analysis-phase results from CodeGenState.modifiedParameters
   localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
   localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
   floatBitShadows: Set<string>; // Track declared shadow variables for float bit indexing
@@ -284,9 +265,6 @@ export default class CodeGenerator implements IOrchestrator {
       ["f32", "0.0f"],
       ["f64", "0.0"],
     ]);
-
-  /** ADR-044: Debug mode generates panic-on-overflow helpers */
-  private debugMode: boolean = false;
 
   private context: GeneratorContext =
     CodeGenerator.createDefaultContext(DEFAULT_TARGET);
@@ -323,55 +301,6 @@ export default class CodeGenerator implements IOrchestrator {
       targetCapabilities,
     };
   }
-
-  // Issue #60: Symbol fields moved to SymbolCollector
-  // Remaining fields not yet extracted:
-
-  private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
-
-  private functionSignatures: Map<string, FunctionSignature> = new Map(); // ADR-013: Track function parameter const-ness
-
-  // Bug #8: Track compile-time const values for array size resolution at file scope
-  private constValues: Map<string, number> = new Map(); // constName -> numeric value
-
-  // ADR-029: Callback types registry
-  private callbackTypes: Map<string, CallbackTypeInfo> = new Map(); // funcName -> CallbackTypeInfo
-
-  private callbackFieldTypes: Map<string, string> = new Map(); // "Struct.field" -> callbackTypeName
-
-  // ADR-044: Track which overflow helper types and operations are needed
-  private usedClampOps: Set<string> = new Set(); // Format: "add_u8", "sub_u16", "mul_u32"
-
-  private usedSafeDivOps: Set<string> = new Set(); // ADR-051: Format: "div_u32", "mod_i16"
-
-  // Track required standard library includes
-  private needsStdint: boolean = false; // For u8, u16, u32, u64, i8, i16, i32, i64
-
-  private needsStdbool: boolean = false; // For bool type
-
-  private needsString: boolean = false; // ADR-045: For strlen, strncpy, etc.
-
-  private needsFloatStaticAssert: boolean = false; // For float bit indexing size verification
-
-  private needsISR: boolean = false; // ADR-040: For ISR function pointer type
-
-  private needsCMSIS: boolean = false; // ADR-049/050: For atomic intrinsics and critical sections
-
-  private needsLimits: boolean = false; // Issue #632: For float-to-int clamp casts
-
-  private needsIrqWrappers: boolean = false; // Issue #473: IRQ wrappers for critical sections
-
-  /** External symbol table for cross-language interop */
-  private symbolTable: SymbolTable | null = null;
-
-  /** ADR-010: Source file path for validating includes */
-  private sourcePath: string | null = null;
-
-  /** Issue #349: Include directories for resolving angle-bracket .cnx includes */
-  private includeDirs: string[] = [];
-
-  /** Issue #349: Input directories for calculating relative paths */
-  private inputs: string[] = [];
 
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
@@ -416,80 +345,8 @@ export default class CodeGenerator implements IOrchestrator {
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
-  /** Issue #250: C++ mode - use temp vars instead of compound literals */
-  private cppMode: boolean = false;
-
   /** Issue #644: C/C++ mode helper for consolidated mode-specific patterns */
   private cppHelper: CppModeHelper | null = null;
-
-  /** Issue #250: Pending temp variable declarations for C++ mode */
-  private pendingTempDeclarations: string[] = [];
-
-  /** Issue #250: Counter for unique temp variable names */
-  private tempVarCounter: number = 0;
-
-  /** Issue #517: Pending field assignments for C++ class struct init */
-  private pendingCppClassAssignments: string[] = [];
-
-  /**
-   * Issue #269: Tracks which parameters are modified (directly or transitively)
-   * Map of functionName -> Set of modified parameter names
-   */
-  private readonly modifiedParameters: Map<string, Set<string>> = new Map();
-
-  /**
-   * Issue #579: Tracks which parameters have subscript access (read or write)
-   * These parameters must become pointers to support array access semantics
-   * Map of functionName -> Set of parameter names with subscript access
-   */
-  private readonly subscriptAccessedParameters: Map<string, Set<string>> =
-    new Map();
-
-  /**
-   * Issue #558: Pending cross-file modifications to inject after analyzePassByValue clears.
-   * Set by Pipeline before generate() to share modifications from previously processed files.
-   */
-  private pendingCrossFileModifications: ReadonlyMap<
-    string,
-    ReadonlySet<string>
-  > | null = null;
-
-  /**
-   * Issue #558: Pending cross-file parameter lists to inject for transitive propagation.
-   */
-  private pendingCrossFileParamLists: ReadonlyMap<
-    string,
-    readonly string[]
-  > | null = null;
-
-  /**
-   * Issue #269: Tracks which parameters should pass by value
-   * Map of functionName -> Set of passByValue parameter names
-   */
-  private readonly passByValueParams: Map<string, Set<string>> = new Map();
-
-  /**
-   * Issue #269: Tracks function call relationships for transitive modification analysis
-   * Map of functionName -> Array of {callee, paramIndex, argParamName}
-   * where argParamName is the caller's parameter passed as argument
-   */
-  private readonly functionCallGraph: Map<
-    string,
-    Array<{ callee: string; paramIndex: number; argParamName: string }>
-  > = new Map();
-
-  /**
-   * Issue #269: Tracks function parameter lists for call graph analysis
-   * Map of functionName -> Array of parameter names in order
-   */
-  private readonly functionParamLists: Map<string, string[]> = new Map();
-
-  /**
-   * Issue #369: Tracks whether self-include was added.
-   * When true, skip struct/enum/bitmap definitions in .c file because
-   * they'll be defined in the included header.
-   */
-  private selfIncludeAdded: boolean = false;
 
   /**
    * Initialize generator registry with extracted generators.
@@ -623,17 +480,17 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getInput(): IGeneratorInput {
     return {
-      symbolTable: this.symbolTable,
-      symbols: this.symbols,
-      typeRegistry: this.context.typeRegistry,
-      functionSignatures: this.functionSignatures,
-      knownFunctions: this.knownFunctions,
-      knownStructs: this.symbols?.knownStructs ?? new Set(),
-      constValues: this.constValues,
-      callbackTypes: this.callbackTypes,
-      callbackFieldTypes: this.callbackFieldTypes,
-      targetCapabilities: this.context.targetCapabilities,
-      debugMode: this.debugMode,
+      symbolTable: CodeGenState.symbolTable,
+      symbols: CodeGenState.symbols,
+      typeRegistry: CodeGenState.typeRegistry,
+      functionSignatures: CodeGenState.functionSignatures,
+      knownFunctions: CodeGenState.knownFunctions,
+      knownStructs: CodeGenState.symbols?.knownStructs ?? new Set(),
+      constValues: CodeGenState.constValues,
+      callbackTypes: CodeGenState.callbackTypes,
+      callbackFieldTypes: CodeGenState.callbackFieldTypes,
+      targetCapabilities: CodeGenState.targetCapabilities,
+      debugMode: CodeGenState.debugMode,
     };
   }
 
@@ -643,20 +500,20 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getState(): IGeneratorState {
     return {
-      currentScope: this.context.currentScope,
-      indentLevel: this.context.indentLevel,
-      inFunctionBody: this.context.inFunctionBody,
-      currentParameters: this.context.currentParameters,
-      localVariables: this.context.localVariables,
-      localArrays: this.context.localArrays,
-      expectedType: this.context.expectedType,
-      selfIncludeAdded: this.selfIncludeAdded, // Issue #369
+      currentScope: CodeGenState.currentScope,
+      indentLevel: CodeGenState.indentLevel,
+      inFunctionBody: CodeGenState.inFunctionBody,
+      currentParameters: CodeGenState.currentParameters,
+      localVariables: CodeGenState.localVariables,
+      localArrays: CodeGenState.localArrays,
+      expectedType: CodeGenState.expectedType,
+      selfIncludeAdded: CodeGenState.selfIncludeAdded, // Issue #369
       // Issue #644: Postfix expression state
-      scopeMembers: this.context.scopeMembers,
-      mainArgsName: this.context.mainArgsName,
-      floatBitShadows: this.context.floatBitShadows,
-      floatShadowCurrent: this.context.floatShadowCurrent,
-      lengthCache: this.context.lengthCache,
+      scopeMembers: CodeGenState.scopeMembers,
+      mainArgsName: CodeGenState.mainArgsName,
+      floatBitShadows: CodeGenState.floatBitShadows,
+      floatShadowCurrent: CodeGenState.floatShadowCurrent,
+      lengthCache: CodeGenState.lengthCache,
     };
   }
 
@@ -677,64 +534,68 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Helper function effects
         case "helper":
-          this.usedClampOps.add(`${effect.operation}_${effect.cnxType}`);
+          CodeGenState.usedClampOps.add(
+            `${effect.operation}_${effect.cnxType}`,
+          );
           break;
         case "safe-div":
-          this.usedSafeDivOps.add(`${effect.operation}_${effect.cnxType}`);
+          CodeGenState.usedSafeDivOps.add(
+            `${effect.operation}_${effect.cnxType}`,
+          );
           break;
 
         // Type registration effects
         case "register-type":
-          this.context.typeRegistry.set(effect.name, effect.info);
+          CodeGenState.typeRegistry.set(effect.name, effect.info);
           break;
         case "register-local":
-          this.context.localVariables.add(effect.name);
+          CodeGenState.localVariables.add(effect.name);
           if (effect.isArray) {
-            this.context.localArrays.add(effect.name);
+            CodeGenState.localArrays.add(effect.name);
           }
           break;
         case "register-const-value":
-          this.constValues.set(effect.name, effect.value);
+          CodeGenState.constValues.set(effect.name, effect.value);
           break;
 
         // Scope effects (ADR-016)
         case "set-scope":
-          this.context.currentScope = effect.name;
+          CodeGenState.currentScope = effect.name;
           break;
 
         // Function body effects
         case "enter-function-body":
-          this.context.inFunctionBody = true;
-          this.context.localVariables.clear();
-          this.context.localArrays.clear();
-          this.context.floatBitShadows.clear();
-          this.context.floatShadowCurrent.clear();
+          CodeGenState.inFunctionBody = true;
+          CodeGenState.localVariables.clear();
+          CodeGenState.localArrays.clear();
+          CodeGenState.floatBitShadows.clear();
+          CodeGenState.floatShadowCurrent.clear();
           break;
         case "exit-function-body":
-          this.context.inFunctionBody = false;
-          this.context.localVariables.clear();
-          this.context.localArrays.clear();
-          this.context.floatBitShadows.clear();
-          this.context.floatShadowCurrent.clear();
+          CodeGenState.inFunctionBody = false;
+          CodeGenState.localVariables.clear();
+          CodeGenState.localArrays.clear();
+          CodeGenState.floatBitShadows.clear();
+          CodeGenState.floatShadowCurrent.clear();
           break;
         case "set-parameters":
-          this.context.currentParameters = new Map(effect.params);
+          CodeGenState.currentParameters = new Map(effect.params);
           break;
         case "clear-parameters":
-          this.context.currentParameters.clear();
+          CodeGenState.currentParameters.clear();
           break;
 
         // Callback effects
         case "register-callback-field":
-          this.callbackFieldTypes.set(effect.key, effect.typeName);
+          CodeGenState.callbackFieldTypes.set(effect.key, effect.typeName);
           break;
 
         // Array initializer effects
         case "set-array-init-count":
-          this.context.lastArrayInitCount = effect.count;
+          CodeGenState.lastArrayInitCount = effect.count;
           break;
         case "set-array-fill-value":
-          this.context.lastArrayFillValue = effect.value;
+          CodeGenState.lastArrayFillValue = effect.value;
           break;
       }
     }
@@ -749,28 +610,28 @@ export default class CodeGenerator implements IOrchestrator {
   private requireInclude(header: TIncludeHeader): void {
     switch (header) {
       case "stdint":
-        this.needsStdint = true;
+        CodeGenState.needsStdint = true;
         break;
       case "stdbool":
-        this.needsStdbool = true;
+        CodeGenState.needsStdbool = true;
         break;
       case "string":
-        this.needsString = true;
+        CodeGenState.needsString = true;
         break;
       case "cmsis":
-        this.needsCMSIS = true;
+        CodeGenState.needsCMSIS = true;
         break;
       case "limits":
-        this.needsLimits = true;
+        CodeGenState.needsLimits = true;
         break;
       case "isr":
-        this.needsISR = true;
+        CodeGenState.needsISR = true;
         break;
       case "float_static_assert":
-        this.needsFloatStaticAssert = true;
+        CodeGenState.needsFloatStaticAssert = true;
         break;
       case "irq_wrappers":
-        this.needsIrqWrappers = true;
+        CodeGenState.needsIrqWrappers = true;
         break;
     }
   }
@@ -779,7 +640,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Get the current indentation string.
    */
   getIndent(): string {
-    return FormatUtils.indent(this.context.indentLevel);
+    return FormatUtils.indent(CodeGenState.indentLevel);
   }
 
   /**
@@ -790,10 +651,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   resolveIdentifier(identifier: string): string {
     // Check current scope first (inner scope shadows outer)
-    if (this.context.currentScope) {
-      const members = this.context.scopeMembers.get(this.context.currentScope);
+    if (CodeGenState.currentScope) {
+      const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
       if (members?.has(identifier)) {
-        return `${this.context.currentScope}_${identifier}`;
+        return `${CodeGenState.currentScope}_${identifier}`;
       }
     }
 
@@ -819,10 +680,10 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext,
     expectedType: string | null,
   ): string {
-    const savedExpectedType = this.context.expectedType;
-    this.context.expectedType = expectedType;
+    const savedExpectedType = CodeGenState.expectedType;
+    CodeGenState.expectedType = expectedType;
     const result = this.generateExpression(ctx);
-    this.context.expectedType = savedExpectedType;
+    CodeGenState.expectedType = savedExpectedType;
     return result;
   }
 
@@ -839,10 +700,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Generate the C type using the helper with dependencies
     return TypeGenerationHelper.generate(ctx, {
-      currentScope: this.context.currentScope,
+      currentScope: CodeGenState.currentScope,
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
-        this.symbolTable?.checkNeedsStructKeyword(name) ?? false,
+        CodeGenState.symbolTable?.checkNeedsStructKeyword(name) ?? false,
       validateCrossScopeVisibility: (scope, member) =>
         ScopeResolver.validateCrossScopeVisibility(scope, member),
     });
@@ -888,9 +749,9 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isKnownStruct(typeName: string): boolean {
     return SymbolLookupHelper.isKnownStruct(
-      this.symbols?.knownStructs,
-      this.symbols?.knownBitmaps,
-      this.symbolTable,
+      CodeGenState.symbols?.knownStructs,
+      CodeGenState.symbols?.knownBitmaps,
+      CodeGenState.symbolTable,
       typeName,
     );
   }
@@ -917,8 +778,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isCNextFunction(name: string): boolean {
     return SymbolLookupHelper.isCNextFunctionCombined(
-      this.knownFunctions,
-      this.symbolTable,
+      CodeGenState.knownFunctions,
+      CodeGenState.symbolTable,
       name,
     );
   }
@@ -961,7 +822,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check if it's a simple variable of string type
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = this.context.typeRegistry.get(text);
+      const typeInfo = CodeGenState.typeRegistry.get(text);
       if (typeInfo?.isString) {
         return true;
       }
@@ -981,7 +842,7 @@ export default class CodeGenerator implements IOrchestrator {
         return false;
       }
       const arrayName = arrayAccessMatch[1];
-      const typeInfo = this.context.typeRegistry.get(arrayName);
+      const typeInfo = CodeGenState.typeRegistry.get(arrayName);
       // Check if base type is a string type
       if (
         typeInfo?.isString ||
@@ -1096,7 +957,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getKnownEnums(): ReadonlySet<string> {
-    return this.symbols!.knownEnums;
+    return CodeGenState.symbols!.knownEnums;
   }
 
   /**
@@ -1104,7 +965,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppMode(): boolean {
-    return this.cppMode;
+    return CodeGenState.cppMode;
   }
 
   /**
@@ -1113,7 +974,10 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppEnumClass(typeName: string): boolean {
-    return SymbolLookupHelper.isCppEnumClass(this.symbolTable, typeName);
+    return SymbolLookupHelper.isCppEnumClass(
+      CodeGenState.symbolTable,
+      typeName,
+    );
   }
 
   /**
@@ -1134,9 +998,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     for (const stmt of ctx.statement()) {
       // Temporarily increment for any nested context that needs absolute level
-      this.context.indentLevel++;
+      CodeGenState.indentLevel++;
       const stmtCode = this.generateStatement(stmt);
-      this.context.indentLevel--;
+      CodeGenState.indentLevel--;
 
       if (stmtCode) {
         // Add one level of indent to each line (relative indentation)
@@ -1194,9 +1058,9 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #250: Prepend any pending temp variable declarations (C++ mode)
-    if (this.pendingTempDeclarations.length > 0) {
-      const tempDecls = this.pendingTempDeclarations.join("\n");
-      this.pendingTempDeclarations = [];
+    if (CodeGenState.pendingTempDeclarations.length > 0) {
+      const tempDecls = CodeGenState.pendingTempDeclarations.join("\n");
+      CodeGenState.pendingTempDeclarations = [];
       return tempDecls + "\n" + result;
     }
 
@@ -1209,11 +1073,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   flushPendingTempDeclarations(): string {
-    if (this.pendingTempDeclarations.length === 0) {
+    if (CodeGenState.pendingTempDeclarations.length === 0) {
       return "";
     }
-    const decls = this.pendingTempDeclarations.join("\n");
-    this.pendingTempDeclarations = [];
+    const decls = CodeGenState.pendingTempDeclarations.join("\n");
+    CodeGenState.pendingTempDeclarations = [];
     return decls;
   }
 
@@ -1222,7 +1086,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   indent(text: string): string {
-    return FormatUtils.indentAllLines(text, this.context.indentLevel);
+    return FormatUtils.indentAllLines(text, CodeGenState.indentLevel);
   }
 
   /**
@@ -1290,7 +1154,7 @@ export default class CodeGenerator implements IOrchestrator {
       safeIdentifier,
       hasGlobal,
       hasThis,
-      this.context.currentScope,
+      CodeGenState.currentScope,
     );
 
     // No postfix operations - return base
@@ -1364,7 +1228,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     if (declarations.length > 0) {
-      this.context.lengthCache = cache;
+      CodeGenState.lengthCache = cache;
       return declarations.join("\n") + "\n";
     }
 
@@ -1376,7 +1240,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   clearLengthCache(): void {
-    this.context.lengthCache = null;
+    CodeGenState.lengthCache = null;
   }
 
   /**
@@ -1384,7 +1248,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   registerLocalVariable(name: string): void {
-    this.context.localVariables.add(name);
     CodeGenState.localVariables.add(name);
   }
 
@@ -1395,7 +1258,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (dim.expression()) {
       // Bug #8: At file scope, resolve const values to numeric literals
       // because C doesn't allow const variables as array sizes at file scope
-      if (!this.context.inFunctionBody) {
+      if (!CodeGenState.inFunctionBody) {
         const constValue = this.tryEvaluateConstant(dim.expression()!);
         if (constValue !== undefined) {
           return `[${constValue}]`;
@@ -1419,8 +1282,8 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
     if (ctx.scopedType()) {
       const typeName = ctx.scopedType()!.IDENTIFIER().getText();
-      if (this.context.currentScope) {
-        return `${this.context.currentScope}_${typeName}`;
+      if (CodeGenState.currentScope) {
+        return `${CodeGenState.currentScope}_${typeName}`;
       }
       return typeName;
     }
@@ -1447,7 +1310,7 @@ export default class CodeGenerator implements IOrchestrator {
   /** Try to evaluate a constant expression at compile time */
   tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
     return ArrayDimensionParser.parseSingleDimension(ctx, {
-      constValues: this.constValues,
+      constValues: CodeGenState.constValues,
       typeWidths: TYPE_WIDTH,
       isKnownStruct: (name) => this.isKnownStruct(name),
     });
@@ -1468,7 +1331,7 @@ export default class CodeGenerator implements IOrchestrator {
     const resolved = this._resolveTypeNameFromContext(typeCtx);
     if (resolved) {
       // Check if enum
-      if (this.symbols!.knownEnums.has(resolved.name)) {
+      if (CodeGenState.symbols!.knownEnums.has(resolved.name)) {
         return this._getEnumZeroValue(resolved.name, resolved.separator);
       }
       // Check if C++ type needing {} (only for userType, not qualified/scoped/global)
@@ -1542,7 +1405,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Variable - check type registry
     const identifierRegex = /^[a-zA-Z_]\w*$/;
     if (identifierRegex.test(exprCode)) {
-      const typeInfo = this.context.typeRegistry.get(exprCode);
+      const typeInfo = CodeGenState.typeRegistry.get(exprCode);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
       }
@@ -1565,7 +1428,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Check if a callback type is used as a struct field type */
   isCallbackTypeUsedAsFieldType(funcName: string): boolean {
-    for (const callbackType of this.callbackFieldTypes.values()) {
+    for (const callbackType of CodeGenState.callbackFieldTypes.values()) {
       if (callbackType === funcName) {
         return true;
       }
@@ -1576,7 +1439,7 @@ export default class CodeGenerator implements IOrchestrator {
   // === Scope Management (A4) ===
 
   setCurrentScope(name: string | null): void {
-    this.context.currentScope = name;
+    CodeGenState.currentScope = name;
     CodeGenState.currentScope = name;
   }
 
@@ -1585,7 +1448,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   setCurrentFunctionName(name: string | null): void {
-    this.context.currentFunctionName = name;
+    CodeGenState.currentFunctionName = name;
     CodeGenState.currentFunctionName = name;
   }
 
@@ -1594,42 +1457,42 @@ export default class CodeGenerator implements IOrchestrator {
    * Used by return statement generation to set expectedType.
    */
   getCurrentFunctionReturnType(): string | null {
-    return this.context.currentFunctionReturnType;
+    return CodeGenState.currentFunctionReturnType;
   }
 
   /**
    * Issue #477: Set the current function's return type for enum inference.
    */
   setCurrentFunctionReturnType(returnType: string | null): void {
-    this.context.currentFunctionReturnType = returnType;
+    CodeGenState.currentFunctionReturnType = returnType;
     CodeGenState.currentFunctionReturnType = returnType;
   }
 
   // === Function Body Management (A4) ===
 
   enterFunctionBody(): void {
-    this.context.localVariables.clear();
-    this.context.floatBitShadows.clear();
-    this.context.floatShadowCurrent.clear();
+    CodeGenState.localVariables.clear();
+    CodeGenState.floatBitShadows.clear();
+    CodeGenState.floatShadowCurrent.clear();
     // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
-    this.context.inFunctionBody = true;
+    CodeGenState.inFunctionBody = true;
     // Sync with CodeGenState
     CodeGenState.enterFunctionBody();
   }
 
   exitFunctionBody(): void {
-    this.context.inFunctionBody = false;
-    this.context.localVariables.clear();
-    this.context.floatBitShadows.clear();
-    this.context.floatShadowCurrent.clear();
-    this.context.mainArgsName = null;
+    CodeGenState.inFunctionBody = false;
+    CodeGenState.localVariables.clear();
+    CodeGenState.floatBitShadows.clear();
+    CodeGenState.floatShadowCurrent.clear();
+    CodeGenState.mainArgsName = null;
     // Sync with CodeGenState
     CodeGenState.exitFunctionBody();
     CodeGenState.mainArgsName = null;
   }
 
   setMainArgsName(name: string | null): void {
-    this.context.mainArgsName = name;
+    CodeGenState.mainArgsName = name;
     CodeGenState.mainArgsName = name;
   }
 
@@ -1644,7 +1507,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-029: Generate typedef for callback type
    */
   generateCallbackTypedef(funcName: string): string | null {
-    const callbackInfo = this.callbackTypes.get(funcName);
+    const callbackInfo = CodeGenState.callbackTypes.get(funcName);
     if (!callbackInfo) {
       return null;
     }
@@ -1694,8 +1557,8 @@ export default class CodeGenerator implements IOrchestrator {
   updateFunctionParamsAutoConst(functionName: string): void {
     // Collect unmodified parameters for this function using analysis results
     const unmodifiedParams = new Set<string>();
-    const modifiedSet = this.modifiedParameters.get(functionName);
-    for (const [paramName] of this.context.currentParameters) {
+    const modifiedSet = CodeGenState.modifiedParameters.get(functionName);
+    for (const [paramName] of CodeGenState.currentParameters) {
       if (!modifiedSet?.has(paramName)) {
         unmodifiedParams.add(paramName);
       }
@@ -1718,9 +1581,11 @@ export default class CodeGenerator implements IOrchestrator {
    * This is the unified source of truth for modification tracking.
    */
   private _isCurrentParameterModified(paramName: string): boolean {
-    const funcName = this.context.currentFunctionName;
+    const funcName = CodeGenState.currentFunctionName;
     if (!funcName) return false;
-    return this.modifiedParameters.get(funcName)?.has(paramName) ?? false;
+    return (
+      CodeGenState.modifiedParameters.get(funcName)?.has(paramName) ?? false
+    );
   }
 
   /**
@@ -1728,7 +1593,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Returns function name -> set of modified parameter names.
    */
   getModifiedParameters(): ReadonlyMap<string, Set<string>> {
-    return this.modifiedParameters;
+    return CodeGenState.modifiedParameters;
   }
 
   /**
@@ -1739,15 +1604,15 @@ export default class CodeGenerator implements IOrchestrator {
     modifications: ReadonlyMap<string, ReadonlySet<string>>,
     paramLists: ReadonlyMap<string, readonly string[]>,
   ): void {
-    this.pendingCrossFileModifications = modifications;
-    this.pendingCrossFileParamLists = paramLists;
+    CodeGenState.pendingCrossFileModifications = modifications;
+    CodeGenState.pendingCrossFileParamLists = paramLists;
   }
 
   /**
    * Issue #558: Get the function parameter lists for cross-file propagation.
    */
   getFunctionParamLists(): ReadonlyMap<string, string[]> {
-    return this.functionParamLists;
+    return CodeGenState.functionParamLists;
   }
 
   /**
@@ -1770,14 +1635,14 @@ export default class CodeGenerator implements IOrchestrator {
     paramLists: Map<string, string[]>;
   } {
     // Save current state
-    const savedModifications = new Map(this.modifiedParameters);
-    const savedParamLists = new Map(this.functionParamLists);
-    const savedCallGraph = new Map(this.functionCallGraph);
+    const savedModifications = new Map(CodeGenState.modifiedParameters);
+    const savedParamLists = new Map(CodeGenState.functionParamLists);
+    const savedCallGraph = new Map(CodeGenState.functionCallGraph);
 
     // Clear for fresh analysis
-    this.modifiedParameters.clear();
-    this.functionParamLists.clear();
-    this.functionCallGraph.clear();
+    CodeGenState.modifiedParameters.clear();
+    CodeGenState.functionParamLists.clear();
+    CodeGenState.functionCallGraph.clear();
 
     // Issue #565: Inject cross-file data BEFORE collecting this file's info
     this.injectCrossFileData(crossFileModifications, crossFileParamLists);
@@ -1790,9 +1655,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #565: Run transitive propagation with full context
     TransitiveModificationPropagator.propagate(
-      this.functionCallGraph,
-      this.functionParamLists,
-      this.modifiedParameters,
+      CodeGenState.functionCallGraph,
+      CodeGenState.functionParamLists,
+      CodeGenState.modifiedParameters,
     );
 
     // Capture results - only include functions NOT from cross-file injection
@@ -1803,9 +1668,9 @@ export default class CodeGenerator implements IOrchestrator {
     const paramLists = this.extractThisFileParamLists(crossFileParamLists);
 
     // Restore previous state
-    this.restoreMapState(this.modifiedParameters, savedModifications);
-    this.restoreMapState(this.functionParamLists, savedParamLists);
-    this.restoreMapState(this.functionCallGraph, savedCallGraph);
+    this.restoreMapState(CodeGenState.modifiedParameters, savedModifications);
+    this.restoreMapState(CodeGenState.functionParamLists, savedParamLists);
+    this.restoreMapState(CodeGenState.functionCallGraph, savedCallGraph);
 
     return { modifications, paramLists };
   }
@@ -1819,12 +1684,12 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     if (crossFileModifications) {
       for (const [funcName, params] of crossFileModifications) {
-        this.modifiedParameters.set(funcName, new Set(params));
+        CodeGenState.modifiedParameters.set(funcName, new Set(params));
       }
     }
     if (crossFileParamLists) {
       for (const [funcName, params] of crossFileParamLists) {
-        this.functionParamLists.set(funcName, [...params]);
+        CodeGenState.functionParamLists.set(funcName, [...params]);
       }
     }
   }
@@ -1840,7 +1705,7 @@ export default class CodeGenerator implements IOrchestrator {
   ): Map<string, Set<string>> {
     const modifications = new Map<string, Set<string>>();
 
-    for (const [funcName, params] of this.modifiedParameters) {
+    for (const [funcName, params] of CodeGenState.modifiedParameters) {
       if (!injectedFuncs.has(funcName)) {
         // Function defined in this file - include all its modifications
         modifications.set(funcName, new Set(params));
@@ -1877,7 +1742,10 @@ export default class CodeGenerator implements IOrchestrator {
     crossFileParamLists?: ReadonlyMap<string, readonly string[]>,
   ): Map<string, string[]> {
     return SetMapHelper.copyArrayValues(
-      SetMapHelper.filterExclude(this.functionParamLists, crossFileParamLists),
+      SetMapHelper.filterExclude(
+        CodeGenState.functionParamLists,
+        crossFileParamLists,
+      ),
     );
   }
 
@@ -1902,7 +1770,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Get the parameter name at the given index from the function signature
-    const sig = this.functionSignatures.get(funcName);
+    const sig = CodeGenState.functionSignatures.get(funcName);
     if (!sig || paramIndex >= sig.parameters.length) {
       return false;
     }
@@ -1916,7 +1784,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #268: Check if a name is a parameter of the current function.
    */
   isCurrentParameter(name: string): boolean {
-    return this.context.currentParameters.has(name);
+    return CodeGenState.currentParameters.has(name);
   }
 
   // === Postfix Expression Helpers (Issue #644) ===
@@ -1972,8 +1840,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isKnownScope(name: string): boolean {
     return SymbolLookupHelper.isKnownScope(
-      this.symbols?.knownScopes,
-      this.symbolTable,
+      CodeGenState.symbols?.knownScopes,
+      CodeGenState.symbolTable,
       name,
     );
   }
@@ -1985,7 +1853,7 @@ export default class CodeGenerator implements IOrchestrator {
   isCppScopeSymbol(name: string): boolean {
     return CppNamespaceUtils.isCppNamespace(
       name,
-      this.symbolTable ?? undefined,
+      CodeGenState.symbolTable ?? undefined,
     );
   }
 
@@ -2006,8 +1874,8 @@ export default class CodeGenerator implements IOrchestrator {
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {
     // First check SymbolTable (C header structs)
-    if (this.symbolTable) {
-      const fieldInfo = this.symbolTable.getStructFieldInfo(
+    if (CodeGenState.symbolTable) {
+      const fieldInfo = CodeGenState.symbolTable.getStructFieldInfo(
         structType,
         fieldName,
       );
@@ -2020,12 +1888,12 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Fall back to local C-Next struct fields
-    const localFields = this.symbols!.structFields.get(structType);
+    const localFields = CodeGenState.symbols!.structFields.get(structType);
     if (localFields) {
       const fieldType = localFields.get(fieldName);
       if (fieldType) {
         const fieldDimensions =
-          this.symbols!.structFieldDimensions.get(structType);
+          CodeGenState.symbols!.structFieldDimensions.get(structType);
         const dimensions = fieldDimensions?.get(fieldName);
         return {
           type: fieldType,
@@ -2047,7 +1915,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     const isArray =
       (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
-      (this.symbols!.structFieldArrays.get(structType)?.has(memberName) ??
+      (CodeGenState.symbols!.structFieldArrays.get(structType)?.has(
+        memberName,
+      ) ??
         false);
     const dims = fieldInfo.dimensions?.filter(
       (d): d is number => typeof d === "number",
@@ -2077,7 +1947,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   addPendingTempDeclaration(declaration: string): void {
-    this.pendingTempDeclarations.push(declaration);
+    CodeGenState.pendingTempDeclarations.push(declaration);
   }
 
   /**
@@ -2085,7 +1955,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   registerFloatBitShadow(shadowName: string): void {
-    this.context.floatBitShadows.add(shadowName);
+    CodeGenState.floatBitShadows.add(shadowName);
   }
 
   /**
@@ -2093,7 +1963,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   markFloatShadowCurrent(shadowName: string): void {
-    this.context.floatShadowCurrent.add(shadowName);
+    CodeGenState.floatShadowCurrent.add(shadowName);
   }
 
   /**
@@ -2101,7 +1971,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   hasFloatBitShadow(shadowName: string): boolean {
-    return this.context.floatBitShadows.has(shadowName);
+    return CodeGenState.floatBitShadows.has(shadowName);
   }
 
   /**
@@ -2109,7 +1979,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isFloatShadowCurrent(shadowName: string): boolean {
-    return this.context.floatShadowCurrent.has(shadowName);
+    return CodeGenState.floatShadowCurrent.has(shadowName);
   }
 
   // ===========================================================================
@@ -2133,10 +2003,10 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       isFloatType: (typeName: string) => this._isFloatType(typeName),
       isKnownPrimitive: (typeName: string) => this._isKnownPrimitive(typeName),
-      knownEnums: this.symbols!.knownEnums,
+      knownEnums: CodeGenState.symbols!.knownEnums,
       isParameterPassByValue: (funcName: string, paramName: string) =>
         this._isParameterPassByValueByName(funcName, paramName),
-      currentFunctionName: this.context.currentFunctionName,
+      currentFunctionName: CodeGenState.currentFunctionName,
       maybeDereference: (id: string) => this.cppHelper!.maybeDereference(id),
     };
   }
@@ -2148,7 +2018,8 @@ export default class CodeGenerator implements IOrchestrator {
   private _buildMemberSeparatorDeps(): IMemberSeparatorDeps {
     return {
       isKnownScope: (name: string) => this.isKnownScope(name),
-      isKnownRegister: (name: string) => this.symbols!.knownRegisters.has(name),
+      isKnownRegister: (name: string) =>
+        CodeGenState.symbols!.knownRegisters.has(name),
       validateCrossScopeVisibility: (scopeName: string, memberName: string) =>
         this.validateCrossScopeVisibility(scopeName, memberName),
       validateRegisterAccess: (
@@ -2157,7 +2028,9 @@ export default class CodeGenerator implements IOrchestrator {
         hasGlobal: boolean,
       ) => this._validateRegisterAccess(registerName, memberName, hasGlobal),
       getStructParamSeparator: () =>
-        memberAccessChain.getStructParamSeparator({ cppMode: this.cppMode }),
+        memberAccessChain.getStructParamSeparator({
+          cppMode: CodeGenState.cppMode,
+        }),
     };
   }
 
@@ -2170,10 +2043,10 @@ export default class CodeGenerator implements IOrchestrator {
     hasGlobal: boolean,
   ): void {
     // Only validate when inside a scope and accessing without global. prefix
-    if (this.context.currentScope && !hasGlobal) {
+    if (CodeGenState.currentScope && !hasGlobal) {
       throw new Error(
         `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
-          `from inside scope '${this.context.currentScope}'`,
+          `from inside scope '${CodeGenState.currentScope}'`,
       );
     }
   }
@@ -2185,7 +2058,10 @@ export default class CodeGenerator implements IOrchestrator {
    * We check for the existence of a constructor symbol (TypeName::ClassName).
    */
   private _isCppClassWithConstructor(typeName: string): boolean {
-    return CppConstructorHelper.hasConstructor(typeName, this.symbolTable);
+    return CppConstructorHelper.hasConstructor(
+      typeName,
+      CodeGenState.symbolTable,
+    );
   }
 
   private foldBooleanToInt(expr: string): string {
@@ -2223,7 +2099,7 @@ export default class CodeGenerator implements IOrchestrator {
    * C++ types with constructors may fail with {0} but work with {}.
    */
   private isCppType(typeName: string): boolean {
-    return SymbolLookupHelper.isCppType(this.symbolTable, typeName);
+    return SymbolLookupHelper.isCppType(CodeGenState.symbolTable, typeName);
   }
 
   /**
@@ -2239,12 +2115,6 @@ export default class CodeGenerator implements IOrchestrator {
     tokenStream?: CommonTokenStream,
     options?: ICodeGeneratorOptions,
   ): string {
-    // Store symbol table for function lookup
-    this.symbolTable = symbolTable ?? null;
-
-    // Initialize options and configuration
-    this.initializeGenerateOptions(options, tokenStream);
-
     // ADR-049: Determine target capabilities with priority: CLI > pragma > default
     const targetCapabilities = this.resolveTargetCapabilities(
       tree,
@@ -2257,8 +2127,14 @@ export default class CodeGenerator implements IOrchestrator {
       this.generatorsInitialized = true;
     }
 
-    // Reset state for fresh generation
+    // Reset state for fresh generation (must be before any state assignments)
     this.resetGeneratorState(targetCapabilities);
+
+    // Initialize options and configuration (after reset)
+    this.initializeGenerateOptions(options, tokenStream);
+
+    // Store symbol table for function lookup (after reset)
+    CodeGenState.symbolTable = symbolTable ?? null;
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
     if (!options?.symbolInfo) {
@@ -2266,7 +2142,7 @@ export default class CodeGenerator implements IOrchestrator {
         "symbolInfo is required - use CNextResolver + TSymbolInfoAdapter",
       );
     }
-    this.symbols = options.symbolInfo;
+    CodeGenState.symbols = options.symbolInfo;
 
     // Initialize symbol data and const values
     this.initializeSymbolData();
@@ -2288,27 +2164,20 @@ export default class CodeGenerator implements IOrchestrator {
     options: ICodeGeneratorOptions | undefined,
     tokenStream: CommonTokenStream | undefined,
   ): void {
-    this.debugMode = options?.debugMode ?? false;
-    this.sourcePath = options?.sourcePath ?? null;
-    this.includeDirs = options?.includeDirs ?? [];
-    this.inputs = options?.inputs ?? [];
-    this.cppMode = options?.cppMode ?? false;
-    this.cppHelper = new CppModeHelper({ cppMode: this.cppMode });
-    this.pendingTempDeclarations = [];
-    this.tempVarCounter = 0;
-    this.pendingCppClassAssignments = [];
+    CodeGenState.debugMode = options?.debugMode ?? false;
+    CodeGenState.sourcePath = options?.sourcePath ?? null;
+    CodeGenState.includeDirs = options?.includeDirs ?? [];
+    CodeGenState.inputs = options?.inputs ?? [];
+    CodeGenState.cppMode = options?.cppMode ?? false;
+    this.cppHelper = new CppModeHelper({ cppMode: CodeGenState.cppMode });
+    CodeGenState.pendingTempDeclarations = [];
+    CodeGenState.tempVarCounter = 0;
+    CodeGenState.pendingCppClassAssignments = [];
 
     this.tokenStream = tokenStream ?? null;
     this.commentExtractor = this.tokenStream
       ? new CommentExtractor(this.tokenStream)
       : null;
-
-    // Populate CodeGenState with configuration
-    CodeGenState.debugMode = this.debugMode;
-    CodeGenState.cppMode = this.cppMode;
-    CodeGenState.sourcePath = this.sourcePath;
-    CodeGenState.includeDirs = this.includeDirs;
-    CodeGenState.inputs = this.inputs;
   }
 
   /**
@@ -2321,43 +2190,38 @@ export default class CodeGenerator implements IOrchestrator {
     // Reset local context (will gradually migrate to CodeGenState)
     this.context = CodeGenerator.createDefaultContext(targetCapabilities);
 
-    // Sync typeRegistry - both should point to the same Map
-    CodeGenState.typeRegistry = this.context.typeRegistry;
-
-    this.knownFunctions = new Set();
-    this.functionSignatures = new Map();
-    this.callbackTypes = new Map();
-    this.callbackFieldTypes = new Map();
-    this.usedClampOps = new Set();
-    this.usedSafeDivOps = new Set();
-    this.needsStdint = false;
-    this.needsStdbool = false;
-    this.needsString = false;
-    this.needsFloatStaticAssert = false;
-    this.needsISR = false;
-    this.needsCMSIS = false;
-    this.needsLimits = false;
-    this.needsIrqWrappers = false;
-    this.selfIncludeAdded = false;
+    CodeGenState.knownFunctions = new Set();
+    CodeGenState.functionSignatures = new Map();
+    CodeGenState.callbackTypes = new Map();
+    CodeGenState.callbackFieldTypes = new Map();
+    CodeGenState.usedClampOps = new Set();
+    CodeGenState.usedSafeDivOps = new Set();
+    CodeGenState.needsStdint = false;
+    CodeGenState.needsStdbool = false;
+    CodeGenState.needsString = false;
+    CodeGenState.needsFloatStaticAssert = false;
+    CodeGenState.needsISR = false;
+    CodeGenState.needsCMSIS = false;
+    CodeGenState.needsLimits = false;
+    CodeGenState.needsIrqWrappers = false;
+    CodeGenState.selfIncludeAdded = false;
   }
 
   /**
    * Initialize symbol data and const values from symbol table.
    */
   private initializeSymbolData(): void {
-    const symbols = this.symbols!;
+    const symbols = CodeGenState.symbols!;
 
-    // Copy symbol data to context.scopeMembers
+    // Copy symbol data to CodeGenState.scopeMembers
     for (const [scopeName, members] of symbols.scopeMembers) {
-      this.context.scopeMembers.set(scopeName, new Set(members));
-      // Also populate CodeGenState
       CodeGenState.scopeMembers.set(scopeName, new Set(members));
     }
 
     // Issue #461: Initialize constValues from symbol table
-    this.constValues = new Map();
-    if (this.symbolTable) {
-      for (const symbol of this.symbolTable.getAllSymbols()) {
+    CodeGenState.constValues = new Map();
+    if (CodeGenState.symbolTable) {
+      for (const symbol of CodeGenState.symbolTable.getAllSymbols()) {
         if (
           symbol.kind === ESymbolKind.Variable &&
           symbol.isConst &&
@@ -2365,30 +2229,26 @@ export default class CodeGenerator implements IOrchestrator {
         ) {
           const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
           if (value !== undefined) {
-            this.constValues.set(symbol.name, value);
+            CodeGenState.constValues.set(symbol.name, value);
             // Also populate CodeGenState
             CodeGenState.constValues.set(symbol.name, value);
           }
         }
       }
     }
-
-    // Populate CodeGenState with symbol references
-    CodeGenState.symbols = this.symbols;
-    CodeGenState.symbolTable = this.symbolTable;
   }
 
   /**
    * Initialize all helper objects needed for code generation.
    */
   private initializeHelperObjects(tree: Parser.ProgramContext): void {
-    const symbols = this.symbols!;
+    const symbols = CodeGenState.symbols!;
 
     // Initialize type resolver
     this.typeResolver = new TypeResolver({
       symbols: symbols,
-      symbolTable: this.symbolTable,
-      typeRegistry: this.context.typeRegistry,
+      symbolTable: CodeGenState.symbolTable,
+      typeRegistry: CodeGenState.typeRegistry,
       resolveIdentifier: (name: string) => this.resolveIdentifier(name),
     });
 
@@ -2399,16 +2259,16 @@ export default class CodeGenerator implements IOrchestrator {
     // Initialize type validator
     this.typeValidator = new TypeValidator({
       symbols: symbols,
-      symbolTable: this.symbolTable,
-      typeRegistry: this.context.typeRegistry,
+      symbolTable: CodeGenState.symbolTable,
+      typeRegistry: CodeGenState.typeRegistry,
       typeResolver: this.typeResolver,
-      callbackTypes: this.callbackTypes,
-      knownFunctions: this.knownFunctions,
+      callbackTypes: CodeGenState.callbackTypes,
+      knownFunctions: CodeGenState.knownFunctions,
       knownGlobals: new Set(),
-      getCurrentScope: () => this.context.currentScope,
-      getScopeMembers: () => this.context.scopeMembers,
-      getCurrentParameters: () => this.context.currentParameters,
-      getLocalVariables: () => this.context.localVariables,
+      getCurrentScope: () => CodeGenState.currentScope,
+      getScopeMembers: () => CodeGenState.scopeMembers,
+      getCurrentParameters: () => CodeGenState.currentParameters,
+      getLocalVariables: () => CodeGenState.localVariables,
       resolveIdentifier: (name: string) => this.resolveIdentifier(name),
       getExpressionType: (ctx: unknown) =>
         this.getExpressionType(ctx as Parser.ExpressionContext),
@@ -2423,11 +2283,11 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
     this.stringLengthCounter = new StringLengthCounter((name: string) =>
-      this.context.typeRegistry.get(name),
+      CodeGenState.typeRegistry.get(name),
     );
 
     this.memberChainAnalyzer = new MemberChainAnalyzer({
-      typeRegistry: this.context.typeRegistry,
+      typeRegistry: CodeGenState.typeRegistry,
       structFields: symbols.structFields,
       structFieldArrays: symbols.structFieldArrays,
       isKnownStruct: (name) => this.isKnownStruct(name),
@@ -2435,10 +2295,10 @@ export default class CodeGenerator implements IOrchestrator {
     });
 
     this.floatBitHelper = new FloatBitHelper({
-      cppMode: this.cppMode,
+      cppMode: CodeGenState.cppMode,
       state: {
-        floatBitShadows: this.context.floatBitShadows,
-        floatShadowCurrent: this.context.floatShadowCurrent,
+        floatBitShadows: CodeGenState.floatBitShadows,
+        floatShadowCurrent: CodeGenState.floatShadowCurrent,
       },
       generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
       foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
@@ -2446,28 +2306,27 @@ export default class CodeGenerator implements IOrchestrator {
     });
 
     // Create arrayInitState proxy
-    const context = this.context;
     const arrayInitState = {
       get lastArrayInitCount() {
-        return context.lastArrayInitCount;
+        return CodeGenState.lastArrayInitCount;
       },
       set lastArrayInitCount(val: number) {
-        context.lastArrayInitCount = val;
+        CodeGenState.lastArrayInitCount = val;
       },
       get lastArrayFillValue() {
-        return context.lastArrayFillValue;
+        return CodeGenState.lastArrayFillValue;
       },
       set lastArrayFillValue(val: string | undefined) {
-        context.lastArrayFillValue = val;
+        CodeGenState.lastArrayFillValue = val;
       },
     };
 
     this.stringDeclHelper = new StringDeclHelper({
-      typeRegistry: this.context.typeRegistry,
-      getInFunctionBody: () => this.context.inFunctionBody,
-      getIndentLevel: () => this.context.indentLevel,
+      typeRegistry: CodeGenState.typeRegistry,
+      getInFunctionBody: () => CodeGenState.inFunctionBody,
+      getIndentLevel: () => CodeGenState.indentLevel,
       arrayInitState,
-      localArrays: this.context.localArrays,
+      localArrays: CodeGenState.localArrays,
       generateExpression: (ctx) => this.generateExpression(ctx),
       generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
       getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
@@ -2479,18 +2338,18 @@ export default class CodeGenerator implements IOrchestrator {
 
     this.enumValidator = new EnumAssignmentValidator({
       knownEnums: symbols.knownEnums,
-      getCurrentScope: () => this.context.currentScope,
+      getCurrentScope: () => CodeGenState.currentScope,
       getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
       isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
     });
 
     this.arrayInitHelper = new ArrayInitHelper({
-      typeRegistry: this.context.typeRegistry,
-      localArrays: this.context.localArrays,
+      typeRegistry: CodeGenState.typeRegistry,
+      localArrays: CodeGenState.localArrays,
       arrayInitState: arrayInitState,
-      getExpectedType: () => this.context.expectedType,
+      getExpectedType: () => CodeGenState.expectedType,
       setExpectedType: (type) => {
-        this.context.expectedType = type;
+        CodeGenState.expectedType = type;
       },
       generateExpression: (ctx) => this.generateExpression(ctx),
       getTypeName: (ctx) => this.getTypeName(ctx),
@@ -2498,7 +2357,7 @@ export default class CodeGenerator implements IOrchestrator {
     });
 
     this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
-      typeRegistry: this.context.typeRegistry,
+      typeRegistry: CodeGenState.typeRegistry,
       structFields: symbols.structFields,
       isKnownStruct: (name) => this.isKnownStruct(name),
     });
@@ -2506,10 +2365,10 @@ export default class CodeGenerator implements IOrchestrator {
     this.assignmentValidator = new AssignmentValidator({
       typeValidator: this.typeValidator!,
       enumValidator: this.enumValidator,
-      typeRegistry: this.context.typeRegistry,
-      floatShadowCurrent: this.context.floatShadowCurrent,
+      typeRegistry: CodeGenState.typeRegistry,
+      floatShadowCurrent: CodeGenState.floatShadowCurrent,
       registerMemberAccess: symbols.registerMemberAccess,
-      callbackFieldTypes: this.callbackFieldTypes,
+      callbackFieldTypes: CodeGenState.callbackFieldTypes,
       isKnownStruct: (name) => this.isKnownStruct(name),
       isIntegerType: (name) => this._isIntegerType(name),
       getExpressionType: (ctx) => this.getExpressionType(ctx),
@@ -2527,7 +2386,7 @@ export default class CodeGenerator implements IOrchestrator {
     options: ICodeGeneratorOptions | undefined,
   ): string {
     const output: string[] = [];
-    const symbols = this.symbols!;
+    const symbols = CodeGenState.symbols!;
     const typeValidator = this.typeValidator!;
 
     // Add header comment
@@ -2540,12 +2399,13 @@ export default class CodeGenerator implements IOrchestrator {
     );
 
     // Self-include for extern "C" linkage
-    if (symbols.hasPublicSymbols() && this.sourcePath) {
+    if (symbols.hasPublicSymbols() && CodeGenState.sourcePath) {
       const pathToUse =
-        options?.sourceRelativePath || this.sourcePath.replace(/^.*[\\/]/, "");
+        options?.sourceRelativePath ||
+        CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ".h");
       output.push(`#include "${headerName}"`, "");
-      this.selfIncludeAdded = true;
+      CodeGenState.selfIncludeAdded = true;
     }
 
     // Process include directives
@@ -2575,8 +2435,8 @@ export default class CodeGenerator implements IOrchestrator {
     output: string[],
     typeValidator: TypeValidator,
   ): void {
-    const includePaths = this.sourcePath
-      ? IncludeDiscovery.discoverIncludePaths(this.sourcePath)
+    const includePaths = CodeGenState.sourcePath
+      ? IncludeDiscovery.discoverIncludePaths(CodeGenState.sourcePath)
       : [];
 
     for (const includeDir of tree.includeDirective()) {
@@ -2591,7 +2451,7 @@ export default class CodeGenerator implements IOrchestrator {
       typeValidator.validateIncludeNoCnxAlternative(
         includeDir.getText(),
         lineNumber,
-        this.sourcePath,
+        CodeGenState.sourcePath,
         includePaths,
       );
 
@@ -2649,11 +2509,11 @@ export default class CodeGenerator implements IOrchestrator {
   private addAutoIncludes(output: string[]): void {
     const autoIncludes: string[] = [];
 
-    if (this.needsStdint) autoIncludes.push("#include <stdint.h>");
-    if (this.needsStdbool) autoIncludes.push("#include <stdbool.h>");
-    if (this.needsString) autoIncludes.push("#include <string.h>");
-    if (this.needsCMSIS) autoIncludes.push("#include <cmsis_gcc.h>");
-    if (this.needsLimits) autoIncludes.push("#include <limits.h>");
+    if (CodeGenState.needsStdint) autoIncludes.push("#include <stdint.h>");
+    if (CodeGenState.needsStdbool) autoIncludes.push("#include <stdbool.h>");
+    if (CodeGenState.needsString) autoIncludes.push("#include <string.h>");
+    if (CodeGenState.needsCMSIS) autoIncludes.push("#include <cmsis_gcc.h>");
+    if (CodeGenState.needsLimits) autoIncludes.push("#include <limits.h>");
 
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes, "");
@@ -2664,7 +2524,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Add generated helpers (static asserts, IRQ wrappers, typedefs, etc.).
    */
   private addGeneratedHelpers(output: string[]): void {
-    if (this.needsFloatStaticAssert) {
+    if (CodeGenState.needsFloatStaticAssert) {
       output.push(
         '_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");',
         '_Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");',
@@ -2672,7 +2532,7 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    if (this.needsIrqWrappers) {
+    if (CodeGenState.needsIrqWrappers) {
       output.push(
         "// ADR-050: IRQ wrappers to avoid macro collisions with platform headers",
         "static inline void __cnx_disable_irq(void) { __disable_irq(); }",
@@ -2682,7 +2542,7 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    if (this.needsISR) {
+    if (CodeGenState.needsISR) {
       output.push(
         "/* ADR-040: ISR function pointer type */",
         "typedef void (*ISR)(void);",
@@ -2764,9 +2624,9 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private transformIncludeDirective(includeText: string): string {
     return includeTransformIncludeDirective(includeText, {
-      sourcePath: this.sourcePath,
-      includeDirs: this.includeDirs,
-      inputs: this.inputs,
+      sourcePath: CodeGenState.sourcePath,
+      includeDirs: CodeGenState.includeDirs,
+      inputs: CodeGenState.inputs,
     });
   }
 
@@ -2807,8 +2667,8 @@ export default class CodeGenerator implements IOrchestrator {
     const scopeName = scopeDecl.IDENTIFIER().getText();
 
     // Set scope context for scoped type resolution (this.Type)
-    const savedScope = this.context.currentScope;
-    this.context.currentScope = scopeName;
+    const savedScope = CodeGenState.currentScope;
+    CodeGenState.currentScope = scopeName;
 
     for (const member of scopeDecl.scopeMember()) {
       if (member.functionDeclaration()) {
@@ -2816,20 +2676,20 @@ export default class CodeGenerator implements IOrchestrator {
         const funcName = funcDecl.IDENTIFIER().getText();
         // Track fully qualified function name: Scope_function
         const fullName = `${scopeName}_${funcName}`;
-        this.knownFunctions.add(fullName);
+        CodeGenState.knownFunctions.add(fullName);
         // ADR-013: Track function signature for const checking
         const sig = this.extractFunctionSignature(
           fullName,
           funcDecl.parameterList() ?? null,
         );
-        this.functionSignatures.set(fullName, sig);
+        CodeGenState.functionSignatures.set(fullName, sig);
         // ADR-029: Register scoped function as callback type
         this.registerCallbackType(fullName, funcDecl);
       }
     }
 
     // Restore previous scope context
-    this.context.currentScope = savedScope;
+    CodeGenState.currentScope = savedScope;
   }
 
   /**
@@ -2845,8 +2705,11 @@ export default class CodeGenerator implements IOrchestrator {
       const fieldType = this.getTypeName(member.type());
 
       // Track callback field types (needed for typedef generation)
-      if (this.callbackTypes.has(fieldType)) {
-        this.callbackFieldTypes.set(`${structName}.${fieldName}`, fieldType);
+      if (CodeGenState.callbackTypes.has(fieldType)) {
+        CodeGenState.callbackFieldTypes.set(
+          `${structName}.${fieldName}`,
+          fieldType,
+        );
       }
     }
   }
@@ -2858,13 +2721,13 @@ export default class CodeGenerator implements IOrchestrator {
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
     const name = funcDecl.IDENTIFIER().getText();
-    this.knownFunctions.add(name);
+    CodeGenState.knownFunctions.add(name);
     // ADR-013: Track function signature for const checking
     const sig = this.extractFunctionSignature(
       name,
       funcDecl.parameterList() ?? null,
     );
-    this.functionSignatures.set(name, sig);
+    CodeGenState.functionSignatures.set(name, sig);
     // ADR-029: Register function as callback type
     this.registerCallbackType(name, funcDecl);
   }
@@ -2907,7 +2770,7 @@ export default class CodeGenerator implements IOrchestrator {
       const constName = varDecl.IDENTIFIER().getText();
       const constValue = this.tryEvaluateConstant(varDecl.expression()!);
       if (constValue !== undefined) {
-        this.constValues.set(constName, constValue);
+        CodeGenState.constValues.set(constName, constValue);
       }
     }
   }
@@ -2922,7 +2785,7 @@ export default class CodeGenerator implements IOrchestrator {
     const scopeName = scopeDecl.IDENTIFIER().getText();
 
     // Set currentScope so that this.Type references resolve correctly
-    const savedScope = this.context.currentScope;
+    const savedScope = CodeGenState.currentScope;
     this.setCurrentScope(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
@@ -2955,10 +2818,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private analyzePassByValue(tree: Parser.ProgramContext): void {
     // Reset analysis state
-    this.modifiedParameters.clear();
-    this.passByValueParams.clear();
-    this.functionCallGraph.clear();
-    this.functionParamLists.clear();
+    CodeGenState.modifiedParameters.clear();
+    CodeGenState.passByValueParams.clear();
+    CodeGenState.functionCallGraph.clear();
+    CodeGenState.functionParamLists.clear();
 
     // Phase 1: Collect function parameter lists and direct modifications
     this.collectFunctionParametersAndModifications(tree);
@@ -2969,9 +2832,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Phase 2: Fixed-point iteration for transitive modifications
     TransitiveModificationPropagator.propagate(
-      this.functionCallGraph,
-      this.functionParamLists,
-      this.modifiedParameters,
+      CodeGenState.functionCallGraph,
+      CodeGenState.functionParamLists,
+      CodeGenState.modifiedParameters,
     );
 
     // Phase 3: Determine which parameters can pass by value
@@ -2983,19 +2846,22 @@ export default class CodeGenerator implements IOrchestrator {
    * SonarCloud S3776: Extracted from analyzePassByValue().
    */
   private injectCrossFileModifications(): void {
-    if (!this.pendingCrossFileModifications) return;
+    if (!CodeGenState.pendingCrossFileModifications) return;
 
-    for (const [funcName, params] of this.pendingCrossFileModifications) {
-      const existing = this.modifiedParameters.get(funcName);
+    for (const [
+      funcName,
+      params,
+    ] of CodeGenState.pendingCrossFileModifications) {
+      const existing = CodeGenState.modifiedParameters.get(funcName);
       if (existing) {
         for (const param of params) {
           existing.add(param);
         }
       } else {
-        this.modifiedParameters.set(funcName, new Set(params));
+        CodeGenState.modifiedParameters.set(funcName, new Set(params));
       }
     }
-    this.pendingCrossFileModifications = null; // Clear after use
+    CodeGenState.pendingCrossFileModifications = null; // Clear after use
   }
 
   /**
@@ -3003,14 +2869,14 @@ export default class CodeGenerator implements IOrchestrator {
    * SonarCloud S3776: Extracted from analyzePassByValue().
    */
   private injectCrossFileParamLists(): void {
-    if (!this.pendingCrossFileParamLists) return;
+    if (!CodeGenState.pendingCrossFileParamLists) return;
 
-    for (const [funcName, params] of this.pendingCrossFileParamLists) {
-      if (!this.functionParamLists.has(funcName)) {
-        this.functionParamLists.set(funcName, [...params]);
+    for (const [funcName, params] of CodeGenState.pendingCrossFileParamLists) {
+      if (!CodeGenState.functionParamLists.has(funcName)) {
+        CodeGenState.functionParamLists.set(funcName, [...params]);
       }
     }
-    this.pendingCrossFileParamLists = null; // Clear after use
+    CodeGenState.pendingCrossFileParamLists = null; // Clear after use
   }
 
   /**
@@ -3062,13 +2928,13 @@ export default class CodeGenerator implements IOrchestrator {
         paramNames.push(param.IDENTIFIER().getText());
       }
     }
-    this.functionParamLists.set(funcName, paramNames);
+    CodeGenState.functionParamLists.set(funcName, paramNames);
 
     // Initialize modified set
-    this.modifiedParameters.set(funcName, new Set());
+    CodeGenState.modifiedParameters.set(funcName, new Set());
     // Issue #579: Initialize subscript access tracking
-    this.subscriptAccessedParameters.set(funcName, new Set());
-    this.functionCallGraph.set(funcName, []);
+    CodeGenState.subscriptAccessedParameters.set(funcName, new Set());
+    CodeGenState.functionCallGraph.set(funcName, []);
 
     // Walk the function body to find modifications and calls
     const block = funcDecl.block();
@@ -3144,12 +3010,14 @@ export default class CodeGenerator implements IOrchestrator {
       baseIdentifier &&
       paramSet.has(baseIdentifier)
     ) {
-      this.subscriptAccessedParameters.get(funcName)!.add(baseIdentifier);
+      CodeGenState.subscriptAccessedParameters
+        .get(funcName)!
+        .add(baseIdentifier);
     }
 
     // Track as modified parameter
     if (baseIdentifier && paramSet.has(baseIdentifier)) {
-      this.modifiedParameters.get(funcName)!.add(baseIdentifier);
+      CodeGenState.modifiedParameters.get(funcName)!.add(baseIdentifier);
     }
   }
 
@@ -3221,7 +3089,7 @@ export default class CodeGenerator implements IOrchestrator {
       (op) => op.expression().length === 1,
     );
     if (hasSingleIndexSubscript) {
-      this.subscriptAccessedParameters.get(funcName)!.add(primaryId);
+      CodeGenState.subscriptAccessedParameters.get(funcName)!.add(primaryId);
     }
   }
 
@@ -3398,7 +3266,7 @@ export default class CodeGenerator implements IOrchestrator {
       const arg = args[i];
       const argName = ExpressionUtils.extractIdentifier(arg);
       if (argName && paramSet.has(argName)) {
-        this.functionCallGraph.get(funcName)!.push({
+        CodeGenState.functionCallGraph.get(funcName)!.push({
           callee: calleeName,
           paramIndex: i,
           argParamName: argName,
@@ -3448,12 +3316,13 @@ export default class CodeGenerator implements IOrchestrator {
       "bool",
     ]);
 
-    for (const [funcName, paramNames] of this.functionParamLists) {
+    for (const [funcName, paramNames] of CodeGenState.functionParamLists) {
       const passByValue = new Set<string>();
-      const modified = this.modifiedParameters.get(funcName) ?? new Set();
+      const modified =
+        CodeGenState.modifiedParameters.get(funcName) ?? new Set();
 
       // Get function declaration to check parameter types
-      const funcSig = this.functionSignatures.get(funcName);
+      const funcSig = CodeGenState.functionSignatures.get(funcName);
       if (funcSig) {
         for (let i = 0; i < paramNames.length; i++) {
           const paramName = paramNames[i];
@@ -3471,8 +3340,9 @@ export default class CodeGenerator implements IOrchestrator {
           const isModified = modified.has(paramName);
           // Issue #579: Parameters with subscript access must become pointers
           const hasSubscriptAccess =
-            this.subscriptAccessedParameters.get(funcName)?.has(paramName) ??
-            false;
+            CodeGenState.subscriptAccessedParameters
+              .get(funcName)
+              ?.has(paramName) ?? false;
 
           if (
             isSmallPrimitive &&
@@ -3485,7 +3355,7 @@ export default class CodeGenerator implements IOrchestrator {
         }
       }
 
-      this.passByValueParams.set(funcName, passByValue);
+      CodeGenState.passByValueParams.set(funcName, passByValue);
     }
   }
 
@@ -3497,7 +3367,7 @@ export default class CodeGenerator implements IOrchestrator {
     funcName: string,
     paramName: string,
   ): boolean {
-    const passByValue = this.passByValueParams.get(funcName);
+    const passByValue = CodeGenState.passByValueParams.get(funcName);
     return passByValue?.has(paramName) ?? false;
   }
 
@@ -3506,7 +3376,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - used by CallExprGenerator.
    */
   isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    const paramList = this.functionParamLists.get(funcName);
+    const paramList = CodeGenState.functionParamLists.get(funcName);
     if (!paramList || paramIndex < 0 || paramIndex >= paramList.length) {
       return false;
     }
@@ -3520,7 +3390,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Used by HeaderGenerator to ensure header and implementation signatures match.
    */
   getPassByValueParams(): ReadonlyMap<string, ReadonlySet<string>> {
-    return this.passByValueParams;
+    return CodeGenState.passByValueParams;
   }
 
   /**
@@ -3540,7 +3410,7 @@ export default class CodeGenerator implements IOrchestrator {
     arrayDim: Parser.ArrayDimensionContext[] | null,
   ): number[] | undefined {
     return ArrayDimensionParser.parseAllDimensions(arrayDim, {
-      constValues: this.constValues,
+      constValues: CodeGenState.constValues,
       typeWidths: TYPE_WIDTH,
       isKnownStruct: (name) => this.isKnownStruct(name),
     });
@@ -3570,8 +3440,8 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-017: Check if this is an enum type
     if (
       TypeRegistrationUtils.tryRegisterEnumType(
-        this.context.typeRegistry,
-        this.symbols!,
+        CodeGenState.typeRegistry,
+        CodeGenState.symbols!,
         registrationOptions,
       )
     ) {
@@ -3582,8 +3452,8 @@ export default class CodeGenerator implements IOrchestrator {
     const bitmapDimensions = this._evaluateArrayDimensions(arrayDim);
     if (
       TypeRegistrationUtils.tryRegisterBitmapType(
-        this.context.typeRegistry,
-        this.symbols!,
+        CodeGenState.typeRegistry,
+        CodeGenState.symbols!,
         registrationOptions,
         bitmapDimensions,
       )
@@ -3649,7 +3519,7 @@ export default class CodeGenerator implements IOrchestrator {
     const allDims =
       additionalDims.length > 0 ? [...additionalDims, stringDim] : [stringDim];
 
-    this.context.typeRegistry.set(registryName, {
+    CodeGenState.typeRegistry.set(registryName, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -3677,8 +3547,8 @@ export default class CodeGenerator implements IOrchestrator {
     if (typeCtx.scopedType()) {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
       const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      return this.context.currentScope
-        ? `${this.context.currentScope}_${typeName}`
+      return CodeGenState.currentScope
+        ? `${CodeGenState.currentScope}_${typeName}`
         : typeName;
     }
 
@@ -3808,7 +3678,7 @@ export default class CodeGenerator implements IOrchestrator {
       arrayDim,
     );
 
-    this.context.typeRegistry.set(registryName, {
+    CodeGenState.typeRegistry.set(registryName, {
       baseType,
       bitWidth,
       isArray: true,
@@ -3866,7 +3736,7 @@ export default class CodeGenerator implements IOrchestrator {
       ? this._evaluateArrayDimensions(arrayDim)
       : undefined;
 
-    this.context.typeRegistry.set(registryName, {
+    CodeGenState.typeRegistry.set(registryName, {
       baseType,
       bitWidth,
       isArray,
@@ -3889,7 +3759,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Set up parameter tracking for a function
    */
   private _setParameters(params: Parser.ParameterListContext | null): void {
-    this.context.currentParameters.clear();
+    CodeGenState.currentParameters.clear();
     CodeGenState.currentParameters.clear();
     if (!params) return;
 
@@ -3920,7 +3790,6 @@ export default class CodeGenerator implements IOrchestrator {
       isCallback: typeInfo.isCallback,
       isString: typeInfo.isString,
     };
-    this.context.currentParameters.set(name, paramInfo);
     CodeGenState.currentParameters.set(name, paramInfo);
 
     // Register in typeRegistry
@@ -3950,7 +3819,7 @@ export default class CodeGenerator implements IOrchestrator {
       return {
         typeName,
         isStruct: this.isStructType(typeName),
-        isCallback: this.callbackTypes.has(typeName),
+        isCallback: CodeGenState.callbackTypes.has(typeName),
         isString: false,
       };
     }
@@ -3971,8 +3840,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     if (typeCtx.scopedType()) {
       const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      const typeName = this.context.currentScope
-        ? `${this.context.currentScope}_${localTypeName}`
+      const typeName = CodeGenState.currentScope
+        ? `${CodeGenState.currentScope}_${localTypeName}`
         : localTypeName;
       return {
         typeName,
@@ -4023,8 +3892,8 @@ export default class CodeGenerator implements IOrchestrator {
     const { typeName, isString } = typeInfo;
     const typeCtx = param.type();
 
-    const isEnum = this.symbols!.knownEnums.has(typeName);
-    const isBitmap = this.symbols!.knownBitmaps.has(typeName);
+    const isEnum = CodeGenState.symbols!.knownEnums.has(typeName);
+    const isBitmap = CodeGenState.symbols!.knownBitmaps.has(typeName);
 
     // Extract array dimensions
     const arrayDimensions = isArray
@@ -4040,7 +3909,7 @@ export default class CodeGenerator implements IOrchestrator {
     const registeredType = {
       baseType: typeName,
       bitWidth: isBitmap
-        ? this.symbols!.bitmapBitWidth.get(typeName) || 0
+        ? CodeGenState.symbols!.bitmapBitWidth.get(typeName) || 0
         : TYPE_WIDTH[typeName] || 0,
       isArray,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
@@ -4053,7 +3922,6 @@ export default class CodeGenerator implements IOrchestrator {
       stringCapacity,
       isParameter: true,
     };
-    this.context.typeRegistry.set(name, registeredType);
     CodeGenState.typeRegistry.set(name, registeredType);
   }
 
@@ -4075,12 +3943,12 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _clearParameters(): void {
     // ADR-025: Remove parameter types from typeRegistry
-    for (const name of this.context.currentParameters.keys()) {
-      this.context.typeRegistry.delete(name);
+    for (const name of CodeGenState.currentParameters.keys()) {
+      CodeGenState.typeRegistry.delete(name);
       CodeGenState.typeRegistry.delete(name);
     }
-    this.context.currentParameters.clear();
-    this.context.localArrays.clear();
+    CodeGenState.currentParameters.clear();
+    CodeGenState.localArrays.clear();
     CodeGenState.currentParameters.clear();
     CodeGenState.localArrays.clear();
   }
@@ -4140,14 +4008,14 @@ export default class CodeGenerator implements IOrchestrator {
         const isArray = dims.length > 0;
 
         // ADR-029: Check if parameter type is itself a callback type
-        const isCallbackParam = this.callbackTypes.has(typeName);
+        const isCallbackParam = CodeGenState.callbackTypes.has(typeName);
 
         let paramType: string;
         let isPointer: boolean;
 
         if (isCallbackParam) {
           // Use the callback typedef name
-          const cbInfo = this.callbackTypes.get(typeName)!;
+          const cbInfo = CodeGenState.callbackTypes.get(typeName)!;
           paramType = cbInfo.typedefName;
           isPointer = false; // Function pointers are already pointers
         } else {
@@ -4170,7 +4038,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
-    this.callbackTypes.set(name, {
+    CodeGenState.callbackTypes.set(name, {
       functionName: name,
       returnType,
       parameters,
@@ -4207,7 +4075,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check if it's a variable of primitive integer type
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = this.context.typeRegistry.get(text);
+      const typeInfo = CodeGenState.typeRegistry.get(text);
       if (
         typeInfo &&
         !typeInfo.isEnum &&
@@ -4304,7 +4172,7 @@ export default class CodeGenerator implements IOrchestrator {
     const sourceName = sourceId.getText();
 
     // Check if source is a string type
-    const typeInfo = this.context.typeRegistry.get(sourceName);
+    const typeInfo = CodeGenState.typeRegistry.get(sourceName);
     if (!typeInfo?.isString || typeInfo.stringCapacity === undefined) {
       return null;
     }
@@ -4432,7 +4300,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): boolean {
-    if (!this.cppMode) return false;
+    if (!CodeGenState.cppMode) return false;
     if (!targetParamBaseType) return false;
 
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
@@ -4446,7 +4314,7 @@ export default class CodeGenerator implements IOrchestrator {
     const ops = postfix.postfixOp();
 
     // Case 1: Direct parameter member access (cfg.value)
-    const paramInfo = this.context.currentParameters.get(baseId);
+    const paramInfo = CodeGenState.currentParameters.get(baseId);
     if (paramInfo) {
       return this._needsParamMemberConversion(paramInfo, targetParamBaseType);
     }
@@ -4491,7 +4359,7 @@ export default class CodeGenerator implements IOrchestrator {
     baseId: string,
     targetParamBaseType: string,
   ): boolean {
-    const typeInfo = this.context.typeRegistry.get(baseId);
+    const typeInfo = CodeGenState.typeRegistry.get(baseId);
     return CppMemberHelper.needsComplexMemberConversion(
       this._toPostfixOps(ops),
       typeInfo,
@@ -4518,8 +4386,8 @@ export default class CodeGenerator implements IOrchestrator {
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    const typeInfo = this.context.typeRegistry.get(baseId);
-    const paramInfo = this.context.currentParameters.get(baseId);
+    const typeInfo = CodeGenState.typeRegistry.get(baseId);
+    const paramInfo = CodeGenState.currentParameters.get(baseId);
 
     return CppMemberHelper.isStringSubscriptPattern(
       hasPostfixOps,
@@ -4572,11 +4440,11 @@ export default class CodeGenerator implements IOrchestrator {
     // 2. Parameter: currentParameters.get(baseId).baseType
     let structType: string | undefined;
 
-    const typeInfo = this.context.typeRegistry.get(baseId);
+    const typeInfo = CodeGenState.typeRegistry.get(baseId);
     if (typeInfo) {
       structType = typeInfo.baseType;
     } else {
-      const paramInfo = this.context.currentParameters.get(baseId);
+      const paramInfo = CodeGenState.currentParameters.get(baseId);
       if (paramInfo) {
         structType = paramInfo.baseType;
       }
@@ -4628,20 +4496,27 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _handleIdentifierArg(id: string): string {
     // Parameters are already pointers
-    if (this.context.currentParameters.get(id)) {
+    if (CodeGenState.currentParameters.get(id)) {
       return id;
     }
 
     // Local arrays decay to pointers
-    if (this.context.localArrays.has(id)) {
+    if (CodeGenState.localArrays.has(id)) {
+      return id;
+    }
+
+    // Global arrays also decay to pointers (check typeRegistry)
+    // But NOT strings - strings need & (they're char arrays but passed by reference)
+    const typeInfo = CodeGenState.typeRegistry.get(id);
+    if (typeInfo?.isArray && !typeInfo.isString) {
       return id;
     }
 
     // Scope member - may need prefixing
-    if (this.context.currentScope) {
-      const members = this.context.scopeMembers.get(this.context.currentScope);
+    if (CodeGenState.currentScope) {
+      const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
       if (members?.has(id)) {
-        const scopedName = `${this.context.currentScope}_${id}`;
+        const scopedName = `${CodeGenState.currentScope}_${id}`;
         return this.cppHelper!.maybeAddressOf(scopedName);
       }
     }
@@ -4713,9 +4588,11 @@ export default class CodeGenerator implements IOrchestrator {
   ): string {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = this.generateExpression(ctx);
-    const tempName = `_cnx_tmp_${this.tempVarCounter++}`;
+    const tempName = `_cnx_tmp_${CodeGenState.tempVarCounter++}`;
     const castExpr = this.cppHelper!.cast(cType, value);
-    this.pendingTempDeclarations.push(`${cType} ${tempName} = ${castExpr};`);
+    CodeGenState.pendingTempDeclarations.push(
+      `${cType} ${tempName} = ${castExpr};`,
+    );
     return this.cppHelper!.maybeAddressOf(tempName);
   }
 
@@ -4758,7 +4635,7 @@ export default class CodeGenerator implements IOrchestrator {
     const value = this.generateExpression(ctx);
 
     // C++ mode: rvalues can bind to const T&
-    if (this.cppMode) {
+    if (CodeGenState.cppMode) {
       return value;
     }
 
@@ -4781,21 +4658,21 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #369: Skip struct/enum/bitmap definitions when self-include is added
     // These types will be defined in the included header file
     if (ctx.structDeclaration()) {
-      if (this.selfIncludeAdded) {
+      if (CodeGenState.selfIncludeAdded) {
         return ""; // Definition will come from header
       }
       return this.generateStruct(ctx.structDeclaration()!);
     }
     // ADR-017: Handle enum declarations
     if (ctx.enumDeclaration()) {
-      if (this.selfIncludeAdded) {
+      if (CodeGenState.selfIncludeAdded) {
         return ""; // Definition will come from header
       }
       return this.generateEnum(ctx.enumDeclaration()!);
     }
     // ADR-034: Handle bitmap declarations
     if (ctx.bitmapDeclaration()) {
-      if (this.selfIncludeAdded) {
+      if (CodeGenState.selfIncludeAdded) {
         return ""; // Definition will come from header
       }
       return this.generateBitmap(ctx.bitmapDeclaration()!);
@@ -4824,7 +4701,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Fallback to inline implementation (will be removed after migration)
     const name = ctx.IDENTIFIER().getText();
-    this.context.currentScope = name;
+    CodeGenState.currentScope = name;
 
     const lines: string[] = [];
     lines.push(`/* Scope: ${name} */`);
@@ -4834,7 +4711,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     lines.push("");
-    this.context.currentScope = null;
+    CodeGenState.currentScope = null;
     return lines.join("\n");
   }
 
@@ -4935,9 +4812,9 @@ export default class CodeGenerator implements IOrchestrator {
     const prefix = isPrivate ? "static " : "";
 
     // Issue #269: Set current function name for pass-by-value lookup
-    this.context.currentFunctionName = fullName;
+    CodeGenState.currentFunctionName = fullName;
     // Issue #477: Set return type for enum inference in return statements
-    this.context.currentFunctionReturnType = funcDecl.type().getText();
+    CodeGenState.currentFunctionReturnType = funcDecl.type().getText();
 
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(funcDecl.parameterList() ?? null);
@@ -4958,8 +4835,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-016: Exit function body context
     this.exitFunctionBody();
-    this.context.currentFunctionName = null;
-    this.context.currentFunctionReturnType = null;
+    CodeGenState.currentFunctionName = null;
+    CodeGenState.currentFunctionReturnType = null;
     this._clearParameters();
 
     lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
@@ -5091,12 +4968,12 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Fallback to inline implementation (will be removed after migration)
     const name = ctx.IDENTIFIER().getText();
-    const prefix = this.context.currentScope
-      ? `${this.context.currentScope}_`
+    const prefix = CodeGenState.currentScope
+      ? `${CodeGenState.currentScope}_`
       : "";
     const fullName = `${prefix}${name}`;
 
-    const backingType = this.symbols!.bitmapBackingType.get(fullName);
+    const backingType = CodeGenState.symbols!.bitmapBackingType.get(fullName);
     if (!backingType) {
       throw new Error(`Error: Bitmap ${fullName} not found in registry`);
     }
@@ -5108,7 +4985,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Generate comment with field layout
     lines.push(`/* Bitmap: ${fullName} */`);
 
-    const fields = this.symbols!.bitmapFields.get(fullName);
+    const fields = CodeGenState.symbols!.bitmapFields.get(fullName);
     if (fields) {
       lines.push("/* Fields:");
       for (const [fieldName, info] of fields.entries()) {
@@ -5142,7 +5019,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Reject redundant type in struct initializer
     // Wrong: const Point p <- Point { x: 0 };
     // Right: const Point p <- { x: 0 };
-    if (ctx.IDENTIFIER() && this.context.expectedType) {
+    if (ctx.IDENTIFIER() && CodeGenState.expectedType) {
       const explicitType = ctx.IDENTIFIER()!.getText();
       throw new Error(
         `Redundant type '${explicitType}' in struct initializer. ` +
@@ -5154,8 +5031,8 @@ export default class CodeGenerator implements IOrchestrator {
     let typeName: string;
     if (ctx.IDENTIFIER()) {
       typeName = ctx.IDENTIFIER()!.getText();
-    } else if (this.context.expectedType) {
-      typeName = this.context.expectedType;
+    } else if (CodeGenState.expectedType) {
+      typeName = CodeGenState.expectedType;
     } else {
       // This should not happen in valid code
       throw new Error(
@@ -5170,7 +5047,7 @@ export default class CodeGenerator implements IOrchestrator {
     // so designated initializers { .field = value } don't work with them.
     // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
     const isCppClass =
-      this.cppMode && this._isCppClassWithConstructor(typeName);
+      CodeGenState.cppMode && this._isCppClassWithConstructor(typeName);
 
     if (!fieldList) {
       // Empty initializer: Point {} -> (Point){ 0 } or {} for C++ classes
@@ -5179,13 +5056,13 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Get field type info for nested initializers
     // Issue #502: Check both local struct fields and SymbolTable (for C++ header structs)
-    const structFieldTypes = this.symbols!.structFields.get(typeName);
+    const structFieldTypes = CodeGenState.symbols!.structFields.get(typeName);
 
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
 
       // Set expected type for nested initializers
-      const savedExpectedType = this.context.expectedType;
+      const savedExpectedType = CodeGenState.expectedType;
       if (structFieldTypes?.has(fieldName)) {
         // Issue #502: Convert underscore format to correct output format
         // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
@@ -5199,13 +5076,13 @@ export default class CodeGenerator implements IOrchestrator {
             fieldType = parts.join("::");
           }
         }
-        this.context.expectedType = fieldType;
+        CodeGenState.expectedType = fieldType;
       }
 
       const value = this.generateExpression(field.expression());
 
       // Restore expected type
-      this.context.expectedType = savedExpectedType;
+      CodeGenState.expectedType = savedExpectedType;
 
       return { fieldName, value };
     });
@@ -5213,7 +5090,9 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #517: For C++ classes, store assignments for later and return {}
     if (isCppClass) {
       for (const { fieldName, value } of fields) {
-        this.pendingCppClassAssignments.push(`${fieldName} = ${value};`);
+        CodeGenState.pendingCppClassAssignments.push(
+          `${fieldName} = ${value};`,
+        );
       }
       return "{}";
     }
@@ -5237,8 +5116,8 @@ export default class CodeGenerator implements IOrchestrator {
       // Fill-all: [0*] -> {0}
       const fillValue = this.generateExpression(ctx.expression()!);
       // Store element count as 0 to signal fill-all (size comes from declaration)
-      this.context.lastArrayInitCount = 0;
-      this.context.lastArrayFillValue = fillValue;
+      CodeGenState.lastArrayInitCount = 0;
+      CodeGenState.lastArrayFillValue = fillValue;
       return `{${fillValue}}`;
     }
 
@@ -5262,8 +5141,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Store element count for size inference
-    this.context.lastArrayInitCount = generatedElements.length;
-    this.context.lastArrayFillValue = undefined;
+    CodeGenState.lastArrayInitCount = generatedElements.length;
+    CodeGenState.lastArrayFillValue = undefined;
 
     return `{${generatedElements.join(", ")}}`;
   }
@@ -5331,21 +5210,21 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.FunctionDeclarationContext,
   ): void {
     // Issue #269: Set current function name for pass-by-value lookup
-    const fullFuncName = this.context.currentScope
-      ? `${this.context.currentScope}_${name}`
+    const fullFuncName = CodeGenState.currentScope
+      ? `${CodeGenState.currentScope}_${name}`
       : name;
-    this.context.currentFunctionName = fullFuncName;
+    CodeGenState.currentFunctionName = fullFuncName;
     // Issue #477: Set return type for enum inference in return statements
-    this.context.currentFunctionReturnType = ctx.type().getText();
+    CodeGenState.currentFunctionReturnType = ctx.type().getText();
 
     // Track parameters for ADR-006 pointer semantics
     this._setParameters(ctx.parameterList() ?? null);
 
     // ADR-016: Clear local variables and mark that we're in a function body
-    this.context.localVariables.clear();
-    this.context.floatBitShadows.clear();
-    this.context.floatShadowCurrent.clear();
-    this.context.inFunctionBody = true;
+    CodeGenState.localVariables.clear();
+    CodeGenState.floatBitShadows.clear();
+    CodeGenState.floatShadowCurrent.clear();
+    CodeGenState.inFunctionBody = true;
   }
 
   /**
@@ -5360,7 +5239,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
       const argsParam = ctx.parameterList()!.parameter()[0];
-      this.context.mainArgsName = argsParam.IDENTIFIER().getText();
+      CodeGenState.mainArgsName = argsParam.IDENTIFIER().getText();
       return {
         actualReturnType: "int",
         initialParams: "int argc, char *argv[]",
@@ -5376,13 +5255,13 @@ export default class CodeGenerator implements IOrchestrator {
    * Clean up context after function generation
    */
   private _cleanupFunctionContext(): void {
-    this.context.inFunctionBody = false;
-    this.context.localVariables.clear();
-    this.context.floatBitShadows.clear();
-    this.context.floatShadowCurrent.clear();
-    this.context.mainArgsName = null;
-    this.context.currentFunctionName = null;
-    this.context.currentFunctionReturnType = null;
+    CodeGenState.inFunctionBody = false;
+    CodeGenState.localVariables.clear();
+    CodeGenState.floatBitShadows.clear();
+    CodeGenState.floatShadowCurrent.clear();
+    CodeGenState.mainArgsName = null;
+    CodeGenState.currentFunctionName = null;
+    CodeGenState.currentFunctionReturnType = null;
     this._clearParameters();
   }
 
@@ -5412,8 +5291,8 @@ export default class CodeGenerator implements IOrchestrator {
     const dims = ctx.arrayDimension();
 
     // ADR-029: Check if this is a callback type parameter
-    if (this.callbackTypes.has(typeName)) {
-      const callbackInfo = this.callbackTypes.get(typeName)!;
+    if (CodeGenState.callbackTypes.has(typeName)) {
+      const callbackInfo = CodeGenState.callbackTypes.get(typeName)!;
       return `${callbackInfo.typedefName} ${name}`;
     }
 
@@ -5500,12 +5379,12 @@ export default class CodeGenerator implements IOrchestrator {
     // ISR, float, enum types
     if (typeName === "ISR") return true;
     if (this._isFloatType(typeName)) return true;
-    if (this.symbols!.knownEnums.has(typeName)) return true;
+    if (CodeGenState.symbols!.knownEnums.has(typeName)) return true;
 
     // Small unmodified primitives
     if (
-      this.context.currentFunctionName &&
-      this._isParameterPassByValueByName(this.context.currentFunctionName, name)
+      CodeGenState.currentFunctionName &&
+      this._isParameterPassByValueByName(CodeGenState.currentFunctionName, name)
     ) {
       return true;
     }
@@ -5564,7 +5443,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #696: Use helper for modifier extraction and validation
     const modifiers = VariableModifierBuilder.build(
       ctx,
-      this.context.inFunctionBody,
+      CodeGenState.inFunctionBody,
     );
 
     const name = ctx.IDENTIFIER().getText();
@@ -5640,18 +5519,18 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ): void {
-    if (!this.context.inFunctionBody) {
+    if (!CodeGenState.inFunctionBody) {
       return;
     }
 
     this.trackVariableType(ctx);
-    this.context.localVariables.add(name);
+    CodeGenState.localVariables.add(name);
 
     // Bug #8: Track local const values for array size and bit index resolution
     if (ctx.constModifier() && ctx.expression()) {
       const constValue = this.tryEvaluateConstant(ctx.expression()!);
       if (constValue !== undefined) {
-        this.constValues.set(name, constValue);
+        CodeGenState.constValues.set(name, constValue);
       }
     }
   }
@@ -5697,7 +5576,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Generate dimensions and track as local array
     const newDecl = decl + this.generateArrayDimensions(arrayDims);
-    this.context.localArrays.add(name);
+    CodeGenState.localArrays.add(name);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
   }
@@ -5733,8 +5612,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     const typeName = this.getTypeName(typeCtx);
-    const savedExpectedType = this.context.expectedType;
-    this.context.expectedType = typeName;
+    const savedExpectedType = CodeGenState.expectedType;
+    CodeGenState.expectedType = typeName;
 
     // ADR-017: Validate enum type for initialization
     this.enumValidator!.validateEnumAssignment(typeName, ctx.expression()!);
@@ -5743,7 +5622,7 @@ export default class CodeGenerator implements IOrchestrator {
     this._validateIntegerInitializer(ctx, typeName);
 
     const result = `${decl} = ${this.generateExpression(ctx.expression()!)}`;
-    this.context.expectedType = savedExpectedType;
+    CodeGenState.expectedType = savedExpectedType;
 
     return result;
   }
@@ -5791,20 +5670,20 @@ export default class CodeGenerator implements IOrchestrator {
     name: string,
     decl: string,
   ): string {
-    if (this.pendingCppClassAssignments.length === 0) {
+    if (CodeGenState.pendingCppClassAssignments.length === 0) {
       return `${decl};`;
     }
 
-    if (this.context.inFunctionBody) {
-      const assignments = this.pendingCppClassAssignments
+    if (CodeGenState.inFunctionBody) {
+      const assignments = CodeGenState.pendingCppClassAssignments
         .map((a) => `${name}.${a}`)
         .join("\n");
-      this.pendingCppClassAssignments = [];
+      CodeGenState.pendingCppClassAssignments = [];
       return `${decl};\n${assignments}`;
     }
 
     // At global scope, we can't emit assignment statements.
-    this.pendingCppClassAssignments = [];
+    CodeGenState.pendingCppClassAssignments = [];
     throw new Error(
       `Error: C++ class '${this.getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
         `syntax at global scope. Use constructor syntax or initialize fields separately.`,
@@ -5832,14 +5711,14 @@ export default class CodeGenerator implements IOrchestrator {
       const argName = argNode.getText();
 
       // Check if it exists in type registry
-      const typeInfo = this.context.typeRegistry.get(argName);
+      const typeInfo = CodeGenState.typeRegistry.get(argName);
 
       // Also check scoped variables if inside a scope
       let scopedArgName = argName;
       let scopedTypeInfo = typeInfo;
-      if (!typeInfo && this.context.currentScope) {
-        scopedArgName = `${this.context.currentScope}_${argName}`;
-        scopedTypeInfo = this.context.typeRegistry.get(scopedArgName);
+      if (!typeInfo && CodeGenState.currentScope) {
+        scopedArgName = `${CodeGenState.currentScope}_${argName}`;
+        scopedTypeInfo = CodeGenState.typeRegistry.get(scopedArgName);
       }
 
       if (!typeInfo && !scopedTypeInfo) {
@@ -5863,7 +5742,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Track the variable in type registry (as an external C++ type)
-    this.context.typeRegistry.set(name, {
+    CodeGenState.typeRegistry.set(name, {
       baseType: type,
       bitWidth: 0, // Unknown for C++ types
       isArray: false,
@@ -5873,8 +5752,8 @@ export default class CodeGenerator implements IOrchestrator {
     });
 
     // Track as local variable if inside function body
-    if (this.context.inFunctionBody) {
-      this.context.localVariables.add(name);
+    if (CodeGenState.inFunctionBody) {
+      CodeGenState.localVariables.add(name);
     }
 
     return `${type} ${name}(${resolvedArgs.join(", ")});`;
@@ -5906,7 +5785,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-017: Enums initialize to first member
    */
   private _getEnumZeroValue(enumName: string, separator: string = "_"): string {
-    const members = this.symbols!.enumMembers.get(enumName);
+    const members = CodeGenState.symbols!.enumMembers.get(enumName);
     if (!members) {
       return `(${enumName})0`;
     }
@@ -5939,8 +5818,8 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-016: Check for scoped types (this.Type)
     if (typeCtx.scopedType()) {
       const localName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      const name = this.context.currentScope
-        ? `${this.context.currentScope}_${localName}`
+      const name = CodeGenState.currentScope
+        ? `${CodeGenState.currentScope}_${localName}`
         : localName;
       return { name, separator: "_", checkCppType: false };
     }
@@ -5987,7 +5866,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // In C++ mode, unknown user types may have non-trivial constructors
     // Known structs (C-Next or C headers) are POD types where {0} works
-    return this.cppMode && !this.isKnownStruct(typeName);
+    return CodeGenState.cppMode && !this.isKnownStruct(typeName);
   }
 
   /**
@@ -6004,11 +5883,11 @@ export default class CodeGenerator implements IOrchestrator {
   // ADR-109: Build handler dependencies for assignment dispatch
   private buildHandlerDeps(): IHandlerDeps {
     return {
-      symbols: this.symbols!,
-      typeRegistry: this.context.typeRegistry,
-      currentScope: this.context.currentScope,
-      currentParameters: this.context.currentParameters,
-      targetCapabilities: this.context.targetCapabilities,
+      symbols: CodeGenState.symbols!,
+      typeRegistry: CodeGenState.typeRegistry,
+      currentScope: CodeGenState.currentScope,
+      currentParameters: CodeGenState.currentParameters,
+      targetCapabilities: CodeGenState.targetCapabilities,
       generateExpression: (ctx) => this.generateExpression(ctx),
       tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
       generateAssignmentTarget: (ctx) => this.generateAssignmentTarget(ctx),
@@ -6083,22 +5962,22 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #644: Set expected type for inferred struct initializers and overflow behavior
     // Delegated to AssignmentExpectedTypeResolver helper
-    const savedExpectedType = this.context.expectedType;
-    const savedAssignmentContext = { ...this.context.assignmentContext };
+    const savedExpectedType = CodeGenState.expectedType;
+    const savedAssignmentContext = { ...CodeGenState.assignmentContext };
 
     const resolved = this.expectedTypeResolver!.resolve(targetCtx);
     if (resolved.expectedType) {
-      this.context.expectedType = resolved.expectedType;
+      CodeGenState.expectedType = resolved.expectedType;
     }
     if (resolved.assignmentContext) {
-      this.context.assignmentContext = resolved.assignmentContext;
+      CodeGenState.assignmentContext = resolved.assignmentContext;
     }
 
     const value = this.generateExpression(ctx.expression());
 
     // Restore expected type and assignment context
-    this.context.expectedType = savedExpectedType;
-    this.context.assignmentContext = savedAssignmentContext;
+    CodeGenState.expectedType = savedExpectedType;
+    CodeGenState.assignmentContext = savedAssignmentContext;
 
     // Get the assignment operator and map to C equivalent
     const operatorCtx = ctx.assignmentOperator();
@@ -6118,7 +5997,7 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-109: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
-      typeRegistry: this.context.typeRegistry,
+      typeRegistry: CodeGenState.typeRegistry,
       generateExpression: () => value,
     });
     const handlerDeps = this.buildHandlerDeps();
@@ -6150,7 +6029,7 @@ export default class CodeGenerator implements IOrchestrator {
       cOp,
       value,
       typeInfo,
-      this.context.targetCapabilities,
+      CodeGenState.targetCapabilities,
     );
     this.applyEffects(result.effects);
     return result.code;
@@ -6162,14 +6041,14 @@ export default class CodeGenerator implements IOrchestrator {
   private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
     return {
       getParameterInfo: (name: string) =>
-        this.context.currentParameters.get(name),
+        CodeGenState.currentParameters.get(name),
       resolveParameter: (name: string, paramInfo: TParameterInfo) =>
         ParameterDereferenceResolver.resolve(
           name,
           paramInfo,
           this._buildParameterDereferenceDeps(),
         ),
-      isLocalVariable: (name: string) => this.context.localVariables.has(name),
+      isLocalVariable: (name: string) => CodeGenState.localVariables.has(name),
       resolveBareIdentifier: (name: string, isLocal: boolean) =>
         this.typeValidator!.resolveBareIdentifier(name, isLocal, (n: string) =>
           this.isKnownStruct(n),
@@ -6197,7 +6076,7 @@ export default class CodeGenerator implements IOrchestrator {
     hasGlobal: boolean,
     hasThis: boolean,
   ): IPostfixChainDeps {
-    const paramInfo = this.context.currentParameters.get(firstId);
+    const paramInfo = CodeGenState.currentParameters.get(firstId);
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
     const separatorDeps = this._buildMemberSeparatorDeps();
@@ -6207,7 +6086,7 @@ export default class CodeGenerator implements IOrchestrator {
         firstId,
         hasGlobal,
         hasThis,
-        this.context.currentScope,
+        CodeGenState.currentScope,
         isStructParam,
         separatorDeps,
         isCppAccess,
@@ -6317,7 +6196,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-016: 'this' returns a marker that postfixOps will transform to Scope_member
    */
   private _resolveThisKeyword(): string {
-    if (!this.context.currentScope) {
+    if (!CodeGenState.currentScope) {
       throw new Error("Error: 'this' can only be used inside a scope");
     }
     return "__THIS_SCOPE__";
@@ -6329,12 +6208,12 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _resolveIdentifierExpression(id: string): string {
     // Special case: main function's args parameter -> argv
-    if (this.context.mainArgsName && id === this.context.mainArgsName) {
+    if (CodeGenState.mainArgsName && id === CodeGenState.mainArgsName) {
       return "argv";
     }
 
     // ADR-006: Check if it's a function parameter
-    const paramInfo = this.context.currentParameters.get(id);
+    const paramInfo = CodeGenState.currentParameters.get(id);
     if (paramInfo) {
       return ParameterDereferenceResolver.resolve(
         id,
@@ -6344,7 +6223,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
-    const isLocalVariable = this.context.localVariables.has(id);
+    const isLocalVariable = CodeGenState.localVariables.has(id);
     const resolved = this.typeValidator!.resolveBareIdentifier(
       id,
       isLocalVariable,
@@ -6352,7 +6231,8 @@ export default class CodeGenerator implements IOrchestrator {
     );
     if (resolved !== null) {
       // Issue #741: Check if this is a private const that should be inlined
-      const constValue = this.symbols!.scopePrivateConstValues.get(resolved);
+      const constValue =
+        CodeGenState.symbols!.scopePrivateConstValues.get(resolved);
       if (constValue !== undefined) {
         return constValue;
       }
@@ -6376,19 +6256,21 @@ export default class CodeGenerator implements IOrchestrator {
   private _resolveUnqualifiedEnumMember(id: string): string | null {
     // Type-aware resolution: check only the expected enum type
     if (
-      this.context.expectedType &&
-      this.symbols!.knownEnums.has(this.context.expectedType)
+      CodeGenState.expectedType &&
+      CodeGenState.symbols!.knownEnums.has(CodeGenState.expectedType)
     ) {
-      const members = this.symbols!.enumMembers.get(this.context.expectedType);
+      const members = CodeGenState.symbols!.enumMembers.get(
+        CodeGenState.expectedType,
+      );
       if (members?.has(id)) {
-        return `${this.context.expectedType}${this.getScopeSeparator(false)}${id}`;
+        return `${CodeGenState.expectedType}${this.getScopeSeparator(false)}${id}`;
       }
       return null;
     }
 
     // No expected enum type - search all enums but error on ambiguity
     const matchingEnums: string[] = [];
-    for (const [enumName, members] of this.symbols!.enumMembers) {
+    for (const [enumName, members] of CodeGenState.symbols!.enumMembers) {
       if (members.has(id)) {
         matchingEnums.push(enumName);
       }
@@ -6545,17 +6427,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-023: Extract simple identifier from expression for parameter checking
-   * Returns the identifier name if expression is a simple variable reference, null otherwise
-   * Issue #707: Delegates to ExpressionUnwrapper utility.
-   */
-  private getSingleIdentifierFromExpr(
-    expr: Parser.ExpressionContext,
-  ): string | null {
-    return ExpressionUnwrapper.getSimpleIdentifier(expr);
-  }
-
-  /**
    * ADR-023: Check if expression has side effects (E0602)
    * Side effects include: assignments, function calls
    */
@@ -6614,7 +6485,10 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-053 A5: Delegates to HelperGenerator
    */
   private generateOverflowHelpers(): string[] {
-    return helperGenerateOverflowHelpers(this.usedClampOps, this.debugMode);
+    return helperGenerateOverflowHelpers(
+      CodeGenState.usedClampOps,
+      CodeGenState.debugMode,
+    );
   }
 
   /**
@@ -6623,7 +6497,7 @@ export default class CodeGenerator implements IOrchestrator {
   private markClampOpUsed(operation: string, cnxType: string): void {
     // Only generate helpers for integer types (not float/bool)
     if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
-      this.usedClampOps.add(`${operation}_${cnxType}`);
+      CodeGenState.usedClampOps.add(`${operation}_${cnxType}`);
     }
   }
 
@@ -6659,7 +6533,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
-    const indent = FormatUtils.indent(this.context.indentLevel);
+    const indent = FormatUtils.indent(CodeGenState.indentLevel);
     return commentFormatLeadingComments(
       comments,
       this.commentFormatter,
@@ -6672,6 +6546,6 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-053 A5: Delegates to HelperGenerator
    */
   private generateSafeDivHelpers(): string[] {
-    return helperGenerateSafeDivHelpers(this.usedSafeDivOps);
+    return helperGenerateSafeDivHelpers(CodeGenState.usedSafeDivOps);
   }
 }

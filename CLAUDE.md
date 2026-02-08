@@ -136,6 +136,12 @@ class Registry { private static map = new Map(); static register() { ... } }
 export default Registry;
 ```
 
+**No private instance members** - Prefer static utility classes over private instance state. When state is needed, use centralized state containers (like `CodeGenState`) with public static properties. This makes testing easier and avoids hidden dependencies.
+
+**No getters/setters** - Avoid `get`/`set` accessors unless needed for a one-way state switch (e.g., `set initialized()`). Direct property access is clearer and more debuggable.
+
+**Composition over inheritance** - Never use class inheritance. Use static utility classes, helper functions, and composition patterns instead. This keeps code flat and testable.
+
 **Readonly Map restoration** - Can't reassign `readonly` Map properties. Use `map.clear()` then `for (const [k, v] of saved) map.set(k, v)` to restore state.
 
 **Edit tool `replace_all` gotcha** - When using `replace_all: true`, the replacement happens iteratively. If your `new_string` contains text that matches `old_string`, you'll get double-replacement (e.g., replacing `Foo` with `Bar.Foo` using `replace_all` results in `Bar.Bar.Foo`). Use targeted single replacements instead.
