@@ -7,6 +7,7 @@
 
 import { ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
+import ExpressionUnwrapper from "./ExpressionUnwrapper";
 
 /**
  * Static utility methods for parser context operations in code generation.
@@ -68,6 +69,29 @@ class CodegenParserUtils {
     // Check for u8 args[][] (legacy - 2D array of bytes)
     const type = typeCtx.getText();
     return (type === "u8" || type === "i8") && dims.length === 2;
+  }
+
+  /**
+   * Extract a simple identifier from an expression, if it is one.
+   * Returns null for complex expressions (binary ops, function calls, etc.)
+   *
+   * A "simple identifier" is an expression that is just a variable name
+   * with no operators, member access, or array indexing.
+   *
+   * @param ctx - The expression context to analyze
+   * @returns The identifier string, or null if not a simple identifier
+   */
+  static getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (!postfix) return null;
+
+    // Has postfix operators like . or [] - not a simple identifier
+    if (postfix.postfixOp().length !== 0) return null;
+
+    const primary = postfix.primaryExpression();
+    if (!primary.IDENTIFIER()) return null;
+
+    return primary.IDENTIFIER()!.getText();
   }
 }
 

@@ -973,10 +973,10 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Get simple identifier from expression, or null if complex.
-   * Part of IOrchestrator interface - delegates to private implementation.
+   * Part of IOrchestrator interface - delegates to CodegenParserUtils.
    */
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-    return this._getSimpleIdentifier(ctx);
+    return CodegenParserUtils.getSimpleIdentifier(ctx);
   }
 
   /**
@@ -4435,22 +4435,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Extract a simple identifier from an expression, if it is one.
-   * Returns null for complex expressions.
-   */
-  private _getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-    const postfix = this.getPostfixExpression(ctx);
-    if (!postfix) return null;
-
-    if (postfix.postfixOp().length !== 0) return null; // Has operators like . or []
-
-    const primary = postfix.primaryExpression();
-    if (!primary.IDENTIFIER()) return null;
-
-    return primary.IDENTIFIER()!.getText();
-  }
-
-  /**
    * Check if an expression is an lvalue that needs & when passed to functions.
    * This includes member access (cursor.x) and array access (arr[i]).
    * Returns the type of lvalue or null if not an lvalue.
@@ -4661,7 +4645,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    const id = this._getSimpleIdentifier(ctx);
+    const id = CodegenParserUtils.getSimpleIdentifier(ctx);
     if (id) {
       return this._handleIdentifierArg(id);
     }

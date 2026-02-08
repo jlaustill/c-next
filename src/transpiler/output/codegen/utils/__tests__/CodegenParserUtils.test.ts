@@ -131,6 +131,38 @@ describe("CodegenParserUtils", () => {
     });
   });
 
+  describe("getSimpleIdentifier", () => {
+    it("returns identifier for simple variable", () => {
+      const expr = parseExpression("myVar");
+      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBe("myVar");
+    });
+
+    it("returns null for member access", () => {
+      const expr = parseExpression("obj.field");
+      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
+    });
+
+    it("returns null for array access", () => {
+      const expr = parseExpression("arr[0]");
+      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
+    });
+
+    it("returns null for binary expression", () => {
+      const expr = parseExpression("a + b");
+      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
+    });
+
+    it("returns null for function call", () => {
+      const expr = parseExpression("foo()");
+      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
+    });
+
+    it("returns null for literal", () => {
+      const expr = parseExpression("42");
+      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
+    });
+  });
+
   describe("isMainFunctionWithArgs", () => {
     it("returns true for main with string args[]", () => {
       const { name, paramList } = parseFunctionDeclaration(
