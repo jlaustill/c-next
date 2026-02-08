@@ -19,6 +19,7 @@ import CNextSourceParser from "./logic/parser/CNextSourceParser";
 import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
+import CodeGenState from "./output/codegen/CodeGenState";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
@@ -1289,8 +1290,8 @@ class Transpiler {
 
     const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
 
-    // Get type input from code generator (for struct/enum definitions)
-    const typeInput = this.codeGenerator.symbols;
+    // Get type input from CodeGenState (for struct/enum definitions)
+    const typeInput = CodeGenState.symbols;
 
     // Update auto-const info on symbol parameters
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
