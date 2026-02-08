@@ -82,6 +82,12 @@ Check the terminal report for files you changed — any new code below 80% cover
 2. **Remove dead code** — TypeScript diagnostics show "declared but never read" warnings; remove unused private methods and imports
 3. **SonarCloud S7776** — Use `Set.has()` instead of `array.includes()` for membership checks
 
+**Coverage analysis tips:**
+
+- **Focused coverage check**: `npm run unit:coverage -- --coverage.include=src/path/to/File.ts` — Run coverage for a specific file
+- **Type-only files (interfaces)**: Show 0% coverage but don't need tests — no executable code
+- **Prioritize coverage improvements**: Balance effort vs impact — small files with few uncovered lines are quick wins
+
 **Useful API queries:**
 
 - **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
@@ -202,6 +208,11 @@ The codebase is organized into three layers under `src/transpiler/`:
 ### Parser Keyword Tokens
 
 - **Keyword tokens vs IDENTIFIER**: Keywords like `this`, `global` are separate tokens, not IDENTIFIERs. Use `ctx.THIS()` not `ctx.IDENTIFIER()?.getText() === "this"` - the latter returns undefined.
+
+### Grammar Type Patterns
+
+- **arrayType in type position**: `u8[10] arr;` uses `arrayType` grammar (distinct from `u8 arr[10]` with `arrayDimension` after identifier)
+- **templateType for C++ interop**: `FlexCAN_T4<CAN1>` parses as `templateType` and passes through unchanged to C++ output
 
 ### AST Navigation Patterns
 
