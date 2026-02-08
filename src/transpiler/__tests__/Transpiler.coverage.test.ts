@@ -15,7 +15,6 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
-import EFileType from "../data/types/EFileType";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;
@@ -171,102 +170,6 @@ describe("Transpiler coverage tests", () => {
       expect(debugCalls.length).toBeGreaterThan(0);
 
       consoleSpy.mockRestore();
-    });
-
-    it("isDebugMode returns correct value", () => {
-      const transpiler = new Transpiler(
-        { inputs: [], debugMode: true, noCache: true },
-        mockFs,
-      );
-
-      expect(transpiler.isDebugMode()).toBe(true);
-    });
-  });
-
-  // ==========================================================================
-  // IStandaloneTranspiler interface tests
-  // ==========================================================================
-
-  describe("IStandaloneTranspiler interface methods", () => {
-    it("getIncludeDirs returns configured include directories", () => {
-      const transpiler = new Transpiler(
-        {
-          inputs: [],
-          includeDirs: ["/path/to/includes", "/another/path"],
-          noCache: true,
-        },
-        mockFs,
-      );
-
-      const dirs = transpiler.getIncludeDirs();
-
-      expect(dirs).toContain("/path/to/includes");
-      expect(dirs).toContain("/another/path");
-    });
-
-    it("addWarning adds to warnings list", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
-
-      transpiler.addWarning("Test warning message");
-
-      // Run a transpile to get warnings in result
-      const result = await transpiler.transpileSource("void main() { }");
-
-      // Warning should be accessible (though not directly in this result)
-      expect(result.success).toBe(true);
-    });
-
-    it("setHeaderIncludeDirective stores directive", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
-
-      transpiler.setHeaderIncludeDirective(
-        "/path/to/header.h",
-        '#include "header.h"',
-      );
-
-      // The directive is stored in state for later use
-      // We can verify indirectly through transpilation with includes
-      expect(transpiler).toBeDefined();
-    });
-
-    it("getProcessedHeaders returns set for deduplication", () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
-
-      const processed = transpiler.getProcessedHeaders();
-
-      expect(processed).toBeInstanceOf(Set);
-    });
-
-    it("collectHeaderSymbols delegates to doCollectHeaderSymbols", async () => {
-      mockFs.addFile("/test/header.h", "typedef int TestInt;");
-
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
-
-      // Should not throw
-      transpiler.collectHeaderSymbols({
-        path: "/test/header.h",
-        type: EFileType.CHeader,
-        extension: ".h",
-      });
-
-      // Verify symbol was collected
-      const symbolTable = transpiler.getSymbolTable();
-      expect(symbolTable.size).toBeGreaterThan(0);
-    });
-
-    it("collectCNextSymbols delegates to doCollectCNextSymbols", async () => {
-      mockFs.addFile("/test/module.cnx", "u32 globalValue <- 42;");
-
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
-
-      transpiler.collectCNextSymbols({
-        path: "/test/module.cnx",
-        type: EFileType.CNext,
-        extension: ".cnx",
-      });
-
-      const symbolTable = transpiler.getSymbolTable();
-      expect(symbolTable.size).toBeGreaterThan(0);
     });
   });
 
@@ -800,7 +703,7 @@ describe("Transpiler coverage tests", () => {
       expect(result.success).toBe(true);
       // File contribution should exist
       expect(result.files[0]).toBeDefined();
-      expect(result.files[0].contribution).toBeDefined();
+      expect(result.files[0].success).toBe(true);
     });
   });
 

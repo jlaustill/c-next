@@ -472,7 +472,7 @@ describe("Transpiler", () => {
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
-        expect(result.errors[0].message).toContain(testFile);
+        expect(result.errors[0].sourcePath).toBe(testFile);
       });
 
       it("includes line and column in parse errors", async () => {
@@ -488,8 +488,8 @@ describe("Transpiler", () => {
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
-        const errorMsg = result.errors[0].message;
-        expect(errorMsg).toMatch(/:\d+:\d+/);
+        expect(result.errors[0].line).toBeGreaterThan(0);
+        expect(result.errors[0].column).toBeGreaterThanOrEqual(0);
       });
 
       it("collects multiple parse errors", async () => {

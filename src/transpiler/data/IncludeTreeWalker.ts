@@ -3,7 +3,7 @@
  * Issue #591: Shared utility for traversing C-Next include trees
  *
  * Eliminates duplicate recursive traversal logic in:
- * - StandaloneContextBuilder.processCNextIncludes()
+ * - Transpiler._discoverFromSource() (standalone include discovery)
  * - TransitiveEnumCollector.collectForStandalone()
  * - TransitiveEnumCollector.collectRecursively()
  */

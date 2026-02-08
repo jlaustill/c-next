@@ -3,6 +3,10 @@
  *
  * These tests verify that run() and transpileSource() produce identical
  * output for the same input, ensuring the refactoring doesn't break anything.
+ *
+ * Design note: Parity is now guaranteed by architecture — both run() and
+ * transpileSource() delegate to the same _executePipeline(). These tests
+ * verify the external behavior still matches.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";

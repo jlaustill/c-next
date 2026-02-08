@@ -189,7 +189,7 @@ class TranspilerState {
 
   /**
    * Get the processed headers Set (for external APIs that require Set access).
-   * Issue #592: Used by IncludeResolver.resolveHeadersTransitively() and IStandaloneTranspiler.
+   * Issue #592: Used by IncludeResolver.resolveHeadersTransitively().
    */
   getProcessedHeadersSet(): Set<string> {
     return this.processedHeaders;
