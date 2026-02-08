@@ -15380,5 +15380,115 @@ describe("CodeGenerator", () => {
         expect(code).toContain("(a + b) * c");
       });
     });
+
+    describe("array access via ArrayAccessHelper", () => {
+      it("should generate single-index array access", () => {
+        const source = `
+          u32 arr[10];
+          void test() {
+            u32 val <- arr[5];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("arr[5]");
+      });
+
+      it("should generate array access with variable index", () => {
+        const source = `
+          u8 data[100];
+          void test(u32 idx) {
+            u8 val <- data[idx];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("data[idx]");
+      });
+
+      it("should generate integer bit range access", () => {
+        const source = `
+          void test() {
+            u32 value <- 0xFF00;
+            u8 byte <- value[8, 8];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain(">> 8");
+        expect(code).toContain("& 0xFF");
+      });
+
+      it("should generate float bit range access with memcpy", () => {
+        const source = `
+          void test() {
+            f32 fval <- 1.5;
+            u8 byte <- fval[0, 8];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("memcpy");
+        expect(code).toContain("__bits_fval");
+      });
+
+      it("should generate f64 bit range access with uint64_t shadow", () => {
+        const source = `
+          void test() {
+            f64 dval <- 1.5;
+            u8 byte <- dval[0, 8];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint64_t __bits_dval");
+        expect(code).toContain("memcpy");
+      });
+    });
   });
 });

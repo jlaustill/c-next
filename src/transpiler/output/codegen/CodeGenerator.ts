@@ -76,10 +76,10 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
-// PR #715: Bit range access helper for improved testability
-import BitRangeHelper from "./helpers/BitRangeHelper";
-// PR #715: Centralized error messages for improved testability
-import CodeGenErrors from "./helpers/CodeGenErrors";
+// Array access helper for improved testability
+import ArrayAccessHelper from "./helpers/ArrayAccessHelper";
+import IArrayAccessInfo from "./types/IArrayAccessInfo";
+import IArrayAccessDeps from "./types/IArrayAccessDeps";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
 // Issue #644: Member chain analyzer for bit access pattern detection
@@ -7432,17 +7432,85 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateArrayAccess(ctx: Parser.ArrayAccessContext): string {
+    const info = this._extractArrayAccessInfo(ctx);
+
+    // ADR-036: Compile-time bounds checking (needs ANTLR context for evaluation)
+    if (info.accessType === "single-index") {
+      this._checkArrayBoundsFromContext(info.rawName, ctx);
+    }
+
+    return ArrayAccessHelper.generate(info, this._buildArrayAccessDeps());
+  }
+
+  /**
+   * Extract array access info from ANTLR context into IR.
+   * Separates parsing from generation for testability.
+   */
+  private _extractArrayAccessInfo(
+    ctx: Parser.ArrayAccessContext,
+  ): IArrayAccessInfo {
     const rawName = ctx.IDENTIFIER().getText();
     const exprs = ctx.expression();
-    const name = this._resolveArrayAccessName(rawName);
+    const resolvedName = this._resolveArrayAccessName(rawName);
+    const typeInfo = this.context.typeRegistry.get(rawName);
+    const line = ctx.start?.line ?? 0;
 
     if (exprs.length === 1) {
-      return this._generateSingleIndexAccess(rawName, name, exprs[0], ctx);
+      return {
+        rawName,
+        resolvedName,
+        accessType: "single-index",
+        indexExpr: this._generateExpression(exprs[0]),
+        typeInfo,
+        line,
+      };
     }
+
     if (exprs.length === 2) {
-      return this._generateBitRangeAccess(rawName, name, exprs);
+      return {
+        rawName,
+        resolvedName,
+        accessType: "bit-range",
+        startExpr: this._generateExpression(exprs[0]),
+        widthExpr: this._generateExpression(exprs[1]),
+        typeInfo,
+        line,
+      };
     }
-    return `${name}[/* error */]`;
+
+    // Fallback for invalid syntax
+    return {
+      rawName,
+      resolvedName,
+      accessType: "single-index",
+      indexExpr: "/* error */",
+      typeInfo,
+      line,
+    };
+  }
+
+  /**
+   * Build the dependency adapter for ArrayAccessHelper.
+   * Wraps CodeGenerator methods to match IArrayAccessDeps interface.
+   */
+  private _buildArrayAccessDeps(): IArrayAccessDeps {
+    return {
+      generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
+      requireInclude: (header) => this.requireInclude(header),
+      isInFunctionBody: () => this.context.inFunctionBody,
+      registerFloatShadow: (shadowName, shadowType) => {
+        if (this.context.floatBitShadows.has(shadowName)) {
+          return false;
+        }
+        this.context.floatBitShadows.add(shadowName);
+        this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
+        return true;
+      },
+      isShadowCurrent: (shadowName) =>
+        this.context.floatShadowCurrent.has(shadowName),
+      markShadowCurrent: (shadowName) =>
+        this.context.floatShadowCurrent.add(shadowName),
+    };
   }
 
   /**
@@ -7465,144 +7533,25 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Generate single index access: array[i] or bit access flags[3]
+   * Check array bounds from ANTLR context.
+   * Kept in CodeGenerator because it needs _tryEvaluateConstant.
    */
-  private _generateSingleIndexAccess(
+  private _checkArrayBoundsFromContext(
     rawName: string,
-    name: string,
-    indexExpr: Parser.ExpressionContext,
     ctx: Parser.ArrayAccessContext,
-  ): string {
+  ): void {
     const typeInfo = this.context.typeRegistry.get(rawName);
+    const exprs = ctx.expression();
 
-    // Check if this is a bitmap type
-    if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-      const line = ctx.start?.line ?? 0;
-      throw CodeGenErrors.bitmapBracketIndexing(
-        line,
-        typeInfo.bitmapTypeName,
-        rawName,
-      );
-    }
-
-    // ADR-036: Compile-time bounds checking
-    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
+    if (typeInfo?.isArray && typeInfo.arrayDimensions && exprs.length > 0) {
       this.typeValidator!.checkArrayBounds(
         rawName,
         typeInfo.arrayDimensions,
-        [indexExpr],
+        [exprs[0]],
         ctx.start?.line ?? 0,
         (expr) => this._tryEvaluateConstant(expr),
       );
     }
-
-    const index = this._generateExpression(indexExpr);
-    return `${name}[${index}]`;
-  }
-
-  /**
-   * Generate bit range access: flags[start, width]
-   */
-  private _generateBitRangeAccess(
-    rawName: string,
-    name: string,
-    exprs: Parser.ExpressionContext[],
-  ): string {
-    const start = this._generateExpression(exprs[0]);
-    const width = this._generateExpression(exprs[1]);
-    const typeInfo = this.context.typeRegistry.get(rawName);
-
-    // Float bit indexing read: use shadow variable + memcpy
-    const isFloatType =
-      typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
-    if (isFloatType && typeInfo) {
-      return this._generateFloatBitRangeRead(
-        rawName,
-        name,
-        start,
-        width,
-        typeInfo,
-      );
-    }
-
-    return this._generateIntegerBitRangeRead(name, start, width);
-  }
-
-  /**
-   * Generate float bit range read with shadow variable
-   */
-  private _generateFloatBitRangeRead(
-    rawName: string,
-    name: string,
-    start: string,
-    width: string,
-    typeInfo: { baseType: string },
-  ): string {
-    if (!this.context.inFunctionBody) {
-      throw CodeGenErrors.floatBitIndexingAtGlobalScope(rawName, start, width);
-    }
-
-    this.requireInclude("string");
-    this.requireInclude("float_static_assert");
-
-    const isF64 = typeInfo.baseType === "f64";
-    const shadowType = isF64 ? "uint64_t" : "uint32_t";
-    const shadowName = `__bits_${rawName}`;
-    const mask = this.generateBitMask(width, isF64);
-
-    // Ensure shadow variable is declared
-    if (!this.context.floatBitShadows.has(shadowName)) {
-      this.context.floatBitShadows.add(shadowName);
-      this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
-    }
-
-    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-    this.context.floatShadowCurrent.add(shadowName);
-
-    return this._buildFloatBitReadExpr(
-      shadowName,
-      name,
-      start,
-      mask,
-      shadowIsCurrent,
-    );
-  }
-
-  /**
-   * Build the bit read expression for floats.
-   * Delegates to BitRangeHelper for testability.
-   */
-  private _buildFloatBitReadExpr(
-    shadowName: string,
-    name: string,
-    start: string,
-    mask: string,
-    shadowIsCurrent: boolean,
-  ): string {
-    return BitRangeHelper.buildFloatBitReadExpr({
-      shadowName,
-      varName: name,
-      start,
-      mask,
-      shadowIsCurrent,
-    });
-  }
-
-  /**
-   * Generate integer bit range read: ((value >> start) & mask)
-   * Delegates to BitRangeHelper for testability.
-   */
-  private _generateIntegerBitRangeRead(
-    name: string,
-    start: string,
-    width: string,
-  ): string {
-    const mask = this.generateBitMask(width);
-    return BitRangeHelper.buildIntegerBitReadExpr({
-      varName: name,
-      start,
-      mask,
-    });
   }
 
   // ========================================================================
