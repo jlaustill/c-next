@@ -55,6 +55,10 @@ interface ICallGraphEntry {
 /**
  * Global state for code generation.
  * All fields are static - import and use directly from any module.
+ *
+ * NOTE: All static properties are intentionally mutable (not readonly).
+ * This class holds session state that is reset via reset() and modified
+ * during code generation.
  */
 export default class CodeGenState {
   // ===========================================================================
