@@ -132,6 +132,8 @@ import AssignmentTargetExtractor from "./helpers/AssignmentTargetExtractor";
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
 import CastValidator from "./helpers/CastValidator";
+// Global state for code generation (simplifies debugging, eliminates DI complexity)
+import CodeGenState from "./CodeGenState";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1375,6 +1377,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   registerLocalVariable(name: string): void {
     this.context.localVariables.add(name);
+    CodeGenState.localVariables.add(name);
   }
 
   // === Declaration Generation (ADR-053 A4) ===
@@ -1566,6 +1569,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   setCurrentScope(name: string | null): void {
     this.context.currentScope = name;
+    CodeGenState.currentScope = name;
   }
 
   /**
@@ -1574,6 +1578,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   setCurrentFunctionName(name: string | null): void {
     this.context.currentFunctionName = name;
+    CodeGenState.currentFunctionName = name;
   }
 
   /**
@@ -1589,6 +1594,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   setCurrentFunctionReturnType(returnType: string | null): void {
     this.context.currentFunctionReturnType = returnType;
+    CodeGenState.currentFunctionReturnType = returnType;
   }
 
   // === Function Body Management (A4) ===
@@ -1599,6 +1605,8 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.floatShadowCurrent.clear();
     // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
     this.context.inFunctionBody = true;
+    // Sync with CodeGenState
+    CodeGenState.enterFunctionBody();
   }
 
   exitFunctionBody(): void {
@@ -1607,10 +1615,14 @@ export default class CodeGenerator implements IOrchestrator {
     this.context.floatBitShadows.clear();
     this.context.floatShadowCurrent.clear();
     this.context.mainArgsName = null;
+    // Sync with CodeGenState
+    CodeGenState.exitFunctionBody();
+    CodeGenState.mainArgsName = null;
   }
 
   setMainArgsName(name: string | null): void {
     this.context.mainArgsName = name;
+    CodeGenState.mainArgsName = name;
   }
 
   isMainFunctionWithArgs(
@@ -2282,12 +2294,23 @@ export default class CodeGenerator implements IOrchestrator {
     this.commentExtractor = this.tokenStream
       ? new CommentExtractor(this.tokenStream)
       : null;
+
+    // Populate CodeGenState with configuration
+    CodeGenState.debugMode = this.debugMode;
+    CodeGenState.cppMode = this.cppMode;
+    CodeGenState.sourcePath = this.sourcePath;
+    CodeGenState.includeDirs = this.includeDirs;
+    CodeGenState.inputs = this.inputs;
   }
 
   /**
    * Reset all generator state for a fresh generation pass.
    */
   private resetGeneratorState(targetCapabilities: TargetCapabilities): void {
+    // Reset global state first
+    CodeGenState.reset(targetCapabilities);
+
+    // Reset local context (will gradually migrate to CodeGenState)
     this.context = CodeGenerator.createDefaultContext(targetCapabilities);
 
     this.knownFunctions = new Set();
@@ -2316,6 +2339,8 @@ export default class CodeGenerator implements IOrchestrator {
     // Copy symbol data to context.scopeMembers
     for (const [scopeName, members] of symbols.scopeMembers) {
       this.context.scopeMembers.set(scopeName, new Set(members));
+      // Also populate CodeGenState
+      CodeGenState.scopeMembers.set(scopeName, new Set(members));
     }
 
     // Issue #461: Initialize constValues from symbol table
@@ -2330,10 +2355,16 @@ export default class CodeGenerator implements IOrchestrator {
           const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
           if (value !== undefined) {
             this.constValues.set(symbol.name, value);
+            // Also populate CodeGenState
+            CodeGenState.constValues.set(symbol.name, value);
           }
         }
       }
     }
+
+    // Populate CodeGenState with symbol references
+    CodeGenState.symbols = this.symbols;
+    CodeGenState.symbolTable = this.symbolTable;
   }
 
   /**
