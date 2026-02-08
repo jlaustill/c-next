@@ -24,6 +24,18 @@ import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
 
 /**
+ * Extract scoped name from a declaration node.
+ * Returns both the local name and the fully qualified scoped name.
+ */
+function getScopedName(
+  node: { IDENTIFIER(): { getText(): string } },
+  scopeName: string,
+): { name: string; fullName: string } {
+  const name = node.IDENTIFIER().getText();
+  return { name, fullName: `${scopeName}_${name}` };
+}
+
+/**
  * Validate and resolve constructor arguments, ensuring each is const.
  * Returns array of scope-prefixed argument names.
  */
@@ -339,11 +351,8 @@ function generateScopedEnumInline(
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
-  const name = node.IDENTIFIER().getText();
-  const fullName = `${scopeName}_${name}`;
-
-  const lines: string[] = [];
-  lines.push(`typedef enum {`);
+  const { fullName } = getScopedName(node, scopeName);
+  const lines: string[] = [`typedef enum {`];
 
   // Try to get members from symbol info first
   const symbolMembers = input.symbols?.enumMembers.get(fullName);
@@ -459,11 +468,8 @@ function generateScopedStructInline(
   _input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
-  const name = node.IDENTIFIER().getText();
-  const fullName = `${scopeName}_${name}`;
-
-  const lines: string[] = [];
-  lines.push(`typedef struct ${fullName} {`);
+  const { fullName } = getScopedName(node, scopeName);
+  const lines: string[] = [`typedef struct ${fullName} {`];
 
   // Process struct members
   for (const member of node.structMember()) {

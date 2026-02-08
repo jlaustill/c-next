@@ -10,6 +10,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TTypeInfo from "../types/TTypeInfo.js";
 import TOverflowBehavior from "../types/TOverflowBehavior.js";
+import analyzePostfixOps from "../../../../utils/PostfixAnalysisUtils.js";
 
 /**
  * Result of resolving expected type for an assignment target.
@@ -69,16 +70,10 @@ class AssignmentExpectedTypeResolver {
 
     // Case 2: Has member access - extract identifiers from postfix chain
     if (baseId && postfixOps.length > 0) {
-      const identifiers: string[] = [baseId];
-      let hasSubscript = false;
-
-      for (const op of postfixOps) {
-        if (op.IDENTIFIER()) {
-          identifiers.push(op.IDENTIFIER()!.getText());
-        } else {
-          hasSubscript = true;
-        }
-      }
+      const { identifiers, hasSubscript } = analyzePostfixOps(
+        baseId,
+        postfixOps,
+      );
 
       // If we have member access (multiple identifiers), resolve for member chain
       if (identifiers.length >= 2 && !hasSubscript) {

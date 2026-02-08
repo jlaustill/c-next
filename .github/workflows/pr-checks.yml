@@ -62,6 +62,11 @@ jobs:
         run: npm run lint:test-location
         continue-on-error: true
 
+      - name: Check code duplication (jscpd)
+        id: jscpd
+        run: npm run analyze:duplication
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -72,6 +77,7 @@ jobs:
           [ "${{ steps.knip.outcome }}" != "success" ] && echo "❌ Dead code (knip)" && FAILED=1 || echo "✅ Dead code (knip)"
           [ "${{ steps.depcruise.outcome }}" != "success" ] && echo "❌ Architecture (depcruise)" && FAILED=1 || echo "✅ Architecture (depcruise)"
           [ "${{ steps.testlocation.outcome }}" != "success" ] && echo "❌ Test file locations" && FAILED=1 || echo "✅ Test file locations"
+          [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   # ============================================================================
