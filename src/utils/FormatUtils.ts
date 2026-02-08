@@ -20,17 +20,32 @@ class FormatUtils {
   }
 
   /**
-   * Indent each line of a multi-line string.
+   * Indent each line of a multi-line string (skips empty lines).
    *
    * @param text - The text to indent (may contain newlines)
    * @param level - The indentation level
-   * @returns Text with each line indented
+   * @returns Text with each non-empty line indented
    */
   static indentLines(text: string, level: number): string {
     const prefix = FormatUtils.indent(level);
     return text
       .split("\n")
       .map((line) => (line.length > 0 ? prefix + line : line))
+      .join("\n");
+  }
+
+  /**
+   * Indent ALL lines of a multi-line string (including empty lines).
+   *
+   * @param text - The text to indent (may contain newlines)
+   * @param level - The indentation level
+   * @returns Text with every line indented
+   */
+  static indentAllLines(text: string, level: number): string {
+    const prefix = FormatUtils.indent(level);
+    return text
+      .split("\n")
+      .map((line) => prefix + line)
       .join("\n");
   }
 

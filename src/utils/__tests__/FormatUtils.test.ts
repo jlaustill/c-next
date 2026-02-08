@@ -52,6 +52,35 @@ describe("FormatUtils.indentLines", () => {
 });
 
 // ========================================================================
+// indentAllLines
+// ========================================================================
+describe("FormatUtils.indentAllLines", () => {
+  it("indents single line", () => {
+    expect(FormatUtils.indentAllLines("code;", 1)).toBe("    code;");
+  });
+
+  it("indents multiple lines", () => {
+    expect(FormatUtils.indentAllLines("line1;\nline2;", 1)).toBe(
+      "    line1;\n    line2;",
+    );
+  });
+
+  it("indents empty lines (unlike indentLines)", () => {
+    expect(FormatUtils.indentAllLines("line1;\n\nline2;", 1)).toBe(
+      "    line1;\n    \n    line2;",
+    );
+  });
+
+  it("handles level 0 (no indent)", () => {
+    expect(FormatUtils.indentAllLines("code;", 0)).toBe("code;");
+  });
+
+  it("handles deeper indentation", () => {
+    expect(FormatUtils.indentAllLines("x = 1;", 2)).toBe("        x = 1;");
+  });
+});
+
+// ========================================================================
 // joinNonEmpty
 // ========================================================================
 describe("FormatUtils.joinNonEmpty", () => {
