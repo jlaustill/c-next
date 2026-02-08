@@ -62,6 +62,24 @@ class ExpressionUnwrapper {
   }
 
   /**
+   * Navigate from ShiftExpressionContext to UnaryExpressionContext.
+   * Returns null if any level has multiple terms.
+   */
+  private static navigateShiftToUnary(
+    shift: Parser.ShiftExpressionContext,
+  ): Parser.UnaryExpressionContext | null {
+    if (shift.additiveExpression().length !== 1) return null;
+
+    const add = shift.additiveExpression()[0];
+    if (add.multiplicativeExpression().length !== 1) return null;
+
+    const mult = add.multiplicativeExpression()[0];
+    if (mult.unaryExpression().length !== 1) return null;
+
+    return mult.unaryExpression()[0];
+  }
+
+  /**
    * Navigate from ExpressionContext to PostfixExpressionContext.
    * Returns null if the expression has multiple terms at any level
    * (indicating binary operations).
@@ -76,16 +94,8 @@ class ExpressionUnwrapper {
     const shift = this.navigateToShift(ctx);
     if (!shift) return null;
 
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    const unary = mult.unaryExpression()[0];
-    if (!unary.postfixExpression()) return null;
+    const unary = this.navigateShiftToUnary(shift);
+    if (!unary?.postfixExpression()) return null;
 
     return unary.postfixExpression()!;
   }
@@ -102,15 +112,7 @@ class ExpressionUnwrapper {
     const shift = this.navigateToShift(ctx);
     if (!shift) return null;
 
-    if (shift.additiveExpression().length !== 1) return null;
-
-    const add = shift.additiveExpression()[0];
-    if (add.multiplicativeExpression().length !== 1) return null;
-
-    const mult = add.multiplicativeExpression()[0];
-    if (mult.unaryExpression().length !== 1) return null;
-
-    return mult.unaryExpression()[0];
+    return this.navigateShiftToUnary(shift);
   }
 
   /**

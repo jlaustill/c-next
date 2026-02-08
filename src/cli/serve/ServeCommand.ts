@@ -46,11 +46,47 @@ interface IServeOptions {
 /**
  * JSON-RPC server command
  */
+/** Validated source params from JSON-RPC request */
+interface ISourceParams {
+  source: string;
+  filePath: string | undefined;
+}
+
 class ServeCommand {
   private static shouldShutdown = false;
   private static readline: Interface | null = null;
   private static debugMode = false;
   private static transpiler: Transpiler | null = null;
+
+  /**
+   * Validate and extract source params from JSON-RPC request.
+   * Returns error result if validation fails, otherwise extracted params.
+   */
+  private static validateSourceParams(
+    params?: Record<string, unknown>,
+  ): ISourceParams | IMethodResult {
+    if (!params || typeof params.source !== "string") {
+      return {
+        success: false,
+        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
+        errorMessage: "Missing required param: source",
+      };
+    }
+    return {
+      source: String(params.source),
+      filePath:
+        typeof params.filePath === "string" ? params.filePath : undefined,
+    };
+  }
+
+  /**
+   * Type guard to check if validation returned an error.
+   */
+  private static isError(
+    result: ISourceParams | IMethodResult,
+  ): result is IMethodResult {
+    return "success" in result && result.success === false;
+  }
 
   /**
    * Method handlers registry
@@ -230,13 +266,8 @@ class ServeCommand {
   private static async handleTranspile(
     params?: Record<string, unknown>,
   ): Promise<IMethodResult> {
-    if (!params || typeof params.source !== "string") {
-      return {
-        success: false,
-        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
-        errorMessage: "Missing required param: source",
-      };
-    }
+    const validated = ServeCommand.validateSourceParams(params);
+    if (ServeCommand.isError(validated)) return validated;
 
     if (!ServeCommand.transpiler) {
       return {
@@ -246,9 +277,7 @@ class ServeCommand {
       };
     }
 
-    const source = String(params.source);
-    const filePath =
-      typeof params.filePath === "string" ? params.filePath : undefined;
+    const { source, filePath } = validated;
 
     const options = filePath
       ? { workingDir: dirname(filePath), sourcePath: filePath }
@@ -278,17 +307,10 @@ class ServeCommand {
   private static async handleParseSymbols(
     params?: Record<string, unknown>,
   ): Promise<IMethodResult> {
-    if (!params || typeof params.source !== "string") {
-      return {
-        success: false,
-        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
-        errorMessage: "Missing required param: source",
-      };
-    }
+    const validated = ServeCommand.validateSourceParams(params);
+    if (ServeCommand.isError(validated)) return validated;
 
-    const source = String(params.source);
-    const filePath =
-      typeof params.filePath === "string" ? params.filePath : undefined;
+    const { source, filePath } = validated;
 
     // If transpiler is initialized, run transpileSource to trigger header
     // resolution and C++ detection (results are discarded, we just want
@@ -320,17 +342,10 @@ class ServeCommand {
   private static async handleParseCHeader(
     params?: Record<string, unknown>,
   ): Promise<IMethodResult> {
-    if (!params || typeof params.source !== "string") {
-      return {
-        success: false,
-        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
-        errorMessage: "Missing required param: source",
-      };
-    }
+    const validated = ServeCommand.validateSourceParams(params);
+    if (ServeCommand.isError(validated)) return validated;
 
-    const source = String(params.source);
-    const filePath =
-      typeof params.filePath === "string" ? params.filePath : undefined;
+    const { source, filePath } = validated;
 
     const result = parseCHeader(source, filePath);
 

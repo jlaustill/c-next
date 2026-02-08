@@ -25,23 +25,7 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 import ExpressionUtils from "../../../../../utils/ExpressionUtils";
-
-/**
- * Maps C-Next assignment operators to C assignment operators
- */
-const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
-  "<-": "=",
-  "+<-": "+=",
-  "-<-": "-=",
-  "*<-": "*=",
-  "/<-": "/=",
-  "%<-": "%=",
-  "&<-": "&=",
-  "|<-": "|=",
-  "^<-": "^=",
-  "<<<-": "<<=",
-  ">><-": ">>=",
-};
+import ASSIGNMENT_OPERATOR_MAP from "../../../../../utils/constants/AssignmentOperators";
 
 /**
  * Issue #477: Check if a simple identifier is an unqualified enum member.
