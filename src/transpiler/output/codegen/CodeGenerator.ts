@@ -136,6 +136,7 @@ import CastValidator from "./helpers/CastValidator";
 import CodeGenState from "./CodeGenState";
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
+import EnumTypeResolver from "./resolution/EnumTypeResolver";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -930,7 +931,7 @@ export default class CodeGenerator implements IOrchestrator {
   getExpressionEnumType(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
-    return this._getExpressionEnumType(ctx);
+    return EnumTypeResolver.resolve(ctx);
   }
 
   /**
@@ -2315,6 +2316,9 @@ export default class CodeGenerator implements IOrchestrator {
     // Reset local context (will gradually migrate to CodeGenState)
     this.context = CodeGenerator.createDefaultContext(targetCapabilities);
 
+    // Sync typeRegistry - both should point to the same Map
+    CodeGenState.typeRegistry = this.context.typeRegistry;
+
     this.knownFunctions = new Set();
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
@@ -2914,7 +2918,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Set currentScope so that this.Type references resolve correctly
     const savedScope = this.context.currentScope;
-    this.context.currentScope = scopeName;
+    this.setCurrentScope(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
       if (member.variableDeclaration()) {
@@ -2927,7 +2931,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Restore previous scope
-    this.context.currentScope = savedScope;
+    this.setCurrentScope(savedScope);
   }
 
   // Issue #60: collectEnum and collectBitmap methods removed - now in SymbolCollector
@@ -4028,7 +4032,7 @@ export default class CodeGenerator implements IOrchestrator {
       arrayDimensions.push(stringCapacity + 1);
     }
 
-    this.context.typeRegistry.set(name, {
+    const registeredType = {
       baseType: typeName,
       bitWidth: isBitmap
         ? this.symbols!.bitmapBitWidth.get(typeName) || 0
@@ -4043,7 +4047,9 @@ export default class CodeGenerator implements IOrchestrator {
       isString,
       stringCapacity,
       isParameter: true,
-    });
+    };
+    this.context.typeRegistry.set(name, registeredType);
+    CodeGenState.typeRegistry.set(name, registeredType);
   }
 
   /**
@@ -4173,187 +4179,9 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #63: validateCallbackAssignment, callbackSignaturesMatch, isConstValue,
   //            and validateBareIdentifierInScope moved to TypeValidator
 
-  /**
-   * ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
-   */
-  private _getEnumTypeFromThisEnum(parts: string[]): string | null {
-    if (parts[0] !== "this" || !this.context.currentScope || parts.length < 3) {
-      return null;
-    }
-    const enumName = parts[1];
-    const scopedEnumName = `${this.context.currentScope}_${enumName}`;
-    return this.symbols!.knownEnums.has(scopedEnumName) ? scopedEnumName : null;
-  }
-
-  /**
-   * Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
-   */
-  private _getEnumTypeFromGlobalEnum(parts: string[]): string | null {
-    if (parts[0] !== "global" || parts.length < 3) {
-      return null;
-    }
-    const enumName = parts[1];
-    return this.symbols!.knownEnums.has(enumName) ? enumName : null;
-  }
-
-  /**
-   * ADR-016: Check this.variable pattern (this.varName where varName is enum type)
-   */
-  private _getEnumTypeFromThisVariable(parts: string[]): string | null {
-    if (
-      parts[0] !== "this" ||
-      !this.context.currentScope ||
-      parts.length !== 2
-    ) {
-      return null;
-    }
-    const varName = parts[1];
-    const scopedVarName = `${this.context.currentScope}_${varName}`;
-    const typeInfo = this.context.typeRegistry.get(scopedVarName);
-    if (typeInfo?.isEnum && typeInfo.enumTypeName) {
-      return typeInfo.enumTypeName;
-    }
-    return null;
-  }
-
-  /**
-   * Check scoped enum: Motor.State.IDLE -> Motor_State
-   */
-  private _getEnumTypeFromScopedEnum(parts: string[]): string | null {
-    if (parts.length < 3) {
-      return null;
-    }
-    const scopeName = parts[0];
-    const enumName = parts[1];
-    const scopedEnumName = `${scopeName}_${enumName}`;
-    return this.symbols!.knownEnums.has(scopedEnumName) ? scopedEnumName : null;
-  }
-
-  /**
-   * Check if parts represent an enum member access and return the enum type.
-   */
-  private _getEnumTypeFromMemberAccess(parts: string[]): string | null {
-    if (parts.length < 2) {
-      return null;
-    }
-
-    // ADR-016: Check this.State.IDLE pattern
-    const thisEnumType = this._getEnumTypeFromThisEnum(parts);
-    if (thisEnumType) return thisEnumType;
-
-    // Issue #478: Check global.Enum.Member pattern
-    const globalEnumType = this._getEnumTypeFromGlobalEnum(parts);
-    if (globalEnumType) return globalEnumType;
-
-    // ADR-016: Check this.variable pattern
-    const thisVarType = this._getEnumTypeFromThisVariable(parts);
-    if (thisVarType) return thisVarType;
-
-    // Check simple enum: State.IDLE
-    const possibleEnum = parts[0];
-    if (this.symbols!.knownEnums.has(possibleEnum)) {
-      return possibleEnum;
-    }
-
-    // Check scoped enum: Motor.State.IDLE -> Motor_State
-    return this._getEnumTypeFromScopedEnum(parts);
-  }
-
-  /**
-   * ADR-017: Extract enum type from an expression.
-   * Returns the enum type name if the expression is an enum value, null otherwise.
-   *
-   * Handles:
-   * - Variable of enum type: `currentState` -> 'State'
-   * - Enum member access: `State.IDLE` -> 'State'
-   * - Scoped enum member: `Motor.State.IDLE` -> 'Motor_State'
-   * - ADR-016: this.State.IDLE -> 'CurrentScope_State'
-   * - ADR-016: this.variable -> enum type if variable is of enum type
-   */
-  private _getExpressionEnumType(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): string | null {
-    const text = ctx.getText();
-
-    // Check if it's a function call returning an enum
-    const enumReturnType = this._getFunctionCallEnumType(text);
-    if (enumReturnType) {
-      return enumReturnType;
-    }
-
-    // Check if it's a simple identifier that's an enum variable
-    if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = this.context.typeRegistry.get(text);
-      if (typeInfo?.isEnum && typeInfo.enumTypeName) {
-        return typeInfo.enumTypeName;
-      }
-    }
-
-    // Check member access patterns: EnumType.MEMBER, Scope.EnumType.MEMBER, etc.
-    return this._getEnumTypeFromMemberAccess(text.split("."));
-  }
-
-  /**
-   * Check if an expression is a function call returning an enum type.
-   * Handles patterns:
-   * - func() or func(args) - global function
-   * - Scope.method() or Scope.method(args) - scope method from outside
-   * - this.method() or this.method(args) - scope method from inside
-   * - global.func() or global.func(args) - global function from inside scope
-   * - global.Scope.method() or global.Scope.method(args) - scope method from inside another scope
-   */
-  private _getFunctionCallEnumType(text: string): string | null {
-    // Check if this looks like a function call (contains parentheses)
-    const parenIndex = text.indexOf("(");
-    if (parenIndex === -1) {
-      return null;
-    }
-
-    // Extract the function reference (everything before the opening paren)
-    const funcRef = text.substring(0, parenIndex);
-    const parts = funcRef.split(".");
-
-    let fullFuncName: string | null = null;
-
-    if (parts.length === 1) {
-      // Simple function call: func()
-      fullFuncName = parts[0];
-    } else if (parts.length === 2) {
-      if (parts[0] === "this" && this.context.currentScope) {
-        // this.method() -> Scope_method
-        fullFuncName = `${this.context.currentScope}_${parts[1]}`;
-      } else if (parts[0] === "global") {
-        // global.func() -> func
-        fullFuncName = parts[1];
-      } else if (this.symbols!.knownScopes.has(parts[0])) {
-        // Scope.method() -> Scope_method
-        fullFuncName = `${parts[0]}_${parts[1]}`;
-      }
-    } else if (parts.length === 3) {
-      if (parts[0] === "global" && this.symbols!.knownScopes.has(parts[1])) {
-        // global.Scope.method() -> Scope_method
-        fullFuncName = `${parts[1]}_${parts[2]}`;
-      }
-    }
-
-    if (!fullFuncName) {
-      return null;
-    }
-
-    // Look up the function's return type
-    const returnType = this.symbols!.functionReturnTypes.get(fullFuncName);
-    if (!returnType) {
-      return null;
-    }
-
-    // Check if the return type is an enum
-    if (this.symbols!.knownEnums.has(returnType)) {
-      return returnType;
-    }
-
-    return null;
-  }
-
+  // EnumTypeResolver now handles: _getEnumTypeFromThisEnum, _getEnumTypeFromGlobalEnum,
+  // _getEnumTypeFromThisVariable, _getEnumTypeFromScopedEnum, _getEnumTypeFromMemberAccess,
+  // _getExpressionEnumType, _getFunctionCallEnumType
   /**
    * ADR-017: Check if an expression represents an integer literal or numeric type.
    * Used to detect comparisons between enums and integers.
