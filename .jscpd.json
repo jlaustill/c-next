@@ -3,6 +3,7 @@
   "reporters": ["console"],
   "ignore": [
     "**/node_modules/**",
+    "**/antlr_parser/**",
     "**/parser/grammar/**",
     "**/parser/c/grammar/**",
     "**/parser/cpp/grammar/**",
