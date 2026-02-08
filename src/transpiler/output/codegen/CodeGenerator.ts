@@ -811,10 +811,24 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate type translation (C-Next type -> C type).
-   * Part of IOrchestrator interface - delegates to private implementation.
+   * Part of IOrchestrator interface.
    */
   generateType(ctx: Parser.TypeContext): string {
-    return this._generateType(ctx);
+    // Track required includes based on type usage
+    const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
+    if (requiredInclude) {
+      this.requireInclude(requiredInclude);
+    }
+
+    // Generate the C type using the helper with dependencies
+    return TypeGenerationHelper.generate(ctx, {
+      currentScope: this.context.currentScope,
+      isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
+      checkNeedsStructKeyword: (name) =>
+        this.symbolTable?.checkNeedsStructKeyword(name) ?? false,
+      validateCrossScopeVisibility: (scope, member) =>
+        this._validateCrossScopeVisibility(scope, member),
+    });
   }
 
   /**
@@ -1241,7 +1255,32 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Get the raw type name without C conversion */
   getTypeName(ctx: Parser.TypeContext): string {
-    return this._getTypeName(ctx);
+    // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+    if (ctx.scopedType()) {
+      const typeName = ctx.scopedType()!.IDENTIFIER().getText();
+      if (this.context.currentScope) {
+        return `${this.context.currentScope}_${typeName}`;
+      }
+      return typeName;
+    }
+    // Issue #478: Handle global.Type for global types inside scope
+    if (ctx.globalType()) {
+      return ctx.globalType()!.IDENTIFIER().getText();
+    }
+    // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+    // Issue #388: Also handles C++ namespace types
+    if (ctx.qualifiedType()) {
+      const identifiers = ctx.qualifiedType()!.IDENTIFIER();
+      const identifierNames = identifiers.map((id) => id.getText());
+      return this.resolveQualifiedType(identifierNames);
+    }
+    if (ctx.userType()) {
+      return ctx.userType()!.getText();
+    }
+    if (ctx.primitiveType()) {
+      return ctx.primitiveType()!.getText();
+    }
+    return ctx.getText();
   }
 
   /** Try to evaluate a constant expression at compile time */
@@ -2163,7 +2202,7 @@ export default class CodeGenerator implements IOrchestrator {
         this.context.expectedType = type;
       },
       generateExpression: (ctx) => this._generateExpression(ctx),
-      getTypeName: (ctx) => this._getTypeName(ctx),
+      getTypeName: (ctx) => this.getTypeName(ctx),
       generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
     });
 
@@ -2512,7 +2551,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     for (const member of structDecl.structMember()) {
       const fieldName = member.IDENTIFIER().getText();
-      const fieldType = this._getTypeName(member.type());
+      const fieldType = this.getTypeName(member.type());
 
       // Track callback field types (needed for typedef generation)
       if (this.callbackTypes.has(fieldType)) {
@@ -3767,7 +3806,7 @@ export default class CodeGenerator implements IOrchestrator {
         const isConst = param.constModifier() !== null;
         // arrayDimension() returns an array (due to grammar's *), so check length
         const isArray = param.arrayDimension().length > 0;
-        const baseType = this._getTypeName(param.type());
+        const baseType = this.getTypeName(param.type());
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }
@@ -3783,7 +3822,7 @@ export default class CodeGenerator implements IOrchestrator {
     name: string,
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
-    const returnType = this._generateType(funcDecl.type());
+    const returnType = this.generateType(funcDecl.type());
     const parameters: Array<{
       name: string;
       type: string;
@@ -3796,7 +3835,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (funcDecl.parameterList()) {
       for (const param of funcDecl.parameterList()!.parameter()) {
         const paramName = param.IDENTIFIER().getText();
-        const typeName = this._getTypeName(param.type());
+        const typeName = this.getTypeName(param.type());
         const isConst = param.constModifier() !== null;
         const dims = param.arrayDimension();
         const isArray = dims.length > 0;
@@ -3813,7 +3852,7 @@ export default class CodeGenerator implements IOrchestrator {
           paramType = cbInfo.typedefName;
           isPointer = false; // Function pointers are already pointers
         } else {
-          paramType = this._generateType(param.type());
+          paramType = this.generateType(param.type());
           // ADR-006: Non-array parameters become pointers
           isPointer = !isArray;
         }
@@ -4853,7 +4892,7 @@ export default class CodeGenerator implements IOrchestrator {
     isPrivate: boolean,
     lines: string[],
   ): void {
-    const type = this._generateType(varDecl.type());
+    const type = this.generateType(varDecl.type());
     const varName = varDecl.IDENTIFIER().getText();
     const fullName = `${scopeName}_${varName}`;
     const prefix = isPrivate ? "static " : "";
@@ -4898,7 +4937,7 @@ export default class CodeGenerator implements IOrchestrator {
     isPrivate: boolean,
     lines: string[],
   ): void {
-    const returnType = this._generateType(funcDecl.type());
+    const returnType = this.generateType(funcDecl.type());
     const funcName = funcDecl.IDENTIFIER().getText();
     const fullName = `${scopeName}_${funcName}`;
     const prefix = isPrivate ? "static " : "";
@@ -4966,7 +5005,7 @@ export default class CodeGenerator implements IOrchestrator {
     // This handles non-contiguous register layouts correctly (like i.MX RT1062)
     for (const member of ctx.registerMember()) {
       const regName = member.IDENTIFIER().getText();
-      const regType = this._generateType(member.type());
+      const regType = this.generateType(member.type());
       const access = member.accessModifier().getText();
       const offset = this._generateExpression(member.expression());
 
@@ -5056,7 +5095,7 @@ export default class CodeGenerator implements IOrchestrator {
     callbackFields: Array<{ fieldName: string; callbackType: string }>,
   ): string {
     const fieldName = member.IDENTIFIER().getText();
-    const typeName = this._getTypeName(member.type());
+    const typeName = this.getTypeName(member.type());
     const arrayDims = member.arrayDimension();
     const isArray = arrayDims.length > 0;
 
@@ -5117,7 +5156,7 @@ export default class CodeGenerator implements IOrchestrator {
     arrayDims: Parser.ArrayDimensionContext[],
     isArray: boolean,
   ): string {
-    const type = this._generateType(member.type());
+    const type = this.generateType(member.type());
 
     // Check if we have tracked dimensions for this field
     const trackedDimensions =
@@ -5420,7 +5459,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Fallback to inline implementation (will be removed after migration)
-    const returnType = this._generateType(ctx.type());
+    const returnType = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
     // Set up function context
@@ -5583,7 +5622,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   private generateParameter(ctx: Parser.ParameterContext): string {
     const constMod = ctx.constModifier() ? "const " : "";
-    const typeName = this._getTypeName(ctx.type());
+    const typeName = this.getTypeName(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const dims = ctx.arrayDimension();
 
@@ -5593,7 +5632,7 @@ export default class CodeGenerator implements IOrchestrator {
       return `${callbackInfo.typedefName} ${name}`;
     }
 
-    const type = this._generateType(ctx.type());
+    const type = this.generateType(ctx.type());
 
     // Try special cases first
     const stringArrayResult = this._tryGenerateStringArrayParam(
@@ -5818,7 +5857,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ): string {
-    let type = this._generateType(ctx.type());
+    let type = this.generateType(ctx.type());
 
     // ADR-046: Handle nullable C pointer types (c_ prefix variables)
     if (!name.startsWith("c_") || !ctx.expression()) {
@@ -5933,7 +5972,7 @@ export default class CodeGenerator implements IOrchestrator {
       return `${decl} = ${this._getZeroInitializer(typeCtx, isArray)}`;
     }
 
-    const typeName = this._getTypeName(typeCtx);
+    const typeName = this.getTypeName(typeCtx);
     const savedExpectedType = this.context.expectedType;
     this.context.expectedType = typeName;
 
@@ -6007,7 +6046,7 @@ export default class CodeGenerator implements IOrchestrator {
     // At global scope, we can't emit assignment statements.
     this.pendingCppClassAssignments = [];
     throw new Error(
-      `Error: C++ class '${this._getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
+      `Error: C++ class '${this.getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
         `syntax at global scope. Use constructor syntax or initialize fields separately.`,
     );
   }
@@ -6021,7 +6060,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.VariableDeclarationContext,
     argListCtx: Parser.ConstructorArgumentListContext,
   ): string {
-    const type = this._generateType(ctx.type());
+    const type = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
 
@@ -6855,7 +6894,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #267: Use C++ casts when cppMode is enabled
    */
   private generateCastExpression(ctx: Parser.CastExpressionContext): string {
-    const targetType = this._generateType(ctx.type());
+    const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
 
     // ADR-024: Validate integer casts for narrowing and sign conversion
@@ -6993,7 +7032,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // It's a primitive or other type - generate normally
-    return `sizeof(${this._generateType(typeCtx)})`;
+    return `sizeof(${this.generateType(typeCtx)})`;
   }
 
   /**
@@ -7151,60 +7190,6 @@ export default class CodeGenerator implements IOrchestrator {
   // NOTE: generateMemberAccess and generateArrayAccess removed in grammar consolidation
   // These methods referenced MemberAccessContext and ArrayAccessContext which no longer
   // exist after unifying to assignmentTarget: IDENTIFIER postfixTargetOp*
-
-  // ========================================================================
-  // Types
-  // ========================================================================
-
-  /**
-   * Get the C-Next type name (for tracking purposes, not C translation)
-   */
-  private _getTypeName(ctx: Parser.TypeContext): string {
-    // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-    if (ctx.scopedType()) {
-      const typeName = ctx.scopedType()!.IDENTIFIER().getText();
-      if (this.context.currentScope) {
-        return `${this.context.currentScope}_${typeName}`;
-      }
-      return typeName;
-    }
-    // Issue #478: Handle global.Type for global types inside scope
-    if (ctx.globalType()) {
-      return ctx.globalType()!.IDENTIFIER().getText();
-    }
-    // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
-    // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult -> MockLib::Parse::ParseResult)
-    if (ctx.qualifiedType()) {
-      const identifiers = ctx.qualifiedType()!.IDENTIFIER();
-      const identifierNames = identifiers.map((id) => id.getText());
-      return this.resolveQualifiedType(identifierNames);
-    }
-    if (ctx.userType()) {
-      return ctx.userType()!.getText();
-    }
-    if (ctx.primitiveType()) {
-      return ctx.primitiveType()!.getText();
-    }
-    return ctx.getText();
-  }
-
-  private _generateType(ctx: Parser.TypeContext): string {
-    // Track required includes based on type usage
-    const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
-    if (requiredInclude) {
-      this.requireInclude(requiredInclude);
-    }
-
-    // Generate the C type using the helper with dependencies
-    return TypeGenerationHelper.generate(ctx, {
-      currentScope: this.context.currentScope,
-      isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
-      checkNeedsStructKeyword: (name) =>
-        this.symbolTable?.checkNeedsStructKeyword(name) ?? false,
-      validateCrossScopeVisibility: (scope, member) =>
-        this._validateCrossScopeVisibility(scope, member),
-    });
-  }
 
   // ========================================================================
   // strlen Optimization - Cache repeated .length accesses
