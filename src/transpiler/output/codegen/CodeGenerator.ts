@@ -1173,7 +1173,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
-    return this._generateArrayDimensions(dims);
+    return dims.map((d) => this.generateArrayDimension(d)).join("");
   }
 
   // === strlen Optimization (ADR-053 A3) ===
@@ -1245,7 +1245,18 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Generate single array dimension */
   generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
-    return this._generateArrayDimension(dim);
+    if (dim.expression()) {
+      // Bug #8: At file scope, resolve const values to numeric literals
+      // because C doesn't allow const variables as array sizes at file scope
+      if (!this.context.inFunctionBody) {
+        const constValue = this.tryEvaluateConstant(dim.expression()!);
+        if (constValue !== undefined) {
+          return `[${constValue}]`;
+        }
+      }
+      return `[${this.generateExpression(dim.expression()!)}]`;
+    }
+    return "[]";
   }
 
   /** Generate parameter list for function signature */
@@ -2178,7 +2189,7 @@ export default class CodeGenerator implements IOrchestrator {
       arrayInitState,
       localArrays: this.context.localArrays,
       generateExpression: (ctx) => this._generateExpression(ctx),
-      generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
+      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
       getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
       getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
       getStringLiteralLength: (literal) => StringUtils.literalLength(literal),
@@ -2203,7 +2214,7 @@ export default class CodeGenerator implements IOrchestrator {
       },
       generateExpression: (ctx) => this._generateExpression(ctx),
       getTypeName: (ctx) => this.getTypeName(ctx),
-      generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
+      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
     });
 
     this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
@@ -3858,7 +3869,7 @@ export default class CodeGenerator implements IOrchestrator {
         }
 
         const arrayDims = isArray
-          ? dims.map((d) => this._generateArrayDimension(d)).join("")
+          ? dims.map((d) => this.generateArrayDimension(d)).join("")
           : "";
         parameters.push({
           name: paramName,
@@ -4902,7 +4913,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     let decl = `${prefix}${type} ${fullName}`;
     if (isArray) {
-      decl += this._generateArrayDimensions(arrayDims);
+      decl += this.generateArrayDimensions(arrayDims);
     }
 
     // ADR-045: Add string capacity dimension for string arrays
@@ -5139,7 +5150,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.callbackFieldTypes.set(`${structName}.${fieldName}`, typeName);
 
     if (isArray) {
-      const dims = this._generateArrayDimensions(arrayDims);
+      const dims = this.generateArrayDimensions(arrayDims);
       return `    ${callbackInfo.typedefName} ${fieldName}${dims};`;
     }
     return `    ${callbackInfo.typedefName} ${fieldName};`;
@@ -5169,7 +5180,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     if (isArray) {
-      const dims = this._generateArrayDimensions(arrayDims);
+      const dims = this.generateArrayDimensions(arrayDims);
       return `    ${type} ${fieldName}${dims};`;
     }
 
@@ -5685,7 +5696,7 @@ export default class CodeGenerator implements IOrchestrator {
     const capacity = stringType.INTEGER_LITERAL()
       ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
       : 256;
-    const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
+    const dimStr = dims.map((d) => this.generateArrayDimension(d)).join("");
     return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
   }
 
@@ -5702,7 +5713,7 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    const dimStr = dims.map((d) => this._generateArrayDimension(d)).join("");
+    const dimStr = dims.map((d) => this.generateArrayDimension(d)).join("");
     const wasModified = this._isCurrentParameterModified(name);
     const autoConst = !wasModified && !constMod ? "const " : "";
     return `${autoConst}${constMod}${type} ${name}${dimStr}`;
@@ -5763,31 +5774,6 @@ export default class CodeGenerator implements IOrchestrator {
     const autoConst = !wasModified && !constMod ? "const " : "";
     const refOrPtr = this.cppHelper!.refOrPtr();
     return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
-  }
-
-  private _generateArrayDimension(ctx: Parser.ArrayDimensionContext): string {
-    if (ctx.expression()) {
-      // Bug #8: At file scope, resolve const values to numeric literals
-      // because C doesn't allow const variables as array sizes at file scope
-      if (!this.context.inFunctionBody) {
-        const constValue = this.tryEvaluateConstant(ctx.expression()!);
-        if (constValue !== undefined) {
-          return `[${constValue}]`;
-        }
-      }
-      return `[${this._generateExpression(ctx.expression()!)}]`;
-    }
-    return "[]";
-  }
-
-  /**
-   * ADR-036: Generate all array dimensions for multi-dimensional arrays
-   * Converts array of ArrayDimensionContext to string like "[4][8]"
-   */
-  private _generateArrayDimensions(
-    dims: Parser.ArrayDimensionContext[],
-  ): string {
-    return dims.map((d) => this._generateArrayDimension(d)).join("");
   }
 
   // ========================================================================
@@ -5936,7 +5922,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Generate dimensions and track as local array
-    const newDecl = decl + this._generateArrayDimensions(arrayDims);
+    const newDecl = decl + this.generateArrayDimensions(arrayDims);
     this.context.localArrays.add(name);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
