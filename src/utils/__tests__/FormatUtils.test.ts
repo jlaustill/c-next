@@ -114,3 +114,16 @@ describe("FormatUtils.INDENT", () => {
     expect(FormatUtils.INDENT.length).toBe(4);
   });
 });
+
+// ========================================================================
+// getScopeSeparator
+// ========================================================================
+describe("FormatUtils.getScopeSeparator", () => {
+  it("returns :: for C++ context", () => {
+    expect(FormatUtils.getScopeSeparator(true)).toBe("::");
+  });
+
+  it("returns _ for C/C-Next context", () => {
+    expect(FormatUtils.getScopeSeparator(false)).toBe("_");
+  });
+});

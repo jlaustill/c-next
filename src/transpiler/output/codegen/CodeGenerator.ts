@@ -3,7 +3,7 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
-import { CommonTokenStream, ParserRuleContext, TerminalNode } from "antlr4ng";
+import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
@@ -115,6 +115,8 @@ import IPostfixChainDeps from "./types/IPostfixChainDeps";
 import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
 import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
+// Stateless parser utilities extracted from CodeGenerator
+import CodegenParserUtils from "./utils/CodegenParserUtils";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
@@ -915,10 +917,10 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Extract operators from parse tree children in correct order.
-   * Part of IOrchestrator interface - delegates to private implementation.
+   * Part of IOrchestrator interface - delegates to CodegenParserUtils.
    */
   getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
-    return this._getOperatorsFromChildren(ctx);
+    return CodegenParserUtils.getOperatorsFromChildren(ctx);
   }
 
   // === Validation ===
@@ -1243,7 +1245,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Get the length of a string literal */
   getStringLiteralLength(literal: string): number {
-    return this._getStringLiteralLength(literal);
+    return StringUtils.literalLength(literal);
   }
 
   /** Get string concatenation operands if expression is a concat */
@@ -1343,7 +1345,7 @@ export default class CodeGenerator implements IOrchestrator {
     name: string,
     paramList: Parser.ParameterListContext | null,
   ): boolean {
-    return this._isMainFunctionWithArgs(name, paramList);
+    return CodegenParserUtils.isMainFunctionWithArgs(name, paramList);
   }
 
   generateCallbackTypedef(funcName: string): string | null {
@@ -1626,10 +1628,10 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Get the separator for scope access (:: for C++, _ for C-Next).
-   * Part of IOrchestrator interface.
+   * Part of IOrchestrator interface - delegates to FormatUtils.
    */
   getScopeSeparator(isCppAccess: boolean): string {
-    return this._getScopeSeparator(isCppAccess);
+    return FormatUtils.getScopeSeparator(isCppAccess);
   }
 
   /**
@@ -1900,14 +1902,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #304: Get the appropriate scope separator for C++ vs C/C-Next.
-   * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
-   */
-  private _getScopeSeparator(isCppContext: boolean): string {
-    return isCppContext ? "::" : "_";
-  }
-
-  /**
    * Issue #388: Resolve a qualified type from dot notation to the correct output format.
    * For C++ namespace types (like MockLib.Parse.ParseResult), uses :: separator.
    * For C-Next scope types (like Motor.State), uses _ separator.
@@ -2165,8 +2159,7 @@ export default class CodeGenerator implements IOrchestrator {
       generateArrayDimensions: (dims) => this._generateArrayDimensions(dims),
       getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
       getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
-      getStringLiteralLength: (literal) =>
-        this._getStringLiteralLength(literal),
+      getStringLiteralLength: (literal) => StringUtils.literalLength(literal),
       getStringExprCapacity: (exprCode) =>
         this._getStringExprCapacity(exprCode),
       requireStringInclude: () => this.requireInclude("string"),
@@ -4239,7 +4232,7 @@ export default class CodeGenerator implements IOrchestrator {
   private _getStringExprCapacity(expr: string): number | null {
     // String literal - capacity equals content length
     if (expr.startsWith('"') && expr.endsWith('"')) {
-      return this._getStringLiteralLength(expr);
+      return StringUtils.literalLength(expr);
     }
 
     // Variable - check type registry
@@ -4455,14 +4448,6 @@ export default class CodeGenerator implements IOrchestrator {
     if (!primary.IDENTIFIER()) return null;
 
     return primary.IDENTIFIER()!.getText();
-  }
-
-  /**
-   * ADR-045: Get the actual character length of a string literal,
-   * accounting for escape sequences like \n, \t, \\, etc.
-   */
-  private _getStringLiteralLength(literal: string): number {
-    return StringUtils.literalLength(literal);
   }
 
   /**
@@ -5524,7 +5509,7 @@ export default class CodeGenerator implements IOrchestrator {
     this._setupFunctionContext(name, ctx);
 
     // Check for main function with args parameter (u8 args[][])
-    const isMainWithArgs = this._isMainFunctionWithArgs(
+    const isMainWithArgs = CodegenParserUtils.isMainFunctionWithArgs(
       name,
       ctx.parameterList(),
     );
@@ -5669,37 +5654,6 @@ export default class CodeGenerator implements IOrchestrator {
         : "void";
 
     return `\ntypedef ${callbackInfo.returnType} (*${callbackInfo.typedefName})(${paramList});\n`;
-  }
-
-  /**
-   * Check if this is the main function with command-line args parameter
-   * Supports: u8 args[][] (legacy) or string args[] (preferred)
-   */
-  private _isMainFunctionWithArgs(
-    name: string,
-    paramList: Parser.ParameterListContext | null,
-  ): boolean {
-    if (name !== "main" || !paramList) {
-      return false;
-    }
-
-    const params = paramList.parameter();
-    if (params.length !== 1) {
-      return false;
-    }
-
-    const param = params[0];
-    const typeCtx = param.type();
-    const dims = param.arrayDimension();
-
-    // Check for string args[] (preferred - array of strings)
-    if (typeCtx.stringType() && dims.length === 1) {
-      return true;
-    }
-
-    // Check for u8 args[][] (legacy - 2D array of bytes)
-    const type = typeCtx.getText();
-    return (type === "u8" || type === "i8") && dims.length === 2;
   }
 
   private _generateParameterList(ctx: Parser.ParameterListContext): string {
@@ -6812,24 +6766,6 @@ export default class CodeGenerator implements IOrchestrator {
     if (unaryExprs.length === 0) return null;
 
     return this.getUnaryExpressionType(unaryExprs[0]);
-  }
-
-  /**
-   * Extracts binary operators from a parse tree context in order.
-   * Issue #152: Fixes bug where mixed operators (e.g., + and -) were incorrectly
-   * detected using text.includes() which would use the same operator for all positions.
-   *
-   * @param ctx The parser rule context containing operands and operators as children
-   * @returns Array of operator strings in the order they appear
-   */
-  private _getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
-    const operators: string[] = [];
-    for (const child of ctx.children) {
-      if (child instanceof TerminalNode) {
-        operators.push(child.getText());
-      }
-    }
-    return operators;
   }
 
   private _generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
