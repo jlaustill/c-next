@@ -126,6 +126,32 @@ class SymbolLookupHelper {
       [ESourceLanguage.CNext],
     );
   }
+
+  /**
+   * Check if a function is a C-Next function (combined local + symbol table lookup).
+   * Checks local knownFunctions set first, then falls back to symbol table.
+   */
+  static isCNextFunctionCombined(
+    knownFunctions: ReadonlySet<string> | undefined,
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    if (knownFunctions?.has(name)) return true;
+    return SymbolLookupHelper.isCNextFunction(symbolTable, name);
+  }
+
+  /**
+   * Check if a name is a known scope (combined local + symbol table lookup).
+   * Checks local knownScopes set first, then falls back to symbol table.
+   */
+  static isKnownScope(
+    knownScopes: ReadonlySet<string> | undefined,
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    if (knownScopes?.has(name)) return true;
+    return SymbolLookupHelper.isNamespace(symbolTable, name);
+  }
 }
 
 export default SymbolLookupHelper;

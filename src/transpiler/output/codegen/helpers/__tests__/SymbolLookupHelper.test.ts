@@ -323,4 +323,115 @@ describe("SymbolLookupHelper", () => {
       );
     });
   });
+
+  describe("isCNextFunctionCombined", () => {
+    it("returns true when in knownFunctions set", () => {
+      const knownFunctions = new Set(["myFunc"]);
+      expect(
+        SymbolLookupHelper.isCNextFunctionCombined(
+          knownFunctions,
+          null,
+          "myFunc",
+        ),
+      ).toBe(true);
+    });
+
+    it("returns true when in symbol table as C-Next function", () => {
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+        ],
+      };
+      expect(
+        SymbolLookupHelper.isCNextFunctionCombined(
+          new Set(),
+          mockTable,
+          "myFunc",
+        ),
+      ).toBe(true);
+    });
+
+    it("returns false when not in knownFunctions and not in symbol table", () => {
+      const mockTable = {
+        getOverloads: () => [],
+      };
+      expect(
+        SymbolLookupHelper.isCNextFunctionCombined(
+          new Set(),
+          mockTable,
+          "myFunc",
+        ),
+      ).toBe(false);
+    });
+
+    it("returns false when knownFunctions is undefined and not in symbol table", () => {
+      expect(
+        SymbolLookupHelper.isCNextFunctionCombined(undefined, null, "myFunc"),
+      ).toBe(false);
+    });
+
+    it("prioritizes knownFunctions over symbol table", () => {
+      const knownFunctions = new Set(["myFunc"]);
+      const mockTable = {
+        getOverloads: () => [
+          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.C },
+        ],
+      };
+      expect(
+        SymbolLookupHelper.isCNextFunctionCombined(
+          knownFunctions,
+          mockTable,
+          "myFunc",
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe("isKnownScope", () => {
+    it("returns true when in knownScopes set", () => {
+      const knownScopes = new Set(["MyScope"]);
+      expect(
+        SymbolLookupHelper.isKnownScope(knownScopes, null, "MyScope"),
+      ).toBe(true);
+    });
+
+    it("returns true when in symbol table as namespace", () => {
+      const mockTable = {
+        getOverloads: () => [
+          {
+            kind: ESymbolKind.Namespace,
+            sourceLanguage: ESourceLanguage.CNext,
+          },
+        ],
+      };
+      expect(
+        SymbolLookupHelper.isKnownScope(new Set(), mockTable, "MyScope"),
+      ).toBe(true);
+    });
+
+    it("returns false when not in knownScopes and not in symbol table", () => {
+      const mockTable = {
+        getOverloads: () => [],
+      };
+      expect(
+        SymbolLookupHelper.isKnownScope(new Set(), mockTable, "MyScope"),
+      ).toBe(false);
+    });
+
+    it("returns false when knownScopes is undefined and not in symbol table", () => {
+      expect(SymbolLookupHelper.isKnownScope(undefined, null, "MyScope")).toBe(
+        false,
+      );
+    });
+
+    it("prioritizes knownScopes over symbol table", () => {
+      const knownScopes = new Set(["MyScope"]);
+      const mockTable = {
+        getOverloads: () => [],
+      };
+      expect(
+        SymbolLookupHelper.isKnownScope(knownScopes, mockTable, "MyScope"),
+      ).toBe(true);
+    });
+  });
 });

@@ -869,10 +869,14 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Check if a function is defined in C-Next.
-   * Part of IOrchestrator interface - delegates to private implementation.
+   * Part of IOrchestrator interface.
    */
   isCNextFunction(name: string): boolean {
-    return this._isCNextFunction(name);
+    return SymbolLookupHelper.isCNextFunctionCombined(
+      this.knownFunctions,
+      this.symbolTable,
+      name,
+    );
   }
 
   // === Expression Analysis ===
@@ -1615,7 +1619,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownScope(name: string): boolean {
-    return this._isKnownScope(name);
+    return SymbolLookupHelper.isKnownScope(
+      this.symbols?.knownScopes,
+      this.symbolTable,
+      name,
+    );
   }
 
   /**
@@ -1623,7 +1631,10 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppScopeSymbol(name: string): boolean {
-    return this._isCppScopeSymbol(name);
+    return CppNamespaceUtils.isCppNamespace(
+      name,
+      this.symbolTable ?? undefined,
+    );
   }
 
   /**
@@ -1848,57 +1859,6 @@ export default class CodeGenerator implements IOrchestrator {
 
   private foldBooleanToInt(expr: string): string {
     return BooleanHelper.foldBooleanToInt(expr);
-  }
-
-  /**
-   * Check if a function is a C-Next function (uses pass-by-reference semantics).
-   * Checks both internal tracking and external symbol table.
-   */
-  private _isCNextFunction(name: string): boolean {
-    // First check internal tracking (for current file)
-    if (this.knownFunctions.has(name)) {
-      return true;
-    }
-
-    // Then check symbol table for cross-file C-Next functions
-    return SymbolLookupHelper.isCNextFunction(this.symbolTable, name);
-  }
-
-  /**
-   * Issue #294: Check if an identifier is a known scope
-   * Checks both the local SymbolCollector (current file) and the global SymbolTable
-   * (all files including includes). This ensures cross-file scope references are
-   * properly validated.
-   */
-  private _isKnownScope(name: string): boolean {
-    // Check local file's symbol collector first
-    if (this.symbols?.knownScopes.has(name)) {
-      return true;
-    }
-
-    // Check global symbol table for scopes from included files
-    if (this.symbolTable) {
-      const symbols = this.symbolTable.getOverloads(name);
-      if (symbols.some((sym) => sym.kind === ESymbolKind.Namespace)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Issue #304: Check if a name is a C++ scope-like symbol that requires :: syntax
-   * This includes C++ namespaces, classes, and enum classes (scoped enums).
-   * Returns true if the symbol comes from C++ and needs :: for member access.
-   *
-   * Issue #522: Delegates to shared CppNamespaceUtils for consistency.
-   */
-  private _isCppScopeSymbol(name: string): boolean {
-    return CppNamespaceUtils.isCppNamespace(
-      name,
-      this.symbolTable ?? undefined,
-    );
   }
 
   /**
