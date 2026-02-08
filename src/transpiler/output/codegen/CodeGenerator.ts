@@ -6509,6 +6509,11 @@ export default class CodeGenerator implements IOrchestrator {
       (name: string) => this.isKnownStruct(name),
     );
     if (resolved !== null) {
+      // Issue #741: Check if this is a private const that should be inlined
+      const constValue = this.symbols!.scopePrivateConstValues.get(resolved);
+      if (constValue !== undefined) {
+        return constValue;
+      }
       return resolved;
     }
 
